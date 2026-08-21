@@ -1,0 +1,26 @@
+services:
+  # React frontend — free static site on Render's CDN
+  - type: web
+    name: personal-site
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false # set this in the Render dashboard to the API service URL
+
+  # Python API — free tier (spins down when idle; upgrade plan to remove)
+  - type: web
+    name: personal-site-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.4
