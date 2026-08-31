@@ -1,6 +1,8 @@
 import { Route, Routes } from 'react-router'
 import RootLayout from './layouts/RootLayout.jsx'
 import About from './pages/About.jsx'
+import Blog from './pages/Blog.jsx'
+import BlogPost from './pages/BlogPost.jsx'
 import Home from './pages/Home.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Projects from './pages/Projects.jsx'
@@ -16,6 +18,8 @@ export default function App() {
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="blog" element={<Blog />} />
+        <Route path="blog/:slug" element={<BlogPost />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
