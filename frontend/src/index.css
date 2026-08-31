@@ -112,3 +112,8 @@ footer {
   padding-top: 1.5rem;
   font-size: 0.9rem;
 }
+
+nav a.active {
+  color: var(--text);
+  font-weight: 600;
+}

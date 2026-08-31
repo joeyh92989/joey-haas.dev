@@ -5,8 +5,9 @@ Resume/portfolio website. React (Vite) frontend + FastAPI backend, deployed on R
 ## Structure
 
 ```
-frontend/   React app (Vite) — the resume site, served as a static site
-backend/    FastAPI app — /api/projects, /api/health; add project APIs here
+frontend/   React app (Vite) — routed static site; all public content ships in the bundle
+backend/    FastAPI app — /api/health; add authenticated project APIs here
+scripts/    smoke.sh — post-deploy verification
 render.yaml Render Blueprint — defines both services for auto-deploy
 ```
 
@@ -27,36 +28,53 @@ npm install                                           # first time only
 npm run dev
 ```
 
-The Vite dev server proxies `/api/*` to the backend, so the frontend just
-fetches `/api/projects` and it works in both dev and production.
+The Vite dev server proxies `/api/*` to the backend, which matters for the
+authenticated features planned later. The public pages deliberately make no API
+calls: bio and project content are static modules in `frontend/src/content/`,
+so the site renders fully even when the free-tier backend is asleep.
 
-## First-time GitHub setup
+## Routes
+
+| Route | Page |
+|---|---|
+| `/` | Home |
+| `/about` | About |
+| `/projects` | Projects |
+| anything else | NotFound (client-side 404) |
+
+Routing is `react-router` v8 in declarative mode. Note that all router imports
+come from `react-router` — the `react-router-dom` package does not exist for
+v8. Deep links work in production because `render.yaml` rewrites all paths to
+`index.html`.
+
+## Editing site content
+
+Content lives in `frontend/src/content/`:
+
+- `profile.js` — name, tagline, bio, contact links
+- `projects.js` — the project list
+
+Edit, commit, push. Render redeploys automatically.
+
+## Smoke test
+
+After a deploy:
 
 ```sh
-gh auth login                        # if gh is installed (brew install gh)
-gh repo create personal-site --private --source . --push
+./scripts/smoke.sh
 ```
 
-Or without the GitHub CLI: create an empty repo named `personal-site` on
-github.com, then:
-
-```sh
-git remote add origin git@github.com:YOUR_USERNAME/personal-site.git
-git push -u origin main
-```
+Defaults to the production URLs; pass `[SITE_URL] [API_URL]` to target
+something else. Exits non-zero if any check fails.
 
 ## Deploying to Render
 
-1. Sign in at https://render.com with GitHub.
-2. New → Blueprint → select the `personal-site` repo. Render reads
-   `render.yaml` and creates both services.
-3. After the API service deploys, copy its URL
-   (e.g. `https://personal-site-api.onrender.com`) and set it as the
-   `VITE_API_URL` environment variable on the static site service, then
-   trigger a redeploy of the frontend.
+Both services are already deployed from `render.yaml` via a Render Blueprint.
+Every push to `main` deploys both automatically.
 
-After that, every `git push` to `main` deploys automatically.
+- Frontend: https://personal-site-zas6.onrender.com
+- API: https://personal-site-api-spey.onrender.com
 
 Note: the API runs on Render's free tier, which spins down after ~15 min of
-inactivity (first request takes ~30–50 s). Upgrade the service to Starter
-($7/mo) to keep it always on.
+inactivity (first request then takes ~30 s). Because no public page calls the
+API, visitors never wait on this. Upgrade to Starter ($7/mo) to keep it warm.
