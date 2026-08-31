@@ -24,3 +24,17 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.4
+      # Set in the Render dashboard. sync: false keeps values out of the repo.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      # Optional hardening; set after the first successful sign-in.
+      - key: ADMIN_GOOGLE_SUB
+        sync: false

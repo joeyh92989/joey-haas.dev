@@ -18,8 +18,9 @@ Two terminals:
 ```sh
 # Terminal 1 — backend (http://localhost:8000)
 cd backend
-python3 -m venv .venv && source .venv/bin/activate   # first time only
-pip install -r requirements.txt                       # first time only
+/usr/local/opt/python@3.12/bin/python3.12 -m venv .venv   # first time only
+source .venv/bin/activate
+pip install -r requirements-dev.txt                       # first time only
 uvicorn main:app --reload
 
 # Terminal 2 — frontend (http://localhost:5173)
@@ -86,6 +87,71 @@ template.
 
 Publishing is `git push` — Render rebuilds and redeploys, regenerating
 `/feed.xml` along the way.
+
+## Admin authentication
+
+`/admin` is gated by Google sign-in restricted to one account. It is not linked
+from the navigation — reach it by typing the URL.
+
+### One-time Google Cloud setup
+
+1. Create a project at https://console.cloud.google.com
+2. OAuth consent screen: **External**, in **Testing**, with your Google account
+   added as a test user. Testing mode is correct here — it restricts sign-in to
+   listed users, which is exactly what a single-user admin gate wants.
+   Publishing the app would require verification for no benefit.
+3. Credentials → **OAuth client ID** → **Web application**
+4. Authorized redirect URIs, both exactly:
+   - `https://api.joey-haas.dev/api/auth/callback`
+   - `http://localhost:8000/api/auth/callback`
+
+### Environment variables
+
+Set these on the `personal-site-api` service in the Render dashboard. They are
+declared in `render.yaml` with `sync: false`, so values never enter the repo.
+
+| Variable | Notes |
+|---|---|
+| `GOOGLE_CLIENT_ID` | From the OAuth client |
+| `GOOGLE_CLIENT_SECRET` | From the OAuth client — secret |
+| `SESSION_SECRET` | See below — secret |
+| `ADMIN_EMAIL` | The single allowed Google account |
+| `FRONTEND_URL` | `https://joey-haas.dev` |
+| `ADMIN_GOOGLE_SUB` | Optional. See hardening below |
+
+Generate the session secret locally:
+
+```sh
+python3 -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+The service **refuses to start** if any required variable is missing or blank.
+That is deliberate: a server running with a default session secret would look
+healthy while issuing forgeable sessions.
+
+For local development, copy `backend/env.example` to `backend/.env` and fill it
+in. `.env` is gitignored.
+
+### Hardening with `ADMIN_GOOGLE_SUB`
+
+Google's `sub` is the immutable identifier for an account; an email address is
+not. After your first successful sign-in the server logs `Admin signed in.
+sub=...`. Copy that value into `ADMIN_GOOGLE_SUB` and from then on both the
+email and the subject must match.
+
+It cannot be required from the start, because the value is unknowable until the
+first login.
+
+### Running the tests
+
+```sh
+cd backend && ./.venv/bin/pytest
+cd frontend && npm test
+```
+
+The backend venv must be **Python 3.12** to match Render. macOS system Python is
+3.9, which cannot install this dependency set at all — current `cryptography`
+ships no 3.9 wheels, so pip falls back to a source build requiring Rust.
 
 ## Smoke test
 
