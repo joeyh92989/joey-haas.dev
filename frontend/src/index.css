@@ -208,3 +208,31 @@ nav a.active {
   padding: 0.4rem 0.7rem;
   text-align: left;
 }
+
+.admin-error {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  color: var(--text);
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.admin-signin {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: inline-block;
+  padding: 0.5rem 1rem;
+}
+
+.admin-signout {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.4rem 0.9rem;
+}
