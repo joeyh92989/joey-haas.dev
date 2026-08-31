@@ -1,6 +1,11 @@
-import pytest
+from unittest.mock import AsyncMock, patch
 
-from auth import is_allowed
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from starlette.middleware.sessions import SessionMiddleware
+
+from auth import create_auth_router, is_allowed
 from config import Config
 
 BASE = Config(
@@ -60,3 +65,91 @@ def test_sub_pinning_denies_wrong_sub_even_with_matching_email():
 def test_blank_sub_pin_falls_back_to_email_only(sub):
     config = Config(**{**BASE.__dict__, "admin_google_sub": sub})
     assert is_allowed(VALID, config) is True
+
+
+def build_client(config=BASE):
+    app = FastAPI()
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=config.session_secret,
+        max_age=2_592_000,
+        same_site="lax",
+        https_only=True,
+    )
+    app.include_router(create_auth_router(config))
+    return TestClient(app, base_url="https://testserver")
+
+
+def sign_in(client, userinfo=None, extra_token_fields=None):
+    """Drives the callback with Google's token exchange mocked."""
+    token = {"userinfo": userinfo if userinfo is not None else VALID}
+    if extra_token_fields:
+        token.update(extra_token_fields)
+    with patch("auth.OAuth.create_client") as create_client:
+        create_client.return_value.authorize_access_token = AsyncMock(
+            return_value=token
+        )
+        return client.get("/api/auth/callback", follow_redirects=False)
+
+
+def test_me_without_session_is_401():
+    client = build_client()
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_callback_rejects_disallowed_account_without_creating_session():
+    client = build_client()
+    response = sign_in(
+        client, {"email": "someone@else.com", "email_verified": True, "sub": "9"}
+    )
+
+    assert response.status_code == 302
+    assert "error=access_denied" in response.headers["location"]
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_callback_accepts_allowed_account_and_creates_session():
+    client = build_client()
+    response = sign_in(client)
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://joey-haas.dev/admin"
+
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200
+    assert me.json() == {"email": "josephthaas@gmail.com"}
+
+
+def test_session_cookie_carries_security_flags():
+    client = build_client()
+    raw = sign_in(client).headers.get("set-cookie", "").lower()
+    assert "httponly" in raw
+    assert "samesite=lax" in raw
+    assert "secure" in raw
+
+
+def test_logout_clears_the_session():
+    client = build_client()
+    sign_in(client)
+
+    assert client.get("/api/auth/me").status_code == 200
+    assert client.post("/api/auth/logout").status_code == 204
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_session_never_contains_a_token():
+    # The session cookie is signed, not encrypted: anything placed in it is
+    # readable by whoever holds the cookie. This asserts we put nothing
+    # sensitive there even when Google hands us tokens.
+    client = build_client()
+    response = sign_in(
+        client,
+        extra_token_fields={
+            "access_token": "SECRETACCESSTOKEN",
+            "id_token": "SECRETIDTOKEN",
+        },
+    )
+
+    raw = response.headers.get("set-cookie", "")
+    assert "SECRETACCESSTOKEN" not in raw
+    assert "SECRETIDTOKEN" not in raw
