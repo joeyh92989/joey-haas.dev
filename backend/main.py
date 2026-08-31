@@ -1,7 +1,9 @@
 """Personal site API.
 
-Serves project data for the portfolio frontend. Individual personal
-projects can be mounted here later as routers (one module per project).
+Serves the authenticated and dynamic parts of the site. Public page content is
+static and ships in the frontend bundle, so no endpoint here is on the critical
+path for a visitor. Individual personal projects can be mounted here later as
+routers (one module per project).
 """
 
 from fastapi import FastAPI
@@ -21,23 +23,5 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health() -> dict:
+    """Liveness probe. Target of scripts/smoke.sh."""
     return {"status": "ok"}
-
-
-@app.get("/api/projects")
-def list_projects() -> list[dict]:
-    """Placeholder project list — replace with real projects (or a database) later."""
-    return [
-        {
-            "name": "This Website",
-            "description": "Resume site with a React frontend and FastAPI backend, deployed on Render.",
-            "tech": ["React", "FastAPI", "Render"],
-            "url": None,
-        },
-        {
-            "name": "Media Collection Tracker",
-            "description": "Tool for tracking a video game, movie, and comic collection.",
-            "tech": ["Python", "SQL"],
-            "url": None,
-        },
-    ]
