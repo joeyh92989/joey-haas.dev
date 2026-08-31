@@ -117,3 +117,94 @@ nav a.active {
   color: var(--text);
   font-weight: 600;
 }
+
+.post-list {
+  list-style: none;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.post-meta .tech-list {
+  margin-top: 0;
+}
+
+.draft-badge {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.post-body {
+  margin-top: 1.5rem;
+}
+
+.post-body h2,
+.post-body h3 {
+  margin-top: 2rem;
+  margin-bottom: 0.6rem;
+}
+
+.post-body p,
+.post-body ul,
+.post-body ol {
+  margin-bottom: 1rem;
+}
+
+.post-body ul,
+.post-body ol {
+  padding-left: 1.25rem;
+}
+
+.post-body blockquote {
+  border-left: 3px solid var(--border);
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  padding-left: 1rem;
+}
+
+.post-body :not(pre) > code {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85em;
+  padding: 0.1rem 0.35rem;
+}
+
+/* Shiki emits inline styles for colors; this only handles the box. */
+.post-body pre {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  padding: 1rem;
+}
+
+.post-body table {
+  border-collapse: collapse;
+  display: block;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  width: 100%;
+}
+
+.post-body th,
+.post-body td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.7rem;
+  text-align: left;
+}
