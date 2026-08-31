@@ -56,6 +56,37 @@ Content lives in `frontend/src/content/`:
 
 Edit, commit, push. Render redeploys automatically.
 
+## Writing a blog post
+
+Posts are markdown files in `frontend/posts/`. The filename is the URL slug —
+`dependency-injection.md` becomes `/blog/dependency-injection`.
+
+```markdown
+---
+title: Why FastAPI's dependency injection clicked for me
+date: 2026-09-14
+tags: [python, fastapi]
+draft: false
+---
+
+Post body here.
+```
+
+`title` and `date` are required; a missing or malformed one **fails the build**
+rather than rendering as `undefined`. `tags` and `draft` are optional.
+
+Set `draft: true` to keep a post out of production entirely. Drafts are stripped
+during the production build, so the text never reaches the shipped bundle — they
+are not merely hidden at render time. They still render locally with
+`npm run dev`, marked with a Draft badge.
+
+Code blocks are syntax-highlighted at build time by Shiki, so no highlighting
+JavaScript is sent to the browser. `frontend/posts/example.md` is a working
+template.
+
+Publishing is `git push` — Render rebuilds and redeploys, regenerating
+`/feed.xml` along the way.
+
 ## Smoke test
 
 After a deploy:
