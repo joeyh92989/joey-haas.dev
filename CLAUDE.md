@@ -66,6 +66,11 @@ before pushing.
   is an optional accessory only.
 - API routes live under `/api/`. CORS is configured for localhost and
   *.onrender.com in `backend/main.py` — update if a custom domain is added.
+- The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
+  `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
+  applications — so replace the file in place rather than renaming it. Publish
+  only the phone-free export; the copies in `~/Documents/resume/` carry a phone
+  number.
 
 ## Current state / TODO
 

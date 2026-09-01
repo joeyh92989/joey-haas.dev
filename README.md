@@ -61,7 +61,14 @@ v8. Deep links work in production because `render.yaml` rewrites all paths to
 Content lives in `frontend/src/content/`:
 
 - `profile.js` — name, tagline, bio, contact links
+- `education.js` — degrees, bootcamp, and certifications
 - `projects.js` — the project list
+
+The resume PDF is not content in this sense — it is a static asset at
+`frontend/public/resume.pdf`, which Vite copies unhashed to `dist/` and Render
+serves at `/resume.pdf`. It is the phone-free export. Replace the file at that
+exact path when the resume changes; renaming it breaks every link already sent
+out.
 
 Edit, commit, push. Render redeploys automatically.
 
