@@ -70,13 +70,17 @@ export default function RootLayout() {
         </div>
       </header>
 
-      <nav className={isHome ? 'nav-home' : undefined}>
-        <NavLink to="/" end>
-          Home
-        </NavLink>
-        <NavLink to="/about">About</NavLink>
-        <NavLink to="/projects">Projects</NavLink>
-        <NavLink to="/blog">Blog</NavLink>
+      {/* The toggle sits on the nav row visually but outside <nav>: it is not a
+          navigation control, and the landmark should not advertise it as one. */}
+      <div className={isHome ? 'nav-row home' : 'nav-row'}>
+        <nav>
+          <NavLink to="/" end>
+            Home
+          </NavLink>
+          <NavLink to="/about">About</NavLink>
+          <NavLink to="/projects">Projects</NavLink>
+          <NavLink to="/blog">Blog</NavLink>
+        </nav>
         {/* The visible label names the destination theme; the accessible name
             has to also say what the control does. */}
         <button
@@ -87,7 +91,7 @@ export default function RootLayout() {
         >
           {theme === 'dark' ? 'Light' : 'Dark'}
         </button>
-      </nav>
+      </div>
 
       <main className={isHome ? 'home' : undefined}>
         <Outlet />
