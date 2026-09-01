@@ -1,11 +1,60 @@
+/*
+ * Warm Personal theme.
+ *
+ * Dark is the brand default and lives on :root; [data-theme='light'] on <html>
+ * overrides it. index.html ships data-theme="dark" in the markup so the dark
+ * palette survives a JavaScript failure, and its inline script only ever
+ * switches to a stored preference.
+ *
+ * Handoff sizes are given in px; they are expressed here in rem against the
+ * 16px browser default (identical rendering, but text still scales for readers
+ * who raise their browser font size).
+ */
 :root {
-  --bg: #0f1115;
-  --surface: #181b21;
-  --border: #2a2e37;
-  --text: #e8eaed;
-  --text-muted: #9aa0a6;
-  --accent: #7aa2f7;
+  --bg: #201a14;
+  --surface: #2a2219;
+  --surface-raised: #2a2219;
+  --border: #443929;
+  --text: #f6eddd;
+  --text-body: #c9bba5;
+  --text-muted: #a4937c;
+  --accent: #d98e5f;
+  --accent-2: #6f8577;
+  --tag-bg: #2a2219;
+  --tag-border: #443929;
+  --tag-text: #c9bba5;
+  --nav-active-bg: #f6eddd;
+  --nav-active-text: #201a14;
+  --nav-idle: #a4937c;
+  --btn-text: #201a14;
+  /* The inverted pill reads lighter on dark, so it carries more weight. */
+  --nav-active-weight: 600;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-body:
+    'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
   color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #faf6ef;
+  --surface: #f2eadb;
+  --surface-raised: #fffdf8;
+  --border: #e4d8c2;
+  --text: #2a2520;
+  --text-body: #4a4136;
+  --text-muted: #8a7c6a;
+  --accent: #b85c38;
+  --accent-2: #52705f;
+  --tag-bg: #eef1ea;
+  --tag-border: #d8e0d3;
+  --tag-text: #52705f;
+  --nav-active-bg: #2a2520;
+  --nav-active-text: #faf6ef;
+  --nav-idle: #6b5f50;
+  --btn-text: #faf6ef;
+  --nav-active-weight: 500;
+  color-scheme: light;
 }
 
 * {
@@ -16,38 +65,33 @@
 
 body {
   background: var(--bg);
-  color: var(--text);
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
-  line-height: 1.6;
+  color: var(--text-body);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 main {
-  max-width: 720px;
+  max-width: 45rem;
   margin: 0 auto;
-  padding: 3rem 1.25rem 4rem;
+  padding: 3.25rem 1.25rem 2.75rem;
 }
 
-.hero {
-  margin-bottom: 3rem;
+/* Headings are the serif voice of the design; body copy stays sans. */
+h1,
+h2,
+h3 {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.2;
 }
 
-h1 {
-  font-size: 2.5rem;
-  letter-spacing: -0.02em;
-}
-
-.tagline {
-  color: var(--text-muted);
-  font-size: 1.1rem;
-  margin-top: 0.25rem;
-}
-
-nav {
-  display: flex;
-  gap: 1.25rem;
-  margin-top: 1rem;
+h2 {
+  font-size: 1.75rem;
 }
 
 a {
@@ -57,86 +101,409 @@ a {
 
 a:hover {
   text-decoration: underline;
-}
-
-section {
-  margin-bottom: 2.75rem;
-}
-
-h2 {
-  font-size: 1.35rem;
-  margin-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.4rem;
-}
-
-.project-grid {
-  display: grid;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.project-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-}
-
-.project-card h3 {
-  margin-bottom: 0.35rem;
-}
-
-.tech-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  list-style: none;
-  margin-top: 0.75rem;
-}
-
-.tech-list li {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  padding: 0.15rem 0.65rem;
+  text-underline-offset: 3px;
 }
 
 .muted {
   color: var(--text-muted);
 }
 
-footer {
-  border-top: 1px solid var(--border);
-  padding-top: 1.5rem;
-  font-size: 0.9rem;
+/* ---------- Site header ---------- */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
 }
 
-nav a.active {
+/* object-position sits above centre because the source is a portrait crop:
+   centring it squarely would frame the shirt rather than the face. */
+.avatar {
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  flex: none;
+  height: 3.5rem;
+  object-fit: cover;
+  object-position: 50% 12%;
+  width: 3.5rem;
+}
+
+.site-header .site-name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.site-header .tagline {
+  color: var(--text-muted);
+  font-size: 0.84375rem;
+  margin-top: 0.0625rem;
+}
+
+/* Home introduces the person, so it gets the larger of the two header sizes. */
+.site-header.home .avatar {
+  height: 4.75rem;
+  width: 4.75rem;
+}
+
+.site-header.home .site-name {
+  font-size: 1.875rem;
+}
+
+.site-header.home .tagline {
+  font-size: 0.875rem;
+  margin-top: 0.125rem;
+}
+
+/* Wrapping matters on a phone: four pills plus the toggle exceed 375px, and
+   without it the toggle is pushed off the edge rather than onto a second row. */
+nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.375rem;
+}
+
+nav a {
+  border-radius: 999px;
+  color: var(--nav-idle);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.375rem 0.9375rem;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+nav a:hover {
+  background: var(--surface);
+  text-decoration: none;
+}
+
+nav a.active,
+nav a.active:hover {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  font-weight: var(--nav-active-weight);
+}
+
+nav.nav-home {
+  margin-top: 1.5rem;
+}
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: 500 0.8125rem var(--font-body);
+  margin-left: auto;
+  padding: 0.375rem 0.75rem;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.theme-toggle:hover {
+  background: var(--surface);
   color: var(--text);
+}
+
+/* ---------- Home ---------- */
+
+.greeting {
+  font-size: 2.5rem;
+}
+
+.intro {
+  color: var(--text-body);
+  margin-top: 0.875rem;
+  max-width: 54ch;
+}
+
+/* The serif italic pulls one word out of the sans paragraph — the sentence is
+   about caring why, so the word "why" is what gets the emphasis. */
+.intro em {
+  color: var(--accent);
+  font-family: var(--font-display);
+}
+
+.link-cards {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.link-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  flex: 1;
+  padding: 1.125rem 1.25rem;
+  transition: border-color 0.2s;
+}
+
+.link-card:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.link-card-title {
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 
+.link-card-arrow {
+  color: var(--accent);
+}
+
+.link-card-sub {
+  color: var(--text-muted);
+  display: block;
+  font-size: 0.8125rem;
+  margin-top: 0.1875rem;
+}
+
+.latest-post {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: block;
+  margin-top: 1rem;
+  padding: 1.125rem 1.25rem;
+}
+
+.latest-post:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.latest-kicker {
+  color: var(--accent-2);
+  display: block;
+  font-size: 0.65625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.latest-title {
+  color: var(--text);
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 0.25rem;
+}
+
+/* ---------- About ---------- */
+
+/* Vertical rhythm below the nav is owned by the section, not by the first
+   heading inside it, so every page spaces the same way regardless of what it
+   opens with. Home's greeting sits slightly lower than an inner page's h2. */
+nav + section {
+  margin-top: 2.5rem;
+}
+
+nav + section.home-intro {
+  margin-top: 2.75rem;
+}
+
+section + section {
+  margin-top: 2.25rem;
+}
+
+.prose {
+  color: var(--text-body);
+  margin-top: 0.75rem;
+  max-width: 58ch;
+}
+
+.prose + .prose {
+  margin-top: 0.75rem;
+}
+
+/* The rule is the spine of the timeline; each entry hangs a dot on it. */
+.timeline {
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 1.625rem;
+  margin-top: 1.25rem;
+}
+
+.timeline-entry {
+  padding-left: 1.625rem;
+  position: relative;
+}
+
+.timeline-entry::before {
+  background: var(--accent-2);
+  border-radius: 50%;
+  content: '';
+  height: 0.625rem;
+  left: -0.375rem;
+  position: absolute;
+  top: 0.375rem;
+  width: 0.625rem;
+}
+
+.timeline-entry.current::before {
+  background: var(--accent);
+}
+
+.timeline-role {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.timeline-company {
+  color: var(--accent-2);
+  font-size: 0.875rem;
+}
+
+.timeline-entry.current .timeline-company {
+  color: var(--accent);
+}
+
+.timeline-meta {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  margin-top: 0.125rem;
+  text-transform: uppercase;
+}
+
+.timeline-summary {
+  color: var(--text-body);
+  font-size: 0.875rem;
+  margin-top: 0.375rem;
+  max-width: 54ch;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin-top: 0.875rem;
+}
+
+.chip-list li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-body);
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.8125rem;
+}
+
+/* ---------- Projects ---------- */
+
+.project-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.125rem;
+}
+
+.project-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.375rem 1.5rem;
+}
+
+.project-card h3 {
+  font-size: 1.3125rem;
+  font-weight: 600;
+}
+
+.project-card p {
+  color: var(--text-body);
+  font-size: 0.90625rem;
+  margin-top: 0.375rem;
+}
+
+/* Tags are the one place the sage accent appears in light mode, so they read
+   as metadata rather than as another link. */
+.tech-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin-top: 0.875rem;
+}
+
+.tech-list li {
+  background: var(--tag-bg);
+  border: 1px solid var(--tag-border);
+  border-radius: 999px;
+  color: var(--tag-text);
+  font-size: 0.78125rem;
+  padding: 0.1875rem 0.75rem;
+}
+
+/* ---------- Blog ---------- */
+
 .post-list {
   list-style: none;
-  display: grid;
-  gap: 1.5rem;
+  margin-top: 1.125rem;
+}
+
+.post-list li {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.25rem;
+}
+
+.post-list li + li {
+  padding-top: 1.25rem;
+}
+
+/* The dividers separate posts from each other, not the list from the footer —
+   a trailing rule would sit just above the footer's own and read as an empty
+   row. */
+.post-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.post-list li > a {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.3125rem;
+  font-weight: 600;
+}
+
+.post-list li > a:hover {
+  color: var(--accent);
+  text-decoration: none;
 }
 
 .post-meta {
-  display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem;
   color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.75rem;
+  margin-top: 0.375rem;
 }
 
 .post-meta .tech-list {
   margin-top: 0;
+}
+
+.post-meta .tech-list li {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.625rem;
 }
 
 .draft-badge {
@@ -145,12 +512,14 @@ nav a.active {
   border-radius: 999px;
   color: var(--text-muted);
   font-size: 0.75rem;
+  letter-spacing: 0.06em;
   margin-left: 0.5rem;
-  padding: 0.1rem 0.55rem;
+  padding: 0.125rem 0.625rem;
   text-transform: uppercase;
 }
 
 .post-body {
+  color: var(--text-body);
   margin-top: 1.5rem;
 }
 
@@ -158,6 +527,14 @@ nav a.active {
 .post-body h3 {
   margin-top: 2rem;
   margin-bottom: 0.6rem;
+}
+
+.post-body h2 {
+  font-size: 1.5rem;
+}
+
+.post-body h3 {
+  font-size: 1.25rem;
 }
 
 .post-body p,
@@ -186,7 +563,6 @@ nav a.active {
   padding: 0.1rem 0.35rem;
 }
 
-/* Shiki emits inline styles for colors; this only handles the box. */
 .post-body pre {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -210,11 +586,38 @@ nav a.active {
   text-align: left;
 }
 
+/*
+ * Shiki compiles both palettes into the markup: the light theme as inline
+ * colors, the dark theme as --shiki-dark* custom properties. Under the dark
+ * theme those variables are promoted to the real values. !important is
+ * required — it is overriding Shiki's own inline styles.
+ */
+[data-theme='dark'] .shiki,
+[data-theme='dark'] .shiki span {
+  background-color: var(--shiki-dark-bg) !important;
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+/* ---------- Footer ---------- */
+
+footer {
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.84375rem;
+  margin-top: 2.75rem;
+  padding-top: 1.125rem;
+}
+
+/* ---------- Admin ---------- */
+
 .admin-error {
   background: var(--surface);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text);
   margin-bottom: 1rem;
   padding: 0.75rem 1rem;
@@ -223,19 +626,31 @@ nav a.active {
 .admin-signin {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 999px;
   display: inline-block;
+  font-size: 0.8125rem;
+  font-weight: 500;
   padding: 0.5rem 1rem;
 }
 
+.admin-signin:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
 .admin-signout {
-  background: var(--surface);
+  background: none;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
+  border-radius: 999px;
+  color: var(--text-muted);
   cursor: pointer;
-  font: inherit;
-  padding: 0.4rem 0.9rem;
+  font: 500 0.8125rem var(--font-body);
+  padding: 0.375rem 0.75rem;
+}
+
+.admin-signout:hover {
+  background: var(--surface);
+  color: var(--text);
 }
 
 /* Collection table and add form (/admin/collection). */
@@ -244,6 +659,7 @@ nav a.active {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+  margin-top: 1.125rem;
 }
 
 .item-form input,
@@ -253,15 +669,32 @@ nav a.active {
 .item-table button {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text);
   font: inherit;
+  font-size: 0.875rem;
   padding: 0.4rem 0.6rem;
+}
+
+.item-form input::placeholder {
+  color: var(--text-muted);
+}
+
+.item-form input:focus-visible,
+.item-form select:focus-visible,
+.item-table select:focus-visible {
+  border-color: var(--accent);
+  outline: none;
 }
 
 .item-form button,
 .item-table button {
   cursor: pointer;
+}
+
+.item-form button:hover,
+.item-table button:hover {
+  border-color: var(--accent);
 }
 
 /* The wrapper scrolls, not the page: a wide table must never make the whole
@@ -285,6 +718,20 @@ nav a.active {
 
 .item-table th {
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---------- Narrow screens ---------- */
+
+@media (max-width: 34rem) {
+  .link-cards {
+    flex-direction: column;
+  }
+
+  .greeting {
+    font-size: 2rem;
+  }
 }

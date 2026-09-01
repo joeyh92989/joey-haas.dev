@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,6 +10,28 @@
       title="Joey Haas"
       href="/feed.xml"
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;1,6..72,400&family=Public+Sans:wght@400;500;600&display=swap"
+    />
+    <!--
+      Dark is the brand default, so it is baked into the markup above rather
+      than applied by script: with JavaScript unavailable the page still gets
+      the dark palette, and the Shiki rules keyed on [data-theme='dark'] still
+      match. This script therefore only ever switches to the stored preference,
+      and runs before first paint so the switch is invisible.
+    -->
+    <script>
+      try {
+        var stored = localStorage.getItem('theme')
+        if (stored === 'light' || stored === 'dark')
+          document.documentElement.dataset.theme = stored
+      } catch (error) {
+        // Storage can throw in private browsing; the markup default stands.
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
