@@ -14,6 +14,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from auth import create_auth_router
 from config import allowed_origins, load_config
+from db import create_engine_and_sessionmaker
+from items import create_items_router
 from schema_check import verify_schema_is_current
 
 logging.basicConfig(level=logging.INFO)
@@ -53,11 +55,16 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(config),
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
 app.include_router(create_auth_router(config))
+
+# One engine for the process. The pool is what makes Neon's connection
+# limit survivable; a per-request engine would exhaust it.
+engine, session_factory = create_engine_and_sessionmaker(config.database_url)
+app.include_router(create_items_router(session_factory))
 
 
 @app.get("/api/health")
