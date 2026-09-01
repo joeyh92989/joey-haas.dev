@@ -11,9 +11,12 @@ backend, deployed on Render via Blueprint (render.yaml).
   are static modules in `frontend/src/content/`, so the site renders fully while
   the free-tier backend is asleep. Vite still proxies `/api` to localhost:8000
   for the authenticated features planned later.
-- `backend/` — FastAPI app (`main.py`). Deployed as a Render web service
-  (free tier: spins down after ~15 min idle). New personal projects should
-  be added as APIRouter modules (one file per project) and included in main.py.
+- `backend/` — FastAPI app (`main.py`), **Python 3.12** to match Render.
+  macOS system Python is 3.9 and cannot install this dependency set. Deployed
+  as a Render web service (free tier: spins down after ~15 min idle). Config is
+  validated at import (`config.py`), so the service refuses to start when an
+  env var is missing rather than running insecurely. New personal projects
+  should be added as APIRouter modules (one file per project), as `auth.py` is.
 - `render.yaml` — Render Blueprint defining both services. Changing it and
   pushing updates the infrastructure.
 
@@ -22,6 +25,9 @@ backend, deployed on Render via Blueprint (render.yaml).
 - Frontend dev: `cd frontend && npm run dev` (http://localhost:5173)
 - Backend dev: `cd backend && source .venv/bin/activate && uvicorn main:app --reload` (http://localhost:8000)
 - Frontend build check: `cd frontend && npm run build`
+- Frontend tests: `cd frontend && npm test`
+- Backend tests: `cd backend && ./.venv/bin/pytest`
+- Post-deploy smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`
 
 ## Deploying
 
@@ -44,8 +50,13 @@ before pushing.
 - [x] Push repo to GitHub (`joeyh92989/personal-site`)
 - [x] Connect Render Blueprint; `VITE_API_URL` set on the static site
 - [x] Replace placeholder content; add react-router with per-page routes
-- [ ] Custom domain — prerequisite for admin auth, since `onrender.com` is on
-      the Public Suffix List and blocks cross-subdomain session cookies
-- [ ] Blog — markdown files in the repo
-- [ ] Google OAuth admin (needs custom domain first)
-- [ ] Media collection tracker + Neon Postgres (needs auth first)
+- [x] Custom domain — `joey-haas.dev`. Apex uses an A record to Render's load
+      balancer (`216.24.57.1`), not an ALIAS: Porkbun's default parking record
+      occupies the root and silently wins over one. `www` and `api` are CNAMEs
+- [x] Blog — markdown in `frontend/posts/`, compiled at build time
+- [x] Google OAuth admin — **live**. `/admin`, not linked from the nav.
+      Verified end to end 2026-08-31: 12/12 smoke checks, CORS restricted to
+      `joey-haas.dev`, real sign-in confirmed. See README → Admin authentication
+- [ ] Media collection tracker + Neon Postgres (needs auth live first)
+- [ ] Optional: set `ADMIN_GOOGLE_SUB` after the first sign-in to pin the
+      allowlist to Google's immutable subject ID rather than the email alone
