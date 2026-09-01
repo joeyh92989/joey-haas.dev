@@ -132,7 +132,7 @@ export default function AdminCollection() {
   if (status === 'unauthorized') {
     return (
       <section>
-        <h2>Collection</h2>
+        <h1>Collection</h1>
         <p className="admin-error">
           Not signed in. <Link to="/admin">Go to admin</Link>.
         </p>
@@ -143,7 +143,7 @@ export default function AdminCollection() {
   if (status === 'error') {
     return (
       <section>
-        <h2>Collection</h2>
+        <h1>Collection</h1>
         <p className="admin-error">
           Could not reach the API. Try again shortly.
         </p>
@@ -153,7 +153,7 @@ export default function AdminCollection() {
 
   return (
     <section>
-      <h2>Collection</h2>
+      <h1>Collection</h1>
 
       {error && <p className="admin-error">{error}</p>}
 

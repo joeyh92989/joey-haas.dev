@@ -11,13 +11,13 @@ export default function Projects() {
       <div className="project-grid">
         {projects.map((project) => (
           <article key={project.name} className="project-card">
-            <h3>
+            <h2>
               {project.url ? (
                 <a href={project.url}>{project.name}</a>
               ) : (
                 project.name
               )}
-            </h3>
+            </h2>
             <p>{project.description}</p>
             <ul className="tech-list">
               {project.tech.map((tech) => (
