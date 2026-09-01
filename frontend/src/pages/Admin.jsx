@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { apiFetch, loginUrl } from '../lib/api.js'
 
 /**
@@ -98,6 +98,9 @@ export default function Admin() {
         <>
           <p>
             Signed in as <strong>{email}</strong>.
+          </p>
+          <p>
+            <Link to="/admin/collection">Collection</Link>
           </p>
           <p>
             <button type="button" className="admin-signout" onClick={signOut}>
