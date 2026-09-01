@@ -17,3 +17,6 @@ venv/
 # launch.json points the dev-server tooling at the Vite server; it is a
 # per-machine convenience, not part of the app.
 .claude/
+
+# Superpowers SDD scratch (ledger, briefs, review packages)
+.superpowers/
