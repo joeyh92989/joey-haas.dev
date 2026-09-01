@@ -1,4 +1,4 @@
-# personal-site
+# joey-haas.dev
 
 Resume/portfolio website. React (Vite) frontend + FastAPI backend, deployed on Render.
 
@@ -107,7 +107,7 @@ from the navigation — reach it by typing the URL.
 
 ### Environment variables
 
-Set these on the `personal-site-api` service in the Render dashboard. They are
+Set these on the `joey-haas-dev-api` service in the Render dashboard. They are
 declared in `render.yaml` with `sync: false`, so values never enter the repo.
 
 | Variable | Notes |
@@ -207,6 +207,11 @@ Every push to `main` deploys both automatically.
 
 - Frontend: https://personal-site-zas6.onrender.com
 - API: https://personal-site-api-spey.onrender.com
+
+These `onrender.com` hostnames still carry the repository's former name. Render
+assigns a hostname when a service is created and keeps it across renames, so
+they are correct as written — which is also why renaming the services required
+no DNS change. Visitors never see them; the custom domains sit in front.
 
 Note: the API runs on Render's free tier, which spins down after ~15 min of
 inactivity (first request then takes ~30 s). Because no public page calls the

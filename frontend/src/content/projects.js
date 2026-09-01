@@ -13,6 +13,6 @@ export const projects = [
     description:
       'Personal site with a React and Vite frontend and a FastAPI backend, deployed on Render.',
     tech: ['React', 'Vite', 'FastAPI', 'Render'],
-    url: 'https://github.com/joeyh92989/personal-site',
+    url: 'https://github.com/joeyh92989/joey-haas.dev',
   },
 ]

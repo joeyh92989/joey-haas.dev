@@ -1,4 +1,4 @@
-# personal-site
+# joey-haas.dev
 
 Personal resume/portfolio website for Joey Haas. React frontend + FastAPI
 backend, deployed on Render via Blueprint (render.yaml).
@@ -47,7 +47,7 @@ before pushing.
 
 ## Current state / TODO
 
-- [x] Push repo to GitHub (`joeyh92989/personal-site`)
+- [x] Push repo to GitHub (`joeyh92989/joey-haas.dev`)
 - [x] Connect Render Blueprint; `VITE_API_URL` set on the static site
 - [x] Replace placeholder content; add react-router with per-page routes
 - [x] Custom domain — `joey-haas.dev`. Apex uses an A record to Render's load
