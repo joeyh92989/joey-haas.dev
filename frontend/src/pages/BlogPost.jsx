@@ -19,7 +19,7 @@ export default function BlogPost() {
 
   return (
     <section>
-      <h2>{post.frontmatter.title}</h2>
+      <h1>{post.frontmatter.title}</h1>
       {post.frontmatter.draft && <span className="draft-badge">Draft</span>}
       <div className="post-meta">
         <time dateTime={post.frontmatter.date}>

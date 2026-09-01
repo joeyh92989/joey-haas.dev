@@ -37,8 +37,30 @@ before pushing.
 
 ## Conventions
 
-- Plain CSS in `frontend/src/index.css` (design tokens as CSS variables in
-  `:root`). No CSS framework unless deliberately added.
+- Plain CSS in `frontend/src/index.css`. No CSS framework unless deliberately
+  added. Design tokens are CSS variables declared twice: warm-dark values on
+  `:root` and warm-light overrides under `[data-theme='light']`. Style with the
+  tokens, never with raw hex — a literal color will be wrong in one theme.
+- Theming: dark is the brand default and is written into the markup as
+  `<html data-theme="dark">`, so it survives a JavaScript failure. A pre-paint
+  script in `frontend/index.html` switches to `localStorage('theme')` when one
+  is stored; `RootLayout` owns the state after that and persists only what the
+  visitor actually chooses. `prefers-color-scheme` is deliberately ignored.
+  The accepted-value check exists in both the script and `RootLayout` — keep
+  them in step.
+- Fonts are self-hosted static `@fontsource` faces imported in
+  `frontend/src/main.jsx`, latin only — never a Google Fonts `<link>`. Using a
+  new weight in CSS means adding the matching import, or the browser silently
+  falls back to a cut that is loaded.
+- Blog code blocks are highlighted at build time in both palettes at once
+  (`frontend/vite-plugin-markdown.js`): Shiki inlines the default theme's
+  colors and emits everything else as `--shiki-light*` / `--shiki-dark*`
+  custom properties, which `index.css` promotes. Adding a Shiki line
+  transformer needs those overrides narrowed, or a line-level color gets
+  overridden.
+- The Shiki theme pair and `--code-bg` are chosen together, on measured
+  contrast: every color either theme emits has to clear 4.5:1 on the
+  background it actually sits on. Changing either means measuring again.
 - Keep the site a real multi-section/multi-page website (react-router when
   pages are added), not a rendered resume document. A downloadable PDF resume
   is an optional accessory only.

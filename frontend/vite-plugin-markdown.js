@@ -6,14 +6,29 @@ import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 
-/** Single dark theme: the site is dark-only, so dual light/dark output is waste. */
-const SHIKI_THEME = 'vitesse-dark'
+/**
+ * Both palettes are compiled in one highlight pass. Shiki writes the light
+ * theme as inline colors and the dark theme as `--shiki-dark*` custom
+ * properties; index.css swaps them in under [data-theme='dark']. Highlighting
+ * again at runtime would mean shipping the highlighter to the browser.
+ */
+/*
+ * Picked on measured contrast against the --code-bg values they sit on, not on
+ * looks. Every color either theme emits across fifteen sample languages clears
+ * 4.5:1: worst 4.53 light (the red used for string escapes) and 4.62 dark (the
+ * grey used for JSX and HTML angle brackets). The vitesse pair used before
+ * failed six of nine tokens on light and three of nine on dark, even against
+ * plain white and near-black.
+ *
+ * Changing either theme, or either --code-bg, means measuring again.
+ */
+const SHIKI_THEMES = { light: 'light-plus', dark: 'dark-plus' }
 
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkRehype)
-  .use(rehypeShiki, { theme: SHIKI_THEME })
+  .use(rehypeShiki, { themes: SHIKI_THEMES, defaultColor: 'light' })
   .use(rehypeStringify)
 
 /**

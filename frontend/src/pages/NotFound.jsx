@@ -8,9 +8,9 @@ import { Link } from 'react-router'
 export default function NotFound() {
   return (
     <section>
-      <h2>Not found</h2>
-      <p className="muted">That page does not exist.</p>
-      <p>
+      <h1>Not found</h1>
+      <p className="prose muted">That page does not exist.</p>
+      <p className="prose">
         <Link to="/">Back home</Link>
       </p>
     </section>
