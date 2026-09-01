@@ -1,6 +1,6 @@
 import pytest
 
-from config import Config, ConfigError, load_config
+from config import Config, ConfigError, allowed_origins, load_config
 
 COMPLETE = {
     "GOOGLE_CLIENT_ID": "client-id",
@@ -49,3 +49,20 @@ def test_config_is_frozen():
     config = load_config(COMPLETE)
     with pytest.raises(Exception):
         config.admin_email = "someone@else.com"
+
+
+def test_production_origins_exclude_localhost():
+    # A standing credentialed CORS grant to the Vite dev port in production
+    # would be live the moment the session cookie stopped being SameSite=Lax.
+    config = load_config(COMPLETE)
+    assert allowed_origins(config) == ["https://joey-haas.dev"]
+
+
+def test_local_frontend_also_allows_the_vite_dev_origin():
+    config = load_config({**COMPLETE, "FRONTEND_URL": "http://localhost:5173"})
+    assert allowed_origins(config) == ["http://localhost:5173"]
+
+
+def test_local_frontend_on_another_port_allows_both():
+    config = load_config({**COMPLETE, "FRONTEND_URL": "http://localhost:4173"})
+    assert allowed_origins(config) == ["http://localhost:4173", "http://localhost:5173"]
