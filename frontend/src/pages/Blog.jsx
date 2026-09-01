@@ -10,9 +10,9 @@ import { formatDate, posts } from '../content/posts.js'
 export default function Blog() {
   return (
     <section>
-      <h2>Blog</h2>
+      <h2>Writing</h2>
       {posts.length === 0 ? (
-        <p className="muted">No posts yet.</p>
+        <p className="prose muted">No posts yet.</p>
       ) : (
         <ul className="post-list">
           {posts.map((post) => (
