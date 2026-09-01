@@ -26,6 +26,11 @@ export default function About() {
 
       <section>
         <h2>Experience</h2>
+        <p className="prose">
+          <a href="/resume.pdf" download="Joey Haas Resume.pdf">
+            Download the full resume (PDF)
+          </a>
+        </p>
         <div className="timeline">
           {experience.map((entry) => (
             <div

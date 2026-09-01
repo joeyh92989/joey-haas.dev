@@ -42,4 +42,13 @@ describe('About', () => {
       expect(screen.getByText(certification)).toBeInTheDocument()
     }
   })
+
+  it('offers the resume as a downloadable PDF', () => {
+    render(<About />)
+    const link = screen.getByRole('link', {
+      name: /download the full resume/i,
+    })
+    expect(link).toHaveAttribute('href', '/resume.pdf')
+    expect(link).toHaveAttribute('download', 'Joey Haas Resume.pdf')
+  })
 })
