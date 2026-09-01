@@ -68,7 +68,9 @@ export default function Admin() {
       )}
 
       {status === 'error' && (
-        <p className="admin-error">Could not reach the API. Try again shortly.</p>
+        <p className="admin-error">
+          Could not reach the API. Try again shortly.
+        </p>
       )}
 
       {status === 'signed-out' && (

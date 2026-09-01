@@ -34,7 +34,10 @@ export default function BlogPost() {
         )}
       </div>
 
-      <div className="post-body" dangerouslySetInnerHTML={{ __html: post.html }} />
+      <div
+        className="post-body"
+        dangerouslySetInnerHTML={{ __html: post.html }}
+      />
 
       <p>
         <Link to="/blog">← All posts</Link>

@@ -33,7 +33,9 @@ describe('Admin', () => {
     )
     renderAt()
     expect(await screen.findByText('admin@example.com')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /sign out/i }),
+    ).toBeInTheDocument()
   })
 
   it('explains a rejected account without naming the authorized address', async () => {
@@ -51,12 +53,17 @@ describe('Admin', () => {
     // machine where the next visitor still is not.
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ email: 'admin@example.com' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ email: 'admin@example.com' }),
+      })
       .mockResolvedValueOnce({ ok: false })
     vi.stubGlobal('fetch', fetchMock)
 
     renderAt()
-    const signOutButton = await screen.findByRole('button', { name: /sign out/i })
+    const signOutButton = await screen.findByRole('button', {
+      name: /sign out/i,
+    })
     signOutButton.click()
 
     expect(await screen.findByText(/sign out failed/i)).toBeInTheDocument()

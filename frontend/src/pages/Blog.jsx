@@ -18,7 +18,9 @@ export default function Blog() {
           {posts.map((post) => (
             <li key={post.slug}>
               <Link to={`/blog/${post.slug}`}>{post.frontmatter.title}</Link>
-              {post.frontmatter.draft && <span className="draft-badge">Draft</span>}
+              {post.frontmatter.draft && (
+                <span className="draft-badge">Draft</span>
+              )}
               <div className="post-meta">
                 <time dateTime={post.frontmatter.date}>
                   {formatDate(post.frontmatter.date)}
