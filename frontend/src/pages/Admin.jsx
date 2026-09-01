@@ -53,7 +53,7 @@ export default function Admin() {
 
   return (
     <section>
-      <h2>Admin</h2>
+      <h1>Admin</h1>
 
       {denied && (
         <p className="admin-error">

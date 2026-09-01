@@ -123,7 +123,7 @@ export default function AdminCollection() {
   if (status === 'loading') {
     return (
       <section>
-        <h2>Collection</h2>
+        <h1>Collection</h1>
         <p className="muted">{slow ? 'Waking the server…' : 'Loading…'}</p>
       </section>
     )
