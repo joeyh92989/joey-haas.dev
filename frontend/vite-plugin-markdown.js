@@ -6,14 +6,19 @@ import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 
-/** Single dark theme: the site is dark-only, so dual light/dark output is waste. */
-const SHIKI_THEME = 'vitesse-dark'
+/**
+ * Both palettes are compiled in one highlight pass. Shiki writes the light
+ * theme as inline colors and the dark theme as `--shiki-dark*` custom
+ * properties; index.css swaps them in under [data-theme='dark']. Highlighting
+ * again at runtime would mean shipping the highlighter to the browser.
+ */
+const SHIKI_THEMES = { light: 'vitesse-light', dark: 'vitesse-dark' }
 
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkRehype)
-  .use(rehypeShiki, { theme: SHIKI_THEME })
+  .use(rehypeShiki, { themes: SHIKI_THEMES, defaultColor: 'light' })
   .use(rehypeStringify)
 
 /**
