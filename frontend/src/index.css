@@ -19,7 +19,10 @@
   --text-body: #c9bba5;
   --text-muted: #a4937c;
   --accent: #d98e5f;
-  --accent-2: #6f8577;
+  /* Lifted from the handoff's #6f8577, which reached only 4.34:1 on --bg and
+     3.95:1 on --surface. Hue and saturation are unchanged; lightness alone
+     moves, so the sage reads identically but clears WCAG AA on both. */
+  --accent-2: #7c9184;
   --tag-bg: #2a2219;
   --tag-border: #443929;
   --tag-text: #c9bba5;
@@ -28,6 +31,10 @@
   --nav-idle: #a4937c;
   /* The inverted pill reads lighter on dark, so it carries more weight. */
   --nav-active-weight: 600;
+  /* Code blocks get their own token: the light theme needs the raised
+     surface to hold syntax contrast, the dark theme reads best on the
+     standard one. */
+  --code-bg: #2a2219;
   --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-body:
     'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
@@ -42,8 +49,12 @@
   --border: #e4d8c2;
   --text: #2a2520;
   --text-body: #4a4136;
-  --text-muted: #8a7c6a;
-  --accent: #b85c38;
+  /* Both darkened from the handoff (#8a7c6a, #b85c38), which fell between
+     3.40:1 and 4.47:1 against the light surfaces. These carry every piece of
+     secondary text and every prose link in this theme, so they have to clear
+     4.5:1 on the darkest of them (--surface). */
+  --text-muted: #746859;
+  --accent: #a45232;
   --accent-2: #52705f;
   --tag-bg: #eef1ea;
   --tag-border: #d8e0d3;
@@ -52,6 +63,7 @@
   --nav-active-text: #faf6ef;
   --nav-idle: #6b5f50;
   --nav-active-weight: 500;
+  --code-bg: #fffdf8;
   color-scheme: light;
 }
 
@@ -604,9 +616,17 @@ section + section {
  * narrow the span selector — as written it also matches the .line wrappers and
  * would flatten their backgrounds.
  */
+/* Shiki's own block backgrounds are near-black and pure white — the only cold
+   surfaces in a warm design. Swapping the paper for a palette token costs
+   contrast against the syntax colors, which is why the themes in
+   vite-plugin-markdown.js were chosen to clear 4.5:1 on these exact
+   backgrounds. */
+.post-body .shiki {
+  background-color: var(--code-bg) !important;
+}
+
 [data-theme='dark'] .shiki,
 [data-theme='dark'] .shiki span {
-  background-color: var(--shiki-dark-bg) !important;
   color: var(--shiki-dark) !important;
   font-style: var(--shiki-dark-font-style) !important;
   font-weight: var(--shiki-dark-font-weight) !important;

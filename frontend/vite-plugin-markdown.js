@@ -12,7 +12,13 @@ import { unified } from 'unified'
  * properties; index.css swaps them in under [data-theme='dark']. Highlighting
  * again at runtime would mean shipping the highlighter to the browser.
  */
-const SHIKI_THEMES = { light: 'vitesse-light', dark: 'vitesse-dark' }
+/*
+ * These two were picked on measured contrast against the surfaces they sit on,
+ * not on looks: every token clears 4.5:1 (worst 4.51 light, 4.70 dark). The
+ * vitesse pair used before failed six of nine tokens on light and three of nine
+ * on dark, even against plain white and near-black.
+ */
+const SHIKI_THEMES = { light: 'light-plus', dark: 'dark-plus' }
 
 const processor = unified()
   .use(remarkParse)
