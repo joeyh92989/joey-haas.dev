@@ -1,0 +1,9 @@
+dist
+node_modules
+
+# Blog content. Prettier would rewrap prose, producing churn in files whose
+# formatting carries meaning.
+posts
+
+# Documentation is prose too.
+*.md
