@@ -20,8 +20,9 @@
   --text-muted: #a4937c;
   --accent: #d98e5f;
   /* Lifted from the handoff's #6f8577, which reached only 4.34:1 on --bg and
-     3.95:1 on --surface. Hue and saturation are unchanged; lightness alone
-     moves, so the sage reads identically but clears WCAG AA on both. */
+     3.95:1 on --surface. Only lightness was moved (47.8% to 52.8%); hue and
+     saturation survive to within a degree and a third of a point, which is as
+     close as 8-bit channels allow. The sage reads the same and clears AA. */
   --accent-2: #7c9184;
   --tag-bg: #2a2219;
   --tag-border: #443929;
@@ -31,10 +32,12 @@
   --nav-idle: #a4937c;
   /* The inverted pill reads lighter on dark, so it carries more weight. */
   --nav-active-weight: 600;
-  /* Code blocks get their own token: the light theme needs the raised
-     surface to hold syntax contrast, the dark theme reads best on the
-     standard one. */
-  --code-bg: #2a2219;
+  /* Code blocks get their own token because the syntax colors do not clear AA
+     on the surface tokens: measured across fifteen languages, this is the
+     lightest warm paper on which every dark-plus token reaches 4.5:1 (worst
+     4.62 — the grey used for JSX and HTML angle brackets). On --surface that
+     grey drops to 3.96. */
+  --code-bg: #1a140d;
   --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-body:
     'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
@@ -63,7 +66,7 @@
   --nav-active-text: #faf6ef;
   --nav-idle: #6b5f50;
   --nav-active-weight: 500;
-  --code-bg: #fffdf8;
+  --code-bg: #fffffd;
   color-scheme: light;
 }
 
@@ -81,6 +84,7 @@ body {
   line-height: 1.65;
   transition:
     background-color 0.2s,
+    border-color 0.2s,
     color 0.2s;
 }
 
@@ -92,12 +96,11 @@ body {
 
 /* Spacing below the nav belongs to the routed region, not to whichever heading
    the page happens to open with. Home's greeting sits slightly lower. */
-main {
-  display: block;
+.nav-row + main {
   margin-top: 2.5rem;
 }
 
-main.home {
+.nav-row + main.home {
   margin-top: 2.75rem;
 }
 
@@ -180,12 +183,18 @@ a:hover {
 
 /* Wrapping matters on a phone: four pills plus the toggle exceed 375px, and
    without it the toggle is pushed off the edge rather than onto a second row. */
-nav {
+.nav-row {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 1.375rem;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 nav a {
@@ -211,7 +220,7 @@ nav a.active:hover {
   font-weight: var(--nav-active-weight);
 }
 
-nav.nav-home {
+.nav-row.home {
   margin-top: 1.5rem;
 }
 
@@ -280,7 +289,7 @@ nav a:focus-visible,
 }
 
 .link-card:hover {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
   text-decoration: none;
 }
 
@@ -310,7 +319,7 @@ nav a:focus-visible,
 }
 
 .latest-post:hover {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
   text-decoration: none;
 }
 
@@ -441,7 +450,8 @@ section + section {
   padding: 1.375rem 1.5rem;
 }
 
-.project-card h3 {
+/* An h2 by document structure, but on the card's scale, not the page's. */
+.project-card h2 {
   font-size: 1.3125rem;
   font-weight: 600;
 }
@@ -613,16 +623,26 @@ section + section {
  * required — it is overriding Shiki's own inline styles.
  *
  * If line-level transformers (line highlighting, diff marks) are ever added,
- * narrow the span selector — as written it also matches the .line wrappers and
- * would flatten their backgrounds.
+ * narrow the span selector — as written it also matches the .line wrappers, so
+ * a transformer that colors a whole line would have that color overridden.
  */
 /* Shiki's own block backgrounds are near-black and pure white — the only cold
    surfaces in a warm design. Swapping the paper for a palette token costs
    contrast against the syntax colors, which is why the themes in
    vite-plugin-markdown.js were chosen to clear 4.5:1 on these exact
-   backgrounds. */
+   backgrounds. Light needs to sit a shade above --surface-raised: the red the
+   themes use for string escapes reaches 4.53:1 here and only 4.46:1 there. */
 .post-body .shiki {
   background-color: var(--code-bg) !important;
+}
+
+/* In dual-theme output Shiki inlines only `color` for the default theme and
+   emits everything else as custom properties for both — so bold, italic and
+   strikethrough need promoting in the light theme too, not just the dark. */
+.post-body .shiki span {
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
 }
 
 [data-theme='dark'] .shiki,
@@ -666,7 +686,7 @@ footer {
 }
 
 .admin-signin:hover {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
   text-decoration: none;
 }
 
@@ -716,7 +736,8 @@ footer {
 .item-form select:focus-visible,
 .item-table select:focus-visible {
   border-color: var(--accent);
-  outline: none;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .item-form button,
