@@ -96,6 +96,32 @@ check_equals "GET /api/items/{id} unauthenticated is 401 not 404" \
   "$(http_status "$API_URL/api/items/00000000-0000-0000-0000-000000000000")" \
   "401"
 
+# The collection page edits and deletes items, which are not simple requests:
+# the browser sends a CORS preflight first. When allow_methods listed only GET
+# and POST, every edit failed in the browser while the API itself stayed
+# healthy — invisible to a status-code check, and reproducible only by clicking.
+allowed_methods="$(curl -s -i -m 90 -X OPTIONS \
+  "$API_URL/api/items/00000000-0000-0000-0000-000000000000" \
+  -H "Origin: $SITE_URL" \
+  -H 'Access-Control-Request-Method: PATCH' \
+  -H 'Access-Control-Request-Headers: content-type' \
+  | tr -d '\r' \
+  | awk -F': ' 'tolower($1) == "access-control-allow-methods" { print $2 }')"
+
+case "$allowed_methods" in
+  *PATCH*DELETE* | *DELETE*PATCH*)
+    report_pass "CORS preflight allows PATCH and DELETE" "$allowed_methods"
+    ;;
+  "")
+    report_fail "CORS preflight allows PATCH and DELETE" \
+      "no access-control-allow-methods header returned"
+    ;;
+  *)
+    report_fail "CORS preflight allows PATCH and DELETE" \
+      "got '$allowed_methods'"
+    ;;
+esac
+
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in
   *accounts.google.com*) report_pass "auth/login redirects to Google" "accounts.google.com" ;;

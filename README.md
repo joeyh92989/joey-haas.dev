@@ -36,12 +36,20 @@ so the site renders fully even when the free-tier backend is asleep.
 
 ## Routes
 
-| Route | Page |
-|---|---|
-| `/` | Home |
-| `/about` | About |
-| `/projects` | Projects |
-| anything else | NotFound (client-side 404) |
+| Route | Page | Notes |
+|---|---|---|
+| `/` | Home | |
+| `/about` | About | |
+| `/projects` | Projects | |
+| `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
+| `/blog/:slug` | Blog post | Slug is the markdown filename |
+| `/admin` | Admin | Google sign-in gate; not in the navigation |
+| `/admin/collection` | Collection | Media tracker; requires the admin session |
+| anything else | NotFound (client-side 404) | |
+
+The `/admin*` routes are absent from the site navigation deliberately. That is
+not a security control — the server-side session check is. It keeps a personal
+site from looking like an app with a login wall.
 
 Routing is `react-router` v8 in declarative mode. Note that all router imports
 come from `react-router` — the `react-router-dom` package does not exist for
