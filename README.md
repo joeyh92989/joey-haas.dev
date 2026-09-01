@@ -214,11 +214,44 @@ already exists", a long way from its cause.
 ### Tests
 
 Backend tests run against a real Postgres, never SQLite: enums, `timestamptz`,
-and the `CHECK` constraint all behave differently otherwise. There is no local
-Postgres on the development machine, so the collection tests skip locally and
-run for real in CI against a `postgres:18` service container. In CI they cannot
-skip — an unreachable database is a hard error there, or "green" would come to
-mean "did not run".
+and the `CHECK` constraint all behave differently otherwise.
+
+CI provides a `postgres:18` service container. For the same thing locally:
+
+```sh
+brew install postgresql@18
+brew services start postgresql@18
+# Homebrew's initdb creates a superuser named after your macOS account, not
+# `postgres`. These two make the local instance match CI, so pytest needs no
+# configuration.
+/usr/local/opt/postgresql@18/bin/createuser -s -h localhost postgres
+/usr/local/opt/postgresql@18/bin/psql -h localhost -d postgres \
+  -c "alter role postgres password 'postgres'"
+```
+
+`conftest.py` defaults to `postgresql://postgres:postgres@localhost:5432/postgres`;
+override with `TEST_DATABASE_URL` to point elsewhere.
+
+With no database reachable the collection tests **skip**, so the rest of the
+suite still runs. In CI they cannot skip — an unreachable database is a hard
+error there, or "green" would come to mean "did not run".
+
+### Checking a migration against the models
+
+A hand-written migration can drift from `models.py`. To prove it has not, apply
+the migrations to a scratch database and ask Alembic to diff the result:
+
+```sh
+createdb -h localhost -U postgres scratch
+DATABASE_URL_DIRECT="postgresql://postgres:postgres@localhost:5432/scratch" \
+  ./.venv/bin/alembic upgrade head
+```
+
+Then compare with `alembic.autogenerate.compare_metadata` against
+`models.Base.metadata`; an empty diff (ignoring `alembic_version`) means the
+migration reproduces the models exactly. Round-tripping
+`alembic downgrade base` followed by `upgrade head` on that scratch database
+also proves the enum drops in `downgrade` are correct.
 
 ## Smoke test
 

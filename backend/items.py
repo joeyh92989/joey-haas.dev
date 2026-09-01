@@ -52,18 +52,26 @@ class ItemOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+def require_admin(request: Request) -> None:
+    """Rejects anyone without the admin session.
+
+    Declared as a router-level dependency rather than called inside each route.
+    FastAPI solves dependencies before validating path, query, and body
+    parameters, so an unauthenticated caller gets 401 and never 422 -- it cannot
+    probe the request schema, and cannot learn whether an id exists by comparing
+    a 401 against a 404.
+    """
+    if not request.session.get("user"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+
 def create_items_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
     """Builds the collection routes bound to this session factory."""
-    router = APIRouter(prefix="/api/items", tags=["items"])
-
-    def require_admin(request: Request) -> None:
-        """Rejects anyone without the admin session.
-
-        Checked before existence, so an unauthenticated caller cannot learn
-        whether an id exists by comparing a 401 against a 404.
-        """
-        if not request.session.get("user"):
-            raise HTTPException(status_code=401, detail="Not authenticated")
+    router = APIRouter(
+        prefix="/api/items",
+        tags=["items"],
+        dependencies=[Depends(require_admin)],
+    )
 
     async def get_session() -> AsyncIterator[AsyncSession]:
         async with factory() as session:
@@ -77,13 +85,11 @@ def create_items_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
 
     @router.get("", response_model=list[ItemOut])
     async def list_items(
-        request: Request,
         session: AsyncSession = Depends(get_session),
         type: ItemType | None = Query(default=None),
         status: ItemStatus | None = Query(default=None),
     ) -> list[Item]:
         """Every item, newest first, optionally filtered by type and status."""
-        require_admin(request)
         statement = select(Item).order_by(Item.created_at.desc())
         if type is not None:
             statement = statement.where(Item.type == type)
@@ -94,12 +100,10 @@ def create_items_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
 
     @router.post("", response_model=ItemOut, status_code=201)
     async def create_item(
-        request: Request,
         payload: ItemIn,
         session: AsyncSession = Depends(get_session),
     ) -> Item:
         """Adds one item and returns it, including its generated id."""
-        require_admin(request)
         item = Item(**payload.model_dump())
         session.add(item)
         await session.commit()
@@ -108,23 +112,19 @@ def create_items_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
 
     @router.get("/{item_id}", response_model=ItemOut)
     async def get_item(
-        request: Request,
         item_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
     ) -> Item:
         """One item, or 404."""
-        require_admin(request)
         return await _load(session, item_id)
 
     @router.patch("/{item_id}", response_model=ItemOut)
     async def update_item(
-        request: Request,
         item_id: uuid.UUID,
         payload: ItemPatch,
         session: AsyncSession = Depends(get_session),
     ) -> Item:
         """Partial update. Fields absent from the body are left alone."""
-        require_admin(request)
         item = await _load(session, item_id)
         for field, value in payload.model_dump(exclude_unset=True).items():
             setattr(item, field, value)
@@ -134,12 +134,10 @@ def create_items_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
 
     @router.delete("/{item_id}", status_code=204)
     async def delete_item(
-        request: Request,
         item_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
     ) -> Response:
         """Removes one item, or 404 if it never existed."""
-        require_admin(request)
         item = await _load(session, item_id)
         await session.delete(item)
         await session.commit()

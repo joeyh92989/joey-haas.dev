@@ -5,9 +5,11 @@ constraint the way Postgres does. A suite that passes against a different
 database than production is the kind of check this project has learned to
 distrust.
 
-There is no local Postgres on the development machine, so these tests skip
-there. In CI they must never skip: an unreachable database is a hard error, or
-"green" would come to mean "did not run".
+Point TEST_DATABASE_URL at any Postgres 18; the default matches both the CI
+service container and a local Homebrew install (see README -> Database). When no
+database is reachable these tests skip, so a machine without one can still run
+the rest of the suite -- but in CI they must never skip: an unreachable database
+is a hard error there, or "green" would come to mean "did not run".
 """
 
 import os
