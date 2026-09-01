@@ -48,11 +48,19 @@ before pushing.
   visitor actually chooses. `prefers-color-scheme` is deliberately ignored.
   The accepted-value check exists in both the script and `RootLayout` — keep
   them in step.
+- Fonts are self-hosted static `@fontsource` faces imported in
+  `frontend/src/main.jsx`, latin only — never a Google Fonts `<link>`. Using a
+  new weight in CSS means adding the matching import, or the browser silently
+  falls back to a cut that is loaded.
 - Blog code blocks are highlighted at build time in both palettes at once
-  (`frontend/vite-plugin-markdown.js`): Shiki inlines the light colors and
-  emits the dark ones as `--shiki-dark*`, which `index.css` promotes under
-  `[data-theme='dark']`. Adding a Shiki line transformer needs that override
-  narrowed.
+  (`frontend/vite-plugin-markdown.js`): Shiki inlines the default theme's
+  colors and emits everything else as `--shiki-light*` / `--shiki-dark*`
+  custom properties, which `index.css` promotes. Adding a Shiki line
+  transformer needs those overrides narrowed, or a line-level color gets
+  overridden.
+- The Shiki theme pair and `--code-bg` are chosen together, on measured
+  contrast: every color either theme emits has to clear 4.5:1 on the
+  background it actually sits on. Changing either means measuring again.
 - Keep the site a real multi-section/multi-page website (react-router when
   pages are added), not a rendered resume document. A downloadable PDF resume
   is an optional accessory only.
