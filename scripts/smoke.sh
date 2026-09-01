@@ -12,8 +12,10 @@
 
 set -uo pipefail
 
-SITE_URL="${1:-https://personal-site-zas6.onrender.com}"
-API_URL="${2:-https://personal-site-api-spey.onrender.com}"
+# Default to the custom domain: that is what visitors actually load, and it is
+# the pair that exercises the CORS and cookie configuration end to end.
+SITE_URL="${1:-https://joey-haas.dev}"
+API_URL="${2:-https://api.joey-haas.dev}"
 
 pass=0
 fail=0
@@ -115,10 +117,14 @@ fi
 # Drafts must be excluded from the production build, not merely hidden at
 # render time. This asserts an absence, which is exactly what eyeballing the
 # deployed site cannot catch.
-if [ -n "$asset" ] && curl -s -m 90 "$SITE_URL$asset" | grep -q 'DRAFTONLYMARKER'; then
+if [ -z "$asset" ]; then
+  # Without an asset there is nothing to inspect, so passing here would report
+  # success having checked nothing at all.
+  report_fail "no draft content in bundle" "no JS asset found in index.html"
+elif curl -s -m 90 "$SITE_URL$asset" | grep -q 'DRAFTONLYMARKER'; then
   report_fail "no draft content in bundle" "draft marker found in $asset"
 else
-  report_pass "no draft content in bundle" "${asset:-no asset}"
+  report_pass "no draft content in bundle" "$asset"
 fi
 
 echo

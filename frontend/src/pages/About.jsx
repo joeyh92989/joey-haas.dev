@@ -10,8 +10,9 @@ export default function About() {
   return (
     <section>
       <h2>About</h2>
-      {paragraphs.map((paragraph) => (
-        <p key={paragraph}>{paragraph}</p>
+      {/* Keyed by position, not text: two identical paragraphs would collide. */}
+      {paragraphs.map((paragraph, index) => (
+        <p key={index}>{paragraph}</p>
       ))}
     </section>
   )

@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from auth import create_auth_router
-from config import load_config
+from config import allowed_origins, load_config
 
 logging.basicConfig(level=logging.INFO)
 
@@ -40,9 +40,12 @@ app.add_middleware(
 # The previous rule matched any https://*.onrender.com with credentials
 # enabled, which would have let any application hosted on Render make
 # credentialed requests to this API once a session cookie existed.
+#
+# allowed_origins() adds the Vite dev origin only when the frontend is itself
+# local, so production carries no standing grant to localhost.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[config.frontend_url, "http://localhost:5173"],
+    allow_origins=allowed_origins(config),
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],

@@ -17,6 +17,14 @@ const processor = unified()
   .use(rehypeStringify)
 
 /**
+ * A slug becomes part of a URL and of the RSS feed's XML. Restricting it to
+ * lowercase letters, digits, and hyphens keeps both safe by construction rather
+ * than by escaping after the fact — a filename like `q&a.md` would otherwise
+ * produce a valid-but-ugly URL and, unescaped, a feed no reader can parse.
+ */
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/**
  * Normalizes a frontmatter date to a plain 'YYYY-MM-DD' string.
  *
  * gray-matter parses an unquoted YAML date into a Date at UTC midnight. Storing
@@ -60,6 +68,14 @@ export default function markdown() {
 
       const { data, content } = matter(code)
       const slug = id.split('/').pop().replace(/\.md$/, '')
+
+      if (!SLUG_PATTERN.test(slug)) {
+        this.error(
+          `"${slug}.md" is not a usable slug. Post filenames must be lowercase ` +
+            'letters, digits, and single hyphens — for example ' +
+            '"dependency-injection.md".',
+        )
+      }
 
       if (!data.title) {
         this.error(`${slug}.md is missing required frontmatter field: title`)

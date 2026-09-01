@@ -40,6 +40,24 @@ class Config:
     admin_google_sub: str | None = None
 
 
+LOCAL_DEV_ORIGIN = "http://localhost:5173"
+
+
+def allowed_origins(config: Config) -> list[str]:
+    """The exact origins permitted to make credentialed requests.
+
+    The Vite dev server's origin is included only when the frontend is itself
+    running locally. Granting it in production would leave a standing
+    credentialed CORS grant to whatever happens to be listening on port 5173 on
+    the user's machine — harmless while the session cookie is SameSite=Lax,
+    which withholds it cross-site, but live the moment that changes.
+    """
+    origins = [config.frontend_url]
+    if config.frontend_url.startswith("http://localhost"):
+        origins.append(LOCAL_DEV_ORIGIN)
+    return list(dict.fromkeys(origins))
+
+
 def load_config(env: Mapping[str, str] | None = None) -> Config:
     """Reads configuration from `env`, defaulting to the process environment.
 
