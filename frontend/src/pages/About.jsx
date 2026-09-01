@@ -14,7 +14,7 @@ export default function About() {
   return (
     <>
       <section>
-        <h2>About</h2>
+        <h1>About</h1>
         {/* Keyed by position, not text: two identical paragraphs would collide. */}
         {paragraphs.map((paragraph, index) => (
           <p className="prose" key={index}>

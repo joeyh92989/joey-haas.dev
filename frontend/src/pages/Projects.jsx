@@ -7,7 +7,7 @@ import { projects } from '../content/projects.js'
 export default function Projects() {
   return (
     <section>
-      <h2>Projects</h2>
+      <h1>Projects</h1>
       <div className="project-grid">
         {projects.map((project) => (
           <article key={project.name} className="project-card">

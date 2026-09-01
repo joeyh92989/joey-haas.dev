@@ -13,8 +13,8 @@ export default function Home() {
   const [latest] = posts
 
   return (
-    <section className="home-intro">
-      <h2 className="greeting">Hi, I&rsquo;m Joey.</h2>
+    <section>
+      <h1 className="greeting">Hi, I&rsquo;m Joey.</h1>
 
       <p className="intro">
         I&rsquo;m a backend engineer at Guild Education. I spent eight years as
