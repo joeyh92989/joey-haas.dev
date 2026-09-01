@@ -45,6 +45,24 @@ describe('Admin', () => {
     expect(document.body.textContent).not.toMatch(/josephthaas/i)
   })
 
+  it('stays signed in when sign-out fails, rather than claiming success', async () => {
+    // A failed logout leaves a valid 30-day cookie behind. Showing the
+    // signed-out view anyway would tell the user they are logged out on a
+    // machine where the next visitor still is not.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ email: 'admin@example.com' }) })
+      .mockResolvedValueOnce({ ok: false })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderAt()
+    const signOutButton = await screen.findByRole('button', { name: /sign out/i })
+    signOutButton.click()
+
+    expect(await screen.findByText(/sign out failed/i)).toBeInTheDocument()
+    expect(screen.queryByText(/sign in with google/i)).not.toBeInTheDocument()
+  })
+
   it('reports an unreachable API rather than hanging silently', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
     renderAt()

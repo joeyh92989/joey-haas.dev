@@ -32,7 +32,21 @@ export default function Admin() {
   }, [])
 
   async function signOut() {
-    await apiFetch('/api/auth/logout', { method: 'POST' })
+    // Only claim to be signed out if the server actually cleared the session.
+    // Flipping the UI on a failed request would leave a valid 30-day cookie
+    // behind while the page says otherwise — worst on a shared machine, where
+    // the next visitor would still be authenticated.
+    try {
+      const response = await apiFetch('/api/auth/logout', { method: 'POST' })
+      if (!response.ok) {
+        setStatus('signout-failed')
+        return
+      }
+    } catch {
+      setStatus('signout-failed')
+      return
+    }
+
     setEmail(null)
     setStatus('signed-out')
   }
@@ -63,6 +77,19 @@ export default function Admin() {
             Sign in with Google
           </a>
         </p>
+      )}
+
+      {status === 'signout-failed' && (
+        <>
+          <p className="admin-error">
+            Sign out failed — you are still signed in. Try again.
+          </p>
+          <p>
+            <button type="button" className="admin-signout" onClick={signOut}>
+              Sign out
+            </button>
+          </p>
+        </>
       )}
 
       {status === 'signed-in' && (

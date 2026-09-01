@@ -56,8 +56,8 @@ const entries = items
   .map(
     (item) => `    <item>
       <title>${escapeXml(item.title)}</title>
-      <link>${SITE_URL}/blog/${item.slug}</link>
-      <guid isPermaLink="true">${SITE_URL}/blog/${item.slug}</guid>
+      <link>${SITE_URL}/blog/${escapeXml(item.slug)}</link>
+      <guid isPermaLink="true">${SITE_URL}/blog/${escapeXml(item.slug)}</guid>
       <pubDate>${new Date(item.date).toUTCString()}</pubDate>
     </item>`,
   )
