@@ -14,6 +14,8 @@ BASE = Config(
     session_secret="session-secret",
     admin_email="admin@example.com",
     frontend_url="https://joey-haas.dev",
+    database_url="postgresql://u:p@host-pooler.neon.tech/neondb",
+    database_url_direct="postgresql://u:p@host.neon.tech/neondb",
 )
 
 VALID = {"email": "admin@example.com", "email_verified": True, "sub": "123"}

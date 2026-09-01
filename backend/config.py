@@ -21,6 +21,8 @@ _REQUIRED = (
     "SESSION_SECRET",
     "ADMIN_EMAIL",
     "FRONTEND_URL",
+    "DATABASE_URL",
+    "DATABASE_URL_DIRECT",
 )
 
 
@@ -37,6 +39,8 @@ class Config:
     session_secret: str
     admin_email: str
     frontend_url: str
+    database_url: str
+    database_url_direct: str
     admin_google_sub: str | None = None
 
 
@@ -81,5 +85,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         session_secret=str(source["SESSION_SECRET"]).strip(),
         admin_email=str(source["ADMIN_EMAIL"]).strip(),
         frontend_url=str(source["FRONTEND_URL"]).strip().rstrip("/"),
+        database_url=str(source["DATABASE_URL"]).strip(),
+        database_url_direct=str(source["DATABASE_URL_DIRECT"]).strip(),
         admin_google_sub=optional_sub or None,
     )

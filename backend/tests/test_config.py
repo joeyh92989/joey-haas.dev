@@ -8,6 +8,8 @@ COMPLETE = {
     "SESSION_SECRET": "session-secret",
     "ADMIN_EMAIL": "admin@example.com",
     "FRONTEND_URL": "https://joey-haas.dev",
+    "DATABASE_URL": "postgresql://u:p@host-pooler.neon.tech/neondb",
+    "DATABASE_URL_DIRECT": "postgresql://u:p@host.neon.tech/neondb",
 }
 
 
@@ -66,3 +68,9 @@ def test_local_frontend_also_allows_the_vite_dev_origin():
 def test_local_frontend_on_another_port_allows_both():
     config = load_config({**COMPLETE, "FRONTEND_URL": "http://localhost:4173"})
     assert allowed_origins(config) == ["http://localhost:4173", "http://localhost:5173"]
+
+
+def test_database_urls_are_read():
+    config = load_config(COMPLETE)
+    assert config.database_url == "postgresql://u:p@host-pooler.neon.tech/neondb"
+    assert config.database_url_direct == "postgresql://u:p@host.neon.tech/neondb"
