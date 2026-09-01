@@ -4,7 +4,7 @@
  * Entries are grouped by employer rather than by role: a promotion inside one
  * company is a single arrow-joined entry, which keeps the timeline readable at
  * the width of the page. `current: true` marks the present role — About uses it
- * to pick the accent dot colour, so exactly one entry should carry it.
+ * to pick the accent dot color, so exactly one entry should carry it.
  *
  * @typedef {object} ExperienceEntry
  * @property {string} role Title, or `earlier → later` for a promotion.

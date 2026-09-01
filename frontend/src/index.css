@@ -126,8 +126,8 @@ a:hover {
   gap: 1.25rem;
 }
 
-/* object-position sits above centre because the source is a portrait crop:
-   centring it squarely would frame the shirt rather than the face. */
+/* object-position sits above center because the source is a portrait crop:
+   centering it squarely would frame the shirt rather than the face. */
 .avatar {
   border: 1px solid var(--border);
   border-radius: 50%;
