@@ -17,8 +17,8 @@ export default function Home() {
       <h2 className="greeting">Hi, I&rsquo;m Joey.</h2>
 
       <p className="intro">
-        I&rsquo;m a backend engineer at Guild Education. I spent nine years as a
-        product manager before writing code for a living &mdash; so I care as
+        I&rsquo;m a backend engineer at Guild Education. I spent eight years as
+        a product manager before writing code for a living &mdash; so I care as
         much about <em>why</em> we build things as how.
       </p>
 
