@@ -16,6 +16,9 @@ import '@fontsource/newsreader/latin-400-italic.css'
 import '@fontsource/public-sans/latin-400.css'
 import '@fontsource/public-sans/latin-500.css'
 import '@fontsource/public-sans/latin-600.css'
+// Markdown bold compiles to <strong>, which defaults to 700; without this the
+// browser would quietly fall back to the 600 cut.
+import '@fontsource/public-sans/latin-700.css'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
