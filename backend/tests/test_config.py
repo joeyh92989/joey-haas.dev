@@ -6,7 +6,7 @@ COMPLETE = {
     "GOOGLE_CLIENT_ID": "client-id",
     "GOOGLE_CLIENT_SECRET": "client-secret",
     "SESSION_SECRET": "session-secret",
-    "ADMIN_EMAIL": "josephthaas@gmail.com",
+    "ADMIN_EMAIL": "admin@example.com",
     "FRONTEND_URL": "https://joey-haas.dev",
 }
 
@@ -14,7 +14,7 @@ COMPLETE = {
 def test_loads_complete_environment():
     config = load_config(COMPLETE)
     assert isinstance(config, Config)
-    assert config.admin_email == "josephthaas@gmail.com"
+    assert config.admin_email == "admin@example.com"
     assert config.admin_google_sub is None
 
 
