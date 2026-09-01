@@ -14,10 +14,16 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from auth import create_auth_router
 from config import allowed_origins, load_config
+from schema_check import verify_schema_is_current
 
 logging.basicConfig(level=logging.INFO)
 
 config = load_config()
+
+# Refuse to serve against a schema this code does not expect. A forgotten
+# migration fails here, loudly, rather than surfacing later as a confusing
+# query error. This is what makes manual migrations safe.
+verify_schema_is_current(config)
 
 app = FastAPI(title="joey-haas.dev API")
 
