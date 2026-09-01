@@ -54,9 +54,9 @@ before pushing.
       balancer (`216.24.57.1`), not an ALIAS: Porkbun's default parking record
       occupies the root and silently wins over one. `www` and `api` are CNAMEs
 - [x] Blog — markdown in `frontend/posts/`, compiled at build time
-- [~] Google OAuth admin — code merged, **not yet live**. The API service
-      refuses to boot until the six env vars are set on Render; the previous
-      instance keeps serving until then. See README → Admin authentication
+- [x] Google OAuth admin — **live**. `/admin`, not linked from the nav.
+      Verified end to end 2026-08-31: 12/12 smoke checks, CORS restricted to
+      `joey-haas.dev`, real sign-in confirmed. See README → Admin authentication
 - [ ] Media collection tracker + Neon Postgres (needs auth live first)
 - [ ] Optional: set `ADMIN_GOOGLE_SUB` after the first sign-in to pin the
       allowlist to Google's immutable subject ID rather than the email alone
