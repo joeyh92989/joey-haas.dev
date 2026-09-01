@@ -49,3 +49,7 @@ def test_config_is_frozen():
     config = load_config(COMPLETE)
     with pytest.raises(Exception):
         config.admin_email = "someone@else.com"
+
+
+def test_deliberate_failure_to_prove_ci_blocks():
+    assert False, "intentional — this PR must never merge"
