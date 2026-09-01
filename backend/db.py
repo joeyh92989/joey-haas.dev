@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy.ext.asyncio import (
@@ -23,6 +22,18 @@ LIBPQ_ONLY_PARAMS = frozenset(
 
 # Neon requires TLS. asyncpg spells that `ssl`, not `sslmode`.
 CONNECT_ARGS = {"ssl": "require"}
+
+LOCAL_HOSTS = ("localhost", "127.0.0.1")
+
+
+def connect_args_for(url: str) -> dict:
+    """TLS settings for `url`.
+
+    Hosted Postgres requires TLS; a local one has none configured and
+    refuses the connection outright. Deciding here rather than at each call
+    site means the CI service container and Neon both work unchanged.
+    """
+    return {} if any(host in url for host in LOCAL_HOSTS) else dict(CONNECT_ARGS)
 
 
 def normalize_async_url(url: str) -> str:
@@ -57,23 +68,12 @@ def create_engine_and_sessionmaker(
     idle; without it the first request after a sleep fails on a connection the
     pool still believes is alive.
     """
+    normalized = normalize_async_url(url)
     engine = create_async_engine(
-        normalize_async_url(url),
+        normalized,
         pool_pre_ping=True,
-        connect_args=CONNECT_ARGS,
+        connect_args=connect_args_for(normalized),
         future=True,
     )
     factory = async_sessionmaker(engine, expire_on_commit=False)
     return engine, factory
-
-
-async def session_dependency(
-    factory: async_sessionmaker[AsyncSession],
-) -> AsyncIterator[AsyncSession]:
-    """Yields a session, rolling back if the caller raises."""
-    async with factory() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise

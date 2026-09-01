@@ -1,4 +1,4 @@
-from db import normalize_async_url
+from db import connect_args_for, normalize_async_url
 
 
 def test_scheme_is_rewritten_for_asyncpg():
@@ -38,3 +38,15 @@ def test_unrecognised_parameters_are_preserved():
 def test_already_normalized_url_is_unchanged():
     url = "postgresql+asyncpg://u:p@host/db"
     assert normalize_async_url(url) == url
+
+
+def test_local_urls_get_no_tls_settings():
+    # The CI service container has no TLS configured and refuses a connection
+    # that demands it.
+    assert connect_args_for("postgresql+asyncpg://u:p@localhost:5432/postgres") == {}
+    assert connect_args_for("postgresql+asyncpg://u:p@127.0.0.1:5432/postgres") == {}
+
+
+def test_hosted_urls_require_tls():
+    args = connect_args_for("postgresql+asyncpg://u:p@ep-x.neon.tech/neondb")
+    assert args == {"ssl": "require"}

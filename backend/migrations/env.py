@@ -14,7 +14,7 @@ from alembic import context
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from db import CONNECT_ARGS, normalize_async_url
+from db import connect_args_for, normalize_async_url
 from models import Base
 
 load_dotenv()
@@ -63,9 +63,8 @@ def _run(connection) -> None:
 
 async def run_migrations_online() -> None:
     """Connect with the direct URL and run migrations."""
-    engine = create_async_engine(
-        _database_url(), connect_args=CONNECT_ARGS, future=True
-    )
+    url = _database_url()
+    engine = create_async_engine(url, connect_args=connect_args_for(url), future=True)
     async with engine.connect() as connection:
         await connection.run_sync(_run)
     await engine.dispose()

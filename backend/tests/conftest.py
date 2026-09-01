@@ -16,7 +16,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from db import normalize_async_url
+from db import connect_args_for, normalize_async_url
 from models import Base
 
 TEST_DATABASE_URL = os.environ.get(
@@ -29,11 +29,7 @@ RUNNING_IN_CI = os.environ.get("CI", "").lower() in {"1", "true"}
 
 def _make_engine():
     url = normalize_async_url(TEST_DATABASE_URL)
-    # A local Postgres needs no TLS; Neon and most hosted databases do.
-    local = "localhost" in url or "127.0.0.1" in url
-    return create_async_engine(
-        url, connect_args={} if local else {"ssl": "require"}, future=True
-    )
+    return create_async_engine(url, connect_args=connect_args_for(url), future=True)
 
 
 @pytest_asyncio.fixture

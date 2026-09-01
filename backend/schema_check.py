@@ -20,7 +20,7 @@ from alembic.script import ScriptDirectory
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import Config
-from db import CONNECT_ARGS, normalize_async_url
+from db import connect_args_for, normalize_async_url
 
 
 class SchemaMismatchError(RuntimeError):
@@ -59,11 +59,8 @@ async def database_revision(config: Config) -> str | None:
     synchronous, so it runs through run_sync rather than adding a second,
     synchronous driver to the dependency set for one query at startup.
     """
-    engine = create_async_engine(
-        normalize_async_url(config.database_url_direct),
-        connect_args=CONNECT_ARGS,
-        future=True,
-    )
+    url = normalize_async_url(config.database_url_direct)
+    engine = create_async_engine(url, connect_args=connect_args_for(url), future=True)
     try:
         async with engine.connect() as connection:
             return await connection.run_sync(_read_revision)
