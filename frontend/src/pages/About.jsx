@@ -59,7 +59,7 @@ export default function About() {
             </div>
           ))}
         </div>
-        <ul className="chip-list">
+        <ul className="chip-list" aria-label="Certifications">
           {certifications.map((certification) => (
             <li key={certification}>{certification}</li>
           ))}

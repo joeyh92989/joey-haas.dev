@@ -63,12 +63,17 @@ Content lives in `frontend/src/content/`:
 - `profile.js` — name, tagline, bio, contact links
 - `education.js` — degrees, bootcamp, and certifications
 - `projects.js` — the project list
+- `experience.js` — work history for the About page timeline
+- `posts.js` — blog post metadata
+
+The Home page intro is inline JSX in `frontend/src/pages/Home.jsx` rather than
+a content module, because it carries markup — the file's own doc comment
+explains why.
 
 The resume PDF is not content in this sense — it is a static asset at
 `frontend/public/resume.pdf`, which Vite copies unhashed to `dist/` and Render
-serves at `/resume.pdf`. It is the phone-free export. Replace the file at that
-exact path when the resume changes; renaming it breaks every link already sent
-out.
+serves at `/resume.pdf`. Replace the file at that exact path when the resume
+changes; renaming it breaks every link already sent out.
 
 Edit, commit, push. Render redeploys automatically.
 

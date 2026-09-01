@@ -69,8 +69,7 @@ before pushing.
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish
-  only the phone-free export; the copies in `~/Documents/resume/` carry a phone
-  number.
+  only the scrubbed export; local working copies are not.
 
 ## Current state / TODO
 
