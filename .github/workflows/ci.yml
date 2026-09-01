@@ -20,6 +20,21 @@ concurrency:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        # Pinned to the version Neon provisioned, so local, CI, and production
+        # agree. A suite that passes against a different database than
+        # production is not evidence.
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
@@ -46,6 +61,11 @@ jobs:
         run: ruff check .
 
       - name: Run tests
+        env:
+          # conftest.py turns an unreachable database into a hard error when CI
+          # is set, so these tests can never silently skip here.
+          CI: 'true'
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: pytest -q
 
       - name: Audit dependencies
