@@ -163,6 +163,96 @@ The backend venv must be **Python 3.12** to match Render. macOS system Python is
 3.9, which cannot install this dependency set at all — current `cryptography`
 ships no 3.9 wheels, so pip falls back to a source build requiring Rust.
 
+## Database
+
+Neon Postgres 18, free plan, AWS US West 2 (Oregon) — the same region as the
+Render services.
+
+Two connection strings are required, and they are **not** interchangeable:
+
+| Variable | Hostname | Used by |
+| --- | --- | --- |
+| `DATABASE_URL` | contains `-pooler` | The application |
+| `DATABASE_URL_DIRECT` | no `-pooler` | Alembic migrations |
+
+Neon's pooler runs PgBouncer in transaction mode, which does not support the
+`SET` statements Alembic relies on. Migrations run through the pooler fail in
+ways that read as unrelated bugs.
+
+Paste both strings from the Neon console exactly as given. `db.py` rewrites the
+scheme to `postgresql+asyncpg` and strips the libpq-only `sslmode` and
+`channel_binding` parameters, which asyncpg does not accept — so no hand-editing
+is needed, and re-pasting a fresh string later stays correct.
+
+### Running a migration
+
+Schema changes are applied deliberately, not on deploy:
+
+```sh
+cd backend
+./.venv/bin/alembic upgrade head --sql   # review the SQL first
+./.venv/bin/alembic upgrade head         # apply
+./.venv/bin/alembic current              # confirm
+```
+
+**The API refuses to start if the database is behind the code.** That is what
+makes manual migration safe — a forgotten one fails immediately and legibly
+instead of surfacing later as a confusing query error. If the service will not
+boot and the log says `SchemaMismatchError`, run the upgrade above.
+
+To create a new migration after changing `models.py`:
+
+```sh
+cd backend && ./.venv/bin/alembic revision -m "describe the change"
+```
+
+Write the `upgrade` and `downgrade` bodies by hand. If a migration creates a
+Postgres enum type, its `downgrade` must drop that type explicitly — Postgres
+does not remove it with the table, and the next `upgrade` would fail on "type
+already exists", a long way from its cause.
+
+### Tests
+
+Backend tests run against a real Postgres, never SQLite: enums, `timestamptz`,
+and the `CHECK` constraint all behave differently otherwise.
+
+CI provides a `postgres:18` service container. For the same thing locally:
+
+```sh
+brew install postgresql@18
+brew services start postgresql@18
+# Homebrew's initdb creates a superuser named after your macOS account, not
+# `postgres`. These two make the local instance match CI, so pytest needs no
+# configuration.
+/usr/local/opt/postgresql@18/bin/createuser -s -h localhost postgres
+/usr/local/opt/postgresql@18/bin/psql -h localhost -d postgres \
+  -c "alter role postgres password 'postgres'"
+```
+
+`conftest.py` defaults to `postgresql://postgres:postgres@localhost:5432/postgres`;
+override with `TEST_DATABASE_URL` to point elsewhere.
+
+With no database reachable the collection tests **skip**, so the rest of the
+suite still runs. In CI they cannot skip — an unreachable database is a hard
+error there, or "green" would come to mean "did not run".
+
+### Checking a migration against the models
+
+A hand-written migration can drift from `models.py`. To prove it has not, apply
+the migrations to a scratch database and ask Alembic to diff the result:
+
+```sh
+createdb -h localhost -U postgres scratch
+DATABASE_URL_DIRECT="postgresql://postgres:postgres@localhost:5432/scratch" \
+  ./.venv/bin/alembic upgrade head
+```
+
+Then compare with `alembic.autogenerate.compare_metadata` against
+`models.Base.metadata`; an empty diff (ignoring `alembic_version`) means the
+migration reproduces the models exactly. Round-tripping
+`alembic downgrade base` followed by `upgrade head` on that scratch database
+also proves the enum drops in `downgrade` are correct.
+
 ## Smoke test
 
 After a deploy:

@@ -82,6 +82,20 @@ check_equals "GET /api/health" "$(curl -s -m 90 "$API_URL/api/health")" '{"statu
 
 check_equals "GET /api/auth/me unauthenticated" "$(http_status "$API_URL/api/auth/me")" "401"
 
+check_equals "GET /api/items unauthenticated" \
+  "$(http_status "$API_URL/api/items")" "401"
+
+check_equals "POST /api/items unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
+    -H 'Content-Type: application/json' -d '{}' "$API_URL/api/items")" \
+  "401"
+
+# 401 rather than 404: authentication is checked before existence, so an
+# unauthenticated caller cannot learn whether an id exists by guessing at them.
+check_equals "GET /api/items/{id} unauthenticated is 401 not 404" \
+  "$(http_status "$API_URL/api/items/00000000-0000-0000-0000-000000000000")" \
+  "401"
+
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in
   *accounts.google.com*) report_pass "auth/login redirects to Google" "accounts.google.com" ;;

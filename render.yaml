@@ -38,3 +38,9 @@ services:
       # Optional hardening; set after the first successful sign-in.
       - key: ADMIN_GOOGLE_SUB
         sync: false
+      # Neon Postgres. Not interchangeable: the app uses the pooled hostname,
+      # Alembic the direct one. See README -> Database.
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_DIRECT
+        sync: false

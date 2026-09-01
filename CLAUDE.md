@@ -57,6 +57,10 @@ before pushing.
 - [x] Google OAuth admin — **live**. `/admin`, not linked from the nav.
       Verified end to end 2026-08-31: 12/12 smoke checks, CORS restricted to
       `joey-haas.dev`, real sign-in confirmed. See README → Admin authentication
-- [ ] Media collection tracker + Neon Postgres (needs auth live first)
+- [x] Media collection tracker — foundation. Neon Postgres 18, `items`
+      table, admin-gated CRUD at `/admin/collection`. Migrations are manual
+      and the API refuses to boot behind the schema
+- [ ] Tracker E2 — TMDB lookup for films, proving the enrichment pattern
+- [ ] Tracker E3+ — IGDB, ComicVine, BoardGameGeek
 - [ ] Optional: set `ADMIN_GOOGLE_SUB` after the first sign-in to pin the
       allowlist to Google's immutable subject ID rather than the email alone
