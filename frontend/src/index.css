@@ -141,15 +141,14 @@ a:hover {
   gap: 1.25rem;
 }
 
-/* object-position sits above center because the source is a portrait crop:
-   centering it squarely would frame the shirt rather than the face. */
+/* The asset is already a square crop centered on the face, so object-fit only
+   has to guard against a future replacement with different proportions. */
 .avatar {
   border: 1px solid var(--border);
   border-radius: 50%;
   flex: none;
   height: 3.5rem;
   object-fit: cover;
-  object-position: 50% 12%;
   width: 3.5rem;
 }
 
