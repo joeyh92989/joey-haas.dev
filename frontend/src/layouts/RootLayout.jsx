@@ -13,6 +13,9 @@ const STORAGE_KEY = 'theme'
  * these two palettes the site should greet them with. Storage access is
  * guarded because it throws outright in some private-browsing modes.
  *
+ * Keep the accepted values in step with the pre-paint script in index.html,
+ * which performs the same check before this bundle loads.
+ *
  * @returns {'dark' | 'light'} The theme to render on first paint.
  */
 function readStoredTheme() {
@@ -35,17 +38,32 @@ export default function RootLayout() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    try {
-      localStorage.setItem(STORAGE_KEY, theme)
-    } catch {
-      // A theme that cannot be persisted still applies for this visit.
-    }
   }, [theme])
 
+  /**
+   * Flips the theme and records the choice.
+   *
+   * Persisting here rather than in an effect keeps the stored value a record of
+   * what the visitor actually chose: writing on mount would pin every first-time
+   * visitor to today's default, so a future change of default would never reach
+   * anyone who had merely visited.
+   */
+  function toggleTheme() {
+    setTheme((current) => {
+      const next = current === 'dark' ? 'light' : 'dark'
+      try {
+        localStorage.setItem(STORAGE_KEY, next)
+      } catch {
+        // A theme that cannot be persisted still applies for this visit.
+      }
+      return next
+    })
+  }
+
   return (
-    <main>
+    <div className="page">
       <header className={isHome ? 'site-header home' : 'site-header'}>
-        <img className="avatar" src={joeyPhoto} alt="" width="76" height="76" />
+        <img className="avatar" src={joeyPhoto} alt="" />
         <div>
           <div className="site-name">{profile.name}</div>
           <div className="tagline">{profile.tagline}</div>
@@ -59,16 +77,21 @@ export default function RootLayout() {
         <NavLink to="/about">About</NavLink>
         <NavLink to="/projects">Projects</NavLink>
         <NavLink to="/blog">Blog</NavLink>
+        {/* The visible label names the destination theme; the accessible name
+            has to also say what the control does. */}
         <button
           type="button"
           className="theme-toggle"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+          onClick={toggleTheme}
         >
           {theme === 'dark' ? 'Light' : 'Dark'}
         </button>
       </nav>
 
-      <Outlet />
+      <main className={isHome ? 'home' : undefined}>
+        <Outlet />
+      </main>
 
       <footer>
         <a href={`mailto:${profile.email}`}>{profile.email}</a>
@@ -81,6 +104,6 @@ export default function RootLayout() {
           </>
         )}
       </footer>
-    </main>
+    </div>
   )
 }
