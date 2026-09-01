@@ -164,6 +164,32 @@ After a deploy:
 Defaults to the production URLs; pass `[SITE_URL] [API_URL]` to target
 something else. Exits non-zero if any check fails.
 
+## Contributing
+
+`main` is protected: it accepts merges from pull requests with passing checks,
+and rejects direct pushes.
+
+```sh
+git checkout -b my-change
+# ... work, commit ...
+git push -u origin my-change
+gh pr create
+```
+
+Every pull request runs two jobs, which must both pass before it can merge:
+
+| Job | Runs |
+|---|---|
+| `backend` | `pytest`, then `pip-audit` |
+| `frontend` | `npm test`, `npm run build`, then `npm audit --audit-level=high` |
+
+Audits fail on high and critical advisories only. Moderate and low are reported
+without blocking, so an unpatched transitive advisory cannot hold up unrelated
+work.
+
+Note that CI proves the code is correct, not that the deploy succeeded. After
+merging, `./scripts/smoke.sh` against production is still a manual step.
+
 ## Deploying to Render
 
 Both services are already deployed from `render.yaml` via a Render Blueprint.

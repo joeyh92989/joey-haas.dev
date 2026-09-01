@@ -28,11 +28,11 @@ describe('Admin', () => {
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ email: 'josephthaas@gmail.com' }),
+        json: async () => ({ email: 'admin@example.com' }),
       }),
     )
     renderAt()
-    expect(await screen.findByText('josephthaas@gmail.com')).toBeInTheDocument()
+    expect(await screen.findByText('admin@example.com')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument()
   })
 

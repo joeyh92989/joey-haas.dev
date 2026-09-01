@@ -12,11 +12,11 @@ BASE = Config(
     google_client_id="client-id",
     google_client_secret="client-secret",
     session_secret="session-secret",
-    admin_email="josephthaas@gmail.com",
+    admin_email="admin@example.com",
     frontend_url="https://joey-haas.dev",
 )
 
-VALID = {"email": "josephthaas@gmail.com", "email_verified": True, "sub": "123"}
+VALID = {"email": "admin@example.com", "email_verified": True, "sub": "123"}
 
 
 def test_verified_matching_email_is_allowed():
@@ -24,7 +24,7 @@ def test_verified_matching_email_is_allowed():
 
 
 def test_email_comparison_ignores_case_and_whitespace():
-    assert is_allowed({**VALID, "email": "  JosephTHaas@GMAIL.com "}, BASE) is True
+    assert is_allowed({**VALID, "email": "  ADMIN@Example.COM "}, BASE) is True
 
 
 def test_unverified_email_is_denied():
@@ -34,7 +34,7 @@ def test_unverified_email_is_denied():
 
 
 def test_missing_email_verified_is_denied():
-    userinfo = {"email": "josephthaas@gmail.com", "sub": "123"}
+    userinfo = {"email": "admin@example.com", "sub": "123"}
     assert is_allowed(userinfo, BASE) is False
 
 
@@ -117,7 +117,7 @@ def test_callback_accepts_allowed_account_and_creates_session():
 
     me = client.get("/api/auth/me")
     assert me.status_code == 200
-    assert me.json() == {"email": "josephthaas@gmail.com"}
+    assert me.json() == {"email": "admin@example.com"}
 
 
 def test_session_cookie_carries_security_flags():
