@@ -1,7 +1,7 @@
 services:
   # React frontend — free static site on Render's CDN
   - type: web
-    name: personal-site
+    name: joey-haas-dev
     runtime: static
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/dist
@@ -15,7 +15,7 @@ services:
 
   # Python API — free tier (spins down when idle; upgrade plan to remove)
   - type: web
-    name: personal-site-api
+    name: joey-haas-dev-api
     runtime: python
     plan: free
     rootDir: backend

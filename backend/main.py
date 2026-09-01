@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 
 config = load_config()
 
-app = FastAPI(title="Personal Site API")
+app = FastAPI(title="joey-haas.dev API")
 
 # Signed, HttpOnly, Secure, SameSite=Lax. Thirty days.
 #
