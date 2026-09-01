@@ -37,6 +37,14 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
+      # Lint before tests: it is faster, and a formatting failure is cheaper to
+      # report than a full test run.
+      - name: Check formatting
+        run: ruff format --check .
+
+      - name: Lint
+        run: ruff check .
+
       - name: Run tests
         run: pytest -q
 
@@ -60,6 +68,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
 
       - name: Run tests
         run: npm test

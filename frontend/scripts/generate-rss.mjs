@@ -33,10 +33,14 @@ function escapeXml(value) {
 
 /** Matches the plugin's normalization: a plain 'YYYY-MM-DD' string. */
 function toDateString(value) {
-  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value)
+  return value instanceof Date
+    ? value.toISOString().slice(0, 10)
+    : String(value)
 }
 
-const names = (await fs.readdir(postsDir)).filter((name) => name.endsWith('.md'))
+const names = (await fs.readdir(postsDir)).filter((name) =>
+  name.endsWith('.md'),
+)
 
 const items = []
 for (const name of names) {

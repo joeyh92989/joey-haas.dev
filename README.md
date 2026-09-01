@@ -142,11 +142,21 @@ email and the subject must match.
 It cannot be required from the start, because the value is unknowable until the
 first login.
 
-### Running the tests
+### Running the tests and checks
 
 ```sh
 cd backend && ./.venv/bin/pytest
+cd backend && ./.venv/bin/ruff format --check . && ./.venv/bin/ruff check .
+
 cd frontend && npm test
+cd frontend && npm run format:check && npm run lint
+```
+
+To fix formatting rather than just check it:
+
+```sh
+cd backend && ./.venv/bin/ruff format . && ./.venv/bin/ruff check --fix .
+cd frontend && npm run format
 ```
 
 The backend venv must be **Python 3.12** to match Render. macOS system Python is

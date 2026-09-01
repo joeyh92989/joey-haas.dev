@@ -1,0 +1,13 @@
+# Ruff handles both formatting and linting for this backend.
+#
+# Config lives here rather than in a pyproject.toml: the backend has no
+# packaging metadata, and inventing one to hold a few lines of linter config
+# would imply more structure than exists.
+
+line-length = 88
+
+[lint]
+# Defaults (pycodestyle errors, pyflakes) plus import sorting. Imports are
+# already hand-sorted, so "I" codifies existing practice rather than imposing
+# a new opinion.
+select = ["E", "F", "I"]
