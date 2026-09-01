@@ -78,6 +78,15 @@ else
   report_fail "feed.xml is a well-formed channel" "missing <channel> or site URL"
 fi
 
+# Like feed.xml, resume.pdf is a real file in dist/ rather than a route, so the
+# content type is what distinguishes a served file from the SPA fallback: the
+# rewrite would return index.html with a 200 if the asset were missing.
+resume_type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$SITE_URL/resume.pdf")"
+case "$resume_type" in
+  *pdf*) report_pass "resume.pdf served as PDF" "$resume_type" ;;
+  *) report_fail "resume.pdf served as PDF" "got '$resume_type' — likely the SPA fallback" ;;
+esac
+
 check_equals "GET /api/health" "$(curl -s -m 90 "$API_URL/api/health")" '{"status":"ok"}'
 
 check_equals "GET /api/auth/me unauthenticated" "$(http_status "$API_URL/api/auth/me")" "401"
