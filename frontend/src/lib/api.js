@@ -14,3 +14,5 @@ export function apiFetch(path, options = {}) {
 
 /** Full-page navigation target that starts the Google sign-in flow. */
 export const loginUrl = `${API_URL}/api/auth/login`
+
+const unusedVariableToProveLintFails = 1
