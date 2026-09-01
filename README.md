@@ -163,6 +163,63 @@ The backend venv must be **Python 3.12** to match Render. macOS system Python is
 3.9, which cannot install this dependency set at all — current `cryptography`
 ships no 3.9 wheels, so pip falls back to a source build requiring Rust.
 
+## Database
+
+Neon Postgres 18, free plan, AWS US West 2 (Oregon) — the same region as the
+Render services.
+
+Two connection strings are required, and they are **not** interchangeable:
+
+| Variable | Hostname | Used by |
+| --- | --- | --- |
+| `DATABASE_URL` | contains `-pooler` | The application |
+| `DATABASE_URL_DIRECT` | no `-pooler` | Alembic migrations |
+
+Neon's pooler runs PgBouncer in transaction mode, which does not support the
+`SET` statements Alembic relies on. Migrations run through the pooler fail in
+ways that read as unrelated bugs.
+
+Paste both strings from the Neon console exactly as given. `db.py` rewrites the
+scheme to `postgresql+asyncpg` and strips the libpq-only `sslmode` and
+`channel_binding` parameters, which asyncpg does not accept — so no hand-editing
+is needed, and re-pasting a fresh string later stays correct.
+
+### Running a migration
+
+Schema changes are applied deliberately, not on deploy:
+
+```sh
+cd backend
+./.venv/bin/alembic upgrade head --sql   # review the SQL first
+./.venv/bin/alembic upgrade head         # apply
+./.venv/bin/alembic current              # confirm
+```
+
+**The API refuses to start if the database is behind the code.** That is what
+makes manual migration safe — a forgotten one fails immediately and legibly
+instead of surfacing later as a confusing query error. If the service will not
+boot and the log says `SchemaMismatchError`, run the upgrade above.
+
+To create a new migration after changing `models.py`:
+
+```sh
+cd backend && ./.venv/bin/alembic revision -m "describe the change"
+```
+
+Write the `upgrade` and `downgrade` bodies by hand. If a migration creates a
+Postgres enum type, its `downgrade` must drop that type explicitly — Postgres
+does not remove it with the table, and the next `upgrade` would fail on "type
+already exists", a long way from its cause.
+
+### Tests
+
+Backend tests run against a real Postgres, never SQLite: enums, `timestamptz`,
+and the `CHECK` constraint all behave differently otherwise. There is no local
+Postgres on the development machine, so the collection tests skip locally and
+run for real in CI against a `postgres:18` service container. In CI they cannot
+skip — an unreachable database is a hard error there, or "green" would come to
+mean "did not run".
+
 ## Smoke test
 
 After a deploy:
