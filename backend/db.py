@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy.ext.asyncio import (
@@ -77,3 +79,21 @@ def create_engine_and_sessionmaker(
     )
     factory = async_sessionmaker(engine, expire_on_commit=False)
     return engine, factory
+
+
+def engine_lifespan(engine: AsyncEngine):
+    """A FastAPI lifespan that disposes `engine` on shutdown.
+
+    Without it the pool's connections outlive the process and sit open until the
+    server times them out. Neon's free plan has a connection ceiling, and Render
+    restarts this service on every deploy and every wake from idle, so abandoned
+    connections accumulate at exactly the moments the app is least able to
+    afford them.
+    """
+
+    @asynccontextmanager
+    async def lifespan(_app) -> AsyncIterator[None]:
+        yield
+        await engine.dispose()
+
+    return lifespan

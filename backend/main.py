@@ -14,7 +14,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from auth import create_auth_router
 from config import allowed_origins, load_config
-from db import create_engine_and_sessionmaker
+from db import create_engine_and_sessionmaker, engine_lifespan
 from items import create_items_router
 from schema_check import verify_schema_is_current
 
@@ -27,7 +27,11 @@ config = load_config()
 # query error. This is what makes manual migrations safe.
 verify_schema_is_current(config)
 
-app = FastAPI(title="joey-haas.dev API")
+# One engine for the process. The pool is what makes Neon's connection limit
+# survivable; a per-request engine would exhaust it.
+engine, session_factory = create_engine_and_sessionmaker(config.database_url)
+
+app = FastAPI(title="joey-haas.dev API", lifespan=engine_lifespan(engine))
 
 # Signed, HttpOnly, Secure, SameSite=Lax. Thirty days.
 #
@@ -60,10 +64,6 @@ app.add_middleware(
 )
 
 app.include_router(create_auth_router(config))
-
-# One engine for the process. The pool is what makes Neon's connection
-# limit survivable; a per-request engine would exhaust it.
-engine, session_factory = create_engine_and_sessionmaker(config.database_url)
 app.include_router(create_items_router(session_factory))
 
 

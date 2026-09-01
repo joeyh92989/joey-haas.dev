@@ -1,4 +1,8 @@
-from db import connect_args_for, normalize_async_url
+import pytest
+from conftest import TEST_DATABASE_URL
+from sqlalchemy.ext.asyncio import create_async_engine
+
+from db import connect_args_for, engine_lifespan, normalize_async_url
 
 
 def test_scheme_is_rewritten_for_asyncpg():
@@ -50,3 +54,15 @@ def test_local_urls_get_no_tls_settings():
 def test_hosted_urls_require_tls():
     args = connect_args_for("postgresql+asyncpg://u:p@ep-x.neon.tech/neondb")
     assert args == {"ssl": "require"}
+
+
+@pytest.mark.asyncio
+async def test_engine_lifespan_disposes_the_engine():
+    # dispose() replaces the pool object outright, so comparing identity proves
+    # the engine was actually torn down rather than merely left alone.
+    url = normalize_async_url(TEST_DATABASE_URL)
+    engine = create_async_engine(url, connect_args=connect_args_for(url))
+    before = engine.pool
+    async with engine_lifespan(engine)(None):
+        assert engine.pool is before
+    assert engine.pool is not before
