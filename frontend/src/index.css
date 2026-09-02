@@ -846,6 +846,127 @@ footer {
   text-decoration: underline;
 }
 
+/* Cover art. The ratio is per type because the sources disagree: film
+   posters are 2:3, game covers nearer 3:4, board game box shots roughly
+   square. One ratio for all of them looks broken on a mixed shelf. */
+.cover {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+}
+
+.cover img,
+.cover-placeholder {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.cover-movie,
+.cover-comic {
+  aspect-ratio: 2 / 3;
+}
+
+.cover-game {
+  aspect-ratio: 3 / 4;
+}
+
+.cover-boardgame {
+  aspect-ratio: 1 / 1;
+}
+
+.import-form {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.125rem 0;
+}
+
+.import-form input[type='file'] {
+  color: var(--text-body);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.import-form button,
+.import-table input,
+.import-table select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.import-form button {
+  cursor: pointer;
+}
+
+.import-form button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.import-form button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.import-table .cover {
+  width: 2.75rem;
+}
+
+.import-result {
+  color: var(--text-body);
+}
+
+/* Text, never colour alone. A badge distinguished only by colour tells
+   nothing to a reader who cannot see the difference. */
+.confidence {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+}
+
+.confidence-exact {
+  border-color: var(--accent-2);
+  color: var(--text);
+}
+
+.confidence-probable {
+  color: var(--text-body);
+}
+
+.confidence-uncertain {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.import-reason {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+}
+
+.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 /* The wrapper scrolls, not the page: a wide table must never make the whole
    document scroll sideways on a phone. */
 .item-table-wrap {
