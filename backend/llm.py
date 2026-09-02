@@ -35,16 +35,45 @@ MAX_REQUEST_BYTES = 20 * 1024 * 1024
 TIMEOUT = 120.0
 
 GEMINI_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
-DEFAULT_GEMINI_MODEL = "gemini-3.7-flash"
+
+# Tried in order. Not a preference list -- a survival list.
+#
+# gemini-3.7-flash is the newest and the most contended: two real photo
+# imports failed against it with 503 while 3.6 and 3.5 answered the same
+# image request with 200. Both facts were measured, not assumed.
+#
+# The free-tier quota is per project *per model*, so falling through also
+# multiplies the daily budget rather than merely dodging an outage.
+# gemini-flash-latest is deliberately absent: it aliases 3.7 and shares its
+# quota, so it would be a second name for the same exhausted bucket.
+GEMINI_MODELS = (
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+)
+DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0]
 DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5"
 MAX_TOKENS = 8000
 
-# Observed in practice, not theory: a first call to gemini-3.7-flash returned
-# 503 twice while the model was listed and available. Overload is transient and
-# common enough on the free tier that one retry is the difference between a
-# working import and a mystifying failure.
-RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
-RETRY_DELAY_SECONDS = 2.0
+# Overload, not rate limiting. gemini-3.7-flash returns 503 while listed and
+# available, in bursts lasting tens of seconds rather than milliseconds -- a
+# real import failed on one photo this way. Backing off across several attempts
+# is what turns that into a slow success instead of a mystifying failure.
+OVERLOAD_STATUSES = frozenset({500, 502, 503, 504})
+RETRY_DELAYS_SECONDS = (2.0, 5.0, 10.0)
+
+# 429 is deliberately NOT retried, and the reason is the daily cap below: a
+# quota measured per day does not refill within the seconds a retry would
+# wait, so retrying spends the next request to be told the same thing and
+# delays the honest answer to whoever is waiting.
+RATE_LIMIT_STATUS = 429
+
+# Measured against the live API, because Google does not publish it: the free
+# tier allows twenty generate_content requests per day, per project, per
+# model (quota id GenerateRequestsPerDayPerProjectPerModel-FreeTier). Not per
+# minute. That is roughly twenty photographs a day, which is worth knowing
+# before planning to backfill a shelf in one sitting.
+FREE_TIER_DAILY_REQUESTS = 20
 
 
 class LLMError(RuntimeError):
@@ -127,6 +156,31 @@ def to_gemini_schema(schema: dict) -> dict:
     return cleaned
 
 
+def _quota_message(body: dict | None, tried: int = 1) -> str:
+    """A 429 explained in terms of which limit was actually hit.
+
+    "Try again shortly" is true of a per-minute limit and a lie about a
+    per-day one. Google reports the difference in a QuotaFailure detail, so
+    the distinction is available rather than guessable -- and getting it wrong
+    sends someone retrying for hours against a quota that resets at midnight.
+    """
+    quota_id = ""
+    for detail in ((body or {}).get("error") or {}).get("details") or []:
+        for violation in detail.get("violations") or []:
+            quota_id = violation.get("quotaId") or quota_id
+
+    if "PerDay" in quota_id:
+        models = "every model tried" if tried > 1 else "this model"
+        return (
+            f"Gemini's free tier allows {FREE_TIER_DAILY_REQUESTS} requests per "
+            f"day per model, and {models} is used up. It resets at midnight "
+            "Pacific — or set LLM_PROVIDER=anthropic, which has no daily cap."
+        )
+    if quota_id:
+        return "Gemini rate limit reached — wait a minute and try again"
+    return "Gemini rate limit reached — try again shortly"
+
+
 class LLMProvider(Protocol):
     """What the importer needs from a model."""
 
@@ -143,9 +197,12 @@ class GeminiProvider:
     than an exceptional one, and reaches the UI as "try again".
     """
 
-    def __init__(self, api_key: str, model: str = DEFAULT_GEMINI_MODEL) -> None:
+    def __init__(self, api_key: str, model: str | None = None) -> None:
         self._api_key = api_key
-        self._model = model
+        # A named model pins the request to it; the default falls through the
+        # chain, which is what makes an overloaded or exhausted model
+        # survivable rather than fatal.
+        self._models = (model,) if model else GEMINI_MODELS
 
     def _build_body(self, prompt: str, schema: dict, images: list[Image]) -> dict:
         parts: list[dict] = [{"text": prompt}]
@@ -188,36 +245,62 @@ class GeminiProvider:
         body = self._build_body(prompt, schema, images)
 
         last_status: int | None = None
-        for attempt in (1, 2):
-            try:
-                async with httpx2.AsyncClient(timeout=TIMEOUT) as client:
-                    response = await client.post(
-                        f"{GEMINI_ROOT}/{self._model}:generateContent",
-                        json=body,
-                        headers={"x-goog-api-key": self._api_key},
-                    )
-            except httpx2.HTTPError as error:
-                raise LLMError(f"Gemini request failed: {error}") from error
+        last_body: dict | None = None
 
-            logger.info(
-                "gemini %s attempt %d -> %s (%d images)",
-                self._model,
-                attempt,
-                response.status_code,
-                len(images),
-            )
+        for model in self._models:
+            # One attempt more than there are delays: the final attempt is not
+            # followed by a wait.
+            for attempt in range(len(RETRY_DELAYS_SECONDS) + 1):
+                try:
+                    async with httpx2.AsyncClient(timeout=TIMEOUT) as client:
+                        response = await client.post(
+                            f"{GEMINI_ROOT}/{model}:generateContent",
+                            json=body,
+                            headers={"x-goog-api-key": self._api_key},
+                        )
+                except httpx2.HTTPError as error:
+                    raise LLMError(f"Gemini request failed: {error}") from error
 
-            if response.status_code < 400:
-                return self._parse(response.json())
+                logger.info(
+                    "gemini %s attempt %d -> %s (%d images)",
+                    model,
+                    attempt + 1,
+                    response.status_code,
+                    len(images),
+                )
 
-            last_status = response.status_code
-            if attempt == 1 and response.status_code in RETRY_STATUSES:
-                await asyncio.sleep(RETRY_DELAY_SECONDS)
+                if response.status_code < 400:
+                    return self._parse(response.json())
+
+                last_status = response.status_code
+                try:
+                    last_body = response.json()
+                except ValueError:
+                    last_body = None
+
+                retryable = response.status_code in OVERLOAD_STATUSES
+                if retryable and attempt < len(RETRY_DELAYS_SECONDS):
+                    await asyncio.sleep(RETRY_DELAYS_SECONDS[attempt])
+                    continue
+                break
+
+            # Overload and an exhausted quota are both properties of one
+            # model, not of Gemini, so both are worth trying the next one for.
+            # Anything else -- a malformed request, a bad key -- would fail
+            # identically everywhere and is not worth the extra calls.
+            if last_status in OVERLOAD_STATUSES or last_status == RATE_LIMIT_STATUS:
+                logger.info("gemini falling through from %s (%s)", model, last_status)
                 continue
             break
 
-        if last_status == 429:
-            raise LLMError("Gemini rate limit reached — try again shortly")
+        if last_status == RATE_LIMIT_STATUS:
+            raise LLMError(_quota_message(last_body, tried=len(self._models)))
+        if last_status in OVERLOAD_STATUSES:
+            raise LLMError(
+                f"Gemini is overloaded (HTTP {last_status}) — tried "
+                f"{', '.join(self._models)} and none recovered. Try again in a "
+                "few minutes."
+            )
         raise LLMError(f"Gemini returned HTTP {last_status}")
 
 
