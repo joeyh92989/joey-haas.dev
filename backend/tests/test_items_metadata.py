@@ -33,7 +33,7 @@ class StubSource:
     def configured(self) -> bool:
         return self._configured
 
-    async def search(self, query, year=None):
+    async def search(self, query, year=None, platform=None):
         if self._raises:
             raise self._raises
         return [

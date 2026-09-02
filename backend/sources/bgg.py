@@ -60,7 +60,12 @@ class BggSource:
         """
         return False
 
-    async def search(self, query: str, year: int | None = None) -> list[SourceResult]:
+    async def search(
+        self,
+        query: str,
+        year: int | None = None,
+        platform: str | None = None,
+    ) -> list[SourceResult]:
         raise SourceNotConfigured(self.source_name, UNAVAILABLE)
 
     async def fetch(self, external_id: str) -> SourceDetail:

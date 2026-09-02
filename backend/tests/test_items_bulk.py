@@ -27,7 +27,7 @@ class StubSource:
     def configured(self) -> bool:
         return True
 
-    async def search(self, query, year=None):
+    async def search(self, query, year=None, platform=None):
         return []
 
     async def fetch(self, external_id):

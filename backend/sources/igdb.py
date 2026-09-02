@@ -21,6 +21,7 @@ attribution; the collection page credits it anyway.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import UTC, datetime
 
 import httpx2
@@ -45,6 +46,59 @@ COVER_SIZE = "t_cover_big"
 THUMBNAIL_SIZE = "t_cover_small"
 SEARCH_LIMIT = 10
 TIMEOUT = 15.0
+
+# IGDB platform ids, resolved from its own /v4/platforms endpoint rather than
+# guessed. Keys are normalized -- lowercased, non-alphanumerics collapsed --
+# because this is matched against free text a model read off a game case.
+#
+# The point of this map is Star Fox: IGDB holds a 1993 release and a 2026 one
+# under exactly that title, so no amount of string comparison separates them
+# and only the platform does.
+PLATFORM_IDS = {
+    "nintendo switch 2": 508,
+    "switch 2": 508,
+    "nintendo switch": 130,
+    "switch": 130,
+    "playstation 5": 167,
+    "ps5": 167,
+    "playstation 4": 48,
+    "ps4": 48,
+    "xbox series x s": 169,
+    "xbox series x": 169,
+    "xbox series s": 169,
+    "xbox one": 49,
+    "pc microsoft windows": 6,
+    "pc": 6,
+    "windows": 6,
+    "steam": 6,
+    "nintendo 3ds": 37,
+    "3ds": 37,
+    "wii u": 41,
+}
+
+_PLATFORM_NOISE = re.compile(r"[^a-z0-9]+")
+
+
+def platform_id(name: str | None) -> int | None:
+    """The IGDB platform id for free text off a case, or None.
+
+    Deliberately forgiving about punctuation and casing, and deliberately
+    strict about everything else: an unrecognised platform yields None and the
+    search runs unfiltered, which is the same behaviour as not knowing the
+    platform at all. Guessing would be worse than not filtering.
+    """
+    if not name:
+        return None
+    key = _PLATFORM_NOISE.sub(" ", name.casefold()).strip()
+    if key in PLATFORM_IDS:
+        return PLATFORM_IDS[key]
+    # "Nintendo Switch 2 Edition" and similar: fall back to the longest known
+    # name the text contains, so the more specific console wins over the less.
+    matches = [known for known in PLATFORM_IDS if known in key]
+    if matches:
+        return PLATFORM_IDS[max(matches, key=len)]
+    return None
+
 
 FIELDS = (
     "fields name,first_release_date,cover.image_id,genres.name,summary,rating,"
@@ -206,13 +260,45 @@ class IgdbSource:
             },
         )
 
-    async def search(self, query: str, year: int | None = None) -> list[SourceResult]:
-        """Candidate games for `query`.
+    async def search(
+        self,
+        query: str,
+        year: int | None = None,
+        platform: str | None = None,
+    ) -> list[SourceResult]:
+        """Candidate games for `query`, narrowed to `platform` when known.
 
         IGDB's search does not take a year filter, so `year` is accepted for
         interface compatibility and applied later by the matching layer.
+
+        The platform filter is what makes a shelf of current-generation games
+        resolvable at all. IGDB's relevance ranking is weak for short titles:
+        searching "Star Fox" returns Super Weekend, Zero and 64 3D before the
+        game actually called Star Fox, and holds two releases under that exact
+        title anyway. Filtering to the console collapses that to one right
+        answer.
+
+        A filter that returns nothing falls back to the unfiltered search
+        rather than reporting no match. A misread platform should cost
+        precision, never the item.
         """
         escaped = query.replace('"', '\\"')
+        wanted = platform_id(platform)
+
+        if wanted is not None:
+            filtered = await self._query(
+                f'search "{escaped}"; where platforms = ({wanted}); '
+                f"{FIELDS} limit {SEARCH_LIMIT};"
+            )
+            if filtered:
+                return self._parse_search(filtered)
+            logger.info(
+                "igdb no %s results for %r on platform %s; retrying unfiltered",
+                self.source_name,
+                query,
+                wanted,
+            )
+
         payload = await self._query(
             f'search "{escaped}"; {FIELDS} limit {SEARCH_LIMIT};'
         )

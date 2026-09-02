@@ -7,7 +7,7 @@ import pytest
 
 from config import Config
 from sources.base import SourceNotConfigured
-from sources.igdb import IgdbSource, year_from_unix
+from sources.igdb import IgdbSource, platform_id, year_from_unix
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -183,3 +183,91 @@ async def test_a_401_refreshes_the_token_once_and_retries(monkeypatch):
     await source.search("one")
 
     assert calls == ["token", "games", "token", "games"]
+
+
+def test_platform_ids_come_from_igdb_not_from_guessing():
+    # Resolved against IGDB's own /v4/platforms endpoint. A wrong id here
+    # would filter every search down to the wrong console and look exactly
+    # like the game simply not existing.
+    assert platform_id("Nintendo Switch 2") == 508
+    assert platform_id("Nintendo Switch") == 130
+    assert platform_id("PlayStation 5") == 167
+    assert platform_id("Xbox Series X|S") == 169
+
+
+def test_platform_matching_is_forgiving_about_how_it_was_printed():
+    assert platform_id("nintendo switch 2") == 508
+    assert platform_id("NINTENDO SWITCH 2") == 508
+    assert platform_id("Xbox Series X/S") == 169
+    assert platform_id("PS5") == 167
+
+
+def test_edition_wording_still_resolves_to_the_right_console():
+    # Cases really do say "Nintendo Switch 2 Edition". The longer name has to
+    # win over the shorter one it contains, or every Switch 2 game filters to
+    # the original Switch and matches the wrong release.
+    assert platform_id("Nintendo Switch 2 Edition") == 508
+    assert platform_id("Nintendo Switch Edition") == 130
+
+
+def test_an_unknown_platform_yields_none_rather_than_a_guess():
+    # None means "search unfiltered", which is the same as not knowing. A
+    # guess would filter to the wrong console and hide the right game.
+    assert platform_id("Sega Saturn") is None
+    assert platform_id("") is None
+    assert platform_id(None) is None
+
+
+@pytest.mark.asyncio
+async def test_a_known_platform_filters_the_search(monkeypatch):
+    # The Star Fox case: IGDB holds a 1993 release and a 2026 one under
+    # exactly that title, so no string comparison separates them.
+    bodies: list[str] = []
+
+    async def fake_query(body):
+        bodies.append(body)
+        return [{"id": 1, "name": "Star Fox"}]
+
+    source = IgdbSource(_config())
+    monkeypatch.setattr(source, "_query", fake_query)
+
+    await source.search("Star Fox", platform="Nintendo Switch 2")
+
+    assert "where platforms = (508)" in bodies[0]
+    assert len(bodies) == 1
+
+
+@pytest.mark.asyncio
+async def test_no_platform_means_no_filter(monkeypatch):
+    bodies: list[str] = []
+
+    async def fake_query(body):
+        bodies.append(body)
+        return []
+
+    source = IgdbSource(_config())
+    monkeypatch.setattr(source, "_query", fake_query)
+
+    await source.search("Star Fox")
+
+    assert "where platforms" not in bodies[0]
+
+
+@pytest.mark.asyncio
+async def test_an_empty_filtered_result_retries_unfiltered(monkeypatch):
+    # A misread platform should cost precision, never the item.
+    bodies: list[str] = []
+
+    async def fake_query(body):
+        bodies.append(body)
+        return [] if "where platforms" in body else [{"id": 1, "name": "Star Fox"}]
+
+    source = IgdbSource(_config())
+    monkeypatch.setattr(source, "_query", fake_query)
+
+    results = await source.search("Star Fox", platform="Nintendo Switch 2")
+
+    assert len(bodies) == 2
+    assert "where platforms" in bodies[0]
+    assert "where platforms" not in bodies[1]
+    assert results[0].title == "Star Fox"

@@ -150,11 +150,17 @@ class ComicVineSource:
             },
         )
 
-    async def search(self, query: str, year: int | None = None) -> list[SourceResult]:
+    async def search(
+        self,
+        query: str,
+        year: int | None = None,
+        platform: str | None = None,
+    ) -> list[SourceResult]:
         """Candidate comic volumes for `query`.
 
-        ComicVine's search takes no year filter, so `year` is accepted for
-        interface compatibility and applied by the matching layer.
+        ComicVine's search takes no year filter, and a comic has no platform,
+        so both are accepted for interface compatibility. `year` is applied by
+        the matching layer instead.
         """
         payload = await self._get(
             "/search/",
