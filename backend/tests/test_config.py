@@ -74,3 +74,25 @@ def test_database_urls_are_read():
     config = load_config(COMPLETE)
     assert config.database_url == "postgresql://u:p@host-pooler.neon.tech/neondb"
     assert config.database_url_direct == "postgresql://u:p@host.neon.tech/neondb"
+
+
+def test_source_and_llm_keys_are_optional():
+    # A deploy of the film feature must not be blocked by a board-game
+    # registration. Absent source keys mean a smaller feature set, not a
+    # refusal to boot -- which is why none of them are in _REQUIRED.
+    config = load_config(COMPLETE)
+    assert config.tmdb_api_token is None
+    assert config.igdb_client_id is None
+    assert config.comicvine_api_key is None
+    assert config.gemini_api_key is None
+    assert config.anthropic_api_key is None
+
+
+def test_llm_provider_defaults_to_gemini_when_unset_or_blank():
+    assert load_config(COMPLETE).llm_provider == "gemini"
+    assert load_config({**COMPLETE, "LLM_PROVIDER": "   "}).llm_provider == "gemini"
+
+
+def test_source_keys_are_read_and_stripped_when_present():
+    config = load_config({**COMPLETE, "TMDB_API_TOKEN": "  token  "})
+    assert config.tmdb_api_token == "token"
