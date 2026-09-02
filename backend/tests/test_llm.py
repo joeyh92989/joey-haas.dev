@@ -17,6 +17,7 @@ import pytest
 
 from config import Config
 from llm import (
+    GEMINI_MODELS,
     MAX_REQUEST_BYTES,
     AnthropicProvider,
     GeminiProvider,
@@ -199,7 +200,7 @@ class _FakeResponse:
 class _FakeClient:
     """Stands in for httpx2.AsyncClient, returning queued responses in order."""
 
-    def __init__(self, responses: list[_FakeResponse], calls: list[int]):
+    def __init__(self, responses: list[_FakeResponse], calls: list[str]):
         self._responses = responses
         self._calls = calls
 
@@ -209,48 +210,128 @@ class _FakeClient:
     async def __aexit__(self, *_):
         return False
 
-    async def post(self, *_args, **_kwargs):
-        self._calls.append(1)
-        return self._responses.pop(0)
+    async def post(self, url, **_kwargs):
+        # Record which model each call went to: the fallback chain is the
+        # thing most of these tests are actually about.
+        self._calls.append(url.split("/models/")[-1].split(":")[0])
+        # The last queued response repeats, so a test that cares about "keeps
+        # failing" need not count the exact number of attempts up front.
+        return (
+            self._responses.pop(0) if len(self._responses) > 1 else self._responses[0]
+        )
 
 
-def _patch_client(monkeypatch, responses: list[_FakeResponse]) -> list[int]:
-    calls: list[int] = []
+def _patch_client(monkeypatch, responses: list[_FakeResponse]) -> list[str]:
+    calls: list[str] = []
     monkeypatch.setattr(
         "llm.httpx2.AsyncClient", lambda **_: _FakeClient(responses, calls)
     )
-    monkeypatch.setattr("llm.RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr("llm.RETRY_DELAYS_SECONDS", (0, 0, 0))
     return calls
 
 
+def _quota_body(quota_id: str) -> dict:
+    """A 429 body shaped the way Google actually sends one."""
+    return {
+        "error": {
+            "code": 429,
+            "message": "You exceeded your current quota",
+            "details": [
+                {
+                    "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+                    "violations": [{"quotaId": quota_id, "quotaValue": "20"}],
+                }
+            ],
+        }
+    }
+
+
 @pytest.mark.asyncio
-async def test_a_transient_503_is_retried_once_and_can_succeed(monkeypatch):
-    # Not hypothetical: gemini-3.7-flash really did answer 503 twice in a row
-    # while listed and available. Without the retry, a perfectly good import
-    # fails for a reason the user can do nothing about.
+async def test_a_transient_503_is_retried_and_can_succeed(monkeypatch):
+    # Not hypothetical: gemini-3.7-flash really did answer 503 on consecutive
+    # live calls while listed and available, and a real photo import failed
+    # this way. Without the retry a good import fails for a reason the person
+    # holding the phone can do nothing about.
     ok = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
-    calls = _patch_client(monkeypatch, [_FakeResponse(503), _FakeResponse(200, ok)])
+    calls = _patch_client(
+        monkeypatch, [_FakeResponse(503), _FakeResponse(503), _FakeResponse(200, ok)]
+    )
 
     result = await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
 
     assert result == {"titles": ["Dune"]}
-    assert len(calls) == 2
+    assert len(calls) == 3
 
 
 @pytest.mark.asyncio
-async def test_a_second_failure_gives_up_rather_than_looping(monkeypatch):
-    calls = _patch_client(monkeypatch, [_FakeResponse(503), _FakeResponse(503)])
+async def test_an_overloaded_model_falls_through_to_the_next(monkeypatch):
+    # The failure that actually happened: gemini-3.7-flash answered 503 on
+    # real photo imports while 3.6 and 3.5 served the same image request. The
+    # quota is per model too, so falling through buys availability and budget
+    # at once.
+    ok = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
+    calls = _patch_client(
+        monkeypatch,
+        [_FakeResponse(503)] * 4 + [_FakeResponse(200, ok)],
+    )
 
-    with pytest.raises(LLMError):
+    result = await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    assert result == {"titles": ["Dune"]}
+    assert calls[0] == GEMINI_MODELS[0]
+    assert calls[-1] == GEMINI_MODELS[1]
+
+
+@pytest.mark.asyncio
+async def test_an_exhausted_model_also_falls_through(monkeypatch):
+    # A daily quota is spent per model, so 429 is a reason to try the next
+    # one rather than to stop.
+    ok = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
+    calls = _patch_client(
+        monkeypatch,
+        [
+            _FakeResponse(429, _quota_body("GenerateRequestsPerDay")),
+            _FakeResponse(200, ok),
+        ],
+    )
+
+    assert await GeminiProvider(api_key="k").complete_json("go", SCHEMA) == {
+        "titles": ["Dune"]
+    }
+    # One call to the exhausted model -- not retried -- then the next.
+    assert calls == [GEMINI_MODELS[0], GEMINI_MODELS[1]]
+
+
+@pytest.mark.asyncio
+async def test_sustained_overload_across_every_model_gives_up(monkeypatch):
+    calls = _patch_client(monkeypatch, [_FakeResponse(503)])
+
+    with pytest.raises(LLMError) as excinfo:
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
 
-    assert len(calls) == 2
+    # Four attempts per model -- one more than there are delays, since the
+    # last is not followed by a wait -- across every model in the chain.
+    assert len(calls) == 4 * len(GEMINI_MODELS)
+    assert set(calls) == set(GEMINI_MODELS)
+    assert "overloaded" in str(excinfo.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_a_pinned_model_does_not_fall_through(monkeypatch):
+    calls = _patch_client(monkeypatch, [_FakeResponse(503)])
+
+    with pytest.raises(LLMError):
+        await GeminiProvider(api_key="k", model="gemini-3.6-flash").complete_json(
+            "go", SCHEMA
+        )
+
+    assert set(calls) == {"gemini-3.6-flash"}
 
 
 @pytest.mark.asyncio
 async def test_a_bad_request_is_not_retried(monkeypatch):
-    # 400 means the request itself is wrong. Sending it again wastes free-tier
-    # quota to get the same answer.
+    # 400 means the request itself is wrong. Sending it again spends another
+    # of the twenty daily requests to get the same answer.
     calls = _patch_client(monkeypatch, [_FakeResponse(400)])
 
     with pytest.raises(LLMError):
@@ -260,10 +341,61 @@ async def test_a_bad_request_is_not_retried(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_rate_limiting_says_so_in_words_the_ui_can_show(monkeypatch):
-    _patch_client(monkeypatch, [_FakeResponse(429), _FakeResponse(429)])
+async def test_rate_limiting_is_never_retried_on_the_same_model(monkeypatch):
+    # A quota measured per day does not refill in the seconds a retry waits,
+    # so retrying the same model spends a request to be told the same thing.
+    # Moving to the next model is different -- that is a fresh quota.
+    calls = _patch_client(monkeypatch, [_FakeResponse(429)])
+
+    with pytest.raises(LLMError):
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    assert calls == list(GEMINI_MODELS)
+
+
+@pytest.mark.asyncio
+async def test_a_daily_quota_says_so_rather_than_try_again_shortly(monkeypatch):
+    # "Try again shortly" is true of a per-minute limit and a lie about a
+    # per-day one -- it would send someone retrying for hours against a quota
+    # that resets at midnight.
+    _patch_client(
+        monkeypatch,
+        [
+            _FakeResponse(
+                429,
+                _quota_body("GenerateRequestsPerDayPerProjectPerModel-FreeTier"),
+            )
+        ],
+    )
 
     with pytest.raises(LLMError) as excinfo:
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
 
-    assert "try again" in str(excinfo.value).lower()
+    message = str(excinfo.value)
+    assert "per day" in message
+    assert "shortly" not in message
+    # The escape hatch is named, because it is the actionable part.
+    assert "anthropic" in message.lower()
+
+
+@pytest.mark.asyncio
+async def test_a_per_minute_quota_says_wait_a_minute(monkeypatch):
+    _patch_client(
+        monkeypatch,
+        [_FakeResponse(429, _quota_body("GenerateRequestsPerMinutePerProject"))],
+    )
+
+    with pytest.raises(LLMError) as excinfo:
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    assert "minute" in str(excinfo.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_a_429_with_no_quota_detail_still_reads_sensibly(monkeypatch):
+    _patch_client(monkeypatch, [_FakeResponse(429, {"error": {"code": 429}})])
+
+    with pytest.raises(LLMError) as excinfo:
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    assert "rate limit" in str(excinfo.value).lower()
