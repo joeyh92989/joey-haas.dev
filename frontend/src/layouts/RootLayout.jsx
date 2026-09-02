@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import joeyPhoto from '../assets/joey.jpg'
 import { profile } from '../content/profile.js'
+import { apiFetch, loginUrl } from '../lib/api.js'
 
 const STORAGE_KEY = 'theme'
 
@@ -34,11 +35,28 @@ function readStoredTheme() {
  */
 export default function RootLayout() {
   const [theme, setTheme] = useState(readStoredTheme)
+  const [signedIn, setSignedIn] = useState(false)
   const isHome = useLocation().pathname === '/'
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
+
+  useEffect(() => {
+    // Fails quietly on purpose. This runs on every public page, and the
+    // free-tier API is asleep most of the time; a footer that reported an
+    // error because a session check timed out would be worse than a footer
+    // that simply offers sign-in.
+    let cancelled = false
+    apiFetch('/api/auth/me')
+      .then((response) => {
+        if (!cancelled) setSignedIn(response.ok)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   /**
    * Flips the theme and records the choice.
@@ -106,6 +124,18 @@ export default function RootLayout() {
             {' · '}
             <a href={profile.linkedin}>LinkedIn</a>
           </>
+        )}
+        {' · '}
+        {/* Replaces having to know the /admin URL. Deliberately understated:
+            it is a door for one person, not a call to action. */}
+        {signedIn ? (
+          <Link to="/admin" className="footer-admin">
+            Admin
+          </Link>
+        ) : (
+          <a href={loginUrl} className="footer-admin">
+            Sign in
+          </a>
         )}
       </footer>
     </div>

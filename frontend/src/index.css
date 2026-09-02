@@ -749,6 +749,366 @@ footer {
   border-color: var(--accent);
 }
 
+/* Metadata picker: type-ahead lookup above the add form. */
+.metadata-picker {
+  margin-top: 1.125rem;
+}
+
+.metadata-picker label {
+  color: var(--text-muted);
+  display: block;
+  font-size: 0.8125rem;
+  margin-bottom: 0.3rem;
+}
+
+.metadata-picker input[type='search'] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  max-width: 24rem;
+  padding: 0.4rem 0.6rem;
+  width: 100%;
+}
+
+.metadata-picker input[type='search']:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.candidate-list {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  list-style: none;
+  margin: 0.5rem 0 0;
+  max-height: 20rem;
+  max-width: 24rem;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.candidate-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.candidate-list button {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.875rem;
+  gap: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  width: 100%;
+}
+
+.candidate-list button:hover,
+.candidate-list button:focus-visible {
+  background: var(--surface-raised);
+}
+
+/* Fixed box so a missing or slow poster does not reflow the whole list. */
+.candidate-list img,
+.candidate-thumb-empty {
+  border-radius: 4px;
+  flex: 0 0 auto;
+  height: 3.375rem;
+  object-fit: cover;
+  width: 2.25rem;
+}
+
+.candidate-thumb-empty {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.linked-source {
+  flex-basis: 100%;
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* Cover art. The ratio is per type because the sources disagree: film
+   posters are 2:3, game covers nearer 3:4, board game box shots roughly
+   square. One ratio for all of them looks broken on a mixed shelf. */
+.cover {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+}
+
+.cover img,
+.cover-placeholder {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.cover-movie,
+.cover-comic {
+  aspect-ratio: 2 / 3;
+}
+
+.cover-game {
+  aspect-ratio: 3 / 4;
+}
+
+.cover-boardgame {
+  aspect-ratio: 1 / 1;
+}
+
+.import-form {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.125rem 0;
+}
+
+.import-form input[type='file'] {
+  color: var(--text-body);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.import-form button,
+.import-table input,
+.import-table select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.import-form button {
+  cursor: pointer;
+}
+
+.import-form button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.import-form button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.import-table .cover {
+  width: 2.75rem;
+}
+
+.import-result {
+  color: var(--text-body);
+}
+
+/* Text, never colour alone. A badge distinguished only by colour tells
+   nothing to a reader who cannot see the difference. */
+.confidence {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+}
+
+.confidence-exact {
+  border-color: var(--accent-2);
+  color: var(--text);
+}
+
+.confidence-probable {
+  color: var(--text-body);
+}
+
+.confidence-uncertain {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.import-reason {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+}
+
+.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* Understated on purpose: a door for one person, not a call to action. */
+.footer-admin {
+  color: var(--text-muted);
+}
+
+/* Public collection showcase. */
+.collection-stats {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  margin: 1.5rem 0;
+}
+
+.stat-block h2 {
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+}
+
+.stat-block ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stat-block li {
+  align-items: center;
+  color: var(--text-body);
+  display: flex;
+  font-size: 0.875rem;
+  gap: 0.5rem;
+  justify-content: space-between;
+  padding: 0.15rem 0;
+}
+
+.stat-count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.histogram li {
+  justify-content: flex-start;
+}
+
+.histogram li > span:first-child {
+  flex: 0 0 4.5rem;
+}
+
+/* Width comes from a custom property the markup sets, so the bar scales with
+   the count without inlining a colour. */
+.histogram-bar {
+  background: var(--accent);
+  border-radius: 2px;
+  flex: 1 1 auto;
+  height: 0.5rem;
+  max-width: calc(var(--count) * 1.25rem);
+  min-width: 0.25rem;
+  opacity: 0.75;
+}
+
+.recent-strip {
+  display: flex;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0 0 1.5rem;
+  overflow-x: auto;
+  padding: 0 0 0.5rem;
+}
+
+.recent-strip li {
+  flex: 0 0 5.5rem;
+}
+
+.recent-title {
+  font-size: 0.75rem;
+  margin: 0.35rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-filters {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.collection-filters label {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.collection-filters select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.poster-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.poster-title {
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  margin: 0.4rem 0 0;
+}
+
+.poster-meta {
+  font-size: 0.75rem;
+  margin: 0.15rem 0 0;
+}
+
+.stars {
+  color: var(--accent);
+  font-size: 0.8125rem;
+}
+
+.attribution {
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+}
+
+.attribution p {
+  margin: 0 0 0.35rem;
+}
+
 /* The wrapper scrolls, not the page: a wide table must never make the whole
    document scroll sideways on a phone. */
 .item-table-wrap {

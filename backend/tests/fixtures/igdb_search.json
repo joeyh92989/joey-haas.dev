@@ -1,0 +1,314 @@
+[
+  {
+    "id": 11737,
+    "aggregated_rating": 84.71428571428571,
+    "cover": {
+      "id": 286788,
+      "image_id": "co65ac"
+    },
+    "first_release_date": 1559001600,
+    "genres": [
+      {
+        "id": 9,
+        "name": "Puzzle"
+      },
+      {
+        "id": 13,
+        "name": "Simulator"
+      },
+      {
+        "id": 31,
+        "name": "Adventure"
+      },
+      {
+        "id": 32,
+        "name": "Indie"
+      }
+    ],
+    "involved_companies": [
+      {
+        "id": 144456,
+        "company": {
+          "id": 11662,
+          "name": "Annapurna Interactive"
+        },
+        "developer": false
+      },
+      {
+        "id": 145321,
+        "company": {
+          "id": 11662,
+          "name": "Annapurna Interactive"
+        },
+        "developer": false
+      },
+      {
+        "id": 145322,
+        "company": {
+          "id": 6209,
+          "name": "Mobius Digital"
+        },
+        "developer": true
+      },
+      {
+        "id": 318852,
+        "company": {
+          "id": 31592,
+          "name": "Limited Run Games"
+        },
+        "developer": false
+      }
+    ],
+    "name": "Outer Wilds",
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      },
+      {
+        "id": 130,
+        "name": "Nintendo Switch"
+      }
+    ],
+    "rating": 89.58021232384978,
+    "similar_games": [
+      37419,
+      25311,
+      26574,
+      28070,
+      80916,
+      25646,
+      17548,
+      105269,
+      26223,
+      25300
+    ],
+    "summary": "Outer Wilds is a critically-acclaimed and award-winning open world mystery about a solar system trapped in an endless time loop. The newest member of the space program in a small village on the planet Timber Hearth, the player navigates a space shuttle and travels across their solar system to get to the bottom of its mysteries by exploring the cosmos and gathering the knowledge hidden within each of the system's planets, left behind by another civilization in the distant past.",
+    "total_rating": 87.14724901906774,
+    "total_rating_count": 885
+  },
+  {
+    "id": 146761,
+    "aggregated_rating": 90.0,
+    "cover": {
+      "id": 181861,
+      "image_id": "co3wbp"
+    },
+    "first_release_date": 1632787200,
+    "genres": [
+      {
+        "id": 9,
+        "name": "Puzzle"
+      },
+      {
+        "id": 13,
+        "name": "Simulator"
+      },
+      {
+        "id": 31,
+        "name": "Adventure"
+      },
+      {
+        "id": 32,
+        "name": "Indie"
+      }
+    ],
+    "involved_companies": [
+      {
+        "id": 143473,
+        "company": {
+          "id": 6209,
+          "name": "Mobius Digital"
+        },
+        "developer": true
+      },
+      {
+        "id": 143474,
+        "company": {
+          "id": 11662,
+          "name": "Annapurna Interactive"
+        },
+        "developer": false
+      }
+    ],
+    "name": "Outer Wilds: Echoes of the Eye",
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      },
+      {
+        "id": 130,
+        "name": "Nintendo Switch"
+      }
+    ],
+    "rating": 90.01021548551134,
+    "similar_games": [
+      11737,
+      17130,
+      109129,
+      25311,
+      37419,
+      26574,
+      28070,
+      54842,
+      20329,
+      55984
+    ],
+    "summary": "The Hearthian space program has detected an anomaly that can\u02bct be attributed to any known location in the solar system. Grab your flashlight and prepare to illuminate the darkest secrets of the Outer Wilds in its first and only DLC, Outer Wilds: Echoes of the Eye.",
+    "total_rating": 90.00510774275567,
+    "total_rating_count": 88
+  },
+  {
+    "id": 173172,
+    "aggregated_rating": 90.0,
+    "cover": {
+      "id": 184733,
+      "image_id": "co3yjh"
+    },
+    "first_release_date": 1632787200,
+    "genres": [
+      {
+        "id": 9,
+        "name": "Puzzle"
+      },
+      {
+        "id": 13,
+        "name": "Simulator"
+      },
+      {
+        "id": 31,
+        "name": "Adventure"
+      },
+      {
+        "id": 32,
+        "name": "Indie"
+      }
+    ],
+    "involved_companies": [
+      {
+        "id": 240865,
+        "company": {
+          "id": 6209,
+          "name": "Mobius Digital"
+        },
+        "developer": true
+      },
+      {
+        "id": 240866,
+        "company": {
+          "id": 11662,
+          "name": "Annapurna Interactive"
+        },
+        "developer": false
+      }
+    ],
+    "name": "Outer Wilds: Archaeologist Edition",
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      },
+      {
+        "id": 130,
+        "name": "Nintendo Switch"
+      }
+    ],
+    "rating": 99.54726851945465,
+    "similar_games": [
+      37419,
+      25311,
+      11737,
+      28070,
+      26574,
+      25646,
+      80916,
+      26223,
+      105269,
+      55984
+    ],
+    "summary": "Outer Wilds: Archaeologist Edition contains Outer Wilds base game and Echoes of the Eye expansion.",
+    "total_rating": 94.77363425972732,
+    "total_rating_count": 19
+  },
+  {
+    "id": 304188,
+    "first_release_date": 1716854400,
+    "genres": [
+      {
+        "id": 31,
+        "name": "Adventure"
+      },
+      {
+        "id": 32,
+        "name": "Indie"
+      }
+    ],
+    "involved_companies": [
+      {
+        "id": 268827,
+        "company": {
+          "id": 6209,
+          "name": "Mobius Digital"
+        },
+        "developer": true
+      }
+    ],
+    "name": "\u200bOuter Wilds: A Thrilling Graphical Text Adventure",
+    "platforms": [
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      }
+    ],
+    "summary": "The original text adventure prototype for Outer Wilds, released to the public in celebration of the original game's fifth anniversary."
+  }
+]

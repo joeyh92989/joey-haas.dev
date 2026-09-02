@@ -2,16 +2,29 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import uuid
+from collections import defaultdict
 from collections.abc import AsyncIterator
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from models import Item, ItemStatus, ItemType
+from models import Item, ItemStatus, ItemType, OwnedFormat
+from sources.base import (
+    SourceAdapter,
+    SourceError,
+    SourceNotConfigured,
+    SourceRateLimited,
+)
+from sources.registry import adapter_for
+
+logger = logging.getLogger(__name__)
 
 
 class ItemIn(BaseModel):
@@ -23,6 +36,17 @@ class ItemIn(BaseModel):
     rating: int | None = Field(default=None, ge=1, le=10)
     notes: str | None = None
     is_public: bool = False
+    year: int | None = Field(default=None, ge=1880, le=2100)
+    creator: str | None = Field(default=None, max_length=300)
+    cover_url: str | None = None
+    external_source: str | None = Field(default=None, max_length=20)
+    external_id: str | None = Field(default=None, max_length=50)
+    favorite: bool = False
+    started_at: date | None = None
+    finished_at: date | None = None
+    times_completed: int = Field(default=0, ge=0)
+    owned_format: OwnedFormat | None = None
+    source_metadata: dict | None = None
 
 
 class ItemPatch(BaseModel):
@@ -34,6 +58,17 @@ class ItemPatch(BaseModel):
     rating: int | None = Field(default=None, ge=1, le=10)
     notes: str | None = None
     is_public: bool | None = None
+    year: int | None = Field(default=None, ge=1880, le=2100)
+    creator: str | None = Field(default=None, max_length=300)
+    cover_url: str | None = None
+    external_source: str | None = Field(default=None, max_length=20)
+    external_id: str | None = Field(default=None, max_length=50)
+    favorite: bool | None = None
+    started_at: date | None = None
+    finished_at: date | None = None
+    times_completed: int | None = Field(default=None, ge=0)
+    owned_format: OwnedFormat | None = None
+    source_metadata: dict | None = None
 
 
 class ItemOut(BaseModel):
@@ -46,10 +81,71 @@ class ItemOut(BaseModel):
     rating: int | None
     notes: str | None
     is_public: bool
+    year: int | None
+    creator: str | None
+    cover_url: str | None
+    external_source: str | None
+    external_id: str | None
+    favorite: bool
+    started_at: date | None
+    finished_at: date | None
+    times_completed: int
+    owned_format: OwnedFormat | None
+    source_metadata: dict | None
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class BulkIn(BaseModel):
+    """A batch of items to create in one request.
+
+    Capped because this is a review-then-commit step, not a bulk data load: a
+    shelf is tens of items, and an unbounded list would let one request hold a
+    connection open for as long as it liked.
+    """
+
+    items: list[ItemIn] = Field(min_length=1, max_length=500)
+
+
+class BulkOut(BaseModel):
+    """What a bulk create actually did."""
+
+    created: int
+    skipped_duplicates: int
+    enriched: int
+    ids: list[uuid.UUID]
+
+
+class CandidateOut(BaseModel):
+    """One picker row: a search hit from an external source."""
+
+    external_source: str
+    external_id: str
+    title: str
+    year: int | None
+    thumbnail_url: str | None
+
+
+def _http_error_for(error: SourceError) -> HTTPException:
+    """Maps a source failure onto the status code that actually describes it.
+
+    503 rather than 500 for an unconfigured source: nothing is broken, the
+    feature was never enabled on this deploy, and the detail names the variable
+    to set.
+    """
+    if isinstance(error, SourceNotConfigured):
+        return HTTPException(status_code=503, detail=str(error))
+    if isinstance(error, SourceRateLimited):
+        return HTTPException(status_code=429, detail=str(error))
+    return HTTPException(status_code=502, detail=str(error))
+
+
+# Must match the predicate on ux_items_external in models.py and migration
+# 0002. Postgres matches a partial index by its predicate, so these three
+# have to stay in step.
+EXTERNAL_PRESENT = "external_source IS NOT NULL AND external_id IS NOT NULL"
 
 
 def require_admin(request: Request) -> None:
@@ -65,8 +161,92 @@ def require_admin(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
 
-def create_items_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
-    """Builds the collection routes bound to this session factory."""
+def _apply_detail(item: Item, detail) -> None:
+    """Copies a fetched source record onto an item, leaving the title alone.
+
+    The title is the owner's: the picker prefills it and it stays editable, so
+    overwriting it here would be data loss rather than enrichment.
+    """
+    item.year = detail.year if detail.year is not None else item.year
+    item.creator = detail.creator
+    item.cover_url = detail.cover_url
+    item.source_metadata = detail.source_metadata
+
+
+async def _enrich(
+    session: AsyncSession,
+    registry: dict[ItemType, SourceAdapter],
+    ids: list[uuid.UUID],
+) -> int:
+    """Fills in cover art, creator, and the snapshot for newly created rows.
+
+    Bulk creation carries only what the browser could verify -- the external
+    link, the title, the year -- so without this step an imported collection
+    has no covers at all, and the public page is a poster grid with no
+    posters.
+
+    Grouped by source and serial within a group, matching the importer: the
+    per-source throttle lives in the adapter, so films resolve quickly while
+    the slow sources do not hold them up. A source that fails leaves its rows
+    unenriched rather than failing the import that already succeeded -- the
+    items exist, and refresh-metadata can fill them in later.
+    """
+    if not ids:
+        return 0
+
+    result = await session.execute(
+        select(Item).where(
+            Item.id.in_(ids),
+            Item.external_source.is_not(None),
+            Item.external_id.is_not(None),
+        )
+    )
+    linked = list(result.scalars())
+    if not linked:
+        return 0
+
+    grouped: dict[ItemType, list[Item]] = defaultdict(list)
+    for item in linked:
+        grouped[item.type].append(item)
+
+    async def enrich_group(item_type: ItemType, group: list[Item]) -> int:
+        try:
+            adapter = adapter_for(registry, item_type)
+        except SourceError as error:
+            logger.info("bulk enrich skipped %s: %s", item_type.value, error)
+            return 0
+
+        done = 0
+        for item in group:
+            try:
+                _apply_detail(item, await adapter.fetch(item.external_id))
+                done += 1
+            except SourceError as error:
+                logger.info("bulk enrich failed for %s: %s", item.title, error)
+        return done
+
+    counts = await asyncio.gather(
+        *(enrich_group(item_type, group) for item_type, group in grouped.items())
+    )
+    await session.commit()
+
+    total = sum(counts)
+    logger.info("bulk enrich: %d of %d linked rows", total, len(linked))
+    return total
+
+
+def create_items_router(
+    factory: async_sessionmaker[AsyncSession],
+    registry: dict[ItemType, SourceAdapter] | None = None,
+) -> APIRouter:
+    """Builds the collection routes bound to this session factory.
+
+    `registry` supplies the metadata sources. It defaults to empty so that a
+    caller wanting only CRUD -- most of the existing tests -- need not build
+    one; the lookup routes then answer 503, which is the truthful response for
+    a deploy with no sources configured.
+    """
+    registry = {} if registry is None else registry
     router = APIRouter(
         prefix="/api/items",
         tags=["items"],
@@ -106,6 +286,122 @@ def create_items_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         """Adds one item and returns it, including its generated id."""
         item = Item(**payload.model_dump())
         session.add(item)
+        await session.commit()
+        await session.refresh(item)
+        return item
+
+    @router.post("/bulk", response_model=BulkOut, status_code=201)
+    async def create_items_bulk(
+        payload: BulkIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> BulkOut:
+        """Creates many items at once, skipping ones already in the collection.
+
+        Photographing the same shelf twice is expected behaviour, not a
+        mistake, so a duplicate is reported rather than raised.
+
+        Duplicates within the batch are removed here first: ON CONFLICT does
+        not deduplicate rows inside a single statement, so two identical rows
+        in one INSERT would both be written.
+        """
+        seen: set[tuple[str, str]] = set()
+        rows: list[dict] = []
+        within_batch_duplicates = 0
+
+        for item in payload.items:
+            values = item.model_dump()
+            key = (values.get("external_source"), values.get("external_id"))
+            # A manual row has NULL on both and is never a duplicate of
+            # another manual row -- the same reason the index is partial.
+            if key[0] and key[1]:
+                if key in seen:
+                    within_batch_duplicates += 1
+                    continue
+                seen.add(key)
+            values["id"] = uuid.uuid4()
+            rows.append(values)
+
+        statement = (
+            pg_insert(Item)
+            .values(rows)
+            .on_conflict_do_nothing(
+                index_elements=["external_source", "external_id"],
+                # The index is partial, so Postgres will not match it unless
+                # the predicate is restated here -- without index_where it
+                # answers "no unique or exclusion constraint matching the ON
+                # CONFLICT specification", which reads like a missing index.
+                index_where=text(EXTERNAL_PRESENT),
+            )
+            .returning(Item.id)
+        )
+        result = await session.execute(statement)
+        created = list(result.scalars())
+        await session.commit()
+
+        enriched = await _enrich(session, registry, created)
+
+        return BulkOut(
+            created=len(created),
+            skipped_duplicates=within_batch_duplicates + (len(rows) - len(created)),
+            enriched=enriched,
+            ids=created,
+        )
+
+    # Declared before /{item_id}. FastAPI matches in declaration order and
+    # {item_id} is typed uuid.UUID, so a later /search-metadata would be
+    # swallowed by it and answered 422 instead of reaching the picker.
+    @router.get("/search-metadata", response_model=list[CandidateOut])
+    async def search_metadata(
+        type: ItemType = Query(),
+        query: str = Query(min_length=1, max_length=200),
+        year: int | None = Query(default=None, ge=1880, le=2100),
+    ) -> list[CandidateOut]:
+        """Candidate external records for a title.
+
+        A server-side proxy rather than a call from the browser: the source
+        credentials live here and must stay here.
+        """
+        try:
+            adapter = adapter_for(registry, type)
+            results = await adapter.search(query, year)
+        except SourceError as error:
+            raise _http_error_for(error) from error
+
+        return [
+            CandidateOut(
+                external_source=adapter.source_name,
+                external_id=result.external_id,
+                title=result.title,
+                year=result.year,
+                thumbnail_url=result.thumbnail_url,
+            )
+            for result in results
+        ]
+
+    @router.post("/{item_id}/refresh-metadata", response_model=ItemOut)
+    async def refresh_metadata(
+        item_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> Item:
+        """Re-fetches the linked source record for one item.
+
+        The title is deliberately left alone. The picker prefills it and the
+        owner may have edited it since, so overwriting on refresh would be
+        data loss rather than a refresh.
+        """
+        item = await _load(session, item_id)
+        if not item.external_source or not item.external_id:
+            raise HTTPException(
+                status_code=409, detail="This item is not linked to a source"
+            )
+
+        try:
+            adapter = adapter_for(registry, item.type)
+            detail = await adapter.fetch(item.external_id)
+        except SourceError as error:
+            raise _http_error_for(error) from error
+
+        _apply_detail(item, detail)
         await session.commit()
         await session.refresh(item)
         return item

@@ -7,3 +7,6 @@ python-dotenv>=1.0.0
 sqlalchemy>=2.0.52
 alembic>=1.19.1
 asyncpg>=0.31.0
+python-multipart>=0.0.20
+defusedxml>=0.7.1
+anthropic>=1.0.0

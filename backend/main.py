@@ -15,10 +15,15 @@ from starlette.middleware.sessions import SessionMiddleware
 from auth import create_auth_router
 from config import allowed_origins, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
+from importer import create_import_router
 from items import create_items_router
+from llm import build_provider
+from public import create_public_router
 from schema_check import verify_schema_is_current
+from sources.registry import build_registry, configured_sources
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 config = load_config()
 
@@ -30,6 +35,15 @@ verify_schema_is_current(config)
 # One engine for the process. The pool is what makes Neon's connection limit
 # survivable; a per-request engine would exhaust it.
 engine, session_factory = create_engine_and_sessionmaker(config.database_url)
+
+# Source credentials are checked lazily, so a missing one cannot stop the
+# service booting. This line is what keeps that safe: a mistyped key shows up
+# here as an absence at startup rather than only when someone first tries a
+# lookup and gets a 503 they have to go digging for.
+registry = build_registry(config)
+logger.info(
+    "metadata sources configured: %s", ", ".join(configured_sources(registry)) or "none"
+)
 
 app = FastAPI(title="joey-haas.dev API", lifespan=engine_lifespan(engine))
 
@@ -64,7 +78,14 @@ app.add_middleware(
 )
 
 app.include_router(create_auth_router(config))
-app.include_router(create_items_router(session_factory))
+app.include_router(create_items_router(session_factory, registry))
+# The provider is built per request rather than here, so an absent model key
+# is a failure of the import route alone rather than a service that will not
+# boot -- the same reasoning as the lazy source checks.
+app.include_router(create_import_router(registry, lambda: build_provider(config)))
+# The one unauthenticated router. Every query inside it filters on is_public,
+# so the gate is the data rather than the caller.
+app.include_router(create_public_router(session_factory))
 
 
 @app.get("/api/health")

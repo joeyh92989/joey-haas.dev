@@ -43,6 +43,23 @@ class Config:
     database_url_direct: str
     admin_google_sub: str | None = None
 
+    # Deliberately absent from _REQUIRED. The required set exists because
+    # running without those values is unsafe -- a forgeable session is worse
+    # than no service. These are a different kind of thing: without a
+    # ComicVine key, comic lookups are unavailable and everything else works.
+    # Requiring them would mean a deploy of the film feature could not boot
+    # without a board-game registration.
+    tmdb_api_token: str | None = None
+    igdb_client_id: str | None = None
+    igdb_client_secret: str | None = None
+    comicvine_api_key: str | None = None
+    # BGG stopped serving the XML API anonymously in late 2025; it now needs a
+    # registered application and a token. See sources/bgg.py.
+    bgg_token: str | None = None
+    llm_provider: str = "gemini"
+    gemini_api_key: str | None = None
+    anthropic_api_key: str | None = None
+
 
 LOCAL_DEV_ORIGIN = "http://localhost:5173"
 
@@ -60,6 +77,15 @@ def allowed_origins(config: Config) -> list[str]:
     if config.frontend_url.startswith("http://localhost"):
         origins.append(LOCAL_DEV_ORIGIN)
     return list(dict.fromkeys(origins))
+
+
+def _optional(source: Mapping[str, str], name: str) -> str | None:
+    """A configuration value that may legitimately be absent.
+
+    Blank and unset collapse to None for the same reason load_config treats a
+    blank required value as missing: an empty box is a mistake, not a choice.
+    """
+    return str(source.get(name, "")).strip() or None
 
 
 def load_config(env: Mapping[str, str] | None = None) -> Config:
@@ -88,4 +114,12 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         database_url=str(source["DATABASE_URL"]).strip(),
         database_url_direct=str(source["DATABASE_URL_DIRECT"]).strip(),
         admin_google_sub=optional_sub or None,
+        tmdb_api_token=_optional(source, "TMDB_API_TOKEN"),
+        igdb_client_id=_optional(source, "IGDB_CLIENT_ID"),
+        igdb_client_secret=_optional(source, "IGDB_CLIENT_SECRET"),
+        comicvine_api_key=_optional(source, "COMICVINE_API_KEY"),
+        bgg_token=_optional(source, "BGG_TOKEN"),
+        llm_provider=_optional(source, "LLM_PROVIDER") or "gemini",
+        gemini_api_key=_optional(source, "GEMINI_API_KEY"),
+        anthropic_api_key=_optional(source, "ANTHROPIC_API_KEY"),
     )

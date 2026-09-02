@@ -91,9 +91,36 @@ before pushing.
 - [x] Media collection tracker — foundation. Neon Postgres 18, `items`
       table, admin-gated CRUD at `/admin/collection`. Migrations are manual
       and the API refuses to boot behind the schema
-- Tracker build plan: `docs/media-tracker-requirements.md` covers E2-E6
-      (schema, sources, recommendations, public showcase, login flow)
-- [ ] Tracker E2 — TMDB lookup for films, proving the enrichment pattern
-- [ ] Tracker E3+ — IGDB, ComicVine, BoardGameGeek
+- Tracker build plan: `docs/media-tracker-requirements.md` covers E2-E6.
+      `docs/planning/2026-09-01-media-tracker-barebones-design.md` is the spec
+      actually built from, and records where it deviates
+- [x] Tracker E2-E5 — enrichment columns, `backend/sources/` adapters, the
+      metadata picker, photo backfill, and the public showcase at
+      `/collection`. See `backend/sources/README.md`
+- [ ] BGG — blocked, not skipped. Its XML API stopped serving anonymous
+      requests in late 2025 and now returns 401 for everything; it needs a
+      registered app and `BGG_TOKEN`. `sources/bgg.py` reports itself
+      unavailable and board games import as manual rows until then
+- [ ] Tracker E6 — recommendations. `backend/llm.py` already provides the
+      provider-agnostic seam it needs
 - [ ] Optional: set `ADMIN_GOOGLE_SUB` after the first sign-in to pin the
       allowlist to Google's immutable subject ID rather than the email alone
+
+## Media tracker
+
+- **Migrations must be applied to Neon before deploying.** `schema_check`
+  refuses to boot behind the schema, which is it working, not failing.
+  Revision `0002` adds the enrichment columns.
+- Metadata sources live in `backend/sources/`, one module per API behind a
+  common interface — read that package's README before adding one. Their
+  credentials are optional config checked lazily, so a missing key disables
+  one media type rather than stopping the service; `main.py` logs which
+  sources are configured at startup.
+- `/collection` is public and **does** call the API, unlike every other public
+  page. It handles the free-tier cold start explicitly rather than showing a
+  spinner that reads as broken.
+- The photo importer sends images to the model and never writes them to disk.
+  Confidence is computed from string distance, never self-reported by the
+  model — see `backend/matching.py`.
+- Source attribution on the collection page is required by TMDB's and Comic
+  Vine's terms, not decoration. A test pins the TMDB wording verbatim.
