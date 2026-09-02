@@ -78,3 +78,25 @@ def test_punctuation_differences_do_not_cost_an_exact_match():
 def test_the_score_is_reported_for_display():
     match = best_match("Dune", None, [r("1", "Dune")])
     assert match.score == 1.0
+
+
+def test_a_tie_keeps_the_source_ordering():
+    # Caught from live data: searching TMDB for "The Thing" returns the 1982
+    # film first and the 2011 one second, both scoring 1.0. The result is
+    # uncertain either way, but the row is pre-selected, so the default must
+    # be the source's best guess rather than its worst.
+    match = best_match(
+        "The Thing", None, [r("1091", "The Thing", 1982), r("83533", "The Thing", 2011)]
+    )
+    assert match.result.external_id == "1091"
+    assert match.confidence is Confidence.UNCERTAIN
+
+
+def test_a_tie_still_prefers_the_better_scoring_candidate_over_order():
+    # Ordering only decides ties; it must never outrank the score itself.
+    match = best_match(
+        "Gloomhaven",
+        None,
+        [r("1", "Gloomhaven: Jaws of the Lion"), r("2", "Gloomhaven")],
+    )
+    assert match.result.external_id == "2"

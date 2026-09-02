@@ -103,14 +103,21 @@ def best_match(
             considered = in_range
 
     target = normalize_title(detected_title)
+    # Sorted by descending score, then by the source's own ordering. Sorting
+    # ascending and reversing would invert that second key and hand ties to
+    # the *least* relevant candidate: searching "The Thing" returns the 1982
+    # film first and the 2011 one second, both scoring 1.0, and the reversed
+    # form pre-selected 2011.
     scored = sorted(
-        (_ratio(target, normalize_title(c.title)), index, c)
-        for index, c in enumerate(considered)
+        (
+            (-_ratio(target, normalize_title(candidate.title)), index, candidate)
+            for index, candidate in enumerate(considered)
+        )
     )
-    scored.reverse()
 
-    top_score, _, top = scored[0]
-    runner_up = scored[1][0] if len(scored) > 1 else 0.0
+    top_score = -scored[0][0]
+    top = scored[0][2]
+    runner_up = -scored[1][0] if len(scored) > 1 else 0.0
     margin = top_score - runner_up
 
     if top_score >= EXACT_RATIO and margin >= REQUIRED_MARGIN:
