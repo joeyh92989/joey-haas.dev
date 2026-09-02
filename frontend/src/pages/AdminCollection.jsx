@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import ItemForm from '../components/ItemForm.jsx'
+import MetadataPicker from '../components/MetadataPicker.jsx'
 import { apiFetch } from '../lib/api.js'
 
-const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const STATUSES = ['backlog', 'active', 'finished', 'abandoned']
 
-const EMPTY_FORM = { type: 'game', title: '', status: 'backlog', rating: '' }
+const EMPTY_FORM = {
+  type: 'game',
+  title: '',
+  status: 'backlog',
+  rating: '',
+  year: '',
+  owned_format: '',
+  external_source: null,
+  external_id: null,
+}
 
 /**
  * The media collection. Admin-only, like everything under /admin.
@@ -20,6 +30,7 @@ export default function AdminCollection() {
   const [slow, setSlow] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   /**
    * Fetches the collection and returns what the UI should show.
@@ -60,13 +71,41 @@ export default function AdminCollection() {
     return () => clearTimeout(timer)
   }, [fetchItems])
 
+  /**
+   * Fills the form from a picked candidate, leaving the title editable.
+   *
+   * Only the four fields the picker actually returns are set here. Cover art,
+   * creator, and the metadata snapshot come from the server after the item
+   * exists, so the browser never assembles a snapshot it cannot verify.
+   */
+  function applyCandidate(candidate) {
+    setForm((current) => ({
+      ...current,
+      title: candidate.title,
+      year: candidate.year ?? '',
+      external_source: candidate.external_source,
+      external_id: candidate.external_id,
+    }))
+  }
+
+  function clearLink() {
+    setForm((current) => ({
+      ...current,
+      external_source: null,
+      external_id: null,
+    }))
+  }
+
   async function addItem(event) {
     event.preventDefault()
     setError(null)
+    setSaving(true)
     const body = {
       ...form,
       title: form.title.trim(),
       rating: form.rating === '' ? null : Number(form.rating),
+      year: form.year === '' ? null : Number(form.year),
+      owned_format: form.owned_format === '' ? null : form.owned_format,
     }
     try {
       const response = await apiFetch('/api/items', {
@@ -78,9 +117,21 @@ export default function AdminCollection() {
         setError('Could not save that item.')
         return
       }
+      // Enrichment is a second call on purpose: the snapshot, cover, and
+      // creator are fetched server-side from the linked source rather than
+      // trusted from the browser. A failure here leaves a perfectly good
+      // item that is simply not enriched yet, so it is not an error.
+      if (body.external_source && body.external_id) {
+        const created = await response.json()
+        await apiFetch(`/api/items/${created.id}/refresh-metadata`, {
+          method: 'POST',
+        }).catch(() => {})
+      }
     } catch {
       setError('Could not reach the API.')
       return
+    } finally {
+      setSaving(false)
     }
     setForm(EMPTY_FORM)
     await load()
@@ -157,47 +208,20 @@ export default function AdminCollection() {
 
       {error && <p className="admin-error">{error}</p>}
 
-      <form className="item-form" onSubmit={addItem}>
-        <select
-          aria-label="Type"
-          value={form.type}
-          onChange={(event) => setForm({ ...form, type: event.target.value })}
-        >
-          {TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-        <input
-          aria-label="Title"
-          placeholder="Title"
-          required
-          value={form.title}
-          onChange={(event) => setForm({ ...form, title: event.target.value })}
-        />
-        <select
-          aria-label="Status"
-          value={form.status}
-          onChange={(event) => setForm({ ...form, status: event.target.value })}
-        >
-          {STATUSES.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-        <input
-          aria-label="Rating"
-          type="number"
-          min="1"
-          max="10"
-          placeholder="Rating"
-          value={form.rating}
-          onChange={(event) => setForm({ ...form, rating: event.target.value })}
-        />
-        <button type="submit">Add</button>
-      </form>
+      <p className="muted">
+        <Link to="/admin/import">Import from photos →</Link>
+      </p>
+
+      <MetadataPicker type={form.type} onSelect={applyCandidate} />
+
+      <ItemForm
+        value={form}
+        onChange={setForm}
+        onSubmit={addItem}
+        busy={saving}
+        linkedSource={form.external_source}
+        onClearLink={clearLink}
+      />
 
       {items.length === 0 ? (
         <p className="muted">Nothing in the collection yet.</p>
