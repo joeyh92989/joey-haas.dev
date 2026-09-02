@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import uuid
+from collections import defaultdict
 from collections.abc import AsyncIterator
 from datetime import date, datetime
 
@@ -20,6 +23,8 @@ from sources.base import (
     SourceRateLimited,
 )
 from sources.registry import adapter_for
+
+logger = logging.getLogger(__name__)
 
 
 class ItemIn(BaseModel):
@@ -109,6 +114,7 @@ class BulkOut(BaseModel):
 
     created: int
     skipped_duplicates: int
+    enriched: int
     ids: list[uuid.UUID]
 
 
@@ -153,6 +159,80 @@ def require_admin(request: Request) -> None:
     """
     if not request.session.get("user"):
         raise HTTPException(status_code=401, detail="Not authenticated")
+
+
+def _apply_detail(item: Item, detail) -> None:
+    """Copies a fetched source record onto an item, leaving the title alone.
+
+    The title is the owner's: the picker prefills it and it stays editable, so
+    overwriting it here would be data loss rather than enrichment.
+    """
+    item.year = detail.year if detail.year is not None else item.year
+    item.creator = detail.creator
+    item.cover_url = detail.cover_url
+    item.source_metadata = detail.source_metadata
+
+
+async def _enrich(
+    session: AsyncSession,
+    registry: dict[ItemType, SourceAdapter],
+    ids: list[uuid.UUID],
+) -> int:
+    """Fills in cover art, creator, and the snapshot for newly created rows.
+
+    Bulk creation carries only what the browser could verify -- the external
+    link, the title, the year -- so without this step an imported collection
+    has no covers at all, and the public page is a poster grid with no
+    posters.
+
+    Grouped by source and serial within a group, matching the importer: the
+    per-source throttle lives in the adapter, so films resolve quickly while
+    the slow sources do not hold them up. A source that fails leaves its rows
+    unenriched rather than failing the import that already succeeded -- the
+    items exist, and refresh-metadata can fill them in later.
+    """
+    if not ids:
+        return 0
+
+    result = await session.execute(
+        select(Item).where(
+            Item.id.in_(ids),
+            Item.external_source.is_not(None),
+            Item.external_id.is_not(None),
+        )
+    )
+    linked = list(result.scalars())
+    if not linked:
+        return 0
+
+    grouped: dict[ItemType, list[Item]] = defaultdict(list)
+    for item in linked:
+        grouped[item.type].append(item)
+
+    async def enrich_group(item_type: ItemType, group: list[Item]) -> int:
+        try:
+            adapter = adapter_for(registry, item_type)
+        except SourceError as error:
+            logger.info("bulk enrich skipped %s: %s", item_type.value, error)
+            return 0
+
+        done = 0
+        for item in group:
+            try:
+                _apply_detail(item, await adapter.fetch(item.external_id))
+                done += 1
+            except SourceError as error:
+                logger.info("bulk enrich failed for %s: %s", item.title, error)
+        return done
+
+    counts = await asyncio.gather(
+        *(enrich_group(item_type, group) for item_type, group in grouped.items())
+    )
+    await session.commit()
+
+    total = sum(counts)
+    logger.info("bulk enrich: %d of %d linked rows", total, len(linked))
+    return total
 
 
 def create_items_router(
@@ -258,9 +338,12 @@ def create_items_router(
         created = list(result.scalars())
         await session.commit()
 
+        enriched = await _enrich(session, registry, created)
+
         return BulkOut(
             created=len(created),
             skipped_duplicates=within_batch_duplicates + (len(rows) - len(created)),
+            enriched=enriched,
             ids=created,
         )
 
@@ -318,10 +401,7 @@ def create_items_router(
         except SourceError as error:
             raise _http_error_for(error) from error
 
-        item.year = detail.year
-        item.creator = detail.creator
-        item.cover_url = detail.cover_url
-        item.source_metadata = detail.source_metadata
+        _apply_detail(item, detail)
         await session.commit()
         await session.refresh(item)
         return item
