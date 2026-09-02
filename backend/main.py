@@ -15,7 +15,9 @@ from starlette.middleware.sessions import SessionMiddleware
 from auth import create_auth_router
 from config import allowed_origins, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
+from importer import create_import_router
 from items import create_items_router
+from llm import build_provider
 from schema_check import verify_schema_is_current
 from sources.registry import build_registry, configured_sources
 
@@ -76,6 +78,10 @@ app.add_middleware(
 
 app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
+# The provider is built per request rather than here, so an absent model key
+# is a failure of the import route alone rather than a service that will not
+# boot -- the same reasoning as the lazy source checks.
+app.include_router(create_import_router(registry, lambda: build_provider(config)))
 
 
 @app.get("/api/health")
