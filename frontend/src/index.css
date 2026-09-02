@@ -967,6 +967,11 @@ footer {
   width: 1px;
 }
 
+/* Understated on purpose: a door for one person, not a call to action. */
+.footer-admin {
+  color: var(--text-muted);
+}
+
 /* Public collection showcase. */
 .collection-stats {
   display: grid;
