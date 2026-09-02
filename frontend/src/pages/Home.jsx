@@ -17,10 +17,10 @@ export default function Home() {
       <h1 className="greeting">Hi, I&rsquo;m Joey.</h1>
 
       <p className="intro">
-        I&rsquo;m a senior software engineer at Guild, building the payments and
-        benefits systems behind employer education benefits. Eight years as a
-        product manager first &mdash; so I care as much about <em>why</em> we
-        build things as how.
+        I&rsquo;m a senior software engineer at Guild, building the payments
+        systems behind employer-funded education. Eight years as a product
+        manager first &mdash; so I care as much about <em>why</em> we build
+        things as how.
       </p>
 
       <div className="link-cards">
