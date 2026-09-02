@@ -8,7 +8,7 @@
 
 **Tech Stack:** FastAPI + SQLAlchemy 2 async + Alembic + asyncpg (Python 3.12), `httpx2` for HTTP, `defusedxml` for BGG's XML, Pydantic 2, pytest + pytest-asyncio; React 19 + react-router 8 + Vite 6, Vitest + Testing Library.
 
-**Spec:** `docs/superpowers/specs/2026-09-01-media-tracker-barebones-design.md`
+**Spec:** `docs/planning/2026-09-01-media-tracker-barebones-design.md`
 
 ## Global Constraints
 
@@ -83,7 +83,7 @@ These are outward-facing writes to a public repository. Show the milestone title
 
 ```bash
 gh api repos/:owner/:repo/milestones -f title='Tracker: barebones vertical slice' \
-  -f description='Migration, source adapters, photo backfill, public showcase. Spec: docs/superpowers/specs/2026-09-01-media-tracker-barebones-design.md'
+  -f description='Migration, source adapters, photo backfill, public showcase. Spec: docs/planning/2026-09-01-media-tracker-barebones-design.md'
 ```
 
 - [ ] **Step 3: Create the five issues**

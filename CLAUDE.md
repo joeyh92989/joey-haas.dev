@@ -66,6 +66,11 @@ before pushing.
   is an optional accessory only.
 - API routes live under `/api/`. CORS is configured for localhost and
   *.onrender.com in `backend/main.py` — update if a custom domain is added.
+- Specs and plans live in `docs/planning/`, committed alongside the code they
+  describe: `<date>-<topic>-design.md` for the spec, `<date>-<topic>-plan.md`
+  for the plan. Mockups and the `.superpowers/` execution scratch stay out of
+  git — the first are disposable once the UI exists, the second is process
+  telemetry.
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish
