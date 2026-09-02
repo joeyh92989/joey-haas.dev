@@ -53,6 +53,9 @@ class Config:
     igdb_client_id: str | None = None
     igdb_client_secret: str | None = None
     comicvine_api_key: str | None = None
+    # BGG stopped serving the XML API anonymously in late 2025; it now needs a
+    # registered application and a token. See sources/bgg.py.
+    bgg_token: str | None = None
     llm_provider: str = "gemini"
     gemini_api_key: str | None = None
     anthropic_api_key: str | None = None
@@ -115,6 +118,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         igdb_client_id=_optional(source, "IGDB_CLIENT_ID"),
         igdb_client_secret=_optional(source, "IGDB_CLIENT_SECRET"),
         comicvine_api_key=_optional(source, "COMICVINE_API_KEY"),
+        bgg_token=_optional(source, "BGG_TOKEN"),
         llm_provider=_optional(source, "LLM_PROVIDER") or "gemini",
         gemini_api_key=_optional(source, "GEMINI_API_KEY"),
         anthropic_api_key=_optional(source, "ANTHROPIC_API_KEY"),

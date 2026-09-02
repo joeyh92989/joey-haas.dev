@@ -5,6 +5,8 @@ from __future__ import annotations
 from config import Config
 from models import ItemType
 from sources.base import SourceAdapter, SourceNotConfigured
+from sources.bgg import BggSource
+from sources.comicvine import ComicVineSource
 from sources.igdb import IgdbSource
 from sources.tmdb import TmdbSource
 
@@ -20,6 +22,11 @@ def build_registry(config: Config) -> dict[ItemType, SourceAdapter]:
     return {
         ItemType.MOVIE: TmdbSource(config),
         ItemType.GAME: IgdbSource(config),
+        ItemType.COMIC: ComicVineSource(config),
+        # Registered but never configured: BGG now requires an authorization
+        # token. Registering it anyway is what makes the failure explain
+        # itself rather than reporting the type as unimplemented.
+        ItemType.BOARDGAME: BggSource(config),
     }
 
 
