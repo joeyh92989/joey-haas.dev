@@ -10,10 +10,10 @@
  */
 export const profile = {
   name: 'Joey Haas',
-  tagline: 'Software developer in Denver, Colorado',
-  bio: `I'm a backend engineer at Guild Education in Denver, where I've gone from SE1 to senior working on transaction services, tax classification, and the company-wide platform migrations that quietly hold a benefits business together. Node.js and TypeScript mostly, with the distributed-systems problems that come attached.
+  tagline: 'Senior software engineer · Denver, Colorado',
+  bio: `I'm a senior software engineer at Guild, where since 2021 I've built and owned the backend payments and benefits systems that fund, track, and reconcile every learner benefit dollar — spend-writing APIs, funding context, tax classification, and the eligibility migration underneath them.
 
-Before that I spent eight years as a product manager across enterprise SaaS, payments, and video platforms. That's why I care as much about why we're building something as how it gets built — and why I'm comfortable owning work end to end, from scoping and requirements through implementation and the production monitoring that tells you whether any of it worked.`,
+Before the code, eight years as a product manager across enterprise SaaS, payments, and video. I still work like one: architecture doc, then squad alignment, then the endpoint — and the data forensics when something goes wrong. Most useful on systems where correctness and money are the same problem.`,
   email: 'josephthaas@gmail.com',
   github: 'https://github.com/joeyh92989',
   linkedin: 'https://www.linkedin.com/in/haasjoseph/',
@@ -23,8 +23,13 @@ Before that I spent eight years as a product manager across enterprise SaaS, pay
     'TypeScript',
     'Python · FastAPI',
     'React',
-    'REST APIs',
-    'Data pipelines',
+    'SQL · PostgreSQL',
+    'Snowflake',
+    'GraphQL (AppSync)',
+    'AWS (Lambda, RDS)',
+    'REST API design',
+    'Event-driven integration',
+    'GitHub Actions CI',
     'Distributed systems',
   ],
 }

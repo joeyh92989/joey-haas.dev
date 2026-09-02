@@ -18,38 +18,38 @@
 export const experience = [
   {
     role: 'Software Engineer I → Sr. Software Engineer',
-    company: 'Guild Education',
+    company: 'Guild (formerly Guild Education)',
     meta: '2021 – present · Denver, CO',
     summary:
-      'Transaction services, tax classification, and company-wide platform migrations — owned from scoping through production monitoring.',
+      'Spend-writing APIs, funding context, tax classification, and the eligibility migration underneath them — owned from API contract through rollout and incident forensics.',
     current: true,
   },
   {
-    role: 'Product Manager, Payments',
-    company: 'Guild Education',
+    role: 'Product Manager, Payment Products',
+    company: 'Guild (formerly Guild Education)',
     meta: '2020 – 2021 · Denver, CO',
     summary:
       'Balance tracking and external benefits administration for Fortune 1000 employer partners.',
   },
   {
-    role: 'Software Product Manager',
+    role: 'Software Product Manager, Core Services',
     company: 'MJ Freeway',
     meta: '2018 – 2019 · Denver, CO',
     summary:
-      'Product owner for the core suite — cultivation, processing, and point of sale.',
+      'Product owner for the core suite — cultivation, processing, and point of sale — on a two-to-three-week release cadence.',
   },
   {
     role: 'Manager, Video Products',
     company: 'Charter Communications',
     meta: '2014 – 2018 · Denver, CO',
     summary:
-      'Owned three set-top video guide products and their cross-platform features, including accessibility compliance.',
+      'Roadmap and backlog for three set-top video guide products and their cross-platform features, including accessibility compliance.',
   },
   {
-    role: 'Product Associate',
+    role: 'Associate Product Manager, IPTV Platform',
     company: 'iBAHN',
     meta: '2012 – 2014 · Denver, CO',
     summary:
-      'Hospitality video platform for Marriott, Hilton, and Four Seasons properties.',
+      'In-room hospitality video platform for Marriott, Hilton, and Four Seasons properties.',
   },
 ]
