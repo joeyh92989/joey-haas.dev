@@ -8,7 +8,8 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from models import Item, ItemStatus, ItemType, OwnedFormat
@@ -92,6 +93,25 @@ class ItemOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BulkIn(BaseModel):
+    """A batch of items to create in one request.
+
+    Capped because this is a review-then-commit step, not a bulk data load: a
+    shelf is tens of items, and an unbounded list would let one request hold a
+    connection open for as long as it liked.
+    """
+
+    items: list[ItemIn] = Field(min_length=1, max_length=500)
+
+
+class BulkOut(BaseModel):
+    """What a bulk create actually did."""
+
+    created: int
+    skipped_duplicates: int
+    ids: list[uuid.UUID]
+
+
 class CandidateOut(BaseModel):
     """One picker row: a search hit from an external source."""
 
@@ -114,6 +134,12 @@ def _http_error_for(error: SourceError) -> HTTPException:
     if isinstance(error, SourceRateLimited):
         return HTTPException(status_code=429, detail=str(error))
     return HTTPException(status_code=502, detail=str(error))
+
+
+# Must match the predicate on ux_items_external in models.py and migration
+# 0002. Postgres matches a partial index by its predicate, so these three
+# have to stay in step.
+EXTERNAL_PRESENT = "external_source IS NOT NULL AND external_id IS NOT NULL"
 
 
 def require_admin(request: Request) -> None:
@@ -183,6 +209,60 @@ def create_items_router(
         await session.commit()
         await session.refresh(item)
         return item
+
+    @router.post("/bulk", response_model=BulkOut, status_code=201)
+    async def create_items_bulk(
+        payload: BulkIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> BulkOut:
+        """Creates many items at once, skipping ones already in the collection.
+
+        Photographing the same shelf twice is expected behaviour, not a
+        mistake, so a duplicate is reported rather than raised.
+
+        Duplicates within the batch are removed here first: ON CONFLICT does
+        not deduplicate rows inside a single statement, so two identical rows
+        in one INSERT would both be written.
+        """
+        seen: set[tuple[str, str]] = set()
+        rows: list[dict] = []
+        within_batch_duplicates = 0
+
+        for item in payload.items:
+            values = item.model_dump()
+            key = (values.get("external_source"), values.get("external_id"))
+            # A manual row has NULL on both and is never a duplicate of
+            # another manual row -- the same reason the index is partial.
+            if key[0] and key[1]:
+                if key in seen:
+                    within_batch_duplicates += 1
+                    continue
+                seen.add(key)
+            values["id"] = uuid.uuid4()
+            rows.append(values)
+
+        statement = (
+            pg_insert(Item)
+            .values(rows)
+            .on_conflict_do_nothing(
+                index_elements=["external_source", "external_id"],
+                # The index is partial, so Postgres will not match it unless
+                # the predicate is restated here -- without index_where it
+                # answers "no unique or exclusion constraint matching the ON
+                # CONFLICT specification", which reads like a missing index.
+                index_where=text(EXTERNAL_PRESENT),
+            )
+            .returning(Item.id)
+        )
+        result = await session.execute(statement)
+        created = list(result.scalars())
+        await session.commit()
+
+        return BulkOut(
+            created=len(created),
+            skipped_duplicates=within_batch_duplicates + (len(rows) - len(created)),
+            ids=created,
+        )
 
     # Declared before /{item_id}. FastAPI matches in declaration order and
     # {item_id} is typed uuid.UUID, so a later /search-metadata would be
