@@ -18,6 +18,7 @@ from db import create_engine_and_sessionmaker, engine_lifespan
 from importer import create_import_router
 from items import create_items_router
 from llm import build_provider
+from public import create_public_router
 from schema_check import verify_schema_is_current
 from sources.registry import build_registry, configured_sources
 
@@ -82,6 +83,9 @@ app.include_router(create_items_router(session_factory, registry))
 # is a failure of the import route alone rather than a service that will not
 # boot -- the same reasoning as the lazy source checks.
 app.include_router(create_import_router(registry, lambda: build_provider(config)))
+# The one unauthenticated router. Every query inside it filters on is_public,
+# so the gate is the data rather than the caller.
+app.include_router(create_public_router(session_factory))
 
 
 @app.get("/api/health")
