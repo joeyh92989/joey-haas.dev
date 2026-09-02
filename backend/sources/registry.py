@@ -5,6 +5,7 @@ from __future__ import annotations
 from config import Config
 from models import ItemType
 from sources.base import SourceAdapter, SourceNotConfigured
+from sources.igdb import IgdbSource
 from sources.tmdb import TmdbSource
 
 
@@ -16,7 +17,10 @@ def build_registry(config: Config) -> dict[ItemType, SourceAdapter]:
     of a KeyError that says only that the type is unknown -- a materially worse
     error to meet when the real problem is an unset key.
     """
-    return {ItemType.MOVIE: TmdbSource(config)}
+    return {
+        ItemType.MOVIE: TmdbSource(config),
+        ItemType.GAME: IgdbSource(config),
+    }
 
 
 def adapter_for(
