@@ -126,8 +126,17 @@ class TmdbSource:
             },
         )
 
-    async def search(self, query: str, year: int | None = None) -> list[SourceResult]:
-        """Candidate films for `query`, most relevant first."""
+    async def search(
+        self,
+        query: str,
+        year: int | None = None,
+        platform: str | None = None,
+    ) -> list[SourceResult]:
+        """Candidate films for `query`, most relevant first.
+
+        `platform` is accepted for interface compatibility and ignored: a film
+        does not have one.
+        """
         params = {"query": query, "include_adult": "false"}
         if year is not None:
             params["year"] = str(year)

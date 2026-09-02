@@ -79,8 +79,21 @@ class SourceAdapter(Protocol):
         ...
 
     async def search(
-        self, query: str, year: int | None = None
-    ) -> list[SourceResult]: ...
+        self,
+        query: str,
+        year: int | None = None,
+        platform: str | None = None,
+    ) -> list[SourceResult]:
+        """Candidates for `query`.
+
+        `platform` is free text read off a game case ("Nintendo Switch 2").
+        Only IGDB can use it -- two releases of a game can share a title
+        exactly, and then the platform is the only thing separating them --
+        but it is on the shared signature so the importer does not have to
+        know which source it is talking to. Sources that cannot use it ignore
+        it.
+        """
+        ...
 
     async def fetch(self, external_id: str) -> SourceDetail: ...
 

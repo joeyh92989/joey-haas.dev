@@ -58,6 +58,10 @@ DETECTION_SCHEMA = {
                     # for an invented fifth type.
                     "media_type": {"type": "string", "enum": MEDIA_TYPE_VALUES},
                     "year": {"type": "integer"},
+                    # Free text, as printed. Two releases of a game can share
+                    # a title exactly -- Star Fox in 1993 and 2026 -- and then
+                    # the platform is the only thing that separates them.
+                    "platform": {"type": "string"},
                 },
                 "required": ["title", "media_type"],
                 "additionalProperties": False,
@@ -76,6 +80,13 @@ Read every distinct title you can see on the spines, cases, and boxes. Return
 one entry per distinct work.
 
 Rules:
+- Report the COMPLETE title as printed, including any subtitle, even where the
+  subtitle is in smaller text than the main title. "Indiana Jones" is not
+  enough if the case reads "Indiana Jones and the Great Circle" -- the short
+  form matches the wrong work, or nothing at all.
+- Do not include edition or platform wording in the title itself. "Nintendo
+  Switch 2 Edition", "Ultimate Edition", "25th Anniversary Edition" and the
+  like are not part of the title; report the platform separately below.
 - Only report a title you can actually read. Do not guess at one that is
   blurred, turned away, or obscured, and do not infer a title from cover art
   alone.
@@ -84,6 +95,10 @@ Rules:
   than each disc.
 - Give the year only when it is printed on the item. Leave it out otherwise;
   a guessed year is worse than no year.
+- Give the platform when the case says which system it is for, copied as
+  printed: "Nintendo Switch 2", "Nintendo Switch", "PlayStation 5", "Xbox
+  Series X|S". Leave it out for anything that is not a video game, and for a
+  game whose case does not say.
 - Classify each as one of: game (video game), movie (film or television),
   comic (comic or graphic novel), boardgame.
 """
@@ -97,6 +112,7 @@ class Detection:
     title: str
     media_type: ItemType
     year: int | None
+    platform: str | None = None
 
 
 def _candidate_json(source_name: str, result: SourceResult) -> dict:
@@ -115,6 +131,7 @@ def _unresolved(detection: Detection, reason: str) -> dict:
         "detected_title": detection.title,
         "media_type": detection.media_type.value,
         "detected_year": detection.year,
+        "detected_platform": detection.platform,
         "status": "unresolved",
         "confidence": Confidence.UNCERTAIN.value,
         "reason": reason,
@@ -141,12 +158,14 @@ def parse_detections(payload: dict) -> list[Detection]:
         except ValueError:
             continue
         year = raw.get("year")
+        platform = str(raw.get("platform") or "").strip() or None
         detections.append(
             Detection(
                 index=len(detections),
                 title=title,
                 media_type=media_type,
                 year=int(year) if isinstance(year, int) else None,
+                platform=platform,
             )
         )
     return detections
@@ -154,7 +173,9 @@ def parse_detections(payload: dict) -> list[Detection]:
 
 async def _resolve_one(adapter: SourceAdapter, detection: Detection) -> dict:
     try:
-        candidates = await adapter.search(detection.title, detection.year)
+        candidates = await adapter.search(
+            detection.title, detection.year, detection.platform
+        )
     except SourceError as error:
         return _unresolved(detection, str(error))
 
@@ -164,6 +185,7 @@ async def _resolve_one(adapter: SourceAdapter, detection: Detection) -> dict:
         "detected_title": detection.title,
         "media_type": detection.media_type.value,
         "detected_year": detection.year,
+        "detected_platform": detection.platform,
         "status": "matched" if match.result else "unresolved",
         "confidence": match.confidence.value,
         "reason": None if match.result else "no candidates returned",

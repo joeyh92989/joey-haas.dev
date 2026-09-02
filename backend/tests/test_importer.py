@@ -42,11 +42,13 @@ class StubSource:
         self.item_type = item_type
         self._results = results if results is not None else []
         self._raises = raises
+        self.searches: list[tuple] = []
 
     def configured(self):
         return True
 
-    async def search(self, query, year=None):
+    async def search(self, query, year=None, platform=None):
+        self.searches.append((query, year, platform))
         if self._raises:
             raise self._raises
         return self._results
