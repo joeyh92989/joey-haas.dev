@@ -27,4 +27,4 @@ def test_empty_database_raises():
 def test_code_head_is_read_from_the_migrations_directory():
     # Reads the real migrations/versions tree rather than a fixture, so a
     # migration added without a matching head would surface here.
-    assert code_head_revision() == "0001"
+    assert code_head_revision() == "0002"

@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Enum,
     Index,
@@ -16,8 +17,9 @@ from sqlalchemy import (
     String,
     Text,
     func,
+    text,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -48,6 +50,22 @@ class ItemStatus(str, enum.Enum):
     ABANDONED = "abandoned"
 
 
+class OwnedFormat(str, enum.Enum):
+    """How a copy is held, orthogonal to progress status.
+
+    NONE is the want list: tracked but not owned. Keeping this separate from
+    ItemStatus is what lets the status enum go on meaning progress and nothing
+    else -- the alternative, a `wishlist` status, would make every other status
+    silently also mean "owned".
+    """
+
+    PHYSICAL = "physical"
+    DIGITAL = "digital"
+    SUBSCRIPTION = "subscription"
+    BORROWED = "borrowed"
+    NONE = "none"
+
+
 class Item(Base):
     """One thing in the collection, of any media type.
 
@@ -64,6 +82,19 @@ class Item(Base):
         ),
         Index("ix_items_type", "type"),
         Index("ix_items_status", "status"),
+        # Partial so that manually-entered rows -- which have NULL on both
+        # columns -- stay out of the constraint entirely. Without the
+        # predicate the second manual row would collide with the first.
+        Index(
+            "ux_items_external",
+            "external_source",
+            "external_id",
+            unique=True,
+            postgresql_where=text(
+                "external_source IS NOT NULL AND external_id IS NOT NULL"
+            ),
+        ),
+        Index("ix_items_finished_at", "finished_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -86,6 +117,40 @@ class Item(Base):
     )
     rating: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    year: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    # Denormalized on purpose: director, developer, writer, or designer
+    # depending on type. A creators table would buy normalization nobody in
+    # this application is asking for.
+    creator: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    # A full URL at the source's CDN. Covers are hotlinked, which is what TMDB
+    # and IGDB document; Render's free disk is ephemeral, so a local cache
+    # would be lost on every restart while still being a retention surface.
+    cover_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    external_source: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    external_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    favorite: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    started_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    finished_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    times_completed: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=0, server_default="0"
+    )
+    # Nullable with no server default, deliberately. The create form requires a
+    # choice and the photo importer sets `physical` on the rows it commits, so
+    # a want-list row means the owner said so -- it is never the residue of a
+    # column default that happened to be wrong for most rows.
+    owned_format: Mapped[OwnedFormat | None] = mapped_column(
+        Enum(
+            OwnedFormat,
+            name="owned_format",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=True,
+    )
+    # Named source_metadata, never metadata: that attribute is reserved by
+    # SQLAlchemy's declarative base and shadowing it breaks the mapper.
+    source_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     is_public: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
