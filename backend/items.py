@@ -4,14 +4,21 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from models import Item, ItemStatus, ItemType
+from models import Item, ItemStatus, ItemType, OwnedFormat
+from sources.base import (
+    SourceAdapter,
+    SourceError,
+    SourceNotConfigured,
+    SourceRateLimited,
+)
+from sources.registry import adapter_for
 
 
 class ItemIn(BaseModel):
@@ -23,6 +30,17 @@ class ItemIn(BaseModel):
     rating: int | None = Field(default=None, ge=1, le=10)
     notes: str | None = None
     is_public: bool = False
+    year: int | None = Field(default=None, ge=1880, le=2100)
+    creator: str | None = Field(default=None, max_length=300)
+    cover_url: str | None = None
+    external_source: str | None = Field(default=None, max_length=20)
+    external_id: str | None = Field(default=None, max_length=50)
+    favorite: bool = False
+    started_at: date | None = None
+    finished_at: date | None = None
+    times_completed: int = Field(default=0, ge=0)
+    owned_format: OwnedFormat | None = None
+    source_metadata: dict | None = None
 
 
 class ItemPatch(BaseModel):
@@ -34,6 +52,17 @@ class ItemPatch(BaseModel):
     rating: int | None = Field(default=None, ge=1, le=10)
     notes: str | None = None
     is_public: bool | None = None
+    year: int | None = Field(default=None, ge=1880, le=2100)
+    creator: str | None = Field(default=None, max_length=300)
+    cover_url: str | None = None
+    external_source: str | None = Field(default=None, max_length=20)
+    external_id: str | None = Field(default=None, max_length=50)
+    favorite: bool | None = None
+    started_at: date | None = None
+    finished_at: date | None = None
+    times_completed: int | None = Field(default=None, ge=0)
+    owned_format: OwnedFormat | None = None
+    source_metadata: dict | None = None
 
 
 class ItemOut(BaseModel):
@@ -46,10 +75,45 @@ class ItemOut(BaseModel):
     rating: int | None
     notes: str | None
     is_public: bool
+    year: int | None
+    creator: str | None
+    cover_url: str | None
+    external_source: str | None
+    external_id: str | None
+    favorite: bool
+    started_at: date | None
+    finished_at: date | None
+    times_completed: int
+    owned_format: OwnedFormat | None
+    source_metadata: dict | None
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class CandidateOut(BaseModel):
+    """One picker row: a search hit from an external source."""
+
+    external_source: str
+    external_id: str
+    title: str
+    year: int | None
+    thumbnail_url: str | None
+
+
+def _http_error_for(error: SourceError) -> HTTPException:
+    """Maps a source failure onto the status code that actually describes it.
+
+    503 rather than 500 for an unconfigured source: nothing is broken, the
+    feature was never enabled on this deploy, and the detail names the variable
+    to set.
+    """
+    if isinstance(error, SourceNotConfigured):
+        return HTTPException(status_code=503, detail=str(error))
+    if isinstance(error, SourceRateLimited):
+        return HTTPException(status_code=429, detail=str(error))
+    return HTTPException(status_code=502, detail=str(error))
 
 
 def require_admin(request: Request) -> None:
@@ -65,8 +129,18 @@ def require_admin(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
 
-def create_items_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
-    """Builds the collection routes bound to this session factory."""
+def create_items_router(
+    factory: async_sessionmaker[AsyncSession],
+    registry: dict[ItemType, SourceAdapter] | None = None,
+) -> APIRouter:
+    """Builds the collection routes bound to this session factory.
+
+    `registry` supplies the metadata sources. It defaults to empty so that a
+    caller wanting only CRUD -- most of the existing tests -- need not build
+    one; the lookup routes then answer 503, which is the truthful response for
+    a deploy with no sources configured.
+    """
+    registry = {} if registry is None else registry
     router = APIRouter(
         prefix="/api/items",
         tags=["items"],
@@ -106,6 +180,68 @@ def create_items_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         """Adds one item and returns it, including its generated id."""
         item = Item(**payload.model_dump())
         session.add(item)
+        await session.commit()
+        await session.refresh(item)
+        return item
+
+    # Declared before /{item_id}. FastAPI matches in declaration order and
+    # {item_id} is typed uuid.UUID, so a later /search-metadata would be
+    # swallowed by it and answered 422 instead of reaching the picker.
+    @router.get("/search-metadata", response_model=list[CandidateOut])
+    async def search_metadata(
+        type: ItemType = Query(),
+        query: str = Query(min_length=1, max_length=200),
+        year: int | None = Query(default=None, ge=1880, le=2100),
+    ) -> list[CandidateOut]:
+        """Candidate external records for a title.
+
+        A server-side proxy rather than a call from the browser: the source
+        credentials live here and must stay here.
+        """
+        try:
+            adapter = adapter_for(registry, type)
+            results = await adapter.search(query, year)
+        except SourceError as error:
+            raise _http_error_for(error) from error
+
+        return [
+            CandidateOut(
+                external_source=adapter.source_name,
+                external_id=result.external_id,
+                title=result.title,
+                year=result.year,
+                thumbnail_url=result.thumbnail_url,
+            )
+            for result in results
+        ]
+
+    @router.post("/{item_id}/refresh-metadata", response_model=ItemOut)
+    async def refresh_metadata(
+        item_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> Item:
+        """Re-fetches the linked source record for one item.
+
+        The title is deliberately left alone. The picker prefills it and the
+        owner may have edited it since, so overwriting on refresh would be
+        data loss rather than a refresh.
+        """
+        item = await _load(session, item_id)
+        if not item.external_source or not item.external_id:
+            raise HTTPException(
+                status_code=409, detail="This item is not linked to a source"
+            )
+
+        try:
+            adapter = adapter_for(registry, item.type)
+            detail = await adapter.fetch(item.external_id)
+        except SourceError as error:
+            raise _http_error_for(error) from error
+
+        item.year = detail.year
+        item.creator = detail.creator
+        item.cover_url = detail.cover_url
+        item.source_metadata = detail.source_metadata
         await session.commit()
         await session.refresh(item)
         return item
