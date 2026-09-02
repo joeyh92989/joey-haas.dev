@@ -13,6 +13,7 @@ documents for one startup query.
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -41,10 +42,15 @@ def _alembic(*args: str) -> subprocess.CompletedProcess:
     env.py reads DATABASE_URL_DIRECT and nothing else, so pointing that at the
     test database is the whole of the setup -- no alembic.ini edit, and no risk
     of a test run reaching the real one.
+
+    Invoked as `python -m alembic` through the interpreter running the tests,
+    rather than by path. A hardcoded .venv/bin/alembic is correct locally and
+    absent in CI, where dependencies are installed into the hosted Python --
+    which is exactly how this first failed.
     """
     env = {**os.environ, "DATABASE_URL_DIRECT": TEST_DATABASE_URL}
     return subprocess.run(
-        [str(BACKEND / ".venv" / "bin" / "alembic"), *args],
+        [sys.executable, "-m", "alembic", *args],
         cwd=BACKEND,
         env=env,
         capture_output=True,
