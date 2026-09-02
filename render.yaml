@@ -44,3 +44,20 @@ services:
         sync: false
       - key: DATABASE_URL_DIRECT
         sync: false
+      # Media tracker. Unlike everything above, these are optional and checked
+      # lazily: a missing one disables that media type rather than stopping the
+      # service. Declared here anyway so the Blueprint remains the record of
+      # which variables the service expects. See backend/sources/README.md.
+      - key: TMDB_API_TOKEN
+        sync: false
+      - key: IGDB_CLIENT_ID
+        sync: false
+      - key: IGDB_CLIENT_SECRET
+        sync: false
+      - key: COMICVINE_API_KEY
+        sync: false
+      # Photo import, and later the recommendation engine.
+      - key: LLM_PROVIDER
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
