@@ -131,6 +131,38 @@ case "$allowed_methods" in
     ;;
 esac
 
+# The public collection routes are the only unauthenticated ones, and the only
+# part of the public site that calls the API at all.
+check_equals "GET /api/public/items unauthenticated" \
+  "$(http_status "$API_URL/api/public/items")" "200"
+
+check_equals "GET /api/public/stats unauthenticated" \
+  "$(http_status "$API_URL/api/public/stats")" "200"
+
+check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection")" "200"
+
+# Asserts an absence, which is the whole reason the public router hand-writes
+# its response model instead of serializing the ORM object. A private column
+# added later would be published with no code change and nothing to notice it.
+public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
+if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata)"'; then
+  report_fail "public items expose no private fields" "found a private key in the response"
+else
+  report_pass "public items expose no private fields" "no notes/owned_format/is_public"
+fi
+
+stats_body="$(curl -s -m 90 "$API_URL/api/public/stats")"
+if printf '%s' "$stats_body" | grep -q '"by_type"' &&
+  printf '%s' "$stats_body" | grep -q '"finishes_by_month"'; then
+  report_pass "public stats has the expected shape" "by_type and finishes_by_month present"
+else
+  report_fail "public stats has the expected shape" "got '$stats_body'"
+fi
+
+check_equals "POST /api/import/photos unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/import/photos")" \
+  "401"
+
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in
   *accounts.google.com*) report_pass "auth/login redirects to Google" "accounts.google.com" ;;
