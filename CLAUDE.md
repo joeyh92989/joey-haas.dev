@@ -92,8 +92,8 @@ before pushing.
       table, admin-gated CRUD at `/admin/collection`. Migrations are manual
       and the API refuses to boot behind the schema
 - Tracker build plan: `docs/media-tracker-requirements.md` covers E2-E6.
-      `docs/superpowers/specs/2026-09-01-media-tracker-barebones-design.md` is
-      the spec actually built from, and records where it deviates
+      `docs/planning/2026-09-01-media-tracker-barebones-design.md` is the spec
+      actually built from, and records where it deviates
 - [x] Tracker E2-E5 — enrichment columns, `backend/sources/` adapters, the
       metadata picker, photo backfill, and the public showcase at
       `/collection`. See `backend/sources/README.md`
