@@ -24,6 +24,7 @@ from llm import (
     LLMError,
     build_provider,
     guard_payload_size,
+    to_gemini_schema,
 )
 
 SCHEMA = {
@@ -56,8 +57,53 @@ def test_gemini_body_carries_the_schema_and_the_image():
     inline = next(part["inline_data"] for part in parts if "inline_data" in part)
     assert inline["mime_type"] == "image/jpeg"
     assert base64.b64decode(inline["data"]) == JPEG.data
-    assert body["generationConfig"]["responseSchema"] == SCHEMA
     assert body["generationConfig"]["responseMimeType"] == "application/json"
+
+    sent = body["generationConfig"]["responseSchema"]
+    assert sent["properties"] == SCHEMA["properties"]
+    assert sent["required"] == SCHEMA["required"]
+
+
+def test_gemini_schema_drops_keys_gemini_refuses():
+    # Not cosmetic. Gemini answers 400 "Unknown name additionalProperties ...
+    # Cannot find field" rather than ignoring it, while Anthropic requires the
+    # same key. Verified against the live API.
+    nested = {
+        "type": "object",
+        "additionalProperties": False,
+        "title": "Detections",
+        "properties": {
+            "detections": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"title": {"type": "string"}},
+                    "required": ["title"],
+                },
+            }
+        },
+        "required": ["detections"],
+    }
+
+    cleaned = to_gemini_schema(nested)
+
+    assert "additionalProperties" not in cleaned
+    assert "title" not in cleaned
+    assert "additionalProperties" not in cleaned["properties"]["detections"]["items"]
+    # Everything that matters survives, including at depth.
+    assert cleaned["required"] == ["detections"]
+    assert cleaned["properties"]["detections"]["items"]["required"] == ["title"]
+    assert cleaned["properties"]["detections"]["items"]["properties"] == {
+        "title": {"type": "string"}
+    }
+
+
+def test_the_canonical_schema_is_not_mutated_by_translation():
+    # Anthropic gets the original and needs additionalProperties intact.
+    original = {"type": "object", "additionalProperties": False, "properties": {}}
+    to_gemini_schema(original)
+    assert original["additionalProperties"] is False
 
 
 def test_gemini_parses_the_model_text_as_json():

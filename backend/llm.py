@@ -74,6 +74,59 @@ def guard_payload_size(images: list[Image]) -> None:
         )
 
 
+# Gemini's responseSchema is a subset of JSON Schema and rejects anything it
+# does not know by name, with a 400 rather than by ignoring it. Anthropic's
+# structured outputs require additionalProperties: false. Callers therefore
+# write one canonical JSON Schema and each provider translates -- which is the
+# whole reason this seam exists.
+GEMINI_UNSUPPORTED_KEYS = frozenset(
+    {
+        "additionalProperties",
+        "$schema",
+        "$defs",
+        "definitions",
+        "default",
+        "examples",
+        "title",
+    }
+)
+
+
+def to_gemini_schema(schema: dict) -> dict:
+    """The same schema with the keys Gemini refuses removed.
+
+    Recursive because the offending key appears at every object level, and
+    Gemini reports each one separately as "Cannot find field".
+
+    Keys inside `properties` are field names chosen by the caller, not schema
+    keywords, and are never filtered. Without that distinction a field
+    legitimately named "title" would be stripped out of the schema -- which is
+    exactly the field the detection schema depends on.
+    """
+    cleaned: dict = {}
+    for key, value in schema.items():
+        if key in GEMINI_UNSUPPORTED_KEYS:
+            continue
+
+        if key == "properties" and isinstance(value, dict):
+            cleaned[key] = {
+                name: to_gemini_schema(subschema)
+                if isinstance(subschema, dict)
+                else subschema
+                for name, subschema in value.items()
+            }
+        elif isinstance(value, dict):
+            cleaned[key] = to_gemini_schema(value)
+        elif isinstance(value, list):
+            cleaned[key] = [
+                to_gemini_schema(entry) if isinstance(entry, dict) else entry
+                for entry in value
+            ]
+        else:
+            cleaned[key] = value
+    return cleaned
+
+
 class LLMProvider(Protocol):
     """What the importer needs from a model."""
 
@@ -109,7 +162,7 @@ class GeminiProvider:
             "contents": [{"parts": parts}],
             "generationConfig": {
                 "responseMimeType": "application/json",
-                "responseSchema": schema,
+                "responseSchema": to_gemini_schema(schema),
             },
         }
 
