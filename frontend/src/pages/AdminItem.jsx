@@ -183,15 +183,28 @@ export default function AdminItem() {
    * retried.
    */
   async function relink(candidate) {
+    if (relinking) return
+
     setError(null)
     setSavedAt(null)
     setRelinking(true)
+
+    // Whatever the form has unsaved, so a half-finished correction is not
+    // discarded by rebuilding the form from the server's response below.
+    const unsaved = Object.keys(changedFields(item, form))
 
     try {
       const linked = await apiFetch(`/api/items/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // The type goes with the link, and must. refresh-metadata picks its
+          // adapter from the item's *stored* type, while the picker searched
+          // using the form's. Sending only the link would let those disagree:
+          // pick a film from TMDB on a row still stored as a game, and the
+          // server would hand a TMDB id to the IGDB adapter and write whatever
+          // game happens to have that number onto the row.
+          type: form.type,
           external_source: candidate.external_source,
           external_id: candidate.external_id,
         }),
@@ -214,7 +227,13 @@ export default function AdminItem() {
 
       const updated = await refreshed.json()
       setItem(updated)
-      setForm(toForm(updated))
+      // Refreshed values, with the operator's unsaved edits laid back on top.
+      // Losing a hand-typed title because the cover was also wrong would be
+      // the same data loss the refresh route already refuses to cause.
+      setForm({
+        ...toForm(updated),
+        ...Object.fromEntries(unsaved.map((field) => [field, form[field]])),
+      })
       setSavedAt(Date.now())
     } catch {
       setError('Could not reach the API.')

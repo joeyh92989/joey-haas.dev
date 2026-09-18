@@ -114,7 +114,17 @@ export default function AdminImport() {
     // A photo failing costs that photo, not the batch -- the same rule the
     // importer already applies when one source is down.
     if (failures.length > 0) setError(failures.join('; '))
-    setState(collected.length === 0 ? 'empty' : 'reviewing')
+
+    if (collected.length > 0) {
+      setState('reviewing')
+    } else if (failures.length > 0) {
+      // Failed, not empty. "Try a closer shot" is advice for a photo the model
+      // read and found nothing in; telling someone that when the model was
+      // overloaded sends them to re-photograph a shelf that was fine.
+      setState('failed')
+    } else {
+      setState('empty')
+    }
   }
 
   function updateRow(index, changes) {

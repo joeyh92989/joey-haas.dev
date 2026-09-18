@@ -219,11 +219,53 @@ describe('AdminItem', () => {
     const [link, refresh] = writeCalls(mock)
     expect(link[1].method).toBe('PATCH')
     expect(JSON.parse(link[1].body)).toEqual({
+      // The type rides along so the server enriches from the source the
+      // picker actually searched.
+      type: 'game',
       external_source: 'igdb',
       external_id: '222',
     })
     expect(String(refresh[0])).toContain('/refresh-metadata')
     expect(refresh[1].method).toBe('POST')
+  })
+
+  it('sends the type with the link so the server enriches from the right source', async () => {
+    // refresh-metadata picks its adapter from the item's stored type, while
+    // the picker searched using the form's. Send only the link and those can
+    // disagree: pick a film from TMDB on a row still stored as a game, and the
+    // server hands a TMDB id to IGDB and writes whatever game has that number.
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.selectOptions(await screen.findByLabelText('Type'), 'movie')
+    await userEvent.type(screen.getByLabelText(/look up/i), 'Star Fox')
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Star Fox/ }),
+    )
+
+    await waitFor(() => expect(writeCalls(mock)).toHaveLength(2))
+    expect(JSON.parse(writeCalls(mock)[0][1].body).type).toBe('movie')
+  })
+
+  it('keeps unsaved edits when re-linking', async () => {
+    // Noticing the cover is wrong halfway through correcting a title must not
+    // cost the title. The refresh route already refuses to cause that loss
+    // server-side; rebuilding the form from its response would reintroduce it.
+    stubApi()
+    renderPage()
+
+    const title = await screen.findByLabelText('Title')
+    await userEvent.clear(title)
+    await userEvent.type(title, 'Star Fox 64')
+
+    await userEvent.type(screen.getByLabelText(/look up/i), 'Star Fox')
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Star Fox/ }),
+    )
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Title')).toHaveValue('Star Fox 64'),
+    )
   })
 
   it('never sends the title when re-linking', async () => {

@@ -277,12 +277,39 @@ describe('AdminImport', () => {
     await userEvent.upload(screen.getByLabelText(/shelf photos/i), files)
     await userEvent.click(screen.getByRole('button', { name: /read photos/i }))
 
-    // Two photos x two detections, all rendered rather than collapsed.
     await waitFor(() => {
-      expect(document.querySelectorAll('.import-table tbody tr')).toHaveLength(
-        4,
-      )
+      expect(screen.getAllByDisplayValue('Dune')).toHaveLength(2)
     })
+
+    // Counting rendered rows would not catch a collision — React mounts
+    // duplicate keys anyway. Drive the failure the offset actually prevents:
+    // editing the second photo's row must not rewrite the first photo's.
+    const dunes = screen.getAllByDisplayValue('Dune')
+    await userEvent.clear(dunes[1])
+    await userEvent.type(dunes[1], 'Dune Part Two')
+
+    expect(screen.getByDisplayValue('Dune')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Dune Part Two')).toBeInTheDocument()
+  })
+
+  it('says the extraction failed rather than blaming the photograph', async () => {
+    // "Try a closer shot" is advice for a photo the model read and found
+    // nothing in. Saying it when the model was overloaded sends someone to
+    // re-photograph a shelf that was perfectly fine.
+    stubApi({
+      photos: {
+        ok: false,
+        status: 502,
+        json: async () => ({ detail: 'Gemini is overloaded' }),
+      },
+    })
+    renderPage()
+    await uploadAPhoto()
+
+    expect(await screen.findByText(/overloaded/i)).toBeInTheDocument()
+    expect(
+      screen.queryByText(/no titles could be read/i),
+    ).not.toBeInTheDocument()
   })
 
   it('keeps the other photos when one fails', async () => {
