@@ -119,8 +119,22 @@ before pushing.
 - `/collection` is public and **does** call the API, unlike every other public
   page. It handles the free-tier cold start explicitly rather than showing a
   spinner that reads as broken.
+- **Items are private when created.** `is_public` defaults to false, including
+  for photo imports, so nothing reaches `/collection` until it is published
+  from the admin collection page — per row, or with the bulk publish control.
+  This was missing at first: the public API, page and filter all shipped
+  without a way to set the flag, so the showcase was unreachable.
+- Editing lives at `/admin/collection/:id`. A wrong external match is fixed
+  there by re-linking through the metadata picker, which re-fetches cover,
+  creator and the snapshot server-side. Deleting and re-adding is not
+  necessary.
 - The photo importer sends images to the model and never writes them to disk.
   Confidence is computed from string distance, never self-reported by the
   model — see `backend/matching.py`.
+- **The importer sends one photo per request.** Three in one request took
+  seven to eight minutes with no feedback. Nothing was timing out — Render
+  allows 100 minutes, and IGDB resolution measured ~25s of it — so this is
+  about progress and failure isolation, not a limit. It also keeps each
+  payload under Gemini's 20MB inline ceiling.
 - Source attribution on the collection page is required by TMDB's and Comic
   Vine's terms, not decoration. A test pins the TMDB wording verbatim.

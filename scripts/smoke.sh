@@ -163,6 +163,21 @@ check_equals "POST /api/import/photos unauthenticated" \
   "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/import/photos")" \
   "401"
 
+# 401 rather than 404 proves the route exists and is gated. A 404 here would
+# mean the bulk publish endpoint is silently absent, which looks identical
+# from the browser to a permissions problem.
+check_equals "POST /api/items/visibility unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
+    -H 'Content-Type: application/json' -d '{"is_public":true}' \
+    "$API_URL/api/items/visibility")" \
+  "401"
+
+# The item detail view is a nested route. Local dev will not catch a rewrite
+# that fails on it: Vite serves unknown paths differently from a CDN.
+check_equals "GET /admin/collection/<id> (nested deep link)" \
+  "$(http_status "$SITE_URL/admin/collection/00000000-0000-0000-0000-000000000000")" \
+  "200"
+
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in
   *accounts.google.com*) report_pass "auth/login redirects to Google" "accounts.google.com" ;;
