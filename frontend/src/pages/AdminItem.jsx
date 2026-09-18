@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
+import MetadataPicker from '../components/MetadataPicker.jsx'
 import { apiFetch } from '../lib/api.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -102,6 +103,7 @@ export default function AdminItem() {
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
+  const [relinking, setRelinking] = useState(false)
 
   /**
    * Returns rather than setting state, so the effect applies the result in a
@@ -164,6 +166,60 @@ export default function AdminItem() {
       setError('Could not reach the API.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  /**
+   * Points the item at a different source record and re-fetches its metadata.
+   *
+   * Two requests on purpose. The PATCH stores the link; the refresh route
+   * re-fetches cover, creator and the snapshot server-side, so the browser
+   * never assembles metadata it cannot verify — the same rule the import path
+   * follows. It also leaves the title alone, so a hand-corrected title
+   * survives a re-link.
+   *
+   * A failed refresh is reported but not rolled back: the link is right even
+   * when enrichment is briefly unavailable, and refresh-metadata can be
+   * retried.
+   */
+  async function relink(candidate) {
+    setError(null)
+    setSavedAt(null)
+    setRelinking(true)
+
+    try {
+      const linked = await apiFetch(`/api/items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          external_source: candidate.external_source,
+          external_id: candidate.external_id,
+        }),
+      })
+      if (!linked.ok) {
+        setError('Could not link that record.')
+        return
+      }
+
+      const refreshed = await apiFetch(`/api/items/${id}/refresh-metadata`, {
+        method: 'POST',
+      })
+      if (!refreshed.ok) {
+        setItem(await linked.json())
+        setError(
+          'Linked, but the metadata could not be fetched. Try saving again.',
+        )
+        return
+      }
+
+      const updated = await refreshed.json()
+      setItem(updated)
+      setForm(toForm(updated))
+      setSavedAt(Date.now())
+    } catch {
+      setError('Could not reach the API.')
+    } finally {
+      setRelinking(false)
     }
   }
 
@@ -262,6 +318,16 @@ export default function AdminItem() {
             )}
           </p>
           {item.creator && <p className="muted">{item.creator}</p>}
+
+          <div className="item-relink">
+            <h2>Re-link</h2>
+            <p className="muted">
+              Wrong match? Search for the right record — the cover, creator and
+              metadata are re-fetched from the source.
+            </p>
+            {relinking && <p className="muted">Re-linking…</p>}
+            <MetadataPicker type={form.type} onSelect={relink} />
+          </div>
         </div>
 
         <form className="item-detail-form" onSubmit={save}>
