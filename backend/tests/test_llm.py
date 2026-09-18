@@ -317,6 +317,42 @@ async def test_sustained_overload_across_every_model_gives_up(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_the_chain_stops_once_the_budget_is_spent(monkeypatch):
+    # Without this, four attempts across three models at a 120s timeout each
+    # could legitimately run twenty-four minutes with nothing saying stop. A
+    # real three-photo import took seven to eight minutes and gave no feedback
+    # the whole time.
+    calls = _patch_client(monkeypatch, [_FakeResponse(503)])
+
+    # A clock that jumps a minute per reading, so the budget runs out partway
+    # through the chain rather than before it starts -- which is the case that
+    # actually happens.
+    ticks = iter(range(0, 10_000, 60))
+    monkeypatch.setattr("llm.time.monotonic", lambda: next(ticks))
+    monkeypatch.setattr("llm.TOTAL_BUDGET_SECONDS", 150.0)
+
+    with pytest.raises(LLMError) as excinfo:
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    # It stops rather than walking every model to the end.
+    assert set(calls) != set(GEMINI_MODELS)
+    assert "gave up after" in str(excinfo.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_a_generous_budget_leaves_the_chain_alone(monkeypatch):
+    # The budget is a ceiling, not a schedule: a fast run must be unaffected.
+    ok = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
+    calls = _patch_client(monkeypatch, [_FakeResponse(200, ok)])
+    monkeypatch.setattr("llm.TOTAL_BUDGET_SECONDS", 150.0)
+
+    assert await GeminiProvider(api_key="k").complete_json("go", SCHEMA) == {
+        "titles": ["Dune"]
+    }
+    assert calls == [GEMINI_MODELS[0]]
+
+
+@pytest.mark.asyncio
 async def test_a_pinned_model_does_not_fall_through(monkeypatch):
     calls = _patch_client(monkeypatch, [_FakeResponse(503)])
 
