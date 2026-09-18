@@ -43,7 +43,41 @@ export default function AdminImport() {
   const [state, setState] = useState('idle')
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
 
+  /** One detection as a reviewable grid row. */
+  function toRow(detection, offset) {
+    return {
+      ...detection,
+      // Every response numbers its detections from zero, so without an offset
+      // two photos produce duplicate React keys.
+      //
+      // Scope, honestly: this does NOT prevent rows editing each other.
+      // updateRow works on array position, not on this field, so editing is
+      // already unambiguous. `index` feeds the key and nothing else. Unique
+      // keys are still correct — React reconciles by them — but the failure
+      // this avoids is a duplicate-key warning and reconciliation risk, not
+      // data corruption.
+      index: offset + detection.index,
+      include: true,
+      title: detection.match ? detection.match.title : detection.detected_title,
+      chosenKey: detection.match ? candidateKey(detection.match) : NO_MATCH,
+    }
+  }
+
+  /**
+   * Reads photos one request at a time.
+   *
+   * Three photos in a single request took seven to eight minutes with no
+   * feedback. Nothing was timing out — Render allows a hundred minutes, and
+   * IGDB resolution was measured at roughly twenty-five seconds of it — so
+   * this is not a limit being dodged. It is that a request long enough to
+   * abandon should at least say how far along it is.
+   *
+   * Per-photo also keeps each payload comfortably under Gemini's 20MB inline
+   * ceiling, which three phone photos were already brushing against, and
+   * isolates a failure to the photo that caused it.
+   */
   async function upload(event) {
     event.preventDefault()
     const files = [...event.target.elements.photos.files]
@@ -52,36 +86,51 @@ export default function AdminImport() {
     setState('extracting')
     setError(null)
     setResult(null)
+    setRows([])
 
-    const body = new FormData()
-    files.forEach((file) => body.append('photos', file))
+    const collected = []
+    const failures = []
 
-    try {
-      const response = await apiFetch('/api/import/photos', {
-        method: 'POST',
-        body,
-      })
-      if (!response.ok) {
-        const detail = await response.json().catch(() => ({}))
-        setError(detail.detail || 'Could not read those photos.')
-        setState('idle')
-        return
+    for (const [position, file] of files.entries()) {
+      setProgress({ done: position, total: files.length })
+
+      const body = new FormData()
+      body.append('photos', file)
+
+      try {
+        const response = await apiFetch('/api/import/photos', {
+          method: 'POST',
+          body,
+        })
+        if (!response.ok) {
+          const detail = await response.json().catch(() => ({}))
+          failures.push(`${file.name}: ${detail.detail || 'could not be read'}`)
+          continue
+        }
+        const { detections } = await response.json()
+        // Offset by what is already collected so indices stay unique.
+        collected.push(...detections.map((d) => toRow(d, collected.length)))
+      } catch {
+        failures.push(`${file.name}: could not reach the API`)
       }
-      const { detections } = await response.json()
-      setRows(
-        detections.map((detection) => ({
-          ...detection,
-          include: true,
-          title: detection.match
-            ? detection.match.title
-            : detection.detected_title,
-          chosenKey: detection.match ? candidateKey(detection.match) : NO_MATCH,
-        })),
-      )
-      setState(detections.length === 0 ? 'empty' : 'reviewing')
-    } catch {
-      setError('Could not reach the API.')
-      setState('idle')
+    }
+
+    setProgress({ done: files.length, total: files.length })
+    setRows(collected)
+
+    // A photo failing costs that photo, not the batch -- the same rule the
+    // importer already applies when one source is down.
+    if (failures.length > 0) setError(failures.join('; '))
+
+    if (collected.length > 0) {
+      setState('reviewing')
+    } else if (failures.length > 0) {
+      // Failed, not empty. "Try a closer shot" is advice for a photo the model
+      // read and found nothing in; telling someone that when the model was
+      // overloaded sends them to re-photograph a shelf that was fine.
+      setState('failed')
+    } else {
+      setState('empty')
     }
   }
 
@@ -156,14 +205,16 @@ export default function AdminImport() {
           multiple
         />
         <button type="submit" disabled={state === 'extracting'}>
-          {state === 'extracting' ? 'Reading photos…' : 'Read photos'}
+          {state === 'extracting'
+            ? `Reading ${progress.done}/${progress.total}…`
+            : 'Read photos'}
         </button>
       </form>
 
       {state === 'extracting' && (
         <p className="muted">
-          Reading the titles off your shelves. This takes a moment for several
-          photos.
+          Reading photo {Math.min(progress.done + 1, progress.total)} of{' '}
+          {progress.total}. Each one takes a minute or two.
         </p>
       )}
 

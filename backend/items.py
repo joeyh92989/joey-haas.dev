@@ -11,7 +11,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -116,6 +116,34 @@ class BulkOut(BaseModel):
     skipped_duplicates: int
     enriched: int
     ids: list[uuid.UUID]
+
+
+class VisibilityIn(BaseModel):
+    """Which items to publish or hide.
+
+    `ids` omitted or null means every item; a list means exactly those. An
+    empty list is therefore meaningfully different from null, and changes
+    nothing -- a caller that sent [] intending "all" would otherwise publish
+    the whole collection by accident.
+    """
+
+    is_public: bool
+    # Capped for the same reason BulkIn is: an unbounded list becomes an
+    # unbounded IN clause, which fails as a 500 from the driver's parameter
+    # ceiling rather than as a 422 anyone can act on.
+    ids: list[uuid.UUID] | None = Field(default=None, max_length=500)
+
+
+class VisibilityOut(BaseModel):
+    """How many rows the change applied to.
+
+    Rows *matched*, not rows whose value differed: Postgres reports everything
+    the WHERE clause selected, so publishing an already-public collection
+    reports all of them rather than zero. Unknown ids are ignored rather than
+    raising, so this is also not necessarily the number of ids sent.
+    """
+
+    updated: int
 
 
 class CandidateOut(BaseModel):
@@ -289,6 +317,34 @@ def create_items_router(
         await session.commit()
         await session.refresh(item)
         return item
+
+    @router.post("/visibility", response_model=VisibilityOut)
+    async def set_visibility(
+        payload: VisibilityIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> VisibilityOut:
+        """Publishes or hides items in one statement.
+
+        A bulk route rather than a loop of PATCHes because publishing a
+        collection is one decision: seventy-five sequential requests would be
+        slow, and a partial failure has no useful story to tell -- "forty of
+        seventy-five saved" is not something the page can act on.
+        """
+        statement = update(Item).values(is_public=payload.is_public)
+        if payload.ids is not None:
+            # Deliberately not short-circuiting on an empty list: the WHERE
+            # below matches nothing, which is exactly what [] should mean.
+            statement = statement.where(Item.id.in_(payload.ids))
+
+        result = await session.execute(statement)
+        await session.commit()
+
+        logger.info(
+            "visibility: set is_public=%s on %d matched items",
+            payload.is_public,
+            result.rowcount,
+        )
+        return VisibilityOut(updated=result.rowcount)
 
     @router.post("/bulk", response_model=BulkOut, status_code=201)
     async def create_items_bulk(

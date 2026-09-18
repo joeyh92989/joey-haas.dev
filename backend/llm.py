@@ -19,6 +19,7 @@ import base64
 import json
 import logging
 from dataclasses import dataclass
+from time import monotonic
 from typing import Protocol
 
 import httpx2
@@ -67,6 +68,18 @@ RETRY_DELAYS_SECONDS = (2.0, 5.0, 10.0)
 # wait, so retrying spends the next request to be told the same thing and
 # delays the honest answer to whoever is waiting.
 RATE_LIMIT_STATUS = 429
+
+# A ceiling on the whole chain, not on one attempt.
+#
+# TIMEOUT is per request, and the chain is four attempts across three models --
+# twelve requests, which at 120s each could legitimately run twenty-four
+# minutes with nothing anywhere saying stop. A real three-photo import took
+# seven to eight minutes and returned no feedback the entire time.
+#
+# Checked between attempts rather than mid-flight: cancelling a request already
+# in progress throws away work that has been paid for, and the next attempt
+# would start from nothing anyway.
+TOTAL_BUDGET_SECONDS = 150.0
 
 # Measured against the live API, because Google does not publish it: the free
 # tier allows twenty generate_content requests per day, per project, per
@@ -246,8 +259,22 @@ class GeminiProvider:
 
         last_status: int | None = None
         last_body: dict | None = None
+        started = monotonic()
 
-        for model in self._models:
+        def spent() -> float:
+            return monotonic() - started
+
+        for tried, model in enumerate(self._models):
+            if spent() > TOTAL_BUDGET_SECONDS:
+                # `tried`, not len(self._models): claiming three models were
+                # tried when the budget went during the first is a small lie
+                # that would send someone looking in the wrong place.
+                raise LLMError(
+                    f"Gave up after {spent():.0f}s across {tried} "
+                    f"model{'s' if tried != 1 else ''} — try again with fewer "
+                    "photos"
+                )
+
             # One attempt more than there are delays: the final attempt is not
             # followed by a wait.
             for attempt in range(len(RETRY_DELAYS_SECONDS) + 1):
@@ -279,7 +306,11 @@ class GeminiProvider:
                     last_body = None
 
                 retryable = response.status_code in OVERLOAD_STATUSES
-                if retryable and attempt < len(RETRY_DELAYS_SECONDS):
+                if (
+                    retryable
+                    and attempt < len(RETRY_DELAYS_SECONDS)
+                    and spent() < TOTAL_BUDGET_SECONDS
+                ):
                     await asyncio.sleep(RETRY_DELAYS_SECONDS[attempt])
                     continue
                 break

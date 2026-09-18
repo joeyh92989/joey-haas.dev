@@ -4,6 +4,7 @@ import About from './pages/About.jsx'
 import Admin from './pages/Admin.jsx'
 import AdminCollection from './pages/AdminCollection.jsx'
 import AdminImport from './pages/AdminImport.jsx'
+import AdminItem from './pages/AdminItem.jsx'
 import Blog from './pages/Blog.jsx'
 import Collection from './pages/Collection.jsx'
 import BlogPost from './pages/BlogPost.jsx'
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="admin" element={<Admin />} />
         <Route path="admin/collection" element={<AdminCollection />} />
         <Route path="admin/import" element={<AdminImport />} />
+        <Route path="admin/collection/:id" element={<AdminItem />} />
         <Route path="blog" element={<Blog />} />
         <Route path="blog/:slug" element={<BlogPost />} />
         <Route path="*" element={<NotFound />} />

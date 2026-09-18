@@ -242,6 +242,112 @@ describe('AdminImport', () => {
     expect(await screen.findByText(/nothing is selected/i)).toBeInTheDocument()
   })
 
+  it('sends one request per photo rather than one for the batch', async () => {
+    // Three photos in one request took seven to eight minutes with no
+    // feedback. Nothing was timing out; the request was simply long enough to
+    // abandon, and said nothing while it ran.
+    const fetchMock = stubApi({ photos: okJson(DETECTIONS) })
+    renderPage()
+
+    const files = ['a.jpg', 'b.jpg', 'c.jpg'].map(
+      (name) =>
+        new File([new Uint8Array([255, 216, 1])], name, { type: 'image/jpeg' }),
+    )
+    await userEvent.upload(screen.getByLabelText(/shelf photos/i), files)
+    await userEvent.click(screen.getByRole('button', { name: /read photos/i }))
+
+    await waitFor(() => {
+      const uploads = fetchMock.mock.calls.filter((call) =>
+        String(call[0]).includes('/api/import/photos'),
+      )
+      expect(uploads).toHaveLength(3)
+    })
+  })
+
+  it('keeps detection indices unique across photos', async () => {
+    // Two photos both number their detections from zero. Without an offset the
+    // grid's keys collide and editing one row edits another.
+    stubApi({ photos: okJson(DETECTIONS) })
+    renderPage()
+
+    const files = ['a.jpg', 'b.jpg'].map(
+      (name) =>
+        new File([new Uint8Array([255, 216, 1])], name, { type: 'image/jpeg' }),
+    )
+    await userEvent.upload(screen.getByLabelText(/shelf photos/i), files)
+    await userEvent.click(screen.getByRole('button', { name: /read photos/i }))
+
+    await waitFor(() => {
+      expect(screen.getAllByDisplayValue('Dune')).toHaveLength(2)
+    })
+
+    // Editing the second photo's row must not rewrite the first photo's.
+    //
+    // Note what this does and does not cover: it pins row independence, which
+    // holds because updateRow works on array position. It does NOT verify the
+    // index offset in toRow — that feeds the React key only, and removing it
+    // leaves this green. React keys are not observable from rendered output,
+    // so the offset is deliberately untested rather than tested by something
+    // that would pass without it.
+    const dunes = screen.getAllByDisplayValue('Dune')
+    await userEvent.clear(dunes[1])
+    await userEvent.type(dunes[1], 'Dune Part Two')
+
+    expect(screen.getByDisplayValue('Dune')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Dune Part Two')).toBeInTheDocument()
+  })
+
+  it('says the extraction failed rather than blaming the photograph', async () => {
+    // "Try a closer shot" is advice for a photo the model read and found
+    // nothing in. Saying it when the model was overloaded sends someone to
+    // re-photograph a shelf that was perfectly fine.
+    stubApi({
+      photos: {
+        ok: false,
+        status: 502,
+        json: async () => ({ detail: 'Gemini is overloaded' }),
+      },
+    })
+    renderPage()
+    await uploadAPhoto()
+
+    expect(await screen.findByText(/overloaded/i)).toBeInTheDocument()
+    expect(
+      screen.queryByText(/no titles could be read/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps the other photos when one fails', async () => {
+    // The same rule the importer already applies when one source is down.
+    let call = 0
+    const mock = vi.fn(async (url) => {
+      if (String(url).includes('/api/import/photos')) {
+        call += 1
+        return call === 1
+          ? {
+              ok: false,
+              status: 502,
+              json: async () => ({ detail: 'overloaded' }),
+            }
+          : okJson(DETECTIONS)
+      }
+      return okJson({})
+    })
+    vi.stubGlobal('fetch', mock)
+    renderPage()
+
+    const files = ['bad.jpg', 'good.jpg'].map(
+      (name) =>
+        new File([new Uint8Array([255, 216, 1])], name, { type: 'image/jpeg' }),
+    )
+    await userEvent.upload(screen.getByLabelText(/shelf photos/i), files)
+    await userEvent.click(screen.getByRole('button', { name: /read photos/i }))
+
+    // The failure is named against its photo, and the good one still lands.
+    expect(await screen.findByText(/bad\.jpg/)).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('Dune')).toBeInTheDocument()
+  })
+
   it('keeps the type editable so a misread shelf can be corrected', async () => {
     stubApi({ photos: okJson(DETECTIONS) })
     renderPage()
