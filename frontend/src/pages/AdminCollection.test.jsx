@@ -114,8 +114,47 @@ describe('AdminCollection', () => {
     expect(mock).toHaveBeenCalled()
   })
 
+  it('asks before publishing the whole collection', async () => {
+    // The most consequential action on this page: it puts every private row
+    // on a public website, including any still waiting to be corrected.
+    // Deleting a single item already asks; this must not be less guarded.
+    const mock = stubApi()
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => false),
+    )
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: /publish all 2/i }),
+    )
+
+    expect(window.confirm).toHaveBeenCalled()
+    expect(writeCalls(mock)).toHaveLength(0)
+  })
+
+  it('does not ask before hiding, which only removes things from view', async () => {
+    const mock = stubApi()
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => false),
+    )
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: /hide all/i }),
+    )
+
+    await waitFor(() => expect(writeCalls(mock)).toHaveLength(1))
+    expect(window.confirm).not.toHaveBeenCalled()
+  })
+
   it('publishes everything through the bulk route', async () => {
     const mock = stubApi()
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    )
     renderPage()
 
     await userEvent.click(

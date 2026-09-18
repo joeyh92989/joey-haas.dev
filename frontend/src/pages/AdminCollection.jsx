@@ -184,8 +184,25 @@ export default function AdminCollection() {
     await load()
   }
 
-  /** Publishes or hides the whole collection in one request. */
+  /**
+   * Publishes or hides the whole collection in one request.
+   *
+   * Publishing asks first. It is the most consequential action on this page —
+   * it puts every private row on a public website, including any still
+   * waiting to be corrected — and it would otherwise be less guarded than
+   * deleting a single item, which does ask. Hiding is not gated: it only ever
+   * removes things from public view.
+   */
   async function setAllVisibility(isPublic) {
+    if (
+      isPublic &&
+      !window.confirm(
+        `Publish all ${items.length} items to the public collection page?`,
+      )
+    ) {
+      return
+    }
+
     setError(null)
     setBulkBusy(true)
     try {
