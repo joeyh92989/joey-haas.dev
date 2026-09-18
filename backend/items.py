@@ -128,12 +128,20 @@ class VisibilityIn(BaseModel):
     """
 
     is_public: bool
-    ids: list[uuid.UUID] | None = None
+    # Capped for the same reason BulkIn is: an unbounded list becomes an
+    # unbounded IN clause, which fails as a 500 from the driver's parameter
+    # ceiling rather than as a 422 anyone can act on.
+    ids: list[uuid.UUID] | None = Field(default=None, max_length=500)
 
 
 class VisibilityOut(BaseModel):
-    """How many rows actually changed, which is not always how many were asked
-    for: unknown ids are ignored rather than raising."""
+    """How many rows the change applied to.
+
+    Rows *matched*, not rows whose value differed: Postgres reports everything
+    the WHERE clause selected, so publishing an already-public collection
+    reports all of them rather than zero. Unknown ids are ignored rather than
+    raising, so this is also not necessarily the number of ids sent.
+    """
 
     updated: int
 
@@ -332,7 +340,7 @@ def create_items_router(
         await session.commit()
 
         logger.info(
-            "visibility: set is_public=%s on %d items",
+            "visibility: set is_public=%s on %d matched items",
             payload.is_public,
             result.rowcount,
         )

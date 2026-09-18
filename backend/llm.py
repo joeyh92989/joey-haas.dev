@@ -18,8 +18,8 @@ import asyncio
 import base64
 import json
 import logging
-import time
 from dataclasses import dataclass
+from time import monotonic
 from typing import Protocol
 
 import httpx2
@@ -259,16 +259,20 @@ class GeminiProvider:
 
         last_status: int | None = None
         last_body: dict | None = None
-        started = time.monotonic()
+        started = monotonic()
 
         def spent() -> float:
-            return time.monotonic() - started
+            return monotonic() - started
 
-        for model in self._models:
+        for tried, model in enumerate(self._models):
             if spent() > TOTAL_BUDGET_SECONDS:
+                # `tried`, not len(self._models): claiming three models were
+                # tried when the budget went during the first is a small lie
+                # that would send someone looking in the wrong place.
                 raise LLMError(
-                    f"Gave up after {spent():.0f}s across "
-                    f"{len(self._models)} models — try again with fewer photos"
+                    f"Gave up after {spent():.0f}s across {tried} "
+                    f"model{'s' if tried != 1 else ''} — try again with fewer "
+                    "photos"
                 )
 
             # One attempt more than there are delays: the final attempt is not

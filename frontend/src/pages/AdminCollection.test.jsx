@@ -109,7 +109,9 @@ describe('AdminCollection', () => {
     await userEvent.click(await screen.findByLabelText('Public: Star Fox'))
 
     expect(await screen.findByText(/could not change/i)).toBeInTheDocument()
-    // The list is re-read from the server, so the checkbox shows its state.
+    // No optimistic flip: the checkbox still shows the pre-toggle value. The
+    // failure path returns before reloading, so this is the last state the
+    // server confirmed rather than a fresh re-read.
     expect(screen.getByLabelText('Public: Star Fox')).not.toBeChecked()
     expect(mock).toHaveBeenCalled()
   })

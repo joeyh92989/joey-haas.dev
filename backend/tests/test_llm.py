@@ -11,6 +11,7 @@ there is nothing else to observe it through.
 """
 
 import base64
+import itertools
 import json
 
 import pytest
@@ -230,6 +231,18 @@ def _patch_client(monkeypatch, responses: list[_FakeResponse]) -> list[str]:
     return calls
 
 
+def _patch_clock(monkeypatch, step: float) -> None:
+    """Advances llm's view of the clock by `step` on every reading.
+
+    Patches the name `llm` looks up rather than `time.monotonic` itself, which
+    is the same module object asyncio reads: replacing it globally works only
+    while the retry delays happen to be zero, and turns into a StopIteration
+    from inside the event loop the moment they are not.
+    """
+    ticks = itertools.count(0.0, step)
+    monkeypatch.setattr("llm.monotonic", lambda: next(ticks))
+
+
 def _quota_body(quota_id: str) -> dict:
     """A 429 body shaped the way Google actually sends one."""
     return {
@@ -323,12 +336,9 @@ async def test_the_chain_stops_once_the_budget_is_spent(monkeypatch):
     # real three-photo import took seven to eight minutes and gave no feedback
     # the whole time.
     calls = _patch_client(monkeypatch, [_FakeResponse(503)])
-
-    # A clock that jumps a minute per reading, so the budget runs out partway
-    # through the chain rather than before it starts -- which is the case that
-    # actually happens.
-    ticks = iter(range(0, 10_000, 60))
-    monkeypatch.setattr("llm.time.monotonic", lambda: next(ticks))
+    # Jumps a minute per reading, so the budget runs out partway through the
+    # chain rather than before it starts -- the case that actually happens.
+    _patch_clock(monkeypatch, step=60.0)
     monkeypatch.setattr("llm.TOTAL_BUDGET_SECONDS", 150.0)
 
     with pytest.raises(LLMError) as excinfo:
@@ -340,16 +350,20 @@ async def test_the_chain_stops_once_the_budget_is_spent(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_a_generous_budget_leaves_the_chain_alone(monkeypatch):
-    # The budget is a ceiling, not a schedule: a fast run must be unaffected.
+async def test_the_budget_does_not_cut_a_run_that_fits(monkeypatch):
+    # A ceiling, not a schedule. Uses a clock that advances well inside the
+    # budget, so this fails if the check is ever made too eager -- patching it
+    # to the production default would have asserted nothing.
     ok = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
-    calls = _patch_client(monkeypatch, [_FakeResponse(200, ok)])
+    calls = _patch_client(monkeypatch, [_FakeResponse(503), _FakeResponse(200, ok)])
+    _patch_clock(monkeypatch, step=10.0)
     monkeypatch.setattr("llm.TOTAL_BUDGET_SECONDS", 150.0)
 
     assert await GeminiProvider(api_key="k").complete_json("go", SCHEMA) == {
         "titles": ["Dune"]
     }
-    assert calls == [GEMINI_MODELS[0]]
+    # Retried within budget rather than being cut off after the first failure.
+    assert len(calls) == 2
 
 
 @pytest.mark.asyncio
