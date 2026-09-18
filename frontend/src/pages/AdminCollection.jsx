@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import CoverImage from '../components/CoverImage.jsx'
 import ItemForm from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import { apiFetch } from '../lib/api.js'
@@ -31,6 +32,7 @@ export default function AdminCollection() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   /**
    * Fetches the collection and returns what the UI should show.
@@ -156,6 +158,55 @@ export default function AdminCollection() {
     await load()
   }
 
+  /**
+   * Publishes or hides one item.
+   *
+   * Reloads rather than flipping the checkbox optimistically: showing a row
+   * as public when the save failed is worse than showing it as private for
+   * the length of a round trip.
+   */
+  async function updateVisibility(id, isPublic) {
+    setError(null)
+    try {
+      const response = await apiFetch(`/api/items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_public: isPublic }),
+      })
+      if (!response.ok) {
+        setError('Could not change that item’s visibility.')
+        return
+      }
+    } catch {
+      setError('Could not reach the API.')
+      return
+    }
+    await load()
+  }
+
+  /** Publishes or hides the whole collection in one request. */
+  async function setAllVisibility(isPublic) {
+    setError(null)
+    setBulkBusy(true)
+    try {
+      const response = await apiFetch('/api/items/visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_public: isPublic }),
+      })
+      if (!response.ok) {
+        setError('Could not change visibility.')
+        return
+      }
+    } catch {
+      setError('Could not reach the API.')
+      return
+    } finally {
+      setBulkBusy(false)
+    }
+    await load()
+  }
+
   async function removeItem(id) {
     setError(null)
     try {
@@ -170,6 +221,8 @@ export default function AdminCollection() {
     }
     await load()
   }
+
+  const publicCount = items.filter((item) => item.is_public).length
 
   if (status === 'loading') {
     return (
@@ -226,48 +279,95 @@ export default function AdminCollection() {
       {items.length === 0 ? (
         <p className="muted">Nothing in the collection yet.</p>
       ) : (
-        <div className="item-table-wrap">
-          <table className="item-table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Rating</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.type}</td>
-                  <td>{item.title}</td>
-                  <td>
-                    <select
-                      aria-label={`Status for ${item.title}`}
-                      value={item.status}
-                      onChange={(event) =>
-                        updateStatus(item.id, event.target.value)
-                      }
-                    >
-                      {STATUSES.map((value) => (
-                        <option key={value} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>{item.rating ?? '—'}</td>
-                  <td>
-                    <button type="button" onClick={() => removeItem(item.id)}>
-                      Delete
-                    </button>
-                  </td>
+        <>
+          {/* The counts are the point: publishing a whole collection should
+              be a deliberate act, not an unlabelled button. */}
+          <div className="bulk-visibility">
+            <span className="muted">
+              {publicCount} of {items.length} public
+            </span>
+            <button
+              type="button"
+              disabled={bulkBusy || publicCount === items.length}
+              onClick={() => setAllVisibility(true)}
+            >
+              Publish all {items.length}
+            </button>
+            <button
+              type="button"
+              disabled={bulkBusy || publicCount === 0}
+              onClick={() => setAllVisibility(false)}
+            >
+              Hide all
+            </button>
+          </div>
+
+          <div className="item-table-wrap">
+            <table className="item-table">
+              <thead>
+                <tr>
+                  <th>
+                    <span className="visually-hidden">Cover</span>
+                  </th>
+                  <th>Type</th>
+                  <th>Title</th>
+                  <th>Status</th>
+                  <th>Rating</th>
+                  <th>Public</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="item-cover-cell">
+                      <CoverImage src={item.cover_url} type={item.type} />
+                    </td>
+                    <td>{item.type}</td>
+                    <td>
+                      {/* The row links to the detail view: a wrong match is
+                        fixed there, not here. */}
+                      <Link to={`/admin/collection/${item.id}`}>
+                        {item.title}
+                      </Link>
+                    </td>
+                    <td>
+                      <select
+                        aria-label={`Status for ${item.title}`}
+                        value={item.status}
+                        onChange={(event) =>
+                          updateStatus(item.id, event.target.value)
+                        }
+                      >
+                        {STATUSES.map((value) => (
+                          <option key={value} value={value}>
+                            {value}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>{item.rating ?? '—'}</td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={item.is_public}
+                        aria-label={`Public: ${item.title}`}
+                        onChange={(event) =>
+                          updateVisibility(item.id, event.target.checked)
+                        }
+                      />
+                    </td>
+                    <td>
+                      <button type="button" onClick={() => removeItem(item.id)}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </section>
   )
