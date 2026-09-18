@@ -49,8 +49,15 @@ export default function AdminImport() {
   function toRow(detection, offset) {
     return {
       ...detection,
-      // Indices have to stay unique across photos or the grid's keys collide
-      // and two rows from different photos edit each other.
+      // Every response numbers its detections from zero, so without an offset
+      // two photos produce duplicate React keys.
+      //
+      // Scope, honestly: this does NOT prevent rows editing each other.
+      // updateRow works on array position, not on this field, so editing is
+      // already unambiguous. `index` feeds the key and nothing else. Unique
+      // keys are still correct — React reconciles by them — but the failure
+      // this avoids is a duplicate-key warning and reconciliation risk, not
+      // data corruption.
       index: offset + detection.index,
       include: true,
       title: detection.match ? detection.match.title : detection.detected_title,

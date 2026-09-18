@@ -281,9 +281,14 @@ describe('AdminImport', () => {
       expect(screen.getAllByDisplayValue('Dune')).toHaveLength(2)
     })
 
-    // Counting rendered rows would not catch a collision — React mounts
-    // duplicate keys anyway. Drive the failure the offset actually prevents:
-    // editing the second photo's row must not rewrite the first photo's.
+    // Editing the second photo's row must not rewrite the first photo's.
+    //
+    // Note what this does and does not cover: it pins row independence, which
+    // holds because updateRow works on array position. It does NOT verify the
+    // index offset in toRow — that feeds the React key only, and removing it
+    // leaves this green. React keys are not observable from rendered output,
+    // so the offset is deliberately untested rather than tested by something
+    // that would pass without it.
     const dunes = screen.getAllByDisplayValue('Dune')
     await userEvent.clear(dunes[1])
     await userEvent.type(dunes[1], 'Dune Part Two')
