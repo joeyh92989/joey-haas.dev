@@ -967,6 +967,101 @@ footer {
   width: 1px;
 }
 
+/* Item detail view: cover beside a form, stacking on narrow screens. */
+.item-detail {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  margin-top: 1rem;
+}
+
+@media (max-width: 40rem) {
+  .item-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .item-detail-cover {
+    max-width: 12rem;
+  }
+}
+
+.item-detail-link {
+  font-size: 0.75rem;
+  margin: 0.5rem 0 0;
+}
+
+.item-detail-form {
+  align-items: center;
+  display: grid;
+  gap: 0.6rem 0.75rem;
+  grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+}
+
+.item-detail-form label {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.item-detail-form input,
+.item-detail-form select,
+.item-detail-form textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.6rem;
+  width: 100%;
+}
+
+/* Checkboxes should not stretch to the column width. */
+.item-detail-form input[type='checkbox'] {
+  justify-self: start;
+  width: auto;
+}
+
+.item-detail-form input:focus-visible,
+.item-detail-form select:focus-visible,
+.item-detail-form textarea:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.item-detail-actions {
+  display: flex;
+  gap: 0.6rem;
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+}
+
+.item-detail-actions button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.item-detail-actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.item-detail-actions button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Distinguished by border and text, never colour alone. */
+.item-detail-actions .danger {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* Bulk visibility controls above the collection table. */
 .bulk-visibility {
   align-items: center;
