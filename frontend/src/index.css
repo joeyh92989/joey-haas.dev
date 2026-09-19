@@ -433,6 +433,25 @@ section + section {
   padding: 0.25rem 0.8125rem;
 }
 
+/* Grid rather than CSS multi-column: multicol needs break-inside: avoid on
+   every item to stop an entry splitting across the column boundary, and it
+   does not collapse to a single column on a narrow screen without a media
+   query. auto-fit does both for free. */
+.expertise-list {
+  display: grid;
+  gap: 0.5rem 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  list-style: none;
+  margin-top: 0.875rem;
+}
+
+.expertise-list li {
+  border-left: 2px solid var(--border);
+  color: var(--text-body);
+  font-size: 0.875rem;
+  padding-left: 0.75rem;
+}
+
 /* ---------- Projects ---------- */
 
 .project-grid {

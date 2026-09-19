@@ -38,6 +38,17 @@ describe('About', () => {
     }
   })
 
+  it('renders every area of expertise', () => {
+    render(<About />)
+    expect(
+      screen.getByRole('heading', { name: 'Areas of expertise' }),
+    ).toBeInTheDocument()
+    expect(profile.expertise.length).toBeGreaterThan(0)
+    for (const area of profile.expertise) {
+      expect(screen.getByText(area)).toBeInTheDocument()
+    }
+  })
+
   it('renders education entries and certifications', () => {
     render(<About />)
     expect(
