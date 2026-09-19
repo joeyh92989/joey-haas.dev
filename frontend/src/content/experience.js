@@ -21,7 +21,7 @@ export const experience = [
     company: 'Guild',
     meta: '2021 – present · Denver, CO',
     summary:
-      'Spend-writing APIs, funding context, tax classification, and the eligibility-platform migration underneath them — owned from API contract through rollout, alerting, and incident forensics.',
+      'Owned the spend-writing APIs and the eligibility-platform migration end to end — API contract, rollout, alerting, and the incident forensics after.',
     current: true,
   },
   {

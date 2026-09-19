@@ -11,7 +11,7 @@
 export const profile = {
   name: 'Joey Haas',
   tagline: 'Senior software engineer · Denver, Colorado',
-  bio: `I'm a senior software engineer at Guild, where five years on the payments team have gone into the backend systems that fund, track, and reconcile every learner benefit dollar — spend-writing APIs, funding context, tax classification, and the eligibility migration underneath them.
+  bio: `I'm a senior software engineer at Guild, where five years of engineering on the payments team have gone into the backend systems that fund, track, and reconcile every learner benefit dollar — spend-writing APIs, funding context, tax classification, and the eligibility migration underneath them.
 
 Before the code, eight years as a product manager across enterprise SaaS, payments, and video. I still work like one: architecture doc, then squad alignment, then the endpoint — and the data forensics when something goes wrong. Most useful on systems where correctness and money are the same problem.`,
   email: 'josephthaas@gmail.com',
