@@ -38,6 +38,35 @@ describe('About', () => {
     }
   })
 
+  it('renders every area of expertise', () => {
+    render(<About />)
+    expect(
+      screen.getByRole('heading', { name: 'Areas of expertise' }),
+    ).toBeInTheDocument()
+    expect(profile.expertise.length).toBeGreaterThan(0)
+    for (const area of profile.expertise) {
+      expect(screen.getByText(area)).toBeInTheDocument()
+    }
+  })
+
+  // Every test above queries expertise and toolbox entries by exact text.
+  // A string appearing in both arrays makes getByText match two elements
+  // and throw inside an unrelated rendering test, which points at About.jsx
+  // rather than at the data. Assert the invariant directly so a collision
+  // names the duplicated string instead.
+  it('keeps every expertise and toolbox entry unique', () => {
+    const counts = new Map()
+    for (const entry of [...profile.expertise, ...profile.toolbox]) {
+      counts.set(entry, (counts.get(entry) ?? 0) + 1)
+    }
+    const duplicates = [...counts.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([entry]) => entry)
+    expect(duplicates, `duplicate entries: ${duplicates.join(', ')}`).toEqual(
+      [],
+    )
+  })
+
   it('renders education entries and certifications', () => {
     render(<About />)
     expect(

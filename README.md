@@ -60,7 +60,8 @@ v8. Deep links work in production because `render.yaml` rewrites all paths to
 
 Content lives in `frontend/src/content/`:
 
-- `profile.js` — name, tagline, bio, contact links
+- `profile.js` — name, tagline, bio, contact links, areas of expertise,
+  toolbox chips
 - `education.js` — degrees, bootcamp, and certifications
 - `projects.js` — the project list
 - `experience.js` — work history for the About page timeline

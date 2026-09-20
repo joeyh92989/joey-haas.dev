@@ -17,16 +17,16 @@
  */
 export const experience = [
   {
-    role: 'Software Engineer I → Sr. Software Engineer',
-    company: 'Guild (formerly Guild Education)',
+    role: 'Software Engineer I → II → Senior',
+    company: 'Guild',
     meta: '2021 – present · Denver, CO',
     summary:
-      'Spend-writing APIs, funding context, tax classification, and the eligibility migration underneath them — owned from API contract through rollout and incident forensics.',
+      'Owned the spend-writing APIs and the eligibility-platform migration end to end — API contract, rollout, alerting, and the incident forensics after.',
     current: true,
   },
   {
     role: 'Product Manager, Payment Products',
-    company: 'Guild (formerly Guild Education)',
+    company: 'Guild',
     meta: '2020 – 2021 · Denver, CO',
     summary:
       'Balance tracking and external benefits administration for Fortune 1000 employer partners.',

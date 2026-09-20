@@ -59,7 +59,9 @@ export default function About() {
             </div>
           ))}
         </div>
-        <ul className="chip-list" aria-label="Certifications">
+        {/* list-style: none strips list semantics from Safari/VoiceOver,
+            so the item count goes unannounced without an explicit role. */}
+        <ul className="chip-list" aria-label="Certifications" role="list">
           {certifications.map((certification) => (
             <li key={certification}>{certification}</li>
           ))}
@@ -67,8 +69,17 @@ export default function About() {
       </section>
 
       <section>
+        <h2>Areas of expertise</h2>
+        <ul className="expertise-list" role="list">
+          {profile.expertise.map((area) => (
+            <li key={area}>{area}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
         <h2>Toolbox</h2>
-        <ul className="chip-list">
+        <ul className="chip-list" role="list">
           {profile.toolbox.map((tool) => (
             <li key={tool}>{tool}</li>
           ))}
