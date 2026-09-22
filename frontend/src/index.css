@@ -1441,6 +1441,156 @@ footer {
   gap: 0.4rem 0.75rem;
 }
 
+/* Public item page. The hero band is the item's own cover, blurred and
+   dimmed with --overlay; the unblurred cover overlaps its bottom edge. */
+.item-hero {
+  background: var(--surface);
+  border-radius: 8px;
+  height: 13rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.item-hero-backdrop {
+  filter: blur(28px) saturate(1.1);
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  transform: scale(1.25);
+  width: 100%;
+}
+
+.item-hero::after {
+  background: var(--overlay);
+  content: '';
+  inset: 0;
+  position: absolute;
+}
+
+.item-hero[data-empty]::after {
+  display: none;
+}
+
+.item-head {
+  align-items: flex-end;
+  display: flex;
+  gap: 1.5rem;
+  margin: -6rem 0 1.5rem 1.5rem;
+  position: relative;
+}
+
+.item-cover {
+  flex: 0 0 9rem;
+}
+
+.item-cover .cover {
+  box-shadow: 0 6px 18px var(--overlay);
+}
+
+.item-heading {
+  padding-bottom: 0.25rem;
+}
+
+.item-heading h1 {
+  margin: 0 0 0.25rem;
+}
+
+.item-heading p {
+  margin: 0;
+}
+
+.item-status {
+  color: var(--text);
+  font-size: 0.875rem;
+  margin-top: 0.35rem;
+}
+
+.item-edit {
+  display: inline-block;
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+}
+
+.item-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0 0 1.25rem;
+}
+
+.item-chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-body);
+  font-size: 0.8125rem;
+  padding: 0.15rem 0.65rem;
+}
+
+.item-chip-muted {
+  color: var(--text-muted);
+}
+
+.item-description-wrap {
+  margin: 0 0 1.5rem;
+  max-width: 45rem;
+}
+
+.item-description {
+  margin: 0 0 0.35rem;
+}
+
+.clamp-6 {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  display: -webkit-box;
+  line-clamp: 6;
+  overflow: hidden;
+}
+
+.item-tiles {
+  display: grid;
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  margin: 0 0 2rem;
+}
+
+.item-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+.item-tile dt {
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.item-tile dd {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8125rem;
+  gap: 0.15rem;
+}
+
+.item-tile-figure {
+  color: var(--text);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.item-similar h2 {
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.6rem;
+  text-transform: uppercase;
+}
+
 /* Shelf filters and sort. Chips are buttons with aria-pressed; the pressed
    state inverts like the nav pills. */
 .chip-rows {
@@ -1692,6 +1842,16 @@ footer {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 0.25rem;
+  }
+
+  /* The overlapping cover shrinks so the title still fits beside it. */
+  .item-head {
+    gap: 1rem;
+    margin-left: 1rem;
+  }
+
+  .item-cover {
+    flex-basis: 6.5rem;
   }
 
   /* 375px leaves about 21.4rem inside the gutters: three 6rem columns. */
