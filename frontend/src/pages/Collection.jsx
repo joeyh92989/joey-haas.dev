@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import CoverImage from '../components/CoverImage.jsx'
+import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -23,21 +24,6 @@ function formatMonth(key) {
   const [year, month] = key.split('-')
   return MONTH_LABEL.format(
     new Date(Date.UTC(Number(year), Number(month) - 1, 1)),
-  )
-}
-
-/** Rating out of ten, rendered as five stars with halves. */
-function Stars({ rating }) {
-  if (!rating) return null
-  const full = Math.floor(rating / 2)
-  const half = rating % 2 === 1
-  return (
-    <span className="stars" aria-label={`${rating} out of 10`}>
-      <span aria-hidden="true">
-        {'★'.repeat(full)}
-        {half ? '½' : ''}
-      </span>
-    </span>
   )
 }
 
