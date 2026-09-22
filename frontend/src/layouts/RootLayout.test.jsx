@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes, useOutletContext } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import RootLayout from './RootLayout.jsx'
 
@@ -80,5 +80,70 @@ describe('RootLayout theme toggle', () => {
 
     fireEvent.click(toggle('light'))
     expect(document.documentElement.dataset.theme).toBe('light')
+  })
+})
+
+describe('RootLayout wide pages', () => {
+  function pageClass(path) {
+    const { container } = renderAt(path)
+    return container.querySelector('.page').className
+  }
+
+  // The tracker pages break out of the reading column; everything else keeps it.
+  it.each(['/collection', '/collection/abc', '/admin/collection/abc'])(
+    'widens %s',
+    (path) => {
+      expect(pageClass(path)).toContain('page-wide')
+    },
+  )
+
+  it.each(['/about', '/', '/admin', '/blog'])('keeps %s narrow', (path) => {
+    expect(pageClass(path)).not.toContain('page-wide')
+  })
+})
+
+describe('RootLayout outlet context', () => {
+  function Probe() {
+    return <p>signed in: {String(useOutletContext().signedIn)}</p>
+  }
+
+  function renderProbe() {
+    return render(
+      <MemoryRouter initialEntries={['/probe']}>
+        <Routes>
+          <Route element={<RootLayout />}>
+            <Route path="/probe" element={<Probe />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  // Routed pages read the session the layout already fetched, rather than
+  // each asking /api/auth/me again.
+  it('is false until the session check resolves ok, then true', async () => {
+    let resolve
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(
+      new Promise((done) => {
+        resolve = done
+      }),
+    )
+
+    renderProbe()
+    expect(screen.getByText('signed in: false')).toBeInTheDocument()
+
+    resolve(new Response('{}', { status: 200 }))
+    expect(await screen.findByText('signed in: true')).toBeInTheDocument()
+  })
+
+  it('stays false when the session check fails', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{}', { status: 401 }),
+    )
+
+    renderProbe()
+    // Let the rejected check settle before asserting nothing changed.
+    await Promise.resolve()
+    expect(screen.getByText('signed in: false')).toBeInTheDocument()
   })
 })

@@ -38,6 +38,19 @@
      4.62 — the grey used for JSX and HTML angle brackets). On --surface that
      grey drops to 3.96. */
   --code-bg: #1a140d;
+  /* The tracker shelf. Status marks are non-text marks, so each clears 3:1
+     (WCAG 1.4.11) against --surface, the colour of the 2px gaps between
+     stacked-bar segments; backlog also clears 3:1 against --border, which it
+     sits nearest to in hue. Measured, dark: active 4.65, finished 10.24,
+     backlog 5.02, abandoned 3.55; backlog on --border 3.61. */
+  --rating: var(--accent);
+  --status-active: var(--accent-2);
+  --status-finished: #e0cfb2;
+  --status-backlog: #a38f72;
+  --status-abandoned: #7a7874;
+  --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
+  --skeleton: #342b21;
+  --grid-gap: 1rem;
   --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-body:
     'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
@@ -67,6 +80,16 @@
   --nav-idle: #6b5f50;
   --nav-active-weight: 500;
   --code-bg: #fffffd;
+  /* Measured, light: active 4.57, finished 8.03, backlog 4.02, abandoned
+     3.38 on --surface; backlog on --border 3.41. */
+  --rating: var(--accent);
+  --status-active: var(--accent-2);
+  --status-finished: #4f4335;
+  --status-backlog: #836f55;
+  --status-abandoned: #817e7a;
+  --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
+  --skeleton: #ebe1cf;
+  --grid-gap: 1rem;
   color-scheme: light;
 }
 
@@ -92,6 +115,12 @@ body {
   max-width: 45rem;
   margin: 0 auto;
   padding: 3.25rem 1.25rem 2.75rem;
+}
+
+/* The tracker pages: a grid of covers wants the width a prose column does
+   not. Same gutters; only the limit moves. */
+.page.page-wide {
+  max-width: 72rem;
 }
 
 /* Spacing below the nav belongs to the routed region, not to whichever heading
