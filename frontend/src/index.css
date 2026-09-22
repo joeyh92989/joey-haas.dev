@@ -1591,6 +1591,60 @@ footer {
   text-transform: uppercase;
 }
 
+/* Quick rate: ten half-star targets. Each button shows one half of a star;
+   a right half is the same glyph shifted left inside a half-width box. */
+.quick-rate {
+  display: inline-flex;
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.quick-rate-target {
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  height: 1.2em;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: 0.5em;
+}
+
+.quick-rate-target span {
+  display: block;
+  left: 0;
+  position: absolute;
+  top: 0.05em;
+  width: 1em;
+}
+
+.quick-rate-target[data-half='right'] span {
+  left: -0.5em;
+}
+
+.quick-rate-target[data-filled] {
+  color: var(--rating);
+}
+
+.quick-rate-target:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+@media (hover: hover) {
+  /* Previews the rating a click would set: every target up to the hovered
+     one fills, the rest empty. */
+  .quick-rate:hover .quick-rate-target {
+    color: var(--rating);
+  }
+
+  .quick-rate-target:hover ~ .quick-rate-target {
+    color: var(--text-muted);
+  }
+}
+
 /* Shelf filters and sort. Chips are buttons with aria-pressed; the pressed
    state inverts like the nav pills. */
 .chip-rows {
