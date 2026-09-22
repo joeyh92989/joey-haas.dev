@@ -1268,19 +1268,124 @@ footer {
   padding: 0.35rem 0.5rem;
 }
 
+/* The shelf grid. --poster-min is declared here so markup without a data-size
+   still gets a valid grid; compact overrides it, and narrow screens drop both
+   to 6rem so a phone fits three across. */
 .poster-grid {
+  --poster-min: 8.5rem;
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(auto-fill, minmax(var(--poster-min), 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+.poster-grid[data-size='compact'] {
+  --poster-min: 6rem;
+}
+
+.poster-card {
+  position: relative;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+
+/* Finished and abandoned fade back so the backlog stands out; a card being
+   looked at or worked with comes back to full strength. */
+.poster-card[data-dimmed] {
+  opacity: 0.45;
+}
+
+.poster-card[data-dimmed]:hover,
+.poster-card[data-dimmed]:focus-within {
+  opacity: 1;
+}
+
+.poster-link {
+  color: inherit;
+  display: block;
+  text-decoration: none;
+}
+
+.poster-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.poster-art {
+  display: block;
+  position: relative;
+}
+
+/* The hover scrim sits over the cover without catching the pointer. */
+.poster-art::after {
+  background: transparent;
+  border-radius: 4px;
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: background-color 0.15s;
+}
+
+@media (hover: hover) {
+  .poster-card:hover,
+  .poster-card:focus-within {
+    transform: translateY(-2px);
+  }
+
+  .poster-card:hover .poster-art::after,
+  .poster-card:focus-within .poster-art::after {
+    background: var(--overlay);
+  }
+}
+
+.status-mark {
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  height: 0.625rem;
+  left: 0.4rem;
+  position: absolute;
+  top: 0.4rem;
+  width: 0.625rem;
+  z-index: 1;
+}
+
+.status-mark[data-status='active'] {
+  background: var(--status-active);
+}
+
+.status-mark[data-status='finished'] {
+  background: var(--status-finished);
+}
+
+.status-mark[data-status='abandoned'] {
+  background: var(--status-abandoned);
+}
+
+.poster-heart {
+  color: var(--rating);
+  font-size: 0.875rem;
+  line-height: 1;
+  position: absolute;
+  right: 0.4rem;
+  text-shadow: 0 0 3px var(--bg);
+  top: 0.35rem;
+  z-index: 1;
+}
+
 .poster-title {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text);
+  display: -webkit-box;
   font-size: 0.8125rem;
+  line-clamp: 2;
   line-height: 1.3;
   margin: 0.4rem 0 0;
+  overflow: hidden;
 }
 
 .poster-meta {
@@ -1289,7 +1394,8 @@ footer {
 }
 
 .stars {
-  color: var(--accent);
+  color: var(--rating);
+  display: block;
   font-size: 0.8125rem;
 }
 
@@ -1335,6 +1441,12 @@ footer {
 /* ---------- Narrow screens ---------- */
 
 @media (max-width: 34rem) {
+  /* 375px leaves about 21.4rem inside the gutters: three 6rem columns. */
+  .poster-grid,
+  .poster-grid[data-size='compact'] {
+    --poster-min: 6rem;
+  }
+
   .link-cards {
     flex-direction: column;
   }
