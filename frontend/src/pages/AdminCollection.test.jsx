@@ -1,9 +1,17 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { localToday } from '../lib/statusTransition.js'
 import AdminCollection from './AdminCollection.jsx'
+
+// A pointer device on a wide screen: cards render the hover panel and the
+// sort renders as buttons. The touch sheet is covered in
+// ShelfCardActions.test.jsx.
+vi.mock('../lib/useMediaQuery.js', () => ({
+  useMediaQuery: (query) => query === '(hover: hover)',
+}))
 
 const ITEMS = [
   {
@@ -14,6 +22,11 @@ const ITEMS = [
     rating: null,
     is_public: false,
     cover_url: 'https://images.igdb.com/a.jpg',
+    favorite: false,
+    finished_at: null,
+    times_completed: 0,
+    owned_format: 'physical',
+    created_at: '2026-01-01T00:00:00Z',
   },
   {
     id: 'b',
@@ -23,6 +36,11 @@ const ITEMS = [
     rating: 9,
     is_public: true,
     cover_url: null,
+    favorite: false,
+    finished_at: '2025-04-01',
+    times_completed: 1,
+    owned_format: null,
+    created_at: '2026-02-01T00:00:00Z',
   },
 ]
 
@@ -61,9 +79,15 @@ function writeCalls(mock) {
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  localStorage.clear()
 })
 
+// The table: the List view, kept for bulk work.
 describe('AdminCollection', () => {
+  beforeEach(() => {
+    localStorage.setItem('shelf.admin.view', '"list"')
+  })
+
   it('shows cover art for each row', async () => {
     stubApi()
     renderPage()
@@ -205,5 +229,338 @@ describe('AdminCollection', () => {
     expect(
       await screen.findByRole('button', { name: /publish all 2/i }),
     ).toBeDisabled()
+  })
+})
+
+describe('AdminCollection list view status', () => {
+  beforeEach(() => {
+    localStorage.setItem('shelf.admin.view', '"list"')
+  })
+
+  // The table's select goes through the same transition as the shelf, so a
+  // finish from either view counts a completion.
+  it('sends the finished transition from the table', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText('Status for Star Fox'),
+      'finished',
+    )
+
+    await waitFor(() => {
+      const call = writeCalls(mock)[0]
+      expect(String(call[0])).toContain('/api/items/a')
+      expect(JSON.parse(call[1].body)).toEqual({
+        status: 'finished',
+        finished_at: localToday(),
+        times_completed: 1,
+      })
+    })
+  })
+
+  it('sends only the status for anything else', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText('Status for Dune'),
+      'active',
+    )
+
+    await waitFor(() =>
+      expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
+        status: 'active',
+      }),
+    )
+  })
+})
+
+/** The shelf card whose title is `title`. */
+function card(title) {
+  return within(
+    screen
+      .getByText(title, { selector: '.poster-grid .poster-title' })
+      .closest('.poster-card'),
+  )
+}
+
+async function renderShelf() {
+  renderPage()
+  await waitFor(() =>
+    expect(document.querySelector('.poster-grid')).not.toBeNull(),
+  )
+}
+
+describe('AdminCollection shelf', () => {
+  it('opens on the shelf by default', async () => {
+    stubApi()
+    await renderShelf()
+
+    expect(document.querySelector('.item-table')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Shelf' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('switches to the list and remembers it', async () => {
+    stubApi()
+    await renderShelf()
+
+    await userEvent.click(screen.getByRole('button', { name: 'List' }))
+
+    expect(document.querySelector('.item-table')).not.toBeNull()
+    expect(document.querySelector('.poster-grid')).toBeNull()
+    expect(localStorage.getItem('shelf.admin.view')).toBe('"list"')
+  })
+
+  it('keeps the add form, import link and bulk controls in both views', async () => {
+    stubApi()
+    await renderShelf()
+
+    expect(
+      screen.getByRole('link', { name: /import from photos/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /publish all 2/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /hide all/i }),
+    ).toBeInTheDocument()
+    expect(document.querySelector('form')).not.toBeNull()
+  })
+
+  it('computes the hero numbers from the rows', async () => {
+    const year = new Date().getUTCFullYear()
+    stubApi({
+      items: [
+        ...ITEMS,
+        {
+          ...ITEMS[1],
+          id: 'c',
+          title: 'Wanted',
+          owned_format: 'none',
+          status: 'finished',
+          finished_at: `${year}-02-01`,
+        },
+      ],
+    })
+    await renderShelf()
+
+    const hero = document.querySelector('.hero-numbers')
+    // Star Fox (physical) and Dune (NULL) are owned; the want is not.
+    expect(within(hero).getByText('Owned').nextSibling).toHaveTextContent('2')
+    expect(within(hero).getByText('Finished').nextSibling).toHaveTextContent(
+      '2',
+    )
+    expect(
+      within(hero).getByText(`Finished in ${year}`).nextSibling,
+    ).toHaveTextContent('1')
+  })
+
+  it('always shows the favourites row, with empty slots and a hint', async () => {
+    stubApi()
+    await renderShelf()
+
+    const row = screen.getByRole('region', { name: 'Favourites' })
+    expect(row.querySelectorAll('.favourite-empty')).toHaveLength(4)
+    expect(within(row).getByText(/pick your favourites/i)).toBeInTheDocument()
+  })
+
+  // A private item has no public page; linking there would be a 404.
+  it('links a private card to its edit page and a public one to its page', async () => {
+    stubApi()
+    await renderShelf()
+
+    expect(card('Star Fox').getByRole('link')).toHaveAttribute(
+      'href',
+      '/admin/collection/a',
+    )
+    expect(card('Dune').getByRole('link')).toHaveAttribute(
+      'href',
+      '/collection/b',
+    )
+  })
+
+  it('dims finished items by default', async () => {
+    stubApi()
+    await renderShelf()
+
+    expect(
+      screen.getByRole('button', { name: 'Dim finished' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(
+      screen
+        .getByText('Dune', { selector: '.poster-grid .poster-title' })
+        .closest('.poster-card'),
+    ).toHaveAttribute('data-dimmed')
+  })
+
+  it('rates from the card', async () => {
+    const mock = stubApi()
+    await renderShelf()
+
+    await userEvent.click(
+      card('Star Fox').getByRole('radio', { name: 'Rate 7 out of 10' }),
+    )
+
+    await waitFor(() => {
+      const call = writeCalls(mock)[0]
+      expect(String(call[0])).toContain('/api/items/a')
+      expect(call[1].method).toBe('PATCH')
+      expect(JSON.parse(call[1].body)).toEqual({ rating: 7 })
+    })
+  })
+
+  it('clears a rating from the card', async () => {
+    const mock = stubApi()
+    await renderShelf()
+
+    await userEvent.click(
+      card('Dune').getByRole('radio', { name: 'Clear rating' }),
+    )
+
+    await waitFor(() =>
+      expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({ rating: null }),
+    )
+  })
+
+  it('favourites from the card', async () => {
+    const mock = stubApi()
+    await renderShelf()
+
+    await userEvent.click(
+      card('Star Fox').getByRole('button', { name: 'Favourite' }),
+    )
+
+    await waitFor(() =>
+      expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
+        favorite: true,
+      }),
+    )
+  })
+
+  it('finishes from the card with the transition body', async () => {
+    const mock = stubApi()
+    await renderShelf()
+
+    await userEvent.selectOptions(
+      card('Star Fox').getByRole('combobox', { name: 'Status for Star Fox' }),
+      'finished',
+    )
+
+    await waitFor(() =>
+      expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
+        status: 'finished',
+        finished_at: localToday(),
+        times_completed: 1,
+      }),
+    )
+  })
+
+  it('publishes from the card', async () => {
+    const mock = stubApi()
+    await renderShelf()
+
+    await userEvent.click(card('Star Fox').getByLabelText('Public: Star Fox'))
+
+    await waitFor(() =>
+      expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
+        is_public: true,
+      }),
+    )
+  })
+
+  it('reports a failed change and keeps showing the server’s state', async () => {
+    stubApi({
+      onWrite: () => ({ ok: false, status: 500, json: async () => ({}) }),
+    })
+    await renderShelf()
+
+    await userEvent.click(
+      card('Star Fox').getByRole('radio', { name: 'Rate 7 out of 10' }),
+    )
+
+    expect(await screen.findByText(/could not update/i)).toBeInTheDocument()
+    expect(
+      card('Star Fox').getByRole('radio', { name: 'Rate 7 out of 10' }),
+    ).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('reloads after a change so the card shows what the server saved', async () => {
+    const mock = stubApi()
+    await renderShelf()
+    const reads = () =>
+      mock.mock.calls.filter(([, options]) => !options?.method).length
+
+    const before = reads()
+    await userEvent.click(
+      card('Star Fox').getByRole('button', { name: 'Favourite' }),
+    )
+
+    await waitFor(() => expect(reads()).toBe(before + 1))
+  })
+})
+
+describe('AdminCollection nudge', () => {
+  const UNRATED = [
+    ...ITEMS,
+    ...[1, 2, 3].map((n) => ({
+      ...ITEMS[0],
+      id: `u${n}`,
+      title: `Unrated ${n}`,
+      status: 'finished',
+      rating: null,
+    })),
+  ]
+
+  it('asks for ratings while fewer than five items are rated or favourited', async () => {
+    stubApi({ items: UNRATED })
+    await renderShelf()
+
+    expect(
+      screen.getByText(
+        '3 finished games have no rating. Rating them is what makes Play Next work.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('is gone once five items are rated or favourited', async () => {
+    const rated = [4, 5, 6, 7].map((n) => ({
+      ...ITEMS[0],
+      id: `r${n}`,
+      title: `Rated ${n}`,
+      rating: n,
+    }))
+    // Dune is rated; four more make five.
+    stubApi({ items: [...UNRATED, ...rated] })
+    await renderShelf()
+
+    expect(screen.queryByText(/have no rating/)).not.toBeInTheDocument()
+  })
+
+  it('filters to the finished, unrated items from its chip', async () => {
+    stubApi({ items: UNRATED })
+    await renderShelf()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show them' }))
+
+    const titles = [
+      ...document.querySelectorAll('.poster-grid .poster-title'),
+    ].map((node) => node.textContent)
+    expect(titles.sort()).toEqual(['Unrated 1', 'Unrated 2', 'Unrated 3'])
+    expect(
+      screen.getByRole('button', { name: /Finished, unrated/ }),
+    ).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('can be dismissed', async () => {
+    stubApi({ items: UNRATED })
+    await renderShelf()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+
+    expect(screen.queryByText(/have no rating/)).not.toBeInTheDocument()
   })
 })
