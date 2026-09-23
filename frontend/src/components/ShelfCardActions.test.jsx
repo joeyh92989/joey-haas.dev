@@ -97,6 +97,56 @@ describe('ShelfCardActions on a pointer device', () => {
   })
 })
 
+describe('ShelfCardActions when four favourites are set', () => {
+  function renderFull(item = ITEM) {
+    const handlers = {
+      onRate: vi.fn(),
+      onFavorite: vi.fn(),
+      onStatus: vi.fn(),
+      onPublish: vi.fn(),
+    }
+    render(<ShelfCardActions item={item} favoritesFull {...handlers} />)
+    return handlers
+  }
+
+  // aria-disabled rather than disabled: the heart stays focusable, so a
+  // keyboard user can reach it and hear why it is unavailable.
+  it('marks the empty heart unavailable, and says why', () => {
+    pointer(true)
+    renderFull()
+    const heart = screen.getByRole('button', { name: 'Favourite' })
+    expect(heart).toHaveAttribute('aria-disabled', 'true')
+    expect(heart).not.toBeDisabled()
+    expect(heart).toHaveAccessibleDescription(
+      'Four favourites already set. Unfavourite one first.',
+    )
+  })
+
+  // The page decides what a blocked click does; the card only reports it.
+  it('still reports a click on the unavailable heart', async () => {
+    pointer(true)
+    const handlers = renderFull()
+    await userEvent.click(screen.getByRole('button', { name: 'Favourite' }))
+    expect(handlers.onFavorite).toHaveBeenCalledWith(ITEM, true)
+  })
+
+  it('leaves a favourite’s own heart available, so it can be unfavourited', () => {
+    pointer(true)
+    renderFull({ ...ITEM, favorite: true })
+    const heart = screen.getByRole('button', { name: 'Favourite' })
+    expect(heart).not.toHaveAttribute('aria-disabled')
+    expect(heart).not.toHaveAccessibleDescription()
+  })
+
+  it('is unaffected while there is room', () => {
+    pointer(true)
+    renderActions()
+    expect(
+      screen.getByRole('button', { name: 'Favourite' }),
+    ).not.toHaveAttribute('aria-disabled')
+  })
+})
+
 describe('ShelfCardActions on a touch device', () => {
   it('collapses to one button that opens the panel as a sheet', async () => {
     pointer(false)

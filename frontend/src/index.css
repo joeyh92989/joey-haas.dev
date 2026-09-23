@@ -712,6 +712,15 @@ footer {
 
 /* ---------- Admin ---------- */
 
+/* An error raised by a control far down the shelf would otherwise appear at
+   the top of the page, off-screen, and the click would look ignored. While
+   one is showing it sticks to the top of the viewport. */
+.admin-error[role='alert'] {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 20;
+}
+
 .admin-error {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1694,6 +1703,13 @@ footer {
 
 .shelf-favourite[aria-pressed='true'] {
   color: var(--rating);
+}
+
+/* Four favourites are set. Faded, not removed: it stays focusable so the
+   reason can be heard, and a click explains itself. */
+.shelf-favourite[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .shelf-favourite:focus-visible,

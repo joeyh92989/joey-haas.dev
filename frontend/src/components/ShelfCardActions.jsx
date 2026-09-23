@@ -18,6 +18,10 @@ import QuickRate from './QuickRate.jsx'
  *
  * @param {object} props
  * @param {object} props.item - The row as the server last returned it.
+ * @param {boolean} [props.favoritesFull] - Four favourites are already set.
+ *   A heart that is not already a favourite is then marked unavailable with
+ *   aria-disabled, which keeps it focusable so the reason can be heard; a
+ *   click is still reported and the page decides what it does.
  * @param {(item: object, rating: number|null) => void} props.onRate
  * @param {(item: object, favorite: boolean) => void} props.onFavorite
  * @param {(item: object, status: string) => void} props.onStatus
@@ -25,6 +29,7 @@ import QuickRate from './QuickRate.jsx'
  */
 export default function ShelfCardActions({
   item,
+  favoritesFull = false,
   onRate,
   onFavorite,
   onStatus,
@@ -36,6 +41,8 @@ export default function ShelfCardActions({
   const toggle = useRef(null)
   const sheet = useRef(null)
   const sheetId = useId()
+  const fullNoteId = useId()
+  const blocked = favoritesFull && !item.favorite
   const label = `Actions for ${item.title}`
 
   // An opened sheet takes focus, at the rating's tab stop, so the keyboard
@@ -62,10 +69,17 @@ export default function ShelfCardActions({
           className="shelf-favourite"
           aria-pressed={Boolean(item.favorite)}
           aria-label="Favourite"
+          aria-disabled={blocked || undefined}
+          aria-describedby={blocked ? fullNoteId : undefined}
           onClick={() => onFavorite(item, !item.favorite)}
         >
           <span aria-hidden="true">{item.favorite ? '♥' : '♡'}</span>
         </button>
+        {blocked && (
+          <span id={fullNoteId} className="visually-hidden">
+            Four favourites already set. Unfavourite one first.
+          </span>
+        )}
         <select
           aria-label={`Status for ${item.title}`}
           value={item.status}
