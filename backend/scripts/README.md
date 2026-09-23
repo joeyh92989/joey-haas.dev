@@ -13,17 +13,19 @@ deprecated `status`; time to beat is a separate endpoint in seconds; the
 Nintendo 64 and Switch 2 platform ids are not in the official docs. A
 fixture settles each one.
 
-**Run** from `backend/`, with three IGDB game ids from the collection. The
-edit page at `/admin/collection/:id` shows each as "linked to igdb #<id>".
-Pick one Switch 2, one Switch and one N64 game if you have them:
+**Run** from `backend/`. With no arguments it searches IGDB for one
+well-known game per platform the snapshot has to handle: Mario Kart World
+(Switch 2), Breath of the Wild (Switch), Super Mario 64 (N64). The fixtures
+pin the shape of IGDB's answers, and that doesn't depend on whose games they
+are. IGDB game ids can be given instead.
 
 ```bash
-./.venv/bin/python scripts/record_igdb_fixtures.py 12345 67890 13579
+./.venv/bin/python scripts/record_igdb_fixtures.py
 ```
 
 **Needs** `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` in `backend/.env`. It
 loads config exactly as the API does, so every other required variable must
-be set too. It makes 4 requests, within IGDB's 4-per-second limit.
+be set too. It makes 7 requests, spaced to stay within IGDB's 4-per-second limit.
 
 **Writes**, response bodies only. No token, client id or secret is written or
 printed:

@@ -2,10 +2,12 @@
 
 Run once, from backend/, by the owner:
 
-    ./.venv/bin/python scripts/record_igdb_fixtures.py 12345 67890 13579
+    ./.venv/bin/python scripts/record_igdb_fixtures.py
 
-The ids are IGDB game ids from the collection (the edit page shows "linked to
-igdb #<id>"): ideally one Switch 2, one Switch and one N64 game. Credentials are
+With no arguments it records one well-known game per platform the snapshot
+must handle (Switch 2, Switch, N64), found by searching IGDB: the fixtures pin
+the shape of IGDB's answers, which does not depend on whose games they are.
+IGDB game ids may be given instead. Credentials are
 read through load_config() from backend/.env exactly as the API reads them and
 never leave this process. Only response bodies are written; nothing sent in a
 header is recorded or printed.
@@ -46,6 +48,13 @@ TTB_FIELDS = "fields game_id,hastily,normally,completely,count;"
 PLATFORM_SLUGS = ("n64", "switch-2", "switch")
 OBSCURE_CANDIDATES = 10
 
+# One well-known game per platform, searched by title on that platform.
+DEFAULT_GAMES = (
+    ("Mario Kart World", 508),
+    ("The Legend of Zelda: Breath of the Wild", 130),
+    ("Super Mario 64", 4),
+)
+
 
 def _write(name: str, payload: object) -> Path:
     path = FIXTURES / name
@@ -57,8 +66,28 @@ def _id_list(ids: list[int]) -> str:
     return ",".join(str(game_id) for game_id in ids)
 
 
+async def _default_ids(source: IgdbSource) -> list[int]:
+    """Finds the DEFAULT_GAMES on IGDB, skipping any search that finds nothing."""
+    ids: list[int] = []
+    for title, platform in DEFAULT_GAMES:
+        rows = await source._query(
+            f'search "{title}"; where platforms = ({platform}); fields id,name; '
+            "limit 1;"
+        )
+        if rows:
+            ids.append(rows[0]["id"])
+            print(f"using {rows[0].get('name')!r} (igdb {rows[0]['id']})")
+        else:
+            print(f"no IGDB match for {title!r} on platform {platform}; skipped")
+    return ids
+
+
 async def record(game_ids: list[int]) -> None:
     source = IgdbSource(load_config())
+    if not game_ids:
+        game_ids = await _default_ids(source)
+    if not game_ids:
+        raise SystemExit("No games to record.")
 
     games = await source._query(
         f"where id = ({_id_list(game_ids)}); {GAME_FIELDS} limit {len(game_ids)};"
@@ -113,7 +142,12 @@ async def record(game_ids: list[int]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("game_ids", nargs="+", type=int, help="IGDB game ids")
+    parser.add_argument(
+        "game_ids",
+        nargs="*",
+        type=int,
+        help="IGDB game ids (default: one well-known game per platform)",
+    )
     args = parser.parse_args()
     asyncio.run(record(args.game_ids))
 
