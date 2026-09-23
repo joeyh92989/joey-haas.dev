@@ -1147,6 +1147,7 @@ footer {
 }
 
 .bulk-visibility button,
+.play-next-status button,
 .pick-actions button,
 .up-next button,
 .play-next-empty button,
@@ -1162,6 +1163,7 @@ footer {
 }
 
 .bulk-visibility button:hover:not(:disabled),
+.play-next-status button:hover:not(:disabled),
 .pick-actions button:hover:not(:disabled),
 .up-next button:hover:not(:disabled),
 .play-next-empty button:hover:not(:disabled),
@@ -1828,6 +1830,10 @@ footer {
 
 .view-toggle {
   margin: 1rem 0 1.5rem;
+}
+
+.play-next-status p {
+  margin: 0 0 0.5rem;
 }
 
 /* Play Next. Three cards in a row that wraps; the pinned game above them. */

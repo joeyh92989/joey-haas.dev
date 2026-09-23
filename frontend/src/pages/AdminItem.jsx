@@ -283,6 +283,59 @@ export default function AdminItem() {
     }
   }
 
+  /**
+   * Applies a server response to the page, keeping unsaved edits on top, as
+   * relinking does: a pin changes status and start date, and must not throw
+   * away a half-typed correction elsewhere in the form.
+   */
+  function applyServerItem(updated) {
+    const unsaved = Object.keys(changedFields(item, form))
+    setItem(updated)
+    setForm({
+      ...toForm(updated),
+      ...Object.fromEntries(unsaved.map((field) => [field, form[field]])),
+    })
+  }
+
+  /** Pins (POST) or unpins (DELETE) this game as Up next. */
+  async function setPinned(method) {
+    setError(null)
+    try {
+      const response = await apiFetch(`/api/items/${id}/pin`, { method })
+      if (!response.ok) {
+        const detail = await response
+          .json()
+          .then((payload) => payload?.detail)
+          .catch(() => null)
+        setError(
+          typeof detail === 'string' ? detail : 'Could not change Up next.',
+        )
+        return
+      }
+      applyServerItem(await response.json())
+    } catch {
+      setError('Could not reach the API.')
+    }
+  }
+
+  /** Lets Play Next suggest this game again, then re-reads the item. */
+  async function restoreToPlayNext() {
+    setError(null)
+    try {
+      const response = await apiFetch(`/api/picker/events/${id}/never`, {
+        method: 'DELETE',
+      })
+      const reread = response.ok ? await apiFetch(`/api/items/${id}`) : null
+      if (!reread?.ok) {
+        setError('Could not restore it to Play Next.')
+        return
+      }
+      applyServerItem(await reread.json())
+    } catch {
+      setError('Could not reach the API.')
+    }
+  }
+
   async function remove() {
     // Deleting is the one irreversible thing this page does.
     if (!window.confirm(`Delete “${item.title}”? This cannot be undone.`))
@@ -368,6 +421,31 @@ export default function AdminItem() {
         </p>
       )}
       {savedAt && <p className="muted">Saved.</p>}
+
+      <div className="play-next-status">
+        {item.pinned_at ? (
+          <p>
+            Up next.{' '}
+            <button type="button" onClick={() => setPinned('DELETE')}>
+              Unpin
+            </button>
+          </p>
+        ) : (
+          <p>
+            <button type="button" onClick={() => setPinned('POST')}>
+              Pin as Up next
+            </button>
+          </p>
+        )}
+        {item.play_next_excluded && (
+          <p>
+            <span className="muted">Excluded from Play Next.</span>{' '}
+            <button type="button" onClick={restoreToPlayNext}>
+              Restore
+            </button>
+          </p>
+        )}
+      </div>
 
       <div className="item-detail">
         <div className="item-detail-cover">

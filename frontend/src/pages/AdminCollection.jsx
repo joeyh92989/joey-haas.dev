@@ -622,6 +622,8 @@ export default function AdminCollection() {
 
       <p className="muted">
         <Link to="/admin/import">Import from photos →</Link>
+        {' · '}
+        <Link to="/admin/play-next">Play Next →</Link>
       </p>
 
       <MetadataPicker type={form.type} onSelect={applyCandidate} />

@@ -403,3 +403,103 @@ describe('AdminItem copy fields', () => {
     expect(screen.getByLabelText('Release date')).toBeInTheDocument()
   })
 })
+
+describe('AdminItem Play Next controls', () => {
+  it('offers Restore only when Play Next excludes the item', async () => {
+    stubApi({ item: { ...ITEM, play_next_excluded: false } })
+    renderPage()
+    await screen.findByDisplayValue('Star Fox')
+
+    expect(
+      screen.queryByRole('button', { name: 'Restore' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('restores an excluded item and shows it restored', async () => {
+    let excluded = true
+    const mock = stubApi()
+    // Every GET answers with the current exclusion state.
+    mock.mockImplementation(async (url, options = {}) => {
+      const method = options.method ?? 'GET'
+      if (method === 'GET') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ ...ITEM, play_next_excluded: excluded }),
+        }
+      }
+      excluded = false
+      return { ok: true, status: 204, json: async () => ({}) }
+    })
+    renderPage()
+
+    expect(
+      await screen.findByText('Excluded from Play Next.'),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Restore' }))
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Excluded from Play Next.'),
+      ).not.toBeInTheDocument(),
+    )
+    const [url, options] = writeCalls(mock)[0]
+    expect(String(url)).toContain('/api/picker/events/abc/never')
+    expect(options.method).toBe('DELETE')
+  })
+
+  it('pins the item as Up next and reflects the result', async () => {
+    const mock = stubApi()
+    mock.mockImplementation(async (url, options = {}) => {
+      const method = options.method ?? 'GET'
+      if (method === 'GET') {
+        return { ok: true, status: 200, json: async () => ITEM }
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ...ITEM,
+          pinned_at: '2026-09-23T20:00:00Z',
+          status: 'active',
+        }),
+      }
+    })
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Pin as Up next' }),
+    )
+
+    expect(
+      await screen.findByRole('button', { name: 'Unpin' }),
+    ).toBeInTheDocument()
+    const [url, options] = writeCalls(mock)[0]
+    expect(String(url)).toContain('/api/items/abc/pin')
+    expect(options.method).toBe('POST')
+    // The pin moved the game to Playing, and the form shows it.
+    expect(screen.getByLabelText('Status')).toHaveValue('active')
+  })
+
+  it('unpins a pinned item', async () => {
+    const pinned = { ...ITEM, pinned_at: '2026-09-23T20:00:00Z' }
+    const mock = stubApi({ item: pinned })
+    mock.mockImplementation(async (url, options = {}) => {
+      const method = options.method ?? 'GET'
+      return {
+        ok: true,
+        status: 200,
+        json: async () =>
+          method === 'GET' ? pinned : { ...ITEM, pinned_at: null },
+      }
+    })
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Unpin' }))
+
+    expect(
+      await screen.findByRole('button', { name: 'Pin as Up next' }),
+    ).toBeInTheDocument()
+    expect(writeCalls(mock)[0][1].method).toBe('DELETE')
+  })
+})
