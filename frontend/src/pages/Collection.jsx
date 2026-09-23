@@ -90,7 +90,9 @@ export function HeroNumbers({ owned, finished, finishedThisYear }) {
  *
  * Public renders nothing without a favourite. Admin passes `placeholders`,
  * which always renders the row with empty slots and a hint, because picking
- * favourites is part of the job there.
+ * favourites is part of the job there. Admin also shows every favourite when
+ * there are more than four -- rows favourited before the API capped them --
+ * with a note, so the extras can be found and trimmed.
  *
  * @param {object} props
  * @param {object[]} props.items - Every shelf row; favourites are chosen here.
@@ -98,14 +100,18 @@ export function HeroNumbers({ owned, finished, finishedThisYear }) {
  * @param {boolean} [props.placeholders] - Always render, padding with slots.
  */
 export function FavoritesRow({ items, linkFor, placeholders = false }) {
-  const favourites = sortItems(
+  const all = sortItems(
     items.filter((item) => item.favorite),
     'rating',
     'desc',
     0,
-  ).slice(0, FAVOURITES_SHOWN)
+  )
+  const favourites = placeholders ? all : all.slice(0, FAVOURITES_SHOWN)
   if (favourites.length === 0 && !placeholders) return null
-  const empty = placeholders ? FAVOURITES_SHOWN - favourites.length : 0
+  const empty = placeholders
+    ? Math.max(FAVOURITES_SHOWN - favourites.length, 0)
+    : 0
+  const extra = favourites.length - FAVOURITES_SHOWN
 
   return (
     <section className="favourites" aria-label="Favourites">
@@ -123,6 +129,11 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
           <li key={`empty-${index}`} className="favourite-empty" />
         ))}
       </ul>
+      {extra > 0 && (
+        <p className="muted favourites-hint">
+          {`${favourites.length} favourites. The public page shows four; unfavourite ${extra}.`}
+        </p>
+      )}
       {empty > 0 && (
         <p className="muted favourites-hint">
           Pick your favourites — the heart on any card.
