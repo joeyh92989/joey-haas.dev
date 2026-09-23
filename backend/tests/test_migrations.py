@@ -192,3 +192,56 @@ async def test_downgrade_to_0002_removes_the_columns_and_types(clean_database):
     assert not NEW_COLUMNS & await _columns(clean_database)
     # A leftover type would fail the next upgrade on "already exists".
     assert not NEW_TYPES & await _types(clean_database)
+
+
+# --- Revision 0004: pick_events. --------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_0004_adds_pick_events_and_its_type(clean_database):
+    assert _alembic("upgrade", "0004").returncode == 0
+
+    async with clean_database.connect() as connection:
+        tables = await connection.scalar(
+            text("SELECT count(*) FROM pg_tables WHERE tablename = 'pick_events'")
+        )
+    assert tables == 1
+    assert "pick_action" in await _types(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_0004_downgrade_removes_the_table_and_type(clean_database):
+    assert _alembic("upgrade", "0004").returncode == 0
+    result = _alembic("downgrade", "0003")
+    assert result.returncode == 0, result.stderr
+
+    async with clean_database.connect() as connection:
+        tables = await connection.scalar(
+            text("SELECT count(*) FROM pg_tables WHERE tablename = 'pick_events'")
+        )
+    assert tables == 0
+    assert "pick_action" not in await _types(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_deleting_an_item_deletes_its_pick_events(clean_database):
+    assert _alembic("upgrade", "0004").returncode == 0
+    async with clean_database.begin() as connection:
+        item_id = await connection.scalar(
+            text(
+                "INSERT INTO items (id, type, title, status) VALUES "
+                "(gen_random_uuid(), 'game', 'Gone', 'backlog') RETURNING id"
+            )
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO pick_events (id, item_id, action) VALUES "
+                "(gen_random_uuid(), :item, 'shown')"
+            ),
+            {"item": item_id},
+        )
+        await connection.execute(
+            text("DELETE FROM items WHERE id = :item"), {"item": item_id}
+        )
+        remaining = await connection.scalar(text("SELECT count(*) FROM pick_events"))
+    assert remaining == 0
