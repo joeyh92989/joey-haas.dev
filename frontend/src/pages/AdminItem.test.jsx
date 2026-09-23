@@ -538,3 +538,78 @@ describe('AdminItem edits made while a pin is in flight', () => {
     expect(screen.getByLabelText('Rating')).toHaveValue(8)
   })
 })
+
+describe('AdminItem edits made while a re-link is in flight', () => {
+  // The refresh re-fetches from the metadata source on a free-tier backend,
+  // which can hold it for thirty seconds; anything typed meanwhile must
+  // survive the server's answer, whichever way it goes.
+
+  /** Links at once, then holds the refresh until `answer` is called. */
+  function stubHeldRefresh(refreshResponse) {
+    let answer
+    const mock = stubApi()
+    mock.mockImplementation(async (url, options = {}) => {
+      const method = options.method ?? 'GET'
+      if (method === 'GET' && String(url).includes('search-metadata')) {
+        return { ok: true, status: 200, json: async () => [CANDIDATE] }
+      }
+      if (method === 'GET') {
+        return { ok: true, status: 200, json: async () => ITEM }
+      }
+      if (String(url).includes('refresh-metadata')) {
+        return new Promise((resolve) => {
+          answer = () => resolve(refreshResponse)
+        })
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ...ITEM, ...JSON.parse(options.body) }),
+      }
+    })
+    return () => answer()
+  }
+
+  async function relinkThenRate() {
+    await userEvent.type(await screen.findByLabelText(/look up/i), 'Star Fox')
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Star Fox/ }),
+    )
+    await screen.findByText('Re-linking…')
+    await userEvent.type(screen.getByLabelText('Rating'), '8')
+  }
+
+  it('keeps them when the refresh succeeds', async () => {
+    const answer = stubHeldRefresh({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...ITEM, external_id: '222', year: 2026 }),
+    })
+    renderPage()
+
+    await relinkThenRate()
+    answer()
+
+    expect(await screen.findByText('Saved.')).toBeInTheDocument()
+    // The refreshed record landed, and the rating typed meanwhile survived it.
+    expect(screen.getByLabelText('Year')).toHaveValue(2026)
+    expect(screen.getByLabelText('Rating')).toHaveValue(8)
+  })
+
+  it('keeps them when the link lands but the refresh fails', async () => {
+    const answer = stubHeldRefresh({
+      ok: false,
+      status: 502,
+      json: async () => ({}),
+    })
+    renderPage()
+
+    await relinkThenRate()
+    answer()
+
+    expect(
+      await screen.findByText(/linked, but the metadata could not be fetched/i),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Rating')).toHaveValue(8)
+  })
+})

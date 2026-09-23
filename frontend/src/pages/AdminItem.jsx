@@ -230,10 +230,6 @@ export default function AdminItem() {
     setSavedAt(null)
     setRelinking(true)
 
-    // Whatever the form has unsaved, so a half-finished correction is not
-    // discarded by rebuilding the form from the server's response below.
-    const unsaved = Object.keys(changedFields(item, form))
-
     try {
       const linked = await apiFetch(`/api/items/${id}`, {
         method: 'PATCH',
@@ -259,22 +255,17 @@ export default function AdminItem() {
         method: 'POST',
       })
       if (!refreshed.ok) {
-        setItem(await linked.json())
+        applyServerItem(await linked.json())
         setError(
           'Linked, but the metadata could not be fetched. Try saving again.',
         )
         return
       }
 
-      const updated = await refreshed.json()
-      setItem(updated)
       // Refreshed values, with the operator's unsaved edits laid back on top.
       // Losing a hand-typed title because the cover was also wrong would be
       // the same data loss the refresh route already refuses to cause.
-      setForm({
-        ...toForm(updated),
-        ...Object.fromEntries(unsaved.map((field) => [field, form[field]])),
-      })
+      applyServerItem(await refreshed.json())
       setSavedAt(Date.now())
     } catch {
       setError('Could not reach the API.')
@@ -284,9 +275,9 @@ export default function AdminItem() {
   }
 
   /**
-   * Applies a server response to the page, keeping unsaved edits on top, as
-   * relinking does: a pin changes status and start date, and must not throw
-   * away a half-typed correction elsewhere in the form.
+   * Applies a server response to the page, keeping unsaved edits on top: a
+   * re-link or a pin changes some fields, and must not throw away a
+   * half-typed correction elsewhere in the form.
    */
   function applyServerItem(updated) {
     // Against the form as it is now, not as it was when the request began: a
