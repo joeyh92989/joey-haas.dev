@@ -273,3 +273,75 @@ describe('Item', () => {
     ).toBeInTheDocument()
   })
 })
+
+describe('Item copy details', () => {
+  const COPY = {
+    platform: 'Nintendo Switch',
+    platforms: ['PC', 'Nintendo Switch', 'PlayStation 4'],
+    themes: ['Fantasy'],
+    physical_format: 'game_card',
+    completeness: 'cib',
+  }
+
+  function chips() {
+    return [...document.querySelectorAll('.item-chips li')].map((chip) => [
+      chip.textContent,
+      chip.classList.contains('item-chip-muted'),
+    ])
+  }
+
+  it('orders the chips: own platform, genres, themes, other platforms, format, completeness', async () => {
+    stubItem(COPY)
+    await renderReady()
+
+    expect(chips()).toEqual([
+      ['Nintendo Switch', false],
+      ['Roguelike', false],
+      ['Action', false],
+      ['Fantasy', true],
+      ['PC', true],
+      ['PlayStation 4', true],
+      ['Full game on cartridge', false],
+      ['Complete in box', false],
+    ])
+  })
+
+  it.each([
+    ['game_key_card', 'Game-Key Card'],
+    ['code_in_box', 'Code in a box'],
+    ['disc', 'Disc'],
+  ])('names a %s copy', async (format, label) => {
+    stubItem({ ...COPY, physical_format: format })
+    await renderReady()
+    expect(screen.getByText(label)).toBeInTheDocument()
+  })
+
+  it('says a Switch 2 copy with no recorded format is unrecorded', async () => {
+    stubItem({ ...COPY, platform: 'Nintendo Switch 2', physical_format: null })
+    await renderReady()
+    expect(screen.getByText('Format not recorded')).toBeInTheDocument()
+  })
+
+  it('has no format chip for another platform with no format', async () => {
+    stubItem({ ...COPY, physical_format: null, completeness: null })
+    await renderReady()
+    expect(chips().map(([text]) => text)).not.toContain('Format not recorded')
+  })
+
+  it.each([
+    [{ normally: 11.6, completely: 18.2 }, '≈ 12 h · 18 h to complete'],
+    [{ normally: 4.4, completely: null }, '≈ 4 h'],
+  ])('shows time to beat', async (timeToBeat, text) => {
+    stubItem({ time_to_beat: { hastily: null, count: 3, ...timeToBeat } })
+    await renderReady()
+    const tiles = within(document.querySelector('.item-tiles'))
+    expect(tiles.getByText('Time to beat')).toBeInTheDocument()
+    expect(tiles.getByText(text)).toBeInTheDocument()
+  })
+
+  it('has no time-to-beat tile without data', async () => {
+    stubItem({ time_to_beat: null })
+    await renderReady()
+    expect(screen.queryByText('Time to beat')).not.toBeInTheDocument()
+  })
+})
