@@ -40,7 +40,7 @@ from sources.base import (
 logger = logging.getLogger(__name__)
 
 TOKEN_URL = "https://id.twitch.tv/oauth2/token"
-API_URL = "https://api.igdb.com/v4/games"
+API_ROOT = "https://api.igdb.com/v4"
 IMAGE_ROOT = "https://images.igdb.com/igdb/image/upload"
 COVER_SIZE = "t_cover_big"
 THUMBNAIL_SIZE = "t_cover_small"
@@ -180,8 +180,12 @@ class IgdbSource:
         self._token = token
         return token
 
-    async def _query(self, body: str) -> list[dict]:
-        """Runs one Apicalypse query, refreshing the token once on a 401."""
+    async def _query(self, body: str, endpoint: str = "games") -> list[dict]:
+        """Runs one Apicalypse query, refreshing the token once on a 401.
+
+        `endpoint` names the /v4 resource. Games is the default; time to beat
+        and platforms are separate resources with the same auth and limits.
+        """
         client_id, _ = self._require_credentials()
         token = self._token or await self._fetch_token()
 
@@ -194,13 +198,15 @@ class IgdbSource:
             }
             try:
                 async with httpx2.AsyncClient(timeout=TIMEOUT) as client:
-                    response = await client.post(API_URL, content=body, headers=headers)
+                    response = await client.post(
+                        f"{API_ROOT}/{endpoint}", content=body, headers=headers
+                    )
             except httpx2.HTTPError as error:
                 raise SourceError(
                     self.source_name, f"request failed: {error}"
                 ) from error
 
-            logger.info("igdb POST /v4/games -> %s", response.status_code)
+            logger.info("igdb POST /v4/%s -> %s", endpoint, response.status_code)
 
             if response.status_code == 401 and attempt == 1:
                 # The app token lasts about two months, so this is rare -- but

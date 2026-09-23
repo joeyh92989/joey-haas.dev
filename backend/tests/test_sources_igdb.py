@@ -271,3 +271,40 @@ async def test_an_empty_filtered_result_retries_unfiltered(monkeypatch):
     assert "where platforms" in bodies[0]
     assert "where platforms" not in bodies[1]
     assert results[0].title == "Star Fox"
+
+
+class _UrlClient:
+    """Records the URL of every POST; answers the token and one query."""
+
+    def __init__(self, urls: list[str]):
+        self._urls = urls
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_):
+        return False
+
+    async def post(self, url, **_kwargs):
+        self._urls.append(url)
+        if "twitch" in url:
+            return _FakeResponse(200, {"access_token": "token"})
+        return _FakeResponse(200, [])
+
+
+@pytest.mark.asyncio
+async def test_a_query_goes_to_the_endpoint_it_names(monkeypatch):
+    # Time to beat and platforms live on their own endpoints; games stays the
+    # default so every existing caller is unchanged.
+    urls: list[str] = []
+    monkeypatch.setattr("sources.igdb.httpx2.AsyncClient", lambda **_: _UrlClient(urls))
+    source = IgdbSource(_config())
+
+    await source._query("fields id;")
+    await source._query("fields id;", endpoint="platforms")
+
+    queries = [url for url in urls if "twitch" not in url]
+    assert queries == [
+        "https://api.igdb.com/v4/games",
+        "https://api.igdb.com/v4/platforms",
+    ]
