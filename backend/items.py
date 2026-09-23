@@ -7,7 +7,7 @@ import logging
 import uuid
 from collections import defaultdict
 from collections.abc import AsyncIterator
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
@@ -24,6 +24,8 @@ from models import (
     ItemType,
     OwnedFormat,
     PhysicalFormat,
+    PickAction,
+    PickEvent,
 )
 from sources.base import (
     SourceAdapter,
@@ -142,6 +144,8 @@ class ItemOut(BaseModel):
     cart_id: str | None
     region: str | None
     completeness: Completeness | None
+    # Play Next was told never to suggest it; the edit page offers Restore.
+    play_next_excluded: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -451,6 +455,23 @@ def create_items_router(
         if current + adding > FAVORITES_LIMIT:
             raise HTTPException(status_code=409, detail=FAVORITES_FULL)
 
+    async def _mark_excluded(session: AsyncSession, items: list[Item]) -> None:
+        """Sets play_next_excluded on each item from its "never" events.
+
+        One query for the whole list. The flag is a plain attribute on the
+        instance, not a column, so it is recomputed on every response.
+        """
+        if not items:
+            return
+        result = await session.execute(
+            select(PickEvent.item_id)
+            .where(PickEvent.action == PickAction.NEVER)
+            .where(PickEvent.item_id.in_([item.id for item in items]))
+        )
+        excluded = set(result.scalars())
+        for item in items:
+            item.play_next_excluded = item.id in excluded
+
     @router.get("", response_model=list[ItemOut])
     async def list_items(
         session: AsyncSession = Depends(get_session),
@@ -464,7 +485,9 @@ def create_items_router(
         if status is not None:
             statement = statement.where(Item.status == status)
         result = await session.execute(statement)
-        return list(result.scalars())
+        items = list(result.scalars())
+        await _mark_excluded(session, items)
+        return items
 
     @router.post("", response_model=ItemOut, status_code=201)
     async def create_item(
@@ -735,6 +758,7 @@ def create_items_router(
         _apply_detail(item, detail)
         await session.commit()
         await session.refresh(item)
+        await _mark_excluded(session, [item])
         return item
 
     @router.get("/{item_id}", response_model=ItemOut)
@@ -743,7 +767,9 @@ def create_items_router(
         session: AsyncSession = Depends(get_session),
     ) -> Item:
         """One item, or 404."""
-        return await _load(session, item_id)
+        item = await _load(session, item_id)
+        await _mark_excluded(session, [item])
+        return item
 
     @router.patch("/{item_id}", response_model=ItemOut)
     async def update_item(
@@ -760,6 +786,53 @@ def create_items_router(
             setattr(item, field, value)
         await session.commit()
         await session.refresh(item)
+        await _mark_excluded(session, [item])
+        return item
+
+    @router.post("/{item_id}/pin", response_model=ItemOut)
+    async def pin_item(
+        item_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> Item:
+        """Commits to a game: Up next.
+
+        One transaction: any other pin is cleared, this game is pinned and
+        marked in progress (started today unless a start date exists), and a
+        pinned event is recorded. A route of its own rather than a PATCH field,
+        because it changes another row and writes an event.
+        """
+        item = await _load(session, item_id)
+        if item.owned_format == OwnedFormat.NONE:
+            raise HTTPException(
+                status_code=422,
+                detail="Up next is for games you own; this one is on the want list.",
+            )
+        await session.execute(
+            update(Item)
+            .where(Item.pinned_at.is_not(None), Item.id != item_id)
+            .values(pinned_at=None)
+        )
+        item.pinned_at = datetime.now(UTC)
+        item.status = ItemStatus.ACTIVE
+        item.started_at = item.started_at or date.today()
+        session.add(PickEvent(item_id=item_id, action=PickAction.PINNED))
+        await session.commit()
+        await session.refresh(item)
+        await _mark_excluded(session, [item])
+        logger.info("pinned %s as up next", item_id)
+        return item
+
+    @router.delete("/{item_id}/pin", response_model=ItemOut)
+    async def unpin_item(
+        item_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> Item:
+        """Clears Up next. The game keeps its status and start date."""
+        item = await _load(session, item_id)
+        item.pinned_at = None
+        await session.commit()
+        await session.refresh(item)
+        await _mark_excluded(session, [item])
         return item
 
     @router.delete("/{item_id}", status_code=204)
