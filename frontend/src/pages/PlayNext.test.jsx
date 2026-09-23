@@ -313,3 +313,20 @@ describe('PlayNext', () => {
     expect(await screen.findByText(/not signed in/i)).toBeInTheDocument()
   })
 })
+
+describe('PlayNext exclusions', () => {
+  // The server answers with the same picks here, so a second reroll would
+  // repeat them; the exclude list is capped at 200 ids server-side.
+  it('never sends the same id twice', async () => {
+    const mock = stubApi()
+    await renderReady()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reroll' }))
+    await waitFor(() => expect(pickRequests(mock)).toHaveLength(2))
+    await userEvent.click(screen.getByRole('button', { name: 'Reroll' }))
+
+    await waitFor(() =>
+      expect(pickRequests(mock).at(-1).exclude).toEqual(['a', 'b', 'c']),
+    )
+  })
+})

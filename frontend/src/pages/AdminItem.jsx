@@ -289,12 +289,16 @@ export default function AdminItem() {
    * away a half-typed correction elsewhere in the form.
    */
   function applyServerItem(updated) {
-    const unsaved = Object.keys(changedFields(item, form))
-    setItem(updated)
-    setForm({
-      ...toForm(updated),
-      ...Object.fromEntries(unsaved.map((field) => [field, form[field]])),
+    // Against the form as it is now, not as it was when the request began: a
+    // cold start can hold the request long enough to type into the form.
+    setForm((current) => {
+      const unsaved = Object.keys(changedFields(item, current))
+      return {
+        ...toForm(updated),
+        ...Object.fromEntries(unsaved.map((field) => [field, current[field]])),
+      }
     })
+    setItem(updated)
   }
 
   /** Pins (POST) or unpins (DELETE) this game as Up next. */

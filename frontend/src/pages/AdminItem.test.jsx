@@ -503,3 +503,38 @@ describe('AdminItem Play Next controls', () => {
     expect(writeCalls(mock)[0][1].method).toBe('DELETE')
   })
 })
+
+describe('AdminItem edits made while a pin is in flight', () => {
+  // A cold start can hold the pin request for thirty seconds; anything typed
+  // meanwhile must survive the server's answer.
+  it('keeps them', async () => {
+    let answer
+    const mock = stubApi()
+    mock.mockImplementation(async (url, options = {}) => {
+      const method = options.method ?? 'GET'
+      if (method === 'GET') {
+        return { ok: true, status: 200, json: async () => ITEM }
+      }
+      return new Promise((resolve) => {
+        answer = () =>
+          resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ ...ITEM, pinned_at: '2026-09-23T20:00:00Z' }),
+          })
+      })
+    })
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Pin as Up next' }),
+    )
+    await userEvent.type(screen.getByLabelText('Rating'), '8')
+    answer()
+
+    expect(
+      await screen.findByRole('button', { name: 'Unpin' }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Rating')).toHaveValue(8)
+  })
+})

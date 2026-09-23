@@ -184,6 +184,11 @@ export default function PlayNext() {
     }
   }
 
+  /** Adds ids to the exclusions once each; the server caps the list at 200. */
+  function excludeMore(ids) {
+    setExclude((current) => [...new Set([...current, ...ids])])
+  }
+
   function toggle(list, value) {
     return list.includes(value)
       ? list.filter((entry) => entry !== value)
@@ -239,9 +244,7 @@ export default function PlayNext() {
   }
 
   async function notTonight(itemId) {
-    if (await recordEvent(itemId, 'skipped')) {
-      setExclude((current) => [...current, itemId])
-    }
+    if (await recordEvent(itemId, 'skipped')) excludeMore([itemId])
   }
 
   async function never(itemId) {
@@ -249,8 +252,7 @@ export default function PlayNext() {
   }
 
   function reroll() {
-    const shown = (result?.picks ?? []).map((pick) => pick.item.id)
-    setExclude((current) => [...current, ...shown])
+    excludeMore((result?.picks ?? []).map((pick) => pick.item.id))
   }
 
   if (status === 'loading') {
