@@ -1785,6 +1785,37 @@ footer {
   margin: 0;
 }
 
+/* List view: what to set on the selected rows. */
+.bulk-set {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.9rem;
+}
+
+.bulk-set label {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.8125rem;
+  gap: 0.4rem;
+}
+
+.bulk-set select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.2rem 0.4rem;
+}
+
 .view-toggle {
   margin: 1rem 0 1.5rem;
 }

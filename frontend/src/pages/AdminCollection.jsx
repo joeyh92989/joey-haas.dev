@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
-import ItemForm from '../components/ItemForm.jsx'
+import ItemForm, {
+  FORMAT_OPTIONS,
+  PLATFORM_OPTIONS,
+} from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
@@ -19,7 +22,12 @@ import {
   writeShelfPref,
 } from '../lib/shelf.js'
 import { localToday, statusTransition } from '../lib/statusTransition.js'
-import { FavoritesRow, HeroNumbers, isDimmable } from './Collection.jsx'
+import {
+  FavoritesRow,
+  HeroNumbers,
+  isDimmable,
+  platformGroup,
+} from './Collection.jsx'
 
 const STATUSES = STATUS_ORDER
 
@@ -106,6 +114,12 @@ export default function AdminCollection() {
   // backlog.
   const [dim, setDim] = useState(() => readShelfPref('shelf.admin.dim', true))
   const [nudgeDismissed, setNudgeDismissed] = useState(false)
+  // List view: the rows chosen for a bulk set, and what to set on them.
+  const [selected, setSelected] = useState(() => new Set())
+  const [bulkPlatform, setBulkPlatform] = useState('')
+  const [bulkFormat, setBulkFormat] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshResult, setRefreshResult] = useState(null)
 
   /**
    * Fetches the collection and returns what the UI should show.
@@ -325,6 +339,89 @@ export default function AdminCollection() {
     await load()
   }
 
+  function toggleSelected(id) {
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelected((current) =>
+      current.size === items.length
+        ? new Set()
+        : new Set(items.map((item) => item.id)),
+    )
+  }
+
+  /**
+   * Sets the chosen platform and/or format on every selected row, in one
+   * request that the server applies all or nothing. On a refusal the
+   * selection is kept, so it can be adjusted and sent again.
+   */
+  async function applyBulkSet() {
+    const changes = {}
+    if (bulkPlatform !== '') changes.platform_id = Number(bulkPlatform)
+    if (bulkFormat !== '') changes.physical_format = bulkFormat
+    setError(null)
+    setBulkBusy(true)
+    try {
+      const response = await apiFetch('/api/items/bulk', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [...selected], changes }),
+      })
+      if (!response.ok) {
+        const detail = await response
+          .json()
+          .then((payload) => payload?.detail)
+          .catch(() => null)
+        setError(
+          typeof detail === 'string' ? detail : 'Could not update those items.',
+        )
+        return
+      }
+    } catch {
+      setError('Could not reach the API.')
+      return
+    } finally {
+      setBulkBusy(false)
+    }
+    setSelected(new Set())
+    setBulkPlatform('')
+    setBulkFormat('')
+    await load()
+  }
+
+  /**
+   * Re-fetches every IGDB-linked game. Synchronous on the server and a few
+   * requests long, so the counts come back in the same response.
+   */
+  async function refreshGames() {
+    setError(null)
+    setRefreshResult(null)
+    setRefreshing(true)
+    try {
+      const response = await apiFetch(
+        '/api/items/refresh-metadata/bulk?type=game',
+        { method: 'POST' },
+      )
+      if (!response.ok) {
+        setError('Could not refresh game metadata.')
+        return
+      }
+      setRefreshResult(await response.json())
+    } catch {
+      setError('Could not reach the API.')
+      return
+    } finally {
+      setRefreshing(false)
+    }
+    await load()
+  }
+
   async function removeItem(id) {
     setError(null)
     try {
@@ -415,6 +512,7 @@ export default function AdminCollection() {
                 count: statusCounts[value] ?? 0,
               })),
             },
+            ...[platformGroup(rows)].filter(Boolean),
           ]}
           toggles={[
             {
@@ -561,6 +659,14 @@ export default function AdminCollection() {
             >
               Hide all
             </button>
+            <button type="button" disabled={refreshing} onClick={refreshGames}>
+              {refreshing ? 'Refreshing…' : 'Refresh game metadata'}
+            </button>
+            {refreshResult && (
+              <span className="muted" role="status">
+                {`Updated ${refreshResult.updated} · skipped ${refreshResult.skipped} · failed ${refreshResult.failed}`}
+              </span>
+            )}
           </div>
 
           <div className="view-toggle chip-row" role="group" aria-label="View">
@@ -584,14 +690,71 @@ export default function AdminCollection() {
             renderShelf()
           ) : (
             <div className="item-table-wrap">
+              {selected.size > 0 && (
+                <div
+                  className="bulk-set"
+                  role="group"
+                  aria-label="Selected items"
+                >
+                  <span>{selected.size} selected</span>
+                  <label>
+                    Set platform
+                    <select
+                      value={bulkPlatform}
+                      onChange={(event) => setBulkPlatform(event.target.value)}
+                    >
+                      <option value="">unchanged</option>
+                      {PLATFORM_OPTIONS.map(([id, name]) => (
+                        <option key={id} value={id}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Set format
+                    <select
+                      value={bulkFormat}
+                      onChange={(event) => setBulkFormat(event.target.value)}
+                    >
+                      <option value="">unchanged</option>
+                      {FORMAT_OPTIONS.map(([format, label]) => (
+                        <option key={format} value={format}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    disabled={
+                      bulkBusy || (bulkPlatform === '' && bulkFormat === '')
+                    }
+                    onClick={applyBulkSet}
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
               <table className="item-table">
                 <thead>
                   <tr>
+                    <th>
+                      <input
+                        type="checkbox"
+                        aria-label="Select all"
+                        checked={
+                          items.length > 0 && selected.size === items.length
+                        }
+                        onChange={toggleAll}
+                      />
+                    </th>
                     <th>
                       <span className="visually-hidden">Cover</span>
                     </th>
                     <th>Type</th>
                     <th>Title</th>
+                    <th>Platform</th>
                     <th>Status</th>
                     <th>Rating</th>
                     <th>Public</th>
@@ -601,6 +764,14 @@ export default function AdminCollection() {
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${item.title}`}
+                          checked={selected.has(item.id)}
+                          onChange={() => toggleSelected(item.id)}
+                        />
+                      </td>
                       <td className="item-cover-cell">
                         <CoverImage src={item.cover_url} type={item.type} />
                       </td>
@@ -612,6 +783,7 @@ export default function AdminCollection() {
                           {item.title}
                         </Link>
                       </td>
+                      <td>{item.platform ?? '—'}</td>
                       <td>
                         <select
                           aria-label={`Status for ${item.title}`}
