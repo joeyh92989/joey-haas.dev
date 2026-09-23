@@ -1864,6 +1864,31 @@ footer {
   margin: 0 0 0.4rem;
 }
 
+/* On the public shelf the card is one link to the game's page. */
+.up-next-link {
+  align-items: center;
+  color: inherit;
+  display: flex;
+  gap: 1rem;
+  text-decoration: none;
+}
+
+.up-next-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.up-next-link .pick-slot {
+  display: block;
+}
+
+.up-next-title {
+  color: var(--text);
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
 .pick-grid {
   display: grid;
   gap: var(--grid-gap);

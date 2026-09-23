@@ -42,6 +42,7 @@ const ITEMS = [
     platforms: [],
     created_at: '2026-01-01T00:00:00Z',
     wanted: false,
+    pinned: false,
   },
   {
     id: '2',
@@ -59,6 +60,7 @@ const ITEMS = [
     platforms: [],
     created_at: '2026-02-01T00:00:00Z',
     wanted: true,
+    pinned: false,
   },
 ]
 
@@ -556,5 +558,32 @@ describe('Collection platforms and formats', () => {
     await renderReady()
 
     expect(screen.queryByText(/on cartridge/)).not.toBeInTheDocument()
+  })
+})
+
+describe('Collection Up next', () => {
+  it('shows the pinned game as Up next, linked to its page', async () => {
+    stubApi({
+      items: [
+        { ...ITEMS[0], pinned: true },
+        { ...ITEMS[1], pinned: false },
+      ],
+    })
+    await renderReady()
+
+    const upNext = screen.getByRole('region', { name: 'Up next' })
+    expect(within(upNext).getByRole('link', { name: /Dune/ })).toHaveAttribute(
+      'href',
+      '/collection/1',
+    )
+  })
+
+  it('shows nothing when no game is pinned', async () => {
+    stubApi({ items: ITEMS.map((item) => ({ ...item, pinned: false })) })
+    await renderReady()
+
+    expect(
+      screen.queryByRole('region', { name: 'Up next' }),
+    ).not.toBeInTheDocument()
   })
 })
