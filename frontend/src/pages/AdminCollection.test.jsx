@@ -564,3 +564,110 @@ describe('AdminCollection nudge', () => {
     expect(screen.queryByText(/have no rating/)).not.toBeInTheDocument()
   })
 })
+
+describe('AdminCollection favourites cap', () => {
+  const FULL = 'You already have 4 favourites. Unfavourite one first.'
+
+  /** Star Fox and Dune plus `count` favourited games. */
+  function withFavourites(count) {
+    return [
+      ...ITEMS,
+      ...Array.from({ length: count }, (_, n) => ({
+        ...ITEMS[0],
+        id: `f${n}`,
+        title: `Favourite ${n}`,
+        favorite: true,
+        rating: 8,
+      })),
+    ]
+  }
+
+  it('refuses a fifth favourite without asking the server, and says why', async () => {
+    const mock = stubApi({ items: withFavourites(4) })
+    await renderShelf()
+
+    const heart = card('Star Fox').getByRole('button', { name: 'Favourite' })
+    expect(heart).toHaveAttribute('aria-disabled', 'true')
+
+    await userEvent.click(heart)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(FULL)
+    expect(writeCalls(mock)).toHaveLength(0)
+  })
+
+  it('still unfavourites when four are set', async () => {
+    const mock = stubApi({ items: withFavourites(4) })
+    await renderShelf()
+
+    await userEvent.click(
+      card('Favourite 0').getByRole('button', { name: 'Favourite' }),
+    )
+
+    await waitFor(() =>
+      expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
+        favorite: false,
+      }),
+    )
+  })
+
+  // The server is the authority: another tab may have filled the slots
+  // since this page loaded.
+  it('shows the server’s message when it refuses', async () => {
+    stubApi({
+      items: withFavourites(3),
+      onWrite: () => ({
+        ok: false,
+        status: 409,
+        json: async () => ({ detail: FULL }),
+      }),
+    })
+    await renderShelf()
+
+    await userEvent.click(
+      card('Star Fox').getByRole('button', { name: 'Favourite' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(FULL)
+  })
+
+  it('keeps the generic message for other failures', async () => {
+    stubApi({
+      onWrite: () => ({ ok: false, status: 500, json: async () => ({}) }),
+    })
+    await renderShelf()
+
+    await userEvent.click(
+      card('Star Fox').getByRole('radio', { name: 'Rate 7 out of 10' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not update that item.',
+    )
+  })
+
+  // Rows favourited before the cap are kept; the admin row shows all of
+  // them so they can be trimmed, while the public row still shows four.
+  it('shows every favourite in the admin row when there are more than four', async () => {
+    stubApi({ items: withFavourites(6) })
+    await renderShelf()
+
+    const row = screen.getByRole('region', { name: 'Favourites' })
+    expect(within(row).getAllByRole('link')).toHaveLength(6)
+    expect(
+      within(row).getByText(
+        '6 favourites. The public page shows four; unfavourite 2.',
+      ),
+    ).toBeInTheDocument()
+    expect(row.querySelectorAll('.favourite-empty')).toHaveLength(0)
+  })
+
+  it('shows neither slots nor a note at exactly four', async () => {
+    stubApi({ items: withFavourites(4) })
+    await renderShelf()
+
+    const row = screen.getByRole('region', { name: 'Favourites' })
+    expect(within(row).getAllByRole('link')).toHaveLength(4)
+    expect(row.querySelectorAll('.favourite-empty')).toHaveLength(0)
+    expect(row.querySelector('.favourites-hint')).toBeNull()
+  })
+})

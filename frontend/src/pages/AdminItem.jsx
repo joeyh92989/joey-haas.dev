@@ -155,7 +155,18 @@ export default function AdminItem() {
         body: JSON.stringify(changes),
       })
       if (!response.ok) {
-        setError('Could not save those changes.')
+        // A 409 is the server explaining a rule, such as the favourites
+        // cap, in words worth showing. The form keeps the unsaved values.
+        const detail =
+          response.status === 409
+            ? await response
+                .json()
+                .then((payload) => payload?.detail)
+                .catch(() => null)
+            : null
+        setError(
+          typeof detail === 'string' ? detail : 'Could not save those changes.',
+        )
         return
       }
       const updated = await response.json()
@@ -321,7 +332,11 @@ export default function AdminItem() {
 
       <h1>{item.title}</h1>
 
-      {error && <p className="admin-error">{error}</p>}
+      {error && (
+        <p className="admin-error" role="alert">
+          {error}
+        </p>
+      )}
       {savedAt && <p className="muted">Saved.</p>}
 
       <div className="item-detail">

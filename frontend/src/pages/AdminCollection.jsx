@@ -33,6 +33,10 @@ const TYPE_LABEL = {
 const VIEWS = ['shelf', 'list']
 const SIZES = ['comfortable', 'compact']
 
+/** The favourites row's size; the API refuses a fifth (see items.py). */
+const FAVORITES_LIMIT = 4
+const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favourites. Unfavourite one first.`
+
 /** Below this many rated or favourited items, the shelf asks for ratings. */
 const NUDGE_BELOW = 5
 
@@ -224,7 +228,16 @@ export default function AdminCollection() {
         body: JSON.stringify(body),
       })
       if (!response.ok) {
-        setError(failure)
+        // A 409 is the server explaining a rule, such as the favourites
+        // cap, in words worth showing; anything else gets the generic line.
+        const detail =
+          response.status === 409
+            ? await response
+                .json()
+                .then((payload) => payload?.detail)
+                .catch(() => null)
+            : null
+        setError(typeof detail === 'string' ? detail : failure)
         return
       }
     } catch {
@@ -343,6 +356,8 @@ export default function AdminCollection() {
     const engaged = rows.filter(
       (item) => item.rating != null || item.favorite,
     ).length
+    const favoritesFull =
+      rows.filter((item) => item.favorite).length >= FAVORITES_LIMIT
     const showNudge =
       !nudgeDismissed && engaged < NUDGE_BELOW && unrated.length > 0
     const visible = sortItems(
@@ -439,12 +454,19 @@ export default function AdminCollection() {
                 actions={(row) => (
                   <ShelfCardActions
                     item={row}
+                    favoritesFull={favoritesFull}
                     onRate={(target, rating) =>
                       patchItem(target.id, { rating })
                     }
-                    onFavorite={(target, favorite) =>
+                    onFavorite={(target, favorite) => {
+                      // Refused here without a round trip; the server
+                      // enforces the same rule for every other path.
+                      if (favorite && favoritesFull) {
+                        setError(FAVORITES_FULL)
+                        return
+                      }
                       patchItem(target.id, { favorite })
-                    }
+                    }}
                     onStatus={updateStatus}
                     onPublish={(target, isPublic) =>
                       updateVisibility(target.id, isPublic)
@@ -494,7 +516,11 @@ export default function AdminCollection() {
     <section>
       <h1>Collection</h1>
 
-      {error && <p className="admin-error">{error}</p>}
+      {error && (
+        <p className="admin-error" role="alert">
+          {error}
+        </p>
+      )}
 
       <p className="muted">
         <Link to="/admin/import">Import from photos →</Link>
