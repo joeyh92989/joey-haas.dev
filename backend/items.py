@@ -11,7 +11,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import select, text, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -25,6 +25,16 @@ from sources.base import (
 from sources.registry import adapter_for
 
 logger = logging.getLogger(__name__)
+
+
+# The favourites row has room for four covers. A fifth favourite used to be
+# saved but never shown, so the cap is enforced here, where every way of
+# setting the flag -- the shelf, the edit page, the create form and the photo
+# importer -- has to pass through.
+FAVORITES_LIMIT = 4
+FAVORITES_FULL = (
+    f"You already have {FAVORITES_LIMIT} favourites. Unfavourite one first."
+)
 
 
 class ItemIn(BaseModel):
@@ -291,6 +301,27 @@ def create_items_router(
             raise HTTPException(status_code=404, detail="Not found")
         return item
 
+    async def _require_favorite_slots(session: AsyncSession, adding: int) -> None:
+        """Refuses a change that would add favourites past the limit.
+
+        Counts only what the change adds, so unfavouriting, re-saving an
+        existing favourite, and rows favourited before the cap existed are
+        never refused. Those extras are kept, not trimmed, and block new
+        favourites until they are. 409 rather than 422: the request is valid,
+        the collection's state is what conflicts with it.
+
+        An application check with no row lock, so two simultaneous requests
+        could both pass. With one admin that is not a realistic race, and a
+        guarantee would take a trigger and a migration.
+        """
+        if adding <= 0:
+            return
+        current = await session.scalar(
+            select(func.count()).select_from(Item).where(Item.favorite.is_(True))
+        )
+        if current + adding > FAVORITES_LIMIT:
+            raise HTTPException(status_code=409, detail=FAVORITES_FULL)
+
     @router.get("", response_model=list[ItemOut])
     async def list_items(
         session: AsyncSession = Depends(get_session),
@@ -312,6 +343,7 @@ def create_items_router(
         session: AsyncSession = Depends(get_session),
     ) -> Item:
         """Adds one item and returns it, including its generated id."""
+        await _require_favorite_slots(session, int(payload.favorite))
         item = Item(**payload.model_dump())
         session.add(item)
         await session.commit()
@@ -376,6 +408,14 @@ def create_items_router(
                 seen.add(key)
             values["id"] = uuid.uuid4()
             rows.append(values)
+
+        # Checked before the insert and over the whole batch, so a batch that
+        # would cross the limit is refused whole. A favourited row that ON
+        # CONFLICT would skip as a duplicate still counts: conservative, and
+        # the importer never sets the flag anyway.
+        await _require_favorite_slots(
+            session, sum(1 for values in rows if values.get("favorite"))
+        )
 
         statement = (
             pg_insert(Item)
@@ -478,7 +518,10 @@ def create_items_router(
     ) -> Item:
         """Partial update. Fields absent from the body are left alone."""
         item = await _load(session, item_id)
-        for field, value in payload.model_dump(exclude_unset=True).items():
+        changes = payload.model_dump(exclude_unset=True)
+        if changes.get("favorite") is True and not item.favorite:
+            await _require_favorite_slots(session, 1)
+        for field, value in changes.items():
             setattr(item, field, value)
         await session.commit()
         await session.refresh(item)
