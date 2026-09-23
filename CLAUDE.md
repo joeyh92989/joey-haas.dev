@@ -135,9 +135,12 @@ before pushing.
       favourites, stats, chip filters and sort, and an item page at
       `/collection/:id`; `/admin/collection` opens on the same shelf with
       inline rate, favourite, status and publish. No schema change
-- [ ] Tracker E7b–E8c — metadata depth and migration 0003, the physical
-      catalogue, Play Next, Discover, Radar. Spec:
-      `docs/planning/2026-09-22-tracker-enhancement-design.md` (§5 onward);
+- [x] Tracker E7b — metadata depth. Migration `0003` (the copy columns), a
+      deeper IGDB snapshot with time to beat, bulk refresh, bulk set, and the
+      copy on the shelf and item page. Spec and plan:
+      `docs/planning/2026-09-23-tracker-e7b-*`
+- [ ] Tracker E8a (Play Next) next, then E7c, E8b, E8c. Spec:
+      `docs/planning/2026-09-22-tracker-enhancement-design.md` (§5.4 onward);
       each phase gets its own plan
 - [ ] Tracker E6 — recommendations. `backend/llm.py` already provides the
       provider-agnostic seam it needs
@@ -148,7 +151,23 @@ before pushing.
 
 - **Migrations must be applied to Neon before deploying.** `schema_check`
   refuses to boot behind the schema, which is it working, not failing.
-  Revision `0002` adds the enrichment columns.
+  Revision `0002` adds the enrichment columns; `0003` adds the copy columns
+  (platform, physical format, cart ID, region, completeness, release,
+  acquired and pinned dates).
+- **E7b deploy order:** apply `0003` to Neon, merge, press "Refresh game
+  metadata" once on `/admin/collection`, then bulk-set platform and format
+  from the List view. The refresh fills release dates and any platform the
+  snapshot makes unambiguous; it never touches what the owner recorded.
+- **Copy fields are decided in one place: `backend/formats.py`.** Every
+  write path (PATCH, create, bulk create, bulk set) passes through
+  `apply_copy_fields`. `platform` and `format_source` are derived there and
+  never accepted from a request; a cart ID decides the format and refuses a
+  contradicting one rather than overriding it. The frontend's platform list
+  in `ItemForm.jsx` mirrors `PLATFORM_NAMES` in `sources/igdb.py`, which is
+  the authority.
+- IGDB fixtures for the snapshot are recorded from the live API with
+  `backend/scripts/record_igdb_fixtures.py` (see `backend/scripts/README.md`);
+  re-record when `FIELDS` changes.
 - Metadata sources live in `backend/sources/`, one module per API behind a
   common interface — read that package's README before adding one. Their
   credentials are optional config checked lazily, so a missing key disables
