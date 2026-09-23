@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
+import {
+  CARTRIDGE_ERA_PLATFORMS,
+  COMPLETENESS_OPTIONS,
+  FORMAT_OPTIONS,
+  PLATFORM_OPTIONS,
+} from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import { apiFetch } from '../lib/api.js'
 
@@ -28,7 +34,17 @@ const EDITABLE = [
   'finished_at',
   'notes',
   'is_public',
+  'platform_id',
+  'physical_format',
+  'cart_id',
+  'region',
+  'completeness',
+  'acquired_at',
+  'release_date',
 ]
+
+/** A form value as the API wants it: an empty string means "not set". */
+const orNull = (value) => (value === '' ? null : value)
 
 /** An item as form state: nulls become empty strings so inputs stay controlled. */
 function toForm(item) {
@@ -45,6 +61,13 @@ function toForm(item) {
     finished_at: item.finished_at ?? '',
     notes: item.notes ?? '',
     is_public: Boolean(item.is_public),
+    platform_id: item.platform_id ?? '',
+    physical_format: item.physical_format ?? '',
+    cart_id: item.cart_id ?? '',
+    region: item.region ?? '',
+    completeness: item.completeness ?? '',
+    acquired_at: item.acquired_at ?? '',
+    release_date: item.release_date ?? '',
   }
 }
 
@@ -63,6 +86,13 @@ function toPayload(form) {
     finished_at: form.finished_at === '' ? null : form.finished_at,
     notes: form.notes === '' ? null : form.notes,
     is_public: form.is_public,
+    platform_id: form.platform_id === '' ? null : Number(form.platform_id),
+    physical_format: orNull(form.physical_format),
+    cart_id: orNull(form.cart_id.trim()),
+    region: orNull(form.region.trim()),
+    completeness: orNull(form.completeness),
+    acquired_at: orNull(form.acquired_at),
+    release_date: orNull(form.release_date),
   }
 }
 
@@ -158,7 +188,7 @@ export default function AdminItem() {
         // A 409 is the server explaining a rule, such as the favourites
         // cap, in words worth showing. The form keeps the unsaved values.
         const detail =
-          response.status === 409
+          response.status === 409 || response.status === 422
             ? await response
                 .json()
                 .then((payload) => payload?.detail)
@@ -414,6 +444,89 @@ export default function AdminItem() {
               </option>
             ))}
           </select>
+
+          <label htmlFor="platform_id">Platform</label>
+          <select
+            id="platform_id"
+            value={form.platform_id}
+            onChange={set('platform_id')}
+          >
+            <option value="">unspecified</option>
+            {PLATFORM_OPTIONS.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+
+          <label htmlFor="physical_format">Copy format</label>
+          <select
+            id="physical_format"
+            value={form.physical_format}
+            onChange={set('physical_format')}
+          >
+            <option value="">not recorded</option>
+            {FORMAT_OPTIONS.map(([format, label]) => (
+              <option key={format} value={format}>
+                {label}
+              </option>
+            ))}
+          </select>
+
+          {/* The code on a Switch 2 label decides the format; the server
+              refuses one that contradicts it. */}
+          <label htmlFor="cart_id">Cart ID</label>
+          <input
+            id="cart_id"
+            placeholder="LP-AAC4B-USA-0"
+            value={form.cart_id}
+            onChange={set('cart_id')}
+          />
+
+          <label htmlFor="region">Region</label>
+          <input
+            id="region"
+            placeholder="USA"
+            maxLength={4}
+            value={form.region}
+            onChange={set('region')}
+          />
+
+          {CARTRIDGE_ERA_PLATFORMS.includes(Number(form.platform_id)) && (
+            <>
+              <label htmlFor="completeness">Completeness</label>
+              <select
+                id="completeness"
+                value={form.completeness}
+                onChange={set('completeness')}
+              >
+                <option value="">unspecified</option>
+                {COMPLETENESS_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
+          <label htmlFor="acquired_at">Acquired</label>
+          <input
+            id="acquired_at"
+            type="date"
+            value={form.acquired_at}
+            onChange={set('acquired_at')}
+          />
+
+          {/* On a linked item a metadata refresh overwrites this: the source
+              is the truth for a release date, since announced dates move. */}
+          <label htmlFor="release_date">Release date</label>
+          <input
+            id="release_date"
+            type="date"
+            value={form.release_date}
+            onChange={set('release_date')}
+          />
 
           <label htmlFor="rating">Rating</label>
           <input

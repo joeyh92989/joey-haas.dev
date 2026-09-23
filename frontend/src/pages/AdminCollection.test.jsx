@@ -671,3 +671,53 @@ describe('AdminCollection favourites cap', () => {
     expect(row.querySelector('.favourites-hint')).toBeNull()
   })
 })
+
+describe('AdminCollection create form', () => {
+  beforeEach(() => {
+    localStorage.setItem('shelf.admin.view', '"list"')
+  })
+
+  it('sends the platform as a number and the copy format', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.type(await screen.findByLabelText('Title'), 'Donkey Kong')
+    await userEvent.selectOptions(
+      screen.getByLabelText('Owned format'),
+      'physical',
+    )
+    await userEvent.selectOptions(
+      screen.getByLabelText('Platform'),
+      'Nintendo 64',
+    )
+    await userEvent.selectOptions(
+      screen.getByLabelText('Copy format'),
+      'game_card',
+    )
+    await userEvent.click(screen.getByRole('button', { name: /add/i }))
+
+    await waitFor(() => {
+      const body = JSON.parse(writeCalls(mock)[0][1].body)
+      expect(body.platform_id).toBe(4)
+      expect(body.physical_format).toBe('game_card')
+    })
+  })
+
+  it('sends null for a platform and format left unchosen', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.type(await screen.findByLabelText('Title'), 'Loose')
+    await userEvent.selectOptions(
+      screen.getByLabelText('Owned format'),
+      'physical',
+    )
+    await userEvent.click(screen.getByRole('button', { name: /add/i }))
+
+    await waitFor(() => {
+      const body = JSON.parse(writeCalls(mock)[0][1].body)
+      expect(body.platform_id ?? null).toBeNull()
+      expect(body.physical_format ?? null).toBeNull()
+    })
+  })
+})

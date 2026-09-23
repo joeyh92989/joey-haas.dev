@@ -9,6 +9,42 @@ const OWNED_FORMATS = [
 ]
 
 /**
+ * Platforms offered for a copy, cartridge-era and Nintendo first. These mirror
+ * PLATFORM_NAMES in backend/sources/igdb.py, which is the authority: the API
+ * refuses an id missing there, so add a platform on both sides.
+ */
+export const PLATFORM_OPTIONS = [
+  [4, 'Nintendo 64'],
+  [130, 'Nintendo Switch'],
+  [508, 'Nintendo Switch 2'],
+  [37, 'Nintendo 3DS'],
+  [41, 'Wii U'],
+  [167, 'PlayStation 5'],
+  [48, 'PlayStation 4'],
+  [169, 'Xbox Series X|S'],
+  [49, 'Xbox One'],
+  [6, 'PC'],
+]
+
+/** What a physical copy is. Blank means unknown or not physical. */
+export const FORMAT_OPTIONS = [
+  ['game_card', 'Full game on cartridge'],
+  ['game_key_card', 'Game-Key Card'],
+  ['code_in_box', 'Code in a box'],
+  ['disc', 'Disc'],
+]
+
+export const COMPLETENESS_OPTIONS = [
+  ['loose', 'Loose'],
+  ['boxed', 'Boxed'],
+  ['cib', 'Complete in box'],
+  ['sealed', 'Sealed'],
+]
+
+/** Platforms whose copies are collected by completeness (formats.py). */
+export const CARTRIDGE_ERA_PLATFORMS = [4]
+
+/**
  * The add-an-item form.
  *
  * Extracted from AdminCollection so that page keeps one job — loading and
@@ -36,6 +72,16 @@ export default function ItemForm({
 }) {
   const set = (field) => (event) =>
     onChange({ ...value, [field]: event.target.value })
+  // The API takes a number or null, never an empty string, so the create call
+  // can send these as they stand.
+  const setPlatform = (event) =>
+    onChange({
+      ...value,
+      platform_id:
+        event.target.value === '' ? null : Number(event.target.value),
+    })
+  const setCopyFormat = (event) =>
+    onChange({ ...value, physical_format: event.target.value || null })
 
   return (
     <form className="item-form" onSubmit={onSubmit}>
@@ -83,6 +129,32 @@ export default function ItemForm({
         {OWNED_FORMATS.map((format) => (
           <option key={format} value={format}>
             {format === 'none' ? 'want (not owned)' : format}
+          </option>
+        ))}
+      </select>
+
+      <select
+        aria-label="Platform"
+        value={value.platform_id ?? ''}
+        onChange={setPlatform}
+      >
+        <option value="">Platform…</option>
+        {PLATFORM_OPTIONS.map(([id, name]) => (
+          <option key={id} value={id}>
+            {name}
+          </option>
+        ))}
+      </select>
+
+      <select
+        aria-label="Copy format"
+        value={value.physical_format ?? ''}
+        onChange={setCopyFormat}
+      >
+        <option value="">Copy format…</option>
+        {FORMAT_OPTIONS.map(([format, label]) => (
+          <option key={format} value={format}>
+            {label}
           </option>
         ))}
       </select>
