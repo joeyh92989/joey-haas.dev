@@ -145,10 +145,10 @@ check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection"
 # its response model instead of serializing the ORM object. A private column
 # added later would be published with no code change and nothing to notice it.
 public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
-if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata)"'; then
+if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id)"'; then
   report_fail "public items expose no private fields" "found a private key in the response"
 else
-  report_pass "public items expose no private fields" "no notes/owned_format/is_public"
+  report_pass "public items expose no private fields" "no notes/owned_format/is_public/external ids"
 fi
 
 stats_body="$(curl -s -m 90 "$API_URL/api/public/stats")"
@@ -158,6 +158,35 @@ if printf '%s' "$stats_body" | grep -q '"by_type"' &&
 else
   report_fail "public stats has the expected shape" "got '$stats_body'"
 fi
+
+# The shelf's hero numbers read these. Their absence would render as blanks
+# rather than an error, which is why they are asserted by name.
+if printf '%s' "$stats_body" | grep -q '"owned"' &&
+  printf '%s' "$stats_body" | grep -q '"average_rating"'; then
+  report_pass "public stats has the shelf fields" "owned and average_rating present"
+else
+  report_fail "public stats has the shelf fields" "got '$stats_body'"
+fi
+
+# A 404 with a JSON body proves the item route exists and misses cleanly. A
+# 422 would mean the id was not parsed as a uuid; a 500 that the lookup broke;
+# an HTML 404 that the route is not deployed at all.
+item_miss="$(curl -s -m 90 -w '\n%{http_code}' \
+  "$API_URL/api/public/items/00000000-0000-0000-0000-000000000000")"
+item_miss_status="$(printf '%s' "$item_miss" | tail -n 1)"
+item_miss_body="$(printf '%s' "$item_miss" | sed '$d')"
+if [ "$item_miss_status" = "404" ] && printf '%s' "$item_miss_body" | grep -q '"detail"'; then
+  report_pass "GET /api/public/items/<unknown> is a JSON 404" "$item_miss_body"
+else
+  report_fail "GET /api/public/items/<unknown> is a JSON 404" \
+    "got $item_miss_status '$item_miss_body'"
+fi
+
+# The item page is a nested public route; like the admin detail view below,
+# only the static host can prove its rewrite serves it on a deep link.
+check_equals "GET /collection/<id> (nested deep link)" \
+  "$(http_status "$SITE_URL/collection/00000000-0000-0000-0000-000000000000")" \
+  "200"
 
 check_equals "POST /api/import/photos unauthenticated" \
   "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/import/photos")" \

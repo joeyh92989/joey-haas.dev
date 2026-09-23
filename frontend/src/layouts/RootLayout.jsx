@@ -7,6 +7,31 @@ import { apiFetch, loginUrl } from '../lib/api.js'
 const STORAGE_KEY = 'theme'
 
 /**
+ * Routes that break out of the 45rem reading column: the tracker's shelves
+ * and item pages are grids of covers, not prose. Each entry matches itself
+ * and anything nested under it.
+ */
+const WIDE_ROUTES = [
+  '/collection',
+  '/admin/collection',
+  '/admin/play-next',
+  '/admin/discover',
+  '/admin/radar',
+]
+
+/**
+ * Whether a pathname gets the wide layout.
+ *
+ * @param {string} pathname The current location's pathname.
+ * @returns {boolean} True for a wide route or a route nested under one.
+ */
+function isWideRoute(pathname) {
+  return WIDE_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  )
+}
+
+/**
  * Reads the persisted theme, falling back to dark.
  *
  * Dark is the brand default and is deliberately not derived from
@@ -36,7 +61,8 @@ function readStoredTheme() {
 export default function RootLayout() {
   const [theme, setTheme] = useState(readStoredTheme)
   const [signedIn, setSignedIn] = useState(false)
-  const isHome = useLocation().pathname === '/'
+  const { pathname } = useLocation()
+  const isHome = pathname === '/'
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -79,7 +105,7 @@ export default function RootLayout() {
   }
 
   return (
-    <div className="page">
+    <div className={isWideRoute(pathname) ? 'page page-wide' : 'page'}>
       <header className={isHome ? 'site-header home' : 'site-header'}>
         <img className="avatar" src={joeyPhoto} alt="" />
         <div>
@@ -112,7 +138,9 @@ export default function RootLayout() {
       </div>
 
       <main className={isHome ? 'home' : undefined}>
-        <Outlet />
+        {/* Routed pages read the session from here rather than each asking
+            /api/auth/me again against a backend that may be asleep. */}
+        <Outlet context={{ signedIn: Boolean(signedIn) }} />
       </main>
 
       <footer>

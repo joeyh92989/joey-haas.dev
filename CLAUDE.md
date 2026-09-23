@@ -71,6 +71,36 @@ before pushing.
   for the plan. Mockups and the `.superpowers/` execution scratch stay out of
   git — the first are disposable once the UI exists, the second is process
   telemetry.
+- The tracker shelf is one design system for `/collection` and
+  `/admin/collection`. Its tokens (`--rating`, `--status-*`, `--overlay`,
+  `--skeleton`, `--grid-gap`) live in both theme blocks like every other
+  token, and the status colors were chosen on measured contrast: each clears
+  3:1 against `--surface` in both themes (they are non-text marks, and the
+  stacked bar's 2px gaps are `--surface`), and `--status-backlog` also clears
+  3:1 against `--border`. Changing one means measuring again; the ratios are
+  in the commit that added them.
+- Tracker pages break out of the 45rem prose column via `page-wide` (72rem),
+  which `RootLayout` applies to any path in its `WIDE_ROUTES` list or nested
+  under one. Add a new tracker route there, not in a page's own CSS.
+  `RootLayout` also passes `{ signedIn }` as outlet context, so a routed page
+  reads the session instead of calling `/api/auth/me` again.
+- Shelf components live in `frontend/src/components/`: `PosterCard`,
+  `PosterGrid`, `FilterChips`, `SortControl`, `ShelfToolbar`, `Stars`,
+  `QuickRate`, `ShelfCardActions`. `HeroNumbers` and `FavoritesRow` are
+  exported from `pages/Collection.jsx` and reused by the admin shelf. A
+  card's admin controls are a sibling of its link, never nested inside it.
+- Nothing on the shelf is hover-only: anything revealed on hover is also
+  revealed by `:focus-within`, with `opacity` or `clip-path` rather than
+  `display: none` or `visibility: hidden`, which would make it unfocusable.
+  Every non-text mark with an accessible name gets `role="img"`; an
+  `aria-label` on a bare `span` is ignored by screen readers.
+- Shelf preferences go through `readShelfPref` / `writeShelfPref` in
+  `lib/shelf.js`, which survive a throwing `localStorage`. Keys are
+  namespaced per page (`shelf.public.*`, `shelf.admin.*`) so the two shelves
+  keep separate defaults, and page tests clear storage in `afterEach`.
+- Anything viewport-dependent reads `useMediaQuery` from
+  `lib/useMediaQuery.js`, never `matchMedia` directly: jsdom has no
+  `matchMedia`, so the hook returns false there and tests stub it.
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish
@@ -101,6 +131,14 @@ before pushing.
       requests in late 2025 and now returns 401 for everything; it needs a
       registered app and `BGG_TOKEN`. `sources/bgg.py` reports itself
       unavailable and board games import as manual rows until then
+- [x] Tracker E7a — shelf and showcase. `/collection` has hero numbers,
+      favourites, stats, chip filters and sort, and an item page at
+      `/collection/:id`; `/admin/collection` opens on the same shelf with
+      inline rate, favourite, status and publish. No schema change
+- [ ] Tracker E7b–E8c — metadata depth and migration 0003, the physical
+      catalogue, Play Next, Discover, Radar. Spec:
+      `docs/planning/2026-09-22-tracker-enhancement-design.md` (§5 onward);
+      each phase gets its own plan
 - [ ] Tracker E6 — recommendations. `backend/llm.py` already provides the
       provider-agnostic seam it needs
 - [ ] Optional: set `ADMIN_GOOGLE_SUB` after the first sign-in to pin the
@@ -124,6 +162,11 @@ before pushing.
   from the admin collection page — per row, or with the bulk publish control.
   This was missing at first: the public API, page and filter all shipped
   without a way to set the flag, so the showcase was unreachable.
+- Status changes to finished go through `statusTransition`
+  (`lib/statusTransition.js`) in both admin views, the shelf card and the
+  list table: a first finish sets `times_completed` to 1 and dates it today,
+  a replay (any earlier `finished_at` or completion) adds one and keeps the
+  date. The edit page exposes both fields directly and does not apply it.
 - Editing lives at `/admin/collection/:id`. A wrong external match is fixed
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not

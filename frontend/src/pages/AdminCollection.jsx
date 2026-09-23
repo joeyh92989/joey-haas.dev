@@ -3,9 +3,63 @@ import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import ItemForm from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
+import PosterCard from '../components/PosterCard.jsx'
+import PosterGrid from '../components/PosterGrid.jsx'
+import ShelfCardActions from '../components/ShelfCardActions.jsx'
+import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import { apiFetch } from '../lib/api.js'
+import {
+  countBy,
+  filterItems,
+  NO_FILTER,
+  readShelfPref,
+  sortItems,
+  STATUS_LABEL,
+  STATUS_ORDER,
+  writeShelfPref,
+} from '../lib/shelf.js'
+import { localToday, statusTransition } from '../lib/statusTransition.js'
+import { FavoritesRow, HeroNumbers, isDimmable } from './Collection.jsx'
 
-const STATUSES = ['backlog', 'active', 'finished', 'abandoned']
+const STATUSES = STATUS_ORDER
+
+const TYPE_LABEL = {
+  game: 'Games',
+  movie: 'Film & TV',
+  comic: 'Comics',
+  boardgame: 'Board games',
+}
+
+const VIEWS = ['shelf', 'list']
+const SIZES = ['comfortable', 'compact']
+
+/** Below this many rated or favourited items, the shelf asks for ratings. */
+const NUDGE_BELOW = 5
+
+/**
+ * The shelf's headline figures, computed from the admin rows: NULL
+ * owned_format is owned, and only an explicit `none` is the want list.
+ */
+function heroFigures(items) {
+  const year = new Date().getUTCFullYear()
+  return {
+    owned: items.filter((item) => item.owned_format !== 'none').length,
+    finished: items.filter((item) => item.status === 'finished').length,
+    finishedThisYear: items.filter((item) =>
+      item.finished_at?.startsWith(`${year}-`),
+    ).length,
+  }
+}
+
+/** The nudge's sentence, counted live from the rows. */
+function nudgeText(unrated) {
+  const noun = unrated.every((item) => item.type === 'game') ? 'game' : 'item'
+  const subject =
+    unrated.length === 1
+      ? `1 finished ${noun} has`
+      : `${unrated.length} finished ${noun}s have`
+  return `${subject} no rating. Rating them is what makes Play Next work.`
+}
 
 const EMPTY_FORM = {
   type: 'game',
@@ -33,6 +87,21 @@ export default function AdminCollection() {
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [view, setView] = useState(() => {
+    const stored = readShelfPref('shelf.admin.view', 'shelf')
+    return VIEWS.includes(stored) ? stored : 'shelf'
+  })
+  const [filters, setFilters] = useState(NO_FILTER)
+  const [sort, setSort] = useState({ value: 'added', direction: 'desc' })
+  const [seed, setSeed] = useState(() => Date.now())
+  const [size, setSize] = useState(() => {
+    const stored = readShelfPref('shelf.admin.size', 'comfortable')
+    return SIZES.includes(stored) ? stored : 'comfortable'
+  })
+  // On by default here, unlike the public shelf: the admin's job is the
+  // backlog.
+  const [dim, setDim] = useState(() => readShelfPref('shelf.admin.dim', true))
+  const [nudgeDismissed, setNudgeDismissed] = useState(false)
 
   /**
    * Fetches the collection and returns what the UI should show.
@@ -139,16 +208,23 @@ export default function AdminCollection() {
     await load()
   }
 
-  async function updateStatus(id, nextStatus) {
+  /**
+   * PATCHes one item and reloads.
+   *
+   * Never optimistic: on failure the error is reported and the page keeps
+   * showing the last state the server confirmed, so a card never claims a
+   * rating or a status that was not saved.
+   */
+  async function patchItem(id, body, failure = 'Could not update that item.') {
     setError(null)
     try {
       const response = await apiFetch(`/api/items/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify(body),
       })
       if (!response.ok) {
-        setError('Could not update that item.')
+        setError(failure)
         return
       }
     } catch {
@@ -159,29 +235,41 @@ export default function AdminCollection() {
   }
 
   /**
+   * Changes status through statusTransition, in both views, so a finish
+   * counts a completion and dates itself wherever it is made.
+   */
+  function updateStatus(item, nextStatus) {
+    return patchItem(item.id, statusTransition(item, nextStatus, localToday()))
+  }
+
+  /**
    * Publishes or hides one item.
    *
    * Reloads rather than flipping the checkbox optimistically: showing a row
    * as public when the save failed is worse than showing it as private for
    * the length of a round trip.
    */
-  async function updateVisibility(id, isPublic) {
-    setError(null)
-    try {
-      const response = await apiFetch(`/api/items/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_public: isPublic }),
-      })
-      if (!response.ok) {
-        setError('Could not change that item’s visibility.')
-        return
-      }
-    } catch {
-      setError('Could not reach the API.')
-      return
-    }
-    await load()
+  function updateVisibility(id, isPublic) {
+    return patchItem(
+      id,
+      { is_public: isPublic },
+      'Could not change that item’s visibility.',
+    )
+  }
+
+  function changeView(next) {
+    setView(next)
+    writeShelfPref('shelf.admin.view', next)
+  }
+
+  function changeSize(next) {
+    setSize(next)
+    writeShelfPref('shelf.admin.size', next)
+  }
+
+  function changeDim(next) {
+    setDim(next)
+    writeShelfPref('shelf.admin.dim', next)
   }
 
   /**
@@ -240,6 +328,136 @@ export default function AdminCollection() {
   }
 
   const publicCount = items.filter((item) => item.is_public).length
+
+  /** The shelf view: the public shelf's components, with admin controls. */
+  function renderShelf() {
+    const rows = items.map((item) => ({
+      ...item,
+      wanted: item.owned_format === 'none',
+    }))
+    const typeCounts = countBy(rows, 'type')
+    const statusCounts = countBy(rows, 'status')
+    const unrated = rows.filter(
+      (item) => item.status === 'finished' && item.rating == null,
+    )
+    const engaged = rows.filter(
+      (item) => item.rating != null || item.favorite,
+    ).length
+    const showNudge =
+      !nudgeDismissed && engaged < NUDGE_BELOW && unrated.length > 0
+    const visible = sortItems(
+      filterItems(rows, filters),
+      sort.value,
+      sort.direction,
+      seed,
+    )
+    const linkFor = (item) =>
+      item.is_public ? `/collection/${item.id}` : `/admin/collection/${item.id}`
+
+    return (
+      <>
+        <HeroNumbers {...heroFigures(rows)} />
+
+        <FavoritesRow items={rows} linkFor={linkFor} placeholders />
+
+        {showNudge && (
+          <div className="shelf-nudge" role="note">
+            <p>{nudgeText(unrated)}</p>
+            <button
+              type="button"
+              className="chip"
+              onClick={() => setFilters({ ...NO_FILTER, unrated: true })}
+            >
+              Show them
+            </button>
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => setNudgeDismissed(true)}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        <ShelfToolbar
+          groups={[
+            {
+              key: 'type',
+              label: 'Type',
+              options: Object.keys(TYPE_LABEL).map((type) => ({
+                value: type,
+                label: TYPE_LABEL[type],
+                count: typeCounts[type] ?? 0,
+              })),
+            },
+            {
+              key: 'status',
+              label: 'Status',
+              options: STATUS_ORDER.map((value) => ({
+                value,
+                label: STATUS_LABEL[value],
+                count: statusCounts[value] ?? 0,
+              })),
+            },
+          ]}
+          toggles={[
+            {
+              key: 'wanted',
+              label: 'Want',
+              count: rows.filter((item) => item.wanted).length,
+            },
+            {
+              key: 'unrated',
+              label: 'Finished, unrated',
+              count: unrated.length,
+            },
+          ]}
+          filters={filters}
+          onFiltersChange={setFilters}
+          sort={sort}
+          onSortChange={setSort}
+          seed={seed}
+          onShuffle={() => setSeed((current) => current + 1)}
+          size={size}
+          onSizeChange={changeSize}
+          dim={dim}
+          onDimChange={changeDim}
+        />
+
+        {visible.length === 0 ? (
+          <p className="muted">Nothing matches those filters.</p>
+        ) : (
+          <PosterGrid
+            items={visible}
+            size={size}
+            renderCard={(item) => (
+              <PosterCard
+                item={item}
+                to={linkFor(item)}
+                dimmed={dim && isDimmable(item)}
+                actions={(row) => (
+                  <ShelfCardActions
+                    item={row}
+                    onRate={(target, rating) =>
+                      patchItem(target.id, { rating })
+                    }
+                    onFavorite={(target, favorite) =>
+                      patchItem(target.id, { favorite })
+                    }
+                    onStatus={updateStatus}
+                    onPublish={(target, isPublic) =>
+                      updateVisibility(target.id, isPublic)
+                    }
+                  />
+                )}
+              />
+            )}
+          />
+        )}
+      </>
+    )
+  }
 
   if (status === 'loading') {
     return (
@@ -319,71 +537,95 @@ export default function AdminCollection() {
             </button>
           </div>
 
-          <div className="item-table-wrap">
-            <table className="item-table">
-              <thead>
-                <tr>
-                  <th>
-                    <span className="visually-hidden">Cover</span>
-                  </th>
-                  <th>Type</th>
-                  <th>Title</th>
-                  <th>Status</th>
-                  <th>Rating</th>
-                  <th>Public</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="item-cover-cell">
-                      <CoverImage src={item.cover_url} type={item.type} />
-                    </td>
-                    <td>{item.type}</td>
-                    <td>
-                      {/* The row links to the detail view: a wrong match is
-                        fixed there, not here. */}
-                      <Link to={`/admin/collection/${item.id}`}>
-                        {item.title}
-                      </Link>
-                    </td>
-                    <td>
-                      <select
-                        aria-label={`Status for ${item.title}`}
-                        value={item.status}
-                        onChange={(event) =>
-                          updateStatus(item.id, event.target.value)
-                        }
-                      >
-                        {STATUSES.map((value) => (
-                          <option key={value} value={value}>
-                            {value}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>{item.rating ?? '—'}</td>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={item.is_public}
-                        aria-label={`Public: ${item.title}`}
-                        onChange={(event) =>
-                          updateVisibility(item.id, event.target.checked)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <button type="button" onClick={() => removeItem(item.id)}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="view-toggle chip-row" role="group" aria-label="View">
+            {[
+              ['shelf', 'Shelf'],
+              ['list', 'List'],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className="chip"
+                aria-pressed={view === value}
+                onClick={() => changeView(value)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
+
+          {view === 'shelf' ? (
+            renderShelf()
+          ) : (
+            <div className="item-table-wrap">
+              <table className="item-table">
+                <thead>
+                  <tr>
+                    <th>
+                      <span className="visually-hidden">Cover</span>
+                    </th>
+                    <th>Type</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Rating</th>
+                    <th>Public</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id}>
+                      <td className="item-cover-cell">
+                        <CoverImage src={item.cover_url} type={item.type} />
+                      </td>
+                      <td>{item.type}</td>
+                      <td>
+                        {/* The row links to the detail view: a wrong match is
+                          fixed there, not here. */}
+                        <Link to={`/admin/collection/${item.id}`}>
+                          {item.title}
+                        </Link>
+                      </td>
+                      <td>
+                        <select
+                          aria-label={`Status for ${item.title}`}
+                          value={item.status}
+                          onChange={(event) =>
+                            updateStatus(item, event.target.value)
+                          }
+                        >
+                          {STATUSES.map((value) => (
+                            <option key={value} value={value}>
+                              {value}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>{item.rating ?? '—'}</td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={item.is_public}
+                          aria-label={`Public: ${item.title}`}
+                          onChange={(event) =>
+                            updateVisibility(item.id, event.target.checked)
+                          }
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </section>
