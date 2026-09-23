@@ -11,6 +11,7 @@ import BlogPost from './pages/BlogPost.jsx'
 import Home from './pages/Home.jsx'
 import Item from './pages/Item.jsx'
 import NotFound from './pages/NotFound.jsx'
+import PlayNext from './pages/PlayNext.jsx'
 import Projects from './pages/Projects.jsx'
 
 /**
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="admin" element={<Admin />} />
         <Route path="admin/collection" element={<AdminCollection />} />
         <Route path="admin/import" element={<AdminImport />} />
+        <Route path="admin/play-next" element={<PlayNext />} />
         <Route path="admin/collection/:id" element={<AdminItem />} />
         <Route path="blog" element={<Blog />} />
         <Route path="blog/:slug" element={<BlogPost />} />
