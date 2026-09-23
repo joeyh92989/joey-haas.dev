@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import PosterCard from './PosterCard.jsx'
 
 const ITEM = {
@@ -93,5 +93,65 @@ describe('PosterCard', () => {
     expect(container.querySelector('.poster-card')).not.toHaveAttribute(
       'data-dimmed',
     )
+  })
+})
+
+describe('PosterCard copy marks', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  const SWITCH_2 = { ...ITEM, platform: 'Nintendo Switch 2' }
+
+  it.each([
+    ['game_key_card', 'Game-Key Card'],
+    ['code_in_box', 'Code in a box'],
+  ])('marks a %s copy', (format, name) => {
+    renderCard({ item: { ...SWITCH_2, physical_format: format } })
+    expect(screen.getByRole('img', { name })).toHaveClass('format-mark')
+  })
+
+  // An unrecorded Switch 2 format must not look like a full cartridge.
+  it('marks a Switch 2 copy with no recorded format as unknown', () => {
+    renderCard({ item: { ...SWITCH_2, physical_format: null } })
+    expect(
+      screen.getByRole('img', { name: 'Format not recorded' }),
+    ).toBeInTheDocument()
+  })
+
+  it('recognises a Switch 2 admin row by its platform id', () => {
+    renderCard({ item: { ...ITEM, platform_id: 508, physical_format: null } })
+    expect(
+      screen.getByRole('img', { name: 'Format not recorded' }),
+    ).toBeInTheDocument()
+  })
+
+  it.each([
+    ['a full cartridge', { ...SWITCH_2, physical_format: 'game_card' }],
+    [
+      'another platform with no format',
+      { ...ITEM, platform: 'Nintendo Switch', physical_format: null },
+    ],
+  ])('gives %s no mark', (_, item) => {
+    const { container } = renderCard({ item })
+    expect(container.querySelector('.format-mark')).toBeNull()
+  })
+
+  it('runs a ribbon along an upcoming release', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 23, 12))
+    renderCard({ item: { ...ITEM, release_date: '2027-03-05' } })
+    expect(screen.getByText('Coming Mar 2027')).toHaveClass('upcoming-ribbon')
+  })
+
+  it.each([
+    ['today', '2026-09-23'],
+    ['the past', '2020-01-01'],
+    ['no date', null],
+  ])('has no ribbon for %s', (_, date) => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 23, 12))
+    const { container } = renderCard({ item: { ...ITEM, release_date: date } })
+    expect(container.querySelector('.upcoming-ribbon')).toBeNull()
   })
 })
