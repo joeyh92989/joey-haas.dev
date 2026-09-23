@@ -114,3 +114,81 @@ async def test_downgrade_then_upgrade_is_clean(clean_database):
 
     up = _alembic("upgrade", "head")
     assert up.returncode == 0, up.stderr
+
+
+# --- Revision 0003: the copy columns. ------------------------------------
+#
+# The tests above prove head matches the models and survives a down/up cycle.
+# These cover what they cannot see: the acquired_at backfill, and that a
+# downgrade to 0002 leaves no enum type behind.
+
+NEW_COLUMNS = {
+    "release_date",
+    "pinned_at",
+    "acquired_at",
+    "platform_id",
+    "platform",
+    "physical_format",
+    "format_source",
+    "cart_id",
+    "region",
+    "completeness",
+}
+NEW_TYPES = {"physical_format", "format_source", "completeness"}
+
+
+async def _columns(engine) -> set[str]:
+    async with engine.connect() as connection:
+        rows = await connection.execute(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'items'"
+            )
+        )
+        return {row[0] for row in rows}
+
+
+async def _types(engine) -> set[str]:
+    async with engine.connect() as connection:
+        rows = await connection.execute(text("SELECT typname FROM pg_type"))
+        return {row[0] for row in rows}
+
+
+@pytest.mark.asyncio
+async def test_acquired_at_is_backfilled_from_created_at(clean_database):
+    assert _alembic("upgrade", "0002").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status, created_at) VALUES "
+                "(gen_random_uuid(), 'game', 'Old', 'backlog', "
+                "'2026-03-04 23:30:00+00')"
+            )
+        )
+
+    result = _alembic("upgrade", "0003")
+    assert result.returncode == 0, result.stderr
+
+    async with clean_database.connect() as connection:
+        acquired = await connection.scalar(text("SELECT acquired_at FROM items"))
+    # Cast in the database's time zone, UTC for the test server.
+    assert str(acquired) == "2026-03-04"
+
+
+@pytest.mark.asyncio
+async def test_upgrade_adds_the_columns_and_types(clean_database):
+    assert _alembic("upgrade", "0003").returncode == 0
+    assert NEW_COLUMNS <= await _columns(clean_database)
+    assert NEW_TYPES <= await _types(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_downgrade_to_0002_removes_the_columns_and_types(clean_database):
+    assert _alembic("upgrade", "0003").returncode == 0
+
+    result = _alembic("downgrade", "0002")
+    assert result.returncode == 0, result.stderr
+
+    assert not NEW_COLUMNS & await _columns(clean_database)
+    # A leftover type would fail the next upgrade on "already exists".
+    assert not NEW_TYPES & await _types(clean_database)
