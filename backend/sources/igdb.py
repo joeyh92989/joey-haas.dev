@@ -74,6 +74,24 @@ PLATFORM_IDS = {
     "nintendo 3ds": 37,
     "3ds": 37,
     "wii u": 41,
+    "nintendo 64": 4,
+    "n64": 4,
+}
+
+# Display names for the ids above, used to resolve an item's `platform` from
+# its `platform_id` on the server (formats.py). Every id in PLATFORM_IDS must
+# appear here; a test enforces it.
+PLATFORM_NAMES = {
+    508: "Nintendo Switch 2",
+    130: "Nintendo Switch",
+    4: "Nintendo 64",
+    167: "PlayStation 5",
+    48: "PlayStation 4",
+    169: "Xbox Series X|S",
+    49: "Xbox One",
+    6: "PC",
+    37: "Nintendo 3DS",
+    41: "Wii U",
 }
 
 _PLATFORM_NOISE = re.compile(r"[^a-z0-9]+")
