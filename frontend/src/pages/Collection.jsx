@@ -214,6 +214,29 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
   )
 }
 
+/**
+ * The game being played next (decision D2): one card, linked to its page.
+ * Nothing when no public game is pinned; a pinned private game is never in
+ * the public list to begin with.
+ */
+function UpNext({ items }) {
+  const pinned = items.find((item) => item.pinned)
+  if (!pinned) return null
+  return (
+    <section className="up-next up-next-public" aria-label="Up next">
+      <Link to={`/collection/${pinned.id}`} className="up-next-link">
+        <span className="up-next-cover">
+          <CoverImage src={pinned.cover_url} type={pinned.type} alt="" />
+        </span>
+        <span>
+          <span className="pick-slot">Up next</span>
+          <span className="up-next-title">{pinned.title}</span>
+        </span>
+      </Link>
+    </section>
+  )
+}
+
 /** One stacked bar of the four statuses, in shelf order, with a legend. */
 function StatusBar({ byStatus }) {
   const present = STATUS_ORDER.filter((status) => byStatus[status] > 0)
@@ -483,6 +506,8 @@ export default function Collection() {
               finishedThisYear={stats.finished_this_year}
             />
           )}
+
+          <UpNext items={items} />
 
           <FavoritesRow
             items={items}

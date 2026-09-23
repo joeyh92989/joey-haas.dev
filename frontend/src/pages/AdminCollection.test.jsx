@@ -855,3 +855,14 @@ describe('AdminCollection shelf platforms', () => {
     expect(titles.map((node) => node.textContent)).toEqual(['Dune'])
   })
 })
+
+describe('AdminCollection Play Next link', () => {
+  it('links to Play Next', async () => {
+    stubApi()
+    renderPage()
+
+    expect(
+      await screen.findByRole('link', { name: /play next/i }),
+    ).toHaveAttribute('href', '/admin/play-next')
+  })
+})

@@ -191,6 +191,18 @@ check_equals "PATCH /api/items/bulk unauthenticated" \
     -H 'Content-Type: application/json' -d '{}' "$API_URL/api/items/bulk")" \
   "401"
 
+# E8a: Play Next is admin-only; Up next is public as a flag.
+check_equals "POST /api/picker/next unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
+    -H 'Content-Type: application/json' -d '{}' "$API_URL/api/picker/next")" \
+  "401"
+
+if [ "$public_body" = "[]" ] || printf '%s' "$public_body" | grep -q '"pinned"'; then
+  report_pass "public items carry the Up next flag" "pinned"
+else
+  report_fail "public items carry the Up next flag" "pinned missing from public items"
+fi
+
 check_equals "POST /api/items/refresh-metadata/bulk unauthenticated" \
   "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
     "$API_URL/api/items/refresh-metadata/bulk?type=game")" \

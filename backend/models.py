@@ -12,6 +12,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     Enum,
+    ForeignKey,
     Index,
     SmallInteger,
     String,
@@ -234,4 +235,45 @@ class Item(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+
+class PickAction(str, enum.Enum):
+    """What happened to a game in Play Next."""
+
+    SHOWN = "shown"
+    SKIPPED = "skipped"
+    NEVER = "never"
+    PINNED = "pinned"
+
+
+class PickEvent(Base):
+    """One thing Play Next did or was told about a game (migration 0004).
+
+    `shown` feeds the staleness decay, `skipped` a seven-day exclusion,
+    `never` a permanent one (undone by deleting the event), and `pinned`
+    records what was committed to. Deleted with its item.
+    """
+
+    __tablename__ = "pick_events"
+    __table_args__ = (
+        Index("ix_pick_events_item_action_created", "item_id", "action", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("items.id", ondelete="CASCADE"), nullable=False
+    )
+    action: Mapped[PickAction] = mapped_column(
+        Enum(
+            PickAction,
+            name="pick_action",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )

@@ -196,6 +196,7 @@ LIST_FIELDS = {
     "physical_format",
     "completeness",
     "time_to_beat_hours",
+    "pinned",
 }
 DETAIL_FIELDS = LIST_FIELDS | {
     "description",
@@ -569,3 +570,28 @@ async def test_stats_count_platforms_and_switch_2_formats(sessionmaker_for_test)
             "total": 4,
         }
     }
+
+
+# --- E8a: Up next. -------------------------------------------------------------
+
+
+async def test_the_pinned_game_is_published_as_a_flag_not_a_date(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        session.add_all(
+            [
+                _game("Up Next", pinned_at=datetime(2026, 9, 23, tzinfo=UTC)),
+                _game("Waiting"),
+            ]
+        )
+        await session.commit()
+
+    async with client_for(sessionmaker_for_test) as client:
+        body = {
+            row["title"]: row for row in (await client.get("/api/public/items")).json()
+        }
+
+    assert body["Up Next"]["pinned"] is True
+    assert body["Waiting"]["pinned"] is False
+    assert "pinned_at" not in body["Up Next"]
