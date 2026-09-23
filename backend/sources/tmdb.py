@@ -123,6 +123,7 @@ class TmdbSource:
                 "community_votes": payload.get("vote_count"),
                 "runtime_minutes": payload.get("runtime"),
                 "original_language": payload.get("original_language"),
+                "release_date": payload.get("release_date") or None,
             },
         )
 

@@ -671,3 +671,187 @@ describe('AdminCollection favourites cap', () => {
     expect(row.querySelector('.favourites-hint')).toBeNull()
   })
 })
+
+describe('AdminCollection create form', () => {
+  beforeEach(() => {
+    localStorage.setItem('shelf.admin.view', '"list"')
+  })
+
+  it('sends the platform as a number and the copy format', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.type(await screen.findByLabelText('Title'), 'Donkey Kong')
+    await userEvent.selectOptions(
+      screen.getByLabelText('Owned format'),
+      'physical',
+    )
+    await userEvent.selectOptions(
+      screen.getByLabelText('Platform'),
+      'Nintendo 64',
+    )
+    await userEvent.selectOptions(
+      screen.getByLabelText('Copy format'),
+      'game_card',
+    )
+    await userEvent.click(screen.getByRole('button', { name: /add/i }))
+
+    await waitFor(() => {
+      const body = JSON.parse(writeCalls(mock)[0][1].body)
+      expect(body.platform_id).toBe(4)
+      expect(body.physical_format).toBe('game_card')
+    })
+  })
+
+  it('sends null for a platform and format left unchosen', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.type(await screen.findByLabelText('Title'), 'Loose')
+    await userEvent.selectOptions(
+      screen.getByLabelText('Owned format'),
+      'physical',
+    )
+    await userEvent.click(screen.getByRole('button', { name: /add/i }))
+
+    await waitFor(() => {
+      const body = JSON.parse(writeCalls(mock)[0][1].body)
+      expect(body.platform_id ?? null).toBeNull()
+      expect(body.physical_format ?? null).toBeNull()
+    })
+  })
+})
+
+describe('AdminCollection bulk set', () => {
+  beforeEach(() => {
+    localStorage.setItem('shelf.admin.view', '"list"')
+  })
+
+  it('applies a platform to the selected rows in one request', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.click(await screen.findByLabelText('Select Star Fox'))
+    await userEvent.click(screen.getByLabelText('Select Dune'))
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
+
+    await userEvent.selectOptions(
+      screen.getByLabelText('Set platform'),
+      'Nintendo Switch 2',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() => {
+      const [url, options] = writeCalls(mock)[0]
+      expect(String(url)).toContain('/api/items/bulk')
+      expect(options.method).toBe('PATCH')
+      expect(JSON.parse(options.body)).toEqual({
+        ids: ['a', 'b'],
+        changes: { platform_id: 508 },
+      })
+    })
+  })
+
+  it('selects every row from the header', async () => {
+    stubApi()
+    renderPage()
+
+    await userEvent.click(await screen.findByLabelText('Select all'))
+
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
+    expect(screen.getByLabelText('Select Dune')).toBeChecked()
+  })
+
+  it('applies nothing until a change is chosen', async () => {
+    stubApi()
+    renderPage()
+
+    await userEvent.click(await screen.findByLabelText('Select Dune'))
+
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled()
+  })
+
+  it('keeps the selection and says why when the server refuses', async () => {
+    const detail =
+      'Could not update: Star Fox (The cart ID says Game-Key Card; clear the cart ID to record a different format.)'
+    stubApi({
+      onWrite: () => ({
+        ok: false,
+        status: 422,
+        json: async () => ({ detail }),
+      }),
+    })
+    renderPage()
+
+    await userEvent.click(await screen.findByLabelText('Select Star Fox'))
+    await userEvent.selectOptions(
+      screen.getByLabelText('Set format'),
+      'game_card',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(detail)
+    expect(screen.getByLabelText('Select Star Fox')).toBeChecked()
+  })
+
+  it('shows each row’s platform', async () => {
+    stubApi({
+      items: [{ ...ITEMS[0], platform: 'Nintendo 64' }, ITEMS[1]],
+    })
+    renderPage()
+
+    await screen.findByText('Star Fox')
+    // Scoped to the table: the create form's platform select also offers it.
+    expect(
+      within(document.querySelector('.item-table')).getByText('Nintendo 64'),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('AdminCollection metadata refresh', () => {
+  it('refreshes the games and reports the counts', async () => {
+    const mock = stubApi({
+      onWrite: (url) =>
+        url.includes('refresh-metadata/bulk')
+          ? {
+              ok: true,
+              status: 200,
+              json: async () => ({ updated: 60, skipped: 3, failed: 0 }),
+            }
+          : null,
+    })
+    renderShelf()
+    await waitFor(() =>
+      expect(document.querySelector('.poster-grid')).not.toBeNull(),
+    )
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Refresh game metadata' }),
+    )
+
+    expect(
+      await screen.findByText('Updated 60 · skipped 3 · failed 0'),
+    ).toBeInTheDocument()
+    const [url, options] = writeCalls(mock)[0]
+    expect(String(url)).toContain('/api/items/refresh-metadata/bulk?type=game')
+    expect(options.method).toBe('POST')
+  })
+})
+
+describe('AdminCollection shelf platforms', () => {
+  it('filters the shelf by platform', async () => {
+    stubApi({
+      items: [
+        { ...ITEMS[0], platform: 'Nintendo Switch 2' },
+        { ...ITEMS[1], platform: 'Nintendo 64' },
+      ],
+    })
+    await renderShelf()
+
+    const chips = screen.getByRole('group', { name: 'Platform' })
+    await userEvent.click(within(chips).getByRole('button', { name: /64/ }))
+
+    const titles = [...document.querySelectorAll('.poster-grid .poster-title')]
+    expect(titles.map((node) => node.textContent)).toEqual(['Dune'])
+  })
+})

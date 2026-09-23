@@ -113,6 +113,21 @@ here was confirmed against the live API instead:
 
 No attribution required; credited anyway.
 
+**Batched fetch and time to beat (E7b).** `fetch_many(ids)` answers the bulk
+refresh (`POST /api/items/refresh-metadata/bulk?type=game`): one `/v4/games`
+query per 100 ids, with an explicit `limit 100;` because the default is 10,
+plus one `/v4/game_time_to_beats` query per batch. `_query(body, endpoint)`
+names the `/v4` resource and shares the token and the 4-per-second throttle.
+Time to beat comes back in seconds and is stored in hours to one decimal. A
+game with no submissions is absent from that endpoint, so its snapshot has
+no `time_to_beat` key; zeros are never stored. `game_status` replaced the
+deprecated `status`: the snapshot's `release_status` stores it as returned,
+and 0 means released, so it is never tested for truthiness.
+
+These shapes are pinned by fixtures recorded from the live API with
+`scripts/record_igdb_fixtures.py` (see `scripts/README.md`). Re-record when
+`FIELDS` changes.
+
 ### ComicVine — `COMICVINE_API_KEY`
 
 comicvine.gamespot.com/api → free account → key. Tracked at the **volume**

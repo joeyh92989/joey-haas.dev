@@ -71,6 +71,8 @@ const STATS = {
   owned: 1,
   finished_this_year: 1,
   average_rating: 9,
+  by_platform: {},
+  by_format: {},
 }
 
 function stubApi({ items = ITEMS, stats = STATS, itemsOk = true } = {}) {
@@ -483,5 +485,76 @@ describe('Collection', () => {
     expect(
       screen.queryByRole('region', { name: 'Favourites' }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('Collection platforms and formats', () => {
+  const SWITCH_2 = { platform: 'Nintendo Switch 2' }
+
+  it('has no platform chips while every item is on one platform', async () => {
+    stubApi({ items: ITEMS.map((item) => ({ ...item, ...SWITCH_2 })) })
+    await renderReady()
+    expect(
+      screen.queryByRole('group', { name: 'Platform' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('filters by platform once there are two', async () => {
+    stubApi({
+      items: [
+        { ...ITEMS[0], ...SWITCH_2 },
+        { ...ITEMS[1], platform: 'Nintendo 64' },
+      ],
+    })
+    await renderReady()
+
+    const chips = screen.getByRole('group', { name: 'Platform' })
+    await userEvent.click(within(chips).getByRole('button', { name: /64/ }))
+
+    expect(gridTitles()).toEqual(['Gloomhaven'])
+  })
+
+  it('states the on-cartridge line with unknowns kept apart', async () => {
+    stubApi({
+      stats: {
+        ...STATS,
+        by_format: {
+          508: {
+            game_card: 61,
+            game_key_card: 3,
+            code_in_box: 0,
+            unknown: 4,
+            total: 68,
+          },
+        },
+      },
+    })
+    await renderReady()
+
+    expect(
+      screen.getByText(
+        'Nintendo Switch 2 · 61 on cartridge · 3 Game-Key Cards · 4 not recorded, of 68',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('has no on-cartridge line before any format is recorded', async () => {
+    stubApi({
+      stats: {
+        ...STATS,
+        by_format: {
+          508: {
+            game_card: 0,
+            game_key_card: 0,
+            code_in_box: 0,
+            unknown: 9,
+            total: 9,
+          },
+        },
+      },
+    })
+    await renderReady()
+
+    expect(screen.queryByText(/on cartridge/)).not.toBeInTheDocument()
   })
 })

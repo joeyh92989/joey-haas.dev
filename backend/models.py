@@ -66,6 +66,53 @@ class OwnedFormat(str, enum.Enum):
     NONE = "none"
 
 
+class PhysicalFormat(str, enum.Enum):
+    """What a physical copy actually is.
+
+    GAME_CARD is every full-game cartridge (Switch, Switch 2, N64). A Game-Key
+    Card is a cartridge holding only a download key, and a code in a box is a
+    printed code: neither holds the game, which is the whole reason this is
+    recorded. NULL means unknown or not physical and is never defaulted.
+    """
+
+    GAME_CARD = "game_card"
+    GAME_KEY_CARD = "game_key_card"
+    CODE_IN_BOX = "code_in_box"
+    DISC = "disc"
+
+
+class FormatSource(str, enum.Enum):
+    """How physical_format was decided; derived server-side, never accepted.
+
+    The full set ships with migration 0003 so the physical catalogue (E7c)
+    does not have to alter the type. E7b writes only CART_ID and MANUAL.
+    """
+
+    CART_ID = "cart_id"
+    PHOTO = "photo"
+    REGISTRY = "registry"
+    STORE_TEXT = "store_text"
+    STORE_POLICY = "store_policy"
+    PLATFORM_POLICY = "platform_policy"
+    MANUAL = "manual"
+
+
+class Completeness(str, enum.Enum):
+    """How complete a cartridge-era copy is: collector vocabulary, not price."""
+
+    LOOSE = "loose"
+    BOXED = "boxed"
+    CIB = "cib"
+    SEALED = "sealed"
+
+
+def _enum_column(enum_class: type[enum.Enum], name: str):
+    return mapped_column(
+        Enum(enum_class, name=name, values_callable=lambda e: [m.value for m in e]),
+        nullable=True,
+    )
+
+
 class Item(Base):
     """One thing in the collection, of any media type.
 
@@ -151,6 +198,31 @@ class Item(Base):
     # Named source_metadata, never metadata: that attribute is reserved by
     # SQLAlchemy's declarative base and shadowing it breaks the mapper.
     source_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # The copy on the shelf, as distinct from the game it is a copy of
+    # (migration 0003). Written only through formats.apply_copy_fields.
+    release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # The Play Next commitment; no writer until E8a.
+    pinned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Backfilled from created_at by the migration: the collection was bulk
+    # imported, so created_at says nothing about how long a game has waited.
+    acquired_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    platform_id: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    # Resolved from platform_id on the server; never taken from a request.
+    platform: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    physical_format: Mapped[PhysicalFormat | None] = _enum_column(
+        PhysicalFormat, "physical_format"
+    )
+    format_source: Mapped[FormatSource | None] = _enum_column(
+        FormatSource, "format_source"
+    )
+    cart_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # NULL reads as the home region (formats.HOME_REGION).
+    region: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    completeness: Mapped[Completeness | None] = _enum_column(
+        Completeness, "completeness"
+    )
     is_public: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )

@@ -15,13 +15,23 @@ from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from models import Item, ItemStatus, ItemType, OwnedFormat
+from formats import CopyFieldError, apply_copy_fields
+from models import (
+    Completeness,
+    FormatSource,
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+    PhysicalFormat,
+)
 from sources.base import (
     SourceAdapter,
     SourceError,
     SourceNotConfigured,
     SourceRateLimited,
 )
+from sources.igdb import PLATFORM_NAMES
 from sources.registry import adapter_for
 
 logger = logging.getLogger(__name__)
@@ -57,6 +67,16 @@ class ItemIn(BaseModel):
     times_completed: int = Field(default=0, ge=0)
     owned_format: OwnedFormat | None = None
     source_metadata: dict | None = None
+    # The copy on the shelf (formats.py). platform, format_source and
+    # pinned_at are deliberately absent: the first two are derived on the
+    # server and the third has no writer yet.
+    platform_id: int | None = None
+    physical_format: PhysicalFormat | None = None
+    cart_id: str | None = Field(default=None, max_length=20)
+    region: str | None = Field(default=None, max_length=4)
+    completeness: Completeness | None = None
+    acquired_at: date | None = None
+    release_date: date | None = None
 
 
 class ItemPatch(BaseModel):
@@ -78,6 +98,16 @@ class ItemPatch(BaseModel):
     finished_at: date | None = None
     times_completed: int | None = Field(default=None, ge=0)
     owned_format: OwnedFormat | None = None
+    # The copy on the shelf (formats.py). platform, format_source and
+    # pinned_at are deliberately absent: the first two are derived on the
+    # server and the third has no writer yet.
+    platform_id: int | None = None
+    physical_format: PhysicalFormat | None = None
+    cart_id: str | None = Field(default=None, max_length=20)
+    region: str | None = Field(default=None, max_length=4)
+    completeness: Completeness | None = None
+    acquired_at: date | None = None
+    release_date: date | None = None
     source_metadata: dict | None = None
 
 
@@ -102,6 +132,16 @@ class ItemOut(BaseModel):
     times_completed: int
     owned_format: OwnedFormat | None
     source_metadata: dict | None
+    release_date: date | None
+    pinned_at: datetime | None
+    acquired_at: date | None
+    platform_id: int | None
+    platform: str | None
+    physical_format: PhysicalFormat | None
+    format_source: FormatSource | None
+    cart_id: str | None
+    region: str | None
+    completeness: Completeness | None
     created_at: datetime
     updated_at: datetime
 
@@ -126,6 +166,46 @@ class BulkOut(BaseModel):
     skipped_duplicates: int
     enriched: int
     ids: list[uuid.UUID]
+
+
+class RefreshBulkOut(BaseModel):
+    """What a bulk refresh did, per linked item.
+
+    `skipped` is a linked item the source returned nothing for (a deleted or
+    merged record); `failed` is an item in a batch whose request failed.
+    """
+
+    updated: int
+    skipped: int
+    failed: int
+
+
+class BulkSetChanges(BaseModel):
+    """What a bulk set may change: fields shared by many copies.
+
+    No cart_id: a cart ID belongs to exactly one copy.
+    """
+
+    platform_id: int | None = None
+    physical_format: PhysicalFormat | None = None
+    region: str | None = Field(default=None, max_length=4)
+    completeness: Completeness | None = None
+
+
+class BulkSetIn(BaseModel):
+    """The same copy-field change applied to many items at once.
+
+    Capped like BulkIn and VisibilityIn, for the same parameter-ceiling reason.
+    """
+
+    ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+    changes: BulkSetChanges
+
+
+class BulkSetOut(BaseModel):
+    """How many items the change was applied to."""
+
+    updated: int
 
 
 class VisibilityIn(BaseModel):
@@ -199,16 +279,65 @@ def require_admin(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
 
+def _copy_fields(changes: dict, row: Item | None) -> dict:
+    """Runs the copy-field rules, answering a refusal as a 422 in words."""
+    try:
+        return apply_copy_fields(changes, row)
+    except CopyFieldError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+# Games per bulk-refresh request: IGDB answers up to 500 rows, and 100 keeps
+# one failed request from costing more than a hundred refreshes.
+REFRESH_BATCH = 100
+
+# The snapshot keys a source's release date arrives under.
+RELEASE_DATE_KEYS = ("first_release_date", "release_date")
+
+
+def _release_date(snapshot: dict) -> date | None:
+    for key in RELEASE_DATE_KEYS:
+        value = snapshot.get(key)
+        if isinstance(value, str):
+            try:
+                return date.fromisoformat(value[:10])
+            except ValueError:
+                continue
+    return None
+
+
 def _apply_detail(item: Item, detail) -> None:
     """Copies a fetched source record onto an item, leaving the title alone.
 
     The title is the owner's: the picker prefills it and it stays editable, so
     overwriting it here would be data loss rather than enrichment.
+
+    The release date is overwritten when the source has one: for a linked item
+    the source is its truth, because announced dates move. Nothing the owner
+    records about their copy is touched here.
     """
     item.year = detail.year if detail.year is not None else item.year
     item.creator = detail.creator
     item.cover_url = detail.cover_url
     item.source_metadata = detail.source_metadata
+    released = _release_date(detail.source_metadata or {})
+    if released is not None:
+        item.release_date = released
+
+
+def _backfill_platform(item: Item) -> None:
+    """Fills an empty platform when the snapshot names exactly one.
+
+    A game released on several platforms says nothing about which one this
+    copy is for, so it is left for the owner; so is a platform the site has no
+    name for.
+    """
+    if item.platform_id is not None:
+        return
+    platforms = (item.source_metadata or {}).get("platform_ids") or []
+    if len(platforms) == 1 and platforms[0] in PLATFORM_NAMES:
+        item.platform_id = platforms[0]
+        item.platform = PLATFORM_NAMES[platforms[0]]
 
 
 async def _enrich(
@@ -344,7 +473,9 @@ def create_items_router(
     ) -> Item:
         """Adds one item and returns it, including its generated id."""
         await _require_favorite_slots(session, int(payload.favorite))
-        item = Item(**payload.model_dump())
+        values = payload.model_dump()
+        values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
+        item = Item(**values)
         session.add(item)
         await session.commit()
         await session.refresh(item)
@@ -378,6 +509,44 @@ def create_items_router(
         )
         return VisibilityOut(updated=result.rowcount)
 
+    # Declared before /{item_id}: FastAPI matches in order, and the typed id
+    # would answer "bulk" with a 422 rather than let it through.
+    @router.patch("/bulk", response_model=BulkSetOut)
+    async def bulk_set(
+        payload: BulkSetIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> BulkSetOut:
+        """Applies one copy-field change to many items, all or nothing.
+
+        Every row goes through the same rules as a single PATCH. If any row
+        refuses -- a Game-Key Card cart ID set to a cartridge, say -- the whole
+        request is refused naming those items, and nothing is written, so the
+        selection can be corrected and sent again as it was.
+        """
+        changes = payload.changes.model_dump(exclude_unset=True)
+        if not changes:
+            raise HTTPException(status_code=422, detail="Nothing to change.")
+
+        result = await session.execute(select(Item).where(Item.id.in_(payload.ids)))
+        rows = list(result.scalars())
+        planned: list[tuple[Item, dict]] = []
+        refused: list[str] = []
+        for row in rows:
+            try:
+                planned.append((row, apply_copy_fields(changes, row)))
+            except CopyFieldError as error:
+                refused.append(f"{row.title} ({error})")
+        if refused:
+            raise HTTPException(
+                status_code=422, detail=f"Could not update: {'; '.join(refused)}"
+            )
+
+        for row, row_changes in planned:
+            for field, value in row_changes.items():
+                setattr(row, field, value)
+        await session.commit()
+        return BulkSetOut(updated=len(planned))
+
     @router.post("/bulk", response_model=BulkOut, status_code=201)
     async def create_items_bulk(
         payload: BulkIn,
@@ -398,6 +567,16 @@ def create_items_router(
 
         for item in payload.items:
             values = item.model_dump()
+            # One refused row refuses the batch: this is a review-then-commit
+            # step, and a half-imported shelf is harder to reason about.
+            try:
+                values.update(
+                    apply_copy_fields(item.model_dump(exclude_unset=True), None)
+                )
+            except CopyFieldError as error:
+                raise HTTPException(
+                    status_code=422, detail=f"{item.title}: {error}"
+                ) from error
             key = (values.get("external_source"), values.get("external_id"))
             # A manual row has NULL on both and is never a duplicate of
             # another manual row -- the same reason the index is partial.
@@ -442,6 +621,62 @@ def create_items_router(
             enriched=enriched,
             ids=created,
         )
+
+    # Declared before /{item_id}/refresh-metadata, for the same ordering reason
+    # as /search-metadata below.
+    @router.post("/refresh-metadata/bulk", response_model=RefreshBulkOut)
+    async def refresh_metadata_bulk(
+        type: ItemType = Query(),
+        session: AsyncSession = Depends(get_session),
+    ) -> RefreshBulkOut:
+        """Re-fetches every IGDB-linked game in batches.
+
+        Games only: IGDB is the one source with a batched fetch, and the shelf
+        is almost all games. A failed batch is counted and the others still
+        land, so one bad request never costs the whole refresh. Synchronous:
+        a shelf of games is a handful of requests.
+        """
+        if type is not ItemType.GAME:
+            raise HTTPException(
+                status_code=422, detail="Only games can be refreshed in bulk."
+            )
+        try:
+            adapter = adapter_for(registry, ItemType.GAME)
+        except SourceError as error:
+            raise _http_error_for(error) from error
+
+        result = await session.execute(
+            select(Item)
+            .where(Item.type == ItemType.GAME, Item.external_source == "igdb")
+            .where(Item.external_id.is_not(None))
+            .order_by(Item.created_at)
+        )
+        linked = list(result.scalars())
+
+        updated = skipped = failed = 0
+        for start in range(0, len(linked), REFRESH_BATCH):
+            batch = linked[start : start + REFRESH_BATCH]
+            try:
+                details = await adapter.fetch_many([row.external_id for row in batch])
+            except SourceError as error:
+                logger.warning("bulk refresh batch failed: %s", error)
+                failed += len(batch)
+                continue
+            by_id = {detail.external_id: detail for detail in details}
+            for row in batch:
+                detail = by_id.get(row.external_id)
+                if detail is None:
+                    skipped += 1
+                    continue
+                _apply_detail(row, detail)
+                _backfill_platform(row)
+                updated += 1
+
+        await session.commit()
+        logger.info(
+            "bulk refresh: %s updated, %s skipped, %s failed", updated, skipped, failed
+        )
+        return RefreshBulkOut(updated=updated, skipped=skipped, failed=failed)
 
     # Declared before /{item_id}. FastAPI matches in declaration order and
     # {item_id} is typed uuid.UUID, so a later /search-metadata would be
@@ -518,7 +753,7 @@ def create_items_router(
     ) -> Item:
         """Partial update. Fields absent from the body are left alone."""
         item = await _load(session, item_id)
-        changes = payload.model_dump(exclude_unset=True)
+        changes = _copy_fields(payload.model_dump(exclude_unset=True), item)
         if changes.get("favorite") is True and not item.favorite:
             await _require_favorite_slots(session, 1)
         for field, value in changes.items():

@@ -1,0 +1,571 @@
+[
+  {
+    "game_modes": [
+      {
+        "id": 1,
+        "name": "Single player"
+      },
+      {
+        "id": 2,
+        "name": "Multiplayer"
+      }
+    ],
+    "game_status": {
+      "id": 6,
+      "status": "Cancelled"
+    },
+    "genres": [
+      {
+        "id": 8,
+        "name": "Platform"
+      }
+    ],
+    "hypes": 1,
+    "id": 175964,
+    "involved_companies": [
+      {
+        "company": {
+          "id": 70,
+          "name": "Nintendo"
+        },
+        "developer": false,
+        "id": 183064
+      },
+      {
+        "company": {
+          "id": 421,
+          "name": "Nintendo Entertainment Analysis & Development"
+        },
+        "developer": true,
+        "id": 183065
+      }
+    ],
+    "keywords": [
+      {
+        "id": 2555,
+        "name": "mario"
+      },
+      {
+        "id": 5340,
+        "name": "canceled games"
+      },
+      {
+        "id": 25315,
+        "name": "luigi"
+      },
+      {
+        "id": 29622,
+        "name": "playable character - luigi"
+      },
+      {
+        "id": 37741,
+        "name": "nintendo 64 exclusive"
+      }
+    ],
+    "name": "Super Mario 64 2",
+    "platforms": [
+      {
+        "id": 4,
+        "name": "Nintendo 64"
+      },
+      {
+        "id": 416,
+        "name": "64DD"
+      }
+    ],
+    "player_perspectives": [
+      {
+        "id": 2,
+        "name": "Third person"
+      }
+    ],
+    "similar_games": [
+      175949,
+      142129,
+      91994,
+      67940,
+      137008,
+      40533,
+      131939,
+      115276,
+      1066,
+      131371
+    ],
+    "summary": "Super Mario 64 2 was the tentative title for a Mario game in development that served as the direct sequel to Super Mario 64, intended for release in 1999. It was going to be for the Nintendo 64DD, but was canceled early in production due to lack of progress and the commercial failure of the 64DD add-on. Only one demo level was ever made but was never publicly revealed. It is also possible that Super Mario Sunshine, Super Mario Galaxy, or Super Mario Galaxy 2 could have elements salvaged from the development of Super Mario 64 2, according to Nintendo during an E3 event. Luigi was also set to appear in this game, as was a rideable Yoshi. It can be assumed that Luigi would have been playable, as Shigeru Miyamoto had planned to make Super Mario 64 2 multiplayer \u2013 in fact, the first playable demo level was multiplayer.",
+    "themes": [
+      {
+        "id": 1,
+        "name": "Action"
+      }
+    ]
+  },
+  {
+    "cover": {
+      "id": 289882,
+      "image_id": "co67oa"
+    },
+    "first_release_date": 1512691200,
+    "game_modes": [
+      {
+        "id": 1,
+        "name": "Single player"
+      }
+    ],
+    "genres": [
+      {
+        "id": 12,
+        "name": "Role-playing (RPG)"
+      },
+      {
+        "id": 31,
+        "name": "Adventure"
+      }
+    ],
+    "id": 237895,
+    "involved_companies": [
+      {
+        "company": {
+          "id": 70,
+          "name": "Nintendo"
+        },
+        "developer": true,
+        "id": 205656
+      },
+      {
+        "company": {
+          "id": 45209,
+          "name": "Nintendo EPD Production Group No. 3"
+        },
+        "developer": true,
+        "id": 268449
+      }
+    ],
+    "keywords": [
+      {
+        "id": 3823,
+        "name": "expansion pass"
+      }
+    ],
+    "name": "The Legend of Zelda: Breath of the Wild and The Legend of Zelda: Breath of the Wild Expansion Pass Bundle",
+    "platforms": [
+      {
+        "id": 130,
+        "name": "Nintendo Switch"
+      }
+    ],
+    "player_perspectives": [
+      {
+        "id": 2,
+        "name": "Third person"
+      }
+    ],
+    "similar_games": [
+      194143,
+      18327,
+      174589,
+      17548,
+      211912,
+      127546,
+      140472,
+      26973,
+      283391,
+      240432
+    ],
+    "summary": "The Legend of Zelda: Breath of the Wild game packs countless hours of play into a vast world of discovery. That makes it an ideal foundation for more adventures! This special bundle comes with the full game for the Nintendo Switch system and the Expansion Pass, which grants access to three new treasure chests, The Master Trials DLC Pack 1, and The Champions Ballad DLC Pack 2.",
+    "themes": [
+      {
+        "id": 1,
+        "name": "Action"
+      },
+      {
+        "id": 17,
+        "name": "Fantasy"
+      },
+      {
+        "id": 21,
+        "name": "Survival"
+      },
+      {
+        "id": 31,
+        "name": "Drama"
+      },
+      {
+        "id": 33,
+        "name": "Sandbox"
+      },
+      {
+        "id": 38,
+        "name": "Open world"
+      }
+    ]
+  },
+  {
+    "aggregated_rating": 91.5,
+    "cover": {
+      "id": 525897,
+      "image_id": "cob9s9"
+    },
+    "first_release_date": 1749081600,
+    "game_modes": [
+      {
+        "id": 1,
+        "name": "Single player"
+      },
+      {
+        "id": 2,
+        "name": "Multiplayer"
+      },
+      {
+        "id": 4,
+        "name": "Split screen"
+      }
+    ],
+    "genres": [
+      {
+        "id": 10,
+        "name": "Racing"
+      },
+      {
+        "id": 31,
+        "name": "Adventure"
+      }
+    ],
+    "hypes": 36,
+    "id": 338067,
+    "involved_companies": [
+      {
+        "company": {
+          "id": 70,
+          "name": "Nintendo"
+        },
+        "developer": false,
+        "id": 313956
+      },
+      {
+        "company": {
+          "id": 1119,
+          "name": "Monolith Soft"
+        },
+        "developer": false,
+        "id": 324037
+      },
+      {
+        "company": {
+          "id": 2910,
+          "name": "1-UP Studio"
+        },
+        "developer": false,
+        "id": 324629
+      },
+      {
+        "company": {
+          "id": 22721,
+          "name": "Bandai Namco Studios"
+        },
+        "developer": false,
+        "id": 324630
+      },
+      {
+        "company": {
+          "id": 45214,
+          "name": "Nintendo EPD Production Group No. 9"
+        },
+        "developer": true,
+        "id": 330804
+      }
+    ],
+    "keywords": [
+      {
+        "id": 25,
+        "name": "vehicular combat"
+      },
+      {
+        "id": 57,
+        "name": "motorcycle"
+      },
+      {
+        "id": 72,
+        "name": "exploration"
+      },
+      {
+        "id": 87,
+        "name": "dinosaurs"
+      },
+      {
+        "id": 250,
+        "name": "3d"
+      },
+      {
+        "id": 280,
+        "name": "go-kart"
+      },
+      {
+        "id": 724,
+        "name": "penguin"
+      },
+      {
+        "id": 839,
+        "name": "dolphin"
+      },
+      {
+        "id": 915,
+        "name": "trains"
+      },
+      {
+        "id": 1075,
+        "name": "crossover"
+      },
+      {
+        "id": 1381,
+        "name": "princess"
+      },
+      {
+        "id": 1524,
+        "name": "explorable world"
+      },
+      {
+        "id": 1551,
+        "name": "free roam"
+      },
+      {
+        "id": 1678,
+        "name": "drifting"
+      },
+      {
+        "id": 1710,
+        "name": "snow"
+      },
+      {
+        "id": 1744,
+        "name": "grand prix"
+      },
+      {
+        "id": 2132,
+        "name": "boat racing"
+      },
+      {
+        "id": 2155,
+        "name": "wall jump"
+      },
+      {
+        "id": 2165,
+        "name": "yoshi"
+      },
+      {
+        "id": 2233,
+        "name": "motion controls"
+      },
+      {
+        "id": 2555,
+        "name": "mario"
+      },
+      {
+        "id": 2646,
+        "name": "donkey kong"
+      },
+      {
+        "id": 2672,
+        "name": "giraffe"
+      },
+      {
+        "id": 3227,
+        "name": "snowman"
+      },
+      {
+        "id": 4231,
+        "name": "zebra"
+      },
+      {
+        "id": 4266,
+        "name": "alternate costumes"
+      },
+      {
+        "id": 4341,
+        "name": "cow"
+      },
+      {
+        "id": 4433,
+        "name": "bat"
+      },
+      {
+        "id": 4473,
+        "name": "photo mode"
+      },
+      {
+        "id": 4484,
+        "name": "collectibles"
+      },
+      {
+        "id": 4777,
+        "name": "checkpoints"
+      },
+      {
+        "id": 4803,
+        "name": "combat racing"
+      },
+      {
+        "id": 5359,
+        "name": "crab"
+      },
+      {
+        "id": 6145,
+        "name": "gliding"
+      },
+      {
+        "id": 7243,
+        "name": "wiggler"
+      },
+      {
+        "id": 8132,
+        "name": "ape"
+      },
+      {
+        "id": 23983,
+        "name": "wario"
+      },
+      {
+        "id": 25315,
+        "name": "luigi"
+      },
+      {
+        "id": 26965,
+        "name": "multiple playable characters"
+      },
+      {
+        "id": 29428,
+        "name": "princess peach"
+      },
+      {
+        "id": 32479,
+        "name": "king boo"
+      },
+      {
+        "id": 38096,
+        "name": "toad"
+      },
+      {
+        "id": 38700,
+        "name": "mushroom"
+      },
+      {
+        "id": 40744,
+        "name": "interconnected-world"
+      },
+      {
+        "id": 41449,
+        "name": "coins"
+      },
+      {
+        "id": 42008,
+        "name": "boomerang"
+      },
+      {
+        "id": 42009,
+        "name": "rails"
+      },
+      {
+        "id": 42064,
+        "name": "bees"
+      },
+      {
+        "id": 42207,
+        "name": "lava"
+      },
+      {
+        "id": 42386,
+        "name": "mole"
+      },
+      {
+        "id": 42672,
+        "name": "kart racing"
+      },
+      {
+        "id": 44592,
+        "name": "desert"
+      },
+      {
+        "id": 44864,
+        "name": "ghost"
+      },
+      {
+        "id": 45975,
+        "name": "mario kart"
+      },
+      {
+        "id": 46408,
+        "name": "boat"
+      },
+      {
+        "id": 47416,
+        "name": "elimination mode"
+      },
+      {
+        "id": 48189,
+        "name": "stickers"
+      },
+      {
+        "id": 48881,
+        "name": "bowser koopa"
+      },
+      {
+        "id": 49401,
+        "name": "princess daisy"
+      },
+      {
+        "id": 50653,
+        "name": "rosalina"
+      },
+      {
+        "id": 50654,
+        "name": "waluigi"
+      },
+      {
+        "id": 50655,
+        "name": "playable enemy"
+      }
+    ],
+    "name": "Mario Kart World",
+    "platforms": [
+      {
+        "id": 508,
+        "name": "Nintendo Switch 2"
+      }
+    ],
+    "player_perspectives": [
+      {
+        "id": 2,
+        "name": "Third person"
+      }
+    ],
+    "rating": 78.8523406591421,
+    "similar_games": [
+      2344,
+      2338,
+      2349,
+      2332,
+      26758,
+      2350,
+      1074,
+      1077,
+      7340,
+      2345
+    ],
+    "summary": "Mario Kart World is a kart racing game for the Nintendo Switch 2, featuring characters from the Mario franchise. It introduces an open-world design to the series, allowing players to drive freely between courses rather than selecting them from a menu. Races support up to 24 players and include new mechanics such as off-roading, boat racing, rail grinding, and wall riding. The game features a Knockout Tour elimination mode where racers compete across connected courses with periodic eliminations at checkpoints, as well as a Free Roam mode for open exploration and collectible-finding.",
+    "themes": [
+      {
+        "id": 17,
+        "name": "Fantasy"
+      },
+      {
+        "id": 38,
+        "name": "Open world"
+      },
+      {
+        "id": 40,
+        "name": "Party"
+      }
+    ],
+    "total_rating": 85.17617032957105,
+    "total_rating_count": 134
+  }
+]

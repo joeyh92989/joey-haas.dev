@@ -29,6 +29,7 @@ from llm import Image, LLMError, LLMProvider
 from matching import Confidence, best_match
 from models import ItemType
 from sources.base import SourceAdapter, SourceError, SourceResult
+from sources.igdb import platform_id
 from sources.registry import adapter_for
 
 logger = logging.getLogger(__name__)
@@ -132,6 +133,9 @@ def _unresolved(detection: Detection, reason: str) -> dict:
         "media_type": detection.media_type.value,
         "detected_year": detection.year,
         "detected_platform": detection.platform,
+        # Committed with the row; the server resolves the display name. An
+        # unrecognised platform stays None rather than being guessed.
+        "platform_id": platform_id(detection.platform),
         "status": "unresolved",
         "confidence": Confidence.UNCERTAIN.value,
         "reason": reason,
@@ -186,6 +190,9 @@ async def _resolve_one(adapter: SourceAdapter, detection: Detection) -> dict:
         "media_type": detection.media_type.value,
         "detected_year": detection.year,
         "detected_platform": detection.platform,
+        # Committed with the row; the server resolves the display name. An
+        # unrecognised platform stays None rather than being guessed.
+        "platform_id": platform_id(detection.platform),
         "status": "matched" if match.result else "unresolved",
         "confidence": match.confidence.value,
         "reason": None if match.result else "no candidates returned",

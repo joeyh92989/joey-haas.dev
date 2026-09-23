@@ -56,10 +56,50 @@ function playedRange(item) {
   return ends.map((end) => (end ? DAY.format(parseDate(end)) : '…')).join(' → ')
 }
 
+const FORMAT_LABEL = {
+  game_card: 'Full game on cartridge',
+  game_key_card: 'Game-Key Card',
+  code_in_box: 'Code in a box',
+  disc: 'Disc',
+}
+
+const COMPLETENESS_LABEL = {
+  loose: 'Loose',
+  boxed: 'Boxed',
+  cib: 'Complete in box',
+  sealed: 'Sealed',
+}
+
+/**
+ * The format chip's text, or null.
+ *
+ * A Switch 2 copy with no recorded format says so: it may be a Game-Key
+ * Card, so silence would read as a cartridge. Elsewhere no format means no
+ * chip.
+ */
+function formatChip(item) {
+  if (item.physical_format) return FORMAT_LABEL[item.physical_format] ?? null
+  return item.platform === 'Nintendo Switch 2' ? 'Format not recorded' : null
+}
+
+/** "≈ 12 h · 18 h to complete", or whichever figure exists. */
+function timeToBeatText(timeToBeat) {
+  if (!timeToBeat) return null
+  const parts = []
+  if (timeToBeat.normally != null) {
+    parts.push(`≈ ${Math.round(timeToBeat.normally)} h`)
+  }
+  if (timeToBeat.completely != null) {
+    parts.push(`${Math.round(timeToBeat.completely)} h to complete`)
+  }
+  return parts.length > 0 ? parts.join(' · ') : null
+}
+
 /** Rating, community score, and play history as a row of tiles. */
 function Tiles({ item }) {
   const played = playedRange(item)
   const showPlayed = item.times_completed > 0 || played
+  const timeToBeat = timeToBeatText(item.time_to_beat)
   return (
     <dl className="item-tiles">
       <div className="item-tile">
@@ -83,6 +123,14 @@ function Tiles({ item }) {
             {item.community_votes != null && (
               <span className="muted">{item.community_votes} votes</span>
             )}
+          </dd>
+        </div>
+      )}
+      {timeToBeat && (
+        <div className="item-tile">
+          <dt>Time to beat</dt>
+          <dd>
+            <span className="item-tile-figure">{timeToBeat}</span>
           </dd>
         </div>
       )}
@@ -182,6 +230,26 @@ function ItemPage({ id }) {
   const { item } = result
   const meta = [item.year, item.creator].filter(Boolean).join(' · ')
   const description = item.description ? plainText(item.description) : ''
+  const themes = item.themes ?? []
+  const otherPlatforms = item.platforms.filter(
+    (platform) => platform !== item.platform,
+  )
+  const format = formatChip(item)
+  const completeness = COMPLETENESS_LABEL[item.completeness] ?? null
+  const chips = [
+    // The copy on the shelf first, then what the game is, then where else it
+    // exists, then what the copy physically is.
+    ...(item.platform ? [[`own-${item.platform}`, item.platform, false]] : []),
+    ...item.genres.map((genre) => [`genre-${genre}`, genre, false]),
+    ...themes.map((theme) => [`theme-${theme}`, theme, true]),
+    ...otherPlatforms.map((platform) => [
+      `platform-${platform}`,
+      platform,
+      true,
+    ]),
+    ...(format ? [['format', format, false]] : []),
+    ...(completeness ? [['completeness', completeness, false]] : []),
+  ]
 
   return (
     <article className="item-page">
@@ -209,19 +277,14 @@ function ItemPage({ id }) {
         </div>
       </header>
 
-      {(item.genres.length > 0 || item.platforms.length > 0) && (
+      {chips.length > 0 && (
         <ul className="item-chips">
-          {item.genres.map((genre) => (
-            <li key={`genre-${genre}`} className="item-chip">
-              {genre}
-            </li>
-          ))}
-          {item.platforms.map((platform) => (
+          {chips.map(([key, label, muted]) => (
             <li
-              key={`platform-${platform}`}
-              className="item-chip item-chip-muted"
+              key={key}
+              className={muted ? 'item-chip item-chip-muted' : 'item-chip'}
             >
-              {platform}
+              {label}
             </li>
           ))}
         </ul>

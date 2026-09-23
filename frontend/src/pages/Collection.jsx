@@ -50,6 +50,77 @@ function lastTwelveMonths(now = new Date()) {
   })
 }
 
+/** Key-card platforms by IGDB id, as stats.by_format keys them. */
+const KEY_CARD_PLATFORM_NAMES = { 508: 'Nintendo Switch 2' }
+
+/**
+ * The platform chip group, or null while there is only one platform: a row
+ * with one chip filters nothing. Shared with the admin shelf.
+ *
+ * @param {object[]} items - Shelf rows; those without a platform are ignored.
+ * @returns {object|null} A FilterChips group.
+ */
+export function platformGroup(items) {
+  const counts = countBy(
+    items.filter((item) => item.platform),
+    'platform',
+  )
+  const platforms = Object.keys(counts).sort((a, b) => counts[b] - counts[a])
+  if (platforms.length < 2) return null
+  return {
+    key: 'platform',
+    label: 'Platform',
+    options: platforms.map((platform) => ({
+      value: platform,
+      label: platform,
+      count: counts[platform],
+    })),
+  }
+}
+
+/**
+ * One line per key-card platform: how many owned copies are full cartridges,
+ * how many are not, and how many were never recorded. Unknowns are stated,
+ * never folded into the cartridge count. Nothing renders until at least one
+ * format has been recorded.
+ */
+function OnCartridge({ byFormat }) {
+  const lines = Object.entries(byFormat ?? {})
+    .filter(
+      ([, counts]) =>
+        counts.game_card + counts.game_key_card + counts.code_in_box > 0,
+    )
+    .map(([platformId, counts]) => {
+      const parts = [
+        [counts.game_card, 'on cartridge'],
+        [
+          counts.game_key_card,
+          counts.game_key_card === 1 ? 'Game-Key Card' : 'Game-Key Cards',
+        ],
+        [
+          counts.code_in_box,
+          counts.code_in_box === 1 ? 'code in a box' : 'codes in a box',
+        ],
+        [counts.unknown, 'not recorded'],
+      ]
+        .filter(([count]) => count > 0)
+        .map(([count, label]) => `${count} ${label}`)
+      const name =
+        KEY_CARD_PLATFORM_NAMES[platformId] ?? `Platform ${platformId}`
+      return `${name} · ${parts.join(' · ')}, of ${counts.total}`
+    })
+  if (lines.length === 0) return null
+  return (
+    <div className="on-cartridge">
+      {lines.map((line) => (
+        <p key={line} className="muted">
+          {line}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
 
 /** Finished and abandoned fade back when dimming is on; the backlog never does. */
@@ -373,6 +444,8 @@ export default function Collection() {
       })),
     },
   ]
+  const platforms = platformGroup(items)
+  if (platforms) groups.push(platforms)
   const toggles = [
     {
       key: 'wanted',
@@ -434,6 +507,8 @@ export default function Collection() {
               )}
             </div>
           )}
+
+          {stats && <OnCartridge byFormat={stats.by_format} />}
 
           <ShelfToolbar
             groups={groups}

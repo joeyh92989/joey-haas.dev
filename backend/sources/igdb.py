@@ -40,7 +40,7 @@ from sources.base import (
 logger = logging.getLogger(__name__)
 
 TOKEN_URL = "https://id.twitch.tv/oauth2/token"
-API_URL = "https://api.igdb.com/v4/games"
+API_ROOT = "https://api.igdb.com/v4"
 IMAGE_ROOT = "https://images.igdb.com/igdb/image/upload"
 COVER_SIZE = "t_cover_big"
 THUMBNAIL_SIZE = "t_cover_small"
@@ -74,6 +74,24 @@ PLATFORM_IDS = {
     "nintendo 3ds": 37,
     "3ds": 37,
     "wii u": 41,
+    "nintendo 64": 4,
+    "n64": 4,
+}
+
+# Display names for the ids above, used to resolve an item's `platform` from
+# its `platform_id` on the server (formats.py). Every id in PLATFORM_IDS must
+# appear here; a test enforces it.
+PLATFORM_NAMES = {
+    508: "Nintendo Switch 2",
+    130: "Nintendo Switch",
+    4: "Nintendo 64",
+    167: "PlayStation 5",
+    48: "PlayStation 4",
+    169: "Xbox Series X|S",
+    49: "Xbox One",
+    6: "PC",
+    37: "Nintendo 3DS",
+    41: "Wii U",
 }
 
 _PLATFORM_NOISE = re.compile(r"[^a-z0-9]+")
@@ -100,11 +118,25 @@ def platform_id(name: str | None) -> int | None:
     return None
 
 
+# Keep in step with GAME_FIELDS in scripts/record_igdb_fixtures.py, and
+# re-record the fixtures when this changes.
 FIELDS = (
-    "fields name,first_release_date,cover.image_id,genres.name,summary,rating,"
-    "aggregated_rating,total_rating,total_rating_count,platforms.name,"
-    "involved_companies.company.name,involved_companies.developer,similar_games;"
+    "fields name,first_release_date,cover.image_id,genres.name,genres.id,"
+    "summary,rating,aggregated_rating,total_rating,total_rating_count,"
+    "platforms.name,platforms.id,involved_companies.company.name,"
+    "involved_companies.developer,similar_games,themes.name,themes.id,"
+    "keywords.name,game_modes.name,player_perspectives.name,hypes,"
+    "game_status.status;"
 )
+TIME_TO_BEAT_FIELDS = "fields game_id,hastily,normally,completely,count;"
+
+# Rows per batched request. IGDB answers up to 500, and the default is 10, so
+# every batched query states its limit.
+BATCH = 100
+
+# Keywords run to dozens on a popular game, and the query language cannot
+# trim an expanded array.
+KEYWORD_LIMIT = 10
 
 
 def year_from_unix(value: int | None) -> int | None:
@@ -121,6 +153,24 @@ def year_from_unix(value: int | None) -> int | None:
         return datetime.fromtimestamp(value, tz=UTC).year
     except (OverflowError, OSError, ValueError):
         return None
+
+
+def date_from_unix(value: int | None) -> str | None:
+    """The ISO date of a Unix timestamp, or None."""
+    if not isinstance(value, int):
+        return None
+    try:
+        return datetime.fromtimestamp(value, tz=UTC).date().isoformat()
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def _names(row: dict, field: str) -> list[str]:
+    return [entry["name"] for entry in row.get(field) or [] if entry.get("name")]
+
+
+def _ids(row: dict, field: str) -> list[int]:
+    return [entry["id"] for entry in row.get(field) or [] if "id" in entry]
 
 
 class IgdbSource:
@@ -180,8 +230,12 @@ class IgdbSource:
         self._token = token
         return token
 
-    async def _query(self, body: str) -> list[dict]:
-        """Runs one Apicalypse query, refreshing the token once on a 401."""
+    async def _query(self, body: str, endpoint: str = "games") -> list[dict]:
+        """Runs one Apicalypse query, refreshing the token once on a 401.
+
+        `endpoint` names the /v4 resource. Games is the default; time to beat
+        and platforms are separate resources with the same auth and limits.
+        """
         client_id, _ = self._require_credentials()
         token = self._token or await self._fetch_token()
 
@@ -194,13 +248,15 @@ class IgdbSource:
             }
             try:
                 async with httpx2.AsyncClient(timeout=TIMEOUT) as client:
-                    response = await client.post(API_URL, content=body, headers=headers)
+                    response = await client.post(
+                        f"{API_ROOT}/{endpoint}", content=body, headers=headers
+                    )
             except httpx2.HTTPError as error:
                 raise SourceError(
                     self.source_name, f"request failed: {error}"
                 ) from error
 
-            logger.info("igdb POST /v4/games -> %s", response.status_code)
+            logger.info("igdb POST /v4/%s -> %s", endpoint, response.status_code)
 
             if response.status_code == 401 and attempt == 1:
                 # The app token lasts about two months, so this is rare -- but
@@ -234,30 +290,91 @@ class IgdbSource:
             for row in payload[:SEARCH_LIMIT]
         ]
 
-    def _parse_detail(self, row: dict) -> SourceDetail:
+    def _time_to_beat(self, row: dict) -> dict | None:
+        """One game_time_to_beats row as hours to one decimal.
+
+        The source is seconds. A figure nobody submitted is missing or zero
+        and is dropped, never stored as 0; with no figure left, None.
+        """
+        hours = {
+            key: round(row[key] / 3600, 1)
+            for key in ("hastily", "normally", "completely")
+            if isinstance(row.get(key), int) and row[key] > 0
+        }
+        if not hours:
+            return None
+        if isinstance(row.get("count"), int):
+            hours["count"] = row["count"]
+        return hours
+
+    async def _times_to_beat(self, ids: list[str]) -> dict[str, dict]:
+        """Time to beat for up to BATCH games, keyed by external_id.
+
+        A game with no submissions is simply absent from the response.
+        """
+        if not ids:
+            return {}
+        payload = await self._query(
+            f"where game_id = ({','.join(ids)}); {TIME_TO_BEAT_FIELDS} limit {BATCH};",
+            endpoint="game_time_to_beats",
+        )
+        times = {}
+        for row in payload:
+            hours = self._time_to_beat(row)
+            if hours is not None and row.get("game_id") is not None:
+                times[str(row["game_id"])] = hours
+        return times
+
+    def _parse_detail(
+        self, row: dict, time_to_beat: dict | None = None
+    ) -> SourceDetail:
         """Maps one game onto Item's columns plus the snapshot."""
         developers = [
             (involved.get("company") or {}).get("name")
             for involved in row.get("involved_companies") or []
             if involved.get("developer") and (involved.get("company") or {}).get("name")
         ]
+        snapshot = {
+            "genres": _names(row, "genres"),
+            "description": row.get("summary") or None,
+            "community_score": row.get("total_rating") or row.get("rating"),
+            "community_votes": row.get("total_rating_count"),
+            "critic_score": row.get("aggregated_rating"),
+            "platforms": _names(row, "platforms"),
+            # Kept for a future recommendation engine, which is the only
+            # reason this field is requested at all.
+            "similar_games": row.get("similar_games") or [],
+            "themes": _names(row, "themes"),
+            "keywords": _names(row, "keywords")[:KEYWORD_LIMIT],
+            "game_modes": _names(row, "game_modes"),
+            "player_perspectives": _names(row, "player_perspectives"),
+            "genre_ids": _ids(row, "genres"),
+            "theme_ids": _ids(row, "themes"),
+            "platform_ids": _ids(row, "platforms"),
+        }
+        # Optional keys are absent rather than null or zero, so a reader can
+        # tell "IGDB said nothing" from a value.
+        released = date_from_unix(row.get("first_release_date"))
+        if released:
+            snapshot["first_release_date"] = released
+        if isinstance(row.get("hypes"), int):
+            snapshot["hypes"] = row["hypes"]
+        # Live, IGDB returns game_status only for games that are not simply
+        # released (cancelled, early access...); released games come back
+        # null. So a missing status means unknown, and the name is stored as
+        # given. The deprecated `status` field is not read.
+        status = (row.get("game_status") or {}).get("status")
+        if status:
+            snapshot["release_status"] = status
+        if time_to_beat:
+            snapshot["time_to_beat"] = time_to_beat
         return SourceDetail(
             external_id=str(row["id"]),
             title=row.get("name") or "",
             year=year_from_unix(row.get("first_release_date")),
             creator=", ".join(dict.fromkeys(developers)) or None,
             cover_url=self._image_url(row, COVER_SIZE),
-            source_metadata={
-                "genres": [genre["name"] for genre in row.get("genres") or []],
-                "description": row.get("summary") or None,
-                "community_score": row.get("total_rating") or row.get("rating"),
-                "community_votes": row.get("total_rating_count"),
-                "critic_score": row.get("aggregated_rating"),
-                "platforms": [p["name"] for p in row.get("platforms") or []],
-                # Kept for a future recommendation engine, which is the only
-                # reason this field is requested at all.
-                "similar_games": row.get("similar_games") or [],
-            },
+            source_metadata=snapshot,
         )
 
     async def search(
@@ -311,4 +428,26 @@ class IgdbSource:
         payload = await self._query(f"where id = {external_id}; {FIELDS} limit 1;")
         if not payload:
             raise SourceError(self.source_name, f"no game with id {external_id}")
-        return self._parse_detail(payload[0])
+        times = await self._times_to_beat([external_id])
+        return self._parse_detail(payload[0], times.get(external_id))
+
+    async def fetch_many(self, external_ids: list[str]) -> list[SourceDetail]:
+        """Full detail for many IGDB ids, BATCH at a time.
+
+        Two requests per batch -- the games, then their times to beat -- spaced
+        by the adapter's throttle. Ids that are not IGDB ids are skipped, and a
+        game IGDB no longer has is simply missing from the result; the caller
+        counts those. A failed request raises, failing only its batch.
+        """
+        ids = [external_id for external_id in external_ids if external_id.isdigit()]
+        details: list[SourceDetail] = []
+        for start in range(0, len(ids), BATCH):
+            batch = ids[start : start + BATCH]
+            payload = await self._query(
+                f"where id = ({','.join(batch)}); {FIELDS} limit {BATCH};"
+            )
+            times = await self._times_to_beat(batch)
+            details.extend(
+                self._parse_detail(row, times.get(str(row["id"]))) for row in payload
+            )
+        return details

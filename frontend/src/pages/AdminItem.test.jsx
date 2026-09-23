@@ -331,3 +331,75 @@ describe('AdminItem', () => {
     expect(await screen.findByText(/no item with that id/i)).toBeInTheDocument()
   })
 })
+
+describe('AdminItem copy fields', () => {
+  it('sends only the copy fields that changed, as the API expects them', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText('Platform'),
+      'Nintendo Switch 2',
+    )
+    await userEvent.selectOptions(
+      screen.getByLabelText('Copy format'),
+      'game_card',
+    )
+    await userEvent.type(screen.getByLabelText('Region'), 'eur')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      const [, options] = writeCalls(mock)[0]
+      expect(JSON.parse(options.body)).toEqual({
+        platform_id: 508,
+        physical_format: 'game_card',
+        region: 'eur',
+      })
+    })
+  })
+
+  it('shows a refused rule in words and keeps what was typed', async () => {
+    const detail = 'That cart ID does not look like LX-XXXXX-XXX-X.'
+    stubApi({
+      onWrite: () => ({
+        ok: false,
+        status: 422,
+        json: async () => ({ detail }),
+      }),
+    })
+    renderPage()
+
+    await userEvent.type(await screen.findByLabelText('Cart ID'), 'nope')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(detail)
+    expect(screen.getByLabelText('Cart ID')).toHaveValue('nope')
+  })
+
+  it('offers completeness only for a cartridge-era platform', async () => {
+    stubApi()
+    renderPage()
+
+    const platform = await screen.findByLabelText('Platform')
+    expect(screen.queryByLabelText('Completeness')).not.toBeInTheDocument()
+
+    await userEvent.selectOptions(platform, 'Nintendo 64')
+    expect(screen.getByLabelText('Completeness')).toBeInTheDocument()
+  })
+
+  it('edits the acquired and release dates', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    const acquired = await screen.findByLabelText('Acquired')
+    await userEvent.type(acquired, '2025-12-25')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() =>
+      expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
+        acquired_at: '2025-12-25',
+      }),
+    )
+    expect(screen.getByLabelText('Release date')).toBeInTheDocument()
+  })
+})

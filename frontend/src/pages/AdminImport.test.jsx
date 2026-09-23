@@ -10,6 +10,7 @@ const DETECTIONS = {
     {
       index: 0,
       detected_title: 'Dune',
+      platform_id: 508,
       media_type: 'movie',
       detected_year: 2021,
       status: 'matched',
@@ -136,6 +137,9 @@ describe('AdminImport', () => {
       expect(sent).toHaveLength(1)
       expect(sent[0].external_id).toBe('841')
       expect(sent[0].year).toBe(1984)
+      // The importer's platform id travels with the row; the server resolves
+      // its name.
+      expect(sent[0].platform_id).toBe(508)
     })
   })
 

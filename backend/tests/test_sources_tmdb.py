@@ -91,6 +91,9 @@ def test_detail_payload_maps_onto_a_source_detail():
     assert detail.cover_url.startswith("https://image.tmdb.org/t/p/w342")
     assert detail.source_metadata["genres"]
     assert detail.source_metadata["community_score"] is not None
+    # Kept as the ISO string TMDB sends; the refresh parses it into
+    # items.release_date.
+    assert detail.source_metadata["release_date"] == "2021-09-15"
 
 
 def test_detail_survives_a_film_with_no_poster_and_no_director():

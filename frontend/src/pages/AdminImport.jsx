@@ -158,6 +158,7 @@ export default function AdminImport() {
           year: candidate?.year ?? row.detected_year ?? null,
           external_source: candidate?.external_source ?? null,
           external_id: candidate?.external_id ?? null,
+          platform_id: row.platform_id ?? null,
         }
       })
 

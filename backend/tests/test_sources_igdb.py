@@ -7,7 +7,14 @@ import pytest
 
 from config import Config
 from sources.base import SourceNotConfigured
-from sources.igdb import IgdbSource, platform_id, year_from_unix
+from sources.igdb import (
+    PLATFORM_IDS,
+    PLATFORM_NAMES,
+    IgdbSource,
+    date_from_unix,
+    platform_id,
+    year_from_unix,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -271,3 +278,231 @@ async def test_an_empty_filtered_result_retries_unfiltered(monkeypatch):
     assert "where platforms" in bodies[0]
     assert "where platforms" not in bodies[1]
     assert results[0].title == "Star Fox"
+
+
+class _UrlClient:
+    """Records the URL of every POST; answers the token and one query."""
+
+    def __init__(self, urls: list[str]):
+        self._urls = urls
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_):
+        return False
+
+    async def post(self, url, **_kwargs):
+        self._urls.append(url)
+        if "twitch" in url:
+            return _FakeResponse(200, {"access_token": "token"})
+        return _FakeResponse(200, [])
+
+
+@pytest.mark.asyncio
+async def test_a_query_goes_to_the_endpoint_it_names(monkeypatch):
+    # Time to beat and platforms live on their own endpoints; games stays the
+    # default so every existing caller is unchanged.
+    urls: list[str] = []
+    monkeypatch.setattr("sources.igdb.httpx2.AsyncClient", lambda **_: _UrlClient(urls))
+    source = IgdbSource(_config())
+
+    await source._query("fields id;")
+    await source._query("fields id;", endpoint="platforms")
+
+    queries = [url for url in urls if "twitch" not in url]
+    assert queries == [
+        "https://api.igdb.com/v4/games",
+        "https://api.igdb.com/v4/platforms",
+    ]
+
+
+# --- E7b: the deeper snapshot, against fixtures recorded from the live API
+# by scripts/record_igdb_fixtures.py on 2026-09-23. -------------------------
+
+
+def _e7b_games() -> dict[int, dict]:
+    rows = json.loads((FIXTURES / "igdb_games_e7b.json").read_text())
+    return {row["id"]: row for row in rows}
+
+
+def _e7b_times() -> dict:
+    return json.loads((FIXTURES / "igdb_time_to_beats.json").read_text())
+
+
+MARIO_KART_WORLD = 338067  # Switch 2, released, time to beat recorded
+BREATH_OF_THE_WILD = 237895  # Switch, released, no time to beat
+SUPER_MARIO_64_2 = 175964  # N64, cancelled, no release date
+
+
+def _parse(game_id: int, with_time: bool = True):
+    source = IgdbSource(_config())
+    times = {
+        row["game_id"]: source._time_to_beat(row) for row in _e7b_times()["response"]
+    }
+    return source._parse_detail(
+        _e7b_games()[game_id], times.get(game_id) if with_time else None
+    )
+
+
+def test_the_platform_ids_match_the_live_api():
+    live = json.loads((FIXTURES / "igdb_platforms.json").read_text())
+    by_slug = {row["slug"]: row["id"] for row in live}
+    assert by_slug == {"switch-2": 508, "switch": 130, "n64": 4}
+    for platform in by_slug.values():
+        assert platform in PLATFORM_NAMES
+    assert set(PLATFORM_IDS.values()) <= set(PLATFORM_NAMES)
+
+
+def test_the_snapshot_carries_the_e7b_keys():
+    snapshot = _parse(MARIO_KART_WORLD).source_metadata
+
+    assert "Fantasy" in snapshot["themes"]
+    assert snapshot["game_modes"]
+    assert snapshot["player_perspectives"] == ["Third person"]
+    assert snapshot["genre_ids"] == [10, 31]
+    assert snapshot["platform_ids"] == [508]
+    assert snapshot["theme_ids"]
+    assert snapshot["hypes"] == 36
+
+
+def test_keywords_are_trimmed_to_ten():
+    # Mario Kart World carries 62; IGDB's query language cannot trim them.
+    assert len(_e7b_games()[MARIO_KART_WORLD]["keywords"]) > 10
+    assert len(_parse(MARIO_KART_WORLD).source_metadata["keywords"]) == 10
+
+
+def test_the_release_date_is_an_iso_date():
+    snapshot = _parse(MARIO_KART_WORLD).source_metadata
+    assert snapshot["first_release_date"] == "2025-06-05"
+    assert date_from_unix(1749081600) == "2025-06-05"
+    assert date_from_unix(None) is None
+
+
+def test_a_game_without_a_release_date_has_no_key():
+    assert "first_release_date" not in _parse(SUPER_MARIO_64_2).source_metadata
+
+
+def test_release_status_is_the_status_name_and_absent_when_null():
+    # The live API returns game_status only for games that are not simply
+    # released: released games come back null, so absence means unknown.
+    assert _parse(SUPER_MARIO_64_2).source_metadata["release_status"] == "Cancelled"
+    assert "release_status" not in _parse(MARIO_KART_WORLD).source_metadata
+
+
+def test_hypes_are_absent_when_null():
+    assert "hypes" not in _parse(BREATH_OF_THE_WILD).source_metadata
+
+
+def test_time_to_beat_is_hours_and_drops_missing_figures():
+    # 18000 s and 21600 s; nobody submitted a completionist time.
+    assert _parse(MARIO_KART_WORLD).source_metadata["time_to_beat"] == {
+        "hastily": 5.0,
+        "normally": 6.0,
+        "count": 3,
+    }
+
+
+def test_a_game_with_no_time_to_beat_has_no_key():
+    times = _e7b_times()
+    answered = {row["game_id"] for row in times["response"]}
+    # The recorded evidence: every unrated game asked about came back absent.
+    assert not answered & set(times["requested_obscure"])
+    assert BREATH_OF_THE_WILD not in answered
+    assert "time_to_beat" not in _parse(BREATH_OF_THE_WILD).source_metadata
+
+
+def test_zero_durations_are_never_stored():
+    source = IgdbSource(_config())
+    assert source._time_to_beat({"game_id": 1, "hastily": 0, "count": 0}) is None
+    assert source._time_to_beat({"game_id": 1, "normally": 3600, "count": 1}) == {
+        "normally": 1.0,
+        "count": 1,
+    }
+
+
+class _EndpointClient:
+    """Answers each /v4 endpoint from a table and records the bodies sent."""
+
+    def __init__(self, sent: list[tuple[str, str]], answers: dict[str, list]):
+        self._sent = sent
+        self._answers = answers
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_):
+        return False
+
+    async def post(self, url, content=None, **_kwargs):
+        if "twitch" in url:
+            return _FakeResponse(200, {"access_token": "token"})
+        endpoint = url.rsplit("/", 1)[-1]
+        self._sent.append((endpoint, content))
+        return _FakeResponse(200, self._answers[endpoint])
+
+
+def _patch_endpoints(monkeypatch, answers) -> list[tuple[str, str]]:
+    sent: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        "sources.igdb.httpx2.AsyncClient",
+        lambda **_: _EndpointClient(sent, answers),
+    )
+    return sent
+
+
+@pytest.mark.asyncio
+async def test_fetch_many_batches_games_and_times_by_100(monkeypatch):
+    games = list(_e7b_games().values())
+    sent = _patch_endpoints(
+        monkeypatch,
+        {"games": games, "game_time_to_beats": _e7b_times()["response"]},
+    )
+    ids = [str(n) for n in range(1, 151)] + ["not-a-number"]
+
+    details = await IgdbSource(_config()).fetch_many(ids)
+
+    assert [endpoint for endpoint, _ in sent] == [
+        "games",
+        "game_time_to_beats",
+        "games",
+        "game_time_to_beats",
+    ]
+    # An explicit limit: IGDB's default is 10 rows.
+    assert all("limit 100;" in body for _, body in sent)
+    assert "not-a-number" not in sent[0][1] + sent[2][1]
+    # Each batch returns the three fixture games, joined to their times.
+    kart = next(d for d in details if d.external_id == str(MARIO_KART_WORLD))
+    assert kart.source_metadata["time_to_beat"]["normally"] == 6.0
+
+
+@pytest.mark.asyncio
+async def test_fetch_includes_time_to_beat(monkeypatch):
+    sent = _patch_endpoints(
+        monkeypatch,
+        {
+            "games": [_e7b_games()[MARIO_KART_WORLD]],
+            "game_time_to_beats": _e7b_times()["response"],
+        },
+    )
+
+    detail = await IgdbSource(_config()).fetch(str(MARIO_KART_WORLD))
+
+    assert [endpoint for endpoint, _ in sent] == ["games", "game_time_to_beats"]
+    assert detail.source_metadata["time_to_beat"]["hastily"] == 5.0
+
+
+def test_the_fixture_recorder_asks_for_the_same_fields():
+    # The recorder keeps its own copy of the field list; a drift would record
+    # fixtures that no longer describe what the adapter parses.
+    import importlib.util
+
+    from sources.igdb import FIELDS
+
+    spec = importlib.util.spec_from_file_location(
+        "record_igdb_fixtures",
+        Path(__file__).parent.parent / "scripts" / "record_igdb_fixtures.py",
+    )
+    recorder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(recorder)
+    assert recorder.GAME_FIELDS == FIELDS

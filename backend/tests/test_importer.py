@@ -76,10 +76,12 @@ async def client_for(registry, provider, signed_in: bool = True):
         yield client
 
 
-def _detection(title, media_type, year=None):
+def _detection(title, media_type, year=None, platform=None):
     row = {"title": title, "media_type": media_type}
     if year is not None:
         row["year"] = year
+    if platform is not None:
+        row["platform"] = platform
     return row
 
 
@@ -224,3 +226,25 @@ async def test_import_requires_the_admin_session():
         response = await client.post("/api/import/photos", files={"photos": JPEG})
 
     assert response.status_code == 401
+
+
+async def test_the_detected_platform_is_returned_as_a_platform_id():
+    # The page commits platform_id with each row; the server resolves the
+    # name. An unknown platform stays None rather than being guessed.
+    registry = {ItemType.GAME: StubSource("igdb", ItemType.GAME, [])}
+    provider = StubProvider(
+        {
+            "detections": [
+                _detection("Mario Kart World", "game", platform="Nintendo Switch 2"),
+                _detection("Star Fox 64", "game", platform="N64"),
+                _detection("Panzer Dragoon", "game", platform="Sega Saturn"),
+                _detection("Loose Cart", "game"),
+            ]
+        }
+    )
+
+    async with client_for(registry, provider) as client:
+        response = await client.post("/api/import/photos", files={"photos": JPEG})
+
+    ids = [row["platform_id"] for row in response.json()["detections"]]
+    assert ids == [508, 4, None, None]

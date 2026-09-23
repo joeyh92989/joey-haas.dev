@@ -22,16 +22,27 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from models import Item, ItemStatus, ItemType, OwnedFormat
+from formats import KEY_CARD_PLATFORMS
+from models import (
+    Completeness,
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+    PhysicalFormat,
+)
 
 # Lifted out of the source_metadata snapshot rather than publishing the
 # snapshot itself: its shape varies per source and may carry fields nobody
 # reviewed for publication. The detail page adds two more; `similar_games` is
 # read by the similarity helper and never serialized.
-PUBLIC_METADATA_FIELDS = ("genres", "community_score", "platforms")
+# `time_to_beat` is read on the list only to derive time_to_beat_hours; the
+# object itself is published on the detail page alone.
+PUBLIC_METADATA_FIELDS = ("genres", "community_score", "platforms", "time_to_beat")
 PUBLIC_DETAIL_METADATA_FIELDS = PUBLIC_METADATA_FIELDS + (
     "description",
     "community_votes",
+    "themes",
 )
 
 # The item page's "More from this shelf" strip, and the one source whose
@@ -66,6 +77,23 @@ class PublicItemOut(BaseModel):
     # Derived, never the column: whether a copy is physical, digital or
     # borrowed stays private, and only "on the want list" is published.
     wanted: bool
+    # The copy on the shelf. Its cart ID, region, format source and dates of
+    # acquisition are not part of a showcase.
+    release_date: date | None
+    platform: str | None
+    physical_format: PhysicalFormat | None
+    completeness: Completeness | None
+    # The "normally" figure to the nearest hour, for a card that has one line.
+    time_to_beat_hours: int | None
+
+
+class PublicTimeToBeat(BaseModel):
+    """IGDB's community times, in hours; a figure nobody submitted is null."""
+
+    hastily: float | None
+    normally: float | None
+    completely: float | None
+    count: int | None
 
 
 class PublicItemCard(BaseModel):
@@ -85,6 +113,22 @@ class PublicItemDetailOut(PublicItemOut):
     times_completed: int
     started_at: date | None
     similar_in_collection: list[PublicItemCard]
+    themes: list[str]
+    time_to_beat: PublicTimeToBeat | None
+
+
+class PublicFormatCounts(BaseModel):
+    """Owned public copies on one key-card platform, by physical format.
+
+    Unknown is its own count and never folded into the cartridges: a copy
+    whose format was not recorded may be a Game-Key Card.
+    """
+
+    game_card: int
+    game_key_card: int
+    code_in_box: int
+    unknown: int
+    total: int
 
 
 class PublicStatsOut(BaseModel):
@@ -100,6 +144,9 @@ class PublicStatsOut(BaseModel):
     finished_this_year: int
     # Null, not 0, when nothing is rated: 0 would read as the lowest score.
     average_rating: float | None
+    by_platform: dict[str, int]
+    # Keyed by IGDB platform id, for key-card platforms only.
+    by_format: dict[str, PublicFormatCounts]
 
 
 def _string_list(value: object) -> list[str]:
@@ -122,6 +169,18 @@ def _allowed_snapshot(item: Item, fields: tuple[str, ...]) -> dict:
     return {key: raw.get(key) for key in fields}
 
 
+def _time_to_beat(snapshot: dict) -> PublicTimeToBeat | None:
+    raw = snapshot.get("time_to_beat")
+    if not isinstance(raw, dict):
+        return None
+    return PublicTimeToBeat(
+        hastily=_number(raw.get("hastily")),
+        normally=_number(raw.get("normally")),
+        completely=_number(raw.get("completely")),
+        count=raw.get("count") if isinstance(raw.get("count"), int) else None,
+    )
+
+
 def _list_fields(item: Item) -> dict:
     """The publishable list fields, named one by one."""
     snapshot = _allowed_snapshot(item, PUBLIC_METADATA_FIELDS)
@@ -142,7 +201,18 @@ def _list_fields(item: Item) -> dict:
         "created_at": item.created_at,
         # NULL is owned: the want list is only what was explicitly marked so.
         "wanted": item.owned_format == OwnedFormat.NONE,
+        "release_date": item.release_date,
+        "platform": item.platform,
+        "physical_format": item.physical_format,
+        "completeness": item.completeness,
+        "time_to_beat_hours": _hours(_time_to_beat(snapshot)),
     }
+
+
+def _hours(time_to_beat: PublicTimeToBeat | None) -> int | None:
+    if time_to_beat is None or time_to_beat.normally is None:
+        return None
+    return round(time_to_beat.normally)
 
 
 def _to_public(item: Item) -> PublicItemOut:
@@ -212,6 +282,8 @@ def _to_public_detail(item: Item, similar: list[Item]) -> PublicItemDetailOut:
         ),
         times_completed=item.times_completed,
         started_at=item.started_at,
+        themes=_string_list(snapshot.get("themes")),
+        time_to_beat=_time_to_beat(snapshot),
         similar_in_collection=[
             PublicItemCard(
                 id=other.id,
@@ -296,6 +368,38 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         )
         owned, finished_this_year, average = totals.one()
 
+        platforms = await session.execute(
+            select(Item.platform, func.count())
+            .where(public, Item.platform.is_not(None))
+            .group_by(Item.platform)
+        )
+        formats = await session.execute(
+            select(Item.platform_id, Item.physical_format, func.count())
+            .where(
+                public,
+                Item.owned_format.is_distinct_from(OwnedFormat.NONE),
+                Item.platform_id.in_(KEY_CARD_PLATFORMS),
+            )
+            .group_by(Item.platform_id, Item.physical_format)
+        )
+        by_format: dict[str, dict[str, int]] = {}
+        for platform, physical_format, count in formats:
+            counts = by_format.setdefault(
+                str(platform),
+                {
+                    "game_card": 0,
+                    "game_key_card": 0,
+                    "code_in_box": 0,
+                    "unknown": 0,
+                    "total": 0,
+                },
+            )
+            # A disc counts toward the total and nothing else.
+            key = "unknown" if physical_format is None else physical_format.value
+            if key in counts:
+                counts[key] += count
+            counts["total"] += count
+
         type_counts = {row[0].value: row[1] for row in by_type}
         return PublicStatsOut(
             total=sum(type_counts.values()),
@@ -306,6 +410,11 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             owned=owned,
             finished_this_year=finished_this_year,
             average_rating=float(average) if average is not None else None,
+            by_platform={row[0]: row[1] for row in platforms},
+            by_format={
+                platform: PublicFormatCounts(**counts)
+                for platform, counts in by_format.items()
+            },
         )
 
     # Declared last, after the literal /items and /stats: a typed uuid would

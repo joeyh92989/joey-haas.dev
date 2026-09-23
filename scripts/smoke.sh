@@ -145,10 +145,10 @@ check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection"
 # its response model instead of serializing the ORM object. A private column
 # added later would be published with no code change and nothing to notice it.
 public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
-if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id)"'; then
+if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at)"'; then
   report_fail "public items expose no private fields" "found a private key in the response"
 else
-  report_pass "public items expose no private fields" "no notes/owned_format/is_public/external ids"
+  report_pass "public items expose no private fields" "no notes/owned_format/is_public/ids/copy details"
 fi
 
 stats_body="$(curl -s -m 90 "$API_URL/api/public/stats")"
@@ -167,6 +167,34 @@ if printf '%s' "$stats_body" | grep -q '"owned"' &&
 else
   report_fail "public stats has the shelf fields" "got '$stats_body'"
 fi
+
+# E7b: the copy on the shelf. An empty collection still serializes every
+# field, so these hold whether or not anything has been published.
+if [ "$public_body" = "[]" ] ||
+  { printf '%s' "$public_body" | grep -q '"platform"' &&
+    printf '%s' "$public_body" | grep -q '"physical_format"'; }; then
+  report_pass "public items carry platform and format" "platform, physical_format"
+else
+  report_fail "public items carry platform and format" "fields missing from public items"
+fi
+
+if printf '%s' "$stats_body" | grep -q '"by_format"'; then
+  report_pass "public stats has the format counts" "by_format present"
+else
+  report_fail "public stats has the format counts" "got '$stats_body'"
+fi
+
+# 401 rather than 404 or 405 proves both routes exist, are declared ahead of
+# /{item_id}, and are gated.
+check_equals "PATCH /api/items/bulk unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X PATCH \
+    -H 'Content-Type: application/json' -d '{}' "$API_URL/api/items/bulk")" \
+  "401"
+
+check_equals "POST /api/items/refresh-metadata/bulk unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
+    "$API_URL/api/items/refresh-metadata/bulk?type=game")" \
+  "401"
 
 # A 404 with a JSON body proves the item route exists and misses cleanly. A
 # 422 would mean the id was not parsed as a uuid; a 500 that the lookup broke;
