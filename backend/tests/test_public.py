@@ -156,6 +156,8 @@ async def test_stats_on_an_empty_collection_are_zeroes_not_an_error(
         # Null rather than 0: an empty collection has no average, and 0 would
         # render as the lowest possible score.
         "average_rating": None,
+        "by_platform": {},
+        "by_format": {},
     }
 
 
@@ -189,6 +191,11 @@ LIST_FIELDS = {
     "platforms",
     "created_at",
     "wanted",
+    "release_date",
+    "platform",
+    "physical_format",
+    "completeness",
+    "time_to_beat_hours",
 }
 DETAIL_FIELDS = LIST_FIELDS | {
     "description",
@@ -196,6 +203,8 @@ DETAIL_FIELDS = LIST_FIELDS | {
     "times_completed",
     "started_at",
     "similar_in_collection",
+    "themes",
+    "time_to_beat",
 }
 NEVER_PUBLIC = {
     "notes",
@@ -205,6 +214,11 @@ NEVER_PUBLIC = {
     "external_source",
     "external_id",
     "is_public",
+    "cart_id",
+    "format_source",
+    "region",
+    "acquired_at",
+    "pinned_at",
 }
 
 
@@ -456,3 +470,102 @@ async def test_stats_add_owned_this_years_finishes_and_the_average(
     assert stats["finished_this_year"] == 1
     # (8 + 5 + 6) / 3, to one decimal.
     assert stats["average_rating"] == 6.3
+
+
+# --- E7b: the copy on the shelf. -------------------------------------------
+
+
+async def test_the_copy_fields_are_published_and_the_private_ones_are_not(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        item = _game(
+            "Copy",
+            platform_id=508,
+            platform="Nintendo Switch 2",
+            physical_format="game_key_card",
+            format_source="cart_id",
+            cart_id="LP-AAC4B-USA-0",
+            region="USA",
+            completeness="cib",
+            acquired_at=date(2026, 1, 1),
+            pinned_at=datetime(2026, 9, 1, tzinfo=UTC),
+            release_date=date(2027, 3, 1),
+            source_metadata={
+                "themes": ["Fantasy"],
+                "time_to_beat": {"normally": 11.6, "completely": 18.2, "count": 9},
+            },
+        )
+        session.add(item)
+        await session.commit()
+
+    async with client_for(sessionmaker_for_test) as client:
+        listed = (await client.get("/api/public/items")).json()[0]
+        detail = (await client.get(f"/api/public/items/{item.id}")).json()
+
+    for body in (listed, detail):
+        assert not NEVER_PUBLIC & set(body)
+        assert body["platform"] == "Nintendo Switch 2"
+        assert body["physical_format"] == "game_key_card"
+        assert body["completeness"] == "cib"
+        assert body["release_date"] == "2027-03-01"
+        # The normally figure, to the nearest hour.
+        assert body["time_to_beat_hours"] == 12
+    assert "time_to_beat" not in listed
+    assert detail["themes"] == ["Fantasy"]
+    assert detail["time_to_beat"] == {
+        "hastily": None,
+        "normally": 11.6,
+        "completely": 18.2,
+        "count": 9,
+    }
+
+
+async def test_no_time_to_beat_is_null_not_zero(sessionmaker_for_test):
+    ids = await _seed_shelf(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        detail = (await client.get(f"/api/public/items/{ids['Celeste']}")).json()
+
+    assert detail["time_to_beat_hours"] is None
+    assert detail["time_to_beat"] is None
+    assert detail["themes"] == []
+
+
+async def test_stats_count_platforms_and_switch_2_formats(sessionmaker_for_test):
+    switch_2 = {"platform_id": 508, "platform": "Nintendo Switch 2"}
+    async with sessionmaker_for_test() as session:
+        session.add_all(
+            [
+                _game("Card A", physical_format="game_card", **switch_2),
+                _game("Card B", physical_format="game_card", **switch_2),
+                _game("Key", physical_format="game_key_card", **switch_2),
+                _game("Unknown", **switch_2),
+                # A want is not on the shelf, so it is not counted as a copy.
+                _game("Want", owned_format=OwnedFormat.NONE, **switch_2),
+                _game(
+                    "Private", is_public=False, physical_format="game_card", **switch_2
+                ),
+                _game(
+                    "Switch 1",
+                    platform_id=130,
+                    platform="Nintendo Switch",
+                    physical_format="game_card",
+                ),
+            ]
+        )
+        await session.commit()
+
+    async with client_for(sessionmaker_for_test) as client:
+        stats = (await client.get("/api/public/stats")).json()
+
+    assert stats["by_platform"] == {"Nintendo Switch 2": 5, "Nintendo Switch": 1}
+    # Only key-card platforms, over owned public games; unknowns kept apart.
+    assert stats["by_format"] == {
+        "508": {
+            "game_card": 2,
+            "game_key_card": 1,
+            "code_in_box": 0,
+            "unknown": 1,
+            "total": 4,
+        }
+    }
