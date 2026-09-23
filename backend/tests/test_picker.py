@@ -1,19 +1,24 @@
 """Play Next scoring. Pure: plain dataclasses in, numbers out, no database."""
 
+import random
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
 from picker import (
+    MOOD_BUCKETS,
     PICKER_WEIGHTS,
     PickerEvent,
     PickerItem,
+    PickRequest,
     acquired_dates_informative,
     affinity,
     attribute_table,
     attributes,
+    candidates,
     length_fit,
     quality,
+    recommend,
     reference_weights,
     similarity,
     staleness,
@@ -259,3 +264,322 @@ def test_staleness_counts_distinct_days_not_showings():
 
     assert staleness("g", [shown("g", NOW - timedelta(days=15))], NOW) == 0
     assert staleness("other", same_day, NOW) == 0
+
+
+# --- moods -------------------------------------------------------------------
+
+# The spec's table, verbatim: the strings are IGDB's, copied from the
+# collection's own snapshots, and a typo would silently match nothing.
+SPEC_BUCKETS = {
+    "cozy": {"Simulator", "Kids", "Sandbox", "cute", "animal protagonist"},
+    "story": {
+        "Visual Novel",
+        "Point-and-click",
+        "Drama",
+        "Mystery",
+        "Romance",
+        "story rich",
+        "story driven",
+        "choices matter",
+        "multiple endings",
+        "emotional",
+        "love story",
+    },
+    "action": {
+        "Shooter",
+        "Fighting",
+        "Hack and slash/Beat 'em up",
+        "Racing",
+        "fast paced",
+        "metroidvania",
+        "hand-to-hand combat",
+    },
+    "creepy": {
+        "Horror",
+        "Thriller",
+        "Survival",
+        "psychological horror",
+        "survival horror",
+        "cosmic horror",
+        "zombies",
+        "supernatural",
+        "dark fantasy",
+        "gore",
+    },
+    "brainy": {
+        "Puzzle",
+        "Strategy",
+        "Turn-based strategy (TBS)",
+        "Real Time Strategy (RTS)",
+        "Tactical",
+        "Card & Board Game",
+        "deck-building",
+        "roguelike deckbuilder",
+        "detective",
+        "investigation",
+        "murder mystery",
+        "block puzzle",
+    },
+    "chaotic": {
+        "Arcade",
+        "Party",
+        "Comedy",
+        "roguelite",
+        "roguelike",
+        "dark humor",
+        "funny",
+    },
+}
+
+
+def test_the_mood_buckets_are_the_spec_s_exact_strings():
+    assert {
+        mood: set(strings) for mood, strings in MOOD_BUCKETS.items()
+    } == SPEC_BUCKETS
+
+
+# --- candidates --------------------------------------------------------------
+
+
+def _ids(games):
+    return {game.id for game in games}
+
+
+def test_candidates_are_the_owned_backlog_and_games_in_progress():
+    items = [
+        item("backlog"),
+        item("playing", status="active"),
+        item("done", status="finished"),
+        item("quit", status="abandoned"),
+        item("wanted", owned=False),
+        item("pinned", pinned=True),
+        item("film", type="movie"),
+    ]
+    assert _ids(candidates(items, [], PickRequest(), NOW)) == {"backlog", "playing"}
+
+
+def test_never_recent_skips_and_the_exclude_list_remove_games():
+    items = [
+        item("never"),
+        item("skipped"),
+        item("old_skip"),
+        item("rerolled"),
+        item("ok"),
+    ]
+    events = [
+        PickerEvent("never", "never", NOW - timedelta(days=200)),
+        PickerEvent("skipped", "skipped", NOW - timedelta(days=6)),
+        PickerEvent("old_skip", "skipped", NOW - timedelta(days=8)),
+    ]
+    request = PickRequest(exclude=("rerolled",))
+    assert _ids(candidates(items, events, request, NOW)) == {"old_skip", "ok"}
+
+
+def test_moods_are_hard_filters_matched_across_genres_themes_and_keywords():
+    items = [
+        item("puzzle", genres=("Puzzle",)),
+        item("horror", themes=("Horror",)),
+        item("deck", keywords=("deck-building",)),
+        item("racer", genres=("Racing",)),
+    ]
+    brainy = PickRequest(moods=("brainy",))
+    assert _ids(candidates(items, [], brainy, NOW)) == {"puzzle", "deck"}
+    # Several moods widen the filter: any of them.
+    both = PickRequest(moods=("brainy", "creepy"))
+    assert _ids(candidates(items, [], both, NOW)) == {"puzzle", "deck", "horror"}
+
+
+def test_a_game_without_a_platform_passes_any_platform_filter():
+    items = [item("s2", platform_id=508), item("s1", platform_id=130), item("unset")]
+    request = PickRequest(platforms=(508,))
+    assert _ids(candidates(items, [], request, NOW)) == {"s2", "unset"}
+
+
+# --- recommend ---------------------------------------------------------------
+
+
+def shelf() -> list[PickerItem]:
+    """A small shelf: a profile of four games and six candidates."""
+    return [
+        item(
+            "hades",
+            title="Hades",
+            status="finished",
+            favorite=True,
+            rating=10,
+            external_id="100",
+            similar_games=("200",),
+            genres=("Role-playing (RPG)", "Indie"),
+            keywords=("roguelike",),
+            themes=("Action",),
+        ),
+        item(
+            "inscryption",
+            title="Inscryption",
+            status="finished",
+            rating=9,
+            genres=("Puzzle", "Card & Board Game"),
+            keywords=("deck-building",),
+            themes=("Horror",),
+        ),
+        item("fifa", title="FIFA", status="abandoned", rating=2, genres=("Sport",)),
+        item("mid", title="Mid", status="finished", rating=6, genres=("Racing",)),
+        item(
+            "dead_cells",
+            title="Dead Cells",
+            external_id="200",
+            genres=("Indie", "Platform"),
+            keywords=("roguelike",),
+            time_to_beat_hours=18.0,
+            community_score=88.0,
+            release_date=date(2018, 8, 7),
+        ),
+        item(
+            "slay",
+            title="Slay the Spire",
+            genres=("Card & Board Game", "Indie"),
+            keywords=("deck-building",),
+            time_to_beat_hours=4.0,
+            community_score=90.0,
+            release_date=date(2019, 1, 23),
+        ),
+        item(
+            "old_puzzle",
+            title="Old Puzzle",
+            genres=("Puzzle",),
+            themes=("Horror",),
+            time_to_beat_hours=9.0,
+            release_date=date(2003, 5, 1),
+        ),
+        item(
+            "football",
+            title="Football",
+            genres=("Sport",),
+            time_to_beat_hours=3.0,
+            release_date=date(2024, 1, 1),
+        ),
+        item("unknown", title="Unknown", release_date=date(2020, 1, 1)),
+        item("ok", title="Ok", genres=("Racing",), release_date=date(2022, 1, 1)),
+    ]
+
+
+def test_recommend_is_deterministic_for_a_seed():
+    first = recommend(shelf(), [], PickRequest(), NOW, random.Random(7))
+    again = recommend(shelf(), [], PickRequest(), NOW, random.Random(7))
+    assert [p.item.id for p in first.picks] == [p.item.id for p in again.picks]
+
+
+def test_three_named_slots_and_no_repeats():
+    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
+
+    slots = [pick.slot for pick in result.picks]
+    assert slots == ["best_fit", "short_and_sweet", "overdue_classic"]
+    assert [pick.slot_label for pick in result.picks] == [
+        "Best fit",
+        "Short and sweet",
+        "Overdue classic",
+    ]
+    assert len({pick.item.id for pick in result.picks}) == 3
+    assert result.candidate_count == 6
+    # Rated or favourite, not merely finished: Hades, Inscryption, FIFA, Mid.
+    assert result.profile_size == 4
+
+
+def test_best_fit_is_the_game_that_matches_the_profile():
+    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
+    # Dead Cells shares roguelike and Indie with the favourite, and IGDB lists
+    # it beside Hades.
+    assert result.picks[0].item.id == "dead_cells"
+
+
+def test_short_and_sweet_is_six_hours_or_less_and_omitted_without_one():
+    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
+    short = next(p for p in result.picks if p.slot == "short_and_sweet")
+    assert short.item.time_to_beat_hours <= 6
+
+    long_only = [g for g in shelf() if g.id not in ("slay", "football")]
+    slots = [
+        p.slot
+        for p in recommend(long_only, [], PickRequest(), NOW, random.Random(1)).picks
+    ]
+    assert "short_and_sweet" not in slots
+
+
+def test_overdue_classic_is_the_oldest_release_among_good_matches():
+    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
+    third = result.picks[2]
+    assert third.item.id == "old_puzzle"
+    assert "Out since 2003" in third.reasons
+
+
+def test_the_third_slot_becomes_waited_longest_once_acquired_dates_spread():
+    games = [
+        game
+        if game.id != "ok"
+        else item(
+            "ok",
+            title="Ok",
+            genres=("Puzzle",),
+            themes=("Horror",),
+            acquired_at=date(2025, 1, 1),
+        )
+        for game in shelf()
+    ]
+    games = [
+        game
+        if game.acquired_at
+        else PickerItem(**{**game.__dict__, "acquired_at": date(2026, 9, 1)})
+        for game in games
+    ]
+    third = recommend(games, [], PickRequest(), NOW, random.Random(1)).picks[2]
+    assert third.slot == "waited_longest"
+    assert third.item.id == "ok"
+    assert "On the shelf since January 2025" in third.reasons
+
+
+def test_a_stalled_game_in_progress_takes_the_third_slot():
+    games = shelf() + [
+        item(
+            "stalled",
+            title="Stalled",
+            status="active",
+            started_at=TODAY - timedelta(days=90),
+        )
+    ]
+    third = recommend(games, [], PickRequest(), NOW, random.Random(1)).picks[2]
+    assert third.slot == "pick_it_back_up"
+    assert third.slot_label == "Pick it back up"
+    assert any(reason.startswith("Started in June 2026") for reason in third.reasons)
+
+
+def test_a_game_in_progress_recently_shown_is_not_stalled():
+    stalled = item("stalled", status="active", started_at=TODAY - timedelta(days=90))
+    events = [PickerEvent("stalled", "shown", NOW - timedelta(days=3))]
+    third = recommend(shelf() + [stalled], events, PickRequest(), NOW, random.Random(1))
+    assert third.picks[2].slot != "pick_it_back_up"
+
+
+def test_reasons_name_the_game_they_come_from():
+    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
+    best = result.picks[0]
+    assert "Shares roguelike and Indie with Hades ♥" in best.reasons
+    assert "IGDB lists it beside Hades ♥" in best.reasons
+    assert "About 18 h — a long one" in best.reasons
+    for pick in result.picks:
+        assert 1 <= len(pick.reasons) <= 3
+
+
+def test_a_rated_reference_is_named_with_its_rating():
+    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
+    short = next(p for p in result.picks if p.item.id == "slay")
+    assert (
+        "Shares deck-building and Card & Board Game with Inscryption, which you rated 9"
+        in short.reasons
+    )
+
+
+def test_no_candidates_is_an_empty_result_not_an_error():
+    result = recommend(shelf(), [], PickRequest(moods=("cozy",)), NOW, random.Random(1))
+    assert result.picks == ()
+    assert result.candidate_count == 0
+    assert result.profile_size == 4
