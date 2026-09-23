@@ -167,6 +167,11 @@ before pushing.
   list table: a first finish sets `times_completed` to 1 and dates it today,
   a replay (any earlier `finished_at` or completion) adds one and keeps the
   date. The edit page exposes both fields directly and does not apply it.
+- **Favourites are capped at four**, the size of the favourites row. The
+  API refuses a fifth with a 409 on PATCH, create and bulk create
+  (`FAVORITES_LIMIT` in `items.py`); unfavouriting is never refused. Rows
+  favourited before the cap are kept, not trimmed: the admin row lists them
+  all with a note until they are, and the public row shows the top four.
 - Editing lives at `/admin/collection/:id`. A wrong external match is fixed
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not
