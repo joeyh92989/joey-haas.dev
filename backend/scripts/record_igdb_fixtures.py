@@ -82,12 +82,39 @@ async def _default_ids(source: IgdbSource) -> list[int]:
     return ids
 
 
+def _redact(text: str, secrets: list[str | None]) -> str:
+    """Masks credentials, so a failure can be shared without leaking them.
+
+    Twitch takes the client id and secret as query parameters, so an HTTP
+    error message can carry both.
+    """
+    for secret in secrets:
+        if secret:
+            text = text.replace(secret, "***")
+    return text
+
+
 async def record(game_ids: list[int]) -> None:
-    source = IgdbSource(load_config())
+    config = load_config()
+    try:
+        await _record(IgdbSource(config), game_ids)
+    except BaseException as error:
+        if isinstance(error, SystemExit):
+            raise
+        message = _redact(
+            f"{type(error).__name__}: {error}",
+            [config.igdb_client_id, config.igdb_client_secret],
+        )
+        print(f"FAILED: {message}", flush=True)
+        raise SystemExit(1) from None
+
+
+async def _record(source: IgdbSource, game_ids: list[int]) -> None:
     if not game_ids:
         game_ids = await _default_ids(source)
     if not game_ids:
-        raise SystemExit("No games to record.")
+        print("FAILED: no games to record", flush=True)
+        raise SystemExit(1)
 
     games = await source._query(
         f"where id = ({_id_list(game_ids)}); {GAME_FIELDS} limit {len(game_ids)};"
