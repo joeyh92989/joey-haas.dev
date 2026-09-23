@@ -139,7 +139,11 @@ before pushing.
       deeper IGDB snapshot with time to beat, bulk refresh, bulk set, and the
       copy on the shelf and item page. Spec and plan:
       `docs/planning/2026-09-23-tracker-e7b-*`
-- [ ] Tracker E8a (Play Next) next, then E7c, E8b, E8c. Spec:
+- [x] Tracker E8a — Play Next at `/admin/play-next`: three named picks
+      from the owned backlog with reasons, pin as Up next (shown publicly on
+      `/collection`), and `schema_check` tolerating a database ahead of the
+      code. Spec and plan: `docs/planning/2026-09-23-tracker-e8a-*`
+- [ ] Tracker E7c (physical catalogue) next, then E8b, E8c. Spec:
       `docs/planning/2026-09-22-tracker-enhancement-design.md` (§5.4 onward);
       each phase gets its own plan
 - [ ] Tracker E6 — recommendations. `backend/llm.py` already provides the
@@ -150,7 +154,11 @@ before pushing.
 ## Media tracker
 
 - **Migrations must be applied to Neon before deploying.** `schema_check`
-  refuses to boot behind the schema, which is it working, not failing.
+  refuses to boot behind the schema, which is it working, not failing. A
+  database *ahead* of the code boots with a warning, because the deploy order
+  is migrate-then-merge; that is only safe because **migrations are
+  additive**: add tables and columns, never rename or drop in the same release
+  (see `backend/migrations/README.md`). `0004` adds `pick_events`.
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -191,6 +199,15 @@ before pushing.
   (`FAVORITES_LIMIT` in `items.py`); unfavouriting is never refused. Rows
   favourited before the cap are kept, not trimmed: the admin row lists them
   all with a note until they are, and the public row shows the top four.
+- **Play Next** scoring lives in `backend/picker.py`, pure and tested without
+  a database; `picker_routes.py` only loads rows and records events. The
+  tuning points are `PICKER_WEIGHTS` and `MOOD_BUCKETS`. The buckets hold
+  exact IGDB strings taken from the collection's own snapshots (genres and
+  themes capitalised, keywords lower-case) — never typed from memory. Shown
+  events are written at most once per game per UTC day; the third pick is
+  "Overdue classic" until acquired dates span 90 days, then "Waited longest".
+  Pinning is its own route (`POST /api/items/{id}/pin`) because it clears
+  the previous pin and records an event in one transaction.
 - Editing lives at `/admin/collection/:id`. A wrong external match is fixed
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not
