@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   countBy,
   filterItems,
+  NO_FILTER,
   readShelfPref,
   sortItems,
   STATUS_LABEL,
@@ -115,7 +116,37 @@ describe('sortItems', () => {
 })
 
 describe('filterItems', () => {
-  const ALL = { type: null, status: null, wanted: false, unrated: false }
+  const ALL = {
+    type: null,
+    status: null,
+    platform: null,
+    wanted: false,
+    unrated: false,
+  }
+
+  it('matches NO_FILTER', () => {
+    expect(NO_FILTER).toEqual(ALL)
+  })
+
+  it('filters by platform, alone and with other selections', () => {
+    const rows = [
+      { ...A, platform: 'Nintendo Switch 2' },
+      { ...B, platform: 'Nintendo Switch' },
+      { ...C, platform: 'Nintendo Switch 2' },
+    ]
+    expect(
+      ids(filterItems(rows, { ...ALL, platform: 'Nintendo Switch 2' })),
+    ).toEqual(['a', 'c'])
+    expect(
+      ids(
+        filterItems(rows, {
+          ...ALL,
+          platform: 'Nintendo Switch 2',
+          unrated: true,
+        }),
+      ),
+    ).toEqual(['c'])
+  })
 
   it('passes everything with nothing selected', () => {
     expect(ids(filterItems(ITEMS, ALL))).toEqual(['a', 'b', 'c'])

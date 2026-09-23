@@ -114,11 +114,12 @@ export function countBy(items, field) {
 /**
  * Applies the shelf's chip selection.
  *
- * `type` and `status` are single-select with null meaning all; `wanted` and
- * `unrated` (finished and unrated, the admin nudge) are toggles ANDed on top.
+ * `type`, `status` and `platform` are single-select with null meaning all;
+ * `wanted` and `unrated` (finished and unrated, the admin nudge) are toggles
+ * ANDed on top.
  *
  * @param {object[]} items Shelf rows.
- * @param {{type: string|null, status: string|null, wanted: boolean, unrated: boolean}} value
+ * @param {{type: string|null, status: string|null, platform: string|null, wanted: boolean, unrated: boolean}} value
  *   The current selection.
  * @returns {object[]} The rows that match every part of the selection.
  */
@@ -127,6 +128,7 @@ export function filterItems(items, value) {
     (item) =>
       (!value.type || item.type === value.type) &&
       (!value.status || item.status === value.status) &&
+      (!value.platform || item.platform === value.platform) &&
       (!value.wanted || item.wanted === true) &&
       (!value.unrated || (item.status === 'finished' && item.rating == null)),
   )
@@ -136,6 +138,7 @@ export function filterItems(items, value) {
 export const NO_FILTER = {
   type: null,
   status: null,
+  platform: null,
   wanted: false,
   unrated: false,
 }
