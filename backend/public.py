@@ -85,6 +85,9 @@ class PublicItemOut(BaseModel):
     completeness: Completeness | None
     # The "normally" figure to the nearest hour, for a card that has one line.
     time_to_beat_hours: int | None
+    # Up next (D2): whether this is the game being played next. When it was
+    # pinned stays private.
+    pinned: bool
 
 
 class PublicTimeToBeat(BaseModel):
@@ -206,6 +209,7 @@ def _list_fields(item: Item) -> dict:
         "physical_format": item.physical_format,
         "completeness": item.completeness,
         "time_to_beat_hours": _hours(_time_to_beat(snapshot)),
+        "pinned": item.pinned_at is not None,
     }
 
 
