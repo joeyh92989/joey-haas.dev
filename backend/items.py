@@ -31,6 +31,7 @@ from sources.base import (
     SourceNotConfigured,
     SourceRateLimited,
 )
+from sources.igdb import PLATFORM_NAMES
 from sources.registry import adapter_for
 
 logger = logging.getLogger(__name__)
@@ -167,6 +168,18 @@ class BulkOut(BaseModel):
     ids: list[uuid.UUID]
 
 
+class RefreshBulkOut(BaseModel):
+    """What a bulk refresh did, per linked item.
+
+    `skipped` is a linked item the source returned nothing for (a deleted or
+    merged record); `failed` is an item in a batch whose request failed.
+    """
+
+    updated: int
+    skipped: int
+    failed: int
+
+
 class BulkSetChanges(BaseModel):
     """What a bulk set may change: fields shared by many copies.
 
@@ -274,16 +287,57 @@ def _copy_fields(changes: dict, row: Item | None) -> dict:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
+# Games per bulk-refresh request: IGDB answers up to 500 rows, and 100 keeps
+# one failed request from costing more than a hundred refreshes.
+REFRESH_BATCH = 100
+
+# The snapshot keys a source's release date arrives under.
+RELEASE_DATE_KEYS = ("first_release_date", "release_date")
+
+
+def _release_date(snapshot: dict) -> date | None:
+    for key in RELEASE_DATE_KEYS:
+        value = snapshot.get(key)
+        if isinstance(value, str):
+            try:
+                return date.fromisoformat(value[:10])
+            except ValueError:
+                continue
+    return None
+
+
 def _apply_detail(item: Item, detail) -> None:
     """Copies a fetched source record onto an item, leaving the title alone.
 
     The title is the owner's: the picker prefills it and it stays editable, so
     overwriting it here would be data loss rather than enrichment.
+
+    The release date is overwritten when the source has one: for a linked item
+    the source is its truth, because announced dates move. Nothing the owner
+    records about their copy is touched here.
     """
     item.year = detail.year if detail.year is not None else item.year
     item.creator = detail.creator
     item.cover_url = detail.cover_url
     item.source_metadata = detail.source_metadata
+    released = _release_date(detail.source_metadata or {})
+    if released is not None:
+        item.release_date = released
+
+
+def _backfill_platform(item: Item) -> None:
+    """Fills an empty platform when the snapshot names exactly one.
+
+    A game released on several platforms says nothing about which one this
+    copy is for, so it is left for the owner; so is a platform the site has no
+    name for.
+    """
+    if item.platform_id is not None:
+        return
+    platforms = (item.source_metadata or {}).get("platform_ids") or []
+    if len(platforms) == 1 and platforms[0] in PLATFORM_NAMES:
+        item.platform_id = platforms[0]
+        item.platform = PLATFORM_NAMES[platforms[0]]
 
 
 async def _enrich(
@@ -567,6 +621,62 @@ def create_items_router(
             enriched=enriched,
             ids=created,
         )
+
+    # Declared before /{item_id}/refresh-metadata, for the same ordering reason
+    # as /search-metadata below.
+    @router.post("/refresh-metadata/bulk", response_model=RefreshBulkOut)
+    async def refresh_metadata_bulk(
+        type: ItemType = Query(),
+        session: AsyncSession = Depends(get_session),
+    ) -> RefreshBulkOut:
+        """Re-fetches every IGDB-linked game in batches.
+
+        Games only: IGDB is the one source with a batched fetch, and the shelf
+        is almost all games. A failed batch is counted and the others still
+        land, so one bad request never costs the whole refresh. Synchronous:
+        a shelf of games is a handful of requests.
+        """
+        if type is not ItemType.GAME:
+            raise HTTPException(
+                status_code=422, detail="Only games can be refreshed in bulk."
+            )
+        try:
+            adapter = adapter_for(registry, ItemType.GAME)
+        except SourceError as error:
+            raise _http_error_for(error) from error
+
+        result = await session.execute(
+            select(Item)
+            .where(Item.type == ItemType.GAME, Item.external_source == "igdb")
+            .where(Item.external_id.is_not(None))
+            .order_by(Item.created_at)
+        )
+        linked = list(result.scalars())
+
+        updated = skipped = failed = 0
+        for start in range(0, len(linked), REFRESH_BATCH):
+            batch = linked[start : start + REFRESH_BATCH]
+            try:
+                details = await adapter.fetch_many([row.external_id for row in batch])
+            except SourceError as error:
+                logger.warning("bulk refresh batch failed: %s", error)
+                failed += len(batch)
+                continue
+            by_id = {detail.external_id: detail for detail in details}
+            for row in batch:
+                detail = by_id.get(row.external_id)
+                if detail is None:
+                    skipped += 1
+                    continue
+                _apply_detail(row, detail)
+                _backfill_platform(row)
+                updated += 1
+
+        await session.commit()
+        logger.info(
+            "bulk refresh: %s updated, %s skipped, %s failed", updated, skipped, failed
+        )
+        return RefreshBulkOut(updated=updated, skipped=skipped, failed=failed)
 
     # Declared before /{item_id}. FastAPI matches in declaration order and
     # {item_id} is typed uuid.UUID, so a later /search-metadata would be
