@@ -7,7 +7,9 @@ Research: `2026-09-22-physical-sources-research.md` and
 `2026-09-22-tracker-design-research.md`, re-checked against the live sources
 on 2026-09-23 (Prior art below). This document is the spec E7c is built from;
 where it deviates from the parent the deviation is stated with its reason, and
-this document wins.
+this document wins. Revised 2026-09-24: the registry is read through the
+Google Sheets API (Open question 1), Limited Run's closed-pre-order handles
+are not walked (3), and the remaining E8b/E8c defaults are recorded.
 
 ## Problem
 
@@ -36,7 +38,8 @@ one honest format.
   `catalogue_matches`, `catalogue_runs`, created empty. Additive; nothing on
   `items` changes (§1).
 - `backend/physical_sources/`: the registry reader (sheet Details, Summary and
-  Upcoming tabs; header located by content; schema check), the
+  Upcoming tabs through the Google Sheets API; header located by content;
+  schema check), the
   `switch2-tracker` cross-check, the Shopify and WooCommerce adapters, the
   `STORES` data table for all thirteen stores, the Limited Run HTML step, the
   format classifier, the pure collapse rule, and the N64 platform-policy
@@ -70,7 +73,7 @@ one honest format.
 ```mermaid
 flowchart LR
   subgraph Sources
-    NS[NSCollectors CSVs] --> RR[registry.py]
+    NS[NSCollectors sheet via Sheets API] --> RR[registry.py]
     S2[switch2-tracker json] --> TR[tracker.py]
     SH[Shopify products.json x10] --> SA[shopify.py]
     WC[WooCommerce Store API x3] --> WA[woocommerce.py]
@@ -200,17 +203,30 @@ fetched once per run and checked with `urllib.robotparser` under
 `User-agent: *` for every path the adapter will request. Disallowed → the
 source is skipped with `robots_disallowed` in the run's errors. An unreachable
 robots file (non-200) is treated as allowed and logged. All thirteen store
-hosts allowed their JSON paths on 2026-09-22; the Google export is Open
-question 1.
+hosts allowed their JSON paths on 2026-09-22. `docs.google.com/robots.txt`
+disallows every path for every agent (line 38, `Disallow: /`, no
+`spreadsheets` rule — checked by the owner 2026-09-24), so the CSV export is
+never fetched; the registry is read through the Sheets API instead, which
+robots.txt does not govern.
 
-**Registry — `registry.py`.** Fetches three CSVs from the NSCollectors sheet
-(`1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8`), following the 302 to
-googleusercontent: Details (`gid=764784245`), Summary (`gid=558942722`),
-Upcoming Summary (`gid=887819792`). *Deviation from parent §5.5:* release
+**Registry — `registry.py`.** Reads three tabs of the NSCollectors sheet
+(`1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8`) through the Google Sheets
+API v4 with an optional, lazily checked `GOOGLE_SHEETS_API_KEY` (`config.py`,
+never in `_REQUIRED`; a missing key records `sheets_not_configured` on the
+registry run and leaves the tracker and the stores unaffected). Once per run
+`GET /v4/spreadsheets/{id}?fields=sheets.properties` maps the known gids —
+Details `764784245`, Summary `558942722`, Upcoming Summary `887819792` — to
+their current tab titles, then `GET /v4/spreadsheets/{id}/values/{title}`
+returns each tab as JSON rows, which feed the same header-by-content parser
+the CSV would have. A public ("anyone with the link") sheet needs only the
+key; the fixture recorder's first run confirms that for this sheet, and a
+403 there means the fallback door — an admin upload of hand-downloaded
+CSVs through the same parser — is designed before the registry task starts.
+*Deviation from parent §5.5* twice over: no CSV export (robots), and release
 dates come from the Summary and Upcoming tabs, not a Details `Release Date`
 column — that is where `switch2-tracker`'s scraper reads them today.
 
-- `parse_details(text)`: the header row is located by content — the first
+- `parse_details(rows)`: the header row is located by content — the first
   row containing `Game Title`, `Region` and `Card Type` — never assumed to be
   row 0. A required column missing → `schema_missing_columns`; the run fails
   and nothing is written or retired. Optional columns (`Master Title`,
@@ -223,7 +239,7 @@ column — that is where `switch2-tracker`'s scraper reads them today.
   physical, format NULL, counted as `unknown_card_type` with the value so new
   vocabulary is noticed. Cart IDs are kept only when they match
   `CART_ID_PATTERN`; region is upper-cased.
-- `parse_summary(text)`: header located by `Game Title`; data rows start with
+- `parse_summary(rows)`: header located by `Game Title`; data rows start with
   a row number; region columns `USA KOR JPN EUR CHT AUS ASI` hold
   `YYYY/MM/DD` → `release_date` with precision `day`. The Details row's own
   `Release Date` text is the fallback: `YYYY-MM-DD` → day, `Mon YYYY` /
@@ -263,7 +279,10 @@ handle; a store fails only when every handle is empty or errors. Products
 seen in several handles merge their `collections_seen`. One `StoreProduct` per
 platform variant. `inventory_quantity` is optional (absent on Limited Run
 today). Never walks `all` or `archive` (6,512 and 4,112 products at Limited
-Run).
+Run), nor `in-production` / `all-in-production`: checked 2026-09-24, both
+hold closed pre-orders tagged `Archive` and largely `Shipping Complete`,
+nothing buyable and no Switch 2 items — Radar's job is pre-orders while they
+are open, and those editions reach the registry when they ship.
 
 **WooCommerce — `woocommerce.py`.** Walks
 `/wp-json/wc/store/v1/products?per_page=100&page=N&category=<id>`;
@@ -280,7 +299,7 @@ strategy (ordered), `status` strategy (ordered), `game_filter`, `url_keep`,
 
 | Store | Collections walked (counts on 2026-09-23) | Platform from | Status from | Notes |
 |---|---|---|---|---|
-| `limited_run` USD / USA | `coming-soon` 49, `latest-releases` 10, `all-in-production` 133, `distro` 27, `the-lr-vault` 20, `in-stock-switch` 44 | option `Platform`; SKU `NS2-` / `NSW-`; title `(Switch 2, …)`; tags last | `coming-soon` / `latest-releases` → `preorder` even with `available: false` (Purple Dot waitlist); `all-in-production` → `sold_out` (pre-orders closed); vault and in-stock → `variant.available` | `title_strip` `^(Switch\|PS5\|PS4\|Xbox) Limited Run #\d+: `; `format_policy`: `game_card` unless `distro` in `collections_seen`; `html_step` for Switch 2 pre-order variants |
+| `limited_run` USD / USA | `coming-soon` 49, `latest-releases` 10, `distro` 27, `the-lr-vault` 20, `in-stock-switch` 44 | option `Platform`; SKU `NS2-` / `NSW-`; title `(Switch 2, …)`; tags last | `coming-soon` / `latest-releases` → `preorder` even with `available: false` (Purple Dot waitlist); vault and in-stock → `variant.available` | `title_strip` `^(Switch\|PS5\|PS4\|Xbox) Limited Run #\d+: `; `format_policy`: `game_card` unless `distro` in `collections_seen`; `html_step` for Switch 2 pre-order variants; `in-production` and `all-in-production` deliberately not walked |
 | `iam8bit` USD / USA | `games`, `nintendo`, `pre-order`, `new`, `restock` | tag `Nintendo Switch 2`; SKU `-N2-`; title `(Nintendo Switch 2)` | tag `pre-order`; tag `sold-out`; available | "complete on cartridge"; "Shipping Q4 2026" |
 | `strictly_limited` EUR / EUR | `nintendo-switch-2`, `nintendo-switch`, `pre-order`, `coming-soon`, `in-stock` | product_type; tag `NSW2`; title `(Nintendo Switch 2)` | `variants[].available` first (a `Sold Out` tag sat on an available item) | "full game on cartridge" per item |
 | `premium_edition` USD / USA | `pre-order`, `latest-preorders`, `coming-soon-2`, `in-stock`, `in-stock-partners` | product_type `Nintendo Switch Games`; tag `Nintendo Switch` | collection membership; title `(PRE-ORDER)`; available | key on id, never handle; "Physical Case and Game" |
@@ -346,10 +365,12 @@ variant and body: `PRE-ORDERS CLOSE ON (.+?)\.` → `preorder_closes_at`;
 order, `variant.available` last.
 
 **Fixtures first.** `backend/scripts/record_physical_fixtures.py`
-(owner-run, keyless) records one `products.json` page per store handle above,
-the three sheet CSVs, the tracker JSON, an N64 IGDB page (this one needs the
-IGDB key, so it is a separate flag), one Limited Run product HTML, and each
-host's `robots.txt`, into `tests/fixtures/physical/`. No parser is written
+(owner-run; keyless for the stores and the tracker) records one
+`products.json` page per store handle above, the three sheet tabs as the
+Sheets API returns them plus the properties response (needs
+`GOOGLE_SHEETS_API_KEY`, loaded the normal way), the tracker JSON, an N64
+IGDB page (needs the IGDB key, so it is a separate flag), one Limited Run
+product HTML, and each host's `robots.txt`, into `tests/fixtures/physical/`. No parser is written
 before its fixture exists; a fixture that differs from the table above updates
 the table, and the difference is recorded in the plan's summary.
 
@@ -505,8 +526,10 @@ fixture recorder.
 | D9 precedence | Best edition wins within the home region; tiers only for the same edition; cross-region full carts a note | *Deviation* from the parent's "registry beats store text", which hides a full-cart boutique edition behind a key-card retail row. |
 | Catalogue shape | Five tables; snapshot once per game; `collapse()` shared | One more table than the parent; an unmatched listing has no game row until Needs match links it. |
 | Title matching | `catalogue_matches` with auto / manual / ignored / pending | Manual links survive re-listing; junk is ignored once. One more table. |
-| robots.txt | Honoured per host; disallowed sources skipped and recorded | One request per host per run; the Google export is Open question 1. |
-| Sheet dates | Summary and Upcoming tabs, per region | *Deviation from parent §5.5*; three CSVs per run instead of two. |
+| robots.txt | Honoured per host; disallowed sources skipped and recorded | One request per host per run. |
+| Registry door | The Google Sheets API with an optional key, not the CSV export | The registry is no longer keyless (one console step in the existing Google Cloud project); the courtesy policy keeps no exception. Fallback: hand-downloaded CSVs through an admin upload, designed only if the sheet refuses key access. |
+| Limited Run closed pre-orders | `in-production` and `all-in-production` not walked | Radar loses nothing buyable; those editions arrive through the registry when they ship. |
+| Sheet dates | Summary and Upcoming tabs, per region | *Deviation from parent §5.5*; three tabs per run instead of two. |
 | Upcoming-only titles | Editions with `is_physical = NULL` | Radar sees announced games early, marked unknown; pools filter `IS DISTINCT FROM false`, not `= true`. |
 | `switch2-tracker` identity | `normalize_title \| region`, not its `id` | *Deviation*: the id is a sort index and shifts. Excerpt fixture; no licence. |
 | Registry sync | Never writes `manual` / `cart_id` / `photo`; `apply_registry_format` raises | Disagreements are notes with a one-click adopt; nothing automated relabels a copy. |
@@ -522,8 +545,10 @@ fixture recorder.
 | Source | Finding (2026-09-23 unless stated) | Verdict |
 |---|---|---|
 | `switch2-tracker` `data/games.json` and `scripts/scrape.py` (GitHub, live) | 910 games; `fmt` known for 319, 303 of them with no per-region formats; no cart IDs; ids are a sort index; the scraper locates the sheet's header by content, maps `Card Type` including Digital, and reads dates from the Summary and Upcoming tabs; no LICENSE (404) | Cross-check only; excerpt fixture; title-keyed `source_ref`; the sheet parser copies its header-by-content approach |
-| NSCollectors sheet CSV export | Unreachable from the planning sandbox (`docs.google.com` refused by the fetch tool and by both proxies) | Shape taken from the scraper; recorded by the owner's fixture script; robots.txt check pending |
-| Limited Run `products.json` and `collections.json` (live) | No `inventory_quantity`; Purple Dot tags (`purple-dot-live-waitlist`, `purple-dot-has-variant-on-preorder`); `available: false` on Coming Soon; `Switch Limited Run #NNN:` title prefix; `all` 6,512 / `archive` 4,112 / `in-production` 491 / `all-in-production` 133 / `coming-soon` 49 / `in-stock-switch` 44 / `nintendo-switch-games` 43 / `distro` 27 / `the-lr-vault` 20 / `latest-releases` 10; "PRE-ORDERS CLOSE ON SUNDAY, NOVEMBER 8, 2026 …" in a body | Walk six handles, never `all` or `archive`; status from collection membership before `available` |
+| NSCollectors sheet CSV export | Unreachable from the planning sandbox (`docs.google.com` refused by the fetch tool and by both proxies). Owner's `curl` of `docs.google.com/robots.txt`, 2026-09-24: line 38 `Disallow: /`, no `spreadsheets` rule | Shape taken from the scraper; the export is never fetched; the registry is read through the Sheets API |
+| Google Sheets API v4 (`spreadsheets.get` with `fields=sheets.properties`; `spreadsheets.values.get`) | A public sheet is readable with an API key alone; `sheets.properties` carries `sheetId` (the gid) and `title` — from the API reference, not exercised from the sandbox | Adopted; the fixture recorder's first run is the live confirmation |
+| Limited Run `in-production` (491) and `all-in-production` (133), 2026-09-24 | Every item tagged `Archive`, most `Shipping` / `Shipping Complete`, `available: false`, no Switch 2 items, entries back to 2023; `all-in-production` also holds shirts and soundtracks | Neither is walked |
+| Limited Run `products.json` and `collections.json` (live) | No `inventory_quantity`; Purple Dot tags (`purple-dot-live-waitlist`, `purple-dot-has-variant-on-preorder`); `available: false` on Coming Soon; `Switch Limited Run #NNN:` title prefix; `all` 6,512 / `archive` 4,112 / `in-production` 491 / `all-in-production` 133 / `coming-soon` 49 / `in-stock-switch` 44 / `nintendo-switch-games` 43 / `distro` 27 / `the-lr-vault` 20 / `latest-releases` 10; "PRE-ORDERS CLOSE ON SUNDAY, NOVEMBER 8, 2026 …" in a body | Walk five handles, never `all`, `archive` or the in-production pair; status from collection membership before `available` |
 | Super Rare, iam8bit, Strictly Limited, Premium Edition, Nicalis, Aksys US, Fangamer, Atari (live JSON) | As researched, with: Fangamer option `edition` lower-case; iam8bit `Legacy Cartridge Collection` (Sega Genesis) under `Games`; Aksys US pre-orders carry the platform only in SKU `SW-`; Atari `Video game platform` option confirmed; Super Rare `switch` 49 and `switch-2` 6 | `STORES` corrected; `CATALOGUE_PLATFORMS` gate |
 | Aksys EU `collections.json` (live) | `switch` gone; `nintendo-switch™-1` 61, `nintendo-switch-game` 40, `pre-order-now` 7, `buy-now` 55, `sold-out` 48 | Handles replaced; percent-encode ™ |
 | PixelHeart, GameFairy, 1Print Store API (live) | 5 / 5 / 6 Switch 1 items, none on backorder; PixelHeart EN and FR duplicates; 1Print bundles | WooCommerce adapter stays (owner's scope call); `url_keep`; bundles → Ignore |
@@ -533,18 +558,26 @@ fixture recorder.
 
 ## Open questions
 
-1. **Does `docs.google.com/robots.txt` allow `/spreadsheets/d/*/export`?**
-   Owner: `curl -s https://docs.google.com/robots.txt | grep -i -n
-   "spreadsheets\|^Disallow: /$"` from Terminal.app. If disallowed, the
-   registry fetch does not run under the courtesy policy, and the plan's
-   registry tasks read a committed export refreshed by hand — decide then.
-2. Does the Details tab still carry `Cart ID`? The fixture recording answers
-   it; the parser treats the column as optional either way.
-3. Limited Run: `all-in-production` (133) or `in-production` (491) — which is
-   the pre-orders-closed set? The fixture run decides which handle is walked.
+Settled 2026-09-24:
+
+1. **`docs.google.com/robots.txt`** — `Disallow: /` for every agent, no
+   `spreadsheets` rule (owner's `curl`). The registry is read through the
+   Google Sheets API with an optional key (§2); the CSV export is never
+   fetched. The fixture recorder's first run confirms key access to this
+   sheet; a 403 means the sheet is not link-shared, and the fallback — an
+   admin upload of hand-downloaded CSVs through the same parser — is designed
+   before the registry task starts.
+2. **`Cart ID` column** — kept, optional; the fixture recording shows whether
+   it is still present.
+3. **Limited Run `in-production` / `all-in-production`** — neither is walked
+   (§2, Prior art).
+
+Still open, answered by runs rather than decisions:
+
 4. IGDB's N64 cover coverage — measured and recorded on the first
    `refresh-platform` run.
-5. Aksys US `switch` handle — not re-verified 2026-09-23; fixture run.
+5. Aksys US `switch` handle — not re-verified 2026-09-23; the fixture run
+   confirms or replaces it.
 
 ## Smoke test strategy
 
@@ -559,9 +592,12 @@ item's edit page shows "Registry agrees" or a disagreement note.
 
 ## Deploy order (owner)
 
-1. Run `backend/scripts/record_physical_fixtures.py` (keyless; about thirty
+1. In the Google Cloud project that holds the admin OAuth client: enable the
+   Google Sheets API, create an API key restricted to it, set
+   `GOOGLE_SHEETS_API_KEY` in `backend/.env` and on Render.
+2. Run `backend/scripts/record_physical_fixtures.py` (about thirty-five
    requests) and commit `tests/fixtures/physical/` — before any parser task.
-2. Answer Open question 1.
+   A 403 from the sheet triggers the fallback in Open question 1.
 3. Apply `0005` to Neon (`alembic upgrade head`); merge; Render deploys;
    `schema_check` boots either way.
 4. `/admin/catalogue`: Refresh registry → Refresh stores → Resolve until 0 →
@@ -590,8 +626,22 @@ Settled, because they shape E7c's tables:
 - All thirteen stores are in, so Radar's "pre-orders close" line and prices
   exist from the start.
 
-Still open, for E8b/E8c's own specs: the model and budget (Gemini free tier
-vs an Anthropic key); popularity and window defaults; whether Want stays
-public now that the public shelf exists; films in or out of E8b; how quality
-is judged; Radar's horizon and the public strip's placement; whether E6 is
-formally retired in `CLAUDE.md` (recommended: yes, E8b supersedes it).
+Settled by the owner on 2026-09-24, for E8b/E8c's own specs to carry:
+
+- **Model and budget:** Gemini's free tier stays — one call per Discover
+  generate, the button's label states the budget, the deterministic fallback
+  covers a 429. No Anthropic key.
+- **Discover defaults:** popularity `balanced`, window `any`, platforms = the
+  distinct `items.platform_id` values in the collection (boutique Switch 1
+  stock skews older, so `recent` would hide most of it). Recommended and not
+  objected to.
+- **Want stays public** as the `wanted` chip and the radar strip (D1 holds).
+- **Films are out** of E8b; games only.
+- **Quality is judged by feel** after a few batches, not against a fixed
+  list of expected titles.
+- **Radar horizon:** `any` — no upper bound on how far ahead a dated
+  physical announcement may sit; year-only rows still go to "Dated later".
+- **E6 is retired** in `CLAUDE.md` in favour of E8b (E7c's docs task does it).
+
+Still open, for E8b/E8c's own specs: the public "On the radar" strip's
+placement on `/collection`.

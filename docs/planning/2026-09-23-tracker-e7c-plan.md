@@ -2,6 +2,8 @@
 
 Spec: `docs/planning/2026-09-23-tracker-e7c-design.md` (wins over the parent
 `2026-09-22-tracker-enhancement-design.md` §5.4–§5.8 where they differ).
+Revised 2026-09-24 with the spec: the registry is read through the Google
+Sheets API, and Limited Run's closed-pre-order handles are not walked.
 
 **Goal:** Know which games exist physically, and as what, for games the owner
 does not own: read the r/NSCollectors registry, the `switch2-tracker`
@@ -50,6 +52,10 @@ Library; plain CSS tokens.
   the network, and only in one `fetch`-shaped function each.
 - Every external request: `USER_AGENT` from `limits.py`, the per-host
   `Throttle` at `REQUESTS_PER_SECOND = 2`, the courtesy check first.
+- The registry is read through the Google Sheets API with
+  `GOOGLE_SHEETS_API_KEY`, an optional `config.py` field never added to
+  `_REQUIRED`; the CSV export URL appears nowhere in the code. A missing key
+  records `sheets_not_configured` on the registry run and nothing else.
 - Constants live in `physical_sources/limits.py`: `REQUESTS_PER_SECOND = 2`,
   `PAGE_SIZE_SHOPIFY = 250`, `PAGE_SIZE_WOO = 100`, `RESOLVE_LIMIT = 100`,
   `SNAPSHOT_MAX_AGE_DAYS = 30`, `HTML_RECHECK_DAYS = 7`, `SHORT_RUN_RATIO =
@@ -76,7 +82,7 @@ Library; plain CSS tokens.
 | `backend/physical_sources/courtesy.py`, `backend/tests/test_physical_courtesy.py` | 4 |
 | `backend/physical_sources/format.py`, `backend/tests/test_physical_format.py` | 5 |
 | `backend/physical_sources/parse.py`, `backend/tests/test_physical_parse.py` | 6 |
-| `backend/physical_sources/registry.py`, `backend/tests/test_physical_registry.py` | 7 |
+| `backend/physical_sources/registry.py`, `backend/tests/test_physical_registry.py`, `backend/config.py`, `backend/tests/test_config.py` | 7 |
 | `backend/physical_sources/tracker.py`, `backend/tests/test_physical_tracker.py` | 8 |
 | `backend/physical_sources/stores.py`, `shopify.py`, `backend/tests/test_physical_shopify.py` | 9, 10 |
 | `backend/physical_sources/woocommerce.py`, `backend/tests/test_physical_woocommerce.py` | 11 |
@@ -95,7 +101,7 @@ Library; plain CSS tokens.
 
 ---
 
-## Zone 0 — fixtures and the courtesy answer
+## Zone 0 — fixtures and sheet access
 
 ### Task 1: The fixture recorder, run by the owner
 
@@ -106,40 +112,48 @@ Library; plain CSS tokens.
 **Interfaces produced**
 
 ```python
-# record_physical_fixtures.py — keyless except --igdb
+# record_physical_fixtures.py — keyless for stores, tracker and robots;
+# the registry part needs GOOGLE_SHEETS_API_KEY and --igdb needs the IGDB
+# keys, both loaded the normal way (the credentials never leave the process)
 SOURCES: dict[str, list[tuple[str, str]]]   # fixture name -> [(url, out_file)]
 #   one entry per store handle in the spec §2 STORES table, e.g.
 #   ("https://limitedrungames.com/collections/coming-soon/products.json?limit=250&page=1",
 #    "shopify/limited_run/coming-soon.p1.json")
-#   the three sheet CSVs -> "registry/details.csv", "registry/summary.csv",
-#   "registry/upcoming.csv"; the tracker -> "tracker/games.json" (then
-#   trimmed to 30 games by --trim-tracker); each host's robots.txt ->
-#   "robots/<host>.txt"; one Limited Run Switch 2 pre-order product page ->
+#   the sheet through the Sheets API -> "registry/properties.json" (the
+#   sheets.properties response) and "registry/details.json",
+#   "registry/summary.json", "registry/upcoming.json" (values responses,
+#   the key stripped from nothing because it is a query parameter, never in
+#   the body); the tracker -> "tracker/games.json" (then trimmed to 30 games
+#   by --trim-tracker); each host's robots.txt -> "robots/<host>.txt"; one
+#   Limited Run Switch 2 pre-order product page ->
 #   "shopify/limited_run/product.html"; with --igdb, one N64 page ->
 #   "igdb/n64_page1.json".
 def record(names: list[str] | None, igdb: bool) -> None: ...
 ```
 
-Response bodies only, never headers. A 2 req/s sleep between requests. Prints
-one line per file: name, status, bytes, and for a Shopify page the product
-count and the distinct tag set; for a CSV the header row it found by content.
-Exits non-zero on any non-200 so a gone handle is loud.
+Response bodies only, never headers or URLs with the key. A 2 req/s sleep
+between requests. Prints one line per file: name, status, bytes, and for a
+Shopify page the product count and the distinct tag set; for a sheet tab the
+header row it found by content and the row count. Exits non-zero on any
+non-200 so a gone handle — or a sheet that refuses key access — is loud.
 
 **Acceptance criteria**
 - [ ] `python scripts/record_physical_fixtures.py --list` prints every
       planned fixture without fetching.
-- [ ] The run writes ~35 files; the README section says how to re-record and
-      that fixtures are re-recorded when a store's handles change.
+- [ ] The run writes ~36 files; the README section says how to re-record,
+      that fixtures are re-recorded when a store's handles change, and how
+      the Sheets key is created.
+- [ ] The registry part returns 200 for all three tabs, confirming key
+      access to the sheet. A 403 stops Zone 0: the fallback (an admin upload
+      of hand-downloaded CSVs through the same parser) is designed and added
+      to this plan before Task 7 starts.
 - [ ] The owner reviews the printed drift against the spec §2 table and
-      Open questions 2, 3 and 5, and records any difference in this plan's
+      Open questions 2 and 5, and records any difference in this plan's
       summary before Task 9.
-- [ ] Open question 1 answered (`docs.google.com/robots.txt`); the answer is
-      written into the spec's Open questions and decides whether Task 7's
-      live fetch ships or the registry reads a committed export.
 - [ ] **Commit (assistant):** `chore(tracker): add the physical fixture recorder`
 - [ ] **Commit (owner):** `test(tracker): record physical source fixtures`
 
-**CHECKPOINT — owner review (fixtures, drift, courtesy answer).**
+**CHECKPOINT — owner review (fixtures, drift, sheet access).**
 
 ---
 
@@ -323,38 +337,59 @@ def parse_loose_date(text: str) -> tuple[date | None, str | None]:
       Walk"; "Terranigma: Foiled Standard Edition (Switch 2, PS5, Xbox)" →
       "Terranigma: Foiled" with `edition_label` "Standard".
 - [ ] `status_from` with Limited Run's strategy: a `coming-soon` member with
-      `available: false` → `preorder`; an `all-in-production` member →
-      `sold_out`; a vault member `available: true` → `in_stock`.
+      `available: false` → `preorder`; a vault member `available: true` →
+      `in_stock`, `available: false` → `sold_out`.
 - [ ] **Commit:** `feat(tracker): add date, status and title parsing`
 
 ### Task 7: The registry reader *(parallel-safe)*
 
 **Files:** Create `backend/physical_sources/registry.py`,
-`backend/tests/test_physical_registry.py`.
+`backend/tests/test_physical_registry.py`. Modify `backend/config.py`,
+`backend/tests/test_config.py`.
 
 **Interfaces produced**
 
 ```python
+# config.py
+google_sheets_api_key: str | None      # optional; never in _REQUIRED; logged as "sheets" in the
+                                       # startup "metadata sources configured" line when set
+
+# registry.py
+SHEET_ID = "1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8"
+TABS = {"details": 764784245, "summary": 558942722, "upcoming": 887819792}     # gid per tab
 REQUIRED_DETAILS = ("Game Title", "Region", "Card Type")
 OPTIONAL_DETAILS = ("Master Title", "Cart ID", "Publisher", "Editions", "Release Date")   # plus any header containing "NS1"
 REGION_COLUMNS = ("USA", "KOR", "JPN", "EUR", "CHT", "AUS", "ASI")
 CARD_TYPES: dict[str, tuple[bool | None, str | None]]   # case-folded card type -> (is_physical, format)
 
-class SheetSchemaError(PhysicalSourceError): ...          # code "schema_missing_columns"
+class SheetsNotConfigured(PhysicalSourceError): ...      # code "sheets_not_configured"
+class SheetSchemaError(PhysicalSourceError): ...         # code "schema_missing_columns"
 
+def tab_titles(properties: dict) -> dict[int, str]:      # pure: sheets.properties -> {gid: title}
+def rows_from_values(payload: dict) -> list[list[str]]:  # pure: a values response -> padded rows
 def locate_header(rows: list[list[str]], required: tuple[str, ...]) -> int: ...
-def parse_details(text: str) -> tuple[list[dict], list[str]]:     # rows, warnings (unknown_card_type:<value>, missing optional)
-def parse_summary(text: str) -> dict[str, dict[str, date]]:       # normalize_title -> {REGION: date}
+def parse_details(rows: list[list[str]]) -> tuple[list[dict], list[str]]:   # rows, warnings
+def parse_summary(rows: list[list[str]]) -> dict[str, dict[str, date]]:     # normalize_title -> {REGION: date}
 def merge(details: list[dict], summary: dict, upcoming: dict) -> list[EditionRow]:
     """One EditionRow per Details row (region date from summary/upcoming, else the row's
     Release Date text); one is_physical=None row per Upcoming title with no Details row."""
-async def fetch_csv(gid: str, client) -> str        # follows the 302; the only network function
+async def fetch_properties(client, key: str) -> dict     # GET /v4/spreadsheets/{id}?fields=sheets.properties
+async def fetch_tab(client, key: str, title: str) -> dict   # GET /v4/spreadsheets/{id}/values/{title}
+# the two fetches are the only network functions; the key travels as a query parameter and is
+# never logged; a 403 or 404 becomes PhysicalSourceError("sheet_unavailable", status)
 ```
 
 **Acceptance criteria**
+- [ ] `tab_titles` maps the three known gids from the recorded
+      `properties.json`; a missing gid raises `SheetSchemaError` naming it.
+- [ ] `rows_from_values` pads ragged rows to the header's width (the API
+      omits trailing empty cells).
 - [ ] `locate_header` finds the header when it is not row 0 (the recorded
-      Details CSV) and raises `SheetSchemaError` when a required column is
+      Details tab) and raises `SheetSchemaError` when a required column is
       absent.
+- [ ] Without `google_sheets_api_key`, `list_editions` raises
+      `SheetsNotConfigured`; `test_config.py` shows the key is optional and
+      `_REQUIRED` is unchanged.
 - [ ] Every distinct `Card Type` value in the fixture maps to a
       `(is_physical, format)` pair or appears in warnings as
       `unknown_card_type:<value>` — the test prints the distinct set so a new
@@ -366,7 +401,7 @@ async def fetch_csv(gid: str, client) -> str        # follows the 302; the only 
       fallback; both absent → NULL.
 - [ ] An Upcoming-only title → one row, `is_physical = None`, format None.
 - [ ] `source_ref` is `normalize_title(Game Title) + "|" + REGION`.
-- [ ] **Commit:** `feat(tracker): read the NSCollectors registry`
+- [ ] **Commit:** `feat(tracker): read the NSCollectors registry through the Sheets API`
 
 ### Task 8: The `switch2-tracker` cross-check *(parallel-safe)*
 
@@ -426,8 +461,11 @@ async def list_products(config: StoreConfig, client, robots) -> tuple[list[Store
 ```
 
 **Acceptance criteria**
-- [ ] Every `STORES` entry has the spec §2 handles; `aksys_eu` uses
-      `nintendo-switch™-1` percent-encoded when the URL is built.
+- [ ] Every `STORES` entry has the spec §2 handles — Limited Run's five
+      (`coming-soon`, `latest-releases`, `distro`, `the-lr-vault`,
+      `in-stock-switch`), never `in-production` or `all-in-production`;
+      `aksys_eu` uses `nintendo-switch™-1` percent-encoded when the URL is
+      built.
 - [ ] Limited Run fixture (`coming-soon`): Terranigma Foiled explodes into
       three variants; only the Switch 2 one has `platform_id` 508; its
       `availability` is `preorder` despite `available: false`;
@@ -715,7 +753,9 @@ IGDB adapter, so a full refresh runs end to end against the test Postgres.
 - [ ] A handle whose fixture is `{"products": []}` → `empty_collection` on
       that run; the store's other handles still write.
 - [ ] `POST /refresh-registry` → two runs (`nscollectors`, `switch2tracker`),
-      editions written, `items_synced` reported.
+      editions written, `items_synced` reported; with no Sheets key the
+      `nscollectors` run records `sheets_not_configured`, writes nothing,
+      retires nothing, and the tracker run still proceeds.
 - [ ] `POST /refresh-platform?platform_id=130` → 422.
 - [ ] Every route → 401 unauthenticated; a second refresh during the first →
       409.
@@ -872,7 +912,7 @@ IGDB adapter, so a full refresh runs end to end against the test Postgres.
 ## Zones
 
 ```
-Zone 0 (owner + auto): task 1 (fixture recorder; owner records; drift and courtesy answer)
+Zone 0 (owner + auto): task 1 (fixture recorder; owner records; drift and sheet access)
 CHECKPOINT — owner review
 Zone 1 (auto): task 2 (migration 0005)
 CHECKPOINT — owner review
@@ -884,8 +924,11 @@ CHECKPOINT — batch review + finish gate
 
 ## Deploy order (owner)
 
-1. Link `.env` into the worktree. Run `record_physical_fixtures.py`, review
-   the drift, answer Open question 1, commit the fixtures (Zone 0).
+1. In the Google Cloud project that holds the admin OAuth client, enable the
+   Google Sheets API and create an API key restricted to it; set
+   `GOOGLE_SHEETS_API_KEY` in `backend/.env` and on Render. Link `.env` into
+   the worktree. Run `record_physical_fixtures.py`, review the drift, commit
+   the fixtures (Zone 0).
 2. After the finish gate: apply `0005` to Neon (`alembic upgrade head`);
    merge; Render deploys.
 3. `/admin/catalogue`: Refresh registry → Refresh stores → Resolve until 0 →
