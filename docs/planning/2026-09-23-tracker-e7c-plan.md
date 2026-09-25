@@ -4,10 +4,12 @@ Spec: `docs/planning/2026-09-23-tracker-e7c-design.md` (wins over the parent
 `2026-09-22-tracker-enhancement-design.md` §5.4–§5.8 where they differ).
 Revised 2026-09-24 with the spec: the registry is read through the Google
 Sheets API, and Limited Run's closed-pre-order handles are not walked.
+Revised 2026-09-25 from the recorded fixtures (Execution summary, at the
+end): twelve stores, the registry's two details tabs, and the edition key.
 
 **Goal:** Know which games exist physically, and as what, for games the owner
 does not own: read the r/NSCollectors registry, the `switch2-tracker`
-cross-check, all thirteen boutique stores and IGDB's N64 catalogue into five
+cross-check, all twelve boutique stores and IGDB's N64 catalogue into five
 new tables; resolve every row to an IGDB id through a match cache; collapse a
 game's editions into one honest format with a pure, shared rule; sync registry
 formats onto owned items without ever touching what the owner recorded; and
@@ -356,11 +358,11 @@ google_sheets_api_key: str | None      # optional; never in _REQUIRED; logged as
 
 # registry.py
 SHEET_ID = "1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8"
-TABS = {"details": 764784245, "summary": 558942722, "upcoming": 887819792}     # gid per tab
+TABS = {"details": 764784245, "upcoming_details": 238551450}     # gid per tab; no summary tabs
 REQUIRED_DETAILS = ("Game Title", "Region", "Card Type")
 OPTIONAL_DETAILS = ("Master Title", "Cart ID", "Publisher", "Editions", "Release Date")   # plus any header containing "NS1"
 REGION_COLUMNS = ("USA", "KOR", "JPN", "EUR", "CHT", "AUS", "ASI")
-CARD_TYPES: dict[str, tuple[bool | None, str | None]]   # case-folded card type -> (is_physical, format)
+CARD_TYPES: dict[str, tuple[bool | None, str | None]]   # case-folded card type -> (is_physical, format); "tbc" -> (None, None)
 
 class SheetsNotConfigured(PhysicalSourceError): ...      # code "sheets_not_configured"
 class SheetSchemaError(PhysicalSourceError): ...         # code "schema_missing_columns"
@@ -368,11 +370,11 @@ class SheetSchemaError(PhysicalSourceError): ...         # code "schema_missing_
 def tab_titles(properties: dict) -> dict[int, str]:      # pure: sheets.properties -> {gid: title}
 def rows_from_values(payload: dict) -> list[list[str]]:  # pure: a values response -> padded rows
 def locate_header(rows: list[list[str]], required: tuple[str, ...]) -> int: ...
-def parse_details(rows: list[list[str]]) -> tuple[list[dict], list[str]]:   # rows, warnings
-def parse_summary(rows: list[list[str]]) -> dict[str, dict[str, date]]:     # normalize_title -> {REGION: date}
-def merge(details: list[dict], summary: dict, upcoming: dict) -> list[EditionRow]:
-    """One EditionRow per Details row (region date from summary/upcoming, else the row's
-    Release Date text); one is_physical=None row per Upcoming title with no Details row."""
+def parse_details(rows: list[list[str]]) -> tuple[list[dict], list[str]]:   # rows, warnings; both tabs
+def source_ref(title: str, region: str, publisher: str | None, card_type: str | None) -> str:
+    """normalize_title(title) | REGION | normalize_title(publisher) | casefolded card type."""
+def merge(details: list[dict], upcoming: list[dict]) -> list[EditionRow]:
+    """One EditionRow per row of either tab; on a source_ref in both, Release Details wins."""
 async def fetch_properties(client, key: str) -> dict     # GET /v4/spreadsheets/{id}?fields=sheets.properties
 async def fetch_tab(client, key: str, title: str) -> dict   # GET /v4/spreadsheets/{id}/values/{title}
 # the two fetches are the only network functions; the key travels as a query parameter and is
@@ -380,7 +382,7 @@ async def fetch_tab(client, key: str, title: str) -> dict   # GET /v4/spreadshee
 ```
 
 **Acceptance criteria**
-- [ ] `tab_titles` maps the three known gids from the recorded
+- [ ] `tab_titles` maps the two known gids from the recorded
       `properties.json`; a missing gid raises `SheetSchemaError` naming it.
 - [ ] `rows_from_values` pads ragged rows to the header's width (the API
       omits trailing empty cells).
@@ -396,11 +398,17 @@ async def fetch_tab(client, key: str, title: str) -> dict   # GET /v4/spreadshee
       value is seen.
 - [ ] A row with `Cart ID` `LP-…` → `game_key_card`, cart ID kept; a malformed
       cart ID → NULL cart ID, format from `Card Type`.
-- [ ] Region dates: a title present in Summary with `USA 2026/11/19` →
-      `release_date` 2026-11-19, precision `day`; absent → the Details text
-      fallback; both absent → NULL.
-- [ ] An Upcoming-only title → one row, `is_physical = None`, format None.
-- [ ] `source_ref` is `normalize_title(Game Title) + "|" + REGION`.
+- [ ] Dates: a row's `2026/11/19` → 2026-11-19, precision `day`; `TBA` or
+      blank → NULL (synthetic rows for the looser forms).
+- [ ] Upcoming Releases parses through `parse_details` (no `Master Title`
+      column → a warning, not a failure); `TBC` and blank card types →
+      `is_physical = None`, format None; a known card type → that format.
+- [ ] `source_ref` is `title|REGION|publisher|card type`: WWE 2K25's EUR
+      Game-Key Card and Code in a Box rows get distinct refs, as do Human
+      Fall Flat 2's two EUR rows; every ref in both fixtures is unique within
+      its tab.
+- [ ] A ref present in both tabs (LEGO Batman USA/EUR, if still identical)
+      yields one row, the Release Details one.
 - [ ] **Commit:** `feat(tracker): read the NSCollectors registry through the Sheets API`
 
 ### Task 8: The `switch2-tracker` cross-check *(parallel-safe)*
@@ -418,8 +426,8 @@ async def fetch_games(client) -> dict     # raw.githubusercontent.com; best-effo
 ```
 
 **Acceptance criteria**
-- [ ] Over the 30-game excerpt: a game with `formats: {usa: "k", eur: "c"}`
-      → two rows (USA key card, EUR game card); a game with `fmt: "c"` and
+- [ ] Over the 30-game excerpt: WWE 2K25's `formats: {usa: "b", eur: "k",
+      aus: "k"}` → three rows (USA code in box, EUR and AUS key card); a game with `fmt: "c"` and
       empty `formats` → one `ALL` row; `fmt: "d"` → `is_physical = False`;
       `fmt: "?"` → no row.
 - [ ] `date` "Aug 27, 2026" → day; "2027" → year; "Q1 2027" → quarter; "TBA"
@@ -448,7 +456,7 @@ class StoreConfig:
     format_policy: str | None                    # "game_card" for limited_run (unless distro)
     html_step: bool
 
-STORES: dict[str, StoreConfig]                   # all thirteen, transcribed from the spec §2 table
+STORES: dict[str, StoreConfig]                   # all twelve, transcribed from the spec §2 table (www. hosts where they redirect)
 
 # shopify.py
 def explode(product: dict, config: StoreConfig, collections_seen: set[str]) -> list[StoreProduct]:
@@ -476,19 +484,22 @@ async def list_products(config: StoreConfig, client, robots) -> tuple[list[Store
 - [ ] `the-lr-vault` fixture: "Switch Limited Run #270: 9 Years of Shadows"
       → title "9 Years of Shadows", platform 130, `game_card` /
       `platform_policy` when no text, `in_stock` when available.
-- [ ] Super Rare fixture: SW2#02 → title "The Midnight Walk", 508,
+- [ ] Super Rare fixture: `Sw2#02` → title "The Midnight Walk", 508,
       `game_card` / `store_text` (evidence "Fully assembled Nintendo Switch 2
-      game with cartridge"); the Trading Card Pack → `is_game = False`.
-- [ ] iam8bit fixture: "UNBEATABLE - Breakout Edition (Nintendo Switch 2)" →
-      508, `preorder`, `sold_out` tag respected only when `available` is
-      false; a Sega Genesis Legacy Cartridge → `is_game` True with
+      game with cartridge"); `[Special Edition] SE#02` → the same title,
+      format None (no phrase); the Trading Card Pack → `is_game = False`.
+- [ ] iam8bit fixture: "UNBEATABLE - Breakout Edition (iam8bit Nintendo
+      Switch 2 Exclusive…)" → 508, `preorder`, `sold_out` tag respected only when `available` is
+      false; a Legacy Cartridge Collection product (Sonic 35th Anniversary) → `is_game` True with
       `platform_id` None (Needs match) or a platform outside
       `CATALOGUE_PLATFORMS` — either is acceptable; never 508 or 130.
 - [ ] Strictly Limited fixture: "Shenmue III Enhanced - Special Edition
       (Nintendo Switch 2)" → 508, `game_card` / `store_text`; `available`
       wins over the `Sold Out` tag.
-- [ ] `parse_product_page` on the recorded HTML finds "Estimated Ship Date"
-      and reports `key_card_seen` correctly for that page.
+- [ ] `parse_product_page` on the recorded HTML reads the ship date from
+      `selling_plan_groups` (`Date` 2027-01-12 → month precision; the plan
+      name "Estimated ship date Jan 12 – 31, 2027" as `release_text`) and
+      reports `key_card_seen` False for that page.
 - [ ] **Commit:** `feat(tracker): add STORES and the Shopify adapter`
 
 ### Task 10: The remaining Shopify stores and the fixture-coverage test
@@ -510,8 +521,6 @@ async def list_products(config: StoreConfig, client, robots) -> tuple[list[Store
       `edition` → one variant per platform, 508 for "Nintendo Switch 2";
       Stardew Valley's upgrade-pack text → `game_card` with platform 130
       (the override applied).
-- [ ] Atari: `Video game platform` option → one variant per platform; the
-      `__pre-order::…` tag → `preorder`; "full game cartridge" → `store_text`.
 - [ ] Coverage test: for every `STORES` entry and every handle, a fixture
       file exists and `explode` yields at least one `is_game` product with a
       platform in `CATALOGUE_PLATFORMS` — except handles the fixture run
@@ -535,7 +544,7 @@ async def list_products(config: StoreConfig, client, robots) -> tuple[list[Store
 **Acceptance criteria**
 - [ ] PixelHeart: the `/fr/` duplicate of "Rage of the Dragons Neo SWITCH
       [US]" is dropped by `url_keep`; price €44.90; platform 130 from the
-      `Platform` attribute or the name; "on the same cartridge" →
+      name (the fixture has no `Platform` attribute); `sold_out`; "on the same cartridge" →
       `game_card` / `store_text`, else `platform_policy`.
 - [ ] GameFairy: "Switch Case and Cartridge" → `store_text`; USD.
 - [ ] 1Print: "In Other Waters And Sky Racket (Nintendo Switch)" → one
@@ -906,7 +915,7 @@ IGDB adapter, so a full refresh runs end to end against the test Postgres.
 - **Passing means:** all of the above green; after the owner applies `0005`
   and merges, smoke green with no new Render log errors; in production,
   Refresh registry reports rows and no errors, Refresh stores reports
-  thirteen runs, Resolve loops to zero, Needs match shows the leftovers, and
+  twelve runs, Resolve loops to zero, Needs match shows the leftovers, and
   a Switch 2 item's edit page shows the registry line.
 
 ## Zones
