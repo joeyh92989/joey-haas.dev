@@ -140,6 +140,9 @@ describe('runState', () => {
       runState(run('x', { errors: [{ code: 'info', detail: 'covers' }] })),
     ).toBe('ok')
     expect(runState(run('x', { ok: null }))).toBe('running')
+    expect(runState(run('x', { ok: null, interrupted: true }))).toBe(
+      'interrupted',
+    )
   })
 })
 
@@ -158,8 +161,11 @@ describe('AdminCatalogue', () => {
     const gamefairy = rows.find((row) => row.textContent.includes('GameFairy'))
     expect(gamefairy).toHaveTextContent('failed, 1 error')
     expect(gamefairy).toHaveTextContent('HTTP 500')
+    expect(gamefairy).toHaveTextContent('3 failed runs in a row')
     expect(
-      within(gamefairy).getByRole('img', { name: 'Needs attention' }),
+      within(gamefairy).getByRole('img', {
+        name: 'Needs attention: 3 failed runs in a row',
+      }),
     ).toBeInTheDocument()
     expect(rows[4]).toHaveTextContent('never run')
     expect(
@@ -483,5 +489,89 @@ describe('Registry disagreements', () => {
     expect(
       await screen.findByText('No copy disagrees with the registry.'),
     ).toBeInTheDocument()
+  })
+})
+
+describe('finish-gate review', () => {
+  it('stops Resolve when a batch changes nothing', async () => {
+    const calls = stubApi({
+      'POST /api/physical/resolve': () =>
+        json({
+          resolved: 0,
+          pending: 0,
+          games_fetched: 0,
+          unresolved_remaining: 5,
+          errors: [],
+        }),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Resolve' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Stopped with 5 left: a batch changed nothing',
+    )
+    expect(
+      calls.filter((call) => call.path === '/api/physical/resolve'),
+    ).toHaveLength(1)
+  })
+
+  it('links a game chosen in the search box', async () => {
+    const calls = stubApi({
+      'GET /api/physical/needs-match': () => json(NEEDS),
+      'GET /api/items/search-metadata': () =>
+        json([
+          {
+            external_source: 'igdb',
+            external_id: '77',
+            title: 'Star Fox 2',
+            year: 2017,
+            thumbnail_url: null,
+          },
+        ]),
+      'POST /api/physical/matches': () => json({ action: 'linked', moved: 0 }),
+    })
+    renderPage()
+    const panel = await screen.findByRole('region', { name: 'Needs match' })
+    const [search] = await within(panel).findAllByLabelText(/look up/i)
+    await userEvent.type(search, 'Star Fox 2')
+    await userEvent.click(
+      await within(panel).findByRole('button', { name: 'Star Fox 2 (2017)' }),
+    )
+    await waitFor(() =>
+      expect(calls.some((call) => call.path === '/api/physical/matches')).toBe(
+        true,
+      ),
+    )
+    const posted = calls.find((call) => call.path === '/api/physical/matches')
+    expect(JSON.parse(posted.body)).toMatchObject({ igdb_id: 77 })
+  })
+
+  it('reads Needs match again after a press', async () => {
+    let answer = { keys: [], total: 0 }
+    const calls = stubApi({
+      'GET /api/physical/needs-match': () => json(answer),
+      'POST /api/physical/resolve': () => {
+        answer = NEEDS
+        return json({
+          resolved: 3,
+          pending: 2,
+          games_fetched: 3,
+          unresolved_remaining: 0,
+          errors: [],
+        })
+      },
+    })
+    renderPage()
+    expect(
+      await screen.findByText('Nothing needs a match.'),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Resolve' }))
+    expect(
+      await screen.findByText('Star Fox', { selector: 'strong' }),
+    ).toBeInTheDocument()
+    expect(
+      calls.filter((call) => call.path.startsWith('/api/physical/needs-match')),
+    ).toHaveLength(2)
   })
 })

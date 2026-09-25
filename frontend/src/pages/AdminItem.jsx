@@ -114,14 +114,6 @@ function changedFields(original, form) {
   )
 }
 
-/**
- * One item, fully editable.
- *
- * A separate route rather than inline editing because the collection table
- * already carries six columns, and this page also has to host the metadata
- * picker for re-linking — a search field and a candidate list do not fit in a
- * table row.
- */
 const SWITCH_2 = 508
 
 /**
@@ -136,7 +128,16 @@ function RegistryLine({ item, onAdopted }) {
   const [busy, setBusy] = useState(false)
   // Read again whenever the saved format changes, so an adopt or a save
   // turns a disagreement into "agrees" without a reload.
-  const { id, physical_format: savedFormat, format_source: savedSource } = item
+  // The edition the note picks also depends on the copy's region, cart ID and
+  // linked game, so a change to any of them reads the note again.
+  const {
+    id,
+    physical_format: savedFormat,
+    format_source: savedSource,
+    region,
+    cart_id: cartId,
+    external_id: externalId,
+  } = item
 
   useEffect(() => {
     let live = true
@@ -151,7 +152,7 @@ function RegistryLine({ item, onAdopted }) {
     return () => {
       live = false
     }
-  }, [id, savedFormat, savedSource])
+  }, [id, savedFormat, savedSource, region, cartId, externalId])
 
   async function adopt() {
     setBusy(true)
@@ -192,6 +193,14 @@ function RegistryLine({ item, onAdopted }) {
   )
 }
 
+/**
+ * One item, fully editable.
+ *
+ * A separate route rather than inline editing because the collection table
+ * already carries six columns, and this page also has to host the metadata
+ * picker for re-linking — a search field and a candidate list do not fit in a
+ * table row.
+ */
 export default function AdminItem() {
   const { id } = useParams()
   const navigate = useNavigate()

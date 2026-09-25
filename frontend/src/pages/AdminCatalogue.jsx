@@ -64,7 +64,7 @@ function when(timestamp) {
 /** A run's outcome in words, never a colour alone. */
 export function runState(run) {
   if (!run) return 'never run'
-  if (run.ok === null) return 'running'
+  if (run.ok === null) return run.interrupted ? 'interrupted' : 'running'
   const errors = run.errors.filter((entry) => entry.code !== 'info').length
   const parts = [run.ok ? 'ok' : 'failed']
   if (run.short_run) parts.push('short run — nothing retired')
@@ -82,8 +82,7 @@ function SourceRow({ source, busy, onRefreshStore }) {
           <span
             className="needs-attention"
             role="img"
-            aria-label="Needs attention"
-            title={`${source.consecutive_failures} failed runs in a row`}
+            aria-label={`Needs attention: ${source.consecutive_failures} failed runs in a row`}
           >
             !
           </span>
@@ -93,6 +92,8 @@ function SourceRow({ source, busy, onRefreshStore }) {
       <td>{run ? run.rows_seen : '—'}</td>
       <td>
         {runState(run)}
+        {source.needs_attention &&
+          ` — ${source.consecutive_failures} failed runs in a row`}
         {run?.errors?.length > 0 && (
           <ul className="run-errors">
             {run.errors.map((entry, index) => (
@@ -360,6 +361,8 @@ export default function AdminCatalogue() {
   const [running, setRunning] = useState(null)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  // Bumped after every press, so the panels below read their lists again.
+  const [round, setRound] = useState(0)
 
   const apply = useCallback((result) => {
     setState(result.state)
@@ -396,6 +399,7 @@ export default function AdminCatalogue() {
       return null
     } finally {
       setRunning(null)
+      setRound((current) => current + 1)
       await load()
     }
   }
@@ -470,6 +474,7 @@ export default function AdminCatalogue() {
       setError('Could not reach the API. Try again shortly.')
     } finally {
       setRunning(null)
+      setRound((current) => current + 1)
       await load()
     }
   }
@@ -564,8 +569,8 @@ export default function AdminCatalogue() {
             </table>
           </div>
 
-          <NeedsMatch onChange={load} />
-          <Disagreements />
+          <NeedsMatch key={`needs-${round}`} onChange={load} />
+          <Disagreements key={`disagreements-${round}`} />
         </>
       )}
     </section>
