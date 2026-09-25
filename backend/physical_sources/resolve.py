@@ -62,6 +62,15 @@ logger = logging.getLogger(__name__)
 
 DECIDED = (MatchDecision.AUTO, MatchDecision.MANUAL)
 CANDIDATE_COUNT = 3
+# Stale snapshots refreshed per press; missing games are always filled. The
+# cache fills in a few presses, so it goes stale all at once 30 days later.
+STALE_REFRESH_LIMIT = 2 * BATCH
+
+
+class UnknownGame(LookupError):
+    """IGDB returned nothing for an id a human tried to link."""
+
+
 # A quarter is left out of the year a search is narrowed by (spec §3).
 YEAR_PRECISIONS = ("day", "month", "year")
 
@@ -190,8 +199,16 @@ def _candidates(results) -> list[dict]:
     ]
 
 
-async def _decide(session, title_normalized, platform_id, **fields) -> None:
-    match = await session.get(CatalogueMatch, (title_normalized, platform_id))
+async def _decide(
+    session, title_normalized, platform_id, *, new: bool = False, **fields
+) -> None:
+    """Records a decision. `new` skips the lookup when the caller knows the
+    key has no row (resolve_batch's keys come from the unmatched list)."""
+    match = (
+        None
+        if new
+        else await session.get(CatalogueMatch, (title_normalized, platform_id))
+    )
     if match is None:
         match = CatalogueMatch(
             title_normalized=title_normalized, platform_id=platform_id
@@ -217,8 +234,15 @@ def _game_row(detail: SourceDetail) -> dict:
 
 async def store_games(session, details: list[SourceDetail]) -> int:
     """Upserts catalogue_games from fetched details; returns how many."""
+    ids = [int(detail.external_id) for detail in details]
+    existing = {
+        game.igdb_id: game
+        for game in await session.scalars(
+            select(CatalogueGame).where(CatalogueGame.igdb_id.in_(ids))
+        )
+    }
     for detail in details:
-        game = await session.get(CatalogueGame, int(detail.external_id))
+        game = existing.get(int(detail.external_id))
         values = _game_row(detail)
         if game is None:
             session.add(CatalogueGame(igdb_id=int(detail.external_id), **values))
@@ -246,15 +270,22 @@ async def fill_games(session, igdb, ids: list[int] | None = None) -> int:
                 .distinct()
             )
         )
-    stale = _now() - timedelta(days=SNAPSHOT_MAX_AGE_DAYS)
-    fresh = set(
-        await session.scalars(
-            select(CatalogueGame.igdb_id).where(
-                CatalogueGame.igdb_id.in_(ids), CatalogueGame.fetched_at >= stale
+    cutoff = _now() - timedelta(days=SNAPSHOT_MAX_AGE_DAYS)
+    cached = dict(
+        (
+            await session.execute(
+                select(CatalogueGame.igdb_id, CatalogueGame.fetched_at).where(
+                    CatalogueGame.igdb_id.in_(ids)
+                )
             )
-        )
+        ).all()
     )
-    wanted = sorted(set(ids) - fresh)
+    missing = sorted(set(ids) - set(cached))
+    stale = sorted(
+        (igdb_id for igdb_id, fetched in cached.items() if fetched < cutoff),
+        key=cached.get,
+    )[:STALE_REFRESH_LIMIT]
+    wanted = missing + stale
     fetched = 0
     for start in range(0, len(wanted), BATCH):
         batch = [str(igdb_id) for igdb_id in wanted[start : start + BATCH]]
@@ -283,13 +314,18 @@ async def propagate(session) -> None:
         CatalogueMatch.decided_by == MatchDecision.IGNORED
     )
     for model in (PhysicalEdition, StoreListing):
+        link = [
+            model.title_normalized == linkable.c.title_normalized,
+            model.platform_id == linkable.c.platform_id,
+            model.igdb_id.is_distinct_from(linkable.c.igdb_id),
+        ]
+        if model is PhysicalEdition:
+            # Two N64 games can share a normalized title (Bomberman 64 is
+            # two IGDB games); a title match must not overwrite either id.
+            link.append(PhysicalEdition.source != "igdb_platform")
         await session.execute(
             update(model)
-            .where(
-                model.title_normalized == linkable.c.title_normalized,
-                model.platform_id == linkable.c.platform_id,
-                model.igdb_id.is_distinct_from(linkable.c.igdb_id),
-            )
+            .where(*link)
             .values(igdb_id=linkable.c.igdb_id)
             .execution_options(synchronize_session=False)
         )
@@ -343,6 +379,7 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
                 session,
                 title_normalized,
                 platform_id,
+                new=True,
                 igdb_id=None,
                 match_confidence=None,
                 decided_by=MatchDecision.PENDING,
@@ -359,6 +396,7 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
                 session,
                 title_normalized,
                 platform_id,
+                new=True,
                 igdb_id=int(match.result.external_id),
                 match_confidence=MatchConfidence(match.confidence.value),
                 decided_by=MatchDecision.AUTO,
@@ -370,6 +408,7 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
                 session,
                 title_normalized,
                 platform_id,
+                new=True,
                 igdb_id=None,
                 match_confidence=MatchConfidence.UNCERTAIN,
                 decided_by=MatchDecision.PENDING,
@@ -394,8 +433,14 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
 async def link_by_hand(
     session, igdb, title_normalized: str, platform_id: int, igdb_id: int
 ) -> None:
-    """A human's link: the game row first, then the decision and the copy."""
-    await store_games(session, await igdb.fetch_many([str(igdb_id)]))
+    """A human's link: the game row first, then the decision and the copy.
+
+    Raises UnknownGame when IGDB has nothing for the id, and decides nothing.
+    """
+    details = await igdb.fetch_many([str(igdb_id)])
+    if not details:
+        raise UnknownGame(igdb_id)
+    await store_games(session, details)
     await _decide(
         session,
         title_normalized,

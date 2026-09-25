@@ -68,6 +68,7 @@ from physical_sources.limits import (
 from physical_sources.platform_policy import INGESTED_PLATFORMS, ingest_platform
 from physical_sources.resolve import (
     ResolveResult,
+    UnknownGame,
     count_pending,
     ignore,
     link_by_hand,
@@ -598,6 +599,10 @@ def create_physical_router(
             await link_by_hand(
                 session, igdb(), body.title_normalized, body.platform_id, body.igdb_id
             )
+        except UnknownGame as error:
+            raise HTTPException(
+                status_code=404, detail=f"IGDB has no game {error.args[0]}"
+            ) from error
         except SourceNotConfigured as error:
             raise HTTPException(status_code=503, detail=str(error)) from error
         except SourceError as error:

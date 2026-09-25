@@ -21,7 +21,7 @@ from models import (
 )
 from physical_sources.catalogue import upsert_editions, upsert_listings
 from physical_sources.resolve import pending_keys, resolve_batch
-from sources.base import SourceResult
+from sources.base import SourceError, SourceNotConfigured, SourceResult
 
 pytestmark = pytest.mark.asyncio
 
@@ -212,3 +212,40 @@ async def test_an_unknown_item_is_404(sessionmaker_for_test):
 async def test_every_route_needs_the_admin(sessionmaker_for_test, method, path):
     async with client_for(sessionmaker_for_test, signed_in=False) as client:
         assert (await getattr(client, method)(path)).status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("igdb", "status"),
+    [
+        (FakeIgdb(missing={"2"}), 404),
+        (FakeIgdb(fetch_error=SourceNotConfigured("igdb", "no key")), 503),
+        (FakeIgdb(fetch_error=SourceError("igdb", "HTTP 500")), 502),
+    ],
+)
+async def test_a_link_that_cannot_be_made_decides_nothing(
+    sessionmaker_for_test, igdb, status
+):
+    await _seed_pending(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, igdb=igdb) as client:
+        response = await client.post(
+            "/api/physical/matches",
+            json={"title_normalized": "star fox", "platform_id": 508, "igdb_id": 2},
+        )
+    assert response.status_code == status
+    async with sessionmaker_for_test() as session:
+        match = await session.get(CatalogueMatch, ("star fox", 508))
+        assert match.decided_by.value == "pending"
+
+
+async def test_an_unknown_platform_is_422(sessionmaker_for_test):
+    await _seed_pending(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/physical/matches",
+            json={
+                "title_normalized": "he man",
+                "platform_id": 0,
+                "new_platform_id": 9999,
+            },
+        )
+    assert response.status_code == 422

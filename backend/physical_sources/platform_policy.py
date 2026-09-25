@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from sqlalchemy import select
+
 from matching import normalize_title
 from models import CatalogueMatch, MatchConfidence, MatchDecision
 from physical_sources.base import EditionRow
@@ -118,18 +120,32 @@ async def ingest_platform(
     result.changed, result.retired = await upsert_editions(
         session, rows, SOURCE, retire=bool(rows) and not result.short
     )
-    for row in rows:
-        key = (row.title_normalized, platform_id)
-        if await session.get(CatalogueMatch, key) is None:
-            session.add(
-                CatalogueMatch(
-                    title_normalized=row.title_normalized,
-                    platform_id=platform_id,
-                    igdb_id=row.igdb_id,
-                    match_confidence=MatchConfidence.EXACT,
-                    decided_by=MatchDecision.AUTO,
-                )
+    decided = set(
+        await session.scalars(
+            select(CatalogueMatch.title_normalized).where(
+                CatalogueMatch.platform_id == platform_id,
+                CatalogueMatch.title_normalized.in_(
+                    {row.title_normalized for row in rows}
+                ),
             )
+        )
+    )
+    for row in rows:
+        # One decision per title: two games can share a normalized title,
+        # and the first by IGDB id stands for the key (each edition keeps
+        # its own id regardless).
+        if row.title_normalized in decided:
+            continue
+        decided.add(row.title_normalized)
+        session.add(
+            CatalogueMatch(
+                title_normalized=row.title_normalized,
+                platform_id=platform_id,
+                igdb_id=row.igdb_id,
+                match_confidence=MatchConfidence.EXACT,
+                decided_by=MatchDecision.AUTO,
+            )
+        )
     await session.flush()
     result.rows = len(rows)
     result.with_cover = sum(1 for detail in details if detail.cover_url)

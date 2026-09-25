@@ -18,8 +18,20 @@ from models import CatalogueGame, CatalogueMatch, PhysicalEdition, StoreListing
 from physical_sources.base import EditionRow, StoreProduct
 from physical_sources.catalogue import upsert_editions, upsert_listings
 from physical_sources.platform_policy import ingest_platform
-from physical_sources.resolve import count_pending, pending_keys, resolve_batch
-from sources.base import SourceDetail, SourceRateLimited, SourceResult
+from physical_sources.resolve import (
+    STALE_REFRESH_LIMIT,
+    count_pending,
+    fill_games,
+    pending_keys,
+    resolve_batch,
+)
+from sources.base import (
+    SourceDetail,
+    SourceError,
+    SourceNotConfigured,
+    SourceRateLimited,
+    SourceResult,
+)
 
 N64_PAGE = Path(__file__).parent / "fixtures" / "physical" / "igdb" / "n64_page1.json"
 
@@ -27,10 +39,23 @@ N64_PAGE = Path(__file__).parent / "fixtures" / "physical" / "igdb" / "n64_page1
 class FakeIgdb:
     """Stands in for IgdbSource: search, fetch_many and the one raw query."""
 
-    def __init__(self, results=None, configured=True, limit_after=None):
+    def __init__(
+        self,
+        results=None,
+        configured=True,
+        limit_after=None,
+        titles=None,
+        search_error=None,
+        fetch_error=None,
+        missing=(),
+    ):
         self.results = results or {}
         self._configured = configured
         self.limit_after = limit_after
+        self.titles = titles or {}
+        self.search_error = search_error
+        self.fetch_error = fetch_error
+        self.missing = set(missing)
         self.searches: list[tuple[str, int | None, str | None]] = []
         self.fetched: list[list[str]] = []
         self.fetch_limited = False
@@ -39,6 +64,8 @@ class FakeIgdb:
         return self._configured
 
     async def search(self, query, year=None, platform=None):
+        if self.search_error is not None:
+            raise self.search_error
         if self.limit_after is not None and len(self.searches) >= self.limit_after:
             raise SourceRateLimited("igdb", "rate limited by IGDB")
         self.searches.append((query, year, platform))
@@ -47,15 +74,18 @@ class FakeIgdb:
     async def fetch_many(self, ids):
         if self.fetch_limited:
             raise SourceRateLimited("igdb", "rate limited by IGDB")
+        if self.fetch_error is not None:
+            raise self.fetch_error
         self.fetched.append(list(ids))
         return [
             SourceDetail(
                 external_id=i,
-                title=f"Game {i}",
+                title=self.titles.get(i, f"Game {i}"),
                 cover_url=f"https://images.igdb.com/{i}.jpg" if int(i) % 2 else None,
                 source_metadata={"first_release_date": "1999-05-18", "genres": []},
             )
             for i in ids
+            if i not in self.missing
         ]
 
     async def _query(self, body, endpoint="games"):
@@ -299,3 +329,111 @@ async def test_count_pending_counts_keys_not_rows(session):
     )
     await upsert_listings(session, [listing("a game")], "super_rare", archive=True)
     assert await count_pending(session) == 1
+
+
+# --- Finish-gate review -----------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_two_n64_games_with_one_title_keep_their_own_ids(session):
+    # IGDB has two games that normalize to "bomberman 64": 3451 and 80368,
+    # both in the recorded N64 page.
+    titles = {"3451": "Bomberman 64", "80368": "Bomberman 64"}
+    igdb = FakeIgdb(titles=titles)
+    await ingest_platform(session, igdb, 4)
+    await resolve_batch(session, igdb)
+    ids = {
+        e.source_ref: e.igdb_id
+        for e in await _all(session, PhysicalEdition)
+        if e.source_ref in titles
+    }
+    assert ids == {"3451": 3451, "80368": 80368}
+    matches = [
+        m
+        for m in await _all(session, CatalogueMatch)
+        if m.title_normalized == "bomberman 64"
+    ]
+    assert len(matches) == 1
+
+
+@pytest.mark.asyncio
+async def test_a_short_n64_run_retires_nothing(session):
+    await upsert_editions(
+        session,
+        [
+            EditionRow(
+                source="igdb_platform",
+                source_ref="999999",
+                title="Gone",
+                title_normalized="gone",
+                platform_id=4,
+                region="ALL",
+                is_physical=True,
+                physical_format="game_card",
+                format_source="platform_policy",
+            )
+        ],
+        "igdb_platform",
+        retire=True,
+    )
+    outcome = await ingest_platform(session, FakeIgdb(), 4, previous=10_000)
+    assert (outcome.short, outcome.retired) == (True, 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("igdb", "code"),
+    [
+        (FakeIgdb(configured=False), "igdb_not_configured"),
+        (FakeIgdb(fetch_error=SourceRateLimited("igdb", "slow")), "igdb_rate_limited"),
+        (
+            FakeIgdb(fetch_error=SourceNotConfigured("igdb", "no key")),
+            "igdb_not_configured",
+        ),
+        (FakeIgdb(fetch_error=SourceError("igdb", "HTTP 500")), "http_error"),
+    ],
+)
+async def test_n64_ingest_failures_write_nothing(session, igdb, code):
+    outcome = await ingest_platform(session, igdb, 4)
+    assert [e["code"] for e in outcome.errors] == [code]
+    assert outcome.rows == 0 and await _all(session, PhysicalEdition) == []
+
+
+@pytest.mark.asyncio
+async def test_a_failed_search_parks_the_key_for_a_human(session):
+    await upsert_editions(session, [edition("A Game")], "nscollectors", retire=True)
+    igdb = FakeIgdb(search_error=SourceError("igdb", "HTTP 500"))
+    outcome = await resolve_batch(session, igdb)
+    (match,) = await _all(session, CatalogueMatch)
+    assert (match.decided_by.value, match.candidates, outcome.pending) == (
+        "pending",
+        [],
+        1,
+    )
+    assert outcome.unresolved_remaining == 0
+
+
+@pytest.mark.asyncio
+async def test_a_failed_game_fetch_is_an_http_error(session):
+    await upsert_editions(session, [edition("A Game")], "nscollectors", retire=True)
+    igdb = FakeIgdb(
+        {"A Game": [result(5, "A Game")]}, fetch_error=SourceError("igdb", "HTTP 500")
+    )
+    outcome = await resolve_batch(session, igdb)
+    assert [e["code"] for e in outcome.errors] == ["http_error"]
+    assert [e.igdb_id for e in await _all(session, PhysicalEdition)] == [None]
+
+
+@pytest.mark.asyncio
+async def test_stale_snapshots_are_refreshed_a_bounded_number_per_press(session):
+    old = datetime.now(UTC) - timedelta(days=40)
+    for igdb_id in range(1, STALE_REFRESH_LIMIT + 51):
+        session.add(
+            CatalogueGame(igdb_id=igdb_id, title="x", snapshot={}, fetched_at=old)
+        )
+    await session.flush()
+    igdb = FakeIgdb()
+    ids = list(range(1, STALE_REFRESH_LIMIT + 51)) + [99_999]
+    assert await fill_games(session, igdb, ids) == STALE_REFRESH_LIMIT + 1
+    fetched = [int(i) for batch in igdb.fetched for i in batch]
+    assert 99_999 in fetched  # a missing game is never held back
