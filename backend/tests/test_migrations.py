@@ -355,4 +355,14 @@ async def test_is_physical_keeps_null(clean_database):
         value = await connection.scalar(
             text("SELECT is_physical IS NULL FROM physical_editions")
         )
+        # compare_metadata does not compare server defaults, so a default
+        # added to the model alone would pass every other test.
+        column_default = await connection.scalar(
+            text(
+                "SELECT column_default FROM information_schema.columns "
+                "WHERE table_name = 'physical_editions' "
+                "AND column_name = 'is_physical'"
+            )
+        )
     assert value is True
+    assert column_default is None

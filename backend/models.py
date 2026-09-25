@@ -112,10 +112,10 @@ class Completeness(str, enum.Enum):
     SEALED = "sealed"
 
 
-def _enum_column(enum_class: type[enum.Enum], name: str):
+def _enum_column(enum_class: type[enum.Enum], name: str, nullable: bool = True):
     return mapped_column(
         Enum(enum_class, name=name, values_callable=lambda e: [m.value for m in e]),
-        nullable=True,
+        nullable=nullable,
     )
 
 
@@ -330,14 +330,7 @@ class MatchDecision(str, enum.Enum):
     PENDING = "pending"
 
 
-def _named_enum(enum_class: type[enum.Enum], name: str, nullable: bool = True):
-    return mapped_column(
-        Enum(enum_class, name=name, values_callable=lambda e: [m.value for m in e]),
-        nullable=nullable,
-    )
-
-
-def _seen_at():
+def _now_column():
     return mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -359,7 +352,7 @@ class CatalogueGame(Base):
     hypes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # The E7b snapshot, as sources.igdb.fetch_many returns it.
     snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    fetched_at: Mapped[datetime] = _seen_at()
+    fetched_at: Mapped[datetime] = _now_column()
 
 
 class PhysicalEdition(Base):
@@ -406,7 +399,7 @@ class PhysicalEdition(Base):
     editions: Mapped[str | None] = mapped_column(Text, nullable=True)
     ns1_compatible: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    release_precision: Mapped[ReleasePrecision | None] = _named_enum(
+    release_precision: Mapped[ReleasePrecision | None] = _enum_column(
         ReleasePrecision, "release_precision"
     )
     igdb_id: Mapped[int | None] = mapped_column(
@@ -414,8 +407,8 @@ class PhysicalEdition(Base):
         ForeignKey("catalogue_games.igdb_id", ondelete="SET NULL"),
         nullable=True,
     )
-    first_seen_at: Mapped[datetime] = _seen_at()
-    last_seen_at: Mapped[datetime] = _seen_at()
+    first_seen_at: Mapped[datetime] = _now_column()
+    last_seen_at: Mapped[datetime] = _now_column()
     retired_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -457,12 +450,12 @@ class StoreListing(Base):
     )
     price: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     currency: Mapped[str] = mapped_column(CHAR(3), nullable=False)
-    availability: Mapped[ListingAvailability] = _named_enum(
+    availability: Mapped[ListingAvailability] = _enum_column(
         ListingAvailability, "listing_availability", nullable=False
     )
     preorder_closes_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    release_precision: Mapped[ReleasePrecision | None] = _named_enum(
+    release_precision: Mapped[ReleasePrecision | None] = _enum_column(
         ReleasePrecision, "release_precision"
     )
     release_text: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -484,8 +477,8 @@ class StoreListing(Base):
     raw: Mapped[dict] = mapped_column(
         JSONB, nullable=False, server_default=text("'{}'::jsonb")
     )
-    first_seen_at: Mapped[datetime] = _seen_at()
-    last_seen_at: Mapped[datetime] = _seen_at()
+    first_seen_at: Mapped[datetime] = _now_column()
+    last_seen_at: Mapped[datetime] = _now_column()
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -509,16 +502,16 @@ class CatalogueMatch(Base):
     )
     # No foreign key: an auto match is decided before its game row is fetched.
     igdb_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    match_confidence: Mapped[MatchConfidence | None] = _named_enum(
+    match_confidence: Mapped[MatchConfidence | None] = _enum_column(
         MatchConfidence, "match_confidence"
     )
-    decided_by: Mapped[MatchDecision] = _named_enum(
+    decided_by: Mapped[MatchDecision] = _enum_column(
         MatchDecision, "match_decision", nullable=False
     )
     # The top three SourceResults of the last search, so Needs match
     # pre-selects without a new IGDB call.
     candidates: Mapped[list | None] = mapped_column(JSONB, nullable=True)
-    decided_at: Mapped[datetime] = _seen_at()
+    decided_at: Mapped[datetime] = _now_column()
 
 
 class CatalogueRun(Base):
@@ -533,7 +526,7 @@ class CatalogueRun(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     source: Mapped[str] = mapped_column(String(40), nullable=False)
-    started_at: Mapped[datetime] = _seen_at()
+    started_at: Mapped[datetime] = _now_column()
     finished_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

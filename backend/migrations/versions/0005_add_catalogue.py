@@ -53,7 +53,7 @@ physical_format = postgresql.ENUM(name="physical_format", create_type=False)
 format_source = postgresql.ENUM(name="format_source", create_type=False)
 
 
-def _seen_at(name: str) -> sa.Column:
+def _now_column(name: str) -> sa.Column:
     return sa.Column(
         name, sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
     )
@@ -81,7 +81,7 @@ def upgrade() -> None:
         sa.Column("release_date", sa.Date(), nullable=True),
         sa.Column("hypes", sa.Integer(), nullable=True),
         sa.Column("snapshot", postgresql.JSONB(), nullable=False),
-        _seen_at("fetched_at"),
+        _now_column("fetched_at"),
     )
 
     op.create_table(
@@ -104,8 +104,8 @@ def upgrade() -> None:
         sa.Column("release_date", sa.Date(), nullable=True),
         sa.Column("release_precision", release_precision, nullable=True),
         _game_link(),
-        _seen_at("first_seen_at"),
-        _seen_at("last_seen_at"),
+        _now_column("first_seen_at"),
+        _now_column("last_seen_at"),
         sa.Column("retired_at", sa.DateTime(timezone=True), nullable=True),
         sa.UniqueConstraint("source", "source_ref", name="ux_physical_editions_source"),
     )
@@ -160,9 +160,9 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("'{}'::jsonb"),
         ),
-        _seen_at("first_seen_at"),
-        _seen_at("last_seen_at"),
-        _seen_at("updated_at"),
+        _now_column("first_seen_at"),
+        _now_column("last_seen_at"),
+        _now_column("updated_at"),
         sa.UniqueConstraint("store", "variant_id", name="ux_store_listings_variant"),
     )
     op.create_index(
@@ -186,14 +186,14 @@ def upgrade() -> None:
         sa.Column("match_confidence", match_confidence, nullable=True),
         sa.Column("decided_by", match_decision, nullable=False),
         sa.Column("candidates", postgresql.JSONB(), nullable=True),
-        _seen_at("decided_at"),
+        _now_column("decided_at"),
     )
 
     op.create_table(
         "catalogue_runs",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("source", sa.String(40), nullable=False),
-        _seen_at("started_at"),
+        _now_column("started_at"),
         sa.Column("finished_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("ok", sa.Boolean(), nullable=True),
         *(
