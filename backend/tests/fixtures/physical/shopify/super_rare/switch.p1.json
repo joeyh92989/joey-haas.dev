@@ -1,0 +1,2960 @@
+{
+  "products": [
+    {
+      "id": 15874207383935,
+      "title": "SRG#162: Escape from Ever After (Switch)",
+      "handle": "srg-162-escape-from-ever-after-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p>Fight against capitalism in this satirical adventure RPG!</p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-03T15:57:50+01:00",
+      "created_at": "2026-09-03T11:09:40+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Escape from Ever After"
+      ],
+      "variants": [
+        {
+          "id": 58349490635135,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#162",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "37.20",
+          "grams": 135,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15874207383935,
+          "created_at": "2026-09-03T11:09:40+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 87144205549951,
+          "created_at": "2026-09-03T11:17:48+01:00",
+          "position": 1,
+          "updated_at": "2026-09-03T11:17:52+01:00",
+          "product_id": 15874207383935,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/EscapeFromEverAfter-SW-Gamecase.png?v=1788430672",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15874328101247,
+      "title": "TC#162: Escape from Ever After - Trading Card Booster Pack",
+      "handle": "tc-162-escape-from-ever-after-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Escape from Ever After  </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-09-03T15:57:53+01:00",
+      "created_at": "2026-09-03T11:50:17+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Escape from Ever After"
+      ],
+      "variants": [
+        {
+          "id": 58350635024767,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#162",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15874328101247,
+          "created_at": "2026-09-03T11:50:18+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 87364718559615,
+          "created_at": "2026-09-22T15:47:24+01:00",
+          "position": 1,
+          "updated_at": "2026-09-22T15:47:28+01:00",
+          "product_id": 15874328101247,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/EscapeFromEverAfter-TCs-Fan-V2_1e6480d0-905b-420d-a3bc-32881f5fba9e.png?v=1790088448",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15846878675327,
+      "title": "[Deluxe Edition] DE#10: The Golden Idol Saga (Switch)",
+      "handle": "deluxe-edition-de-10-the-golden-idol-saga-switch",
+      "body_html": "<p>The Golden Idol Saga Deluxe Edition</p>",
+      "published_at": "2026-08-20T15:54:09+01:00",
+      "created_at": "2026-08-18T16:30:32+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Collector's Edition",
+      "tags": [
+        "Golden Idol",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 58206709219711,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "DE#10",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "69.60",
+          "grams": 500,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15846878675327,
+          "created_at": "2026-08-18T16:30:33+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 86930756632959,
+          "created_at": "2026-08-18T17:07:51+01:00",
+          "position": 1,
+          "updated_at": "2026-08-18T17:07:55+01:00",
+          "product_id": 15846878675327,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/GoldenIdolSaga-SW-DE-Box.png?v=1787069275",
+          "width": 885,
+          "height": 1227
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15846809829759,
+      "title": "SRG#161: The Golden Idol Saga (Switch)",
+      "handle": "srg-161-the-golden-idol-saga-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p><meta charset=\"utf-8\"><span>The Golden Idol series is a new type of detective game that allows you to think and investigate freely. </span><br></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-08-20T15:54:05+01:00",
+      "created_at": "2026-08-18T16:00:19+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Golden Idol"
+      ],
+      "variants": [
+        {
+          "id": 58205956702591,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#161",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "37.20",
+          "grams": 135,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15846809829759,
+          "created_at": "2026-08-18T16:00:20+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 86930758467967,
+          "created_at": "2026-08-18T17:08:04+01:00",
+          "position": 1,
+          "updated_at": "2026-08-18T17:08:08+01:00",
+          "product_id": 15846809829759,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/GoldenIdolSaga-SW-Gamecase.png?v=1787069288",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15849134522751,
+      "title": "TC#161: The Golden Idol Saga - Trading Card Booster Pack",
+      "handle": "tc-161-the-golden-idol-saga-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> The Golden Idol Saga </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-08-20T15:54:21+01:00",
+      "created_at": "2026-08-19T14:11:09+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Golden Idol"
+      ],
+      "variants": [
+        {
+          "id": 58221037584767,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#161",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15849134522751,
+          "created_at": "2026-08-19T14:11:10+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 86930757615999,
+          "created_at": "2026-08-18T17:07:59+01:00",
+          "position": 1,
+          "updated_at": "2026-08-18T17:08:03+01:00",
+          "product_id": 15849134522751,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/GoldenIdolSaga-TCs-Fan.png?v=1787069283",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15846911869311,
+      "title": "PB#49: The Golden Idol Saga, Escape from Ever After, Game #163 (Switch)",
+      "handle": "pb-49-the-golden-idol-saga-game-162-game-163-switch",
+      "body_html": "<p>Going for a complete Super Rare collection? Want to save on shipping? This one’s for you!<br><br>By purchasing this bundle, you’ll secure<span> The Golden Idol Saga, Game #162, Game #163.</span></p>\n<p><em>Please note: your order will ship once all three games are ready.</em><br><br>This bundle is available in limited quantities, and each game will also be sold individually in the coming months.</p>",
+      "published_at": "2026-08-20T15:54:12+01:00",
+      "created_at": "2026-08-18T16:46:11+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Escape from Ever After",
+        "Golden Idol",
+        "PB"
+      ],
+      "variants": [
+        {
+          "id": 58206849859967,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "PB#49",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "111.60",
+          "grams": 345,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15846911869311,
+          "created_at": "2026-08-18T16:46:11+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 87144205582719,
+          "created_at": "2026-09-03T11:17:48+01:00",
+          "position": 1,
+          "updated_at": "2026-09-03T11:17:52+01:00",
+          "product_id": 15846911869311,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/EscapeFromEverAfter-SW-PB_2nd-Release.png?v=1788430672",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15846918619519,
+      "title": "[Deluxe Edition] PB#49: The Golden Idol Saga, Escape from Ever After, Game #163 (Switch)",
+      "handle": "deluxe-edition-pb-49-the-golden-idol-saga-game-162-game-163-switch",
+      "body_html": "<p>Going for a complete Super Rare collection? Want to save on shipping? This one’s for you!<br><br>By purchasing this bundle, you’ll secure<span> The Golden Idol Saga Deluxe Edition, Game #162. Game #163 (Switch)</span></p>\n<p><em>Please note: your order will ship once all three games are ready.</em><br><br>This bundle is available in limited quantities, and each game will also be sold individually in the coming months.</p>",
+      "published_at": "2026-08-20T15:54:15+01:00",
+      "created_at": "2026-08-18T16:49:52+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Escape from Ever After",
+        "Golden Idol",
+        "PB"
+      ],
+      "variants": [
+        {
+          "id": 58206895407487,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "DE PB#49",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "144.00",
+          "grams": 695,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15846918619519,
+          "created_at": "2026-08-18T16:49:53+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 87144205123967,
+          "created_at": "2026-09-03T11:17:48+01:00",
+          "position": 1,
+          "updated_at": "2026-09-03T11:17:51+01:00",
+          "product_id": 15846918619519,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/EscapeFromEverAfter-SW-PB-DE_2nd-Release.png?v=1788430671",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15846926647679,
+      "title": "MTC#49: The Golden Idol Saga, Escape from Ever After, Game #163 - Trading Card Bundle",
+      "handle": "mtc-49-the-golden-idol-saga-game-162-game-163-trading-card-bundle",
+      "body_html": "<p>Want to bundle trading cards for The Golden Idol Saga, Game #162, Game #163. This is the product for you!</p>",
+      "published_at": "2026-08-20T15:54:18+01:00",
+      "created_at": "2026-08-18T16:54:57+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Escape from Ever After",
+        "Golden Idol"
+      ],
+      "variants": [
+        {
+          "id": 58206928634239,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "MTC#49",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "9.90",
+          "grams": 30,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15846926647679,
+          "created_at": "2026-08-18T16:54:57+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 87364709024127,
+          "created_at": "2026-09-22T15:46:37+01:00",
+          "position": 1,
+          "updated_at": "2026-09-22T15:46:40+01:00",
+          "product_id": 15846926647679,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/EscapeFromEverAfter-MTC_2nd-Release-V2.png?v=1790088400",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15784970781055,
+      "title": "SRG#160: Little Misfortune (Switch)",
+      "handle": "srg-160-little-misfortune-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p><meta charset=\"utf-8\"><span>Experience the joy of running your own cozy small business in Sticky Business.</span><br></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-07-16T15:57:50+01:00",
+      "created_at": "2026-07-13T17:35:51+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Little Misfortune"
+      ],
+      "variants": [
+        {
+          "id": 57961595699583,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#160",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "37.20",
+          "grams": 135,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15784970781055,
+          "created_at": "2026-07-13T17:35:51+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 86422583279999,
+          "created_at": "2026-07-13T17:35:17+01:00",
+          "position": 1,
+          "updated_at": "2026-07-13T17:35:22+01:00",
+          "product_id": 15784970781055,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/LittleMisfortune-SW-Gamecase.png?v=1783960522",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15754476192127,
+      "title": "SRG#159: Sticky Business (Switch)",
+      "handle": "srg-159-sticky-business-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p><meta charset=\"utf-8\"><span>Experience the joy of running your own cozy small business in Sticky Business.</span><br></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-07-02T15:56:41+01:00",
+      "created_at": "2026-07-01T11:47:11+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Sticky Business",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 57871457878399,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#159",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "37.20",
+          "grams": 135,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15754476192127,
+          "created_at": "2026-07-01T11:47:12+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 86108482535807,
+          "created_at": "2026-07-01T11:52:56+01:00",
+          "position": 1,
+          "updated_at": "2026-07-01T11:53:00+01:00",
+          "product_id": 15754476192127,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/StickyBusiness-SW-Gamecase.png?v=1782903180",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15754909811071,
+      "title": "TC#159: Sticky Business - Trading Card Booster Pack",
+      "handle": "tc-159-sticky-business-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Sticky Business </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-07-02T15:56:53+01:00",
+      "created_at": "2026-07-01T16:20:08+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Sticky Business"
+      ],
+      "variants": [
+        {
+          "id": 57873859838335,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#159",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15754909811071,
+          "created_at": "2026-07-01T16:20:09+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 86108481388927,
+          "created_at": "2026-07-01T11:52:55+01:00",
+          "position": 1,
+          "updated_at": "2026-07-01T11:52:59+01:00",
+          "product_id": 15754909811071,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/StickyBusiness-TCs-Fan.png?v=1782903179",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15716521476479,
+      "title": "SRG#158: Chained Echoes Complete Edition (Switch)",
+      "handle": "srg-158-chained-echoes-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p>Chained Echoes is a story-driven JRPG where a group of heroes travel around the vast continent of Valandis to bring an end to the war between its three kingdoms.</p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-06-11T15:56:51+01:00",
+      "created_at": "2026-06-11T10:02:57+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Chained Echoes",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 57730015068543,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#158",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "37.20",
+          "grams": 135,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15716521476479,
+          "created_at": "2026-06-11T10:02:58+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 84848551854463,
+          "created_at": "2026-06-11T11:54:43+01:00",
+          "position": 1,
+          "updated_at": "2026-06-11T11:54:47+01:00",
+          "product_id": 15716521476479,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/ChainedEchoes-SW-Gamecase_cedd1fc1-fcf1-42fb-8dfa-4647f3e7c81a.png?v=1781175287",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15716527866239,
+      "title": "[Deluxe Edition] DE#9: Chained Echoes Complete Edition (Switch)",
+      "handle": "deluxe-edition-de-9-chained-echoes-switch",
+      "body_html": "<p>Chained Echoes Deluxe Edition</p>",
+      "published_at": "2026-06-11T15:56:50+01:00",
+      "created_at": "2026-06-11T10:14:15+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Collector's Edition",
+      "tags": [
+        "Chained Echoes",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 57730061533567,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "DE#9",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "69.60",
+          "grams": 900,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15716527866239,
+          "created_at": "2026-06-11T10:14:15+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 84848528195967,
+          "created_at": "2026-06-11T11:51:59+01:00",
+          "position": 1,
+          "updated_at": "2026-06-11T11:52:02+01:00",
+          "product_id": 15716527866239,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/ChainedEchoes-SW-DE-Box_004638b4-3941-4fbe-b939-082b9eeb0437.png?v=1781175122",
+          "width": 885,
+          "height": 1227
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15716525965695,
+      "title": "TC#158: Chained Echoes Complete Edition - Trading Card Booster Pack",
+      "handle": "tc-158-chained-echoes-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Chained Echoes Complete Edition </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-06-11T15:56:51+01:00",
+      "created_at": "2026-06-11T10:11:57+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Chained Echoes"
+      ],
+      "variants": [
+        {
+          "id": 57730050064767,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#158",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15716525965695,
+          "created_at": "2026-06-11T10:11:57+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 84863339069823,
+          "created_at": "2026-06-12T12:27:11+01:00",
+          "position": 1,
+          "updated_at": "2026-06-12T12:27:15+01:00",
+          "product_id": 15716525965695,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/IMG-5931.png?v=1781263635",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15693006373247,
+      "title": "TC#157: Platypus Reclayed - Trading Card Booster Pack",
+      "handle": "tc-157-platypus-reclayed-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Platypus Reclayed </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-05-28T15:52:04+01:00",
+      "created_at": "2026-05-27T15:36:22+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Platypus Reclayed"
+      ],
+      "variants": [
+        {
+          "id": 57627688632703,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#157",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15693006373247,
+          "created_at": "2026-05-27T15:36:23+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 84655529394559,
+          "created_at": "2026-05-27T14:35:33+01:00",
+          "position": 1,
+          "updated_at": "2026-05-27T14:35:37+01:00",
+          "product_id": 15693006373247,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/PlatypusReclayed-TCs-Fan.png?v=1779888937",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15677166551423,
+      "title": "TC#156: Bloodshed - Trading Card Booster Pack",
+      "handle": "tc-156-bloodshed-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Bloodshed </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-05-14T15:55:17+01:00",
+      "created_at": "2026-05-14T09:34:48+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Bloodshed"
+      ],
+      "variants": [
+        {
+          "id": 57526577365375,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#156",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15677166551423,
+          "created_at": "2026-05-14T09:34:49+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 84471070589311,
+          "created_at": "2026-05-13T17:18:30+01:00",
+          "position": 1,
+          "updated_at": "2026-05-13T17:18:36+01:00",
+          "product_id": 15677166551423,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Bloodshed-TCs-Fan.png?v=1778689116",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15658565304703,
+      "title": "SRG#155: Home Safety Hotline (Switch)",
+      "handle": "srg-155-home-safety-hotline-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p><meta charset=\"utf-8\">Home Safety Hotline is an analog horror inspired telephone operator simulator where you answer incoming callers' questions about what's inside their home.<br></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-04-30T15:52:06+01:00",
+      "created_at": "2026-04-30T09:46:12+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Home Safety Hotline",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 57436833350015,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#155",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "37.20",
+          "grams": 135,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15658565304703,
+          "created_at": "2026-04-30T09:46:13+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 84224371851647,
+          "created_at": "2026-04-30T09:45:40+01:00",
+          "position": 1,
+          "updated_at": "2026-04-30T09:45:44+01:00",
+          "product_id": 15658565304703,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/HomeSafetyHotline-SW-Gamecase.png?v=1777538744",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15658582540671,
+      "title": "TC#155: Home Safety Hotline - Trading Card Booster Pack",
+      "handle": "tc-155-home-safety-hotline-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Home Safety Hotline </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-04-30T15:52:10+01:00",
+      "created_at": "2026-04-30T10:02:52+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Home Safety Hotline"
+      ],
+      "variants": [
+        {
+          "id": 57436920840575,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#155",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15658582540671,
+          "created_at": "2026-04-30T10:02:53+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 84224371949951,
+          "created_at": "2026-04-30T09:45:40+01:00",
+          "position": 1,
+          "updated_at": "2026-04-30T09:45:44+01:00",
+          "product_id": 15658582540671,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/HomeSafetyHotline-TCs-Fan.png?v=1777538744",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15621825069439,
+      "title": "SRG#154: Toree & Friends Collection (Switch)",
+      "handle": "srg-153-toree-friends-collection-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div class=\"game_page_autocollapse\" id=\"aboutThisGame\" data-panel='{\"type\":\"PanelGroup\"}'>\n<div class=\"game_area_description\" id=\"game_area_description\">\n<p><meta charset=\"utf-8\"><meta charset=\"utf-8\"><span>Get ready for a nostalgic, fast paced, 3D platforming adventure</span><strong> - Toree and Friends Collection.</strong><br></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div class=\"game_area_description\" id=\"game_area_content_descriptors\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-04-02T15:53:15+01:00",
+      "created_at": "2026-04-01T16:31:56+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Switch",
+        "Toree"
+      ],
+      "variants": [
+        {
+          "id": 57266506301823,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#154",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "37.20",
+          "grams": 135,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15621825069439,
+          "created_at": "2026-04-01T16:31:57+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 83435178983807,
+          "created_at": "2026-04-02T10:24:52+01:00",
+          "position": 1,
+          "updated_at": "2026-04-02T10:24:55+01:00",
+          "product_id": 15621825069439,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Toree_FriendsCollection-SW-Gamecase.png?v=1775121895",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15622448251263,
+      "title": "TC#154: Toree & Friends Collection - Trading Card Booster Pack",
+      "handle": "tc-154-toree-friends-collection-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Toree &amp; Friends Collection </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-04-02T15:53:20+01:00",
+      "created_at": "2026-04-02T10:21:18+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Toree"
+      ],
+      "variants": [
+        {
+          "id": 57271088775551,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#154",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15622448251263,
+          "created_at": "2026-04-02T10:21:19+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 83435178066303,
+          "created_at": "2026-04-02T10:24:51+01:00",
+          "position": 1,
+          "updated_at": "2026-04-02T16:12:35+01:00",
+          "product_id": 15622448251263,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Toree_FriendsCollection-TCs-Fan.png?v=1775142755",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15597558956415,
+      "title": "SRG#153: Savant - Ascent REMIX (Switch)",
+      "handle": "srg-153-savant-ascent-remix-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div class=\"game_page_autocollapse\" id=\"aboutThisGame\" data-panel='{\"type\":\"PanelGroup\"}'>\n<div class=\"game_area_description\" id=\"game_area_description\">\n<p><meta charset=\"utf-8\"><span>Get ready for an adrenaline-filled elevator ride through a robot-infested tower in this unique bullet-hell/shoot-em-up title in Savant - Ascent REMIX</span><br></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div class=\"game_area_description\" id=\"game_area_content_descriptors\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-03-19T15:54:00+00:00",
+      "created_at": "2026-03-17T11:57:13+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "DLTB-sale-20-off",
+        "sale",
+        "Savant",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 57142069428607,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#153",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15597558956415,
+          "created_at": "2026-03-17T11:57:14+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82969125126527,
+          "created_at": "2026-03-17T12:18:31+00:00",
+          "position": 1,
+          "updated_at": "2026-03-17T12:21:38+00:00",
+          "product_id": 15597558956415,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Savant-Ascent-REMIX-SW-Gamecase.png?v=1773750098",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15597642350975,
+      "title": "TC#153: Savant - Ascent REMIX - Trading Card Booster Pack",
+      "handle": "tc-153-savant-ascent-remix-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Savant - Ascent REMIX </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-03-19T15:54:03+00:00",
+      "created_at": "2026-03-17T12:43:17+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Savant"
+      ],
+      "variants": [
+        {
+          "id": 57142221046143,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#153",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15597642350975,
+          "created_at": "2026-03-17T12:43:18+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82969125060991,
+          "created_at": "2026-03-17T12:18:31+00:00",
+          "position": 1,
+          "updated_at": "2026-04-02T16:12:35+01:00",
+          "product_id": 15597642350975,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Savant-Ascent-REMIX-TCs-Fan.png?v=1775142755",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15574605857151,
+      "title": "[Deluxe Edition] DE#8: Out of Sight (Switch)",
+      "handle": "deluxe-edition-de-8-out-of-sight-switch",
+      "body_html": "<p>Out of Sight Deluxe Edition</p>",
+      "published_at": "2026-03-05T16:00:30+00:00",
+      "created_at": "2026-02-26T11:37:07+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Collector's Edition",
+      "tags": [
+        "DLTB-sale-20-off",
+        "Out of Sight",
+        "sale",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 57033160917375,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "DE#8",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "55.68",
+          "grams": 470,
+          "compare_at_price": "69.60",
+          "position": 1,
+          "product_id": 15574605857151,
+          "created_at": "2026-02-26T11:37:08+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82847715787135,
+          "created_at": "2026-03-05T11:54:51+00:00",
+          "position": 1,
+          "updated_at": "2026-03-05T11:55:00+00:00",
+          "product_id": 15574605857151,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Out-of-Sight_DE_SW_portrait-collection_v3.png?v=1772711700",
+          "width": 680,
+          "height": 1078
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15574598123903,
+      "title": "TC#152: Out of Sight - Trading Card Booster Pack",
+      "handle": "tc-152-out-of-sight-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Out of Sight </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-03-05T16:00:30+00:00",
+      "created_at": "2026-02-26T11:33:25+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Out of Sight"
+      ],
+      "variants": [
+        {
+          "id": 57033144861055,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#152",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15574598123903,
+          "created_at": "2026-02-26T11:33:25+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82825868214655,
+          "created_at": "2026-03-03T17:45:49+00:00",
+          "position": 1,
+          "updated_at": "2026-04-02T16:12:35+01:00",
+          "product_id": 15574598123903,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Out-of-Sight_TCs-Fan_1ffb5ecf-ecc1-4f99-b87f-fbe7c8ea2f49.png?v=1775142755",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15545026576767,
+      "title": "SRG#151: Duck Detective: The Ghost of Glamping (Switch)",
+      "handle": "srg-151-duck-detective-the-ghost-of-glamping-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p><span>The Duck Detective is back! Get ready to interview suspects, inspect evidence, and deduce the truth in another stand-alone mystery!</span></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\"><br></div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-02-12T15:58:53+00:00",
+      "created_at": "2026-02-10T11:21:31+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "DLTB-sale-20-off",
+        "sale",
+        "SRO",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 56928189514111,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#151",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15545026576767,
+          "created_at": "2026-02-10T11:21:31+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82605235569023,
+          "created_at": "2026-02-16T15:03:46+00:00",
+          "position": 1,
+          "updated_at": "2026-02-16T15:04:39+00:00",
+          "product_id": 15545026576767,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/DuckDetectiveGG-SW-Gamecase_226548e4-d5a0-479b-ab18-393dab928e83.png?v=1771254279",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15545046991231,
+      "title": "TC#151: Duck Detective: The Ghost of Glamping - Trading Card Booster Pack",
+      "handle": "tc-151-duck-detective-the-ghost-of-glamping-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Duck Detective: The Ghost of Glamping </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-02-12T15:58:55+00:00",
+      "created_at": "2026-02-10T11:38:35+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "SRO"
+      ],
+      "variants": [
+        {
+          "id": 56928292503935,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#151",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15545046991231,
+          "created_at": "2026-02-10T11:38:35+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82507413258623,
+          "created_at": "2026-02-10T11:22:34+00:00",
+          "position": 1,
+          "updated_at": "2026-02-10T11:22:39+00:00",
+          "product_id": 15545046991231,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/DuckDetectiveGG-TCs-Fan.png?v=1770722559",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15537081123199,
+      "title": "Super Rare Games: #1 to #150 Games - A Collector's Artbook",
+      "handle": "150th-book",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div class=\"game_page_autocollapse\" id=\"aboutThisGame\" data-panel='{\"type\":\"PanelGroup\"}'>\n<div class=\"game_area_description\" id=\"game_area_description\">\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\">\n<meta charset=\"utf-8\">We’re celebrating 150 releases with our very first SRG anniversary book! It’s a physical snapshot of our entire journey so far, packed with artwork, memories, and a whole lot of nostalgia.</div>\n<br>\n</div>\n<br>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div class=\"game_area_description\" id=\"game_area_content_descriptors\"></div>\n</div>\n</div>\n</div>",
+      "published_at": "2026-02-12T15:52:31+00:00",
+      "created_at": "2026-02-05T11:17:43+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Merch",
+      "tags": [
+        "SRO"
+      ],
+      "variants": [
+        {
+          "id": 56899115811199,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "150 BOOK",
+          "requires_shipping": true,
+          "taxable": false,
+          "featured_image": null,
+          "available": true,
+          "price": "23.00",
+          "grams": 1200,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15537081123199,
+          "created_at": "2026-02-05T11:17:44+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82313144172927,
+          "created_at": "2026-01-26T16:13:47+00:00",
+          "position": 1,
+          "updated_at": "2026-01-26T16:17:43+00:00",
+          "product_id": 15537081123199,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Project-X_Store-Assets_Mock-Up_FrontCover.png?v=1769444263",
+          "width": 1814,
+          "height": 1333
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15545292816767,
+      "title": "SRG#150: Tiny Terry's Turbo Trip (Switch)",
+      "handle": "srg-150-tiny-terrys-turbo-trip-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p><span>Terry wants to launch himself into space using his new car.</span></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\"><br></div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-02-12T15:57:09+00:00",
+      "created_at": "2026-02-10T14:21:08+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "DLTB-sale-20-off",
+        "sale",
+        "SRO",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 56929365721471,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#150",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15545292816767,
+          "created_at": "2026-02-10T14:21:08+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82650600145279,
+          "created_at": "2026-02-19T18:10:18+00:00",
+          "position": 1,
+          "updated_at": "2026-02-19T18:11:12+00:00",
+          "product_id": 15545292816767,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/TTTT_SW-Gamecase_ada2b69e-22ca-4160-a462-ed3e91709e6a.png?v=1771524672",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15546566902143,
+      "title": "TC#150: Tiny Terry's Turbo Trip - Trading Card Booster Pack",
+      "handle": "tc-150-tiny-terrys-turbo-trip-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Tiny Terry's Turbo Trip </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-02-12T15:57:11+00:00",
+      "created_at": "2026-02-11T11:33:21+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "SRO"
+      ],
+      "variants": [
+        {
+          "id": 56936108360063,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#150",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15546566902143,
+          "created_at": "2026-02-11T11:33:22+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82650257555839,
+          "created_at": "2026-02-19T17:43:38+00:00",
+          "position": 1,
+          "updated_at": "2026-02-19T17:43:42+00:00",
+          "product_id": 15546566902143,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/TTTT_TCs-Fan_1.png?v=1771523022",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15544159240575,
+      "title": "SRG#149: Grapple Dogs Cosmic Canines (Switch)",
+      "handle": "srg-149-grapple-dogs-cosmic-canines-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div class=\"game_page_autocollapse\" id=\"aboutThisGame\" data-panel='{\"type\":\"PanelGroup\"}'>\n<div class=\"game_area_description\" id=\"game_area_description\">\n<p><span>Swing, jump, and blast through dimensions in the follow-up to the critically-acclaimed 2D action-platformer Grapple Dog.</span></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div class=\"game_area_description\" id=\"game_area_content_descriptors\"></div>\n</div>\n</div>\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\"><br></div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-02-12T15:57:04+00:00",
+      "created_at": "2026-02-09T13:46:40+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "DLTB-sale-20-off",
+        "sale",
+        "SRO",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 56922446004607,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#149",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15544159240575,
+          "created_at": "2026-02-09T13:46:40+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82497168572799,
+          "created_at": "2026-02-09T13:55:50+00:00",
+          "position": 1,
+          "updated_at": "2026-02-09T13:55:54+00:00",
+          "product_id": 15544159240575,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/GDCC-SW-Gamecase.png?v=1770645354",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15544173494655,
+      "title": "TC#149: Grapple Dogs Cosmic Canines - Trading Card Booster Pack",
+      "handle": "tc-149-grapple-dogs-cosmic-canines-trading-card-booster-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Grapple Dogs: Cosmic Canines </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-02-12T15:57:07+00:00",
+      "created_at": "2026-02-09T14:07:46+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "SRO"
+      ],
+      "variants": [
+        {
+          "id": 56922610205055,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#149",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15544173494655,
+          "created_at": "2026-02-09T14:07:47+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82497168081279,
+          "created_at": "2026-02-09T13:55:49+00:00",
+          "position": 1,
+          "updated_at": "2026-02-09T13:55:53+00:00",
+          "product_id": 15544173494655,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/GDCC-TCs-Fan.png?v=1770645353",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15518215504255,
+      "title": "SRG#148: Bad End Theater (Switch)",
+      "handle": "srg-148-bad-end-theater-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div class=\"game_page_autocollapse\" id=\"aboutThisGame\" data-panel='{\"type\":\"PanelGroup\"}'>\n<div class=\"game_area_description\" id=\"game_area_description\">\n<p>Select your protagonist and explore a variety of terrible fates in Bad End Theater</p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div class=\"game_area_description\" id=\"game_area_content_descriptors\"></div>\n</div>\n</div>\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\"><br></div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-01-29T15:54:48+00:00",
+      "created_at": "2026-01-26T12:24:46+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Bad End Theater",
+        "DLTB-sale-20-off",
+        "sale",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 56839366967679,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#148",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15518215504255,
+          "created_at": "2026-01-26T12:24:47+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82310037733759,
+          "created_at": "2026-01-26T12:22:46+00:00",
+          "position": 1,
+          "updated_at": "2026-01-26T12:22:50+00:00",
+          "product_id": 15518215504255,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/BadEndTheater-SW-Gamecase.png?v=1769430170",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15518245781887,
+      "title": "TC#148: Bad End Theater - Trading Card Booster Pack",
+      "handle": "tc-148-bad-end-theater-trading-card-booster-pack",
+      "body_html": "<p> </p>\n<p>Increase your chance of collecting all the 5 variations of<strong> Bad End Theater </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-01-29T15:54:50+00:00",
+      "created_at": "2026-01-26T12:40:57+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Bad End Theater"
+      ],
+      "variants": [
+        {
+          "id": 56839477756287,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#148",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15518245781887,
+          "created_at": "2026-01-26T12:40:57+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 82310037700991,
+          "created_at": "2026-01-26T12:22:46+00:00",
+          "position": 1,
+          "updated_at": "2026-01-26T12:22:50+00:00",
+          "product_id": 15518245781887,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/BadEndTheater-TCs-Fan.png?v=1769430170",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15428017947007,
+      "title": "SRG#145: Melatonin (Switch)",
+      "handle": "srg-145-melatonin-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p><span>Melatonin is a rhythm game about dreams and reality merging together.</span></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\"><br></div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2025-12-04T15:56:14+00:00",
+      "created_at": "2025-12-02T11:28:22+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "anikatest",
+        "DLTB-sale-20-off",
+        "Melatonin",
+        "sale",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 56503196582271,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#145",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15428017947007,
+          "created_at": "2025-12-02T11:28:22+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 81316751343999,
+          "created_at": "2025-12-02T11:29:11+00:00",
+          "position": 1,
+          "updated_at": "2025-12-02T11:31:01+00:00",
+          "product_id": 15428017947007,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Melatonin-SW-Gamecase.png?v=1764675061",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15428051501439,
+      "title": "TC#145: Melatonin - Trading Card Booster Pack",
+      "handle": "tc-145-melatonin-trading-card-booster-pack",
+      "body_html": "<p> </p>\n<p>Increase your chance of collecting all the 5 variations of<strong> Melatonin</strong> trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2025-12-04T15:56:49+00:00",
+      "created_at": "2025-12-02T11:47:26+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Melatonin",
+        "Siralim Ultimate"
+      ],
+      "variants": [
+        {
+          "id": 56503439294847,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#145",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15428051501439,
+          "created_at": "2025-12-02T11:47:26+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 81316751049087,
+          "created_at": "2025-12-02T11:29:11+00:00",
+          "position": 1,
+          "updated_at": "2025-12-04T15:58:27+00:00",
+          "product_id": 15428051501439,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Melatonin-TCs-Fan.png?v=1764863907",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15409775739263,
+      "title": "SRG#144: Siralim Ultimate (Switch)",
+      "handle": "srg-144-siralim-ultimate-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p><span>Siralim Ultimate is a monster-catching, dungeon-crawling RPG with a ridiculous amount of depth.</span></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\"><br></div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2025-11-20T16:02:22+00:00",
+      "created_at": "2025-11-19T17:16:49+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "anikatest",
+        "DLTB-sale-20-off",
+        "sale",
+        "Siralim Ultimate",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 56440851595647,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#144",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15409775739263,
+          "created_at": "2025-11-19T17:16:49+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 80915626819967,
+          "created_at": "2025-11-19T17:14:47+00:00",
+          "position": 1,
+          "updated_at": "2025-11-19T17:14:51+00:00",
+          "product_id": 15409775739263,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Siralim-Ultimate-SW-Gamecase.png?v=1763572491",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15409814864255,
+      "title": "TC#144: Siralim Ultimate - Trading Card Booster Pack",
+      "handle": "tc-144-siralim-ultimate-trading-card-booster-pack",
+      "body_html": "<p> </p>\n<p>Increase your chance of collecting all the 5 variations of<strong> Siralim Ultimate</strong> trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2025-11-20T16:02:25+00:00",
+      "created_at": "2025-11-19T17:29:40+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Siralim Ultimate"
+      ],
+      "variants": [
+        {
+          "id": 56440934465919,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#144",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15409814864255,
+          "created_at": "2025-11-19T17:29:40+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 80915626590591,
+          "created_at": "2025-11-19T17:14:46+00:00",
+          "position": 1,
+          "updated_at": "2025-12-04T15:58:27+00:00",
+          "product_id": 15409814864255,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Siralim-Ultimate-TCs-Fan.png?v=1764863907",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15386461077887,
+      "title": "[Deluxe Edition] DE#7: Moonstone Island (Switch)",
+      "handle": "deluxe-edition-de-7-moonstone-island-switch",
+      "body_html": "",
+      "published_at": "2025-11-06T15:55:39+00:00",
+      "created_at": "2025-11-06T10:13:29+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Collector's Edition",
+      "tags": [
+        "anikatest",
+        "DLTB-sale-20-off",
+        "Moonstone Island",
+        "sale",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 56359494287743,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "DE#7",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "55.68",
+          "grams": 570,
+          "compare_at_price": "69.60",
+          "position": 1,
+          "product_id": 15386461077887,
+          "created_at": "2025-11-06T10:13:29+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 80450129527167,
+          "created_at": "2025-11-06T11:45:48+00:00",
+          "position": 1,
+          "updated_at": "2025-12-04T15:58:08+00:00",
+          "product_id": 15386461077887,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Moonstone-Island_DE_SW_portrait-collection_93f5dbb8-ff72-43fa-9d1f-16e09a08307a.png?v=1764863888",
+          "width": 906,
+          "height": 1437
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15386458030463,
+      "title": "TC#143: Moonstone Island - Trading Card Booster Pack",
+      "handle": "tc-143-moonstone-island-trading-card-booster-pack",
+      "body_html": "<p> </p>\n<p>Increase your chance of collecting all the 5 variations of<strong> Moonstone Island</strong> trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2025-11-06T15:55:38+00:00",
+      "created_at": "2025-11-06T10:09:36+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Moonstone Island"
+      ],
+      "variants": [
+        {
+          "id": 56359487570303,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#143",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15386458030463,
+          "created_at": "2025-11-06T10:09:37+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 80448911540607,
+          "created_at": "2025-11-06T09:52:35+00:00",
+          "position": 1,
+          "updated_at": "2025-12-04T15:58:27+00:00",
+          "product_id": 15386458030463,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Moonstone-Island-TCs-Fan.png?v=1764863907",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15386798096767,
+      "title": "SRG x Moonstone Island T-Shirt",
+      "handle": "srg-x-moonstone-t-shirt",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div class=\"game_page_autocollapse\" id=\"aboutThisGame\" data-panel='{\"type\":\"PanelGroup\"}'>\n<div class=\"game_area_description\" id=\"game_area_description\">\n<div class=\"game_description_snippet\">\n<h4>\n<strong>Our FIRST official game collaboration T-Shirt,<br></strong>for the enchanting world of<strong> Moonstone Island! <br></strong>Featuring a bespoke design of the FishbRo<br>and capturing the game’s spirit of alchemy, <br>adventure, and island life!</h4>\n</div>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div class=\"game_area_description\" id=\"game_area_content_descriptors\"></div>\n</div>\n</div>\n</div>",
+      "published_at": "2026-02-05T17:36:36+00:00",
+      "created_at": "2025-11-06T14:11:18+00:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Merch",
+      "tags": [
+        "DLTB-sale-20-off",
+        "Moonstone Island",
+        "sale"
+      ],
+      "variants": [
+        {
+          "id": 56360553513343,
+          "title": "XS",
+          "option1": "XS",
+          "option2": null,
+          "option3": null,
+          "sku": "Moonstone TShirt XS",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "24.00",
+          "grams": 320,
+          "compare_at_price": "30.00",
+          "position": 1,
+          "product_id": 15386798096767,
+          "created_at": "2025-11-06T14:11:18+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        },
+        {
+          "id": 56360553546111,
+          "title": "Small",
+          "option1": "Small",
+          "option2": null,
+          "option3": null,
+          "sku": "Moonstone TShirt SMALL",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "24.00",
+          "grams": 380,
+          "compare_at_price": "30.00",
+          "position": 2,
+          "product_id": 15386798096767,
+          "created_at": "2025-11-06T14:11:18+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        },
+        {
+          "id": 56360553578879,
+          "title": "Medium",
+          "option1": "Medium",
+          "option2": null,
+          "option3": null,
+          "sku": "Moonstone TShirt MEDIUM",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "24.00",
+          "grams": 405,
+          "compare_at_price": "30.00",
+          "position": 3,
+          "product_id": 15386798096767,
+          "created_at": "2025-11-06T14:11:18+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        },
+        {
+          "id": 56360553611647,
+          "title": "Large",
+          "option1": "Large",
+          "option2": null,
+          "option3": null,
+          "sku": "Moonstone TShirt LARGE",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "24.00",
+          "grams": 448,
+          "compare_at_price": "30.00",
+          "position": 4,
+          "product_id": 15386798096767,
+          "created_at": "2025-11-06T14:11:18+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        },
+        {
+          "id": 56360553644415,
+          "title": "XL",
+          "option1": "XL",
+          "option2": null,
+          "option3": null,
+          "sku": "Moonstone TShirt XL",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "24.00",
+          "grams": 500,
+          "compare_at_price": "30.00",
+          "position": 5,
+          "product_id": 15386798096767,
+          "created_at": "2025-11-06T14:11:18+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        },
+        {
+          "id": 56360553677183,
+          "title": "2XL",
+          "option1": "2XL",
+          "option2": null,
+          "option3": null,
+          "sku": "Moonstone TShirt 2XL",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "24.00",
+          "grams": 545,
+          "compare_at_price": "30.00",
+          "position": 6,
+          "product_id": 15386798096767,
+          "created_at": "2025-11-06T14:11:18+00:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 80456895299967,
+          "created_at": "2025-11-06T14:05:35+00:00",
+          "position": 1,
+          "updated_at": "2025-11-06T14:06:08+00:00",
+          "product_id": 15386798096767,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Moonstone-Island_T-Shirt_Front_25d9b622-f51a-433b-95ce-4ed43bfefc37.png?v=1762437968",
+          "width": 1397,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "UNISEX SIZE",
+          "position": 1,
+          "values": [
+            "XS",
+            "Small",
+            "Medium",
+            "Large",
+            "XL",
+            "2XL"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15315115835775,
+      "title": "SRG#141: The Pale Beyond (Switch)",
+      "handle": "srg-141-the-pale-beyond-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<div class=\"game_description_snippet\">Make the hard calls, and head in the only direction you can - through The Pale Beyond.</div>\n<div class=\"glance_ctn_responsive_left\">\n<div class=\"user_reviews\" id=\"userReviews\"></div>\n</div>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\"><br></div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2025-10-02T15:56:54+01:00",
+      "created_at": "2025-10-01T15:12:10+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "anikatest",
+        "DLTB-sale-20-off",
+        "sale",
+        "Switch",
+        "The Pale Beyond"
+      ],
+      "variants": [
+        {
+          "id": 56148569358719,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#141",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15315115835775,
+          "created_at": "2025-10-01T15:12:10+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 79434062659967,
+          "created_at": "2025-10-09T15:44:38+01:00",
+          "position": 1,
+          "updated_at": "2025-10-09T15:45:41+01:00",
+          "product_id": 15315115835775,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/The-Pale-Beyond_SW-Gamecase_16f7d01d-5d62-4c78-b3b0-06690d68ad12.png?v=1760021141",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15315135758719,
+      "title": "TC#141: The Pale Beyond - Trading Card Booster Pack",
+      "handle": "tc-141-the-pale-beyond-trading-card-booster-pack",
+      "body_html": "<p> </p>\n<p>Increase your chance of collecting all the 5 variations of the <strong>The Pale Beyond </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2025-10-02T15:56:55+01:00",
+      "created_at": "2025-10-01T15:19:36+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "The Pale Beyond"
+      ],
+      "variants": [
+        {
+          "id": 56148605895039,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#141",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15315135758719,
+          "created_at": "2025-10-01T15:19:37+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 79309809353087,
+          "created_at": "2025-10-01T15:08:52+01:00",
+          "position": 1,
+          "updated_at": "2025-10-16T15:58:40+01:00",
+          "product_id": 15315135758719,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/The-Pale-Beyond_TCs-Fan.png?v=1760626720",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15287956570495,
+      "title": "TC#140: Spiritfall - Trading Card Booster Pack",
+      "handle": "tc-140-spiritfall9-mail-time-trading-card-booster-pack-copy",
+      "body_html": "<p> </p>\n<p>Increase your chance of collecting all the 5 variations of the <strong>Spiritfall </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2025-09-18T15:53:30+01:00",
+      "created_at": "2025-09-15T16:46:36+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Spiritfall"
+      ],
+      "variants": [
+        {
+          "id": 56059893907839,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#140",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15287956570495,
+          "created_at": "2025-09-15T16:46:37+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 79068514419071,
+          "created_at": "2025-09-15T15:58:30+01:00",
+          "position": 1,
+          "updated_at": "2025-10-16T15:58:40+01:00",
+          "product_id": 15287956570495,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Spirit-Fall_TCs-Fan.png?v=1760626720",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15256037556607,
+      "title": "SRG#139: Mail Time (Switch)",
+      "handle": "srg-139-mail-time-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div class=\"game_page_autocollapse\" id=\"aboutThisGame\" data-panel='{\"type\":\"PanelGroup\"}'>\n<div class=\"game_area_description\" id=\"game_area_description\">\n<p> As a newly trained Mail Scout, put on your pack, grab those letters, and deliver them across Grumblewood Grove! Mail Time coming to Switch physically!</p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div class=\"game_area_description\" id=\"game_area_content_descriptors\"></div>\n</div>\n</div>\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\"><br></div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2025-09-05T15:52:15+01:00",
+      "created_at": "2025-08-28T11:41:47+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "anikatest",
+        "DLTB-sale-20-off",
+        "Mail Time",
+        "sale",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 55951010759039,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#139",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15256037556607,
+          "created_at": "2025-08-28T11:41:48+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 79261680861567,
+          "created_at": "2025-09-29T14:22:50+01:00",
+          "position": 1,
+          "updated_at": "2025-09-29T14:24:01+01:00",
+          "product_id": 15256037556607,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Mail_Time_SW-Gamecase_be423c87-6280-466a-b4ec-88f92537cd54.png?v=1759152241",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15160047272319,
+      "title": "SRG#136: Aka (Switch)",
+      "handle": "srg-136-aka-switch",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div data-panel='{\"type\":\"PanelGroup\"}' id=\"aboutThisGame\" class=\"game_page_autocollapse\">\n<div id=\"game_area_description\" class=\"game_area_description\">\n<p><meta charset=\"utf-8\"><span>Find inner peace in a small, open-world game - Aka.</span><br></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div id=\"game_area_content_descriptors\" class=\"game_area_description\"></div>\n</div>\n</div>\n<div class=\"game_description_snippet\">\n<div class=\"game_description_snippet\"><br></div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2025-06-26T15:50:39+01:00",
+      "created_at": "2025-06-24T11:12:36+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "Aka",
+        "DLTB-sale-20-off",
+        "sale",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 55621325095295,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG#136",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.76",
+          "grams": 135,
+          "compare_at_price": "37.20",
+          "position": 1,
+          "product_id": 15160047272319,
+          "created_at": "2025-06-24T11:12:36+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 77421617840511,
+          "created_at": "2025-06-24T11:08:05+01:00",
+          "position": 1,
+          "updated_at": "2025-06-24T11:08:09+01:00",
+          "product_id": 15160047272319,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Aka_SW-Gamecase.png?v=1750759689",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15043658744191,
+      "title": "TC#133: Astrea: Six-Sided Oracles - Trading Card Booster Pack",
+      "handle": "tc-133-astrea-six-sided-oracles-trading-card-booster-pack",
+      "body_html": "<p> </p>\n<p>Increase your chance of collecting all the 5 variations of the Astrea: Six-Sided Oracles<b> </b>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2025-05-08T15:57:00+01:00",
+      "created_at": "2025-04-22T15:20:50+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Astrea: Six-Sided Oracles"
+      ],
+      "variants": [
+        {
+          "id": 55355790885247,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC#133",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15043658744191,
+          "created_at": "2025-04-22T15:20:51+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 75439785181567,
+          "created_at": "2025-04-22T15:35:25+01:00",
+          "position": 1,
+          "updated_at": "2025-04-22T15:35:29+01:00",
+          "product_id": 15043658744191,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Astrea_TCs-Fan.png?v=1745332529",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14610005164415,
+      "title": "SRG#121: Gibbon: Beyond the Trees (Switch)",
+      "handle": "srg-121-gibbon-beyond-the-trees",
+      "body_html": "<div class=\"p-rich_text_section\">\n<b data-stringify-type=\"bold\"></b>\n<p>Gibbon: Beyond the Trees is a hand-drawn adventure following a lost gibbon as they embark on a dangerous journey into unknown lands. Race to freedom in liberation mode, or play through an hour-long narrative that captures the real struggle of living creatures around the world.</p>\n<br>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art</p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p>- Set of 3 card trading card pack <strong></strong></p>\n</div>\n</div>\n</div>",
+      "published_at": "2024-10-04T15:56:07+01:00",
+      "created_at": "2024-10-03T10:36:17+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch",
+      "tags": [
+        "anikatest",
+        "blackfriday",
+        "lowstock",
+        "SRG#121: Gibbon: Beyond the Trees",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 51619885384063,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SRG #121",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "36.00",
+          "grams": 135,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 14610005164415,
+          "created_at": "2024-10-03T10:36:18+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 70893665911167,
+          "created_at": "2024-10-03T10:33:53+01:00",
+          "position": 1,
+          "updated_at": "2025-06-19T17:54:04+01:00",
+          "product_id": 14610005164415,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Gibbon_gamecase.png?v=1750352044",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14610015322495,
+      "title": "TC#121: Gibbon: Beyond the Trees - Trading Card Booster Pack",
+      "handle": "tc-121-gibbon-beyond-the-trees-trading-card-booster-pack",
+      "body_html": "<p> </p>\n<p> <span><strong>Limited Edition: Only 400 additional packs available</strong></span></p>\n<p><span><strong></strong></span><span><strong><meta charset=\"utf-8\">There is a sales limit of 5 packs per person</strong></span></p>\n<p>Increase your chance of collecting all the 5 variations of the<span> </span><strong>Gibbon: Beyond the Trees</strong> trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2024-10-04T15:56:10+01:00",
+      "created_at": "2024-10-03T10:48:48+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "SRG#121: Gibbon: Beyond the Trees"
+      ],
+      "variants": [
+        {
+          "id": 51619903013247,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "TC #121",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.00",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 14610015322495,
+          "created_at": "2024-10-03T10:48:48+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 70893728399743,
+          "created_at": "2024-10-03T10:33:53+01:00",
+          "position": 1,
+          "updated_at": "2025-01-16T10:59:38+00:00",
+          "product_id": 14610015322495,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Gibbon-TC-fan.png?v=1737025178",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15318272901503,
+      "title": "Niko's Treasure Bundle!",
+      "handle": "nikos-goodie-bag",
+      "body_html": "<div class=\"p-rich_text_section\">\n<b data-stringify-type=\"bold\"></b><br>\n</div>\n<p><strong></strong><em>Here Comes Niko - Collectors Edition </em><span>includes:</span></p>\n<p><span><meta charset=\"utf-8\">- Collector’s edition box <br data-mce-fragment=\"1\"><meta charset=\"utf-8\">- Fully assembled Nintendo Switch game with cartridge<br></span><span>- HCN Wire-O 32-page Friend’s Book<br>- Foldable HCN Train Map<br>- HCN Friend’s 2-sided steel-plated Coin<br><meta charset=\"utf-8\">- 3 x Postcards<br>- 2 x Sticker Sheets<br>- SRG Sticker<br data-mce-fragment=\"1\">- OST<br data-mce-fragment=\"1\">- Full set of Trading cards</span></p>\n<p><span><br data-mce-fragment=\"1\"></span><span><meta charset=\"utf-8\"></span><strong data-mce-fragment=\"1\"><span class=\"h3\" data-mce-fragment=\"1\">Supported Languages:<span> </span></span></strong><span class=\"h3\" data-mce-fragment=\"1\">Japanese, English</span><br></p>\n<div class=\"bullet-list drawer\" itemprop=\"description\">\n<p><span class=\"h3\" data-mce-fragment=\"1\"><meta charset=\"utf-8\"> <span style=\"text-decoration: underline;\"><strong>Shipping Estimate: Late October</strong></span></span></p>\n</div>\n<div class=\"product__content\">\n<p><strong>Please note that all products are region free and can be played on any Nintendo Switch</strong></p>\n</div>",
+      "published_at": "2025-10-09T17:32:40+01:00",
+      "created_at": "2025-10-02T15:12:38+01:00",
+      "updated_at": "2026-09-25T14:51:20+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Merch",
+      "tags": [
+        "anikatest",
+        "DLTB-sale-50-off",
+        "lastchancepicknmix",
+        "sale",
+        "SRG#97: Here Comes Niko"
+      ],
+      "variants": [
+        {
+          "id": 56157694263679,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "HCN Treasure Bundle",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "12.00",
+          "grams": 350,
+          "compare_at_price": "24.00",
+          "position": 1,
+          "product_id": 15318272901503,
+          "created_at": "2025-10-02T15:12:38+01:00",
+          "updated_at": "2026-09-25T14:51:20+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 79348799897983,
+          "created_at": "2025-10-03T13:46:51+01:00",
+          "position": 1,
+          "updated_at": "2025-10-03T13:46:55+01:00",
+          "product_id": 15318272901503,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/HCN-GoodieBag.png?v=1759495615",
+          "width": 885,
+          "height": 1047
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    }
+  ]
+}

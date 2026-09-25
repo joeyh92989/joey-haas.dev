@@ -1,0 +1,973 @@
+{
+  "products": [
+    {
+      "id": 8206677377077,
+      "title": "Myst Standard Edition (PS5, Xbox)",
+      "handle": "myst-standard-edition-ps5-xbox",
+      "body_html": "<p><em>Myst is region-free. This is an open pre-order for a limited time.</em><em></em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, OCTOBER 18, 2026, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>\n<meta charset=\"utf-8\">\n<div id=\"gameHeaderCtn\" class=\"game_header_ctn\">\n<div class=\"game_description_snippet\">Welcome to Myst: a starkly beautiful island, eerily tinged with mystery and shrouded in intrigue. Built from the ground up to play in 2D &amp; VR, explore Myst in a whole new dimension! Journey to the Ages, unravel puzzles, and be a part of the surrealistic adventure that will become your own.</div>\n</div>\n<div id=\"glanceMidCtn\" class=\"glance_mid_ctn\">\n<div class=\"glance_ctn_responsive_left\">\n<div id=\"userReviews\" class=\"user_reviews\"></div>\n</div>\n</div>\n</div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-02T10:28:18-04:00",
+      "created_at": "2026-08-04T16:06:23-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Games",
+        "Numbered",
+        "On Sale Now",
+        "PlayStation",
+        "PS5",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "Standard Edition",
+        "Xbox"
+      ],
+      "variants": [
+        {
+          "id": 45860226236469,
+          "title": "PS5",
+          "option1": "PS5",
+          "option2": null,
+          "option3": null,
+          "sku": "P5LR219",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38780770975797,
+            "product_id": 8206677377077,
+            "position": 3,
+            "created_at": "2026-09-03T13:54:21-04:00",
+            "updated_at": "2026-09-03T13:54:22-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/myst-limited-run-games-standard-edition-ps5_944675f8-ce27-46d0-ae76-79a16eaf2c1d.png?v=1788458062",
+            "variant_ids": [
+              45860226236469
+            ]
+          },
+          "available": true,
+          "price": "39.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8206677377077,
+          "created_at": "2026-08-04T16:06:24-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        },
+        {
+          "id": 45860226302005,
+          "title": "Xbox",
+          "option1": "Xbox",
+          "option2": null,
+          "option3": null,
+          "sku": "LRX072",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38733167788085,
+            "product_id": 8206677377077,
+            "position": 4,
+            "created_at": "2026-08-31T11:55:27-04:00",
+            "updated_at": "2026-08-31T11:55:28-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/myst-limited-run-games-standard-edition-xbox.png?v=1788191728",
+            "variant_ids": [
+              45860226302005
+            ]
+          },
+          "available": true,
+          "price": "39.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8206677377077,
+          "created_at": "2026-08-04T16:06:24-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38780770517045,
+          "created_at": "2026-09-03T13:54:18-04:00",
+          "position": 1,
+          "updated_at": "2026-09-03T13:54:20-04:00",
+          "product_id": 8206677377077,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/myst-limited-run-games-standard-edition_8e29d0a6-94a2-40eb-bcd4-3e36707f8861.png?v=1788458060",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "PS5",
+            "Xbox"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8206681997365,
+      "title": "Myst Big Box Edition (PS5, Xbox, PC)",
+      "handle": "myst-big-box-edition-ps5-xbox-pc",
+      "body_html": "<p><em>Myst is region-free. This is an open pre-order for a limited time.</em><em></em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, OCTOBER 25, 2026, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>\n<meta charset=\"utf-8\">\n<div id=\"gameHeaderCtn\" class=\"game_header_ctn\">\n<div class=\"game_description_snippet\">Welcome to Myst: a starkly beautiful island, eerily tinged with mystery and shrouded in intrigue. Built from the ground up to play in 2D &amp; VR, explore Myst in a whole new dimension! Journey to the Ages, unravel puzzles, and be a part of the surrealistic adventure that will become your own.</div>\n</div>\n<div id=\"glanceMidCtn\" class=\"glance_mid_ctn\">\n<div class=\"glance_ctn_responsive_left\">\n<div id=\"userReviews\" class=\"user_reviews\"></div>\n</div>\n</div>\n</div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-02T10:28:32-04:00",
+      "created_at": "2026-08-04T16:31:41-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Collector's Edition",
+        "Games",
+        "Numbered",
+        "On Sale Now",
+        "PC",
+        "PC & Retro",
+        "PlayStation",
+        "PS5",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "Xbox"
+      ],
+      "variants": [
+        {
+          "id": 45860250452021,
+          "title": "PS5",
+          "option1": "PS5",
+          "option2": null,
+          "option3": null,
+          "sku": "P5LR219BBE",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38733176995893,
+            "product_id": 8206681997365,
+            "position": 1,
+            "created_at": "2026-08-31T11:56:07-04:00",
+            "updated_at": "2026-08-31T11:56:08-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/myst-limited-run-games-big-box-edition.png?v=1788191768",
+            "variant_ids": [
+              45860250452021,
+              45860250484789,
+              45860251795509
+            ]
+          },
+          "available": true,
+          "price": "64.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8206681997365,
+          "created_at": "2026-08-04T16:31:41-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        },
+        {
+          "id": 45860250484789,
+          "title": "Xbox",
+          "option1": "Xbox",
+          "option2": null,
+          "option3": null,
+          "sku": "LRX072BBE",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38733176995893,
+            "product_id": 8206681997365,
+            "position": 1,
+            "created_at": "2026-08-31T11:56:07-04:00",
+            "updated_at": "2026-08-31T11:56:08-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/myst-limited-run-games-big-box-edition.png?v=1788191768",
+            "variant_ids": [
+              45860250452021,
+              45860250484789,
+              45860251795509
+            ]
+          },
+          "available": true,
+          "price": "64.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8206681997365,
+          "created_at": "2026-08-04T16:31:41-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        },
+        {
+          "id": 45860251795509,
+          "title": "PC",
+          "option1": "PC",
+          "option2": null,
+          "option3": null,
+          "sku": "PC-MYST-BBE",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38733176995893,
+            "product_id": 8206681997365,
+            "position": 1,
+            "created_at": "2026-08-31T11:56:07-04:00",
+            "updated_at": "2026-08-31T11:56:08-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/myst-limited-run-games-big-box-edition.png?v=1788191768",
+            "variant_ids": [
+              45860250452021,
+              45860250484789,
+              45860251795509
+            ]
+          },
+          "available": true,
+          "price": "64.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 8206681997365,
+          "created_at": "2026-08-04T16:33:43-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38733176995893,
+          "created_at": "2026-08-31T11:56:07-04:00",
+          "position": 1,
+          "updated_at": "2026-08-31T11:56:08-04:00",
+          "product_id": 8206681997365,
+          "variant_ids": [
+            45860250452021,
+            45860250484789,
+            45860251795509
+          ],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/myst-limited-run-games-big-box-edition.png?v=1788191768",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "PS5",
+            "Xbox",
+            "PC"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8206683045941,
+      "title": "Riven Standard Edition (PS5, Xbox)",
+      "handle": "riven-standard-edition-ps5-xbox",
+      "body_html": "<p><em><strong>Riven</strong> is region-free. This is an open pre-order for a limited time.</em><em></em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, OCTOBER 18, 2026, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>Travel to Riven, a beautiful and mysterious world on the verge of collapse. Explore this mysterious place, solve its puzzles, reveal its mysteries, make a daring rescue, and escape.<br>\n</div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-02T10:28:40-04:00",
+      "created_at": "2026-08-04T16:35:12-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Games",
+        "Numbered",
+        "On Sale Now",
+        "PlayStation",
+        "PS5",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "Standard Edition",
+        "Switch",
+        "Xbox"
+      ],
+      "variants": [
+        {
+          "id": 45860253990965,
+          "title": "PS5",
+          "option1": "PS5",
+          "option2": null,
+          "option3": null,
+          "sku": "P5LR220",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38780758917173,
+            "product_id": 8206683045941,
+            "position": 2,
+            "created_at": "2026-09-03T13:52:40-04:00",
+            "updated_at": "2026-09-03T13:52:41-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/riven-limited-run-games-standard-edition-ps5_b186cb32-b5e8-4fe9-9cdf-3628047c950e.png?v=1788457961",
+            "variant_ids": [
+              45860253990965
+            ]
+          },
+          "available": true,
+          "price": "39.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8206683045941,
+          "created_at": "2026-08-04T16:35:13-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        },
+        {
+          "id": 45860254056501,
+          "title": "Xbox",
+          "option1": "Xbox",
+          "option2": null,
+          "option3": null,
+          "sku": "LRX073",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38733081837621,
+            "product_id": 8206683045941,
+            "position": 4,
+            "created_at": "2026-08-31T11:45:56-04:00",
+            "updated_at": "2026-08-31T11:45:58-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/riven-limited-run-games-standard-edition-xbox.png?v=1788191158",
+            "variant_ids": [
+              45860254056501
+            ]
+          },
+          "available": true,
+          "price": "39.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8206683045941,
+          "created_at": "2026-08-04T16:35:13-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38780759146549,
+          "created_at": "2026-09-03T13:52:44-04:00",
+          "position": 1,
+          "updated_at": "2026-09-03T13:52:46-04:00",
+          "product_id": 8206683045941,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/riven-limited-run-games-standard-edition_6cd2db2b-6e2b-4308-af27-92ac469c1f42.png?v=1788457966",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "PS5",
+            "Xbox"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8206686650421,
+      "title": "Riven Big Box Edition (PS5, Xbox, PC)",
+      "handle": "riven-big-box-edition-ps5-xbox-pc",
+      "body_html": "<p><em><strong>Riven</strong> is region-free. This is an open pre-order for a limited time.</em><em></em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, OCTOBER 25, 2026, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>Travel to Riven, a beautiful and mysterious world on the verge of collapse. Explore this mysterious place, solve its puzzles, reveal its mysteries, make a daring rescue, and escape.<br>\n</div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-02T10:28:52-04:00",
+      "created_at": "2026-08-04T16:49:31-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Collector's Edition",
+        "Games",
+        "Numbered",
+        "On Sale Now",
+        "PlayStation",
+        "PS5",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "Switch",
+        "Xbox"
+      ],
+      "variants": [
+        {
+          "id": 45860268474421,
+          "title": "PS5",
+          "option1": "PS5",
+          "option2": null,
+          "option3": null,
+          "sku": "P5LR220BBE",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38733113425973,
+            "product_id": 8206686650421,
+            "position": 1,
+            "created_at": "2026-08-31T11:49:53-04:00",
+            "updated_at": "2026-08-31T11:49:55-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/riven-limited-run-games-big-box-edition.png?v=1788191395",
+            "variant_ids": [
+              45860268474421,
+              45860268507189,
+              45860270866485
+            ]
+          },
+          "available": true,
+          "price": "64.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8206686650421,
+          "created_at": "2026-08-04T16:49:32-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        },
+        {
+          "id": 45860268507189,
+          "title": "Xbox",
+          "option1": "Xbox",
+          "option2": null,
+          "option3": null,
+          "sku": "LRX073BBE",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38733113425973,
+            "product_id": 8206686650421,
+            "position": 1,
+            "created_at": "2026-08-31T11:49:53-04:00",
+            "updated_at": "2026-08-31T11:49:55-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/riven-limited-run-games-big-box-edition.png?v=1788191395",
+            "variant_ids": [
+              45860268474421,
+              45860268507189,
+              45860270866485
+            ]
+          },
+          "available": true,
+          "price": "64.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8206686650421,
+          "created_at": "2026-08-04T16:49:32-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        },
+        {
+          "id": 45860270866485,
+          "title": "PC",
+          "option1": "PC",
+          "option2": null,
+          "option3": null,
+          "sku": "PC-RVN-BBE",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38733113425973,
+            "product_id": 8206686650421,
+            "position": 1,
+            "created_at": "2026-08-31T11:49:53-04:00",
+            "updated_at": "2026-08-31T11:49:55-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/riven-limited-run-games-big-box-edition.png?v=1788191395",
+            "variant_ids": [
+              45860268474421,
+              45860268507189,
+              45860270866485
+            ]
+          },
+          "available": true,
+          "price": "64.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 8206686650421,
+          "created_at": "2026-08-04T16:50:09-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38733113425973,
+          "created_at": "2026-08-31T11:49:53-04:00",
+          "position": 1,
+          "updated_at": "2026-08-31T11:49:55-04:00",
+          "product_id": 8206686650421,
+          "variant_ids": [
+            45860268474421,
+            45860268507189,
+            45860270866485
+          ],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/riven-limited-run-games-big-box-edition.png?v=1788191395",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "PS5",
+            "Xbox",
+            "PC"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8231944159285,
+      "title": "R-Type DX - Collector’s Edition (GBC)",
+      "handle": "r-type-dx-collector-s-edition-gbc",
+      "body_html": "<p><em>R-Type DX - Collector’s Edition. This is an open pre-order for a limited time.</em></p>\n<ul></ul>\n<ul></ul>\n<div>\n<p class=\"p1\"><meta charset=\"utf-8\">Strike at the heart of the Bydo Empire in R-Type DX!</p>\n<p class=\"p1\">One of the most popular arcade shoot ‘em ups, R-Type is a huge game with difficult stages and monstrous bosses.<span class=\"Apple-converted-space\">  </span>In the early 1990s, Irem brought the first two entries to the small, monochrome screen of the Game Boy, both technical marvels.<span class=\"Apple-converted-space\">  </span>With the Game Boy Color, Irem combined those two games along with color-enhanced versions into an action-packed cartridge in R-Type DX in 1999.<span class=\"Apple-converted-space\">  </span>Now, we are bringing this classic back along with music releases on vinyl and CD.<span class=\"Apple-converted-space\">  </span>Prepare to blast through waves of aliens to protect Earth from the Bydo Empire!</p>\n</div>\n<div>\n<meta charset=\"utf-8\">\n<strong>PRE-ORDERS CLOSE ON SUNDAY, NOVEMBER 1, 2026, AT 11:59 PM EASTERN TIME.</strong>\n</div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-10T11:59:49-04:00",
+      "created_at": "2026-09-04T15:29:50-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Collector's Edition",
+        "Distro",
+        "Game Boy",
+        "Game Boy Color",
+        "Games",
+        "On Sale Now",
+        "PC & Retro",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "Retro",
+        "Retro-Bit"
+      ],
+      "variants": [
+        {
+          "id": 45972780220469,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "RB-CT-1048",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "44.99",
+          "grams": 113,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8231944159285,
+          "created_at": "2026-09-04T15:29:50-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38817339801653,
+          "created_at": "2026-09-08T11:51:16-04:00",
+          "position": 1,
+          "updated_at": "2026-09-08T11:51:18-04:00",
+          "product_id": 8231944159285,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/r-type-delta-game-boy-limited-run-games.png?v=1788882678",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8233898770485,
+      "title": "R-Type DX CD Soundtrack Limited Run Games Edition",
+      "handle": "r-type-dx-cd-soundtrack-limited-run-games-edition",
+      "body_html": "<p><meta charset=\"utf-8\">R-Type DX CD Soundtrack Limited Run Games Edition<br></p>\n<p class=\"p1\">The beginning of a deep space war has arrived on CD!</p>\n<p class=\"p1\">An alien empire from deep space is looking to take over Earth, but humanity has its hopes in its R-Type space fighters.<span class=\"Apple-converted-space\">  </span>From the arcades to portable consoles, the background music of these difficult games would drive players to try again and again.<span class=\"Apple-converted-space\">  </span>Grab your CD player and relive each space battle!</p>\n<p><meta charset=\"utf-8\"><strong>PRE-ORDERS CLOSE ON SUNDAY, NOVEMBER 1, 2026 AT 11:59 PM EASTERN TIME.</strong></p>",
+      "published_at": "2026-09-10T12:01:56-04:00",
+      "created_at": "2026-09-08T10:50:31-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Music CDs",
+      "tags": [
+        "CD Soundtracks",
+        "Media Mail",
+        "Music",
+        "On Sale Now",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "Soundtracks"
+      ],
+      "variants": [
+        {
+          "id": 45982766071861,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "RB-SK-508",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "19.99",
+          "grams": 510,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8233898770485,
+          "created_at": "2026-09-08T10:50:31-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38817342128181,
+          "created_at": "2026-09-08T11:52:08-04:00",
+          "position": 1,
+          "updated_at": "2026-09-08T11:52:10-04:00",
+          "product_id": 8233898770485,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/r-type-delta-cd-soundtrack-limited-run-games.png?v=1788882730",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8233897197621,
+      "title": "R-Type DX Collector's Edition Vinyl Soundtrack",
+      "handle": "r-type-dx-collectors-edition-vinyl",
+      "body_html": "<p><meta charset=\"utf-8\">R-Type DX Collector's Edition Vinyl<br></p>\n<p>Drop the needle on these retro space tunes!<br></p>\n<p class=\"p1\">The first voyages of the R-9A Arrowhead and R-9C War-Head against the Bydo Empire have been retold across various iterations.<span class=\"Apple-converted-space\">  </span>These groovy tunes blend the original feel of the arcade tracks with the limited low-fi audio channels of the handheld consoles.<span class=\"Apple-converted-space\">  </span>Get your turntables ready to play 33 music tracks of epic space battles!</p>\n<p><meta charset=\"utf-8\"><strong>PRE-ORDERS CLOSE ON SUNDAY, NOVEMBER 1, 2026 AT 11:59 PM EASTERN TIME.</strong></p>",
+      "published_at": "2026-09-10T12:01:38-04:00",
+      "created_at": "2026-09-08T10:37:13-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Records & LPs",
+      "tags": [
+        "Media Mail",
+        "Music",
+        "On Sale Now",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "Soundtracks",
+        "Vinyl"
+      ],
+      "variants": [
+        {
+          "id": 45982742741045,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "RB-SK-509",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.99",
+          "grams": 510,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8233897197621,
+          "created_at": "2026-09-08T10:37:13-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38817337999413,
+          "created_at": "2026-09-08T11:50:23-04:00",
+          "position": 1,
+          "updated_at": "2026-09-08T11:50:25-04:00",
+          "product_id": 8233897197621,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/r-type-delta-vinyl-limited-run-games.png?v=1788882625",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8198169722933,
+      "title": "The Expanse: A Telltale Series Standard Edition (Switch, PS5)",
+      "handle": "the-expanse-a-telltale-series-standard-edition-switch-ps5",
+      "body_html": "<p><em>The Expanse: A Telltale Series is region-free. This is an open pre-order for a limited time.</em><em></em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, OCTOBER 4, 2026, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>Experience the exciting universe of The Expanse like never before in Telltale’s latest adventure, The Expanse: A Telltale Series. Take on the role of Camina Drummer and explore the dangerous and uncharted edges of the Belt aboard the Artemis. From scavenging wrecked ships in a zero-g environment, to surviving a mutiny, to combating fearsome pirates, you make the difficult choices and reveal Camina Drummer’s resolve in this latest Telltale adventure.<br>\n</div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-03T09:59:49-04:00",
+      "created_at": "2026-07-27T14:03:20-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Games",
+        "Numbered",
+        "On Sale Now",
+        "PlayStation",
+        "PS5",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "Standard Edition",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 45815875993653,
+          "title": "Switch",
+          "option1": "Switch",
+          "option2": null,
+          "option3": null,
+          "sku": "LRS341",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38764135514165,
+            "product_id": 8198169722933,
+            "position": 3,
+            "created_at": "2026-09-02T11:09:15-04:00",
+            "updated_at": "2026-09-02T11:09:17-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/the-expanse-telltale-series-limited-run-games-standard-edition-switch_b2506374-fd3a-46a5-9c3e-8626e10a019b.png?v=1788361757",
+            "variant_ids": [
+              45815875993653
+            ]
+          },
+          "available": true,
+          "price": "39.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8198169722933,
+          "created_at": "2026-07-27T14:03:21-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        },
+        {
+          "id": 45815876026421,
+          "title": "PS5",
+          "option1": "PS5",
+          "option2": null,
+          "option3": null,
+          "sku": "P5LR218",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38764135481397,
+            "product_id": 8198169722933,
+            "position": 4,
+            "created_at": "2026-09-02T11:09:15-04:00",
+            "updated_at": "2026-09-02T11:09:17-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/the-expanse-telltale-series-limited-run-games-standard-edition-ps5_e5fc2d2d-5070-4666-89e0-cbac228b04f0.png?v=1788361757",
+            "variant_ids": [
+              45815876026421
+            ]
+          },
+          "available": true,
+          "price": "39.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8198169722933,
+          "created_at": "2026-07-27T14:03:21-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38764135546933,
+          "created_at": "2026-09-02T11:09:15-04:00",
+          "position": 1,
+          "updated_at": "2026-09-02T11:09:17-04:00",
+          "product_id": 8198169722933,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/the-expanse-telltale-series-limited-run-games-standard-edition_e5fc998a-91e0-4ac6-9ecc-4aa7732190f6.png?v=1788361757",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Switch",
+            "PS5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8213986050101,
+      "title": "PS5 Limited Run #222: Prize Fighter - Heavyweight Edition",
+      "handle": "ps5-limited-run-222-prize-fighter-heavyweight-edition",
+      "body_html": "<p><em>Prize Fighter - Heavyweight Edition is region-free. This is an open pre-order for a limited time.</em><em></em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, OCTOBER 18, 2026, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>\n<meta charset=\"utf-8\"> <span>Prize Fighter - Heavyweight Edition takes you closer than a ringside seat — it puts you right in the game. In this remastered Digital Pictures classic, you’re the one slugging it out with the best boxers in the world.</span>\n</div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-08-28T13:02:10-04:00",
+      "created_at": "2026-08-12T14:10:36-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Games",
+        "Numbered",
+        "On Sale Now",
+        "PlayStation",
+        "PS5",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "Sports",
+        "Standard Edition"
+      ],
+      "variants": [
+        {
+          "id": 45886102339637,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "P5LR222",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "29.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8213986050101,
+          "created_at": "2026-08-12T14:10:36-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38715534278709,
+          "created_at": "2026-08-28T12:55:06-04:00",
+          "position": 1,
+          "updated_at": "2026-08-28T12:55:08-04:00",
+          "product_id": 8213986050101,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/prize-fighter-heavy-weight-edition-limited-run-games-ps5.png?v=1787936108",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8180743897141,
+      "title": "Tyrant's Blessing Standard Edition (Switch)",
+      "handle": "tyrants-blessing-standard-edition-switch",
+      "body_html": "<p><em>Tyrant's Blessing is region-free. This is an open pre-order for a limited time.</em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, SEPTEMBER 6, 2025, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>\n<p class=\"p2\">Tyrant's Blessing is a tactical turn-based game where your ability to plan, adapt, and strategize is more important than min-maxing your units or finding the sharpest sword in the hoard. Select battles every day, make challenging choices, and cleverly use the strengths of these rag-tag insurgents to defeat the undead hordes and maybe - just maybe - bring real life back to Tyberia.</p>\n</div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-07-28T12:05:27-04:00",
+      "created_at": "2026-07-09T14:08:29-04:00",
+      "updated_at": "2026-09-25T09:50:50-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Distro",
+        "Games",
+        "On Sale Now",
+        "purple-dot-has-variant-on-preorder",
+        "purple-dot-live-waitlist",
+        "RPG",
+        "Shipping",
+        "Standard Edition",
+        "Strategy",
+        "Switch"
+      ],
+      "variants": [
+        {
+          "id": 45723537768501,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "NS1-ST-EB-076",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "34.99",
+          "grams": 113,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8180743897141,
+          "created_at": "2026-07-09T14:08:30-04:00",
+          "updated_at": "2026-09-25T09:50:50-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38540567150645,
+          "created_at": "2026-07-28T10:14:41-04:00",
+          "position": 1,
+          "updated_at": "2026-07-28T10:14:43-04:00",
+          "product_id": 8180743897141,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/tyrants-blessing-limited-run-games-switch.png?v=1785248083",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    }
+  ]
+}
