@@ -1,8 +1,30 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
-import { apiFetch } from '../lib/api.js'
+import MetadataPicker from '../components/MetadataPicker.jsx'
+import { apiFetch, errorMessage } from '../lib/api.js'
 
 const KIND_ORDER = ['registry', 'store', 'platform', 'resolve']
+
+// Mirrors FORMAT_WORDS in backend/physical_sources/limits.py.
+const FORMAT_WORDS = {
+  game_card: 'full game on cartridge',
+  game_key_card: 'Game-Key Card',
+  code_in_box: 'code in a box',
+  disc: 'disc',
+}
+
+// The catalogue's platforms; a platform-less key is given one of these.
+const PLATFORM_CHOICES = [
+  [508, 'Nintendo Switch 2'],
+  [130, 'Nintendo Switch'],
+  [4, 'Nintendo 64'],
+]
+
+async function getJson(path) {
+  const response = await apiFetch(path)
+  if (!response.ok) throw new Error(await errorMessage(response))
+  return response.json()
+}
 
 const TOTAL_LABELS = [
   ['live_editions', 'Registry editions'],
@@ -14,25 +36,13 @@ const TOTAL_LABELS = [
   ['disagreements', 'Disagreements'],
 ]
 
-/** A response's error in words: the API's detail, else the status. */
-async function errorWords(response) {
-  if (response.status === 409) return 'A refresh is already running'
-  try {
-    const body = await response.json()
-    if (typeof body.detail === 'string') return body.detail
-  } catch {
-    // Not JSON; the status says enough.
-  }
-  return `The server answered ${response.status}`
-}
-
 /** GET /status as {state, status, error}; the caller decides what to set. */
 async function fetchStatus() {
   try {
     const response = await apiFetch('/api/physical/status')
     if (response.status === 401) return { state: 'unauthorized' }
     if (!response.ok)
-      return { state: 'error', error: await errorWords(response) }
+      return { state: 'error', error: await errorMessage(response) }
     return { state: 'ready', status: await response.json() }
   } catch {
     return {
@@ -109,6 +119,233 @@ function SourceRow({ source, busy, onRefreshStore }) {
   )
 }
 
+function candidateLabel(candidate) {
+  return candidate.year
+    ? `${candidate.title} (${candidate.year})`
+    : candidate.title
+}
+
+/** One key a human has to decide: link, ignore, or give it a platform. */
+function NeedsMatchRow({ entry, onDecide }) {
+  const [platform, setPlatform] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const where = entry.platform ?? 'No platform'
+
+  async function decide(action) {
+    setBusy(true)
+    setError(null)
+    const problem = await onDecide(entry, action)
+    if (problem) {
+      setError(problem)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <li className="needs-match-row">
+      <p>
+        <strong>{entry.title}</strong>{' '}
+        <span className="muted">
+          {where} · {entry.sources.join(', ')} · {entry.rows}{' '}
+          {entry.rows === 1 ? 'row' : 'rows'}
+        </span>
+      </p>
+      {entry.platform_id === 0 ? (
+        <p className="needs-match-controls">
+          <label>
+            Platform{' '}
+            <select
+              value={platform}
+              onChange={(event) => setPlatform(event.target.value)}
+              aria-label={`Platform for ${entry.title}`}
+            >
+              <option value="">Choose…</option>
+              {PLATFORM_CHOICES.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={busy || !platform}
+            onClick={() => decide({ new_platform_id: Number(platform) })}
+          >
+            Set platform
+          </button>
+        </p>
+      ) : (
+        <>
+          {entry.candidates.length > 0 && (
+            <ul className="needs-match-candidates">
+              {entry.candidates.map((candidate) => (
+                <li key={candidate.external_id}>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      decide({ igdb_id: Number(candidate.external_id) })
+                    }
+                  >
+                    Link {candidateLabel(candidate)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <MetadataPicker
+            type="game"
+            onSelect={(candidate) =>
+              decide({ igdb_id: Number(candidate.external_id) })
+            }
+          />
+        </>
+      )}
+      <p>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => decide({ ignored: true })}
+          aria-label={`Ignore ${entry.title}`}
+        >
+          Ignore
+        </button>
+      </p>
+      {error && (
+        <p className="admin-error" role="alert">
+          {error}
+        </p>
+      )}
+    </li>
+  )
+}
+
+/** Keys searched without a sure match, or sold with no platform. */
+function NeedsMatch({ onChange }) {
+  const [state, setState] = useState({ status: 'loading', keys: [], total: 0 })
+
+  useEffect(() => {
+    let live = true
+    getJson('/api/physical/needs-match')
+      .then((body) => {
+        if (live) setState({ status: 'ready', ...body })
+      })
+      .catch((error) => {
+        if (live) setState({ status: 'error', keys: [], error: error.message })
+      })
+    return () => {
+      live = false
+    }
+  }, [])
+
+  async function decide(entry, action) {
+    try {
+      const response = await apiFetch('/api/physical/matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title_normalized: entry.title_normalized,
+          platform_id: entry.platform_id,
+          ...action,
+        }),
+      })
+      if (!response.ok) return await errorMessage(response)
+    } catch {
+      return 'Could not reach the API. Try again shortly.'
+    }
+    // Decided rows leave the list here; nothing is reloaded.
+    setState((current) => ({
+      ...current,
+      keys: current.keys.filter(
+        (key) =>
+          key.title_normalized !== entry.title_normalized ||
+          key.platform_id !== entry.platform_id,
+      ),
+      total: current.total - 1,
+    }))
+    onChange()
+    return null
+  }
+
+  return (
+    <section className="needs-match" aria-labelledby="needs-match-heading">
+      <h2 id="needs-match-heading">Needs match</h2>
+      {state.status === 'loading' && <p className="muted">Loading…</p>}
+      {state.status === 'error' && (
+        <p className="admin-error" role="alert">
+          {state.error}
+        </p>
+      )}
+      {state.status === 'ready' && state.keys.length === 0 && (
+        <p className="muted">Nothing needs a match.</p>
+      )}
+      {state.status === 'ready' && state.total > state.keys.length && (
+        <p className="muted">
+          Showing {state.keys.length} of {state.total}.
+        </p>
+      )}
+      <ul className="needs-match-list">
+        {state.keys.map((entry) => (
+          <NeedsMatchRow
+            key={`${entry.title_normalized}:${entry.platform_id}`}
+            entry={entry}
+            onDecide={decide}
+          />
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/** Copies whose recorded format the registry contradicts. */
+function Disagreements() {
+  const [state, setState] = useState({ status: 'loading', items: [] })
+
+  useEffect(() => {
+    let live = true
+    getJson('/api/physical/disagreements')
+      .then((body) => {
+        if (live) setState({ status: 'ready', items: body.items })
+      })
+      .catch((error) => {
+        if (live) setState({ status: 'error', items: [], error: error.message })
+      })
+    return () => {
+      live = false
+    }
+  }, [])
+
+  return (
+    <section className="disagreements" aria-labelledby="disagreements-heading">
+      <h2 id="disagreements-heading">Registry disagreements</h2>
+      {state.status === 'error' && (
+        <p className="admin-error" role="alert">
+          {state.error}
+        </p>
+      )}
+      {state.status === 'ready' && state.items.length === 0 && (
+        <p className="muted">No copy disagrees with the registry.</p>
+      )}
+      <ul className="disagreement-list">
+        {state.items.map((item) => (
+          <li key={item.item_id}>
+            <Link to={`/admin/collection/${item.item_id}`}>{item.title}</Link>{' '}
+            <span className="muted">({item.region})</span>
+            <p>
+              Yours: {FORMAT_WORDS[item.yours] ?? 'not recorded'}
+              {item.yours_source && ` (${item.yours_source})`} · Registry:{' '}
+              {FORMAT_WORDS[item.registry] ?? item.registry}
+              {item.cart_id && ` (${item.cart_id})`}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 /**
  * The physical catalogue: where each source stands, and the presses that
  * refresh it. Every refresh is synchronous on the server, so a press can take
@@ -150,7 +387,7 @@ export default function AdminCatalogue() {
     try {
       const response = await apiFetch(path, { method: 'POST', ...options })
       if (!response.ok) {
-        setError(await errorWords(response))
+        setError(await errorMessage(response))
         return null
       }
       return await response.json()
@@ -211,7 +448,7 @@ export default function AdminCatalogue() {
           method: 'POST',
         })
         if (!response.ok) {
-          setError(await errorWords(response))
+          setError(await errorMessage(response))
           return
         }
         const batch = await response.json()
@@ -326,6 +563,9 @@ export default function AdminCatalogue() {
               </tbody>
             </table>
           </div>
+
+          <NeedsMatch onChange={load} />
+          <Disagreements />
         </>
       )}
     </section>

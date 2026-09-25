@@ -83,6 +83,14 @@ function stubApi(handlers = {}) {
     if (handler) return handler(options)
     if (path === '/api/physical/status')
       return { ok: true, status: 200, json: async () => STATUS }
+    if (path.startsWith('/api/physical/needs-match'))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ keys: [], total: 0 }),
+      }
+    if (path === '/api/physical/disagreements')
+      return { ok: true, status: 200, json: async () => ({ items: [] }) }
     return { ok: true, status: 200, json: async () => ({}) }
   })
   vi.stubGlobal('fetch', mock)
@@ -154,7 +162,9 @@ describe('AdminCatalogue', () => {
       within(gamefairy).getByRole('img', { name: 'Needs attention' }),
     ).toBeInTheDocument()
     expect(rows[4]).toHaveTextContent('never run')
-    expect(screen.getByText('Needs match').nextSibling).toHaveTextContent('12')
+    expect(
+      screen.getByText('Needs match', { selector: 'dt' }).nextSibling,
+    ).toHaveTextContent('12')
   })
 
   it('refreshes all stores, then reads the status again', async () => {
@@ -303,5 +313,175 @@ describe('AdminCatalogue', () => {
     expect(
       await screen.findByRole('link', { name: 'Sign in' }),
     ).toHaveAttribute('href', '/admin')
+  })
+})
+
+const NEEDS = {
+  keys: [
+    {
+      title_normalized: 'star fox',
+      platform_id: 508,
+      platform: 'Nintendo Switch 2',
+      title: 'Star Fox',
+      sources: ['nscollectors', 'super_rare'],
+      rows: 2,
+      candidates: [
+        { external_id: '11', title: 'Star Fox 64', year: 1997 },
+        { external_id: '12', title: 'Star Fox Zero', year: 2016 },
+      ],
+    },
+    {
+      title_normalized: 'he man',
+      platform_id: 0,
+      platform: null,
+      title: 'He-Man and the Masters of the Universe',
+      sources: ['limited_run'],
+      rows: 1,
+      candidates: [],
+    },
+  ],
+  total: 2,
+}
+
+describe('Needs match', () => {
+  it('lists each key with its candidates, and a platform choice only when it has none', async () => {
+    stubApi({ 'GET /api/physical/needs-match': () => json(NEEDS) })
+    renderPage()
+    const panel = await screen.findByRole('region', { name: 'Needs match' })
+    const [starFox, heMan] = await within(panel)
+      .findAllByRole('listitem', {
+        name: '',
+      })
+      .then((items) =>
+        items.filter((item) => item.className === 'needs-match-row'),
+      )
+    expect(starFox).toHaveTextContent(
+      'Nintendo Switch 2 · nscollectors, super_rare · 2 rows',
+    )
+    expect(
+      within(starFox).getByRole('button', { name: 'Link Star Fox 64 (1997)' }),
+    ).toBeInTheDocument()
+    expect(within(starFox).queryByRole('combobox')).not.toBeInTheDocument()
+    expect(heMan).toHaveTextContent('No platform')
+    expect(
+      within(heMan).getByRole('combobox', { name: /Platform for He-Man/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('links a stored candidate and drops the row without a reload', async () => {
+    const calls = stubApi({
+      'GET /api/physical/needs-match': () => json(NEEDS),
+      'POST /api/physical/matches': () => json({ action: 'linked', moved: 0 }),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Link Star Fox Zero (2016)' }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Star Fox', { selector: 'strong' }),
+      ).not.toBeInTheDocument(),
+    )
+    const posted = calls.find((call) => call.path === '/api/physical/matches')
+    expect(JSON.parse(posted.body)).toEqual({
+      title_normalized: 'star fox',
+      platform_id: 508,
+      igdb_id: 12,
+    })
+    expect(
+      calls.filter((call) => call.path.startsWith('/api/physical/needs-match')),
+    ).toHaveLength(1)
+  })
+
+  it('ignores a key and gives a platform-less key a platform', async () => {
+    const calls = stubApi({
+      'GET /api/physical/needs-match': () => json(NEEDS),
+      'POST /api/physical/matches': () => json({ action: 'ok', moved: 1 }),
+    })
+    renderPage()
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: /Platform for He-Man/ }),
+      '130',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Set platform' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Ignore Star Fox' }),
+    )
+    await waitFor(() =>
+      expect(
+        calls.filter((call) => call.path === '/api/physical/matches'),
+      ).toHaveLength(2),
+    )
+    const [rekey, ignore] = calls
+      .filter((call) => call.path === '/api/physical/matches')
+      .map((call) => JSON.parse(call.body))
+    expect(rekey).toEqual({
+      title_normalized: 'he man',
+      platform_id: 0,
+      new_platform_id: 130,
+    })
+    expect(ignore).toEqual({
+      title_normalized: 'star fox',
+      platform_id: 508,
+      ignored: true,
+    })
+  })
+
+  it('keeps the row and says why when a decision fails', async () => {
+    stubApi({
+      'GET /api/physical/needs-match': () => json(NEEDS),
+      'POST /api/physical/matches': () =>
+        json({ detail: 'IGDB is not configured' }, 503),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Ignore Star Fox' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'IGDB is not configured',
+    )
+    expect(
+      screen.getByText('Star Fox', { selector: 'strong' }),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('Registry disagreements', () => {
+  it('lists each copy against the registry with a link to its edit page', async () => {
+    stubApi({
+      'GET /api/physical/disagreements': () =>
+        json({
+          items: [
+            {
+              item_id: 'i-1',
+              title: 'A Game',
+              region: 'USA',
+              yours: 'game_card',
+              yours_source: 'manual',
+              registry: 'game_key_card',
+              cart_id: 'LP-AAC4B-USA-0',
+              note: 'n',
+            },
+          ],
+        }),
+    })
+    renderPage()
+    const panel = await screen.findByRole('region', {
+      name: 'Registry disagreements',
+    })
+    expect(
+      await within(panel).findByRole('link', { name: 'A Game' }),
+    ).toHaveAttribute('href', '/admin/collection/i-1')
+    expect(panel).toHaveTextContent(
+      'Yours: full game on cartridge (manual) · Registry: Game-Key Card (LP-AAC4B-USA-0)',
+    )
+  })
+
+  it('says so in one line when there are none', async () => {
+    stubApi()
+    renderPage()
+    expect(
+      await screen.findByText('No copy disagrees with the registry.'),
+    ).toBeInTheDocument()
   })
 })

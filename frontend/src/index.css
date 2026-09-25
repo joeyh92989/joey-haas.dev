@@ -2325,6 +2325,43 @@ footer {
   width: 1.25rem;
 }
 
+.needs-match,
+.disagreements {
+  margin-top: 2.5rem;
+}
+
+.needs-match-list,
+.needs-match-candidates,
+.disagreement-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.needs-match-row,
+.disagreement-list li {
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 0;
+}
+
+.needs-match-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.needs-match-controls select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  margin-right: 0.5rem;
+  padding: 0.4rem 0.6rem;
+}
+
 .run-errors {
   color: var(--text-muted);
   font-size: 0.8125rem;
