@@ -3,9 +3,8 @@
 import uuid
 
 import pytest
+from physical_support import FakeIgdb, client_for, edition, listing
 from sqlalchemy import select
-from test_physical_resolve import FakeIgdb, edition, listing
-from test_physical_routes import client_for
 
 from models import (
     CatalogueGame,

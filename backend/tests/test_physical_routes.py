@@ -6,19 +6,11 @@ without a request leaving the process.
 """
 
 import asyncio
-import re
-from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
-from urllib.parse import unquote
 
-import httpx2
 import pytest
-from fastapi import FastAPI
-from httpx2 import ASGITransport, AsyncClient
+from physical_support import FakeIgdb, client_for, serve_fixtures
 from sqlalchemy import func, select
-from starlette.middleware.sessions import SessionMiddleware
-from test_physical_resolve import FakeIgdb
 
 from models import (
     CatalogueRun,
@@ -29,117 +21,10 @@ from models import (
     PhysicalEdition,
     StoreListing,
 )
-from physical_routes import create_physical_router
 from physical_sources import shopify
-from physical_sources.stores import STORES
 from sources.base import SourceResult
 
 pytestmark = pytest.mark.asyncio
-
-PHYSICAL = Path(__file__).parent / "fixtures" / "physical"
-DOMAINS = {config.domain: key for key, config in STORES.items()}
-
-
-def fixture_name(handle: str) -> str:
-    return re.sub(r"[^a-z0-9-]+", "-", handle.replace("™", "-tm").lower()).strip("-")
-
-
-def serve_fixtures(
-    robots: dict[str, str] | None = None,
-    empty: set[str] = frozenset(),
-    gate=None,
-    entered=None,
-    fail_paths: tuple[str, ...] = (),
-):
-    """A handler answering every catalogue URL from the recorded fixtures.
-
-    `entered` is set when the first request arrives; `gate` holds requests
-    until it is set; a path starting with one of `fail_paths` fails as a
-    dropped connection.
-    """
-    robots = robots or {}
-
-    async def handler(request):
-        if entered is not None:
-            entered.set()
-        if gate is not None:
-            await gate.wait()
-        if request.url.path.startswith(fail_paths or ("\0",)):
-            raise httpx2.ConnectError("dropped", request=request)
-        url, host, path = request.url, request.url.host, request.url.path
-        if path == "/robots.txt":
-            if host in robots:
-                return httpx2.Response(200, text=robots[host])
-            recorded = PHYSICAL / "robots" / f"{host}.txt"
-            return (
-                httpx2.Response(200, text=recorded.read_text())
-                if recorded.exists()
-                else httpx2.Response(404)
-            )
-        if host == "sheets.googleapis.com":
-            assert url.params["key"] == "sheets-key"
-            if url.params.get("fields") == "sheets.properties":
-                name = "properties"
-            elif "Upcoming" in unquote(path):
-                name = "upcoming_details"
-            else:
-                name = "details"
-            return httpx2.Response(
-                200, text=(PHYSICAL / "registry" / f"{name}.json").read_text()
-            )
-        if host == "raw.githubusercontent.com":
-            return httpx2.Response(
-                200, text=(PHYSICAL / "tracker" / "games.json").read_text()
-            )
-        store = DOMAINS[host]
-        if path.startswith("/collections/"):
-            handle = unquote(path.split("/")[2])
-            if url.params.get("page") != "1" or handle in empty:
-                return httpx2.Response(200, json={"products": []})
-            page = PHYSICAL / "shopify" / store / f"{fixture_name(handle)}.p1.json"
-            return httpx2.Response(200, text=page.read_text())
-        if path.startswith("/wp-json/"):
-            (page,) = (PHYSICAL / "woocommerce" / store).glob("*.json")
-            return httpx2.Response(200, text=page.read_text())
-        if path.startswith("/products/"):
-            return httpx2.Response(
-                200,
-                text=(
-                    PHYSICAL / "shopify" / "limited_run" / "product.html"
-                ).read_text(),
-            )
-        return httpx2.Response(404)
-
-    return handler
-
-
-@asynccontextmanager
-async def client_for(
-    factory, *, signed_in=True, handler=None, igdb=None, sheets_key="sheets-key"
-):
-    handler = handler or serve_fixtures()
-    registry = {ItemType.GAME: igdb or FakeIgdb()}
-    app = FastAPI()
-    app.include_router(
-        create_physical_router(
-            factory,
-            registry,
-            lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
-            sheets_key,
-        )
-    )
-    if signed_in:
-
-        @app.middleware("http")
-        async def _sign_in(request, call_next):
-            request.session["user"] = {"sub": "1", "email": "admin@example.com"}
-            return await call_next(request)
-
-    app.add_middleware(SessionMiddleware, secret_key="test-secret", https_only=False)
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://testserver", timeout=120
-    ) as client:
-        yield client
 
 
 async def _count(factory, model, *where):

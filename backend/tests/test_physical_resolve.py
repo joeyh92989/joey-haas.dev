@@ -4,18 +4,15 @@ The fake answers with the shapes the recorded fixtures pin (SourceResult,
 SourceDetail, the N64 id page); no request leaves the process.
 """
 
-import json
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
+from physical_support import FakeIgdb, edition, listing, result
 from sqlalchemy import select
 
-from matching import normalize_title
 from models import CatalogueGame, CatalogueMatch, PhysicalEdition, StoreListing
-from physical_sources.base import EditionRow, StoreProduct
+from physical_sources.base import EditionRow
 from physical_sources.catalogue import upsert_editions, upsert_listings
 from physical_sources.platform_policy import ingest_platform
 from physical_sources.resolve import (
@@ -26,111 +23,10 @@ from physical_sources.resolve import (
     resolve_batch,
 )
 from sources.base import (
-    SourceDetail,
     SourceError,
     SourceNotConfigured,
     SourceRateLimited,
-    SourceResult,
 )
-
-N64_PAGE = Path(__file__).parent / "fixtures" / "physical" / "igdb" / "n64_page1.json"
-
-
-class FakeIgdb:
-    """Stands in for IgdbSource: search, fetch_many and the one raw query."""
-
-    def __init__(
-        self,
-        results=None,
-        configured=True,
-        limit_after=None,
-        titles=None,
-        search_error=None,
-        fetch_error=None,
-        missing=(),
-    ):
-        self.results = results or {}
-        self._configured = configured
-        self.limit_after = limit_after
-        self.titles = titles or {}
-        self.search_error = search_error
-        self.fetch_error = fetch_error
-        self.missing = set(missing)
-        self.searches: list[tuple[str, int | None, str | None]] = []
-        self.fetched: list[list[str]] = []
-        self.fetch_limited = False
-
-    def configured(self):
-        return self._configured
-
-    async def search(self, query, year=None, platform=None):
-        if self.search_error is not None:
-            raise self.search_error
-        if self.limit_after is not None and len(self.searches) >= self.limit_after:
-            raise SourceRateLimited("igdb", "rate limited by IGDB")
-        self.searches.append((query, year, platform))
-        return self.results.get(query, [])
-
-    async def fetch_many(self, ids):
-        if self.fetch_limited:
-            raise SourceRateLimited("igdb", "rate limited by IGDB")
-        if self.fetch_error is not None:
-            raise self.fetch_error
-        self.fetched.append(list(ids))
-        return [
-            SourceDetail(
-                external_id=i,
-                title=self.titles.get(i, f"Game {i}"),
-                cover_url=f"https://images.igdb.com/{i}.jpg" if int(i) % 2 else None,
-                source_metadata={"first_release_date": "1999-05-18", "genres": []},
-            )
-            for i in ids
-            if i not in self.missing
-        ]
-
-    async def _query(self, body, endpoint="games"):
-        rows = json.loads(N64_PAGE.read_text())
-        return [{"id": row["id"]} for row in rows]
-
-
-def result(igdb_id, title, year=2026):
-    return SourceResult(external_id=str(igdb_id), title=title, year=year)
-
-
-def edition(title, ref=None, platform_id=508, **extra):
-    return EditionRow(
-        source="nscollectors",
-        source_ref=ref or f"{normalize_title(title)}|USA|pub|game card",
-        title=title,
-        title_normalized=normalize_title(title),
-        platform_id=platform_id,
-        region="USA",
-        is_physical=True,
-        physical_format="game_card",
-        format_source="registry",
-        **{"release_date": date(2026, 11, 19), "release_precision": "day", **extra},
-    )
-
-
-def listing(title_normalized, variant="1", platform_id=508, label="Nintendo Switch 2"):
-    return StoreProduct(
-        store="super_rare",
-        store_product_id=variant,
-        variant_id=variant,
-        handle=title_normalized.replace(" ", "-"),
-        url="https://example.test/x",
-        region="EUR",
-        title=title_normalized,
-        title_normalized=title_normalized,
-        edition_label=None,
-        platform_id=platform_id,
-        platform_label=label,
-        is_game=True,
-        collections_seen=("switch-2",),
-        price=Decimal("40"),
-        currency="GBP",
-        availability="preorder",
-    )
 
 
 @pytest_asyncio.fixture
