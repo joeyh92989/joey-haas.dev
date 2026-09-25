@@ -113,18 +113,20 @@ def _read(name: str, match: re.Match) -> tuple[date | None, str | None]:
 
 
 def find_date(text: str) -> tuple[date | None, str | None, str | None]:
-    """The earliest date-like phrase in `text`: (date, precision, phrase)."""
-    best: tuple[int, int, str, re.Match] | None = None
+    """The earliest date-like phrase in `text`: (date, precision, phrase).
+
+    A phrase that looks like a date but is not one ("2025-26" read as month
+    26) gives way to the next candidate rather than ending the search.
+    """
+    found = []
     for rank, (name, pattern) in enumerate(_FORMS):
-        match = pattern.search(text)
-        if match and (best is None or (match.start(), rank) < best[:2]):
-            best = (match.start(), rank, name, match)
-    if best is None:
-        return None, None, None
-    value, precision = _read(best[2], best[3])
-    if value is None:
-        return None, None, None
-    return value, precision, best[3].group(0)
+        for match in pattern.finditer(text):
+            found.append((match.start(), rank, name, match))
+    for _, _, name, match in sorted(found, key=lambda entry: entry[:2]):
+        value, precision = _read(name, match)
+        if value is not None:
+            return value, precision, match.group(0)
+    return None, None, None
 
 
 def parse_loose_date(text: str | None) -> tuple[date | None, str | None]:
@@ -148,13 +150,16 @@ RELEASE_ANCHORS = re.compile(
     r"(release date:?|estimated ship date:?|shipping|ships|releasing|\best\b)",
     re.IGNORECASE,
 )
-ANCHOR_WINDOW = 30
+# Wide enough for "September 15th - October 31st, 2026"; the date must still
+# start at the anchor, so a wider window never borrows a later sentence's.
+ANCHOR_WINDOW = 50
 
 
 def parse_release(text: str | None) -> tuple[date | None, str | None, str | None]:
     """(release_date, precision, matched_text) from the first date a store
     anchors with Release Date, Estimated Ship Date, Shipping, Releasing or
-    EST. The date must follow its anchor directly, so "Shipping Q3 Wave 2 -
+    EST, read from the ANCHOR_WINDOW characters after the anchor. The date
+    must follow its anchor directly, so "Shipping Q3 Wave 2 -
     Shipping Q4 Remaining Orders - Q1 2027" dates nothing rather than
     borrowing the last wave's year for the first."""
     flat = _SPACE.sub(" ", text or "")
@@ -166,7 +171,8 @@ def parse_release(text: str | None) -> tuple[date | None, str | None, str | None
     return None, None, None
 
 
-PREORDER_CLOSE = re.compile(r"pre-?orders? close (?:on )?(.+?)(?:\.|$)", re.IGNORECASE)
+# Up to 80 characters, not up to the first full stop: "Nov. 8, 2026" has one.
+PREORDER_CLOSE = re.compile(r"pre-?orders? close (?:on )?(.{0,80})", re.IGNORECASE)
 
 
 def parse_preorder_close(text: str | None) -> date | None:

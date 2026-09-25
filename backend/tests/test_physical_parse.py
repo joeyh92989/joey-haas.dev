@@ -230,3 +230,28 @@ def test_title_prefix_tag_prefix_and_title_contains():
 
 def test_no_step_matches_falls_back_to_availability():
     assert status_from((), {"title": "X"}, {"available": False}, ()) == "sold_out"
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            "Estimated Ship Date: September 15th - October 31st, 2026",
+            (date(2026, 9, 1), "month"),
+        ),
+        (
+            "Release Date: December 1st - January 31st, 2027",
+            (date(2026, 12, 1), "month"),
+        ),
+    ],
+)
+def test_long_ship_windows(text, expected):
+    assert parse_release(text)[:2] == expected
+
+
+def test_an_impossible_date_gives_way_to_the_next():
+    assert find_date("2025-26 then March 3, 2026")[:2] == (date(2025, 1, 1), "year")
+
+
+def test_a_preorder_close_with_an_abbreviated_month():
+    assert parse_preorder_close("Pre-orders close Nov. 8, 2026.") == date(2026, 11, 8)
