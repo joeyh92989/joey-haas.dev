@@ -5,6 +5,7 @@ them; the recorded fixtures confirm the ones still live.
 """
 
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -167,3 +168,9 @@ def test_strictly_limited_shenmue_body():
 def test_fangamer_stardew_body_is_the_upgrade_pack():
     product = _product("shopify/fangamer/video-games.p1.json", "Stardew")
     assert classify(product["body_html"], None, 508).platform_override == 130
+
+
+def test_an_unclosed_tag_flood_is_read_in_linear_time():
+    started = time.perf_counter()
+    assert plain_text("<" * 100_000).startswith("<")
+    assert time.perf_counter() - started < 0.5

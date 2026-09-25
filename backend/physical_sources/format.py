@@ -92,7 +92,9 @@ FULL_CART_PHRASES: tuple[tuple[re.Pattern, str], ...] = tuple(
     )
 )
 
-_TAG = re.compile(r"<[^>]+>")
+# `[^<>]` rather than `[^>]`: on a body with many `<` and no `>`, the latter
+# rescans the rest of the text from every `<` (quadratic).
+_TAG = re.compile(r"<[^<>]*>")
 _SPACE = re.compile(r"\s+")
 
 

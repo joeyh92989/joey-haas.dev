@@ -87,10 +87,30 @@ def _normalise(text: str) -> str:
 
 
 def _matches(pattern: str, target: str) -> bool:
+    """Whether a robots pattern matches the start of `target`, in linear time.
+
+    A regex built by joining the pieces with `.*` backtracks exponentially in
+    the number of `*`, and a store's robots.txt is third-party text: a
+    pattern of ten stars would stall the event loop for minutes. Placing each
+    literal piece at its leftmost occurrence is enough for `*` globbing.
+    """
     anchored = pattern.endswith("$")
     body = pattern[:-1] if anchored else pattern
-    regex = ".*".join(re.escape(part) for part in body.split("*"))
-    return re.match(regex + ("$" if anchored else ""), target) is not None
+    first, *rest = body.split("*")
+    if not target.startswith(first):
+        return False
+    position = len(first)
+    if not rest:
+        return position == len(target) if anchored else True
+    *middle, last = rest
+    for piece in middle:
+        found = target.find(piece, position)
+        if found < 0:
+            return False
+        position = found + len(piece)
+    if anchored:
+        return target.endswith(last) and len(target) - len(last) >= position
+    return target.find(last, position) >= 0
 
 
 def parse_robots(text: str, token: str = PRODUCT_TOKEN) -> Robots:

@@ -1,5 +1,6 @@
 """robots.txt checks (RFC 9309), on every store host's recorded robots.txt."""
 
+import time
 from pathlib import Path
 
 import httpx2
@@ -145,3 +146,30 @@ async def test_robots_for_a_network_error_means_disallow_all():
 
     async with _client(handler) as client:
         assert await robots_for("example.test", client) == DISALLOW_ALL
+
+
+def test_a_star_heavy_pattern_is_matched_in_linear_time():
+    robots = parse_robots("User-agent: *\nDisallow: /*a*a*a*a*a*a*a*a*a*a*a*b\n")
+    started = time.perf_counter()
+    result = allowed(robots, "https://example.test/" + "a" * 5000)
+    assert result is True
+    assert time.perf_counter() - started < 0.1
+
+
+@pytest.mark.parametrize(
+    ("pattern", "path", "matches"),
+    [
+        ("/a*b*c", "/axxbyyc", True),
+        ("/a*b*c", "/axxcyyb", False),
+        ("/a*c$", "/abc", True),
+        ("/a*c$", "/abcd", False),
+        ("/*.json$", "/p.json", True),
+        ("/p", "/products", True),
+        ("/p$", "/products", False),
+        ("*", "/anything", True),
+        ("/a**b", "/ab", True),
+    ],
+)
+def test_glob_matching(pattern, path, matches):
+    robots = parse_robots(f"User-agent: *\nDisallow: {pattern}\n")
+    assert allowed(robots, f"https://example.test{path}") is not matches
