@@ -143,11 +143,16 @@ before pushing.
       from the owned backlog with reasons, pin as Up next (shown publicly on
       `/collection`), and `schema_check` tolerating a database ahead of the
       code. Spec and plan: `docs/planning/2026-09-23-tracker-e8a-*`
-- [ ] Tracker E7c (physical catalogue) next, then E8b, E8c. Spec:
-      `docs/planning/2026-09-22-tracker-enhancement-design.md` (§5.4 onward);
-      each phase gets its own plan
-- [ ] Tracker E6 — recommendations. `backend/llm.py` already provides the
-      provider-agnostic seam it needs
+- [x] Tracker E7c — physical catalogue at `/admin/catalogue`: the
+      r/NSCollectors registry (Sheets API), `switch2-tracker`, twelve boutique
+      stores and IGDB's N64 list in five new tables (migration `0005`),
+      resolved to IGDB, collapsed to one format per game, and synced onto
+      owned Switch 2 items. Spec and plan: `docs/planning/2026-09-23-tracker-e7c-*`
+- [ ] Tracker E8b (Discover), then E8c (Radar). Spec:
+      `docs/planning/2026-09-22-tracker-enhancement-design.md`, with the
+      E8b/E8c decisions settled at the end of the E7c spec; each gets its own
+      plan. E6 (recommendations) is retired in favour of E8b, which uses the
+      provider-agnostic seam in `backend/llm.py`
 - [ ] Optional: set `ADMIN_GOOGLE_SUB` after the first sign-in to pin the
       allowlist to Google's immutable subject ID rather than the email alone
 
@@ -158,7 +163,9 @@ before pushing.
   database *ahead* of the code boots with a warning, because the deploy order
   is migrate-then-merge; that is only safe because **migrations are
   additive**: add tables and columns, never rename or drop in the same release
-  (see `backend/migrations/README.md`). `0004` adds `pick_events`.
+  (see `backend/migrations/README.md`). `0004` adds `pick_events`; `0005`
+  adds the physical catalogue's five tables and four enum types, reusing
+  `physical_format` and `format_source` untouched.
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -173,6 +180,35 @@ before pushing.
   contradicting one rather than overriding it. The frontend's platform list
   in `ItemForm.jsx` mirrors `PLATFORM_NAMES` in `sources/igdb.py`, which is
   the authority.
+- **The physical catalogue** lives in `backend/physical_sources/` (read its
+  README first) with routes in `physical_routes.py`, all admin-only. Its
+  parsers are pure and a test holds them to it: no FastAPI or SQLAlchemy in
+  their import graph, which is why `formats.py` imports its shared constants
+  from `physical_sources/limits.py`. **Fixtures first**: nothing reads a store
+  or the sheet until its real response is recorded by
+  `backend/scripts/record_physical_fixtures.py` and a test runs on it;
+  re-record when a store's handles change, never edit a fixture. `STORES` in
+  `stores.py` is data: twelve stores (Atari is behind a bot challenge and
+  out). robots.txt is honoured per RFC 9309, not `urllib.robotparser`, whose
+  first-match rule lets Shopify's leading `Allow: /` allow everything.
+- **The collapse rule** (`collapse.py`): any full cartridge in the home region
+  makes a game a cartridge, because the registry row and a boutique listing
+  usually describe different editions; otherwise the most useful known
+  format; tiers only break ties between rows saying the same thing, and the
+  sheet always beats `switch2-tracker` for its region. A cartridge elsewhere
+  is a note, never a relabel.
+- **The registry writes formats in exactly one way:**
+  `formats.apply_registry_format`, which raises for a format the owner
+  recorded (`manual`, `cart_id`, `photo`). The sync after each registry
+  refresh writes only unprotected owned Switch 2 copies; the rest are
+  disagreements, shown on `/admin/catalogue` and the edit page, where "Use
+  registry value" PATCHes `edition_id`. The registry's cart ID is never
+  copied: `items.cart_id` means "printed on my copy".
+- **E7c deploy order:** set `GOOGLE_SHEETS_API_KEY` on Render; apply `0005`
+  to Neon; merge; then on `/admin/catalogue` press Refresh registry, Refresh
+  stores, Resolve until nothing remains, work through Needs match, and
+  Refresh N64 when wanted. Nothing from the catalogue is public;
+  `test_public.py` pins that.
 - IGDB fixtures for the snapshot are recorded from the live API with
   `backend/scripts/record_igdb_fixtures.py` (see `backend/scripts/README.md`);
   re-record when `FIELDS` changes.

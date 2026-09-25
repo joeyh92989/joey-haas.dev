@@ -1027,3 +1027,47 @@ request and every tab with the key alone. The upload fallback is not needed.
    adds the new one, which the retire/un-retire rules already handle. This
    changes spec §1 and Task 7's AC; the unique key itself (`source`,
    `source_ref`) and Task 2 are unaffected.
+
+### Zones 2–4 — differences from the plan, 2026-09-25
+
+Decided by the owner:
+
+- **Purity.** The planned test could not pass: `formats.py` and `matching.py`
+  imported `models`. `matching.py` now imports `SourceResult` only for type
+  checking; the shared constants (`CART_ID_PATTERN`, `HOME_REGION`,
+  `CARTRIDGE_ONLY_PLATFORMS`, the format words) live in
+  `physical_sources/limits.py` and `formats.py` imports them. The test
+  covers every pure `physical_sources` module and `matching`; `formats.py`
+  still imports `models` and is left out.
+
+Found while building, each recorded where it lives:
+
+| Area | Plan / spec said | Built | Why |
+|---|---|---|---|
+| robots.txt | `urllib.robotparser`; unreachable file allowed | RFC 9309 matcher (longest match, Allow on a tie, `*`/`$`); 4xx allowed, 5xx or network failure skips the host | Shopify files open with `Allow: /`, which first-match reads as allowing everything; the RFC treats an unreachable file as a disallow |
+| Commit `8a9309b` | every commit green | went in with one red test; fixed forward in `3cd806f` | a piped `tail` hid pytest's exit code; every later gate checks the exit status. Squashing is the owner's call |
+| Platforms | `platform_id` or Needs match | `StoreProduct.platform_label`: retro platforms (SNES, Genesis…) keep a label and no id | no IGDB id outside `PLATFORM_NAMES` is verified in this codebase; a SNES cartridge is known, not unmatched |
+| Fangamer Silksong (Task 10) | the "Nintendo Switch 2" variant is 508 | 130 | its text says the Nintendo Switch 2 Edition is the Switch game plus an upgrade pack: spec §2 step 2 |
+| Limited Run vault #270 (Task 9) | `game_card` / `platform_policy` | `game_card` / `store_text` | its body says "region-free physical cart", and text comes before policy |
+| iam8bit UNBEATABLE (Task 9) | `preorder` | `sold_out` | recorded unavailable with both a pre-order and a sold-out tag |
+| Limited Run HTML step | `Estimated Ship Date:` theme text | the ship window from `selling_plan_groups` | where the date lives now |
+| Prices | stored as given | a price above `numeric(8,2)` is None | Nicalis lists 1001 Spikes at $1,001,001.00, which failed the whole store's insert |
+| `updated_at` | moves on change | moves only on change, explicitly | `last_seen_at` always issues an UPDATE, which the model's `onupdate` would stamp |
+| Archive / retire | on a non-short run | on a clean run: something seen, not short, no failed handle | a broken collection hides stock; it does not prove it gone |
+| Resolve | failed search retried | a key whose search fails goes to Needs match with no candidates | otherwise the Resolve loop could spin on it forever |
+| N64 ingest | editions and games | also decides their title matches (`exact`) | so a store's N64 listing links without a search |
+| Sync | the copy's edition | nothing is written when the copy's region offers two formats | WWE 2K25 EUR: a key card and a code in a box, and nothing on the copy says which |
+| Item note | the edition | picked by cart ID, then format, then the first with a card type | same reason |
+| `PATCH edition_id` | 404 unknown / retired, 422 over a cart ID | also 422 for an edition of another game or platform | a stale page must not adopt another game's format |
+| Status totals | pending keys | `pending_keys` (Needs match) and `unresolved_keys` (never searched) | they are different queues |
+| Needs match UI | `MetadataPicker` pre-filled with candidates | stored candidates as one-press links beside an unmodified picker | the picker has no initial-results prop; changing a shared component was out of scope |
+
+Not verified live: the admin pages were checked by component tests only.
+Booting the API needs Neon at `0005` (`schema_check` refuses otherwise) and
+a Google sign-in. The deploy-order functional check covers it.
+
+Environment note: a fresh install of `requirements-dev.txt` resolves
+SQLAlchemy 2.1, which no longer installs `greenlet`; the async engine then
+fails to import. It was installed into the worktree venv by hand, and a
+separate task was offered to pin `sqlalchemy[asyncio]`. CI installs fresh,
+so it may hit the same failure on this branch's PR.
