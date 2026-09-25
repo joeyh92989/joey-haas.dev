@@ -271,13 +271,19 @@ def create_physical_router(
 
     async def guarded(session, source: str, work):
         """One source's run: committed at the start, finished by `work`, and
-        recorded as a failure if `work` raises anything at all. Returns
-        (run, work's result, or None after a failure)."""
+        recorded as a failure if `work` raises anything at all.
+
+        Returns (RunOut, run id, work's result or None after a failure). The
+        RunOut is a snapshot taken while the row is fresh: a later source's
+        rollback expires every ORM object in the session, and reading an
+        expired attribute on an async session fails.
+        """
         run = await start_run(session, source)
         run_id = run.id
         await session.commit()
         try:
-            return run, await work(run)
+            result = await work(run)
+            return run_out(run), run_id, result
         except Exception as error:
             logger.exception("%s run failed", source)
             await session.rollback()
@@ -289,7 +295,7 @@ def create_physical_router(
                 errors=[{"code": "internal", "detail": type(error).__name__}],
             )
             await session.commit()
-            return run, None
+            return run_out(run), run_id, None
 
     async def refresh_store(session, client, throttle, key: str):
         config = STORES[key]
@@ -324,8 +330,8 @@ def create_physical_router(
             )
             await session.commit()
 
-        run, _ = await guarded(session, key, work)
-        return run
+        snapshot, _, _ = await guarded(session, key, work)
+        return snapshot
 
     async def refresh_editions(session, source: str, load) -> tuple:
         async def work(run):
@@ -355,8 +361,8 @@ def create_physical_router(
             await session.commit()
             return ok
 
-        run, ok = await guarded(session, source, work)
-        return run, bool(ok)
+        snapshot, run_id, ok = await guarded(session, source, work)
+        return snapshot, run_id, bool(ok)
 
     async def resolve_run(session, limit: int = RESOLVE_LIMIT) -> ResolveResult:
         async def work(run):
@@ -373,11 +379,11 @@ def create_physical_router(
             await session.commit()
             return outcome
 
-        run, outcome = await guarded(session, "resolve", work)
+        snapshot, _, outcome = await guarded(session, "resolve", work)
         if outcome is None:
             outcome = ResolveResult(
                 unresolved_remaining=await count_pending(session),
-                errors=list(run.errors or []),
+                errors=list(snapshot.errors),
             )
         return outcome
 
@@ -401,7 +407,7 @@ def create_physical_router(
                 runs.append(await refresh_store(session, client, throttle, key))
         outcome = await resolve_run(session)
         return RefreshOut(
-            runs=[run_out(run) for run in runs],
+            runs=runs,
             unresolved_remaining=outcome.unresolved_remaining,
         )
 
@@ -427,28 +433,32 @@ def create_physical_router(
                     await tracker.fetch_games(client, throttle)
                 ), []
 
-            sheet_run, sheet_ok = await refresh_editions(
+            sheet_out, sheet_id, sheet_ok = await refresh_editions(
                 session, "nscollectors", load_sheet
             )
-            tracker_run, _ = await refresh_editions(
+            tracker_out, _, _ = await refresh_editions(
                 session, "switch2tracker", load_tracker
             )
         outcome = await resolve_run(session)
         if sheet_ok:
+            # Re-read by id: an earlier rollback may have expired the row.
             try:
-                sheet_run.items_synced = await sync_items(session)
+                synced = await sync_items(session)
+                sheet_run = await session.get(CatalogueRun, sheet_id)
+                sheet_run.items_synced = synced
                 await session.commit()
             except Exception as error:
                 logger.exception("registry sync failed")
                 await session.rollback()
-                sheet_run = await session.get(CatalogueRun, sheet_run.id)
+                sheet_run = await session.get(CatalogueRun, sheet_id)
                 sheet_run.errors = [
                     *(sheet_run.errors or []),
                     {"code": "sync_failed", "detail": type(error).__name__},
                 ]
                 await session.commit()
+            sheet_out = run_out(sheet_run)
         return RefreshOut(
-            runs=[run_out(sheet_run), run_out(tracker_run)],
+            runs=[sheet_out, tracker_out],
             unresolved_remaining=outcome.unresolved_remaining,
         )
 
@@ -491,8 +501,8 @@ def create_physical_router(
             )
             await session.commit()
 
-        run, _ = await guarded(session, "igdb_platform", work)
-        return run_out(run)
+        snapshot, _, _ = await guarded(session, "igdb_platform", work)
+        return snapshot
 
     @router.post("/resolve", response_model=ResolveOut)
     async def resolve(
@@ -586,6 +596,14 @@ def create_physical_router(
         if body.new_platform_id is not None:
             if body.new_platform_id not in PLATFORM_NAMES:
                 raise HTTPException(status_code=422, detail="Unknown platform id")
+            if body.platform_id != 0:
+                # A store that states a platform restates it on every
+                # refresh, so a correction could not stick; only a key with
+                # no platform can be given one.
+                raise HTTPException(
+                    status_code=422,
+                    detail="Only a key with no platform can be given one",
+                )
             moved = await rekey_platform(
                 session, body.title_normalized, body.platform_id, body.new_platform_id
             )

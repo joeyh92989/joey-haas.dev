@@ -276,3 +276,17 @@ async def test_a_rekeyed_platform_survives_the_next_store_refresh(
     assert ("he man", 0) not in {
         (k["title_normalized"], k["platform_id"]) for k in body["keys"]
     }
+
+
+async def test_a_key_that_has_a_platform_cannot_be_rekeyed(sessionmaker_for_test):
+    await _seed_pending(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/physical/matches",
+            json={
+                "title_normalized": "star fox",
+                "platform_id": 508,
+                "new_platform_id": 130,
+            },
+        )
+    assert response.status_code == 422

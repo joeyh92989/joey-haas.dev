@@ -12,6 +12,7 @@ import pytest
 from physical_support import FakeIgdb, client_for, serve_fixtures
 from sqlalchemy import func, select
 
+import physical_routes
 from models import (
     CatalogueRun,
     Item,
@@ -423,3 +424,57 @@ async def test_ignored_platformless_titles_leave_the_total(sessionmaker_for_test
         )
         after = (await client.get("/api/physical/status")).json()["totals"]
     assert (before["keys_without_platform"], after["keys_without_platform"]) == (1, 0)
+
+
+@pytest.mark.parametrize("broken", ["super_rare", "nicalis"])
+async def test_a_failure_in_any_source_position_is_recorded(
+    sessionmaker_for_test, monkeypatch, broken
+):
+    real = shopify.list_products
+
+    async def breaking(config, *args, **kwargs):
+        if config.key == broken:
+            raise RuntimeError("boom")
+        return await real(config, *args, **kwargs)
+
+    monkeypatch.setattr(shopify, "list_products", breaking)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/physical/refresh", json={"stores": ["super_rare", "nicalis"]}
+        )
+    assert response.status_code == 200
+    runs = {run["source"]: run["ok"] for run in response.json()["runs"]}
+    assert runs == {
+        "super_rare": broken != "super_rare",
+        "nicalis": broken != "nicalis",
+    }
+
+
+async def test_a_failed_resolve_after_the_stores_is_recorded(
+    sessionmaker_for_test, monkeypatch
+):
+    async def failing(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(physical_routes, "resolve_batch", failing)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/physical/refresh", json={"stores": ["nicalis"]}
+        )
+    assert response.status_code == 200
+    assert response.json()["runs"][0]["ok"] is True
+
+
+async def test_a_failed_registry_sync_is_recorded_on_the_sheet_run(
+    sessionmaker_for_test, monkeypatch
+):
+    async def failing(session):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(physical_routes, "sync_items", failing)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post("/api/physical/refresh-registry")
+    assert response.status_code == 200
+    sheet, tracker = response.json()["runs"]
+    assert {"code": "sync_failed", "detail": "RuntimeError"} in sheet["errors"]
+    assert tracker["ok"] is True
