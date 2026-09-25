@@ -1,7 +1,17 @@
+import logging
+
+import httpx2
 import pytest
 
 import config as config_module
-from config import Config, ConfigError, allowed_origins, load_config
+from config import (
+    Config,
+    ConfigError,
+    allowed_origins,
+    configure_logging,
+    load_config,
+)
+from physical_sources.registry import fetch_properties
 
 COMPLETE = {
     "GOOGLE_CLIENT_ID": "client-id",
@@ -122,3 +132,15 @@ def test_required_variables_are_unchanged():
         "DATABASE_URL",
         "DATABASE_URL_DIRECT",
     )
+
+
+@pytest.mark.asyncio
+async def test_no_key_reaches_the_logs_through_the_http_client(caplog):
+    # httpx2 logs each request URL at INFO; the Sheets key is a query
+    # parameter. Verified live: at INFO the key appeared in the log line.
+    configure_logging()
+    caplog.set_level(logging.INFO)
+    transport = httpx2.MockTransport(lambda request: httpx2.Response(200, json={}))
+    async with httpx2.AsyncClient(transport=transport) as client:
+        await fetch_properties(client, "SECRET-SHEETS-KEY")
+    assert "SECRET-SHEETS-KEY" not in caplog.text

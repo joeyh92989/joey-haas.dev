@@ -7,6 +7,7 @@ while every session it issues is forgeable; crashing immediately is correct.
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -63,6 +64,21 @@ class Config:
     llm_provider: str = "gemini"
     gemini_api_key: str | None = None
     anthropic_api_key: str | None = None
+
+
+# The HTTP client logs every request URL at INFO. Several source keys travel
+# as query parameters -- the Sheets key, ComicVine's api_key, the Twitch
+# client secret on IGDB's token request -- so at INFO each would be written to
+# Render's logs in plain text on every call. The adapters log their own calls
+# without the query string.
+QUIET_LOGGERS = ("httpx2", "httpcore")
+
+
+def configure_logging(level: int = logging.INFO) -> None:
+    """INFO for the app, WARNING for the HTTP client's per-request lines."""
+    logging.basicConfig(level=level)
+    for name in QUIET_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 LOCAL_DEV_ORIGIN = "http://localhost:5173"
