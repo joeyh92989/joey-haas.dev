@@ -333,3 +333,23 @@ async def test_failure_streaks_agree_with_consecutive_failures(session):
     for source in ("a", "b", "c"):
         assert streaks[source] == await consecutive_failures(session, source, now)
     assert streaks == {"a": 2, "b": 0, "c": 0}
+
+
+@pytest.mark.asyncio
+async def test_a_platform_set_by_hand_survives_a_refresh(session):
+    unread = listing("1", platform_id=None, platform_label=None)
+    await upsert_listings(session, [unread], "limited_run", archive=True)
+    (row,) = await _listings(session)
+    row.platform_id, row.platform = 130, "Nintendo Switch"
+    await session.flush()
+    assert await upsert_listings(session, [unread], "limited_run", archive=True) == (
+        0,
+        0,
+    )
+    (row,) = await _listings(session)
+    assert (row.platform_id, row.platform) == (130, "Nintendo Switch")
+    # A platform the store does state still wins.
+    stated = listing("1", platform_id=508, platform_label="Nintendo Switch 2")
+    await upsert_listings(session, [stated], "limited_run", archive=True)
+    (row,) = await _listings(session)
+    assert row.platform_id == 508

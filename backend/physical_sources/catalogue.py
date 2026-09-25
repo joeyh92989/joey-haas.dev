@@ -350,6 +350,15 @@ async def upsert_listings(
             changed += 1
             continue
         values = _listing_values(_carry_page(current, product))
+        if (
+            product.platform_id is None
+            and product.platform_label is None
+            and current.platform_id is not None
+        ):
+            # The store still says no platform; the one on file was set by
+            # hand in Needs match (re-keying), and a refresh must not undo it.
+            values["platform_id"] = current.platform_id
+            values["platform"] = current.platform
         compared = {k: v for k, v in values.items() if k != "raw"}
         differs = any(
             _value(getattr(current, field)) != _value(value)

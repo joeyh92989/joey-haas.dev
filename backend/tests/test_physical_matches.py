@@ -249,3 +249,31 @@ async def test_an_unknown_platform_is_422(sessionmaker_for_test):
             },
         )
     assert response.status_code == 422
+
+
+async def test_a_rekeyed_platform_survives_the_next_store_refresh(
+    sessionmaker_for_test,
+):
+    await _seed_pending(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await client.post(
+            "/api/physical/matches",
+            json={
+                "title_normalized": "he man",
+                "platform_id": 0,
+                "new_platform_id": 130,
+            },
+        )
+    async with sessionmaker_for_test() as session:
+        await upsert_listings(
+            session,
+            [listing("he man", "1", platform_id=None, label=None)],
+            "limited_run",
+            archive=True,
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/physical/needs-match")).json()
+    assert ("he man", 0) not in {
+        (k["title_normalized"], k["platform_id"]) for k in body["keys"]
+    }
