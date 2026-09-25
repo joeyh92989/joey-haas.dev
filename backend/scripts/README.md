@@ -79,7 +79,7 @@ IGDB's N64 catalogue.
 - `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` for `--igdb`, which loads config
   exactly as the API does, so every required variable must be set too.
 
-It makes about 62 requests at 2 per second, across every host, with the
+It makes about 59 requests at 2 per second, across every host, with the
 tracker's User-Agent, and honours each host's `robots.txt` under
 `User-agent: *` (a host without one is allowed).
 
@@ -87,11 +87,11 @@ tracker's User-Agent, and honours each host's `robots.txt` under
 
 | Files | Contents |
 |---|---|
-| `shopify/<store>/<handle>.p1.json` | page 1 of `products.json` for each handle in the spec's `STORES` table (38) |
+| `shopify/<store>/<handle>.p1.json` | page 1 of `products.json` for each handle in the spec's `STORES` table (36), each product's `images` cut to the first |
 | `woocommerce/<store>/category-<id>.p1.json` | page 1 of the Store API for each WooCommerce category (3) |
 | `shopify/limited_run/product.html` | the first Switch 2 product in Limited Run's `coming-soon`, for the HTML step |
 | `registry/properties.json` | the sheet's tab list (`sheets.properties`), mapping each gid to its current title |
-| `registry/{details,summary,upcoming}.json` | each tab as `spreadsheets.values.get` returns it |
+| `registry/{details,upcoming_details,upcoming}.json` | the Release Details, Upcoming Releases and Upcoming Release Summary tabs, as `spreadsheets.values.get` returns them |
 | `tracker/games.json` | a 30-game excerpt of `switch2-tracker`'s `data/games.json` |
 | `robots/<host>.txt` | each host's `robots.txt` |
 | `igdb/n64_page1.json` | with `--igdb`: one page of N64 games, id, name, cover and date |
@@ -131,3 +131,15 @@ not complete. The store list and User-Agent are duplicated from the spec and
 must be kept in step with `physical_sources/stores.py` and `limits.py` once
 they exist. The Limited Run product page is whichever Switch 2 product is
 first today, so a rerun may record a different one.
+
+**Deliberately not recorded:**
+
+- **Atari.** Since 2026-09-25 its `products.json` answers every client —
+  this User-Agent and a plain one alike — with a Cloudflare bot challenge.
+  Getting past bot detection is off the table, so the store is out of
+  `STORES` until the challenge goes; re-add its handles here and re-record
+  if it does.
+- **The Release Summary tab** (gid `558942722`). Release Details dates every
+  row by region, so the summary adds nothing and is not read.
+- **Product galleries.** Only the first image is kept, which is all
+  `image_url` uses. The full arrays were a third of the recorded bytes.

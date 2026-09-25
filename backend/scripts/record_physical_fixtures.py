@@ -52,18 +52,19 @@ TIMEOUT = 30.0
 SHOPIFY_PAGE_SIZE = 250
 WOO_PAGE_SIZE = 100
 
-# Store key -> (domain, collection handles), from the spec §2 table.
+# Store key -> (host, collection handles), from the spec §2 table. Hosts are
+# the ones the stores redirect to, so robots.txt is read from the right one.
 SHOPIFY_STORES: dict[str, tuple[str, tuple[str, ...]]] = {
     "limited_run": (
         "limitedrungames.com",
         ("coming-soon", "latest-releases", "distro", "the-lr-vault", "in-stock-switch"),
     ),
     "iam8bit": (
-        "iam8bit.com",
+        "www.iam8bit.com",
         ("games", "nintendo", "pre-order", "new", "restock"),
     ),
     "strictly_limited": (
-        "strictlylimitedgames.com",
+        "www.strictlylimitedgames.com",
         (
             "nintendo-switch-2",
             "nintendo-switch",
@@ -100,8 +101,9 @@ SHOPIFY_STORES: dict[str, tuple[str, tuple[str, ...]]] = {
             "sold-out",
         ),
     ),
-    "fangamer": ("fangamer.com", ("physical-games", "video-games")),
-    "atari": ("atari.com", ("physical-games", "physical-cartridges")),
+    "fangamer": ("www.fangamer.com", ("physical-games", "video-games")),
+    # Atari is not recorded: since 2026-09-25 its products.json answers every
+    # client with a Cloudflare bot challenge, which this does not get past.
     "super_rare": (
         "superraregames.com",
         ("switch-2", "switch", "srg-store-new-web"),
@@ -110,15 +112,21 @@ SHOPIFY_STORES: dict[str, tuple[str, tuple[str, ...]]] = {
 
 # Store key -> (domain, product category id).
 WOO_STORES: dict[str, tuple[str, int]] = {
-    "pixelheart": ("pixelheart.eu", 65),
+    "pixelheart": ("www.pixelheart.eu", 65),
     "gamefairy": ("gamefairy.io", 22),
     "oneprint": ("1printgames.com", 18),
 }
 
 SHEET_ID = "1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8"
 SHEETS_API = f"https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}"
-# Fixture name -> gid. Tab titles change; gids do not.
-SHEET_TABS = {"details": 764784245, "summary": 558942722, "upcoming": 887819792}
+# Fixture name -> gid. Tab titles change; gids do not. The Release Summary
+# tab (gid 558942722) is not read: Details dates every row itself.
+SHEET_TABS = {
+    "details": 764784245,
+    "upcoming_details": 238551450,
+    "upcoming": 887819792,
+}
+DETAILS_TABS = ("details", "upcoming_details")
 DETAILS_REQUIRED = ("Game Title", "Region", "Card Type")
 DETAILS_OPTIONAL = ("Master Title", "Cart ID", "Publisher", "Editions", "Release Date")
 
@@ -337,6 +345,10 @@ async def record_shopify(recorder: Recorder, key: str) -> dict[str, list[dict]]:
         if not isinstance(products, list):
             recorder.fail(name, "no products list in the body")
             continue
+        for product in products:
+            # No parser reads the gallery; image_url is the first image. The
+            # rest was a third of the recorded bytes.
+            product["images"] = (product.get("images") or [])[:1]
         recorder.write_json(name, out, payload)
         seen[out] = products
         tags = sorted({tag for product in products for tag in _tags(product)})
@@ -403,9 +415,11 @@ async def record_limited_run_html(
     recorder.write(name, name, response.text)
     html = response.text
     print(f"ok   {name}  {len(response.content)} bytes  ({product['handle']})")
+    folded = html.casefold()
     print(
-        f"     'Game Key Card' present: {'Game Key Card' in html}; "
-        f"'Estimated Ship Date' present: {'Estimated Ship Date' in html}"
+        f"     'game key card' present: {'game key card' in folded}; "
+        f"'estimated ship date' present: {'estimated ship date' in folded}; "
+        f"selling_plan_groups present: {'selling_plan_groups' in html}"
     )
 
 
@@ -457,16 +471,18 @@ async def record_registry(recorder: Recorder, key: str | None) -> None:
             continue
         recorder.write_json(out, out, payload)
         rows = payload.get("values", [])
-        required = DETAILS_REQUIRED if tab == "details" else ("Game Title",)
+        required = DETAILS_REQUIRED if tab in DETAILS_TABS else ("Game Title",)
         header = _header_index(rows, required)
         print(f"ok   {out}  {len(rows)} rows")
         if header is None:
             print(f"     HEADER NOT FOUND: no row has {', '.join(required)}")
+            for index, row in enumerate(rows[:8]):
+                print(f"     row {index}: {[str(cell)[:30] for cell in row[:12]]}")
             continue
         columns = [str(cell).strip() for cell in rows[header]]
         print(f"     header at row {header}: {columns}")
         print(f"     data rows after header: {len(rows) - header - 1}")
-        if tab == "details":
+        if tab in DETAILS_TABS:
             missing = [c for c in DETAILS_OPTIONAL if c not in columns]
             ns1 = [c for c in columns if "NS1" in c]
             print(f"     optional columns missing: {missing or 'none'}")
