@@ -255,3 +255,60 @@ def status_from(
         ):
             return status
     return "in_stock" if available else "sold_out"
+
+
+# --- Platforms ----------------------------------------------------------------------
+#
+# (pattern, IGDB id or None, label), most specific first: "Switch 2" before
+# "Switch", "SNES" before "NES", "Game Boy Color" before "Game Boy". Ids are
+# only the ones this codebase has verified (sources.igdb.PLATFORM_NAMES);
+# retro platforms carry a label alone rather than a remembered id.
+PLATFORMS: tuple[tuple[str, int | None, str], ...] = (
+    (r"switch ?2|\bnsw ?2\b|\bns2\b|\bsw2\b", 508, "Nintendo Switch 2"),
+    (r"\bswitch\b|\bnsw\b", 130, "Nintendo Switch"),
+    (r"\bn64\b|nintendo 64", 4, "Nintendo 64"),
+    (r"\bps ?vita\b|playstation ?vita|\bvita\b", None, "PS Vita"),
+    (r"\bps ?5\b|playstation ?5", 167, "PlayStation 5"),
+    (r"\bps ?4\b|playstation ?4", 48, "PlayStation 4"),
+    (r"xbox one", 49, "Xbox One"),
+    (r"xbox series|xbox ?x\b", 169, "Xbox Series X|S"),
+    (r"\bxbox\b", None, "Xbox"),
+    (r"\b3ds\b", 37, "Nintendo 3DS"),
+    (r"\bwii ?u\b", 41, "Wii U"),
+    (r"\bpc\b|\bsteam\b", 6, "PC"),
+    (r"\bsnes\b|super nintendo", None, "SNES"),
+    (r"\bnes\b|nintendo entertainment system", None, "NES"),
+    (r"game ?boy colou?r|\bgbc\b", None, "Game Boy Color"),
+    (r"game ?boy advance|\bgba\b", None, "Game Boy Advance"),
+    (r"game ?boy|\bgb\b|\bdmg\b", None, "Game Boy"),
+    (r"genesis|mega ?drive", None, "Sega Genesis"),
+    (r"sega ?cd|\bscd\b", None, "Sega CD"),
+    (r"dreamcast", None, "Dreamcast"),
+    (r"nintendo ds|\bds\b", None, "Nintendo DS"),
+    (r"playstation", None, "PlayStation"),
+)
+_PLATFORM = re.compile(
+    "|".join(
+        f"(?P<p{index}>{pattern})" for index, (pattern, _, _) in enumerate(PLATFORMS)
+    ),
+    re.IGNORECASE,
+)
+_MARKS = re.compile(r"[™®©]|\bsystem\b")
+
+
+def platforms_in(text: str | None) -> list[tuple[int | None, str]]:
+    """Every platform named in `text`, in order, each once: [(id, label)]."""
+    found: list[tuple[int | None, str]] = []
+    for match in _PLATFORM.finditer(_MARKS.sub("", text or "")):
+        index = int(match.lastgroup[1:])
+        platform = PLATFORMS[index][1:]
+        if platform not in found:
+            found.append(platform)
+    return found
+
+
+def platform_of(text: str | None) -> tuple[int | None, str | None]:
+    """The one platform `text` names, or (None, None) when it names none or
+    several (a title listing "Switch 2, PS5, Xbox" is not one platform)."""
+    found = platforms_in(text)
+    return found[0] if len(found) == 1 else (None, None)

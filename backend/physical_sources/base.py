@@ -51,7 +51,12 @@ class StoreProduct:
     title: str
     title_normalized: str
     edition_label: str | None
+    # platform_id is set only for platforms with a known IGDB id (the
+    # catalogue's three plus the modern ones in sources.igdb.PLATFORM_NAMES).
+    # A retro platform (SNES, Genesis, ...) has a label and no id; neither
+    # means the platform could not be read, and the listing goes to Needs match.
     platform_id: int | None
+    platform_label: str | None
     is_game: bool
     collections_seen: tuple[str, ...]
     price: Decimal | None
