@@ -8,7 +8,7 @@ import {
   PLATFORM_OPTIONS,
 } from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
-import { apiFetch } from '../lib/api.js'
+import { apiFetch, errorMessage } from '../lib/api.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const STATUSES = ['backlog', 'active', 'finished', 'abandoned']
@@ -122,6 +122,76 @@ function changedFields(original, form) {
  * picker for re-linking — a search field and a candidate list do not fit in a
  * table row.
  */
+const SWITCH_2 = 508
+
+/**
+ * What r/NSCollectors says about this copy's edition, under the format field.
+ * Switch 2 only: that is where a box can hold a Game-Key Card. A disagreement
+ * offers the registry's format in one press; the registry's cart ID is shown,
+ * never copied -- a cart ID means "printed on my copy".
+ */
+function RegistryLine({ item, onAdopted }) {
+  const [note, setNote] = useState(null)
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+  // Read again whenever the saved format changes, so an adopt or a save
+  // turns a disagreement into "agrees" without a reload.
+  const { id, physical_format: savedFormat, format_source: savedSource } = item
+
+  useEffect(() => {
+    let live = true
+    apiFetch(`/api/physical/items/${id}/registry`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (live) setNote(body)
+      })
+      .catch(() => {
+        if (live) setNote(null)
+      })
+    return () => {
+      live = false
+    }
+  }, [id, savedFormat, savedSource])
+
+  async function adopt() {
+    setBusy(true)
+    setError(null)
+    try {
+      const response = await apiFetch(`/api/items/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ edition_id: note.edition.id }),
+      })
+      if (!response.ok) {
+        setError(await errorMessage(response))
+        return
+      }
+      onAdopted(await response.json())
+    } catch {
+      setError('Could not reach the API. Try again shortly.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!note?.note) return null
+  return (
+    <div className="registry-line">
+      <p className={note.agrees === false ? undefined : 'muted'}>{note.note}</p>
+      {note.agrees === false && (
+        <button type="button" disabled={busy} onClick={adopt}>
+          Use registry value
+        </button>
+      )}
+      {error && (
+        <p className="admin-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function AdminItem() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -554,6 +624,9 @@ export default function AdminItem() {
               </option>
             ))}
           </select>
+          {item.platform_id === SWITCH_2 && (
+            <RegistryLine item={item} onAdopted={applyServerItem} />
+          )}
 
           {/* The code on a Switch 2 label decides the format; the server
               refuses one that contradicts it. */}

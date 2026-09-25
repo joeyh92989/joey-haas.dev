@@ -2362,6 +2362,22 @@ footer {
   padding: 0.4rem 0.6rem;
 }
 
+/* The registry line sits under the format select, in the field column. */
+.registry-line {
+  font-size: 0.875rem;
+  grid-column: 2;
+}
+
+.registry-line p {
+  margin: 0 0 0.4rem;
+}
+
+@media (max-width: 34rem) {
+  .registry-line {
+    grid-column: 1 / -1;
+  }
+}
+
 .run-errors {
   color: var(--text-muted);
   font-size: 0.8125rem;
