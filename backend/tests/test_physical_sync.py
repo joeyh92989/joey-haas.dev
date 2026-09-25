@@ -160,3 +160,17 @@ async def test_an_agreeing_manual_copy_is_not_listed(session):
     copy = item(PhysicalFormat.GAME_KEY_CARD, FormatSource.MANUAL)
     await _run(session, edition(), copy)
     assert await disagreements(session) == []
+
+
+@pytest.mark.asyncio
+async def test_a_retired_edition_never_erases_a_synced_format(session):
+    # The registry writes formats; it never takes one away. A copy synced
+    # from an edition that later leaves the sheet keeps what it was given.
+    retired = edition("game_key_card")
+    retired.retired_at = datetime.now(UTC)
+    copy = item(PhysicalFormat.GAME_KEY_CARD, FormatSource.REGISTRY)
+    assert await _run(session, retired, copy) == 0
+    assert (_v(copy.physical_format), _v(copy.format_source)) == (
+        "game_key_card",
+        "registry",
+    )

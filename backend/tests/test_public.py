@@ -653,9 +653,31 @@ async def test_no_public_model_names_a_catalogue_field():
     assert leaked == []
 
 
+def _keys(value) -> set[str]:
+    """Every key anywhere in a JSON value."""
+    if isinstance(value, dict):
+        return set(value) | set().union(*(_keys(v) for v in value.values()))
+    if isinstance(value, list):
+        return set().union(*(_keys(v) for v in value))
+    return set()
+
+
 async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test):
     await _seed(sessionmaker_for_test)
     async with sessionmaker_for_test() as session:
+        # A public game linked to the catalogue's game, so a join that
+        # reached for catalogue rows would have something to publish.
+        session.add(
+            Item(
+                type=ItemType.GAME,
+                title="Linked Game",
+                status=ItemStatus.BACKLOG,
+                is_public=True,
+                external_source="igdb",
+                external_id="1",
+                platform_id=508,
+            )
+        )
         session.add(CatalogueGame(igdb_id=1, title="Radar Game", snapshot={"x": 1}))
         session.add(
             PhysicalEdition(
@@ -666,6 +688,7 @@ async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test)
                 platform_id=508,
                 platform="Nintendo Switch 2",
                 region="USA",
+                cart_id="LP-AAAAA-USA-0",
                 igdb_id=1,
             )
         )
@@ -682,6 +705,7 @@ async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test)
                 is_game=True,
                 currency="GBP",
                 availability="preorder",
+                price=44.99,
                 igdb_id=1,
             )
         )
@@ -689,9 +713,17 @@ async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test) as client:
         items = await client.get("/api/public/items")
         stats = await client.get("/api/public/stats")
-        detail = await client.get(f"/api/public/items/{items.json()[0]['id']}")
+        linked = next(i for i in items.json() if i["title"] == "Linked Game")
+        detail = await client.get(f"/api/public/items/{linked['id']}")
     for response in (items, stats, detail):
         assert response.status_code == 200
-        body = response.text
-        assert not [bad for bad in CATALOGUE_NAMES if f'"{bad}' in body], body
-        assert "Radar Game" not in body
+        leaked = sorted(
+            key
+            for key in _keys(response.json())
+            for bad in CATALOGUE_NAMES
+            if bad in key
+        )
+        assert leaked == [], response.text
+        assert "Radar Game" not in response.text
+        assert "LP-AAAAA-USA-0" not in response.text
+        assert "super_rare" not in response.text
