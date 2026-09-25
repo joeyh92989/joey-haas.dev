@@ -16,16 +16,25 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from collections.abc import AsyncIterator, Callable
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from items import require_admin
-from models import CatalogueGame, CatalogueMatch, ItemType, MatchDecision, StoreListing
+from models import (
+    CatalogueGame,
+    CatalogueMatch,
+    Item,
+    ItemType,
+    MatchDecision,
+    PhysicalEdition,
+    StoreListing,
+)
 from physical_sources import registry as sheet
 from physical_sources import shopify, tracker, woocommerce
 from physical_sources.base import HostThrottle, PhysicalSourceError
@@ -41,12 +50,31 @@ from physical_sources.catalogue import (
     upsert_editions,
     upsert_listings,
 )
+from physical_sources.collapse import item_note
 from physical_sources.courtesy import robots_for
-from physical_sources.limits import NEEDS_ATTENTION_AFTER, RESOLVE_LIMIT
+from physical_sources.limits import (
+    NEEDS_ATTENTION_AFTER,
+    REGISTRY_WORDS,
+    RESOLVE_LIMIT,
+    SWITCH_2,
+)
 from physical_sources.platform_policy import INGESTED_PLATFORMS, ingest_platform
-from physical_sources.resolve import count_pending, resolve_batch
+from physical_sources.resolve import (
+    count_pending,
+    ignore,
+    link_by_hand,
+    rekey_platform,
+    resolve_batch,
+)
 from physical_sources.stores import STORES
-from physical_sources.sync import disagreements, sync_items
+from physical_sources.sync import (
+    disagreements,
+    item_view,
+    registry_editions,
+    sync_items,
+)
+from sources.base import SourceError, SourceNotConfigured
+from sources.igdb import PLATFORM_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +132,76 @@ class SourceStatus(BaseModel):
 class StatusOut(BaseModel):
     sources: list[SourceStatus]
     totals: dict[str, int]
+
+
+class NeedsMatchKey(BaseModel):
+    title_normalized: str
+    platform_id: int
+    platform: str | None
+    title: str
+    sources: list[str]
+    rows: int
+    candidates: list[dict]
+
+
+class NeedsMatchOut(BaseModel):
+    keys: list[NeedsMatchKey]
+    total: int
+
+
+class MatchIn(BaseModel):
+    """Exactly one of: link to a game, ignore, or give the key a platform."""
+
+    title_normalized: str
+    platform_id: int
+    igdb_id: int | None = None
+    ignored: bool = False
+    new_platform_id: int | None = None
+
+    @model_validator(mode="after")
+    def one_action(self) -> MatchIn:
+        chosen = [
+            self.igdb_id is not None,
+            self.ignored,
+            self.new_platform_id is not None,
+        ]
+        if sum(chosen) != 1:
+            raise ValueError("Send one of igdb_id, ignored or new_platform_id.")
+        return self
+
+
+class MatchOut(BaseModel):
+    action: str
+    moved: int = 0
+
+
+class EditionOut(BaseModel):
+    id: uuid.UUID
+    region: str
+    physical_format: str | None
+    format_words: str | None
+    cart_id: str | None
+
+
+class RegistryNoteOut(BaseModel):
+    edition: EditionOut | None
+    agrees: bool | None
+    note: str | None
+
+
+class DisagreementOut(BaseModel):
+    item_id: uuid.UUID
+    title: str
+    region: str
+    yours: str | None
+    yours_source: str | None
+    registry: str
+    cart_id: str | None
+    note: str
+
+
+class DisagreementsOut(BaseModel):
+    items: list[DisagreementOut]
 
 
 def run_out(run) -> RunOut:
@@ -346,6 +444,147 @@ def create_physical_router(
             games_fetched=outcome.games_fetched,
             unresolved_remaining=outcome.unresolved_remaining,
             errors=outcome.errors,
+        )
+
+    @router.get("/needs-match", response_model=NeedsMatchOut)
+    async def needs_match(
+        limit: int = Query(50, ge=1, le=200),
+        offset: int = Query(0, ge=0),
+        session: AsyncSession = Depends(get_session),
+    ) -> NeedsMatchOut:
+        """Keys a human has to decide: searched without a sure match, or
+        with no platform the store would say."""
+        pending = {
+            (m.title_normalized, m.platform_id): list(m.candidates or [])
+            for m in await session.scalars(
+                select(CatalogueMatch).where(
+                    CatalogueMatch.decided_by == MatchDecision.PENDING
+                )
+            )
+        }
+        decided_platformless = set(
+            await session.scalars(
+                select(CatalogueMatch.title_normalized).where(
+                    CatalogueMatch.platform_id == 0
+                )
+            )
+        )
+        platformless = [
+            row
+            for row in await session.scalars(
+                select(StoreListing).where(
+                    StoreListing.platform_id.is_(None),
+                    StoreListing.platform.is_(None),
+                    StoreListing.is_game.is_(True),
+                    StoreListing.availability != "archived",
+                )
+            )
+            if row.title_normalized not in decided_platformless
+        ]
+        rows: dict[tuple[str, int], list] = {key: [] for key in pending}
+        for row in platformless:
+            rows.setdefault((row.title_normalized, 0), []).append(row)
+        if pending:
+            titles = {title for title, _ in pending}
+            for model in (PhysicalEdition, StoreListing):
+                for row in await session.scalars(
+                    select(model).where(model.title_normalized.in_(titles))
+                ):
+                    key = (row.title_normalized, row.platform_id)
+                    if key in pending:
+                        rows[key].append(row)
+        keys = []
+        for (title_normalized, platform_id), found in sorted(rows.items()):
+            editions = [r for r in found if isinstance(r, PhysicalEdition)]
+            keys.append(
+                NeedsMatchKey(
+                    title_normalized=title_normalized,
+                    platform_id=platform_id,
+                    platform=PLATFORM_NAMES.get(platform_id),
+                    title=(editions or found)[0].title if found else title_normalized,
+                    sources=sorted(
+                        {getattr(r, "store", None) or r.source for r in found}
+                    ),
+                    rows=len(found),
+                    candidates=pending.get((title_normalized, platform_id), []),
+                )
+            )
+        return NeedsMatchOut(keys=keys[offset : offset + limit], total=len(keys))
+
+    @router.post("/matches", response_model=MatchOut)
+    async def decide_match(
+        body: MatchIn,
+        _lock=Depends(exclusive),
+        session: AsyncSession = Depends(get_session),
+    ) -> MatchOut:
+        """Link a key by hand, ignore it, or give a platform-less key one."""
+        if body.new_platform_id is not None:
+            if body.new_platform_id not in PLATFORM_NAMES:
+                raise HTTPException(status_code=422, detail="Unknown platform id")
+            moved = await rekey_platform(
+                session, body.title_normalized, body.platform_id, body.new_platform_id
+            )
+            await session.commit()
+            return MatchOut(action="rekeyed", moved=moved)
+        if body.ignored:
+            await ignore(session, body.title_normalized, body.platform_id)
+            await session.commit()
+            return MatchOut(action="ignored")
+        try:
+            await link_by_hand(
+                session, igdb(), body.title_normalized, body.platform_id, body.igdb_id
+            )
+        except SourceNotConfigured as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+        except SourceError as error:
+            raise HTTPException(status_code=502, detail=str(error)) from error
+        await session.commit()
+        return MatchOut(action="linked")
+
+    @router.get("/items/{item_id}/registry", response_model=RegistryNoteOut)
+    async def item_registry(
+        item_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> RegistryNoteOut:
+        """What the registry says about one copy; Switch 2 copies only."""
+        item = await session.get(Item, item_id)
+        if item is None:
+            raise HTTPException(status_code=404, detail="Item not found")
+        if item.platform_id != SWITCH_2:
+            return RegistryNoteOut(edition=None, agrees=None, note=None)
+        igdb_id = int(item.external_id) if (item.external_id or "").isdigit() else None
+        editions = (
+            (await registry_editions(session, {igdb_id})).get(igdb_id, [])
+            if item.external_source == "igdb" and igdb_id is not None
+            else []
+        )
+        note = item_note(item_view(item), editions)
+        edition = note.edition
+        return RegistryNoteOut(
+            edition=EditionOut(
+                id=uuid.UUID(edition.id),
+                region=edition.region,
+                physical_format=edition.physical_format,
+                format_words=REGISTRY_WORDS.get(edition.physical_format),
+                cart_id=edition.cart_id,
+            )
+            if edition
+            else None,
+            agrees=note.agrees,
+            note=note.note,
+        )
+
+    @router.get("/disagreements", response_model=DisagreementsOut)
+    async def list_disagreements(
+        session: AsyncSession = Depends(get_session),
+    ) -> DisagreementsOut:
+        """Owner-recorded copies the registry contradicts."""
+        return DisagreementsOut(
+            items=[
+                DisagreementOut(
+                    **{**found.__dict__, "item_id": uuid.UUID(found.item_id)}
+                )
+                for found in await disagreements(session)
+            ]
         )
 
     @router.get("/status", response_model=StatusOut)
