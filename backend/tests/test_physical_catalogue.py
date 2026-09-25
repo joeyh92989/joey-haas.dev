@@ -12,6 +12,7 @@ from physical_sources.base import EditionRow, StoreProduct
 from physical_sources.catalogue import (
     consecutive_failures,
     count_live,
+    failure_streaks,
     finish_run,
     is_short,
     latest_runs,
@@ -309,3 +310,26 @@ async def test_count_live(session):
     await upsert_editions(session, [edition("a")], "nscollectors", retire=True)
     await upsert_listings(session, [listing("1")], "super_rare", archive=True)
     assert await count_live(session) == {"live_editions": 1, "live_listings": 1}
+
+
+@pytest.mark.asyncio
+async def test_failure_streaks_agree_with_consecutive_failures(session):
+    now = datetime.now(UTC)
+    for source, history in {
+        "a": (True, False, False),
+        "b": (False, True),
+        "c": (True,),
+    }.items():
+        for minutes, ok in enumerate(history):
+            session.add(
+                CatalogueRun(
+                    source=source,
+                    ok=ok,
+                    started_at=now - timedelta(minutes=10 - minutes),
+                )
+            )
+    await session.commit()
+    streaks = await failure_streaks(session, now)
+    for source in ("a", "b", "c"):
+        assert streaks[source] == await consecutive_failures(session, source, now)
+    assert streaks == {"a": 2, "b": 0, "c": 0}

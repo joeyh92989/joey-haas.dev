@@ -8,6 +8,7 @@ without a request leaving the process.
 import asyncio
 import re
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -29,6 +30,7 @@ from models import (
     StoreListing,
 )
 from physical_routes import create_physical_router
+from physical_sources import shopify
 from physical_sources.stores import STORES
 from sources.base import SourceResult
 
@@ -43,14 +45,27 @@ def fixture_name(handle: str) -> str:
 
 
 def serve_fixtures(
-    robots: dict[str, str] | None = None, empty: set[str] = frozenset(), gate=None
+    robots: dict[str, str] | None = None,
+    empty: set[str] = frozenset(),
+    gate=None,
+    entered=None,
+    fail_paths: tuple[str, ...] = (),
 ):
-    """A handler answering every catalogue URL from the recorded fixtures."""
+    """A handler answering every catalogue URL from the recorded fixtures.
+
+    `entered` is set when the first request arrives; `gate` holds requests
+    until it is set; a path starting with one of `fail_paths` fails as a
+    dropped connection.
+    """
     robots = robots or {}
 
     async def handler(request):
+        if entered is not None:
+            entered.set()
         if gate is not None:
             await gate.wait()
+        if request.url.path.startswith(fail_paths or ("\0",)):
+            raise httpx2.ConnectError("dropped", request=request)
         url, host, path = request.url, request.url.host, request.url.path
         if path == "/robots.txt":
             if host in robots:
@@ -224,14 +239,22 @@ async def test_an_empty_handle_is_an_error_and_the_rest_write(sessionmaker_for_t
 
 
 async def test_a_second_refresh_during_the_first_is_409(sessionmaker_for_test):
-    gate = asyncio.Event()
-    async with client_for(
-        sessionmaker_for_test, handler=serve_fixtures(gate=gate)
-    ) as client:
+    gate, entered = asyncio.Event(), asyncio.Event()
+    handler = serve_fixtures(gate=gate, entered=entered)
+    async with client_for(sessionmaker_for_test, handler=handler) as client:
         first = asyncio.create_task(
             client.post("/api/physical/refresh", json={"stores": ["nicalis"]})
         )
-        await asyncio.sleep(0.2)
+        # The first refresh holds the lock once it is waiting on the store.
+        await asyncio.wait_for(entered.wait(), timeout=10)
+        # Committed at the start, so another session sees it running.
+        async with sessionmaker_for_test() as session:
+            open_runs = (
+                await session.scalars(
+                    select(CatalogueRun).where(CatalogueRun.ok.is_(None))
+                )
+            ).all()
+        assert [run.source for run in open_runs] == ["nicalis"]
         second = await client.post("/api/physical/resolve")
         gate.set()
         assert (await first).status_code == 200
@@ -321,17 +344,22 @@ async def test_the_n64_ingest_records_cover_coverage_once(sessionmaker_for_test)
     assert again["errors"] == [] and again["rows_changed"] == 0
 
 
-async def test_resolve_reports_what_is_left(sessionmaker_for_test):
+async def test_resolve_honours_its_limit(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
-        await client.post("/api/physical/refresh", json={"stores": ["nicalis"]})
+        # Resolving needs IGDB off here, or the refresh's own batch would
+        # clear the work list first.
+        async with client_for(
+            sessionmaker_for_test, igdb=FakeIgdb(configured=False)
+        ) as quiet:
+            before = (
+                await quiet.post("/api/physical/refresh", json={"stores": ["nicalis"]})
+            ).json()["unresolved_remaining"]
         body = (await client.post("/api/physical/resolve?limit=5")).json()
-    assert set(body) == {
-        "resolved",
-        "pending",
-        "games_fetched",
-        "unresolved_remaining",
-        "errors",
-    }
+        too_many = await client.post("/api/physical/resolve?limit=201")
+    assert before > 5
+    assert (body["resolved"] + body["pending"], body["errors"]) == (5, [])
+    assert body["unresolved_remaining"] == before - 5
+    assert too_many.status_code == 422
 
 
 # --- Status ---------------------------------------------------------------------
@@ -356,3 +384,157 @@ async def test_status_flags_a_source_after_three_failures(sessionmaker_for_test)
         "keys_without_platform",
         "disagreements",
     }
+
+
+# --- Failures are recorded, never a 500 (finish-gate review) -------------------
+
+
+async def test_a_dropped_product_page_does_not_stop_the_refresh(sessionmaker_for_test):
+    handler = serve_fixtures(fail_paths=("/products/",))
+    async with client_for(sessionmaker_for_test, handler=handler) as client:
+        response = await client.post(
+            "/api/physical/refresh", json={"stores": ["limited_run", "nicalis"]}
+        )
+    assert response.status_code == 200
+    assert [(run["source"], run["ok"]) for run in response.json()["runs"]] == [
+        ("limited_run", True),
+        ("nicalis", True),
+    ]
+
+
+async def test_an_unexpected_error_is_that_sources_failed_run(
+    sessionmaker_for_test, monkeypatch
+):
+    real = shopify.list_products
+
+    async def breaking(config, *args, **kwargs):
+        if config.key == "super_rare":
+            raise RuntimeError("boom")
+        return await real(config, *args, **kwargs)
+
+    monkeypatch.setattr(shopify, "list_products", breaking)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/physical/refresh", json={"stores": ["super_rare", "nicalis"]}
+        )
+    assert response.status_code == 200
+    rare, nicalis = response.json()["runs"]
+    assert (rare["ok"], rare["errors"]) == (
+        False,
+        [{"code": "internal", "detail": "RuntimeError"}],
+    )
+    assert nicalis["ok"] is True
+
+
+async def test_an_open_run_past_the_stale_window_reads_as_interrupted(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        session.add(
+            CatalogueRun(
+                source="nicalis",
+                started_at=datetime.now(UTC) - timedelta(minutes=45),
+                ok=None,
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/physical/status")).json()
+    nicalis = next(s for s in body["sources"] if s["source"] == "nicalis")
+    assert nicalis["last_run"]["interrupted"] is True
+    assert nicalis["consecutive_failures"] == 1
+
+
+async def _seed_listing(factory, store="super_rare", variant="gone"):
+    async with factory() as session:
+        session.add(
+            StoreListing(
+                store=store,
+                store_product_id=variant,
+                variant_id=variant,
+                handle=variant,
+                url="https://example.test/gone",
+                region="EUR",
+                title="Gone",
+                title_normalized="gone",
+                is_game=True,
+                currency="GBP",
+                availability="in_stock",
+            )
+        )
+        session.add(CatalogueRun(source=store, ok=True, rows_seen=40))
+        await session.commit()
+
+
+async def test_a_store_run_with_a_failed_handle_archives_nothing(sessionmaker_for_test):
+    await _seed_listing(sessionmaker_for_test)
+    handler = serve_fixtures(empty={"switch-2"})
+    async with client_for(sessionmaker_for_test, handler=handler) as client:
+        (run,) = (
+            await client.post("/api/physical/refresh", json={"stores": ["super_rare"]})
+        ).json()["runs"]
+    assert run["ok"] is True and run["rows_retired"] == 0
+    async with sessionmaker_for_test() as session:
+        gone = await session.scalar(
+            select(StoreListing).where(StoreListing.variant_id == "gone")
+        )
+    assert gone.availability.value == "in_stock"
+
+
+async def test_a_clean_store_run_archives_what_it_no_longer_saw(sessionmaker_for_test):
+    await _seed_listing(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        (run,) = (
+            await client.post("/api/physical/refresh", json={"stores": ["super_rare"]})
+        ).json()["runs"]
+    assert run["rows_retired"] == 1
+
+
+async def test_a_short_registry_run_retires_nothing(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        session.add(
+            PhysicalEdition(
+                source="switch2tracker",
+                source_ref="gone|USA",
+                title="Gone",
+                title_normalized="gone",
+                platform_id=508,
+                platform="Nintendo Switch 2",
+                region="USA",
+            )
+        )
+        session.add(CatalogueRun(source="switch2tracker", ok=True, rows_seen=10_000))
+        await session.commit()
+    async with client_for(sessionmaker_for_test, sheets_key=None) as client:
+        _, tracker_run = (await client.post("/api/physical/refresh-registry")).json()[
+            "runs"
+        ]
+    assert tracker_run["short_run"] is True and tracker_run["rows_retired"] == 0
+
+
+async def test_ignored_platformless_titles_leave_the_total(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        session.add(
+            StoreListing(
+                store="limited_run",
+                store_product_id="1",
+                variant_id="1",
+                handle="he-man",
+                url="https://example.test/he-man",
+                region="USA",
+                title="He-Man",
+                title_normalized="he man",
+                is_game=True,
+                currency="USD",
+                availability="preorder",
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        before = (await client.get("/api/physical/status")).json()["totals"]
+        await client.post(
+            "/api/physical/matches",
+            json={"title_normalized": "he man", "platform_id": 0, "ignored": True},
+        )
+        after = (await client.get("/api/physical/status")).json()["totals"]
+    assert (before["keys_without_platform"], after["keys_without_platform"]) == (1, 0)

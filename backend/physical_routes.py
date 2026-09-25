@@ -6,6 +6,11 @@ that fails late in a refresh never loses the ones read before it. One lock
 covers every writing route: Render runs one instance, and two refreshes
 interleaving their upserts would make the run counts meaningless.
 
+A run is committed when it starts, so a refresh cut short by a restart
+leaves an open run the status page reads as interrupted, and any exception
+inside one source is recorded as that source's failed run -- the refresh
+moves on to the next source instead of answering 500.
+
 A store archives the listings it no longer saw, and a registry retires its
 editions, only after a clean run: something seen, not short against the last
 successful run, and no handle or schema error -- a store whose one broken
@@ -29,6 +34,7 @@ from items import require_admin
 from models import (
     CatalogueGame,
     CatalogueMatch,
+    CatalogueRun,
     Item,
     ItemType,
     MatchDecision,
@@ -39,13 +45,14 @@ from physical_sources import registry as sheet
 from physical_sources import shopify, tracker, woocommerce
 from physical_sources.base import HostThrottle, PhysicalSourceError
 from physical_sources.catalogue import (
-    consecutive_failures,
     count_live,
+    failure_streaks,
     finish_run,
     is_short,
     latest_runs,
     previous_rows_seen,
     recently_checked_handles,
+    run_failed,
     start_run,
     upsert_editions,
     upsert_listings,
@@ -60,6 +67,7 @@ from physical_sources.limits import (
 )
 from physical_sources.platform_policy import INGESTED_PLATFORMS, ingest_platform
 from physical_sources.resolve import (
+    ResolveResult,
     count_pending,
     ignore,
     link_by_hand,
@@ -100,6 +108,8 @@ class RunOut(BaseModel):
     items_synced: int
     unresolved_remaining: int
     short_run: bool
+    # Open past STALE_RUN_MINUTES: the process restarted mid-run.
+    interrupted: bool
     errors: list[dict]
 
 
@@ -217,6 +227,7 @@ def run_out(run) -> RunOut:
         items_synced=run.items_synced or 0,
         unresolved_remaining=run.unresolved_remaining or 0,
         short_run=bool(run.short_run),
+        interrupted=run.ok is None and run_failed(run),
         errors=list(run.errors or []),
     )
 
@@ -257,80 +268,116 @@ def create_physical_router(
         async with lock:
             yield
 
+    async def guarded(session, source: str, work):
+        """One source's run: committed at the start, finished by `work`, and
+        recorded as a failure if `work` raises anything at all. Returns
+        (run, work's result, or None after a failure)."""
+        run = await start_run(session, source)
+        run_id = run.id
+        await session.commit()
+        try:
+            return run, await work(run)
+        except Exception as error:
+            logger.exception("%s run failed", source)
+            await session.rollback()
+            run = await session.get(CatalogueRun, run_id)
+            await finish_run(
+                session,
+                run,
+                ok=False,
+                errors=[{"code": "internal", "detail": type(error).__name__}],
+            )
+            await session.commit()
+            return run, None
+
     async def refresh_store(session, client, throttle, key: str):
         config = STORES[key]
-        run = await start_run(session, key)
-        previous = await previous_rows_seen(session, key)
-        robots = await robots_for(config.domain, client, throttle)
-        if config.adapter == "shopify":
-            skip = await recently_checked_handles(session, key)
-            products, errors = await shopify.list_products(
-                config, client, robots, throttle, html_skip=skip
+
+        async def work(run):
+            previous = await previous_rows_seen(session, key)
+            robots = await robots_for(config.domain, client, throttle)
+            if config.adapter == "shopify":
+                skip = await recently_checked_handles(session, key)
+                products, errors = await shopify.list_products(
+                    config, client, robots, throttle, html_skip=skip
+                )
+            else:
+                products, errors = await woocommerce.list_products(
+                    config, client, robots, throttle
+                )
+            seen = len(products)
+            short = is_short(seen, previous)
+            ok = seen > 0
+            changed, archived = await upsert_listings(
+                session, products, key, archive=ok and not short and not errors
             )
-        else:
-            products, errors = await woocommerce.list_products(
-                config, client, robots, throttle
+            await finish_run(
+                session,
+                run,
+                ok=ok,
+                rows_seen=seen,
+                rows_changed=changed,
+                rows_retired=archived,
+                short_run=short,
+                errors=[error.as_entry() for error in errors],
             )
-        seen = len(products)
-        short = is_short(seen, previous)
-        ok = seen > 0
-        changed, archived = await upsert_listings(
-            session, products, key, archive=ok and not short and not errors
-        )
-        await finish_run(
-            session,
-            run,
-            ok=ok,
-            rows_seen=seen,
-            rows_changed=changed,
-            rows_retired=archived,
-            short_run=short,
-            errors=[error.as_entry() for error in errors],
-        )
-        await session.commit()
+            await session.commit()
+
+        run, _ = await guarded(session, key, work)
         return run
 
     async def refresh_editions(session, source: str, load) -> tuple:
-        run = await start_run(session, source)
-        previous = await previous_rows_seen(session, source)
-        try:
-            rows, warnings = await load()
-        except PhysicalSourceError as error:
-            await finish_run(session, run, ok=False, errors=[error.as_entry()])
+        async def work(run):
+            previous = await previous_rows_seen(session, source)
+            try:
+                rows, warnings = await load()
+            except PhysicalSourceError as error:
+                await finish_run(session, run, ok=False, errors=[error.as_entry()])
+                await session.commit()
+                return False
+            short = is_short(len(rows), previous)
+            ok = len(rows) > 0
+            changed, retired = await upsert_editions(
+                session, rows, source, retire=ok and not short
+            )
+            await finish_run(
+                session,
+                run,
+                ok=ok,
+                rows_seen=len(rows),
+                rows_changed=changed,
+                rows_retired=retired,
+                short_run=short,
+                errors=[_warning_entry(w) for w in warnings]
+                or ([] if ok else [{"code": "empty", "detail": "no rows"}]),
+            )
             await session.commit()
-            return run, False
-        short = is_short(len(rows), previous)
-        ok = len(rows) > 0
-        changed, retired = await upsert_editions(
-            session, rows, source, retire=ok and not short
-        )
-        await finish_run(
-            session,
-            run,
-            ok=ok,
-            rows_seen=len(rows),
-            rows_changed=changed,
-            rows_retired=retired,
-            short_run=short,
-            errors=[_warning_entry(w) for w in warnings]
-            or ([] if ok else [{"code": "empty", "detail": "no rows"}]),
-        )
-        await session.commit()
-        return run, ok
+            return ok
 
-    async def resolve_run(session, limit: int = RESOLVE_LIMIT):
-        run = await start_run(session, "resolve")
-        outcome = await resolve_batch(session, igdb(), limit)
-        await finish_run(
-            session,
-            run,
-            ok=not outcome.errors,
-            rows_seen=outcome.resolved + outcome.pending,
-            rows_changed=outcome.resolved,
-            unresolved_remaining=outcome.unresolved_remaining,
-            errors=outcome.errors,
-        )
-        await session.commit()
+        run, ok = await guarded(session, source, work)
+        return run, bool(ok)
+
+    async def resolve_run(session, limit: int = RESOLVE_LIMIT) -> ResolveResult:
+        async def work(run):
+            outcome = await resolve_batch(session, igdb(), limit)
+            await finish_run(
+                session,
+                run,
+                ok=not outcome.errors,
+                rows_seen=outcome.resolved + outcome.pending,
+                rows_changed=outcome.resolved,
+                unresolved_remaining=outcome.unresolved_remaining,
+                errors=outcome.errors,
+            )
+            await session.commit()
+            return outcome
+
+        run, outcome = await guarded(session, "resolve", work)
+        if outcome is None:
+            outcome = ResolveResult(
+                unresolved_remaining=await count_pending(session),
+                errors=list(run.errors or []),
+            )
         return outcome
 
     @router.post("/refresh", response_model=RefreshOut)
@@ -387,8 +434,18 @@ def create_physical_router(
             )
         outcome = await resolve_run(session)
         if sheet_ok:
-            sheet_run.items_synced = await sync_items(session)
-            await session.commit()
+            try:
+                sheet_run.items_synced = await sync_items(session)
+                await session.commit()
+            except Exception as error:
+                logger.exception("registry sync failed")
+                await session.rollback()
+                sheet_run = await session.get(CatalogueRun, sheet_run.id)
+                sheet_run.errors = [
+                    *(sheet_run.errors or []),
+                    {"code": "sync_failed", "detail": type(error).__name__},
+                ]
+                await session.commit()
         return RefreshOut(
             runs=[run_out(sheet_run), run_out(tracker_run)],
             unresolved_remaining=outcome.unresolved_remaining,
@@ -407,32 +464,39 @@ def create_physical_router(
                 detail="Only the Nintendo 64 (platform 4) is ingested from IGDB",
             )
         previous = await previous_rows_seen(session, "igdb_platform")
-        run = await start_run(session, "igdb_platform")
-        outcome = await ingest_platform(session, igdb(), platform_id, previous=previous)
-        errors = list(outcome.errors)
-        if previous is None and outcome.rows:
-            errors.append(
-                {
-                    "code": "info",
-                    "detail": f"{outcome.with_cover} of {outcome.rows} with a cover",
-                }
+
+        async def work(run):
+            outcome = await ingest_platform(
+                session, igdb(), platform_id, previous=previous
             )
-        await finish_run(
-            session,
-            run,
-            ok=outcome.rows > 0 and not outcome.errors,
-            rows_seen=outcome.rows,
-            rows_changed=outcome.changed,
-            rows_retired=outcome.retired,
-            short_run=outcome.short,
-            errors=errors,
-        )
-        await session.commit()
+            errors = list(outcome.errors)
+            if previous is None and outcome.rows:
+                errors.append(
+                    {
+                        "code": "info",
+                        "detail": f"{outcome.with_cover} of {outcome.rows} "
+                        "with a cover",
+                    }
+                )
+            await finish_run(
+                session,
+                run,
+                ok=outcome.rows > 0 and not outcome.errors,
+                rows_seen=outcome.rows,
+                rows_changed=outcome.changed,
+                rows_retired=outcome.retired,
+                short_run=outcome.short,
+                errors=errors,
+            )
+            await session.commit()
+
+        run, _ = await guarded(session, "igdb_platform", work)
         return run_out(run)
 
     @router.post("/resolve", response_model=ResolveOut)
     async def resolve(
-        limit: int = Query(RESOLVE_LIMIT, ge=1, le=500),
+        # Capped: each key is one or two IGDB queries inside this request.
+        limit: int = Query(RESOLVE_LIMIT, ge=1, le=200),
         _lock=Depends(exclusive),
         session: AsyncSession = Depends(get_session),
     ) -> ResolveOut:
@@ -591,6 +655,7 @@ def create_physical_router(
     async def status(session: AsyncSession = Depends(get_session)) -> StatusOut:
         """The latest run per source, and the catalogue's totals."""
         runs = await latest_runs(session)
+        streaks = await failure_streaks(session)
         sources = []
         for source, kind in (
             *((key, "store") for key in STORES),
@@ -598,7 +663,7 @@ def create_physical_router(
             ("igdb_platform", "platform"),
             ("resolve", "resolve"),
         ):
-            failures = await consecutive_failures(session, source)
+            failures = streaks.get(source, 0)
             run = runs.get(source)
             sources.append(
                 SourceStatus(
@@ -631,6 +696,12 @@ def create_physical_router(
                     StoreListing.platform.is_(None),
                     StoreListing.is_game.is_(True),
                     StoreListing.availability != "archived",
+                    # Ignored under platform 0: decided, so not waiting.
+                    StoreListing.title_normalized.not_in(
+                        select(CatalogueMatch.title_normalized).where(
+                            CatalogueMatch.platform_id == 0
+                        )
+                    ),
                 )
             )
             or 0

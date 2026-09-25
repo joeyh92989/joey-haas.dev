@@ -180,6 +180,39 @@ async def consecutive_failures(
     return count
 
 
+async def failure_streaks(session, now: datetime | None = None) -> dict[str, int]:
+    """consecutive_failures for every source in one query: each source's
+    last 50 runs, newest first, counted back to its last success."""
+    recent = (
+        select(
+            CatalogueRun,
+            func.row_number()
+            .over(
+                partition_by=CatalogueRun.source,
+                order_by=CatalogueRun.started_at.desc(),
+            )
+            .label("rank"),
+        )
+    ).subquery()
+    runs = await session.scalars(
+        select(CatalogueRun)
+        .join(recent, CatalogueRun.id == recent.c.id)
+        .where(recent.c.rank <= 50)
+        .order_by(CatalogueRun.source, CatalogueRun.started_at.desc())
+    )
+    streaks: dict[str, int] = {}
+    finished: set[str] = set()
+    for run in runs:
+        streaks.setdefault(run.source, 0)
+        if run.source in finished:
+            continue
+        if run.ok is True:
+            finished.add(run.source)
+        elif run_failed(run, now):
+            streaks[run.source] += 1
+    return streaks
+
+
 # --- Editions ---------------------------------------------------------------
 
 
