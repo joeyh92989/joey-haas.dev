@@ -1,5 +1,6 @@
 """The WooCommerce adapter, on the recorded Store API pages."""
 
+import dataclasses
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -123,4 +124,34 @@ async def test_a_host_ignoring_page_stops_and_malformed_items_drop():
     async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as client:
         found, errors = await list_products(STORES["gamefairy"], client, None)
     assert requested == ["1", "2"]
-    assert errors == [] and len(found) == 100
+    assert [e.code for e in errors] == ["page_ignored"] and len(found) == 100
+
+
+@pytest.mark.asyncio
+async def test_a_second_category_is_walked_even_when_it_repeats_the_first():
+
+    config = dataclasses.replace(STORES["gamefairy"], collections=("22", "23"))
+    shared = [
+        {"id": i, "name": f"Game {i} (Nintendo Switch)", "permalink": f"https://x/{i}"}
+        for i in range(100)
+    ]
+    extra = [
+        {
+            "id": 500,
+            "name": "Only in 23 (Nintendo Switch)",
+            "permalink": "https://x/500",
+        }
+    ]
+    requested = []
+
+    def handler(request):
+        category, page = request.url.params["category"], request.url.params["page"]
+        requested.append((category, page))
+        if page == "1":
+            return httpx2.Response(200, json=shared)
+        return httpx2.Response(200, json=extra if category == "23" else [])
+
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as client:
+        found, errors = await list_products(config, client, None)
+    assert ("23", "2") in requested
+    assert errors == [] and len(found) == 101

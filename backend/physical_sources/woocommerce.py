@@ -142,6 +142,7 @@ async def list_products(
     errors: list[PhysicalSourceError] = []
     found: dict[str, dict] = {}
     for category in config.collections:
+        seen: set[str] = set()
         try:
             for page in range(1, MAX_PAGES + 1):
                 url = category_url(config, category, page)
@@ -171,14 +172,28 @@ async def list_products(
                     raise PhysicalSourceError(
                         f"category {category} is empty", code="empty_collection"
                     )
-                before = len(found)
+                # Per category: a product another category already listed is
+                # still new here.
+                fresh = 0
                 for product in batch:
                     # A malformed entry is dropped, never allowed to fail it.
                     if isinstance(product, dict) and product.get("id") is not None:
-                        found.setdefault(str(product["id"]), product)
-                # A short page is the last; a page with nothing new means the
-                # host is ignoring `page`.
-                if len(batch) < PAGE_SIZE_WOO or len(found) == before:
+                        key = str(product["id"])
+                        found.setdefault(key, product)
+                        fresh += key not in seen
+                        seen.add(key)
+                if len(batch) < PAGE_SIZE_WOO:
+                    break
+                if not fresh:
+                    # The host is ignoring `page`: keep what was read, and
+                    # stop the run archiving what it never reached.
+                    errors.append(
+                        PhysicalSourceError(
+                            f"category {category}: page {page} repeated an "
+                            "earlier page",
+                            code="page_ignored",
+                        )
+                    )
                     break
             else:
                 raise PhysicalSourceError(
@@ -187,7 +202,17 @@ async def list_products(
                 )
         except PhysicalSourceError as error:
             errors.append(error)
-    rows = [row for product in found.values() for row in explode(product, config)]
+    rows = []
+    for key, product in found.items():
+        try:
+            rows += explode(product, config)
+        except Exception as error:
+            logger.warning("%s product %s skipped: %s", config.key, key, error)
+            errors.append(
+                PhysicalSourceError(
+                    f"product {key}: {type(error).__name__}", code="malformed_product"
+                )
+            )
     logger.info(
         "%s: %d listings from %d products, %d errors",
         config.key,

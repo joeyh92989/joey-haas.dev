@@ -487,7 +487,8 @@ async def test_a_host_ignoring_page_stops_at_the_repeat():
 
     rows, errors = await _walk_with(handler, _single_handle_store())
     assert requested == ["1", "2"]
-    assert errors == [] and len(rows) == 250
+    # What was read is kept; the error keeps the run from archiving.
+    assert [e.code for e in errors] == ["page_ignored"] and len(rows) == 250
 
 
 @pytest.mark.asyncio
@@ -564,3 +565,14 @@ async def test_redirects_stay_on_the_stores_site(location, allowed_through):
             with pytest.raises(PhysicalSourceError) as error:
                 await throttled_get(client, url, "superraregames.com", None)
             assert error.value.code == "redirected_off_site"
+
+
+@pytest.mark.asyncio
+async def test_a_product_that_cannot_be_read_is_skipped_and_recorded():
+    broken = {**_product(2), "variants": [None]}
+    body = {"products": [_product(1), broken]}
+    rows, errors = await _walk_with(
+        lambda request: httpx2.Response(200, json=body), _single_handle_store()
+    )
+    assert [r.store_product_id for r in rows] == ["1"]
+    assert [e.code for e in errors] == ["malformed_product"]

@@ -256,7 +256,14 @@ def collection_url(config: StoreConfig, handle: str, page: int) -> str:
     )
 
 
-async def _walk(config, handle, client, robots, throttle) -> list[dict]:
+async def _walk(
+    config, handle, client, robots, throttle
+) -> tuple[list[dict], PhysicalSourceError | None]:
+    """A handle's products, and a warning when the walk could not finish.
+
+    A full page with nothing new means the host ignores `page`: what was read
+    is kept, but the warning stops the run archiving what it never reached.
+    """
     products: list[dict] = []
     seen: set = set()
     for page in range(1, MAX_PAGES + 1):
@@ -281,10 +288,12 @@ async def _walk(config, handle, client, robots, throttle) -> list[dict]:
         fresh = [p for p in batch if p["id"] not in seen]
         seen.update(p["id"] for p in fresh)
         products += fresh
-        # A short page is the last; a page with nothing new means the host
-        # is ignoring `page`, and walking on would only repeat it.
-        if len(batch) < PAGE_SIZE_SHOPIFY or not fresh:
-            return products
+        if len(batch) < PAGE_SIZE_SHOPIFY:
+            return products, None
+        if not fresh:
+            return products, PhysicalSourceError(
+                f"{handle}: page {page} repeated an earlier page", code="page_ignored"
+            )
     raise PhysicalSourceError(
         f"{handle}: more than {MAX_PAGES} pages", code="too_many_pages"
     )
@@ -326,10 +335,12 @@ async def list_products(
     handles_of: dict[str, set[str]] = {}
     for handle in config.collections:
         try:
-            batch = await _walk(config, handle, client, robots, throttle)
+            batch, warning = await _walk(config, handle, client, robots, throttle)
         except PhysicalSourceError as error:
             errors.append(error)
             continue
+        if warning is not None:
+            errors.append(warning)
         for product in batch:
             key = str(product.get("id"))
             found.setdefault(key, product)
@@ -338,7 +349,18 @@ async def list_products(
     rows: list[StoreProduct] = []
     today = today or date.today()
     for key, product in found.items():
-        exploded = explode(product, config, handles_of[key])
+        try:
+            exploded = explode(product, config, handles_of[key])
+        except Exception as error:
+            # One malformed product is skipped and recorded; the error also
+            # keeps the run from archiving its old listing.
+            logger.warning("%s product %s skipped: %s", config.key, key, error)
+            errors.append(
+                PhysicalSourceError(
+                    f"product {key}: {type(error).__name__}", code="malformed_product"
+                )
+            )
+            continue
         wants_page = (
             config.html_step
             and product.get("handle")
