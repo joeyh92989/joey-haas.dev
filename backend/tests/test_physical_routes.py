@@ -1,0 +1,358 @@
+"""The catalogue's refresh, resolve and status routes, end to end.
+
+A fake HTTP client serves the recorded fixtures by URL and a fake IGDB
+adapter stands in for IGDB, so a full refresh runs against the test Postgres
+without a request leaving the process.
+"""
+
+import asyncio
+import re
+from contextlib import asynccontextmanager
+from pathlib import Path
+from urllib.parse import unquote
+
+import httpx2
+import pytest
+from fastapi import FastAPI
+from httpx2 import ASGITransport, AsyncClient
+from sqlalchemy import func, select
+from starlette.middleware.sessions import SessionMiddleware
+from test_physical_resolve import FakeIgdb
+
+from models import (
+    CatalogueRun,
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+    PhysicalEdition,
+    StoreListing,
+)
+from physical_routes import create_physical_router
+from physical_sources.stores import STORES
+from sources.base import SourceResult
+
+pytestmark = pytest.mark.asyncio
+
+PHYSICAL = Path(__file__).parent / "fixtures" / "physical"
+DOMAINS = {config.domain: key for key, config in STORES.items()}
+
+
+def fixture_name(handle: str) -> str:
+    return re.sub(r"[^a-z0-9-]+", "-", handle.replace("™", "-tm").lower()).strip("-")
+
+
+def serve_fixtures(
+    robots: dict[str, str] | None = None, empty: set[str] = frozenset(), gate=None
+):
+    """A handler answering every catalogue URL from the recorded fixtures."""
+    robots = robots or {}
+
+    async def handler(request):
+        if gate is not None:
+            await gate.wait()
+        url, host, path = request.url, request.url.host, request.url.path
+        if path == "/robots.txt":
+            if host in robots:
+                return httpx2.Response(200, text=robots[host])
+            recorded = PHYSICAL / "robots" / f"{host}.txt"
+            return (
+                httpx2.Response(200, text=recorded.read_text())
+                if recorded.exists()
+                else httpx2.Response(404)
+            )
+        if host == "sheets.googleapis.com":
+            assert url.params["key"] == "sheets-key"
+            if url.params.get("fields") == "sheets.properties":
+                name = "properties"
+            elif "Upcoming" in unquote(path):
+                name = "upcoming_details"
+            else:
+                name = "details"
+            return httpx2.Response(
+                200, text=(PHYSICAL / "registry" / f"{name}.json").read_text()
+            )
+        if host == "raw.githubusercontent.com":
+            return httpx2.Response(
+                200, text=(PHYSICAL / "tracker" / "games.json").read_text()
+            )
+        store = DOMAINS[host]
+        if path.startswith("/collections/"):
+            handle = unquote(path.split("/")[2])
+            if url.params.get("page") != "1" or handle in empty:
+                return httpx2.Response(200, json={"products": []})
+            page = PHYSICAL / "shopify" / store / f"{fixture_name(handle)}.p1.json"
+            return httpx2.Response(200, text=page.read_text())
+        if path.startswith("/wp-json/"):
+            (page,) = (PHYSICAL / "woocommerce" / store).glob("*.json")
+            return httpx2.Response(200, text=page.read_text())
+        if path.startswith("/products/"):
+            return httpx2.Response(
+                200,
+                text=(
+                    PHYSICAL / "shopify" / "limited_run" / "product.html"
+                ).read_text(),
+            )
+        return httpx2.Response(404)
+
+    return handler
+
+
+@asynccontextmanager
+async def client_for(
+    factory, *, signed_in=True, handler=None, igdb=None, sheets_key="sheets-key"
+):
+    handler = handler or serve_fixtures()
+    registry = {ItemType.GAME: igdb or FakeIgdb()}
+    app = FastAPI()
+    app.include_router(
+        create_physical_router(
+            factory,
+            registry,
+            lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
+            sheets_key,
+        )
+    )
+    if signed_in:
+
+        @app.middleware("http")
+        async def _sign_in(request, call_next):
+            request.session["user"] = {"sub": "1", "email": "admin@example.com"}
+            return await call_next(request)
+
+    app.add_middleware(SessionMiddleware, secret_key="test-secret", https_only=False)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver", timeout=120
+    ) as client:
+        yield client
+
+
+async def _count(factory, model, *where):
+    async with factory() as session:
+        return await session.scalar(
+            select(func.count()).select_from(model).where(*where)
+        )
+
+
+# --- Gatekeeping ---------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("post", "/api/physical/refresh"),
+        ("post", "/api/physical/refresh-registry"),
+        ("post", "/api/physical/refresh-platform?platform_id=4"),
+        ("post", "/api/physical/resolve"),
+        ("get", "/api/physical/status"),
+    ],
+)
+async def test_every_route_needs_the_admin(sessionmaker_for_test, method, path):
+    async with client_for(sessionmaker_for_test, signed_in=False) as client:
+        assert (await getattr(client, method)(path)).status_code == 401
+
+
+async def test_an_unknown_store_is_422(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/physical/refresh", json={"stores": ["atari"]}
+        )
+    assert response.status_code == 422
+
+
+async def test_switch_1_is_never_ingested(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post("/api/physical/refresh-platform?platform_id=130")
+    assert response.status_code == 422
+
+
+# --- Store refresh -------------------------------------------------------------
+
+
+async def test_refreshing_one_store_writes_its_listings(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/physical/refresh", json={"stores": ["super_rare"]}
+        )
+    assert response.status_code == 200
+    body = response.json()
+    (run,) = body["runs"]
+    assert (run["source"], run["ok"], run["errors"]) == ("super_rare", True, [])
+    assert run["rows_seen"] == run["rows_changed"] > 0
+    assert "unresolved_remaining" in body
+    assert await _count(sessionmaker_for_test, StoreListing) == run["rows_seen"]
+
+
+async def test_a_robots_refusal_skips_only_that_store(sessionmaker_for_test):
+    handler = serve_fixtures(
+        robots={"superraregames.com": "User-agent: *\nDisallow: /collections/\n"}
+    )
+    async with client_for(sessionmaker_for_test, handler=handler) as client:
+        body = (
+            await client.post(
+                "/api/physical/refresh", json={"stores": ["super_rare", "nicalis"]}
+            )
+        ).json()
+    rare, nicalis = body["runs"]
+    assert rare["ok"] is False and {e["code"] for e in rare["errors"]} == {
+        "robots_disallowed"
+    }
+    assert nicalis["ok"] is True
+    assert (
+        await _count(
+            sessionmaker_for_test, StoreListing, StoreListing.store == "super_rare"
+        )
+        == 0
+    )
+    assert (
+        await _count(
+            sessionmaker_for_test, StoreListing, StoreListing.store == "nicalis"
+        )
+        > 0
+    )
+
+
+async def test_an_empty_handle_is_an_error_and_the_rest_write(sessionmaker_for_test):
+    handler = serve_fixtures(empty={"switch-2"})
+    async with client_for(sessionmaker_for_test, handler=handler) as client:
+        (run,) = (
+            await client.post("/api/physical/refresh", json={"stores": ["super_rare"]})
+        ).json()["runs"]
+    assert run["ok"] is True
+    assert [e["code"] for e in run["errors"]] == ["empty_collection"]
+    assert run["rows_seen"] > 0
+
+
+async def test_a_second_refresh_during_the_first_is_409(sessionmaker_for_test):
+    gate = asyncio.Event()
+    async with client_for(
+        sessionmaker_for_test, handler=serve_fixtures(gate=gate)
+    ) as client:
+        first = asyncio.create_task(
+            client.post("/api/physical/refresh", json={"stores": ["nicalis"]})
+        )
+        await asyncio.sleep(0.2)
+        second = await client.post("/api/physical/resolve")
+        gate.set()
+        assert (await first).status_code == 200
+    assert second.status_code == 409
+    assert second.json()["detail"] == "A refresh is already running"
+
+
+# --- Registry refresh -----------------------------------------------------------
+
+
+async def test_the_registry_refresh_reads_both_sources_and_syncs(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Item(
+                type=ItemType.GAME,
+                title="A-Train9 Evolution",
+                status=ItemStatus.BACKLOG,
+                owned_format=OwnedFormat.PHYSICAL,
+                external_source="igdb",
+                external_id="4242",
+                platform_id=508,
+                region="JPN",
+            )
+        )
+        await session.commit()
+    igdb = FakeIgdb(
+        {"A-Train9 Evolution": [SourceResult("4242", "A-Train9 Evolution", 2026)]}
+    )
+    async with client_for(sessionmaker_for_test, igdb=igdb) as client:
+        body = (await client.post("/api/physical/refresh-registry")).json()
+    sheet, tracker = body["runs"]
+    assert (sheet["source"], sheet["ok"], tracker["source"], tracker["ok"]) == (
+        "nscollectors",
+        True,
+        "switch2tracker",
+        True,
+    )
+    assert sheet["rows_seen"] > 900 and tracker["rows_seen"] > 0
+    assert sheet["items_synced"] == 1
+    async with sessionmaker_for_test() as session:
+        item = (await session.scalars(select(Item))).one()
+    assert (item.physical_format.value, item.format_source.value) == (
+        "game_key_card",
+        "registry",
+    )
+
+
+async def test_without_a_sheets_key_the_tracker_still_runs(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test, sheets_key=None) as client:
+        body = (await client.post("/api/physical/refresh-registry")).json()
+    sheet, tracker = body["runs"]
+    assert sheet["ok"] is False
+    assert [e["code"] for e in sheet["errors"]] == ["sheets_not_configured"]
+    assert tracker["ok"] is True
+    assert (
+        await _count(
+            sessionmaker_for_test,
+            PhysicalEdition,
+            PhysicalEdition.source == "nscollectors",
+        )
+        == 0
+    )
+    assert (
+        await _count(
+            sessionmaker_for_test,
+            PhysicalEdition,
+            PhysicalEdition.source == "switch2tracker",
+        )
+        > 0
+    )
+
+
+# --- N64 and resolve ------------------------------------------------------------
+
+
+async def test_the_n64_ingest_records_cover_coverage_once(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        first = (
+            await client.post("/api/physical/refresh-platform?platform_id=4")
+        ).json()
+        again = (
+            await client.post("/api/physical/refresh-platform?platform_id=4")
+        ).json()
+    assert first["ok"] is True and first["rows_seen"] == 234
+    assert [e["code"] for e in first["errors"]] == ["info"]
+    assert "of 234 with a cover" in first["errors"][0]["detail"]
+    assert again["errors"] == [] and again["rows_changed"] == 0
+
+
+async def test_resolve_reports_what_is_left(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        await client.post("/api/physical/refresh", json={"stores": ["nicalis"]})
+        body = (await client.post("/api/physical/resolve?limit=5")).json()
+    assert set(body) == {
+        "resolved",
+        "pending",
+        "games_fetched",
+        "unresolved_remaining",
+        "errors",
+    }
+
+
+# --- Status ---------------------------------------------------------------------
+
+
+async def test_status_flags_a_source_after_three_failures(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        session.add_all(CatalogueRun(source="gamefairy", ok=False) for _ in range(3))
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/physical/status")).json()
+    by_source = {s["source"]: s for s in body["sources"]}
+    assert len(by_source) == 16
+    assert by_source["gamefairy"]["needs_attention"] is True
+    assert by_source["nicalis"]["needs_attention"] is False
+    assert set(body["totals"]) == {
+        "live_editions",
+        "live_listings",
+        "cached_games",
+        "pending_keys",
+        "unresolved_keys",
+        "keys_without_platform",
+        "disagreements",
+    }

@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from matching import normalize_title
 from models import CatalogueMatch, MatchConfidence, MatchDecision
 from physical_sources.base import EditionRow
-from physical_sources.catalogue import upsert_editions
+from physical_sources.catalogue import is_short, upsert_editions
 from physical_sources.limits import N64
 from physical_sources.parse import parse_ymd
 from physical_sources.resolve import store_games
@@ -35,6 +35,7 @@ class IngestResult:
     rows: int = 0
     changed: int = 0
     retired: int = 0
+    short: bool = False
     with_cover: int = 0
     errors: list[dict] = field(default_factory=list)
 
@@ -56,9 +57,13 @@ async def _game_ids(igdb, platform_id: int) -> list[str]:
 
 
 async def ingest_platform(
-    session, igdb, platform_id: int, *, retire: bool = True
+    session, igdb, platform_id: int, *, previous: int | None = None
 ) -> IngestResult:
-    """Every IGDB game on `platform_id` as a policy edition (N64 only)."""
+    """Every IGDB game on `platform_id` as a policy edition (N64 only).
+
+    `previous` is the last successful ingest's row count: a short run
+    upserts what it saw and retires nothing.
+    """
     if platform_id not in INGESTED_PLATFORMS:
         raise ValueError(
             f"platform {platform_id} is policy-only, never ingested from IGDB"
@@ -109,8 +114,9 @@ async def ingest_platform(
                 igdb_id=int(detail.external_id),
             )
         )
+    result.short = is_short(len(rows), previous)
     result.changed, result.retired = await upsert_editions(
-        session, rows, SOURCE, retire=retire
+        session, rows, SOURCE, retire=bool(rows) and not result.short
     )
     for row in rows:
         key = (row.title_normalized, platform_id)

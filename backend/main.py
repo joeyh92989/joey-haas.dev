@@ -8,6 +8,7 @@ routers (one module per project).
 
 import logging
 
+import httpx2
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -18,6 +19,8 @@ from db import create_engine_and_sessionmaker, engine_lifespan
 from importer import create_import_router
 from items import create_items_router
 from llm import build_provider
+from physical_routes import create_physical_router
+from physical_sources.limits import REQUEST_TIMEOUT_SECONDS, USER_AGENT
 from picker_routes import create_picker_router
 from public import create_public_router
 from schema_check import verify_schema_is_current
@@ -42,9 +45,10 @@ engine, session_factory = create_engine_and_sessionmaker(config.database_url)
 # here as an absence at startup rather than only when someone first tries a
 # lookup and gets a 503 they have to go digging for.
 registry = build_registry(config)
-logger.info(
-    "metadata sources configured: %s", ", ".join(configured_sources(registry)) or "none"
-)
+configured = configured_sources(registry)
+if config.google_sheets_api_key:
+    configured.append("sheets")
+logger.info("metadata sources configured: %s", ", ".join(configured) or "none")
 
 app = FastAPI(title="joey-haas.dev API", lifespan=engine_lifespan(engine))
 
@@ -81,6 +85,23 @@ app.add_middleware(
 app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
 app.include_router(create_picker_router(session_factory))
+
+
+def physical_http_client() -> httpx2.AsyncClient:
+    """The client the catalogue reads stores and the registry with: a
+    descriptive User-Agent, redirects followed (four stores move to www.)."""
+    return httpx2.AsyncClient(
+        headers={"User-Agent": USER_AGENT},
+        timeout=REQUEST_TIMEOUT_SECONDS,
+        follow_redirects=True,
+    )
+
+
+app.include_router(
+    create_physical_router(
+        session_factory, registry, physical_http_client, config.google_sheets_api_key
+    )
+)
 # The provider is built per request rather than here, so an absent model key
 # is a failure of the import route alone rather than a service that will not
 # boot -- the same reasoning as the lazy source checks.
