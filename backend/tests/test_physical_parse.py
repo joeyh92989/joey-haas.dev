@@ -255,3 +255,15 @@ def test_an_impossible_date_gives_way_to_the_next():
 
 def test_a_preorder_close_with_an_abbreviated_month():
     assert parse_preorder_close("Pre-orders close Nov. 8, 2026.") == date(2026, 11, 8)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Pre-orders close soon. Ships November 8, 2026.",
+        "Pre-orders close when stock runs out. Release date: December 1, 2026",
+        "Pre-orders close at the end of the month. Estimated ship date: March 3, 2027",
+    ],
+)
+def test_a_date_in_the_next_sentence_is_not_the_close(text):
+    assert parse_preorder_close(text) is None

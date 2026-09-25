@@ -171,8 +171,20 @@ def parse_release(text: str | None) -> tuple[date | None, str | None, str | None
     return None, None, None
 
 
-# Up to 80 characters, not up to the first full stop: "Nov. 8, 2026" has one.
-PREORDER_CLOSE = re.compile(r"pre-?orders? close (?:on )?(.{0,80})", re.IGNORECASE)
+PREORDER_CLOSE = re.compile(r"pre-?orders? close (?:on )?(.{0,120})", re.IGNORECASE)
+_STOP = re.compile(r"\.(?=\s|$)")
+_ABBREVIATED_MONTH = re.compile(
+    r"\b(?:jan|feb|mar|apr|jun|jul|aug|sept?|oct|nov|dec)$", re.I
+)
+
+
+def _first_sentence(text: str) -> str:
+    """`text` up to the full stop that ends its sentence -- not the one in
+    "Nov. 8, 2026" -- so a date in the next sentence is never read."""
+    for stop in _STOP.finditer(text):
+        if not _ABBREVIATED_MONTH.search(text[: stop.start()]):
+            return text[: stop.start()]
+    return text
 
 
 def parse_preorder_close(text: str | None) -> date | None:
@@ -180,7 +192,7 @@ def parse_preorder_close(text: str | None) -> date | None:
     match = PREORDER_CLOSE.search(_SPACE.sub(" ", text or ""))
     if not match:
         return None
-    value, precision, _ = find_date(match.group(1))
+    value, precision, _ = find_date(_first_sentence(match.group(1)))
     return value if precision == "day" else None
 
 
