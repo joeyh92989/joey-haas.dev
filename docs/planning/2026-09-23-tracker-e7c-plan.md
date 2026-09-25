@@ -1112,3 +1112,19 @@ owned Switch 2 copy whose `owned_format` is not `none`, as spec §5 says,
 including copies recorded as digital or subscription. Those then carry a
 card format, and public stats count formats. Restricting the sync to
 physical copies (and NULL) is a one-line change; it was left as specified.
+
+### Finish gate — re-verification of the fixes, 2026-09-25
+
+An independent reviewer re-read `5914d7a..3a0159f`. Fixed:
+
+| Fixed | Finding |
+|---|---|
+| `2e183e4` | A rollback in a later source expired earlier sources' run objects, and the registry-sync failure path read an expired id inside its own `except`. Routes now answer from `RunOut` snapshots and re-read rows by id. Re-keying is limited to keys with no platform |
+| `90a1793` | A walk stopped by a repeated page still archived what it never reached (now `page_ignored`); WooCommerce's no-new-items check spanned categories; a product that failed to explode failed its store |
+| `a9524e6` | The widened close phrase could read a date from the next sentence |
+
+Kept as a trade-off: a listing whose store stops stating a platform keeps the
+one on file (`catalogue.upsert_listings`). A platform set by hand in Needs match
+is indistinguishable from one a store stated earlier and then dropped; keeping
+it is preferred to returning the listing to Needs match on every refresh. A
+store that restates a platform always wins.
