@@ -30,6 +30,7 @@ from physical_sources.courtesy import Robots, allowed
 from physical_sources.format import UPGRADE_PACK, classify, plain_text
 from physical_sources.limits import (
     CATALOGUE_PLATFORMS,
+    MAX_PAGES,
     PAGE_SIZE_SHOPIFY,
     SWITCH_2,
 )
@@ -76,7 +77,8 @@ def parse_page(payload: dict) -> list[dict]:
     products = payload.get("products") if isinstance(payload, dict) else None
     if not isinstance(products, list):
         raise PhysicalSourceError("no products list in the body", code="http_error")
-    return products
+    # A malformed entry is dropped, never allowed to fail the store.
+    return [p for p in products if isinstance(p, dict) and p.get("id") is not None]
 
 
 def explode(
@@ -257,8 +259,8 @@ def collection_url(config: StoreConfig, handle: str, page: int) -> str:
 
 async def _walk(config, handle, client, robots, throttle) -> list[dict]:
     products: list[dict] = []
-    page = 1
-    while True:
+    seen: set = set()
+    for page in range(1, MAX_PAGES + 1):
         url = collection_url(config, handle, page)
         if not allowed(robots, url):
             raise PhysicalSourceError(
@@ -277,20 +279,32 @@ async def _walk(config, handle, client, robots, throttle) -> list[dict]:
             ) from None
         if not batch and page == 1:
             raise PhysicalSourceError(f"{handle} is empty", code="empty_collection")
-        products += batch
-        # A short page is the last; walking on would only fetch an empty one.
-        if len(batch) < PAGE_SIZE_SHOPIFY:
+        fresh = [p for p in batch if p["id"] not in seen]
+        seen.update(p["id"] for p in fresh)
+        products += fresh
+        # A short page is the last; a page with nothing new means the host
+        # is ignoring `page`, and walking on would only repeat it.
+        if len(batch) < PAGE_SIZE_SHOPIFY or not fresh:
             return products
-        page += 1
+    raise PhysicalSourceError(
+        f"{handle}: more than {MAX_PAGES} pages", code="too_many_pages"
+    )
 
 
 async def fetch_product_page(
     config: StoreConfig, handle: str, client, robots, throttle
 ) -> str | None:
-    url = f"https://{config.domain}/products/{handle}"
+    url = f"https://{config.domain}/products/{quote(handle, safe='')}"
     if not allowed(robots, url):
         return None
-    response = await throttled_get(client, url, config.domain, throttle)
+    try:
+        response = await throttled_get(client, url, config.domain, throttle)
+    except PhysicalSourceError as error:
+        # The page only adds a key-card note and a ship date: losing it for
+        # one run must not lose the store. The row keeps no html_checked_at,
+        # so the next run tries again.
+        logger.warning("%s product page %s skipped: %s", config.key, handle, error)
+        return None
     return response.text if response.status_code == 200 else None
 
 
@@ -328,13 +342,14 @@ async def list_products(
         exploded = explode(product, config, handles_of[key])
         wants_page = (
             config.html_step
+            and product.get("handle")
             and product.get("handle") not in html_skip
             and handles_of[key] & set(config.html_collections)
             and any(row.platform_id == SWITCH_2 for row in exploded)
         )
         if wants_page:
             html = await fetch_product_page(
-                config, product["handle"], client, robots, throttle
+                config, product.get("handle"), client, robots, throttle
             )
             if html is not None:
                 facts = parse_product_page(html)

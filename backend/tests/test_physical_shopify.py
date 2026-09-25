@@ -1,5 +1,6 @@
 """STORES and the Shopify adapter, on the recorded products.json pages."""
 
+import dataclasses
 import json
 import re
 from datetime import date
@@ -413,3 +414,111 @@ def test_every_handle_has_a_fixture_that_yields_a_catalogue_game(store, handle):
 def test_a_placeholder_price_is_no_price():
     rows = rows_for("nicalis", "1001 Spikes")
     assert rows and {row.price for row in rows} == {None}
+
+
+# --- Resilience (finish-gate review) ------------------------------------------
+
+
+def _single_handle_store(**overrides):
+    return dataclasses.replace(
+        STORES["super_rare"], collections=("switch",), **overrides
+    )
+
+
+def _product(i):
+    return {
+        "id": i,
+        "title": f"SRG#{i}: Game {i}",
+        "handle": f"game-{i}",
+        "product_type": "Switch",
+        "tags": [],
+        "options": [],
+        "variants": [{"id": i * 10, "available": True, "price": "40.00"}],
+    }
+
+
+async def _walk_with(handler, config):
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as client:
+        return await list_products(config, client, None)
+
+
+@pytest.mark.asyncio
+async def test_a_failed_product_page_keeps_the_store():
+    handler, _ = serve("limited_run")
+
+    def failing(request):
+        if request.url.path.startswith("/products/"):
+            raise httpx2.ConnectError("timed out", request=request)
+        return handler(request)
+
+    rows, errors = await _walk_with(failing, STORES["limited_run"])
+    assert errors == []
+    switch_2 = by_platform(
+        [r for r in rows if r.title.startswith("Terranigma: Foiled")]
+    )[508]
+    # Not stamped, so the next run tries the page again.
+    assert "html_checked_at" not in switch_2.raw
+
+
+@pytest.mark.asyncio
+async def test_a_second_page_is_walked_and_merged():
+    full = [_product(i) for i in range(1, 251)]
+
+    def handler(request):
+        page = request.url.params["page"]
+        return httpx2.Response(
+            200, json={"products": full if page == "1" else [_product(251)]}
+        )
+
+    rows, errors = await _walk_with(handler, _single_handle_store())
+    assert errors == [] and len({r.store_product_id for r in rows}) == 251
+
+
+@pytest.mark.asyncio
+async def test_a_host_ignoring_page_stops_at_the_repeat():
+    full = [_product(i) for i in range(1, 251)]
+    requested = []
+
+    def handler(request):
+        requested.append(request.url.params["page"])
+        return httpx2.Response(200, json={"products": full})
+
+    rows, errors = await _walk_with(handler, _single_handle_store())
+    assert requested == ["1", "2"]
+    assert errors == [] and len(rows) == 250
+
+
+@pytest.mark.asyncio
+async def test_a_walk_that_never_ends_is_cut_off(monkeypatch):
+    from physical_sources import shopify
+
+    monkeypatch.setattr(shopify, "MAX_PAGES", 3)
+
+    def handler(request):
+        page = int(request.url.params["page"])
+        return httpx2.Response(
+            200, json={"products": [_product(page * 1000 + i) for i in range(250)]}
+        )
+
+    rows, errors = await _walk_with(handler, _single_handle_store())
+    assert [e.code for e in errors] == ["too_many_pages"]
+    assert rows == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "response",
+    [httpx2.Response(503), httpx2.Response(200, text="<html>challenge</html>")],
+)
+async def test_a_failing_handle_is_an_http_error(response):
+    rows, errors = await _walk_with(lambda request: response, _single_handle_store())
+    assert rows == [] and [e.code for e in errors] == ["http_error"]
+
+
+@pytest.mark.asyncio
+async def test_malformed_products_are_dropped():
+    body = {"products": [_product(1), "junk", {"title": "no id"}, None]}
+    rows, errors = await _walk_with(
+        lambda request: httpx2.Response(200, json=body), _single_handle_store()
+    )
+    assert errors == [] and [r.store_product_id for r in rows] == ["1"]

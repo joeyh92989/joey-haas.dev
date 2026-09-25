@@ -20,6 +20,9 @@ PAGE_SIZE_WOO = 100
 # is a placeholder, not a price.
 MAX_PRICE = Decimal("999999.99")
 REQUEST_TIMEOUT_SECONDS = 30.0
+# A walk stops here even if pages keep coming full: a host that ignores the
+# page parameter would otherwise serve the same page forever.
+MAX_PAGES = 40
 
 # Keys resolved to IGDB per press of Resolve; the button loops.
 RESOLVE_LIMIT = 100

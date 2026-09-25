@@ -22,7 +22,7 @@ from physical_sources.base import (
 )
 from physical_sources.courtesy import Robots, allowed
 from physical_sources.format import classify, plain_text
-from physical_sources.limits import CATALOGUE_PLATFORMS, PAGE_SIZE_WOO
+from physical_sources.limits import CATALOGUE_PLATFORMS, MAX_PAGES, PAGE_SIZE_WOO
 from physical_sources.parse import edition_label, parse_release, strip_title
 from physical_sources.stores import StoreConfig, admits, resolve_platform
 
@@ -142,9 +142,8 @@ async def list_products(
     errors: list[PhysicalSourceError] = []
     found: dict[str, dict] = {}
     for category in config.collections:
-        page = 1
         try:
-            while True:
+            for page in range(1, MAX_PAGES + 1):
                 url = category_url(config, category, page)
                 if not allowed(robots, url):
                     raise PhysicalSourceError(
@@ -172,11 +171,20 @@ async def list_products(
                     raise PhysicalSourceError(
                         f"category {category} is empty", code="empty_collection"
                     )
+                before = len(found)
                 for product in batch:
-                    found.setdefault(str(product.get("id")), product)
-                if len(batch) < PAGE_SIZE_WOO:
+                    # A malformed entry is dropped, never allowed to fail it.
+                    if isinstance(product, dict) and product.get("id") is not None:
+                        found.setdefault(str(product["id"]), product)
+                # A short page is the last; a page with nothing new means the
+                # host is ignoring `page`.
+                if len(batch) < PAGE_SIZE_WOO or len(found) == before:
                     break
-                page += 1
+            else:
+                raise PhysicalSourceError(
+                    f"category {category}: more than {MAX_PAGES} pages",
+                    code="too_many_pages",
+                )
         except PhysicalSourceError as error:
             errors.append(error)
     rows = [row for product in found.values() for row in explode(product, config)]

@@ -106,3 +106,21 @@ async def test_an_empty_category_is_reported():
     async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as client:
         found, errors = await list_products(STORES["gamefairy"], client, None)
     assert found == [] and [e.code for e in errors] == ["empty_collection"]
+
+
+@pytest.mark.asyncio
+async def test_a_host_ignoring_page_stops_and_malformed_items_drop():
+    full = [
+        {"id": i, "name": f"Game {i} (Nintendo Switch)", "permalink": f"https://x/{i}"}
+        for i in range(100)
+    ] + ["junk"]
+    requested = []
+
+    def handler(request):
+        requested.append(request.url.params["page"])
+        return httpx2.Response(200, json=full)
+
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as client:
+        found, errors = await list_products(STORES["gamefairy"], client, None)
+    assert requested == ["1", "2"]
+    assert errors == [] and len(found) == 100
