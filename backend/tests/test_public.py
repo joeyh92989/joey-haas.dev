@@ -1,5 +1,6 @@
 """The public router. The leak tests here are the point of the module."""
 
+import typing
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
@@ -7,9 +8,23 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
+from pydantic import BaseModel
 
-from models import Item, ItemStatus, ItemType, OwnedFormat
-from public import PublicItemDetailOut, PublicItemOut, create_public_router
+from models import (
+    CatalogueGame,
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+    PhysicalEdition,
+    StoreListing,
+)
+from public import (
+    PublicItemDetailOut,
+    PublicItemOut,
+    PublicStatsOut,
+    create_public_router,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -595,3 +610,88 @@ async def test_the_pinned_game_is_published_as_a_flag_not_a_date(
     assert body["Up Next"]["pinned"] is True
     assert body["Waiting"]["pinned"] is False
     assert "pinned_at" not in body["Up Next"]
+
+
+# --- The physical catalogue stays private (E7c). -------------------------------
+#
+# Nothing from the catalogue -- editions, listings, prices, IGDB snapshots,
+# the collapse's routing -- is public. These pins exist before any catalogue
+# route does, so a later change that reaches for a catalogue field in a public
+# model or response fails here first.
+
+CATALOGUE_NAMES = (
+    "store_listings",
+    "physical_editions",
+    "catalogue_",
+    "price",
+    "snapshot",
+    "format_route",
+    "listing_ids",
+)
+
+
+def _field_names(model, seen=None) -> set[str]:
+    """Every field name in a response model, nested models included."""
+    seen = seen if seen is not None else set()
+    if model in seen:
+        return set()
+    seen.add(model)
+    names = set(model.model_fields)
+    for field in model.model_fields.values():
+        for kind in (field.annotation, *typing.get_args(field.annotation)):
+            for inner in (kind, *typing.get_args(kind)):
+                if isinstance(inner, type) and issubclass(inner, BaseModel):
+                    names |= _field_names(inner, seen)
+    return names
+
+
+async def test_no_public_model_names_a_catalogue_field():
+    names = set()
+    for model in (PublicItemOut, PublicItemDetailOut, PublicStatsOut):
+        names |= _field_names(model)
+    leaked = sorted(n for n in names for bad in CATALOGUE_NAMES if bad in n)
+    assert leaked == []
+
+
+async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test):
+    await _seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(CatalogueGame(igdb_id=1, title="Radar Game", snapshot={"x": 1}))
+        session.add(
+            PhysicalEdition(
+                source="nscollectors",
+                source_ref="radar game|USA||game card",
+                title="Radar Game",
+                title_normalized="radar game",
+                platform_id=508,
+                platform="Nintendo Switch 2",
+                region="USA",
+                igdb_id=1,
+            )
+        )
+        session.add(
+            StoreListing(
+                store="super_rare",
+                store_product_id="1",
+                variant_id="1",
+                handle="radar-game",
+                url="https://example.test/radar-game",
+                region="EUR",
+                title="Radar Game",
+                title_normalized="radar game",
+                is_game=True,
+                currency="GBP",
+                availability="preorder",
+                igdb_id=1,
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        items = await client.get("/api/public/items")
+        stats = await client.get("/api/public/stats")
+        detail = await client.get(f"/api/public/items/{items.json()[0]['id']}")
+    for response in (items, stats, detail):
+        assert response.status_code == 200
+        body = response.text
+        assert not [bad for bad in CATALOGUE_NAMES if f'"{bad}' in body], body
+        assert "Radar Game" not in body

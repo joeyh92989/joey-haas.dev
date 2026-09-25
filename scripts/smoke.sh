@@ -145,7 +145,7 @@ check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection"
 # its response model instead of serializing the ORM object. A private column
 # added later would be published with no code change and nothing to notice it.
 public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
-if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at)"'; then
+if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids)"'; then
   report_fail "public items expose no private fields" "found a private key in the response"
 else
   report_pass "public items expose no private fields" "no notes/owned_format/is_public/ids/copy details"
@@ -246,6 +246,19 @@ check_equals "POST /api/items/visibility unauthenticated" \
 check_equals "GET /admin/collection/<id> (nested deep link)" \
   "$(http_status "$SITE_URL/admin/collection/00000000-0000-0000-0000-000000000000")" \
   "200"
+
+# The physical catalogue (E7c) is admin-only end to end: 401 rather than 404
+# proves each route exists and is gated before it does anything.
+check_equals "POST /api/physical/refresh unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/physical/refresh")" \
+  "401"
+check_equals "POST /api/physical/resolve unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/physical/resolve")" \
+  "401"
+check_equals "GET /api/physical/status unauthenticated" \
+  "$(http_status "$API_URL/api/physical/status")" \
+  "401"
+check_equals "GET /admin/catalogue (deep link)" "$(http_status "$SITE_URL/admin/catalogue")" "200"
 
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in
