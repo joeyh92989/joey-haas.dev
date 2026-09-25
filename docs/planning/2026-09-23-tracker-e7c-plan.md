@@ -1071,3 +1071,44 @@ SQLAlchemy 2.1, which no longer installs `greenlet`; the async engine then
 fails to import. It was installed into the worktree venv by hand, and a
 separate task was offered to pin `sqlalchemy[asyncio]`. CI installs fresh,
 so it may hit the same failure on this branch's PR.
+
+### Finish gate — ultra review, 2026-09-25
+
+Five parallel reviewers (plan alignment, correctness, security,
+performance, tests and dead code) and one adversarial verifier: of 45
+findings, 23 confirmed, 14 partly, 8 refuted or overstated. Every
+confirmed and partly finding was fixed on the branch, except the decisions
+below; each fix is its own commit after `5914d7a`.
+
+| Fixed | Finding |
+|---|---|
+| `ed43e65` | **Security:** `httpx2` logged every request URL at INFO, so the Sheets key -- and, already on main, ComicVine's `api_key` and the Twitch client secret -- reached Render's logs in plain text |
+| `90593bb` | One failed Limited Run product page aborted the whole refresh; walks had no page cap; malformed products failed a store |
+| `d84d496` | A non-JSON Sheets answer or a malformed tracker game became a 500 |
+| `5152d48` | The robots matcher backtracked exponentially on star-heavy patterns (108 s measured); the tag stripper was quadratic |
+| `d295184` | Runs committed only at the end: an exception answered 500 and left no failed run; a restart left no trace; the stale rule could never fire. Also one query for the failure streaks, the no-platform total, and `/resolve` capped at 200 |
+| `f96a7c6` | Two N64 games with one title (Bomberman 64: 3451 and 80368) crashed the ingest's match flush, and propagate overwrote one's id; an unknown IGDB id could be linked; unbounded stale refetches and per-row lookups |
+| `df40b6e` | A platform set by hand in Needs match was undone by the next store refresh |
+| `b92f7b9` | Long ship windows, impossible-date fallthrough, and "Nov." in a pre-order close date |
+| `abbeb8b` | Needs match and disagreements never reloaded after a press; interrupted runs; the failure count was hover-only; the registry line ignored region, cart ID and link changes |
+| `74e4e07` | A redirect off a store's site skipped robots.txt and the throttle |
+| `bb01f4b`, `81eb14b` | Tests importing other test modules; a leak test that could not see a join; sync's never-erase behaviour unpinned |
+
+Decisions recorded rather than changed:
+
+- **Sync reads the sheet only, never `switch2-tracker`** (spec §5 said
+  "nscollectors first"). The tracker is a cross-check with no cart IDs;
+  writing an owner's copy from it would let the weaker source relabel. A
+  game only the tracker lists shows in the collapse, not on the copy.
+- **"complete on disc" is `disc`, not `game_card`** (spec step 3 listed both
+  under full cartridges). A disc is not a cartridge; only a Switch or N64
+  listing that says "disc" is affected, and none does.
+- **The N64 ingest uses the IGDB adapter's own User-Agent and throttle**, as
+  spec §3 has every IGDB call do; the courtesy rules are for scraped hosts.
+  (Refuted as a finding by the verifier.)
+
+**Open for the owner — C9:** the sync writes a registry format onto every
+owned Switch 2 copy whose `owned_format` is not `none`, as spec §5 says,
+including copies recorded as digital or subscription. Those then carry a
+card format, and public stats count formats. Restricting the sync to
+physical copies (and NULL) is a one-line change; it was left as specified.

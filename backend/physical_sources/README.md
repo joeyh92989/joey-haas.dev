@@ -24,7 +24,7 @@ assembled here from sources that each know a part of it.
 | `courtesy.py` | robots.txt per RFC 9309 | yes (one GET) |
 | `format.py` | `classify(text, policy, platform_id)`: key card, code in a box or cartridge from a listing's words | yes |
 | `parse.py` | dates with their precision, availability, edition labels, store titles, platform labels | yes |
-| `registry.py` | the sheet's two details tabs through the Google Sheets API | yes (two GETs) |
+| `registry.py` | the sheet's two details tabs through the Google Sheets API | yes (three GETs: the tab list, then each tab) |
 | `tracker.py` | `switch2-tracker`'s `data/games.json` | yes (one GET) |
 | `stores.py` | `STORES`, and the interpreters that read a product through its store's config | yes |
 | `shopify.py`, `woocommerce.py` | one listing per variant; the Limited Run HTML step | yes (their `list_products`) |
@@ -127,7 +127,11 @@ run and every path is checked by RFC 9309: longest match wins, `Allow` wins a
 tie, `*` and `$` are wildcards. `urllib.robotparser` is not used: it applies
 the first matching rule, and every Shopify file opens with `Allow: /`. A 4xx
 robots.txt means no rules; a 5xx or a network failure means the host is
-skipped for the run.
+skipped for the run. Patterns are matched in linear time: a regex joining
+the pieces with `.*` backtracks exponentially on a star-heavy pattern, and
+robots.txt is third-party text. Redirects are followed only within a store's
+own site over https; one that leaves it is recorded as `redirected_off_site`.
+A walk stops at a short page, a page that adds nothing new, or `MAX_PAGES`.
 
 ## Adding a store
 

@@ -15,7 +15,10 @@ backend, deployed on Render via Blueprint (render.yaml).
   macOS system Python is 3.9 and cannot install this dependency set. Deployed
   as a Render web service (free tier: spins down after ~15 min idle). Config is
   validated at import (`config.py`), so the service refuses to start when an
-  env var is missing rather than running insecurely. New personal projects
+  env var is missing rather than running insecurely. Logging goes through
+  `config.configure_logging()`, which keeps the HTTP client's loggers at
+  WARNING: several source keys travel as query parameters, and at INFO the
+  client writes every request URL -- key included -- to Render's logs. New personal projects
   should be added as APIRouter modules (one file per project), as `auth.py` is.
 - `render.yaml` — Render Blueprint defining both services. Changing it and
   pushing updates the infrastructure.
