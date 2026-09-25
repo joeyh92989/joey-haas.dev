@@ -3,11 +3,13 @@
 import pytest
 
 from formats import (
+    CARTRIDGE_ONLY_PLATFORMS,
     HOME_REGION,
     CopyFieldError,
     apply_copy_fields,
+    apply_registry_format,
 )
-from models import Item, ItemStatus, ItemType
+from models import FormatSource, Item, ItemStatus, ItemType, PhysicalFormat
 from sources.igdb import PLATFORM_IDS, PLATFORM_NAMES, platform_id
 
 
@@ -191,3 +193,81 @@ def test_the_inputs_are_never_mutated():
     apply_copy_fields(changes, row)
     assert changes == {"cart_id": "lp-aac4b-usa-0", "platform": "x"}
     assert row.platform_id == 130
+
+
+# --- The registry (E7c) -------------------------------------------------------
+
+
+def test_cartridge_only_platforms_are_n64_and_switch():
+    assert CARTRIDGE_ONLY_PLATFORMS == frozenset({4, 130})
+
+
+@pytest.mark.parametrize("source", ["manual", "cart_id", "photo"])
+def test_the_registry_never_overwrites_what_the_owner_recorded(source):
+    row = _row(physical_format="game_card", format_source=FormatSource(source))
+    with pytest.raises(CopyFieldError):
+        apply_registry_format(row, "game_key_card")
+
+
+def test_the_registry_fills_an_unrecorded_format():
+    assert apply_registry_format(_row(), "game_key_card") == {
+        "physical_format": PhysicalFormat.GAME_KEY_CARD,
+        "format_source": FormatSource.REGISTRY,
+    }
+
+
+def test_the_registry_updates_its_own_earlier_value():
+    row = _row(physical_format="game_key_card", format_source=FormatSource.REGISTRY)
+    assert apply_registry_format(row, "game_card")["physical_format"] == (
+        PhysicalFormat.GAME_CARD
+    )
+
+
+def test_an_edition_without_a_format_changes_nothing():
+    assert apply_registry_format(_row(), None) == {}
+
+
+def test_edition_id_adopts_the_registry_format():
+    result = apply_copy_fields(
+        {"edition_id": "e-1", "edition_format": "game_card"}, _row()
+    )
+    assert result == {
+        "physical_format": PhysicalFormat.GAME_CARD,
+        "format_source": FormatSource.REGISTRY,
+    }
+    assert "edition_id" not in result and "cart_id" not in result
+
+
+def test_edition_id_is_refused_when_the_copy_has_a_cart_id():
+    row = _row(
+        cart_id="LP-AAC4B-USA-0",
+        physical_format="game_key_card",
+        format_source=FormatSource.CART_ID,
+    )
+    with pytest.raises(CopyFieldError, match="LP-AAC4B-USA-0"):
+        apply_copy_fields({"edition_id": "e-1", "edition_format": "game_card"}, row)
+
+
+def test_edition_id_with_a_format_is_refused():
+    with pytest.raises(CopyFieldError):
+        apply_copy_fields(
+            {
+                "edition_id": "e-1",
+                "edition_format": "game_card",
+                "physical_format": "disc",
+            },
+            _row(),
+        )
+
+
+def test_edition_id_keeps_the_other_rules():
+    result = apply_copy_fields(
+        {"edition_id": "e-1", "edition_format": "game_key_card", "region": "eur"},
+        _row(),
+    )
+    assert (result["region"], result["format_source"]) == ("EUR", FormatSource.REGISTRY)
+
+
+def test_an_edition_with_no_card_type_is_refused():
+    with pytest.raises(CopyFieldError, match="no card type"):
+        apply_copy_fields({"edition_id": "e-1", "edition_format": None}, _row())
