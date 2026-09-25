@@ -202,7 +202,6 @@ class PageFacts:
 
 
 _KEY_CARD = re.compile(r"\bgame[- ]?key[- ]?card\b", re.IGNORECASE)
-_SELLING_PLANS = re.compile(r'"selling_plan_groups":(\[.*?\]),"', re.DOTALL)
 _PLAN_NAME = re.compile(r'"name":"([^"]*estimated ship date[^"]*)"', re.IGNORECASE)
 
 

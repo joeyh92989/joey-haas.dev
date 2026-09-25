@@ -1,5 +1,6 @@
 """STORES and the Shopify adapter, on the recorded products.json pages."""
 
+import asyncio
 import dataclasses
 import json
 import re
@@ -10,6 +11,7 @@ from pathlib import Path
 import httpx2
 import pytest
 
+from physical_sources.base import HostThrottle, PhysicalSourceError, throttled_get
 from physical_sources.courtesy import parse_robots
 from physical_sources.limits import CATALOGUE_PLATFORMS
 from physical_sources.shopify import (
@@ -522,3 +524,43 @@ async def test_malformed_products_are_dropped():
         lambda request: httpx2.Response(200, json=body), _single_handle_store()
     )
     assert errors == [] and [r.store_product_id for r in rows] == ["1"]
+
+
+@pytest.mark.asyncio
+async def test_the_throttle_spaces_one_host_and_not_two():
+    throttle = HostThrottle(per_second=20)  # 50 ms apart
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+    await throttle.wait("a.test")
+    await throttle.wait("b.test")
+    other_host = loop.time() - started
+    await throttle.wait("a.test")
+    same_host = loop.time() - started
+    assert other_host < 0.03 and same_host >= 0.045
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("location", "allowed_through"),
+    [
+        ("https://www.superraregames.com/collections/switch/products.json", True),
+        ("https://elsewhere.test/collections/switch/products.json", False),
+        ("http://superraregames.com/collections/switch/products.json", False),
+    ],
+)
+async def test_redirects_stay_on_the_stores_site(location, allowed_through):
+    def handler(request):
+        if request.url.host == "superraregames.com" and request.url.scheme == "https":
+            return httpx2.Response(301, headers={"Location": location})
+        return httpx2.Response(200, json={"products": []})
+
+    transport = httpx2.MockTransport(handler)
+    async with httpx2.AsyncClient(transport=transport, follow_redirects=True) as client:
+        url = "https://superraregames.com/collections/switch/products.json"
+        if allowed_through:
+            response = await throttled_get(client, url, "superraregames.com", None)
+            assert response.status_code == 200
+        else:
+            with pytest.raises(PhysicalSourceError) as error:
+                await throttled_get(client, url, "superraregames.com", None)
+            assert error.value.code == "redirected_off_site"

@@ -114,16 +114,34 @@ class HostThrottle:
             self._next[host] = loop.time() + self._interval
 
 
+def _same_site(host: str, other: str | None) -> bool:
+    """`other` is `host`, or the same host with or without `www.`."""
+    bare = host.removeprefix("www.")
+    return (other or "").removeprefix("www.") == bare
+
+
 async def throttled_get(client, url: str, host: str, throttle: HostThrottle | None):
-    """One GET, spaced per host; a transport failure becomes an http_error."""
+    """One GET, spaced per host; a transport failure becomes an http_error.
+
+    Redirects are followed only within the store's own site (four stores
+    move their bare domain to `www.`). One that leaves it is refused: that
+    host's robots.txt was never read and its throttle never applied.
+    """
     if throttle is not None:
         await throttle.wait(host)
     try:
-        return await client.get(url)
+        response = await client.get(url)
     except Exception as error:
         raise PhysicalSourceError(
             f"{url}: {type(error).__name__}", code="http_error"
         ) from None
+    if response.history and (
+        response.url.scheme != "https" or not _same_site(host, response.url.host)
+    ):
+        raise PhysicalSourceError(
+            f"{url} redirected to {response.url.host}", code="redirected_off_site"
+        )
+    return response
 
 
 def plausible_price(value: Decimal | None) -> Decimal | None:
