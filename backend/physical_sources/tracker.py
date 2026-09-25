@@ -61,10 +61,13 @@ def parse_games(payload: dict) -> list[EditionRow]:
     rows: list[EditionRow] = []
     seen: set[str] = set()
     for game in payload.get("games", []):
-        if not str(game.get("title") or "").strip():
+        # A malformed entry is skipped, never allowed to fail the run.
+        if not isinstance(game, dict) or not str(game.get("title") or "").strip():
             continue
-        formats = game.get("formats") or {}
-        releases = game.get("releases") or {}
+        formats = game.get("formats") if isinstance(game.get("formats"), dict) else {}
+        releases = (
+            game.get("releases") if isinstance(game.get("releases"), dict) else {}
+        )
         if formats:
             candidates = [
                 _edition(

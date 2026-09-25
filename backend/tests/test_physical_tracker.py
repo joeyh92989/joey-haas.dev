@@ -139,3 +139,15 @@ async def test_fetch_games_failures_are_source_errors(response):
     async with _client(lambda request: response) as client:
         with pytest.raises(PhysicalSourceError):
             await fetch_games(client)
+
+
+def test_malformed_games_are_skipped():
+    payload = {
+        "games": [
+            "junk",
+            None,
+            {"title": "X", "fmt": "c", "formats": "oops", "releases": 3},
+        ]
+    }
+    (row,) = parse_games(payload)
+    assert (row.region, row.physical_format) == ("ALL", "game_card")

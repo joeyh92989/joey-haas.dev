@@ -86,7 +86,11 @@ def rows_from_values(payload: dict) -> list[list[str]]:
     The API omits trailing empty cells, so a row whose last columns are blank
     comes back short.
     """
-    rows = [[str(cell) for cell in row] for row in payload.get("values", [])]
+    rows = [
+        [str(cell) for cell in row]
+        for row in payload.get("values", [])
+        if isinstance(row, list)
+    ]
     width = max((len(row) for row in rows), default=0)
     return [row + [""] * (width - len(row)) for row in rows]
 
@@ -251,7 +255,17 @@ async def _get_json(client, url: str, params: dict, throttle: HostThrottle | Non
         raise PhysicalSourceError(
             f"Sheets API: HTTP {response.status_code}", code="http_error"
         )
-    return response.json()
+    try:
+        payload = response.json()
+    except ValueError:
+        raise PhysicalSourceError(
+            "Sheets API: body is not JSON", code="http_error"
+        ) from None
+    if not isinstance(payload, dict):
+        raise PhysicalSourceError(
+            "Sheets API: unexpected body", code="schema_missing_columns"
+        )
+    return payload
 
 
 async def fetch_properties(

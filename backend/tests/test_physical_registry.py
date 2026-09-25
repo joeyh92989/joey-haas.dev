@@ -296,3 +296,21 @@ async def test_a_network_error_never_carries_the_url():
             await list_editions(client, "secret-key")
     assert error.value.code == "http_error"
     assert "secret-key" not in str(error.value)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "response",
+    [httpx2.Response(200, text="<html>sign in</html>"), httpx2.Response(200, json=[])],
+)
+async def test_a_malformed_sheets_answer_is_a_source_error(response):
+    async with _client(lambda request: response) as client:
+        with pytest.raises(PhysicalSourceError):
+            await list_editions(client, "secret-key")
+
+
+def test_malformed_rows_are_skipped():
+    assert rows_from_values({"values": [["a", "b"], "junk", None, ["c"]]}) == [
+        ["a", "b"],
+        ["c", ""],
+    ]
