@@ -292,7 +292,8 @@ STORES: dict[str, StoreConfig] = {
                 # "Stardew Valley - Stardew Valley Standard Edition"
                 re.compile(r"^(.+?) - (?=\1)"),
                 re.compile(
-                    r"\s*-?\s*Physical Edition(?: for Nintendo Switch(?:™| 2)?)?\s*$",
+                    r"\s*-?\s*(?:Game )?Physical Edition"
+                    r"(?: for Nintendo Switch(?:™| 2)?)?\s*$",
                     _I,
                 ),
             ),

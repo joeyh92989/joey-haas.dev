@@ -307,3 +307,104 @@ async def test_a_disallowed_path_is_never_requested():
 
 def test_catalogue_platforms_are_the_three():
     assert CATALOGUE_PLATFORMS == {508, 130, 4}
+
+
+# --- The remaining Shopify stores (Task 10) ----------------------------------
+
+
+def test_premium_edition_alisa():
+    rows = rows_for("premium_edition", "Alisa: Developer's Cut - Standard Edition")
+    (row,) = rows
+    assert (row.platform_id, row.availability, row.edition_label) == (
+        130,
+        "preorder",
+        "Standard",
+    )
+    assert (row.format_hint, row.format_tier, row.format_evidence) == (
+        "game_card",
+        "store_text",
+        "Physical Case and Game",
+    )
+    assert row.title_normalized == "alisa developer s cut"
+
+
+def test_nicalis_platform_option_and_release_date():
+    (row,) = rows_for("nicalis", "The Binding of Isaac: Repentance+")
+    assert row.platform_id == 508
+    assert (row.release_date, row.release_precision) == (date(2026, 11, 19), "day")
+    # Nicalis says nothing about format, and Switch 2 has no platform policy.
+    assert row.format_hint is None
+
+
+def test_aksys_us_bounty_sisters():
+    (row,) = rows_for("aksys_us", "PRE-ORDER: Bounty Sisters")
+    assert (row.title_normalized, row.platform_id, row.availability) == (
+        "bounty sisters",
+        130,
+        "preorder",
+    )
+    assert row.raw["variant"]["sku"].startswith("SW-")
+
+
+def test_aksys_eu_trademark_collection():
+    products = page("aksys_eu", "nintendo-switch™-1")
+    rows = explode(products[0], STORES["aksys_eu"], {"nintendo-switch™-1"})
+    assert {row.platform_id for row in rows} == {130}
+    assert {(row.region, row.currency) for row in rows} == {("EUR", "GBP")}
+    assert "nintendo switch" not in rows[0].title_normalized
+
+
+def test_fangamer_silksong_one_variant_per_platform():
+    rows = rows_for("fangamer", "Hollow Knight: Silksong Standard Edition")
+    platforms = by_platform(rows)
+    assert len(rows) == 3
+    # The body says the Nintendo Switch 2 Edition is the Switch game plus an
+    # upgrade pack: a Switch 1 cartridge, so the variant lists under 130
+    # (spec §2 classifier step 2; the plan's AC expected 508).
+    assert rows[0].raw["variant"]["option1"] == "Nintendo Switch 2"
+    assert platforms[130].format_hint == "game_card"
+    assert platforms[167].format_hint is None
+
+
+def test_fangamer_stardew_upgrade_pack():
+    (row,) = rows_for("fangamer", "Stardew Valley - Stardew Valley Standard Edition")
+    assert (row.title_normalized, row.platform_id, row.format_hint) == (
+        "stardew valley",
+        130,
+        "game_card",
+    )
+
+
+def test_fangamer_style_option_names_the_platform():
+    rows = rows_for("fangamer", "UNDERTALE Game Physical Edition")
+    assert {row.platform_id for row in rows} >= {130, 48, 49, 6}
+    assert rows[0].title_normalized == "undertale"
+
+
+# --- Fixture coverage ---------------------------------------------------------
+
+# Handles recorded on 2026-09-25 with no game on a catalogue platform. They
+# are walked all the same; a store's stock turns over.
+NO_CATALOGUE_GAME = {
+    ("premium_edition", "coming-soon-2"),
+}
+
+
+@pytest.mark.parametrize(
+    ("store", "handle"),
+    [
+        (key, handle)
+        for key, config in STORES.items()
+        if config.adapter == "shopify"
+        for handle in config.collections
+    ],
+)
+def test_every_handle_has_a_fixture_that_yields_a_catalogue_game(store, handle):
+    products = page(store, handle)
+    rows = [
+        row for product in products for row in explode(product, STORES[store], {handle})
+    ]
+    has_game = any(
+        row.is_game and row.platform_id in CATALOGUE_PLATFORMS for row in rows
+    )
+    assert has_game != ((store, handle) in NO_CATALOGUE_GAME)
