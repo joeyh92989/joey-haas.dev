@@ -934,3 +934,75 @@ CHECKPOINT — batch review + finish gate
 3. `/admin/catalogue`: Refresh registry → Refresh stores → Resolve until 0 →
    work Needs match → Refresh N64 when wanted.
 4. Smoke and logs.
+
+## Execution summary
+
+### Zone 0 — fixture runs, 2026-09-25
+
+The owner's terminal run produced no output and no files, so the assistant
+ran `record_physical_fixtures.py --igdb`. The first run exited 1 on Atari
+alone; its drift led to four owner decisions (below), the recorder was
+changed to match, and the second run exited 0 with 58 files: 11 MB on disk,
+about 1.5 MB compressed. No fixture contains any credential value from
+`backend/.env` (checked across every file of both runs).
+
+**Sheet access: confirmed.** The Sheets API returned 200 for the properties
+request and every tab with the key alone. The upload fallback is not needed.
+
+**Owner decisions, 2026-09-25**
+
+1. **Atari is dropped** from `STORES`: its `products.json` answers every
+   client with a Cloudflare bot challenge (403, `cf-mitigated: challenge`,
+   under the tracker's User-Agent and a plain one alike), and getting past
+   bot detection is off the table. Twelve stores, not thirteen; nine Shopify.
+2. **The `Upcoming Switch 2 Releases` tab** (gid `238551450`) is recorded;
+   whether Task 7 reads it is settled at this checkpoint (see below).
+3. **The Release Summary tab** (gid `558942722`) is **not read**: Release
+   Details dates all 749 rows by region itself.
+4. **Store fixtures keep only each product's first image**; the full
+   galleries were 4.9 MB of the Shopify JSON and no parser reads them.
+
+### Differences from the spec §2 table and the acceptance criteria
+
+| Area | Spec / plan said | Recorded | Effect |
+|---|---|---|---|
+| Atari | `physical-games`, `physical-cartridges` | Cloudflare challenge, 403 | Dropped (decision 1). Task 10's Atari AC and the "thirteen" counts in Tasks 9, 17 and the env tests become twelve |
+| Hosts | bare domains | `iam8bit.com`, `strictlylimitedgames.com`, `fangamer.com`, `pixelheart.eu` redirect to `www.`; Fangamer's bare-host `robots.txt` is 404 | `STORES` uses the `www.` hosts, so the courtesy check reads the right file |
+| robots.txt | every store's JSON path allowed | every recorded path allowed; `raw.githubusercontent.com` has none (404 → allowed) | Task 4 AC holds |
+| Release Details | "Details"; `Release Date` optional; dates from Summary | `Switch 2 Release Details`; header at row 3; every optional column present, plus `LP #` and `Verified By`; `Release Date` on all 749 rows, every one `YYYY/MM/DD` | Dates come from each row (decision 3); `parse_summary` and the Summary merge leave Task 7 |
+| Card Type | Digital, blank and unknown values expected | Details: `Game Card` 289, `Game-Key Card` 432, `Code in a Box` 28, nothing else. Upcoming Releases: `Game-Key Card` 68, `Game Card` 52, `TBC` 64, blank 1 | No `is_physical = false` rows today; the Digital path is tested on synthetic rows. `TBC` is new vocabulary |
+| Cart ID (Open question 2) | optional | present; Details 571 valid, 28 `N/A`; Upcoming Releases 1 of 185 filled | `N/A` and blank → NULL, as planned |
+| NS1 column | "any header containing NS1" | `NS1 Compatible`, `Yes`/`No`, on both details tabs | As planned |
+| Upcoming Releases tab | not in the spec | `Upcoming Switch 2 Releases`: the Details layout without `Master Title` (header at row 3), 185 rows, every one dated `YYYY/MM/DD`, all seven regions; covers **all 65** titles of the Upcoming Summary | Read through the same `parse_details`. The Upcoming Summary is then redundant too |
+| Upcoming Summary | header by `Game Title` | `Upcoming Switch 2 Release Summary`, header at row 4, a junk row dated `1899/12/30` | Only needed if the Upcoming Releases tab is not read |
+| **Edition identity** | `source_ref` = `normalize_title(Game Title)` + `\|` + region, unique per source | Not unique. Details: WWE 2K25 AUS and EUR each have a `Game-Key Card` row and a `Code in a Box` row (same publisher). Upcoming Releases: Trails in the Sky 2nd Chapter EUR (two publishers, two dates) and Human Fall Flat 2 EUR (Microids key card, Devolver `TBC`). Four title-region pairs sit in both tabs (LEGO Batman, Monopoly Star Wars, USA and EUR) | `UniqueConstraint(source, source_ref)` would reject the sheet. **Owner decision** before Task 2 (below) |
+| Tracker | 910 games; `fmt`, `formats`, `date`, `id` | 916; adds `releases` (per-region dates), `editions`, `region`, `status`, `type`, `note`; `formats` values `c`/`k`/`b` | Excerpt covers every case. Task 8's `{usa: k, eur: c}` example becomes WWE 2K25's real `{usa: b, eur: k, aus: k}` |
+| Limited Run counts | `coming-soon` 49, `distro` 27, `the-lr-vault` 20, `in-stock-switch` 44, `latest-releases` 10 | 5, 5, 63, 27, 10 | Terranigma's three editions are in both `coming-soon` and `distro`; no Switch 2 item in `latest-releases` today |
+| Limited Run HTML step | `Estimated Ship Date: (.+)` theme text; `Game Key Card` | the page (Terranigma Foiled, a Distro title) has neither as theme text. The date is in the embedded `selling_plan_groups` JSON: plan name `🟣 Estimated ship date Jan 12 – 31, 2027`, option `Date` values `2027-01-12`, `2027-04-01` | Task 9's `parse_product_page` reads the selling-plan JSON (ISO date, month precision). `key_card_seen` is False on this page |
+| Limited Run platform | option `Platform`; SKU `NS2-`/`NSW-` | option confirmed; one pre-order SKU is `2LRS006`; He-Man is `Default Title` with no platform anywhere | Option first, as planned; He-Man goes to Needs match |
+| Super Rare | `SW2#02` → "The Midnight Walk" | `Sw2#02: The Midnight Walk` (mixed case, product_type `Switch 2`, "Fully assembled Nintendo Switch 2 game with cartridge"), beside `[Special Edition] SE#02: …` (Collector's Edition, no cartridge phrase) and `Sw2 TC#02 … Trading Card Pack` | `title_strip` case-insensitive and covering `[Special Edition] SE#`; no `Teeto Key` product today |
+| iam8bit | "UNBEATABLE - Breakout Edition (Nintendo Switch 2)" | `UNBEATABLE - Breakout Edition (iam8bit Nintendo Switch 2 Exclusive…)`, `available: false`, tags `pre-order` and `sold-out`, "complete on cartridge", "Shipping Q4 2026"; the Legacy Cartridge example is now Sonic 35th Anniversary with a multi-wave ship text | Title regex matches `Nintendo Switch 2` inside the parentheses; `new` is a full page (250) |
+| Strictly Limited | product_type; "full game on cartridge" | product_type `Nintendo Switch 2 Collector's Edition`; phrase `full physical cartridge`; `Sold Out` tag on an available item confirmed; `nintendo-switch` a full page (250) | As planned |
+| Premium Edition | "Alisa … (Pre-order)" | option `Choose Your Version!` (edition, not platform); product_type `Nintendo Switch Games`; body `EST 2026: Coming Soon`, `Physical Case and Game` | Platform from product_type, as planned |
+| Nicalis | option `Nintendo Switch™ 2`; `Release Date: November 19, 2026` | confirmed; others read `Release Date: Q3 2026` and `July 31st, 2018` | `parse_release` handles quarters and ordinal days |
+| Aksys US (Open question 5) | `switch` unverified | `switch` answers, 87 products; `PRE-ORDER: Bounty Sisters`, SKU `SW-80` | Handle kept |
+| Aksys EU | `nintendo-switch™-1` 61 | 53; product_type `Nintendo Switch`; GBP | Product_type is a usable platform signal |
+| Fangamer | option `edition`; upgrade-pack phrase | confirmed on Silksong and Stardew Valley; Stardew carries `platform_Nintendo Switch` and `platform_Nintendo Switch 2` tags | The override to 130 matters, as planned |
+| PixelHeart | attribute `Platform`; 5 items | no `Platform` attribute (`Marque`, `Section`, `Edition`); platform only from the name `SWITCH [US]`; `/en/` + `/fr/` duplicates confirmed; `4490`, minor unit 2 → €44.90; Rage of the Dragons out of stock, not on backorder; 32 products | Platform from the name |
+| GameFairy / 1Print | 5 / 6 items | 21 / 17; 1Print bundle `In Other Waters And Sky Racket` confirmed | As planned |
+| IGDB N64 (Open question 4) | measured on first run | 234 games with `total_rating_count >= 5`, all 234 with a cover | Coverage is complete at that threshold |
+
+### Open for the owner at this checkpoint
+
+1. **Read the Upcoming Releases tab?** Recommended: yes, through
+   `parse_details`, and drop the Upcoming Summary as well — the tab covers
+   every upcoming title with a date and, for 120 of 185 rows, a card type.
+   `TBC` and blank then mean `is_physical = NULL` (announced, card type not
+   listed yet), which is what the spec wanted from the Upcoming Summary.
+   Where a title and region appear in both tabs, Release Details wins.
+2. **Edition identity.** Recommended: `source_ref` = normalized title |
+   region | normalized publisher | card type. It separates every duplicate
+   recorded today; a card type changing from `TBC` retires the old row and
+   adds the new one, which the retire/un-retire rules already handle. This
+   changes spec §1 and Task 7's AC; the unique key itself (`source`,
+   `source_ref`) and Task 2 are unaffected.
