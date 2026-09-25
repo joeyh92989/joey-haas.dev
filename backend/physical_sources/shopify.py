@@ -19,7 +19,12 @@ from decimal import Decimal, InvalidOperation
 from urllib.parse import quote
 
 from matching import normalize_title
-from physical_sources.base import HostThrottle, PhysicalSourceError, StoreProduct
+from physical_sources.base import (
+    HostThrottle,
+    PhysicalSourceError,
+    StoreProduct,
+    throttled_get,
+)
 from physical_sources.courtesy import Robots, allowed
 from physical_sources.format import UPGRADE_PACK, classify, plain_text
 from physical_sources.limits import (
@@ -249,17 +254,6 @@ def collection_url(config: StoreConfig, handle: str, page: int) -> str:
     )
 
 
-async def _get(client, url: str, host: str, throttle: HostThrottle | None):
-    if throttle is not None:
-        await throttle.wait(host)
-    try:
-        return await client.get(url)
-    except Exception as error:
-        raise PhysicalSourceError(
-            f"{url}: {type(error).__name__}", code="http_error"
-        ) from None
-
-
 async def _walk(config, handle, client, robots, throttle) -> list[dict]:
     products: list[dict] = []
     page = 1
@@ -269,7 +263,7 @@ async def _walk(config, handle, client, robots, throttle) -> list[dict]:
             raise PhysicalSourceError(
                 f"robots.txt disallows {handle}", code="robots_disallowed"
             )
-        response = await _get(client, url, config.domain, throttle)
+        response = await throttled_get(client, url, config.domain, throttle)
         if response.status_code != 200:
             raise PhysicalSourceError(
                 f"{handle} page {page}: HTTP {response.status_code}", code="http_error"
@@ -295,7 +289,7 @@ async def fetch_product_page(
     url = f"https://{config.domain}/products/{handle}"
     if not allowed(robots, url):
         return None
-    response = await _get(client, url, config.domain, throttle)
+    response = await throttled_get(client, url, config.domain, throttle)
     return response.text if response.status_code == 200 else None
 
 

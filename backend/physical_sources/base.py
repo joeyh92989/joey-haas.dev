@@ -112,3 +112,15 @@ class HostThrottle:
             if delay > 0:
                 await asyncio.sleep(delay)
             self._next[host] = loop.time() + self._interval
+
+
+async def throttled_get(client, url: str, host: str, throttle: HostThrottle | None):
+    """One GET, spaced per host; a transport failure becomes an http_error."""
+    if throttle is not None:
+        await throttle.wait(host)
+    try:
+        return await client.get(url)
+    except Exception as error:
+        raise PhysicalSourceError(
+            f"{url}: {type(error).__name__}", code="http_error"
+        ) from None

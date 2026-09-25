@@ -338,7 +338,8 @@ STORES: dict[str, StoreConfig] = {
             currency="EUR",
             region="EUR",
             collections=("65",),
-            platform=("attribute:Platform", "title"),
+            title_strip=(re.compile(r"\s+SWITCH\b.*$", _I),),
+            platform=("attribute:Plate-forme", "attribute:Platform", "title"),
             url_keep=re.compile(r"/en/"),
         ),
         StoreConfig(
@@ -349,6 +350,7 @@ STORES: dict[str, StoreConfig] = {
             currency="USD",
             region="USA",
             collections=("22",),
+            title_strip=(re.compile(r"\s*Nintendo Switch\b.*$", _I),),
             platform=("attribute:Platform", "title"),
         ),
         StoreConfig(
