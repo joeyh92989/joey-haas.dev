@@ -16,8 +16,13 @@ import enum
 import re
 from dataclasses import dataclass
 from difflib import SequenceMatcher
+from typing import TYPE_CHECKING
 
-from sources.base import SourceResult
+# Only for annotations: sources.base imports models, and the physical
+# catalogue's pure parsers import normalize_title from here without pulling
+# in SQLAlchemy.
+if TYPE_CHECKING:
+    from sources.base import SourceResult
 
 # 0.98 rather than 0.95 deliberately. Normalization already removes the
 # differences that do not matter, so a genuine match usually scores exactly
