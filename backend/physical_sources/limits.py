@@ -47,3 +47,18 @@ HOME_REGION = "USA"
 
 # LP-AAC4B-USA-0: format prefix, product code, region, revision.
 CART_ID_PATTERN = re.compile(r"^L[PBNA]-[A-Z0-9]{5}-[A-Z0-9]{3}-[0-9A-Z]$")
+
+# How a format reads in a sentence about the owner's copy (formats.py builds
+# FORMAT_LABELS from this), and as the registry spells it.
+FORMAT_WORDS = {
+    "game_card": "full game on cartridge",
+    "game_key_card": "Game-Key Card",
+    "code_in_box": "code in a box",
+    "disc": "disc",
+}
+REGISTRY_WORDS = {
+    "game_card": "Game Card",
+    "game_key_card": "Game-Key Card",
+    "code_in_box": "Code in a Box",
+    "disc": "Disc",
+}
