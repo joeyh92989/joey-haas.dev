@@ -664,7 +664,13 @@ async def consecutive_failures(session, source) -> int
 - [ ] `retire=False` (short run) leaves absent rows live.
 - [ ] Listings: a variant absent from a non-short run → `archived`; its
       `raw`, `igdb_id` and `format_hint` are kept.
-- [ ] `first_seen_at` never changes on update; `last_seen_at` does.
+- [ ] `first_seen_at` never changes on update; `last_seen_at` does — and
+      `updated_at` on listings: `onupdate` does not fire for a Core
+      `on_conflict_do_update`, so the upsert sets both in `set_` (review of
+      Task 2).
+- [ ] A run left with `ok IS NULL` (the process restarted mid-refresh) and
+      older than 30 minutes counts as failed in `consecutive_failures` and
+      reads as "interrupted" on the status page.
 - [ ] **Commit:** `feat(tracker): add the catalogue persistence layer`
 
 ### Task 15: Resolution and the N64 ingest *(depends on 14)*
@@ -698,6 +704,11 @@ Tests use a fake `IgdbSource` returning the recorded `igdb_search.json` /
       searched.
 - [ ] `catalogue_games` is filled once per id; a second batch does not
       refetch a fresh snapshot; a snapshot older than 30 days is refetched.
+- [ ] Order (spec §3, forced by the 0005 foreign keys): games are filled from
+      decided `catalogue_matches` ids first, then `igdb_id` is copied only
+      where a `catalogue_games` row exists. A match whose game fetch was
+      rate-limited leaves its rows unlinked without error, and the next
+      resolve links them; an id IGDB does not return stays unlinked.
 - [ ] `SourceNotConfigured` → `igdb_not_configured` error, nothing written;
       `SourceRateLimited` after two keys → two written, error recorded,
       `unresolved_remaining` correct.
@@ -790,8 +801,9 @@ IGDB adapter, so a full refresh runs end to end against the test Postgres.
 ```
 
 **Acceptance criteria**
-- [ ] Linking a pending key by hand marks it `manual`, copies the id to its
-      rows and fills `catalogue_games`; ignoring it removes it from
+- [ ] Linking a pending key by hand marks it `manual`, fills
+      `catalogue_games` and then copies the id to its rows (the foreign key
+      needs the game row first); ignoring it removes it from
       `needs-match`; re-keying a platform-less key moves its rows and lists
       it under the new platform.
 - [ ] `/items/{id}/registry` for a manual game-card item with a key-card

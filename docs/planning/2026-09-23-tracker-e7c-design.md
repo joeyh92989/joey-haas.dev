@@ -401,9 +401,18 @@ the table, and the difference is recorded in the plan's summary.
   sharing the key, else None. `exact` / `probable` → `decided_by = auto`,
   `igdb_id` set; `uncertain` or nothing → `pending`, `igdb_id` NULL, the top
   three `SourceResult`s in `candidates`.
-- Then one `UPDATE … FROM catalogue_matches` copies `igdb_id` onto every
-  edition and listing with a decided key, and `catalogue_games` is filled for
-  ids missing or older than 30 days through `fetch_many` in batches of 100.
+- Then `catalogue_games` is filled for the ids of decided
+  `catalogue_matches` rows that are missing or older than 30 days, through
+  `fetch_many` in batches of 100, and only after that one `UPDATE … FROM
+  catalogue_matches JOIN catalogue_games` copies `igdb_id` onto every edition
+  and listing with a decided key. *Revised 2026-09-25*: the order is forced
+  by the foreign keys from `physical_editions` and `store_listings` to
+  `catalogue_games` — copying first would violate them — and the join keeps a
+  partial fetch (rate limit, or IGDB returning fewer ids than asked) from
+  failing the batch. The copy runs over every decided match on each resolve,
+  not only this batch's, so a match whose game fetch was cut short is linked
+  on the next press. `catalogue_matches.igdb_id` has no foreign key for the
+  same reason: an auto match is decided before its game row exists.
 - `SourceNotConfigured` skips the step with `igdb_not_configured`;
   `SourceRateLimited` stops it with `igdb_rate_limited`, leaving the rest for
   the next press. Sources still refresh either way.
