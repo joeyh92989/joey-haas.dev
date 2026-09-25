@@ -23,6 +23,7 @@ from physical_sources.base import (
     HostThrottle,
     PhysicalSourceError,
     StoreProduct,
+    plausible_price,
     throttled_get,
 )
 from physical_sources.courtesy import Robots, allowed
@@ -55,7 +56,7 @@ def _tags(product: dict) -> list[str]:
 
 def _price(value: object) -> Decimal | None:
     try:
-        return Decimal(str(value)) if value not in (None, "") else None
+        return plausible_price(Decimal(str(value))) if value not in (None, "") else None
     except InvalidOperation:
         return None
 

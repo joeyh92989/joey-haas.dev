@@ -17,6 +17,7 @@ from physical_sources.base import (
     HostThrottle,
     PhysicalSourceError,
     StoreProduct,
+    plausible_price,
     throttled_get,
 )
 from physical_sources.courtesy import Robots, allowed
@@ -33,7 +34,7 @@ BODY_EXCERPT = 2000
 def _price(prices: dict) -> Decimal | None:
     try:
         minor = int(prices.get("currency_minor_unit", 2))
-        return Decimal(str(prices["price"])) / (10**minor)
+        return plausible_price(Decimal(str(prices["price"])) / (10**minor))
     except (KeyError, InvalidOperation, TypeError, ValueError):
         return None
 

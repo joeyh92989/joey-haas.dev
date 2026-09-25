@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 
-from physical_sources.limits import REQUESTS_PER_SECOND
+from physical_sources.limits import MAX_PRICE, REQUESTS_PER_SECOND
 
 
 @dataclass(frozen=True)
@@ -124,3 +124,14 @@ async def throttled_get(client, url: str, host: str, throttle: HostThrottle | No
         raise PhysicalSourceError(
             f"{url}: {type(error).__name__}", code="http_error"
         ) from None
+
+
+def plausible_price(value: Decimal | None) -> Decimal | None:
+    """A price, or None when it is not one a store means.
+
+    Nicalis lists 1001 Spikes at $1,001,001.00, a joke; stored as is it
+    overflows store_listings.price and loses the whole store's run.
+    """
+    if value is None or value < 0 or value > MAX_PRICE:
+        return None
+    return value

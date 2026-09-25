@@ -408,3 +408,8 @@ def test_every_handle_has_a_fixture_that_yields_a_catalogue_game(store, handle):
         row.is_game and row.platform_id in CATALOGUE_PLATFORMS for row in rows
     )
     assert has_game != ((store, handle) in NO_CATALOGUE_GAME)
+
+
+def test_a_placeholder_price_is_no_price():
+    rows = rows_for("nicalis", "1001 Spikes")
+    assert rows and {row.price for row in rows} == {None}

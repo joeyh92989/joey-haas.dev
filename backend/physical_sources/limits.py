@@ -8,6 +8,7 @@ formats.py imports them from here instead, so each has one definition.
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 
 USER_AGENT = "joey-haas.dev tracker (+https://joey-haas.dev; josephthaas@gmail.com)"
 
@@ -15,6 +16,9 @@ USER_AGENT = "joey-haas.dev tracker (+https://joey-haas.dev; josephthaas@gmail.c
 REQUESTS_PER_SECOND = 2
 PAGE_SIZE_SHOPIFY = 250
 PAGE_SIZE_WOO = 100
+# The largest price store_listings.price (numeric(8,2)) holds; anything above
+# is a placeholder, not a price.
+MAX_PRICE = Decimal("999999.99")
 REQUEST_TIMEOUT_SECONDS = 30.0
 
 # Keys resolved to IGDB per press of Resolve; the button loops.
