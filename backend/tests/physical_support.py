@@ -93,13 +93,17 @@ def edition(title, ref=None, platform_id=508, **extra):
         source="nscollectors",
         source_ref=ref or f"{normalize_title(title)}|USA|pub|game card",
         title=title,
-        title_normalized=normalize_title(title),
         platform_id=platform_id,
         region="USA",
         is_physical=True,
         physical_format="game_card",
         format_source="registry",
-        **{"release_date": date(2026, 11, 19), "release_precision": "day", **extra},
+        **{
+            "title_normalized": normalize_title(title),
+            "release_date": date(2026, 11, 19),
+            "release_precision": "day",
+            **extra,
+        },
     )
 
 

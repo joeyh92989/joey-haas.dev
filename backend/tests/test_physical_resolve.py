@@ -167,6 +167,28 @@ async def test_a_quarter_date_does_not_narrow_the_search_year(session):
     assert igdb.searches == [("Soon", None, "Nintendo Switch 2")]
 
 
+@pytest.mark.asyncio
+async def test_a_registry_spelling_is_searched_as_the_base_game(session):
+    raw = "Legend of Zelda: Breath of the Wild Nintendo Switch 2 Edition, The"
+    row = edition(raw, title_normalized="the legend of zelda breath of the wild")
+    await upsert_editions(session, [row], "nscollectors", retire=True)
+    igdb = FakeIgdb(
+        {
+            "The Legend of Zelda: Breath of the Wild": [
+                result(7, "The Legend of Zelda: Breath of the Wild")
+            ]
+        }
+    )
+
+    outcome = await resolve_batch(session, igdb)
+
+    assert igdb.searches == [
+        ("The Legend of Zelda: Breath of the Wild", 2026, "Nintendo Switch 2")
+    ]
+    assert outcome.resolved == 1
+    assert [e.igdb_id for e in await _all(session, PhysicalEdition)] == [7]
+
+
 # --- The N64 ingest -----------------------------------------------------------
 
 

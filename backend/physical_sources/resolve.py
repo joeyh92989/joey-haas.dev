@@ -50,6 +50,7 @@ from physical_sources.limits import (
     RESOLVE_LIMIT,
     SNAPSHOT_MAX_AGE_DAYS,
 )
+from physical_sources.parse import game_title
 from sources.base import (
     SourceDetail,
     SourceError,
@@ -141,8 +142,9 @@ async def pending_keys(session, limit: int) -> list[tuple[str, int, int | None, 
     """(title_normalized, platform_id, year, search title) for up to `limit`
     unmatched keys, in title order.
 
-    The search title is the registry's own spelling when an edition carries
-    the key, else the normalized title. The year is the earliest day-, month-
+    The search title is the registry's own spelling as the base game
+    (`game_title`) when an edition carries the key, else the normalized
+    title. The year is the earliest day-, month-
     or year-precision date among the key's rows (spec §3), else None, which
     best_match accepts.
     """
@@ -168,7 +170,12 @@ async def pending_keys(session, limit: int) -> list[tuple[str, int, int | None, 
     ).all():
         year = released.year if isinstance(released, date) else None
         keys.append(
-            (title_normalized, platform_id, year, registry_title or title_normalized)
+            (
+                title_normalized,
+                platform_id,
+                year,
+                game_title(registry_title) if registry_title else title_normalized,
+            )
         )
     return keys
 
