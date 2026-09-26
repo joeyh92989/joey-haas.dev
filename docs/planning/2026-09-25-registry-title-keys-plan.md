@@ -62,20 +62,36 @@ next refresh, not duplicated and retired.
 | 4 | Resolve searches IGDB with `game_title()` of the registry spelling | `physical_sources/resolve.py`, `tests/test_physical_resolve.py` | the fake IGDB receives the stripped title |
 | 5 | Needs match lists only pending decisions some unretired row still carries | `physical_routes.py`, its route test | an orphaned pending decision is not listed |
 | 6 | Registry section of the package README | `physical_sources/README.md` | — |
+| 7 | A refresh that changes a row's key clears its `igdb_id`, so the new key reopens for Resolve (a row's own id, as on an N64 edition, is written back) | `physical_sources/catalogue.py`, `tests/test_physical_catalogue.py` | an edition and a listing linked under an old key are unlinked and pending after re-keying; an unchanged key keeps its id |
+| 8 | A key whose raw title carried the Switch 2 Edition phrase is searched on Nintendo Switch with no year | `physical_sources/parse.py`, `physical_sources/resolve.py`, `tests/test_physical_resolve.py` | the fake IGDB receives ("Kirby and the Forgotten Land", None, "Nintendo Switch"); a plain Switch 2 key is still searched on Switch 2 with its year |
+
+Tasks 7 and 8 were added at the batch review (2026-09-25) from two confirmed
+findings:
+
+- **C1.** The first production refresh auto-linked BotW, Kirby and Animal
+  Crossing to IGDB's separate Switch 2 Edition games (338072, 338074,
+  375733). Re-keying kept those ids, and Resolve only opens rows with no id.
+- **C3.** Live IGDB: the base game is tagged Switch 1 only, so a Switch 2
+  search for the stripped title returns only the Switch 2 Edition entry and
+  its DLC; the registry's 2025 year would filter the base game out as well.
+  A Switch 2 Edition is by definition an upgrade of a Switch 1 game.
 
 Each task is one commit of at most four files, gated on the backend suite,
 `ruff format` and `ruff check`.
 
 **Out of scope:** `Dave the Diver Complete Edition` ("Complete" is not an
 edition word `strip_title` removes; it queues for Needs match if it misses).
-The automatic decisions the first refresh stored under suffixed keys stay in
-`catalogue_matches`: no row carries those keys, and nothing reads them.
+The decisions the first refresh stored under suffixed keys stay in
+`catalogue_matches`, and the Switch 2 Edition games it cached stay in
+`catalogue_games`: no row carries or links to them once tasks 5 and 7 land.
 
 ## Zones
 
 ```
 Zone 1 (auto): tasks 1–6
-CHECKPOINT — batch review + finish gate (ultra review: 11 files)
+CHECKPOINT — batch review
+Zone 1b (auto): tasks 7–8
+CHECKPOINT — batch review + finish gate (ultra review)
 ```
 
 No migration, infra or deploy-path change.
