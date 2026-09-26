@@ -240,6 +240,12 @@ def strip_title(title: str, patterns: Iterable[re.Pattern] = ()) -> str:
     return _SPACE.sub(" ", stripped).rstrip(_TRAILING).strip() or collapsed
 
 
+def is_switch_2_edition(title: str) -> bool:
+    """Whether a raw title names a Nintendo Switch 2 Edition, the Switch 2
+    upgrade of a Switch 1 game."""
+    return _SWITCH_2_EDITION.search(_SPACE.sub(" ", title)) is not None
+
+
 def _uninvert(title: str) -> str:
     inverted = _INVERTED_ARTICLE.match(title)
     return f"{inverted.group(2)} {inverted.group(1)}" if inverted else title
