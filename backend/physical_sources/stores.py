@@ -131,8 +131,14 @@ STORES: dict[str, StoreConfig] = {
             currency="USD",
             region="USA",
             collections=("games", "nintendo", "pre-order", "new", "restock"),
+            # The platform is an option named Platform, Edition or Style,
+            # depending on the product. Not "Title": Shopify's default single
+            # option is named Title ("Default Title"), and reading it would
+            # switch the tags step off for every one-variant product.
             platform=(
                 "option:Platform",
+                "option:Edition",
+                "option:Style",
                 "title",
                 "sku_contains:-N2-=Switch 2",
                 "product_type",
@@ -195,7 +201,9 @@ STORES: dict[str, StoreConfig] = {
                 "in-stock",
                 "in-stock-partners",
             ),
-            platform=("product_type", "title", "tags"),
+            # Title first: the store files PS4 and PS5 products under the
+            # "Nintendo Switch Games" product type.
+            platform=("title", "product_type", "tags"),
             status=(
                 "collection:pre-order=preorder",
                 "collection:latest-preorders=preorder",
