@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router'
 import RootLayout from './layouts/RootLayout.jsx'
 import About from './pages/About.jsx'
 import Admin from './pages/Admin.jsx'
+import AdminCatalogue from './pages/AdminCatalogue.jsx'
 import AdminCollection from './pages/AdminCollection.jsx'
 import AdminImport from './pages/AdminImport.jsx'
 import AdminItem from './pages/AdminItem.jsx'
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="admin/collection" element={<AdminCollection />} />
         <Route path="admin/import" element={<AdminImport />} />
         <Route path="admin/play-next" element={<PlayNext />} />
+        <Route path="admin/catalogue" element={<AdminCatalogue />} />
         <Route path="admin/collection/:id" element={<AdminItem />} />
         <Route path="blog" element={<Blog />} />
         <Route path="blog/:slug" element={<BlogPost />} />

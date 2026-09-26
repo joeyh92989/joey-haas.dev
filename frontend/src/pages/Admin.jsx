@@ -106,6 +106,9 @@ export default function Admin() {
             <Link to="/admin/play-next">Play Next</Link>
           </p>
           <p>
+            <Link to="/admin/catalogue">Catalogue</Link>
+          </p>
+          <p>
             <button type="button" className="admin-signout" onClick={signOut}>
               Sign out
             </button>

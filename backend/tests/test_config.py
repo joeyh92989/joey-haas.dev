@@ -1,6 +1,17 @@
+import logging
+
+import httpx2
 import pytest
 
-from config import Config, ConfigError, allowed_origins, load_config
+import config as config_module
+from config import (
+    Config,
+    ConfigError,
+    allowed_origins,
+    configure_logging,
+    load_config,
+)
+from physical_sources.registry import fetch_properties
 
 COMPLETE = {
     "GOOGLE_CLIENT_ID": "client-id",
@@ -96,3 +107,40 @@ def test_llm_provider_defaults_to_gemini_when_unset_or_blank():
 def test_source_keys_are_read_and_stripped_when_present():
     config = load_config({**COMPLETE, "TMDB_API_TOKEN": "  token  "})
     assert config.tmdb_api_token == "token"
+
+
+def test_the_sheets_key_is_optional_and_read_when_present():
+    # A missing key disables the registry refresh, never the service.
+    assert load_config(COMPLETE).google_sheets_api_key is None
+    assert (
+        load_config({**COMPLETE, "GOOGLE_SHEETS_API_KEY": "  "}).google_sheets_api_key
+        is None
+    )
+    loaded = load_config({**COMPLETE, "GOOGLE_SHEETS_API_KEY": " sheets-key "})
+    assert loaded.google_sheets_api_key == "sheets-key"
+
+
+def test_required_variables_are_unchanged():
+    # The catalogue added a credential; it must not have joined the set the
+    # service refuses to boot without.
+    assert config_module._REQUIRED == (
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "SESSION_SECRET",
+        "ADMIN_EMAIL",
+        "FRONTEND_URL",
+        "DATABASE_URL",
+        "DATABASE_URL_DIRECT",
+    )
+
+
+@pytest.mark.asyncio
+async def test_no_key_reaches_the_logs_through_the_http_client(caplog):
+    # httpx2 logs each request URL at INFO; the Sheets key is a query
+    # parameter. Verified live: at INFO the key appeared in the log line.
+    configure_logging()
+    caplog.set_level(logging.INFO)
+    transport = httpx2.MockTransport(lambda request: httpx2.Response(200, json={}))
+    async with httpx2.AsyncClient(transport=transport) as client:
+        await fetch_properties(client, "SECRET-SHEETS-KEY")
+    assert "SECRET-SHEETS-KEY" not in caplog.text

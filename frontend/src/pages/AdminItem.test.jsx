@@ -538,3 +538,132 @@ describe('AdminItem edits made while a pin is in flight', () => {
     expect(screen.getByLabelText('Rating')).toHaveValue(8)
   })
 })
+
+describe('the registry line', () => {
+  const SWITCH_2_ITEM = {
+    ...ITEM,
+    platform_id: 508,
+    platform: 'Nintendo Switch 2',
+    physical_format: 'game_card',
+    format_source: 'manual',
+    cart_id: null,
+    region: null,
+  }
+  const EDITION = {
+    id: 'e-1',
+    region: 'USA',
+    physical_format: 'game_key_card',
+    format_words: 'Game-Key Card',
+    cart_id: 'LP-AAC4B-USA-0',
+  }
+  const DISAGREES = {
+    edition: EDITION,
+    agrees: false,
+    note:
+      'r/NSCollectors lists the USA edition as Game-Key Card (LP-AAC4B-USA-0); ' +
+      'you recorded full game on cartridge (manual)',
+  }
+  const AGREES = {
+    edition: EDITION,
+    agrees: true,
+    note: 'Registry agrees: Game-Key Card (USA)',
+  }
+
+  /** The item, its registry note (a function of the saved item), and PATCH. */
+  function stubRegistry({ item = SWITCH_2_ITEM, noteFor, patch } = {}) {
+    let saved = item
+    const mock = vi.fn(async (url, options = {}) => {
+      const path = String(url)
+      const method = options.method ?? 'GET'
+      if (path.endsWith('/registry')) {
+        return { ok: true, status: 200, json: async () => noteFor(saved) }
+      }
+      if (method === 'PATCH') {
+        const answer = patch?.(JSON.parse(options.body))
+        if (answer) return answer
+        saved = {
+          ...saved,
+          physical_format: 'game_key_card',
+          format_source: 'registry',
+        }
+        return { ok: true, status: 200, json: async () => saved }
+      }
+      return { ok: true, status: 200, json: async () => saved }
+    })
+    vi.stubGlobal('fetch', mock)
+    return mock
+  }
+
+  it('says when the registry agrees', async () => {
+    stubRegistry({ noteFor: () => AGREES })
+    renderPage()
+    expect(
+      await screen.findByText('Registry agrees: Game-Key Card (USA)'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Use registry value' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('offers the registry value and turns into agreement', async () => {
+    const mock = stubRegistry({
+      noteFor: (saved) =>
+        saved.format_source === 'registry' ? AGREES : DISAGREES,
+    })
+    renderPage()
+    expect(await screen.findByText(DISAGREES.note)).toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Use registry value' }),
+    )
+    expect(
+      await screen.findByText('Registry agrees: Game-Key Card (USA)'),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Copy format')).toHaveValue('game_key_card')
+    const [, patch] = writeCalls(mock)[0]
+    expect(JSON.parse(patch.body)).toEqual({ edition_id: 'e-1' })
+  })
+
+  it('says a refused adopt in words', async () => {
+    stubRegistry({
+      noteFor: () => DISAGREES,
+      patch: () => ({
+        ok: false,
+        status: 422,
+        json: async () => ({
+          detail: "This copy's cart ID LP-AAC4B-USA-0 decides its format",
+        }),
+      }),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Use registry value' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "This copy's cart ID LP-AAC4B-USA-0 decides its format",
+    )
+  })
+
+  it('says a copy is not in the registry', async () => {
+    stubRegistry({
+      noteFor: () => ({
+        edition: null,
+        agrees: null,
+        note: 'Not in the registry',
+      }),
+    })
+    renderPage()
+    expect(await screen.findByText('Not in the registry')).toBeInTheDocument()
+  })
+
+  it('is absent for other platforms', async () => {
+    const mock = stubRegistry({
+      item: { ...SWITCH_2_ITEM, platform_id: 130, platform: 'Nintendo Switch' },
+      noteFor: () => AGREES,
+    })
+    renderPage()
+    expect(await screen.findByDisplayValue('Star Fox')).toBeInTheDocument()
+    expect(
+      mock.mock.calls.some(([url]) => String(url).endsWith('/registry')),
+    ).toBe(false)
+  })
+})

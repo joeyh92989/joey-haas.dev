@@ -38,6 +38,21 @@ describe('Admin', () => {
     ).toBeInTheDocument()
   })
 
+  it('links every admin page, the catalogue included', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ email: 'admin@example.com' }),
+      }),
+    )
+    renderAt()
+    expect(
+      await screen.findByRole('link', { name: 'Catalogue' }),
+    ).toHaveAttribute('href', '/admin/catalogue')
+    expect(screen.getByRole('link', { name: 'Play Next' })).toBeInTheDocument()
+  })
+
   it('explains a rejected account without naming the authorized address', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
     renderAt('/admin?error=access_denied')

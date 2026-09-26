@@ -245,3 +245,124 @@ async def test_deleting_an_item_deletes_its_pick_events(clean_database):
         )
         remaining = await connection.scalar(text("SELECT count(*) FROM pick_events"))
     assert remaining == 0
+
+
+# --- Revision 0005: the physical catalogue. ---------------------------------
+
+CATALOGUE_TABLES = {
+    "catalogue_games",
+    "physical_editions",
+    "store_listings",
+    "catalogue_matches",
+    "catalogue_runs",
+}
+CATALOGUE_TYPES = {
+    "release_precision",
+    "listing_availability",
+    "match_confidence",
+    "match_decision",
+}
+# Reused by 0005, owned by 0003 and 0004: a 0005 downgrade must leave them.
+EARLIER_TYPES = {"physical_format", "format_source", "pick_action"}
+
+
+async def _tables(engine) -> set[str]:
+    async with engine.connect() as connection:
+        rows = await connection.execute(
+            text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+        )
+        return {row[0] for row in rows}
+
+
+@pytest.mark.asyncio
+async def test_0005_adds_the_catalogue_tables_and_types(clean_database):
+    result = _alembic("upgrade", "0005")
+    assert result.returncode == 0, result.stderr
+
+    assert CATALOGUE_TABLES <= await _tables(clean_database)
+    assert CATALOGUE_TYPES <= await _types(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_0005_downgrade_removes_them_and_keeps_the_earlier_types(
+    clean_database,
+):
+    assert _alembic("upgrade", "0005").returncode == 0
+    result = _alembic("downgrade", "0004")
+    assert result.returncode == 0, result.stderr
+
+    assert not CATALOGUE_TABLES & await _tables(clean_database)
+    types = await _types(clean_database)
+    assert not CATALOGUE_TYPES & types
+    assert EARLIER_TYPES <= types
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_catalogue_game_unlinks_its_editions_and_listings(
+    clean_database,
+):
+    assert _alembic("upgrade", "0005").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO catalogue_games (igdb_id, title, snapshot) "
+                "VALUES (42, 'Gone', '{}'::jsonb)"
+            )
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO physical_editions (id, source, source_ref, title, "
+                "title_normalized, platform_id, platform, region, igdb_id) VALUES "
+                "(gen_random_uuid(), 'nscollectors', 'gone|USA', 'Gone', 'gone', "
+                "508, 'Nintendo Switch 2', 'USA', 42)"
+            )
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO store_listings (id, store, store_product_id, "
+                "variant_id, handle, url, region, title, title_normalized, "
+                "is_game, currency, availability, igdb_id) VALUES "
+                "(gen_random_uuid(), 'super_rare', '1', '1', 'gone', "
+                "'https://example.test/gone', 'EUR', 'Gone', 'gone', true, 'GBP', "
+                "'in_stock', 42)"
+            )
+        )
+        await connection.execute(text("DELETE FROM catalogue_games"))
+        edition = await connection.scalar(
+            text("SELECT count(*) FROM physical_editions WHERE igdb_id IS NULL")
+        )
+        listing = await connection.scalar(
+            text("SELECT count(*) FROM store_listings WHERE igdb_id IS NULL")
+        )
+    # The rows stay; only the link goes.
+    assert (edition, listing) == (1, 1)
+
+
+@pytest.mark.asyncio
+async def test_is_physical_keeps_null(clean_database):
+    # NULL means "announced, card type not listed yet" and is filtered with
+    # IS DISTINCT FROM false, so it must never be defaulted to either value.
+    assert _alembic("upgrade", "0005").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO physical_editions (id, source, source_ref, title, "
+                "title_normalized, platform_id, platform, region) VALUES "
+                "(gen_random_uuid(), 'nscollectors', 'soon|EUR', 'Soon', 'soon', "
+                "508, 'Nintendo Switch 2', 'EUR')"
+            )
+        )
+        value = await connection.scalar(
+            text("SELECT is_physical IS NULL FROM physical_editions")
+        )
+        # compare_metadata does not compare server defaults, so a default
+        # added to the model alone would pass every other test.
+        column_default = await connection.scalar(
+            text(
+                "SELECT column_default FROM information_schema.columns "
+                "WHERE table_name = 'physical_editions' "
+                "AND column_name = 'is_physical'"
+            )
+        )
+    assert value is True
+    assert column_default is None

@@ -1,0 +1,612 @@
+{
+  "products": [
+    {
+      "id": 8237796458549,
+      "title": "Terranigma: Foiled Standard Edition (Switch 2, PS5, Xbox)",
+      "handle": "terranigma-foiled-standard-edition-switch-2-ps5-xbox",
+      "body_html": "<p><em>Terranigma: Foiled Standard Edition is region-free. This is an open pre-order for a limited time.</em><em></em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, NOVEMBER 8, 2026, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>Thematic boldness. Stunning character design. Excellent music. Smooth gameplay. Terranigma had it all... except a modern re-release. Now, the beloved action JRPG classic is back for the first time since 1995! </div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-16T05:03:52-04:00",
+      "created_at": "2026-09-14T11:10:46-04:00",
+      "updated_at": "2026-09-25T09:50:49-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Coming Soon",
+        "Distro",
+        "Games",
+        "On Sale Now",
+        "PlayStation",
+        "PS5",
+        "purple-dot-live-waitlist",
+        "Standard Edition",
+        "Switch",
+        "Switch 2",
+        "Xbox"
+      ],
+      "variants": [
+        {
+          "id": 46000753115189,
+          "title": "Switch 2",
+          "option1": "Switch 2",
+          "option2": null,
+          "option3": null,
+          "sku": "NS2-F-ST-EB-085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38874543816757,
+            "product_id": 8237796458549,
+            "position": 3,
+            "created_at": "2026-09-14T13:03:10-04:00",
+            "updated_at": "2026-09-14T13:03:12-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-foiled-standard-edition-switch-2.png?v=1789405392",
+            "variant_ids": [
+              46000753115189
+            ]
+          },
+          "available": false,
+          "price": "44.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8237796458549,
+          "created_at": "2026-09-14T11:10:46-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        },
+        {
+          "id": 46000753147957,
+          "title": "PS5",
+          "option1": "PS5",
+          "option2": null,
+          "option3": null,
+          "sku": "PS5-F-ST-EB-085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38874543751221,
+            "product_id": 8237796458549,
+            "position": 4,
+            "created_at": "2026-09-14T13:03:10-04:00",
+            "updated_at": "2026-09-14T13:03:12-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-foiled-standard-edition-ps5.png?v=1789405392",
+            "variant_ids": [
+              46000753147957
+            ]
+          },
+          "available": false,
+          "price": "39.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8237796458549,
+          "created_at": "2026-09-14T11:10:46-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        },
+        {
+          "id": 46000753213493,
+          "title": "Xbox",
+          "option1": "Xbox",
+          "option2": null,
+          "option3": null,
+          "sku": "XBX-F-ST-EB-085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38874543882293,
+            "product_id": 8237796458549,
+            "position": 5,
+            "created_at": "2026-09-14T13:03:10-04:00",
+            "updated_at": "2026-09-14T13:03:12-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-foiled-standard-edition-xbox.png?v=1789405392",
+            "variant_ids": [
+              46000753213493
+            ]
+          },
+          "available": false,
+          "price": "39.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 8237796458549,
+          "created_at": "2026-09-14T11:10:46-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38874758610997,
+          "created_at": "2026-09-14T13:39:38-04:00",
+          "position": 1,
+          "updated_at": "2026-09-14T13:39:40-04:00",
+          "product_id": 8237796458549,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-foiled-standard-edition_2e457787-8527-4f8d-8ff8-06d34b13819e.png?v=1789407580",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Switch 2",
+            "PS5",
+            "Xbox"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8237803733045,
+      "title": "Terranigma: SteelBook Edition (Switch 2, PS5, Xbox)",
+      "handle": "terranigma-steelbook-edition-switch-2-ps5-xbox",
+      "body_html": "<p><em>Terranigma: Foiled Standard Edition is region-free. This is an open pre-order for a limited time.</em><em></em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, NOVEMBER 8, 2026, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>Thematic boldness. Stunning character design. Excellent music. Smooth gameplay. Terranigma had it all... except a modern re-release. Now, the beloved action JRPG classic is back for the first time since 1995! </div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-16T05:03:59-04:00",
+      "created_at": "2026-09-14T11:36:36-04:00",
+      "updated_at": "2026-09-25T09:50:49-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Collector's Edition",
+        "Coming Soon",
+        "Distro",
+        "Games",
+        "On Sale Now",
+        "PlayStation",
+        "PS5",
+        "purple-dot-live-waitlist",
+        "Switch",
+        "Switch 2",
+        "Xbox"
+      ],
+      "variants": [
+        {
+          "id": 46000812654645,
+          "title": "Switch 2",
+          "option1": "Switch 2",
+          "option2": null,
+          "option3": null,
+          "sku": "NS2-SB-EB-085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38874542538805,
+            "product_id": 8237803733045,
+            "position": 4,
+            "created_at": "2026-09-14T13:03:01-04:00",
+            "updated_at": "2026-09-14T13:03:04-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-steelbook-edition-switch-2.png?v=1789405384",
+            "variant_ids": [
+              46000812654645
+            ]
+          },
+          "available": true,
+          "price": "64.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8237803733045,
+          "created_at": "2026-09-14T11:36:36-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        },
+        {
+          "id": 46000812687413,
+          "title": "PS5",
+          "option1": "PS5",
+          "option2": null,
+          "option3": null,
+          "sku": "PS5-SB-EB-085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38874542506037,
+            "product_id": 8237803733045,
+            "position": 3,
+            "created_at": "2026-09-14T13:03:01-04:00",
+            "updated_at": "2026-09-14T13:03:03-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-steelbook-edition-ps5.png?v=1789405383",
+            "variant_ids": [
+              46000812687413
+            ]
+          },
+          "available": true,
+          "price": "64.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8237803733045,
+          "created_at": "2026-09-14T11:36:36-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        },
+        {
+          "id": 46000812720181,
+          "title": "Xbox",
+          "option1": "Xbox",
+          "option2": null,
+          "option3": null,
+          "sku": "XBX-SB-EB-085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38874542571573,
+            "product_id": 8237803733045,
+            "position": 5,
+            "created_at": "2026-09-14T13:03:01-04:00",
+            "updated_at": "2026-09-14T13:03:03-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-steelbook-edition-xbox.png?v=1789405383",
+            "variant_ids": [
+              46000812720181
+            ]
+          },
+          "available": true,
+          "price": "64.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 8237803733045,
+          "created_at": "2026-09-14T11:36:36-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38874542604341,
+          "created_at": "2026-09-14T13:03:01-04:00",
+          "position": 1,
+          "updated_at": "2026-09-14T13:03:03-04:00",
+          "product_id": 8237803733045,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-steelbook-edition.png?v=1789405383",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Switch 2",
+            "PS5",
+            "Xbox"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8237807108149,
+      "title": "Terranigma: Gaia Edition (Switch 2, PS5, Xbox)",
+      "handle": "terranigma-gaia-edition-switch-2-ps5-xbox",
+      "body_html": "<p><em>Terranigma: Foiled Standard Edition is region-free. This is an open pre-order for a limited time.</em><em></em></p>\n<ul></ul>\n<ul></ul>\n<p><strong>PRE-ORDERS CLOSE ON SUNDAY, NOVEMBER 8, 2026, AT 11:59 PM EASTERN TIME.</strong></p>\n<div>Thematic boldness. Stunning character design. Excellent music. Smooth gameplay. Terranigma had it all... except a modern re-release. Now, the beloved action JRPG classic is back for the first time since 1995! </div>\n<div><br></div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-09-16T05:04:06-04:00",
+      "created_at": "2026-09-14T11:45:47-04:00",
+      "updated_at": "2026-09-25T09:50:49-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Collector's Edition",
+        "Coming Soon",
+        "Distro",
+        "Games",
+        "On Sale Now",
+        "PlayStation",
+        "PS5",
+        "purple-dot-live-waitlist",
+        "Switch",
+        "Switch 2",
+        "Xbox"
+      ],
+      "variants": [
+        {
+          "id": 46000823795765,
+          "title": "Switch 2",
+          "option1": "Switch 2",
+          "option2": null,
+          "option3": null,
+          "sku": "NS2-CE-EB-085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38874552270901,
+            "product_id": 8237807108149,
+            "position": 3,
+            "created_at": "2026-09-14T13:04:13-04:00",
+            "updated_at": "2026-09-14T13:04:15-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-gaia-edition-switch-2.png?v=1789405455",
+            "variant_ids": [
+              46000823795765
+            ]
+          },
+          "available": true,
+          "price": "199.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8237807108149,
+          "created_at": "2026-09-14T11:45:47-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        },
+        {
+          "id": 46000823828533,
+          "title": "PS5",
+          "option1": "PS5",
+          "option2": null,
+          "option3": null,
+          "sku": "PS5-CE-EB-085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38874552238133,
+            "product_id": 8237807108149,
+            "position": 4,
+            "created_at": "2026-09-14T13:04:13-04:00",
+            "updated_at": "2026-09-14T13:04:15-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-gaia-edition-ps5.png?v=1789405455",
+            "variant_ids": [
+              46000823828533
+            ]
+          },
+          "available": true,
+          "price": "199.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8237807108149,
+          "created_at": "2026-09-14T11:45:47-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        },
+        {
+          "id": 46000823861301,
+          "title": "Xbox",
+          "option1": "Xbox",
+          "option2": null,
+          "option3": null,
+          "sku": "XBX-CE-EB-085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38874552303669,
+            "product_id": 8237807108149,
+            "position": 5,
+            "created_at": "2026-09-14T13:04:13-04:00",
+            "updated_at": "2026-09-14T13:04:15-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-gaia-edition-xbox.png?v=1789405455",
+            "variant_ids": [
+              46000823861301
+            ]
+          },
+          "available": true,
+          "price": "199.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 8237807108149,
+          "created_at": "2026-09-14T11:45:47-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38874552336437,
+          "created_at": "2026-09-14T13:04:13-04:00",
+          "position": 1,
+          "updated_at": "2026-09-14T13:04:15-04:00",
+          "product_id": 8237807108149,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/terranigma-limited-run-games-gaia-edition.png?v=1789405455",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Switch 2",
+            "PS5",
+            "Xbox"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8180785578037,
+      "title": "Full Metal Schoolgirl Standard Edition (Switch 2, PS5)",
+      "handle": "full-metal-schoolgirl-standard-edition-switch-2-ps5",
+      "body_html": "<p><em>FULL METAL SCHOOLGIRL is region-free. </em><strong></strong></p>\n<div>\n<meta charset=\"utf-8\">\n<p class=\"s954l qIo1e _39p7O\">Full metal schoolgirl destroys an exploitative enterprise! (...while being livestreamed)</p>\n</div>\n<div><br></div>\n<div>\n<div><br></div>\n</div>\n<div>\n<div>\n<div>\n<h6><br></h6>\n<br>\n</div>\n</div>\n</div>",
+      "published_at": "2026-08-03T16:35:58-04:00",
+      "created_at": "2026-07-09T14:27:47-04:00",
+      "updated_at": "2026-09-25T09:50:49-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Collector's Edition",
+        "Coming Soon",
+        "Games",
+        "Numbered",
+        "On Sale Now",
+        "PlayStation",
+        "PS5",
+        "Standard Edition",
+        "Switch",
+        "Switch 2"
+      ],
+      "variants": [
+        {
+          "id": 45723628896309,
+          "title": "Switch 2",
+          "option1": "Switch 2",
+          "option2": null,
+          "option3": null,
+          "sku": "2LRS006",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38589919068213,
+            "product_id": 8180785578037,
+            "position": 3,
+            "created_at": "2026-08-04T14:14:00-04:00",
+            "updated_at": "2026-08-04T14:14:02-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/full-metal-schoolgirl-limited-run-games-standard-edition-switch-2_91a9f5c8-9679-4cb2-9568-07fa28381cc9.png?v=1785867242",
+            "variant_ids": [
+              45723628896309
+            ]
+          },
+          "available": false,
+          "price": "49.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8180785578037,
+          "created_at": "2026-07-09T14:27:48-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        },
+        {
+          "id": 45723628929077,
+          "title": "PS5",
+          "option1": "PS5",
+          "option2": null,
+          "option3": null,
+          "sku": "P5LR217",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 38589919035445,
+            "product_id": 8180785578037,
+            "position": 4,
+            "created_at": "2026-08-04T14:14:00-04:00",
+            "updated_at": "2026-08-04T14:14:03-04:00",
+            "alt": null,
+            "width": 1306,
+            "height": 1450,
+            "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/full-metal-schoolgirl-limited-run-games-standard-edition-ps5_968804ce-2823-4f9e-b86e-9e6901dce4ec.png?v=1785867243",
+            "variant_ids": [
+              45723628929077
+            ]
+          },
+          "available": false,
+          "price": "49.99",
+          "grams": 283,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8180785578037,
+          "created_at": "2026-07-09T14:27:48-04:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38589919100981,
+          "created_at": "2026-08-04T14:14:00-04:00",
+          "position": 1,
+          "updated_at": "2026-08-04T14:14:02-04:00",
+          "product_id": 8180785578037,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/full-metal-schoolgirl-limited-run-games-standard-edition_ddf7577f-f7ee-4681-970c-0bbcfe270282.png?v=1785867242",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Switch 2",
+            "PS5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8077328121909,
+      "title": "He-Man and the Masters of the Universe™: Dragon Pearl of Destruction",
+      "handle": "he-man-and-the-masters-of-the-universe-dragon-pearl-of-destruction",
+      "body_html": "<p>He-Man and the Masters of the Universe™: Dragon Pearl of Destruction Coming Soon</p>",
+      "published_at": "2026-02-26T14:36:46-05:00",
+      "created_at": "2026-02-26T11:22:57-05:00",
+      "updated_at": "2026-09-25T09:50:49-04:00",
+      "vendor": "Limited Run Games",
+      "product_type": "Games",
+      "tags": [
+        "Coming Soon",
+        "On Sale Now"
+      ],
+      "variants": [
+        {
+          "id": 45015333994549,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "0.00",
+          "grams": 113,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8077328121909,
+          "created_at": "2026-02-26T11:22:57-05:00",
+          "updated_at": "2026-09-25T09:50:49-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 37757091250229,
+          "created_at": "2026-02-26T11:35:24-05:00",
+          "position": 1,
+          "updated_at": "2026-02-26T11:35:32-05:00",
+          "product_id": 8077328121909,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0912/7444/files/he-man-and-the-masters-of-the-universe-dragon-pearl-of-destruction-limited-run-games-1.png?v=1772123732",
+          "width": 1306,
+          "height": 1450
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    }
+  ]
+}

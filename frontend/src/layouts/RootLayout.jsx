@@ -15,6 +15,7 @@ const WIDE_ROUTES = [
   '/collection',
   '/admin/collection',
   '/admin/play-next',
+  '/admin/catalogue',
   '/admin/discover',
   '/admin/radar',
 ]

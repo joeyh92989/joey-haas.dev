@@ -10,6 +10,13 @@ Two fields are never accepted from a request and are derived here instead:
 records how `physical_format` was decided. A cart ID is the strongest evidence
 of a Switch 2 copy's format, because it is printed on the cartridge itself; a
 format the owner enters by hand is recorded as `manual`.
+
+The physical catalogue (E7c) adds one automated writer, apply_registry_format,
+and one request key, `edition_id`: both write the registry's format and
+neither may touch a format the owner recorded (`manual`, `cart_id`, `photo`).
+The constants shared with the catalogue's pure parsers live in
+physical_sources/limits.py, because this module imports models (SQLAlchemy)
+and those parsers must not.
 """
 
 from __future__ import annotations
@@ -18,9 +25,13 @@ import enum
 import re
 
 from models import FormatSource, Item, PhysicalFormat
+from physical_sources.limits import (  # noqa: F401  (re-exported)
+    CART_ID_PATTERN,
+    CARTRIDGE_ONLY_PLATFORMS,
+    FORMAT_WORDS,
+    HOME_REGION,
+)
 from sources.igdb import PLATFORM_NAMES
-
-HOME_REGION = "USA"
 
 # Platforms where a physical copy may not hold the game: a Switch 2 box can be
 # a Game-Key Card. An unrecorded format there is shown as unknown, never as a
@@ -31,8 +42,6 @@ KEY_CARD_PLATFORMS = frozenset({SWITCH_2})
 # Platforms whose copies are collected by completeness (loose, boxed, CIB).
 CARTRIDGE_ERA_PLATFORMS = frozenset({4})
 
-# LP-AAC4B-USA-0: format prefix, product code, region, revision.
-CART_ID_PATTERN = re.compile(r"^L[PBNA]-[A-Z0-9]{5}-[A-Z0-9]{3}-[0-9A-Z]$")
 CART_ID_FORMATS = {
     "LP": PhysicalFormat.GAME_KEY_CARD,
     "LB": PhysicalFormat.GAME_CARD,
@@ -43,15 +52,13 @@ CART_ID_FORMATS = {
 }
 REGION_PATTERN = re.compile(r"^[A-Z]{2,4}$")
 
-FORMAT_LABELS = {
-    PhysicalFormat.GAME_CARD: "full game on cartridge",
-    PhysicalFormat.GAME_KEY_CARD: "Game-Key Card",
-    PhysicalFormat.CODE_IN_BOX: "code in a box",
-    PhysicalFormat.DISC: "disc",
-}
+FORMAT_LABELS = {PhysicalFormat(value): words for value, words in FORMAT_WORDS.items()}
 
 # Derived on the server and never taken from a request body.
 DERIVED_FIELDS = ("platform", "format_source")
+
+# Formats the owner recorded: nothing automated may overwrite them.
+PROTECTED_SOURCES = frozenset({"manual", "cart_id", "photo"})
 
 
 class CopyFieldError(ValueError):
@@ -76,6 +83,55 @@ def _normalise_region(raw: str) -> str:
     return region
 
 
+def apply_registry_format(row: Item, edition_format: str | None) -> dict:
+    """The change that records a registry edition's format on an owned row.
+
+    {} when the edition states no format. Raises CopyFieldError when the row's
+    format came from its owner -- by hand, from its cart ID, or from a photo
+    -- so no caller can relabel a copy the owner has spoken for; the registry
+    sync reports those as disagreements instead.
+    """
+    source = _value(row.format_source)
+    if source in PROTECTED_SOURCES:
+        raise CopyFieldError(
+            f"This copy's format was recorded from {source}; the registry "
+            "does not overwrite it."
+        )
+    if edition_format is None:
+        return {}
+    return {
+        "physical_format": PhysicalFormat(edition_format),
+        "format_source": FormatSource.REGISTRY,
+    }
+
+
+def _adopt_registry_edition(changes: dict, row: Item | None) -> dict:
+    """A request's edition_id turned into the format it names ("Use registry
+    value"). The caller resolved the edition and put its format in
+    edition_format; the edition's cart ID is never copied -- items.cart_id
+    means "printed on my copy". The request's other fields go through the
+    usual rules first.
+    """
+    rest = {
+        k: v for k, v in changes.items() if k not in ("edition_id", "edition_format")
+    }
+    edition_format = changes.get("edition_format")
+    if {"physical_format", "cart_id"} & rest.keys():
+        raise CopyFieldError("Send a format or a registry edition, not both.")
+    result = apply_copy_fields(rest, row)
+    cart_id = _value(getattr(row, "cart_id", None)) if row is not None else None
+    if cart_id:
+        raise CopyFieldError(
+            f"This copy's cart ID {cart_id} decides its format; clear it to "
+            "use the registry's."
+        )
+    if edition_format is None:
+        raise CopyFieldError("That registry edition has no card type yet.")
+    result["physical_format"] = PhysicalFormat(edition_format)
+    result["format_source"] = FormatSource.REGISTRY
+    return result
+
+
 def apply_copy_fields(changes: dict, row: Item | None) -> dict:
     """Returns `changes` with the derived copy fields added.
 
@@ -86,7 +142,13 @@ def apply_copy_fields(changes: dict, row: Item | None) -> dict:
     Raises CopyFieldError, whose message is safe to show, when a change breaks
     a rule.
     """
-    result = {key: value for key, value in changes.items() if key not in DERIVED_FIELDS}
+    if "edition_id" in changes:
+        return _adopt_registry_edition(changes, row)
+    result = {
+        key: value
+        for key, value in changes.items()
+        if key not in DERIVED_FIELDS and key != "edition_format"
+    }
 
     def current(field: str) -> object:
         return _value(getattr(row, field, None)) if row is not None else None
