@@ -151,3 +151,13 @@ def test_malformed_games_are_skipped():
     }
     (row,) = parse_games(payload)
     assert (row.region, row.physical_format) == ("ALL", "game_card")
+
+
+def test_keys_are_the_base_game_and_refs_stay_raw(rows):
+    peaks = [row for row in rows if row.title.startswith("Moonlight Peaks")]
+    assert peaks
+    assert {row.title_normalized for row in peaks} == {"moonlight peaks"}
+    assert all(
+        row.source_ref.startswith("moonlight peaks nintendo switch 2 edition|")
+        for row in peaks
+    )

@@ -314,3 +314,23 @@ def test_malformed_rows_are_skipped():
         ["a", "b"],
         ["c", ""],
     ]
+
+
+def test_keys_are_the_base_game(details, upcoming):
+    editions = merge(details[0], upcoming[0])
+    assert not [e for e in editions if "switch 2 edition" in e.title_normalized]
+    zelda = next(
+        e
+        for e in editions
+        if e.title.startswith("Legend of Zelda: Breath of the Wild Nintendo Switch 2")
+    )
+    assert zelda.title_normalized == "the legend of zelda breath of the wild"
+    kirby = next(e for e in editions if e.title.startswith("Kirby and the Forgotten"))
+    assert kirby.title_normalized == "kirby and the forgotten land"
+
+
+def test_title_and_source_ref_stay_raw(details, upcoming):
+    editions = merge(details[0], upcoming[0])
+    duskbloods = next(e for e in editions if e.title == "Duskbloods, The")
+    assert duskbloods.title_normalized == "the duskbloods"
+    assert duskbloods.source_ref.startswith("duskbloods the|")
