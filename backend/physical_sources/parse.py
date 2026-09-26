@@ -252,11 +252,6 @@ _BARE_PLATFORM = (
 # a platform, a region, "with" extras or a pre-order goes whole, since stores
 # write "(iam8bit Nintendo Switch 2 Exclusive Edition)" as often as "(NSW)".
 _BRACKETED = re.compile(r"\s*[(\[]([^()\[\]]*)[)\]]")
-_BRACKET_WORDS = re.compile(
-    rf"\b(?:{_ONE_PLATFORM}|pre-?order|with|edition|version|pegi|usk)\b"
-    r"|\bnintendo(?:switch)?(?![a-z])|\bswitch(?![a-z])",
-    re.IGNORECASE,
-)
 # A store prefix for its web-only runs ("ONLINE EXCLUSIVE EDTION: 7'scarlet",
 # the store's own spelling).
 _LEADING = re.compile(
@@ -277,38 +272,59 @@ _PLATFORM_TAIL = re.compile(
     re.IGNORECASE,
 )
 _PLATFORM_TRAILING = re.compile(rf"\s+(?:{_BARE_PLATFORM})$", re.IGNORECASE)
-# Words a store puts before "Edition" for packaging, not for the game.
-_PACKAGING_WORD = (
-    r"standard|limited|special|deluxe|collector['’]?s|premium|elite|physical"
-    r"|complete|definitive|silver|gold|bronze|steelbook|signature|exclusive"
-    r"|retail|launch|first|anniversary|retro|ultimate|extra|ultra|online"
-    r"|day\s+one|\d+(?:st|nd|rd|th)"
+# Words a store puts before "Edition" for packaging, not for the game, in
+# any position of a run ("Special Limited Edition", "Collector's/Limited").
+# The store names are there for "- iam8bit Exclusive Edition".
+_RUN_WORD = (
+    r"standard|limited|special|collector['’]?s|premium|elite|physical|silver"
+    r"|gold|bronze|steelbook|signature|exclusive|retail|launch|first|anniversary"
+    r"|retro|extra|ultra|online|day\s+one|\d+(?:st|nd|rd|th)|iam8bit|fangamer"
 )
-# One to four packaging words before "Edition" ("Special Limited Edition",
-# "Collector's/Limited Edition", "- Extra Elite Edition"), with a dash before
-# and a "Bundle" or "Box" after going with them. A named edition is not
-# packaging and stays ("Elden Ring Tarnished Edition", "Tales of Arise -
-# Beyond the Dawn Edition"): IGDB lists many of them as the Switch game.
+# Words that are packaging only right before "Edition": elsewhere they are
+# the game's ("Spelunker HD Deluxe Collector's Edition", "Mario Kart 8
+# Deluxe Limited Edition").
+_FINAL_WORD = r"deluxe|complete|definitive|ultimate"
+_PACKAGING_EDITION = (
+    rf"(?:(?:{_RUN_WORD})[\s/]+){{0,3}}(?:{_RUN_WORD}|{_FINAL_WORD})[\s/]+edition"
+)
+# A run of packaging words before "Edition", with a dash before and a "Box"
+# after going with them. A named edition is not packaging and stays ("Elden
+# Ring Tarnished Edition", "Tales of Arise - Beyond the Dawn Edition"): IGDB
+# lists many of them as the Switch game. So does "Bundle": whether an
+# "Edition Bundle" holds one game or five, the title does not say.
 _EDITION_PHRASE = re.compile(
-    rf"(?:\s[-–])?\s*\b(?:(?:{_PACKAGING_WORD})[\s/]+){{1,4}}edition\b"
-    r"(?:\s+(?:bundle|box))?\s*[-–]?",
+    rf"(?:\s[-–])?\s*\b{_PACKAGING_EDITION}\b(?:\s+box)?\s*[-–]?",
     re.IGNORECASE,
 )
-# The same words without "Edition": "Wonder Boy Ultra Collector's",
-# "Ankora Collector's Ed.", "Cotton 16-Bit LE".
+# Two or more packaging words in front of a named edition: "Epics of
+# Hammerwatch: Special Limited Heroes' Edition" is the Heroes' Edition.
+_NAMED_EDITION_LEAD = re.compile(
+    rf"\s+(?:(?:{_RUN_WORD})[\s/]+){{2,3}}(?=\S+\s+edition$)", re.IGNORECASE
+)
+# The run without "Edition": "Wonder Boy Ultra Collector's", "Ankora
+# Collector's Ed.", "Cotton 16-Bit LE".
 _PACKAGING_TAIL = re.compile(
-    rf"\s+(?:(?:(?:{_PACKAGING_WORD})\s+){{0,2}}collector['’]?s(?:\s+ed\.?)?|le|ce)$",
+    rf"\s+(?:(?:(?:{_RUN_WORD})\s+){{0,2}}collector['’]?s(?:\s+ed\.?)?|le|ce)$",
     re.IGNORECASE,
 )
 _MERCH = (
-    r"plush(?:ie)?|book|soundtrack|showroom|marionette|yunomi|cup|ce|le|art"
+    r"plush(?:ie)?|book|soundtrack|showroom|marionette|yunomi|cup|art"
     r"|poster|vinyl|album|merch|figure|steelbook|nendoroid"
 )
 # A single-game bundle is the game: "Plushie Bundle" goes with its merch
-# words. A bare "Bundle" stays, since "Taito Milestones 1&2 Bundle" is more
-# than one game. The run is bounded, or it rescans from every word in it.
+# words. A bare, "LE" or "CE" "Bundle" stays: "Taito Milestones 1&2 CE
+# Bundle" is more than one game. The run is bounded, or it rescans from
+# every word in it.
 _BUNDLE = re.compile(
     rf"\s+(?:(?:{_MERCH})\s+){{1,3}}bundle(?:\s+upgrade)?$", re.IGNORECASE
+)
+# A bracket naming a platform, region, packaging edition, version, rating
+# board, extras or a pre-order goes whole. A named edition in brackets stays:
+# "Elden Ring (Tarnished Edition)" is still the Tarnished Edition.
+_BRACKET_WORDS = re.compile(
+    rf"\b(?:{_ONE_PLATFORM}|{_PACKAGING_EDITION}|pre-?order|with|version|pegi|usk)\b"
+    r"|\bnintendo(?:switch)?(?![a-z])|\bswitch(?![a-z])",
+    re.IGNORECASE,
 )
 _EXTRAS = re.compile(
     r"\s*\+\s*(?:character\s+cards|soundtrack(?:\s+cd)?|art\s*book|plush\w*)$",
@@ -318,6 +334,7 @@ _CLEANERS = (
     _PLATFORM_TAIL,
     _PLATFORM_TRAILING,
     _EDITION_PHRASE,
+    _NAMED_EDITION_LEAD,
     _PACKAGING_TAIL,
     _BUNDLE,
     _EXTRAS,

@@ -285,10 +285,31 @@ def test_find_date_takes_the_earliest_phrase():
             "Irem Collection Volume 1 - 5 Collector's/Limited Edition Bundle "
             "(Nintendo Switch)",
             (),
-            "Irem Collection Volume 1 - 5",
+            "Irem Collection Volume 1 - 5 Bundle",
         ),
         ("Taito Milestones 1&2 Bundle", (), "Taito Milestones 1&2 Bundle"),
-        ("Cotton Fantasy Yunomi Cup LE Bundle (NSW)", (), "Cotton Fantasy"),
+        # "LE Bundle" may be several games ("Taito Milestones 1&2 CE Bundle").
+        (
+            "Cotton Fantasy Yunomi Cup LE Bundle (NSW)",
+            (),
+            "Cotton Fantasy Yunomi Cup LE Bundle",
+        ),
+        (
+            "Taito Milestones 1&2 CE Bundle Upgrade",
+            (),
+            "Taito Milestones 1&2 CE Bundle Upgrade",
+        ),
+        # Re-verification, 2026-09-26: a packaging word that is the game's.
+        ("Spelunker HD Deluxe Collector's Edition (NSW)", (), "Spelunker HD Deluxe"),
+        ("Mario Kart 8 Deluxe Limited Edition", (), "Mario Kart 8 Deluxe"),
+        ("Wonder Boy Complete Collector's (NSW)", (), "Wonder Boy Complete"),
+        ("Elden Ring (Tarnished Edition)", (), "Elden Ring (Tarnished Edition)"),
+        (
+            "Epics of Hammerwatch: Special Limited Heroes' Edition (NSW)",
+            (),
+            "Epics of Hammerwatch: Heroes' Edition",
+        ),
+        ("Stray (PlayStation) - iam8bit Exclusive Edition", (), "Stray"),
         ("Cotton 16-Bit LE (NSW)", (), "Cotton 16-Bit"),
         ("Wonder Boy Collection Ultra Collector's (NSW)", (), "Wonder Boy Collection"),
         (
@@ -394,6 +415,13 @@ def test_game_title(title, expected):
         " plush" * 8_000,
         " ce" * 16_000,
         " limited" * 6_000,
+        " limited/" * 6_000,
+        " 1st" * 10_000,
+        " collector's" * 4_000,
+        " + x" * 10_000,
+        "ONLINE EXCLUSIVE: " * 3_000,
+        " - Preorders" * 4_000,
+        " special limited x" * 3_000,
     ],
     ids=[
         "spaces",
@@ -409,6 +437,13 @@ def test_game_title(title, expected):
         "merch-plush",
         "merch-ce",
         "packaging-words",
+        "slash-run",
+        "ordinals",
+        "collectors",
+        "extras",
+        "leading",
+        "markers",
+        "named-lead",
     ],
 )
 def test_a_long_run_is_linear(run):

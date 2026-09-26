@@ -246,7 +246,8 @@ async def test_a_shortened_sequel_is_never_linked_to_the_first_game(session):
     await upsert_editions(
         session, [edition("Hades II Olympian Edition")], "nscollectors", retire=True
     )
-    igdb = FakeIgdb({"hades ii": [], "hades": [result(1, "Hades")]})
+    # The shortened query finds only the first game, which scores close.
+    igdb = FakeIgdb({"hades ii": [result(1, "Hades")]})
 
     outcome = await resolve_batch(session, igdb)
 
