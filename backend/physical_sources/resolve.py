@@ -49,7 +49,10 @@ from physical_sources.limits import (
     CATALOGUE_PLATFORMS,
     RESOLVE_LIMIT,
     SNAPSHOT_MAX_AGE_DAYS,
+    SWITCH,
+    SWITCH_2,
 )
+from physical_sources.parse import game_title, is_switch_2_edition
 from sources.base import (
     SourceDetail,
     SourceError,
@@ -141,10 +144,10 @@ async def pending_keys(session, limit: int) -> list[tuple[str, int, int | None, 
     """(title_normalized, platform_id, year, search title) for up to `limit`
     unmatched keys, in title order.
 
-    The search title is the registry's own spelling when an edition carries
-    the key, else the normalized title. The year is the earliest day-, month-
-    or year-precision date among the key's rows (spec §3), else None, which
-    best_match accepts.
+    The search title is the registry's own spelling as the base game
+    (`game_title`) when an edition carries the key, else the normalized
+    title. The year is the earliest day-, month- or year-precision date among
+    the key's rows (spec §3), else None, which best_match accepts.
     """
     rows = _open_keys()
     grouped = (
@@ -168,9 +171,32 @@ async def pending_keys(session, limit: int) -> list[tuple[str, int, int | None, 
     ).all():
         year = released.year if isinstance(released, date) else None
         keys.append(
-            (title_normalized, platform_id, year, registry_title or title_normalized)
+            (
+                title_normalized,
+                platform_id,
+                year,
+                game_title(registry_title) if registry_title else title_normalized,
+            )
         )
     return keys
+
+
+async def _switch_2_editions(session, keys) -> set[tuple[str, int]]:
+    """The Switch 2 keys among `keys` that some row spells as a Nintendo
+    Switch 2 Edition. The key itself cannot say: game_title cut the phrase."""
+    titles = {key[0] for key in keys if key[1] == SWITCH_2}
+    if not titles:
+        return set()
+    upgrades = set()
+    for model in (PhysicalEdition, StoreListing):
+        for title_normalized, title in await session.execute(
+            select(model.title_normalized, model.title).where(
+                model.title_normalized.in_(titles), model.platform_id == SWITCH_2
+            )
+        ):
+            if is_switch_2_edition(title):
+                upgrades.add((title_normalized, SWITCH_2))
+    return upgrades
 
 
 async def count_pending(session) -> int:
@@ -351,14 +377,22 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
         result.errors.append(
             {"code": "igdb_not_configured", "detail": "IGDB credentials are not set"}
         )
+        # Linking a row to an already decided key needs no search.
+        await propagate(session)
         result.unresolved_remaining = await count_pending(session)
         return result
 
-    for title_normalized, platform_id, year, title in await pending_keys(
-        session, limit
-    ):
+    keys = await pending_keys(session, limit)
+    upgrades = await _switch_2_editions(session, keys)
+    for title_normalized, platform_id, year, title in keys:
+        platform = PLATFORM_NAMES[platform_id]
+        if (title_normalized, platform_id) in upgrades:
+            # IGDB tags the base game Switch 1 only and dates it years before
+            # the upgrade, so a Switch 2 search finds only IGDB's separate
+            # Switch 2 Edition entry (decision A keys to the base game).
+            platform, year = PLATFORM_NAMES[SWITCH], None
         try:
-            found = await igdb.search(title, year, platform=PLATFORM_NAMES[platform_id])
+            found = await igdb.search(title, year, platform=platform)
         except SourceRateLimited:
             result.errors.append(
                 {"code": "igdb_rate_limited", "detail": "IGDB rate limit; press again"}

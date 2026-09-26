@@ -4,6 +4,7 @@ The fake answers with the shapes the recorded fixtures pin (SourceResult,
 SourceDetail, the N64 id page); no request leaves the process.
 """
 
+import dataclasses
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -131,6 +132,24 @@ async def test_without_igdb_nothing_is_written(session):
 
 
 @pytest.mark.asyncio
+async def test_without_igdb_a_decided_key_still_links_its_rows(session):
+    """A refresh that re-keys a row onto an already decided key relinks it
+    whether or not IGDB is configured: linking needs no search."""
+    await upsert_editions(
+        session, [edition("The Midnight Walk")], "nscollectors", retire=True
+    )
+    igdb = FakeIgdb({"The Midnight Walk": [result(11, "The Midnight Walk")]})
+    await resolve_batch(session, igdb)
+    await upsert_listings(
+        session, [listing("the midnight walk")], "super_rare", archive=True
+    )
+
+    await resolve_batch(session, FakeIgdb(configured=False))
+
+    assert [x.igdb_id for x in await _all(session, StoreListing)] == [11]
+
+
+@pytest.mark.asyncio
 async def test_a_rate_limit_keeps_what_was_decided(session):
     titles = ["Alpha", "Bravo", "Charlie", "Delta"]
     await upsert_editions(
@@ -165,6 +184,40 @@ async def test_a_quarter_date_does_not_narrow_the_search_year(session):
     igdb = FakeIgdb()
     await resolve_batch(session, igdb)
     assert igdb.searches == [("Soon", None, "Nintendo Switch 2")]
+
+
+@pytest.mark.asyncio
+async def test_a_registry_spelling_is_searched_as_the_base_game(session):
+    row = edition("Duskbloods, The", title_normalized="the duskbloods")
+    await upsert_editions(session, [row], "nscollectors", retire=True)
+    igdb = FakeIgdb({"The Duskbloods": [result(7, "The Duskbloods")]})
+
+    outcome = await resolve_batch(session, igdb)
+
+    assert igdb.searches == [("The Duskbloods", 2026, "Nintendo Switch 2")]
+    assert outcome.resolved == 1
+    assert [e.igdb_id for e in await _all(session, PhysicalEdition)] == [7]
+
+
+@pytest.mark.asyncio
+async def test_a_switch_2_edition_is_searched_as_the_switch_1_game(session):
+    """IGDB tags the base game Switch 1 only, and dates it years earlier."""
+    raw = "Kirby and the Forgotten Land Nintendo Switch 2 Edition + Star-Crossed World"
+    row = edition(raw, title_normalized="kirby and the forgotten land")
+    await upsert_editions(session, [row], "nscollectors", retire=True)
+    sold = dataclasses.replace(
+        listing("citizen sleeper 2"),
+        title="Citizen Sleeper 2 – Nintendo Switch 2 Edition",
+    )
+    await upsert_listings(session, [sold], "super_rare", archive=True)
+    igdb = FakeIgdb()
+
+    await resolve_batch(session, igdb)
+
+    assert igdb.searches == [
+        ("citizen sleeper 2", None, "Nintendo Switch"),
+        ("Kirby and the Forgotten Land", None, "Nintendo Switch"),
+    ]
 
 
 # --- The N64 ingest -----------------------------------------------------------

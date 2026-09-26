@@ -61,6 +61,29 @@ summary tab is read. An edition is keyed by title, region, publisher and card
 type, because WWE 2K25 EUR has a Game-Key Card and a Code in a Box from one
 publisher. `TBC` and a blank upcoming card type mean `is_physical = NULL`.
 
+A row's match key is its base game: `game_title()` in `parse.py` moves the
+sheet's trailing ", The" to the front, then `strip_title` cuts "Nintendo
+Switch 2 Edition" and everything after it (a bundled expansion, a pack), so
+`Legend of Zelda: Breath of the Wild Nintendo Switch 2 Edition, The` keys as
+`the legend of zelda breath of the wild` and meets the store listings for it.
+Resolve searches IGDB with the same title. The raw title and `source_ref` are
+kept, so changing the key updates a row in place. The tracker keys the same
+way. Because both go through `strip_title`, a registry or tracker title also
+loses an '<label> Edition' phrase (`Shinobi: Art of Vengeance - Deluxe
+Edition` keys as `shinobi art of vengeance`), and a store title is cut at the
+Switch 2 Edition phrase too. `strip_title` collapses whitespace before any
+pattern runs and never returns an empty string: the titles are third-party
+text.
+
+A refresh that changes a row's (title, platform) key clears its `igdb_id`:
+the match decided under the old key says nothing about the new one. Resolve
+then links it through the new key's decision, or searches the key if none
+exists. An N64 edition carries its own id and keeps it. A Switch 2 key that
+any row spells as a "Nintendo Switch 2 Edition" is searched on Nintendo
+Switch with no year, because IGDB tags the base game Switch 1 only and dates
+it years before the upgrade. IGDB's separate Switch 2 Edition entries are
+never the target.
+
 The sheet is read through the Sheets API with `GOOGLE_SHEETS_API_KEY`,
 because `docs.google.com/robots.txt` disallows the CSV export. Without the
 key the registry run records `sheets_not_configured` and everything else

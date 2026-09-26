@@ -207,6 +207,39 @@ async def test_an_upsert_keeps_the_resolved_game(session):
     assert row.igdb_id == 7
 
 
+@pytest.mark.asyncio
+async def test_a_new_key_unlinks_the_edition(session):
+    """A match decided under the old key says nothing about the new one."""
+    session.add(CatalogueGame(igdb_id=7, title="A", snapshot={}))
+    await upsert_editions(session, [edition()], "nscollectors", retire=True)
+    await session.commit()
+    (row,) = await _editions(session)
+    row.igdb_id = 7
+    await session.commit()
+    rekeyed = edition(title_normalized="a base")
+    assert await upsert_editions(session, [rekeyed], "nscollectors", retire=True) == (
+        1,
+        0,
+    )
+    (row,) = await _editions(session)
+    assert (row.title_normalized, row.igdb_id) == ("a base", None)
+
+
+@pytest.mark.asyncio
+async def test_a_new_key_keeps_an_id_the_row_carries(session):
+    """An N64 edition's id comes with the row, not from a match."""
+    session.add(CatalogueGame(igdb_id=7, title="A", snapshot={}))
+    row = edition(source="igdb_platform", platform_id=4, igdb_id=7)
+    await upsert_editions(session, [row], "igdb_platform", retire=True)
+    await session.commit()
+    renamed = edition(
+        source="igdb_platform", platform_id=4, igdb_id=7, title_normalized="a 64"
+    )
+    await upsert_editions(session, [renamed], "igdb_platform", retire=True)
+    (stored,) = await _editions(session)
+    assert (stored.title_normalized, stored.igdb_id) == ("a 64", 7)
+
+
 # --- Listings ---------------------------------------------------------------
 
 
@@ -353,3 +386,25 @@ async def test_a_platform_set_by_hand_survives_a_refresh(session):
     await upsert_listings(session, [stated], "limited_run", archive=True)
     (row,) = await _listings(session)
     assert row.platform_id == 508
+
+
+@pytest.mark.asyncio
+async def test_a_new_key_unlinks_the_listing(session):
+    session.add(CatalogueGame(igdb_id=9, title="A", snapshot={}))
+    await upsert_listings(session, [listing("1")], "super_rare", archive=True)
+    await session.commit()
+    (row,) = await _listings(session)
+    row.igdb_id = 9
+    await session.commit()
+    await upsert_listings(
+        session, [listing("1", title_normalized="a")], "super_rare", archive=True
+    )
+    (row,) = await _listings(session)
+    assert (row.title_normalized, row.igdb_id) == ("a", None)
+    row.igdb_id = 9  # resolved under the new key; an unchanged key keeps it
+    await session.commit()
+    await upsert_listings(
+        session, [listing("1", title_normalized="a")], "super_rare", archive=True
+    )
+    (row,) = await _listings(session)
+    assert row.igdb_id == 9

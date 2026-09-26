@@ -16,7 +16,7 @@ from __future__ import annotations
 from matching import normalize_title
 from physical_sources.base import EditionRow, HostThrottle, PhysicalSourceError
 from physical_sources.limits import SWITCH_2
-from physical_sources.parse import parse_loose_date
+from physical_sources.parse import game_title, parse_loose_date
 
 SOURCE = "switch2tracker"
 URL = (
@@ -40,7 +40,7 @@ def _edition(game: dict, region: str, code: str, when: str | None) -> EditionRow
         source=SOURCE,
         source_ref=f"{normalize_title(title)}|{region}",
         title=title,
-        title_normalized=normalize_title(title),
+        title_normalized=normalize_title(game_title(title)),
         platform_id=SWITCH_2,
         region=region,
         is_physical=code != DIGITAL,

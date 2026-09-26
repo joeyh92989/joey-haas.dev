@@ -23,7 +23,7 @@ from urllib.parse import quote
 from matching import normalize_title
 from physical_sources.base import EditionRow, HostThrottle, PhysicalSourceError
 from physical_sources.limits import CART_ID_PATTERN, SWITCH_2
-from physical_sources.parse import parse_loose_date, parse_ymd
+from physical_sources.parse import game_title, parse_loose_date, parse_ymd
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +201,7 @@ def _edition(row: dict) -> EditionRow:
             row["title"], row["region"], row["publisher"], row["card_type"]
         ),
         title=row["title"],
-        title_normalized=normalize_title(row["title"]),
+        title_normalized=normalize_title(game_title(row["title"])),
         platform_id=SWITCH_2,
         region=row["region"],
         is_physical=row["is_physical"],
