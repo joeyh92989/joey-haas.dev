@@ -213,7 +213,11 @@ before pushing.
   registry value" PATCHes `edition_id`. The registry's cart ID is never
   copied: `items.cart_id` means "printed on my copy".
 - **E7c deploy order:** set `GOOGLE_SHEETS_API_KEY` on Render; apply `0005`
-  to Neon; merge; then on `/admin/catalogue` press Refresh registry, Refresh
+  to Neon; merge; **before the first Refresh registry, bulk-set every owned
+  Switch 2 copy's format on `/admin/collection`** (the collection is all full
+  cartridges, and the registry lists many third-party retail boxes as
+  Game-Key Cards, so a blank format would be filled wrongly; a recorded one
+  is `manual` and never touched); then on `/admin/catalogue` press Refresh registry, Refresh
   stores, Resolve until nothing remains, work through Needs match, and
   Refresh N64 when wanted. Nothing from the catalogue is public;
   `test_public.py` pins that.

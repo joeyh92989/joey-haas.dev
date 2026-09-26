@@ -1107,11 +1107,13 @@ Decisions recorded rather than changed:
   spec §3 has every IGDB call do; the courtesy rules are for scraped hosts.
   (Refuted as a finding by the verifier.)
 
-**Open for the owner — C9:** the sync writes a registry format onto every
-owned Switch 2 copy whose `owned_format` is not `none`, as spec §5 says,
-including copies recorded as digital or subscription. Those then carry a
-card format, and public stats count formats. Restricting the sync to
-physical copies (and NULL) is a one-line change; it was left as specified.
+**C9, decided by the owner 2026-09-25:** the sync takes physical copies
+only (and copies with no owned format recorded), not digital or
+subscription ones, which have no card -- a deviation from spec §5's
+`owned_format IS DISTINCT FROM 'none'`. The owner also confirmed the whole
+collection is full cartridges, so the deploy order bulk-sets every owned
+Switch 2 copy's format before the first registry refresh; otherwise a blank
+format would be filled with a retail box's Game-Key Card.
 
 ### Finish gate — re-verification of the fixes, 2026-09-25
 
