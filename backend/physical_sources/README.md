@@ -68,7 +68,12 @@ Switch 2 Edition" and everything after it (a bundled expansion, a pack), so
 `the legend of zelda breath of the wild` and meets the store listings for it.
 Resolve searches IGDB with the same title. The raw title and `source_ref` are
 kept, so changing the key updates a row in place. The tracker keys the same
-way.
+way. Because both go through `strip_title`, a registry or tracker title also
+loses an '<label> Edition' phrase (`Shinobi: Art of Vengeance - Deluxe
+Edition` keys as `shinobi art of vengeance`), and a store title is cut at the
+Switch 2 Edition phrase too. `strip_title` collapses whitespace before any
+pattern runs and never returns an empty string: the titles are third-party
+text.
 
 The sheet is read through the Sheets API with `GOOGLE_SHEETS_API_KEY`,
 because `docs.google.com/robots.txt` disallows the CSV export. Without the

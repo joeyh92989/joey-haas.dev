@@ -144,9 +144,8 @@ async def pending_keys(session, limit: int) -> list[tuple[str, int, int | None, 
 
     The search title is the registry's own spelling as the base game
     (`game_title`) when an edition carries the key, else the normalized
-    title. The year is the earliest day-, month-
-    or year-precision date among the key's rows (spec §3), else None, which
-    best_match accepts.
+    title. The year is the earliest day-, month- or year-precision date among
+    the key's rows (spec §3), else None, which best_match accepts.
     """
     rows = _open_keys()
     grouped = (
