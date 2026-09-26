@@ -210,15 +210,19 @@ def test_game_title(title, expected):
 
 @pytest.mark.parametrize(
     "run",
-    [" " * 50_000, " -" * 25_000, " :" * 25_000],
-    ids=["spaces", "dashes", "colons"],
+    [" " * 50_000, " -" * 25_000, " :" * 25_000, "(" * 50_000, " (switch" * 6_000],
+    ids=["spaces", "dashes", "colons", "openers", "unclosed-platforms"],
 )
-def test_a_long_whitespace_run_is_linear(run):
-    """Third-party text: the phrase patterns backtracked for minutes on this."""
+def test_a_long_run_is_linear(run):
+    """Third-party text: the title patterns backtracked for minutes on this."""
     started = time.perf_counter()
     stripped = game_title(f"Duskbloods{run}x")
     assert time.perf_counter() - started < 1
     assert stripped.startswith("Duskbloods") and stripped.endswith("x")
+
+
+def test_only_a_platform_bracket_is_removed():
+    assert strip_title("Blade (Switch) (Limited) [PS5]") == "Blade (Limited)"
 
 
 def test_edition_label():

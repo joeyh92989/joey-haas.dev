@@ -196,12 +196,19 @@ def parse_preorder_close(text: str | None) -> date | None:
     return value if precision == "day" else None
 
 
-# Platform lists and pre-order markers stores put in a title's brackets.
-_BRACKETED = re.compile(
-    r"\s*[(\[][^)\]]*(?:switch|ps[45]|xbox|pc|nintendo|pre-?order|gbc?|genesis)"
-    r"[^)\]]*[)\]]",
-    re.IGNORECASE,
+# Platform lists and pre-order markers stores put in a title's brackets. Only
+# innermost brackets are matched, and their words tested separately: a class
+# that could cross an opener rescanned the title from every "(" in it.
+_BRACKETED = re.compile(r"\s*[(\[]([^()\[\]]*)[)\]]")
+_BRACKET_WORDS = re.compile(
+    r"switch|ps[45]|xbox|pc|nintendo|pre-?order|gbc?|genesis", re.IGNORECASE
 )
+
+
+def _platform_bracket(match: re.Match) -> str:
+    return "" if _BRACKET_WORDS.search(match.group(1)) else match.group(0)
+
+
 _EDITION_PHRASE = re.compile(
     r"\s*[-–:]?\s*\b(?:Standard|Collector['’]?s|Deluxe|Special|First|Limited|"
     r"Exclusive|Retro|Premium) Edition\b",
@@ -222,7 +229,7 @@ _INVERTED_ARTICLE = re.compile(r"^(.+?),\s*(The|An?)\s*$", re.IGNORECASE)
 
 
 def strip_title(title: str, patterns: Iterable[re.Pattern] = ()) -> str:
-    """The game's own title: the store's prefixes and suffixes removed, then
+    r"""The game's own title: the store's prefixes and suffixes removed, then
     bracketed platform lists, then a Switch 2 Edition phrase and everything
     after it, then an '<label> Edition' phrase. A title that is nothing but
     those phrases is kept whole rather than keyed as an empty string.
@@ -234,7 +241,7 @@ def strip_title(title: str, patterns: Iterable[re.Pattern] = ()) -> str:
     stripped = collapsed
     for pattern in patterns:
         stripped = pattern.sub("", stripped)
-    stripped = _BRACKETED.sub("", stripped)
+    stripped = _BRACKETED.sub(_platform_bracket, stripped)
     stripped = _SWITCH_2_EDITION.sub("", stripped)
     stripped = _EDITION_PHRASE.sub("", stripped)
     return _SPACE.sub(" ", stripped).rstrip(_TRAILING).strip() or collapsed
