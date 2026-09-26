@@ -377,6 +377,8 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
         result.errors.append(
             {"code": "igdb_not_configured", "detail": "IGDB credentials are not set"}
         )
+        # Linking a row to an already decided key needs no search.
+        await propagate(session)
         result.unresolved_remaining = await count_pending(session)
         return result
 

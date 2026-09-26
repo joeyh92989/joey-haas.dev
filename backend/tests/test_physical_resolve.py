@@ -132,6 +132,24 @@ async def test_without_igdb_nothing_is_written(session):
 
 
 @pytest.mark.asyncio
+async def test_without_igdb_a_decided_key_still_links_its_rows(session):
+    """A refresh that re-keys a row onto an already decided key relinks it
+    whether or not IGDB is configured: linking needs no search."""
+    await upsert_editions(
+        session, [edition("The Midnight Walk")], "nscollectors", retire=True
+    )
+    igdb = FakeIgdb({"The Midnight Walk": [result(11, "The Midnight Walk")]})
+    await resolve_batch(session, igdb)
+    await upsert_listings(
+        session, [listing("the midnight walk")], "super_rare", archive=True
+    )
+
+    await resolve_batch(session, FakeIgdb(configured=False))
+
+    assert [x.igdb_id for x in await _all(session, StoreListing)] == [11]
+
+
+@pytest.mark.asyncio
 async def test_a_rate_limit_keeps_what_was_decided(session):
     titles = ["Alpha", "Bravo", "Charlie", "Delta"]
     await upsert_editions(
