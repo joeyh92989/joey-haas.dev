@@ -76,14 +76,18 @@ a rating board, extras or a pre-order (`(NSW)`, `[PlayStation 5]`,
 to four passes, platform tails after a dash, colon, "for" or an unclosed
 opener (`for Nintendo Switch™ and PlayStation 4`), a run of one to four
 **packaging** words before "Edition" (`Special Limited Edition`,
-`- Extra Elite Edition`, with a following "Bundle" or "Box"), the same
-words without "Edition" (`Ultra Collector's`, `LE`), and a bundle suffix
-led by merch words (`Plushie Bundle`).
+`- Extra Elite Edition`, with a following "Box"), packaging words in front
+of a named edition, a run ending in "Collector's" or a lone "LE"/"CE" at the
+end, and a bundle suffix led by merch words (`Plushie Bundle`). Deluxe,
+Complete, Definitive and Ultimate count as packaging only right before
+"Edition": "Spelunker HD Deluxe Collector's Edition" keeps "Deluxe".
 
 What stays is the game's own name, including a **named** edition ("Elden
 Ring Tarnished Edition", "Tales of Arise - Beyond the Dawn Edition"): IGDB
-lists many of them as the Switch game itself. A bare "Bundle" stays too,
-since "Taito Milestones 1&2 Bundle" is more than one game. When a named
+lists many of them as the Switch game itself, in brackets too ("Elden Ring
+(Tarnished Edition)"). A "Bundle" not led by merch words stays, labelled or
+not ("Taito Milestones 1&2 CE Bundle"), since the title cannot say whether
+it holds one game or several. When a named
 edition's full name finds nothing, Resolve retries with words before
 "Edition" dropped, keeping at least two (`edition_fallbacks`), and what a
 shorter query finds waits in Needs match: "Hades II Olympian Edition"
@@ -93,8 +97,11 @@ shortened to one word would otherwise link the first game.
 holds every recorded key to it, to a list of packaging leftovers, and to
 being a fixed point of the cleaner; `test_physical_parse.py` pins each shape
 by its raw title. The raw title is kept, so changing the key updates a row
-in place. Every pattern is bounded, each with a timing case on a 50k-char
-title, and `strip_title` never returns an empty string.
+in place. `strip_title` collapses whitespace before any pattern runs, and
+on collapsed text every pattern takes bounded time; timing cases put each
+rule through `game_title` on a 50k-character title. The patterns are not
+safe on raw text, so nothing outside `parse.py` should use them. It never
+returns an empty string.
 
 Accent folding also changes the registry's and tracker's `source_ref`
 (built from `normalize_title`): on the first refresh after it shipped, the

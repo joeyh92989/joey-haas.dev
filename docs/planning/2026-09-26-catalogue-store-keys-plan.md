@@ -1070,3 +1070,27 @@ automatic.
 **Rollout note:** the first refresh after deploy re-inserts the 14 accented
 registry rows under folded `source_ref`s and retires the old ones (nothing
 references `physical_editions` by id).
+
+### Re-verification of the fixes
+
+An independent re-verifier diffed every fixture key (3,686 rows, all
+platforms) against the pre-loop commit and the branch base, and found a
+second, smaller round, fixed in `1e0d859` and `a0c7cb9`:
+
+- Deluxe/Complete/Definitive/Ultimate were eaten anywhere in a packaging
+  run ("Spelunker HD Deluxe Collector's Edition" split from "Spelunker HD
+  Deluxe"): packaging only right before "Edition" now.
+- A bracketed named edition was dropped ("Elden Ring (Tarnished Edition)").
+- Labelled bundles ("CE/LE/Edition Bundle") lost "Bundle", splitting the
+  Taito Milestones family four ways: they keep it now. Tradeoff: "Lies of P:
+  Complete Edition Bundle" keys as `lies of p bundle`, not `lies of p`.
+- Packaging words before a named edition, and a store name before
+  "Exclusive Edition", now go.
+- The Hades test did not reach the shortened path; the recorder's first
+  page lacked the non-object guard; no route test refreshed a WooCommerce
+  store; timing cases missed several rules; the README overclaimed.
+- b70b843 also changes Fangamer, whose config reads `option:edition` before
+  tags; no Fangamer row moved in the fixtures.
+
+Measured after these fixes over every fixture row on Switch or Switch 2:
+no key from the branch base splits into two keys within a store.
