@@ -104,3 +104,24 @@ No migration, infra or deploy-path change.
 2. Render's logs for that request contain no IGDB search for a title with
    "Nintendo Switch 2 Edition".
 3. Resolve until 0 remain; Needs match holds no orphan from the first run.
+
+## Execution summary
+
+Tasks 1–8 landed as planned. The finish gate's reviews (two reviewers, an
+adversarial verifier, then a re-verification of the fixes) added:
+
+| Commit | Finding |
+|---|---|
+| `ea20192` | R1: the phrase patterns backtracked for seconds on a long space run in third-party text; the trailing-separator regex was quadratic. Also a title that is only a phrase no longer keys as `""`, and an article before the suffix is uninverted. |
+| `6c9fb0c` | C2: the Needs match tile counted orphans the list hid; both read one SQL filter. |
+| `77950b1` | `_BRACKETED` (pre-existing) rescanned from every `(`; now innermost brackets only. Every recorded fixture keys exactly as before (2,784 rows compared). |
+| `a9d48a9` | Without IGDB, `resolve_batch` returned before `propagate`, so a re-keyed row on a decided key stayed unlinked. |
+
+Checked live against IGDB after task 8: Kirby, Jamboree and Animal Crossing
+resolve EXACT to their base games (172427, 306148, 109462); BotW is
+UNCERTAIN against IGDB's Master Edition and bundle entries and waits in Needs
+match with the base game (7346) as its first candidate.
+
+Kept on purpose: a platform set by hand in Needs match on a listing whose
+store states a different platform is overwritten by the next refresh. That
+predates this branch and is left for its own fix.
