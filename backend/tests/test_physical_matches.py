@@ -63,6 +63,32 @@ async def test_needs_match_lists_pending_and_platformless_keys(sessionmaker_for_
     )
 
 
+async def test_a_pending_key_no_row_carries_is_not_listed(sessionmaker_for_test):
+    """A refresh that re-keys the row (a stripped title) orphans the decision."""
+    await _seed_pending(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        (row,) = await session.scalars(select(PhysicalEdition))
+        rekeyed = edition("Star Fox", ref=row.source_ref, title_normalized="star fox x")
+        await upsert_editions(session, [rekeyed], "nscollectors", retire=True)
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/physical/needs-match")).json()
+    assert [k["title_normalized"] for k in body["keys"]] == ["he man"]
+    assert body["total"] == 1
+
+
+async def test_a_pending_key_with_only_retired_rows_is_not_listed(
+    sessionmaker_for_test,
+):
+    await _seed_pending(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        await upsert_editions(session, [], "nscollectors", retire=True)
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/physical/needs-match")).json()
+    assert [k["title_normalized"] for k in body["keys"]] == ["he man"]
+
+
 async def test_linking_by_hand(sessionmaker_for_test):
     await _seed_pending(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test) as client:

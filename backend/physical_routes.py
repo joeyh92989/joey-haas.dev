@@ -561,13 +561,20 @@ def create_physical_router(
             rows.setdefault((row.title_normalized, 0), []).append(row)
         if pending:
             titles = {title for title, _ in pending}
-            for model in (PhysicalEdition, StoreListing):
+            live = {
+                PhysicalEdition: PhysicalEdition.retired_at.is_(None),
+                StoreListing: StoreListing.availability != "archived",
+            }
+            for model, is_live in live.items():
                 for row in await session.scalars(
-                    select(model).where(model.title_normalized.in_(titles))
+                    select(model).where(model.title_normalized.in_(titles), is_live)
                 ):
                     key = (row.title_normalized, row.platform_id)
                     if key in pending:
                         rows[key].append(row)
+        # A decision no live row carries any more (re-keyed or retired by a
+        # later refresh) has nothing to link.
+        rows = {key: found for key, found in rows.items() if found}
         keys = []
         for (title_normalized, platform_id), found in sorted(rows.items()):
             editions = [r for r in found if isinstance(r, PhysicalEdition)]
@@ -576,7 +583,7 @@ def create_physical_router(
                     title_normalized=title_normalized,
                     platform_id=platform_id,
                     platform=PLATFORM_NAMES.get(platform_id),
-                    title=(editions or found)[0].title if found else title_normalized,
+                    title=(editions or found)[0].title,
                     sources=sorted(
                         {getattr(r, "store", None) or r.source for r in found}
                     ),
