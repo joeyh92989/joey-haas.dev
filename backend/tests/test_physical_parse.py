@@ -2,6 +2,7 @@
 
 import json
 import re
+import time
 from datetime import date
 from pathlib import Path
 
@@ -166,6 +167,12 @@ def test_find_date_takes_the_earliest_phrase():
         ),
         ("Hades II Nintendo Switch™ 2 Edition", (), "Hades II"),
         ("Cyberpunk 2077: Ultimate Edition", (), "Cyberpunk 2077: Ultimate Edition"),
+        (
+            "Nintendo Switch 2 Edition Upgrade Pack",
+            (),
+            "Nintendo Switch 2 Edition Upgrade Pack",
+        ),
+        ("Deluxe  Edition", (), "Deluxe Edition"),
     ],
 )
 def test_strip_title(title, patterns, expected):
@@ -191,6 +198,7 @@ def test_strip_title(title, patterns, expected):
             " to Azure",
         ),
         ("Hat in Time, A", "A Hat in Time"),
+        ("Duskbloods, The - Nintendo Switch 2 Edition", "The Duskbloods"),
         ("Absolum - Nintendo Switch 2 Edition", "Absolum"),
         ("Mario Kart World", "Mario Kart World"),
         ("Order Up!!", "Order Up!!"),
@@ -198,6 +206,19 @@ def test_strip_title(title, patterns, expected):
 )
 def test_game_title(title, expected):
     assert game_title(title) == expected
+
+
+@pytest.mark.parametrize(
+    "run",
+    [" " * 50_000, " -" * 25_000, " :" * 25_000],
+    ids=["spaces", "dashes", "colons"],
+)
+def test_a_long_whitespace_run_is_linear(run):
+    """Third-party text: the phrase patterns backtracked for minutes on this."""
+    started = time.perf_counter()
+    stripped = game_title(f"Duskbloods{run}x")
+    assert time.perf_counter() - started < 1
+    assert stripped.startswith("Duskbloods") and stripped.endswith("x")
 
 
 def test_edition_label():

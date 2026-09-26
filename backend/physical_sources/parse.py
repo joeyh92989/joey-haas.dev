@@ -214,7 +214,9 @@ _SWITCH_2_EDITION = re.compile(
     r"\s*[-–:]?\s*\b(?:Nintendo\s+)?Switch™?\s*2\s+Edition\b.*$",
     re.IGNORECASE,
 )
-_TRAILING = re.compile(r"[\s\-–:,]+$")
+# Stripped with str.rstrip, not a `[...]+$` pattern: that rescans the run from
+# every position in it and goes quadratic on a long " - - -" tail.
+_TRAILING = " -–:,"
 # The registry files "The Duskbloods" as "Duskbloods, The".
 _INVERTED_ARTICLE = re.compile(r"^(.+?),\s*(The|An?)\s*$", re.IGNORECASE)
 
@@ -222,24 +224,33 @@ _INVERTED_ARTICLE = re.compile(r"^(.+?),\s*(The|An?)\s*$", re.IGNORECASE)
 def strip_title(title: str, patterns: Iterable[re.Pattern] = ()) -> str:
     """The game's own title: the store's prefixes and suffixes removed, then
     bracketed platform lists, then a Switch 2 Edition phrase and everything
-    after it, then an '<label> Edition' phrase."""
-    stripped = title
+    after it, then an '<label> Edition' phrase. A title that is nothing but
+    those phrases is kept whole rather than keyed as an empty string.
+
+    Whitespace is collapsed first: the phrase patterns open with `\s*`, and
+    on a long run of spaces in third-party text they backtrack for minutes.
+    """
+    collapsed = _SPACE.sub(" ", title).strip()
+    stripped = collapsed
     for pattern in patterns:
         stripped = pattern.sub("", stripped)
     stripped = _BRACKETED.sub("", stripped)
     stripped = _SWITCH_2_EDITION.sub("", stripped)
     stripped = _EDITION_PHRASE.sub("", stripped)
-    return _TRAILING.sub("", _SPACE.sub(" ", stripped)).strip()
+    return _SPACE.sub(" ", stripped).rstrip(_TRAILING).strip() or collapsed
+
+
+def _uninvert(title: str) -> str:
+    inverted = _INVERTED_ARTICLE.match(title)
+    return f"{inverted.group(2)} {inverted.group(1)}" if inverted else title
 
 
 def game_title(title: str) -> str:
     """A registry title as the game's own name: a trailing ', The' moved to
-    the front, then `strip_title`. What the catalogue keys and searches by."""
-    stripped = title.strip()
-    inverted = _INVERTED_ARTICLE.match(stripped)
-    if inverted:
-        stripped = f"{inverted.group(2)} {inverted.group(1)}"
-    return strip_title(stripped)
+    the front, then `strip_title`. The article is checked again after the
+    strip, for one the stripped suffix followed. What the catalogue keys and
+    searches by."""
+    return _uninvert(strip_title(_uninvert(title.strip())))
 
 
 def edition_label(*texts: str | None) -> str | None:
