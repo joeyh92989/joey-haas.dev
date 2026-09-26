@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from physical_sources.parse import (
+    edition_fallbacks,
     edition_label,
     find_date,
     game_title,
@@ -340,6 +341,15 @@ def test_a_long_run_is_linear(run):
 
 def test_only_a_platform_bracket_is_removed():
     assert strip_title("Blade (Switch) (Limited) [PS5]") == "Blade (Limited)"
+
+
+def test_edition_fallbacks():
+    assert edition_fallbacks("gex trilogy classic edition") == ["gex trilogy", "gex"]
+    assert edition_fallbacks("OFF Bad Human Edition") == ["OFF Bad", "OFF"]
+    assert edition_fallbacks("a b c d e edition") == ["a b c d", "a b c", "a b"]
+    assert edition_fallbacks("elden ring") == []
+    assert edition_fallbacks("edition") == []
+    assert edition_fallbacks("tarnished edition") == []
 
 
 def test_edition_label():

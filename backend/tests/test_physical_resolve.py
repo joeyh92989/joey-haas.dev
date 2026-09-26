@@ -220,6 +220,37 @@ async def test_a_switch_2_edition_is_searched_as_the_switch_1_game(session):
     ]
 
 
+@pytest.mark.asyncio
+async def test_a_named_edition_is_retried_without_it_when_nothing_is_found(session):
+    await upsert_editions(
+        session, [edition("GEX Trilogy Classic Edition")], "nscollectors", retire=True
+    )
+    igdb = FakeIgdb({"GEX Trilogy": [result(5, "Gex Trilogy")]})
+
+    outcome = await resolve_batch(session, igdb)
+
+    assert [query for query, *_ in igdb.searches] == [
+        "GEX Trilogy Classic Edition",
+        "GEX Trilogy",
+    ]
+    assert outcome.resolved == 1
+    assert [e.igdb_id for e in await _all(session, PhysicalEdition)] == [5]
+
+
+@pytest.mark.asyncio
+async def test_a_named_edition_found_in_full_is_searched_once(session):
+    await upsert_editions(
+        session, [edition("Elden Ring Tarnished Edition")], "nscollectors", retire=True
+    )
+    igdb = FakeIgdb(
+        {"Elden Ring Tarnished Edition": [result(8, "Elden Ring: Tarnished Edition")]}
+    )
+
+    await resolve_batch(session, igdb)
+
+    assert [query for query, *_ in igdb.searches] == ["Elden Ring Tarnished Edition"]
+
+
 # --- The N64 ingest -----------------------------------------------------------
 
 

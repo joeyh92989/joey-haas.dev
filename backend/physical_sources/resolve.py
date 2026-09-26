@@ -52,7 +52,11 @@ from physical_sources.limits import (
     SWITCH,
     SWITCH_2,
 )
-from physical_sources.parse import game_title, is_switch_2_edition
+from physical_sources.parse import (
+    edition_fallbacks,
+    game_title,
+    is_switch_2_edition,
+)
 from sources.base import (
     SourceDetail,
     SourceError,
@@ -393,6 +397,14 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
             platform, year = PLATFORM_NAMES[SWITCH], None
         try:
             found = await igdb.search(title, year, platform=platform)
+            # A named edition IGDB does not list ("GEX Trilogy Classic
+            # Edition") is retried without it; best_match then scores the
+            # query that found something.
+            for shorter in [] if found else edition_fallbacks(title):
+                found = await igdb.search(shorter, year, platform=platform)
+                if found:
+                    title = shorter
+                    break
         except SourceRateLimited:
             result.errors.append(
                 {"code": "igdb_rate_limited", "detail": "IGDB rate limit; press again"}

@@ -347,6 +347,20 @@ def strip_title(title: str, patterns: Iterable[re.Pattern] = ()) -> str:
     return stripped or collapsed
 
 
+def edition_fallbacks(title: str, most: int = 3) -> list[str]:
+    """Shorter searches for a title ending in a named edition, for when the
+    full name finds nothing: "gex trilogy classic edition" -> "gex trilogy",
+    then "gex". IGDB lists many named editions as the game itself ("Elden
+    Ring: Tarnished Edition"), so the full name is always searched first.
+    At least one word is kept, and a bare "<word> Edition" has no fallback.
+    """
+    words = title.split()
+    if len(words) < 3 or words[-1].casefold() != "edition":
+        return []
+    words = words[:-1]
+    return [" ".join(words[:-drop]) for drop in range(1, most + 1) if len(words) > drop]
+
+
 def is_switch_2_edition(title: str) -> bool:
     """Whether a raw title names a Nintendo Switch 2 Edition, the Switch 2
     upgrade of a Switch 1 game."""
