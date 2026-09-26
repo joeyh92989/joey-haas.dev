@@ -185,7 +185,8 @@ def test_find_date_takes_the_earliest_phrase():
             "C.A.R.D.S. RPG: The Misty Battlefield  -Total Warfare Edition- "
             "(Various Platforms (PS4, NSW))",
             (),
-            "C.A.R.D.S. RPG: The Misty Battlefield",
+            # "Total Warfare" is a named edition: it stays.
+            "C.A.R.D.S. RPG: The Misty Battlefield -Total Warfare Edition",
         ),
         ("Just Shapes & Beats for Nintendo Switch™", (), "Just Shapes & Beats"),
         ("UFO 50 for Nintendo Switch™ Deluxe Edition", (), "UFO 50"),
@@ -196,7 +197,11 @@ def test_find_date_takes_the_earliest_phrase():
             (),
             "9 Years of Shadows",
         ),
-        ("Darius Extra Cozmic Bundle (NSW/SMD)", (), "Darius Extra Cozmic"),
+        (
+            "Darius Extra Cozmic Bundle (NSW/SMD)",
+            (),
+            "Darius Extra Cozmic Bundle",  # no merch word: more than one game
+        ),
         (
             "Tavern Talk Complete Edition - Limited Edition (Nintendo Switch)",
             (),
@@ -228,7 +233,7 @@ def test_find_date_takes_the_earliest_phrase():
         (
             "Andro Dunos 2 Limited Edition Box SWITCH [EUR]",
             (re.compile(r"\s+SWITCH\b.*$", re.I),),  # PixelHeart's own strip
-            "Andro Dunos 2 Box",
+            "Andro Dunos 2",
         ),
         (
             "Popslinger - Extra Elite Edition [Nintendo Switch",
@@ -238,7 +243,7 @@ def test_find_date_takes_the_earliest_phrase():
         (
             "Yuppie Psycho: Executive Edition - Standard Cover (Nintendo Switch)",
             (),
-            "Yuppie Psycho",
+            "Yuppie Psycho: Executive Edition",
         ),
         (
             "Code: Realize ~Future Blessings~ Day One Edition - Nintendo Switch™",
@@ -246,11 +251,80 @@ def test_find_date_takes_the_earliest_phrase():
             "Code: Realize ~Future Blessings~",
         ),
         ("Rick Henderson (Extra Edition) [Nintendo Switch]", (), "Rick Henderson"),
-        ("Two Point Museum: Explorer Edition", (), "Two Point Museum"),
+        (
+            "Two Point Museum: Explorer Edition",
+            (),
+            "Two Point Museum: Explorer Edition",
+        ),
         (
             "Star Hunter DX & Space Moth: Lunar Edition Special Limited Edition (NSW)",
             (),
-            "Star Hunter DX & Space Moth",
+            "Star Hunter DX & Space Moth: Lunar Edition",
+        ),
+        # Review findings, 2026-09-26.
+        ("A - Silver Edition B", (), "A B"),  # a space, never glued
+        ("Foo + Character Cards", (), "Foo"),
+        ("Blade (Switchblade)", (), "Blade (Switchblade)"),
+        (
+            "Bud Spencer & Terence Hill - Slaps And Beans 2 Special Edition",
+            (),
+            "Bud Spencer & Terence Hill - Slaps And Beans 2",
+        ),
+        ("Cannon Dancer - Osman Collector's Edition", (), "Cannon Dancer - Osman"),
+        (
+            "Asterix & Obelix - Slap them All! Ultra Collector's Edition (NSW)",
+            (),
+            "Asterix & Obelix - Slap them All!",
+        ),
+        (
+            "Tales of Arise - Beyond the Dawn Edition",
+            (),
+            "Tales of Arise - Beyond the Dawn Edition",
+        ),
+        (
+            "Irem Collection Volume 1 - 5 Collector's/Limited Edition Bundle "
+            "(Nintendo Switch)",
+            (),
+            "Irem Collection Volume 1 - 5",
+        ),
+        ("Taito Milestones 1&2 Bundle", (), "Taito Milestones 1&2 Bundle"),
+        ("Cotton Fantasy Yunomi Cup LE Bundle (NSW)", (), "Cotton Fantasy"),
+        ("Cotton 16-Bit LE (NSW)", (), "Cotton 16-Bit"),
+        ("Wonder Boy Collection Ultra Collector's (NSW)", (), "Wonder Boy Collection"),
+        (
+            "Ankora: Lost Days & Deiland: Pocket Planet Collector's Ed.",
+            (),
+            "Ankora: Lost Days & Deiland: Pocket Planet",
+        ),
+        (
+            "The Ninja Saviors: Return of the Warriors (Nintendo Switch) - Preorder",
+            (),
+            "The Ninja Saviors: Return of the Warriors",
+        ),
+        ("Eagle Island Twist - Standard Release", (), "Eagle Island Twist"),
+        (
+            "The Binding of Isaac: Repentance Japanese Version",
+            (),
+            "The Binding of Isaac: Repentance",
+        ),
+        ("The Last Door Complete edition (EU)", (), "The Last Door"),
+        ("Roboquest [PEGI]", (), "Roboquest"),
+        ("ONLINE EXCLUSIVE EDTION: 7'scarlet", (), "7'scarlet"),
+        (
+            "ONLINE EXCLUSIVE: Dairoku: Agents of Sakuratani Online Exclusive Edition",
+            (),
+            "Dairoku: Agents of Sakuratani",
+        ),
+        (
+            "The Binding of Isaac: Repentance (Japanese Version)",
+            (),
+            "The Binding of Isaac: Repentance",
+        ),
+        ("Eastward Exclusive Collector’s Edition", (), "Eastward"),
+        (
+            "Shadow of the Ninja - Reborn Collector's/Limited Edition",
+            (),
+            "Shadow of the Ninja - Reborn",
         ),
         # A named edition with no separator stays: IGDB often lists it as the
         # Switch game ("Elden Ring: Tarnished Edition").
@@ -317,6 +391,9 @@ def test_game_title(title, expected):
         " Bundle" * 8_000,
         " (NSW" * 10_000,
         " - Nintendo" * 6_000,
+        " plush" * 8_000,
+        " ce" * 16_000,
+        " limited" * 6_000,
     ],
     ids=[
         "spaces",
@@ -329,6 +406,9 @@ def test_game_title(title, expected):
         "bundles",
         "unclosed-nsw",
         "dash-nintendo",
+        "merch-plush",
+        "merch-ce",
+        "packaging-words",
     ],
 )
 def test_a_long_run_is_linear(run):
@@ -344,9 +424,17 @@ def test_only_a_platform_bracket_is_removed():
 
 
 def test_edition_fallbacks():
-    assert edition_fallbacks("gex trilogy classic edition") == ["gex trilogy", "gex"]
-    assert edition_fallbacks("OFF Bad Human Edition") == ["OFF Bad", "OFF"]
-    assert edition_fallbacks("a b c d e edition") == ["a b c d", "a b c", "a b"]
+    assert edition_fallbacks("gex trilogy classic edition") == ["gex trilogy"]
+    assert edition_fallbacks("GEX Trilogy Tail Time Edition") == [
+        "gex trilogy tail",
+        "gex trilogy",
+    ]
+    assert edition_fallbacks("Devil May Cry 5: Devil Hunter Edition") == [
+        "devil may cry 5 devil",
+        "devil may cry 5",
+        "devil may cry",
+    ]
+    assert edition_fallbacks("OFF Bad Human Edition") == ["off bad"]
     assert edition_fallbacks("elden ring") == []
     assert edition_fallbacks("edition") == []
     assert edition_fallbacks("tarnished edition") == []

@@ -225,13 +225,13 @@ async def test_a_named_edition_is_retried_without_it_when_nothing_is_found(sessi
     await upsert_editions(
         session, [edition("GEX Trilogy Classic Edition")], "nscollectors", retire=True
     )
-    igdb = FakeIgdb({"GEX Trilogy": [result(5, "Gex Trilogy")]})
+    igdb = FakeIgdb({"gex trilogy": [result(5, "Gex Trilogy")]})
 
     outcome = await resolve_batch(session, igdb)
 
     assert [query for query, *_ in igdb.searches] == [
         "GEX Trilogy Classic Edition",
-        "GEX Trilogy",
+        "gex trilogy",
     ]
     assert outcome.resolved == 1
     assert [e.igdb_id for e in await _all(session, PhysicalEdition)] == [5]

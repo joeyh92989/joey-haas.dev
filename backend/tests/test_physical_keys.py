@@ -13,8 +13,17 @@ from matching import normalize_title
 from physical_sources.parse import PLATFORM_WORDS, strip_title
 
 ROWS = corpus_rows()
-PLATFORM_OR_BUNDLE = re.compile(
-    r"\b(?:" + "|".join(re.escape(word) for word in PLATFORM_WORDS) + r"|bundle)\b"
+PLATFORM = re.compile(
+    r"\b(?:" + "|".join(re.escape(word) for word in PLATFORM_WORDS) + r")\b"
+)
+# Packaging leftovers the fixed-point check cannot see: normalizing removed
+# the dash or bracket the cleaner needed ("- Preorder", "(EU)").
+RESIDUE = re.compile(
+    r"\b(?:preorder|pre order|standard release|collector s(?: ed)?|limited edition"
+    r"|special edition|deluxe edition|japanese version|plushie bundle"
+    r"|soundtrack bundle|book bundle)$"
+    r"|\s(?:le|ce|eu|eur|pegi|usk|box)$"
+    r"|^online exclusive"
 )
 # A real product whose own name keeps a forbidden word, with the reason.
 ALLOWED: dict[str, str] = {
@@ -41,9 +50,20 @@ def test_the_corpus_covers_every_source():
     assert len(ROWS) > 1000
 
 
-def test_no_key_keeps_a_platform_word_or_a_bundle():
-    offenders = _offenders(PLATFORM_OR_BUNDLE.search)
+def test_no_key_keeps_a_platform_word():
+    offenders = _offenders(PLATFORM.search)
     assert offenders == [], "\n".join(offenders[:60])
+
+
+def test_no_key_keeps_a_packaging_leftover():
+    offenders = _offenders(RESIDUE.search)
+    assert offenders == [], "\n".join(offenders[:60])
+
+
+def test_an_extras_suffix_does_not_split_a_game():
+    """'+ Character Cards' is merch: both VIRCHE listings are one game."""
+    keys = {key for _, title, key, _ in ROWS if title.startswith("VIRCHE EVERMORE")}
+    assert len(keys) == 1, keys
 
 
 def test_every_key_is_already_clean():
