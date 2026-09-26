@@ -174,3 +174,17 @@ async def test_a_retired_edition_never_erases_a_synced_format(session):
         "game_key_card",
         "registry",
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("owned", [OwnedFormat.DIGITAL, OwnedFormat.SUBSCRIPTION])
+async def test_a_copy_with_no_card_gets_no_card_format(session, owned):
+    copy = item(owned=owned)
+    assert await _run(session, edition(), copy) == 0
+    assert copy.physical_format is None
+
+
+@pytest.mark.asyncio
+async def test_an_owned_format_not_yet_recorded_is_synced(session):
+    copy = item(owned=None)
+    assert await _run(session, edition(), copy) == 1

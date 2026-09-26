@@ -1,6 +1,6 @@
 """Registry formats onto owned Switch 2 items, and the disagreements.
 
-After every successful registry run, each owned Switch 2 game linked to IGDB
+After every successful registry run, each physical Switch 2 game linked to IGDB
 whose format was not recorded by its owner gets its registry edition's
 format, through formats.apply_registry_format -- which refuses manual,
 cart_id and photo rows, so nothing here can relabel a copy the owner has
@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from formats import (
     HOME_REGION,
@@ -72,11 +72,20 @@ def item_view(item: Item) -> ItemView:
 
 
 async def _owned_switch_2_games(session) -> list[Item]:
+    """Owned Switch 2 games held as a physical copy (or not yet said).
+
+    Digital and subscription copies have no card, so a card format would be
+    false there -- and public stats count formats. A NULL owned format is
+    included: it predates the column and is most likely a physical copy.
+    """
     return list(
         await session.scalars(
             select(Item).where(
                 Item.type == ItemType.GAME,
-                Item.owned_format.is_distinct_from(OwnedFormat.NONE),
+                or_(
+                    Item.owned_format == OwnedFormat.PHYSICAL,
+                    Item.owned_format.is_(None),
+                ),
                 Item.platform_id.in_(KEY_CARD_PLATFORMS),
                 Item.external_source == "igdb",
             )
