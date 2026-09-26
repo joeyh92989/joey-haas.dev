@@ -12,7 +12,6 @@ from physical_support import corpus_rows
 from matching import normalize_title
 from physical_sources.parse import PLATFORM_WORDS, strip_title
 
-ROWS = corpus_rows()
 PLATFORM = re.compile(
     r"\b(?:" + "|".join(re.escape(word) for word in PLATFORM_WORDS) + r")\b"
 )
@@ -39,15 +38,17 @@ ALLOWED: dict[str, str] = {
 def _offenders(broken) -> list[str]:
     return sorted(
         f"{source}: {title!r} -> {key!r}"
-        for source, title, key, _ in ROWS
+        for source, title, key, _ in corpus_rows()
         if key not in ALLOWED and broken(key)
     )
 
 
-def test_the_corpus_covers_every_source():
-    sources = {source for source, *_ in ROWS}
+def test_the_corpus_covers_every_source_and_later_pages():
+    rows = corpus_rows()
+    sources = {source for source, *_ in rows}
     assert {"nscollectors", "switch2tracker", "strictly_limited", "iam8bit"} <= sources
-    assert len(ROWS) > 1000
+    # Only on Strictly Limited's nintendo-switch page 2.
+    assert any(title.startswith("Velocity 2X") for _, title, *_ in rows)
 
 
 def test_no_key_keeps_a_platform_word():
@@ -62,7 +63,9 @@ def test_no_key_keeps_a_packaging_leftover():
 
 def test_an_extras_suffix_does_not_split_a_game():
     """'+ Character Cards' is merch: both VIRCHE listings are one game."""
-    keys = {key for _, title, key, _ in ROWS if title.startswith("VIRCHE EVERMORE")}
+    keys = {
+        key for _, title, key, _ in corpus_rows() if title.startswith("VIRCHE EVERMORE")
+    }
     assert len(keys) == 1, keys
 
 
@@ -77,4 +80,4 @@ def test_every_key_is_already_clean():
 
 
 def test_no_key_is_empty():
-    assert [title for _, title, key, _ in ROWS if not key.strip()] == []
+    assert [title for _, title, key, _ in corpus_rows() if not key.strip()] == []

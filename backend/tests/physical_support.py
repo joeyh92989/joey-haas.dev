@@ -4,6 +4,7 @@ A fake IGDB adapter, row builders, and an HTTP handler that serves the
 recorded fixtures by URL -- kept here so no test module imports another.
 """
 
+import functools
 import json
 import re
 from contextlib import asynccontextmanager
@@ -191,7 +192,13 @@ def serve_fixtures(
             page = PHYSICAL / "shopify" / store / f"{fixture_name(handle)}.p1.json"
             return httpx2.Response(200, text=page.read_text())
         if path.startswith("/wp-json/"):
-            (page,) = (PHYSICAL / "woocommerce" / store).glob("*.json")
+            category = url.params.get("category")
+            number = url.params.get("page") or "1"
+            page = (
+                PHYSICAL / "woocommerce" / store / f"category-{category}.p{number}.json"
+            )
+            if not page.exists():
+                return httpx2.Response(200, json=[])
             return httpx2.Response(200, text=page.read_text())
         if path.startswith("/products/"):
             return httpx2.Response(
@@ -234,6 +241,7 @@ async def client_for(
         yield client
 
 
+@functools.cache
 def corpus_rows() -> list[tuple[str, str, str, int | None]]:
     """Every Switch and Switch 2 game row in the recorded catalogue, as
     (source, raw title, key, platform id): every store page, the registry's
