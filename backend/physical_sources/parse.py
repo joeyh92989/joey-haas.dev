@@ -207,18 +207,39 @@ _EDITION_PHRASE = re.compile(
     r"Exclusive|Retro|Premium) Edition\b",
     re.IGNORECASE,
 )
+# A Switch 2 Edition keys as its base game, so the phrase goes with whatever
+# follows it: a bundled expansion ("+ Star-Crossed World"), a pack, a closing
+# dash or an inverted article.
+_SWITCH_2_EDITION = re.compile(
+    r"\s*[-–:]?\s*\b(?:Nintendo\s+)?Switch™?\s*2\s+Edition\b.*$",
+    re.IGNORECASE,
+)
 _TRAILING = re.compile(r"[\s\-–:,]+$")
+# The registry files "The Duskbloods" as "Duskbloods, The".
+_INVERTED_ARTICLE = re.compile(r"^(.+?),\s*(The|An?)\s*$", re.IGNORECASE)
 
 
 def strip_title(title: str, patterns: Iterable[re.Pattern] = ()) -> str:
     """The game's own title: the store's prefixes and suffixes removed, then
-    bracketed platform lists, then an '<label> Edition' phrase."""
+    bracketed platform lists, then a Switch 2 Edition phrase and everything
+    after it, then an '<label> Edition' phrase."""
     stripped = title
     for pattern in patterns:
         stripped = pattern.sub("", stripped)
     stripped = _BRACKETED.sub("", stripped)
+    stripped = _SWITCH_2_EDITION.sub("", stripped)
     stripped = _EDITION_PHRASE.sub("", stripped)
     return _TRAILING.sub("", _SPACE.sub(" ", stripped)).strip()
+
+
+def game_title(title: str) -> str:
+    """A registry title as the game's own name: a trailing ', The' moved to
+    the front, then `strip_title`. What the catalogue keys and searches by."""
+    stripped = title.strip()
+    inverted = _INVERTED_ARTICLE.match(stripped)
+    if inverted:
+        stripped = f"{inverted.group(2)} {inverted.group(1)}"
+    return strip_title(stripped)
 
 
 def edition_label(*texts: str | None) -> str | None:

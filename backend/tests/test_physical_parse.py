@@ -10,6 +10,7 @@ import pytest
 from physical_sources.parse import (
     edition_label,
     find_date,
+    game_title,
     parse_loose_date,
     parse_preorder_close,
     parse_release,
@@ -147,10 +148,56 @@ def test_find_date_takes_the_earliest_phrase():
         ),
         ("R-Type DX - Collector’s Edition (GBC)", (), "R-Type DX"),
         ("Hollow Knight: Silksong Standard Edition", (), "Hollow Knight: Silksong"),
+        ("Absolum - Nintendo Switch 2 Edition", (), "Absolum"),
+        ("Cast n Chill – Nintendo Switch 2 Edition", (), "Cast n Chill"),
+        ("Culdcept Begins -Nintendo Switch 2 Edition- ", (), "Culdcept Begins"),
+        ("Dark Auction Nintendo Switch 2 Edition", (), "Dark Auction"),
+        (
+            "Kirby and the Forgotten Land Nintendo Switch 2 Edition"
+            " + Star-Crossed World",
+            (),
+            "Kirby and the Forgotten Land",
+        ),
+        (
+            "A-Train Hajimaru Kankou Keikaku - Nintendo Switch 2 Edition"
+            " - Guidebook Pack",
+            (),
+            "A-Train Hajimaru Kankou Keikaku",
+        ),
+        ("Hades II Nintendo Switch™ 2 Edition", (), "Hades II"),
+        ("Cyberpunk 2077: Ultimate Edition", (), "Cyberpunk 2077: Ultimate Edition"),
     ],
 )
 def test_strip_title(title, patterns, expected):
     assert strip_title(title, patterns) == expected
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("Duskbloods, The", "The Duskbloods"),
+        (
+            "Adventures of Elliot: The Millennium Tales, The ",
+            "The Adventures of Elliot: The Millennium Tales",
+        ),
+        (
+            "Legend of Zelda: Breath of the Wild Nintendo Switch 2 Edition, The",
+            "The Legend of Zelda: Breath of the Wild",
+        ),
+        (
+            "Legend of Heroes: Trails from Zero / The Legend of Heroes: Trails to"
+            " Azure - Deluxe Edition, The",
+            "The Legend of Heroes: Trails from Zero / The Legend of Heroes: Trails"
+            " to Azure",
+        ),
+        ("Hat in Time, A", "A Hat in Time"),
+        ("Absolum - Nintendo Switch 2 Edition", "Absolum"),
+        ("Mario Kart World", "Mario Kart World"),
+        ("Order Up!!", "Order Up!!"),
+    ],
+)
+def test_game_title(title, expected):
+    assert game_title(title) == expected
 
 
 def test_edition_label():
