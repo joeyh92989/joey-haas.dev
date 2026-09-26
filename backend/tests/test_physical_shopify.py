@@ -21,7 +21,7 @@ from physical_sources.shopify import (
     list_products,
     parse_product_page,
 )
-from physical_sources.stores import STORES
+from physical_sources.stores import STORES, resolve_platform
 
 FIXTURES = Path(__file__).parent / "fixtures" / "physical"
 SHOPIFY = FIXTURES / "shopify"
@@ -614,3 +614,22 @@ def test_iam8bit_reads_a_platform_named_in_the_edition_option():
 )
 def test_iam8bit_switch_variants_named_in_other_options_are_switch(title_start):
     assert 130 in {row.platform_id for row in rows_for("iam8bit", title_start)}
+
+
+def test_iam8bit_reads_a_platform_named_in_the_style_option():
+    rows = rows_for("iam8bit", "The Stanley Parable")
+    assert 130 in {row.platform_id for row in rows}
+
+
+def test_a_packaging_edition_option_leaves_the_tags_step_on():
+    """'Edition: Exclusive Edition' names no platform, so the tags decide."""
+    found = resolve_platform(
+        STORES["iam8bit"],
+        options={"edition": "Exclusive Edition"},
+        product_type="Games",
+        title="Foo",
+        sku="",
+        tags=["Nintendo Switch"],
+        collections_seen=set(),
+    )
+    assert found[0] == 130

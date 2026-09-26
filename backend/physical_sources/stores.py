@@ -405,8 +405,13 @@ def resolve_platform(
         if kind == "option":
             value = options.get(rule.lower())
             if value is not None:
-                has_named_option = True
                 found = _label(value)
+                # A Platform option switches the product-wide tags off even
+                # when its value names no platform (a vinyl variant). An
+                # Edition or Style option only does when it names one:
+                # "Exclusive Edition" says nothing about the platform.
+                if rule.lower() == "platform" or found != (None, None):
+                    has_named_option = True
         elif kind == "attribute":
             terms = (attributes or {}).get(rule.lower(), [])
             found = _label(" ".join(terms)) if terms else (None, None)
