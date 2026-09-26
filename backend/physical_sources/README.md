@@ -61,6 +61,15 @@ summary tab is read. An edition is keyed by title, region, publisher and card
 type, because WWE 2K25 EUR has a Game-Key Card and a Code in a Box from one
 publisher. `TBC` and a blank upcoming card type mean `is_physical = NULL`.
 
+A row's match key is its base game: `game_title()` in `parse.py` moves the
+sheet's trailing ", The" to the front, then `strip_title` cuts "Nintendo
+Switch 2 Edition" and everything after it (a bundled expansion, a pack), so
+`Legend of Zelda: Breath of the Wild Nintendo Switch 2 Edition, The` keys as
+`the legend of zelda breath of the wild` and meets the store listings for it.
+Resolve searches IGDB with the same title. The raw title and `source_ref` are
+kept, so changing the key updates a row in place. The tracker keys the same
+way.
+
 The sheet is read through the Sheets API with `GOOGLE_SHEETS_API_KEY`,
 because `docs.google.com/robots.txt` disallows the CSV export. Without the
 key the registry run records `sheets_not_configured` and everything else
