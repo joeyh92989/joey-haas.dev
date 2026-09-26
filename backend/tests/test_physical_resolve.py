@@ -233,8 +233,29 @@ async def test_a_named_edition_is_retried_without_it_when_nothing_is_found(sessi
         "GEX Trilogy Classic Edition",
         "gex trilogy",
     ]
-    assert outcome.resolved == 1
-    assert [e.igdb_id for e in await _all(session, PhysicalEdition)] == [5]
+    # Found by a shorter query, so a human confirms it (candidates kept).
+    assert (outcome.resolved, outcome.pending) == (0, 1)
+    (match,) = await _all(session, CatalogueMatch)
+    assert match.decided_by.value == "pending"
+    assert [c["external_id"] for c in match.candidates] == ["5"]
+    assert [e.igdb_id for e in await _all(session, PhysicalEdition)] == [None]
+
+
+@pytest.mark.asyncio
+async def test_a_shortened_sequel_is_never_linked_to_the_first_game(session):
+    await upsert_editions(
+        session, [edition("Hades II Olympian Edition")], "nscollectors", retire=True
+    )
+    igdb = FakeIgdb({"hades ii": [], "hades": [result(1, "Hades")]})
+
+    outcome = await resolve_batch(session, igdb)
+
+    (match,) = await _all(session, CatalogueMatch)
+    assert (outcome.resolved, match.decided_by.value, match.igdb_id) == (
+        0,
+        "pending",
+        None,
+    )
 
 
 @pytest.mark.asyncio

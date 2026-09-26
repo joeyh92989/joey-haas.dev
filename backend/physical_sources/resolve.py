@@ -395,15 +395,17 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
             # the upgrade, so a Switch 2 search finds only IGDB's separate
             # Switch 2 Edition entry (decision A keys to the base game).
             platform, year = PLATFORM_NAMES[SWITCH], None
+        shortened = False
         try:
             found = await igdb.search(title, year, platform=platform)
             # A named edition IGDB does not list ("GEX Trilogy Classic
-            # Edition") is retried without it; best_match then scores the
-            # query that found something.
+            # Edition") is retried without it. What a shorter query finds
+            # waits for a human: "Hades II Olympian Edition" shortened to
+            # "hades" would otherwise link the first game as an exact match.
             for shorter in [] if found else edition_fallbacks(title):
                 found = await igdb.search(shorter, year, platform=platform)
                 if found:
-                    title = shorter
+                    title, shortened = shorter, True
                     break
         except SourceRateLimited:
             result.errors.append(
@@ -434,9 +436,14 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
             result.pending += 1
             continue
         match = best_match(title, year, found)
-        if match.result is not None and match.confidence in (
-            Confidence.EXACT,
-            Confidence.PROBABLE,
+        if (
+            not shortened
+            and match.result is not None
+            and match.confidence
+            in (
+                Confidence.EXACT,
+                Confidence.PROBABLE,
+            )
         ):
             await _decide(
                 session,
