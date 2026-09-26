@@ -229,6 +229,31 @@ def test_find_date_takes_the_earliest_phrase():
             (re.compile(r"\s+SWITCH\b.*$", re.I),),  # PixelHeart's own strip
             "Andro Dunos 2 Box",
         ),
+        (
+            "Popslinger - Extra Elite Edition [Nintendo Switch",
+            (),
+            "Popslinger",
+        ),
+        (
+            "Yuppie Psycho: Executive Edition - Standard Cover (Nintendo Switch)",
+            (),
+            "Yuppie Psycho",
+        ),
+        (
+            "Code: Realize ~Future Blessings~ Day One Edition - Nintendo Switch™",
+            (),
+            "Code: Realize ~Future Blessings~",
+        ),
+        ("Rick Henderson (Extra Edition) [Nintendo Switch]", (), "Rick Henderson"),
+        ("Two Point Museum: Explorer Edition", (), "Two Point Museum"),
+        (
+            "Star Hunter DX & Space Moth: Lunar Edition Special Limited Edition (NSW)",
+            (),
+            "Star Hunter DX & Space Moth",
+        ),
+        # A named edition with no separator stays: IGDB often lists it as the
+        # Switch game ("Elden Ring: Tarnished Edition").
+        ("Elden Ring Tarnished Edition", (), "Elden Ring Tarnished Edition"),
         # What must not be cut: an edition name with no separator and no
         # packaging word, a platform word inside a name, a plain bracket.
         (

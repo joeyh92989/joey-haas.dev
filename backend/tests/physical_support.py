@@ -232,3 +232,59 @@ async def client_for(
         transport=ASGITransport(app=app), base_url="http://testserver", timeout=120
     ) as client:
         yield client
+
+
+def corpus_rows() -> list[tuple[str, str, str, int | None]]:
+    """Every Switch and Switch 2 game row in the recorded catalogue, as
+    (source, raw title, key, platform id): every store page, the registry's
+    two tabs and the tracker excerpt. One row per source, title and platform.
+    """
+    from physical_sources import registry, shopify, tracker, woocommerce
+
+    found: dict[tuple[str, str, int | None], str] = {}
+
+    def keep(source: str, title: str, key: str, platform_id: int | None) -> None:
+        if platform_id in (130, 508):
+            found.setdefault((source, title, platform_id), key)
+
+    for store_dir in sorted((PHYSICAL / "shopify").iterdir()):
+        if not store_dir.is_dir():
+            continue
+        config = STORES[store_dir.name]
+        for path in sorted(store_dir.glob("*.p*.json")):
+            handle = path.name.split(".")[0]
+            for product in shopify.parse_page(json.loads(path.read_text())):
+                for row in shopify.explode(product, config, {handle}):
+                    if row.is_game:
+                        keep(
+                            row.store, row.title, row.title_normalized, row.platform_id
+                        )
+    for store_dir in sorted((PHYSICAL / "woocommerce").iterdir()):
+        config = STORES[store_dir.name]
+        for path in sorted(store_dir.glob("*.json")):
+            for product in json.loads(path.read_text()):
+                for row in woocommerce.explode(product, config):
+                    if row.is_game:
+                        keep(
+                            row.store, row.title, row.title_normalized, row.platform_id
+                        )
+
+    def tab(name: str) -> list[list[str]]:
+        values = json.loads((PHYSICAL / "registry" / f"{name}.json").read_text())
+        return registry.rows_from_values(values)
+
+    details, _ = registry.parse_details(tab("details"))
+    upcoming, _ = registry.parse_details(tab("upcoming_details"), upcoming=True)
+    for edition in registry.merge(details, upcoming):
+        keep(
+            edition.source, edition.title, edition.title_normalized, edition.platform_id
+        )
+    games = json.loads((PHYSICAL / "tracker" / "games.json").read_text())
+    for edition in tracker.parse_games(games):
+        keep(
+            edition.source, edition.title, edition.title_normalized, edition.platform_id
+        )
+    return [
+        (source, title, key, platform)
+        for (source, title, platform), key in found.items()
+    ]

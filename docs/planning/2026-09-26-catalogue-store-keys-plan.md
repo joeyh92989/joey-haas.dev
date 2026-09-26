@@ -844,6 +844,92 @@ git commit -m "test(physical): keep every catalogue key free of platform and pac
 
 ---
 
+### Task 6b: Resolve retries a named edition without it (added at Task 6)
+
+**Why added:** Task 6's first run found 21 titles with a named edition and
+no separator ("Elden Ring Tarnished Edition", "GEX Trilogy Classic
+Edition"). Live IGDB, 8 probed: the full name matches EXACT for 5 (IGDB
+lists that edition as the Switch game), and the base name drops 3 of those
+to uncertain; only store-invented editions (GEX, Colossus Down) need the
+base name. The owner chose: keep named editions in the key, and let Resolve
+retry without the edition when the full search finds nothing. Task 6's test
+therefore forbids platform words, bundles and packaging editions, and
+checks every key is a fixed point of the cleaner, rather than forbidding
+"edition" outright.
+
+**Parallel-safe:** no (after Task 6).
+
+**Files:**
+- Modify: `backend/physical_sources/parse.py` (add `edition_fallbacks`)
+- Modify: `backend/physical_sources/resolve.py` (`resolve_batch` search)
+- Test: `backend/tests/test_physical_parse.py`,
+  `backend/tests/test_physical_resolve.py`
+
+**Interfaces:**
+- Produces: `edition_fallbacks(title: str) -> list[str]`: for a title
+  ending in "edition", the title with the word "edition" and then 1, 2, 3
+  words before it dropped, keeping at least one word; `[]` otherwise.
+  `"gex trilogy classic edition"` → `["gex trilogy", "gex"]`.
+
+- [ ] **Step 1: Failing tests**
+
+```python
+def test_edition_fallbacks():
+    assert edition_fallbacks("gex trilogy classic edition") == ["gex trilogy", "gex"]
+    assert edition_fallbacks("off bad human edition") == ["off bad", "off"]
+    assert edition_fallbacks("elden ring") == []
+    assert edition_fallbacks("edition") == []
+```
+
+```python
+@pytest.mark.asyncio
+async def test_a_named_edition_is_retried_without_it_when_nothing_is_found(session):
+    row = edition("GEX Trilogy Classic Edition")
+    await upsert_editions(session, [row], "nscollectors", retire=True)
+    igdb = FakeIgdb({"gex trilogy": [result(5, "Gex Trilogy")]})
+
+    outcome = await resolve_batch(session, igdb)
+
+    assert [query for query, *_ in igdb.searches] == [
+        "GEX Trilogy Classic Edition",
+        "gex trilogy",
+    ]
+    assert outcome.resolved == 1
+```
+
+(The fake answers an unknown query with `[]`; check `FakeIgdb.search` and
+match its key casing.)
+
+- [ ] **Step 2: Implement** — in `parse.py`:
+
+```python
+def edition_fallbacks(title: str, most: int = 3) -> list[str]:
+    """Shorter searches for a title ending in a named edition, for when the
+    full name finds nothing: "gex trilogy classic edition" -> "gex trilogy",
+    then "gex". IGDB lists many named editions as the game itself, so the
+    full name is always searched first."""
+    words = title.split()
+    if len(words) < 2 or words[-1].casefold() != "edition":
+        return []
+    words = words[:-1]
+    return [" ".join(words[:-drop]) for drop in range(1, most + 1) if len(words) > drop]
+```
+
+In `resolve_batch`, after the first `igdb.search(...)` (inside the same
+`try`): when `found` is empty, for each `shorter` in
+`edition_fallbacks(title)`, search `shorter` with the same year and
+platform; on the first non-empty result set `found` and `title = shorter`
+(so `best_match` scores against the query that found it) and stop.
+
+- [ ] **Step 3: Gate and commit** (4 files)
+
+```bash
+git add backend/physical_sources/parse.py backend/physical_sources/resolve.py backend/tests/test_physical_parse.py backend/tests/test_physical_resolve.py
+git commit -m "fix(physical): retry a named edition's search without it"
+```
+
+---
+
 ### Task 7: Docs and the Execution summary
 
 **Parallel-safe:** no (last).
@@ -885,13 +971,14 @@ git commit -m "docs(physical): record the catalogue keying rules"
 | 3 | accent folding | 2 |
 | 4 | platform steps | 2 |
 | 5 | title vocabulary | 2 |
-| 6 | key-quality test (+ vocabulary it forces) | ≤4 |
+| 6 | key-quality test (+ vocabulary it forces, plan update) | 5 |
+| 6b | named-edition fallback search | 4 |
 | 7 | docs | 2 |
 
 ## Zones
 
 ```
-Zone 1 (auto): tasks 1–7
+Zone 1 (auto): tasks 1–7 (6b added at Task 6, owner-approved)
 CHECKPOINT — batch review + finish gate (ultra review: 4+ files)
 ```
 

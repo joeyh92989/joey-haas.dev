@@ -251,22 +251,27 @@ _BARE_PLATFORM = (
 # write "(iam8bit Nintendo Switch 2 Exclusive Edition)" as often as "(NSW)".
 _BRACKETED = re.compile(r"\s*[(\[]([^()\[\]]*)[)\]]")
 _BRACKET_WORDS = re.compile(
-    rf"\b(?:{_ONE_PLATFORM}|pre-?order|with)\b|nintendo|switch", re.IGNORECASE
+    rf"\b(?:{_ONE_PLATFORM}|pre-?order|with|edition)\b|nintendo|switch",
+    re.IGNORECASE,
 )
 # Printing and packaging notes, not the game.
 _MARKERS = re.compile(
-    r"\s+(?:first\s+press(?:\s+se)?|limited\s+to\s+[\d,.]+|usk\s+version)\b.*$",
+    r"\s+(?:first\s+press(?:\s+se)?|limited\s+to\s+[\d,.]+|usk\s+version)\b.*$"
+    r"|\s[-–]\s*[^-–]{0,30}\bcover\b.*$",
     re.IGNORECASE,
 )
+# A tail after a dash, a colon, "for", or an opener the store never closed
+# ("Popslinger - Extra Elite Edition [Nintendo Switch").
 _PLATFORM_TAIL = re.compile(
-    rf"(?:\s[-–]|:|\s+for)\s*(?:{_PLATFORM_LIST})\s*[-–]?$", re.IGNORECASE
+    rf"(?:\s[-–]|:|\s+for|\s*[(\[])\s*(?:{_PLATFORM_LIST})\s*[-–]?$",
+    re.IGNORECASE,
 )
 _PLATFORM_TRAILING = re.compile(rf"\s+(?:{_BARE_PLATFORM})$", re.IGNORECASE)
 _PACKAGING = (
     r"standard|limited|special(?:\s+limited)?|deluxe|limited\s+collector['’]?s"
     r"|collector['’]?s|premium|elite|physical|complete|definitive|silver|gold"
     r"|bronze|steelbook|signature|exclusive|retail|launch|first|anniversary"
-    r"|retro|ultimate"
+    r"|retro|ultimate|day\s+one"
 )
 # "- Silver Edition", " -Total Warfare Edition-": any words after a dash, up
 # to "Edition". A colon is not a separator here: it opens a subtitle
@@ -276,6 +281,10 @@ _SEPARATED_EDITION = re.compile(
     r"\s[-–]\s*[^-–:()\[\]]{1,40}?\bedition\b\s*[-–]?", re.IGNORECASE
 )
 _EDITION_PHRASE = re.compile(rf"\s*\b(?:{_PACKAGING})\s+edition\b", re.IGNORECASE)
+# A subtitle that is only an edition name: "Two Point Museum: Explorer
+# Edition". Runs after the packaging phrase has gone, so "Hollow Knight:
+# Silksong Standard Edition" is already "Hollow Knight: Silksong" here.
+_SUBTITLE_EDITION = re.compile(r":\s*[^:()\[\]]{1,40}?\bedition$", re.IGNORECASE)
 _MERCH = (
     r"plush(?:ie)?|book|soundtrack|showroom|marionette|yunomi|cup|ce|art"
     r"|poster|vinyl|album|merch|figure|steelbook"
@@ -291,6 +300,7 @@ _CLEANERS = (
     _PLATFORM_TRAILING,
     _SEPARATED_EDITION,
     _EDITION_PHRASE,
+    _SUBTITLE_EDITION,
     _BUNDLE,
     _EXTRAS,
 )
