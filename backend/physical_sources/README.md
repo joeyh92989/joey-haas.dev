@@ -67,27 +67,40 @@ Every source's key goes through `strip_title` (`game_title()` for the
 registry and tracker, which first moves the sheet's trailing ", The" to the
 front), then `matching.normalize_title`, which folds accents ("Pokémon" keys
 as `pokemon`: IGDB's search ignores accents). `strip_title` removes, in
-order: the store's own patterns; "Nintendo Switch 2 Edition" and everything
-after it (a bundled expansion, a pack); bracket groups naming a platform, a
-region, an edition, extras or a pre-order (`(NSW)`, `[PlayStation 5]`,
-`(iam8bit Nintendo Switch 2 Exclusive Edition)`); printing notes (First
-Press SE, Limited to 1,000, "- Standard Cover"); then, until nothing more
-comes off, platform tails after a dash, colon, "for" or an unclosed opener
-(`for Nintendo Switch™ and PlayStation 4`), edition phrases after a dash or
-led by a packaging word (Standard, Limited, Special, Deluxe, Collector's,
-Elite, Complete…), a subtitle that is only an edition name, and a
-single-game bundle's suffix (`Plushie Bundle`). A colon is not an edition
-separator: it opens a subtitle ("Hollow Knight: Silksong").
+order: the store's own patterns; a leading "ONLINE EXCLUSIVE (EDITION):";
+"Nintendo Switch 2 Edition" and everything after it (a bundled expansion, a
+pack); bracket groups naming a platform, a region, an edition, a version,
+a rating board, extras or a pre-order (`(NSW)`, `[PlayStation 5]`,
+`(Japanese Version)`, `[PEGI]`); printing notes (First Press SE, Limited to
+1,000, "- Standard Cover", "- Preorder", "- Standard Release"); then, for up
+to four passes, platform tails after a dash, colon, "for" or an unclosed
+opener (`for Nintendo Switch™ and PlayStation 4`), a run of one to four
+**packaging** words before "Edition" (`Special Limited Edition`,
+`- Extra Elite Edition`, with a following "Bundle" or "Box"), the same
+words without "Edition" (`Ultra Collector's`, `LE`), and a bundle suffix
+led by merch words (`Plushie Bundle`).
 
-A **named** edition with no separator stays ("Elden Ring Tarnished
-Edition"): IGDB lists many of them as the Switch game itself. When the full
-name finds nothing (a store-invented edition like "GEX Trilogy Classic
-Edition"), Resolve retries with up to three words before "Edition" dropped
-(`edition_fallbacks`). `PLATFORM_WORDS` lists what a key never keeps, and
-`tests/test_physical_keys.py` holds every recorded key to it and to being a
-fixed point of the cleaner. The raw title and `source_ref` are kept, so
-changing the key updates a row in place. Every pattern is linear on
-third-party text, and `strip_title` never returns an empty string.
+What stays is the game's own name, including a **named** edition ("Elden
+Ring Tarnished Edition", "Tales of Arise - Beyond the Dawn Edition"): IGDB
+lists many of them as the Switch game itself. A bare "Bundle" stays too,
+since "Taito Milestones 1&2 Bundle" is more than one game. When a named
+edition's full name finds nothing, Resolve retries with words before
+"Edition" dropped, keeping at least two (`edition_fallbacks`), and what a
+shorter query finds waits in Needs match: "Hades II Olympian Edition"
+shortened to one word would otherwise link the first game.
+
+`PLATFORM_WORDS` lists what a key never keeps. `tests/test_physical_keys.py`
+holds every recorded key to it, to a list of packaging leftovers, and to
+being a fixed point of the cleaner; `test_physical_parse.py` pins each shape
+by its raw title. The raw title is kept, so changing the key updates a row
+in place. Every pattern is bounded, each with a timing case on a 50k-char
+title, and `strip_title` never returns an empty string.
+
+Accent folding also changes the registry's and tracker's `source_ref`
+(built from `normalize_title`): on the first refresh after it shipped, the
+14 accented registry rows (Pokémon Legends: Z-A, Pokémon Pokopia) were
+inserted as new rows and the old ones retired. Letters with no
+decomposition (`ø`, `æ`, `ł`) are still dropped.
 
 A refresh that changes a row's (title, platform) key clears its `igdb_id`:
 the match decided under the old key says nothing about the new one. Resolve

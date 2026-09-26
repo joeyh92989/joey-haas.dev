@@ -71,9 +71,11 @@ IGDB's N64 catalogue.
 page (at most 40 per listing), under the same `robots.txt`, throttle and
 User-Agent rules, so `tests/test_physical_keys.py` sees every title a
 refresh will key. On 2026-09-26 only two listings ran past one page (iam8bit
-`new`, Strictly Limited `nintendo-switch`). Record only the new pages when
-re-running: a re-recorded page 1 moves products that tests pin. The route
-tests still serve page 1 only.
+`new`, Strictly Limited `nintendo-switch`). The run re-records page 1 too,
+and a re-recorded page 1 moves products that tests pin: to add only the
+later pages, restore page 1 afterwards with
+`git checkout -- 'tests/fixtures/physical/**/*.p1.json'`. Bodies over 20 MB
+and pages holding a product that is not an object are refused unwritten.
 
 ```bash
 ./.venv/bin/python scripts/record_physical_fixtures.py --all-pages limited_run iam8bit strictly_limited premium_edition nicalis aksys_us aksys_eu fangamer super_rare pixelheart gamefairy oneprint

@@ -71,7 +71,9 @@ def normalize_title(title: str) -> str:
     "Spider-Man: No Way Home" against "Spider Man No Way Home" as a near miss
     rather than the same film. Accents fold to their letters (NFKD, then the
     combining marks dropped): "Pokémon" and "Pokemon" are one title, and a
-    catalogue key that lost the letter could not be searched at all.
+    catalogue key that lost the letter could not be searched at all. NFKD
+    also folds compatibility forms ("²" becomes "2"); a letter with no
+    decomposition ("ø", "æ", "ł") is still dropped.
     """
     decomposed = unicodedata.normalize("NFKD", title.casefold())
     folded = "".join(char for char in decomposed if not unicodedata.combining(char))

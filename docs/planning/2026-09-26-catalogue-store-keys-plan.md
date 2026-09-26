@@ -1016,7 +1016,7 @@ suite (815 at the start, 878 at the end).
 | Commit | Task | Notes |
 |---|---|---|
 | `3075de2` | 1 | `--all-pages`, `--strip-bodies`, paging helpers and their tests |
-| `15dd091` | 2 | Only two listings run past page 1 (iam8bit `new`, Strictly Limited `nintendo-switch`). Fixtures stay at 11.1 MB, so the size gate never applied. Page 1 was **not** replaced: re-recording it moved products seven tests pin, so it was restored and only the two new pages kept. No credential in any fixture. |
+| `15dd091` | 2 | Only two listings run past page 1 (iam8bit `new`, Strictly Limited `nintendo-switch`). Fixtures stay at 11.3 MiB, so the size gate never applied. Page 1 was **not** replaced: re-recording it moved products seven tests pin, so it was restored and only the two new pages kept. No credential in any fixture. |
 | `45da294` | 3 | Accent folding; no existing test pinned an accent-stripped key |
 | `9802ba8` | 4 | Premium Edition title-first; iam8bit reads Edition/Style options. Three stores shared the old platform line; only Premium Edition's changed |
 | `6a4488a` | 5 | The vocabulary. A colon is not an edition separator (it opens a subtitle: "Hollow Knight: Silksong"). Cleaners replace with a space so words never glue ("Lies of PMarionette"). `Cyberpunk 2077: Ultimate Edition` now keys as `Cyberpunk 2077` |
@@ -1026,7 +1026,7 @@ suite (815 at the start, 878 at the end).
 **Deviations:**
 
 - The spec's premise that page 1 hid `(NSW)` was wrong: page 1 already held
-  140 `(NSW)` titles. What was missing was a test of the keys. `--all-pages`
+  137 distinct `(NSW)` titles. What was missing was a test of the keys. `--all-pages`
   stays (it covers the two long listings); the README says so.
 - A bracket goes when it **contains** a platform word (planned).
 - **Named editions stay in keys** (owner, 2026-09-26). Live IGDB, 8 probed:
@@ -1045,3 +1045,28 @@ Vol. N" titles, whose series is named for the console.
 
 **Not done here:** candidate order in Needs match, same-name IGDB ties,
 multi-game bundles (all out of scope in the spec).
+
+## Finish gate
+
+Two parallel reviewers (correctness and plan alignment; tests, regex cost,
+security and standards) and an adversarial verifier: 14 findings, 11
+confirmed and 3 partly. Every one is fixed in its own commit:
+
+| Commit | Findings |
+|---|---|
+| `fa6734e` | The dash-edition rule took real subtitles ("Bud Spencer & Terence Hill - Slaps And Beans 2 Special Edition" → `bud spencer terence hill`) and let a five-volume Irem bundle share Volume 1's key; the subtitle-edition rule removed colon-written named editions, against the owner's decision; `_BUNDLE` was quadratic (66 s) and stripped multi-game bundles; residues the key test could not see (Preorder, Standard Release, Collector's/LE without Edition, (EU), [PEGI], (Japanese Version), leading ONLINE EXCLUSIVE, Edition Box); unanchored bracket words; `_PLATFORM` defined twice |
+| `cba3e78` | A shortened search auto-linked what it found ("Hades II Olympian Edition" → Hades): now pending with candidates; fallbacks keep two words |
+| `b70b843` | A packaging value in iam8bit's Edition option switched the tags step off; Style untested |
+| `3d0852c` | Corpus built at import; nothing pinned page 2; the fixture server assumed one Woo file per store |
+| `81fa742` | Recorder: no body cap, a non-object product crashed the run, the page walk untested |
+| this commit | Docs: the README described rules that changed, claimed linearity before it held, and told owners to "record only new pages", which the tool cannot do; the `source_ref` churn from accent folding; two numbers in this summary |
+
+**Decided in the loop (within the owner's decisions, stated at the
+checkpoint):** a named edition is kept whatever its punctuation (the
+subtitle rule went); only a merch-led "Bundle" is stripped (the spec's
+"multi-game bundles stay"); a match found by a shortened query is never
+automatic.
+
+**Rollout note:** the first refresh after deploy re-inserts the 14 accented
+registry rows under folded `source_ref`s and retires the old ones (nothing
+references `physical_editions` by id).
