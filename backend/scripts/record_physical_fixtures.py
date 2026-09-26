@@ -428,6 +428,9 @@ async def record_shopify(
         if not isinstance(products, list):
             recorder.fail(name, "no products list in the body")
             continue
+        if not all(isinstance(product, dict) for product in products):
+            recorder.fail(name, "a product that is not an object; not written")
+            continue
         for product in products:
             # No parser reads the gallery; image_url is the first image. The
             # rest was a third of the recorded bytes.
@@ -456,6 +459,9 @@ async def record_woo(recorder: Recorder, key: str, all_pages: bool = False) -> N
             continue
         if not isinstance(payload, list):
             recorder.fail(out, "expected a list of products")
+            continue
+        if not all(isinstance(product, dict) for product in payload):
+            recorder.fail(out, "a product that is not an object; not written")
             continue
         recorder.write_json(out, out, payload)
         names = [str(product.get("name", "")) for product in payload]

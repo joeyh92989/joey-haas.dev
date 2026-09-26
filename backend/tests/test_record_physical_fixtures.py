@@ -94,3 +94,23 @@ def test_a_malformed_page_is_a_failure_not_a_crash(tmp_path, monkeypatch):
     assert files == [] and "not an object" in failures[0]
     files, failures = _walk(tmp_path, monkeypatch, lambda n: [1, 2])
     assert files == [] and "no products list" in failures[0]
+
+
+def test_a_malformed_first_page_is_a_failure_not_a_crash(tmp_path, monkeypatch):
+    monkeypatch.setattr(recorder, "FIXTURES", tmp_path)
+    monkeypatch.setattr(recorder, "REQUEST_INTERVAL", 0)
+    url = "https://a.test/collections/x/products.json?limit=250&page=1"
+    monkeypatch.setitem(recorder.SOURCES, "a", [(url, "shopify/a/x.p1.json")])
+
+    async def run():
+        transport = httpx2.MockTransport(
+            lambda request: httpx2.Response(200, json={"products": ["x"]})
+        )
+        async with httpx2.AsyncClient(transport=transport) as client:
+            rec = recorder.Recorder(client, [])
+            await recorder.record_shopify(rec, "a", all_pages=True)
+            return rec.failures
+
+    failures = asyncio.run(run())
+    assert "not an object" in failures[0]
+    assert not (tmp_path / "shopify" / "a" / "x.p1.json").exists()
