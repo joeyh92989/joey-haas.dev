@@ -1007,3 +1007,41 @@ deploy-path change.
   - Render's application logs (search by `&q=`) show no `Traceback`,
     `ERROR` or `500 Internal` for the refresh and resolve requests.
 - Red on any of these enters structured debugging, not a retry.
+
+## Execution summary
+
+Zone 1 ran from `2b10268`. Every commit passed ruff and the full backend
+suite (815 at the start, 878 at the end).
+
+| Commit | Task | Notes |
+|---|---|---|
+| `3075de2` | 1 | `--all-pages`, `--strip-bodies`, paging helpers and their tests |
+| `15dd091` | 2 | Only two listings run past page 1 (iam8bit `new`, Strictly Limited `nintendo-switch`). Fixtures stay at 11.1 MB, so the size gate never applied. Page 1 was **not** replaced: re-recording it moved products seven tests pin, so it was restored and only the two new pages kept. No credential in any fixture. |
+| `45da294` | 3 | Accent folding; no existing test pinned an accent-stripped key |
+| `9802ba8` | 4 | Premium Edition title-first; iam8bit reads Edition/Style options. Three stores shared the old platform line; only Premium Edition's changed |
+| `6a4488a` | 5 | The vocabulary. A colon is not an edition separator (it opens a subtitle: "Hollow Knight: Silksong"). Cleaners replace with a space so words never glue ("Lies of PMarionette"). `Cyberpunk 2077: Ultimate Edition` now keys as `Cyberpunk 2077` |
+| `d3aea84` | 6 | The key test's first run added: an unclosed opener, "- Standard Cover", "Day One Edition", bracketed editions, a subtitle that is only an edition. Then 21 named editions with no separator: stopped and asked (below) |
+| `a162d63` | 6b | Named-edition fallback search (added by the owner's decision) |
+
+**Deviations:**
+
+- The spec's premise that page 1 hid `(NSW)` was wrong: page 1 already held
+  140 `(NSW)` titles. What was missing was a test of the keys. `--all-pages`
+  stays (it covers the two long listings); the README says so.
+- A bracket goes when it **contains** a platform word (planned).
+- **Named editions stay in keys** (owner, 2026-09-26). Live IGDB, 8 probed:
+  the full name matched EXACT for 5 (Elden Ring: Tarnished Edition, Little
+  Nightmares II: Enhanced Edition, Devil May Cry 5: Devil Hunter Edition,
+  Darkest Dungeon: Ancestral Edition, Slime Rancher: Plortable Edition); the
+  base name dropped 3 of those to uncertain. Only store-invented editions
+  (GEX Trilogy Classic, Colossus Down Destroy'em Up) needed the base name,
+  which Task 6b's fallback covers. The key test therefore checks every key
+  is a fixed point of the cleaner, instead of forbidding "edition".
+- `edition_fallbacks` needs three words ("<name> <word> Edition"); a bare
+  "<word> Edition" has none.
+
+**`ALLOWED` in the key test:** the two "SIMPLE Series for Nintendo Switch 2
+Vol. N" titles, whose series is named for the console.
+
+**Not done here:** candidate order in Needs match, same-name IGDB ties,
+multi-game bundles (all out of scope in the spec).

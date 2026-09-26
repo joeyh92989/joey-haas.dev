@@ -69,10 +69,11 @@ IGDB's N64 catalogue.
 
 `--all-pages` records every page of each store listing, walking until a short
 page (at most 40 per listing), under the same `robots.txt`, throttle and
-User-Agent rules. Page 1 alone hid the live catalogue's shapes: Strictly
-Limited titles its older products `(NSW)`, which no page-1 product showed,
-and `tests/test_physical_keys.py` needs every title a refresh will key. The
-route tests still serve page 1 only.
+User-Agent rules, so `tests/test_physical_keys.py` sees every title a
+refresh will key. On 2026-09-26 only two listings ran past one page (iam8bit
+`new`, Strictly Limited `nintendo-switch`). Record only the new pages when
+re-running: a re-recorded page 1 moves products that tests pin. The route
+tests still serve page 1 only.
 
 ```bash
 ./.venv/bin/python scripts/record_physical_fixtures.py --all-pages limited_run iam8bit strictly_limited premium_edition nicalis aksys_us aksys_eu fangamer super_rare pixelheart gamefairy oneprint
