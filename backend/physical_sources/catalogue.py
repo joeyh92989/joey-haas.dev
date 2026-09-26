@@ -222,6 +222,19 @@ def _edition_values(row: EditionRow) -> dict:
     return values
 
 
+def _unlink_if_rekeyed(current, values: dict) -> None:
+    """Clear a row's igdb_id when a refresh changes its (title, platform) key.
+
+    The id came from the match decided under the old key, which says nothing
+    about the new one; cleared, the new key is open for Resolve again. A row
+    that carries its own id (an N64 edition) has it written back by the
+    caller.
+    """
+    old_key = (current.title_normalized, current.platform_id)
+    if old_key != (values["title_normalized"], values["platform_id"]):
+        current.igdb_id = None
+
+
 async def upsert_editions(
     session, rows: list[EditionRow], source: str, *, retire: bool
 ) -> tuple[int, int]:
@@ -229,8 +242,9 @@ async def upsert_editions(
 
     Upserts on (source, source_ref); an edition that reappears is un-retired
     and counted as changed. With `retire`, live rows of this source absent
-    from `rows` get retired_at. igdb_id is never written here: resolution
-    owns it, and it survives a re-upsert.
+    from `rows` get retired_at. igdb_id is resolution's: it survives a
+    re-upsert unless the row's key changed, and is only written here when the
+    row carries its own.
     """
     now = _now()
     existing = {
@@ -260,6 +274,7 @@ async def upsert_editions(
             _value(getattr(current, field)) != _value(value)
             for field, value in values.items()
         )
+        _unlink_if_rekeyed(current, values)
         for field, value in values.items():
             setattr(current, field, value)
         if row.igdb_id is not None and current.igdb_id is None:
@@ -324,7 +339,8 @@ async def upsert_listings(
 
     Upserts on (store, variant_id). With `archive`, this store's listings
     absent from `products` become archived; their raw, igdb_id and format
-    are kept, so a re-listed product keeps its match.
+    are kept, so a re-listed product keeps its match. A listing whose key
+    changed loses its igdb_id, so the new key is resolved afresh.
     """
     now = _now()
     existing = {
@@ -364,6 +380,7 @@ async def upsert_listings(
             _value(getattr(current, field)) != _value(value)
             for field, value in compared.items()
         )
+        _unlink_if_rekeyed(current, values)
         for field, value in values.items():
             setattr(current, field, value)
         current.last_seen_at = now
