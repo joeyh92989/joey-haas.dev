@@ -146,6 +146,31 @@ IGDB_N64_QUERY = (
 )
 
 
+# --all-pages stops here even if a store keeps answering full pages: the
+# adapters stop at MAX_PAGES too, and a runaway walk is not a fixture.
+MAX_RECORDED_PAGES = 40
+# Past this, re-run with --strip-bodies: pages 2 and on lose their
+# descriptions, which no key, platform or game-filter test reads.
+SIZE_GATE_BYTES = 40 * 1024 * 1024
+# No listing page is anywhere near this; a body past it is refused unwritten.
+MAX_BODY_BYTES = 20 * 1024 * 1024
+
+
+def page_url(url: str, page: int) -> str:
+    """The same listing URL asking for another page."""
+    return re.sub(r"([?&]page=)\d+", rf"\g<1>{page}", url)
+
+
+def page_out(out: str, page: int) -> str:
+    """shopify/a/x.p1.json -> shopify/a/x.p<page>.json"""
+    return re.sub(r"\.p\d+\.json$", f".p{page}.json", out)
+
+
+def is_last_page(count: int, size: int) -> bool:
+    """A page shorter than the page size is the last one."""
+    return count < size
+
+
 def _safe(handle: str) -> str:
     """An ASCII file name for a handle: nintendo-switch™-1 -> nintendo-switch-tm-1."""
     return re.sub(r"[^a-z0-9-]+", "-", handle.replace("™", "-tm").lower()).strip("-")
@@ -238,6 +263,7 @@ class Recorder:
         self.secrets = [secret for secret in secrets if secret]
         self.failures: list[str] = []
         self.written = 0
+        self.strip_bodies = False
         self.robots: dict[str, RobotFileParser | None] = {}
         self._first = True
 
@@ -300,6 +326,9 @@ class Recorder:
         if response.status_code != 200:
             self.fail(name, f"HTTP {response.status_code}{_api_message(response)}")
             return None
+        if len(response.content) > MAX_BODY_BYTES:
+            self.fail(name, f"body over {MAX_BODY_BYTES} bytes; not written")
+            return None
         try:
             return response.json()
         except ValueError:
@@ -331,8 +360,62 @@ def _tags(product: dict) -> list[str]:
     return [tag for tag in tags if tag]
 
 
-async def record_shopify(recorder: Recorder, key: str) -> dict[str, list[dict]]:
-    """Page 1 of each handle; returns the products per handle."""
+async def record_more_pages(
+    recorder: Recorder,
+    url: str,
+    out: str,
+    first_count: int,
+    size: int,
+    products_of,
+) -> None:
+    """Pages 2 and on of one listing, until a short or empty page.
+
+    `products_of(payload)` returns the payload's product list, or None when
+    the body is not one (recorded as a failure, as page 1 is).
+    """
+    if is_last_page(first_count, size):
+        return
+    for page in range(2, MAX_RECORDED_PAGES + 1):
+        page_link, page_file = page_url(url, page), page_out(out, page)
+        if not recorder.allowed(page_file, page_link):
+            return
+        payload = await recorder.get_json(page_file, page_link)
+        products = products_of(payload) if payload is not None else None
+        if products is None:
+            if payload is not None:
+                recorder.fail(page_file, "no products list in the body")
+            return
+        if not products:
+            return
+        if not all(isinstance(product, dict) for product in products):
+            recorder.fail(page_file, "a product that is not an object; not written")
+            return
+        for product in products:
+            product["images"] = (product.get("images") or [])[:1]
+            if recorder.strip_bodies:
+                product.pop("body_html", None)
+                product.pop("description", None)
+        recorder.write_json(page_file, page_file, payload)
+        print(f"ok   {page_file}  {len(products)} products")
+        if is_last_page(len(products), size):
+            return
+    recorder.fail(out, f"more than {MAX_RECORDED_PAGES} pages; stopped")
+
+
+def _shopify_products(body: object) -> list | None:
+    products = body.get("products") if isinstance(body, dict) else None
+    return products if isinstance(products, list) else None
+
+
+def _woo_products(body: object) -> list | None:
+    return body if isinstance(body, list) else None
+
+
+async def record_shopify(
+    recorder: Recorder, key: str, all_pages: bool = False
+) -> dict[str, list[dict]]:
+    """Page 1 of each handle (every page with all_pages); returns page 1's
+    products per handle."""
     seen: dict[str, list[dict]] = {}
     for url, out in SOURCES[key]:
         name = out
@@ -344,6 +427,9 @@ async def record_shopify(recorder: Recorder, key: str) -> dict[str, list[dict]]:
         products = payload.get("products") if isinstance(payload, dict) else None
         if not isinstance(products, list):
             recorder.fail(name, "no products list in the body")
+            continue
+        if not all(isinstance(product, dict) for product in products):
+            recorder.fail(name, "a product that is not an object; not written")
             continue
         for product in products:
             # No parser reads the gallery; image_url is the first image. The
@@ -357,10 +443,14 @@ async def record_shopify(recorder: Recorder, key: str) -> dict[str, list[dict]]:
         print(f"     tags ({len(tags)}): {', '.join(tags)}")
         if not products:
             print("     EMPTY: first page has no products")
+        if all_pages:
+            await record_more_pages(
+                recorder, url, out, len(products), SHOPIFY_PAGE_SIZE, _shopify_products
+            )
     return seen
 
 
-async def record_woo(recorder: Recorder, key: str) -> None:
+async def record_woo(recorder: Recorder, key: str, all_pages: bool = False) -> None:
     for url, out in SOURCES[key]:
         if not recorder.allowed(out, url):
             continue
@@ -370,11 +460,18 @@ async def record_woo(recorder: Recorder, key: str) -> None:
         if not isinstance(payload, list):
             recorder.fail(out, "expected a list of products")
             continue
+        if not all(isinstance(product, dict) for product in payload):
+            recorder.fail(out, "a product that is not an object; not written")
+            continue
         recorder.write_json(out, out, payload)
         names = [str(product.get("name", "")) for product in payload]
         print(f"ok   {out}  {len(payload)} products")
         for product_name in names:
             print(f"     - {product_name}")
+        if all_pages:
+            await record_more_pages(
+                recorder, url, out, len(payload), WOO_PAGE_SIZE, _woo_products
+            )
 
 
 def _is_switch_2(product: dict) -> bool:
@@ -596,7 +693,16 @@ async def record_igdb(recorder: Recorder) -> None:
     print(f"ok   {out}  {len(rows)} games, {covered} with a cover")
 
 
-async def record(names: list[str] | None, igdb: bool) -> None:
+def _fixture_bytes() -> int:
+    return sum(path.stat().st_size for path in FIXTURES.rglob("*") if path.is_file())
+
+
+async def record(
+    names: list[str] | None,
+    igdb: bool,
+    all_pages: bool = False,
+    strip_bodies: bool = False,
+) -> None:
     """Records the named sources (default all); exits 1 if anything failed."""
     names = names or list(SOURCES)
     sheets_key = os.environ.get("GOOGLE_SHEETS_API_KEY", "").strip() or None
@@ -606,14 +712,15 @@ async def record(names: list[str] | None, igdb: bool) -> None:
         follow_redirects=True,
     ) as client:
         recorder = Recorder(client, [sheets_key])
+        recorder.strip_bodies = strip_bodies
         await record_robots(recorder, _hosts(names))
         for name in names:
             if name in SHOPIFY_STORES:
-                pages = await record_shopify(recorder, name)
+                pages = await record_shopify(recorder, name, all_pages)
                 if name == "limited_run":
                     await record_limited_run_html(recorder, pages)
             elif name in WOO_STORES:
-                await record_woo(recorder, name)
+                await record_woo(recorder, name, all_pages)
             elif name == "registry":
                 await record_registry(recorder, sheets_key)
             elif name == "tracker":
@@ -622,6 +729,10 @@ async def record(names: list[str] | None, igdb: bool) -> None:
             await record_igdb(recorder)
 
     print(f"\nwrote {recorder.written} files under {FIXTURES.relative_to(BACKEND)}")
+    size = _fixture_bytes()
+    print(f"fixtures: {size / 1024 / 1024:.1f} MB")
+    if size > SIZE_GATE_BYTES and not strip_bodies:
+        print("     over the size gate: re-run with --all-pages --strip-bodies")
     if recorder.failures:
         print(f"{len(recorder.failures)} failure(s):")
         for failure in recorder.failures:
@@ -643,6 +754,16 @@ def main() -> None:
     parser.add_argument(
         "--list", action="store_true", help="print the plan and fetch nothing"
     )
+    parser.add_argument(
+        "--all-pages",
+        action="store_true",
+        help="record every page of each store listing, not only page 1",
+    )
+    parser.add_argument(
+        "--strip-bodies",
+        action="store_true",
+        help="with --all-pages: write pages 2 and on without descriptions",
+    )
     args = parser.parse_args()
     names = args.names or list(SOURCES)
     unknown = [name for name in names if name not in SOURCES]
@@ -654,11 +775,12 @@ def main() -> None:
             print(f"https://{host}/robots.txt -> robots/{host}.txt")
         for name in names:
             for url, out in SOURCES[name]:
-                print(f"{url} -> {out}")
+                more = "  (and following pages until a short page)"
+                print(f"{url} -> {out}{more if args.all_pages else ''}")
         for line in describe_dynamic(names, args.igdb):
             print(line)
         return
-    asyncio.run(record(names, args.igdb))
+    asyncio.run(record(names, args.igdb, args.all_pages, args.strip_bodies))
 
 
 if __name__ == "__main__":

@@ -131,8 +131,14 @@ STORES: dict[str, StoreConfig] = {
             currency="USD",
             region="USA",
             collections=("games", "nintendo", "pre-order", "new", "restock"),
+            # The platform is an option named Platform, Edition or Style,
+            # depending on the product. Not "Title": Shopify's default single
+            # option is named Title ("Default Title"), and reading it would
+            # switch the tags step off for every one-variant product.
             platform=(
                 "option:Platform",
+                "option:Edition",
+                "option:Style",
                 "title",
                 "sku_contains:-N2-=Switch 2",
                 "product_type",
@@ -195,7 +201,9 @@ STORES: dict[str, StoreConfig] = {
                 "in-stock",
                 "in-stock-partners",
             ),
-            platform=("product_type", "title", "tags"),
+            # Title first: the store files PS4 and PS5 products under the
+            # "Nintendo Switch Games" product type.
+            platform=("title", "product_type", "tags"),
             status=(
                 "collection:pre-order=preorder",
                 "collection:latest-preorders=preorder",
@@ -397,8 +405,13 @@ def resolve_platform(
         if kind == "option":
             value = options.get(rule.lower())
             if value is not None:
-                has_named_option = True
                 found = _label(value)
+                # A Platform option switches the product-wide tags off even
+                # when its value names no platform (a vinyl variant). An
+                # Edition or Style option only does when it names one:
+                # "Exclusive Edition" says nothing about the platform.
+                if rule.lower() == "platform" or found != (None, None):
+                    has_named_option = True
         elif kind == "attribute":
             terms = (attributes or {}).get(rule.lower(), [])
             found = _label(" ".join(terms)) if terms else (None, None)

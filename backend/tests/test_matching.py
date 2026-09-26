@@ -1,5 +1,7 @@
 """Confidence scoring: which candidate a detected title actually refers to."""
 
+import pytest
+
 from matching import Confidence, best_match, normalize_title
 from sources.base import SourceResult
 
@@ -12,6 +14,23 @@ def test_normalize_folds_case_and_punctuation():
     assert normalize_title("The Lord of the Rings!") == "the lord of the rings"
     assert normalize_title("  Spider-Man:  No Way Home ") == "spider man no way home"
     assert normalize_title("WALL·E") == "wall e"
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("Pokémon Legends: Z-A", "pokemon legends z a"),
+        ("Café Enchanté", "cafe enchante"),
+        ("Ōkami HD", "okami hd"),
+        ("ＦＵＬＬ ＷＩＤＴＨ", "full width"),
+        ("Cave Story®+", "cave story"),
+        ("Moomintroll: Winter’s Warmth", "moomintroll winter s warmth"),
+    ],
+)
+def test_normalize_folds_accents(title, expected):
+    """An accented letter keeps its letter: IGDB's search ignores accents,
+    and a key that lost the letter could not be searched at all."""
+    assert normalize_title(title) == expected
 
 
 def test_an_unambiguous_match_is_exact():

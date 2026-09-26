@@ -21,7 +21,7 @@ from physical_sources.shopify import (
     list_products,
     parse_product_page,
 )
-from physical_sources.stores import STORES
+from physical_sources.stores import STORES, resolve_platform
 
 FIXTURES = Path(__file__).parent / "fixtures" / "physical"
 SHOPIFY = FIXTURES / "shopify"
@@ -576,3 +576,60 @@ async def test_a_product_that_cannot_be_read_is_skipped_and_recorded():
     )
     assert [r.store_product_id for r in rows] == ["1"]
     assert [e.code for e in errors] == ["malformed_product"]
+
+
+@pytest.mark.parametrize(
+    ("title_start", "platform_id"),
+    [
+        ("Crisis Wing - Standard Edition (PlayStation 4)", 48),
+        ("9 Years of Shadows Collector's Edition [PlayStation 5]", 167),
+        ("AK-Xolotl Collector's Edition [PlayStation 5]", 167),
+        ("Risk System [PlayStation 4]", 48),
+        ("Kemono Heroes [PlayStation 5]", 167),
+    ],
+)
+def test_premium_edition_reads_the_title_before_the_product_type(
+    title_start, platform_id
+):
+    """Premium Edition files PS4/PS5 products under 'Nintendo Switch Games'."""
+    rows = rows_for("premium_edition", title_start)
+    assert rows
+    assert {row.platform_id for row in rows} == {platform_id}
+
+
+def test_premium_edition_keeps_a_switch_game_typed_playstation():
+    rows = rows_for("premium_edition", "Colossus Down Destroy'em Up Edition")
+    assert rows and {row.platform_id for row in rows} == {130}
+
+
+def test_iam8bit_reads_a_platform_named_in_the_edition_option():
+    rows = rows_for("iam8bit", "Ori Collector's Edition")
+    assert 130 in {row.platform_id for row in rows}
+    xbox = [row for row in rows if row.raw["variant"]["sku"].endswith("X1")]
+    assert xbox and all(row.platform_id != 130 for row in xbox)
+
+
+@pytest.mark.parametrize(
+    "title_start", ["Cuphead Collector's Edition", "Spiritfarer Collector's Edition"]
+)
+def test_iam8bit_switch_variants_named_in_other_options_are_switch(title_start):
+    assert 130 in {row.platform_id for row in rows_for("iam8bit", title_start)}
+
+
+def test_iam8bit_reads_a_platform_named_in_the_style_option():
+    rows = rows_for("iam8bit", "The Stanley Parable")
+    assert 130 in {row.platform_id for row in rows}
+
+
+def test_a_packaging_edition_option_leaves_the_tags_step_on():
+    """'Edition: Exclusive Edition' names no platform, so the tags decide."""
+    found = resolve_platform(
+        STORES["iam8bit"],
+        options={"edition": "Exclusive Edition"},
+        product_type="Games",
+        title="Foo",
+        sku="",
+        tags=["Nintendo Switch"],
+        collections_seen=set(),
+    )
+    assert found[0] == 130

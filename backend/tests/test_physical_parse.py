@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from physical_sources.parse import (
+    edition_fallbacks,
     edition_label,
     find_date,
     game_title,
@@ -166,13 +167,203 @@ def test_find_date_takes_the_earliest_phrase():
             "A-Train Hajimaru Kankou Keikaku",
         ),
         ("Hades II Nintendo Switch™ 2 Edition", (), "Hades II"),
-        ("Cyberpunk 2077: Ultimate Edition", (), "Cyberpunk 2077: Ultimate Edition"),
+        # Decision: a key names the base game, so a named edition goes too.
+        ("Cyberpunk 2077: Ultimate Edition", (), "Cyberpunk 2077"),
         (
             "Nintendo Switch 2 Edition Upgrade Pack",
             (),
             "Nintendo Switch 2 Edition Upgrade Pack",
         ),
         ("Deluxe  Edition", (), "Deluxe Edition"),
+        # Platform words, regions, packaging editions and bundles (store keys).
+        ("7th Sector (NSW)", (), "7th Sector"),
+        ("7th Sector Special Limited Edition (NSW)", (), "7th Sector"),
+        ("7'scarlet - Nintendo Switch™", (), "7'scarlet"),
+        ("Jack Jeanne - Silver Edition - Nintendo Switch™", (), "Jack Jeanne"),
+        ("Tin & Kuna - Various Platforms (PS4, NSW, XBOX)", (), "Tin & Kuna"),
+        (
+            "C.A.R.D.S. RPG: The Misty Battlefield  -Total Warfare Edition- "
+            "(Various Platforms (PS4, NSW))",
+            (),
+            # "Total Warfare" is a named edition: it stays.
+            "C.A.R.D.S. RPG: The Misty Battlefield -Total Warfare Edition",
+        ),
+        ("Just Shapes & Beats for Nintendo Switch™", (), "Just Shapes & Beats"),
+        ("UFO 50 for Nintendo Switch™ Deluxe Edition", (), "UFO 50"),
+        ("Bugsnax for PlayStation 5 and PlayStation 4", (), "Bugsnax"),
+        ("Zombie Night Terror - Nintendo Switch", (), "Zombie Night Terror"),
+        (
+            "9 Years of Shadows Collector's Edition [PlayStation 5]",
+            (),
+            "9 Years of Shadows",
+        ),
+        (
+            "Darius Extra Cozmic Bundle (NSW/SMD)",
+            (),
+            "Darius Extra Cozmic Bundle",  # no merch word: more than one game
+        ),
+        (
+            "Tavern Talk Complete Edition - Limited Edition (Nintendo Switch)",
+            (),
+            "Tavern Talk",
+        ),
+        ("Lies of P: Complete Edition Marionette Bundle", (), "Lies of P"),
+        (
+            "Pocky & Rocky Reshrined Plushie Bundle (NSW)",
+            (),
+            "Pocky & Rocky Reshrined",
+        ),
+        (
+            "Spirit Hunter: Death Mark II - Standard Edition (with Soundtrack CD)",
+            (),
+            "Spirit Hunter: Death Mark II",
+        ),
+        (
+            "Atomicrops – Complete Edition Nintendo Switch First Press SE",
+            (),
+            "Atomicrops",
+        ),
+        ("Symphonia Nintendo Switch Limited to 1,000", (), "Symphonia"),
+        (
+            "Blue Prince (iam8bit Nintendo Switch 2 Exclusive Edition)",
+            (),
+            "Blue Prince",
+        ),
+        ("Minecraft for Nintendo Switch 2", (), "Minecraft"),
+        (
+            "Andro Dunos 2 Limited Edition Box SWITCH [EUR]",
+            (re.compile(r"\s+SWITCH\b.*$", re.I),),  # PixelHeart's own strip
+            "Andro Dunos 2",
+        ),
+        (
+            "Popslinger - Extra Elite Edition [Nintendo Switch",
+            (),
+            "Popslinger",
+        ),
+        (
+            "Yuppie Psycho: Executive Edition - Standard Cover (Nintendo Switch)",
+            (),
+            "Yuppie Psycho: Executive Edition",
+        ),
+        (
+            "Code: Realize ~Future Blessings~ Day One Edition - Nintendo Switch™",
+            (),
+            "Code: Realize ~Future Blessings~",
+        ),
+        ("Rick Henderson (Extra Edition) [Nintendo Switch]", (), "Rick Henderson"),
+        (
+            "Two Point Museum: Explorer Edition",
+            (),
+            "Two Point Museum: Explorer Edition",
+        ),
+        (
+            "Star Hunter DX & Space Moth: Lunar Edition Special Limited Edition (NSW)",
+            (),
+            "Star Hunter DX & Space Moth: Lunar Edition",
+        ),
+        # Review findings, 2026-09-26.
+        ("A - Silver Edition B", (), "A B"),  # a space, never glued
+        ("Foo + Character Cards", (), "Foo"),
+        ("Blade (Switchblade)", (), "Blade (Switchblade)"),
+        (
+            "Bud Spencer & Terence Hill - Slaps And Beans 2 Special Edition",
+            (),
+            "Bud Spencer & Terence Hill - Slaps And Beans 2",
+        ),
+        ("Cannon Dancer - Osman Collector's Edition", (), "Cannon Dancer - Osman"),
+        (
+            "Asterix & Obelix - Slap them All! Ultra Collector's Edition (NSW)",
+            (),
+            "Asterix & Obelix - Slap them All!",
+        ),
+        (
+            "Tales of Arise - Beyond the Dawn Edition",
+            (),
+            "Tales of Arise - Beyond the Dawn Edition",
+        ),
+        (
+            "Irem Collection Volume 1 - 5 Collector's/Limited Edition Bundle "
+            "(Nintendo Switch)",
+            (),
+            "Irem Collection Volume 1 - 5 Bundle",
+        ),
+        ("Taito Milestones 1&2 Bundle", (), "Taito Milestones 1&2 Bundle"),
+        # "LE Bundle" may be several games ("Taito Milestones 1&2 CE Bundle").
+        (
+            "Cotton Fantasy Yunomi Cup LE Bundle (NSW)",
+            (),
+            "Cotton Fantasy Yunomi Cup LE Bundle",
+        ),
+        (
+            "Taito Milestones 1&2 CE Bundle Upgrade",
+            (),
+            "Taito Milestones 1&2 CE Bundle Upgrade",
+        ),
+        # Re-verification, 2026-09-26: a packaging word that is the game's.
+        ("Spelunker HD Deluxe Collector's Edition (NSW)", (), "Spelunker HD Deluxe"),
+        ("Mario Kart 8 Deluxe Limited Edition", (), "Mario Kart 8 Deluxe"),
+        ("Wonder Boy Complete Collector's (NSW)", (), "Wonder Boy Complete"),
+        ("Elden Ring (Tarnished Edition)", (), "Elden Ring (Tarnished Edition)"),
+        (
+            "Epics of Hammerwatch: Special Limited Heroes' Edition (NSW)",
+            (),
+            "Epics of Hammerwatch: Heroes' Edition",
+        ),
+        ("Stray (PlayStation) - iam8bit Exclusive Edition", (), "Stray"),
+        ("Cotton 16-Bit LE (NSW)", (), "Cotton 16-Bit"),
+        ("Wonder Boy Collection Ultra Collector's (NSW)", (), "Wonder Boy Collection"),
+        (
+            "Ankora: Lost Days & Deiland: Pocket Planet Collector's Ed.",
+            (),
+            "Ankora: Lost Days & Deiland: Pocket Planet",
+        ),
+        (
+            "The Ninja Saviors: Return of the Warriors (Nintendo Switch) - Preorder",
+            (),
+            "The Ninja Saviors: Return of the Warriors",
+        ),
+        ("Eagle Island Twist - Standard Release", (), "Eagle Island Twist"),
+        (
+            "The Binding of Isaac: Repentance Japanese Version",
+            (),
+            "The Binding of Isaac: Repentance",
+        ),
+        ("The Last Door Complete edition (EU)", (), "The Last Door"),
+        ("Roboquest [PEGI]", (), "Roboquest"),
+        ("ONLINE EXCLUSIVE EDTION: 7'scarlet", (), "7'scarlet"),
+        (
+            "ONLINE EXCLUSIVE: Dairoku: Agents of Sakuratani Online Exclusive Edition",
+            (),
+            "Dairoku: Agents of Sakuratani",
+        ),
+        (
+            "The Binding of Isaac: Repentance (Japanese Version)",
+            (),
+            "The Binding of Isaac: Repentance",
+        ),
+        ("Eastward Exclusive Collector’s Edition", (), "Eastward"),
+        (
+            "Shadow of the Ninja - Reborn Collector's/Limited Edition",
+            (),
+            "Shadow of the Ninja - Reborn",
+        ),
+        # A named edition with no separator stays: IGDB often lists it as the
+        # Switch game ("Elden Ring: Tarnished Edition").
+        ("Elden Ring Tarnished Edition", (), "Elden Ring Tarnished Edition"),
+        # What must not be cut: an edition name with no separator and no
+        # packaging word, a platform word inside a name, a plain bracket.
+        (
+            "Yuppie Psycho Executive Edition - Elite Edition (Nintendo Switch)",
+            (),
+            "Yuppie Psycho Executive Edition",
+        ),
+        ("OFF Bad Human Edition for Nintendo Switch™", (), "OFF Bad Human Edition"),
+        ("Everybody 1-2-Switch!", (), "Everybody 1-2-Switch!"),
+        (
+            "Rendering Ranger: R2 [Rewind] Standard Edition (Switch, PS5, PS4)",
+            (),
+            "Rendering Ranger: R2 [Rewind]",
+        ),
     ],
 )
 def test_strip_title(title, patterns, expected):
@@ -210,8 +401,50 @@ def test_game_title(title, expected):
 
 @pytest.mark.parametrize(
     "run",
-    [" " * 50_000, " -" * 25_000, " :" * 25_000, "(" * 50_000, " (switch" * 6_000],
-    ids=["spaces", "dashes", "colons", "openers", "unclosed-platforms"],
+    [
+        " " * 50_000,
+        " -" * 25_000,
+        " :" * 25_000,
+        "(" * 50_000,
+        " (switch" * 6_000,
+        " for" * 12_000,
+        " Edition" * 8_000,
+        " Bundle" * 8_000,
+        " (NSW" * 10_000,
+        " - Nintendo" * 6_000,
+        " plush" * 8_000,
+        " ce" * 16_000,
+        " limited" * 6_000,
+        " limited/" * 6_000,
+        " 1st" * 10_000,
+        " collector's" * 4_000,
+        " + x" * 10_000,
+        "ONLINE EXCLUSIVE: " * 3_000,
+        " - Preorders" * 4_000,
+        " special limited x" * 3_000,
+    ],
+    ids=[
+        "spaces",
+        "dashes",
+        "colons",
+        "openers",
+        "unclosed-platforms",
+        "fors",
+        "editions",
+        "bundles",
+        "unclosed-nsw",
+        "dash-nintendo",
+        "merch-plush",
+        "merch-ce",
+        "packaging-words",
+        "slash-run",
+        "ordinals",
+        "collectors",
+        "extras",
+        "leading",
+        "markers",
+        "named-lead",
+    ],
 )
 def test_a_long_run_is_linear(run):
     """Third-party text: the title patterns backtracked for minutes on this."""
@@ -223,6 +456,23 @@ def test_a_long_run_is_linear(run):
 
 def test_only_a_platform_bracket_is_removed():
     assert strip_title("Blade (Switch) (Limited) [PS5]") == "Blade (Limited)"
+
+
+def test_edition_fallbacks():
+    assert edition_fallbacks("gex trilogy classic edition") == ["gex trilogy"]
+    assert edition_fallbacks("GEX Trilogy Tail Time Edition") == [
+        "gex trilogy tail",
+        "gex trilogy",
+    ]
+    assert edition_fallbacks("Devil May Cry 5: Devil Hunter Edition") == [
+        "devil may cry 5 devil",
+        "devil may cry 5",
+        "devil may cry",
+    ]
+    assert edition_fallbacks("OFF Bad Human Edition") == ["off bad"]
+    assert edition_fallbacks("elden ring") == []
+    assert edition_fallbacks("edition") == []
+    assert edition_fallbacks("tarnished edition") == []
 
 
 def test_edition_label():

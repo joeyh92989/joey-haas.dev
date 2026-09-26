@@ -49,7 +49,9 @@ shape remembered from the research. The first recording changed the plan in a
 dozen places; that is the point of it.
 
 Re-record a source when its handles or columns change, commit the changed
-files, and fix what the new shape breaks. Never edit a fixture by hand.
+files, and fix what the new shape breaks. Never edit a fixture by hand. The
+store fixtures hold every page (`--all-pages`), because the key-quality test
+has to see every title a refresh keys; the route tests serve page 1 only.
 
 ## The sources
 
@@ -61,19 +63,51 @@ summary tab is read. An edition is keyed by title, region, publisher and card
 type, because WWE 2K25 EUR has a Game-Key Card and a Code in a Box from one
 publisher. `TBC` and a blank upcoming card type mean `is_physical = NULL`.
 
-A row's match key is its base game: `game_title()` in `parse.py` moves the
-sheet's trailing ", The" to the front, then `strip_title` cuts "Nintendo
-Switch 2 Edition" and everything after it (a bundled expansion, a pack), so
-`Legend of Zelda: Breath of the Wild Nintendo Switch 2 Edition, The` keys as
-`the legend of zelda breath of the wild` and meets the store listings for it.
-Resolve searches IGDB with the same title. The raw title and `source_ref` are
-kept, so changing the key updates a row in place. The tracker keys the same
-way. Because both go through `strip_title`, a registry or tracker title also
-loses an '<label> Edition' phrase (`Shinobi: Art of Vengeance - Deluxe
-Edition` keys as `shinobi art of vengeance`), and a store title is cut at the
-Switch 2 Edition phrase too. `strip_title` collapses whitespace before any
-pattern runs and never returns an empty string: the titles are third-party
-text.
+Every source's key goes through `strip_title` (`game_title()` for the
+registry and tracker, which first moves the sheet's trailing ", The" to the
+front), then `matching.normalize_title`, which folds accents ("Pokémon" keys
+as `pokemon`: IGDB's search ignores accents). `strip_title` removes, in
+order: the store's own patterns; a leading "ONLINE EXCLUSIVE (EDITION):";
+"Nintendo Switch 2 Edition" and everything after it (a bundled expansion, a
+pack); bracket groups naming a platform, a region, an edition, a version,
+a rating board, extras or a pre-order (`(NSW)`, `[PlayStation 5]`,
+`(Japanese Version)`, `[PEGI]`); printing notes (First Press SE, Limited to
+1,000, "- Standard Cover", "- Preorder", "- Standard Release"); then, for up
+to four passes, platform tails after a dash, colon, "for" or an unclosed
+opener (`for Nintendo Switch™ and PlayStation 4`), a run of one to four
+**packaging** words before "Edition" (`Special Limited Edition`,
+`- Extra Elite Edition`, with a following "Box"), packaging words in front
+of a named edition, a run ending in "Collector's" or a lone "LE"/"CE" at the
+end, and a bundle suffix led by merch words (`Plushie Bundle`). Deluxe,
+Complete, Definitive and Ultimate count as packaging only right before
+"Edition": "Spelunker HD Deluxe Collector's Edition" keeps "Deluxe".
+
+What stays is the game's own name, including a **named** edition ("Elden
+Ring Tarnished Edition", "Tales of Arise - Beyond the Dawn Edition"): IGDB
+lists many of them as the Switch game itself, in brackets too ("Elden Ring
+(Tarnished Edition)"). A "Bundle" not led by merch words stays, labelled or
+not ("Taito Milestones 1&2 CE Bundle"), since the title cannot say whether
+it holds one game or several. When a named
+edition's full name finds nothing, Resolve retries with words before
+"Edition" dropped, keeping at least two (`edition_fallbacks`), and what a
+shorter query finds waits in Needs match: "Hades II Olympian Edition"
+shortened to one word would otherwise link the first game.
+
+`PLATFORM_WORDS` lists what a key never keeps. `tests/test_physical_keys.py`
+holds every recorded key to it, to a list of packaging leftovers, and to
+being a fixed point of the cleaner; `test_physical_parse.py` pins each shape
+by its raw title. The raw title is kept, so changing the key updates a row
+in place. `strip_title` collapses whitespace before any pattern runs, and
+on collapsed text every pattern takes bounded time; timing cases put each
+rule through `game_title` on a 50k-character title. The patterns are not
+safe on raw text, so nothing outside `parse.py` should use them. It never
+returns an empty string.
+
+Accent folding also changes the registry's and tracker's `source_ref`
+(built from `normalize_title`): on the first refresh after it shipped, the
+14 accented registry rows (Pokémon Legends: Z-A, Pokémon Pokopia) were
+inserted as new rows and the old ones retired. Letters with no
+decomposition (`ø`, `æ`, `ł`) are still dropped.
 
 A refresh that changes a row's (title, platform) key clears its `igdb_id`:
 the match decided under the old key says nothing about the new one. Resolve

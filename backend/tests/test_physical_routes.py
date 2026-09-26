@@ -84,6 +84,20 @@ async def test_refreshing_one_store_writes_its_listings(sessionmaker_for_test):
     assert await _count(sessionmaker_for_test, StoreListing) == run["rows_seen"]
 
 
+async def test_refreshing_a_woocommerce_store_writes_its_listings(
+    sessionmaker_for_test,
+):
+    """The fixture server answers WooCommerce by category and page."""
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/physical/refresh", json={"stores": ["pixelheart"]}
+        )
+    (run,) = response.json()["runs"]
+    assert (run["source"], run["ok"], run["errors"]) == ("pixelheart", True, [])
+    assert run["rows_seen"] > 0
+    assert await _count(sessionmaker_for_test, StoreListing) == run["rows_seen"]
+
+
 async def test_a_robots_refusal_skips_only_that_store(sessionmaker_for_test):
     handler = serve_fixtures(
         robots={"superraregames.com": "User-agent: *\nDisallow: /collections/\n"}

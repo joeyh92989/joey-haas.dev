@@ -220,6 +220,59 @@ async def test_a_switch_2_edition_is_searched_as_the_switch_1_game(session):
     ]
 
 
+@pytest.mark.asyncio
+async def test_a_named_edition_is_retried_without_it_when_nothing_is_found(session):
+    await upsert_editions(
+        session, [edition("GEX Trilogy Classic Edition")], "nscollectors", retire=True
+    )
+    igdb = FakeIgdb({"gex trilogy": [result(5, "Gex Trilogy")]})
+
+    outcome = await resolve_batch(session, igdb)
+
+    assert [query for query, *_ in igdb.searches] == [
+        "GEX Trilogy Classic Edition",
+        "gex trilogy",
+    ]
+    # Found by a shorter query, so a human confirms it (candidates kept).
+    assert (outcome.resolved, outcome.pending) == (0, 1)
+    (match,) = await _all(session, CatalogueMatch)
+    assert match.decided_by.value == "pending"
+    assert [c["external_id"] for c in match.candidates] == ["5"]
+    assert [e.igdb_id for e in await _all(session, PhysicalEdition)] == [None]
+
+
+@pytest.mark.asyncio
+async def test_a_shortened_sequel_is_never_linked_to_the_first_game(session):
+    await upsert_editions(
+        session, [edition("Hades II Olympian Edition")], "nscollectors", retire=True
+    )
+    # The shortened query finds only the first game, which scores close.
+    igdb = FakeIgdb({"hades ii": [result(1, "Hades")]})
+
+    outcome = await resolve_batch(session, igdb)
+
+    (match,) = await _all(session, CatalogueMatch)
+    assert (outcome.resolved, match.decided_by.value, match.igdb_id) == (
+        0,
+        "pending",
+        None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_named_edition_found_in_full_is_searched_once(session):
+    await upsert_editions(
+        session, [edition("Elden Ring Tarnished Edition")], "nscollectors", retire=True
+    )
+    igdb = FakeIgdb(
+        {"Elden Ring Tarnished Edition": [result(8, "Elden Ring: Tarnished Edition")]}
+    )
+
+    await resolve_batch(session, igdb)
+
+    assert [query for query, *_ in igdb.searches] == ["Elden Ring Tarnished Edition"]
+
+
 # --- The N64 ingest -----------------------------------------------------------
 
 
