@@ -196,24 +196,6 @@ def parse_preorder_close(text: str | None) -> date | None:
     return value if precision == "day" else None
 
 
-# Platform lists and pre-order markers stores put in a title's brackets. Only
-# innermost brackets are matched, and their words tested separately: a class
-# that could cross an opener rescanned the title from every "(" in it.
-_BRACKETED = re.compile(r"\s*[(\[]([^()\[\]]*)[)\]]")
-_BRACKET_WORDS = re.compile(
-    r"switch|ps[45]|xbox|pc|nintendo|pre-?order|gbc?|genesis", re.IGNORECASE
-)
-
-
-def _platform_bracket(match: re.Match) -> str:
-    return "" if _BRACKET_WORDS.search(match.group(1)) else match.group(0)
-
-
-_EDITION_PHRASE = re.compile(
-    r"\s*[-–:]?\s*\b(?:Standard|Collector['’]?s|Deluxe|Special|First|Limited|"
-    r"Exclusive|Retro|Premium) Edition\b",
-    re.IGNORECASE,
-)
 # A Switch 2 Edition keys as its base game, so the phrase goes with whatever
 # follows it: a bundled expansion ("+ Star-Crossed World"), a pack, a closing
 # dash or an inverted article.
@@ -228,11 +210,111 @@ _TRAILING = " -–:,"
 _INVERTED_ARTICLE = re.compile(r"^(.+?),\s*(The|An?)\s*$", re.IGNORECASE)
 
 
+# The words stores use for a platform. The listing's platform is stored on
+# its own, so none of them belongs in a key; tests/test_physical_keys.py
+# holds every recorded key to this list.
+PLATFORM_WORDS = (
+    "nintendo switch 2",
+    "nintendo switch",
+    "switch 2",
+    "nsw",
+    "ns2",
+    "playstation 5",
+    "playstation 4",
+    "playstation",
+    "ps5",
+    "ps4",
+    "xbox series x",
+    "xbox series s",
+    "xbox one",
+    "xbox",
+    "various platforms",
+)
+_PLATFORM = (
+    r"(?:nintendo\s+)?switch™?(?:\s*2)?|ns[w2]|playstation®?(?:\s*[45])?|ps[45]"
+    r"|xbox(?:\s+one|\s+series\s+[xs](?:\s*[|/]\s*[xs])?)?|pc|steam"
+    r"|mega\s+drive|genesis|s?nes|n64|gb[ca]?|smd|sg|md"
+)
+_REGION = r"eur|usa|us|uk|jpn?|asia|pal|ntsc"
+_ONE_PLATFORM = rf"(?:{_PLATFORM}|{_REGION}|various\s+platforms)"
+_PLATFORM_LIST = rf"{_ONE_PLATFORM}(?:\s*(?:[,/&+|]|and)\s*{_ONE_PLATFORM})*"
+# The platforms a title may end on with no separator. A lone "Switch" or "PC"
+# is not among them: "Everybody 1-2-Switch!" is a name.
+_BARE_PLATFORM = (
+    r"nintendo\s+switch™?(?:\s*2)?|nsw|ns2|playstation®?\s*[45]|ps[45]"
+    r"|xbox(?:\s+one|\s+series\s+[xs])"
+)
+
+# Innermost brackets only, their words tested separately: a class that could
+# cross an opener rescanned the title from every "(" in it. A bracket naming
+# a platform, a region, "with" extras or a pre-order goes whole, since stores
+# write "(iam8bit Nintendo Switch 2 Exclusive Edition)" as often as "(NSW)".
+_BRACKETED = re.compile(r"\s*[(\[]([^()\[\]]*)[)\]]")
+_BRACKET_WORDS = re.compile(
+    rf"\b(?:{_ONE_PLATFORM}|pre-?order|with)\b|nintendo|switch", re.IGNORECASE
+)
+# Printing and packaging notes, not the game.
+_MARKERS = re.compile(
+    r"\s+(?:first\s+press(?:\s+se)?|limited\s+to\s+[\d,.]+|usk\s+version)\b.*$",
+    re.IGNORECASE,
+)
+_PLATFORM_TAIL = re.compile(
+    rf"(?:\s[-–]|:|\s+for)\s*(?:{_PLATFORM_LIST})\s*[-–]?$", re.IGNORECASE
+)
+_PLATFORM_TRAILING = re.compile(rf"\s+(?:{_BARE_PLATFORM})$", re.IGNORECASE)
+_PACKAGING = (
+    r"standard|limited|special(?:\s+limited)?|deluxe|limited\s+collector['’]?s"
+    r"|collector['’]?s|premium|elite|physical|complete|definitive|silver|gold"
+    r"|bronze|steelbook|signature|exclusive|retail|launch|first|anniversary"
+    r"|retro|ultimate"
+)
+# "- Silver Edition", " -Total Warfare Edition-": any words after a dash, up
+# to "Edition". A colon is not a separator here: it opens a subtitle
+# ("Hollow Knight: Silksong Standard Edition"). Elsewhere only a packaging
+# word may precede "Edition", so "OFF Bad Human Edition" keeps its name.
+_SEPARATED_EDITION = re.compile(
+    r"\s[-–]\s*[^-–:()\[\]]{1,40}?\bedition\b\s*[-–]?", re.IGNORECASE
+)
+_EDITION_PHRASE = re.compile(rf"\s*\b(?:{_PACKAGING})\s+edition\b", re.IGNORECASE)
+_MERCH = (
+    r"plush(?:ie)?|book|soundtrack|showroom|marionette|yunomi|cup|ce|art"
+    r"|poster|vinyl|album|merch|figure|steelbook"
+)
+# A single-game bundle is the game: the suffix and its merch words go.
+_BUNDLE = re.compile(rf"\s+(?:(?:{_MERCH})\s+)*bundle(?:\s+upgrade)?$", re.IGNORECASE)
+_EXTRAS = re.compile(
+    r"\s*\+\s*(?:character\s+cards|soundtrack(?:\s+cd)?|art\s*book|plush\w*)$",
+    re.IGNORECASE,
+)
+_CLEANERS = (
+    _PLATFORM_TAIL,
+    _PLATFORM_TRAILING,
+    _SEPARATED_EDITION,
+    _EDITION_PHRASE,
+    _BUNDLE,
+    _EXTRAS,
+)
+
+
+def _platform_bracket(match: re.Match) -> str:
+    return "" if _BRACKET_WORDS.search(match.group(1)) else match.group(0)
+
+
+def _tidy(text: str) -> str:
+    return _SPACE.sub(" ", text).rstrip(_TRAILING).strip()
+
+
 def strip_title(title: str, patterns: Iterable[re.Pattern] = ()) -> str:
-    r"""The game's own title: the store's prefixes and suffixes removed, then
-    bracketed platform lists, then a Switch 2 Edition phrase and everything
-    after it, then an '<label> Edition' phrase. A title that is nothing but
-    those phrases is kept whole rather than keyed as an empty string.
+    r"""The game's own title, for keys and searches.
+
+    In order: the store's own patterns; the Switch 2 Edition phrase and
+    everything after it (first, or removing "- Nintendo Switch 2" as a
+    platform tail would strand "Edition"); bracket groups naming a platform,
+    region, extras or pre-order (twice, for a bracket inside a bracket);
+    printing notes; then platform tails, edition phrases, bundle suffixes and
+    merch extras until none is left, since each can uncover another ("UFO 50
+    for Nintendo Switch™ Deluxe Edition"). A title that is nothing but those
+    is kept whole rather than keyed as an empty string.
 
     Whitespace is collapsed first: the phrase patterns open with `\s*`, and
     on a long run of spaces in third-party text they backtrack for minutes.
@@ -241,10 +323,18 @@ def strip_title(title: str, patterns: Iterable[re.Pattern] = ()) -> str:
     stripped = collapsed
     for pattern in patterns:
         stripped = pattern.sub("", stripped)
-    stripped = _BRACKETED.sub(_platform_bracket, stripped)
     stripped = _SWITCH_2_EDITION.sub("", stripped)
-    stripped = _EDITION_PHRASE.sub("", stripped)
-    return _SPACE.sub(" ", stripped).rstrip(_TRAILING).strip() or collapsed
+    for _ in range(2):
+        stripped = _BRACKETED.sub(_platform_bracket, stripped)
+    stripped = _tidy(_MARKERS.sub("", stripped))
+    for _ in range(4):
+        before = stripped
+        for pattern in _CLEANERS:
+            # A space, not nothing: "A - Silver Edition B" is "A B", not "AB".
+            stripped = _tidy(pattern.sub(" ", stripped))
+        if stripped == before:
+            break
+    return stripped or collapsed
 
 
 def is_switch_2_edition(title: str) -> bool:

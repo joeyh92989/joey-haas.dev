@@ -166,13 +166,83 @@ def test_find_date_takes_the_earliest_phrase():
             "A-Train Hajimaru Kankou Keikaku",
         ),
         ("Hades II Nintendo Switch™ 2 Edition", (), "Hades II"),
-        ("Cyberpunk 2077: Ultimate Edition", (), "Cyberpunk 2077: Ultimate Edition"),
+        # Decision: a key names the base game, so a named edition goes too.
+        ("Cyberpunk 2077: Ultimate Edition", (), "Cyberpunk 2077"),
         (
             "Nintendo Switch 2 Edition Upgrade Pack",
             (),
             "Nintendo Switch 2 Edition Upgrade Pack",
         ),
         ("Deluxe  Edition", (), "Deluxe Edition"),
+        # Platform words, regions, packaging editions and bundles (store keys).
+        ("7th Sector (NSW)", (), "7th Sector"),
+        ("7th Sector Special Limited Edition (NSW)", (), "7th Sector"),
+        ("7'scarlet - Nintendo Switch™", (), "7'scarlet"),
+        ("Jack Jeanne - Silver Edition - Nintendo Switch™", (), "Jack Jeanne"),
+        ("Tin & Kuna - Various Platforms (PS4, NSW, XBOX)", (), "Tin & Kuna"),
+        (
+            "C.A.R.D.S. RPG: The Misty Battlefield  -Total Warfare Edition- "
+            "(Various Platforms (PS4, NSW))",
+            (),
+            "C.A.R.D.S. RPG: The Misty Battlefield",
+        ),
+        ("Just Shapes & Beats for Nintendo Switch™", (), "Just Shapes & Beats"),
+        ("UFO 50 for Nintendo Switch™ Deluxe Edition", (), "UFO 50"),
+        ("Bugsnax for PlayStation 5 and PlayStation 4", (), "Bugsnax"),
+        ("Zombie Night Terror - Nintendo Switch", (), "Zombie Night Terror"),
+        (
+            "9 Years of Shadows Collector's Edition [PlayStation 5]",
+            (),
+            "9 Years of Shadows",
+        ),
+        ("Darius Extra Cozmic Bundle (NSW/SMD)", (), "Darius Extra Cozmic"),
+        (
+            "Tavern Talk Complete Edition - Limited Edition (Nintendo Switch)",
+            (),
+            "Tavern Talk",
+        ),
+        ("Lies of P: Complete Edition Marionette Bundle", (), "Lies of P"),
+        (
+            "Pocky & Rocky Reshrined Plushie Bundle (NSW)",
+            (),
+            "Pocky & Rocky Reshrined",
+        ),
+        (
+            "Spirit Hunter: Death Mark II - Standard Edition (with Soundtrack CD)",
+            (),
+            "Spirit Hunter: Death Mark II",
+        ),
+        (
+            "Atomicrops – Complete Edition Nintendo Switch First Press SE",
+            (),
+            "Atomicrops",
+        ),
+        ("Symphonia Nintendo Switch Limited to 1,000", (), "Symphonia"),
+        (
+            "Blue Prince (iam8bit Nintendo Switch 2 Exclusive Edition)",
+            (),
+            "Blue Prince",
+        ),
+        ("Minecraft for Nintendo Switch 2", (), "Minecraft"),
+        (
+            "Andro Dunos 2 Limited Edition Box SWITCH [EUR]",
+            (re.compile(r"\s+SWITCH\b.*$", re.I),),  # PixelHeart's own strip
+            "Andro Dunos 2 Box",
+        ),
+        # What must not be cut: an edition name with no separator and no
+        # packaging word, a platform word inside a name, a plain bracket.
+        (
+            "Yuppie Psycho Executive Edition - Elite Edition (Nintendo Switch)",
+            (),
+            "Yuppie Psycho Executive Edition",
+        ),
+        ("OFF Bad Human Edition for Nintendo Switch™", (), "OFF Bad Human Edition"),
+        ("Everybody 1-2-Switch!", (), "Everybody 1-2-Switch!"),
+        (
+            "Rendering Ranger: R2 [Rewind] Standard Edition (Switch, PS5, PS4)",
+            (),
+            "Rendering Ranger: R2 [Rewind]",
+        ),
     ],
 )
 def test_strip_title(title, patterns, expected):
@@ -210,8 +280,30 @@ def test_game_title(title, expected):
 
 @pytest.mark.parametrize(
     "run",
-    [" " * 50_000, " -" * 25_000, " :" * 25_000, "(" * 50_000, " (switch" * 6_000],
-    ids=["spaces", "dashes", "colons", "openers", "unclosed-platforms"],
+    [
+        " " * 50_000,
+        " -" * 25_000,
+        " :" * 25_000,
+        "(" * 50_000,
+        " (switch" * 6_000,
+        " for" * 12_000,
+        " Edition" * 8_000,
+        " Bundle" * 8_000,
+        " (NSW" * 10_000,
+        " - Nintendo" * 6_000,
+    ],
+    ids=[
+        "spaces",
+        "dashes",
+        "colons",
+        "openers",
+        "unclosed-platforms",
+        "fors",
+        "editions",
+        "bundles",
+        "unclosed-nsw",
+        "dash-nintendo",
+    ],
 )
 def test_a_long_run_is_linear(run):
     """Third-party text: the title patterns backtracked for minutes on this."""
