@@ -27,7 +27,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, model_validator
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from items import require_admin
@@ -238,6 +238,31 @@ def _warning_entry(warning: str) -> dict:
     if "unknown_card_type" in code:
         return {"code": "unknown_card_type", "detail": detail}
     return {"code": "info", "detail": warning}
+
+
+def _waiting_on_a_human():
+    """Pending decisions some live row still carries: unretired editions,
+    unarchived listings. One a later refresh re-keyed or retired has nothing
+    left to link, so neither the list nor its count shows it."""
+
+    def carried_by(model, is_live):
+        return (
+            select(model.title_normalized)
+            .where(
+                model.title_normalized == CatalogueMatch.title_normalized,
+                model.platform_id == CatalogueMatch.platform_id,
+                is_live,
+            )
+            .exists()
+        )
+
+    return (
+        CatalogueMatch.decided_by == MatchDecision.PENDING,
+        or_(
+            carried_by(PhysicalEdition, PhysicalEdition.retired_at.is_(None)),
+            carried_by(StoreListing, StoreListing.availability != "archived"),
+        ),
+    )
 
 
 def create_physical_router(
@@ -532,9 +557,7 @@ def create_physical_router(
         pending = {
             (m.title_normalized, m.platform_id): list(m.candidates or [])
             for m in await session.scalars(
-                select(CatalogueMatch).where(
-                    CatalogueMatch.decided_by == MatchDecision.PENDING
-                )
+                select(CatalogueMatch).where(*_waiting_on_a_human())
             )
         }
         decided_platformless = set(
@@ -572,9 +595,6 @@ def create_physical_router(
                     key = (row.title_normalized, row.platform_id)
                     if key in pending:
                         rows[key].append(row)
-        # A decision no live row carries any more (re-keyed or retired by a
-        # later refresh) has nothing to link.
-        rows = {key: found for key, found in rows.items() if found}
         keys = []
         for (title_normalized, platform_id), found in sorted(rows.items()):
             editions = [r for r in found if isinstance(r, PhysicalEdition)]
@@ -714,7 +734,7 @@ def create_physical_router(
             await session.scalar(
                 select(func.count())
                 .select_from(CatalogueMatch)
-                .where(CatalogueMatch.decided_by == MatchDecision.PENDING)
+                .where(*_waiting_on_a_human())
             )
             or 0
         )
