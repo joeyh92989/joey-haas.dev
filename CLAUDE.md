@@ -156,6 +156,11 @@ before pushing.
       E8b/E8c decisions settled at the end of the E7c spec; each gets its own
       plan. E6 (recommendations) is retired in favour of E8b, which uses the
       provider-agnostic seam in `backend/llm.py`
+- [ ] Rotate the ComicVine API key. It was written to Render's logs until
+      2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
+      ComicVine's site has no way to regenerate it: ask their support to
+      reissue it, then update `backend/.env` and Render. The Twitch/IGDB
+      secret was rotated the same day
 - [ ] Optional: set `ADMIN_GOOGLE_SUB` after the first sign-in to pin the
       allowlist to Google's immutable subject ID rather than the email alone
 
