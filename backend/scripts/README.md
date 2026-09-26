@@ -67,6 +67,22 @@ Source names limit a run to those sources (`limited_run`, `super_rare`,
 `registry`, `tracker`, … — `--list` shows them all); `--igdb` adds one page of
 IGDB's N64 catalogue.
 
+`--all-pages` records every page of each store listing, walking until a short
+page (at most 40 per listing), under the same `robots.txt`, throttle and
+User-Agent rules. Page 1 alone hid the live catalogue's shapes: Strictly
+Limited titles its older products `(NSW)`, which no page-1 product showed,
+and `tests/test_physical_keys.py` needs every title a refresh will key. The
+route tests still serve page 1 only.
+
+```bash
+./.venv/bin/python scripts/record_physical_fixtures.py --all-pages limited_run iam8bit strictly_limited premium_edition nicalis aksys_us aksys_eu fangamer super_rare pixelheart gamefairy oneprint
+```
+
+The run ends with the fixture directory's size. Past 40 MB, run it again with
+`--strip-bodies` added: pages 2 and on are rewritten without descriptions,
+which no key, platform or game-filter test reads (page 1 keeps its bodies for
+the format and date tests).
+
 **Needs:**
 
 - Nothing for the stores, the tracker and `robots.txt`.
@@ -89,6 +105,7 @@ tracker's User-Agent, and honours each host's `robots.txt` under
 |---|---|
 | `shopify/<store>/<handle>.p1.json` | page 1 of `products.json` for each handle in the spec's `STORES` table (36), each product's `images` cut to the first |
 | `woocommerce/<store>/category-<id>.p1.json` | page 1 of the Store API for each WooCommerce category (3) |
+| `shopify/<store>/<handle>.p<N>.json`, `woocommerce/<store>/category-<id>.p<N>.json` | with `--all-pages`: pages 2 and on |
 | `shopify/limited_run/product.html` | the first Switch 2 product in Limited Run's `coming-soon`, for the HTML step |
 | `registry/properties.json` | the sheet's tab list (`sheets.properties`), mapping each gid to its current title |
 | `registry/{details,upcoming_details,upcoming}.json` | the Release Details, Upcoming Releases and Upcoming Release Summary tabs, as `spreadsheets.values.get` returns them |
