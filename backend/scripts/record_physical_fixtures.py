@@ -152,6 +152,8 @@ MAX_RECORDED_PAGES = 40
 # Past this, re-run with --strip-bodies: pages 2 and on lose their
 # descriptions, which no key, platform or game-filter test reads.
 SIZE_GATE_BYTES = 40 * 1024 * 1024
+# No listing page is anywhere near this; a body past it is refused unwritten.
+MAX_BODY_BYTES = 20 * 1024 * 1024
 
 
 def page_url(url: str, page: int) -> str:
@@ -324,6 +326,9 @@ class Recorder:
         if response.status_code != 200:
             self.fail(name, f"HTTP {response.status_code}{_api_message(response)}")
             return None
+        if len(response.content) > MAX_BODY_BYTES:
+            self.fail(name, f"body over {MAX_BODY_BYTES} bytes; not written")
+            return None
         try:
             return response.json()
         except ValueError:
@@ -381,6 +386,9 @@ async def record_more_pages(
                 recorder.fail(page_file, "no products list in the body")
             return
         if not products:
+            return
+        if not all(isinstance(product, dict) for product in products):
+            recorder.fail(page_file, "a product that is not an object; not written")
             return
         for product in products:
             product["images"] = (product.get("images") or [])[:1]
