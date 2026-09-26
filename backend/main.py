@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from auth import create_auth_router
-from config import allowed_origins, load_config
+from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
 from importer import create_import_router
 from items import create_items_router
@@ -23,7 +23,7 @@ from public import create_public_router
 from schema_check import verify_schema_is_current
 from sources.registry import build_registry, configured_sources
 
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 logger = logging.getLogger(__name__)
 
 config = load_config()
