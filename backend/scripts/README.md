@@ -44,6 +44,19 @@ contain nothing private.
 record different ones. The field list is duplicated from `sources/igdb.py`
 `FIELDS` and has to change with it.
 
+### `--upcoming` (Radar, E8c)
+
+`--upcoming` records only one page of IGDB's upcoming release dates on
+Nintendo Switch and Switch 2 into `tests/fixtures/igdb_upcoming_release_dates.json`,
+for the lane-3 parser (`sources.igdb.parse_upcoming`). The query is built
+from `UPCOMING_FIELDS` itself, so the fixture always has the fields the
+parser reads; re-record when that constant changes. Needs the same IGDB
+credentials as the default run.
+
+```bash
+./.venv/bin/python scripts/record_igdb_fixtures.py --upcoming
+```
+
 ## record_physical_fixtures.py
 
 Records the E7c physical-catalogue sources into `tests/fixtures/physical/`,

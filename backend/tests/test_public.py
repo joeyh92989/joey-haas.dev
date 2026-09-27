@@ -17,6 +17,10 @@ from models import (
     ItemType,
     OwnedFormat,
     PhysicalEdition,
+    ReasonSource,
+    Recommendation,
+    RecommendationKind,
+    RecommendationStatus,
     StoreListing,
 )
 from public import (
@@ -653,6 +657,28 @@ async def test_no_public_model_names_a_catalogue_field():
     assert leaked == []
 
 
+# E8c: suggestions, their reasons and the pre-order data behind them are
+# never public; only an item the owner watched is, through its `wanted` flag.
+RECOMMENDATION_NAMES = (
+    "recommendation",
+    "batch_id",
+    "based_on",
+    "reason",
+    "preorder",
+    "store_line",
+    "hypes",
+    "lane",
+)
+
+
+async def test_no_public_model_names_a_recommendation_field():
+    names = set()
+    for model in (PublicItemOut, PublicItemDetailOut, PublicStatsOut):
+        names |= _field_names(model)
+    leaked = sorted(n for n in names for bad in RECOMMENDATION_NAMES if bad in n)
+    assert leaked == []
+
+
 def _keys(value) -> set[str]:
     """Every key anywhere in a JSON value."""
     if isinstance(value, dict):
@@ -727,3 +753,60 @@ async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test)
         assert "Radar Game" not in response.text
         assert "LP-AAAAA-USA-0" not in response.text
         assert "super_rare" not in response.text
+
+
+async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test):
+    """A watched game is public as an item; its suggestion never is."""
+    await _seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Item(
+                type=ItemType.GAME,
+                title="Watched Game",
+                status=ItemStatus.BACKLOG,
+                is_public=True,
+                external_source="igdb",
+                external_id="77",
+                owned_format=OwnedFormat.NONE,
+                platform_id=508,
+            )
+        )
+        session.add(
+            Recommendation(
+                kind=RecommendationKind.RADAR,
+                type=ItemType.GAME,
+                title="Watched Game",
+                external_source="igdb",
+                external_id="77",
+                reason="Pre-orders close Nov 8 at Limited Run · $59.99",
+                reason_source=ReasonSource.TEMPLATE,
+                based_on=["someone"],
+                score=80,
+                batch_id=uuid.uuid4(),
+                status=RecommendationStatus.WANTED,
+                platform_id=508,
+                source_metadata={
+                    "lane": "preorder",
+                    "hypes": 12,
+                    "store_lines": [{"store": "Limited Run Games", "price": "59.99"}],
+                },
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        items = await client.get("/api/public/items")
+        stats = await client.get("/api/public/stats")
+        watched = next(i for i in items.json() if i["title"] == "Watched Game")
+        detail = await client.get(f"/api/public/items/{watched['id']}")
+    assert watched["wanted"] is True
+    for response in (items, stats, detail):
+        assert response.status_code == 200
+        leaked = sorted(
+            key
+            for key in _keys(response.json())
+            for bad in RECOMMENDATION_NAMES
+            if bad in key
+        )
+        assert leaked == []
+        assert "Pre-orders close" not in response.text
+        assert "Limited Run Games" not in response.text

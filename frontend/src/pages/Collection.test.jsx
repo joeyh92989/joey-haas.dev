@@ -587,3 +587,74 @@ describe('Collection Up next', () => {
     ).not.toBeInTheDocument()
   })
 })
+
+describe('Collection On the radar', () => {
+  // Local dates, as the strip compares them (toISOString would be UTC and,
+  // late in the evening, already tomorrow).
+  const later = (days) => {
+    const date = new Date()
+    date.setDate(date.getDate() + days)
+    const pad = (value) => String(value).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+  }
+
+  it('lists watched games still to come, soonest first, after Up next', async () => {
+    stubApi({
+      items: [
+        { ...ITEMS[0], pinned: true },
+        {
+          ...ITEMS[1],
+          id: 'w1',
+          title: 'Far Off',
+          wanted: true,
+          release_date: later(200),
+        },
+        {
+          ...ITEMS[1],
+          id: 'w2',
+          title: 'Soon',
+          wanted: true,
+          release_date: later(20),
+        },
+        {
+          ...ITEMS[1],
+          id: 'w3',
+          title: 'Out Already',
+          wanted: true,
+          release_date: '2020-01-01',
+        },
+        {
+          ...ITEMS[1],
+          id: 'o1',
+          title: 'Owned Later',
+          wanted: false,
+          release_date: later(30),
+        },
+      ],
+    })
+    await renderReady()
+
+    const radar = screen.getByRole('region', { name: 'On the radar' })
+    const titles = within(radar)
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+    expect(titles).toEqual([
+      expect.stringContaining('Soon'),
+      expect.stringContaining('Far Off'),
+    ])
+    const upNext = screen.getByRole('region', { name: 'Up next' })
+    expect(
+      upNext.compareDocumentPosition(radar) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('shows nothing when nothing watched is still to come', async () => {
+    stubApi({
+      items: [{ ...ITEMS[1], id: 'w4', wanted: true, release_date: later(0) }],
+    })
+    await renderReady()
+    expect(
+      screen.queryByRole('region', { name: 'On the radar' }),
+    ).not.toBeInTheDocument()
+  })
+})
