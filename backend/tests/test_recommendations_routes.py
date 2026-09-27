@@ -200,8 +200,10 @@ async def test_generate_waits_for_no_one_during_a_refresh(sessionmaker_for_test)
     await lock.acquire()
     try:
         async with radar_client(sessionmaker_for_test, lock=lock) as client:
-            response = await client.post(
-                "/api/recommendations/generate", json={"kind": "radar"}
+            # A generate that waited for the lock would hang: fail fast instead.
+            response = await asyncio.wait_for(
+                client.post("/api/recommendations/generate", json={"kind": "radar"}),
+                timeout=10,
             )
     finally:
         lock.release()
@@ -240,7 +242,7 @@ async def test_watch_adds_a_public_watched_item_once(sessionmaker_for_test):
 
     assert first.status_code == 201
     assert second.status_code == 409
-    assert second.json()["detail"] == "Already on your shelf"
+    assert second.json()["detail"] == "Already answered (wanted)"
     async with sessionmaker_for_test() as session:
         (item,) = await session.scalars(select(Item))
     assert (item.owned_format, item.is_public, item.external_id) == (
@@ -284,3 +286,131 @@ async def test_the_list_says_whether_it_is_ranked_by_taste(sessionmaker_for_test
     async with radar_client(sessionmaker_for_test) as client:
         loved = (await client.get("/api/recommendations?kind=radar")).json()
     assert (empty["personalised"], loved["personalised"]) == (False, True)
+
+
+async def test_a_settled_answer_is_not_undone_by_a_stale_press(sessionmaker_for_test):
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        rows = await _rows(sessionmaker_for_test)
+        await client.post(f"/api/recommendations/{rows['1'].id}/dismiss")
+        skip = await client.post(f"/api/recommendations/{rows['1'].id}/skip")
+        watch = await client.post(f"/api/recommendations/{rows['1'].id}/watch")
+        await client.post(f"/api/recommendations/{rows['3'].id}/skip")
+        skip_again = await client.post(f"/api/recommendations/{rows['3'].id}/skip")
+        dismiss_skipped = await client.post(
+            f"/api/recommendations/{rows['3'].id}/dismiss"
+        )
+    assert (skip.status_code, watch.status_code) == (409, 409)
+    assert skip.json()["detail"] == "Already answered (dismissed)"
+    assert (skip_again.status_code, dismiss_skipped.status_code) == (409, 200)
+    after = await _rows(sessionmaker_for_test)
+    assert after["1"].status == RecommendationStatus.DISMISSED
+
+
+async def test_platforms_are_radars_only_and_a_subset_keeps_the_rest(
+    sessionmaker_for_test,
+):
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test) as client:
+        bad = await client.post(
+            "/api/recommendations/generate",
+            json={"kind": "radar", "platforms": [99999]},
+        )
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        before = set(await _rows(sessionmaker_for_test))
+        await client.post(
+            "/api/recommendations/generate", json={"kind": "radar", "platforms": [130]}
+        )
+    assert bad.status_code == 422
+    assert set(await _rows(sessionmaker_for_test)) == before  # Switch 2 rows kept
+
+
+async def test_an_unreadable_lane_three_keeps_lanes_one_and_two(sessionmaker_for_test):
+    await _seed(sessionmaker_for_test)
+    igdb = FakeUpcoming(error=ValueError("not JSON"))
+    async with radar_client(sessionmaker_for_test, igdb=igdb) as client:
+        result = (
+            await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        ).json()
+    assert result["digital_error"] == "IGDB answer could not be read (ValueError)"
+    assert result["counts"]["suggested"] == 2
+
+
+async def test_a_game_that_leaves_the_pool_leaves_radar(sessionmaker_for_test):
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        async with sessionmaker_for_test() as session:
+            for row in await session.scalars(
+                select(PhysicalEdition).filter_by(title="Dated")
+            ):
+                row.release_date = date(2020, 1, 1)
+            await session.commit()
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+    assert "1" not in await _rows(sessionmaker_for_test)
+
+
+async def test_answering_everything_keeps_the_generation_time(sessionmaker_for_test):
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        for row in (await _rows(sessionmaker_for_test)).values():
+            await client.post(f"/api/recommendations/{row.id}/skip")
+        listed = (await client.get("/api/recommendations?kind=radar")).json()
+    assert listed["generated_at"] is not None
+    assert all(not rows for rows in listed["sections"].values())
+
+
+async def test_a_format_only_a_store_claims_is_not_recorded_on_watch(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        session.add(CatalogueGame(igdb_id=50, title="Store Only", snapshot={}))
+        await session.flush()
+        await upsert_listings(
+            session,
+            [
+                dataclasses.replace(
+                    listing("store only", "s1"),
+                    preorder_closes_at=TODAY + timedelta(days=5),
+                    format_hint="game_card",
+                    format_tier="store_text",
+                )
+            ],
+            "super_rare",
+            archive=True,
+        )
+        for row in await session.scalars(select(StoreListing)):
+            row.igdb_id = 50
+        await session.commit()
+    async with radar_client(sessionmaker_for_test) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        row = (await _rows(sessionmaker_for_test))["50"]
+        await client.post(f"/api/recommendations/{row.id}/watch")
+    assert row.physical_format == PhysicalFormat.GAME_CARD
+    async with sessionmaker_for_test() as session:
+        (item,) = await session.scalars(select(Item))
+    assert (item.physical_format, item.format_source) == (None, None)
+
+
+async def test_watching_a_game_added_by_hand_is_409(sessionmaker_for_test):
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        async with sessionmaker_for_test() as session:
+            session.add(
+                Item(
+                    type=ItemType.GAME,
+                    title="Dated",
+                    status="backlog",
+                    external_source="igdb",
+                    external_id="1",
+                    owned_format=OwnedFormat.PHYSICAL,
+                )
+            )
+            await session.commit()
+        row = (await _rows(sessionmaker_for_test))["1"]
+        response = await client.post(f"/api/recommendations/{row.id}/watch")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Already on your shelf"

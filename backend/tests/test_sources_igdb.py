@@ -648,3 +648,16 @@ async def test_upcoming_asks_release_dates_page_by_page():
     assert "offset 0;" in asked[0][0] and "offset 500;" in asked[1][0]
     assert "where platform = (130,508) & date > 1790000000;" in asked[0][0]
     assert any(row["igdb_id"] == 9999 for row in rows)
+
+
+def test_an_untitled_game_is_not_upcoming():
+    assert parse_upcoming([_release(1, 0, name="")], SWITCHES) == []
+
+
+@pytest.mark.asyncio
+async def test_hitting_the_page_cap_is_logged(monkeypatch, caplog):
+    full = [_release(i, 0) for i in range(UPCOMING_PAGE)]
+    _patch_http(monkeypatch, [_FakeResponse(200, full)])
+    with caplog.at_level("WARNING", logger="sources.igdb"):
+        await IgdbSource(_config()).upcoming([508], now=1790000000)
+    assert "later release dates not read" in caplog.text

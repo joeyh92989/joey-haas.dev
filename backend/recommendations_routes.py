@@ -19,7 +19,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from formats import apply_registry_format
@@ -54,11 +54,15 @@ from sources.igdb import PLATFORM_NAMES
 logger = logging.getLogger(__name__)
 
 SMALLINT_MAX = 32767
+# The answers a suggestion can still take: once watched, dismissed or owned,
+# it is settled.
+WAITING = (RecommendationStatus.PENDING, RecommendationStatus.SKIPPED)
 
 
 class GenerateIn(BaseModel):
     kind: Literal["radar"]
-    platforms: list[int] | None = None
+    # Radar's platforms only (RADAR_PLATFORMS); anything else is a 422.
+    platforms: list[Literal[130, 508]] | None = None
     include_key_cards: bool = False
 
 
@@ -67,6 +71,7 @@ def _today() -> date:
 
 
 def _row_out(row: Recommendation) -> dict:
+    """A suggestion as the admin page reads it."""
     meta = row.source_metadata or {}
     return {
         "id": str(row.id),
@@ -104,6 +109,7 @@ def create_recommendations_router(
             yield session
 
     async def exclusive():
+        """The catalogue's write lock, or 409 while a refresh holds it."""
         if lock.locked():
             raise HTTPException(status_code=409, detail="A refresh is already running")
         async with lock:
@@ -119,6 +125,9 @@ def create_recommendations_router(
         except SourceError as error:
             logger.warning("radar lane 3 failed: %s", error)
             return [], str(error)
+        except Exception as error:  # an unreadable answer must not cost lanes 1-2
+            logger.exception("radar lane 3 failed unexpectedly")
+            return [], f"IGDB answer could not be read ({type(error).__name__})"
 
     @router.post("/generate")
     async def generate(
@@ -141,12 +150,17 @@ def create_recommendations_router(
 
         batch_id = uuid.uuid4()
         now = datetime.now(UTC)
+        # Locked until this commits: an answer pressed meanwhile waits, then
+        # applies to the row as generated, rather than being overwritten.
         existing = {
             (row.external_id, row.platform_id): row
             for row in await session.scalars(
-                select(Recommendation).where(
-                    Recommendation.kind == RecommendationKind.RADAR
+                select(Recommendation)
+                .where(
+                    Recommendation.kind == RecommendationKind.RADAR,
+                    Recommendation.platform_id.in_(platforms),
                 )
+                .with_for_update()
             )
         }
         fresh = {(str(s.igdb_id), s.platform_id): s for s in suggestions}
@@ -228,26 +242,33 @@ def create_recommendations_router(
                 .order_by(Recommendation.score.desc(), Recommendation.release_date)
             )
         )
+        # The last generation, whatever the owner has answered since.
+        generated_at = await session.scalar(
+            select(func.max(Recommendation.generated_at)).where(
+                Recommendation.kind == RecommendationKind(kind)
+            )
+        )
         sections: dict[str, list[dict]] = {section: [] for section in SECTIONS}
         for row in rows:
             section = (row.source_metadata or {}).get("section")
             if section in sections:
                 sections[section].append(_row_out(row))
         runs = await latest_runs(session)
+        # The stalest store's last good run: how old the pre-orders may be.
         store_times = [
             run.finished_at
             for source, run in runs.items()
-            if source in STORES and run.finished_at is not None
+            if source in STORES and run.ok and run.finished_at is not None
         ]
         registry_run = runs.get("nscollectors")
         # With nothing favourited, rated or finished, Radar ranks by hype and
         # date alone, and the page says so.
         personalised = bool(reference_weights(await load_profile(session)))
         return {
-            "generated_at": max((row.generated_at for row in rows), default=None),
+            "generated_at": generated_at,
             "personalised": personalised,
             "catalogue": {
-                "stores_at": max(store_times, default=None),
+                "stores_at": min(store_times, default=None),
                 "registry_at": registry_run.finished_at if registry_run else None,
             },
             "sections": sections,
@@ -258,10 +279,21 @@ def create_recommendations_router(
         """Watched games still to come, soonest first."""
         return await watching(session, _today())
 
-    async def _suggestion(session, recommendation_id: uuid.UUID) -> Recommendation:
-        row = await session.get(Recommendation, recommendation_id)
+    async def _suggestion(
+        session: AsyncSession, recommendation_id: uuid.UUID, allowed
+    ) -> Recommendation:
+        """The suggestion, locked, if it is still waiting for this answer.
+
+        Only a pending or skipped suggestion takes an answer: pressing Skip
+        on a stale tab must not undo a dismissal or a watch.
+        """
+        row = await session.get(Recommendation, recommendation_id, with_for_update=True)
         if row is None:
             raise HTTPException(status_code=404, detail="No such suggestion")
+        if row.status not in allowed:
+            raise HTTPException(
+                status_code=409, detail=f"Already answered ({row.status.value})"
+            )
         return row
 
     @router.post("/{recommendation_id}/watch", status_code=201)
@@ -270,7 +302,7 @@ def create_recommendations_router(
     ) -> dict:
         """Adds the game to the collection as watched: no owned copy, backlog,
         public (the owner's decision, E7c), with its announced format."""
-        row = await _suggestion(session, recommendation_id)
+        row = await _suggestion(session, recommendation_id, WAITING)
         already = await session.scalar(
             select(Item.id).where(
                 Item.external_source == row.external_source,
@@ -304,7 +336,14 @@ def create_recommendations_router(
         values = payload.model_dump()
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
         item = Item(**values)
-        if row.physical_format is not None:
+        # Only the registry's word is recorded as the copy's format (it is
+        # apply_registry_format's to write); a store's claim stays on the
+        # suggestion, and the copy's format stays unknown until the owner
+        # or the registry says.
+        if (
+            row.physical_format is not None
+            and row.format_source == FormatSource.REGISTRY
+        ):
             for field, value in apply_registry_format(
                 item, row.physical_format.value
             ).items():
@@ -314,8 +353,14 @@ def create_recommendations_router(
         await session.commit()
         return {"item_id": str(item.id)}
 
-    async def _answer(recommendation_id, status, session) -> dict:
-        row = await _suggestion(session, recommendation_id)
+    async def _answer(
+        recommendation_id: uuid.UUID,
+        status: RecommendationStatus,
+        allowed,
+        session: AsyncSession,
+    ) -> dict:
+        """Records the owner's answer on a suggestion still waiting for one."""
+        row = await _suggestion(session, recommendation_id, allowed)
         row.status = status
         await session.commit()
         return {"status": status.value}
@@ -325,13 +370,20 @@ def create_recommendations_router(
         recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict:
         """Not interested: out of Radar and Discover for good."""
-        return await _answer(recommendation_id, RecommendationStatus.DISMISSED, session)
+        return await _answer(
+            recommendation_id, RecommendationStatus.DISMISSED, WAITING, session
+        )
 
     @router.post("/{recommendation_id}/skip")
     async def skip(
         recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict:
         """Hidden until the next generation."""
-        return await _answer(recommendation_id, RecommendationStatus.SKIPPED, session)
+        return await _answer(
+            recommendation_id,
+            RecommendationStatus.SKIPPED,
+            (RecommendationStatus.PENDING,),
+            session,
+        )
 
     return router

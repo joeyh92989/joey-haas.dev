@@ -224,6 +224,8 @@ def parse_upcoming(rows: list[dict], platform_ids: frozenset[int]) -> list[dict]
         hypes = game.get("hypes") if isinstance(game.get("hypes"), int) else 0
         if hypes < UPCOMING_MIN_HYPES or not isinstance(game.get("id"), int):
             continue
+        if not (game.get("name") or "").strip():
+            continue  # nothing to show or to add to the shelf
         key = (game["id"], platform)
         if key in found and found[key]["release_date"] <= released:
             continue
@@ -532,6 +534,13 @@ class IgdbSource:
             rows.extend(batch)
             if len(batch) < UPCOMING_PAGE:
                 break
+        else:
+            # The hype floor is applied after paging, so a full cap can hide
+            # far-dated games; say so rather than lose them silently.
+            logger.warning(
+                "igdb upcoming: stopped at %d pages; later release dates not read",
+                UPCOMING_MAX_PAGES,
+            )
         logger.info("igdb upcoming: %d release dates on %s", len(rows), sorted(ids))
         return parse_upcoming(rows, ids)
 
