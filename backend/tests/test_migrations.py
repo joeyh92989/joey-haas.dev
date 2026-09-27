@@ -297,6 +297,30 @@ async def test_0005_downgrade_removes_them_and_keeps_the_earlier_types(
     assert EARLIER_TYPES <= types
 
 
+RECOMMENDATION_TYPES = {"recommendation_kind", "reason_source", "recommendation_status"}
+
+
+@pytest.mark.asyncio
+async def test_0006_adds_the_recommendations_table_and_types(clean_database):
+    result = _alembic("upgrade", "0006")
+    assert result.returncode == 0, result.stderr
+    assert "recommendations" in await _tables(clean_database)
+    assert RECOMMENDATION_TYPES <= await _types(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_0006_downgrade_removes_it_and_keeps_the_catalogue(clean_database):
+    assert _alembic("upgrade", "0006").returncode == 0
+    result = _alembic("downgrade", "0005")
+    assert result.returncode == 0, result.stderr
+
+    assert "recommendations" not in await _tables(clean_database)
+    types = await _types(clean_database)
+    assert not RECOMMENDATION_TYPES & types
+    assert {"item_type", "physical_format", "format_source"} <= types
+    assert CATALOGUE_TABLES <= await _tables(clean_database)
+
+
 @pytest.mark.asyncio
 async def test_deleting_a_catalogue_game_unlinks_its_editions_and_listings(
     clean_database,

@@ -552,3 +552,89 @@ class CatalogueRun(Base):
     errors: Mapped[list] = mapped_column(
         JSONB, nullable=False, server_default=text("'[]'::jsonb")
     )
+
+
+class RecommendationKind(str, enum.Enum):
+    DISCOVER = "discover"
+    RADAR = "radar"
+
+
+class ReasonSource(str, enum.Enum):
+    MODEL = "model"
+    TEMPLATE = "template"
+
+
+class RecommendationStatus(str, enum.Enum):
+    PENDING = "pending"
+    WANTED = "wanted"
+    DISMISSED = "dismissed"
+    OWNED = "owned"
+    SKIPPED = "skipped"
+
+
+class Recommendation(Base):
+    """A suggestion from Radar (E8c) or Discover (E8b), and what the owner
+    decided about it. Dismissed, wanted and owned exclude the game from both
+    kinds; skipped never does."""
+
+    __tablename__ = "recommendations"
+    __table_args__ = (
+        UniqueConstraint(
+            "kind",
+            "external_source",
+            "external_id",
+            "platform_id",
+            name="ux_recommendations_game",
+        ),
+        Index("ix_recommendations_kind_status", "kind", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    kind: Mapped[RecommendationKind] = _enum_column(
+        RecommendationKind, "recommendation_kind", nullable=False
+    )
+    type: Mapped[ItemType] = mapped_column(
+        Enum(
+            ItemType, name="item_type", values_callable=lambda e: [m.value for m in e]
+        ),
+        nullable=False,
+    )
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    year: Mapped[int | None] = mapped_column(SmallInteger)
+    release_date: Mapped[date | None] = mapped_column(Date)
+    external_source: Mapped[str] = mapped_column(String(20), nullable=False)
+    external_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    cover_url: Mapped[str | None] = mapped_column(Text)
+    # The reasons, one per line.
+    reason: Mapped[str | None] = mapped_column(Text)
+    reason_source: Mapped[ReasonSource] = _enum_column(
+        ReasonSource, "reason_source", nullable=False
+    )
+    # The owner's item ids behind the reasons.
+    based_on: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    score: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    batch_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    generated_at: Mapped[datetime] = _now_column()
+    status: Mapped[RecommendationStatus] = _enum_column(
+        RecommendationStatus, "recommendation_status", nullable=False
+    )
+    platform_id: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    platform: Mapped[str | None] = mapped_column(String(60))
+    physical_format: Mapped[PhysicalFormat | None] = _enum_column(
+        PhysicalFormat, "physical_format"
+    )
+    format_source: Mapped[FormatSource | None] = _enum_column(
+        FormatSource, "format_source"
+    )
+    format_note: Mapped[str | None] = mapped_column(Text)
+    listing_ids: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    # Radar: lane, section, release precision, hype, store lines (admin only).
+    source_metadata: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
