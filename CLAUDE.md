@@ -153,16 +153,16 @@ before pushing.
       owned Switch 2 items. Spec and plan: `docs/planning/2026-09-23-tracker-e7c-*`
 - [x] Tracker E8c — Radar at `/admin/radar`: upcoming physical releases
       and open pre-orders from the catalogue, plus IGDB's upcoming
-      digital-only games, ranked by taste; Watch adds the game as a public
+      digital-only games, ranked by taste; Want adds the game as a public
       want, shown on `/collection`'s "On the radar" strip. Migration `0006`
       (the shared `recommendations` table). Spec and plan:
       `docs/planning/2026-09-27-tracker-e8c-*`
-- [ ] Tracker E8b (Discover). Spec:
-      `docs/planning/2026-09-22-tracker-enhancement-design.md` §7, with the
-      E8b decisions settled at the end of the E7c spec; it writes to the
-      `recommendations` table Radar created. E6 (recommendations) is retired
-      in favour of E8b, which uses the provider-agnostic seam in
-      `backend/llm.py`
+- [x] Tracker E8b — Discover at `/admin/discover`: released physical
+      games on the owner's platforms, pre-scored by taste, eight picked with
+      reasons by one Gemini call, the template eight when it cannot answer;
+      Want, Not interested, Already own, Skip, and a Rate a few panel. No
+      migration. E6 is retired in favour of it. Spec and plan:
+      `docs/planning/2026-09-27-tracker-e8b-*`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -181,7 +181,7 @@ before pushing.
   (see `backend/migrations/README.md`). `0004` adds `pick_events`; `0005`
   adds the physical catalogue's five tables and four enum types, reusing
   `physical_format` and `format_source` untouched; `0006` adds
-  `recommendations` (Radar, and Discover later).
+  `recommendations` (Radar and Discover).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -267,14 +267,33 @@ before pushing.
   Lane 3 ("Digital so far") reads IGDB `release_dates` per platform, never
   `first_release_date` (the earliest date on any platform), and drops
   cancelled and Switch 2 patch releases; its fixture is recorded with
-  `backend/scripts/record_igdb_fixtures.py --upcoming`. A dismissed, watched or
+  `backend/scripts/record_igdb_fixtures.py --upcoming`. A dismissed, wanted or
   owned game is out of Radar and Discover for good; a skipped one returns
   at the next generation, and an answered suggestion takes no second
   answer. Only an **open** pre-order (window not closed, or no window and
   the game not out) counts as one. **Nothing from `recommendations` is
   public**:
-  Watch creates an ordinary item (no owned copy, backlog, public) and only
-  that reaches `/collection`, through `wanted` and `release_date`.
+  Want creates an ordinary item (no owned copy, backlog, public) and only
+  that reaches `/collection`, through `wanted` and `release_date`; Already
+  own creates a private one with a physical copy. Both record a format only
+  when the registry decided it.
+- **Discover** (E8b) is `backend/discover.py` (pure: released filter,
+  pre-score, seeded shuffle, prompt, schema, validation, fallback) behind
+  the same router, loader and lock as Radar; `kind` tells them apart and
+  a generate replaces only its own kind's pending rows on the platforms
+  it covered. Pre-score = 0.45 affinity + 0.35 similarity + 0.20 quality
+  ± 15 × popularity by mode (safe +, balanced 0, deep −), +10 buyable
+  now, −10 unknown format; the tuning points are `DISCOVER_WEIGHTS`,
+  `POPULARITY_WEIGHT`, `BUYABLE_BONUS` and `UNKNOWN_FORMAT_PENALTY`. The
+  top twenty are shuffled with a seed from the batch id (position bias)
+  and sent in **one** `complete_json` call per generate; the model answers
+  with **indices** into that list, so it can never introduce a title, and
+  `validate` drops bad or repeated indices and foreign `based_on`
+  numbers. Any model failure (quota, timeout, unreadable answer, no
+  provider) or no valid pick falls back to the deterministic top eight
+  with template reasons, and the reason is stored as `model_note`: the
+  feature never blocks on Gemini. Everything dated after today belongs to
+  Radar, never Discover.
 - **Play Next** scoring lives in `backend/picker.py`, pure and tested without
   a database; `picker_routes.py` only loads rows and records events. The
   tuning points are `PICKER_WEIGHTS` and `MOOD_BUCKETS`. The buckets hold

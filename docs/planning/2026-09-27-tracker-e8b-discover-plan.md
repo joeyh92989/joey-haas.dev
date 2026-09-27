@@ -489,3 +489,23 @@ needed.)
   owned or future-dated game; Want one → public on `/collection`;
   `smoke.sh` green; Render's logs (`&q=Traceback`, `&q=ERROR`) clean, and
   one `gemini … -> 200` line per generate.
+
+## Execution summary
+
+Zone 1 ran straight through (tasks 1–10), on `tracker-e8b` from `30ce9db`.
+
+Deviations from the plan, all small:
+
+- `discover.fallback(candidates, profile, today)` takes `today`, and
+  `discover.validate(payload, shortlist, refs, today=None)` gained an
+  optional `today`: both append the pre-order window and format after the
+  reason, as Radar's cards do, and need the date to judge the window.
+- Radar's route test that pinned "only radar can be generated" now pins
+  what is still refused: an unknown kind, and Radar on N64 (422).
+- A failed model call is worded in three ways, not two: "Gemini's daily
+  quota is used up", "Gemini did not answer", and, for an answer that
+  could not be read at all, "Gemini's answer could not be read (…)"; a
+  model answer with no valid pick is "Gemini's picks did not hold up".
+- The page styling went in its own commit (card class and `index.css`),
+  keeping the page commit at four files.
+- The list rows carry no `year`, so the page reads it from `release_date`.
