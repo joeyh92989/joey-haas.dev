@@ -1,38 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
-import CoverImage from '../components/CoverImage.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import RecommendationCard, {
+  dayWords,
+  utc,
+} from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { localToday } from '../lib/statusTransition.js'
 
 const UNREACHABLE = 'Could not reach the API. Try again shortly.'
-
-// Mirrors FORMAT_WORDS in backend/physical_sources/limits.py.
-const FORMAT_WORDS = {
-  game_card: 'Full game on cartridge',
-  game_key_card: 'Game-Key Card',
-  code_in_box: 'Code in a box',
-  disc: 'Disc',
-}
 
 const MONTH = new Intl.DateTimeFormat('en', {
   month: 'long',
   year: 'numeric',
   timeZone: 'UTC',
 })
-const DAY = new Intl.DateTimeFormat('en', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-
-function utc(isoDate) {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, day))
-}
-
 /** A release date as precisely as it is known. */
 export function releaseWords(row) {
   if (!row.release_date) return 'Date not announced'
@@ -41,7 +24,7 @@ export function releaseWords(row) {
   if (row.release_precision === 'quarter')
     return `Q${Math.floor(date.getUTCMonth() / 3) + 1} ${date.getUTCFullYear()}`
   if (row.release_precision === 'month') return MONTH.format(date)
-  return DAY.format(date)
+  return dayWords(row.release_date)
 }
 
 /** "2 hours ago", or "never". */
@@ -129,28 +112,11 @@ async function fetchRadar() {
   }
 }
 
-function StoreLine({ line }) {
-  // Only a pre-order line has a window worth naming.
-  const closes =
-    line.availability === 'preorder' && line.preorder_closes_at
-      ? `, pre-orders close ${DAY.format(utc(line.preorder_closes_at))}`
-      : ''
-  return (
-    <li>
-      <a href={line.url} target="_blank" rel="noreferrer">
-        {line.store}
-      </a>
-      {line.price ? ` · ${line.price} ${line.currency}` : ''}
-      {closes}
-    </li>
-  )
-}
-
-/** A watched game's open pre-order, under its poster. */
-function WatchNote({ preorder }) {
+/** A wanted game's open pre-order, under its poster. */
+function WantNote({ preorder }) {
   if (!preorder) return null
   const closes = preorder.closes_at
-    ? `closes ${DAY.format(utc(preorder.closes_at))}`
+    ? `closes ${dayWords(preorder.closes_at)}`
     : 'open'
   return (
     <p className="radar-watch-note">
@@ -163,75 +129,14 @@ function WatchNote({ preorder }) {
   )
 }
 
-function RadarCard({ row, busy, onAnswer, level = 3 }) {
-  const Title = `h${level}`
-  const format = row.physical_format
-    ? FORMAT_WORDS[row.physical_format]
-    : row.format_note
-  return (
-    <article className="radar-card">
-      <span className="radar-cover">
-        <CoverImage src={row.cover_url} type="game" alt="" />
-      </span>
-      <div className="radar-body">
-        <Title>{row.title}</Title>
-        <p className="muted">
-          {[releaseWords(row), row.platform, format]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
-        {row.reasons.length > 0 && (
-          <ul className="radar-reasons">
-            {row.reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        )}
-        {row.store_lines.length > 0 && (
-          <ul className="radar-stores">
-            {row.store_lines.map((line, index) => (
-              <StoreLine key={`${line.url}-${index}`} line={line} />
-            ))}
-          </ul>
-        )}
-        <div className="radar-actions">
-          <button
-            type="button"
-            disabled={busy}
-            aria-label={`Watch ${row.title}`}
-            onClick={() => onAnswer(row, 'watch')}
-          >
-            Watch
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            aria-label={`Not interested in ${row.title}`}
-            onClick={() => onAnswer(row, 'dismiss')}
-          >
-            Not interested
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            aria-label={`Skip ${row.title}`}
-            onClick={() => onAnswer(row, 'skip')}
-          >
-            Skip
-          </button>
-        </div>
-      </div>
-    </article>
-  )
-}
-
 function Cards({ rows, busy, onAnswer, level }) {
   return (
     <div className="radar-cards">
       {rows.map((row) => (
-        <RadarCard
+        <RecommendationCard
           key={row.id}
           row={row}
+          when={releaseWords(row)}
           busy={busy}
           onAnswer={onAnswer}
           level={level}
@@ -333,8 +238,8 @@ export default function AdminRadar() {
         return
       }
       drop(row)
-      if (action === 'watch') {
-        setMessage(`Watching ${row.title}`)
+      if (action === 'want') {
+        setMessage(`Wanted ${row.title}`)
         apply(await fetchRadar())
       }
     } catch {
@@ -404,7 +309,7 @@ export default function AdminRadar() {
       {error && <p role="alert">{error}</p>}
       {state === 'loading' && <p className="muted">Loading the radar…</p>}
 
-      <h2>Watching</h2>
+      <h2>Wanted, still to come</h2>
       {watching.length ? (
         <PosterGrid
           items={watching.map((row) => ({
@@ -417,12 +322,12 @@ export default function AdminRadar() {
             <PosterCard
               item={item}
               to={`/admin/collection/${item.id}`}
-              actions={() => <WatchNote preorder={item.preorder} />}
+              actions={() => <WantNote preorder={item.preorder} />}
             />
           )}
         />
       ) : (
-        <p className="muted">Nothing watched yet.</p>
+        <p className="muted">Nothing wanted is still to come.</p>
       )}
 
       <h2>Suggested</h2>
