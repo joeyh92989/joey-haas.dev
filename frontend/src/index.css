@@ -2505,3 +2505,13 @@ footer {
   cursor: pointer;
   font-weight: 600;
 }
+
+/* /collection: watched games still to come, after Up next. */
+.on-the-radar {
+  margin: 1.5rem 0;
+}
+
+.on-the-radar h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
+}

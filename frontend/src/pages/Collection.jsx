@@ -5,6 +5,7 @@ import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import { apiFetch } from '../lib/api.js'
+import { localToday } from '../lib/statusTransition.js'
 import {
   countBy,
   filterItems,
@@ -233,6 +234,34 @@ function UpNext({ items }) {
           <span className="up-next-title">{pinned.title}</span>
         </span>
       </Link>
+    </section>
+  )
+}
+
+/**
+ * Games the owner is watching that are still to come, soonest first: the
+ * public side of Radar. It reads only public items (`wanted`, a future
+ * `release_date`); a suggestion, its store or its pre-order never reaches
+ * this page.
+ */
+function OnTheRadar({ items }) {
+  const today = localToday()
+  const coming = items
+    .filter(
+      (item) => item.wanted && item.release_date && item.release_date > today,
+    )
+    .sort((a, b) => a.release_date.localeCompare(b.release_date))
+  if (!coming.length) return null
+  return (
+    <section className="on-the-radar" aria-label="On the radar">
+      <h2>On the radar</h2>
+      <PosterGrid
+        items={coming}
+        size="compact"
+        renderCard={(item) => (
+          <PosterCard item={item} to={`/collection/${item.id}`} />
+        )}
+      />
     </section>
   )
 }
@@ -508,6 +537,7 @@ export default function Collection() {
           )}
 
           <UpNext items={items} />
+          <OnTheRadar items={items} />
 
           <FavoritesRow
             items={items}
