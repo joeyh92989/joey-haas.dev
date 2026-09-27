@@ -32,6 +32,8 @@ from radar import PoolGame
 
 # The catalogue platforms with upcoming releases; N64 has none.
 RADAR_PLATFORMS = (130, 508)
+# Discover also suggests N64 carts, from IGDB's N64 list (platform policy).
+DISCOVER_PLATFORMS = (130, 508, 4)
 EXCLUDING = (
     RecommendationStatus.DISMISSED,
     RecommendationStatus.WANTED,
@@ -74,12 +76,15 @@ def listing_view(row: StoreListing) -> ListingView:
     )
 
 
-async def collection_platforms(session) -> tuple[int, ...]:
-    """The Switch platforms the owner has games on; both when none (D5)."""
+async def collection_platforms(
+    session, allowed: tuple[int, ...] = RADAR_PLATFORMS
+) -> tuple[int, ...]:
+    """The platforms among `allowed` the owner has games on; both Switches
+    when none (D5)."""
     found = set(
         await session.scalars(
             select(Item.platform_id)
-            .where(Item.type == ItemType.GAME, Item.platform_id.in_(RADAR_PLATFORMS))
+            .where(Item.type == ItemType.GAME, Item.platform_id.in_(allowed))
             .distinct()
         )
     )
