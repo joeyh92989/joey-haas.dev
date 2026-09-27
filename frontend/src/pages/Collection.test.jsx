@@ -589,10 +589,13 @@ describe('Collection Up next', () => {
 })
 
 describe('Collection On the radar', () => {
+  // Local dates, as the strip compares them (toISOString would be UTC and,
+  // late in the evening, already tomorrow).
   const later = (days) => {
     const date = new Date()
     date.setDate(date.getDate() + days)
-    return date.toISOString().slice(0, 10)
+    const pad = (value) => String(value).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
   }
 
   it('lists watched games still to come, soonest first, after Up next', async () => {
@@ -646,7 +649,9 @@ describe('Collection On the radar', () => {
   })
 
   it('shows nothing when nothing watched is still to come', async () => {
-    stubApi()
+    stubApi({
+      items: [{ ...ITEMS[1], id: 'w4', wanted: true, release_date: later(0) }],
+    })
     await renderReady()
     expect(
       screen.queryByRole('region', { name: 'On the radar' }),

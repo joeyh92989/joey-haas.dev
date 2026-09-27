@@ -2515,3 +2515,13 @@ footer {
   font-size: 1.1rem;
   margin: 0 0 0.75rem;
 }
+
+.radar-digital summary .radar-summary-title {
+  display: inline;
+  font-size: 1.25rem;
+}
+
+.radar-watch-note {
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0;
+}

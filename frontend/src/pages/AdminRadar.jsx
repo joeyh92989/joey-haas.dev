@@ -4,6 +4,7 @@ import CoverImage from '../components/CoverImage.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { localToday } from '../lib/statusTransition.js'
 
 const UNREACHABLE = 'Could not reach the API. Try again shortly.'
 
@@ -54,26 +55,56 @@ export function ago(timestamp, now = Date.now()) {
   return `${Math.round(hours / 24)} d ago`
 }
 
-/** Suggested rows by month, a row with an open pre-order first in each. */
-export function byMonth(rows) {
+/** The soonest open pre-order window among a row's store lines, or null. */
+export function soonestWindow(row, today) {
+  const open = row.store_lines
+    .filter(
+      (line) =>
+        line.availability === 'preorder' &&
+        line.preorder_closes_at &&
+        line.preorder_closes_at >= today,
+    )
+    .map((line) => line.preorder_closes_at)
+    .sort()
+  return open[0] ?? null
+}
+
+/**
+ * Suggested rows in groups by release, soonest group first: a month when the
+ * date is that precise, else the year or quarter as known ("2027"), "Out
+ * now" for a pre-order of a game already out, or "Date not announced".
+ * Within a group, open pre-orders come first, soonest-closing first.
+ */
+export function byMonth(rows, today) {
+  const label = (row) => {
+    if (!row.release_date) return 'Date not announced'
+    if (row.release_date <= today) return 'Out now'
+    if (['day', 'month'].includes(row.release_precision ?? 'day'))
+      return MONTH.format(utc(row.release_date))
+    return releaseWords(row)
+  }
+  const order = (row) =>
+    !row.release_date
+      ? '9999-12-31'
+      : row.release_date <= today
+        ? '0000-01-01'
+        : row.release_date
   const groups = new Map()
   for (const row of rows) {
-    const key = row.release_date
-      ? MONTH.format(utc(row.release_date))
-      : 'Date not announced'
+    const key = label(row)
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key).push(row)
   }
-  const closes = (row) =>
-    row.store_lines.find((line) => line.preorder_closes_at)
-      ?.preorder_closes_at ?? '9999-12-31'
+  const closes = (row) => soonestWindow(row, today) ?? '9999-12-31'
   return [...groups.entries()]
-    .sort(([, a], [, b]) =>
-      (a[0].release_date ?? '9999').localeCompare(b[0].release_date ?? '9999'),
+    .sort(
+      ([, a], [, b]) =>
+        order(a[0]).localeCompare(order(b[0])) ||
+        String(a[0].release_date).localeCompare(String(b[0].release_date)),
     )
-    .map(([month, group]) => [
-      month,
-      [...group].sort((a, b) => closes(a).localeCompare(closes(b))),
+    .map(([group, entries]) => [
+      group,
+      [...entries].sort((a, b) => closes(a).localeCompare(closes(b))),
     ])
 }
 
@@ -113,7 +144,25 @@ function StoreLine({ line }) {
   )
 }
 
-function RadarCard({ row, busy, onAnswer }) {
+/** A watched game's open pre-order, under its poster. */
+function WatchNote({ preorder }) {
+  if (!preorder) return null
+  const closes = preorder.closes_at
+    ? `closes ${DAY.format(utc(preorder.closes_at))}`
+    : 'open'
+  return (
+    <p className="radar-watch-note">
+      <a href={preorder.url} target="_blank" rel="noreferrer">
+        Pre-order at {preorder.store}
+      </a>
+      , {closes}
+      {preorder.price ? ` · ${preorder.price} ${preorder.currency}` : ''}
+    </p>
+  )
+}
+
+function RadarCard({ row, busy, onAnswer, level = 3 }) {
+  const Title = `h${level}`
   const format = row.physical_format
     ? FORMAT_WORDS[row.physical_format]
     : row.format_note
@@ -123,7 +172,7 @@ function RadarCard({ row, busy, onAnswer }) {
         <CoverImage src={row.cover_url} type="game" alt="" />
       </span>
       <div className="radar-body">
-        <h3>{row.title}</h3>
+        <Title>{row.title}</Title>
         <p className="muted">
           {[releaseWords(row), row.platform, format]
             .filter(Boolean)
@@ -138,8 +187,8 @@ function RadarCard({ row, busy, onAnswer }) {
         )}
         {row.store_lines.length > 0 && (
           <ul className="radar-stores">
-            {row.store_lines.map((line) => (
-              <StoreLine key={line.url} line={line} />
+            {row.store_lines.map((line, index) => (
+              <StoreLine key={`${line.url}-${index}`} line={line} />
             ))}
           </ul>
         )}
@@ -147,6 +196,7 @@ function RadarCard({ row, busy, onAnswer }) {
           <button
             type="button"
             disabled={busy}
+            aria-label={`Watch ${row.title}`}
             onClick={() => onAnswer(row, 'watch')}
           >
             Watch
@@ -154,6 +204,7 @@ function RadarCard({ row, busy, onAnswer }) {
           <button
             type="button"
             disabled={busy}
+            aria-label={`Not interested in ${row.title}`}
             onClick={() => onAnswer(row, 'dismiss')}
           >
             Not interested
@@ -161,6 +212,7 @@ function RadarCard({ row, busy, onAnswer }) {
           <button
             type="button"
             disabled={busy}
+            aria-label={`Skip ${row.title}`}
             onClick={() => onAnswer(row, 'skip')}
           >
             Skip
@@ -171,11 +223,17 @@ function RadarCard({ row, busy, onAnswer }) {
   )
 }
 
-function Cards({ rows, busy, onAnswer }) {
+function Cards({ rows, busy, onAnswer, level }) {
   return (
     <div className="radar-cards">
       {rows.map((row) => (
-        <RadarCard key={row.id} row={row} busy={busy} onAnswer={onAnswer} />
+        <RadarCard
+          key={row.id}
+          row={row}
+          busy={busy}
+          onAnswer={onAnswer}
+          level={level}
+        />
       ))}
     </div>
   )
@@ -232,22 +290,27 @@ export default function AdminRadar() {
     } catch {
       setError(UNREACHABLE)
     } finally {
-      setBusy(false)
+      // Read the radar before the buttons come back, so an answer pressed
+      // now is not undone by an older list arriving after it.
       apply(await fetchRadar())
+      setBusy(false)
     }
   }
 
   async function answer(row, action) {
     setBusy(true)
     setError(null)
+    setMessage(null)
     try {
       const response = await apiFetch(
         `/api/recommendations/${row.id}/${action}`,
         { method: 'POST' },
       )
-      if (response.status === 409 && action === 'watch') {
-        // errorMessage words every 409 as a running refresh.
-        setError(`${row.title} is already on your shelf`)
+      if (response.status === 409) {
+        // errorMessage words every 409 as a running refresh; here it is the
+        // suggestion's own answer ("Already on your shelf").
+        const body = await response.json().catch(() => ({}))
+        setError(`${row.title}: ${body.detail ?? 'already answered'}`)
         return
       }
       if (!response.ok) {
@@ -337,10 +400,18 @@ export default function AdminRadar() {
       <h2>Watching</h2>
       {watching.length ? (
         <PosterGrid
-          items={watching.map((row) => ({ ...row.item, type: 'game' }))}
+          items={watching.map((row) => ({
+            ...row.item,
+            type: 'game',
+            preorder: row.preorder,
+          }))}
           size="compact"
           renderCard={(item) => (
-            <PosterCard item={item} to={`/admin/collection/${item.id}`} />
+            <PosterCard
+              item={item}
+              to={`/admin/collection/${item.id}`}
+              actions={() => <WatchNote preorder={item.preorder} />}
+            />
           )}
         />
       ) : (
@@ -351,10 +422,10 @@ export default function AdminRadar() {
       {nothing && (
         <p className="muted">Nothing yet. Generate to read the catalogue.</p>
       )}
-      {byMonth(sections.suggested).map(([month, rows]) => (
-        <section key={month} aria-label={month}>
-          <h3 className="radar-month">{month}</h3>
-          <Cards rows={rows} busy={busy} onAnswer={answer} />
+      {byMonth(sections.suggested, localToday()).map(([group, rows]) => (
+        <section key={group} aria-label={group}>
+          <h3 className="radar-month">{group}</h3>
+          <Cards rows={rows} busy={busy} onAnswer={answer} level={4} />
         </section>
       ))}
 
@@ -366,7 +437,11 @@ export default function AdminRadar() {
       )}
 
       <details className="radar-digital">
-        <summary>Digital so far ({sections.digital.length})</summary>
+        <summary>
+          <h2 className="radar-summary-title">
+            Digital so far ({sections.digital.length})
+          </h2>
+        </summary>
         <p className="muted">
           Upcoming on your platforms with no physical edition announced yet.
         </p>
