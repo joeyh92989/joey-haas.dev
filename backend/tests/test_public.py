@@ -657,8 +657,8 @@ async def test_no_public_model_names_a_catalogue_field():
     assert leaked == []
 
 
-# E8c: suggestions, their reasons and the pre-order data behind them are
-# never public; only an item the owner watched is, through its `wanted` flag.
+# E8c and E8b: suggestions, their reasons and the data behind them are never
+# public; only an item the owner wanted is, through its `wanted` flag.
 RECOMMENDATION_NAMES = (
     "recommendation",
     "batch_id",
@@ -795,13 +795,49 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
                 },
             )
         )
+        session.add(
+            Item(
+                type=ItemType.GAME,
+                title="Discovered Game",
+                status=ItemStatus.BACKLOG,
+                is_public=True,
+                external_source="igdb",
+                external_id="78",
+                owned_format=OwnedFormat.NONE,
+                platform_id=130,
+            )
+        )
+        session.add(
+            Recommendation(
+                kind=RecommendationKind.DISCOVER,
+                type=ItemType.GAME,
+                title="Discovered Game",
+                external_source="igdb",
+                external_id="78",
+                reason="Like Hades, a roguelike you would finish twice",
+                reason_source=ReasonSource.MODEL,
+                based_on=["someone"],
+                score=70,
+                batch_id=uuid.uuid4(),
+                status=RecommendationStatus.WANTED,
+                platform_id=130,
+                source_metadata={
+                    "ranked_by": "model",
+                    "model_note": None,
+                    "based_on_titles": ["Hades"],
+                    "buyable": True,
+                },
+            )
+        )
         await session.commit()
     async with client_for(sessionmaker_for_test) as client:
         items = await client.get("/api/public/items")
         stats = await client.get("/api/public/stats")
         watched = next(i for i in items.json() if i["title"] == "Watched Game")
+        discovered = next(i for i in items.json() if i["title"] == "Discovered Game")
         detail = await client.get(f"/api/public/items/{watched['id']}")
     assert watched["wanted"] is True
+    assert discovered["wanted"] is True
     for response in (items, stats, detail):
         assert response.status_code == 200
         leaked = sorted(
@@ -813,3 +849,4 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
         assert leaked == []
         assert "Pre-orders close" not in response.text
         assert "Limited Run Games" not in response.text
+        assert "Like Hades" not in response.text

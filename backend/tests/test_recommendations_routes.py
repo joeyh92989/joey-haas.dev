@@ -149,6 +149,8 @@ async def _rows(factory):
         ("get", "/api/recommendations?kind=radar"),
         ("get", "/api/recommendations/watching"),
         ("post", "/api/recommendations/00000000-0000-0000-0000-000000000000/want"),
+        ("post", "/api/recommendations/00000000-0000-0000-0000-000000000000/own"),
+        ("get", "/api/recommendations?kind=discover"),
         ("post", "/api/recommendations/00000000-0000-0000-0000-000000000000/dismiss"),
         ("post", "/api/recommendations/00000000-0000-0000-0000-000000000000/skip"),
     ],

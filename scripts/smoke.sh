@@ -145,7 +145,7 @@ check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection"
 # its response model instead of serializing the ORM object. A private column
 # added later would be published with no code change and nothing to notice it.
 public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
-if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|recommendation[a-z_]*)"'; then
+if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|recommendation[a-z_]*)"'; then
   report_fail "public items expose no private fields" "found a private key in the response"
 else
   report_pass "public items expose no private fields" "no notes/owned_format/is_public/ids/copy details"
@@ -268,7 +268,17 @@ check_equals "GET /api/recommendations unauthenticated" \
 check_equals "GET /api/recommendations/watching unauthenticated" \
   "$(http_status "$API_URL/api/recommendations/watching")" \
   "401"
+check_equals "GET /api/recommendations?kind=discover unauthenticated" \
+  "$(http_status "$API_URL/api/recommendations?kind=discover")" \
+  "401"
+check_equals "POST /api/recommendations/{id}/want unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/recommendations/00000000-0000-0000-0000-000000000000/want")" \
+  "401"
+check_equals "POST /api/recommendations/{id}/own unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/recommendations/00000000-0000-0000-0000-000000000000/own")" \
+  "401"
 check_equals "GET /admin/radar (deep link)" "$(http_status "$SITE_URL/admin/radar")" "200"
+check_equals "GET /admin/discover (deep link)" "$(http_status "$SITE_URL/admin/discover")" "200"
 
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in
