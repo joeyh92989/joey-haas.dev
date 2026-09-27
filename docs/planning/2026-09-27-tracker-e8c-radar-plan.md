@@ -1012,3 +1012,45 @@ CHECKPOINT — batch review + finish gate (ultra review)
   `digital_error` named; Watch one game → it is in `GET /watching` and on
   `/collection`'s strip; `smoke.sh` green; Render's logs (`&q=Traceback`,
   `&q=ERROR`) show nothing new.
+
+## Execution summary
+
+Zone 1 ran from `b29b35e`; the owner then asked for the zones to run
+without stopping unless input was needed. Every commit passed ruff and the
+backend suite (929 at the start, 984 at the end) and, for frontend commits,
+the frontend suite (325), lint, format and build.
+
+| Commit | Task | Notes |
+|---|---|---|
+| `9803788` | 1 | Public model pin before any route |
+| `3e3a5c4` | 2 | Fixture: 500 release dates, 113 parsed rows, no credential |
+| `25df59d` | 3 | `radar.py`; `picker` joins the purity check |
+| `64de683` | 3 | Zone 1 review fixes: `based_on` credited "Pikmin" for "Pikmin 4 ♥" (substring); lane-3 exclusion, paging offset and endpoint untested; lane 3 now deduped per platform |
+| `f968a11` | 4 | Migration `0006`; `compare_metadata` clean; schema head "0006" |
+| `591f6f9` | 5 | `radar_load.py` |
+| `5d3adaa` | 6 | Routes, the shared lock |
+| `4e9cd46` | 7 | Leak test with real rows; smoke |
+| `b07df03` | 8 | `/admin/radar` |
+| `911b7e7` | 8 | The "ranked by anticipation" note needed the API to report whether a profile exists |
+| `10d1ca3` | 9 | The public strip |
+| this commit | 10 | Docs |
+
+**Deviations:**
+
+- `GET /api/recommendations` lists **pending rows only**. The spec's route
+  table said pending and skipped, but Skip means "hidden until the next
+  generation", which listing skipped rows would undo.
+- Suggestion cards are the page's own `RadarCard`, not `PosterCard`:
+  `PosterCard` always links to an item page, and a suggestion has none.
+  Watching uses `PosterCard`.
+- There is no `backend/README.md`; Radar is documented where Play Next and
+  the catalogue are, in `CLAUDE.md` and the root README's route table.
+- The list adds `personalised` (whether a taste profile exists), for the
+  empty-profile note the spec asks the page to show.
+
+**Owner decisions at the Zone 1 checkpoint:** lane 3 keeps one card per
+platform, and uses the earliest date in any region.
+
+**Not verified in a browser:** the admin page needs a Google sign-in, which
+a local dev server does not have; the page and the strip are covered by
+their Vitest suites, and after deploy through the owner's session.

@@ -151,11 +151,18 @@ before pushing.
       stores and IGDB's N64 list in five new tables (migration `0005`),
       resolved to IGDB, collapsed to one format per game, and synced onto
       owned Switch 2 items. Spec and plan: `docs/planning/2026-09-23-tracker-e7c-*`
-- [ ] Tracker E8b (Discover), then E8c (Radar). Spec:
-      `docs/planning/2026-09-22-tracker-enhancement-design.md`, with the
-      E8b/E8c decisions settled at the end of the E7c spec; each gets its own
-      plan. E6 (recommendations) is retired in favour of E8b, which uses the
-      provider-agnostic seam in `backend/llm.py`
+- [x] Tracker E8c — Radar at `/admin/radar`: upcoming physical releases
+      and open pre-orders from the catalogue, plus IGDB's upcoming
+      digital-only games, ranked by taste; Watch adds the game as a public
+      want, shown on `/collection`'s "On the radar" strip. Migration `0006`
+      (the shared `recommendations` table). Spec and plan:
+      `docs/planning/2026-09-27-tracker-e8c-*`
+- [ ] Tracker E8b (Discover). Spec:
+      `docs/planning/2026-09-22-tracker-enhancement-design.md` §7, with the
+      E8b decisions settled at the end of the E7c spec; it writes to the
+      `recommendations` table Radar created. E6 (recommendations) is retired
+      in favour of E8b, which uses the provider-agnostic seam in
+      `backend/llm.py`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -171,7 +178,8 @@ before pushing.
   database *ahead* of the code boots with a warning, because the deploy order
   is migrate-then-merge; that is only safe because **migrations are
   additive**: add tables and columns, never rename or drop in the same release
-  (see `backend/migrations/README.md`). `0004` adds `pick_events`; `0005`
+  (see `backend/migrations/README.md`). `0004` adds `pick_events`; `0006`
+  adds `recommendations` (Radar, and Discover later); `0005`
   adds the physical catalogue's five tables and four enum types, reusing
   `physical_format` and `format_source` untouched.
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
@@ -247,6 +255,22 @@ before pushing.
   (`FAVORITES_LIMIT` in `items.py`); unfavouriting is never refused. Rows
   favourited before the cap are kept, not trimmed: the admin row lists them
   all with a note until they are, and the public row shows the top four.
+- **Radar** (E8c) is `backend/radar.py` (pure: sections, score, reasons,
+  caps), `backend/radar_load.py` (the catalogue, items and past answers as
+  views) and `backend/recommendations_routes.py` (admin only). It reuses
+  Play Next's profile: score = 0.55 affinity + 0.35 similarity + 10 × hype
+  (taste-led, the owner's choice) + 15 when a pre-order closes within 30
+  days; the weights are `TASTE_WEIGHTS`. Generate **regenerates only** — it
+  never walks the stores (that is `/admin/catalogue`) — and shares one
+  write lock with the catalogue (`main.py`), so the two never overlap.
+  Lane 3 ("Digital so far") reads IGDB `release_dates` per platform, never
+  `first_release_date` (the earliest date on any platform), and drops
+  cancelled and Switch 2 patch releases; its fixture is recorded with
+  `scripts/record_igdb_fixtures.py --upcoming`. A dismissed, watched or
+  owned game is out of Radar and Discover for good; a skipped one returns
+  at the next generation. **Nothing from `recommendations` is public**:
+  Watch creates an ordinary item (no owned copy, backlog, public) and only
+  that reaches `/collection`, through `wanted` and `release_date`.
 - **Play Next** scoring lives in `backend/picker.py`, pure and tested without
   a database; `picker_routes.py` only loads rows and records events. The
   tuning points are `PICKER_WEIGHTS` and `MOOD_BUCKETS`. The buckets hold

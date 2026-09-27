@@ -45,6 +45,9 @@ so the site renders fully even when the free-tier backend is asleep.
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
 | `/admin` | Admin | Google sign-in gate; not in the navigation |
 | `/admin/collection` | Collection | Media tracker; requires the admin session |
+| `/admin/play-next` | Play Next | Three picks from the owned backlog |
+| `/admin/catalogue` | Catalogue | What exists physically: registry, stores, N64 |
+| `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste; Watch puts a game on `/collection`'s "On the radar" strip |
 | anything else | NotFound (client-side 404) | |
 
 The `/admin*` routes are absent from the site navigation deliberately. That is
