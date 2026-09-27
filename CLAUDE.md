@@ -178,10 +178,10 @@ before pushing.
   database *ahead* of the code boots with a warning, because the deploy order
   is migrate-then-merge; that is only safe because **migrations are
   additive**: add tables and columns, never rename or drop in the same release
-  (see `backend/migrations/README.md`). `0004` adds `pick_events`; `0006`
-  adds `recommendations` (Radar, and Discover later); `0005`
+  (see `backend/migrations/README.md`). `0004` adds `pick_events`; `0005`
   adds the physical catalogue's five tables and four enum types, reusing
-  `physical_format` and `format_source` untouched.
+  `physical_format` and `format_source` untouched; `0006` adds
+  `recommendations` (Radar, and Discover later).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -260,15 +260,19 @@ before pushing.
   views) and `backend/recommendations_routes.py` (admin only). It reuses
   Play Next's profile: score = 0.55 affinity + 0.35 similarity + 10 × hype
   (taste-led, the owner's choice) + 15 when a pre-order closes within 30
-  days; the weights are `TASTE_WEIGHTS`. Generate **regenerates only** — it
+  days; the tuning points are `TASTE_WEIGHTS`, `URGENCY_BONUS` and
+  `URGENCY_DAYS`. Generate **regenerates only** — it
   never walks the stores (that is `/admin/catalogue`) — and shares one
   write lock with the catalogue (`main.py`), so the two never overlap.
   Lane 3 ("Digital so far") reads IGDB `release_dates` per platform, never
   `first_release_date` (the earliest date on any platform), and drops
   cancelled and Switch 2 patch releases; its fixture is recorded with
-  `scripts/record_igdb_fixtures.py --upcoming`. A dismissed, watched or
+  `backend/scripts/record_igdb_fixtures.py --upcoming`. A dismissed, watched or
   owned game is out of Radar and Discover for good; a skipped one returns
-  at the next generation. **Nothing from `recommendations` is public**:
+  at the next generation, and an answered suggestion takes no second
+  answer. Only an **open** pre-order (window not closed, or no window and
+  the game not out) counts as one. **Nothing from `recommendations` is
+  public**:
   Watch creates an ordinary item (no owned copy, backlog, public) and only
   that reaches `/collection`, through `wanted` and `release_date`.
 - **Play Next** scoring lives in `backend/picker.py`, pure and tested without

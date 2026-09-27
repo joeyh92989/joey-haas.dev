@@ -47,7 +47,7 @@ so the site renders fully even when the free-tier backend is asleep.
 | `/admin/collection` | Collection | Media tracker; requires the admin session |
 | `/admin/play-next` | Play Next | Three picks from the owned backlog |
 | `/admin/catalogue` | Catalogue | What exists physically: registry, stores, N64 |
-| `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste; Watch puts a game on `/collection`'s "On the radar" strip |
+| `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Watch puts a game on `/collection`'s "On the radar" strip |
 | anything else | NotFound (client-side 404) | |
 
 The `/admin*` routes are absent from the site navigation deliberately. That is

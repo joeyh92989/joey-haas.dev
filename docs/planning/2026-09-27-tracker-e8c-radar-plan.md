@@ -1054,3 +1054,21 @@ platform, and uses the earliest date in any region.
 **Not verified in a browser:** the admin page needs a Google sign-in, which
 a local dev server does not have; the page and the strip are covered by
 their Vitest suites, and after deploy through the owner's session.
+
+## Finish gate
+
+Two parallel reviewers (backend: routes, loader, migration, lock, security,
+performance, with probes on Postgres and mutation runs; frontend: the page,
+the strip, accessibility, docs, with mutation runs). No security or
+migration defect. Fixed:
+
+| Commit | Findings |
+|---|---|
+| `3962c87` | A pre-order a store still listed after its window closed, or after release, was Suggested as open; the pool and Watching now share `open_preorder()`. Untested exclusions, platform join and filters now tested |
+| `057ba84` | A stale Skip could undo a dismissal (answers now apply only to a waiting suggestion, rows locked against a concurrent generate); a bad platform id was a 500 and a subset deleted other platforms' rows; Watch stamped a store's format claim as the registry's (now only the registry's format is recorded); a non-source lane-3 failure lost lanes 1-2; `generated_at` read "never" once everything was answered, and the catalogue age was the freshest store's; lane 3 kept untitled games and cut off silently at the page cap; the lock test hung instead of failing |
+| `97c3d47` | Watching dropped the pre-order window; Suggested sorted by the first dated line, ignored precision and put past pre-orders under a past month; sixty identically named buttons; heading levels; a race after Generate; tests for the uncaught mutations |
+| this commit | Docs: migration order, the fixture script's path, the urgency constants, lane 3 in the route table |
+
+**For E8b:** `recommendations.platform_id` is NOT NULL and part of the
+unique key. Discover's films (parent §7.2) have no platform: E8b makes it
+nullable and the unique key `NULLS NOT DISTINCT` (Postgres 15+), additively.
