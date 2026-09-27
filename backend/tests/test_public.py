@@ -668,6 +668,9 @@ RECOMMENDATION_NAMES = (
     "store_line",
     "hypes",
     "lane",
+    "ranked_by",
+    "model_note",
+    "based_on_titles",
 )
 
 
