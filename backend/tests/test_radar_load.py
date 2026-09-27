@@ -194,3 +194,68 @@ async def test_watching_lists_upcoming_and_preordered_games(session):
     assert rows[0]["preorder"]["closes_at"] == closes.isoformat()
     assert rows[0]["preorder"]["store"] == "Super Rare Games"
     assert rows[1]["preorder"] is None
+
+
+async def test_a_stale_preorder_is_not_the_preorder_lane(session):
+    """A store still marking a closed or released game as pre-order."""
+    await _seed_catalogue(session)
+    await upsert_listings(
+        session,
+        [
+            dataclasses.replace(
+                listing("closed game", "p3"),
+                preorder_closes_at=TODAY - timedelta(days=3),
+            ),
+            dataclasses.replace(
+                listing("released game", "p4"), release_date=date(2020, 1, 1)
+            ),
+        ],
+        "strictly_limited",
+        archive=True,
+    )
+    for igdb_id, variant in ((1, "p3"), (3, "p4")):
+        await _link(session, StoreListing, igdb_id, variant_id=variant)
+    pool = {
+        game.candidate.igdb_id: game for game in await load_pool(session, (508,), TODAY)
+    }
+    assert pool[1].lane == "dated" and pool[1].closes_at is None
+    assert pool[3].lane == "dated"
+
+
+async def test_the_pool_leaves_out_archived_listings_and_retired_editions(session):
+    await _seed_catalogue(session)
+    await upsert_listings(session, [], "super_rare", archive=True)
+    await upsert_editions(session, [], "nscollectors", retire=True)
+    await session.flush()
+    assert await load_pool(session, (508,), TODAY) == []
+
+
+async def test_watched_and_owned_suggestions_are_excluded_too(session):
+    session.add_all(
+        [
+            _recommendation("15", RecommendationStatus.WANTED),
+            _recommendation("16", RecommendationStatus.OWNED),
+        ]
+    )
+    await session.flush()
+    assert await excluded_games(session) == {15, 16}
+
+
+async def test_watching_reads_a_preorder_only_on_the_items_platform(session):
+    await _seed_catalogue(session)
+    session.add(
+        _item(
+            "On preorder, wrong platform", "2", owned=OwnedFormat.NONE, platform_id=130
+        )
+    )
+    await session.flush()
+    assert await watching(session, TODAY) == []
+
+
+async def test_watching_ignores_a_closed_window(session):
+    await _seed_catalogue(session)
+    for row in await session.scalars(select(StoreListing)):
+        row.preorder_closes_at = TODAY - timedelta(days=1)
+    session.add(_item("Closed", "2", owned=OwnedFormat.NONE))
+    await session.flush()
+    assert await watching(session, TODAY) == []

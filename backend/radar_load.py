@@ -43,6 +43,17 @@ def _value(value: object) -> object:
     return getattr(value, "value", value)
 
 
+def open_preorder(line: ListingView, today: date) -> bool:
+    """A pre-order still taking orders: its window has not closed, or, with no
+    window stated, the game is not out yet. A listing a store still marks as
+    pre-order after either is stale, not open."""
+    if line.availability != "preorder":
+        return False
+    if line.preorder_closes_at is not None:
+        return line.preorder_closes_at >= today
+    return line.release_date is None or line.release_date > today
+
+
 def listing_view(row: StoreListing) -> ListingView:
     store = STORES.get(row.store)
     return ListingView(
@@ -128,12 +139,11 @@ async def load_pool(
             else None
         )
         its_listings = listings[(igdb_id, platform_id)]
+        open_lines = [line for line in its_listings if open_preorder(line, today)]
         windows = [
             line.preorder_closes_at
-            for line in its_listings
-            if line.availability == "preorder"
-            and line.preorder_closes_at is not None
-            and line.preorder_closes_at >= today
+            for line in open_lines
+            if line.preorder_closes_at is not None
         ]
         pool.append(
             PoolGame(
@@ -146,9 +156,7 @@ async def load_pool(
                 ),
                 snapshot=game.snapshot if game else {},
                 hypes=game.hypes if game else None,
-                lane="preorder"
-                if any(line.availability == "preorder" for line in its_listings)
-                else "dated",
+                lane="preorder" if open_lines else "dated",
                 closes_at=min(windows, default=None),
             )
         )
@@ -211,7 +219,7 @@ async def watching(session, today: date) -> list[dict]:
                 StoreListing.availability == ListingAvailability.PREORDER,
             )
         ):
-            if row.preorder_closes_at is not None and row.preorder_closes_at < today:
+            if not open_preorder(listing_view(row), today):
                 continue
             key = (row.igdb_id, row.platform_id)
             best = windows.get(key)
