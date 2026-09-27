@@ -1072,3 +1072,16 @@ migration defect. Fixed:
 **For E8b:** `recommendations.platform_id` is NOT NULL and part of the
 unique key. Discover's films (parent §7.2) have no platform: E8b makes it
 nullable and the unique key `NULLS NOT DISTINCT` (Postgres 15+), additively.
+
+### Re-verification of the fixes
+
+An independent re-verifier (mutation runs on both halves) confirmed the
+fixes and found three low defects, fixed in `7f1d38e` and `e799231`: a
+generation with default platforms left a dropped platform's stale rows
+listed; the catalogue's age skipped a store whose latest run failed; a
+window was named on a store line that was not a pre-order (backend reason
+and page). It also pinned the open-pre-order boundaries, dismiss-after-
+watch and watch-after-skip. Left untested on purpose: the row locks
+(`with_for_update`; no deadlock path: generate locks only after its reads,
+an answer locks one row and touches nothing generate writes) and the
+refetch-before-enable order after Generate (reasoned, not simulated).
