@@ -2,8 +2,9 @@
 
 import asyncio
 import dataclasses
+import uuid
 from contextlib import asynccontextmanager
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from fastapi import FastAPI
@@ -14,12 +15,15 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from models import (
     CatalogueGame,
+    CatalogueRun,
     Item,
     ItemType,
     OwnedFormat,
     PhysicalEdition,
     PhysicalFormat,
+    ReasonSource,
     Recommendation,
+    RecommendationKind,
     RecommendationStatus,
     StoreListing,
 )
@@ -414,3 +418,76 @@ async def test_watching_a_game_added_by_hand_is_409(sessionmaker_for_test):
         response = await client.post(f"/api/recommendations/{row.id}/watch")
     assert response.status_code == 409
     assert response.json()["detail"] == "Already on your shelf"
+
+
+async def test_a_watched_game_cannot_be_dismissed_but_a_skipped_one_can_be_watched(
+    sessionmaker_for_test,
+):
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        rows = await _rows(sessionmaker_for_test)
+        await client.post(f"/api/recommendations/{rows['1'].id}/watch")
+        dismiss_watched = await client.post(
+            f"/api/recommendations/{rows['1'].id}/dismiss"
+        )
+        await client.post(f"/api/recommendations/{rows['3'].id}/skip")
+        watch_skipped = await client.post(f"/api/recommendations/{rows['3'].id}/watch")
+    assert (dismiss_watched.status_code, watch_skipped.status_code) == (409, 201)
+
+
+async def test_a_platform_left_out_of_the_default_loses_its_stale_rows(
+    sessionmaker_for_test,
+):
+    await _seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Item(
+                type=ItemType.GAME,
+                title="Mine",
+                status="backlog",
+                owned_format=OwnedFormat.PHYSICAL,
+                platform_id=508,
+            )
+        )
+        session.add(
+            Recommendation(
+                kind=RecommendationKind.RADAR,
+                type=ItemType.GAME,
+                title="Old Switch Row",
+                external_source="igdb",
+                external_id="777",
+                reason_source=ReasonSource.TEMPLATE,
+                score=10,
+                batch_id=uuid.uuid4(),
+                status=RecommendationStatus.PENDING,
+                platform_id=130,
+            )
+        )
+        await session.commit()
+    async with radar_client(sessionmaker_for_test) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+    assert "777" not in await _rows(sessionmaker_for_test)
+
+
+async def test_the_catalogue_age_is_the_stalest_stores_last_good_run(
+    sessionmaker_for_test,
+):
+    old = datetime(2026, 9, 1, tzinfo=UTC)
+    newer = datetime(2026, 9, 20, tzinfo=UTC)
+    async with sessionmaker_for_test() as session:
+        session.add_all(
+            [
+                CatalogueRun(source="super_rare", ok=True, finished_at=newer),
+                CatalogueRun(source="nicalis", ok=True, finished_at=old),
+                CatalogueRun(
+                    source="nicalis",
+                    ok=False,
+                    finished_at=newer + timedelta(days=1),
+                ),
+            ]
+        )
+        await session.commit()
+    async with radar_client(sessionmaker_for_test) as client:
+        listed = (await client.get("/api/recommendations?kind=radar")).json()
+    assert listed["catalogue"]["stores_at"].startswith("2026-09-01")

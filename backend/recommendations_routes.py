@@ -26,6 +26,7 @@ from formats import apply_registry_format
 from items import ItemIn, _copy_fields, require_admin
 from models import (
     CatalogueGame,
+    CatalogueRun,
     FormatSource,
     Item,
     ItemStatus,
@@ -42,6 +43,7 @@ from physical_sources.stores import STORES
 from picker import reference_weights
 from radar import SECTIONS, build
 from radar_load import (
+    RADAR_PLATFORMS,
     collection_platforms,
     excluded_games,
     load_pool,
@@ -158,7 +160,12 @@ def create_recommendations_router(
                 select(Recommendation)
                 .where(
                     Recommendation.kind == RecommendationKind.RADAR,
-                    Recommendation.platform_id.in_(platforms),
+                    # What this generation replaces: the platforms asked for,
+                    # or all of Radar's when none were, so a platform the
+                    # collection no longer has does not keep stale rows.
+                    Recommendation.platform_id.in_(
+                        tuple(body.platforms or ()) or RADAR_PLATFORMS
+                    ),
                 )
                 .with_for_update()
             )
@@ -254,12 +261,18 @@ def create_recommendations_router(
             if section in sections:
                 sections[section].append(_row_out(row))
         runs = await latest_runs(session)
-        # The stalest store's last good run: how old the pre-orders may be.
-        store_times = [
-            run.finished_at
-            for source, run in runs.items()
-            if source in STORES and run.ok and run.finished_at is not None
-        ]
+        # Each store's last good run, whatever its latest run did; the
+        # stalest of those is how old the pre-orders may be.
+        store_times = list(
+            await session.scalars(
+                select(func.max(CatalogueRun.finished_at))
+                .where(
+                    CatalogueRun.source.in_(tuple(STORES)),
+                    CatalogueRun.ok.is_(True),
+                )
+                .group_by(CatalogueRun.source)
+            )
+        )
         registry_run = runs.get("nscollectors")
         # With nothing favourited, rated or finished, Radar ranks by hype and
         # date alone, and the page says so.

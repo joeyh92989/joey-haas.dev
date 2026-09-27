@@ -297,3 +297,18 @@ def test_the_date_reason_follows_precision():
     reasons = {s.igdb_id: s.reasons for s in build([month, year], [], [], set(), TODAY)}
     assert "Nintendo Switch 2 · Mar 2027" in reasons[36]
     assert "Nintendo Switch 2 · 2027" in reasons[37]
+
+
+def test_only_a_preorder_line_gives_a_window_reason():
+    line = StoreLine(
+        store="Super Rare",
+        price=Decimal("39.99"),
+        currency="GBP",
+        availability="in_stock",
+        preorder_closes_at=TODAY + timedelta(days=5),
+        url="https://example.test/z",
+        listing_format="game_card",
+        listing_id="l3",
+    )
+    (s,) = build([_pool(40, store_lines=(line,))], [], [], set(), TODAY)
+    assert not any(reason.startswith("Pre-orders close") for reason in s.reasons)

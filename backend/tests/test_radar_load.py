@@ -27,8 +27,10 @@ from radar_load import (
     RADAR_PLATFORMS,
     collection_platforms,
     excluded_games,
+    listing_view,
     load_pool,
     load_profile,
+    open_preorder,
     watching,
 )
 
@@ -259,3 +261,28 @@ async def test_watching_ignores_a_closed_window(session):
     session.add(_item("Closed", "2", owned=OwnedFormat.NONE))
     await session.flush()
     assert await watching(session, TODAY) == []
+
+
+@pytest.mark.parametrize(
+    ("closes", "released", "is_open"),
+    [
+        (TODAY, None, True),  # open on the day it closes
+        (TODAY - timedelta(days=1), None, False),
+        (None, TODAY, False),  # no window: closed from release day
+        (None, TODAY + timedelta(days=1), True),
+        (None, None, True),  # no window, no date: a pre-order still open
+    ],
+)
+async def test_open_preorder_boundaries(session, closes, released, is_open):
+    await upsert_listings(
+        session,
+        [
+            dataclasses.replace(
+                listing("edge", "e1"), preorder_closes_at=closes, release_date=released
+            )
+        ],
+        "super_rare",
+        archive=True,
+    )
+    (row,) = await session.scalars(select(StoreListing))
+    assert open_preorder(listing_view(row), TODAY) is is_open

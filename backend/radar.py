@@ -191,7 +191,9 @@ def _window_reason(lines: tuple[StoreLine, ...], today: date) -> str | None:
     open_lines = [
         line
         for line in lines
-        if line.preorder_closes_at is not None and line.preorder_closes_at >= today
+        if line.availability == "preorder"
+        and line.preorder_closes_at is not None
+        and line.preorder_closes_at >= today
     ]
     if not open_lines:
         return None
