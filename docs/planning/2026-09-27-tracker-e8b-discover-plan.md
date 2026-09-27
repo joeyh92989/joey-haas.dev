@@ -509,3 +509,26 @@ Deviations from the plan, all small:
 - The page styling went in its own commit (card class and `index.css`),
   keeping the page commit at four files.
 - The list rows carry no `year`, so the page reads it from `release_date`.
+
+Finish-gate fixes (ultra review: four reviewers, every finding reproduced
+by a test that failed on the code before its fix):
+
+- A Discover generate replaces **all** pending Discover picks, not only
+  those on the platforms it read (spec §4's route table said the latter;
+  its key decision "older pending picks are replaced by each generate"
+  wins), so the list is one batch under one ranking note.
+- The daily-quota note never fired: it looked for "quota", which
+  `llm.py` never writes. Notes now come from `_failure_note`, which reads
+  `llm.py`'s wording, and name "the model" except for Gemini's per-day
+  limit.
+- `validate` survives a non-list `based_on` (was a 500) and collapses a
+  reason to one line; Recent survives 29 February; the prompt's "What
+  they like most" drops non-positive weights; the list no longer returns
+  `buyable`.
+- The page keeps an empty generation's reason, says when a batch is
+  answered in full, and re-reads after a Rate a few rating; Rate a few
+  keeps its list semantics and saves each game independently.
+- Not fixed: a pre-existing gap where a 409 on Want/Own leaves the row
+  pending until the next generate (shared with Radar; the next generate
+  clears it), and WooCommerce permalinks are not scheme-checked
+  (pre-existing, React blocks `javascript:`; flagged as its own task).

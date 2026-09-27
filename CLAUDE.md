@@ -279,9 +279,10 @@ before pushing.
   when the registry decided it.
 - **Discover** (E8b) is `backend/discover.py` (pure: released filter,
   pre-score, seeded shuffle, prompt, schema, validation, fallback) behind
-  the same router, loader and lock as Radar; `kind` tells them apart and
-  a generate replaces only its own kind's pending rows on the platforms
-  it covered. Pre-score = 0.45 affinity + 0.35 similarity + 0.20 quality
+  the same router, loader and lock as Radar; `kind` tells them apart. A
+  Radar generate replaces its pending rows on the platforms it covered; a
+  Discover generate replaces **all** of Discover's pending picks, so its
+  list is always one batch under one ranking note. Pre-score = 0.45 affinity + 0.35 similarity + 0.20 quality
   ± 15 × popularity by mode (safe +, balanced 0, deep −), +10 buyable
   now, −10 unknown format; the tuning points are `DISCOVER_WEIGHTS`,
   `POPULARITY_WEIGHT`, `BUYABLE_BONUS` and `UNKNOWN_FORMAT_PENALTY`. The
@@ -292,7 +293,10 @@ before pushing.
   numbers. Any model failure (quota, timeout, unreadable answer, no
   provider) or no valid pick falls back to the deterministic top eight
   with template reasons, and the reason is stored as `model_note`: the
-  feature never blocks on Gemini. Everything dated after today belongs to
+  feature never blocks on Gemini. `_failure_note` words the reason from
+  `llm.py`'s own messages ("used up" for Gemini's per-day 429, "rate
+  limit" for the rest); change one and the other has to follow — the
+  route test builds its errors with `_quota_message` to catch that. Everything dated after today belongs to
   Radar, never Discover.
 - **Play Next** scoring lives in `backend/picker.py`, pure and tested without
   a database; `picker_routes.py` only loads rows and records events. The
