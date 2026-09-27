@@ -2580,7 +2580,7 @@ footer {
   padding: 0;
 }
 
-.rate-a-few-list li {
+.rate-a-few-game {
   display: flex;
   flex-wrap: wrap;
   align-items: center;

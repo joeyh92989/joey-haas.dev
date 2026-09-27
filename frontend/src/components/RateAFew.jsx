@@ -20,7 +20,8 @@ export default function RateAFew({ items, onRated }) {
     () => readShelfPref(PREF, 'shown') === 'hidden',
   )
   const [rated, setRated] = useState(() => new Set())
-  const [busy, setBusy] = useState(false)
+  // Saves in flight, per game: rating one never blocks another.
+  const [saving, setSaving] = useState(() => new Set())
   const [error, setError] = useState(null)
 
   const unrated = items
@@ -35,8 +36,8 @@ export default function RateAFew({ items, onRated }) {
   if (hidden || !unrated.length) return null
 
   async function rate(item, rating) {
-    if (rating == null || busy) return
-    setBusy(true)
+    if (rating == null || saving.has(item.id)) return
+    setSaving((current) => new Set(current).add(item.id))
     setError(null)
     try {
       const response = await apiFetch(`/api/items/${item.id}`, {
@@ -53,7 +54,11 @@ export default function RateAFew({ items, onRated }) {
     } catch {
       setError('Could not reach the API. Try again shortly.')
     } finally {
-      setBusy(false)
+      setSaving((current) => {
+        const next = new Set(current)
+        next.delete(item.id)
+        return next
+      })
     }
   }
 
@@ -72,16 +77,18 @@ export default function RateAFew({ items, onRated }) {
       {error && <p role="alert">{error}</p>}
       <ul className="rate-a-few-list">
         {unrated.map((item) => (
-          // Each game's stars are a group named for it, since every
-          // QuickRate is labelled "Rating".
-          <li
-            key={item.id}
-            role="group"
-            aria-label={item.title}
-            aria-busy={busy || undefined}
-          >
-            <span>{item.title}</span>
-            <QuickRate value={null} onChange={(next) => rate(item, next)} />
+          <li key={item.id}>
+            {/* Each game's stars are a group named for it, since every
+                QuickRate is labelled "Rating". */}
+            <div
+              className="rate-a-few-game"
+              role="group"
+              aria-label={item.title}
+              aria-busy={saving.has(item.id) || undefined}
+            >
+              <span>{item.title}</span>
+              <QuickRate value={null} onChange={(next) => rate(item, next)} />
+            </div>
           </li>
         ))}
       </ul>

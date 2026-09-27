@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import RateAFew from './RateAFew.jsx'
@@ -52,6 +52,40 @@ describe('RateAFew', () => {
     expect(screen.queryByRole('group', { name: 'Game a' })).toBeNull()
     expect(screen.getByRole('group', { name: 'Game b' })).toBeInTheDocument()
     expect(onRated).toHaveBeenCalledTimes(1)
+  })
+
+  it('saves a second game while the first is still saving', async () => {
+    let finish
+    const fetchMock = vi.fn((url) =>
+      String(url).endsWith('/a')
+        ? new Promise((resolve) => {
+            finish = () => resolve({ ok: true, status: 200 })
+          })
+        : Promise.resolve({ ok: true, status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<RateAFew items={[game('a'), game('b')]} />)
+    await userEvent.click(
+      within(screen.getByRole('group', { name: 'Game a' })).getByRole('radio', {
+        name: 'Rate 7 out of 10',
+      }),
+    )
+    await userEvent.click(
+      within(screen.getByRole('group', { name: 'Game b' })).getByRole('radio', {
+        name: 'Rate 5 out of 10',
+      }),
+    )
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('group', { name: 'Game b' })).toBeNull()
+    finish()
+    await waitFor(() =>
+      expect(screen.queryByRole('group', { name: 'Game a' })).toBeNull(),
+    )
+  })
+
+  it('keeps each game a list item', () => {
+    render(<RateAFew items={[game('a'), game('b')]} />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
   })
 
   it('keeps the game and says why when the save fails', async () => {
