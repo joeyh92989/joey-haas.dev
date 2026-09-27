@@ -671,6 +671,7 @@ RECOMMENDATION_NAMES = (
     "ranked_by",
     "model_note",
     "based_on_titles",
+    "buyable",
 )
 
 

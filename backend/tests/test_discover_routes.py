@@ -12,7 +12,8 @@ from physical_support import edition
 from sqlalchemy import select
 from starlette.middleware.sessions import SessionMiddleware
 
-from llm import LLMError
+import discover
+from llm import LLMError, _quota_message
 from models import (
     CatalogueGame,
     Item,
@@ -57,14 +58,18 @@ class FakeIgdb:
 
 
 @asynccontextmanager
-async def discover_client(factory, provider=None, no_provider=False):
+async def discover_client(
+    factory, provider=None, no_provider=False, provider_factory=None
+):
     app = FastAPI()
     app.include_router(
         create_recommendations_router(
             factory,
             {ItemType.GAME: FakeIgdb()},
             asyncio.Lock(),
-            provider_factory=None if no_provider else (lambda: provider),
+            provider_factory=None
+            if no_provider
+            else (provider_factory or (lambda: provider)),
         )
     )
 
@@ -228,7 +233,7 @@ async def test_bad_indices_are_dropped_and_nothing_valid_falls_back(
             )
         ).json()
     assert result["ranked_by"] == "template"
-    assert result["model_note"] == "Gemini's picks did not hold up"
+    assert result["model_note"] == "The model's picks did not hold up"
     assert result["count"] == 3  # the three released, unowned games
     rows = await _discover_rows(sessionmaker_for_test)
     assert set(rows) == {"1", "2", "3"}
@@ -236,10 +241,31 @@ async def test_bad_indices_are_dropped_and_nothing_valid_falls_back(
     assert all(row.reason for row in rows.values())
 
 
-async def test_a_spent_quota_falls_back_and_says_so(sessionmaker_for_test):
+def _quota_body(quota_id):
+    return {"error": {"details": [{"violations": [{"quotaId": quota_id}]}]}}
+
+
+@pytest.mark.parametrize(
+    ("error", "note"),
+    [
+        # llm.py's own wording for each 429, not a paraphrase of it.
+        (
+            _quota_message(_quota_body("GenerateRequestsPerDayPerProjectPerModel"), 3),
+            "Gemini's daily quota is used up",
+        ),
+        (
+            _quota_message(_quota_body("GenerateRequestsPerMinutePerProjectPerModel")),
+            "The model's rate limit was reached; try again in a minute",
+        ),
+        ("Gemini returned HTTP 500", "The model did not answer"),
+    ],
+)
+async def test_a_failed_call_falls_back_and_says_why(
+    sessionmaker_for_test, error, note
+):
     await _seed(sessionmaker_for_test)
-    spent = FakeProvider(raises=LLMError("gemini", "quota exceeded (429)"))
-    async with discover_client(sessionmaker_for_test, spent) as client:
+    failing = FakeProvider(raises=LLMError(error))
+    async with discover_client(sessionmaker_for_test, failing) as client:
         result = (
             await client.post(
                 "/api/recommendations/generate", json={"kind": "discover"}
@@ -247,9 +273,29 @@ async def test_a_spent_quota_falls_back_and_says_so(sessionmaker_for_test):
         ).json()
         listed = (await client.get("/api/recommendations?kind=discover")).json()
     assert result["ranked_by"] == "template"
-    assert result["model_note"] == "Gemini's daily quota is used up"
-    assert listed["model_note"] == "Gemini's daily quota is used up"
+    assert result["model_note"] == note
+    assert listed["model_note"] == note
     assert len(listed["picks"]) == 3
+
+
+async def test_a_provider_that_cannot_be_built_falls_back(sessionmaker_for_test):
+    """main.py always passes a factory; a missing key fails inside it."""
+
+    def no_key():
+        raise LLMError("GEMINI_API_KEY is not set")
+
+    await _seed(sessionmaker_for_test)
+    async with discover_client(
+        sessionmaker_for_test, provider_factory=no_key
+    ) as client:
+        result = (
+            await client.post(
+                "/api/recommendations/generate", json={"kind": "discover"}
+            )
+        ).json()
+    assert result["ranked_by"] == "template"
+    assert result["model_note"] == "The model did not answer"
+    assert result["count"] == 3
 
 
 async def test_an_unreadable_answer_falls_back(sessionmaker_for_test):
@@ -262,6 +308,7 @@ async def test_an_unreadable_answer_falls_back(sessionmaker_for_test):
             )
         ).json()
     assert result["ranked_by"] == "template"
+    assert result["model_note"] == "The model's answer could not be read (ValueError)"
     assert result["count"] == 3
 
 
@@ -360,9 +407,8 @@ async def test_discover_accepts_n64_and_refuses_other_platforms(
     assert mode.status_code == 422
 
 
-async def test_a_platform_subset_keeps_the_other_platforms_picks(
-    sessionmaker_for_test,
-):
+async def test_a_platform_subset_replaces_every_pending_pick(sessionmaker_for_test):
+    """One batch at a time, so the list's ranking note is always true."""
     await _seed(sessionmaker_for_test)
     async with discover_client(sessionmaker_for_test, no_provider=True) as client:
         await client.post("/api/recommendations/generate", json={"kind": "discover"})
@@ -370,7 +416,35 @@ async def test_a_platform_subset_keeps_the_other_platforms_picks(
             "/api/recommendations/generate",
             json={"kind": "discover", "platforms": [508]},
         )
-    assert set(await _discover_rows(sessionmaker_for_test)) == {"1", "2", "3"}
+        listed = (await client.get("/api/recommendations?kind=discover")).json()
+    assert set(await _discover_rows(sessionmaker_for_test)) == {"1", "2"}
+    assert {pick["title"] for pick in listed["picks"]} == {"Released A", "Released B"}
+
+
+async def test_each_batch_shuffles_with_its_own_seed(
+    sessionmaker_for_test, monkeypatch
+):
+    seeds = []
+    real = discover.shortlist
+
+    def recording(candidates, seed):
+        seeds.append(seed)
+        return real(candidates, seed)
+
+    monkeypatch.setattr(discover, "shortlist", recording)
+    await _seed(sessionmaker_for_test)
+    async with discover_client(sessionmaker_for_test, no_provider=True) as client:
+        first = await client.post(
+            "/api/recommendations/generate", json={"kind": "discover"}
+        )
+        second = await client.post(
+            "/api/recommendations/generate", json={"kind": "discover"}
+        )
+    assert seeds == [
+        uuid.UUID(first.json()["batch_id"]).int % 2**32,
+        uuid.UUID(second.json()["batch_id"]).int % 2**32,
+    ]
+    assert seeds[0] != seeds[1]
 
 
 async def test_own_from_discover_adds_a_private_owned_item(sessionmaker_for_test):

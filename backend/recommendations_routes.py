@@ -79,6 +79,20 @@ def _today() -> date:
     return datetime.now(UTC).date()
 
 
+def _failure_note(error: str) -> str:
+    """Why the model did not rank the picks, in the owner's words.
+
+    Reads `llm.py`'s own wording: only Gemini's per-day 429 says "used up",
+    and every 429 says "rate limit".
+    """
+    lowered = error.lower()
+    if "per day" in lowered and "used up" in lowered:
+        return "Gemini's daily quota is used up"
+    if "rate limit" in lowered:
+        return "The model's rate limit was reached; try again in a minute"
+    return "The model did not answer"
+
+
 def _row_out(row: Recommendation) -> dict:
     """A suggestion as the admin page reads it."""
     meta = row.source_metadata or {}
@@ -280,12 +294,13 @@ def create_recommendations_router(
             payload = await provider.complete_json(prompt, discover.PICKS_SCHEMA)
         except LLMError as error:
             logger.warning("discover model call failed: %s", error)
-            if "quota" in str(error).lower():
-                return None, "Gemini's daily quota is used up"
-            return None, "Gemini did not answer"
+            return None, _failure_note(str(error))
         except Exception as error:  # a malformed answer must not stop Discover
             logger.exception("discover model call failed unexpectedly")
-            return None, f"Gemini's answer could not be read ({type(error).__name__})"
+            return (
+                None,
+                f"The model's answer could not be read ({type(error).__name__})",
+            )
         return payload, None
 
     async def generate_discover(body: GenerateIn, session: AsyncSession) -> dict:
@@ -321,7 +336,7 @@ def create_recommendations_router(
                     "discover model kept %d of %d picks", len(picks), len(short)
                 )
                 if not picks:
-                    note = "Gemini's picks did not hold up"
+                    note = "The model's picks did not hold up"
             if not picks:
                 picks = discover.fallback(candidates, profile, today)
         ranked_by = picks[0].ranked_by if picks else "template"
@@ -363,12 +378,10 @@ def create_recommendations_router(
                     },
                 }
             )
+        # Every generate replaces all of Discover's pending picks, whatever
+        # platforms it read: the list is always one batch, under one note.
         await _replace_pending(
-            session,
-            RecommendationKind.DISCOVER,
-            tuple(body.platforms or ()) or DISCOVER_PLATFORMS,
-            rows,
-            batch_id,
+            session, RecommendationKind.DISCOVER, DISCOVER_PLATFORMS, rows, batch_id
         )
         logger.info(
             "discover generated %d picks, ranked by %s (batch %s)",
@@ -425,7 +438,14 @@ def create_recommendations_router(
         # hype or popularity alone, and the page says so.
         personalised = bool(reference_weights(await load_profile(session)))
         if wanted_kind == RecommendationKind.DISCOVER:
-            rows.sort(key=lambda row: (row.source_metadata or {}).get("rank", 99))
+            # The latest batch first, in the model's order; a skipped pick
+            # revived by a later generate belongs to that batch.
+            rows.sort(
+                key=lambda row: (
+                    -row.generated_at.timestamp(),
+                    (row.source_metadata or {}).get("rank", 99),
+                )
+            )
             meta = (rows[0].source_metadata or {}) if rows else {}
             return {
                 "generated_at": generated_at,
@@ -439,7 +459,6 @@ def create_recommendations_router(
                             "based_on_titles", []
                         ),
                         "genres": (row.source_metadata or {}).get("genres", []),
-                        "buyable": (row.source_metadata or {}).get("buyable", False),
                     }
                     for row in rows
                 ],

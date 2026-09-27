@@ -145,7 +145,7 @@ check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection"
 # its response model instead of serializing the ORM object. A private column
 # added later would be published with no code change and nothing to notice it.
 public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
-if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|recommendation[a-z_]*)"'; then
+if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|buyable|recommendation[a-z_]*)"'; then
   report_fail "public items expose no private fields" "found a private key in the response"
 else
   report_pass "public items expose no private fields" "no notes/owned_format/is_public/ids/copy details"
