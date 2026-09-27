@@ -309,12 +309,19 @@ def create_recommendations_router(
             )
         return row
 
-    @router.post("/{recommendation_id}/watch", status_code=201)
-    async def watch(
-        recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    async def _add_item(
+        session: AsyncSession,
+        recommendation_id: uuid.UUID,
+        owned_format: OwnedFormat,
+        is_public: bool,
+        answered: RecommendationStatus,
     ) -> dict:
-        """Adds the game to the collection as watched: no owned copy, backlog,
-        public (the owner's decision, E7c), with its announced format."""
+        """Adds a suggested game to the collection and records the answer.
+
+        Through the items create path, backlog, with the snapshot; the only
+        format recorded is the registry's (it is apply_registry_format's to
+        write): a store's claim stays on the suggestion.
+        """
         row = await _suggestion(session, recommendation_id, WAITING)
         already = await session.scalar(
             select(Item.id).where(
@@ -336,12 +343,12 @@ def create_recommendations_router(
             type=ItemType.GAME,
             title=row.title,
             status=ItemStatus.BACKLOG,
-            is_public=True,
+            is_public=is_public,
             year=row.year,
             cover_url=row.cover_url,
             external_source=row.external_source,
             external_id=row.external_id,
-            owned_format=OwnedFormat.NONE,
+            owned_format=owned_format,
             source_metadata=snapshot or None,
             platform_id=row.platform_id,
             release_date=row.release_date,
@@ -349,10 +356,6 @@ def create_recommendations_router(
         values = payload.model_dump()
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
         item = Item(**values)
-        # Only the registry's word is recorded as the copy's format (it is
-        # apply_registry_format's to write); a store's claim stays on the
-        # suggestion, and the copy's format stays unknown until the owner
-        # or the registry says.
         if (
             row.physical_format is not None
             and row.format_source == FormatSource.REGISTRY
@@ -362,9 +365,35 @@ def create_recommendations_router(
             ).items():
                 setattr(item, field, value)
         session.add(item)
-        row.status = RecommendationStatus.WANTED
+        row.status = answered
         await session.commit()
         return {"item_id": str(item.id)}
+
+    @router.post("/{recommendation_id}/want", status_code=201)
+    async def want(
+        recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict:
+        """Want: no owned copy, public (the owner's decision, E7c)."""
+        return await _add_item(
+            session,
+            recommendation_id,
+            OwnedFormat.NONE,
+            True,
+            RecommendationStatus.WANTED,
+        )
+
+    @router.post("/{recommendation_id}/own", status_code=201)
+    async def own(
+        recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict:
+        """Already own: a physical copy, private until the owner publishes it."""
+        return await _add_item(
+            session,
+            recommendation_id,
+            OwnedFormat.PHYSICAL,
+            False,
+            RecommendationStatus.OWNED,
+        )
 
     async def _answer(
         recommendation_id: uuid.UUID,
