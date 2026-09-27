@@ -21,7 +21,8 @@ PURE_MODULES = sorted(
     path.stem
     for path in PACKAGE.glob("*.py")
     if path.stem != "__init__" and path.stem not in IMPURE
-) + ["matching"]
+) + ["matching", "picker", "radar"]
+TOP_LEVEL = {"matching", "picker", "radar"}
 
 
 def test_the_base_modules_exist():
@@ -30,7 +31,7 @@ def test_the_base_modules_exist():
 
 @pytest.mark.parametrize("module", PURE_MODULES)
 def test_module_imports_nothing_from_the_web_or_database_layers(module):
-    name = module if module == "matching" else f"physical_sources.{module}"
+    name = module if module in TOP_LEVEL else f"physical_sources.{module}"
     check = (
         f"import sys, {name}; "
         f"loaded = [m for m in {FORBIDDEN!r} "
