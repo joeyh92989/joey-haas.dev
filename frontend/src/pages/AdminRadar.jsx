@@ -130,9 +130,11 @@ async function fetchRadar() {
 }
 
 function StoreLine({ line }) {
-  const closes = line.preorder_closes_at
-    ? `, pre-orders close ${DAY.format(utc(line.preorder_closes_at))}`
-    : ''
+  // Only a pre-order line has a window worth naming.
+  const closes =
+    line.availability === 'preorder' && line.preorder_closes_at
+      ? `, pre-orders close ${DAY.format(utc(line.preorder_closes_at))}`
+      : ''
   return (
     <li>
       <a href={line.url} target="_blank" rel="noreferrer">
@@ -297,6 +299,18 @@ export default function AdminRadar() {
     }
   }
 
+  function drop(row) {
+    setRadar((current) => ({
+      ...current,
+      sections: Object.fromEntries(
+        Object.entries(current.sections).map(([name, rows]) => [
+          name,
+          rows.filter((entry) => entry.id !== row.id),
+        ]),
+      ),
+    }))
+  }
+
   async function answer(row, action) {
     setBusy(true)
     setError(null)
@@ -311,21 +325,14 @@ export default function AdminRadar() {
         // suggestion's own answer ("Already on your shelf").
         const body = await response.json().catch(() => ({}))
         setError(`${row.title}: ${body.detail ?? 'already answered'}`)
+        drop(row) // settled elsewhere: it has nothing left to answer here
         return
       }
       if (!response.ok) {
         setError(await errorMessage(response))
         return
       }
-      setRadar((current) => ({
-        ...current,
-        sections: Object.fromEntries(
-          Object.entries(current.sections).map(([name, rows]) => [
-            name,
-            rows.filter((entry) => entry.id !== row.id),
-          ]),
-        ),
-      }))
+      drop(row)
       if (action === 'watch') {
         setMessage(`Watching ${row.title}`)
         apply(await fetchRadar())

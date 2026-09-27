@@ -369,6 +369,59 @@ describe('AdminRadar', () => {
     expect(link.closest('p')).toHaveTextContent('closes Nov 8, 2026')
   })
 
+  it('names a window only on a pre-order line', async () => {
+    stubApi({
+      'GET /api/recommendations': () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ...RADAR,
+          sections: {
+            suggested: [
+              row('s', {
+                title: 'In Stock',
+                store_lines: [
+                  {
+                    store: 'Super Rare Games',
+                    price: '39.99',
+                    currency: 'GBP',
+                    availability: 'in_stock',
+                    preorder_closes_at: '2026-12-01',
+                    url: 'https://example.test/s',
+                  },
+                ],
+              }),
+            ],
+            dated_later: [],
+            digital: [],
+          },
+        }),
+      }),
+    })
+    renderPage()
+    const link = await screen.findByRole('link', { name: 'Super Rare Games' })
+    expect(link.closest('li')).not.toHaveTextContent('pre-orders close')
+  })
+
+  it('drops a card another tab already answered', async () => {
+    stubApi({
+      'POST /api/recommendations/a/skip': () => ({
+        ok: false,
+        status: 409,
+        json: async () => ({ detail: 'Already answered (dismissed)' }),
+      }),
+    })
+    renderPage()
+    await screen.findByText('Game a')
+    await userEvent.click(screen.getByRole('button', { name: 'Skip Game a' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Game a: Already answered (dismissed)',
+    )
+    await waitFor(() =>
+      expect(screen.queryByText('Game a')).not.toBeInTheDocument(),
+    )
+  })
+
   it('asks to sign in when signed out', async () => {
     stubApi({
       'GET /api/recommendations': () => ({
