@@ -653,6 +653,28 @@ async def test_no_public_model_names_a_catalogue_field():
     assert leaked == []
 
 
+# E8c: suggestions, their reasons and the pre-order data behind them are
+# never public; only an item the owner watched is, through its `wanted` flag.
+RECOMMENDATION_NAMES = (
+    "recommendation",
+    "batch_id",
+    "based_on",
+    "reason",
+    "preorder",
+    "store_line",
+    "hypes",
+    "lane",
+)
+
+
+async def test_no_public_model_names_a_recommendation_field():
+    names = set()
+    for model in (PublicItemOut, PublicItemDetailOut, PublicStatsOut):
+        names |= _field_names(model)
+    leaked = sorted(n for n in names for bad in RECOMMENDATION_NAMES if bad in n)
+    assert leaked == []
+
+
 def _keys(value) -> set[str]:
     """Every key anywhere in a JSON value."""
     if isinstance(value, dict):
