@@ -257,6 +257,12 @@ def _quota_body(quota_id):
             _quota_message(_quota_body("GenerateRequestsPerMinutePerProjectPerModel")),
             "The model's rate limit was reached; try again in a minute",
         ),
+        (
+            "Anthropic request failed: Error code: 429 - {'type': 'error', "
+            "'error': {'type': 'rate_limit_error', 'message': 'This request "
+            "would exceed your per-minute limit.'}}",
+            "The model's rate limit was reached; try again in a minute",
+        ),
         ("Gemini returned HTTP 500", "The model did not answer"),
     ],
 )

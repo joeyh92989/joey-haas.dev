@@ -342,8 +342,24 @@ describe('AdminDiscover', () => {
     expect(screen.queryByRole('heading', { name: 'Pick a' })).toBeNull()
   })
 
-  it('reads Discover again after a rating', async () => {
-    const calls = stubApi({
+  it('after a rating, updates the note but never revives an answered pick', async () => {
+    let release
+    let reads = 0
+    stubApi({
+      'GET /api/recommendations': () => {
+        reads += 1
+        if (reads === 1)
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ ...DISCOVER, personalised: false }),
+          }
+        // The re-read after the rating: held until the answer is in.
+        return new Promise((resolve) => {
+          release = () =>
+            resolve({ ok: true, status: 200, json: async () => DISCOVER })
+        })
+      },
       'GET /api/items': () => ({
         ok: true,
         status: 200,
@@ -362,17 +378,29 @@ describe('AdminDiscover', () => {
         status: 200,
         json: async () => ({}),
       }),
+      'POST /api/recommendations/a/want': () => ({
+        ok: true,
+        status: 201,
+        json: async () => ({}),
+      }),
     })
     renderPage()
-    const celeste = await screen.findByRole('group', { name: 'Celeste' })
-    const reads = () =>
-      calls.filter((call) => call.path.startsWith('/api/recommendations?'))
-        .length
-    const before = reads()
+    expect(
+      await screen.findByText(/Ranked by the community alone/),
+    ).toBeInTheDocument()
     await userEvent.click(
-      within(celeste).getByRole('radio', { name: 'Rate 9 out of 10' }),
+      within(screen.getByRole('group', { name: 'Celeste' })).getByRole(
+        'radio',
+        { name: 'Rate 9 out of 10' },
+      ),
     )
-    await waitFor(() => expect(reads()).toBe(before + 1))
+    await waitFor(() => expect(release).toBeTypeOf('function'))
+    await userEvent.click(screen.getByRole('button', { name: 'Want Pick a' }))
+    release()
+    await waitFor(() =>
+      expect(screen.queryByText(/Ranked by the community alone/)).toBeNull(),
+    )
+    expect(screen.queryByRole('heading', { name: 'Pick a' })).toBeNull()
   })
 
   it('asks a signed-out visitor to sign in', async () => {

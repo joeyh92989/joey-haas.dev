@@ -161,6 +161,20 @@ export default function AdminDiscover() {
     }
   }
 
+  // After a rating, only the personalisation note is re-read: a list that
+  // arrives after an answer pressed meanwhile must not bring its card back.
+  async function refreshPersonalised() {
+    const result = await fetchDiscover()
+    if (result.discover)
+      setDiscover(
+        (current) =>
+          current && {
+            ...current,
+            personalised: result.discover.personalised,
+          },
+      )
+  }
+
   function drop(row) {
     setDiscover((current) => ({
       ...current,
@@ -286,8 +300,7 @@ export default function AdminDiscover() {
       <RateAFew
         items={items}
         onRated={() => {
-          // Re-read so the personalisation note follows the new rating.
-          void fetchDiscover().then(apply)
+          void refreshPersonalised()
         }}
       />
 

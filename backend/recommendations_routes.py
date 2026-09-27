@@ -83,12 +83,13 @@ def _failure_note(error: str) -> str:
     """Why the model did not rank the picks, in the owner's words.
 
     Reads `llm.py`'s own wording: only Gemini's per-day 429 says "used up",
-    and every 429 says "rate limit".
+    Gemini's other 429s say "rate limit", and Anthropic's SDK error starts
+    "Error code: 429".
     """
     lowered = error.lower()
     if "per day" in lowered and "used up" in lowered:
         return "Gemini's daily quota is used up"
-    if "rate limit" in lowered:
+    if "rate limit" in lowered or "error code: 429" in lowered:
         return "The model's rate limit was reached; try again in a minute"
     return "The model did not answer"
 
