@@ -97,7 +97,7 @@ export default function RecommendationCard({
           <p className="muted">Based on: {basedOn.join(', ')}</p>
         )}
         {genres.length > 0 && (
-          <ul className="rec-genres" aria-label="Genres">
+          <ul className="chip-list rec-genres" aria-label="Genres">
             {genres.map((genre) => (
               <li key={genre}>{genre}</li>
             ))}

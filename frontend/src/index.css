@@ -2525,3 +2525,76 @@ footer {
   font-size: 0.85rem;
   margin: 0.25rem 0 0;
 }
+
+/* Discover (/admin/discover): Radar's cards, with controls and Rate a few. */
+.rec-genres {
+  margin: 0 0 0.5rem;
+  padding: 0;
+}
+
+.discover-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin-top: 1.25rem;
+}
+
+.discover-choice {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.discover-choice legend {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.discover-choice label {
+  margin-right: 0.75rem;
+}
+
+.discover-choice p {
+  font-size: 0.85rem;
+  margin: 0.4rem 0 0;
+}
+
+.rate-a-few {
+  margin: 1.5rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.rate-a-few h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.25rem;
+}
+
+.rate-a-few-list {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+}
+
+.rate-a-few-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.rate-a-few > button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.7rem;
+}
