@@ -241,7 +241,7 @@ def parse_upcoming(rows: list[dict], platform_ids: frozenset[int]) -> list[dict]
             "snapshot": {
                 "genres": _names(game, "genres"),
                 "themes": _names(game, "themes"),
-                "keywords": _names(game, "keywords")[:10],
+                "keywords": _names(game, "keywords")[:KEYWORD_LIMIT],
                 "game_modes": _names(game, "game_modes"),
                 "player_perspectives": _names(game, "player_perspectives"),
                 "similar_games": [

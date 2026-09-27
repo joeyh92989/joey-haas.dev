@@ -236,3 +236,64 @@ def test_at_most_three_reasons():
     pool = _pool(21, genres=("Roguelike",), similar_games=(500,))
     (s,) = build([pool], [], profile, set(), TODAY)
     assert 1 <= len(s.reasons) <= 3
+
+
+def test_based_on_names_the_reference_the_overlap_reason_names():
+    """A substring match took "Pikmin" for "Pikmin 4 ♥"."""
+    older = _game("pik", genres=("Puzzle", "Strategy"), title="Pikmin", favorite=False)
+    newer = _game("pik4", genres=("Puzzle", "Strategy"), title="Pikmin 4")
+    pool = _pool(30, genres=("Puzzle", "Strategy"))
+    (s,) = build([pool], [], [older, newer], set(), TODAY)
+    assert s.reasons[0].endswith("with Pikmin 4 ♥")
+    assert s.based_on == ("pik4",)
+
+
+def test_lane_three_honours_the_excluded_set_on_its_own():
+    ranked = build([], [_upcoming(31), _upcoming(32)], [], {31}, TODAY)
+    assert [s.igdb_id for s in ranked] == [32]
+
+
+def test_a_pool_game_suppresses_lane_three_only_on_its_own_platform():
+    old_switch = _pool(33, platform_id=130, release_date=date(2020, 1, 1))
+    on_switch_2 = _upcoming(33)  # platform 508
+    on_switch = dict(_upcoming(33), platform_id=130)
+    ranked = build([old_switch], [on_switch_2, on_switch], [], set(), TODAY)
+    assert [(s.igdb_id, s.platform_id, s.section) for s in ranked] == [
+        (33, 508, "digital")
+    ]
+
+
+def test_a_key_card_left_out_still_counts_as_physical_for_lane_three():
+    card = _pool(34, physical_format="game_key_card")
+    ranked = build([card], [_upcoming(34)], [], set(), TODAY)
+    assert ranked == []
+
+
+def test_reasons_come_in_order_taste_window_format_date():
+    profile = [_game("a", genres=("Roguelike",))]
+    line = StoreLine(
+        store="Super Rare",
+        price=Decimal("39.99"),
+        currency="GBP",
+        availability="preorder",
+        preorder_closes_at=TODAY + timedelta(days=20),
+        url="https://example.test/y",
+        listing_format="game_card",
+        listing_id="l2",
+    )
+    pool = _pool(35, genres=("Roguelike",), lane="preorder", store_lines=(line,))
+    (s,) = build([pool], [], profile, set(), TODAY)
+    closes = TODAY + timedelta(days=20)
+    assert s.reasons == (
+        "Shares Roguelike with Owned a ♥",
+        f"Pre-orders close {closes:%b} {closes.day} at Super Rare · £39.99",
+        "Full game on cartridge",
+    )
+
+
+def test_the_date_reason_follows_precision():
+    month = _pool(36, release_precision="month", release_date=date(2027, 3, 1))
+    year = _pool(37, release_precision="year", release_date=date(2027, 1, 1))
+    reasons = {s.igdb_id: s.reasons for s in build([month, year], [], [], set(), TODAY)}
+    assert "Nintendo Switch 2 · Mar 2027" in reasons[36]
+    assert "Nintendo Switch 2 · 2027" in reasons[37]

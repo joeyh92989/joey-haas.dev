@@ -39,6 +39,8 @@ MAX_REASONS = 3
 KEY_CARD_FORMATS = frozenset({"game_key_card", "code_in_box"})
 NEAR_PRECISIONS = frozenset({"day", "month"})
 FORMAT_WORDS = {"game_card": "Full game on cartridge", "disc": "Full game on disc"}
+# Mirrors sources.igdb.PLATFORM_NAMES (the authority), which this pure module
+# cannot import: sources.igdb loads the models.
 PLATFORM_WORDS = {130: "Nintendo Switch", 508: "Nintendo Switch 2", 4: "Nintendo 64"}
 CURRENCY_SIGNS = {"USD": "$", "EUR": "€", "GBP": "£"}
 DIGITAL_NOTE = "no physical edition announced"
@@ -140,8 +142,11 @@ def score_game(
 
 
 def _strings(snapshot: dict, key: str) -> tuple[str, ...]:
+    """As picker_routes reads a snapshot list: strings, empty entries dropped."""
     values = snapshot.get(key)
-    return tuple(str(value) for value in values) if isinstance(values, list) else ()
+    if not isinstance(values, list):
+        return ()
+    return tuple(str(value) for value in values if value not in (None, ""))
 
 
 def _picker_item(
@@ -226,21 +231,27 @@ def _taste_reasons(
     weights: dict[str, float],
     table: dict[tuple[str, str], float],
 ) -> tuple[list[str], tuple[str, ...]]:
+    """The similarity and shared-traits reasons, and the reference items
+    behind them (similar game first)."""
     reasons: list[str] = []
-    based_on: tuple[str, ...] = ()
+    based_on: list[str] = []
     if similar_to is not None:
         reasons.append(f"IGDB lists it beside {_named(similar_to)}")
-        based_on = (similar_to.id,)
+        based_on.append(similar_to.id)
     if references:
         overlap = _overlap_reason(item, references, weights, table)
         if overlap:
             reasons.append(overlap)
-            if not based_on:
-                named = next(
-                    (ref for ref in references if _named(ref) in overlap), None
-                )
-                based_on = (named.id,) if named else ()
-    return reasons, based_on
+            # picker ends the sentence with the reference it chose; a
+            # substring test would take "Pikmin" for "Pikmin 4 ♥".
+            named = [
+                ref for ref in references if overlap.endswith(f" with {_named(ref)}")
+            ]
+            if named:
+                chosen = max(named, key=lambda ref: weights.get(ref.id, 0.0))
+                if chosen.id not in based_on:
+                    based_on.append(chosen.id)
+    return reasons, tuple(based_on)
 
 
 def build(
@@ -262,10 +273,13 @@ def build(
     table = attribute_table(profile, weights) if references else {}
     found: list[Suggestion] = []
 
-    pool_ids = set()
+    # Lane 3 is for games with no physical edition on that platform, so any
+    # pool candidate there suppresses it, on Radar or not (a key card left
+    # out by the toggle is still a physical edition).
+    pool_keys: set[tuple[int, int]] = set()
     for game in pool:
         candidate = game.candidate
-        pool_ids.add(candidate.igdb_id)
+        pool_keys.add((candidate.igdb_id, candidate.platform_id))
         if candidate.igdb_id in excluded:
             continue
         section = section_for(candidate, game.lane, today, include_key_cards)
@@ -320,7 +334,7 @@ def build(
 
     for row in upcoming:
         igdb_id = row["igdb_id"]
-        if igdb_id in excluded or igdb_id in pool_ids:
+        if igdb_id in excluded or (igdb_id, row["platform_id"]) in pool_keys:
             continue
         released = (
             date.fromisoformat(row["release_date"]) if row.get("release_date") else None

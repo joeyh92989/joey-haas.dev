@@ -590,7 +590,8 @@ def test_upcoming_precision_follows_the_date_format():
 
 
 def test_a_tbd_date_is_not_upcoming():
-    assert parse_upcoming([_release(1, 7, date=None)], SWITCHES) == []
+    assert parse_upcoming([_release(1, 7)], SWITCHES) == []
+    assert parse_upcoming([_release(2, 0, date=None)], SWITCHES) == []
 
 
 def test_the_earliest_date_on_a_platform_wins():
@@ -628,3 +629,22 @@ async def test_upcoming_stops_at_the_page_cap(monkeypatch):
     calls = _patch_http(monkeypatch, [_FakeResponse(200, full)])
     await IgdbSource(_config()).upcoming([508], now=1790000000)
     assert calls.count("games") == UPCOMING_MAX_PAGES
+
+
+@pytest.mark.asyncio
+async def test_upcoming_asks_release_dates_page_by_page():
+    source = IgdbSource(_config())
+    asked: list[tuple[str, str]] = []
+    pages = [[_release(i, 0) for i in range(UPCOMING_PAGE)], [_release(9999, 0)]]
+
+    async def fake_query(body, endpoint="games"):
+        asked.append((body, endpoint))
+        return pages[len(asked) - 1]
+
+    source._query = fake_query
+    rows = await source.upcoming([508, 130], now=1790000000)
+
+    assert [endpoint for _, endpoint in asked] == ["release_dates", "release_dates"]
+    assert "offset 0;" in asked[0][0] and "offset 500;" in asked[1][0]
+    assert "where platform = (130,508) & date > 1790000000;" in asked[0][0]
+    assert any(row["igdb_id"] == 9999 for row in rows)
