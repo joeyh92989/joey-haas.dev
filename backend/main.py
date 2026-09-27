@@ -112,7 +112,12 @@ app.include_router(
     )
 )
 app.include_router(
-    create_recommendations_router(session_factory, registry, catalogue_lock)
+    create_recommendations_router(
+        session_factory,
+        registry,
+        catalogue_lock,
+        provider_factory=lambda: build_provider(config),
+    )
 )
 # The provider is built per request rather than here, so an absent model key
 # is a failure of the import route alone rather than a service that will not

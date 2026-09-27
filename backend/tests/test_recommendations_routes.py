@@ -191,12 +191,16 @@ async def test_a_lane_three_failure_keeps_lanes_one_and_two(sessionmaker_for_tes
     assert result["counts"]["suggested"] == 2
 
 
-async def test_only_radar_can_be_generated_here(sessionmaker_for_test):
+async def test_unknown_kinds_and_radar_on_n64_are_refused(sessionmaker_for_test):
     async with radar_client(sessionmaker_for_test) as client:
-        response = await client.post(
-            "/api/recommendations/generate", json={"kind": "discover"}
+        films = await client.post(
+            "/api/recommendations/generate", json={"kind": "films"}
         )
-    assert response.status_code == 422
+        n64 = await client.post(
+            "/api/recommendations/generate", json={"kind": "radar", "platforms": [4]}
+        )
+    assert films.status_code == 422
+    assert n64.status_code == 422
 
 
 async def test_generate_waits_for_no_one_during_a_refresh(sessionmaker_for_test):
