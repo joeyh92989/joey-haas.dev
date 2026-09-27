@@ -324,6 +324,12 @@ export default function AdminRadar() {
         </span>
       </div>
 
+      {radar && radar.personalised === false && (
+        <p className="muted">
+          Ranked by anticipation: rate, finish or favourite a few games to
+          personalise.
+        </p>
+      )}
       {message && <p role="status">{message}</p>}
       {error && <p role="alert">{error}</p>}
       {state === 'loading' && <p className="muted">Loading the radar…</p>}

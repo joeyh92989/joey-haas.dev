@@ -27,6 +27,7 @@ function row(id, fields = {}) {
 
 const RADAR = {
   generated_at: '2026-09-27T10:00:00Z',
+  personalised: true,
   catalogue: { stores_at: '2026-09-26T10:00:00Z', registry_at: null },
   sections: {
     suggested: [
@@ -224,6 +225,20 @@ describe('AdminRadar', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Game a is already on your shelf',
     )
+  })
+
+  it('says when it is ranked by anticipation, not taste', async () => {
+    stubApi({
+      'GET /api/recommendations': () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ ...RADAR, personalised: false }),
+      }),
+    })
+    renderPage()
+    expect(
+      await screen.findByText(/Ranked by anticipation/),
+    ).toBeInTheDocument()
   })
 
   it('asks to sign in when signed out', async () => {

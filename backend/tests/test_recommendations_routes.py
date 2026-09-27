@@ -264,3 +264,23 @@ async def test_an_unknown_suggestion_is_404(sessionmaker_for_test):
             "/api/recommendations/00000000-0000-0000-0000-000000000000/skip"
         )
     assert response.status_code == 404
+
+
+async def test_the_list_says_whether_it_is_ranked_by_taste(sessionmaker_for_test):
+    async with radar_client(sessionmaker_for_test) as client:
+        empty = (await client.get("/api/recommendations?kind=radar")).json()
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Item(
+                type=ItemType.GAME,
+                title="Loved",
+                status="finished",
+                favorite=True,
+                owned_format=OwnedFormat.PHYSICAL,
+                platform_id=508,
+            )
+        )
+        await session.commit()
+    async with radar_client(sessionmaker_for_test) as client:
+        loved = (await client.get("/api/recommendations?kind=radar")).json()
+    assert (empty["personalised"], loved["personalised"]) == (False, True)

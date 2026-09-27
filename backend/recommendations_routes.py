@@ -39,6 +39,7 @@ from models import (
 )
 from physical_sources.catalogue import latest_runs
 from physical_sources.stores import STORES
+from picker import reference_weights
 from radar import SECTIONS, build
 from radar_load import (
     collection_platforms,
@@ -239,8 +240,12 @@ def create_recommendations_router(
             if source in STORES and run.finished_at is not None
         ]
         registry_run = runs.get("nscollectors")
+        # With nothing favourited, rated or finished, Radar ranks by hype and
+        # date alone, and the page says so.
+        personalised = bool(reference_weights(await load_profile(session)))
         return {
             "generated_at": max((row.generated_at for row in rows), default=None),
+            "personalised": personalised,
             "catalogue": {
                 "stores_at": max(store_times, default=None),
                 "registry_at": registry_run.finished_at if registry_run else None,
