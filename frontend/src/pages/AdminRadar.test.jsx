@@ -68,7 +68,7 @@ const WATCHING = [
   {
     item: {
       id: 'i1',
-      title: 'Watched One',
+      title: 'Wanted One',
       cover_url: null,
       platform: 'Nintendo Switch 2',
       release_date: '2027-02-01',
@@ -187,10 +187,13 @@ describe('helpers', () => {
 })
 
 describe('AdminRadar', () => {
-  it('shows watching, suggested, dated later and a closed digital section', async () => {
+  it('shows wanted, suggested, dated later and a closed digital section', async () => {
     stubApi()
     renderPage()
-    expect(await screen.findByText('Watched One')).toBeInTheDocument()
+    expect(await screen.findByText('Wanted One')).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Wanted, still to come' }),
+    ).toBeInTheDocument()
     expect(screen.getByText('Preordered')).toBeInTheDocument()
     expect(screen.getByText('Next Year')).toBeInTheDocument()
     expect(
@@ -259,7 +262,7 @@ describe('AdminRadar', () => {
 
   it('says a watched game is already on the shelf, not a refresh', async () => {
     stubApi({
-      'POST /api/recommendations/a/watch': () => ({
+      'POST /api/recommendations/a/want': () => ({
         ok: false,
         status: 409,
         json: async () => ({ detail: 'Already on your shelf' }),
@@ -269,7 +272,7 @@ describe('AdminRadar', () => {
     await screen.findByText('Game a')
     const card = screen.getByText('Game a').closest('article')
     await userEvent.click(
-      within(card).getByRole('button', { name: 'Watch Game a' }),
+      within(card).getByRole('button', { name: 'Want Game a' }),
     )
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Game a: Already on your shelf',
@@ -290,9 +293,9 @@ describe('AdminRadar', () => {
     ).toBeInTheDocument()
   })
 
-  it('watches a game: the card goes, the page says so and reads again', async () => {
+  it('wants a game: the card goes, the page says so and reads again', async () => {
     const calls = stubApi({
-      'POST /api/recommendations/a/watch': () => ({
+      'POST /api/recommendations/a/want': () => ({
         ok: true,
         status: 201,
         json: async () => ({ item_id: 'i9' }),
@@ -300,10 +303,8 @@ describe('AdminRadar', () => {
     })
     renderPage()
     await screen.findByText('Game a')
-    await userEvent.click(screen.getByRole('button', { name: 'Watch Game a' }))
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Watching Game a',
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Want Game a' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Wanted Game a')
     await waitFor(() =>
       expect(
         calls.filter((call) => call.path === '/api/recommendations/watching'),

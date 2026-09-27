@@ -112,6 +112,9 @@ export default function Admin() {
             <Link to="/admin/radar">Radar</Link>
           </p>
           <p>
+            <Link to="/admin/discover">Discover</Link>
+          </p>
+          <p>
             <button type="button" className="admin-signout" onClick={signOut}>
               Sign out
             </button>

@@ -1,5 +1,5 @@
-"""Radar's admin routes (E8c): generate, list, watching, and the owner's
-answer to each suggestion. Discover (E8b) joins this router later.
+"""Radar's (E8c) and Discover's (E8b) admin routes: generate, list,
+watching, and the owner's answer to each suggestion.
 
 Everything here is admin-only and nothing is public: a watched game reaches
 `/collection` as an ordinary item with `wanted`, never as a recommendation.
@@ -13,7 +13,7 @@ import asyncio
 import logging
 import time
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import UTC, date, datetime
 from typing import Literal
 
@@ -22,8 +22,10 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import discover
 from formats import apply_registry_format
 from items import ItemIn, _copy_fields, require_admin
+from llm import LLMError, LLMProvider
 from models import (
     CatalogueGame,
     CatalogueRun,
@@ -40,9 +42,10 @@ from models import (
 )
 from physical_sources.catalogue import latest_runs
 from physical_sources.stores import STORES
-from picker import reference_weights
-from radar import SECTIONS, build
+from picker import attribute_table, reference_weights
+from radar import SECTIONS, _line_dict, build
 from radar_load import (
+    DISCOVER_PLATFORMS,
     RADAR_PLATFORMS,
     collection_platforms,
     excluded_games,
@@ -62,14 +65,33 @@ WAITING = (RecommendationStatus.PENDING, RecommendationStatus.SKIPPED)
 
 
 class GenerateIn(BaseModel):
-    kind: Literal["radar"]
-    # Radar's platforms only (RADAR_PLATFORMS); anything else is a 422.
-    platforms: list[Literal[130, 508]] | None = None
+    kind: Literal["radar", "discover"]
+    # The catalogue's platforms; Radar refuses N64 (4), which has no
+    # upcoming releases. Anything else is a 422.
+    platforms: list[Literal[130, 508, 4]] | None = None
     include_key_cards: bool = False
+    # Discover only.
+    popularity: Literal["safe", "balanced", "deep"] = "balanced"
+    window: Literal["recent", "any"] = "any"
 
 
 def _today() -> date:
     return datetime.now(UTC).date()
+
+
+def _failure_note(error: str) -> str:
+    """Why the model did not rank the picks, in the owner's words.
+
+    Reads `llm.py`'s own wording: only Gemini's per-day 429 says "used up",
+    Gemini's other 429s say "rate limit", and Anthropic's SDK error starts
+    "Error code: 429".
+    """
+    lowered = error.lower()
+    if "per day" in lowered and "used up" in lowered:
+        return "Gemini's daily quota is used up"
+    if "rate limit" in lowered or "error code: 429" in lowered:
+        return "The model's rate limit was reached; try again in a minute"
+    return "The model did not answer"
 
 
 def _row_out(row: Recommendation) -> dict:
@@ -97,9 +119,11 @@ def create_recommendations_router(
     factory: async_sessionmaker[AsyncSession],
     registry: dict,
     lock: asyncio.Lock,
+    provider_factory: Callable[[], LLMProvider] | None = None,
 ) -> APIRouter:
     """Builds `/api/recommendations`. `lock` is the catalogue's write lock,
-    shared with `create_physical_router`."""
+    shared with `create_physical_router`; `provider_factory` builds the
+    model provider for Discover, per request, as the photo importer does."""
     router = APIRouter(
         prefix="/api/recommendations",
         tags=["recommendations"],
@@ -131,13 +155,80 @@ def create_recommendations_router(
             logger.exception("radar lane 3 failed unexpectedly")
             return [], f"IGDB answer could not be read ({type(error).__name__})"
 
-    @router.post("/generate")
-    async def generate(
-        body: GenerateIn,
-        _lock=Depends(exclusive),
-        session: AsyncSession = Depends(get_session),
-    ) -> dict:
+    async def _replace_pending(
+        session: AsyncSession,
+        kind: RecommendationKind,
+        scope: tuple[int, ...],
+        rows: list[dict],
+        batch_id: uuid.UUID,
+    ) -> None:
+        """Replaces the kind's pending suggestions on `scope` with `rows`.
+
+        Rows are locked until this commits: an answer pressed meanwhile
+        waits, then applies to the row as generated. A wanted, dismissed or
+        owned row keeps the owner's answer; a skipped one comes back.
+        """
+        now = datetime.now(UTC)
+        existing = {
+            (row.external_id, row.platform_id): row
+            for row in await session.scalars(
+                select(Recommendation)
+                .where(
+                    Recommendation.kind == kind,
+                    Recommendation.platform_id.in_(scope),
+                )
+                .with_for_update()
+            )
+        }
+        fresh = {(str(entry["igdb_id"]), entry["platform_id"]): entry for entry in rows}
+        for key, row in existing.items():
+            if row.status == RecommendationStatus.PENDING and key not in fresh:
+                await session.delete(row)
+        for key, entry in fresh.items():
+            row = existing.get(key)
+            if row is not None and row.status not in WAITING:
+                continue  # wanted, dismissed, owned: the owner's answer stands
+            if row is None:
+                row = Recommendation(
+                    kind=kind,
+                    type=ItemType.GAME,
+                    external_source="igdb",
+                    external_id=key[0],
+                    platform_id=entry["platform_id"],
+                )
+                session.add(row)
+            released = entry["release_date"]
+            row.title = entry["title"]
+            row.year = released.year if released else None
+            row.release_date = released
+            row.cover_url = entry["cover_url"]
+            row.reason = "\n".join(entry["reasons"])
+            row.reason_source = entry["reason_source"]
+            row.based_on = list(entry["based_on"])
+            row.score = max(0, min(SMALLINT_MAX, entry["score"]))
+            row.batch_id = batch_id
+            row.generated_at = now
+            row.status = RecommendationStatus.PENDING
+            row.platform = PLATFORM_NAMES.get(entry["platform_id"])
+            row.physical_format = (
+                PhysicalFormat(entry["physical_format"])
+                if entry["physical_format"]
+                else None
+            )
+            row.format_source = (
+                FormatSource(entry["format_source"]) if entry["format_source"] else None
+            )
+            row.format_note = entry["format_note"]
+            row.listing_ids = list(entry["listing_ids"])
+            row.source_metadata = entry["source_metadata"]
+        await session.commit()
+
+    async def generate_radar(body: GenerateIn, session: AsyncSession) -> dict:
         """Re-scores the catalogue into Radar's sections."""
+        if body.platforms and 4 in body.platforms:
+            raise HTTPException(
+                status_code=422, detail="Radar covers the two Switches only"
+            )
         today = _today()
         platforms = tuple(body.platforms or ()) or await collection_platforms(session)
         lane_three, digital_error = await upcoming(platforms)
@@ -149,80 +240,42 @@ def create_recommendations_router(
             today,
             include_key_cards=body.include_key_cards,
         )
-
         batch_id = uuid.uuid4()
-        now = datetime.now(UTC)
-        # Locked until this commits: an answer pressed meanwhile waits, then
-        # applies to the row as generated, rather than being overwritten.
-        existing = {
-            (row.external_id, row.platform_id): row
-            for row in await session.scalars(
-                select(Recommendation)
-                .where(
-                    Recommendation.kind == RecommendationKind.RADAR,
-                    # What this generation replaces: the platforms asked for,
-                    # or all of Radar's when none were, so a platform the
-                    # collection no longer has does not keep stale rows.
-                    Recommendation.platform_id.in_(
-                        tuple(body.platforms or ()) or RADAR_PLATFORMS
-                    ),
-                )
-                .with_for_update()
-            )
-        }
-        fresh = {(str(s.igdb_id), s.platform_id): s for s in suggestions}
-        for key, row in existing.items():
-            if row.status == RecommendationStatus.PENDING and key not in fresh:
-                await session.delete(row)
-        for key, suggestion in fresh.items():
-            row = existing.get(key)
-            if row is not None and row.status not in (
-                RecommendationStatus.PENDING,
-                RecommendationStatus.SKIPPED,
-            ):
-                continue  # wanted, dismissed, owned: the owner's answer stands
-            if row is None:
-                row = Recommendation(
-                    kind=RecommendationKind.RADAR,
-                    type=ItemType.GAME,
-                    external_source="igdb",
-                    external_id=key[0],
-                    platform_id=suggestion.platform_id,
-                )
-                session.add(row)
-            row.title = suggestion.title
-            row.year = suggestion.release_date.year if suggestion.release_date else None
-            row.release_date = suggestion.release_date
-            row.cover_url = suggestion.cover_url
-            row.reason = "\n".join(suggestion.reasons)
-            row.reason_source = ReasonSource.TEMPLATE
-            row.based_on = list(suggestion.based_on)
-            row.score = max(0, min(SMALLINT_MAX, suggestion.score))
-            row.batch_id = batch_id
-            row.generated_at = now
-            row.status = RecommendationStatus.PENDING
-            row.platform = PLATFORM_NAMES.get(suggestion.platform_id)
-            row.physical_format = (
-                PhysicalFormat(suggestion.physical_format)
-                if suggestion.physical_format
-                else None
-            )
-            row.format_source = (
-                FormatSource(suggestion.format_source)
-                if suggestion.format_source
-                else None
-            )
-            row.format_note = suggestion.format_note
-            row.listing_ids = list(suggestion.listing_ids)
-            row.source_metadata = {
-                "lane": suggestion.lane,
-                "section": suggestion.section,
-                "release_precision": suggestion.release_precision,
-                "hypes": suggestion.hypes,
-                "store_lines": list(suggestion.store_lines),
-                "snapshot": suggestion.snapshot,
-            }
-        await session.commit()
+        # What this generation replaces: the platforms asked for, or all of
+        # Radar's when none were, so a platform the collection no longer
+        # has does not keep stale rows.
+        await _replace_pending(
+            session,
+            RecommendationKind.RADAR,
+            tuple(body.platforms or ()) or RADAR_PLATFORMS,
+            [
+                {
+                    "igdb_id": s.igdb_id,
+                    "platform_id": s.platform_id,
+                    "title": s.title,
+                    "release_date": s.release_date,
+                    "cover_url": s.cover_url,
+                    "reasons": s.reasons,
+                    "reason_source": ReasonSource.TEMPLATE,
+                    "based_on": s.based_on,
+                    "score": s.score,
+                    "physical_format": s.physical_format,
+                    "format_source": s.format_source,
+                    "format_note": s.format_note,
+                    "listing_ids": s.listing_ids,
+                    "source_metadata": {
+                        "lane": s.lane,
+                        "section": s.section,
+                        "release_precision": s.release_precision,
+                        "hypes": s.hypes,
+                        "store_lines": list(s.store_lines),
+                        "snapshot": s.snapshot,
+                    },
+                }
+                for s in suggestions
+            ],
+            batch_id,
+        )
         counts = {section: 0 for section in SECTIONS}
         for suggestion in suggestions:
             counts[suggestion.section] += 1
@@ -233,28 +286,184 @@ def create_recommendations_router(
             "digital_error": digital_error,
         }
 
+    async def rank(prompt: str) -> tuple[dict | None, str | None]:
+        """One model call, or why there was none. Never raises."""
+        if provider_factory is None:
+            return None, "No model is configured"
+        try:
+            provider = provider_factory()
+            payload = await provider.complete_json(prompt, discover.PICKS_SCHEMA)
+        except LLMError as error:
+            logger.warning("discover model call failed: %s", error)
+            return None, _failure_note(str(error))
+        except Exception as error:  # a malformed answer must not stop Discover
+            logger.exception("discover model call failed unexpectedly")
+            return (
+                None,
+                f"The model's answer could not be read ({type(error).__name__})",
+            )
+        return payload, None
+
+    async def generate_discover(body: GenerateIn, session: AsyncSession) -> dict:
+        """Released physical games the owner would love: pre-scored, one
+        model call to pick eight with reasons, the template eight when the
+        model cannot answer."""
+        today = _today()
+        platforms = tuple(body.platforms or ()) or await collection_platforms(
+            session, DISCOVER_PLATFORMS
+        )
+        profile = await load_profile(session)
+        pool = discover.eligible(
+            await load_pool(session, platforms, today),
+            await excluded_games(session),
+            today,
+            body.window,
+            body.include_key_cards,
+        )
+        candidates = discover.prescore(pool, profile, body.popularity, today)
+        batch_id = uuid.uuid4()
+        short = discover.shortlist(candidates, batch_id.int % 2**32)
+        refs = discover.references(profile)
+        weights = reference_weights(profile)
+        table = attribute_table(profile, weights) if weights else {}
+
+        picks: list[discover.Pick] = []
+        note = "Nothing in the catalogue fits yet" if not short else None
+        if short:
+            payload, note = await rank(discover.build_prompt(short, refs, table))
+            if payload is not None:
+                picks = discover.validate(payload, short, refs, today)
+                logger.info(
+                    "discover model kept %d of %d picks", len(picks), len(short)
+                )
+                if not picks:
+                    note = "The model's picks did not hold up"
+            if not picks:
+                picks = discover.fallback(candidates, profile, today)
+        ranked_by = picks[0].ranked_by if picks else "template"
+        titles = {item.id: item.title for item in profile}
+        rows = []
+        for position, pick in enumerate(picks):
+            candidate = pick.candidate.game.candidate
+            rows.append(
+                {
+                    "igdb_id": candidate.igdb_id,
+                    "platform_id": candidate.platform_id,
+                    "title": candidate.title,
+                    "release_date": candidate.release_date,
+                    "cover_url": candidate.cover_url,
+                    "reasons": pick.reasons,
+                    "reason_source": ReasonSource.MODEL
+                    if pick.ranked_by == "model"
+                    else ReasonSource.TEMPLATE,
+                    "based_on": pick.based_on,
+                    "score": pick.candidate.score,
+                    "physical_format": candidate.physical_format,
+                    "format_source": candidate.format_source,
+                    "format_note": candidate.format_note,
+                    "listing_ids": candidate.listing_ids,
+                    "source_metadata": {
+                        "rank": position,
+                        "ranked_by": pick.ranked_by,
+                        "model_note": note,
+                        "based_on_titles": [
+                            titles[ref] for ref in pick.based_on if ref in titles
+                        ],
+                        "genres": list(pick.candidate.item.genres[:4]),
+                        "buyable": pick.candidate.buyable,
+                        "release_precision": candidate.release_precision,
+                        "store_lines": [
+                            _line_dict(line) for line in candidate.store_lines
+                        ],
+                        "snapshot": pick.candidate.game.snapshot,
+                    },
+                }
+            )
+        # Every generate replaces all of Discover's pending picks, whatever
+        # platforms it read: the list is always one batch, under one note.
+        await _replace_pending(
+            session, RecommendationKind.DISCOVER, DISCOVER_PLATFORMS, rows, batch_id
+        )
+        logger.info(
+            "discover generated %d picks, ranked by %s (batch %s)",
+            len(rows),
+            ranked_by,
+            batch_id,
+        )
+        return {
+            "batch_id": str(batch_id),
+            "count": len(rows),
+            "ranked_by": ranked_by,
+            "model_note": note,
+        }
+
+    @router.post("/generate")
+    async def generate(
+        body: GenerateIn,
+        _lock=Depends(exclusive),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Radar's sections or Discover's picks, from the catalogue as it is."""
+        if body.kind == "discover":
+            return await generate_discover(body, session)
+        return await generate_radar(body, session)
+
+    async def _last_generated(session: AsyncSession, kind: RecommendationKind):
+        """The last generation, whatever the owner has answered since."""
+        return await session.scalar(
+            select(func.max(Recommendation.generated_at)).where(
+                Recommendation.kind == kind
+            )
+        )
+
     @router.get("")
     async def list_recommendations(
-        kind: Literal["radar"], session: AsyncSession = Depends(get_session)
+        kind: Literal["radar", "discover"],
+        session: AsyncSession = Depends(get_session),
     ) -> dict:
-        """The pending suggestions by section, best first. Skipped ones stay
-        hidden until the next generation."""
+        """The pending suggestions, best first. Skipped ones stay hidden
+        until the next generation."""
+        wanted_kind = RecommendationKind(kind)
         rows = list(
             await session.scalars(
                 select(Recommendation)
                 .where(
-                    Recommendation.kind == RecommendationKind(kind),
+                    Recommendation.kind == wanted_kind,
                     Recommendation.status == RecommendationStatus.PENDING,
                 )
                 .order_by(Recommendation.score.desc(), Recommendation.release_date)
             )
         )
-        # The last generation, whatever the owner has answered since.
-        generated_at = await session.scalar(
-            select(func.max(Recommendation.generated_at)).where(
-                Recommendation.kind == RecommendationKind(kind)
+        generated_at = await _last_generated(session, wanted_kind)
+        # With nothing favourited, rated or finished, the ranking is by
+        # hype or popularity alone, and the page says so.
+        personalised = bool(reference_weights(await load_profile(session)))
+        if wanted_kind == RecommendationKind.DISCOVER:
+            # The latest batch first, in the model's order; a skipped pick
+            # revived by a later generate belongs to that batch.
+            rows.sort(
+                key=lambda row: (
+                    -row.generated_at.timestamp(),
+                    (row.source_metadata or {}).get("rank", 99),
+                )
             )
-        )
+            meta = (rows[0].source_metadata or {}) if rows else {}
+            return {
+                "generated_at": generated_at,
+                "personalised": personalised,
+                "ranked_by": meta.get("ranked_by"),
+                "model_note": meta.get("model_note"),
+                "picks": [
+                    {
+                        **_row_out(row),
+                        "based_on_titles": (row.source_metadata or {}).get(
+                            "based_on_titles", []
+                        ),
+                        "genres": (row.source_metadata or {}).get("genres", []),
+                    }
+                    for row in rows
+                ],
+            }
         sections: dict[str, list[dict]] = {section: [] for section in SECTIONS}
         for row in rows:
             section = (row.source_metadata or {}).get("section")
@@ -274,9 +483,6 @@ def create_recommendations_router(
             )
         )
         registry_run = runs.get("nscollectors")
-        # With nothing favourited, rated or finished, Radar ranks by hype and
-        # date alone, and the page says so.
-        personalised = bool(reference_weights(await load_profile(session)))
         return {
             "generated_at": generated_at,
             "personalised": personalised,
@@ -309,12 +515,19 @@ def create_recommendations_router(
             )
         return row
 
-    @router.post("/{recommendation_id}/watch", status_code=201)
-    async def watch(
-        recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    async def _add_item(
+        session: AsyncSession,
+        recommendation_id: uuid.UUID,
+        owned_format: OwnedFormat,
+        is_public: bool,
+        answered: RecommendationStatus,
     ) -> dict:
-        """Adds the game to the collection as watched: no owned copy, backlog,
-        public (the owner's decision, E7c), with its announced format."""
+        """Adds a suggested game to the collection and records the answer.
+
+        Through the items create path, backlog, with the snapshot; the only
+        format recorded is the registry's (it is apply_registry_format's to
+        write): a store's claim stays on the suggestion.
+        """
         row = await _suggestion(session, recommendation_id, WAITING)
         already = await session.scalar(
             select(Item.id).where(
@@ -336,12 +549,12 @@ def create_recommendations_router(
             type=ItemType.GAME,
             title=row.title,
             status=ItemStatus.BACKLOG,
-            is_public=True,
+            is_public=is_public,
             year=row.year,
             cover_url=row.cover_url,
             external_source=row.external_source,
             external_id=row.external_id,
-            owned_format=OwnedFormat.NONE,
+            owned_format=owned_format,
             source_metadata=snapshot or None,
             platform_id=row.platform_id,
             release_date=row.release_date,
@@ -349,10 +562,6 @@ def create_recommendations_router(
         values = payload.model_dump()
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
         item = Item(**values)
-        # Only the registry's word is recorded as the copy's format (it is
-        # apply_registry_format's to write); a store's claim stays on the
-        # suggestion, and the copy's format stays unknown until the owner
-        # or the registry says.
         if (
             row.physical_format is not None
             and row.format_source == FormatSource.REGISTRY
@@ -362,9 +571,35 @@ def create_recommendations_router(
             ).items():
                 setattr(item, field, value)
         session.add(item)
-        row.status = RecommendationStatus.WANTED
+        row.status = answered
         await session.commit()
         return {"item_id": str(item.id)}
+
+    @router.post("/{recommendation_id}/want", status_code=201)
+    async def want(
+        recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict:
+        """Want: no owned copy, public (the owner's decision, E7c)."""
+        return await _add_item(
+            session,
+            recommendation_id,
+            OwnedFormat.NONE,
+            True,
+            RecommendationStatus.WANTED,
+        )
+
+    @router.post("/{recommendation_id}/own", status_code=201)
+    async def own(
+        recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict:
+        """Already own: a physical copy, private until the owner publishes it."""
+        return await _add_item(
+            session,
+            recommendation_id,
+            OwnedFormat.PHYSICAL,
+            False,
+            RecommendationStatus.OWNED,
+        )
 
     async def _answer(
         recommendation_id: uuid.UUID,

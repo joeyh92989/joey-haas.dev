@@ -24,6 +24,7 @@ from models import (
 )
 from physical_sources.catalogue import upsert_editions, upsert_listings
 from radar_load import (
+    DISCOVER_PLATFORMS,
     RADAR_PLATFORMS,
     collection_platforms,
     excluded_games,
@@ -286,3 +287,15 @@ async def test_open_preorder_boundaries(session, closes, released, is_open):
     )
     (row,) = await session.scalars(select(StoreListing))
     assert open_preorder(listing_view(row), TODAY) is is_open
+
+
+async def test_discover_reads_n64_from_the_collection_and_radar_does_not(session):
+    session.add_all(
+        [
+            _item("Switch 2 game", "40", platform_id=508),
+            _item("N64 game", "41", platform_id=4),
+        ]
+    )
+    await session.flush()
+    assert await collection_platforms(session, DISCOVER_PLATFORMS) == (4, 508)
+    assert await collection_platforms(session) == (508,)
