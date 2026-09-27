@@ -2421,3 +2421,87 @@ footer {
     font-size: 2rem;
   }
 }
+
+/* Radar (/admin/radar): suggestion cards beside the shelf's poster grid. */
+.radar-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.radar-header button,
+.radar-actions button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.7rem;
+}
+
+.radar-header button:disabled,
+.radar-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.radar-month {
+  font-size: 1rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.radar-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--grid-gap);
+}
+
+.radar-card {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.radar-cover img {
+  width: 100%;
+  border-radius: 4px;
+}
+
+.radar-body h3 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+
+.radar-body p {
+  margin: 0 0 0.4rem;
+}
+
+.radar-reasons,
+.radar-stores {
+  margin: 0 0 0.5rem;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.radar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.radar-digital {
+  margin-top: 1.5rem;
+}
+
+.radar-digital summary {
+  cursor: pointer;
+  font-weight: 600;
+}
