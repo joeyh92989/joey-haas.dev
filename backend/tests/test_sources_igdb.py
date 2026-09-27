@@ -10,8 +10,14 @@ from sources.base import SourceNotConfigured
 from sources.igdb import (
     PLATFORM_IDS,
     PLATFORM_NAMES,
+    UPCOMING_EXCLUDED_STATUSES,
+    UPCOMING_GAME_TYPES,
+    UPCOMING_MAX_PAGES,
+    UPCOMING_MIN_HYPES,
+    UPCOMING_PAGE,
     IgdbSource,
     date_from_unix,
+    parse_upcoming,
     platform_id,
     year_from_unix,
 )
@@ -506,3 +512,119 @@ def test_the_fixture_recorder_asks_for_the_same_fields():
     recorder = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(recorder)
     assert recorder.GAME_FIELDS == FIELDS
+
+
+# --- Radar's upcoming release dates (lane 3) ---------------------------------
+
+UPCOMING = json.loads((FIXTURES / "igdb_upcoming_release_dates.json").read_text())
+SWITCHES = frozenset({130, 508})
+
+
+def test_upcoming_keeps_one_row_per_game_and_platform():
+    rows = parse_upcoming(UPCOMING, SWITCHES)
+    keys = [(row["igdb_id"], row["platform_id"]) for row in rows]
+    assert rows
+    assert len(keys) == len(set(keys))
+    assert {row["platform_id"] for row in rows} <= SWITCHES
+
+
+def test_upcoming_drops_patches_cancellations_other_types_and_low_hype():
+    rows = parse_upcoming(UPCOMING, SWITCHES)
+    kept = {(row["igdb_id"], row["platform_id"]) for row in rows}
+    for source in UPCOMING:
+        game = source.get("game") or {}
+        if (game.get("id"), source.get("platform")) not in kept:
+            continue
+        assert game.get("hypes", 0) >= UPCOMING_MIN_HYPES
+        assert game.get("game_type", 0) in UPCOMING_GAME_TYPES
+    dropped = [
+        source
+        for source in UPCOMING
+        if source.get("status") in UPCOMING_EXCLUDED_STATUSES
+        or (source.get("game") or {}).get("hypes", 0) < UPCOMING_MIN_HYPES
+    ]
+    assert dropped, "the recorded page should exercise the filters"
+
+
+def test_upcoming_rows_carry_what_the_profile_reads():
+    (row, *_) = parse_upcoming(UPCOMING, SWITCHES)
+    assert set(row["snapshot"]) == {
+        "genres",
+        "themes",
+        "keywords",
+        "game_modes",
+        "player_perspectives",
+        "similar_games",
+        "hypes",
+    }
+    assert row["release_date"] > "2026-09-01"
+
+
+def _release(game_id, date_format, date=1830211200, platform=508, **game):
+    return {
+        "date": date,
+        "date_format": date_format,
+        "platform": platform,
+        "status": 6,
+        "game": {
+            "id": game_id,
+            "name": f"G{game_id}",
+            "hypes": 9,
+            "game_type": 0,
+            **game,
+        },
+    }
+
+
+def test_upcoming_precision_follows_the_date_format():
+    rows = parse_upcoming(
+        [_release(i, fmt) for i, fmt in enumerate((0, 1, 2, 3, 6), 1)], SWITCHES
+    )
+    assert [row["release_precision"] for row in rows] == [
+        "day",
+        "month",
+        "year",
+        "quarter",
+        "quarter",
+    ]
+
+
+def test_a_tbd_date_is_not_upcoming():
+    assert parse_upcoming([_release(1, 7, date=None)], SWITCHES) == []
+
+
+def test_the_earliest_date_on_a_platform_wins():
+    rows = parse_upcoming(
+        [_release(1, 0, date=1840000000), _release(1, 0, date=1830000000)], SWITCHES
+    )
+    assert [row["release_date"] for row in rows] == [date_from_unix(1830000000)]
+
+
+def test_cancelled_and_patch_releases_are_not_upcoming():
+    for status in (5, 35, 36):
+        row = _release(1, 0)
+        row["status"] = status
+        assert parse_upcoming([row], SWITCHES) == [], status
+
+
+def test_dlc_and_another_platform_are_not_upcoming():
+    assert parse_upcoming([_release(1, 0, game_type=1)], SWITCHES) == []
+    assert parse_upcoming([_release(2, 0, platform=167)], SWITCHES) == []
+
+
+@pytest.mark.asyncio
+async def test_upcoming_pages_until_a_short_page(monkeypatch):
+    full = [_release(i, 0) for i in range(UPCOMING_PAGE)]
+    calls = _patch_http(
+        monkeypatch, [_FakeResponse(200, full), _FakeResponse(200, UPCOMING[:3])]
+    )
+    await IgdbSource(_config()).upcoming([130, 508], now=1790000000)
+    assert calls.count("games") == 2
+
+
+@pytest.mark.asyncio
+async def test_upcoming_stops_at_the_page_cap(monkeypatch):
+    full = [_release(i, 0) for i in range(UPCOMING_PAGE)]
+    calls = _patch_http(monkeypatch, [_FakeResponse(200, full)])
+    await IgdbSource(_config()).upcoming([508], now=1790000000)
+    assert calls.count("games") == UPCOMING_MAX_PAGES

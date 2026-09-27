@@ -24,13 +24,14 @@ import argparse
 import asyncio
 import json
 import sys
+import time
 from pathlib import Path
 
 BACKEND = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND))
 
 from config import load_config  # noqa: E402
-from sources.igdb import IgdbSource  # noqa: E402
+from sources.igdb import UPCOMING_FIELDS, IgdbSource  # noqa: E402
 
 FIXTURES = BACKEND / "tests" / "fixtures"
 
@@ -94,10 +95,27 @@ def _redact(text: str, secrets: list[str | None]) -> str:
     return text
 
 
-async def record(game_ids: list[int]) -> None:
+async def _record_upcoming(source: IgdbSource) -> None:
+    """One page of upcoming release dates on Switch and Switch 2, for Radar's
+    lane-3 parser. The query is UPCOMING_FIELDS itself, so they cannot drift."""
+    now = int(time.time())
+    rows = await source._query(
+        f"{UPCOMING_FIELDS} where platform = (130,508) & date > {now}; "
+        "sort date asc; limit 500;",
+        endpoint="release_dates",
+    )
+    path = _write("igdb_upcoming_release_dates.json", rows)
+    print(f"upcoming: {len(rows)} release dates")
+    print(f"wrote {path.relative_to(BACKEND)}")
+
+
+async def record(game_ids: list[int], upcoming: bool = False) -> None:
     config = load_config()
     try:
-        await _record(IgdbSource(config), game_ids)
+        if upcoming:
+            await _record_upcoming(IgdbSource(config))
+        else:
+            await _record(IgdbSource(config), game_ids)
     except BaseException as error:
         if isinstance(error, SystemExit):
             raise
@@ -175,8 +193,13 @@ def main() -> None:
         type=int,
         help="IGDB game ids (default: one well-known game per platform)",
     )
+    parser.add_argument(
+        "--upcoming",
+        action="store_true",
+        help="record only Radar's upcoming release dates (Switch, Switch 2)",
+    )
     args = parser.parse_args()
-    asyncio.run(record(args.game_ids))
+    asyncio.run(record(args.game_ids, args.upcoming))
 
 
 if __name__ == "__main__":
