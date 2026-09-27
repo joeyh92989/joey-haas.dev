@@ -6,6 +6,7 @@ from decimal import Decimal
 from discover import (
     BUYABLE_BONUS,
     CANDIDATES,
+    MAX_REASON,
     PICKS,
     PICKS_SCHEMA,
     PROFILE_SIZE,
@@ -306,7 +307,109 @@ def test_fallback_needs_no_profile():
     assert len(picks) == 3 and all(p.reasons for p in picks)
 
 
-def test_attribute_table_is_what_the_prompt_reads():
-    profile = [_owned("a", favorite=True, genres=("Roguelike",))]
-    weights = reference_weights(profile)
-    assert ("genre", "Roguelike") in attribute_table(profile, weights)
+def test_validate_survives_a_based_on_that_is_not_a_list():
+    short = shortlist(_candidates(20), 3)
+    refs = [_owned("a", title="Hades")]
+    (pick,) = validate(
+        {"picks": [{"index": 0, "reason": "Yes.", "based_on": 3}]}, short, refs
+    )
+    assert pick.based_on == ()
+
+
+def test_validate_keeps_a_reason_to_one_capped_line_and_based_on_unique():
+    short = shortlist(_candidates(20), 3)
+    refs = [_owned("a", title="Hades")]
+    long = "word " * 200
+    picks = validate(
+        {
+            "picks": [
+                {
+                    "index": 0,
+                    "reason": "Like Hades.\nPre-orders close tomorrow",
+                    "based_on": [1, 1],
+                },
+                {"index": 1, "reason": long, "based_on": []},
+            ]
+        },
+        short,
+        refs,
+    )
+    assert picks[0].reasons == ("Like Hades. Pre-orders close tomorrow",)
+    assert picks[0].based_on == ("a",)
+    assert len(picks[1].reasons[0]) == MAX_REASON
+
+
+def test_recent_keeps_the_day_three_years_back_and_survives_a_leap_day():
+    assert released(_pool(8, released_on=date(2023, 9, 27)), TODAY, "recent")
+    assert not released(_pool(9, released_on=date(2023, 9, 26)), TODAY, "recent")
+    leap = date(2028, 2, 29)
+    assert released(_pool(10, released_on=date(2025, 2, 28)), leap, "recent")
+    assert not released(_pool(11, released_on=date(2025, 2, 27)), leap, "recent")
+
+
+def test_the_prompt_names_only_liked_genres_and_five_at_most():
+    profile = [
+        _owned("fav", favorite=True, genres=("Platform", "Puzzle", "Indie")),
+        _owned("fav2", favorite=True, genres=("Adventure", "RPG", "Arcade")),
+        _owned("gave-up", status="abandoned", genres=("Shooter",)),
+    ]
+    table = attribute_table(profile, reference_weights(profile))
+    prompt = build_prompt([], references(profile), table)
+    liked = next(
+        line for line in prompt.splitlines() if line.startswith("What they like")
+    )
+    assert "Shooter" not in liked
+    assert len(liked.removeprefix("What they like most: ").split(", ")) == 5
+
+
+def test_an_abandoned_games_genres_are_not_called_liked():
+    profile = [
+        _owned("fav", favorite=True, genres=("Platform",)),
+        _owned("gave-up", status="abandoned", genres=("Shooter", "Strategy")),
+    ]
+    table = attribute_table(profile, reference_weights(profile))
+    prompt = build_prompt([], references(profile), table)
+    assert "What they like most: Platform\n" in prompt
+
+
+def test_equal_scores_are_ordered_by_igdb_id():
+    ranked = prescore([_pool(502), _pool(501)], [], "balanced", TODAY)
+    assert [c.game.candidate.igdb_id for c in ranked] == [501, 502]
+
+
+def test_a_boolean_community_score_is_ignored():
+    game = _pool(600)
+    flagged = _pool(601)
+    flagged.snapshot["community_score"] = True
+    game.snapshot["community_score"] = None
+    first, second = prescore([game, flagged], [], "balanced", TODAY)
+    assert first.item.community_score is None
+    assert second.item.community_score is None
+    assert first.score == second.score
+
+
+def test_fallback_says_well_rated_when_nothing_else_applies():
+    candidates = prescore([_pool(700, physical_format=None)], [], "balanced", TODAY)
+    (pick,) = fallback(candidates, [], TODAY)
+    assert pick.reasons == ("Well rated on IGDB",)
+
+
+def test_fallback_keeps_three_reasons_at_most():
+    profile = [
+        _owned("a", title="Hades", favorite=True, genres=("Adventure",)),
+        _owned("b", title="Dredge", favorite=True, genres=("Adventure",)),
+    ]
+    candidates = prescore(
+        [
+            _pool(
+                800,
+                store_lines=(_line("preorder", TODAY + timedelta(days=5)),),
+                format_note="Includes an art book",
+            )
+        ],
+        profile,
+        "balanced",
+        TODAY,
+    )
+    (pick,) = fallback(candidates, profile, TODAY)
+    assert len(pick.reasons) == 3

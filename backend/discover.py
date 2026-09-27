@@ -50,6 +50,7 @@ PICKS = 8
 PROFILE_SIZE = 10
 RECENT_YEARS = 3
 MAX_REASON = 300
+LIKED_SIZE = 5
 
 PICKS_SCHEMA = {
     "type": "object",
@@ -124,9 +125,16 @@ def released(game: PoolGame, today: date, window: str) -> bool:
     if when is not None and when > today:
         return False
     if window == "recent":
-        cutoff = today.replace(year=today.year - RECENT_YEARS)
-        return when is not None and when >= cutoff
+        return when is not None and when >= _years_before(today, RECENT_YEARS)
     return True
+
+
+def _years_before(today: date, years: int) -> date:
+    """The same day `years` earlier; 29 February becomes the 28th."""
+    try:
+        return today.replace(year=today.year - years)
+    except ValueError:
+        return today.replace(year=today.year - years, day=28)
 
 
 def buyable(game: PoolGame, today: date) -> bool:
@@ -254,11 +262,12 @@ def build_prompt(
     lines = [INSTRUCTIONS, "", "The owner's games:"]
     for number, item in enumerate(refs, 1):
         lines.append(f"{number}. {_named(item)}{_feeling(item)}")
+    # Only what they liked: an abandoned game's genres weigh below zero.
     liked = [
         value
-        for (kind, value), _ in sorted(table.items(), key=lambda pair: -pair[1])
-        if kind in ("genre", "theme")
-    ][:5]
+        for (kind, value), weight in sorted(table.items(), key=lambda pair: -pair[1])
+        if kind in ("genre", "theme") and weight > 0
+    ][:LIKED_SIZE]
     if liked:
         lines.append(f"What they like most: {', '.join(liked)}")
     lines += ["", "Candidates:"]
@@ -317,10 +326,14 @@ def validate(
         if not 0 <= index < len(shortlist) or index in seen:
             continue
         reason = entry.get("reason")
-        if not isinstance(reason, str) or not reason.strip():
+        # One line: the card splits reasons on newlines, so a line break in
+        # the model's text would read as a separate fact.
+        reason = " ".join(reason.split()) if isinstance(reason, str) else ""
+        if not reason:
             continue
+        numbers = entry.get("based_on")
         based_on: list[str] = []
-        for number in entry.get("based_on") or []:
+        for number in numbers if isinstance(numbers, list) else []:
             if isinstance(number, int) and not isinstance(number, bool):
                 if 1 <= number <= len(refs) and refs[number - 1].id not in based_on:
                     based_on.append(refs[number - 1].id)
@@ -330,7 +343,7 @@ def validate(
         found.append(
             Pick(
                 candidate=candidate,
-                reasons=(reason.strip()[:MAX_REASON], *extras),
+                reasons=(reason[:MAX_REASON], *extras),
                 based_on=tuple(based_on),
                 ranked_by="model",
             )
