@@ -54,6 +54,14 @@ export function rankingWords(discover) {
     : 'Ranked by taste alone.'
 }
 
+/** What an empty Picks section says. */
+export function emptyWords(discover, emptyNote) {
+  if (emptyNote) return `Nothing to pick: ${emptyNote}.`
+  if (discover?.generated_at)
+    return 'Nothing left to answer. Generate for more.'
+  return 'Nothing yet. Generate to read the catalogue.'
+}
+
 function Choice({ legend, name, options, value, onChange }) {
   return (
     <fieldset className="discover-choice">
@@ -90,6 +98,9 @@ export default function AdminDiscover() {
   const [platforms, setPlatforms] = useState([])
   const [keyCards, setKeyCards] = useState(false)
   const [message, setMessage] = useState(null)
+  // Why this session's last generate found nothing: with no rows stored,
+  // the list cannot say.
+  const [emptyNote, setEmptyNote] = useState(null)
   const [error, setError] = useState(null)
 
   const apply = useCallback((result) => {
@@ -139,6 +150,7 @@ export default function AdminDiscover() {
       }
       const result = await response.json()
       setMessage(result.count === 1 ? '1 pick' : `${result.count} picks`)
+      setEmptyNote(result.count ? null : result.model_note)
     } catch {
       setError(UNREACHABLE)
     } finally {
@@ -271,14 +283,17 @@ export default function AdminDiscover() {
       {error && <p role="alert">{error}</p>}
       {state === 'loading' && <p className="muted">Loading Discover…</p>}
 
-      <RateAFew items={items} />
+      <RateAFew
+        items={items}
+        onRated={() => {
+          // Re-read so the personalisation note follows the new rating.
+          void fetchDiscover().then(apply)
+        }}
+      />
 
       <h2>Picks</h2>
       {discover && !picks.length ? (
-        <p className="muted">
-          {discover.model_note ??
-            'Nothing yet. Generate to read the catalogue.'}
-        </p>
+        <p className="muted">{emptyWords(discover, emptyNote)}</p>
       ) : (
         <div className="radar-cards">
           {picks.map((row) => (

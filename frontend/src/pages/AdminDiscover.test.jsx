@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import AdminDiscover, { rankingWords } from './AdminDiscover.jsx'
+import AdminDiscover, { emptyWords, rankingWords } from './AdminDiscover.jsx'
 
 function pick(id, fields = {}) {
   return {
@@ -83,6 +83,20 @@ describe('rankingWords', () => {
       }),
     ).toBe("Ranked by taste alone: Gemini's daily quota is used up.")
     expect(rankingWords({ ...DISCOVER, picks: [] })).toBeNull()
+  })
+})
+
+describe('emptyWords', () => {
+  it('says why a generate found nothing, else whether a batch was answered', () => {
+    expect(emptyWords(DISCOVER, 'Nothing in the catalogue fits yet')).toBe(
+      'Nothing to pick: Nothing in the catalogue fits yet.',
+    )
+    expect(emptyWords(DISCOVER, null)).toBe(
+      'Nothing left to answer. Generate for more.',
+    )
+    expect(emptyWords({ ...DISCOVER, generated_at: null }, null)).toBe(
+      'Nothing yet. Generate to read the catalogue.',
+    )
   })
 })
 
@@ -246,19 +260,119 @@ describe('AdminDiscover', () => {
   })
 
   it('says what an empty generation found', async () => {
-    stubApi(
-      {},
-      {
-        ...DISCOVER,
-        picks: [],
-        ranked_by: null,
-        model_note: null,
+    let listed = DISCOVER
+    stubApi({
+      'POST /api/recommendations/generate': () => {
+        listed = { ...DISCOVER, picks: [], ranked_by: null, model_note: null }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            count: 0,
+            ranked_by: 'template',
+            model_note: 'Nothing in the catalogue fits yet',
+          }),
+        }
       },
+      'GET /api/recommendations': () => ({
+        ok: true,
+        status: 200,
+        json: async () => listed,
+      }),
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Pick a' })
+    await userEvent.click(screen.getByRole('button', { name: /^Generate/ }))
+    expect(
+      await screen.findByText(
+        'Nothing to pick: Nothing in the catalogue fits yet.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('says nothing is left once every pick is answered', async () => {
+    stubApi(
+      {
+        'POST /api/recommendations/a/skip': () => ({
+          ok: true,
+          status: 200,
+          json: async () => ({}),
+        }),
+      },
+      { ...DISCOVER, picks: [pick('a')] },
     )
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Skip Pick a' }),
+    )
+    expect(
+      await screen.findByText('Nothing left to answer. Generate for more.'),
+    ).toBeInTheDocument()
+  })
+
+  it('says it has not generated yet', async () => {
+    stubApi({}, { ...DISCOVER, generated_at: null, picks: [] })
     renderPage()
     expect(
       await screen.findByText('Nothing yet. Generate to read the catalogue.'),
     ).toBeInTheDocument()
+  })
+
+  it('says when the ranking is not personal yet', async () => {
+    stubApi({}, { ...DISCOVER, personalised: false })
+    renderPage()
+    expect(
+      await screen.findByText(/Ranked by the community alone/),
+    ).toBeInTheDocument()
+  })
+
+  it('Want says so and takes the card away', async () => {
+    stubApi({
+      'POST /api/recommendations/a/want': () => ({
+        ok: true,
+        status: 201,
+        json: async () => ({}),
+      }),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Want Pick a' }),
+    )
+    expect(await screen.findByRole('status')).toHaveTextContent('Wanted Pick a')
+    expect(screen.queryByRole('heading', { name: 'Pick a' })).toBeNull()
+  })
+
+  it('reads Discover again after a rating', async () => {
+    const calls = stubApi({
+      'GET /api/items': () => ({
+        ok: true,
+        status: 200,
+        json: async () => [
+          {
+            id: 'i1',
+            type: 'game',
+            title: 'Celeste',
+            status: 'finished',
+            rating: null,
+          },
+        ],
+      }),
+      'PATCH /api/items/i1': () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+      }),
+    })
+    renderPage()
+    const celeste = await screen.findByRole('group', { name: 'Celeste' })
+    const reads = () =>
+      calls.filter((call) => call.path.startsWith('/api/recommendations?'))
+        .length
+    const before = reads()
+    await userEvent.click(
+      within(celeste).getByRole('radio', { name: 'Rate 9 out of 10' }),
+    )
+    await waitFor(() => expect(reads()).toBe(before + 1))
   })
 
   it('asks a signed-out visitor to sign in', async () => {

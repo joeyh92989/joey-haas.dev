@@ -1,7 +1,7 @@
 import CoverImage from './CoverImage.jsx'
 
 // Mirrors FORMAT_WORDS in backend/physical_sources/limits.py.
-export const FORMAT_WORDS = {
+const FORMAT_WORDS = {
   game_card: 'Full game on cartridge',
   game_key_card: 'Game-Key Card',
   code_in_box: 'Code in a box',
@@ -9,7 +9,7 @@ export const FORMAT_WORDS = {
 }
 
 /** The answers Radar offers; Discover adds Already own. */
-export const RADAR_ACTIONS = ['want', 'dismiss', 'skip']
+const RADAR_ACTIONS = ['want', 'dismiss', 'skip']
 export const DISCOVER_ACTIONS = ['want', 'dismiss', 'own', 'skip']
 
 const ACTION_WORDS = {
