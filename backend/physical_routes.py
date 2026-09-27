@@ -270,16 +270,18 @@ def create_physical_router(
     registry: dict,
     http_client_factory: Callable,
     sheets_key: str | None,
+    lock: asyncio.Lock | None = None,
 ) -> APIRouter:
     """Builds the catalogue routes. `http_client_factory` returns an async
     context-managed HTTP client carrying the tracker's User-Agent; tests pass
-    one that serves the recorded fixtures."""
+    one that serves the recorded fixtures. `lock` is the catalogue's write
+    lock, shared with Radar's generate so the two never overlap."""
     router = APIRouter(
         prefix="/api/physical",
         tags=["physical"],
         dependencies=[Depends(require_admin)],
     )
-    lock = asyncio.Lock()
+    lock = lock or asyncio.Lock()
 
     async def get_session() -> AsyncIterator[AsyncSession]:
         async with factory() as session:

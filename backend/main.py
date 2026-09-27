@@ -6,6 +6,7 @@ path for a visitor. Individual personal projects can be mounted here later as
 routers (one module per project).
 """
 
+import asyncio
 import logging
 
 import httpx2
@@ -23,6 +24,7 @@ from physical_routes import create_physical_router
 from physical_sources.limits import REQUEST_TIMEOUT_SECONDS, USER_AGENT
 from picker_routes import create_picker_router
 from public import create_public_router
+from recommendations_routes import create_recommendations_router
 from schema_check import verify_schema_is_current
 from sources.registry import build_registry, configured_sources
 
@@ -97,10 +99,20 @@ def physical_http_client() -> httpx2.AsyncClient:
     )
 
 
+# One write lock for the catalogue: a store refresh and Radar's generate
+# never run at once.
+catalogue_lock = asyncio.Lock()
 app.include_router(
     create_physical_router(
-        session_factory, registry, physical_http_client, config.google_sheets_api_key
+        session_factory,
+        registry,
+        physical_http_client,
+        config.google_sheets_api_key,
+        lock=catalogue_lock,
     )
+)
+app.include_router(
+    create_recommendations_router(session_factory, registry, catalogue_lock)
 )
 # The provider is built per request rather than here, so an absent model key
 # is a failure of the import route alone rather than a service that will not
