@@ -386,3 +386,28 @@ Note: the API runs on Render's free tier, which spins down after ~15 min of
 inactivity (first request then takes ~30 s). Only `/collection` calls the API,
 and it shows a waking state while that happens; every other public page never
 waits on it. Upgrade to Starter ($7/mo) to keep it warm.
+
+## Collection snapshot
+
+`/collection` first paints a snapshot of the public API, then refreshes it
+from the live API, so a first-time visitor doesn't wait for the free-tier
+backend to wake. Home and Projects read the same file for their cover
+strips.
+
+- **Written by** the Render static build: `frontend/scripts/fetch-snapshot.mjs`
+  runs first in `npm run build`, and only where `VITE_API_URL` is set. See
+  `frontend/scripts/README.md`.
+- **Refreshed by** every deploy, plus `.github/workflows/snapshot.yml`. It runs
+  daily at 09:23 UTC and on demand from the Actions tab, compares the live API
+  bodies with the deployed `/snapshot/*.json`, and triggers a static-site
+  deploy only when they differ. It never pushes, and the snapshot is never
+  committed.
+- **Setup (once):** in Render, go to the static site → Settings → Deploy Hook
+  and copy the URL. In GitHub, go to Settings → Secrets and variables →
+  Actions and add it as `RENDER_DEPLOY_HOOK_URL`. The URL is a secret: anyone
+  who has it can trigger deploys.
+- **Gotcha:** GitHub switches off scheduled workflows in a public repository
+  after 60 days with no repository activity. If the snapshot stops refreshing
+  after a quiet spell, re-enable the workflow from the Actions tab.
+- **The API is not redeployed** by any of this. Its `rootDir` is `backend`, so
+  Render deploys it only for changes under `backend/`.
