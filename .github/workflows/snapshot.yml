@@ -43,6 +43,11 @@ jobs:
       - name: Compare the API with the deployed snapshot
         id: compare
         run: |
+          # GitHub's default shell is bash -e without pipefail, so a failed
+          # curl into jq would leave an empty file and read as "changed".
+          # The live side must fail the step; the deployed side is inside an
+          # if, where a failure still just means "changed or missing".
+          set -o pipefail
           changed=""
           for name in items stats; do
             curl -fsS -m 60 "$API_URL/api/public/$name" | jq -S . > "live-$name.json"
