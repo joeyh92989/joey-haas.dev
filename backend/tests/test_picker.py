@@ -573,7 +573,7 @@ def test_a_rated_reference_is_named_with_its_rating():
     result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
     short = next(p for p in result.picks if p.item.id == "slay")
     assert (
-        "Shares deck-building and Card & Board Game with Inscryption, which you rated 9"
+        "Shares deck-building and Card & Board Game with Inscryption, which I rated 9"
         in short.reasons
     )
 

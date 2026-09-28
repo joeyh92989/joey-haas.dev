@@ -417,11 +417,15 @@ def _month(value: date) -> str:
 
 
 def _named(reference: PickerItem) -> str:
-    """ "Hades ♥" for a favourite, "Celeste, which you rated 9" when rated."""
+    """ "Hades ♥" for a favourite, "Celeste, which I rated 9" when rated.
+
+    First person everywhere (showcase spec, K9): the owner reads it in admin,
+    and the public reads it under Recent picks.
+    """
     if reference.favorite:
         return f"{reference.title} ♥"
     if reference.rating is not None:
-        return f"{reference.title}, which you rated {reference.rating}"
+        return f"{reference.title}, which I rated {reference.rating}"
     return reference.title
 
 
