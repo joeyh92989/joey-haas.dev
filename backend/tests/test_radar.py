@@ -121,6 +121,18 @@ def test_a_past_date_is_not_on_radar_unless_it_is_a_preorder():
     assert section_for(past, "preorder", TODAY, False) == "suggested"
 
 
+def test_a_suggestion_keeps_the_candidates_release_source():
+    registry = _pool(7, release_source="registry")
+    store = _pool(8, release_source="store")
+    igdb = _pool(9, release_source="igdb_first")
+    ranked = {
+        s.igdb_id: s for s in build([registry, store, igdb], [], [], set(), TODAY)
+    }
+    assert ranked[7].release_source == "registry"
+    assert ranked[8].release_source == "store"
+    assert ranked[9].release_source == "igdb_first"
+
+
 def test_key_cards_stay_off_unless_asked():
     card = _candidate(5, physical_format="game_key_card")
     code = _candidate(6, physical_format="code_in_box")

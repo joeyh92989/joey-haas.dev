@@ -125,6 +125,9 @@ class Candidate:
     store_lines: tuple[StoreLine, ...]
     listing_ids: tuple[str, ...]
     edition_ids: tuple[str, ...]
+    # Where release_date came from: "registry", "store", "igdb_first" or None.
+    # Only a registry date may be published (showcase spec change 7).
+    release_source: str | None = None
 
 
 @dataclass(frozen=True)
@@ -212,18 +215,24 @@ def _best(claims: list[_Claim]) -> _Claim | None:
 
 
 def _release(editions, listings, game, home):
+    """The release date, its precision and where it came from.
+
+    A registry row in the home region first, then one in any region, then a
+    store listing, then IGDB's first release date for the game. The source
+    is returned too because only a registry date is public.
+    """
     registry = [e for e in editions if e.source in REGISTRY_SOURCES and e.release_date]
-    for pool in (
-        [e for e in registry if e.region in (home, "ALL")],
-        registry,
-        [listing for listing in listings if listing.release_date],
+    for pool, source in (
+        ([e for e in registry if e.region in (home, "ALL")], "registry"),
+        (registry, "registry"),
+        ([listing for listing in listings if listing.release_date], "store"),
     ):
         if pool:
             first = min(pool, key=lambda row: row.release_date)
-            return first.release_date, first.release_precision
+            return first.release_date, first.release_precision, source
     if game is not None and game.release_date:
-        return game.release_date, "day"
-    return None, None
+        return game.release_date, "day", "igdb_first"
+    return None, None, None
 
 
 def collapse(
@@ -269,7 +278,7 @@ def collapse(
             name = elsewhere.route.split(" (")[0]
             note = f"Full game on cartridge in {elsewhere.region} — {name}"
 
-    released, precision = _release(editions, listings, game, home)
+    released, precision, release_source = _release(editions, listings, game, home)
     return Candidate(
         igdb_id=igdb_id,
         platform_id=platform_id,
@@ -298,6 +307,7 @@ def collapse(
         ),
         listing_ids=tuple(listing.id for listing in listings),
         edition_ids=tuple(e.id for e in editions),
+        release_source=release_source,
     )
 
 
