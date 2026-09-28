@@ -12,15 +12,27 @@ so "the one unauthenticated router" stays one.
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Item, ItemStatus, ItemType, OwnedFormat, PickAction, PickEvent
+from models import (
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+    PhysicalFormat,
+    PickAction,
+    PickEvent,
+    Recommendation,
+    RecommendationKind,
+    RecommendationStatus,
+)
 from picker import public_reasons
 from picker_routes import to_picker_item
+from radar import NEAR_PRECISIONS
 
 # Picks from the most recent UTC day Play Next showed anything, if that day is
 # within this window; older picks are not "recent" and the section hides.
@@ -118,4 +130,73 @@ async def load_public_picks(
             reasons=list(public_reasons(to_picker_item(row), profile)),
         )
         for row in picks
+    ]
+
+
+RADAR_LIMIT = 6
+IGDB_URL_PREFIX = "https://www.igdb.com/"
+
+
+class PublicRadarOut(BaseModel):
+    """An upcoming cartridge from Radar, as the public sees it.
+
+    Deliberately not a recommendation: no store, price, currency,
+    availability, store link, pre-order window, score, reason or id. Those
+    are the owner's shopping, and the store data is read under robots.txt
+    courtesy for private use (showcase review, Part 2).
+    """
+
+    title: str
+    platform: str | None
+    physical_format: PhysicalFormat
+    release_date: date
+    release_precision: str
+    igdb_url: str | None
+    cover_url: str | None
+
+
+def _igdb_url(metadata: dict) -> str | None:
+    """IGDB's own page URL from the snapshot, or None. Anything not on
+    igdb.com is dropped rather than published as a link."""
+    snapshot = metadata.get("snapshot")
+    url = snapshot.get("url") if isinstance(snapshot, dict) else None
+    return url if isinstance(url, str) and url.startswith(IGDB_URL_PREFIX) else None
+
+
+async def load_public_radar(session: AsyncSession, today: date) -> list[PublicRadarOut]:
+    """The six best-scored pending Radar suggestions that are full cartridges
+    dated to a day or month after today, soonest first.
+
+    Pending only: a wanted game is already an item and shows in "On the
+    radar"; dismissed and owned ones are answered. Discover never appears.
+    """
+    rows = (
+        await session.execute(
+            select(Recommendation)
+            .where(
+                Recommendation.kind == RecommendationKind.RADAR,
+                Recommendation.status == RecommendationStatus.PENDING,
+                Recommendation.physical_format == PhysicalFormat.GAME_CARD,
+                Recommendation.release_date > today,
+            )
+            .order_by(Recommendation.score.desc(), Recommendation.title)
+        )
+    ).scalars()
+    near = [
+        row
+        for row in rows
+        if (row.source_metadata or {}).get("release_precision") in NEAR_PRECISIONS
+    ][:RADAR_LIMIT]
+    near.sort(key=lambda row: (row.release_date, row.title))
+    return [
+        PublicRadarOut(
+            title=row.title,
+            platform=row.platform,
+            physical_format=row.physical_format,
+            release_date=row.release_date,
+            release_precision=row.source_metadata["release_precision"],
+            igdb_url=_igdb_url(row.source_metadata),
+            cover_url=row.cover_url,
+        )
+        for row in near
     ]

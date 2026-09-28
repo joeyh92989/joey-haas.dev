@@ -13,11 +13,16 @@ from models import (
     ItemStatus,
     ItemType,
     OwnedFormat,
+    PhysicalFormat,
     PickAction,
     PickEvent,
+    ReasonSource,
+    Recommendation,
+    RecommendationKind,
+    RecommendationStatus,
 )
 from public import create_public_router
-from public_outputs import PublicPickOut
+from public_outputs import PublicPickOut, PublicRadarOut
 
 pytestmark = pytest.mark.asyncio
 
@@ -253,3 +258,144 @@ async def test_picks_from_six_days_ago_are_still_inside_the_window(
         body = (await client.get("/api/public/picks")).json()
 
     assert [row["title"] for row in body] == ["Six Days Ago"]
+
+
+RADAR_FIELDS = {
+    "title",
+    "platform",
+    "physical_format",
+    "release_date",
+    "release_precision",
+    "igdb_url",
+    "cover_url",
+}
+TODAY = NOW.date()
+
+
+def _radar(title: str, **fields) -> Recommendation:
+    metadata = {
+        "lane": "preorder",
+        "section": "suggested",
+        "release_precision": "day",
+        "hypes": 40,
+        "store_lines": [
+            {
+                "store": "Limited Run Games",
+                "price": "59.99",
+                "currency": "USD",
+                "availability": "preorder",
+                "preorder_closes_at": "2026-11-08T00:00:00+00:00",
+                "url": "https://limitedrungames.com/products/x",
+            }
+        ],
+        "snapshot": {"url": f"https://www.igdb.com/games/{title.lower()}"},
+    }
+    base = dict(
+        kind=RecommendationKind.RADAR,
+        type=ItemType.GAME,
+        title=title,
+        external_source="igdb",
+        external_id=title.lower().replace(" ", "-"),
+        release_date=TODAY + timedelta(days=60),
+        cover_url=f"https://images.igdb.com/{title}.jpg",
+        reason="Pre-orders close Nov 8 at Limited Run Games · $59.99",
+        reason_source=ReasonSource.TEMPLATE,
+        based_on=["x"],
+        score=50,
+        batch_id=uuid.uuid4(),
+        status=RecommendationStatus.PENDING,
+        platform_id=508,
+        platform="Nintendo Switch 2",
+        physical_format=PhysicalFormat.GAME_CARD,
+        source_metadata=metadata,
+    )
+    overrides = fields.pop("source_metadata", None)
+    row = Recommendation(**{**base, **fields})
+    if overrides is not None:
+        row.source_metadata = {**metadata, **overrides}
+    return row
+
+
+async def test_the_radar_model_publishes_exactly_these_fields():
+    assert set(PublicRadarOut.model_fields) == RADAR_FIELDS
+
+
+async def test_radar_lists_the_top_upcoming_cartridges_soonest_first(
+    sessionmaker_for_test,
+):
+    rows = [
+        _radar(f"Game {n}", score=n * 10, release_date=TODAY + timedelta(days=100 - n))
+        for n in range(1, 9)
+    ]
+    await _add(sessionmaker_for_test, *rows)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/radar")
+
+    assert response.status_code == 200
+    body = response.json()
+    # Top six by score (Game 8 .. Game 3), shown soonest first.
+    assert [row["title"] for row in body] == [
+        "Game 8",
+        "Game 7",
+        "Game 6",
+        "Game 5",
+        "Game 4",
+        "Game 3",
+    ]
+    for row in body:
+        assert set(row) == RADAR_FIELDS
+        assert row["physical_format"] == "game_card"
+        assert row["igdb_url"].startswith("https://www.igdb.com/games/")
+
+
+async def test_radar_leaves_out_what_is_not_a_public_upcoming_cartridge(
+    sessionmaker_for_test,
+):
+    await _add(
+        sessionmaker_for_test,
+        _radar("Keep"),
+        _radar("Discover", kind=RecommendationKind.DISCOVER),
+        _radar("Wanted", status=RecommendationStatus.WANTED),
+        _radar("Dismissed", status=RecommendationStatus.DISMISSED),
+        _radar("Key Card", physical_format=PhysicalFormat.GAME_KEY_CARD),
+        _radar("Digital", physical_format=None),
+        _radar("Released", release_date=TODAY),
+        _radar("Undated", release_date=None),
+        _radar("Some Year", source_metadata={"release_precision": "year"}),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/radar")).json()
+    assert [row["title"] for row in body] == ["Keep"]
+
+
+async def test_radar_links_only_to_igdb(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _radar("Linked"),
+        _radar("Script", source_metadata={"snapshot": {"url": "javascript:alert(1)"}}),
+        _radar("Bare", source_metadata={"snapshot": {}}),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        body = {
+            row["title"]: row for row in (await client.get("/api/public/radar")).json()
+        }
+    assert body["Linked"]["igdb_url"] == "https://www.igdb.com/games/linked"
+    assert body["Script"]["igdb_url"] is None
+    assert body["Bare"]["igdb_url"] is None
+
+
+async def test_radar_publishes_no_store_price_window_or_reason(sessionmaker_for_test):
+    await _add(sessionmaker_for_test, _radar("Leaky"))
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/radar")
+    assert set(response.json()[0]) == RADAR_FIELDS
+    for leaked in (
+        "Limited Run Games",
+        "59.99",
+        "Pre-orders close",
+        "limitedrungames.com",
+        "preorder",
+        "suggested",
+        "score",
+    ):
+        assert leaked not in response.text

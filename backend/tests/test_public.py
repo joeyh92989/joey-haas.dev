@@ -29,7 +29,7 @@ from public import (
     PublicStatsOut,
     create_public_router,
 )
-from public_outputs import PublicPickOut
+from public_outputs import PublicPickOut, PublicRadarOut
 
 pytestmark = pytest.mark.asyncio
 
@@ -652,7 +652,13 @@ def _field_names(model, seen=None) -> set[str]:
 
 # Every public response model. A new one goes here, so the name checks below
 # cover it.
-PUBLIC_MODELS = (PublicItemOut, PublicItemDetailOut, PublicStatsOut, PublicPickOut)
+PUBLIC_MODELS = (
+    PublicItemOut,
+    PublicItemDetailOut,
+    PublicStatsOut,
+    PublicPickOut,
+    PublicRadarOut,
+)
 
 
 async def test_no_public_model_names_a_catalogue_field():

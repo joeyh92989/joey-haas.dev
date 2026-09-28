@@ -31,7 +31,12 @@ from models import (
     OwnedFormat,
     PhysicalFormat,
 )
-from public_outputs import PublicPickOut, load_public_picks
+from public_outputs import (
+    PublicPickOut,
+    PublicRadarOut,
+    load_public_picks,
+    load_public_radar,
+)
 
 # Lifted out of the source_metadata snapshot rather than publishing the
 # snapshot itself: its shape varies per source and may carry fields nobody
@@ -429,6 +434,14 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         """Play Next's most recent picks among public games. Read-only: the
         picks were shown to the owner; nothing is generated here."""
         return await load_public_picks(session, datetime.now(UTC))
+
+    @router.get("/radar", response_model=list[PublicRadarOut])
+    async def public_radar(
+        session: AsyncSession = Depends(get_session),
+    ) -> list[PublicRadarOut]:
+        """Radar's next cartridges: title, platform, date and an IGDB link.
+        No store, price or pre-order detail."""
+        return await load_public_radar(session, datetime.now(UTC).date())
 
     # Declared last, after the literal /items and /stats: a typed uuid would
     # 422 rather than fall through, but the order keeps that from mattering.
