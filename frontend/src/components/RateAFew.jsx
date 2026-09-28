@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import QuickRate from './QuickRate.jsx'
@@ -11,6 +11,11 @@ const LIMIT = 6
  * profile Discover and Play Next rank by. Dismissible, and the dismissal
  * is remembered in this browser.
  *
+ * A table, so each game's stars sit beside its title. A game rated here
+ * stays in the table with its score for the session, so the owner can see
+ * what was saved and fix a mis-tap; Next few moves on once all six are
+ * rated.
+ *
  * @param {object} props
  * @param {object[]} props.items - The owner's items, as `GET /api/items` returns them.
  * @param {() => void} [props.onRated] - Called after each rating is saved.
@@ -19,24 +24,38 @@ export default function RateAFew({ items, onRated }) {
   const [hidden, setHidden] = useState(
     () => readShelfPref(PREF, 'shown') === 'hidden',
   )
-  const [rated, setRated] = useState(() => new Set())
+  // This session's answers by item id: a number, or null once cleared.
+  const [scores, setScores] = useState(() => new Map())
+  // Rated games moved past with Next few.
+  const [done, setDone] = useState(() => new Set())
   // Saves in flight, per game: rating one never blocks another.
   const [saving, setSaving] = useState(() => new Set())
   const [error, setError] = useState(null)
+  // Next few removes the button that had focus: hand it to the new rows
+  // once they are rendered.
+  const focusNewRows = useRef(false)
+  const table = useRef(null)
 
-  const unrated = items
-    .filter(
-      (item) =>
-        item.type === 'game' &&
-        item.status === 'finished' &&
-        item.rating == null &&
-        !rated.has(item.id),
-    )
-    .slice(0, LIMIT)
-  if (hidden || !unrated.length) return null
+  useEffect(() => {
+    if (!focusNewRows.current) return
+    focusNewRows.current = false
+    table.current?.querySelector('[role="radio"][tabindex="0"]')?.focus()
+  })
+
+  const pool = items.filter(
+    (item) =>
+      item.type === 'game' &&
+      item.status === 'finished' &&
+      !done.has(item.id) &&
+      (item.rating == null || scores.has(item.id)),
+  )
+  const shown = pool.slice(0, LIMIT)
+  if (hidden || !shown.length) return null
+  const allRated = shown.every((item) => scores.get(item.id) != null)
+  const more = allRated && pool.length > shown.length
 
   async function rate(item, rating) {
-    if (rating == null || saving.has(item.id)) return
+    if (saving.has(item.id)) return
     setSaving((current) => new Set(current).add(item.id))
     setError(null)
     try {
@@ -46,10 +65,10 @@ export default function RateAFew({ items, onRated }) {
         body: JSON.stringify({ rating }),
       })
       if (!response.ok) {
-        setError(await errorMessage(response))
+        setError(`${item.title}: ${await errorMessage(response)}`)
         return
       }
-      setRated((current) => new Set(current).add(item.id))
+      setScores((current) => new Map(current).set(item.id, rating))
       onRated?.()
     } catch {
       setError('Could not reach the API. Try again shortly.')
@@ -60,6 +79,15 @@ export default function RateAFew({ items, onRated }) {
         return next
       })
     }
+  }
+
+  function nextFew() {
+    setDone((current) => {
+      const next = new Set(current)
+      for (const item of shown) next.add(item.id)
+      return next
+    })
+    focusNewRows.current = true
   }
 
   function notNow() {
@@ -75,26 +103,54 @@ export default function RateAFew({ items, onRated }) {
         Discover and Play Next suggest.
       </p>
       {error && <p role="alert">{error}</p>}
-      <ul className="rate-a-few-list">
-        {unrated.map((item) => (
-          <li key={item.id}>
-            {/* Each game's stars are a group named for it, since every
-                QuickRate is labelled "Rating". */}
-            <div
-              className="rate-a-few-game"
-              role="group"
-              aria-label={item.title}
-              aria-busy={saving.has(item.id) || undefined}
-            >
-              <span>{item.title}</span>
-              <QuickRate value={null} onChange={(next) => rate(item, next)} />
-            </div>
-          </li>
-        ))}
-      </ul>
-      <button type="button" onClick={notNow}>
-        Not now
-      </button>
+      <table className="rate-a-few-table" ref={table}>
+        <thead>
+          <tr>
+            <th scope="col">Game</th>
+            <th scope="col">Rating</th>
+            <th scope="col">Saved</th>
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((item) => {
+            const score = scores.get(item.id) ?? null
+            return (
+              <tr key={item.id} aria-busy={saving.has(item.id) || undefined}>
+                <th scope="row">
+                  {item.title}
+                  {item.platform && (
+                    <span className="rate-a-few-platform">
+                      {' '}
+                      · {item.platform}
+                    </span>
+                  )}
+                </th>
+                <td>
+                  <div role="group" aria-label={`Rating for ${item.title}`}>
+                    <QuickRate
+                      value={score}
+                      onChange={(next) => rate(item, next)}
+                    />
+                  </div>
+                </td>
+                <td className="rate-a-few-score">
+                  {score == null ? '—' : `${score}/10 saved`}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <div className="rate-a-few-actions">
+        {more && (
+          <button type="button" onClick={nextFew}>
+            Next few
+          </button>
+        )}
+        <button type="button" onClick={notNow}>
+          Not now
+        </button>
+      </div>
     </section>
   )
 }

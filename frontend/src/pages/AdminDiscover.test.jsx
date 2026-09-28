@@ -256,7 +256,9 @@ describe('AdminDiscover', () => {
     expect(
       await screen.findByRole('heading', { name: 'Rate a few' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'Celeste' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('group', { name: 'Rating for Celeste' }),
+    ).toBeInTheDocument()
   })
 
   it('says what an empty generation found', async () => {
@@ -389,10 +391,9 @@ describe('AdminDiscover', () => {
       await screen.findByText(/Ranked by the community alone/),
     ).toBeInTheDocument()
     await userEvent.click(
-      within(screen.getByRole('group', { name: 'Celeste' })).getByRole(
-        'radio',
-        { name: 'Rate 9 out of 10' },
-      ),
+      within(
+        screen.getByRole('group', { name: 'Rating for Celeste' }),
+      ).getByRole('radio', { name: 'Rate 9 out of 10' }),
     )
     await waitFor(() => expect(release).toBeTypeOf('function'))
     await userEvent.click(screen.getByRole('button', { name: 'Want Pick a' }))
