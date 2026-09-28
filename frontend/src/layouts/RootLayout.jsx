@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import joeyPhoto from '../assets/joey.jpg'
 import { profile } from '../content/profile.js'
+import { posts } from '../content/posts.js'
 import { apiFetch, loginUrl } from '../lib/api.js'
 
 const STORAGE_KEY = 'theme'
@@ -30,6 +31,24 @@ function isWideRoute(pathname) {
   return WIDE_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   )
+}
+
+/**
+ * The nav, in order. Blog is listed only while a published post exists:
+ * production builds compile drafts to null, so a repo of drafts would
+ * otherwise put a nav item in front of an empty page.
+ *
+ * @param {boolean} hasPosts Whether any post is published.
+ * @returns {{to: string, label: string, end?: boolean}[]}
+ */
+function navItems(hasPosts) {
+  return [
+    { to: '/', label: 'Home', end: true },
+    { to: '/about', label: 'About' },
+    { to: '/projects', label: 'Projects' },
+    { to: '/collection', label: 'Collection' },
+    ...(hasPosts ? [{ to: '/blog', label: 'Blog' }] : []),
+  ]
 }
 
 /**
@@ -119,12 +138,11 @@ export default function RootLayout() {
           navigation control, and the landmark should not advertise it as one. */}
       <div className={isHome ? 'nav-row home' : 'nav-row'}>
         <nav>
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-          <NavLink to="/about">About</NavLink>
-          <NavLink to="/projects">Projects</NavLink>
-          <NavLink to="/blog">Blog</NavLink>
+          {navItems(posts.length > 0).map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end}>
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
         {/* The visible label names the destination theme; the accessible name
             has to also say what the control does. */}

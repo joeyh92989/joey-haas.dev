@@ -1,8 +1,13 @@
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useOutletContext } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import RootLayout from './RootLayout.jsx'
+
+// posts.js globs frontend/posts/*.md, and the Vitest config has no markdown
+// plugin, so the module is replaced. Tests push onto this array to publish.
+const content = vi.hoisted(() => ({ posts: [] }))
+vi.mock('../content/posts.js', () => content)
 
 function renderAt(path = '/') {
   return render(
@@ -24,6 +29,7 @@ beforeEach(() => {
 
 afterEach(() => {
   localStorage.clear()
+  content.posts.length = 0
   vi.restoreAllMocks()
 })
 
@@ -145,5 +151,42 @@ describe('RootLayout outlet context', () => {
     // Let the rejected check settle before asserting nothing changed.
     await Promise.resolve()
     expect(screen.getByText('signed in: false')).toBeInTheDocument()
+  })
+})
+
+describe('RootLayout nav', () => {
+  function navLabels() {
+    return within(screen.getByRole('navigation'))
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+  }
+
+  it('lists Collection, and no Blog while nothing is published', () => {
+    renderAt('/about')
+    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Collection'])
+  })
+
+  it('adds Blog last once a post is published', () => {
+    content.posts.push({
+      slug: 'first',
+      frontmatter: { title: 'First', date: '2026-10-01' },
+    })
+    renderAt('/about')
+    expect(navLabels()).toEqual([
+      'Home',
+      'About',
+      'Projects',
+      'Collection',
+      'Blog',
+    ])
+  })
+
+  it('keeps Collection current on an item page', () => {
+    renderAt('/collection/abc')
+    expect(
+      within(screen.getByRole('navigation')).getByRole('link', {
+        name: 'Collection',
+      }),
+    ).toHaveAttribute('aria-current', 'page')
   })
 })

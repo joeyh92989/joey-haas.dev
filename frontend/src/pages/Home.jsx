@@ -1,8 +1,9 @@
 import { Link } from 'react-router'
+import CoverStrip from '../components/CoverStrip.jsx'
 import { posts } from '../content/posts.js'
 
 /**
- * Landing page: a greeting, a short introduction, and two ways onward.
+ * Landing page: a greeting, a short introduction, and three ways onward.
  *
  * The introduction is JSX rather than a string in content/profile.js because it
  * carries markup — one word is set in the display serif to pull it out of the
@@ -37,6 +38,14 @@ export default function Home() {
           <span className="link-card-sub">
             The collection tracker, and this very site.
           </span>
+        </Link>
+        <Link className="link-card" to="/collection">
+          <span className="link-card-title">What I’m playing</span>
+          <span className="link-card-arrow"> &rarr;</span>
+          <span className="link-card-sub">
+            The collection: what I own, finish and want next.
+          </span>
+          <CoverStrip />
         </Link>
       </div>
 

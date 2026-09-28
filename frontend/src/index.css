@@ -337,6 +337,14 @@ nav a:focus-visible,
   margin-top: 0.1875rem;
 }
 
+/* Home and Projects: four favourite covers from the build-time snapshot. */
+.cover-strip {
+  display: grid;
+  gap: 0.375rem;
+  grid-template-columns: repeat(4, minmax(0, 3.25rem));
+  margin-top: 0.75rem;
+}
+
 .latest-post {
   background: var(--surface);
   border: 1px solid var(--border);
