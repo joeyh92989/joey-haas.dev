@@ -56,4 +56,16 @@ describe('readSnapshot', () => {
     expect(await readSnapshot('../secrets')).toBeNull()
     expect(fetch).not.toHaveBeenCalled()
   })
+
+  it('is null for an inherited property name, without a request', async () => {
+    const fetch = stubFetch(async () => ({ ok: true, json: async () => [] }))
+    expect(await readSnapshot('constructor')).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('reads the picks and radar snapshots as lists', async () => {
+    stubFetch(async () => ({ ok: true, json: async () => [] }))
+    expect(await readSnapshot('picks')).toEqual([])
+    expect(await readSnapshot('radar')).toEqual([])
+  })
 })

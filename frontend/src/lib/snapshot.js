@@ -19,6 +19,8 @@ const isObject = (value) =>
 const SHAPES = {
   items: Array.isArray,
   stats: isObject,
+  picks: Array.isArray,
+  radar: Array.isArray,
 }
 
 /**
@@ -29,8 +31,8 @@ const SHAPES = {
  *   unreadable or the wrong shape. Never rejects.
  */
 export async function readSnapshot(name) {
+  if (!Object.hasOwn(SHAPES, name)) return null
   const valid = SHAPES[name]
-  if (!valid) return null
   try {
     const response = await fetch(`/snapshot/${name}.json`)
     if (!response.ok) return null
