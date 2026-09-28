@@ -15,7 +15,7 @@ import uuid
 from datetime import UTC, datetime, time, timedelta
 
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Item, ItemStatus, ItemType, OwnedFormat, PickAction, PickEvent
@@ -48,61 +48,63 @@ async def load_public_picks(
     session: AsyncSession, now: datetime
 ) -> list[PublicPickOut]:
     """Up to three public, owned, unpinned backlog or active games shown on
-    the most recent pick day, latest first, with reasons from public rows.
+    the most recent day Play Next showed a game that is still a public
+    suggestion, latest first, with reasons from public rows.
 
-    A game the owner said "never" to, or skipped after it was shown, is not
-    a suggestion any more and is left out.
+    The day is chosen among those games only: a private, pinned or refused
+    game shown later must not move it, or the list would change with rows the
+    public cannot see. A game the owner said "never" to, or skipped after it
+    was shown, is not a suggestion any more.
     """
-    latest = await session.scalar(
-        select(func.max(PickEvent.created_at)).where(
-            PickEvent.action == PickAction.SHOWN
-        )
-    )
-    if latest is None:
-        return []
-    day = latest.astimezone(UTC).date()
-    if now.astimezone(UTC).date() - day >= PICKS_WINDOW:
-        return []
-    start = datetime.combine(day, time.min, tzinfo=UTC)
-    shown = dict(
-        (
-            await session.execute(
-                select(PickEvent.item_id, func.max(PickEvent.created_at))
-                .where(
-                    PickEvent.action == PickAction.SHOWN,
-                    PickEvent.created_at >= start,
-                    PickEvent.created_at < start + timedelta(days=1),
-                )
-                .group_by(PickEvent.item_id)
-            )
-        ).all()
-    )
-    answers = (
-        await session.execute(
-            select(PickEvent.item_id, PickEvent.action, PickEvent.created_at).where(
-                PickEvent.item_id.in_(list(shown)),
-                PickEvent.action.in_((PickAction.NEVER, PickAction.SKIPPED)),
-            )
-        )
-    ).all()
-    refused = {
-        item_id
-        for item_id, action, at in answers
-        if action == PickAction.NEVER or at >= shown[item_id]
-    }
     public_rows = list(
         (await session.execute(select(Item).where(Item.is_public.is_(True)))).scalars()
     )
+    eligible = {
+        row.id: row
+        for row in public_rows
+        if row.owned_format != OwnedFormat.NONE
+        and row.status in PICKABLE
+        and row.pinned_at is None
+    }
+    if not eligible:
+        return []
+    window_start = datetime.combine(
+        now.astimezone(UTC).date() - PICKS_WINDOW + timedelta(days=1),
+        time.min,
+        tzinfo=UTC,
+    )
+    events = (
+        await session.execute(
+            select(PickEvent.item_id, PickEvent.action, PickEvent.created_at).where(
+                PickEvent.item_id.in_(list(eligible)),
+                PickEvent.action.in_(
+                    (PickAction.SHOWN, PickAction.NEVER, PickAction.SKIPPED)
+                ),
+            )
+        )
+    ).all()
+    never = {item_id for item_id, action, _ in events if action == PickAction.NEVER}
+    skipped_at: dict[uuid.UUID, list[datetime]] = {}
+    for item_id, action, at in events:
+        if action == PickAction.SKIPPED:
+            skipped_at.setdefault(item_id, []).append(at)
+    suggestions = [
+        (item_id, at)
+        for item_id, action, at in events
+        if action == PickAction.SHOWN
+        and at >= window_start
+        and item_id not in never
+        and not any(skip >= at for skip in skipped_at.get(item_id, ()))
+    ]
+    if not suggestions:
+        return []
+    day = max(at.astimezone(UTC).date() for _, at in suggestions)
+    shown: dict[uuid.UUID, datetime] = {}
+    for item_id, at in suggestions:
+        if at.astimezone(UTC).date() == day:
+            shown[item_id] = max(at, shown.get(item_id, at))
     picks = sorted(
-        (
-            row
-            for row in public_rows
-            if row.id in shown
-            and row.id not in refused
-            and row.owned_format != OwnedFormat.NONE
-            and row.status in PICKABLE
-            and row.pinned_at is None
-        ),
+        (eligible[item_id] for item_id in shown),
         key=lambda row: (-shown[row.id].timestamp(), row.title),
     )[:PICKS_LIMIT]
     profile = [to_picker_item(row) for row in public_rows]

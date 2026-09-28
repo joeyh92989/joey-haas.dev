@@ -212,3 +212,44 @@ async def test_a_pick_never_names_a_private_game_or_a_private_date(
         "Started in",
     ):
         assert leaked not in response.text
+
+
+async def test_the_pick_day_ignores_shown_games_the_public_cannot_see(
+    sessionmaker_for_test,
+):
+    # Today's only shown games are private or were skipped after being shown:
+    # yesterday's public pick must still be returned, not an empty list.
+    yesterday_pick, private, skipped = _with_ids(
+        _game("Yesterday Pick"),
+        _game("Private Today", is_public=False),
+        _game("Skipped Today"),
+    )
+    today = datetime.combine(NOW.date(), time(0, 1), tzinfo=UTC)
+    await _add(sessionmaker_for_test, yesterday_pick, private, skipped)
+    await _add(
+        sessionmaker_for_test,
+        _shown(yesterday_pick, SHOWN_DAY),
+        _shown(private, today),
+        _shown(skipped, today),
+        PickEvent(
+            item_id=skipped.id,
+            action=PickAction.SKIPPED,
+            created_at=today + timedelta(minutes=1),
+        ),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/picks")).json()
+
+    assert [row["title"] for row in body] == ["Yesterday Pick"]
+
+
+async def test_picks_from_six_days_ago_are_still_inside_the_window(
+    sessionmaker_for_test,
+):
+    (recent,) = _with_ids(_game("Six Days Ago"))
+    await _add(sessionmaker_for_test, recent)
+    await _add(sessionmaker_for_test, _shown(recent, SHOWN_DAY - timedelta(days=5)))
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/picks")).json()
+
+    assert [row["title"] for row in body] == ["Six Days Ago"]

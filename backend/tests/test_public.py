@@ -682,20 +682,25 @@ RECOMMENDATION_NAMES = (
 
 
 # Showcase spec, "Spec changes" 3: a public pick carries its reasons, built
-# from public rows in the first person. That one field name is allowed; no
-# other recommendation name is.
-ALLOWED_RECOMMENDATION_NAMES = {"reasons"}
+# from public rows in the first person. That one field on that one model is
+# allowed; no other recommendation name is, on any model.
+ALLOWED_RECOMMENDATION_NAMES = {("PublicPickOut", "reasons")}
+
+
+def _named_fields(model) -> set[tuple[str, str]]:
+    """(top-level model name, field name) for every field, nested included."""
+    return {(model.__name__, name) for name in _field_names(model)}
 
 
 async def test_no_public_model_names_a_recommendation_field():
     names = set()
     for model in PUBLIC_MODELS:
-        names |= _field_names(model)
+        names |= _named_fields(model)
     leaked = sorted(
-        n
-        for n in names - ALLOWED_RECOMMENDATION_NAMES
+        f"{model}.{field}"
+        for model, field in names - ALLOWED_RECOMMENDATION_NAMES
         for bad in RECOMMENDATION_NAMES
-        if bad in n
+        if bad in field
     )
     assert leaked == []
 
