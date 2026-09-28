@@ -49,14 +49,42 @@ jobs:
           # curl into jq would leave an empty file and read as "changed".
           # The live side must fail the step; the deployed side is inside an
           # if, where a failure still just means "changed or missing".
-          # Both sides are normalised the same way: keys sorted, and arrays
-          # sorted by id, because /api/public/items has no unique ordering and
-          # a harmless write can reorder tied rows.
+          # Both sides are normalised the same way: keys sorted (-S), and
+          # arrays sorted, because the API has no unique ordering and a
+          # harmless write can reorder tied rows. An array whose elements all
+          # have an id is sorted by it. Any other array (Radar's rows have no
+          # id) is sorted by each element's serialised text, which orders
+          # every element and so leaves no ties to reorder.
           set -o pipefail
-          normalise='if type == "array" then sort_by(.id) else . end'
+          # tostring follows key order in the text, so keys are sorted first.
+          normalise='
+            def canon:
+              if type == "object" then
+                to_entries | sort_by(.key)
+                | map({key, value: (.value | canon)}) | from_entries
+              elif type == "array" then map(canon)
+              else . end;
+            canon
+            | if type == "array" then
+                if all(.[]; type == "object" and has("id"))
+                then sort_by(.id) else sort_by(tostring) end
+              else . end'
+          # items and stats are the snapshot; picks and radar are optional
+          # because the API can lag behind the static site, and answer 404
+          # until it has deployed. A 404 there is skipped with a notice.
           changed=""
-          for name in items stats; do
-            curl -fsS -m 60 "$API_URL/api/public/$name" | jq -S "$normalise" > "live-$name.json"
+          for name in items stats picks radar; do
+            live_status=$(curl -sS -m 60 -o "live-$name.raw" -w '%{http_code}' \
+              "$API_URL/api/public/$name")
+            if [ "$live_status" = 404 ] && [ "$name" != items ] && [ "$name" != stats ]; then
+              echo "::notice::$name: the API answered 404, so it is skipped"
+              continue
+            fi
+            if [ "$live_status" != 200 ]; then
+              echo "::error::$name: the API answered $live_status"
+              exit 1
+            fi
+            jq -S "$normalise" "live-$name.raw" > "live-$name.json"
             # A missing file is served as index.html, which jq rejects: that
             # counts as changed, so the first run deploys one.
             if curl -fsS -m 60 "$SITE_URL/snapshot/$name.json" -o "deployed-$name.raw" &&
