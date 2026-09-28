@@ -34,8 +34,9 @@ from picker import public_reasons
 from picker_routes import to_picker_item
 from radar import NEAR_PRECISIONS
 
-# Picks from the most recent UTC day Play Next showed anything, if that day is
-# within this window; older picks are not "recent" and the section hides.
+# Picks from the most recent UTC day Play Next showed a public suggestion, if
+# that day is one of the seven ending yesterday; older picks are not "recent"
+# and the section hides. Today never counts (see load_public_picks).
 PICKS_WINDOW = timedelta(days=7)
 PICKS_LIMIT = 3
 PICKABLE = (ItemStatus.BACKLOG, ItemStatus.ACTIVE)
@@ -61,12 +62,20 @@ async def load_public_picks(
 ) -> list[PublicPickOut]:
     """Up to three public, owned, unpinned backlog or active games shown on
     the most recent day Play Next showed a game that is still a public
-    suggestion, latest first, with reasons from public rows.
+    suggestion, in title order, with reasons from public rows.
+
+    The list changes at most once a day. Only events before today's UTC
+    midnight count -- shown, skipped and never alike -- and the day's picks
+    are ordered by title, not by when they were shown. Otherwise anyone
+    polling this route could watch the owner use Play Next, skip a game or
+    refuse one as it happened. The one residual live change is accepted: the
+    admin restore route deletes a never event outright, so a restored game
+    can return the moment it is restored.
 
     The day is chosen among those games only: a private, pinned or refused
     game shown later must not move it, or the list would change with rows the
-    public cannot see. A game the owner said "never" to, or skipped after it
-    was shown, is not a suggestion any more.
+    public cannot see. A game the owner said "never" to, or skipped at or
+    after the moment it was shown, is not a suggestion any more.
     """
     public_rows = list(
         (await session.execute(select(Item).where(Item.is_public.is_(True)))).scalars()
@@ -80,11 +89,8 @@ async def load_public_picks(
     }
     if not eligible:
         return []
-    window_start = datetime.combine(
-        now.astimezone(UTC).date() - PICKS_WINDOW + timedelta(days=1),
-        time.min,
-        tzinfo=UTC,
-    )
+    midnight = datetime.combine(now.astimezone(UTC).date(), time.min, tzinfo=UTC)
+    window_start = midnight - PICKS_WINDOW
     events = (
         await session.execute(
             select(PickEvent.item_id, PickEvent.action, PickEvent.created_at).where(
@@ -92,6 +98,7 @@ async def load_public_picks(
                 PickEvent.action.in_(
                     (PickAction.SHOWN, PickAction.NEVER, PickAction.SKIPPED)
                 ),
+                PickEvent.created_at < midnight,
             )
         )
     ).all()
@@ -111,14 +118,11 @@ async def load_public_picks(
     if not suggestions:
         return []
     day = max(at.astimezone(UTC).date() for _, at in suggestions)
-    shown: dict[uuid.UUID, datetime] = {}
-    for item_id, at in suggestions:
-        if at.astimezone(UTC).date() == day:
-            shown[item_id] = max(at, shown.get(item_id, at))
-    picks = sorted(
-        (eligible[item_id] for item_id in shown),
-        key=lambda row: (-shown[row.id].timestamp(), row.title),
-    )[:PICKS_LIMIT]
+    shown = {item_id for item_id, at in suggestions if at.astimezone(UTC).date() == day}
+    ordered = sorted(
+        (eligible[item_id] for item_id in shown), key=lambda row: (row.title, row.id)
+    )
+    picks = ordered[:PICKS_LIMIT]
     profile = [to_picker_item(row) for row in public_rows]
     return [
         PublicPickOut(

@@ -8,6 +8,7 @@ import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
 
+import public
 from models import (
     Item,
     ItemStatus,
@@ -26,12 +27,33 @@ from public_outputs import PublicPickOut, PublicRadarOut
 
 pytestmark = pytest.mark.asyncio
 
-NOW = datetime.now(UTC)
-# Noon yesterday, UTC: every pick event sits on one whole day, whatever the
-# hour the suite runs, and within the seven-day window.
-SHOWN_DAY = datetime.combine(NOW.date() - timedelta(days=1), time(12), tzinfo=UTC)
+# The server reads datetime.now(UTC); the clock is frozen here (see `clock`)
+# so no test can straddle a UTC midnight.
+NOW = datetime(2026, 9, 28, 15, 0, tzinfo=UTC)
+MIDNIGHT = datetime.combine(NOW.date(), time.min, tzinfo=UTC)
+# Noon yesterday, UTC: every pick event sits on one whole day, before today's
+# midnight and within the seven-day window.
+SHOWN_DAY = MIDNIGHT - timedelta(hours=12)
 
 PICK_FIELDS = {"id", "type", "title", "cover_url", "platform", "reasons"}
+
+
+@pytest.fixture(autouse=True)
+def clock(monkeypatch):
+    """Freeze the public router's clock at NOW; call it to move the clock."""
+    frozen = {"now": NOW}
+
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen["now"].astimezone(tz) if tz else frozen["now"]
+
+    monkeypatch.setattr(public, "datetime", FrozenDatetime)
+
+    def move_to(when: datetime) -> None:
+        frozen["now"] = when
+
+    return move_to
 
 
 @asynccontextmanager
@@ -102,7 +124,9 @@ async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(
 
     assert response.status_code == 200
     body = response.json()
-    assert [row["title"] for row in body] == ["Delta", "Charlie", "Bravo"]
+    # One day, three picks, by title: shown times ascend with the title, so
+    # latest-first would be Delta, Charlie, Bravo.
+    assert [row["title"] for row in body] == ["Alpha", "Bravo", "Charlie"]
     for row in body:
         assert set(row) == PICK_FIELDS
         assert "Shares Indie and Roguelike with Hades ♥" in row["reasons"]
@@ -170,10 +194,10 @@ async def test_picks_leave_out_what_is_not_a_public_suggestion(
 async def test_picks_are_empty_once_the_latest_shown_day_is_a_week_old(
     sessionmaker_for_test,
 ):
-    # Seven days before today: the first day outside the window.
+    # Eight days before today: the window is the seven days ending yesterday.
     (stale,) = _with_ids(_game("Stale"))
     await _add(sessionmaker_for_test, stale)
-    await _add(sessionmaker_for_test, _shown(stale, SHOWN_DAY - timedelta(days=6)))
+    await _add(sessionmaker_for_test, _shown(stale, SHOWN_DAY - timedelta(days=7)))
     async with client_for(sessionmaker_for_test) as client:
         response = await client.get("/api/public/picks")
     assert response.status_code == 200
@@ -222,42 +246,120 @@ async def test_a_pick_never_names_a_private_game_or_a_private_date(
 async def test_the_pick_day_ignores_shown_games_the_public_cannot_see(
     sessionmaker_for_test,
 ):
-    # Today's only shown games are private or were skipped after being shown:
-    # yesterday's public pick must still be returned, not an empty list.
-    yesterday_pick, private, skipped = _with_ids(
-        _game("Yesterday Pick"),
-        _game("Private Today", is_public=False),
-        _game("Skipped Today"),
+    # Yesterday's only shown games are private or were skipped after being
+    # shown: the day before's public pick must still be returned, not [].
+    earlier_pick, private, skipped = _with_ids(
+        _game("Earlier Pick"),
+        _game("Private Yesterday", is_public=False),
+        _game("Skipped Yesterday"),
     )
-    today = datetime.combine(NOW.date(), time(0, 1), tzinfo=UTC)
-    await _add(sessionmaker_for_test, yesterday_pick, private, skipped)
+    await _add(sessionmaker_for_test, earlier_pick, private, skipped)
     await _add(
         sessionmaker_for_test,
-        _shown(yesterday_pick, SHOWN_DAY),
-        _shown(private, today),
-        _shown(skipped, today),
+        _shown(earlier_pick, SHOWN_DAY - timedelta(days=1)),
+        _shown(private, SHOWN_DAY),
+        _shown(skipped, SHOWN_DAY),
         PickEvent(
             item_id=skipped.id,
             action=PickAction.SKIPPED,
-            created_at=today + timedelta(minutes=1),
+            created_at=SHOWN_DAY + timedelta(minutes=1),
         ),
     )
     async with client_for(sessionmaker_for_test) as client:
         body = (await client.get("/api/public/picks")).json()
 
-    assert [row["title"] for row in body] == ["Yesterday Pick"]
+    assert [row["title"] for row in body] == ["Earlier Pick"]
 
 
-async def test_picks_from_six_days_ago_are_still_inside_the_window(
+async def test_picks_from_seven_days_ago_are_still_inside_the_window(
     sessionmaker_for_test,
 ):
-    (recent,) = _with_ids(_game("Six Days Ago"))
+    (recent,) = _with_ids(_game("Seven Days Ago"))
     await _add(sessionmaker_for_test, recent)
-    await _add(sessionmaker_for_test, _shown(recent, SHOWN_DAY - timedelta(days=5)))
+    await _add(sessionmaker_for_test, _shown(recent, SHOWN_DAY - timedelta(days=6)))
     async with client_for(sessionmaker_for_test) as client:
         body = (await client.get("/api/public/picks")).json()
 
-    assert [row["title"] for row in body] == ["Six Days Ago"]
+    assert [row["title"] for row in body] == ["Seven Days Ago"]
+
+
+async def test_a_game_shown_today_waits_until_tomorrow(sessionmaker_for_test, clock):
+    # Play Next's use today is not public until the day is over: yesterday's
+    # pick shows, and today's appears only once the clock passes midnight.
+    yesterday, today_only = _with_ids(_game("Yesterday"), _game("Today Only"))
+    await _add(sessionmaker_for_test, yesterday, today_only)
+    await _add(
+        sessionmaker_for_test,
+        _shown(yesterday, SHOWN_DAY),
+        _shown(today_only, MIDNIGHT + timedelta(minutes=1)),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        before = (await client.get("/api/public/picks")).json()
+        clock(NOW + timedelta(days=1))
+        after = (await client.get("/api/public/picks")).json()
+
+    assert [row["title"] for row in before] == ["Yesterday"]
+    assert [row["title"] for row in after] == ["Today Only"]
+
+
+async def test_a_skip_or_never_today_keeps_yesterdays_pick(sessionmaker_for_test):
+    skipped, nevered = _with_ids(_game("Skipped Today"), _game("Nevered Today"))
+    await _add(sessionmaker_for_test, skipped, nevered)
+    await _add(
+        sessionmaker_for_test,
+        _shown(skipped, SHOWN_DAY),
+        _shown(nevered, SHOWN_DAY),
+        PickEvent(
+            item_id=skipped.id,
+            action=PickAction.SKIPPED,
+            created_at=MIDNIGHT + timedelta(hours=1),
+        ),
+        PickEvent(
+            item_id=nevered.id,
+            action=PickAction.NEVER,
+            created_at=MIDNIGHT + timedelta(hours=1),
+        ),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/picks")).json()
+
+    assert [row["title"] for row in body] == ["Nevered Today", "Skipped Today"]
+
+
+async def test_picks_within_the_day_are_in_title_order(sessionmaker_for_test):
+    # Time order (Echo, Zulu, Mike, Alpha latest first) differs from title
+    # order, and the limit keeps the first three titles, not the latest three.
+    alpha, echo, mike, zulu = _with_ids(
+        _game("Alpha"), _game("Echo"), _game("Mike"), _game("Zulu")
+    )
+    day = MIDNIGHT - timedelta(days=1)
+    await _add(sessionmaker_for_test, alpha, echo, mike, zulu)
+    await _add(
+        sessionmaker_for_test,
+        _shown(alpha, day + timedelta(hours=1)),
+        _shown(mike, day + timedelta(hours=9)),
+        _shown(zulu, day + timedelta(hours=12)),
+        _shown(echo, day + timedelta(hours=23)),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/picks")).json()
+
+    assert [row["title"] for row in body] == ["Alpha", "Echo", "Mike"]
+
+
+async def test_a_skip_at_the_shown_instant_removes_the_pick(sessionmaker_for_test):
+    kept, skipped = _with_ids(_game("Kept"), _game("Skipped At Once"))
+    await _add(sessionmaker_for_test, kept, skipped)
+    await _add(
+        sessionmaker_for_test,
+        _shown(kept, SHOWN_DAY),
+        _shown(skipped, SHOWN_DAY),
+        PickEvent(item_id=skipped.id, action=PickAction.SKIPPED, created_at=SHOWN_DAY),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/picks")).json()
+
+    assert [row["title"] for row in body] == ["Kept"]
 
 
 RADAR_FIELDS = {
