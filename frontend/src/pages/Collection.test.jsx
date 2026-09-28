@@ -92,7 +92,12 @@ const STATS = {
   by_format: {},
 }
 
-function stubApi({ items = ITEMS, stats = STATS, itemsOk = true } = {}) {
+function stubApi({
+  items = ITEMS,
+  stats = STATS,
+  itemsOk = true,
+  statsOk = true,
+} = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url) => {
@@ -103,7 +108,11 @@ function stubApi({ items = ITEMS, stats = STATS, itemsOk = true } = {}) {
           json: async () => items,
         }
       }
-      return { ok: true, status: 200, json: async () => stats }
+      return {
+        ok: statsOk,
+        status: statsOk ? 200 : 500,
+        json: async () => stats,
+      }
     }),
   )
 }
@@ -738,6 +747,20 @@ describe('Collection snapshot', () => {
     await new Promise((done) => setTimeout(done, 50))
     expect(screen.queryByText(/could not be loaded/i)).toBeNull()
     expect(gridTitles()).toHaveLength(2)
+  })
+
+  it('keeps the snapshot stats when live items load but live stats fail', async () => {
+    stubSnapshot({
+      items: [ITEMS[0]],
+      stats: { ...STATS, owned: 68 },
+    })
+    stubApi({ statsOk: false })
+    renderPage()
+
+    await waitFor(() => expect(gridTitles()).toEqual(['Gloomhaven', 'Dune']))
+    const hero = within(document.querySelector('.hero-numbers'))
+    expect(hero.getByText('68')).toBeInTheDocument()
+    expect(hero.getByText('Owned')).toBeInTheDocument()
   })
 
   it('ignores a snapshot that arrives after the live data', async () => {

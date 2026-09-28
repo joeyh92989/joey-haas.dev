@@ -467,7 +467,8 @@ export default function Collection() {
       if (result.state === 'ready') {
         live = true
         setItems(result.items)
-        setStats(result.stats)
+        // A failed live stats call must not wipe stats a snapshot painted.
+        setStats((current) => result.stats ?? current)
         setState('ready')
       } else {
         // A painted snapshot outranks an error: stale beats nothing.

@@ -14,7 +14,7 @@ export const projects = [
   {
     name: 'Media Collection',
     description:
-      "A tracker for my physical game collection. The public shelf shows what I own, what I have finished, ratings and favourites; every item was backfilled by photographing the shelves and resolving the titles against IGDB, TMDB or Comic Vine. Signed in, it picks tonight's game from the backlog, keeps a catalogue of what exists on cartridge from a community registry and a dozen boutique stores, and uses that to surface upcoming physical releases and games I would probably like but do not own.",
+      'A tracker for my physical game collection. The public shelf shows what I own, what I have finished, ratings and favourites; every item was backfilled by photographing the shelves and resolving the titles against IGDB, TMDB or Comic Vine. Signed in, it picks tonight’s game from the backlog, keeps a catalogue of what exists on cartridge from a community registry and a dozen boutique stores, and uses that to surface upcoming physical releases and games I would probably like but do not own.',
     tech: ['React', 'FastAPI', 'Postgres', 'Gemini', 'IGDB', 'TMDB'],
     to: '/collection',
     url: null,
