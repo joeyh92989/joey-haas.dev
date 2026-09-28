@@ -1,6 +1,7 @@
 """Discover's routes, on a real Postgres, with a fake model provider."""
 
 import asyncio
+import inspect
 import uuid
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
@@ -13,6 +14,7 @@ from sqlalchemy import select
 from starlette.middleware.sessions import SessionMiddleware
 
 import discover
+import llm
 from llm import LLMError, _quota_message
 from models import (
     CatalogueGame,
@@ -263,6 +265,18 @@ def _quota_body(quota_id):
             "would exceed your per-minute limit.'}}",
             "The model's rate limit was reached; try again in a minute",
         ),
+        (
+            # llm.py's wording when every model in the chain answered 503.
+            "Gemini is overloaded (HTTP 503) — tried gemini-3.7-flash, "
+            "gemini-3.6-flash, gemini-3.5-flash and none recovered. Try again "
+            "in a few minutes.",
+            "Gemini is overloaded; try again in a few minutes",
+        ),
+        (
+            "Anthropic request failed: Error code: 529 - {'type': 'error', "
+            "'error': {'type': 'overloaded_error', 'message': 'Overloaded'}}",
+            "The model is overloaded; try again in a few minutes",
+        ),
         ("Gemini returned HTTP 500", "The model did not answer"),
     ],
 )
@@ -469,3 +483,9 @@ async def test_own_from_discover_adds_a_private_owned_item(sessionmaker_for_test
     assert item.is_public is False
     assert item.owned_format == OwnedFormat.PHYSICAL
     assert again.json()["count"] == 2  # an owned game is never suggested again
+
+
+async def test_the_overload_note_reads_llms_own_wording():
+    """llm.py builds its overload message inline; if its wording changes,
+    _failure_note has to follow it."""
+    assert "Gemini is overloaded (HTTP" in inspect.getsource(llm)

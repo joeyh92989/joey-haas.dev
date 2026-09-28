@@ -51,6 +51,9 @@ PROFILE_SIZE = 10
 RECENT_YEARS = 3
 MAX_REASON = 300
 LIKED_SIZE = 5
+# When a game is on several platforms, the one kept on a tie: the platform
+# the owner buys for now first.
+PLATFORM_PREFERENCE = (508, 130, 4)
 
 PICKS_SCHEMA = {
     "type": "object",
@@ -221,7 +224,30 @@ def prescore(
         if candidate.physical_format is None:
             value -= UNKNOWN_FORMAT_PENALTY
         found.append(Candidate(game, item, round(value), similar_to, can_buy))
-    return sorted(found, key=lambda entry: (-entry.score, entry.game.candidate.igdb_id))
+    return _one_per_game(found)
+
+
+def _platform_rank(platform_id: int) -> int:
+    if platform_id in PLATFORM_PREFERENCE:
+        return PLATFORM_PREFERENCE.index(platform_id)
+    return len(PLATFORM_PREFERENCE)
+
+
+def _one_per_game(found: list[Candidate]) -> list[Candidate]:
+    """Each game once, best first: the catalogue keys a game per platform,
+    so a game out on two would otherwise take two of the eight picks."""
+    kept: dict[int, Candidate] = {}
+    for entry in sorted(
+        found,
+        key=lambda entry: (
+            -entry.score,
+            _platform_rank(entry.game.candidate.platform_id),
+        ),
+    ):
+        kept.setdefault(entry.game.candidate.igdb_id, entry)
+    return sorted(
+        kept.values(), key=lambda entry: (-entry.score, entry.game.candidate.igdb_id)
+    )
 
 
 def shortlist(candidates: list[Candidate], seed: int) -> list[Candidate]:
