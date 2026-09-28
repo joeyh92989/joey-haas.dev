@@ -338,6 +338,7 @@ SLOT_LABELS = {
 # tie. Modes and perspectives are left out -- nearly every game is single
 # player, which explains nothing.
 REASON_KINDS = ("keyword", "theme", "genre", "creator")
+MAX_REASONS = 3
 
 
 @dataclass(frozen=True)
@@ -490,6 +491,38 @@ def _is_stalled(item: PickerItem, events: list[PickerEvent], now: datetime) -> b
     )
 
 
+def _common_reasons(
+    item: PickerItem,
+    references: list[PickerItem],
+    weights: dict[str, float],
+    table: dict[tuple[str, str], float],
+    similar_to: PickerItem | None,
+) -> list[str | None]:
+    """The reasons every pick can carry: overlap, IGDB similarity, length."""
+    return [
+        _overlap_reason(item, references, weights, table),
+        f"IGDB lists it beside {_named(similar_to)}" if similar_to else None,
+        _length_reason(item),
+    ]
+
+
+def public_reasons(item: PickerItem, profile: list[PickerItem]) -> tuple[str, ...]:
+    """A pick's reasons for the public page (showcase spec, D).
+
+    `profile` must hold public rows only: every game a reason can name is
+    drawn from it, so a private game is never named. The slot reasons are
+    left out -- "On the shelf since" is read from acquired_at, which is
+    private; "Started in ... not touched since" reports activity; "Out since"
+    means nothing without its slot.
+    """
+    weights = reference_weights(profile)
+    references = [entry for entry in profile if entry.id in weights]
+    table = attribute_table(profile, weights)
+    _score, similar_to = similarity(item, references, weights)
+    reasons = _common_reasons(item, references, weights, table, similar_to)
+    return tuple(reason for reason in reasons if reason)[:MAX_REASONS]
+
+
 def recommend(
     items: list[PickerItem],
     events: list[PickerEvent],
@@ -595,11 +628,7 @@ def recommend(
     picks = []
     for slot, item in chosen:
         total, _terms, similar_to = scored[item.id]
-        reasons = [
-            _overlap_reason(item, references, weights, table),
-            f"IGDB lists it beside {_named(similar_to)}" if similar_to else None,
-            _length_reason(item),
-        ]
+        reasons = _common_reasons(item, references, weights, table, similar_to)
         if slot == "overdue_classic":
             reasons.insert(0, f"Out since {item.release_date.year}")
         elif slot == "waited_longest":
@@ -614,7 +643,7 @@ def recommend(
                 slot_label=SLOT_LABELS[slot],
                 item=item,
                 score=round(total, 1),
-                reasons=tuple(reason for reason in reasons if reason)[:3],
+                reasons=tuple(reason for reason in reasons if reason)[:MAX_REASONS],
             )
         )
     return PickResult(
