@@ -29,6 +29,7 @@ from public import (
     PublicStatsOut,
     create_public_router,
 )
+from public_outputs import PublicPickOut
 
 pytestmark = pytest.mark.asyncio
 
@@ -649,9 +650,14 @@ def _field_names(model, seen=None) -> set[str]:
     return names
 
 
+# Every public response model. A new one goes here, so the name checks below
+# cover it.
+PUBLIC_MODELS = (PublicItemOut, PublicItemDetailOut, PublicStatsOut, PublicPickOut)
+
+
 async def test_no_public_model_names_a_catalogue_field():
     names = set()
-    for model in (PublicItemOut, PublicItemDetailOut, PublicStatsOut):
+    for model in PUBLIC_MODELS:
         names |= _field_names(model)
     leaked = sorted(n for n in names for bad in CATALOGUE_NAMES if bad in n)
     assert leaked == []
@@ -675,11 +681,22 @@ RECOMMENDATION_NAMES = (
 )
 
 
+# Showcase spec, "Spec changes" 3: a public pick carries its reasons, built
+# from public rows in the first person. That one field name is allowed; no
+# other recommendation name is.
+ALLOWED_RECOMMENDATION_NAMES = {"reasons"}
+
+
 async def test_no_public_model_names_a_recommendation_field():
     names = set()
-    for model in (PublicItemOut, PublicItemDetailOut, PublicStatsOut):
+    for model in PUBLIC_MODELS:
         names |= _field_names(model)
-    leaked = sorted(n for n in names for bad in RECOMMENDATION_NAMES if bad in n)
+    leaked = sorted(
+        n
+        for n in names - ALLOWED_RECOMMENDATION_NAMES
+        for bad in RECOMMENDATION_NAMES
+        if bad in n
+    )
     assert leaked == []
 
 
