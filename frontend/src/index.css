@@ -1409,6 +1409,42 @@ footer {
   opacity: 1;
 }
 
+/* The bars and their axis labels, stacked; the labels are aria-hidden
+   because every bar already names itself. */
+.bar-column {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.bar-column .rating-bars,
+.bar-column .month-bars {
+  flex: none;
+}
+
+.bar-axis {
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.6875rem;
+  justify-content: space-between;
+  line-height: 1;
+}
+
+.bar-axis-months {
+  gap: 3px;
+}
+
+.bar-axis-months span {
+  flex: 1 1 0;
+  text-align: center;
+}
+
+.cartridge-platform p {
+  margin: 0 0 0.25rem;
+}
+
 .stat-big {
   display: flex;
   flex-direction: column;

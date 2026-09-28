@@ -533,11 +533,45 @@ describe('Collection platforms and formats', () => {
     })
     await renderReady()
 
+    const block = screen.getByRole('region', { name: 'On cartridge' })
+    expect(block.closest('.shelf-stats')).not.toBeNull()
     expect(
-      screen.getByText(
-        'Nintendo Switch 2 · 61 on cartridge · 3 Game-Key Cards · 4 not recorded, of 68',
-      ),
+      within(block).getByText('Nintendo Switch 2 — 61 of 68'),
     ).toBeInTheDocument()
+    expect(
+      within(block).getByText('3 Game-Key Cards · 4 not recorded'),
+    ).toBeInTheDocument()
+  })
+
+  it('labels the ends of the ratings axis and titles every bar', async () => {
+    stubApi()
+    await renderReady()
+
+    const ratings = screen.getByRole('region', { name: 'Ratings' })
+    const axis = ratings.querySelector('.bar-axis')
+    expect(axis).toHaveAttribute('aria-hidden', 'true')
+    expect([...axis.children].map((label) => label.textContent)).toEqual([
+      '1',
+      '10',
+    ])
+    for (const bar of within(ratings).getAllByRole('img')) {
+      expect(bar).toHaveAttribute('title', bar.getAttribute('aria-label'))
+    }
+  })
+
+  it('labels each month of the finishes strip with its initial', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-03-20T12:00:00Z'))
+    stubApi()
+    await renderReady()
+
+    const finishes = screen.getByRole('region', { name: 'Finishes' })
+    const axis = finishes.querySelector('.bar-axis')
+    expect(axis).toHaveAttribute('aria-hidden', 'true')
+    expect(axis.textContent).toBe('AMJJASONDJFM')
+    for (const bar of within(finishes).getAllByRole('img')) {
+      expect(bar).toHaveAttribute('title', bar.getAttribute('aria-label'))
+    }
   })
 
   it('has no on-cartridge line before any format is recorded', async () => {
@@ -557,7 +591,7 @@ describe('Collection platforms and formats', () => {
     })
     await renderReady()
 
-    expect(screen.queryByText(/on cartridge/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'On cartridge' })).toBeNull()
   })
 })
 

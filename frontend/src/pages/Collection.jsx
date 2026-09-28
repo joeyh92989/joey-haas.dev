@@ -38,6 +38,11 @@ const MONTH_LABEL = new Intl.DateTimeFormat('en', {
   timeZone: 'UTC',
 })
 
+const MONTH_INITIAL = new Intl.DateTimeFormat('en', {
+  month: 'narrow',
+  timeZone: 'UTC',
+})
+
 /**
  * The twelve months ending with the current one, oldest first, as the
  * "YYYY-MM" keys the stats endpoint returns. UTC, like the server's year.
@@ -48,7 +53,11 @@ function lastTwelveMonths(now = new Date()) {
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (11 - index), 1),
     )
     const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
-    return { key, label: MONTH_LABEL.format(date) }
+    return {
+      key,
+      label: MONTH_LABEL.format(date),
+      initial: MONTH_INITIAL.format(date),
+    }
   })
 }
 
@@ -81,45 +90,44 @@ export function platformGroup(items) {
 }
 
 /**
- * One line per key-card platform: how many owned copies are full cartridges,
- * how many are not, and how many were never recorded. Unknowns are stated,
- * never folded into the cartridge count. Nothing renders until at least one
- * format has been recorded.
+ * The key-card platforms' copies: how many are full cartridges, of how many,
+ * then what the rest are. Unknowns are stated, never folded into the
+ * cartridge count. A stats block like its neighbours, with a heading; it
+ * renders only once at least one format has been recorded.
  */
 function OnCartridge({ byFormat }) {
-  const lines = Object.entries(byFormat ?? {})
-    .filter(
-      ([, counts]) =>
-        counts.game_card + counts.game_key_card + counts.code_in_box > 0,
-    )
-    .map(([platformId, counts]) => {
-      const parts = [
-        [counts.game_card, 'on cartridge'],
-        [
-          counts.game_key_card,
-          counts.game_key_card === 1 ? 'Game-Key Card' : 'Game-Key Cards',
-        ],
-        [
-          counts.code_in_box,
-          counts.code_in_box === 1 ? 'code in a box' : 'codes in a box',
-        ],
-        [counts.unknown, 'not recorded'],
-      ]
-        .filter(([count]) => count > 0)
-        .map(([count, label]) => `${count} ${label}`)
-      const name =
-        KEY_CARD_PLATFORM_NAMES[platformId] ?? `Platform ${platformId}`
-      return `${name} · ${parts.join(' · ')}, of ${counts.total}`
-    })
-  if (lines.length === 0) return null
+  const platforms = Object.entries(byFormat ?? {}).filter(
+    ([, counts]) =>
+      counts.game_card + counts.game_key_card + counts.code_in_box > 0,
+  )
+  if (platforms.length === 0) return null
   return (
-    <div className="on-cartridge">
-      {lines.map((line) => (
-        <p key={line} className="muted">
-          {line}
-        </p>
-      ))}
-    </div>
+    <section className="stat-card stat-cartridge" aria-label="On cartridge">
+      <h2>On cartridge</h2>
+      {platforms.map(([platformId, counts]) => {
+        const name =
+          KEY_CARD_PLATFORM_NAMES[platformId] ?? `Platform ${platformId}`
+        const rest = [
+          [
+            counts.game_key_card,
+            counts.game_key_card === 1 ? 'Game-Key Card' : 'Game-Key Cards',
+          ],
+          [
+            counts.code_in_box,
+            counts.code_in_box === 1 ? 'code in a box' : 'codes in a box',
+          ],
+          [counts.unknown, 'not recorded'],
+        ]
+          .filter(([count]) => count > 0)
+          .map(([count, label]) => `${count} ${label}`)
+        return (
+          <div key={platformId} className="cartridge-platform">
+            <p>{`${name} — ${counts.game_card} of ${counts.total}`}</p>
+            {rest.length > 0 && <p className="muted">{rest.join(' · ')}</p>}
+          </div>
+        )
+      })}
+    </section>
   )
 }
 
@@ -298,8 +306,9 @@ function StatusBar({ byStatus }) {
 }
 
 /**
- * Ten bars for ratings 1 to 10 beside the average. Each bar is focusable and
- * names its count; the numeral above it shows on hover and on focus alike.
+ * Ten bars for ratings 1 to 10 beside the average, with the axis's ends
+ * labelled. Each bar is focusable and names its count, and its title repeats
+ * that name; the numeral above it shows on hover and on focus alike.
  */
 function RatingHistogram({ histogram, average }) {
   const counts = RATINGS.map((rating) => histogram[rating] ?? 0)
@@ -308,19 +317,29 @@ function RatingHistogram({ histogram, average }) {
     <section className="stat-card stat-ratings" aria-label="Ratings">
       <h2>Ratings</h2>
       <div className="stat-figure">
-        <div className="rating-bars">
-          {RATINGS.map((rating, index) => (
-            <span
-              key={rating}
-              className="rating-bar"
-              role="img"
-              tabIndex={0}
-              aria-label={`Rated ${rating}: ${plural(counts[index], 'item')}`}
-              style={{ '--share': counts[index] / most }}
-            >
-              <span className="rating-bar-count">{counts[index]}</span>
-            </span>
-          ))}
+        <div className="bar-column">
+          <div className="rating-bars">
+            {RATINGS.map((rating, index) => {
+              const label = `Rated ${rating}: ${plural(counts[index], 'item')}`
+              return (
+                <span
+                  key={rating}
+                  className="rating-bar"
+                  role="img"
+                  tabIndex={0}
+                  aria-label={label}
+                  title={label}
+                  style={{ '--share': counts[index] / most }}
+                >
+                  <span className="rating-bar-count">{counts[index]}</span>
+                </span>
+              )
+            })}
+          </div>
+          <div className="bar-axis" aria-hidden="true">
+            <span>1</span>
+            <span>10</span>
+          </div>
         </div>
         {average != null && (
           <p className="stat-big">
@@ -341,16 +360,27 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
     <section className="stat-card stat-finishes" aria-label="Finishes">
       <h2>Finishes</h2>
       <div className="stat-figure">
-        <div className="month-bars">
-          {months.map((month, index) => (
-            <span
-              key={month.key}
-              className="month-bar"
-              role="img"
-              aria-label={`${month.label}: ${counts[index]} finished`}
-              style={{ '--share': counts[index] / most }}
-            />
-          ))}
+        <div className="bar-column">
+          <div className="month-bars">
+            {months.map((month, index) => {
+              const label = `${month.label}: ${counts[index]} finished`
+              return (
+                <span
+                  key={month.key}
+                  className="month-bar"
+                  role="img"
+                  aria-label={label}
+                  title={label}
+                  style={{ '--share': counts[index] / most }}
+                />
+              )
+            })}
+          </div>
+          <div className="bar-axis bar-axis-months" aria-hidden="true">
+            {months.map((month) => (
+              <span key={month.key}>{month.initial}</span>
+            ))}
+          </div>
         </div>
         <p className="stat-big">
           <span className="stat-big-label">
@@ -556,10 +586,9 @@ export default function Collection() {
                   finishedThisYear={stats.finished_this_year}
                 />
               )}
+              <OnCartridge byFormat={stats.by_format} />
             </div>
           )}
-
-          {stats && <OnCartridge byFormat={stats.by_format} />}
 
           <ShelfToolbar
             groups={groups}
