@@ -1594,6 +1594,13 @@ footer {
   margin: 0 0 1.25rem;
 }
 
+/* The owner's copy: its own line, not a chip among the game's genres. */
+.item-copy {
+  color: var(--text-body);
+  font-size: 0.9375rem;
+  margin: 0.25rem 0 0;
+}
+
 .item-chip {
   border: 1px solid var(--border);
   border-radius: 999px;

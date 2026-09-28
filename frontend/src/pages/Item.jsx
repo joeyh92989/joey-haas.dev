@@ -5,6 +5,7 @@ import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
+import { readSnapshot } from '../lib/snapshot.js'
 import { STATUS_LABEL } from '../lib/shelf.js'
 import NotFound from './NotFound.jsx'
 
@@ -71,15 +72,35 @@ const COMPLETENESS_LABEL = {
 }
 
 /**
- * The format chip's text, or null.
+ * The format in words, or null.
  *
  * A Switch 2 copy with no recorded format says so: it may be a Game-Key
- * Card, so silence would read as a cartridge. Elsewhere no format means no
- * chip.
+ * Card, so silence would read as a cartridge. Elsewhere no format means
+ * nothing to say.
  */
-function formatChip(item) {
+function formatText(item) {
   if (item.physical_format) return FORMAT_LABEL[item.physical_format] ?? null
   return item.platform === 'Nintendo Switch 2' ? 'Format not recorded' : null
+}
+
+/**
+ * The owner's copy in one line: a different kind of fact from the genre
+ * chips -- this copy, not the game -- so it is kept out of them.
+ *
+ * @returns {string|null} "My copy: Nintendo Switch 2 · Full game on
+ *   cartridge · Complete in box", "Wanted for …" / "On my want list" for the
+ *   want list, or null when nothing about the copy is known.
+ */
+function copyLine(item) {
+  if (item.wanted) {
+    return item.platform ? `Wanted for ${item.platform}` : 'On my want list'
+  }
+  const parts = [
+    item.platform,
+    formatText(item),
+    COMPLETENESS_LABEL[item.completeness],
+  ].filter(Boolean)
+  return parts.length > 0 ? `My copy: ${parts.join(' · ')}` : null
 }
 
 /** "≈ 12 h · 18 h to complete", or whichever figure exists. */
@@ -95,15 +116,18 @@ function timeToBeatText(timeToBeat) {
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
-/** Rating, community score, and play history as a row of tiles. */
-function Tiles({ item }) {
+/**
+ * My rating always; the community, length and play history only with the
+ * detail response, which the snapshot preview does not have.
+ */
+function Tiles({ item, detail }) {
   const played = playedRange(item)
   const showPlayed = item.times_completed > 0 || played
   const timeToBeat = timeToBeatText(item.time_to_beat)
   return (
     <dl className="item-tiles">
       <div className="item-tile">
-        <dt>Your rating</dt>
+        <dt>My rating</dt>
         {item.rating ? (
           <dd>
             <Stars rating={item.rating} />
@@ -113,7 +137,7 @@ function Tiles({ item }) {
           <dd className="muted">Not rated</dd>
         )}
       </div>
-      {item.community_score != null && (
+      {detail && item.community_score != null && (
         <div className="item-tile">
           <dt>Community</dt>
           <dd>
@@ -126,7 +150,7 @@ function Tiles({ item }) {
           </dd>
         </div>
       )}
-      {timeToBeat && (
+      {detail && timeToBeat && (
         <div className="item-tile">
           <dt>Time to beat</dt>
           <dd>
@@ -134,7 +158,7 @@ function Tiles({ item }) {
           </dd>
         </div>
       )}
-      {showPlayed && (
+      {detail && showPlayed && (
         <div className="item-tile">
           <dt>Played</dt>
           <dd>
@@ -175,6 +199,7 @@ export default function Item() {
 function ItemPage({ id }) {
   const { signedIn = false } = useOutletContext() ?? {}
   const [result, setResult] = useState({ state: 'loading', item: null })
+  const [preview, setPreview] = useState(null)
   const [slow, setSlow] = useState(false)
   const [expanded, setExpanded] = useState(false)
 
@@ -196,14 +221,54 @@ function ItemPage({ id }) {
   }, [id])
 
   useEffect(() => {
+    let cancelled = false
     const timer = setTimeout(() => setSlow(true), 2000)
+    // The card-level fields from the build-time snapshot, painted while the
+    // API wakes. The API stays authoritative: its 404 wins over a snapshot
+    // taken before the item was unpublished.
+    readSnapshot('items').then((items) => {
+      const match = items?.find((entry) => entry.id === id)
+      if (!cancelled && match) setPreview(match)
+    })
     load()
-      .then(setResult)
+      .then((next) => {
+        if (!cancelled) setResult(next)
+      })
       .finally(() => clearTimeout(timer))
-    return () => clearTimeout(timer)
-  }, [load])
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [id, load])
 
   if (result.state === 'missing') return <NotFound />
+
+  if (result.state === 'ready') {
+    return (
+      <ItemView
+        item={result.item}
+        detail
+        signedIn={signedIn}
+        expanded={expanded}
+        onToggleDescription={() => setExpanded((current) => !current)}
+      />
+    )
+  }
+
+  if (preview) {
+    return (
+      <ItemView
+        item={preview}
+        detail={false}
+        signedIn={signedIn}
+        note={
+          result.state === 'error'
+            ? 'More detail could not be loaded. Try again shortly.'
+            : null
+        }
+      />
+    )
+  }
 
   if (result.state === 'loading') {
     return (
@@ -217,29 +282,41 @@ function ItemPage({ id }) {
     )
   }
 
-  if (result.state === 'error') {
-    return (
-      <section>
-        <p className="admin-error">
-          This item could not be loaded. Try again shortly.
-        </p>
-      </section>
-    )
-  }
+  return (
+    <section>
+      <p className="admin-error">
+        This item could not be loaded. Try again shortly.
+      </p>
+    </section>
+  )
+}
 
-  const { item } = result
+/**
+ * The page body for one item.
+ *
+ * `detail` is false for a snapshot preview: a list row, without the
+ * description, the similar strip or the detail-only tiles, which appear when
+ * the API answers.
+ */
+function ItemView({
+  item,
+  detail,
+  signedIn,
+  note = null,
+  expanded = false,
+  onToggleDescription,
+}) {
   const meta = [item.year, item.creator].filter(Boolean).join(' · ')
-  const description = item.description ? plainText(item.description) : ''
+  const description =
+    detail && item.description ? plainText(item.description) : ''
   const themes = item.themes ?? []
-  const otherPlatforms = item.platforms.filter(
+  const otherPlatforms = (item.platforms ?? []).filter(
     (platform) => platform !== item.platform,
   )
-  const format = formatChip(item)
-  const completeness = COMPLETENESS_LABEL[item.completeness] ?? null
+  const copy = copyLine(item)
   const chips = [
-    // The copy on the shelf first, then what the game is, then where else it
-    // exists, then what the copy physically is.
-    ...(item.platform ? [[`own-${item.platform}`, item.platform, false]] : []),
+    // What the game is, then where else it exists. The copy on the shelf
+    // has its own line.
     ...item.genres.map((genre) => [`genre-${genre}`, genre, false]),
     ...themes.map((theme) => [`theme-${theme}`, theme, true]),
     ...otherPlatforms.map((platform) => [
@@ -247,9 +324,8 @@ function ItemPage({ id }) {
       platform,
       true,
     ]),
-    ...(format ? [['format', format, false]] : []),
-    ...(completeness ? [['completeness', completeness, false]] : []),
   ]
+  const similar = detail ? (item.similar_in_collection ?? []) : []
 
   return (
     <article className="item-page">
@@ -269,6 +345,7 @@ function ItemPage({ id }) {
           <p className="item-status" data-status={item.status}>
             {statusInWords(item)}
           </p>
+          {copy && <p className="item-copy">{copy}</p>}
           {signedIn && (
             <Link to={`/admin/collection/${item.id}`} className="item-edit">
               Edit
@@ -305,20 +382,22 @@ function ItemPage({ id }) {
             type="button"
             className="link-button"
             aria-expanded={expanded}
-            onClick={() => setExpanded((current) => !current)}
+            onClick={onToggleDescription}
           >
             {expanded ? 'Less' : 'More'}
           </button>
         </div>
       )}
 
-      <Tiles item={item} />
+      <Tiles item={item} detail={detail} />
 
-      {item.similar_in_collection.length > 0 && (
+      {note && <p className="admin-error">{note}</p>}
+
+      {similar.length > 0 && (
         <section className="item-similar" aria-label="More from this shelf">
           <h2>More from this shelf</h2>
           <PosterGrid
-            items={item.similar_in_collection}
+            items={similar}
             size="compact"
             renderCard={(card) => (
               <PosterCard item={card} to={`/collection/${card.id}`} />
