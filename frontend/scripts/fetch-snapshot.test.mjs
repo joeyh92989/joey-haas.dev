@@ -110,4 +110,44 @@ describe('fetchSnapshot', () => {
     })
     await expect(run(fetchImpl)).resolves.toBe('failed')
   })
+
+  it('retries a data request once after the API wakes but the database has not', async () => {
+    let itemCalls = 0
+    const fetchImpl = vi.fn(async (url) => {
+      const { pathname } = new URL(url)
+      if (pathname === '/api/health') return ok({ status: 'ok' })
+      if (pathname === '/api/public/items') {
+        itemCalls += 1
+        if (itemCalls === 1) throw new TypeError('timed out')
+        return ok(ITEMS)
+      }
+      return ok(STATS)
+    })
+    expect(await run(fetchImpl)).toBe('written')
+    expect(itemCalls).toBe(2)
+  })
+
+  it('writes nothing when the output path is a file', async () => {
+    const blocker = path.join(outDir, 'blocker')
+    await fs.writeFile(blocker, 'not a directory')
+    const fetchImpl = api({
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    })
+    expect(await run(fetchImpl, { outDir: blocker })).toBe('failed')
+    expect(await written()).toEqual(['blocker'])
+  })
+
+  it('removes its temp files when a later write fails', async () => {
+    // A directory squatting on stats' temp name fails the second write.
+    await fs.mkdir(path.join(outDir, 'stats.json.tmp'))
+    const fetchImpl = api({
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    })
+    expect(await run(fetchImpl)).toBe('failed')
+    expect(await written()).toEqual(['stats.json.tmp'])
+  })
 })

@@ -15,6 +15,7 @@
  * The bodies are written verbatim, so every consumer parses them with the
  * code that parses the API. See scripts/README.md.
  */
+import { realpathSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -46,6 +47,20 @@ async function getJson(fetchImpl, url) {
   })
   if (!response.ok) throw new Error(`${url} answered ${response.status}`)
   return response.json()
+}
+
+/**
+ * Fetches one snapshot body, retrying once. /api/health doesn't touch the
+ * database, so the first data request after a wake can still time out while
+ * Neon resumes.
+ */
+async function getJsonWithRetry(fetchImpl, url, sleep) {
+  try {
+    return await getJson(fetchImpl, url)
+  } catch {
+    await sleep(WAKE_INTERVAL_MS)
+    return getJson(fetchImpl, url)
+  }
 }
 
 /** Polls /api/health until it answers OK or the budget runs out. */
@@ -96,7 +111,11 @@ export async function fetchSnapshot({
   const bodies = {}
   for (const [name, snapshot] of Object.entries(SNAPSHOTS)) {
     try {
-      const body = await getJson(fetchImpl, `${apiUrl}${snapshot.path}`)
+      const body = await getJsonWithRetry(
+        fetchImpl,
+        `${apiUrl}${snapshot.path}`,
+        sleep,
+      )
       if (!snapshot.valid(body)) {
         throw new Error(`${snapshot.path} returned an unexpected shape`)
       }
@@ -109,15 +128,26 @@ export async function fetchSnapshot({
       log(`snapshot: ${error.message}; leaving ${name} out`)
     }
   }
+  const tmpPaths = []
   try {
     await fs.mkdir(outDir, { recursive: true })
     for (const [name, body] of Object.entries(bodies)) {
-      await fs.writeFile(
-        path.join(outDir, `${name}.json`),
-        JSON.stringify(body),
-      )
+      const tmpPath = path.join(outDir, `${name}.json.tmp`)
+      tmpPaths.push(tmpPath)
+      await fs.writeFile(tmpPath, JSON.stringify(body))
+    }
+    // Renames only start once every file is fully written, so a failed write
+    // never leaves a half-published set.
+    for (const tmpPath of tmpPaths) {
+      await fs.rename(tmpPath, tmpPath.slice(0, -'.tmp'.length))
     }
   } catch (error) {
+    // Best effort: cleanup must not turn a failed write into a rejection.
+    await Promise.all(
+      tmpPaths.map((tmpPath) =>
+        fs.rm(tmpPath, { force: true }).catch(() => {}),
+      ),
+    )
     log(`snapshot: could not write (${error.message}); building without one`)
     return 'failed'
   }
@@ -127,7 +157,19 @@ export async function fetchSnapshot({
   return 'written'
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+/** True when this file was started directly, through symlinks or not. */
+function isEntryPoint() {
+  try {
+    return (
+      realpathSync(process.argv[1]) ===
+      realpathSync(fileURLToPath(import.meta.url))
+    )
+  } catch {
+    return false
+  }
+}
+
+if (isEntryPoint()) {
   const here = path.dirname(fileURLToPath(import.meta.url))
   const apiUrl = (
     process.env.SNAPSHOT_API_URL ??

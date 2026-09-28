@@ -19,7 +19,8 @@ strips, so they still make no API calls.
 **When it runs.**
 - Only when `VITE_API_URL` is set, which is the Render static site. CI and
   local builds skip it, so they stay offline and deterministic.
-- It never fails the build. If the API doesn't wake within 120 s, or returns
+- It never fails the build. Each data request is retried once. If the API
+  doesn't wake within 120 s, or returns
   something unexpected, the build ships without a snapshot, and the site
   behaves as it did before the snapshot existed.
 - Required snapshots (`items`, `stats`) are written together or not at all.
@@ -38,6 +39,8 @@ the deployed files. See the root README → Collection snapshot.
 
 **Gotchas.**
 - `public/snapshot/` is gitignored and must never be committed.
+- Files fetched by `npm run snapshot` stay in `public/snapshot/` and are copied
+  into later local builds until you delete them.
 - The files are verbatim API bodies. Change what the API publishes and you
   change what the snapshot publishes, so `test_public.py` covers both.
 
