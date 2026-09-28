@@ -413,3 +413,34 @@ def test_fallback_keeps_three_reasons_at_most():
     )
     (pick,) = fallback(candidates, profile, TODAY)
     assert len(pick.reasons) == 3
+
+
+# --- One pick per game ---------------------------------------------------------------
+
+
+def _platforms(ranked):
+    return [(c.game.candidate.igdb_id, c.game.candidate.platform_id) for c in ranked]
+
+
+def test_a_game_on_two_platforms_is_one_candidate_the_better_scoring():
+    switch = _pool(900, platform_id=130, store_lines=(_line("in_stock"),))
+    switch_2 = _pool(900, platform_id=508)
+    ranked = prescore([switch_2, switch, _pool(901)], [], "balanced", TODAY)
+    assert _platforms(ranked) == [(900, 130), (901, 130)]
+
+
+def test_a_tie_keeps_the_switch_2_edition():
+    ranked = prescore(
+        [_pool(910, platform_id=130), _pool(910, platform_id=508)],
+        [],
+        "balanced",
+        TODAY,
+    )
+    assert _platforms(ranked) == [(910, 508)]
+
+
+def test_the_fallback_never_names_a_game_twice():
+    pool = [_pool(920 + i // 2, platform_id=(130, 508)[i % 2]) for i in range(16)]
+    picks = fallback(prescore(pool, [], "balanced", TODAY), [], TODAY)
+    ids = [p.candidate.game.candidate.igdb_id for p in picks]
+    assert len(ids) == len(set(ids)) == PICKS
