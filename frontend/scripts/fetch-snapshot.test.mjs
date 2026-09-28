@@ -19,14 +19,27 @@ afterEach(async () => {
   await fs.rm(outDir, { recursive: true, force: true })
 })
 
-const ok = (body) => ({ ok: true, status: 200, json: async () => body })
+/** A 200 answer. `text` is what the server sent; it defaults to `body` as JSON. */
+const ok = (body, text = JSON.stringify(body)) => ({
+  ok: true,
+  status: 200,
+  json: async () => body,
+  text: async () => text,
+})
 
 /** A fetch answering by path; anything unlisted is a 404. */
 function api(routes) {
   return vi.fn(async (url) => {
     const route = routes[new URL(url).pathname]
     if (route instanceof Error) throw route
-    return route ?? { ok: false, status: 404, json: async () => ({}) }
+    return (
+      route ?? {
+        ok: false,
+        status: 404,
+        json: async () => ({}),
+        text: async () => '{}',
+      }
+    )
   })
 }
 
@@ -73,6 +86,19 @@ describe('fetchSnapshot', () => {
     ).toEqual(STATS)
   })
 
+  it('writes the bytes the API sent, not a re-serialisation of them', async () => {
+    const text = '[{"id":"1","community_score":86.0}]'
+    const fetchImpl = api({
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(JSON.parse(text), text),
+      '/api/public/stats': ok(STATS),
+    })
+    expect(await run(fetchImpl)).toBe('written')
+    expect(await fs.readFile(path.join(outDir, 'items.json'), 'utf8')).toBe(
+      text,
+    )
+  })
+
   it('keeps polling health while the API sleeps', async () => {
     let calls = 0
     const fetchImpl = vi.fn(async (url) => {
@@ -91,6 +117,20 @@ describe('fetchSnapshot', () => {
     const fetchImpl = api({ '/api/health': new TypeError('connect refused') })
     expect(await run(fetchImpl)).toBe('failed')
     expect(await written()).toEqual([])
+  })
+
+  it('removes files an earlier run left when this one fails', async () => {
+    await fs.writeFile(path.join(outDir, 'items.json'), '[]')
+    await fs.writeFile(path.join(outDir, 'stats.json.tmp'), '{}')
+    const fetchImpl = api({ '/api/health': new TypeError('connect refused') })
+    expect(await run(fetchImpl)).toBe('failed')
+    expect(await written()).toEqual([])
+  })
+
+  it('leaves files alone when it is skipped, so an offline build keeps them', async () => {
+    await fs.writeFile(path.join(outDir, 'items.json'), '[]')
+    expect(await run(api({}), { apiUrl: '' })).toBe('skipped')
+    expect(await written()).toEqual(['items.json'])
   })
 
   it('writes neither file when one body has the wrong shape', async () => {

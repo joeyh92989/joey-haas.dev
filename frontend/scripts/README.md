@@ -24,6 +24,9 @@ strips, so they still make no API calls.
   something unexpected, the build ships without a snapshot, and the site
   behaves as it did before the snapshot existed.
 - Required snapshots (`items`, `stats`) are written together or not at all.
+- When it runs, it first deletes the snapshot files an earlier run left in
+  `public/snapshot/` (temp files too), and does so again on every failure, so
+  a failed run ships no snapshot rather than a stale one.
 
 **Usage.**
 
@@ -40,9 +43,13 @@ the deployed files. See the root README → Collection snapshot.
 **Gotchas.**
 - `public/snapshot/` is gitignored and must never be committed.
 - Files fetched by `npm run snapshot` stay in `public/snapshot/` and are copied
-  into later local builds until you delete them.
-- The files are verbatim API bodies. Change what the API publishes and you
-  change what the snapshot publishes, so `test_public.py` covers both.
+  into later local builds until you delete them. An offline build (no
+  `VITE_API_URL`) leaves them alone; a build that does fetch replaces or
+  removes them.
+- The files are the API's response text, byte for byte (number literals such
+  as `86.0` included), so the snapshot workflow can compare them with the live
+  API. Change what the API publishes and you change what the snapshot
+  publishes, so `test_public.py` covers both.
 
 ## generate-rss.mjs
 

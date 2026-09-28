@@ -12,8 +12,12 @@
  * broken API ships a build without a snapshot, which behaves exactly like
  * the site before the snapshot existed.
  *
- * The bodies are written verbatim, so every consumer parses them with the
- * code that parses the API. See scripts/README.md.
+ * The bodies are written verbatim -- the response text, byte for byte, after
+ * checking that it parses to the expected shape -- so every consumer parses
+ * them with the code that parses the API, and the snapshot workflow can
+ * compare them with the live API. When an API URL is set, each run first
+ * removes the files an earlier run left, so a failed run never ships stale
+ * ones. See scripts/README.md.
  */
 import { realpathSync } from 'node:fs'
 import fs from 'node:fs/promises'
@@ -41,26 +45,41 @@ const WAKE_BUDGET_MS = 120_000
 const WAKE_INTERVAL_MS = 5_000
 const REQUEST_TIMEOUT_MS = 30_000
 
-async function getJson(fetchImpl, url) {
+/** Fetches a response body as text, exactly as the server sent it. */
+async function getText(fetchImpl, url) {
   const response = await fetchImpl(url, {
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   })
   if (!response.ok) throw new Error(`${url} answered ${response.status}`)
-  return response.json()
+  return response.text()
 }
 
 /**
- * Fetches one snapshot body, retrying once. /api/health doesn't touch the
+ * Fetches one snapshot body as text, retrying once. /api/health doesn't touch the
  * database, so the first data request after a wake can still time out while
  * Neon resumes.
  */
-async function getJsonWithRetry(fetchImpl, url, sleep) {
+async function getTextWithRetry(fetchImpl, url, sleep) {
   try {
-    return await getJson(fetchImpl, url)
+    return await getText(fetchImpl, url)
   } catch {
     await sleep(WAKE_INTERVAL_MS)
-    return getJson(fetchImpl, url)
+    return getText(fetchImpl, url)
   }
+}
+
+/**
+ * Removes every file this script writes, temp files included. Best effort: a
+ * file that cannot be removed must not turn a failed run into a rejection.
+ */
+async function clearSnapshotFiles(outDir) {
+  await Promise.all(
+    Object.keys(SNAPSHOTS).flatMap((name) =>
+      [`${name}.json`, `${name}.json.tmp`].map((file) =>
+        fs.rm(path.join(outDir, file), { force: true }).catch(() => {}),
+      ),
+    ),
+  )
 }
 
 /** Polls /api/health until it answers OK or the budget runs out. */
@@ -104,24 +123,31 @@ export async function fetchSnapshot({
     log('snapshot: no API URL set; building without one')
     return 'skipped'
   }
+  // A failed run must leave nothing behind for the build to pick up.
+  await clearSnapshotFiles(outDir)
   if (!(await wake({ apiUrl, fetchImpl, sleep, now }))) {
+    await clearSnapshotFiles(outDir)
     log(`snapshot: ${apiUrl} did not wake in time; building without one`)
     return 'failed'
   }
   const bodies = {}
+  const texts = {}
   for (const [name, snapshot] of Object.entries(SNAPSHOTS)) {
     try {
-      const body = await getJsonWithRetry(
+      const text = await getTextWithRetry(
         fetchImpl,
         `${apiUrl}${snapshot.path}`,
         sleep,
       )
+      const body = JSON.parse(text)
       if (!snapshot.valid(body)) {
         throw new Error(`${snapshot.path} returned an unexpected shape`)
       }
       bodies[name] = body
+      texts[name] = text
     } catch (error) {
       if (snapshot.required) {
+        await clearSnapshotFiles(outDir)
         log(`snapshot: ${error.message}; building without one`)
         return 'failed'
       }
@@ -131,10 +157,10 @@ export async function fetchSnapshot({
   const tmpPaths = []
   try {
     await fs.mkdir(outDir, { recursive: true })
-    for (const [name, body] of Object.entries(bodies)) {
+    for (const [name, text] of Object.entries(texts)) {
       const tmpPath = path.join(outDir, `${name}.json.tmp`)
       tmpPaths.push(tmpPath)
-      await fs.writeFile(tmpPath, JSON.stringify(body))
+      await fs.writeFile(tmpPath, text)
     }
     // Renames only start once every file is fully written, so a failed write
     // never leaves a half-published set.
@@ -142,12 +168,7 @@ export async function fetchSnapshot({
       await fs.rename(tmpPath, tmpPath.slice(0, -'.tmp'.length))
     }
   } catch (error) {
-    // Best effort: cleanup must not turn a failed write into a rejection.
-    await Promise.all(
-      tmpPaths.map((tmpPath) =>
-        fs.rm(tmpPath, { force: true }).catch(() => {}),
-      ),
-    )
+    await clearSnapshotFiles(outDir)
     log(`snapshot: could not write (${error.message}); building without one`)
     return 'failed'
   }

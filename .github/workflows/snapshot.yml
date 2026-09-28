@@ -30,14 +30,16 @@ jobs:
     steps:
       - name: Wake the API
         run: |
+          # Each attempt is at most 10 s of curl plus 5 s of sleep, so 24
+          # attempts stay inside six minutes and the job's 10-minute limit.
           for attempt in $(seq 1 24); do
-            if curl -fsS -m 30 "$API_URL/api/health" > /dev/null; then
+            if curl -fsS -m 10 "$API_URL/api/health" > /dev/null; then
               echo "API awake after $attempt attempt(s)"
               exit 0
             fi
             sleep 5
           done
-          echo "::error::The API did not wake within two minutes"
+          echo "::error::The API did not wake within six minutes"
           exit 1
 
       - name: Compare the API with the deployed snapshot
@@ -47,14 +49,18 @@ jobs:
           # curl into jq would leave an empty file and read as "changed".
           # The live side must fail the step; the deployed side is inside an
           # if, where a failure still just means "changed or missing".
+          # Both sides are normalised the same way: keys sorted, and arrays
+          # sorted by id, because /api/public/items has no unique ordering and
+          # a harmless write can reorder tied rows.
           set -o pipefail
+          normalise='if type == "array" then sort_by(.id) else . end'
           changed=""
           for name in items stats; do
-            curl -fsS -m 60 "$API_URL/api/public/$name" | jq -S . > "live-$name.json"
+            curl -fsS -m 60 "$API_URL/api/public/$name" | jq -S "$normalise" > "live-$name.json"
             # A missing file is served as index.html, which jq rejects: that
             # counts as changed, so the first run deploys one.
             if curl -fsS -m 60 "$SITE_URL/snapshot/$name.json" -o "deployed-$name.raw" &&
-              jq -S . "deployed-$name.raw" > "deployed-$name.json" 2> /dev/null &&
+              jq -S "$normalise" "deployed-$name.raw" > "deployed-$name.json" 2> /dev/null &&
               cmp -s "live-$name.json" "deployed-$name.json"; then
               echo "$name: unchanged"
             else
