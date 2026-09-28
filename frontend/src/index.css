@@ -517,6 +517,15 @@ section + section {
   margin-top: 0.375rem;
 }
 
+.project-card .cover-strip {
+  margin: 0 0 0.75rem;
+}
+
+.project-more {
+  font-size: 0.875rem;
+  margin: 0.5rem 0 0;
+}
+
 /* Tags are the one place the sage accent appears in light mode, so they read
    as metadata rather than as another link. */
 .tech-list {
