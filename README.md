@@ -417,3 +417,17 @@ strips.
   deploy.
 - **The API is not redeployed** by any of this. Its `rootDir` is `backend`, so
   Render deploys it only for changes under `backend/`.
+
+### Public API
+
+All read-only, unauthenticated, and allowlisted by hand in `backend/public.py`
+and `backend/public_outputs.py`; `backend/tests/test_public*.py` pin every
+field.
+
+| Route | What |
+|---|---|
+| `GET /api/public/items` | Every public item, most recently finished first |
+| `GET /api/public/items/{id}` | One public item with description and similar games; 404 for unknown and private alike |
+| `GET /api/public/stats` | Counts over public rows |
+| `GET /api/public/picks` | Play Next's most recent picks among public games, with first-person reasons |
+| `GET /api/public/radar` | Up to six upcoming full-cartridge releases: title, platform, date, IGDB link, cover |

@@ -282,8 +282,12 @@ before pushing.
   owned game is out of Radar and Discover for good; a skipped one returns
   at the next generation, and an answered suggestion takes no second
   answer. Only an **open** pre-order (window not closed, or no window and
-  the game not out) counts as one. **Nothing from `recommendations` is
-  public**:
+  the game not out) counts as one. **Only seven fields of pending Radar rows are public**
+  (`/api/public/radar`, showcase spec, "Spec changes"): title, platform,
+  format, release date and precision, IGDB link and cover -- for full
+  cartridges dated to a day or month after today, the top six by score.
+  Never a store, price, pre-order window, reason, score or id, and nothing
+  from Discover. `tests/test_public_outputs.py` pins the fields. Otherwise,
   Want creates an ordinary item (no owned copy, backlog, public) and only
   that reaches `/collection`, through `wanted` and `release_date`; Already
   own creates a private one with a physical copy. Both record a format only
@@ -318,6 +322,11 @@ before pushing.
   "Overdue classic" until acquired dates span 90 days, then "Waited longest".
   Pinning is its own route (`POST /api/items/{id}/pin`) because it clears
   the previous pin and records an event in one transaction.
+  `/api/public/picks` publishes the most recent shown day's picks (within 7
+  days) among public, owned, unpinned games, with `picker.public_reasons`:
+  reasons rebuilt from public rows only, without the slot reasons, since
+  "On the shelf since" is read from the private `acquired_at`. Reasons are
+  first person everywhere ("which I rated 9").
 - Editing lives at `/admin/collection/:id`. A wrong external match is fixed
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not

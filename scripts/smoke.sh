@@ -217,8 +217,24 @@ snapshot_check() {
   fi
 }
 
-for name in items stats; do
+for name in items stats picks radar; do
   snapshot_check "$name"
+done
+
+# Showcase PR2: the read-only outputs. Each must be a list and must carry
+# none of the fields that describe the owner's shopping or use of the tool.
+OUTPUT_FORBIDDEN='"(score|slot|slot_label|store|price|currency|availability|preorder_closes_at|url|batch_id|based_on|lane|section|hypes|listing_ids|format_source|format_note|status|acquired_at|notes|cart_id|reason|reason_source)"'
+for name in picks radar; do
+  check_equals "GET /api/public/$name unauthenticated" \
+    "$(http_status "$API_URL/api/public/$name")" "200"
+  body="$(curl -s -m 90 "$API_URL/api/public/$name")"
+  if [ "${body:0:1}" != "[" ]; then
+    report_fail "public $name is a list" "got '${body:0:80}'"
+  elif printf '%s' "$body" | grep -qE "$OUTPUT_FORBIDDEN"; then
+    report_fail "public $name exposes no private fields" "found a forbidden key"
+  else
+    report_pass "public $name exposes no private fields" "list, allowlisted keys only"
+  fi
 done
 
 # 401 rather than 404 or 405 proves both routes exist, are declared ahead of
