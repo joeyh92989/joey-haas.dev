@@ -372,6 +372,23 @@ def test_the_snapshot_carries_the_e7b_keys():
     assert snapshot["hypes"] == 36
 
 
+def test_the_snapshot_keeps_igdbs_page_url():
+    snapshot = _parse(MARIO_KART_WORLD).source_metadata
+    assert snapshot["url"].startswith("https://www.igdb.com/games/")
+
+
+def test_the_snapshot_url_is_none_unless_it_is_on_igdb():
+    # igdb_game.json predates the url field and the recorder does not write
+    # it, so it stands for "IGDB sent no url".
+    assert (
+        IgdbSource(_config())._parse_detail(_detail_payload()).source_metadata["url"]
+        is None
+    )
+
+    foreign = {**_detail_payload(), "url": "https://example.com/games/x"}
+    assert IgdbSource(_config())._parse_detail(foreign).source_metadata["url"] is None
+
+
 def test_keywords_are_trimmed_to_ten():
     # Mario Kart World carries 62; IGDB's query language cannot trim them.
     assert len(_e7b_games()[MARIO_KART_WORLD]["keywords"]) > 10

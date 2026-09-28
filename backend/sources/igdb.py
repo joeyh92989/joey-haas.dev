@@ -127,7 +127,7 @@ FIELDS = (
     "platforms.name,platforms.id,involved_companies.company.name,"
     "involved_companies.developer,similar_games,themes.name,themes.id,"
     "keywords.name,game_modes.name,player_perspectives.name,hypes,"
-    "game_status.status;"
+    "game_status.status,url;"
 )
 TIME_TO_BEAT_FIELDS = "fields game_id,hastily,normally,completely,count;"
 
@@ -424,6 +424,11 @@ class IgdbSource:
         ]
         snapshot = {
             "genres": _names(row, "genres"),
+            # IGDB's own page, for the public radar's link (showcase spec,
+            # K7). Kept only when it is on igdb.com.
+            "url": row.get("url")
+            if str(row.get("url") or "").startswith("https://www.igdb.com/")
+            else None,
             "description": row.get("summary") or None,
             "community_score": row.get("total_rating") or row.get("rating"),
             "community_votes": row.get("total_rating_count"),
