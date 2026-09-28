@@ -47,7 +47,7 @@ and in first person.
      the genre chips into a "My copy" line; all public copy first person.
 - **C. Cold start — build-time snapshot**
   8. The static build fetches `/api/public/items` and `/api/public/stats`
-     into `frontend/public/collection/`; a daily GitHub Actions workflow
+     into `frontend/public/snapshot/`; a daily GitHub Actions workflow
      triggers a rebuild when production data changed. `/collection` renders
      the snapshot immediately, then refreshes from the API; item pages paint
      card fields from it first. `smoke.sh` is corrected about which pages
@@ -82,12 +82,12 @@ and in first person.
 flowchart LR
   subgraph GH["GitHub Actions: snapshot.yml"]
     cron["daily 09:23 UTC<br/>+ workflow_dispatch"] --> wake["GET /api/health<br/>until 200"]
-    wake --> diff{"API bodies ≠ live<br/>/collection/*.json?"}
+    wake --> diff{"API bodies ≠ live<br/>/snapshot/*.json?"}
     diff -- yes --> hook["POST RENDER_DEPLOY_HOOK_URL"]
   end
   push["push to main"] --> build
   hook --> build["Render static build:<br/>fetch-snapshot.mjs → vite build → rss"]
-  build --> files[("dist/collection/<br/>items.json, stats.json<br/>(+ picks.json, radar.json in PR2)")]
+  build --> files[("dist/snapshot/<br/>items.json, stats.json<br/>(+ picks.json, radar.json in PR2)")]
   files --> home["Home / Projects:<br/>CoverStrip"]
   files --> coll["/collection, /collection/:id:<br/>paint snapshot first"]
   api[(API)] -->|live refresh| coll
@@ -169,13 +169,17 @@ system, one rule.
 
 ### C. Build-time snapshot
 
-**Files.** `frontend/public/collection/items.json` and `stats.json` are the
+**Files.** `frontend/public/snapshot/items.json` and `stats.json` are the
 exact response bodies of `/api/public/items` and `/api/public/stats`. No
 field is added or removed, so every consumer parses them with the code that
 already parses the API. The directory is gitignored. Render serves an
 existing file ahead of the SPA rewrite ("Render does not apply redirect or
-rewrite rules to a path if a resource exists at that path"), and item ids
-are UUIDs, so `/collection/items.json` never collides with `/collection/:id`.
+rewrite rules to a path if a resource exists at that path"). The files live
+under `/snapshot/`, not `/collection/`, so no directory in `dist/` shares a
+path with an SPA route: how a static host treats a request for a bare
+directory (redirect to a trailing slash, 404, or rewrite) is undocumented for
+Render, and `/collection` is the page this phase exists to show. (Changed
+during execution, 2026-09-28; the first draft used `/collection/*.json`.)
 
 **`scripts/fetch-snapshot.mjs`** runs first in `npm run build`
 (`node scripts/fetch-snapshot.mjs && vite build && node scripts/generate-rss.mjs`):
@@ -195,7 +199,7 @@ are UUIDs, so `/collection/items.json` never collides with `/collection/:id`.
   because GitHub delays scheduled runs at the top of the hour.
 - `permissions: contents: read`. It never pushes.
 - Wakes the API with the same health poll, fetches the API bodies and the
-  live `https://joey-haas.dev/collection/*.json`, compares with `jq -S`, and
+  live `https://joey-haas.dev/snapshot/*.json`, compares with `jq -S`, and
   `POST`s the `RENDER_DEPLOY_HOOK_URL` repository secret only when they
   differ or the live file is missing. The job summary says which.
 - The site and API URLs are public and written in the workflow; only the
@@ -208,7 +212,7 @@ fetch lands. The backend never redeploys for a snapshot: its `rootDir` is
 directory — and the hook is the static site's, not the API's.
 
 **`lib/snapshot.js`** exports `readSnapshot(name)`: fetches
-`/collection/${name}.json` from the site's own origin (not `API_URL`),
+`/snapshot/${name}.json` from the site's own origin (not `API_URL`),
 returns the parsed body, or `null` on a non-OK response, invalid JSON or a
 thrown error. It never throws. No module-level cache: the files are static,
 and the browser's HTTP cache is the right layer.
@@ -356,7 +360,7 @@ for drift:
    `reason`. It gains a named exception for `PublicPickOut.reasons` — and
    only that — with a comment pointing here.
 4. **Public pages may read static JSON.** "Public pages make no API calls"
-   is unchanged; Home and Projects now read `/collection/items.json`, a
+   is unchanged; Home and Projects now read `/snapshot/items.json`, a
    static file from the site's own origin.
 5. **First-person reasons in admin.** The parent's example reason ("which
    you finished") is second person; reasons are now first person
@@ -395,7 +399,7 @@ and PR1 respectively.
 | [GitHub: events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows) | `schedule` runs on the default branch, delayed at the top of the hour; public-repo schedules disable after 60 days without activity; `GITHUB_TOKEN` events start no workflow runs except dispatch | Align; the 60-day rule goes in the README |
 | [Render: monorepo support](https://render.com/docs/monorepo-support) | A service with a root directory autodeploys only for changes under it | The API is untouched by snapshots |
 | [Render: deploy hooks](https://render.com/docs/deploy-hooks) | Secret per-service URL, GET or POST | Align; the page does not say static sites explicitly — confirm in the dashboard (open question 1) |
-| [Render: redirects and rewrites](https://render.com/docs/redirects-rewrites) | Rules are not applied where a file exists | `/collection/*.json` is served, not rewritten |
+| [Render: redirects and rewrites](https://render.com/docs/redirects-rewrites) | Rules are not applied where a file exists | `/snapshot/*.json` is served, not rewritten |
 | `backend/public.py`, `tests/test_public.py` | Hand-named fields, field-set pins, name and sentinel leak tests | Align; one named exception (Spec change 3) |
 | `backend/physical_sources/resolve.py` | Catalogue snapshots refetch after 30 days, 2 × BATCH per Resolve | Drives K7's backfill note |
 
@@ -416,7 +420,7 @@ and PR1 respectively.
 (`./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`).
 
 **PR1 adds:**
-- `/collection/items.json` and `/collection/stats.json`: when 200, served as
+- `/snapshot/items.json` and `/snapshot/stats.json`: when 200, served as
   JSON, and the items body passes the existing private-field regex. When
   absent, a warning line (the build shipped without one), not a failure.
 - The corrected comment about which pages call the API.

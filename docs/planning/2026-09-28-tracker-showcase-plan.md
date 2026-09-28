@@ -12,7 +12,7 @@ Spec: `docs/planning/2026-09-28-tracker-showcase-design.md`. It wins over this p
 
 ## Global Constraints
 
-- Public pages other than `/collection*` make no API calls; they may read `/collection/*.json`, a static file on the site's own origin.
+- Public pages other than `/collection*` make no API calls; they may read `/snapshot/*.json`, a static file on the site's own origin.
 - Tokens only in CSS, never raw hex; any new token goes in both theme blocks. Tracker pages are wide via `WIDE_ROUTES`, never page CSS.
 - Every non-text mark with an accessible name gets `role="img"`; nothing is hover-only (`:focus-within`, `opacity`/`clip-path`, never `display: none` for revealed controls).
 - Viewport logic reads `useMediaQuery`, never `matchMedia`. Shelf prefs go through `readShelfPref` / `writeShelfPref`.
@@ -32,7 +32,7 @@ Spec: `docs/planning/2026-09-28-tracker-showcase-design.md`. It wins over this p
 
 | File | Responsibility |
 |---|---|
-| `frontend/src/lib/snapshot.js` (new) | `readSnapshot(name)`: same-origin fetch of `/collection/{name}.json`, shape-checked, never throws |
+| `frontend/src/lib/snapshot.js` (new) | `readSnapshot(name)`: same-origin fetch of `/snapshot/{name}.json`, shape-checked, never throws |
 | `frontend/src/lib/shelf.js` | gains `topFavourites(items, limit)` |
 | `frontend/src/components/CoverStrip.jsx` (new) | four decorative favourite covers from the snapshot |
 | `frontend/src/layouts/RootLayout.jsx` | `NAV` list; Blog gated on published posts |
@@ -41,7 +41,7 @@ Spec: `docs/planning/2026-09-28-tracker-showcase-design.md`. It wins over this p
 | `frontend/src/pages/Collection.jsx` | On cartridge block, bar axes, snapshot-first load |
 | `frontend/src/pages/Item.jsx` | My rating, My copy line, snapshot preview |
 | `frontend/src/index.css` | cover strip, bar axis, cartridge block, copy line |
-| `frontend/scripts/fetch-snapshot.mjs` (new) | build step writing `public/collection/*.json` |
+| `frontend/scripts/fetch-snapshot.mjs` (new) | build step writing `public/snapshot/*.json` |
 | `frontend/scripts/README.md` (new) | both build scripts documented |
 | `.github/workflows/snapshot.yml` (new) | daily compare + deploy hook |
 | `scripts/smoke.sh`, `README.md`, `CLAUDE.md`, `.gitignore`, `frontend/package.json` | wiring and docs |
@@ -96,7 +96,7 @@ describe('readSnapshot', () => {
       json: async () => [{ id: '1' }],
     }))
     expect(await readSnapshot('items')).toEqual([{ id: '1' }])
-    expect(fetch).toHaveBeenCalledWith('/collection/items.json')
+    expect(fetch).toHaveBeenCalledWith('/snapshot/items.json')
   })
 
   it('is null when the file is missing', async () => {
@@ -149,7 +149,7 @@ Expected: FAIL. The import of `./snapshot.js` can't be resolved.
  * The build-time snapshot of the public collection.
  *
  * `scripts/fetch-snapshot.mjs` writes the public API's response bodies,
- * verbatim, to `/collection/{name}.json` when the site is built, so the
+ * verbatim, to `/snapshot/{name}.json` when the site is built, so the
  * showcase can paint before the free-tier backend wakes. They are static files
  * on the site's own origin, not API calls, which is why pages outside
  * /collection may read them.
@@ -179,7 +179,7 @@ export async function readSnapshot(name) {
   const valid = SHAPES[name]
   if (!valid) return null
   try {
-    const response = await fetch(`/collection/${name}.json`)
+    const response = await fetch(`/snapshot/${name}.json`)
     if (!response.ok) return null
     const body = await response.json()
     return valid(body) ? body : null
@@ -1896,7 +1896,7 @@ Expected: FAIL. The import of `./fetch-snapshot.mjs` can't be resolved.
 
 ```js
 /**
- * Writes the public collection's build-time snapshot to public/collection/.
+ * Writes the public collection's build-time snapshot to public/snapshot/.
  *
  * Runs first in `npm run build`, before `vite build` copies public/ into
  * dist/. The free-tier API sleeps, so /collection would otherwise greet a
@@ -2030,7 +2030,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   ).replace(/\/$/, '')
   await fetchSnapshot({
     apiUrl,
-    outDir: path.join(here, '..', 'public', 'collection'),
+    outDir: path.join(here, '..', 'public', 'snapshot'),
   })
 }
 ```
@@ -2048,7 +2048,7 @@ Append to the root `.gitignore`:
 # Build-time snapshot of the public collection, written by
 # frontend/scripts/fetch-snapshot.mjs. Fetched per build, never committed:
 # unpublishing an item should not leave it in git history.
-frontend/public/collection/
+frontend/public/snapshot/
 ```
 
 Create `frontend/scripts/README.md`:
@@ -2065,7 +2065,7 @@ fetch-snapshot.mjs  →  vite build  →  generate-rss.mjs
 ## fetch-snapshot.mjs
 
 **What and why.** It writes the public API's response bodies to
-`public/collection/items.json` and `stats.json`, which Vite then copies into
+`public/snapshot/items.json` and `stats.json`, which Vite then copies into
 `dist/`. The API is on Render's free tier and sleeps after about 15 idle
 minutes. Without the snapshot, `/collection` would open with a thirty-second
 "Waking the server" notice. With it, the page paints straight away and then
@@ -2083,7 +2083,7 @@ strips, so they still make no API calls.
 **Usage.**
 
 ```bash
-npm run snapshot   # fetch from production into public/collection/ for local dev
+npm run snapshot   # fetch from production into public/snapshot/ for local dev
 npm run build      # on Render: snapshot, then vite build, then the RSS feed
 ```
 
@@ -2093,7 +2093,7 @@ through a Render deploy hook, but only when the live API bodies differ from
 the deployed files. See the root README → Collection snapshot.
 
 **Gotchas.**
-- `public/collection/` is gitignored and must never be committed.
+- `public/snapshot/` is gitignored and must never be committed.
 - The files are verbatim API bodies. Change what the API publishes and you
   change what the snapshot publishes, so `test_public.py` covers both.
 
@@ -2108,12 +2108,12 @@ because it writes into `dist/`.
 - [ ] **Step 4: Run it and watch it pass, then check the build offline**
 
 Run: `cd frontend && npx vitest run scripts/fetch-snapshot.test.mjs && npm run build`
-Expected: 6 passed. The build logs `snapshot: no API URL set; building without one` and succeeds, and `ls dist/collection` fails because nothing was written.
+Expected: 6 passed. The build logs `snapshot: no API URL set; building without one` and succeeds, and `ls dist/snapshot` fails because nothing was written.
 
 - [ ] **Step 5: Check the script against production.** Its requests are read-only and go to public endpoints.
 
-Run: `cd frontend && npm run snapshot && ls -la public/collection && node -e "console.log(JSON.parse(require('fs').readFileSync('public/collection/items.json','utf8')).length)"`
-Expected: `snapshot: wrote items, stats (N items)`, and N matches the public shelf. Then `git status --short` must not list `public/collection`.
+Run: `cd frontend && npm run snapshot && ls -la public/snapshot && node -e "console.log(JSON.parse(require('fs').readFileSync('public/snapshot/items.json','utf8')).length)"`
+Expected: `snapshot: wrote items, stats (N items)`, and N matches the public shelf. Then `git status --short` must not list `public/snapshot`.
 
 - [ ] **Step 6: Format, lint, full suite, then commit**
 
@@ -2185,7 +2185,7 @@ jobs:
             curl -fsS -m 60 "$API_URL/api/public/$name" | jq -S . > "live-$name.json"
             # A missing file is served as index.html, which jq rejects: that
             # counts as changed, so the first run deploys one.
-            if curl -fsS -m 60 "$SITE_URL/collection/$name.json" -o "deployed-$name.raw" &&
+            if curl -fsS -m 60 "$SITE_URL/snapshot/$name.json" -o "deployed-$name.raw" &&
               jq -S . "deployed-$name.raw" > "deployed-$name.json" 2> /dev/null &&
               cmp -s "live-$name.json" "deployed-$name.json"; then
               echo "$name: unchanged"
@@ -2222,7 +2222,7 @@ jobs:
 - [ ] **Step 3: Dry-run the compare step locally** against production. Its requests are read-only.
 
 ```bash
-cd "$(mktemp -d)" && SITE_URL=https://joey-haas.dev API_URL=https://api.joey-haas.dev GITHUB_OUTPUT=/dev/stdout bash -c 'changed=""; for name in items stats; do curl -fsS -m 60 "$API_URL/api/public/$name" | jq -S . > "live-$name.json"; if curl -fsS -m 60 "$SITE_URL/collection/$name.json" -o "deployed-$name.raw" && jq -S . "deployed-$name.raw" > "deployed-$name.json" 2> /dev/null && cmp -s "live-$name.json" "deployed-$name.json"; then echo "$name: unchanged"; else echo "$name: changed or missing"; changed="$changed $name"; fi; done; echo "changed=${changed# }" >> "$GITHUB_OUTPUT"'
+cd "$(mktemp -d)" && SITE_URL=https://joey-haas.dev API_URL=https://api.joey-haas.dev GITHUB_OUTPUT=/dev/stdout bash -c 'changed=""; for name in items stats; do curl -fsS -m 60 "$API_URL/api/public/$name" | jq -S . > "live-$name.json"; if curl -fsS -m 60 "$SITE_URL/snapshot/$name.json" -o "deployed-$name.raw" && jq -S . "deployed-$name.raw" > "deployed-$name.json" 2> /dev/null && cmp -s "live-$name.json" "deployed-$name.json"; then echo "$name: unchanged"; else echo "$name: changed or missing"; changed="$changed $name"; fi; done; echo "changed=${changed# }" >> "$GITHUB_OUTPUT"'
 ```
 
 Expected: `items: changed or missing`, `stats: changed or missing`, `changed=items stats`. No snapshot is deployed yet, so both are missing.
@@ -2242,7 +2242,7 @@ strips.
   `frontend/scripts/README.md`.
 - **Refreshed by** every deploy, plus `.github/workflows/snapshot.yml`. It runs
   daily at 09:23 UTC and on demand from the Actions tab, compares the live API
-  bodies with the deployed `/collection/*.json`, and triggers a static-site
+  bodies with the deployed `/snapshot/*.json`, and triggers a static-site
   deploy only when they differ. It never pushes, and the snapshot is never
   committed.
 - **Setup (once):** in Render, go to the static site → Settings → Deploy Hook
@@ -2311,7 +2311,7 @@ After the public-stats checks, add:
 # before the snapshot existed, so absence is a warning. A snapshot that is
 # present must be JSON and must hold nothing the API itself would not publish.
 snapshot_check() {
-  local name="$1" url="$SITE_URL/collection/$1.json" type body
+  local name="$1" url="$SITE_URL/snapshot/$1.json" type body
   type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$url")"
   case "$type" in
     application/json*) ;;
@@ -2362,7 +2362,7 @@ with:
 Public pages other than `/collection*` make no API calls
   — bio and project content are static modules in `frontend/src/content/`, so
   the site renders fully while the free-tier backend is asleep. Home and
-  Projects may read `/collection/items.json`, the build-time snapshot: a
+  Projects may read `/snapshot/items.json`, the build-time snapshot: a
   static file on the site's own origin, not an API call.
 ```
 
@@ -2371,7 +2371,7 @@ Second edit — in Media tracker, replace the bullet beginning `` `/collection` 
 ```
 - `/collection` and `/collection/:id` are public and **do** call the API,
   unlike every other public page. They paint the build-time snapshot first
-  (`frontend/public/collection/*.json`, written by
+  (`frontend/public/snapshot/*.json`, written by
   `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed daily by
   `.github/workflows/snapshot.yml` through a deploy hook), then swap in live
   data; "Waking the server" shows only when there is no snapshot. The
