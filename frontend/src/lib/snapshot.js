@@ -2,7 +2,7 @@
  * The build-time snapshot of the public collection.
  *
  * `scripts/fetch-snapshot.mjs` writes the public API's response bodies,
- * verbatim, to `/collection/{name}.json` when the site is built, so the
+ * verbatim, to `/snapshot/{name}.json` when the site is built, so the
  * showcase can paint before the free-tier backend wakes. They are static files
  * on the site's own origin, not API calls, which is why pages outside
  * /collection may read them.
@@ -32,7 +32,7 @@ export async function readSnapshot(name) {
   const valid = SHAPES[name]
   if (!valid) return null
   try {
-    const response = await fetch(`/collection/${name}.json`)
+    const response = await fetch(`/snapshot/${name}.json`)
     if (!response.ok) return null
     const body = await response.json()
     return valid(body) ? body : null

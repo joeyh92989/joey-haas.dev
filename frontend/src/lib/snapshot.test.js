@@ -18,7 +18,7 @@ describe('readSnapshot', () => {
       json: async () => [{ id: '1' }],
     }))
     expect(await readSnapshot('items')).toEqual([{ id: '1' }])
-    expect(fetch).toHaveBeenCalledWith('/collection/items.json')
+    expect(fetch).toHaveBeenCalledWith('/snapshot/items.json')
   })
 
   it('is null when the file is missing', async () => {

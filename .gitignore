@@ -24,4 +24,4 @@ venv/
 # Build-time snapshot of the public collection, written by
 # frontend/scripts/fetch-snapshot.mjs. Fetched per build, never committed:
 # unpublishing an item should not leave it in git history.
-frontend/public/collection/
+frontend/public/snapshot/

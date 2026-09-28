@@ -1,5 +1,5 @@
 /**
- * Writes the public collection's build-time snapshot to public/collection/.
+ * Writes the public collection's build-time snapshot to public/snapshot/.
  *
  * Runs first in `npm run build`, before `vite build` copies public/ into
  * dist/. The free-tier API sleeps, so /collection would otherwise greet a
@@ -136,6 +136,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   ).replace(/\/$/, '')
   await fetchSnapshot({
     apiUrl,
-    outDir: path.join(here, '..', 'public', 'collection'),
+    outDir: path.join(here, '..', 'public', 'snapshot'),
   })
 }

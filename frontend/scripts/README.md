@@ -9,7 +9,7 @@ fetch-snapshot.mjs  →  vite build  →  generate-rss.mjs
 ## fetch-snapshot.mjs
 
 **What and why.** It writes the public API's response bodies to
-`public/collection/items.json` and `stats.json`, which Vite then copies into
+`public/snapshot/items.json` and `stats.json`, which Vite then copies into
 `dist/`. The API is on Render's free tier and sleeps after about 15 idle
 minutes. Without the snapshot, `/collection` would open with a thirty-second
 "Waking the server" notice. With it, the page paints straight away and then
@@ -27,7 +27,7 @@ strips, so they still make no API calls.
 **Usage.**
 
 ```bash
-npm run snapshot   # fetch from production into public/collection/ for local dev
+npm run snapshot   # fetch from production into public/snapshot/ for local dev
 npm run build      # on Render: snapshot, then vite build, then the RSS feed
 ```
 
@@ -37,7 +37,7 @@ through a Render deploy hook, but only when the live API bodies differ from
 the deployed files. See the root README → Collection snapshot.
 
 **Gotchas.**
-- `public/collection/` is gitignored and must never be committed.
+- `public/snapshot/` is gitignored and must never be committed.
 - The files are verbatim API bodies. Change what the API publishes and you
   change what the snapshot publishes, so `test_public.py` covers both.
 
