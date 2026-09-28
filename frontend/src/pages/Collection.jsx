@@ -14,6 +14,7 @@ import {
   sortItems,
   STATUS_LABEL,
   STATUS_ORDER,
+  topFavourites,
   writeShelfPref,
 } from '../lib/shelf.js'
 
@@ -172,12 +173,7 @@ export function HeroNumbers({ owned, finished, finishedThisYear }) {
  * @param {boolean} [props.placeholders] - Always render, padding with slots.
  */
 export function FavoritesRow({ items, linkFor, placeholders = false }) {
-  const all = sortItems(
-    items.filter((item) => item.favorite),
-    'rating',
-    'desc',
-    0,
-  )
+  const all = topFavourites(items)
   const favourites = placeholders ? all : all.slice(0, FAVOURITES_SHOWN)
   if (favourites.length === 0 && !placeholders) return null
   const empty = placeholders
