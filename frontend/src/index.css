@@ -2572,23 +2572,60 @@ footer {
   margin: 0 0 0.25rem;
 }
 
-.rate-a-few-list {
-  display: grid;
-  gap: 0.5rem;
-  list-style: none;
+.rate-a-few-table {
+  border-collapse: collapse;
   margin: 0.75rem 0;
-  padding: 0;
+  max-width: 36rem;
+  width: 100%;
 }
 
-.rate-a-few-game {
+.rate-a-few-table th,
+.rate-a-few-table td {
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.rate-a-few-table thead th {
+  border-bottom: 1px solid var(--border);
+  color: var(--text-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.rate-a-few-table tbody th {
+  font-weight: 400;
+}
+
+/* Stripes on --bg: in the dark theme --surface is the panel's own color.
+   The row being rated lights up on --border; its secondary text stays on
+   --text-body, which clears 4.5:1 there in both themes (--text-muted does
+   not). */
+.rate-a-few-table tbody tr:nth-child(even) {
+  background: var(--bg);
+}
+
+.rate-a-few-table tbody tr:hover,
+.rate-a-few-table tbody tr:focus-within {
+  background: var(--border);
+}
+
+.rate-a-few-platform,
+.rate-a-few-score {
+  color: var(--text-body);
+  font-size: 0.875rem;
+}
+
+.rate-a-few-score {
+  white-space: nowrap;
+}
+
+.rate-a-few-actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
 }
 
-.rate-a-few > button {
+.rate-a-few-actions button {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
