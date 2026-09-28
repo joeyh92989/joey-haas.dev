@@ -78,6 +78,18 @@ describe('RateAFew', () => {
     expect(onRated).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps a rated row when the page reads the items again', async () => {
+    stubSaves()
+    const { rerender } = render(<RateAFew items={[game('a'), game('b')]} />)
+    await userEvent.click(
+      within(stars('Game a')).getByRole('radio', { name: 'Rate 8 out of 10' }),
+    )
+    await within(row('Game a')).findByText('8/10 saved')
+    // A generate re-reads the items: game a now arrives rated.
+    rerender(<RateAFew items={[game('a', { rating: 8 }), game('b')]} />)
+    expect(within(row('Game a')).getByText('8/10 saved')).toBeInTheDocument()
+  })
+
   it('re-rates and clears a mis-tap', async () => {
     const fetchMock = stubSaves()
     render(<RateAFew items={[game('a')]} />)
@@ -115,6 +127,28 @@ describe('RateAFew', () => {
     expect(
       screen.getAllByRole('rowheader').map((cell) => cell.textContent),
     ).toEqual(['Game g6 · Nintendo Switch'])
+    // The button that had focus is gone: focus moves to the new row's stars.
+    await waitFor(() =>
+      expect(
+        within(stars('Game g6')).getByRole('radio', {
+          name: 'Rate 1 out of 10',
+        }),
+      ).toHaveFocus(),
+    )
+  })
+
+  it('offers no next few once every game is rated', async () => {
+    stubSaves()
+    render(<RateAFew items={[game('a'), game('b')]} />)
+    for (const id of ['a', 'b']) {
+      await userEvent.click(
+        within(stars(`Game ${id}`)).getByRole('radio', {
+          name: 'Rate 6 out of 10',
+        }),
+      )
+      await within(row(`Game ${id}`)).findByText('6/10 saved')
+    }
+    expect(screen.queryByRole('button', { name: 'Next few' })).toBeNull()
   })
 
   it('saves a second game while the first is still saving', async () => {

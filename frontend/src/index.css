@@ -2595,6 +2595,11 @@ footer {
 
 .rate-a-few-table tbody th {
   font-weight: 400;
+  /* A long title wraps rather than pushing the table past a phone's width:
+     hyphenated where the language allows, broken anywhere as a last
+     resort. */
+  hyphens: auto;
+  overflow-wrap: anywhere;
 }
 
 /* Stripes on --bg: in the dark theme --surface is the panel's own color.
@@ -2614,10 +2619,6 @@ footer {
 .rate-a-few-score {
   color: var(--text-body);
   font-size: 0.875rem;
-}
-
-.rate-a-few-score {
-  white-space: nowrap;
 }
 
 .rate-a-few-actions {

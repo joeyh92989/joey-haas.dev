@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import QuickRate from './QuickRate.jsx'
@@ -31,6 +31,16 @@ export default function RateAFew({ items, onRated }) {
   // Saves in flight, per game: rating one never blocks another.
   const [saving, setSaving] = useState(() => new Set())
   const [error, setError] = useState(null)
+  // Next few removes the button that had focus: hand it to the new rows
+  // once they are rendered.
+  const focusNewRows = useRef(false)
+  const table = useRef(null)
+
+  useEffect(() => {
+    if (!focusNewRows.current) return
+    focusNewRows.current = false
+    table.current?.querySelector('[role="radio"][tabindex="0"]')?.focus()
+  })
 
   const pool = items.filter(
     (item) =>
@@ -77,6 +87,7 @@ export default function RateAFew({ items, onRated }) {
       for (const item of shown) next.add(item.id)
       return next
     })
+    focusNewRows.current = true
   }
 
   function notNow() {
@@ -92,7 +103,7 @@ export default function RateAFew({ items, onRated }) {
         Discover and Play Next suggest.
       </p>
       {error && <p role="alert">{error}</p>}
-      <table className="rate-a-few-table">
+      <table className="rate-a-few-table" ref={table}>
         <thead>
           <tr>
             <th scope="col">Game</th>
