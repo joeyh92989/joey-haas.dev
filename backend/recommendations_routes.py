@@ -272,6 +272,7 @@ def create_recommendations_router(
                         "lane": s.lane,
                         "section": s.section,
                         "release_precision": s.release_precision,
+                        "release_source": s.release_source,
                         "hypes": s.hypes,
                         "store_lines": list(s.store_lines),
                         "snapshot": s.snapshot,

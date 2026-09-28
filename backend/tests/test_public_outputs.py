@@ -277,6 +277,7 @@ def _radar(title: str, **fields) -> Recommendation:
         "lane": "preorder",
         "section": "suggested",
         "release_precision": "day",
+        "release_source": "registry",
         "hypes": 40,
         "store_lines": [
             {
@@ -368,6 +369,27 @@ async def test_radar_leaves_out_what_is_not_a_public_upcoming_cartridge(
     async with client_for(sessionmaker_for_test) as client:
         body = (await client.get("/api/public/radar")).json()
     assert [row["title"] for row in body] == ["Keep"]
+
+
+async def test_radar_publishes_only_dates_the_registry_gave(sessionmaker_for_test):
+    # A store listing's date (parsed from its page) stays private, and a row
+    # stored before release_source existed stays hidden until a Generate.
+    unrecorded = _radar("Unrecorded")
+    unrecorded.source_metadata = {
+        key: value
+        for key, value in unrecorded.source_metadata.items()
+        if key != "release_source"
+    }
+    await _add(
+        sessionmaker_for_test,
+        _radar("Registry"),
+        _radar("Store Date", source_metadata={"release_source": "store"}),
+        _radar("IGDB Date", source_metadata={"release_source": "igdb_first"}),
+        unrecorded,
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/radar")
+    assert [row["title"] for row in response.json()] == ["Registry"]
 
 
 async def test_radar_links_only_to_igdb(sessionmaker_for_test):

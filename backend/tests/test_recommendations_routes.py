@@ -182,6 +182,19 @@ async def test_generate_fills_the_three_sections(sessionmaker_for_test):
     assert listed["generated_at"] is not None
 
 
+async def test_generate_records_where_each_release_date_came_from(
+    sessionmaker_for_test,
+):
+    # The public radar reads this to publish registry dates only.
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+    rows = await _rows(sessionmaker_for_test)
+    assert rows["1"].source_metadata["release_source"] == "registry"
+    assert rows["3"].source_metadata["release_source"] == "registry"
+    assert rows["2"].source_metadata["release_source"] is None
+
+
 async def test_a_lane_three_failure_keeps_lanes_one_and_two(sessionmaker_for_test):
     await _seed(sessionmaker_for_test)
     igdb = FakeUpcoming(error=SourceError("igdb", "rate limited by IGDB"))

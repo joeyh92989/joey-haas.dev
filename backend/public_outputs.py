@@ -169,6 +169,11 @@ async def load_public_radar(session: AsyncSession, today: date) -> list[PublicRa
 
     Pending only: a wanted game is already an item and shows in "On the
     radar"; dismissed and owned ones are answered. Discover never appears.
+
+    Registry-dated only: a date from a store listing (often parsed from its
+    page) is store data and stays private, and IGDB's first release date is
+    for any platform. It fails closed: a row stored before `release_source`
+    was recorded stays hidden until the next Radar Generate.
     """
     rows = (
         await session.execute(
@@ -186,6 +191,7 @@ async def load_public_radar(session: AsyncSession, today: date) -> list[PublicRa
         row
         for row in rows
         if (row.source_metadata or {}).get("release_precision") in NEAR_PRECISIONS
+        and (row.source_metadata or {}).get("release_source") == "registry"
     ][:RADAR_LIMIT]
     near.sort(key=lambda row: (row.release_date, row.title))
     return [
