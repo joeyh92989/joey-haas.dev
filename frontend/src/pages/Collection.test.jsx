@@ -2,12 +2,27 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { readSnapshot } from '../lib/snapshot.js'
 import Collection from './Collection.jsx'
 
 // A wide screen: the sort renders as buttons. The narrow select variant is
 // covered in SortControl.test.jsx.
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
+
+vi.mock('../lib/snapshot.js', () => ({ readSnapshot: vi.fn() }))
+
+beforeEach(() => {
+  vi.mocked(readSnapshot).mockReset()
+  vi.mocked(readSnapshot).mockResolvedValue(null)
+})
+
+/** A snapshot of the given rows and stats, as the build wrote them. */
+function stubSnapshot({ items = ITEMS, stats = STATS } = {}) {
+  vi.mocked(readSnapshot).mockImplementation(async (name) =>
+    name === 'items' ? items : name === 'stats' ? stats : null,
+  )
+}
 
 /**
  * Queries scoped to the poster grid.
@@ -690,5 +705,55 @@ describe('Collection On the radar', () => {
     expect(
       screen.queryByRole('region', { name: 'On the radar' }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('Collection snapshot', () => {
+  it('paints the snapshot while the server wakes, with no waking notice', async () => {
+    stubSnapshot()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    await renderReady()
+
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
+    await new Promise((done) => setTimeout(done, 2100))
+    expect(screen.queryByText(/waking the server/i)).toBeNull()
+  })
+
+  it('replaces the snapshot with live data when it arrives', async () => {
+    stubSnapshot({ items: [ITEMS[0]] })
+    stubApi()
+    renderPage()
+
+    await waitFor(() => expect(gridTitles()).toEqual(['Gloomhaven', 'Dune']))
+  })
+
+  it('keeps the snapshot when the live load fails', async () => {
+    stubSnapshot()
+    stubApi({ itemsOk: false })
+    await renderReady()
+
+    await new Promise((done) => setTimeout(done, 50))
+    expect(screen.queryByText(/could not be loaded/i)).toBeNull()
+    expect(gridTitles()).toHaveLength(2)
+  })
+
+  it('ignores a snapshot that arrives after the live data', async () => {
+    const releases = []
+    vi.mocked(readSnapshot).mockImplementation(
+      (name) =>
+        new Promise((done) => {
+          releases.push(() => done(name === 'items' ? [ITEMS[0]] : STATS))
+        }),
+    )
+    stubApi()
+    await renderReady()
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
+
+    for (const release of releases) release()
+    await new Promise((done) => setTimeout(done, 50))
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
   })
 })

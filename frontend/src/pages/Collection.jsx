@@ -5,6 +5,7 @@ import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import { apiFetch } from '../lib/api.js'
+import { readSnapshot } from '../lib/snapshot.js'
 import { localToday } from '../lib/statusTransition.js'
 import {
   countBy,
@@ -396,10 +397,11 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
  * The public collection showcase.
  *
  * Unlike every other public page, this one calls the API. The free-tier
- * backend sleeps after about fifteen minutes, so a first load can take some
- * thirty seconds while it wakes; that is announced beside a skeleton grid
- * rather than hidden behind a spinner, which would read as broken rather than
- * slow.
+ * backend sleeps after about fifteen minutes, so the page first paints the
+ * build-time snapshot (lib/snapshot.js) and swaps in live data when it
+ * arrives. Only without a snapshot does a first load wait on the wake-up,
+ * which is announced beside a skeleton grid rather than hidden behind a
+ * spinner that would read as broken rather than slow.
  *
  * Filtering and sorting are client-side over the whole public list. Poster
  * size and dimming persist under `shelf.public.*`; the filters and sort do
@@ -444,17 +446,39 @@ export default function Collection() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    // Set once live data is applied, so a slower snapshot never overwrites it.
+    let live = false
     const timer = setTimeout(() => setSlow(true), 2000)
 
-    load()
-      .then((result) => {
+    Promise.all([readSnapshot('items'), readSnapshot('stats')]).then(
+      ([snapshotItems, snapshotStats]) => {
+        if (cancelled || live || !snapshotItems) return
+        clearTimeout(timer)
+        setItems(snapshotItems)
+        setStats(snapshotStats)
+        setState('ready')
+      },
+    )
+
+    load().then((result) => {
+      if (cancelled) return
+      clearTimeout(timer)
+      if (result.state === 'ready') {
+        live = true
         setItems(result.items)
         setStats(result.stats)
-        setState(result.state)
-      })
-      .finally(() => clearTimeout(timer))
+        setState('ready')
+      } else {
+        // A painted snapshot outranks an error: stale beats nothing.
+        setState((current) => (current === 'ready' ? current : 'error'))
+      }
+    })
 
-    return () => clearTimeout(timer)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [load])
 
   function changeSize(next) {
