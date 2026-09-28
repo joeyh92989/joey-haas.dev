@@ -324,7 +324,7 @@ async def test_radar_lists_the_top_upcoming_cartridges_soonest_first(
     sessionmaker_for_test,
 ):
     rows = [
-        _radar(f"Game {n}", score=n * 10, release_date=TODAY + timedelta(days=100 - n))
+        _radar(f"Game {n}", score=n * 10, release_date=TODAY + timedelta(days=10 + n))
         for n in range(1, 9)
     ]
     await _add(sessionmaker_for_test, *rows)
@@ -333,14 +333,16 @@ async def test_radar_lists_the_top_upcoming_cartridges_soonest_first(
 
     assert response.status_code == 200
     body = response.json()
-    # Top six by score (Game 8 .. Game 3), shown soonest first.
+    # Top six by score (Game 3 .. Game 8), shown soonest first. Score and date
+    # disagree on purpose: the best-scored game releases last, so dropping the
+    # re-sort or taking the soonest six instead of the top six both fail.
     assert [row["title"] for row in body] == [
-        "Game 8",
-        "Game 7",
-        "Game 6",
-        "Game 5",
-        "Game 4",
         "Game 3",
+        "Game 4",
+        "Game 5",
+        "Game 6",
+        "Game 7",
+        "Game 8",
     ]
     for row in body:
         assert set(row) == RADAR_FIELDS
@@ -374,6 +376,16 @@ async def test_radar_links_only_to_igdb(sessionmaker_for_test):
         _radar("Linked"),
         _radar("Script", source_metadata={"snapshot": {"url": "javascript:alert(1)"}}),
         _radar("Bare", source_metadata={"snapshot": {}}),
+        _radar(
+            "Plain Http",
+            source_metadata={"snapshot": {"url": "http://www.igdb.com/games/x"}},
+        ),
+        _radar(
+            "Lookalike",
+            source_metadata={
+                "snapshot": {"url": "https://www.igdb.com.example/games/x"}
+            },
+        ),
     )
     async with client_for(sessionmaker_for_test) as client:
         body = {
@@ -382,6 +394,8 @@ async def test_radar_links_only_to_igdb(sessionmaker_for_test):
     assert body["Linked"]["igdb_url"] == "https://www.igdb.com/games/linked"
     assert body["Script"]["igdb_url"] is None
     assert body["Bare"]["igdb_url"] is None
+    assert body["Plain Http"]["igdb_url"] is None
+    assert body["Lookalike"]["igdb_url"] is None
 
 
 async def test_radar_publishes_no_store_price_window_or_reason(sessionmaker_for_test):
@@ -397,5 +411,9 @@ async def test_radar_publishes_no_store_price_window_or_reason(sessionmaker_for_
         "preorder",
         "suggested",
         "score",
+        "USD",
+        "2026-11-08",
+        "hypes",
+        "lane",
     ):
         assert leaked not in response.text
