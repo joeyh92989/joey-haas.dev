@@ -71,3 +71,26 @@ reviewers per dimension, each finding verified) + PR draft
 - After deploy: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`;
   owner generates once; I read the list (GET) and confirm no title twice
   and the ranking note; Render logs clean (`&q=Traceback`, `&q=ERROR`).
+
+## Execution summary
+
+Zone 1 ran straight through; finish gate was an ultra review (a backend
+and a frontend reviewer, findings reproduced by mutation before and after
+each fix).
+
+Deviations:
+
+- Task 2 matches "gemini is overloaded", narrower than the planned
+  "overloaded", so no other message can be read as an overload; a test
+  checks `llm.py` still writes that wording, since it builds it inline.
+- Task 3 touched `AdminDiscover.test.jsx` too (it named the old group),
+  so its commit is four files. `shown` is derived each render rather than
+  fixed on first render; a cleared rating is stored as `null`, so the row
+  keeps its place while the page's items are stale. Stripes use `--bg`:
+  in the dark theme `--surface` is the panel's own color.
+- Review fixes: focus moves to the new rows after Next few; titles
+  hyphenate (and break anywhere as a last resort) and the saved score may
+  wrap, so the table fits 375px; tests for a rated row surviving a
+  re-read and for no Next few at the end.
+- Not changed: a time-budget exhaustion in `llm.py` ("Gave up after …")
+  still reads "The model did not answer" (pre-existing, out of scope).
