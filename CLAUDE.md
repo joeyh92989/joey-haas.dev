@@ -8,8 +8,10 @@ backend, deployed on Render via Blueprint (render.yaml).
 - `frontend/` — Vite + React 19 SPA, routed with react-router v8 (declarative
   mode; import from `react-router`, not `react-router-dom`). Deployed as a free
   Render static site. Public pages other than `/collection*` make no API calls
-  — bio and project content are static modules in `frontend/src/content/`, so
-  the site renders fully while the free-tier backend is asleep. Home and
+  (apart from RootLayout's one `/api/auth/me` session check, which fails
+  quietly to signed out) — bio and project content are static modules in
+  `frontend/src/content/`, so the site renders fully while the free-tier
+  backend is asleep. Home and
   Projects may read `/snapshot/items.json`, the build-time snapshot: a
   static file on the site's own origin, not an API call. Vite proxies
   `/api` to localhost:8000 for the tracker and the admin pages.

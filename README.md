@@ -31,12 +31,13 @@ npm install                                           # first time only
 npm run dev
 ```
 
-The Vite dev server proxies `/api/*` to the backend. Every public page except
-the collection makes no API call: bio and project content are static modules in
-`frontend/src/content/`, so the site renders fully even when the free-tier
-backend is asleep. `/collection` is the one exception — it reads the tracker's
-public API, and shows a "waking the server" state during the cold start rather
-than a spinner that looks broken.
+The Vite dev server proxies `/api/*` to the backend. Bio and project content
+are static modules in `frontend/src/content/`, so the site renders fully even
+when the free-tier backend is asleep. Only `/collection` and `/collection/:id`
+call the tracker's public API, and they paint the build-time snapshot first
+(see [Collection snapshot](#collection-snapshot)); the "waking the server"
+state shows only when there is no snapshot. Home and Projects read the static
+snapshot files and never call the API.
 
 ## Routes
 
@@ -47,7 +48,7 @@ than a spinner that looks broken.
 | `/projects` | Projects | |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
-| `/collection` | Collection | Public shelf: hero numbers, favourites, stats, filters and sort; the only public page that calls the API |
+| `/collection` | Collection | Public shelf: hero numbers, favourites, stats, filters and sort; calls the public API after painting the build-time snapshot |
 | `/collection/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
 | `/admin` | Admin | Google sign-in gate, reached from the footer's Sign in link |
 | `/admin/collection` | Collection (admin) | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
@@ -383,9 +384,11 @@ they are correct as written — which is also why renaming the services required
 no DNS change. Visitors never see them; the custom domains sit in front.
 
 Note: the API runs on Render's free tier, which spins down after ~15 min of
-inactivity (first request then takes ~30 s). Only `/collection` calls the API,
-and it shows a waking state while that happens; every other public page never
-waits on it. Upgrade to Starter ($7/mo) to keep it warm.
+inactivity (first request then takes ~30 s). Only `/collection` and
+`/collection/:id` call the API. They paint the build-time snapshot first and
+show a "waking the server" state only when there is no snapshot; every other
+public page never waits on it (see [Collection snapshot](#collection-snapshot)).
+Upgrade to Starter ($7/mo) to keep it warm.
 
 ## Collection snapshot
 
@@ -409,5 +412,8 @@ strips.
 - **Gotcha:** GitHub switches off scheduled workflows in a public repository
   after 60 days with no repository activity. If the snapshot stops refreshing
   after a quiet spell, re-enable the workflow from the Actions tab.
+- **Unpublishing:** to drop an unpublished item from the snapshot at once, run
+  the Snapshot workflow from the Actions tab, or trigger a manual static-site
+  deploy.
 - **The API is not redeployed** by any of this. Its `rootDir` is `backend`, so
   Render deploys it only for changes under `backend/`.
