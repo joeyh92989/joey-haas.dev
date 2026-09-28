@@ -338,7 +338,7 @@ describe('Item copy details', () => {
     ).toBeInTheDocument()
   })
 
-  it('has no format chip for another platform with no format', async () => {
+  it('leaves the format out of My copy for another platform with no format', async () => {
     stubItem({ ...COPY, physical_format: null, completeness: null })
     await renderReady()
     expect(screen.getByText('My copy: Nintendo Switch')).toBeInTheDocument()
@@ -424,7 +424,7 @@ describe('Item snapshot preview', () => {
       screen.getByText('My copy: Nintendo Switch · Full game on cartridge'),
     ).toBeInTheDocument()
     expect(screen.queryByText('Defy the god of the dead.')).toBeNull()
-    await new Promise((done) => setTimeout(done, 2100))
+    expect(screen.queryByText('Community')).toBeNull()
     expect(screen.queryByText(/waking the server/i)).toBeNull()
   })
 

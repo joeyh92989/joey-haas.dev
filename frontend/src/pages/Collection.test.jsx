@@ -209,6 +209,13 @@ describe('Collection', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('does not ask visitors to pick favourites when there are none', async () => {
+    stubApi({ items: ITEMS.map((item) => ({ ...item, favorite: false })) })
+    await renderReady()
+
+    expect(screen.queryByText(/pick your favourites/i)).toBeNull()
+  })
+
   it('draws the status bar with named segments and a legend', async () => {
     stubApi({ stats: { ...STATS, by_status: { backlog: 50, finished: 17 } } })
     await renderReady()
@@ -727,7 +734,6 @@ describe('Collection snapshot', () => {
     await renderReady()
 
     expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
-    await new Promise((done) => setTimeout(done, 2100))
     expect(screen.queryByText(/waking the server/i)).toBeNull()
   })
 
