@@ -21,7 +21,10 @@ function renderToolbar(props = {}) {
         {
           key: 'type',
           label: 'Type',
-          options: [{ value: 'game', label: 'Games', count: 2 }],
+          options: [
+            { value: 'game', label: 'Games', count: 2 },
+            { value: 'movie', label: 'Film & TV', count: 1 },
+          ],
         },
       ]}
       toggles={[{ key: 'wanted', label: 'Want', count: 1 }]}

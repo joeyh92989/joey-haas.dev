@@ -12,6 +12,7 @@ const GROUPS = [
     options: [
       { value: 'game', label: 'Games', count: 3 },
       { value: 'movie', label: 'Film & TV', count: 0 },
+      { value: 'comic', label: 'Comics', count: 1 },
     ],
   },
   {
@@ -95,5 +96,45 @@ describe('FilterChips', () => {
   it('keeps a pressed chip visible even at zero', () => {
     renderChips({ ...NO_FILTER, unrated: true })
     expect(chip('unrated')).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('FilterChips single-member groups', () => {
+  const ONE_TYPE = [
+    {
+      key: 'type',
+      label: 'Type',
+      options: [
+        { value: 'game', label: 'Games', count: 68 },
+        { value: 'movie', label: 'Film & TV', count: 0 },
+      ],
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'backlog', label: 'Backlog', count: 30 },
+        { value: 'finished', label: 'Finished', count: 38 },
+      ],
+    },
+  ]
+
+  it('hides a group with one chip to choose, since it filters nothing', () => {
+    render(
+      <FilterChips groups={ONE_TYPE} value={NO_FILTER} onChange={() => {}} />,
+    )
+    expect(screen.queryByRole('group', { name: 'Type' })).toBeNull()
+    expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument()
+  })
+
+  it('keeps a group whose chip is pressed, so the filter can be undone', () => {
+    render(
+      <FilterChips
+        groups={ONE_TYPE}
+        value={{ ...NO_FILTER, type: 'game' }}
+        onChange={() => {}}
+      />,
+    )
+    expect(screen.getByRole('group', { name: 'Type' })).toBeInTheDocument()
   })
 })
