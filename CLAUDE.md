@@ -7,10 +7,10 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - `frontend/` — Vite + React 19 SPA, routed with react-router v8 (declarative
   mode; import from `react-router`, not `react-router-dom`). Deployed as a free
-  Render static site. Public pages make no API calls — bio and project content
-  are static modules in `frontend/src/content/`, so the site renders fully while
-  the free-tier backend is asleep. Vite still proxies `/api` to localhost:8000
-  for the authenticated features planned later.
+  Render static site. Public pages other than `/collection` make no API calls
+  — bio and project content are static modules in `frontend/src/content/`, so
+  the site renders fully while the free-tier backend is asleep. Vite proxies
+  `/api` to localhost:8000 for the tracker and the admin pages.
 - `backend/` — FastAPI app (`main.py`), **Python 3.12** to match Render.
   macOS system Python is 3.9 and cannot install this dependency set. Deployed
   as a Render web service (free tier: spins down after ~15 min idle). Config is

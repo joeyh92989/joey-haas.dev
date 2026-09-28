@@ -35,7 +35,7 @@ export default function Home() {
           <span className="link-card-title">See my work</span>
           <span className="link-card-arrow"> &rarr;</span>
           <span className="link-card-sub">
-            Projects, including this very site.
+            The collection tracker, and this very site.
           </span>
         </Link>
       </div>

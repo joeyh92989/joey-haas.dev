@@ -1,12 +1,14 @@
 # joey-haas.dev
 
-Resume/portfolio website. React (Vite) frontend + FastAPI backend, deployed on Render.
+Resume/portfolio website and the home of a media collection tracker. React
+(Vite) frontend + FastAPI backend + Postgres, deployed on Render and Neon.
 
 ## Structure
 
 ```
-frontend/   React app (Vite) — routed static site; all public content ships in the bundle
-backend/    FastAPI app — /api/health; add authenticated project APIs here
+frontend/   React app (Vite) — routed static site; bio, projects and blog ship in the bundle
+backend/    FastAPI app — Google sign-in, the media tracker's API, Alembic migrations
+docs/       Specs and plans, one design + plan pair per feature, under docs/planning/
 scripts/    smoke.sh — post-deploy verification
 render.yaml Render Blueprint — defines both services for auto-deploy
 ```
@@ -29,10 +31,12 @@ npm install                                           # first time only
 npm run dev
 ```
 
-The Vite dev server proxies `/api/*` to the backend, which matters for the
-authenticated features planned later. The public pages deliberately make no API
-calls: bio and project content are static modules in `frontend/src/content/`,
-so the site renders fully even when the free-tier backend is asleep.
+The Vite dev server proxies `/api/*` to the backend. Every public page except
+the collection makes no API call: bio and project content are static modules in
+`frontend/src/content/`, so the site renders fully even when the free-tier
+backend is asleep. `/collection` is the one exception — it reads the tracker's
+public API, and shows a "waking the server" state during the cold start rather
+than a spinner that looks broken.
 
 ## Routes
 
@@ -43,17 +47,23 @@ so the site renders fully even when the free-tier backend is asleep.
 | `/projects` | Projects | |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
-| `/admin` | Admin | Google sign-in gate; not in the navigation |
-| `/admin/collection` | Collection | Media tracker; requires the admin session |
+| `/collection` | Collection | Public shelf: hero numbers, favourites, stats, filters and sort; the only public page that calls the API |
+| `/collection/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
+| `/admin` | Admin | Google sign-in gate, reached from the footer's Sign in link |
+| `/admin/collection` | Collection (admin) | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
+| `/admin/collection/:id` | Edit item | Every field, plus re-linking to a different IGDB/TMDB/Comic Vine match |
+| `/admin/import` | Import | Photograph a shelf; a vision model reads the titles and each is resolved against its source |
 | `/admin/play-next` | Play Next | Three picks from the owned backlog |
 | `/admin/catalogue` | Catalogue | What exists physically: registry, stores, N64 |
 | `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Want puts a game on `/collection`'s "On the radar" strip |
 | `/admin/discover` | Discover | Released physical games you would love and do not own: eight picks with reasons from one Gemini call, or the taste ranking when it cannot answer |
 | anything else | NotFound (client-side 404) | |
 
-The `/admin*` routes are absent from the site navigation deliberately. That is
-not a security control — the server-side session check is. It keeps a personal
-site from looking like an app with a login wall.
+The `/admin*` routes are absent from the site navigation deliberately. The
+footer carries an understated "Sign in" link (which reads "Admin" once a session
+exists) — a door for one person, not a call to action. That is not a security
+control — the server-side session check is. It keeps a personal site from
+looking like an app with a login wall.
 
 Routing is `react-router` v8 in declarative mode. Note that all router imports
 come from `react-router` — the `react-router-dom` package does not exist for
@@ -115,8 +125,9 @@ Publishing is `git push` — Render rebuilds and redeploys, regenerating
 
 ## Admin authentication
 
-`/admin` is gated by Google sign-in restricted to one account. It is not linked
-from the navigation — reach it by typing the URL.
+`/admin` is gated by Google sign-in restricted to one account. The footer's
+"Sign in" link starts the Google flow; once signed in, the same link reads
+"Admin" and each public item page grows an Edit link.
 
 ### One-time Google Cloud setup
 
@@ -278,6 +289,49 @@ migration reproduces the models exactly. Round-tripping
 `alembic downgrade base` followed by `upgrade head` on that scratch database
 also proves the enum drops in `downgrade` are correct.
 
+## Media tracker
+
+The tracker is the site's main personal project: a record of a physical game
+collection, a public showcase of it, and — behind the sign-in — tools for
+deciding what to play and what to buy next. `CLAUDE.md` holds the operating
+rules (deploy order, invariants, tuning points); this is the map.
+
+| Area | Where | What it does |
+|---|---|---|
+| Items | `backend/items.py`, `models.py`, `formats.py` | The `items` table and its admin CRUD. Copy fields (platform, physical format, cart ID, region, completeness) are decided in one place, `formats.py`, on every write path |
+| Metadata sources | `backend/sources/` | One adapter per API behind a common interface: IGDB (games), TMDB (films), Comic Vine (comics); BGG is stubbed until its API is usable again. Each keeps a snapshot on the item for the shelf and the pickers |
+| Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
+| Public showcase | `backend/public.py`, `/collection` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
+| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one puts it on the public shelf as "Up next" |
+| Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
+| Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want puts a game on the public shelf's "On the radar" strip |
+| Discover | `backend/discover.py`, `/admin/discover` | Released physical games on the owner's platforms, pre-scored by taste and re-ranked by one Gemini call with reasons; falls back to the deterministic ranking when the model cannot answer |
+
+Migrations `0001`–`0006` build this up: items, enrichment columns, copy
+columns, `pick_events`, the catalogue's five tables, and the shared
+`recommendations` table. They are applied by hand and must be additive — see
+[Database](#database).
+
+### Tracker environment variables
+
+Every variable here is optional and checked lazily. A missing one disables one
+media type or feature rather than stopping the service; `main.py` logs which
+sources are configured at startup. Set them on the API service in Render and in
+`backend/.env` locally (`backend/env.example` documents each).
+
+| Variable | Enables |
+|---|---|
+| `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` | Games (Twitch developer app) |
+| `TMDB_API_TOKEN` | Films |
+| `COMICVINE_API_KEY` | Comics |
+| `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, with `LLM_PROVIDER` | Photo import and Discover's ranking |
+| `GOOGLE_SHEETS_API_KEY` | The catalogue's registry refresh (the stores run without it) |
+| `BGG_TOKEN` | Reserved for board games; not usable yet |
+
+`render.yaml` declares the IGDB, TMDB, Comic Vine, `LLM_PROVIDER` and
+`GEMINI_API_KEY` variables; `GOOGLE_SHEETS_API_KEY` and any other is set
+directly on the service in the Render dashboard.
+
 ## Smoke test
 
 After a deploy:
@@ -329,5 +383,6 @@ they are correct as written — which is also why renaming the services required
 no DNS change. Visitors never see them; the custom domains sit in front.
 
 Note: the API runs on Render's free tier, which spins down after ~15 min of
-inactivity (first request then takes ~30 s). Because no public page calls the
-API, visitors never wait on this. Upgrade to Starter ($7/mo) to keep it warm.
+inactivity (first request then takes ~30 s). Only `/collection` calls the API,
+and it shows a waking state while that happens; every other public page never
+waits on it. Upgrade to Starter ($7/mo) to keep it warm.
