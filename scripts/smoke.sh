@@ -30,6 +30,13 @@ report_fail() {
   fail=$((fail + 1))
 }
 
+warn=0
+
+report_warn() {
+  printf 'WARN  %-42s %s\n' "$1" "$2"
+  warn=$((warn + 1))
+}
+
 check_equals() {
   local name="$1" actual="$2" expected="$3"
   if [ "$actual" = "$expected" ]; then
@@ -131,8 +138,10 @@ case "$allowed_methods" in
     ;;
 esac
 
-# The public collection routes are the only unauthenticated ones, and the only
-# part of the public site that calls the API at all.
+# The public collection routes are the only unauthenticated data routes.
+# /collection and /collection/:id are the only pages that fetch them; every
+# page also asks /api/auth/me once (RootLayout) and treats failure as signed
+# out. Home and Projects read the static snapshot below, never the API.
 check_equals "GET /api/public/items unauthenticated" \
   "$(http_status "$API_URL/api/public/items")" "200"
 
@@ -144,8 +153,10 @@ check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection"
 # Asserts an absence, which is the whole reason the public router hand-writes
 # its response model instead of serializing the ORM object. A private column
 # added later would be published with no code change and nothing to notice it.
+PRIVATE_KEYS='"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|buyable|recommendation[a-z_]*)"'
+
 public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
-if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|buyable|recommendation[a-z_]*)"'; then
+if printf '%s' "$public_body" | grep -qE "$PRIVATE_KEYS"; then
   report_fail "public items expose no private fields" "found a private key in the response"
 else
   report_pass "public items expose no private fields" "no notes/owned_format/is_public/ids/copy details"
@@ -183,6 +194,32 @@ if printf '%s' "$stats_body" | grep -q '"by_format"'; then
 else
   report_fail "public stats has the format counts" "got '$stats_body'"
 fi
+
+# The build-time snapshot (frontend/scripts/fetch-snapshot.mjs). A build
+# whose fetch failed ships without one, and the site then behaves as it did
+# before the snapshot existed, so absence is a warning. A snapshot that is
+# present must be JSON and must hold nothing the API itself would not publish.
+snapshot_check() {
+  local name="$1" url="$SITE_URL/snapshot/$1.json" type body
+  type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$url")"
+  case "$type" in
+    application/json*) ;;
+    *)
+      report_warn "snapshot $name.json" "not deployed (got '${type:-no response}')"
+      return
+      ;;
+  esac
+  body="$(curl -s -m 90 "$url")"
+  if printf '%s' "$body" | grep -qE "$PRIVATE_KEYS"; then
+    report_fail "snapshot $name.json" "found a private key"
+  else
+    report_pass "snapshot $name.json" "JSON, public fields only"
+  fi
+}
+
+for name in items stats; do
+  snapshot_check "$name"
+done
 
 # 401 rather than 404 or 405 proves both routes exist, are declared ahead of
 # /{item_id}, and are gated.
@@ -301,8 +338,7 @@ else
   report_pass "CORS rejects other onrender.com origins" "no ACAO for $forged_origin"
 fi
 
-# Proves the public pages were actually decoupled from the backend, rather than
-# merely appearing decoupled.
+# Proves the public pages ship their own content, rather than fetching the retired /api/projects.
 asset="$(curl -s -m 90 "$SITE_URL/" | grep -o '/assets/[^"]*\.js' | head -1)"
 if [ -z "$asset" ]; then
   report_fail "bundle has no /api/projects reference" "no JS asset found in index.html"
@@ -326,5 +362,5 @@ else
 fi
 
 echo
-echo "$pass passed, $fail failed"
+echo "$pass passed, $fail failed, $warn warned"
 [ "$fail" -eq 0 ]
