@@ -45,17 +45,22 @@ jobs:
       - name: Compare the API with the deployed snapshot
         id: compare
         run: |
-          # GitHub's default shell is bash -e without pipefail, so a failed
-          # curl into jq would leave an empty file and read as "changed".
-          # The live side must fail the step; the deployed side is inside an
-          # if, where a failure still just means "changed or missing".
+          # GitHub's default shell is bash -e. Every live fetch and parse is
+          # checked explicitly, so a failure is reported, never read as
+          # "changed": items and stats are the snapshot and fail the step;
+          # picks and radar are optional, because the API can lag behind the
+          # static site (a 404 until it has deployed), so any failure there
+          # -- a status other than 200, a curl error, a body jq cannot read --
+          # is a warning and that output is skipped. A change already found
+          # in items or stats is never discarded by an optional output.
+          # The deployed side is inside an if, where a failure still just
+          # means "changed or missing".
           # Both sides are normalised the same way: keys sorted (-S), and
           # arrays sorted, because the API has no unique ordering and a
           # harmless write can reorder tied rows. An array whose elements all
           # have an id is sorted by it. Any other array (Radar's rows have no
           # id) is sorted by each element's serialised text, which orders
           # every element and so leaves no ties to reorder.
-          set -o pipefail
           # tostring follows key order in the text, so keys are sorted first.
           normalise='
             def canon:
@@ -69,22 +74,34 @@ jobs:
                 if all(.[]; type == "object" and has("id"))
                 then sort_by(.id) else sort_by(tostring) end
               else . end'
-          # items and stats are the snapshot; picks and radar are optional
-          # because the API can lag behind the static site, and answer 404
-          # until it has deployed. A 404 there is skipped with a notice.
+          # fail: an error that stops the step for items and stats, and a
+          # warning for picks and radar, whose caller then skips the output.
+          fail() {
+            case "$name" in
+              items | stats)
+                echo "::error::$name: $1"
+                exit 1
+                ;;
+            esac
+            echo "::warning::$name: $1, so it is skipped"
+          }
           changed=""
           for name in items stats picks radar; do
             live_status=$(curl -sS -m 60 -o "live-$name.raw" -w '%{http_code}' \
-              "$API_URL/api/public/$name")
-            if [ "$live_status" = 404 ] && [ "$name" != items ] && [ "$name" != stats ]; then
-              echo "::notice::$name: the API answered 404, so it is skipped"
+              "$API_URL/api/public/$name") || live_status=000
+            if [ "$live_status" != 200 ]; then
+              fail "the API answered $live_status"
               continue
             fi
-            if [ "$live_status" != 200 ]; then
-              echo "::error::$name: the API answered $live_status"
-              exit 1
+            # An empty or non-JSON 200 body produces no array or object.
+            if ! jq -e 'type == "array" or type == "object"' "live-$name.raw" > /dev/null 2>&1; then
+              fail "the API's body is not a JSON array or object"
+              continue
             fi
-            jq -S "$normalise" "live-$name.raw" > "live-$name.json"
+            if ! jq -S "$normalise" "live-$name.raw" > "live-$name.json"; then
+              fail "the API's body could not be normalised"
+              continue
+            fi
             # A missing file is served as index.html, which jq rejects: that
             # counts as changed, so the first run deploys one.
             if curl -fsS -m 60 "$SITE_URL/snapshot/$name.json" -o "deployed-$name.raw" &&
