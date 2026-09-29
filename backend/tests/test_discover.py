@@ -223,11 +223,18 @@ def test_the_prompt_holds_only_the_shortlist_and_the_owners_games():
     pool = [_pool(200 + i) for i in range(25)]
     candidates = prescore(pool, [], "balanced", TODAY)
     short = shortlist(candidates, 1)
-    refs = [_owned("h", title="Hades", favorite=True, rating=9)]
+    refs = [
+        _owned("h", title="Hades", favorite=True, rating=9),
+        _owned("c", title="Celeste", rating=8),
+    ]
     prompt = build_prompt(short, refs, {("genre", "Roguelike"): 2.0})
     for index, candidate in enumerate(short):
         assert f"[{index}] {candidate.item.title}" in prompt
     assert "1. Hades ♥ (rated 9, finished)" in prompt
+    # The rating is said once, in the parenthesis: the public reasons' "which
+    # I rated" wording is not the model's to read.
+    assert "2. Celeste (rated 8, finished)" in prompt
+    assert "which I rated" not in prompt
     left_out = {c.item.title for c in candidates} - {c.item.title for c in short}
     assert left_out and not any(f"] {title} " in prompt for title in left_out)
     assert "What they like most: Roguelike" in prompt

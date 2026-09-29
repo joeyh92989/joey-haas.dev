@@ -20,7 +20,6 @@ from datetime import date
 
 from picker import (
     PickerItem,
-    _named,
     affinity,
     attribute_table,
     quality,
@@ -287,7 +286,10 @@ def build_prompt(
     most, and the candidates by index. No other title appears."""
     lines = [INSTRUCTIONS, "", "The owner's games:"]
     for number, item in enumerate(refs, 1):
-        lines.append(f"{number}. {_named(item)}{_feeling(item)}")
+        # Not picker._named: its "which I rated" is the public reasons' voice,
+        # and _feeling already gives the rating.
+        named = f"{item.title}{' ♥' if item.favorite else ''}"
+        lines.append(f"{number}. {named}{_feeling(item)}")
     # Only what they liked: an abandoned game's genres weigh below zero.
     liked = [
         value
