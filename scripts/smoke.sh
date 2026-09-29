@@ -221,10 +221,21 @@ for name in items stats picks radar; do
   snapshot_check "$name"
 done
 
-# Showcase PR2: the read-only outputs. Each must be a list and must carry
-# none of the fields that describe the owner's shopping or use of the tool.
+# Showcase PR2: the read-only outputs. Each must be a list, must carry none
+# of the fields that describe the owner's shopping or use of the tool, and
+# every row must have exactly the public model's keys (jq's `keys` is sorted;
+# an empty list passes). The key sets mirror PublicPickOut and PublicRadarOut.
 OUTPUT_FORBIDDEN='"(score|slot|slot_label|store|price|currency|availability|preorder_closes_at|url|batch_id|based_on|lane|section|hypes|listing_ids|format_source|format_note|status|acquired_at|notes|cart_id|reason|reason_source)"'
+PICKS_KEYS='["cover_url","id","platform","reasons","title","type"]'
+RADAR_KEYS='["cover_url","igdb_url","physical_format","platform","release_date","release_precision","title"]'
+if ! command -v jq > /dev/null; then
+  report_fail "jq is installed" "the picks and radar key-set checks need it"
+fi
 for name in picks radar; do
+  case "$name" in
+    picks) keys="$PICKS_KEYS" ;;
+    radar) keys="$RADAR_KEYS" ;;
+  esac
   check_equals "GET /api/public/$name unauthenticated" \
     "$(http_status "$API_URL/api/public/$name")" "200"
   body="$(curl -s -m 90 "$API_URL/api/public/$name")"
@@ -232,8 +243,10 @@ for name in picks radar; do
     report_fail "public $name is a list" "got '${body:0:80}'"
   elif printf '%s' "$body" | grep -qE "$OUTPUT_FORBIDDEN"; then
     report_fail "public $name exposes no private fields" "found a forbidden key"
+  elif ! printf '%s' "$body" | jq -e "all(.[]; keys == $keys)" > /dev/null 2>&1; then
+    report_fail "public $name exposes no private fields" "keys are not exactly $keys"
   else
-    report_pass "public $name exposes no private fields" "list, allowlisted keys only"
+    report_pass "public $name exposes no private fields" "list, exact public key set"
   fi
 done
 
