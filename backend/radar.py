@@ -85,6 +85,8 @@ class Suggestion:
     store_lines: tuple[dict, ...]  # admin-only display data
     hypes: int | None
     snapshot: dict
+    # The candidate's release provenance; None for lane 3 (IGDB digital).
+    release_source: str | None = None
 
 
 def section_for(
@@ -331,6 +333,7 @@ def build(
                 store_lines=tuple(_line_dict(line) for line in candidate.store_lines),
                 hypes=game.hypes,
                 snapshot=game.snapshot,
+                release_source=candidate.release_source,
             )
         )
 

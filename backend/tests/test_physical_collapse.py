@@ -194,6 +194,31 @@ def test_release_date_falls_back_to_listings_then_igdb():
     assert collapse(1, 508, [], [], GAME).release_date == date(2027, 3, 1)
 
 
+def test_the_release_date_says_where_it_came_from():
+    # The public radar publishes only registry dates, so every source is named:
+    # a registry row in any region, a store listing, IGDB's game, or nothing.
+    home = edition(
+        "game_card", release_date=date(2026, 11, 19), release_precision="day"
+    )
+    foreign = edition(
+        "game_card",
+        region="JPN",
+        release_date=date(2026, 10, 1),
+        release_precision="day",
+    )
+    dated = listing(
+        "Limited Run", None, release_date=date(2026, 9, 1), release_precision="day"
+    )
+    undated = GameView(igdb_id=1, title="Some Game")
+
+    assert collapse(1, 508, [home], [dated], GAME).release_source == "registry"
+    assert collapse(1, 508, [foreign], [dated], GAME).release_source == "registry"
+    assert collapse(1, 508, [], [dated], GAME).release_source == "store"
+    assert collapse(1, 508, [], [], GAME).release_source == "igdb_first"
+    assert collapse(1, 508, [], [], undated).release_source is None
+    assert collapse(1, 508, [], [], None).release_source is None
+
+
 # --- The registry note ---------------------------------------------------------
 
 

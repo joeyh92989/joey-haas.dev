@@ -97,16 +97,25 @@ function stubApi({
   stats = STATS,
   itemsOk = true,
   statsOk = true,
+  picks = [],
+  radar = [],
 } = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url) => {
-      if (String(url).includes('/api/public/items')) {
+      const path = String(url)
+      if (path.includes('/api/public/items')) {
         return {
           ok: itemsOk,
           status: itemsOk ? 200 : 500,
           json: async () => items,
         }
+      }
+      if (path.includes('/api/public/picks')) {
+        return { ok: true, status: 200, json: async () => picks }
+      }
+      if (path.includes('/api/public/radar')) {
+        return { ok: true, status: 200, json: async () => radar }
       }
       return {
         ok: statsOk,
@@ -784,5 +793,148 @@ describe('Collection snapshot', () => {
     for (const release of releases) release()
     await new Promise((done) => setTimeout(done, 50))
     expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
+  })
+})
+
+describe('Collection outputs', () => {
+  const PICK = {
+    id: '2',
+    type: 'boardgame',
+    title: 'Gloomhaven',
+    cover_url: null,
+    platform: null,
+    reasons: ['Shares Fantasy with Dune, which I rated 9'],
+  }
+  const RELEASE = {
+    title: 'Metroid Prime 4',
+    platform: 'Nintendo Switch 2',
+    physical_format: 'game_card',
+    release_date: '2027-03-12',
+    release_precision: 'month',
+    igdb_url: 'https://www.igdb.com/games/metroid-prime-4',
+    cover_url: null,
+  }
+
+  it('lists recent picks with their reasons and no buttons', async () => {
+    stubApi({ picks: [PICK] })
+    await renderReady()
+
+    const section = await screen.findByRole('region', { name: 'Recent picks' })
+    expect(
+      within(section).getByRole('link', { name: /Gloomhaven/ }),
+    ).toHaveAttribute('href', '/collection/2')
+    expect(
+      within(section).getByText('Shares Fantasy with Dune, which I rated 9'),
+    ).toBeInTheDocument()
+    expect(within(section).queryByRole('button')).toBeNull()
+  })
+
+  it('lists coming cartridges with a month and an IGDB link', async () => {
+    stubApi({
+      radar: [RELEASE, { ...RELEASE, title: 'Unlinked', igdb_url: null }],
+    })
+    await renderReady()
+
+    const section = await screen.findByRole('region', {
+      name: 'Coming to cartridge',
+    })
+    expect(
+      within(section).getByRole('link', { name: /Metroid Prime 4/ }),
+    ).toHaveAttribute('href', 'https://www.igdb.com/games/metroid-prime-4')
+    expect(
+      within(section).getAllByText('Nintendo Switch 2 · Mar 2027'),
+    ).toHaveLength(2)
+    expect(within(section).queryByRole('link', { name: /Unlinked/ })).toBeNull()
+    expect(within(section).getByText('Unlinked').closest('a')).toBeNull()
+    expect(
+      within(section).getByRole('link', { name: /Metroid Prime 4/ }),
+    ).toHaveAttribute('rel', expect.stringContaining('noopener'))
+  })
+
+  it('gives a day-precise release its day', async () => {
+    stubApi({ radar: [{ ...RELEASE, release_precision: 'day' }] })
+    await renderReady()
+
+    const section = await screen.findByRole('region', {
+      name: 'Coming to cartridge',
+    })
+    expect(
+      within(section).getByText('Nintendo Switch 2 · Mar 12, 2027'),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps rows of one game apart by platform and by date', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const unlinked = { ...RELEASE, igdb_url: null }
+    stubApi({
+      radar: [
+        RELEASE,
+        { ...RELEASE, platform: 'Nintendo Switch' },
+        unlinked,
+        { ...unlinked, release_date: '2027-05-01' },
+      ],
+    })
+    await renderReady()
+
+    const section = await screen.findByRole('region', {
+      name: 'Coming to cartridge',
+    })
+    expect(within(section).getAllByText('Metroid Prime 4')).toHaveLength(4)
+    expect(
+      errors.mock.calls.filter((call) => String(call[0]).includes('same key')),
+    ).toEqual([])
+  })
+
+  it('keeps live picks when a late snapshot arrives', async () => {
+    const releases = []
+    vi.mocked(readSnapshot).mockImplementation(
+      (name) =>
+        new Promise((done) => {
+          const rows = {
+            items: [ITEMS[0]],
+            stats: STATS,
+            picks: [{ ...PICK, id: '9', title: 'Stale Pick' }],
+            radar: [],
+          }[name]
+          releases.push(() => done(rows))
+        }),
+    )
+    stubApi({ picks: [PICK] })
+    await renderReady()
+    const section = await screen.findByRole('region', { name: 'Recent picks' })
+    expect(within(section).getByText('Gloomhaven')).toBeInTheDocument()
+
+    for (const release of releases) release()
+    await new Promise((done) => setTimeout(done, 50))
+    expect(within(section).getByText('Gloomhaven')).toBeInTheDocument()
+    expect(screen.queryByText('Stale Pick')).toBeNull()
+  })
+
+  it('paints both from the snapshot while the server wakes', async () => {
+    vi.mocked(readSnapshot).mockImplementation(
+      async (name) =>
+        ({ items: ITEMS, stats: STATS, picks: [PICK], radar: [RELEASE] })[name],
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    await renderReady()
+
+    expect(
+      await screen.findByRole('region', { name: 'Recent picks' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'Coming to cartridge' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows neither section when both are empty', async () => {
+    stubApi()
+    await renderReady()
+    expect(screen.queryByRole('region', { name: 'Recent picks' })).toBeNull()
+    expect(
+      screen.queryByRole('region', { name: 'Coming to cartridge' }),
+    ).toBeNull()
   })
 })

@@ -97,7 +97,8 @@
         "id": 1,
         "name": "Action"
       }
-    ]
+    ],
+    "url": "https://www.igdb.com/games/super-mario-64-2"
   },
   {
     "cover": {
@@ -197,7 +198,8 @@
         "id": 38,
         "name": "Open world"
       }
-    ]
+    ],
+    "url": "https://www.igdb.com/games/the-legend-of-zelda-breath-of-the-wild-and-the-legend-of-zelda-breath-of-the-wild-expansion-pass-bundle"
   },
   {
     "aggregated_rating": 91.5,
@@ -539,16 +541,16 @@
     ],
     "rating": 78.8523406591421,
     "similar_games": [
-      2344,
-      2338,
-      2349,
-      2332,
+      7340,
       26758,
       2350,
-      1074,
+      2344,
+      2342,
       1077,
-      7340,
-      2345
+      2336,
+      152354,
+      2183,
+      1074
     ],
     "summary": "Mario Kart World is a kart racing game for the Nintendo Switch 2, featuring characters from the Mario franchise. It introduces an open-world design to the series, allowing players to drive freely between courses rather than selecting them from a menu. Races support up to 24 players and include new mechanics such as off-roading, boat racing, rail grinding, and wall riding. The game features a Knockout Tour elimination mode where racers compete across connected courses with periodic eliminations at checkpoints, as well as a Free Roam mode for open exploration and collectible-finding.",
     "themes": [
@@ -566,6 +568,7 @@
       }
     ],
     "total_rating": 85.17617032957105,
-    "total_rating_count": 134
+    "total_rating_count": 135,
+    "url": "https://www.igdb.com/games/mario-kart-world"
   }
 ]

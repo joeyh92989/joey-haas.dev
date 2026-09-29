@@ -39,6 +39,10 @@ export const SNAPSHOTS = {
     valid: (body) => isObject(body) && 'total' in body,
     required: true,
   },
+  // Optional: on a deploy that ships these endpoints, the static build can
+  // run before the API has finished deploying.
+  picks: { path: '/api/public/picks', valid: Array.isArray, required: false },
+  radar: { path: '/api/public/radar', valid: Array.isArray, required: false },
 }
 
 const WAKE_BUDGET_MS = 120_000

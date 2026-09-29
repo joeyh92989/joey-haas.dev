@@ -271,6 +271,104 @@ function OnTheRadar({ items }) {
   )
 }
 
+const RELEASE_DAY = new Intl.DateTimeFormat('en', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+
+/** "Mar 2027" for a month-precise release, "Mar 12, 2027" for a dated one. */
+function releaseText(release) {
+  const [year, month, day] = release.release_date.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return (
+    release.release_precision === 'day' ? RELEASE_DAY : MONTH_LABEL
+  ).format(date)
+}
+
+/**
+ * Play Next's most recent picks among public games, with the reasons it
+ * gave, in the first person. Read-only: no buttons, nothing generated here
+ * (showcase spec, D). Nothing when there are none.
+ */
+function RecentPicks({ picks }) {
+  if (picks.length === 0) return null
+  return (
+    <section className="recent-picks" aria-label="Recent picks">
+      <h2>Recent picks</h2>
+      <ul className="recent-picks-list">
+        {picks.map((pick) => (
+          <li key={pick.id} className="recent-pick">
+            <Link to={`/collection/${pick.id}`} className="recent-pick-link">
+              <span className="recent-pick-cover">
+                <CoverImage src={pick.cover_url} type={pick.type} alt="" />
+              </span>
+              <span className="recent-pick-title">{pick.title}</span>
+            </Link>
+            {pick.reasons.length > 0 && (
+              <ul className="recent-pick-reasons">
+                {pick.reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/**
+ * Radar's next full-cartridge releases: title, platform and date, linked to
+ * IGDB when a link is known. Never a store, a price or a pre-order window.
+ */
+function ComingToCartridge({ releases }) {
+  if (releases.length === 0) return null
+  return (
+    <section className="coming-to-cartridge" aria-label="Coming to cartridge">
+      <h2>Coming to cartridge</h2>
+      <ul className="coming-list">
+        {releases.map((release) => {
+          const body = (
+            <>
+              <span className="coming-cover">
+                <CoverImage src={release.cover_url} type="game" alt="" />
+              </span>
+              <span className="coming-title">{release.title}</span>
+              <span className="coming-meta muted">
+                {[release.platform, releaseText(release)]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            </>
+          )
+          return (
+            // Radar covers Switch and Switch 2, so one game (one IGDB page)
+            // can be two rows: the platform is part of the key either way.
+            <li
+              key={`${release.igdb_url ?? release.title}-${release.platform}-${release.release_date}`}
+            >
+              {release.igdb_url ? (
+                <a
+                  href={release.igdb_url}
+                  className="coming-link"
+                  rel="noreferrer noopener"
+                >
+                  {body}
+                </a>
+              ) : (
+                <span className="coming-link">{body}</span>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
 /** One stacked bar of the four statuses, in shelf order, with a legend. */
 function StatusBar({ byStatus }) {
   const present = STATUS_ORDER.filter((status) => byStatus[status] > 0)
@@ -410,6 +508,8 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
 export default function Collection() {
   const [items, setItems] = useState([])
   const [stats, setStats] = useState(null)
+  const [picks, setPicks] = useState([])
+  const [releases, setReleases] = useState([])
   const [state, setState] = useState('loading')
   const [slow, setSlow] = useState(false)
   const [filters, setFilters] = useState(NO_FILTER)
@@ -481,6 +581,33 @@ export default function Collection() {
       clearTimeout(timer)
     }
   }, [load])
+
+  // The two read-only outputs. Extras, not the shelf: each paints from its
+  // snapshot, is replaced by live data, and fails silently.
+  useEffect(() => {
+    let cancelled = false
+    for (const [name, apply] of [
+      ['picks', setPicks],
+      ['radar', setReleases],
+    ]) {
+      let live = false
+      readSnapshot(name).then((rows) => {
+        if (!cancelled && !live && rows) apply(rows)
+      })
+      apiFetch(`/api/public/${name}`)
+        .then((response) => (response.ok ? response.json() : null))
+        .then((rows) => {
+          if (!cancelled && Array.isArray(rows)) {
+            live = true
+            apply(rows)
+          }
+        })
+        .catch(() => {})
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function changeSize(next) {
     setSize(next)
@@ -588,7 +715,11 @@ export default function Collection() {
           )}
 
           <UpNext items={items} />
-          <OnTheRadar items={items} />
+          <RecentPicks picks={picks} />
+          <div className="radar-row">
+            <OnTheRadar items={items} />
+            <ComingToCartridge releases={releases} />
+          </div>
 
           <FavoritesRow
             items={items}

@@ -43,7 +43,7 @@ GAME_FIELDS = (
     "platforms.name,platforms.id,involved_companies.company.name,"
     "involved_companies.developer,similar_games,themes.name,themes.id,"
     "keywords.name,game_modes.name,player_perspectives.name,hypes,"
-    "game_status.status;"
+    "game_status.status,url;"
 )
 TTB_FIELDS = "fields game_id,hastily,normally,completely,count;"
 PLATFORM_SLUGS = ("n64", "switch-2", "switch")

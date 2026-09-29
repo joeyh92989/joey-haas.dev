@@ -1,9 +1,9 @@
 """The public, read-only view of the collection.
 
-The only unauthenticated router in the application, and the only part of the
-public site that calls the API at all -- every other public page ships its
-content in the frontend bundle so it renders while the free-tier backend is
-asleep.
+The only unauthenticated data router. /collection and /collection/:id are the
+only pages that call it; Home and Projects read a build-time snapshot of it
+instead (frontend/scripts/fetch-snapshot.mjs), so every other public page
+renders while the free-tier backend is asleep.
 
 Everything here is deliberately an allowlist. The response model names the
 fields that may be published rather than serializing the ORM object, because
@@ -30,6 +30,12 @@ from models import (
     ItemType,
     OwnedFormat,
     PhysicalFormat,
+)
+from public_outputs import (
+    PublicPickOut,
+    PublicRadarOut,
+    load_public_picks,
+    load_public_radar,
 )
 
 # Lifted out of the source_metadata snapshot rather than publishing the
@@ -420,6 +426,22 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
                 for platform, counts in by_format.items()
             },
         )
+
+    @router.get("/picks", response_model=list[PublicPickOut])
+    async def public_picks(
+        session: AsyncSession = Depends(get_session),
+    ) -> list[PublicPickOut]:
+        """Play Next's most recent picks among public games. Read-only: the
+        picks were shown to the owner; nothing is generated here."""
+        return await load_public_picks(session, datetime.now(UTC))
+
+    @router.get("/radar", response_model=list[PublicRadarOut])
+    async def public_radar(
+        session: AsyncSession = Depends(get_session),
+    ) -> list[PublicRadarOut]:
+        """Radar's next cartridges: title, platform, date and an IGDB link.
+        No store, price or pre-order detail."""
+        return await load_public_radar(session, datetime.now(UTC).date())
 
     # Declared last, after the literal /items and /stats: a typed uuid would
     # 422 rather than fall through, but the order keeps that from mattering.
