@@ -33,6 +33,7 @@ from models import (
 from picker import public_reasons
 from picker_routes import to_picker_item
 from radar import NEAR_PRECISIONS
+from sources.igdb import IGDB_URL_PREFIX
 
 # Picks from the most recent UTC day Play Next showed a public suggestion, if
 # that day is one of the seven ending yesterday; older picks are not "recent"
@@ -138,7 +139,6 @@ async def load_public_picks(
 
 
 RADAR_LIMIT = 6
-IGDB_URL_PREFIX = "https://www.igdb.com/"
 
 
 class PublicRadarOut(BaseModel):
@@ -188,7 +188,14 @@ async def load_public_radar(session: AsyncSession, today: date) -> list[PublicRa
                 Recommendation.physical_format == PhysicalFormat.GAME_CARD,
                 Recommendation.release_date > today,
             )
-            .order_by(Recommendation.score.desc(), Recommendation.title)
+            # Fully ordered, so ties on score cannot swap places between
+            # requests (or between the API and the snapshot).
+            .order_by(
+                Recommendation.score.desc(),
+                Recommendation.title,
+                Recommendation.platform_id,
+                Recommendation.external_id,
+            )
         )
     ).scalars()
     near = [

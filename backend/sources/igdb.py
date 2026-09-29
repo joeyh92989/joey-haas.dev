@@ -43,6 +43,9 @@ logger = logging.getLogger(__name__)
 TOKEN_URL = "https://id.twitch.tv/oauth2/token"
 API_ROOT = "https://api.igdb.com/v4"
 IMAGE_ROOT = "https://images.igdb.com/igdb/image/upload"
+# IGDB's own game pages. A snapshot keeps a URL only under this prefix, and
+# the public radar links only to one (public_outputs.py).
+IGDB_URL_PREFIX = "https://www.igdb.com/"
 COVER_SIZE = "t_cover_big"
 THUMBNAIL_SIZE = "t_cover_small"
 SEARCH_LIMIT = 10
@@ -427,7 +430,7 @@ class IgdbSource:
             # IGDB's own page, for the public radar's link (showcase spec,
             # K7). Kept only when it is on igdb.com.
             "url": row.get("url")
-            if str(row.get("url") or "").startswith("https://www.igdb.com/")
+            if str(row.get("url") or "").startswith(IGDB_URL_PREFIX)
             else None,
             "description": row.get("summary") or None,
             "community_score": row.get("total_rating") or row.get("rating"),

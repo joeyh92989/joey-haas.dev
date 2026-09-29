@@ -453,6 +453,22 @@ async def test_radar_lists_the_top_upcoming_cartridges_soonest_first(
         assert row["igdb_url"].startswith("https://www.igdb.com/games/")
 
 
+async def test_radar_filters_precision_before_it_takes_six(sessionmaker_for_test):
+    # The best-scored row is year-dated: were the limit taken first, it would
+    # use one of the six places and a day-dated row would be lost.
+    rows = [
+        _radar(f"Day {n}", score=10 + n, release_date=TODAY + timedelta(days=10 + n))
+        for n in range(1, 7)
+    ]
+    rows.append(
+        _radar("Some Year", score=99, source_metadata={"release_precision": "year"})
+    )
+    await _add(sessionmaker_for_test, *rows)
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/radar")).json()
+    assert [row["title"] for row in body] == [f"Day {n}" for n in range(1, 7)]
+
+
 async def test_radar_leaves_out_what_is_not_a_public_upcoming_cartridge(
     sessionmaker_for_test,
 ):
