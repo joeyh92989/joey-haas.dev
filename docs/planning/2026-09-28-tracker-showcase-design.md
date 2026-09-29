@@ -252,11 +252,14 @@ corrected — `RootLayout`'s `/api/auth/me` runs on every page.
 #### `GET /api/public/picks`
 
 Rows: the items with a `shown` pick event on the most recent UTC day that
-has one, **if that day is within the last 7 days** (otherwise `[]`), where
-the item is public, owned (`owned_format` not `none`), status backlog or
-active, not pinned (it is Up next already), has no `never` event, and has no
-`skipped` event at or after its `shown` event. Latest shown first, then
-title; at most 3.
+has one among the games still a public suggestion, **if that day is one of
+the 7 UTC days ending yesterday** (otherwise `[]`). A public suggestion is
+public, owned (`owned_format` not `none`), status backlog or active, not
+pinned (it is Up next already), has no `never` event, and has no `skipped`
+event at or after its `shown` event. **Only events before today's UTC
+midnight count** — `shown`, `skipped` and `never` alike — so the list
+changes at most once a day. Title order; at most 3 ([Spec
+changes](#spec-changes) 6).
 
 Reasons are recomputed — `pick_events` stores no slot, score or reason, and
 `/next` adds jitter — by a new pure `picker.public_reasons(item, profile)`:
@@ -291,12 +294,15 @@ when empty.
 #### `GET /api/public/radar`
 
 Rows from `recommendations` where `kind = radar`, `status = pending`,
-`physical_format = game_card`, `release_date > today (UTC)`, and
-`source_metadata.release_precision` in `NEAR_PRECISIONS` (`day`, `month`).
-Top 6 by `score`, returned soonest first. Pending only: a wanted game is
-already an item and shows in On the radar; dismissed, skipped-then-replaced
-and owned rows never appear. Lane 3 (digital) is excluded by the format
-filter.
+`physical_format = game_card`, `release_date > today (UTC)`,
+`source_metadata.release_precision` in `NEAR_PRECISIONS` (`day`, `month`),
+and `source_metadata.release_source = registry` — the date came from a
+registry edition, never from a store listing or IGDB's cross-platform first
+date ([Spec changes](#spec-changes) 7). Top 6 by `score` (ties broken by
+title, platform and external id), returned soonest first. Pending only: a
+wanted game is already an item and shows in On the radar; dismissed,
+skipped-then-replaced and owned rows never appear. Lane 3 (digital) is
+excluded by the format filter.
 
 Response model `PublicRadarOut`, exactly:
 
@@ -365,6 +371,21 @@ for drift:
 5. **First-person reasons in admin.** The parent's example reason ("which
    you finished") is second person; reasons are now first person
    everywhere.
+6. **The picks day is chosen from public suggestions, once a day.** Only
+   `shown` events of games that are still public suggestions (public,
+   owned, backlog or active, unpinned, not refused) choose the day, and only
+   events before today's UTC midnight count, so the list changes at most
+   once a day. Order within the day is by title. Reason: private rows and
+   intra-day timing would otherwise leak — anyone polling the route could
+   watch the owner use Play Next, skip a game or refuse one. The admin
+   restore route deletes a `never` event outright, which is visible at once;
+   that is accepted.
+7. **Public radar dates come only from the registry.** Never from a store
+   listing (its date is often parsed from the store's page) or from IGDB's
+   cross-platform first date. `collapse` records the date's provenance and
+   Radar Generate stores it as `source_metadata.release_source`. It fails
+   closed: rows stored before it need one Radar Generate after deploy to
+   appear.
 
 `CLAUDE.md`'s Radar paragraph ("Nothing from `recommendations` is public")
 and the "Public pages other than `/collection`" line are rewritten in PR2

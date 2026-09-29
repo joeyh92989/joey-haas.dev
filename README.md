@@ -48,7 +48,7 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
-| `/collection` | Collection | Public shelf: hero numbers, favourites, stats, filters and sort; calls the public API after painting the build-time snapshot |
+| `/collection` | Collection | Public shelf: hero numbers, favourites, "Recent picks" from Play Next, "Coming to cartridge" from Radar, stats, filters and sort; calls the public API after painting the build-time snapshot |
 | `/collection/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
 | `/admin` | Admin | Google sign-in gate, reached from the footer's Sign in link |
 | `/admin/collection` | Collection (admin) | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
@@ -303,9 +303,9 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Metadata sources | `backend/sources/` | One adapter per API behind a common interface: IGDB (games), TMDB (films), Comic Vine (comics); BGG is stubbed until its API is usable again. Each keeps a snapshot on the item for the shelf and the pickers |
 | Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
 | Public showcase | `backend/public.py`, `/collection` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
-| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one puts it on the public shelf as "Up next" |
+| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one puts it on the public shelf as "Up next", and recent picks appear there as "Recent picks" |
 | Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
-| Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want puts a game on the public shelf's "On the radar" strip |
+| Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want puts a game on the public shelf's "On the radar" strip, and registry-dated cartridges appear there as "Coming to cartridge" |
 | Discover | `backend/discover.py`, `/admin/discover` | Released physical games on the owner's platforms, pre-scored by taste and re-ranked by one Gemini call with reasons; falls back to the deterministic ranking when the model cannot answer |
 
 Migrations `0001`–`0006` build this up: items, enrichment columns, copy
@@ -418,16 +418,16 @@ strips.
 - **The API is not redeployed** by any of this. Its `rootDir` is `backend`, so
   Render deploys it only for changes under `backend/`.
 
-### Public API
+## Public API
 
 All read-only, unauthenticated, and allowlisted by hand in `backend/public.py`
-and `backend/public_outputs.py`; `backend/tests/test_public*.py` pin every
-field.
+and `backend/public_outputs.py`; `backend/tests/test_public*.py` pin the list,
+detail, picks and radar models' field sets.
 
 | Route | What |
 |---|---|
 | `GET /api/public/items` | Every public item, most recently finished first |
 | `GET /api/public/items/{id}` | One public item with description and similar games; 404 for unknown and private alike |
 | `GET /api/public/stats` | Counts over public rows |
-| `GET /api/public/picks` | Play Next's most recent picks among public games, with first-person reasons |
-| `GET /api/public/radar` | Up to six upcoming full-cartridge releases: title, platform, date, IGDB link, cover |
+| `GET /api/public/picks` | Play Next's most recent picks among public games, with first-person reasons; changes at most once a day |
+| `GET /api/public/radar` | Up to six upcoming full-cartridge releases, registry-dated only: title, platform, date, IGDB link, cover |

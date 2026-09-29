@@ -169,6 +169,12 @@ before pushing.
       Want, Not interested, Already own, Skip, and a Rate a few panel. No
       migration. E6 is retired in favour of it. Spec and plan:
       `docs/planning/2026-09-27-tracker-e8b-*`
+- [x] Tracker Showcase — the site shell, `/collection` polish, the
+      build-time snapshot (`.github/workflows/snapshot.yml`), and the
+      read-only "Recent picks" and "Coming to cartridge" strips from
+      `/api/public/picks` and `/api/public/radar`. Radar needs one Generate
+      after deploy for Coming to cartridge. Spec and plan:
+      `docs/planning/2026-09-28-tracker-showcase-*`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -231,10 +237,11 @@ before pushing.
   Switch 2 copy's format on `/admin/collection`** (the collection is all full
   cartridges, and the registry lists many third-party retail boxes as
   Game-Key Cards, so a blank format would be filled wrongly; a recorded one
-  is `manual` and never touched); then on `/admin/catalogue` press Refresh registry, Refresh
-  stores, Resolve until nothing remains, work through Needs match, and
-  Refresh N64 when wanted. Nothing from the catalogue is public;
-  `test_public.py` pins that.
+  is `manual` and never touched); then on `/admin/catalogue` press Refresh
+  registry, Refresh stores, Resolve until nothing remains, work through
+  Needs match, and Refresh N64 when wanted. Nothing from the catalogue is
+  public except the seven `/api/public/radar` fields (see Radar);
+  `test_public.py` and `test_public_outputs.py` pin that.
 - IGDB fixtures for the snapshot are recorded from the live API with
   `backend/scripts/record_igdb_fixtures.py` (see `backend/scripts/README.md`);
   re-record when `FIELDS` changes.
@@ -282,10 +289,12 @@ before pushing.
   owned game is out of Radar and Discover for good; a skipped one returns
   at the next generation, and an answered suggestion takes no second
   answer. Only an **open** pre-order (window not closed, or no window and
-  the game not out) counts as one. **Only seven fields of pending Radar rows are public**
-  (`/api/public/radar`, showcase spec, "Spec changes"): title, platform,
-  format, release date and precision, IGDB link and cover -- for full
-  cartridges dated to a day or month after today, the top six by score.
+  the game not out) counts as one. **Only seven fields of pending Radar
+  rows are public** (`/api/public/radar`, showcase spec, "Spec changes"):
+  title, platform, format, release date and precision, IGDB link and cover
+  -- for full cartridges dated to a day or month after today, registry-dated
+  only (`release_source` in `source_metadata`; a store's or IGDB's date
+  never is), the top six by score.
   Never a store, price, pre-order window, reason, score or id, and nothing
   from Discover. `tests/test_public_outputs.py` pins the fields. Otherwise,
   Want creates an ordinary item (no owned copy, backlog, public) and only
@@ -322,11 +331,15 @@ before pushing.
   "Overdue classic" until acquired dates span 90 days, then "Waited longest".
   Pinning is its own route (`POST /api/items/{id}/pin`) because it clears
   the previous pin and records an event in one transaction.
-  `/api/public/picks` publishes the most recent shown day's picks (within 7
-  days) among public, owned, unpinned games, with `picker.public_reasons`:
-  reasons rebuilt from public rows only, without the slot reasons, since
-  "On the shelf since" is read from the private `acquired_at`. Reasons are
-  first person everywhere ("which I rated 9").
+  `/api/public/picks` publishes up to three games that are public, owned,
+  backlog or active, unpinned, with no never event and no skip at or after
+  their shown event; the day is the most recent of the seven UTC days
+  ending yesterday on which one of those games was shown; only events
+  before today's UTC midnight count, so the list changes at most once a
+  day; and the day's picks are in title order. Reasons come from
+  `picker.public_reasons`: rebuilt from public rows only, without the slot
+  reasons, since "On the shelf since" is read from the private
+  `acquired_at`. Reasons are first person everywhere ("which I rated 9").
 - Editing lives at `/admin/collection/:id`. A wrong external match is fixed
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not
