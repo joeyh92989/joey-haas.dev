@@ -345,7 +345,11 @@ function ComingToCartridge({ releases }) {
             </>
           )
           return (
-            <li key={`${release.title}-${release.platform}`}>
+            // Radar covers Switch and Switch 2, so one game (one IGDB page)
+            // can be two rows: the platform is part of the key either way.
+            <li
+              key={`${release.igdb_url ?? release.title}-${release.platform}-${release.release_date}`}
+            >
               {release.igdb_url ? (
                 <a
                   href={release.igdb_url}

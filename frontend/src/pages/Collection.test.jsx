@@ -845,6 +845,69 @@ describe('Collection outputs', () => {
       within(section).getAllByText('Nintendo Switch 2 · Mar 2027'),
     ).toHaveLength(2)
     expect(within(section).queryByRole('link', { name: /Unlinked/ })).toBeNull()
+    expect(within(section).getByText('Unlinked').closest('a')).toBeNull()
+    expect(
+      within(section).getByRole('link', { name: /Metroid Prime 4/ }),
+    ).toHaveAttribute('rel', expect.stringContaining('noopener'))
+  })
+
+  it('gives a day-precise release its day', async () => {
+    stubApi({ radar: [{ ...RELEASE, release_precision: 'day' }] })
+    await renderReady()
+
+    const section = await screen.findByRole('region', {
+      name: 'Coming to cartridge',
+    })
+    expect(
+      within(section).getByText('Nintendo Switch 2 · Mar 12, 2027'),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps rows of one game apart by platform and by date', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const unlinked = { ...RELEASE, igdb_url: null }
+    stubApi({
+      radar: [
+        RELEASE,
+        { ...RELEASE, platform: 'Nintendo Switch' },
+        unlinked,
+        { ...unlinked, release_date: '2027-05-01' },
+      ],
+    })
+    await renderReady()
+
+    const section = await screen.findByRole('region', {
+      name: 'Coming to cartridge',
+    })
+    expect(within(section).getAllByText('Metroid Prime 4')).toHaveLength(4)
+    expect(
+      errors.mock.calls.filter((call) => String(call[0]).includes('same key')),
+    ).toEqual([])
+  })
+
+  it('keeps live picks when a late snapshot arrives', async () => {
+    const releases = []
+    vi.mocked(readSnapshot).mockImplementation(
+      (name) =>
+        new Promise((done) => {
+          const rows = {
+            items: [ITEMS[0]],
+            stats: STATS,
+            picks: [{ ...PICK, id: '9', title: 'Stale Pick' }],
+            radar: [],
+          }[name]
+          releases.push(() => done(rows))
+        }),
+    )
+    stubApi({ picks: [PICK] })
+    await renderReady()
+    const section = await screen.findByRole('region', { name: 'Recent picks' })
+    expect(within(section).getByText('Gloomhaven')).toBeInTheDocument()
+
+    for (const release of releases) release()
+    await new Promise((done) => setTimeout(done, 50))
+    expect(within(section).getByText('Gloomhaven')).toBeInTheDocument()
+    expect(screen.queryByText('Stale Pick')).toBeNull()
   })
 
   it('paints both from the snapshot while the server wakes', async () => {
