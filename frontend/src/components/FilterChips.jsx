@@ -14,12 +14,23 @@ function Chip({ pressed, count, label, onClick }) {
 }
 
 /**
+ * Whether a group offers a choice: more than one chip that would render, or
+ * a pressed one to clear. A single-member row -- "Games 68" on a games-only
+ * shelf -- filters nothing and reads as noise.
+ */
+function offersChoice(group, value) {
+  if (value[group.key] != null) return true
+  return group.options.filter((option) => option.count > 0).length > 1
+}
+
+/**
  * Rows of filter chips with counts.
  *
  * Each group is single-select with an implicit All: clicking the pressed chip
  * clears the group. Toggles are independent booleans ANDed on top. Counts come
  * from the unfiltered list, and a chip with nothing behind it is hidden unless
- * it is pressed, so a filter can always be undone.
+ * it is pressed, so a filter can always be undone. A group with at most one chip
+ * to show, and none pressed, is left out.
  *
  * @param {object} props
  * @param {{key: string, label: string, options: {value: string, label: string, count: number}[]}[]} props.groups
@@ -32,32 +43,34 @@ function Chip({ pressed, count, label, onClick }) {
 export default function FilterChips({ groups, toggles = [], value, onChange }) {
   return (
     <div className="chip-rows">
-      {groups.map((group) => (
-        <div
-          key={group.key}
-          className="chip-row"
-          role="group"
-          aria-label={group.label}
-        >
-          {group.options.map((option) => {
-            const pressed = value[group.key] === option.value
-            return (
-              <Chip
-                key={option.value}
-                pressed={pressed}
-                count={option.count}
-                label={option.label}
-                onClick={() =>
-                  onChange({
-                    ...value,
-                    [group.key]: pressed ? null : option.value,
-                  })
-                }
-              />
-            )
-          })}
-        </div>
-      ))}
+      {groups
+        .filter((group) => offersChoice(group, value))
+        .map((group) => (
+          <div
+            key={group.key}
+            className="chip-row"
+            role="group"
+            aria-label={group.label}
+          >
+            {group.options.map((option) => {
+              const pressed = value[group.key] === option.value
+              return (
+                <Chip
+                  key={option.value}
+                  pressed={pressed}
+                  count={option.count}
+                  label={option.label}
+                  onClick={() =>
+                    onChange({
+                      ...value,
+                      [group.key]: pressed ? null : option.value,
+                    })
+                  }
+                />
+              )
+            })}
+          </div>
+        ))}
       {toggles.length > 0 && (
         <div className="chip-row" role="group" aria-label="Show only">
           {toggles.map((toggle) => (

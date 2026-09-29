@@ -337,6 +337,14 @@ nav a:focus-visible,
   margin-top: 0.1875rem;
 }
 
+/* Home and Projects: four favourite covers from the build-time snapshot. */
+.cover-strip {
+  display: grid;
+  gap: 0.375rem;
+  grid-template-columns: repeat(4, minmax(0, 3.25rem));
+  margin-top: 0.75rem;
+}
+
 .latest-post {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -507,6 +515,15 @@ section + section {
   color: var(--text-body);
   font-size: 0.90625rem;
   margin-top: 0.375rem;
+}
+
+.project-card .cover-strip {
+  margin: 0 0 0.75rem;
+}
+
+.project-more {
+  font-size: 0.875rem;
+  margin: 0.5rem 0 0;
 }
 
 /* Tags are the one place the sage accent appears in light mode, so they read
@@ -1392,6 +1409,42 @@ footer {
   opacity: 1;
 }
 
+/* The bars and their axis labels, stacked; the labels are aria-hidden
+   because every bar already names itself. */
+.bar-column {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.bar-column .rating-bars,
+.bar-column .month-bars {
+  flex: none;
+}
+
+.bar-axis {
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.6875rem;
+  justify-content: space-between;
+  line-height: 1;
+}
+
+.bar-axis-months {
+  gap: 3px;
+}
+
+.bar-axis-months span {
+  flex: 1 1 0;
+  text-align: center;
+}
+
+.cartridge-platform p {
+  margin: 0 0 0.25rem;
+}
+
 .stat-big {
   display: flex;
   flex-direction: column;
@@ -1539,6 +1592,13 @@ footer {
   gap: 0.4rem;
   list-style: none;
   margin: 0 0 1.25rem;
+}
+
+/* The owner's copy: its own line, not a chip among the game's genres. */
+.item-copy {
+  color: var(--text-body);
+  font-size: 0.9375rem;
+  margin: 0.25rem 0 0;
 }
 
 .item-chip {

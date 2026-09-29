@@ -5,6 +5,7 @@ import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import { apiFetch } from '../lib/api.js'
+import { readSnapshot } from '../lib/snapshot.js'
 import { localToday } from '../lib/statusTransition.js'
 import {
   countBy,
@@ -14,6 +15,7 @@ import {
   sortItems,
   STATUS_LABEL,
   STATUS_ORDER,
+  topFavourites,
   writeShelfPref,
 } from '../lib/shelf.js'
 
@@ -37,6 +39,11 @@ const MONTH_LABEL = new Intl.DateTimeFormat('en', {
   timeZone: 'UTC',
 })
 
+const MONTH_INITIAL = new Intl.DateTimeFormat('en', {
+  month: 'narrow',
+  timeZone: 'UTC',
+})
+
 /**
  * The twelve months ending with the current one, oldest first, as the
  * "YYYY-MM" keys the stats endpoint returns. UTC, like the server's year.
@@ -47,7 +54,11 @@ function lastTwelveMonths(now = new Date()) {
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (11 - index), 1),
     )
     const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
-    return { key, label: MONTH_LABEL.format(date) }
+    return {
+      key,
+      label: MONTH_LABEL.format(date),
+      initial: MONTH_INITIAL.format(date),
+    }
   })
 }
 
@@ -80,45 +91,44 @@ export function platformGroup(items) {
 }
 
 /**
- * One line per key-card platform: how many owned copies are full cartridges,
- * how many are not, and how many were never recorded. Unknowns are stated,
- * never folded into the cartridge count. Nothing renders until at least one
- * format has been recorded.
+ * The key-card platforms' copies: how many are full cartridges, of how many,
+ * then what the rest are. Unknowns are stated, never folded into the
+ * cartridge count. A stats block like its neighbours, with a heading; it
+ * renders only once at least one format has been recorded.
  */
 function OnCartridge({ byFormat }) {
-  const lines = Object.entries(byFormat ?? {})
-    .filter(
-      ([, counts]) =>
-        counts.game_card + counts.game_key_card + counts.code_in_box > 0,
-    )
-    .map(([platformId, counts]) => {
-      const parts = [
-        [counts.game_card, 'on cartridge'],
-        [
-          counts.game_key_card,
-          counts.game_key_card === 1 ? 'Game-Key Card' : 'Game-Key Cards',
-        ],
-        [
-          counts.code_in_box,
-          counts.code_in_box === 1 ? 'code in a box' : 'codes in a box',
-        ],
-        [counts.unknown, 'not recorded'],
-      ]
-        .filter(([count]) => count > 0)
-        .map(([count, label]) => `${count} ${label}`)
-      const name =
-        KEY_CARD_PLATFORM_NAMES[platformId] ?? `Platform ${platformId}`
-      return `${name} · ${parts.join(' · ')}, of ${counts.total}`
-    })
-  if (lines.length === 0) return null
+  const platforms = Object.entries(byFormat ?? {}).filter(
+    ([, counts]) =>
+      counts.game_card + counts.game_key_card + counts.code_in_box > 0,
+  )
+  if (platforms.length === 0) return null
   return (
-    <div className="on-cartridge">
-      {lines.map((line) => (
-        <p key={line} className="muted">
-          {line}
-        </p>
-      ))}
-    </div>
+    <section className="stat-card stat-cartridge" aria-label="On cartridge">
+      <h2>On cartridge</h2>
+      {platforms.map(([platformId, counts]) => {
+        const name =
+          KEY_CARD_PLATFORM_NAMES[platformId] ?? `Platform ${platformId}`
+        const rest = [
+          [
+            counts.game_key_card,
+            counts.game_key_card === 1 ? 'Game-Key Card' : 'Game-Key Cards',
+          ],
+          [
+            counts.code_in_box,
+            counts.code_in_box === 1 ? 'code in a box' : 'codes in a box',
+          ],
+          [counts.unknown, 'not recorded'],
+        ]
+          .filter(([count]) => count > 0)
+          .map(([count, label]) => `${count} ${label}`)
+        return (
+          <div key={platformId} className="cartridge-platform">
+            <p>{`${name} — ${counts.game_card} of ${counts.total}`}</p>
+            {rest.length > 0 && <p className="muted">{rest.join(' · ')}</p>}
+          </div>
+        )
+      })}
+    </section>
   )
 }
 
@@ -172,12 +182,7 @@ export function HeroNumbers({ owned, finished, finishedThisYear }) {
  * @param {boolean} [props.placeholders] - Always render, padding with slots.
  */
 export function FavoritesRow({ items, linkFor, placeholders = false }) {
-  const all = sortItems(
-    items.filter((item) => item.favorite),
-    'rating',
-    'desc',
-    0,
-  )
+  const all = topFavourites(items)
   const favourites = placeholders ? all : all.slice(0, FAVOURITES_SHOWN)
   if (favourites.length === 0 && !placeholders) return null
   const empty = placeholders
@@ -302,8 +307,9 @@ function StatusBar({ byStatus }) {
 }
 
 /**
- * Ten bars for ratings 1 to 10 beside the average. Each bar is focusable and
- * names its count; the numeral above it shows on hover and on focus alike.
+ * Ten bars for ratings 1 to 10 beside the average, with the axis's ends
+ * labelled. Each bar is focusable and names its count, and its title repeats
+ * that name; the numeral above it shows on hover and on focus alike.
  */
 function RatingHistogram({ histogram, average }) {
   const counts = RATINGS.map((rating) => histogram[rating] ?? 0)
@@ -312,19 +318,29 @@ function RatingHistogram({ histogram, average }) {
     <section className="stat-card stat-ratings" aria-label="Ratings">
       <h2>Ratings</h2>
       <div className="stat-figure">
-        <div className="rating-bars">
-          {RATINGS.map((rating, index) => (
-            <span
-              key={rating}
-              className="rating-bar"
-              role="img"
-              tabIndex={0}
-              aria-label={`Rated ${rating}: ${plural(counts[index], 'item')}`}
-              style={{ '--share': counts[index] / most }}
-            >
-              <span className="rating-bar-count">{counts[index]}</span>
-            </span>
-          ))}
+        <div className="bar-column">
+          <div className="rating-bars">
+            {RATINGS.map((rating, index) => {
+              const label = `Rated ${rating}: ${plural(counts[index], 'item')}`
+              return (
+                <span
+                  key={rating}
+                  className="rating-bar"
+                  role="img"
+                  tabIndex={0}
+                  aria-label={label}
+                  title={label}
+                  style={{ '--share': counts[index] / most }}
+                >
+                  <span className="rating-bar-count">{counts[index]}</span>
+                </span>
+              )
+            })}
+          </div>
+          <div className="bar-axis" aria-hidden="true">
+            <span>1</span>
+            <span>10</span>
+          </div>
         </div>
         {average != null && (
           <p className="stat-big">
@@ -345,16 +361,27 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
     <section className="stat-card stat-finishes" aria-label="Finishes">
       <h2>Finishes</h2>
       <div className="stat-figure">
-        <div className="month-bars">
-          {months.map((month, index) => (
-            <span
-              key={month.key}
-              className="month-bar"
-              role="img"
-              aria-label={`${month.label}: ${counts[index]} finished`}
-              style={{ '--share': counts[index] / most }}
-            />
-          ))}
+        <div className="bar-column">
+          <div className="month-bars">
+            {months.map((month, index) => {
+              const label = `${month.label}: ${counts[index]} finished`
+              return (
+                <span
+                  key={month.key}
+                  className="month-bar"
+                  role="img"
+                  aria-label={label}
+                  title={label}
+                  style={{ '--share': counts[index] / most }}
+                />
+              )
+            })}
+          </div>
+          <div className="bar-axis bar-axis-months" aria-hidden="true">
+            {months.map((month) => (
+              <span key={month.key}>{month.initial}</span>
+            ))}
+          </div>
         </div>
         <p className="stat-big">
           <span className="stat-big-label">
@@ -370,10 +397,11 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
  * The public collection showcase.
  *
  * Unlike every other public page, this one calls the API. The free-tier
- * backend sleeps after about fifteen minutes, so a first load can take some
- * thirty seconds while it wakes; that is announced beside a skeleton grid
- * rather than hidden behind a spinner, which would read as broken rather than
- * slow.
+ * backend sleeps after about fifteen minutes, so the page first paints the
+ * build-time snapshot (lib/snapshot.js) and swaps in live data when it
+ * arrives. Only without a snapshot does a first load wait on the wake-up,
+ * which is announced beside a skeleton grid rather than hidden behind a
+ * spinner that would read as broken rather than slow.
  *
  * Filtering and sorting are client-side over the whole public list. Poster
  * size and dimming persist under `shelf.public.*`; the filters and sort do
@@ -418,17 +446,40 @@ export default function Collection() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    // Set once live data is applied, so a slower snapshot never overwrites it.
+    let live = false
     const timer = setTimeout(() => setSlow(true), 2000)
 
-    load()
-      .then((result) => {
-        setItems(result.items)
-        setStats(result.stats)
-        setState(result.state)
-      })
-      .finally(() => clearTimeout(timer))
+    Promise.all([readSnapshot('items'), readSnapshot('stats')]).then(
+      ([snapshotItems, snapshotStats]) => {
+        if (cancelled || live || !snapshotItems) return
+        clearTimeout(timer)
+        setItems(snapshotItems)
+        setStats(snapshotStats)
+        setState('ready')
+      },
+    )
 
-    return () => clearTimeout(timer)
+    load().then((result) => {
+      if (cancelled) return
+      clearTimeout(timer)
+      if (result.state === 'ready') {
+        live = true
+        setItems(result.items)
+        // A failed live stats call must not wipe stats a snapshot painted.
+        setStats((current) => result.stats ?? current)
+        setState('ready')
+      } else {
+        // A painted snapshot outranks an error: stale beats nothing.
+        setState((current) => (current === 'ready' ? current : 'error'))
+      }
+    })
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [load])
 
   function changeSize(next) {
@@ -560,10 +611,9 @@ export default function Collection() {
                   finishedThisYear={stats.finished_this_year}
                 />
               )}
+              <OnCartridge byFormat={stats.by_format} />
             </div>
           )}
-
-          {stats && <OnCartridge byFormat={stats.by_format} />}
 
           <ShelfToolbar
             groups={groups}

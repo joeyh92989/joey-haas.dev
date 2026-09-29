@@ -8,6 +8,7 @@ import {
   sortItems,
   STATUS_LABEL,
   STATUS_ORDER,
+  topFavourites,
   writeShelfPref,
 } from './shelf.js'
 import { useMediaQuery } from './useMediaQuery.js'
@@ -281,5 +282,34 @@ describe('useMediaQuery', () => {
 
     unmount()
     expect(listeners.size).toBe(0)
+  })
+})
+
+describe('topFavourites', () => {
+  const rows = [
+    { id: 'a', title: 'Axiom', favorite: true, rating: 7 },
+    { id: 'b', title: 'Bastion', favorite: true, rating: 10 },
+    { id: 'c', title: 'Celeste', favorite: false, rating: 10 },
+    { id: 'd', title: 'Dredge', favorite: true, rating: null },
+    { id: 'e', title: 'Echo', favorite: true, rating: 7 },
+  ]
+
+  it('keeps favourites, highest rated first, unrated last, ties by title', () => {
+    expect(topFavourites(rows).map((row) => row.id)).toEqual([
+      'b',
+      'a',
+      'e',
+      'd',
+    ])
+  })
+
+  it('stops at the limit', () => {
+    expect(topFavourites(rows, 2).map((row) => row.id)).toEqual(['b', 'a'])
+  })
+
+  it('never mutates its input', () => {
+    const copy = structuredClone(rows)
+    topFavourites(rows, 1)
+    expect(rows).toEqual(copy)
   })
 })

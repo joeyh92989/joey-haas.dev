@@ -5,5 +5,8 @@ node_modules
 # formatting carries meaning.
 posts
 
+# Build-time snapshot: verbatim API bodies, gitignored.
+public/snapshot
+
 # Documentation is prose too.
 *.md

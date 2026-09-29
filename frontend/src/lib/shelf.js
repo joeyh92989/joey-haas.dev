@@ -112,6 +112,24 @@ export function countBy(items, field) {
 }
 
 /**
+ * Favourites, highest rated first (unrated last), then by title: the order
+ * of the favourites row and of every cover strip, kept in one place so the
+ * two cannot disagree.
+ *
+ * @param {object[]} items Shelf rows.
+ * @param {number} [limit] How many to keep; all of them by default.
+ * @returns {object[]} A new array; the input is not mutated.
+ */
+export function topFavourites(items, limit = Infinity) {
+  return sortItems(
+    items.filter((item) => item.favorite),
+    'rating',
+    'desc',
+    0,
+  ).slice(0, limit)
+}
+
+/**
  * Applies the shelf's chip selection.
  *
  * `type`, `status` and `platform` are single-select with null meaning all;

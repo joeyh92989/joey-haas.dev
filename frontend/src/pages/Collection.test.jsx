@@ -2,12 +2,27 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { readSnapshot } from '../lib/snapshot.js'
 import Collection from './Collection.jsx'
 
 // A wide screen: the sort renders as buttons. The narrow select variant is
 // covered in SortControl.test.jsx.
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
+
+vi.mock('../lib/snapshot.js', () => ({ readSnapshot: vi.fn() }))
+
+beforeEach(() => {
+  vi.mocked(readSnapshot).mockReset()
+  vi.mocked(readSnapshot).mockResolvedValue(null)
+})
+
+/** A snapshot of the given rows and stats, as the build wrote them. */
+function stubSnapshot({ items = ITEMS, stats = STATS } = {}) {
+  vi.mocked(readSnapshot).mockImplementation(async (name) =>
+    name === 'items' ? items : name === 'stats' ? stats : null,
+  )
+}
 
 /**
  * Queries scoped to the poster grid.
@@ -77,7 +92,12 @@ const STATS = {
   by_format: {},
 }
 
-function stubApi({ items = ITEMS, stats = STATS, itemsOk = true } = {}) {
+function stubApi({
+  items = ITEMS,
+  stats = STATS,
+  itemsOk = true,
+  statsOk = true,
+} = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url) => {
@@ -88,7 +108,11 @@ function stubApi({ items = ITEMS, stats = STATS, itemsOk = true } = {}) {
           json: async () => items,
         }
       }
-      return { ok: true, status: 200, json: async () => stats }
+      return {
+        ok: statsOk,
+        status: statsOk ? 200 : 500,
+        json: async () => stats,
+      }
     }),
   )
 }
@@ -183,6 +207,13 @@ describe('Collection', () => {
     expect(
       screen.queryByRole('region', { name: 'Favourites' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('does not ask visitors to pick favourites when there are none', async () => {
+    stubApi({ items: ITEMS.map((item) => ({ ...item, favorite: false })) })
+    await renderReady()
+
+    expect(screen.queryByText(/pick your favourites/i)).toBeNull()
   })
 
   it('draws the status bar with named segments and a legend', async () => {
@@ -533,11 +564,45 @@ describe('Collection platforms and formats', () => {
     })
     await renderReady()
 
+    const block = screen.getByRole('region', { name: 'On cartridge' })
+    expect(block.closest('.shelf-stats')).not.toBeNull()
     expect(
-      screen.getByText(
-        'Nintendo Switch 2 · 61 on cartridge · 3 Game-Key Cards · 4 not recorded, of 68',
-      ),
+      within(block).getByText('Nintendo Switch 2 — 61 of 68'),
     ).toBeInTheDocument()
+    expect(
+      within(block).getByText('3 Game-Key Cards · 4 not recorded'),
+    ).toBeInTheDocument()
+  })
+
+  it('labels the ends of the ratings axis and titles every bar', async () => {
+    stubApi()
+    await renderReady()
+
+    const ratings = screen.getByRole('region', { name: 'Ratings' })
+    const axis = ratings.querySelector('.bar-axis')
+    expect(axis).toHaveAttribute('aria-hidden', 'true')
+    expect([...axis.children].map((label) => label.textContent)).toEqual([
+      '1',
+      '10',
+    ])
+    for (const bar of within(ratings).getAllByRole('img')) {
+      expect(bar).toHaveAttribute('title', bar.getAttribute('aria-label'))
+    }
+  })
+
+  it('labels each month of the finishes strip with its initial', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-03-20T12:00:00Z'))
+    stubApi()
+    await renderReady()
+
+    const finishes = screen.getByRole('region', { name: 'Finishes' })
+    const axis = finishes.querySelector('.bar-axis')
+    expect(axis).toHaveAttribute('aria-hidden', 'true')
+    expect(axis.textContent).toBe('AMJJASONDJFM')
+    for (const bar of within(finishes).getAllByRole('img')) {
+      expect(bar).toHaveAttribute('title', bar.getAttribute('aria-label'))
+    }
   })
 
   it('has no on-cartridge line before any format is recorded', async () => {
@@ -557,7 +622,7 @@ describe('Collection platforms and formats', () => {
     })
     await renderReady()
 
-    expect(screen.queryByText(/on cartridge/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'On cartridge' })).toBeNull()
   })
 })
 
@@ -656,5 +721,68 @@ describe('Collection On the radar', () => {
     expect(
       screen.queryByRole('region', { name: 'On the radar' }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('Collection snapshot', () => {
+  it('paints the snapshot while the server wakes, with no waking notice', async () => {
+    stubSnapshot()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    await renderReady()
+
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
+    expect(screen.queryByText(/waking the server/i)).toBeNull()
+  })
+
+  it('replaces the snapshot with live data when it arrives', async () => {
+    stubSnapshot({ items: [ITEMS[0]] })
+    stubApi()
+    renderPage()
+
+    await waitFor(() => expect(gridTitles()).toEqual(['Gloomhaven', 'Dune']))
+  })
+
+  it('keeps the snapshot when the live load fails', async () => {
+    stubSnapshot()
+    stubApi({ itemsOk: false })
+    await renderReady()
+
+    await new Promise((done) => setTimeout(done, 50))
+    expect(screen.queryByText(/could not be loaded/i)).toBeNull()
+    expect(gridTitles()).toHaveLength(2)
+  })
+
+  it('keeps the snapshot stats when live items load but live stats fail', async () => {
+    stubSnapshot({
+      items: [ITEMS[0]],
+      stats: { ...STATS, owned: 68 },
+    })
+    stubApi({ statsOk: false })
+    renderPage()
+
+    await waitFor(() => expect(gridTitles()).toEqual(['Gloomhaven', 'Dune']))
+    const hero = within(document.querySelector('.hero-numbers'))
+    expect(hero.getByText('68')).toBeInTheDocument()
+    expect(hero.getByText('Owned')).toBeInTheDocument()
+  })
+
+  it('ignores a snapshot that arrives after the live data', async () => {
+    const releases = []
+    vi.mocked(readSnapshot).mockImplementation(
+      (name) =>
+        new Promise((done) => {
+          releases.push(() => done(name === 'items' ? [ITEMS[0]] : STATS))
+        }),
+    )
+    stubApi()
+    await renderReady()
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
+
+    for (const release of releases) release()
+    await new Promise((done) => setTimeout(done, 50))
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
   })
 })

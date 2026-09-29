@@ -7,10 +7,14 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - `frontend/` — Vite + React 19 SPA, routed with react-router v8 (declarative
   mode; import from `react-router`, not `react-router-dom`). Deployed as a free
-  Render static site. Public pages make no API calls — bio and project content
-  are static modules in `frontend/src/content/`, so the site renders fully while
-  the free-tier backend is asleep. Vite still proxies `/api` to localhost:8000
-  for the authenticated features planned later.
+  Render static site. Public pages other than `/collection*` make no API calls
+  (apart from RootLayout's one `/api/auth/me` session check, which fails
+  quietly to signed out) — bio and project content are static modules in
+  `frontend/src/content/`, so the site renders fully while the free-tier
+  backend is asleep. Home and
+  Projects may read `/snapshot/items.json`, the build-time snapshot: a
+  static file on the site's own origin, not an API call. Vite proxies
+  `/api` to localhost:8000 for the tracker and the admin pages.
 - `backend/` — FastAPI app (`main.py`), **Python 3.12** to match Render.
   macOS system Python is 3.9 and cannot install this dependency set. Deployed
   as a Render web service (free tier: spins down after ~15 min idle). Config is
@@ -92,6 +96,8 @@ before pushing.
   `QuickRate`, `ShelfCardActions`. `HeroNumbers` and `FavoritesRow` are
   exported from `pages/Collection.jsx` and reused by the admin shelf. A
   card's admin controls are a sibling of its link, never nested inside it.
+- `FilterChips` hides a group with at most one chip to show and none
+  pressed, on both shelves; a pressed chip always keeps its group.
 - Nothing on the shelf is hover-only: anything revealed on hover is also
   revealed by `:focus-within`, with `opacity` or `clip-path` rather than
   `display: none` or `visibility: hidden`, which would make it unfocusable.
@@ -237,9 +243,14 @@ before pushing.
   credentials are optional config checked lazily, so a missing key disables
   one media type rather than stopping the service; `main.py` logs which
   sources are configured at startup.
-- `/collection` is public and **does** call the API, unlike every other public
-  page. It handles the free-tier cold start explicitly rather than showing a
-  spinner that reads as broken.
+- `/collection` and `/collection/:id` are public and **do** call the API,
+  unlike every other public page. They paint the build-time snapshot first
+  (`frontend/public/snapshot/*.json`, written by
+  `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed daily by
+  `.github/workflows/snapshot.yml` through a deploy hook), then swap in live
+  data; "Waking the server" shows only when there is no snapshot. The
+  snapshot is gitignored and never committed. See README → Collection
+  snapshot.
 - **Items are private when created.** `is_public` defaults to false, including
   for photo imports, so nothing reaches `/collection` until it is published
   from the admin collection page — per row, or with the bulk publish control.
