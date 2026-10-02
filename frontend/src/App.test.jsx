@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import '@testing-library/jest-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
@@ -100,11 +103,15 @@ describe('App page titles', () => {
     )
   })
 
-  // One row per route in App.jsx (18) minus the two /collection redirects,
-  // which set no title. /blog/:slug's row is the missing-post case; the
-  // published case has its own test above. A new route without a row
-  // fails here.
+  // A route added to App.jsx without a row here fails this test. The two
+  // /collection redirects set no title, so they are not counted.
   it('covers every titled route', () => {
-    expect(TITLES).toHaveLength(16)
+    const source = readFileSync(
+      resolve(dirname(fileURLToPath(import.meta.url)), 'App.jsx'),
+      'utf8',
+    )
+    const routes = source.match(/<Route (?:path=|index)/g) ?? []
+    const redirects = source.match(/<Route path="collection/g) ?? []
+    expect(TITLES).toHaveLength(routes.length - redirects.length)
   })
 })
