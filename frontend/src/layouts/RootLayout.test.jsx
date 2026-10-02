@@ -184,3 +184,21 @@ describe('RootLayout nav', () => {
     ).toHaveAttribute('aria-current', 'page')
   })
 })
+
+describe('RootLayout footer', () => {
+  it('credits the current year and links the source', () => {
+    renderAt('/about')
+    const footer = screen.getByRole('contentinfo')
+    expect(footer).toHaveTextContent(`© ${new Date().getFullYear()} Joey Haas`)
+    expect(
+      within(footer).getByRole('link', { name: 'Source' }),
+    ).toHaveAttribute('href', 'https://github.com/joeyh92989/joey-haas.dev')
+  })
+
+  it('keeps the contact links and the sign-in door', () => {
+    renderAt('/about')
+    const footer = within(screen.getByRole('contentinfo'))
+    expect(footer.getByRole('link', { name: 'GitHub' })).toBeInTheDocument()
+    expect(footer.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
+  })
+})
