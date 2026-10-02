@@ -67,6 +67,10 @@ const TITLES = [
   ['/spine', 'Spine · Joey Haas'],
   ['/nonsense-path', 'Not found · Joey Haas'],
   ['/blog/no-such-post', 'Not found · Joey Haas'],
+  ['/admin', 'Admin · Joey Haas'],
+  ['/admin/collection', 'Collection · Admin'],
+  ['/admin/import', 'Import from photos · Admin'],
+  ['/admin/play-next', 'Play Next · Admin'],
 ]
 
 describe('App page titles', () => {

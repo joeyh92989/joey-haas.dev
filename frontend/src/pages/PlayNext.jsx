@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useState } from 'react'
 import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import { apiFetch } from '../lib/api.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 
 const TIMES = [
   ['any', 'Any'],
@@ -116,6 +117,7 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
  * services, and the slow message says so rather than looking broken.
  */
 export default function PlayNext() {
+  usePageTitle('Play Next · Admin')
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
   const [items, setItems] = useState([])
