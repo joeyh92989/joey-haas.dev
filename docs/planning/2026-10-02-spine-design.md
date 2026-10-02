@@ -145,10 +145,12 @@ they replace themselves before paint matters.
 
 Static, in `frontend/index.html`: `description` (brief's item 13 wording),
 `og:title` (*Joey Haas*), `og:description` (same as `description`),
-`og:type=website`, `og:url=https://joey-haas.dev/`,
+`og:type=website`,
 `og:image=https://joey-haas.dev/og-card.png` with `og:image:width` 1200,
 `og:image:height` 630 and `og:image:alt`, and
-`twitter:card=summary_large_image`.
+`twitter:card=summary_large_image`. `og:url` was dropped after review: with
+static site-wide meta it would name the home page as the canonical URL of every
+shared link.
 
 The card is `frontend/public/og-card.png`, 1200×630: "Joey Haas", the profile
 tagline and "Spine — a tracker for my physical game collection" on the dark

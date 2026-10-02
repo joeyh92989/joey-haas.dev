@@ -27,7 +27,8 @@ describe('index.html meta', () => {
   it('carries the Open Graph and card tags', () => {
     expect(meta('og:title')).toBe('Joey Haas')
     expect(meta('og:type')).toBe('website')
-    expect(meta('og:url')).toBe('https://joey-haas.dev/')
+    // Static site-wide meta would name the home page canonical for every link.
+    expect(meta('og:url')).toBeUndefined()
     expect(meta('og:image')).toBe('https://joey-haas.dev/og-card.png')
     expect(meta('twitter:card')).toBe('summary_large_image')
   })
