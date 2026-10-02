@@ -75,8 +75,8 @@ function readStoredTheme() {
 
 /**
  * Site chrome shared by every route: header with photo, name, nav pills and
- * the theme toggle; the routed page; and a footer carrying a credit line and contact
- * links. The LinkedIn link renders only when a URL has been supplied.
+ * the theme toggle; the routed page; and a footer carrying a credit line and
+ * contact links. The LinkedIn link renders only when a URL has been supplied.
  */
 export default function RootLayout() {
   const [theme, setTheme] = useState(readStoredTheme)
@@ -162,7 +162,7 @@ export default function RootLayout() {
         <Outlet context={{ signedIn: Boolean(signedIn) }} />
       </main>
 
-      <footer>
+      <footer className="site-footer">
         <p className="footer-credit">
           &copy; {new Date().getFullYear()} {profile.name} &middot;{' '}
           <a href={profile.repo}>Source</a>
