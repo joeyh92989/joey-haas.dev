@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router'
+import { spine } from '../content/spine.js'
 import CoverImage from '../components/CoverImage.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
@@ -248,8 +249,8 @@ function ItemPage({ id }) {
     result.state === 'missing'
       ? null
       : shown
-        ? `${shown.title} · Spine`
-        : 'Spine · Joey Haas',
+        ? `${shown.title} · ${spine.name}`
+        : `${spine.name} · Joey Haas`,
   )
 
   if (result.state === 'missing') return <NotFound />

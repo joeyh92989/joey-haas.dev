@@ -466,7 +466,7 @@ export default function AdminCollection() {
       seed,
     )
     const linkFor = (item) =>
-      item.is_public ? `/collection/${item.id}` : `/admin/collection/${item.id}`
+      item.is_public ? `/spine/${item.id}` : `/admin/collection/${item.id}`
 
     return (
       <>
