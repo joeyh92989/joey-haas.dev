@@ -7,6 +7,7 @@ import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { STATUS_LABEL } from '../lib/shelf.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 
 const MONTH_YEAR = new Intl.DateTimeFormat('en', {
@@ -240,6 +241,16 @@ function ItemPage({ id }) {
       clearTimeout(timer)
     }
   }, [id, load])
+
+  const shown = result.state === 'ready' ? result.item : preview
+  // Null on a 404, so NotFound's own title stands (see usePageTitle).
+  usePageTitle(
+    result.state === 'missing'
+      ? null
+      : shown
+        ? `${shown.title} · Spine`
+        : 'Spine · Joey Haas',
+  )
 
   if (result.state === 'missing') return <NotFound />
 

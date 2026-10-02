@@ -282,6 +282,53 @@ describe('Item', () => {
   })
 })
 
+describe('Item title', () => {
+  beforeEach(() => {
+    document.title = 'Stale'
+  })
+
+  it('is Spine until the item is known', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    renderPage()
+    expect(document.title).toBe('Spine · Joey Haas')
+  })
+
+  it('names the item once it loads', async () => {
+    stubItem()
+    await renderReady()
+    expect(document.title).toBe('Hades · Spine')
+  })
+
+  it('names the item from the snapshot while the server wakes', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([
+      {
+        id: ID,
+        type: 'game',
+        title: 'Hades',
+        cover_url: null,
+        genres: [],
+        platforms: [],
+      },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    renderPage()
+    await waitFor(() => expect(document.title).toBe('Hades · Spine'))
+  })
+
+  it('leaves the title to NotFound on a 404', async () => {
+    stubApi({ ok: false, status: 404, json: async () => ({}) })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Not found' })
+    expect(document.title).toBe('Not found · Joey Haas')
+  })
+})
+
 describe('Item copy details', () => {
   const COPY = {
     platform: 'Nintendo Switch',
