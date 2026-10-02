@@ -166,7 +166,7 @@ describe('Collection', () => {
 
     expect(grid().getByRole('link', { name: /Dune/ })).toHaveAttribute(
       'href',
-      '/collection/1',
+      '/spine/1',
     )
   })
 
@@ -648,7 +648,7 @@ describe('Collection Up next', () => {
     const upNext = screen.getByRole('region', { name: 'Up next' })
     expect(within(upNext).getByRole('link', { name: /Dune/ })).toHaveAttribute(
       'href',
-      '/collection/1',
+      '/spine/1',
     )
   })
 
@@ -822,7 +822,7 @@ describe('Collection outputs', () => {
     const section = await screen.findByRole('region', { name: 'Recent picks' })
     expect(
       within(section).getByRole('link', { name: /Gloomhaven/ }),
-    ).toHaveAttribute('href', '/collection/2')
+    ).toHaveAttribute('href', '/spine/2')
     expect(
       within(section).getByText('Shares Fantasy with Dune, which I rated 9'),
     ).toBeInTheDocument()

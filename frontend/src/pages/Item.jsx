@@ -177,7 +177,7 @@ function Tiles({ item, detail }) {
 }
 
 /**
- * One public item: `/collection/:id`.
+ * One public item: `/spine/:id`.
  *
  * Keyed on the id so that following a "More from this shelf" card, which
  * reuses this route, starts from a clean load rather than the last item's
@@ -191,7 +191,7 @@ export default function Item() {
 /**
  * The item page proper.
  *
- * Under /collection, so it may call the API, and it handles the cold start
+ * Under /spine, so it may call the API, and it handles the cold start
  * the same way the shelf does. Both an unknown and a private id come back as
  * 404, and both render NotFound. The session comes from the layout's outlet
  * context; this page never asks the API who is signed in.
@@ -400,7 +400,7 @@ function ItemView({
             items={similar}
             size="compact"
             renderCard={(card) => (
-              <PosterCard item={card} to={`/collection/${card.id}`} />
+              <PosterCard item={card} to={`/spine/${card.id}`} />
             )}
           />
         </section>

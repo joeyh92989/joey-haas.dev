@@ -230,7 +230,7 @@ function UpNext({ items }) {
   if (!pinned) return null
   return (
     <section className="up-next up-next-public" aria-label="Up next">
-      <Link to={`/collection/${pinned.id}`} className="up-next-link">
+      <Link to={`/spine/${pinned.id}`} className="up-next-link">
         <span className="up-next-cover">
           <CoverImage src={pinned.cover_url} type={pinned.type} alt="" />
         </span>
@@ -264,7 +264,7 @@ function OnTheRadar({ items }) {
         items={coming}
         size="compact"
         renderCard={(item) => (
-          <PosterCard item={item} to={`/collection/${item.id}`} />
+          <PosterCard item={item} to={`/spine/${item.id}`} />
         )}
       />
     </section>
@@ -300,7 +300,7 @@ function RecentPicks({ picks }) {
       <ul className="recent-picks-list">
         {picks.map((pick) => (
           <li key={pick.id} className="recent-pick">
-            <Link to={`/collection/${pick.id}`} className="recent-pick-link">
+            <Link to={`/spine/${pick.id}`} className="recent-pick-link">
               <span className="recent-pick-cover">
                 <CoverImage src={pick.cover_url} type={pick.type} alt="" />
               </span>
@@ -492,7 +492,7 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
 }
 
 /**
- * The public collection showcase.
+ * The public shelf at /spine (Spine). The file keeps its pre-rename name.
  *
  * Unlike every other public page, this one calls the API. The free-tier
  * backend sleeps after about fifteen minutes, so the page first paints the
@@ -721,10 +721,7 @@ export default function Collection() {
             <ComingToCartridge releases={releases} />
           </div>
 
-          <FavoritesRow
-            items={items}
-            linkFor={(item) => `/collection/${item.id}`}
-          />
+          <FavoritesRow items={items} linkFor={(item) => `/spine/${item.id}`} />
 
           {stats && stats.total > 0 && (
             <div className="shelf-stats">
@@ -770,7 +767,7 @@ export default function Collection() {
               renderCard={(item) => (
                 <PosterCard
                   item={item}
-                  to={`/collection/${item.id}`}
+                  to={`/spine/${item.id}`}
                   dimmed={dim && isDimmable(item)}
                 />
               )}
