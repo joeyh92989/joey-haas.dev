@@ -13,7 +13,7 @@ const STORAGE_KEY = 'theme'
  * and anything nested under it.
  */
 const WIDE_ROUTES = [
-  '/collection',
+  '/spine',
   '/admin/collection',
   '/admin/play-next',
   '/admin/catalogue',
@@ -46,7 +46,7 @@ function navItems(hasPosts) {
     { to: '/', label: 'Home', end: true },
     { to: '/about', label: 'About' },
     { to: '/projects', label: 'Projects' },
-    { to: '/collection', label: 'Collection' },
+    { to: '/spine', label: 'Spine' },
     ...(hasPosts ? [{ to: '/blog', label: 'Blog' }] : []),
   ]
 }
