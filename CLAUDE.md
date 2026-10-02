@@ -160,7 +160,7 @@ before pushing.
 - [x] Tracker E8c — Radar at `/admin/radar`: upcoming physical releases
       and open pre-orders from the catalogue, plus IGDB's upcoming
       digital-only games, ranked by taste; Want adds the game as a public
-      want, shown on `/collection`'s "On the radar" strip. Migration `0006`
+      want, shown on `/spine`'s "On the radar" strip. Migration `0006`
       (the shared `recommendations` table). Spec and plan:
       `docs/planning/2026-09-27-tracker-e8c-*`
 - [x] Tracker E8b — Discover at `/admin/discover`: released physical

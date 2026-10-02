@@ -142,7 +142,7 @@ case "$allowed_methods" in
 esac
 
 # The public collection routes are the only unauthenticated data routes.
-# /collection and /collection/:id are the only pages that fetch them; every
+# /spine and /spine/:id are the only pages that fetch them; every
 # page also asks /api/auth/me once (RootLayout) and treats failure as signed
 # out. Home and Projects read the static snapshot below, never the API.
 check_equals "GET /api/public/items unauthenticated" \
@@ -151,7 +151,8 @@ check_equals "GET /api/public/items unauthenticated" \
 check_equals "GET /api/public/stats unauthenticated" \
   "$(http_status "$API_URL/api/public/stats")" "200"
 
-check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection")" "200"
+check_equals "GET /spine (deep link)" "$(http_status "$SITE_URL/spine")" "200"
+check_equals "GET /collection (legacy redirect path)" "$(http_status "$SITE_URL/collection")" "200"
 
 # Asserts an absence, which is the whole reason the public router hand-writes
 # its response model instead of serializing the ORM object. A private column
@@ -293,8 +294,8 @@ fi
 
 # The item page is a nested public route; like the admin detail view below,
 # only the static host can prove its rewrite serves it on a deep link.
-check_equals "GET /collection/<id> (nested deep link)" \
-  "$(http_status "$SITE_URL/collection/00000000-0000-0000-0000-000000000000")" \
+check_equals "GET /spine/<id> (nested deep link)" \
+  "$(http_status "$SITE_URL/spine/00000000-0000-0000-0000-000000000000")" \
   "200"
 
 check_equals "POST /api/import/photos unauthenticated" \

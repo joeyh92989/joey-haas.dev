@@ -2,7 +2,7 @@
 watching, and the owner's answer to each suggestion.
 
 Everything here is admin-only and nothing is public: a watched game reaches
-`/collection` as an ordinary item with `wanted`, never as a recommendation.
+`/spine` as an ordinary item with `wanted`, never as a recommendation.
 Generation re-scores the catalogue as it is and never walks the stores; it
 takes the catalogue's write lock, so it cannot run during a refresh.
 """
