@@ -35,15 +35,14 @@ export default function Home() {
         <Link className="link-card" to="/projects">
           <span className="link-card-title">See my work</span>
           <span className="link-card-arrow"> &rarr;</span>
-          <span className="link-card-sub">
-            The collection tracker, and this very site.
-          </span>
+          <span className="link-card-sub">Spine, and this very site.</span>
         </Link>
-        <Link className="link-card" to="/collection">
-          <span className="link-card-title">What I’m playing</span>
+        <Link className="link-card" to="/spine">
+          <span className="link-card-title">Spine</span>
           <span className="link-card-arrow"> &rarr;</span>
           <span className="link-card-sub">
-            The collection: what I own, finish and want next.
+            The game tracker I built: what I own, what I’ve finished, what’s
+            next.
           </span>
           <CoverStrip />
         </Link>
