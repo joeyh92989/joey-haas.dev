@@ -1208,6 +1208,26 @@ footer {
 
 /* Public collection showcase. */
 
+/* /spine: the header block above the hero numbers. Capped at the prose
+   width so the lede does not run the full 72rem of the wide page. */
+.spine-lede {
+  color: var(--text-body);
+  font-size: 1.0625rem;
+  margin: 0.375rem 0 0;
+  max-width: 45rem;
+}
+
+.spine-project {
+  font-size: 0.875rem;
+  margin: 0.5rem 0 0;
+  max-width: 45rem;
+}
+
+/* A link label never breaks across lines; the sentence before it may. */
+.spine-project a {
+  white-space: nowrap;
+}
+
 /* Hero numbers: large tabular figures over small uppercase labels. The dt
    comes first in the markup, as a description list requires, and is moved
    below the figure visually. */

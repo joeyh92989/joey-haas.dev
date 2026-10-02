@@ -4,6 +4,7 @@ import CoverImage from '../components/CoverImage.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
+import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { localToday } from '../lib/statusTransition.js'
@@ -622,7 +623,7 @@ export default function Collection() {
   if (state === 'loading') {
     return (
       <section>
-        <h1>Collection</h1>
+        <h1>{spine.name}</h1>
         <p className="muted" role="status">
           {slow
             ? 'Waking the server — it sleeps when idle, so this takes about thirty seconds.'
@@ -644,7 +645,7 @@ export default function Collection() {
   if (state === 'error') {
     return (
       <section>
-        <h1>Collection</h1>
+        <h1>{spine.name}</h1>
         <p className="admin-error">
           The collection could not be loaded. Try again shortly.
         </p>
@@ -696,10 +697,12 @@ export default function Collection() {
 
   return (
     <section>
-      <h1>Collection</h1>
-      <p className="muted">
-        What I own, what I have finished, and what is still waiting. Mostly
-        physical media.
+      <h1>{spine.name}</h1>
+      <p className="spine-lede">{spine.tagline}</p>
+      <p className="spine-project muted">
+        {spine.projectLine}{' '}
+        <Link to={spine.links.post.to}>{spine.links.post.label} &rarr;</Link>{' '}
+        <a href={spine.links.source.href}>{spine.links.source.label} &rarr;</a>
       </p>
 
       {items.length === 0 ? (
