@@ -64,6 +64,9 @@ const TITLES = [
   ['/about', 'About · Joey Haas'],
   ['/projects', 'Projects · Joey Haas'],
   ['/blog', 'Blog · Joey Haas'],
+  ['/spine', 'Spine · Joey Haas'],
+  ['/nonsense-path', 'Not found · Joey Haas'],
+  ['/blog/no-such-post', 'Not found · Joey Haas'],
 ]
 
 describe('App page titles', () => {
@@ -74,5 +77,17 @@ describe('App page titles', () => {
   it.each(TITLES)('titles %s', async (path, title) => {
     renderAt(path)
     await waitFor(() => expect(document.title).toBe(title))
+  })
+
+  it('titles a post by its own title', async () => {
+    content.posts.push({
+      slug: 'how-spine-works',
+      html: '<p>Body</p>',
+      frontmatter: { title: 'How Spine works', date: '2026-10-02', tags: [] },
+    })
+    renderAt('/blog/how-spine-works')
+    await waitFor(() =>
+      expect(document.title).toBe('How Spine works · Joey Haas'),
+    )
   })
 })

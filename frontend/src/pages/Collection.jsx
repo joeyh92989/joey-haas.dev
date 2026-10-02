@@ -8,6 +8,7 @@ import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { localToday } from '../lib/statusTransition.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 import {
   countBy,
   filterItems,
@@ -507,6 +508,7 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
  * not, so a returning visitor sees the default shelf.
  */
 export default function Collection() {
+  usePageTitle(`${spine.name} · Joey Haas`)
   const [items, setItems] = useState([])
   const [stats, setStats] = useState(null)
   const [picks, setPicks] = useState([])
