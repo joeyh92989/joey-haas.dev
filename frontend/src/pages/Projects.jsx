@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { usePageTitle } from '../lib/usePageTitle.js'
 import CoverStrip from '../components/CoverStrip.jsx'
 import { projects } from '../content/projects.js'
 
@@ -12,6 +13,7 @@ import { projects } from '../content/projects.js'
  * snapshot, not the API. `tagline`, `highlights` and `links` render only when set.
  */
 export default function Projects() {
+  usePageTitle('Projects · Joey Haas')
   return (
     <section>
       <h1>Projects</h1>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { usePageTitle } from '../lib/usePageTitle.js'
 import { formatDate, posts } from '../content/posts.js'
 
 /**
@@ -8,6 +9,7 @@ import { formatDate, posts } from '../content/posts.js'
  * published, and post #1 arrives whenever it is written.
  */
 export default function Blog() {
+  usePageTitle('Blog · Joey Haas')
   return (
     <section>
       <h1>Writing</h1>

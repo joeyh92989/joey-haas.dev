@@ -57,3 +57,22 @@ describe('App redirects', () => {
     )
   })
 })
+
+/** [path, title]; each later task adds its routes' rows. */
+const TITLES = [
+  ['/', 'Joey Haas — Senior software engineer, Denver'],
+  ['/about', 'About · Joey Haas'],
+  ['/projects', 'Projects · Joey Haas'],
+  ['/blog', 'Blog · Joey Haas'],
+]
+
+describe('App page titles', () => {
+  beforeEach(() => {
+    document.title = 'Stale'
+  })
+
+  it.each(TITLES)('titles %s', async (path, title) => {
+    renderAt(path)
+    await waitFor(() => expect(document.title).toBe(title))
+  })
+})

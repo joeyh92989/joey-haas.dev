@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { usePageTitle } from '../lib/usePageTitle.js'
 import CoverStrip from '../components/CoverStrip.jsx'
 import { posts } from '../content/posts.js'
 
@@ -11,6 +12,7 @@ import { posts } from '../content/posts.js'
  * the same sentence.
  */
 export default function Home() {
+  usePageTitle('Joey Haas — Senior software engineer, Denver')
   const [latest] = posts
 
   return (
