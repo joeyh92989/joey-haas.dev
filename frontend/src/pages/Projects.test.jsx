@@ -80,6 +80,8 @@ describe('Projects', () => {
       'href',
       '/spine',
     )
+    // The decorative arrow stays out of the accessible name.
+    expect(screen.getByRole('link', { name: 'Open Spine' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Source/ })).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989/joey-haas.dev',

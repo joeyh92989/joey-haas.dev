@@ -703,8 +703,12 @@ export default function Collection() {
       <p className="spine-lede">{spine.tagline}</p>
       <p className="spine-project muted">
         {spine.projectLine}{' '}
-        <Link to={spine.links.post.to}>{spine.links.post.label} &rarr;</Link>{' '}
-        <a href={spine.links.source.href}>{spine.links.source.label} &rarr;</a>
+        <Link to={spine.links.post.to}>
+          {spine.links.post.label} <span aria-hidden="true">&rarr;</span>
+        </Link>{' '}
+        <a href={spine.links.source.href}>
+          {spine.links.source.label} <span aria-hidden="true">&rarr;</span>
+        </a>
       </p>
 
       {items.length === 0 ? (

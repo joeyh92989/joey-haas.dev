@@ -46,11 +46,11 @@ export default function Projects() {
                 {project.links.map((link) =>
                   link.to ? (
                     <Link key={link.label} to={link.to}>
-                      {link.label} &rarr;
+                      {link.label} <span aria-hidden="true">&rarr;</span>
                     </Link>
                   ) : (
                     <a key={link.label} href={link.href}>
-                      {link.label} &rarr;
+                      {link.label} <span aria-hidden="true">&rarr;</span>
                     </a>
                   ),
                 )}
