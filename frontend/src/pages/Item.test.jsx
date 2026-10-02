@@ -57,10 +57,10 @@ function stubItem(overrides = {}) {
 
 function renderPage({ signedIn = false } = {}) {
   return render(
-    <MemoryRouter initialEntries={[`/collection/${ID}`]}>
+    <MemoryRouter initialEntries={[`/spine/${ID}`]}>
       <Routes>
         <Route element={<Outlet context={{ signedIn }} />}>
-          <Route path="/collection/:id" element={<Item />} />
+          <Route path="/spine/:id" element={<Item />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -204,7 +204,7 @@ describe('Item', () => {
     const strip = screen.getByRole('region', { name: 'More from this shelf' })
     expect(
       within(strip).getByRole('link', { name: 'Dead Cells' }),
-    ).toHaveAttribute('href', '/collection/a')
+    ).toHaveAttribute('href', '/spine/a')
     expect(within(strip).getAllByRole('link')).toHaveLength(2)
   })
 
@@ -270,15 +270,62 @@ describe('Item', () => {
   it('renders outside the layout without throwing', async () => {
     stubItem()
     render(
-      <MemoryRouter initialEntries={[`/collection/${ID}`]}>
+      <MemoryRouter initialEntries={[`/spine/${ID}`]}>
         <Routes>
-          <Route path="/collection/:id" element={<Item />} />
+          <Route path="/spine/:id" element={<Item />} />
         </Routes>
       </MemoryRouter>,
     )
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Hades' }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('Item title', () => {
+  beforeEach(() => {
+    document.title = 'Stale'
+  })
+
+  it('is Spine until the item is known', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    renderPage()
+    expect(document.title).toBe('Spine · Joey Haas')
+  })
+
+  it('names the item once it loads', async () => {
+    stubItem()
+    await renderReady()
+    expect(document.title).toBe('Hades · Spine')
+  })
+
+  it('names the item from the snapshot while the server wakes', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([
+      {
+        id: ID,
+        type: 'game',
+        title: 'Hades',
+        cover_url: null,
+        genres: [],
+        platforms: [],
+      },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    renderPage()
+    await waitFor(() => expect(document.title).toBe('Hades · Spine'))
+  })
+
+  it('leaves the title to NotFound on a 404', async () => {
+    stubApi({ ok: false, status: 404, json: async () => ({}) })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Not found' })
+    expect(document.title).toBe('Not found · Joey Haas')
   })
 })
 

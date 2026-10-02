@@ -72,6 +72,9 @@ check_equals "GET /nonsense-path (SPA 404)" "$(http_status "$SITE_URL/nonsense-p
 # feed.xml is different: it is a real file in dist/, and Render skips rewrite
 # rules for paths where a resource exists. So its content type distinguishes a
 # genuinely served feed from the SPA fallback, and a 200 alone does not.
+#
+# The same holds for /spine and the client-side /collection redirects: they
+# are verified in the browser after deploy, not here.
 feed_type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$SITE_URL/feed.xml")"
 case "$feed_type" in
   *xml*) report_pass "feed.xml served as XML" "$feed_type" ;;
@@ -139,7 +142,7 @@ case "$allowed_methods" in
 esac
 
 # The public collection routes are the only unauthenticated data routes.
-# /collection and /collection/:id are the only pages that fetch them; every
+# /spine and /spine/:id are the only pages that fetch them; every
 # page also asks /api/auth/me once (RootLayout) and treats failure as signed
 # out. Home and Projects read the static snapshot below, never the API.
 check_equals "GET /api/public/items unauthenticated" \
@@ -148,7 +151,8 @@ check_equals "GET /api/public/items unauthenticated" \
 check_equals "GET /api/public/stats unauthenticated" \
   "$(http_status "$API_URL/api/public/stats")" "200"
 
-check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection")" "200"
+check_equals "GET /spine (deep link)" "$(http_status "$SITE_URL/spine")" "200"
+check_equals "GET /collection (legacy redirect path)" "$(http_status "$SITE_URL/collection")" "200"
 
 # Asserts an absence, which is the whole reason the public router hand-writes
 # its response model instead of serializing the ORM object. A private column
@@ -290,8 +294,8 @@ fi
 
 # The item page is a nested public route; like the admin detail view below,
 # only the static host can prove its rewrite serves it on a deep link.
-check_equals "GET /collection/<id> (nested deep link)" \
-  "$(http_status "$SITE_URL/collection/00000000-0000-0000-0000-000000000000")" \
+check_equals "GET /spine/<id> (nested deep link)" \
+  "$(http_status "$SITE_URL/spine/00000000-0000-0000-0000-000000000000")" \
   "200"
 
 check_equals "POST /api/import/photos unauthenticated" \

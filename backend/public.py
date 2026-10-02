@@ -1,6 +1,6 @@
 """The public, read-only view of the collection.
 
-The only unauthenticated data router. /collection and /collection/:id are the
+The only unauthenticated data router. /spine and /spine/:id are the
 only pages that call it; Home and Projects read a build-time snapshot of it
 instead (frontend/scripts/fetch-snapshot.mjs), so every other public page
 renders while the free-tier backend is asleep.

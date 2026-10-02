@@ -33,7 +33,7 @@ npm run dev
 
 The Vite dev server proxies `/api/*` to the backend. Bio and project content
 are static modules in `frontend/src/content/`, so the site renders fully even
-when the free-tier backend is asleep. Only `/collection` and `/collection/:id`
+when the free-tier backend is asleep. Only `/spine` and `/spine/:id`
 call the tracker's public API, and they paint the build-time snapshot first
 (see [Collection snapshot](#collection-snapshot)); the "waking the server"
 state shows only when there is no snapshot. Home and Projects read the static
@@ -48,15 +48,16 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
-| `/collection` | Collection | Public shelf: hero numbers, favourites, "Recent picks" from Play Next, "Coming to cartridge" from Radar, stats, filters and sort; calls the public API after painting the build-time snapshot |
-| `/collection/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
+| `/spine` | Spine | Public shelf: hero numbers, favourites, "Recent picks" from Play Next, "Coming to cartridge" from Radar, stats, filters and sort; calls the public API after painting the build-time snapshot |
+| `/spine/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
+| `/collection` | Redirect | Redirects to `/spine`; `/collection/:id` redirects to `/spine/:id`, both client-side |
 | `/admin` | Admin | Google sign-in gate, reached from the footer's Sign in link |
 | `/admin/collection` | Collection (admin) | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
 | `/admin/collection/:id` | Edit item | Every field, plus re-linking to a different IGDB/TMDB/Comic Vine match |
 | `/admin/import` | Import | Photograph a shelf; a vision model reads the titles and each is resolved against its source |
 | `/admin/play-next` | Play Next | Three picks from the owned backlog |
 | `/admin/catalogue` | Catalogue | What exists physically: registry, stores, N64 |
-| `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Want puts a game on `/collection`'s "On the radar" strip |
+| `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Want puts a game on `/spine`'s "On the radar" strip |
 | `/admin/discover` | Discover | Released physical games you would love and do not own: eight picks with reasons from one Gemini call, or the taste ranking when it cannot answer |
 | anything else | NotFound (client-side 404) | |
 
@@ -302,7 +303,7 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Items | `backend/items.py`, `models.py`, `formats.py` | The `items` table and its admin CRUD. Copy fields (platform, physical format, cart ID, region, completeness) are decided in one place, `formats.py`, on every write path |
 | Metadata sources | `backend/sources/` | One adapter per API behind a common interface: IGDB (games), TMDB (films), Comic Vine (comics); BGG is stubbed until its API is usable again. Each keeps a snapshot on the item for the shelf and the pickers |
 | Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
-| Public showcase | `backend/public.py`, `/collection` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
+| Public showcase | `backend/public.py`, `/spine` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
 | Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one puts it on the public shelf as "Up next", and recent picks appear there as "Recent picks" |
 | Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
 | Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want puts a game on the public shelf's "On the radar" strip, and registry-dated cartridges appear there as "Coming to cartridge" |
@@ -384,15 +385,15 @@ they are correct as written — which is also why renaming the services required
 no DNS change. Visitors never see them; the custom domains sit in front.
 
 Note: the API runs on Render's free tier, which spins down after ~15 min of
-inactivity (first request then takes ~30 s). Only `/collection` and
-`/collection/:id` call the API. They paint the build-time snapshot first and
+inactivity (first request then takes ~30 s). Only `/spine` and
+`/spine/:id` call the API. They paint the build-time snapshot first and
 show a "waking the server" state only when there is no snapshot; every other
 public page never waits on it (see [Collection snapshot](#collection-snapshot)).
 Upgrade to Starter ($7/mo) to keep it warm.
 
 ## Collection snapshot
 
-`/collection` first paints a snapshot of the public API, then refreshes it
+`/spine` first paints a snapshot of the public API, then refreshes it
 from the live API, so a first-time visitor doesn't wait for the free-tier
 backend to wake. Home and Projects read the same file for their cover
 strips.

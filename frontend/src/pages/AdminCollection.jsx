@@ -11,6 +11,7 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfCardActions from '../components/ShelfCardActions.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import { apiFetch } from '../lib/api.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 import {
   countBy,
   filterItems,
@@ -92,6 +93,7 @@ const EMPTY_FORM = {
  * exists so that reads as slow rather than broken.
  */
 export default function AdminCollection() {
+  usePageTitle('Collection · Admin')
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
@@ -464,7 +466,7 @@ export default function AdminCollection() {
       seed,
     )
     const linkFor = (item) =>
-      item.is_public ? `/collection/${item.id}` : `/admin/collection/${item.id}`
+      item.is_public ? `/spine/${item.id}` : `/admin/collection/${item.id}`
 
     return (
       <>

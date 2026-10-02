@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router'
+import { spine } from '../content/spine.js'
 import CoverImage from '../components/CoverImage.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
@@ -7,6 +8,7 @@ import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { STATUS_LABEL } from '../lib/shelf.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 
 const MONTH_YEAR = new Intl.DateTimeFormat('en', {
@@ -177,7 +179,7 @@ function Tiles({ item, detail }) {
 }
 
 /**
- * One public item: `/collection/:id`.
+ * One public item: `/spine/:id`.
  *
  * Keyed on the id so that following a "More from this shelf" card, which
  * reuses this route, starts from a clean load rather than the last item's
@@ -191,7 +193,7 @@ export default function Item() {
 /**
  * The item page proper.
  *
- * Under /collection, so it may call the API, and it handles the cold start
+ * Under /spine, so it may call the API, and it handles the cold start
  * the same way the shelf does. Both an unknown and a private id come back as
  * 404, and both render NotFound. The session comes from the layout's outlet
  * context; this page never asks the API who is signed in.
@@ -240,6 +242,16 @@ function ItemPage({ id }) {
       clearTimeout(timer)
     }
   }, [id, load])
+
+  const shown = result.state === 'ready' ? result.item : preview
+  // Null on a 404, so NotFound's own title stands (see usePageTitle).
+  usePageTitle(
+    result.state === 'missing'
+      ? null
+      : shown
+        ? `${shown.title} · ${spine.name}`
+        : `${spine.name} · Joey Haas`,
+  )
 
   if (result.state === 'missing') return <NotFound />
 
@@ -400,7 +412,7 @@ function ItemView({
             items={similar}
             size="compact"
             renderCard={(card) => (
-              <PosterCard item={card} to={`/collection/${card.id}`} />
+              <PosterCard item={card} to={`/spine/${card.id}`} />
             )}
           />
         </section>

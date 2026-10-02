@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router'
 import { findPost, formatDate } from '../content/posts.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 
 /**
@@ -14,6 +15,9 @@ import NotFound from './NotFound.jsx'
 export default function BlogPost() {
   const { slug } = useParams()
   const post = findPost(slug)
+
+  // Null when missing, so NotFound's own title stands (see usePageTitle).
+  usePageTitle(post ? `${post.frontmatter.title} · Joey Haas` : null)
 
   if (!post) return <NotFound />
 

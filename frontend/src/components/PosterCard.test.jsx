@@ -19,7 +19,7 @@ const ITEM = {
 function renderCard(props = {}) {
   return render(
     <MemoryRouter>
-      <PosterCard item={ITEM} to="/collection/1" {...props} />
+      <PosterCard item={ITEM} to="/spine/1" {...props} />
     </MemoryRouter>,
   )
 }
@@ -28,7 +28,7 @@ describe('PosterCard', () => {
   it('links the poster and the title together to the given page', () => {
     renderCard()
     const link = screen.getByRole('link')
-    expect(link).toHaveAttribute('href', '/collection/1')
+    expect(link).toHaveAttribute('href', '/spine/1')
     expect(link).toHaveTextContent('Hades')
     expect(link.querySelector('.cover')).not.toBeNull()
   })
@@ -87,7 +87,7 @@ describe('PosterCard', () => {
     )
     rerender(
       <MemoryRouter>
-        <PosterCard item={ITEM} to="/collection/1" />
+        <PosterCard item={ITEM} to="/spine/1" />
       </MemoryRouter>,
     )
     expect(container.querySelector('.poster-card')).not.toHaveAttribute(

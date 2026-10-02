@@ -5,7 +5,7 @@
  * verbatim, to `/snapshot/{name}.json` when the site is built, so the
  * showcase can paint before the free-tier backend wakes. They are static files
  * on the site's own origin, not API calls, which is why pages outside
- * /collection may read them.
+ * /spine may read them.
  *
  * A missing snapshot is normal (a local build, or a build whose fetch
  * failed), and both Render and Vite answer an unknown path with index.html,

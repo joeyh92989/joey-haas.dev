@@ -7,7 +7,7 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - `frontend/` — Vite + React 19 SPA, routed with react-router v8 (declarative
   mode; import from `react-router`, not `react-router-dom`). Deployed as a free
-  Render static site. Public pages other than `/collection*` make no API calls
+  Render static site. Public pages other than `/spine*` make no API calls
   (apart from RootLayout's one `/api/auth/me` session check, which fails
   quietly to signed out) — bio and project content are static modules in
   `frontend/src/content/`, so the site renders fully while the free-tier
@@ -78,7 +78,7 @@ before pushing.
   for the plan. Mockups and the `.superpowers/` execution scratch stay out of
   git — the first are disposable once the UI exists, the second is process
   telemetry.
-- The tracker shelf is one design system for `/collection` and
+- The tracker shelf is one design system for `/spine` and
   `/admin/collection`. Its tokens (`--rating`, `--status-*`, `--overlay`,
   `--skeleton`, `--grid-gap`) live in both theme blocks like every other
   token, and the status colors were chosen on measured contrast: each clears
@@ -160,7 +160,7 @@ before pushing.
 - [x] Tracker E8c — Radar at `/admin/radar`: upcoming physical releases
       and open pre-orders from the catalogue, plus IGDB's upcoming
       digital-only games, ranked by taste; Want adds the game as a public
-      want, shown on `/collection`'s "On the radar" strip. Migration `0006`
+      want, shown on `/spine`'s "On the radar" strip. Migration `0006`
       (the shared `recommendations` table). Spec and plan:
       `docs/planning/2026-09-27-tracker-e8c-*`
 - [x] Tracker E8b — Discover at `/admin/discover`: released physical
@@ -175,6 +175,12 @@ before pushing.
       `/api/public/picks` and `/api/public/radar`. Radar needs one Generate
       after deploy for Coming to cartridge. Spec and plan:
       `docs/planning/2026-09-28-tracker-showcase-*`
+- [x] Spine — the tracker's public name. `/spine` and `/spine/:id`, with
+      client-side redirects from `/collection*` (smoke cannot see them;
+      verified in the browser), Spine copy in `content/spine.js`, the
+      Projects card's `tagline`/`highlights`/`links`, `usePageTitle` on every
+      page, static link-preview meta with `public/og-card.png`, and the
+      "How Spine works" post. Spec and plan: `docs/planning/2026-10-02-spine-*`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -250,7 +256,7 @@ before pushing.
   credentials are optional config checked lazily, so a missing key disables
   one media type rather than stopping the service; `main.py` logs which
   sources are configured at startup.
-- `/collection` and `/collection/:id` are public and **do** call the API,
+- `/spine` and `/spine/:id` are public and **do** call the API,
   unlike every other public page. They paint the build-time snapshot first
   (`frontend/public/snapshot/*.json`, written by
   `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed daily by
@@ -259,7 +265,7 @@ before pushing.
   snapshot is gitignored and never committed. See README → Collection
   snapshot.
 - **Items are private when created.** `is_public` defaults to false, including
-  for photo imports, so nothing reaches `/collection` until it is published
+  for photo imports, so nothing reaches `/spine` until it is published
   from the admin collection page — per row, or with the bulk publish control.
   This was missing at first: the public API, page and filter all shipped
   without a way to set the flag, so the showcase was unreachable.
@@ -298,7 +304,7 @@ before pushing.
   Never a store, price, pre-order window, reason, score or id, and nothing
   from Discover. `tests/test_public_outputs.py` pins the fields. Otherwise,
   Want creates an ordinary item (no owned copy, backlog, public) and only
-  that reaches `/collection`, through `wanted` and `release_date`; Already
+  that reaches `/spine`, through `wanted` and `release_date`; Already
   own creates a private one with a physical copy. Both record a format only
   when the registry decided it.
 - **Discover** (E8b) is `backend/discover.py` (pure: released filter,

@@ -5,6 +5,7 @@ import RecommendationCard, {
   DISCOVER_ACTIONS,
 } from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 
 const UNREACHABLE = 'Could not reach the API. Try again shortly.'
 
@@ -88,6 +89,7 @@ function Choice({ legend, name, options, value, onChange }) {
  * from the catalogue's best-scoring twenty.
  */
 export default function AdminDiscover() {
+  usePageTitle('Discover · Admin')
   const { signedIn = false } = useOutletContext() ?? {}
   const [state, setState] = useState('loading')
   const [discover, setDiscover] = useState(null)

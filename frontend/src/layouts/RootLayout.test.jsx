@@ -96,7 +96,7 @@ describe('RootLayout wide pages', () => {
   }
 
   // The tracker pages break out of the reading column; everything else keeps it.
-  it.each(['/collection', '/collection/abc', '/admin/collection/abc'])(
+  it.each(['/spine', '/spine/abc', '/admin/collection/abc'])(
     'widens %s',
     (path) => {
       expect(pageClass(path)).toContain('page-wide')
@@ -161,9 +161,9 @@ describe('RootLayout nav', () => {
       .map((link) => link.textContent)
   }
 
-  it('lists Collection, and no Blog while nothing is published', () => {
+  it('lists Spine, and no Blog while nothing is published', () => {
     renderAt('/about')
-    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Collection'])
+    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Spine'])
   })
 
   it('adds Blog last once a post is published', () => {
@@ -172,21 +172,33 @@ describe('RootLayout nav', () => {
       frontmatter: { title: 'First', date: '2026-10-01' },
     })
     renderAt('/about')
-    expect(navLabels()).toEqual([
-      'Home',
-      'About',
-      'Projects',
-      'Collection',
-      'Blog',
-    ])
+    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Spine', 'Blog'])
   })
 
-  it('keeps Collection current on an item page', () => {
-    renderAt('/collection/abc')
+  it('keeps Spine current on an item page', () => {
+    renderAt('/spine/abc')
     expect(
       within(screen.getByRole('navigation')).getByRole('link', {
-        name: 'Collection',
+        name: 'Spine',
       }),
     ).toHaveAttribute('aria-current', 'page')
+  })
+})
+
+describe('RootLayout footer', () => {
+  it('credits the current year and links the source', () => {
+    renderAt('/about')
+    const footer = screen.getByRole('contentinfo')
+    expect(footer).toHaveTextContent(`© ${new Date().getFullYear()} Joey Haas`)
+    expect(
+      within(footer).getByRole('link', { name: 'Source' }),
+    ).toHaveAttribute('href', 'https://github.com/joeyh92989/joey-haas.dev')
+  })
+
+  it('keeps the contact links and the sign-in door', () => {
+    renderAt('/about')
+    const footer = within(screen.getByRole('contentinfo'))
+    expect(footer.getByRole('link', { name: 'GitHub' })).toBeInTheDocument()
+    expect(footer.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
   })
 })

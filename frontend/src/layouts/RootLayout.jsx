@@ -13,7 +13,7 @@ const STORAGE_KEY = 'theme'
  * and anything nested under it.
  */
 const WIDE_ROUTES = [
-  '/collection',
+  '/spine',
   '/admin/collection',
   '/admin/play-next',
   '/admin/catalogue',
@@ -46,7 +46,7 @@ function navItems(hasPosts) {
     { to: '/', label: 'Home', end: true },
     { to: '/about', label: 'About' },
     { to: '/projects', label: 'Projects' },
-    { to: '/collection', label: 'Collection' },
+    { to: '/spine', label: 'Spine' },
     ...(hasPosts ? [{ to: '/blog', label: 'Blog' }] : []),
   ]
 }
@@ -75,8 +75,8 @@ function readStoredTheme() {
 
 /**
  * Site chrome shared by every route: header with photo, name, nav pills and
- * the theme toggle; the routed page; and a footer carrying contact links. The
- * LinkedIn link renders only when a URL has been supplied.
+ * the theme toggle; the routed page; and a footer carrying a credit line and
+ * contact links. The LinkedIn link renders only when a URL has been supplied.
  */
 export default function RootLayout() {
   const [theme, setTheme] = useState(readStoredTheme)
@@ -162,28 +162,34 @@ export default function RootLayout() {
         <Outlet context={{ signedIn: Boolean(signedIn) }} />
       </main>
 
-      <footer>
-        <a href={`mailto:${profile.email}`}>{profile.email}</a>
-        {' · '}
-        <a href={profile.github}>GitHub</a>
-        {profile.linkedin && (
-          <>
-            {' · '}
-            <a href={profile.linkedin}>LinkedIn</a>
-          </>
-        )}
-        {' · '}
-        {/* Replaces having to know the /admin URL. Deliberately understated:
-            it is a door for one person, not a call to action. */}
-        {signedIn ? (
-          <Link to="/admin" className="footer-admin">
-            Admin
-          </Link>
-        ) : (
-          <a href={loginUrl} className="footer-admin">
-            Sign in
-          </a>
-        )}
+      <footer className="site-footer">
+        <p className="footer-credit">
+          &copy; {new Date().getFullYear()} {profile.name} &middot;{' '}
+          <a href={profile.repo}>Source</a>
+        </p>
+        <p className="footer-links">
+          <a href={`mailto:${profile.email}`}>{profile.email}</a>
+          {' · '}
+          <a href={profile.github}>GitHub</a>
+          {profile.linkedin && (
+            <>
+              {' · '}
+              <a href={profile.linkedin}>LinkedIn</a>
+            </>
+          )}
+          {' · '}
+          {/* Replaces having to know the /admin URL. Deliberately understated:
+              it is a door for one person, not a call to action. */}
+          {signedIn ? (
+            <Link to="/admin" className="footer-admin">
+              Admin
+            </Link>
+          ) : (
+            <a href={loginUrl} className="footer-admin">
+              Sign in
+            </a>
+          )}
+        </p>
       </footer>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { apiFetch, loginUrl } from '../lib/api.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 
 /**
  * Admin area. Deliberately absent from the site navigation — reachable only by
@@ -8,6 +9,7 @@ import { apiFetch, loginUrl } from '../lib/api.js'
  * is. It keeps a personal site from looking like an app with a login wall.
  */
 export default function Admin() {
+  usePageTitle('Admin · Joey Haas')
   const [status, setStatus] = useState('checking')
   const [email, setEmail] = useState(null)
   const [slow, setSlow] = useState(false)

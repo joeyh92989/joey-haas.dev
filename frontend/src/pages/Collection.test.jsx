@@ -166,7 +166,7 @@ describe('Collection', () => {
 
     expect(grid().getByRole('link', { name: /Dune/ })).toHaveAttribute(
       'href',
-      '/collection/1',
+      '/spine/1',
     )
   })
 
@@ -648,7 +648,7 @@ describe('Collection Up next', () => {
     const upNext = screen.getByRole('region', { name: 'Up next' })
     expect(within(upNext).getByRole('link', { name: /Dune/ })).toHaveAttribute(
       'href',
-      '/collection/1',
+      '/spine/1',
     )
   })
 
@@ -822,7 +822,7 @@ describe('Collection outputs', () => {
     const section = await screen.findByRole('region', { name: 'Recent picks' })
     expect(
       within(section).getByRole('link', { name: /Gloomhaven/ }),
-    ).toHaveAttribute('href', '/collection/2')
+    ).toHaveAttribute('href', '/spine/2')
     expect(
       within(section).getByText('Shares Fantasy with Dune, which I rated 9'),
     ).toBeInTheDocument()
@@ -936,5 +936,42 @@ describe('Collection outputs', () => {
     expect(
       screen.queryByRole('region', { name: 'Coming to cartridge' }),
     ).toBeNull()
+  })
+})
+
+describe('Collection header', () => {
+  it('names Spine, says what it is, and links the post and the source', async () => {
+    stubApi()
+    await renderReady()
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/^A tracker for my physical game collection:/),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/^I built this:/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /How it works/ })).toHaveAttribute(
+      'href',
+      '/blog/how-spine-works',
+    )
+    expect(screen.getByRole('link', { name: /Source/ })).toHaveAttribute(
+      'href',
+      'https://github.com/joeyh92989/joey-haas.dev',
+    )
+  })
+
+  // A cold start leads with the waking notice, not a project pitch.
+  it('keeps the project line out of the loading state', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    renderPage()
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/^I built this:/)).toBeNull()
   })
 })

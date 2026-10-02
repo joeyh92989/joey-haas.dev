@@ -11,7 +11,7 @@ fetch-snapshot.mjs  →  vite build  →  generate-rss.mjs
 **What and why.** It writes the public API's response bodies to
 `public/snapshot/items.json`, `stats.json`, `picks.json` and `radar.json`,
 which Vite then copies into `dist/`. The API is on Render's free tier and sleeps after about 15 idle
-minutes. Without the snapshot, `/collection` would open with a thirty-second
+minutes. Without the snapshot, `/spine` would open with a thirty-second
 "Waking the server" notice. With it, the page paints straight away and then
 refreshes from the API. Home and Projects read the same file for their cover
 strips, so they still make no API calls.

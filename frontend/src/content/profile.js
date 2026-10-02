@@ -16,6 +16,8 @@ export const profile = {
 Before the code, eight years as a product manager across enterprise SaaS, payments, and video. I still work like one: architecture doc, then squad alignment, then the endpoint — and the data forensics when something goes wrong. Most useful on systems where correctness and money are the same problem.`,
   email: 'josephthaas@gmail.com',
   github: 'https://github.com/joeyh92989',
+  /** This site's repository: the footer, Projects and /spine link to it. */
+  repo: 'https://github.com/joeyh92989/joey-haas.dev',
   linkedin: 'https://www.linkedin.com/in/haasjoseph/',
   /**
    * Rendered as the About page's Areas of expertise list, in this order.

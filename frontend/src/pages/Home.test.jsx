@@ -21,11 +21,20 @@ afterEach(() => {
 })
 
 describe('Home', () => {
-  it('links to the collection from its own card', () => {
+  it('links to Spine from its own card', () => {
     renderHome()
-    expect(
-      screen.getByRole('link', { name: /What I’m playing/ }),
-    ).toHaveAttribute('href', '/collection')
+    const card = screen.getByRole('link', { name: /^Spine/ })
+    expect(card).toHaveAttribute('href', '/spine')
+    expect(card).toHaveTextContent(
+      'The game tracker I built: what I own, what I’ve finished, what’s next.',
+    )
+  })
+
+  it('names Spine on the work card', () => {
+    renderHome()
+    expect(screen.getByRole('link', { name: /See my work/ })).toHaveTextContent(
+      'Spine, and this very site.',
+    )
   })
 
   it('keeps the About and Projects cards', () => {
