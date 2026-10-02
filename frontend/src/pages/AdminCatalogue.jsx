@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 
 const KIND_ORDER = ['registry', 'store', 'platform', 'resolve']
 
@@ -355,6 +356,7 @@ function Disagreements() {
  * first error rather than hammering IGDB.
  */
 export default function AdminCatalogue() {
+  usePageTitle('Catalogue · Admin')
   const { signedIn = false } = useOutletContext() ?? {}
   const [state, setState] = useState('loading')
   const [status, setStatus] = useState(null)

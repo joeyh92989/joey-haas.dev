@@ -8,6 +8,7 @@ import RecommendationCard, {
 } from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { localToday } from '../lib/statusTransition.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 
 const UNREACHABLE = 'Could not reach the API. Try again shortly.'
 
@@ -147,6 +148,7 @@ function Cards({ rows, busy, onAnswer, level }) {
 }
 
 export default function AdminRadar() {
+  usePageTitle('Radar · Admin')
   const { signedIn = false } = useOutletContext() ?? {}
   const [state, setState] = useState('loading')
   const [radar, setRadar] = useState(null)

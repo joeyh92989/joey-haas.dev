@@ -9,6 +9,7 @@ import {
 } from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const STATUSES = ['backlog', 'active', 'finished', 'abandoned']
@@ -206,6 +207,7 @@ export default function AdminItem() {
   const navigate = useNavigate()
 
   const [item, setItem] = useState(null)
+  usePageTitle(item ? `${item.title} · Admin` : 'Item · Admin')
   const [form, setForm] = useState(null)
   const [state, setState] = useState('loading')
   const [slow, setSlow] = useState(false)

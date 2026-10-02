@@ -71,6 +71,11 @@ const TITLES = [
   ['/admin/collection', 'Collection · Admin'],
   ['/admin/import', 'Import from photos · Admin'],
   ['/admin/play-next', 'Play Next · Admin'],
+  ['/admin/catalogue', 'Catalogue · Admin'],
+  ['/admin/radar', 'Radar · Admin'],
+  ['/admin/discover', 'Discover · Admin'],
+  ['/admin/collection/42', 'Item · Admin'],
+  ['/spine/42', 'Spine · Joey Haas'],
 ]
 
 describe('App page titles', () => {
@@ -93,5 +98,13 @@ describe('App page titles', () => {
     await waitFor(() =>
       expect(document.title).toBe('How Spine works · Joey Haas'),
     )
+  })
+
+  // One row per route in App.jsx (18) minus the two /collection redirects,
+  // which set no title. /blog/:slug's row is the missing-post case; the
+  // published case has its own test above. A new route without a row
+  // fails here.
+  it('covers every titled route', () => {
+    expect(TITLES).toHaveLength(16)
   })
 })
