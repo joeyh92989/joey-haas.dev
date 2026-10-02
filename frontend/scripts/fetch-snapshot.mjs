@@ -2,7 +2,7 @@
  * Writes the public collection's build-time snapshot to public/snapshot/.
  *
  * Runs first in `npm run build`, before `vite build` copies public/ into
- * dist/. The free-tier API sleeps, so /collection would otherwise greet a
+ * dist/. The free-tier API sleeps, so /spine would otherwise greet a
  * first-time visitor with a thirty-second wake-up; with these files it
  * paints at once and refreshes from the API when it wakes.
  *

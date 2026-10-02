@@ -72,6 +72,9 @@ check_equals "GET /nonsense-path (SPA 404)" "$(http_status "$SITE_URL/nonsense-p
 # feed.xml is different: it is a real file in dist/, and Render skips rewrite
 # rules for paths where a resource exists. So its content type distinguishes a
 # genuinely served feed from the SPA fallback, and a 200 alone does not.
+#
+# The same holds for /spine and the client-side /collection redirects: they
+# are verified in the browser after deploy, not here.
 feed_type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$SITE_URL/feed.xml")"
 case "$feed_type" in
   *xml*) report_pass "feed.xml served as XML" "$feed_type" ;;

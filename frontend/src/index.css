@@ -2566,7 +2566,7 @@ footer {
   font-weight: 600;
 }
 
-/* /collection: watched games still to come, after Up next. */
+/* /spine: watched games still to come, after Up next. */
 .on-the-radar {
   margin: 1.5rem 0;
 }
@@ -2576,7 +2576,7 @@ footer {
   margin: 0 0 0.75rem;
 }
 
-/* /collection: the read-only outputs of Play Next and Radar. */
+/* /spine: the read-only outputs of Play Next and Radar. */
 .recent-picks,
 .coming-to-cartridge {
   margin: 1.5rem 0;
