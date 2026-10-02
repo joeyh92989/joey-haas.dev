@@ -9,7 +9,7 @@ import { projects } from '../content/projects.js'
  * A project with `to` lives on this site and is linked with a router Link, so
  * it navigates without a full page load; `url` links away.
  * `strip: 'favourites'` adds the collection's cover strip, read from the build-time
- * snapshot, not the API; `more` is a secondary internal link, set only once its page exists.
+ * snapshot, not the API. `tagline`, `highlights` and `links` render only when set.
  */
 export default function Projects() {
   return (
@@ -27,11 +27,31 @@ export default function Projects() {
                 project.name
               )}
             </h2>
+            {project.tagline && (
+              <p className="project-tagline">{project.tagline}</p>
+            )}
             {project.strip === 'favourites' && <CoverStrip />}
             <p>{project.description}</p>
-            {project.more && (
-              <p className="project-more">
-                <Link to={project.more.to}>{project.more.label} &rarr;</Link>
+            {project.highlights && (
+              <ul className="project-highlights">
+                {project.highlights.map((highlight) => (
+                  <li key={highlight}>{highlight}</li>
+                ))}
+              </ul>
+            )}
+            {project.links && (
+              <p className="project-links">
+                {project.links.map((link) =>
+                  link.to ? (
+                    <Link key={link.label} to={link.to}>
+                      {link.label} &rarr;
+                    </Link>
+                  ) : (
+                    <a key={link.label} href={link.href}>
+                      {link.label} &rarr;
+                    </a>
+                  ),
+                )}
               </p>
             )}
             <ul className="tech-list">

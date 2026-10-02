@@ -20,13 +20,21 @@ vi.mock('../lib/snapshot.js', () => ({
 vi.mock('../content/projects.js', () => ({
   projects: [
     {
-      name: 'Media Collection',
+      name: 'Spine',
+      tagline: 'A tracker for a physical game collection',
       description: 'A tracker.',
+      highlights: ['Photo import.', 'Play Next.'],
+      links: [
+        { to: '/spine', label: 'Open Spine' },
+        {
+          href: 'https://github.com/joeyh92989/joey-haas.dev',
+          label: 'Source',
+        },
+      ],
       tech: ['React'],
-      to: '/collection',
+      to: '/spine',
       url: null,
       strip: 'favourites',
-      more: { to: '/blog/how-the-tracker-works', label: 'How it works' },
     },
     {
       name: 'This Website',
@@ -55,22 +63,37 @@ describe('Projects', () => {
     expect(cards[1].querySelector('.cover-strip')).toBeNull()
   })
 
-  it('renders a more link only where one is set', () => {
-    renderProjects()
-    expect(screen.getByRole('link', { name: /How it works/ })).toHaveAttribute(
+  it('renders a tagline and highlights only where set', () => {
+    const { container } = renderProjects()
+    const cards = container.querySelectorAll('.project-card')
+    expect(cards[0].querySelector('.project-tagline')).toHaveTextContent(
+      'A tracker for a physical game collection',
+    )
+    expect(cards[0].querySelectorAll('.project-highlights li')).toHaveLength(2)
+    expect(cards[1].querySelector('.project-tagline')).toBeNull()
+    expect(cards[1].querySelector('.project-highlights')).toBeNull()
+  })
+
+  it('links in-site with the router and away with an anchor', () => {
+    const { container } = renderProjects()
+    expect(screen.getByRole('link', { name: /Open Spine/ })).toHaveAttribute(
       'href',
-      '/blog/how-the-tracker-works',
+      '/spine',
     )
-    expect(screen.getAllByRole('link', { name: /How it works/ })).toHaveLength(
-      1,
+    expect(screen.getByRole('link', { name: /Source/ })).toHaveAttribute(
+      'href',
+      'https://github.com/joeyh92989/joey-haas.dev',
     )
+    const cards = container.querySelectorAll('.project-card')
+    expect(cards[1].querySelector('.project-links')).toBeNull()
   })
 
   it('still links each title', () => {
     renderProjects()
-    expect(
-      screen.getByRole('link', { name: 'Media Collection' }),
-    ).toHaveAttribute('href', '/collection')
+    expect(screen.getByRole('link', { name: 'Spine' })).toHaveAttribute(
+      'href',
+      '/spine',
+    )
     expect(screen.getByRole('link', { name: 'This Website' })).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989/joey-haas.dev',
