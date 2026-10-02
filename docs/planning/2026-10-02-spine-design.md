@@ -152,10 +152,12 @@ Static, in `frontend/index.html`: `description` (brief's item 13 wording),
 
 The card is `frontend/public/og-card.png`, 1200×630: "Joey Haas", the profile
 tagline and "Spine — a tracker for my physical game collection" on the dark
-`--bg`, in the site's fonts. It is generated once by a scratchpad script using
-`sharp` through `npm --no-save` (this Mac has no ImageMagick or Pillow) and
-committed as a PNG; the script is not committed. This section records how it
-was made so it can be redone.
+`--bg`, in the site's fonts. It was rendered once from a scratchpad HTML file by
+headless Chrome (`--headless=new --window-size=1200,630
+--force-device-scale-factor=1 --screenshot`), loading the `@fontsource` woff2
+files from `node_modules`, and committed as a PNG; the HTML is not committed.
+`sharp` was the plan, but librsvg cannot load woff2, so it would have rendered
+fallback fonts. This section records how it was made so it can be redone.
 
 ### Footer
 
@@ -227,8 +229,8 @@ link to are kept.
    flagged for approval.
 7. **Generate the card, commit only the PNG.** Open Graph lists `og:image` as
    required and LinkedIn treats it as required; previews without it are a
-   gray bubble. A committed generator would be a new tool with a README and a
-   `sharp` dependency for a file that changes once a year.
+   gray bubble. A committed generator would be a new tool with a README
+   for a file that changes once a year.
 8. **The `/spine` header shows only once the shelf has loaded.** Matches how
    the shelf already treats loading and error, and keeps the cold-start
    message the first thing a waiting visitor reads.
