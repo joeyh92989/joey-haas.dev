@@ -92,8 +92,7 @@ async def test_candidates_are_pending_rows_of_both_kinds(sessionmaker_for_test):
     discover = _radar(
         "Pick", kind=RecommendationKind.DISCOVER, source_metadata={"rank": 2}
     )
-    answered = _radar("Gone", status=RecommendationStatus.DISMISSED)
-    await _add(sessionmaker_for_test, _radar("Coming"), discover, answered)
+    await _add(sessionmaker_for_test, _radar("Coming"), discover)
     async with sessionmaker_for_test() as session:
         data = await load_next(session)
     by_title = {c.title: c for c in data.candidates}
@@ -103,24 +102,77 @@ async def test_candidates_are_pending_rows_of_both_kinds(sessionmaker_for_test):
     assert by_title["Coming"].payload.title == "Coming"
 
 
-async def test_taste_holds_public_games_and_private_titles(sessionmaker_for_test):
+@pytest.mark.parametrize(
+    "status",
+    [
+        RecommendationStatus.WANTED,
+        RecommendationStatus.OWNED,
+        RecommendationStatus.DISMISSED,
+        RecommendationStatus.SKIPPED,
+    ],
+)
+async def test_answered_rows_are_not_candidates(sessionmaker_for_test, status):
+    await _add(sessionmaker_for_test, _radar("Coming"), _radar("Gone", status=status))
+    async with sessionmaker_for_test() as session:
+        data = await load_next(session)
+    assert [c.title for c in data.candidates] == ["Coming"]
+
+
+async def test_candidates_run_by_score_then_title(sessionmaker_for_test):
     await _add(
         sessionmaker_for_test,
-        _game("Shown", rating=9),
-        _game("Hidden", is_public=False),
+        _radar("Zeta", score=80),
+        _radar("Beta", score=50),
+        _radar("Alpha", score=50),
+        _radar("Low", score=10),
+    )
+    async with sessionmaker_for_test() as session:
+        data = await load_next(session)
+    assert [c.title for c in data.candidates] == ["Zeta", "Alpha", "Beta", "Low"]
+
+
+async def test_taste_holds_public_games_and_private_titles(sessionmaker_for_test):
+    shown = _game("Shown", rating=9)
+    hidden = _game("Hidden", is_public=False)
+    wanted = _game("Wanted Hidden", is_public=False, owned_format=OwnedFormat.NONE)
+    second = _game("Second Hidden", is_public=False)
+    shown.id, hidden.id, wanted.id, second.id = (uuid.uuid4() for _ in range(4))
+    public_movie = _game("Public Movie", type=ItemType.MOVIE)
+    private_movie = _game("Private Movie", type=ItemType.MOVIE, is_public=False)
+    await _add(
+        sessionmaker_for_test,
+        shown,
+        hidden,
+        wanted,
+        second,
+        public_movie,
+        private_movie,
     )
     async with sessionmaker_for_test() as session:
         data = await load_next(session)
     assert [item.title for item in data.public_games] == ["Shown"]
-    assert data.taste.private_titles == ("Hidden",)
-    assert len(data.taste.public_ids) == 1
+    # Every non-public game, owned or wanted, and nothing that is not a game.
+    assert set(data.taste.private_titles) == {
+        "Hidden",
+        "Wanted Hidden",
+        "Second Hidden",
+    }
+    assert data.taste.public_ids == frozenset({str(shown.id)})
+    assert str(hidden.id) not in data.taste.public_ids
 
 
 async def test_generated_at_is_each_kinds_last_generation(sessionmaker_for_test):
-    await _add(sessionmaker_for_test, _radar("Coming"))
+    earlier = datetime(2026, 9, 1, 6, 0, tzinfo=UTC)
+    later = datetime(2026, 9, 2, 6, 0, tzinfo=UTC)
+    await _add(
+        sessionmaker_for_test,
+        _radar("Coming", generated_at=earlier),
+        # Any status counts: the answered row is the latest generation.
+        _radar("Gone", status=RecommendationStatus.DISMISSED, generated_at=later),
+    )
     async with sessionmaker_for_test() as session:
         data = await load_next(session)
-    assert data.generated_at["radar"] is not None
+    assert data.generated_at["radar"] == later
     assert data.generated_at["discover"] is None
 
 
