@@ -28,7 +28,7 @@ from models import (
     RecommendationStatus,
 )
 from public import create_public_router
-from public_outputs import PublicPickOut, PublicRadarOut
+from public_outputs import PublicNextOut, PublicNextRow, PublicPickOut, PublicRadarOut
 from recommendations_routes import create_recommendations_router
 
 pytestmark = pytest.mark.asyncio
@@ -654,3 +654,174 @@ async def test_radar_never_publishes_a_switch_1_sheet_date(sessionmaker_for_test
         response = await client.get("/api/public/radar")
     assert response.status_code == 200
     assert response.json() == []
+
+
+FORBIDDEN = {
+    "id", "score", "rank", "hypes", "lane", "store_lines", "format_note",
+    "model_note", "ranked_by", "based_on", "based_on_titles", "listing_ids",
+    "preorder_closes_at", "price", "store", "url", "status", "batch_id",
+}  # fmt: skip
+NEXT_ROW_FIELDS = {
+    "title", "platform", "physical_format", "release_date", "release_precision",
+    "cover_url", "igdb_url", "reasons", "top_pick", "new", "item_id",
+}  # fmt: skip
+
+
+def _keys(value):
+    if isinstance(value, dict):
+        for key, inner in value.items():
+            yield key
+            yield from _keys(inner)
+    elif isinstance(value, list):
+        for inner in value:
+            yield from _keys(inner)
+
+
+async def _next(factory) -> dict:
+    async with client_for(factory) as client:
+        response = await client.get("/api/public/next")
+    assert response.status_code == 200
+    return response.json()
+
+
+async def test_the_next_row_model_publishes_exactly_these_fields():
+    assert set(PublicNextRow.model_fields) == NEXT_ROW_FIELDS
+    assert set(PublicNextOut.model_fields) == {
+        "generated_at",
+        "tonight",
+        "wanted",
+        "buy_now",
+        "preorders",
+        "later",
+        "not_on_cartridge",
+    }
+
+
+async def test_no_private_key_appears_anywhere(sessionmaker_for_test):
+    pinned = _game("Pinned", pinned_at=datetime.now(UTC))
+    picked = _game("Picked")
+    wanted = _game(
+        "Wanted", owned_format=OwnedFormat.NONE, release_date=TODAY + timedelta(days=40)
+    )
+    _with_ids(pinned, picked, wanted)
+    await _add(
+        sessionmaker_for_test,
+        pinned,
+        picked,
+        wanted,
+        _shown(picked, SHOWN_DAY),
+        _radar("Soon"),
+        _radar("Out", release_date=TODAY - timedelta(days=3)),
+        _radar("Digital", physical_format=None, source_metadata={"lane": "digital"}),
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert FORBIDDEN.isdisjoint(set(_keys(body)))
+    assert body["tonight"]["up_next"]["title"] == "Pinned"
+    assert [p["title"] for p in body["tonight"]["picks"]] == ["Picked"]
+    assert [w["title"] for w in body["wanted"]] == ["Wanted"]
+    assert body["wanted"][0]["item_id"] == str(wanted.id)
+    assert {r["title"] for r in body["buy_now"]} == {"Out", "Pick"}
+    assert [r["title"] for r in body["preorders"]] == ["Soon"]
+    assert [r["title"] for r in body["not_on_cartridge"]] == ["Digital"]
+
+
+async def test_answered_rows_are_never_published(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        *[
+            _radar(f"Gone {s.value}", status=s)
+            for s in RecommendationStatus
+            if s != RecommendationStatus.PENDING
+        ],
+    )
+    body = await _next(sessionmaker_for_test)
+    for section in ("buy_now", "preorders", "later", "not_on_cartridge"):
+        assert body[section] == []
+
+
+async def test_stored_radar_reasons_never_reach_the_public(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _game("Liked", rating=9),
+        _radar(
+            "Soon",
+            reason="Pre-orders close Nov 8 at Limited Run Games · $59.99"
+            "\nwhich you rated 10",
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    text = " ".join(r for row in body["preorders"] for r in row["reasons"])
+    assert "Pre-orders" not in text and "$" not in text and " you " not in f" {text} "
+
+
+async def test_a_blank_first_line_never_promotes_a_store_line(sessionmaker_for_test):
+    """Only the first stored line is ever the model's sentence; the lines
+    after it are the store window, price and format (discover._extras). A
+    blank first line means no sentence, never that the store line is one."""
+    liked = _game("Liked", rating=9)
+    _with_ids(liked)
+    await _add(
+        sessionmaker_for_test,
+        liked,
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="\nPre-orders close Nov 8 at Limited Run Games · $59.99"
+            "\nFull game on cartridge",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert [row["title"] for row in body["buy_now"]] == ["Pick"]
+    text = " ".join(r for row in body["buy_now"] for r in row["reasons"])
+    assert "Pre-orders" not in text and "$" not in text
+
+
+async def test_a_discover_reason_citing_a_private_game_is_replaced(
+    sessionmaker_for_test,
+):
+    hidden = _game("Hidden Gem", is_public=False, rating=10)
+    _with_ids(hidden)
+    await _add(
+        sessionmaker_for_test,
+        hidden,
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="Because I loved Hidden Gem",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(hidden.id)],
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert [row["title"] for row in body["buy_now"]] == ["Pick"]
+    assert all("Hidden Gem" not in r for row in body["buy_now"] for r in row["reasons"])
+
+
+async def test_store_dated_rows_are_undated_and_later(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _radar("Store", source_metadata={"release_source": "store"}),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert body["preorders"] == []
+    assert body["later"][0]["title"] == "Store"
+    assert body["later"][0]["release_date"] is None
+    assert body["later"][0]["release_precision"] is None
+
+
+async def test_generated_at_names_the_pick_day(sessionmaker_for_test):
+    picked = _game("Picked")
+    _with_ids(picked)
+    await _add(sessionmaker_for_test, picked, _shown(picked, SHOWN_DAY))
+    body = await _next(sessionmaker_for_test)
+    assert body["generated_at"]["picks"] == SHOWN_DAY.date().isoformat()
+    assert body["tonight"]["up_next"] is None
