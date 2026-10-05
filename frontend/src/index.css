@@ -2890,49 +2890,37 @@ footer {
   margin-top: 1.5rem;
 }
 
-.store-list-rows {
-  display: grid;
-  gap: 0.5rem;
-  list-style: none;
-  margin: 0.5rem 0 0;
-  padding: 0;
-}
-
-.store-list-row {
-  align-items: center;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  display: flex;
-  gap: 0.75rem;
-  justify-content: space-between;
-  padding: 0.75rem;
-}
-
-.store-list-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.store-list-row button {
+/* The store list's rows are What's next's shared row (.next-row), with the
+   answers as large buttons and the store lines under the reasons. */
+.store-list .next-row-actions button {
   background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
   cursor: pointer;
-  flex: none;
   font: inherit;
+  font-size: 0.9375rem;
   min-height: 44px;
   min-width: 44px;
   padding: 0.5rem 1rem;
 }
 
-.store-list-row button:focus-visible {
+.store-list .next-row-actions button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.store-lines {
+  display: grid;
+  gap: 0.15rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.store-lines a {
+  display: inline-block;
+  padding: 0.3rem 0;
 }
 
 /* What's next (/spine/next) and its shared row. One readable column at every

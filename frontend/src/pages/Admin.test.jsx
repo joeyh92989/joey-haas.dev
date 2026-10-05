@@ -125,7 +125,7 @@ describe('Admin last nightly line', () => {
       return {
         ok: true,
         status: 200,
-        json: async () => ({ generated_at: null }),
+        json: async () => ({ generated_at: { radar: null, discover: null } }),
       }
     })
     vi.stubGlobal('fetch', fetch)

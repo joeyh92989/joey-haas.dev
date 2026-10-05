@@ -3,208 +3,55 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import AdminStoreList, {
-  addDays,
-  buildList,
-  isoDay,
-  periodEnd,
-  radarSection,
-} from './AdminStoreList.jsx'
-import { releaseWords } from './AdminRadar.jsx'
-
-const TODAY = new Date(2026, 9, 4) // 4 October 2026, local time
+import AdminStoreList from './AdminStoreList.jsx'
 
 function row(id, fields = {}) {
   return {
     id,
     title: `Game ${id}`,
+    cover_url: null,
+    release_date: '2026-09-01',
+    release_precision: 'day',
     platform: 'Nintendo Switch 2',
     physical_format: 'game_card',
-    release_date: '2026-09-01',
+    format_note: null,
     reasons: [`Reason ${id}`],
     score: 50,
-    format_note: null,
+    status: 'pending',
+    store_lines: [],
+    hypes: null,
     lane: 'dated',
+    top_pick: false,
+    new: false,
+    kind: 'radar',
     ...fields,
   }
 }
 
-describe('radarSection', () => {
-  it('puts a released cartridge under its console', () => {
-    expect(radarSection(row('a'), TODAY)).toBe('switch2')
-    expect(radarSection(row('b', { platform: 'Nintendo Switch' }), TODAY)).toBe(
-      'switch',
-    )
-    expect(radarSection(row('c', { release_date: '2026-10-04' }), TODAY)).toBe(
-      'switch2',
-    )
-  })
-
-  it('asks about cartridges due within 90 days and leaves later ones off', () => {
-    expect(radarSection(row('a', { release_date: '2026-10-05' }), TODAY)).toBe(
-      'preorder',
-    )
-    expect(radarSection(row('b', { release_date: '2027-01-02' }), TODAY)).toBe(
-      'preorder',
-    )
-    expect(
-      radarSection(row('c', { release_date: '2027-01-03' }), TODAY),
-    ).toBeNull()
-    expect(radarSection(row('d', { release_date: null }), TODAY)).toBeNull()
-  })
-
-  it('sends key cards, codes in a box and digital-only games to Skip', () => {
-    expect(
-      radarSection(row('a', { physical_format: 'game_key_card' }), TODAY),
-    ).toBe('skip')
-    expect(
-      radarSection(row('b', { physical_format: 'code_in_box' }), TODAY),
-    ).toBe('skip')
-    expect(
-      radarSection(row('c', { physical_format: null, lane: 'digital' }), TODAY),
-    ).toBe('skip')
-  })
-
-  it('leaves off a physical game whose format is unknown', () => {
-    expect(radarSection(row('a', { physical_format: null }), TODAY)).toBeNull()
-  })
-})
-
-describe('periodEnd', () => {
-  it('ends a day, a month, a quarter and a year on their last day', () => {
-    expect(periodEnd('2026-10-04', 'day')).toBe('2026-10-04')
-    expect(periodEnd('2026-10-04', null)).toBe('2026-10-04')
-    expect(periodEnd('2026-02-01', 'month')).toBe('2026-02-28')
-    expect(periodEnd('2028-02-01', 'month')).toBe('2028-02-29')
-    expect(periodEnd('2026-10-01', 'month')).toBe('2026-10-31')
-    expect(periodEnd('2026-04-01', 'quarter')).toBe('2026-06-30')
-    expect(periodEnd('2026-10-01', 'quarter')).toBe('2026-12-31')
-    expect(periodEnd('2026-01-01', 'year')).toBe('2026-12-31')
-  })
-})
-
-describe('radarSection by precision', () => {
-  it('is out only once the whole period has ended', () => {
-    const month = (release_date) =>
-      row('m', { release_date, release_precision: 'month' })
-    expect(radarSection(month('2026-10-01'), TODAY)).toBe('preorder')
-    expect(radarSection(month('2026-09-01'), TODAY)).toBe('switch2')
-    const quarter = row('q', {
-      release_date: '2026-07-01',
-      release_precision: 'quarter',
-    })
-    expect(radarSection(quarter, TODAY)).toBe('switch2')
-    const openQuarter = { ...quarter, release_date: '2026-10-01' }
-    expect(radarSection(openQuarter, TODAY)).toBe('preorder')
-    const year = row('y', {
-      release_date: '2026-01-01',
-      release_precision: 'year',
-    })
-    expect(radarSection(year, TODAY)).toBe('preorder')
-    expect(radarSection({ ...year, release_date: '2025-01-01' }, TODAY)).toBe(
-      'switch2',
-    )
-  })
-
-  it('leaves off a period that starts beyond the pre-order window', () => {
-    const later = row('l', {
-      release_date: '2027-04-01',
-      release_precision: 'quarter',
-    })
-    expect(radarSection(later, TODAY)).toBeNull()
-  })
-})
-
-describe('buildList', () => {
-  it('orders Top picks by score and shows each game once', () => {
-    const discover = {
-      picks: [row('d1', { score: 40 }), row('d2', { score: 90 })],
-    }
-    const radar = {
-      sections: {
-        suggested: [row('r1', { title: 'Game d1' })],
-        dated_later: [],
-        digital: [],
-      },
-    }
-    const list = buildList(discover, radar, TODAY)
-    expect(list.top.map((entry) => entry.id)).toEqual(['d2', 'd1'])
-    expect(list.switch2).toEqual([])
-  })
-
-  it('orders pre-orders soonest first', () => {
-    const radar = {
-      sections: {
-        suggested: [
-          row('late', { release_date: '2026-12-01', score: 90 }),
-          row('soon', { release_date: '2026-10-10', score: 10 }),
-        ],
-        dated_later: [],
-        digital: [],
-      },
-    }
-    expect(
-      buildList({ picks: [] }, radar, TODAY).preorder.map((entry) => entry.id),
-    ).toEqual(['soon', 'late'])
-  })
-})
-
-const PAST = isoDay(addDays(new Date(), -30))
-const SOON = isoDay(addDays(new Date(), 10))
-
-const DISCOVER = {
-  picks: [
-    row('d1', {
-      title: 'Omori',
-      platform: 'Nintendo Switch',
-      reasons: ['Because you rated Hades 10'],
-      score: 80,
-      lane: null,
-    }),
-  ],
+const LIST = {
+  generated_at: { radar: '2026-10-04T00:44:00Z', discover: null },
+  catalogue: { stores_at: null, registry_at: null },
+  sections: {
+    buy_now: [
+      row('a', { top_pick: true, kind: 'discover' }),
+      row('b', { platform: 'Nintendo Switch' }),
+    ],
+    preorders: [row('c', { release_date: '2026-10-15' })],
+    later: [],
+    not_on_cartridge: [row('d', { physical_format: 'game_key_card' })],
+  },
 }
 
-const RADAR = {
-  sections: {
-    suggested: [
-      row('r1', { title: 'Out Now Two', release_date: PAST, score: 70 }),
-      row('r2', {
-        title: 'Soon Cart',
-        release_date: SOON,
-        lane: 'preorder',
-        reasons: ['Pre-order closes soon'],
-      }),
-    ],
-    dated_later: [
-      row('r3', {
-        title: 'Old Cart',
-        platform: 'Nintendo Switch',
-        release_date: PAST,
-      }),
-      row('r4', {
-        title: 'Key Card Game',
-        physical_format: 'game_key_card',
-        release_date: PAST,
-        reasons: [],
-        format_note: 'Full game on cartridge in EUR — Super Rare',
-      }),
-    ],
-    digital: [
-      row('r5', {
-        title: 'Digital Only',
-        physical_format: null,
-        lane: 'digital',
-        release_date: SOON,
-      }),
-    ],
-  },
+const EMPTY = {
+  ...LIST,
+  sections: { buy_now: [], preorders: [], later: [], not_on_cartridge: [] },
 }
 
 function json(body, status = 200) {
   return { ok: status < 300, status, json: async () => body }
 }
 
-/** Answers by method and path (query included); `handlers` override. */
+/** Answers by method and path; `handlers` override. */
 function stubApi(handlers = {}) {
   const calls = []
   vi.stubGlobal(
@@ -215,8 +62,7 @@ function stubApi(handlers = {}) {
       calls.push({ method, path })
       const handler = handlers[`${method} ${path}`]
       if (handler) return handler(options)
-      if (path === '/api/recommendations?kind=discover') return json(DISCOVER)
-      if (path === '/api/recommendations?kind=radar') return json(RADAR)
+      if (path === '/api/recommendations/store-list') return json(LIST)
       return json({}, 404)
     }),
   )
@@ -242,14 +88,13 @@ function renderPage() {
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  vi.useRealTimers()
 })
 
 describe('AdminStoreList', () => {
-  it('shows the five sections in order under the Game-Key Card note', async () => {
-    stubApi()
+  it('shows the non-empty server sections in order, Buy now by console', async () => {
+    const calls = stubApi()
     renderPage()
-    const top = await screen.findByRole('region', { name: 'Top picks' })
+    const buyNow = await screen.findByRole('region', { name: 'Buy now' })
     expect(
       screen.getByText('On Switch 2 boxes, put back Game-Key Cards.'),
     ).toBeInTheDocument()
@@ -257,154 +102,199 @@ describe('AdminStoreList', () => {
       screen
         .getAllByRole('heading', { level: 2 })
         .map((heading) => heading.textContent),
-    ).toEqual([
-      'Top picks',
-      'Out now on Switch 2',
-      'Out now on Switch',
-      'Ask about pre-orders',
-      'Skip in store',
+    ).toEqual(['Buy now', 'Pre-orders', 'Not on cartridge'])
+    expect(
+      within(buyNow)
+        .getAllByRole('heading', { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual(['Nintendo Switch 2', 'Nintendo Switch'])
+    expect(within(buyNow).getByText('Game a')).toBeInTheDocument()
+    expect(within(buyNow).getByText('Top pick')).toBeInTheDocument()
+    expect(within(buyNow).getByText('Reason a')).toBeInTheDocument()
+    const preorders = screen.getByRole('region', { name: 'Pre-orders' })
+    expect(
+      within(preorders).getByText(
+        /^Nintendo Switch 2 · Full game on cartridge · Out /,
+      ),
+    ).toBeInTheDocument()
+    const skip = screen.getByRole('region', { name: 'Not on cartridge' })
+    expect(within(skip).getByText('Game d')).toBeInTheDocument()
+    expect(
+      within(skip)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Not interested'])
+    expect(
+      within(buyNow)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label'))
+        .slice(0, 3),
+    ).toEqual(['Got it: Game a', 'Want: Game a', 'Not interested: Game a'])
+    expect(calls).toEqual([
+      { method: 'GET', path: '/api/recommendations/store-list' },
     ])
-    expect(within(top).getByText('Omori')).toBeInTheDocument()
-    expect(
-      within(top).getByText(
-        `Nintendo Switch · Full game on cartridge · ${releaseWords({ release_date: '2026-09-01' })}`,
-      ),
-    ).toBeInTheDocument()
-    expect(
-      within(top).getByText('Because you rated Hades 10'),
-    ).toBeInTheDocument()
-    const region = (name) => screen.getByRole('region', { name })
-    expect(
-      within(region('Out now on Switch 2')).getByText('Out Now Two'),
-    ).toBeInTheDocument()
-    expect(
-      within(region('Out now on Switch')).getByText('Old Cart'),
-    ).toBeInTheDocument()
-    expect(
-      within(region('Ask about pre-orders')).getByText(
-        `Nintendo Switch 2 · Full game on cartridge · Out ${releaseWords({ release_date: SOON })}`,
-      ),
-    ).toBeInTheDocument()
-    const skip = region('Skip in store')
-    expect(within(skip).getByText('Key Card Game')).toBeInTheDocument()
-    expect(
-      within(skip).getByText('Full game on cartridge in EUR — Super Rare'),
-    ).toBeInTheDocument()
-    expect(
-      within(skip).getByText(
-        `Nintendo Switch 2 · Digital only · ${releaseWords({ release_date: SOON })}`,
-      ),
-    ).toBeInTheDocument()
-    expect(within(skip).queryByRole('button')).toBeNull()
-    expect(
-      screen.getByRole('button', { name: 'Got it: Soon Cart' }),
-    ).toBeInTheDocument()
     expect(document.title).toBe('Store list · Admin')
   })
 
   it('drops a row as soon as Got it is pressed and marks the game owned', async () => {
     let answer
     const calls = stubApi({
-      'POST /api/recommendations/d1/own': () =>
+      'POST /api/recommendations/a/own': () =>
         new Promise((resolve) => {
           answer = resolve
         }),
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Got it: Omori' }),
+      await screen.findByRole('button', { name: 'Got it: Game a' }),
     )
-    expect(screen.queryByText('Omori')).toBeNull()
+    expect(screen.queryByText('Game a')).toBeNull()
     answer(json({ item_id: 'x' }, 201))
     expect(
-      await screen.findByText('Added Omori to the collection'),
+      await screen.findByText('Added Game a to the collection'),
     ).toBeInTheDocument()
     expect(calls).toContainEqual({
       method: 'POST',
-      path: '/api/recommendations/d1/own',
+      path: '/api/recommendations/a/own',
     })
   })
 
   it('brings the row back and says why when Got it fails', async () => {
     stubApi({
-      'POST /api/recommendations/d1/own': () =>
+      'POST /api/recommendations/a/own': () =>
         json({ detail: 'Database unavailable' }, 500),
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Got it: Omori' }),
+      await screen.findByRole('button', { name: 'Got it: Game a' }),
     )
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Database unavailable',
     )
-    expect(screen.getByText('Omori')).toBeInTheDocument()
+    expect(screen.getByText('Game a')).toBeInTheDocument()
   })
 
   it('keeps an already-answered game off the list and names it', async () => {
     stubApi({
-      'POST /api/recommendations/d1/own': () =>
+      'POST /api/recommendations/a/own': () =>
         json({ detail: 'Already on your shelf' }, 409),
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Got it: Omori' }),
+      await screen.findByRole('button', { name: 'Got it: Game a' }),
     )
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Omori: Already on your shelf',
+      'Game a: Already on your shelf',
     )
-    expect(screen.queryByText('Omori')).toBeNull()
+    expect(screen.queryByText('Game a')).toBeNull()
   })
 
-  it('asks about a month-precision cartridge dated the 1st of this month', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 9, 4))
+  it('adds a game to the want list with Want', async () => {
+    const calls = stubApi({
+      'POST /api/recommendations/c/want': () => json({ item_id: 'x' }, 201),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Want: Game c' }),
+    )
+    expect(screen.queryByText('Game c')).toBeNull()
+    expect(
+      await screen.findByText('Added Game c to the want list'),
+    ).toBeInTheDocument()
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/api/recommendations/c/want',
+    })
+    // The section had one row, so it goes with it.
+    expect(screen.queryByRole('region', { name: 'Pre-orders' })).toBeNull()
+  })
+
+  it('drops a game with Not interested', async () => {
+    const calls = stubApi({
+      'POST /api/recommendations/d/dismiss': () => json({}, 200),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Not interested: Game d' }),
+    )
+    expect(screen.queryByText('Game d')).toBeNull()
+    expect(await screen.findByText('Dropped Game d')).toBeInTheDocument()
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/api/recommendations/d/dismiss',
+    })
+  })
+
+  it('keeps every button outside its row link', async () => {
+    stubApi()
+    const { container } = renderPage()
+    await screen.findByRole('region', { name: 'Buy now' })
+    const rows = container.querySelectorAll('.next-row')
+    expect(rows).toHaveLength(4)
+    for (const item of rows) {
+      const link = item.querySelector('.next-row-link')
+      expect(link).not.toBeNull()
+      expect(within(link).queryByRole('button')).toBeNull()
+      expect(within(item).getAllByRole('button').length).toBeGreaterThan(0)
+    }
+  })
+
+  it('lists where to buy, with the price and any pre-order', async () => {
     stubApi({
-      'GET /api/recommendations?kind=discover': () => json({ picks: [] }),
-      'GET /api/recommendations?kind=radar': () =>
+      'GET /api/recommendations/store-list': () =>
         json({
+          ...LIST,
           sections: {
-            suggested: [
-              row('m1', {
-                title: 'October Cart',
-                release_date: '2026-10-01',
-                release_precision: 'month',
+            ...LIST.sections,
+            buy_now: [
+              row('a', {
+                store_lines: [
+                  {
+                    store: 'Limited Run',
+                    price: 59.99,
+                    currency: 'USD',
+                    availability: 'in_stock',
+                    preorder_closes_at: null,
+                    url: 'https://limitedrungames.com/a',
+                  },
+                  {
+                    store: 'Play-Asia',
+                    price: 79.5,
+                    currency: 'CAD',
+                    availability: 'preorder',
+                    preorder_closes_at: null,
+                    url: null,
+                  },
+                  {
+                    store: 'Super Rare',
+                    price: null,
+                    currency: null,
+                    availability: 'in_stock',
+                    preorder_closes_at: null,
+                    url: null,
+                  },
+                ],
               }),
             ],
-            dated_later: [],
-            digital: [],
           },
         }),
     })
     renderPage()
-    const ask = await screen.findByRole('region', {
-      name: 'Ask about pre-orders',
+    const buyNow = await screen.findByRole('region', { name: 'Buy now' })
+    const link = within(buyNow).getByRole('link', {
+      name: 'Limited Run · $59.99',
     })
-    expect(within(ask).getByText('October Cart')).toBeInTheDocument()
-    expect(within(ask).getByText(/Out October 2026/)).toBeInTheDocument()
+    expect(link).toHaveAttribute('href', 'https://limitedrungames.com/a')
+    expect(link).toHaveAttribute('rel', 'noreferrer noopener')
     expect(
-      screen.queryByRole('region', { name: 'Out now on Switch 2' }),
-    ).toBeNull()
-  })
-
-  it('hides sections with no rows', async () => {
-    stubApi({
-      'GET /api/recommendations?kind=radar': () =>
-        json({ sections: { suggested: [], dated_later: [], digital: [] } }),
-    })
-    renderPage()
-    await screen.findByRole('region', { name: 'Top picks' })
-    expect(
-      screen
-        .getAllByRole('heading', { level: 2 })
-        .map((heading) => heading.textContent),
-    ).toEqual(['Top picks'])
+      within(buyNow).getByText('Play-Asia · 79.50 CAD · pre-order'),
+    ).toBeInTheDocument()
+    expect(within(buyNow).getByText('Super Rare')).toBeInTheDocument()
   })
 
   it('points at Discover and Radar when there is nothing to show', async () => {
     stubApi({
-      'GET /api/recommendations?kind=discover': () => json({ picks: [] }),
-      'GET /api/recommendations?kind=radar': () =>
-        json({ sections: { suggested: [], dated_later: [], digital: [] } }),
+      'GET /api/recommendations/store-list': () => json(EMPTY),
     })
     renderPage()
     expect(
@@ -418,9 +308,20 @@ describe('AdminStoreList', () => {
     expect(screen.queryByText(/Game-Key Cards/)).toBeNull()
   })
 
+  it('says why when the list cannot be read', async () => {
+    stubApi({
+      'GET /api/recommendations/store-list': () =>
+        json({ detail: 'Database unavailable' }, 500),
+    })
+    renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Database unavailable',
+    )
+  })
+
   it('asks for a sign-in when the API says 401', async () => {
     stubApi({
-      'GET /api/recommendations?kind=discover': () => json({}, 401),
+      'GET /api/recommendations/store-list': () => json({}, 401),
     })
     renderPage()
     expect(
@@ -430,7 +331,7 @@ describe('AdminStoreList', () => {
 
   it('drops a stale sign-in prompt while a new session refetches', async () => {
     stubApi({
-      'GET /api/recommendations?kind=discover': () => json({}, 401),
+      'GET /api/recommendations/store-list': () => json({}, 401),
     })
     const view = render(page(false))
     await screen.findByRole('link', { name: 'Sign in' })
@@ -439,14 +340,14 @@ describe('AdminStoreList', () => {
       answer = resolve
     })
     stubApi({
-      'GET /api/recommendations?kind=discover': () => waiting,
+      'GET /api/recommendations/store-list': () => waiting,
     })
     view.rerender(page(true))
     expect(screen.getByText('Loading the list…')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull()
-    answer(json(DISCOVER))
+    answer(json(LIST))
     expect(
-      await screen.findByRole('heading', { name: 'Top picks' }),
+      await screen.findByRole('heading', { name: 'Buy now' }),
     ).toBeInTheDocument()
   })
 })

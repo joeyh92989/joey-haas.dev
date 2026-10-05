@@ -5,13 +5,18 @@ import { lastNightly, nightlyWords } from '../lib/nightly.js'
 /** The README section that says how to switch the schedule back on. */
 const REENABLE_URL = 'https://github.com/joeyh92989/joey-haas.dev#nightly-job'
 
-/** A generate time from a recommendations response, or null if unreadable. */
+/** Radar's and Discover's generate times from the store list, or nulls. */
 async function generatedAt(response) {
-  if (!response?.ok) return null
+  const none = { radar: null, discover: null }
+  if (!response?.ok) return none
   try {
-    return (await response.json()).generated_at ?? null
+    const body = await response.json()
+    return {
+      radar: body?.generated_at?.radar ?? null,
+      discover: body?.generated_at?.discover ?? null,
+    }
   } catch {
-    return null
+    return none
   }
 }
 
@@ -33,14 +38,9 @@ export default function LastNightly() {
         const body = await status.json()
         // Not a status document: say nothing rather than "may have stopped".
         if (!Array.isArray(body?.sources)) return
-        const [radar, discover] = await Promise.all([
-          apiFetch('/api/recommendations?kind=radar'),
-          apiFetch('/api/recommendations?kind=discover'),
-        ])
-        const generated = {
-          radar: await generatedAt(radar),
-          discover: await generatedAt(discover),
-        }
+        const generated = await generatedAt(
+          await apiFetch('/api/recommendations/store-list'),
+        )
         if (live) setSummary(lastNightly(body, generated))
       } catch {
         // Unreachable API: the landing's other links still work.
