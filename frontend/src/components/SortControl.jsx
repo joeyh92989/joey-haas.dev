@@ -28,6 +28,10 @@ const NARROW = '(max-width: 34rem)'
  *   `data-seed` so the page's state can be inspected.
  * @param {(next: {value: string, direction: 'asc'|'desc'}) => void} props.onChange
  * @param {() => void} props.onShuffle - Requests a new seed.
+ * @param {Array<{value: string, label: string, direction: 'asc'|'desc'}>} [props.sorts]
+ *   The sorts on offer; the shelf's own by default.
+ * @param {boolean} [props.directional] - Whether to show the direction
+ *   button; false for a page whose sorts have one fixed order.
  */
 export default function SortControl({
   value,
@@ -35,13 +39,15 @@ export default function SortControl({
   seed,
   onChange,
   onShuffle,
+  sorts = SORTS,
+  directional = true,
 }) {
   const narrow = useMediaQuery(NARROW)
   const isRandom = value === 'random'
 
   function choose(next) {
     if (next === value) return
-    const sort = SORTS.find((option) => option.value === next)
+    const sort = sorts.find((option) => option.value === next)
     onChange({ value: next, direction: sort?.direction ?? 'desc' })
   }
 
@@ -54,7 +60,7 @@ export default function SortControl({
             value={value}
             onChange={(event) => choose(event.target.value)}
           >
-            {SORTS.map((option) => (
+            {sorts.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -63,7 +69,7 @@ export default function SortControl({
         </label>
       ) : (
         <div className="sort-options" role="group" aria-label="Sort">
-          {SORTS.map((option) => (
+          {sorts.map((option) => (
             <button
               key={option.value}
               type="button"
@@ -81,16 +87,21 @@ export default function SortControl({
           Shuffle
         </button>
       ) : (
-        <button
-          type="button"
-          className="chip sort-direction"
-          aria-label={`Direction: ${direction === 'asc' ? 'ascending' : 'descending'}`}
-          onClick={() =>
-            onChange({ value, direction: direction === 'asc' ? 'desc' : 'asc' })
-          }
-        >
-          <span aria-hidden="true">{direction === 'asc' ? '↑' : '↓'}</span>
-        </button>
+        directional && (
+          <button
+            type="button"
+            className="chip sort-direction"
+            aria-label={`Direction: ${direction === 'asc' ? 'ascending' : 'descending'}`}
+            onClick={() =>
+              onChange({
+                value,
+                direction: direction === 'asc' ? 'desc' : 'asc',
+              })
+            }
+          >
+            <span aria-hidden="true">{direction === 'asc' ? '↑' : '↓'}</span>
+          </button>
+        )
       )}
     </div>
   )
