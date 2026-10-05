@@ -114,3 +114,107 @@ def test_a_malformed_first_page_is_a_failure_not_a_crash(tmp_path, monkeypatch):
     failures = asyncio.run(run())
     assert "not an object" in failures[0]
     assert not (tmp_path / "shopify" / "a" / "x.p1.json").exists()
+
+
+def test_the_switch_1_sheet_needs_no_robots_txt():
+    assert recorder._hosts(["registry_switch1"]) == []
+
+
+def test_the_plan_lists_both_switch_1_tabs_and_the_igdb_files():
+    lines = recorder.describe_dynamic(["registry_switch1"], False, igdb_switch=True)
+    assert any(
+        "gid 2004832329" in line and "registry_switch1/master.json" in line
+        for line in lines
+    )
+    assert any(
+        "gid 1406641930" in line and "registry_switch1/ciab.json" in line
+        for line in lines
+    )
+    assert any("igdb/switch_titles_p1.json" in line for line in lines)
+    assert any("igdb/switch_titles_deaths_door.json" in line for line in lines)
+
+
+def test_the_igdb_switch_query_pages_by_name_only():
+    assert recorder.IGDB_SWITCH_QUERY == (
+        "where platforms = (130); "
+        "fields id,name,first_release_date,alternative_names.name; "
+        "sort id asc; limit 500; offset 0;"
+    )
+
+
+def _record_switch_1(tmp_path, monkeypatch, properties, values):
+    monkeypatch.setattr(recorder, "FIXTURES", tmp_path)
+    monkeypatch.setattr(recorder, "REQUEST_INTERVAL", 0)
+    paths = []
+
+    def handler(request):
+        paths.append(request.url.path)
+        assert request.url.params["key"] == "sheet-key"
+        if request.url.params.get("fields") == "sheets.properties":
+            return httpx2.Response(200, json=properties)
+        return httpx2.Response(200, json=values)
+
+    async def run():
+        async with httpx2.AsyncClient(
+            transport=httpx2.MockTransport(handler)
+        ) as client:
+            rec = recorder.Recorder(client, ["sheet-key"])
+            await recorder.record_registry_switch1(rec, "sheet-key")
+            return rec.failures
+
+    failures = asyncio.run(run())
+    files = sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("*.json"))
+    return files, failures, paths
+
+
+SWITCH_1_PROPERTIES = {
+    "sheets": [
+        {"properties": {"sheetId": 2004832329, "title": "Physical Release Master"}},
+        {"properties": {"sheetId": 1406641930, "title": "CIAB"}},
+    ]
+}
+
+
+def test_the_switch_1_sheet_records_its_tab_list_and_both_tabs(tmp_path, monkeypatch):
+    values = {
+        "values": [
+            ["Switch Physical Releases"],
+            [],
+            [],
+            ["Master TItle", "Game Title", "Region", "Cart ID"],
+            ["Death's Door", "Death's Door", "USA", "LA-H-AAAAA-USA"],
+        ]
+    }
+    files, failures, paths = _record_switch_1(
+        tmp_path, monkeypatch, SWITCH_1_PROPERTIES, values
+    )
+    assert failures == []
+    assert files == [
+        "registry_switch1/ciab.json",
+        "registry_switch1/master.json",
+        "registry_switch1/properties.json",
+    ]
+    assert all(recorder.SWITCH1_SHEET_ID in path for path in paths)
+
+
+def test_a_missing_switch_1_tab_is_a_failure(tmp_path, monkeypatch):
+    properties = {"sheets": SWITCH_1_PROPERTIES["sheets"][:1]}
+    files, failures, _ = _record_switch_1(
+        tmp_path, monkeypatch, properties, {"values": []}
+    )
+    assert "registry_switch1/ciab.json" not in files
+    assert any("no tab with gid 1406641930" in failure for failure in failures)
+
+
+def test_without_a_key_the_switch_1_sheet_is_skipped(tmp_path, monkeypatch):
+    monkeypatch.setattr(recorder, "FIXTURES", tmp_path)
+
+    async def run():
+        async with httpx2.AsyncClient(
+            transport=httpx2.MockTransport(lambda request: httpx2.Response(500))
+        ) as client:
+            rec = recorder.Recorder(client, [])
+            await recorder.record_registry_switch1(rec, None)
+            return rec.failures
+
+    assert "GOOGLE_SHEETS_API_KEY is not set" in asyncio.run(run())[0]

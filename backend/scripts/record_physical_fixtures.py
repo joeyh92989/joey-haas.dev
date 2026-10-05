@@ -5,11 +5,13 @@ Run once, from backend/, by the owner:
     ./.venv/bin/python scripts/record_physical_fixtures.py
 
 It records page 1 of every store handle in the E7c spec's STORES table, the
-NSCollectors registry through the Google Sheets API, an excerpt of
-switch2-tracker, one Limited Run product page and every host's robots.txt
-into tests/fixtures/physical/. With --igdb it also records one page of IGDB's
-N64 catalogue. Source names may be given to record only those; --list prints
-the plan without fetching.
+NSCollectors Switch 2 registry and the Switch 1 "Switch Physical Releases"
+sheet through the Google Sheets API, an excerpt of switch2-tracker, one
+Limited Run product page and every host's robots.txt into
+tests/fixtures/physical/. With --igdb it also records one page of IGDB's N64
+catalogue; with --igdb-switch, one page of IGDB's Switch titles and the
+"Death's Door" search the Switch 1 matcher is tested on. Source names may be
+given to record only those; --list prints the plan without fetching.
 
 Why this exists: every physical_sources parser is written against real bytes,
 never against a shape remembered from the research. A handle that has gone,
@@ -17,10 +19,11 @@ a sheet column that moved or a tag that changed shows up here, loudly, before
 any parser is written against the old shape.
 
 The stores, the tracker and robots.txt are keyless. The registry needs
-GOOGLE_SHEETS_API_KEY and --igdb needs IGDB_CLIENT_ID and IGDB_CLIENT_SECRET,
-all read from backend/.env the way the API reads them. Credentials never
-leave this process: the Sheets key travels as a query parameter, so only
-response bodies are written and no request URL carrying it is ever printed.
+GOOGLE_SHEETS_API_KEY, and --igdb and --igdb-switch need IGDB_CLIENT_ID and
+IGDB_CLIENT_SECRET, all read from backend/.env the way the API reads them.
+Credentials never leave this process: the Sheets key travels as a query
+parameter, so only response bodies are written and no request URL carrying it
+is ever printed.
 """
 
 from __future__ import annotations
@@ -130,6 +133,28 @@ DETAILS_TABS = ("details", "upcoming_details")
 DETAILS_REQUIRED = ("Game Title", "Region", "Card Type")
 DETAILS_OPTIONAL = ("Master Title", "Cart ID", "Publisher", "Editions", "Release Date")
 
+# The Switch 1 sheet ("Switch Physical Releases"). Fixture name -> gid.
+SWITCH1_SHEET_ID = "1FNyvbbU64Pb9lheg28gC_5fMalIYJ0aD763T7M1QqF0"
+SWITCH1_SHEETS_API = f"https://sheets.googleapis.com/v4/spreadsheets/{SWITCH1_SHEET_ID}"
+SWITCH1_TABS = {"master": 2004832329, "ciab": 1406641930}
+SWITCH1_REQUIRED = ("Game Title", "Region")
+# The Master header as the spec recorded it, typo included; the run says
+# whether the live sheet still matches it.
+SWITCH1_MASTER_HEADER = (
+    "Master TItle",
+    "Game Title",
+    "Region",
+    "Release Date",
+    "Cart ID",
+    "Publisher",
+    "LP #",
+    "Edition Info",
+    "Other Info",
+    "Verified By",
+    "Check",
+)
+SWITCH1_CART_ID = re.compile(r"^LA-H-[A-Z0-9]{5}-[A-Z]{3}$")
+
 TRACKER_URL = (
     "https://raw.githubusercontent.com/codemaverick-hub/switch2-tracker/main/"
     "data/games.json"
@@ -143,6 +168,16 @@ IGDB_N64_QUERY = (
     "where platforms = (4) & total_rating_count >= 5; "
     "fields id,name,cover.image_id,first_release_date,total_rating_count; "
     "sort id asc; limit 500;"
+)
+# Keep in step with switch1_titles.FIELDS and page_query.
+IGDB_SWITCH_QUERY = (
+    "where platforms = (130); "
+    "fields id,name,first_release_date,alternative_names.name; "
+    "sort id asc; limit 500; offset 0;"
+)
+IGDB_SWITCH_DEATHS_DOOR_QUERY = (
+    'search "Death\'s Door"; where platforms = (130); '
+    "fields id,name,first_release_date,alternative_names.name; limit 50;"
 )
 
 
@@ -212,6 +247,12 @@ SOURCES: dict[str, list[tuple[str, str]]] = {
     "registry": [
         (f"{SHEETS_API}?fields=sheets.properties", "registry/properties.json")
     ],
+    "registry_switch1": [
+        (
+            f"{SWITCH1_SHEETS_API}?fields=sheets.properties",
+            "registry_switch1/properties.json",
+        )
+    ],
     "tracker": [(TRACKER_URL, "tracker/games.json")],
 }
 
@@ -219,7 +260,7 @@ SOURCES: dict[str, list[tuple[str, str]]] = {
 def _hosts(names: list[str]) -> list[str]:
     hosts: list[str] = []
     for name in names:
-        if name == "registry":
+        if name in ("registry", "registry_switch1"):
             continue  # the Sheets API is not governed by robots.txt
         for url, _ in SOURCES[name]:
             host = urlsplit(url).hostname
@@ -228,12 +269,20 @@ def _hosts(names: list[str]) -> list[str]:
     return hosts
 
 
-def describe_dynamic(names: list[str], igdb: bool) -> list[str]:
+def describe_dynamic(
+    names: list[str], igdb: bool, igdb_switch: bool = False
+) -> list[str]:
     lines = []
     if "registry" in names:
         for tab, gid in SHEET_TABS.items():
             lines.append(
                 f"{SHEETS_API}/values/<title of gid {gid}> -> registry/{tab}.json"
+            )
+    if "registry_switch1" in names:
+        for tab, gid in SWITCH1_TABS.items():
+            lines.append(
+                f"{SWITCH1_SHEETS_API}/values/<title of gid {gid}> "
+                f"-> registry_switch1/{tab}.json"
             )
     if "limited_run" in names:
         lines.append(
@@ -242,6 +291,12 @@ def describe_dynamic(names: list[str], igdb: bool) -> list[str]:
         )
     if igdb:
         lines.append("IGDB /v4/games, N64 -> igdb/n64_page1.json")
+    if igdb_switch:
+        lines.append("IGDB /v4/games, Switch page 1 -> igdb/switch_titles_p1.json")
+        lines.append(
+            'IGDB /v4/games, Switch search "Death\'s Door" '
+            "-> igdb/switch_titles_deaths_door.json"
+        )
     return lines
 
 
@@ -595,6 +650,99 @@ async def record_registry(recorder: Recorder, key: str | None) -> None:
             print(f"     distinct Card Type values: {kinds}")
 
 
+def _switch1_report(tab: str, rows: list[list]) -> None:
+    """The drift report for one Switch 1 tab: what the parser will meet."""
+    header = _header_index(rows, SWITCH1_REQUIRED)
+    if header is None:
+        print(f"     HEADER NOT FOUND: no row has {', '.join(SWITCH1_REQUIRED)}")
+        for index, row in enumerate(rows[:8]):
+            print(f"     row {index}: {[str(cell)[:30] for cell in row[:12]]}")
+        return
+    columns = [str(cell).strip() for cell in rows[header]]
+    folded = [column.casefold() for column in columns]
+    body = rows[header + 1 :]
+    print(f"     header at row {header}: {columns}")
+    print(f"     data rows after header: {len(body)}")
+
+    def values(name: str) -> list[str]:
+        if name.casefold() not in folded:
+            return []
+        index = folded.index(name.casefold())
+        return [
+            str(row[index]).strip()
+            for row in body
+            if len(row) > index and str(row[index]).strip()
+        ]
+
+    print(f"     regions: {sorted(set(values('Region')))}")
+    if tab == "master":
+        same = [column for column in columns if column] == list(SWITCH1_MASTER_HEADER)
+        print(f"     matches the spec's Master header: {same}")
+        carts = values("Cart ID")
+        shaped = sum(1 for cart in carts if SWITCH1_CART_ID.match(cart.upper()))
+        print(f"     Cart IDs: {len(carts)} filled, {shaped} shaped LA-H-XXXXX-RRR")
+        dates = sorted(set(values("Release Date")))
+        print(f"     Release Date shapes: {dates[:5]} ... {dates[-5:]}")
+        notes = [
+            note
+            for note in values("Other Info") + values("Edition Info")
+            if "download" in note.casefold()
+        ]
+        print(f"     Other/Edition Info mentioning downloads: {len(notes)}")
+        for note in notes[:10]:
+            print(f"       - {note[:100]}")
+    else:
+        print(f"     CIAB only? values: {sorted(set(values('CIAB only?')))}")
+    deaths_door = [
+        [str(cell)[:40] for cell in row]
+        for row in body
+        if any(
+            "death's door" in str(cell).casefold().replace("\u2019", "'")
+            for cell in row
+        )
+    ]
+    print(f"     Death's Door rows: {len(deaths_door)}")
+    for row in deaths_door:
+        print(f"       {row}")
+
+
+async def record_registry_switch1(recorder: Recorder, key: str | None) -> None:
+    """The Switch 1 sheet: its tab list, then the Master and CIAB tabs whole."""
+    if key is None:
+        recorder.fail("registry_switch1", "GOOGLE_SHEETS_API_KEY is not set; skipped")
+        return
+    _, out = SOURCES["registry_switch1"][0]
+    properties = await recorder.get_json(
+        out, SWITCH1_SHEETS_API, {"fields": "sheets.properties", "key": key}
+    )
+    if properties is None:
+        return
+    recorder.write_json(out, out, properties)
+    titles = {
+        sheet.get("properties", {}).get("sheetId"): sheet.get("properties", {}).get(
+            "title"
+        )
+        for sheet in properties.get("sheets", [])
+    }
+    print(f"ok   {out}  {len(titles)} tabs")
+    for tab, gid in SWITCH1_TABS.items():
+        out = f"registry_switch1/{tab}.json"
+        title = titles.get(gid)
+        print(f"     gid {gid} ({tab}) -> {title!r}")
+        if not title:
+            recorder.fail(out, f"no tab with gid {gid}")
+            continue
+        values_url = f"{SWITCH1_SHEETS_API}/values/{quote(_a1_sheet(title), safe='')}"
+        payload = await recorder.get_json(out, values_url, {"key": key})
+        if payload is None:
+            continue
+        recorder.write_json(out, out, payload)
+        rows = payload.get("values", [])
+        size = len(json.dumps(payload, ensure_ascii=False)) // 1024
+        print(f"ok   {out}  {len(rows)} rows, {size} KB")
+        _switch1_report(tab, rows)
+
+
 # Cases the tracker parser's tests need, each checked in file order.
 _TRACKER_CASES = {
     "per-region, mixed formats": lambda g: (
@@ -669,28 +817,71 @@ async def record_tracker(recorder: Recorder) -> None:
         print(f"     {case}: {'MISSING' if index is None else f'game #{index}'}")
 
 
-async def record_igdb(recorder: Recorder) -> None:
+def _igdb_source(recorder: Recorder, out: str):
+    """An IgdbSource on the API's own config, or None (recorded as a failure).
+    Its credentials join the secrets every write and failure is checked for."""
     from sources.igdb import IgdbSource
 
-    out = "igdb/n64_page1.json"
     try:
         loaded = config.load_config()
     except config.ConfigError as error:
         recorder.fail(out, str(error))
-        return
+        return None
     recorder.secrets += [
         secret
         for secret in (loaded.igdb_client_id, loaded.igdb_client_secret)
         if secret
     ]
+    return IgdbSource(loaded)
+
+
+async def record_igdb(recorder: Recorder) -> None:
+    out = "igdb/n64_page1.json"
+    igdb = _igdb_source(recorder, out)
+    if igdb is None:
+        return
     try:
-        rows = await IgdbSource(loaded)._query(IGDB_N64_QUERY)
+        rows = await igdb._query(IGDB_N64_QUERY)
     except Exception as error:  # reported, redacted, and the run carries on
         recorder.fail(out, f"{type(error).__name__}: {error}")
         return
     recorder.write_json(out, out, rows)
     covered = sum(1 for row in rows if row.get("cover"))
     print(f"ok   {out}  {len(rows)} games, {covered} with a cover")
+
+
+def _names(row: dict) -> set[str]:
+    names = {str(row.get("name", ""))}
+    names |= {
+        str(alternative.get("name", ""))
+        for alternative in row.get("alternative_names") or []
+        if isinstance(alternative, dict)
+    }
+    return {name.casefold().replace("\u2019", "'") for name in names if name}
+
+
+async def record_igdb_switch(recorder: Recorder) -> None:
+    """One page of IGDB's Switch titles and the Death's Door search, for the
+    Switch 1 bulk matcher's tests."""
+    queries = (
+        ("igdb/switch_titles_p1.json", IGDB_SWITCH_QUERY),
+        ("igdb/switch_titles_deaths_door.json", IGDB_SWITCH_DEATHS_DOOR_QUERY),
+    )
+    igdb = _igdb_source(recorder, queries[0][0])
+    if igdb is None:
+        return
+    for out, query in queries:
+        try:
+            rows = await igdb._query(query)
+        except Exception as error:  # reported, redacted, and the run carries on
+            recorder.fail(out, f"{type(error).__name__}: {error}")
+            continue
+        recorder.write_json(out, out, rows)
+        alternative = sum(1 for row in rows if row.get("alternative_names"))
+        print(f"ok   {out}  {len(rows)} games, {alternative} with alternative names")
+        if out.endswith("deaths_door.json"):
+            exact = [row.get("id") for row in rows if "death's door" in _names(row)]
+            print(f'     named or also known as "Death\'s Door": {exact}')
 
 
 def _fixture_bytes() -> int:
@@ -702,6 +893,7 @@ async def record(
     igdb: bool,
     all_pages: bool = False,
     strip_bodies: bool = False,
+    igdb_switch: bool = False,
 ) -> None:
     """Records the named sources (default all); exits 1 if anything failed."""
     names = names or list(SOURCES)
@@ -723,10 +915,14 @@ async def record(
                 await record_woo(recorder, name, all_pages)
             elif name == "registry":
                 await record_registry(recorder, sheets_key)
+            elif name == "registry_switch1":
+                await record_registry_switch1(recorder, sheets_key)
             elif name == "tracker":
                 await record_tracker(recorder)
         if igdb:
             await record_igdb(recorder)
+        if igdb_switch:
+            await record_igdb_switch(recorder)
 
     print(f"\nwrote {recorder.written} files under {FIXTURES.relative_to(BACKEND)}")
     size = _fixture_bytes()
@@ -750,6 +946,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--igdb", action="store_true", help="also record one IGDB N64 page"
+    )
+    parser.add_argument(
+        "--igdb-switch",
+        action="store_true",
+        help="also record IGDB's Switch titles page 1 and the Death's Door search",
     )
     parser.add_argument(
         "--list", action="store_true", help="print the plan and fetch nothing"
@@ -777,10 +978,12 @@ def main() -> None:
             for url, out in SOURCES[name]:
                 more = "  (and following pages until a short page)"
                 print(f"{url} -> {out}{more if args.all_pages else ''}")
-        for line in describe_dynamic(names, args.igdb):
+        for line in describe_dynamic(names, args.igdb, args.igdb_switch):
             print(line)
         return
-    asyncio.run(record(names, args.igdb, args.all_pages, args.strip_bodies))
+    asyncio.run(
+        record(names, args.igdb, args.all_pages, args.strip_bodies, args.igdb_switch)
+    )
 
 
 if __name__ == "__main__":
