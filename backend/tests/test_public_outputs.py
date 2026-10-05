@@ -989,3 +989,59 @@ async def test_a_private_pinned_or_wanted_game_never_appears(sessionmaker_for_te
     body = response.json()
     assert body["tonight"]["up_next"] is None
     assert [row["title"] for row in body["wanted"]] == ["Shown Want"]
+
+
+async def _seed_same_title(factory, *extra):
+    """A Discover sentence naming "Secret Game", a private favourite rated 10
+    with no IGDB link, cited alongside a public game."""
+    liked = _game("Liked", rating=9)
+    secret = _game("Secret Game", rating=10, is_public=False, favorite=True)
+    _with_ids(liked, secret)
+    await _add(
+        factory,
+        liked,
+        secret,
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="Like Liked and Secret Game, I'd enjoy this",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+        *extra,
+    )
+
+
+async def test_a_row_sharing_a_private_title_never_lifts_the_scan(
+    sessionmaker_for_test,
+):
+    """The reviewer's probe: a pending Radar row of unknown format (a
+    candidate that is never rendered) titled like a private game must not
+    let a sentence name that game."""
+    await _seed_same_title(
+        sessionmaker_for_test, _radar("Secret Game", physical_format=None)
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/next")
+    assert "Secret Game" not in response.text
+
+
+async def test_an_owned_row_of_another_game_never_lifts_the_scan(
+    sessionmaker_for_test,
+):
+    """A remake sharing the title: the owned, rendered row is a different
+    IGDB game from the private item, so the private item stays scanned."""
+    await _seed_same_title(
+        sessionmaker_for_test,
+        _radar(
+            "Secret Game",
+            external_id="remake",
+            status=RecommendationStatus.OWNED,
+            generated_at=NOW,
+        ),
+        _radar("Coming", generated_at=NOW),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert "Secret Game" in {r["title"] for r in body["preorders"]}
+    assert all("Secret Game" not in r for r in _reasons(body))

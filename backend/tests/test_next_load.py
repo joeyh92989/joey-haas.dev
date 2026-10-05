@@ -17,7 +17,7 @@ from models import (
     RecommendationKind,
     RecommendationStatus,
 )
-from next_load import catalogue_times, load_next
+from next_load import catalogue_times, load_next, taste_sparing_owned
 from physical_sources.stores import STORES
 
 pytestmark = pytest.mark.asyncio
@@ -343,21 +343,35 @@ async def test_catalogue_times_is_the_stalest_good_store_run(sessionmaker_for_te
     assert times["registry_at"] == newer
 
 
-async def test_public_mode_does_not_scan_for_a_title_already_listed(
+async def test_the_scan_is_lifted_only_for_an_owned_row_of_the_same_game(
     sessionmaker_for_test,
 ):
-    """A private game that is a row on the page is published by name already;
-    scanning for it would only let an Already own change a frozen reason."""
+    """By identity, never by title (spec, S9): the Already own item carries
+    the row's IGDB id and platform; a same-titled game without one, or a
+    row that is not rendered, lifts nothing."""
     at = datetime(2026, 9, 28, 6, 0, tzinfo=UTC)
+    owned_row = _radar("Listed", status=RecommendationStatus.OWNED, generated_at=at)
+    twin_row = _radar("Twin", generated_at=at)
     await _add(
         sessionmaker_for_test,
-        _game("Listed", is_public=False),
+        _game(
+            "Listed",
+            is_public=False,
+            external_source="igdb",
+            external_id="listed",
+            platform_id=508,
+        ),
+        _game("Twin", is_public=False),
         _game("Hidden", is_public=False),
-        _radar("Listed", status=RecommendationStatus.OWNED, generated_at=at),
-        _radar("Coming", generated_at=at),
+        owned_row,
+        twin_row,
     )
     async with sessionmaker_for_test() as session:
         public = await load_next(session, public=True)
-        admin = await load_next(session)
-    assert set(public.taste.private_titles) == {"Hidden"}
-    assert set(admin.taste.private_titles) == {"Listed", "Hidden"}
+    rows = {c.title: c.payload for c in public.candidates}
+    everything = {"Listed", "Twin", "Hidden"}
+    assert set(public.taste.private_titles) == everything
+    spared = taste_sparing_owned(public, [rows["Listed"], rows["Twin"]])
+    assert set(spared.private_titles) == {"Twin", "Hidden"}
+    unrendered = taste_sparing_owned(public, [rows["Twin"]])
+    assert set(unrendered.private_titles) == everything

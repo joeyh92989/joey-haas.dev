@@ -38,7 +38,7 @@ from next_list import (
     public_reasons_for,
     sections,
 )
-from next_load import catalogue_times, load_next
+from next_load import catalogue_times, load_next, taste_sparing_owned
 from picker import public_reasons
 from picker_routes import to_picker_item
 from radar import NEAR_PRECISIONS
@@ -381,6 +381,10 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
     day, picks = await public_picks_with_day(session, now)
     data = await load_next(session, public=True)
     built = sections(data.candidates, today, public=True)
+    taste = taste_sparing_owned(
+        data,
+        [entry.candidate.payload for entries in built.values() for entry in entries],
+    )
     pinned = [item for item in data.public_games if item.pinned_at is not None]
     up_next = max(pinned, key=lambda item: item.pinned_at, default=None)
     wanted = sorted(
@@ -406,7 +410,7 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
         ),
         wanted=[_wanted_row(item, today) for item in wanted],
         **{
-            key: [_next_row(entry, data.taste) for entry in entries]
+            key: [_next_row(entry, taste) for entry in entries]
             for key, entries in built.items()
         },
     )

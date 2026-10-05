@@ -9,7 +9,7 @@ while the public sections are frozen to each kind's latest batch (spec, S9).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from sqlalchemy import and_, func, or_, select
@@ -37,6 +37,7 @@ class NextData:
     taste: PublicTaste
     public_games: list[Item]
     generated_at: dict[str, datetime | None]
+    private_games: list[Item] = field(default_factory=list)
 
 
 def _candidate(row: Recommendation) -> NextCandidate:
@@ -125,18 +126,10 @@ async def load_next(session: AsyncSession, *, public: bool = False) -> NextData:
     )
     games = list(await session.scalars(select(Item).where(Item.type == ItemType.GAME)))
     public_games = [item for item in games if item.is_public]
-    private_titles = [item.title for item in games if not item.is_public]
-    if public:
-        # A private game that is also a row here (one the owner answered
-        # Already own on, frozen until the next generation) is published by
-        # name already. Scanning reasons for it protects nothing, and would
-        # refuse a frozen sentence the moment the owner answered (spec, S9).
-        listed = {row.title.casefold().strip() for row in rows}
-        private_titles = [
-            title for title in private_titles if title.casefold().strip() not in listed
-        ]
+    private_games = [item for item in games if not item.is_public]
     taste = public_taste(
-        [to_picker_item(item) for item in public_games], private_titles
+        [to_picker_item(item) for item in public_games],
+        [item.title for item in private_games],
     )
     generated_at: dict[str, datetime | None] = {}
     for kind in RecommendationKind:
@@ -150,6 +143,47 @@ async def load_next(session: AsyncSession, *, public: bool = False) -> NextData:
         taste=taste,
         public_games=public_games,
         generated_at=generated_at,
+        private_games=private_games,
+    )
+
+
+def _identity(row: Recommendation) -> tuple[str, str, int]:
+    return (row.external_source, row.external_id, row.platform_id)
+
+
+def taste_sparing_owned(data: NextData, shown: list[Recommendation]) -> PublicTaste:
+    """The public taste, with the private-title scan lifted for exactly the
+    games the owner answered Already own on in the frozen batch (spec, S9).
+
+    Already own creates a private item carrying the row's IGDB id and
+    platform (recommendations_routes._add_item), and the frozen row stays
+    on the page by name until the next generation, so scanning reasons for
+    that item would only refuse a frozen sentence the moment the owner
+    answered. The match is by identity, never by title: the item's
+    (external_source, external_id) and, where it has one, its platform must
+    match an owned candidate row, and a row of that same game must be among
+    `shown`, the rows the page renders. Every other private title, a
+    same-titled remake or a game with no IGDB link among them, is scanned.
+    """
+    owned = {
+        _identity(c.payload)
+        for c in data.candidates
+        if c.payload.status == RecommendationStatus.OWNED
+    }
+    spared = owned & {_identity(row) for row in shown}
+
+    def is_spared(item: Item) -> bool:
+        if item.external_source is None or item.external_id is None:
+            return False
+        return any(
+            (source, external_id) == (item.external_source, item.external_id)
+            and item.platform_id in (None, platform_id)
+            for source, external_id, platform_id in spared
+        )
+
+    return public_taste(
+        [to_picker_item(item) for item in data.public_games],
+        [item.title for item in data.private_games if not is_spared(item)],
     )
 
 
