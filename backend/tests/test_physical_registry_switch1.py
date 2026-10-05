@@ -223,6 +223,26 @@ def test_a_ciab_no_row_adds_nothing():
     assert [row["title"] for row in found] == ["A"]
 
 
+def test_a_region_too_long_for_the_column_is_skipped_with_a_warning():
+    found, warnings = parse_master(
+        [["Game Title", "Region"], ["A", "Global"], ["B", "USA"], ["C", "GLOBAL"]]
+    )
+    assert [row["title"] for row in found] == ["B"]
+    assert warnings.count("region_too_long:GLOBAL") == 1
+
+
+def test_a_ciab_region_too_long_for_the_column_is_skipped_with_a_warning():
+    found, warnings = parse_ciab(
+        [
+            ["Game Title", "Region", "CIAB only?"],
+            ["A", "WORLD", "Yes"],
+            ["B", "EUR", "Yes"],
+        ]
+    )
+    assert [row["title"] for row in found] == ["B"]
+    assert "region_too_long:WORLD" in warnings
+
+
 @pytest.mark.parametrize(
     ("cell", "expected"),
     [

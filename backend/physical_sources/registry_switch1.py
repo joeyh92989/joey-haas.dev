@@ -57,6 +57,11 @@ OPTIONAL_MASTER = (
 REQUIRED_CIAB = ("Game Title", "Region", "CIAB only?")
 OPTIONAL_CIAB = ("Publisher", "Release Date")
 
+# physical_editions.region is String(4): a longer region (a future "GLOBAL")
+# would fail the whole run's flush, so its rows are skipped and named in the
+# warnings instead.
+REGION_LENGTH = 4
+
 # The kind part of a source_ref: what a row of each tab is.
 MASTER_KIND = "master"
 CIAB_KIND = "code in box"
@@ -79,6 +84,10 @@ def _reader(rows: list[list[str]], required, optional):
     return rows[header_index + 1 :], cell, warnings
 
 
+def _too_long(regions: set[str]) -> list[str]:
+    return [f"region_too_long:{region}" for region in sorted(regions)]
+
+
 def _first_cart(text: str) -> str:
     """A cell naming two carts ("LA-H-ATPDA-EUR / LA-H-ATPDC-EUR") is read as
     its first."""
@@ -96,9 +105,13 @@ def parse_master(rows: list[list[str]]) -> tuple[list[dict], list[str]]:
     """Master tab rows -> (editions as dicts, warnings)."""
     body, cell, warnings = _reader(rows, REQUIRED_MASTER, OPTIONAL_MASTER)
     editions: list[dict] = []
+    too_long: set[str] = set()
     for row in body:
         title, region = cell(row, "Game Title"), cell(row, "Region").upper()
         if not title or not region:
+            continue
+        if len(region) > REGION_LENGTH:
+            too_long.add(region)
             continue
         cart_id = _cart_id(_first_cart(cell(row, "Cart ID")), SWITCH_1_CART_ID_PATTERN)
         released, precision = _release(cell(row, "Release Date"))
@@ -115,7 +128,7 @@ def parse_master(rows: list[list[str]]) -> tuple[list[dict], list[str]]:
                 "release_precision": precision,
             }
         )
-    return editions, warnings
+    return editions, warnings + _too_long(too_long)
 
 
 def parse_ciab(rows: list[list[str]]) -> tuple[list[dict], list[str]]:
@@ -127,9 +140,13 @@ def parse_ciab(rows: list[list[str]]) -> tuple[list[dict], list[str]]:
         cell(row, "CIAB only?").casefold() == "yes" for row in body
     ):
         warnings.append("no_ciab_only_rows")
+    too_long: set[str] = set()
     for row in body:
         title, region = cell(row, "Game Title"), cell(row, "Region").upper()
         if not title or not region or cell(row, "CIAB only?").casefold() != "yes":
+            continue
+        if len(region) > REGION_LENGTH:
+            too_long.add(region)
             continue
         released, precision = _release(cell(row, "Release Date"))
         editions.append(
@@ -145,7 +162,7 @@ def parse_ciab(rows: list[list[str]]) -> tuple[list[dict], list[str]]:
                 "release_precision": precision,
             }
         )
-    return editions, warnings
+    return editions, warnings + _too_long(too_long)
 
 
 def _ref(row: dict) -> str:
