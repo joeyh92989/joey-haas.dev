@@ -5,6 +5,7 @@ import Admin from './pages/Admin.jsx'
 import AdminCatalogue from './pages/AdminCatalogue.jsx'
 import AdminDiscover from './pages/AdminDiscover.jsx'
 import AdminRadar from './pages/AdminRadar.jsx'
+import AdminStoreList from './pages/AdminStoreList.jsx'
 import AdminCollection from './pages/AdminCollection.jsx'
 import AdminImport from './pages/AdminImport.jsx'
 import AdminItem from './pages/AdminItem.jsx'
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="admin/catalogue" element={<AdminCatalogue />} />
         <Route path="admin/radar" element={<AdminRadar />} />
         <Route path="admin/discover" element={<AdminDiscover />} />
+        <Route path="admin/store-list" element={<AdminStoreList />} />
         <Route path="admin/collection/:id" element={<AdminItem />} />
         <Route path="blog" element={<Blog />} />
         <Route path="blog/:slug" element={<BlogPost />} />
