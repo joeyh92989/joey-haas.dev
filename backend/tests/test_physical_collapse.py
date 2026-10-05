@@ -302,6 +302,18 @@ def test_switch_1_reads_from_home_when_home_says_the_same():
     assert (result.physical_format, result.region_of_answer) == ("game_card", "USA")
 
 
+def test_a_tie_between_regions_away_from_home_does_not_depend_on_row_order():
+    rows = [ns1("game_card", "JPN"), ns1("game_card", "EUR")]
+    answers = {
+        (result.region_of_answer, result.format_route)
+        for result in (
+            collapse(1, 130, rows, [], GAME),
+            collapse(1, 130, rows[::-1], [], GAME),
+        )
+    }
+    assert answers == {("EUR", "r/NSCollectors (EUR)")}
+
+
 def test_switch_1_with_only_codes_in_a_box_is_a_code_in_a_box():
     result = collapse(1, 130, [ns1("code_in_box", "EUR")], [], GAME)
     assert result.physical_format == "code_in_box"

@@ -220,7 +220,8 @@ def _listing_claim(listing: ListingView) -> _Claim:
 
 def _best(claims: list[_Claim]) -> _Claim | None:
     """Any full cartridge wins; else the most useful known format. Ties go
-    to the higher tier, then the sheet before the tracker."""
+    to the higher tier, then the sheet before the tracker, then region and
+    route, so a tie never depends on the order the rows came in."""
     known = [claim for claim in claims if claim.format]
     if not known:
         return None
@@ -230,6 +231,8 @@ def _best(claims: list[_Claim]) -> _Claim | None:
             _rank(FORMAT_ORDER, c.format),
             _rank(TIER_ORDER, c.tier),
             c.source_rank,
+            c.region,
+            c.route,
         ),
     )
 
