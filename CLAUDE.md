@@ -182,8 +182,9 @@ before pushing.
       page, static link-preview meta with `public/og-card.png`, and the
       "How Spine works" post. Spec and plan: `docs/planning/2026-10-02-spine-*`
 - [x] Switch 1 catalogue and store list — the Switch 1 registry
-      (`refresh-switch1`: about 4,200 titles bulk-matched to IGDB, the
-      unmatched hidden), region-free Switch 1 cartridges, and
+      (`refresh-switch1`: about 4,500 titles, about 10,000 editions,
+      bulk-matched to IGDB, the unmatched hidden; a run's `rows_seen`
+      counts editions), region-free Switch 1 cartridges, and
       `/admin/store-list`. No migration. Spec and plan:
       `docs/planning/2026-10-04-switch1-catalogue-*`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
@@ -263,7 +264,9 @@ before pushing.
   (`collapse.REGISTRY_SOURCES` leaves it out), so nothing from it can reach
   `/api/public/radar`; keep it out. Its keys are not in
   `test_physical_keys.py`'s corpus. No migration: after deploy, press
-  Refresh Switch 1 once on `/admin/catalogue`.
+  Refresh Switch 1 once on `/admin/catalogue`; expect `rows_seen` near
+  10,000 (editions, not titles), and check the run's errors, since IGDB
+  pages beyond the first are first walked there.
 - **The store list** (`/admin/store-list`) is frontend only, over the
   pending Discover and Radar rows (`?kind=discover`, `?kind=radar`), phone
   first: Top picks, Out now on Switch 2, Out now on Switch, Ask about

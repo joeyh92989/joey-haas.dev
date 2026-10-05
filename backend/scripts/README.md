@@ -133,7 +133,7 @@ tracker's User-Agent, and honours each host's `robots.txt` under
 | `igdb/n64_page1.json` | with `--igdb`: one page of N64 games, id, name, cover and date |
 | `registry_switch1/properties.json` | the Switch 1 sheet's tab list, mapping gid `2004832329` (Physical Release Master) and `1406641930` (CIAB) to their current titles |
 | `registry_switch1/{master,ciab}.json` | the Switch 1 Master and code-in-a-box tabs, whole, as `spreadsheets.values.get` returns them, except that Master's LP #, Other Info, Verified By and Check cells are blanked below the header (the parser reads none of them, and Verified By holds the editors' handles); the run prints each tab's header, regions, cart IDs matching `limits.SWITCH_1_CART_ID_PATTERN`, date shapes, any Other/Edition Info mentioning downloads (counted before the blanking), and the Death's Door rows |
-| `igdb/switch_titles_p1.json` | with `--igdb-switch`: the first 500 IGDB Switch games by id, names and first release date only |
+| `igdb/switch_titles_p1.json` | with `--igdb-switch`: the first 500 IGDB Switch games, paged by id, with id, name, first release date and alternative names |
 | `igdb/switch_titles_deaths_door.json` | with `--igdb-switch`: IGDB's Switch search for "Death's Door", same fields |
 
 A handle with a non-ASCII character gets an ASCII file name

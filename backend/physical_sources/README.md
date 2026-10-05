@@ -138,10 +138,15 @@ fixture is a 30-game excerpt.
 the Switch 2 one, read by `registry_switch1.py` with `registry.py`'s helpers
 (`fetch_properties`, `fetch_tab`, `tab_titles` take a `sheet_id`; `merge` and
 this module share `unique_by_ref`). Two tabs, found by gid: Physical Release
-Master `2004832329` and CIAB `1406641930`, recorded whole under
-`tests/fixtures/physical/registry_switch1/`. Source `nscollectors_ns1`
-(`physical_editions.source` is 20 characters), platform 130, **all regions**:
-the sheet lists every region and the collapse is region-free (see Formats).
+Master `2004832329` and CIAB `1406641930`, recorded under
+`tests/fixtures/physical/registry_switch1/` (whole, except that the recorder
+blanks Master's LP #, Other Info, Verified By and Check cells, which the
+parser never reads). Source `nscollectors_ns1` (`physical_editions.source`
+is 20 characters), platform 130, **all regions**: the sheet lists every
+region and the collapse is region-free (see Formats).
+About 4,500 titles in about 10,000 editions: the 2026-10-04 recording has
+4,460 Master titles, 4,497 keys and 10,264 editions. A run's `rows_seen`
+counts editions, not titles.
 
 - A Master row with a Switch 1 cart ID is a `game_card` at the `registry`
   tier; a row without one is physical with no format. The cart ID pattern is
@@ -154,6 +159,9 @@ the sheet lists every region and the collapse is region-free (see Formats).
 - Every Switch 1 cartridge counts as the full game: no source flags the rare
   download-required ones.
 - An edition is keyed by title, region, publisher, tab and edition info.
+- A row whose region is longer than `physical_editions.region` (4
+  characters) is skipped and named in a `region_too_long` warning, rather
+  than failing the whole run's flush.
 - Its release dates are **not registry dates**. `collapse.REGISTRY_SOURCES`
   deliberately leaves `nscollectors_ns1` out, because
   `/api/public/radar` publishes only registry-dated rows and nothing from this
@@ -166,10 +174,10 @@ the sheet lists every region and the collapse is region-free (see Formats).
   onto owned Switch 2 copies alone (`KEY_CARD_PLATFORMS`).
 
 `POST /api/physical/refresh-switch1` (the "Refresh Switch 1" button) reads the
-sheet, then pages IGDB's Switch list by name only (`switch1_titles.page_query`,
-500 per page, ids, names and first release dates; tens of requests), both
-before anything is written: without the title list every key would fall to
-Resolve, thousands of searches. `switch1_titles.match` is pure. A key is
+sheet, then pages IGDB's whole Switch list by id (`switch1_titles.page_query`:
+id, name, first release date and alternative names, 500 per page, one request
+per 500 Switch games), both before anything is written: without the title
+list every key would fall to Resolve, thousands of searches. `switch1_titles.match` is pure. A key is
 looked up in the exact table (each game's name and alternative names through
 `normalize_title`) and only if that knows nothing in the stripped one (the
 same names through `game_title` first, so "Hades Deluxe Edition" answers
@@ -202,7 +210,7 @@ deliberately not these: Switch 1 editions carry no id of their own, and a
 later manual link in Needs match must be able to override an automatic one.
 
 Switch 1 keys are not in `test_physical_keys.py`'s corpus: that test holds
-store and Switch 2 keys to the key-quality rules, and holding about 4,200
+store and Switch 2 keys to the key-quality rules, and holding about 4,500
 community titles to them is separate work.
 
 **Stores** — `STORES` in `stores.py`, as of the 2026-09-25 fixtures:
@@ -252,8 +260,10 @@ the Switch.
 
 `collapse.py` turns a game's rows into one answer (D9): any full cartridge in
 the home region wins; otherwise the most useful known format; tiers only break
-ties between rows saying the same thing. A cartridge in another region is a
-note ("Full game on cartridge in EUR — Super Rare"), never a relabel.
+ties between rows saying the same thing, then source, then region and route,
+so the answer never depends on the order the rows arrive in. A cartridge in
+another region is a note ("Full game on cartridge in EUR — Super Rare"),
+never a relabel.
 
 **Switch 1 is the exception** (`REGION_FREE_PLATFORMS` in `limits.py`, which
 holds platform 130): it has no Game-Key Card and no region lock, so a full
