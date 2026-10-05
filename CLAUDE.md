@@ -181,6 +181,11 @@ before pushing.
       Projects card's `tagline`/`highlights`/`links`, `usePageTitle` on every
       page, static link-preview meta with `public/og-card.png`, and the
       "How Spine works" post. Spec and plan: `docs/planning/2026-10-02-spine-*`
+- [x] Switch 1 catalogue and store list — the Switch 1 registry
+      (`refresh-switch1`: about 4,200 titles bulk-matched to IGDB, the
+      unmatched hidden), region-free Switch 1 cartridges, and
+      `/admin/store-list`. No migration. Spec and plan:
+      `docs/planning/2026-10-04-switch1-catalogue-*`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -230,7 +235,10 @@ before pushing.
   usually describe different editions; otherwise the most useful known
   format; tiers only break ties between rows saying the same thing, and the
   sheet always beats `switch2-tracker` for its region. A cartridge elsewhere
-  is a note, never a relabel.
+  is a note, never a relabel. **Switch 1 is the exception:** it is region-free
+  (`REGION_FREE_PLATFORMS` in `limits.py`; no Game-Key Card, no region lock),
+  so a full cartridge in any region makes the game a cartridge. Switch 2
+  keeps the home-region rule.
 - **The registry writes formats in exactly one way:**
   `formats.apply_registry_format`, which raises for a format the owner
   recorded (`manual`, `cart_id`, `photo`). The sync after each registry
@@ -238,6 +246,29 @@ before pushing.
   disagreements, shown on `/admin/catalogue` and the edit page, where "Use
   registry value" PATCHes `edition_id`. The registry's cart ID is never
   copied: `items.cart_id` means "printed on my copy".
+- **The Switch 1 registry** is the r/NSCollectors "Switch Physical
+  Releases" sheet (a different spreadsheet from the Switch 2 one), read by
+  `physical_sources/registry_switch1.py` into `nscollectors_ns1` editions on
+  platform 130, all regions, and bulk-matched by `switch1_ingest.py` against
+  IGDB's Switch list paged by name (`switch1_titles.py`, pure). One exact
+  match is AUTO/EXACT; anything else is IGNORED with `match_confidence`
+  UNCERTAIN, the automatic-ignore marker (`resolve.ignore` writes a human's
+  with NULL; only the matcher and `release_listed_ignores` revisit
+  automatic ones), unless a live Switch 1 store listing carries the key,
+  which is left to Resolve, also after later store refreshes. Automatic
+  ignores never enter Needs match: `/admin/catalogue` shows "N Switch 1
+  titles unmatched" (`totals.switch1_unmatched`) and lists none. IGDB is
+  still never a physical source for Switch 1 (`refresh-platform` refuses
+  130). The sheet's dates are never registry dates
+  (`collapse.REGISTRY_SOURCES` leaves it out), so nothing from it can reach
+  `/api/public/radar`; keep it out. Its keys are not in
+  `test_physical_keys.py`'s corpus. No migration: after deploy, press
+  Refresh Switch 1 once on `/admin/catalogue`.
+- **The store list** (`/admin/store-list`) is frontend only, over the
+  pending Discover and Radar rows (`?kind=discover`, `?kind=radar`), phone
+  first: Top picks, Out now on Switch 2, Out now on Switch, Ask about
+  pre-orders (a dated cartridge within 90 days), Skip in store. Got it is
+  Already own (`POST /api/recommendations/{id}/own`).
 - **E7c deploy order:** set `GOOGLE_SHEETS_API_KEY` on Render; apply `0005`
   to Neon; merge; **before the first Refresh registry, bulk-set every owned
   Switch 2 copy's format on `/admin/collection`** (the collection is all full
