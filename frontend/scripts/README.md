@@ -9,8 +9,8 @@ fetch-snapshot.mjs  →  vite build  →  generate-rss.mjs
 ## fetch-snapshot.mjs
 
 **What and why.** It writes the public API's response bodies to
-`public/snapshot/items.json`, `stats.json`, `picks.json` and `radar.json`,
-which Vite then copies into `dist/`. The API is on Render's free tier and sleeps after about 15 idle
+`public/snapshot/items.json`, `stats.json`, `picks.json`, `radar.json` and
+`next.json`, which Vite then copies into `dist/`. The API is on Render's free tier and sleeps after about 15 idle
 minutes. Without the snapshot, `/spine` would open with a thirty-second
 "Waking the server" notice. With it, the page paints straight away and then
 refreshes from the API. Home and Projects read the same file for their cover
@@ -24,8 +24,8 @@ strips, so they still make no API calls.
   something unexpected, the build ships without a snapshot, and the site
   behaves as it did before the snapshot existed.
 - Required snapshots (`items`, `stats`) are written together or not at all.
-- `picks` and `radar` are optional; if either fails, the build leaves that
-  file out.
+- `picks`, `radar` and `next` are optional; if one fails, the build leaves
+  that file out.
 - When it runs, it first deletes the snapshot files an earlier run left in
   `public/snapshot/` (temp files too), and does so again on every failure, so
   a failed run ships no snapshot rather than a stale one.

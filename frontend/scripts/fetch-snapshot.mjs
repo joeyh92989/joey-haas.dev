@@ -43,6 +43,12 @@ export const SNAPSHOTS = {
   // run before the API has finished deploying.
   picks: { path: '/api/public/picks', valid: Array.isArray, required: false },
   radar: { path: '/api/public/radar', valid: Array.isArray, required: false },
+  // Optional, like picks and radar: What's next (Spine Next spec, C12).
+  next: {
+    path: '/api/public/next',
+    valid: (body) => isObject(body) && 'tonight' in body && 'buy_now' in body,
+    required: false,
+  },
 }
 
 const WAKE_BUDGET_MS = 120_000
