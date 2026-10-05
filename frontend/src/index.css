@@ -2635,6 +2635,24 @@ footer {
     flex: none;
   }
 
+  /* Tighter pills so the whole nav fits where it can, at a 44px tap target
+     (the height comes from min-height, not padding, so the text stays
+     centred). Where it still cannot fit, the row scrolls under the fade. */
+  .nav-row nav {
+    gap: 0.25rem;
+    /* Positioned so SiteHeader can measure a link's offsetLeft against the
+       nav, which does not change as the nav scrolls. */
+    position: relative;
+  }
+
+  .nav-row nav a,
+  .theme-toggle {
+    align-items: center;
+    display: flex;
+    min-height: 2.75rem;
+    padding-inline: 0.6rem;
+  }
+
   /* A cut-off chip reads as "more", not "clipped". The #000 is an alpha
      mask, not a colour that is displayed (only its opacity matters), so it
      is right in both themes and the no-raw-hex rule does not apply. The
