@@ -272,3 +272,78 @@ def test_a_tbc_edition_neither_agrees_nor_disagrees():
     note = item_note(item("game_card", "manual"), [tbc])
     assert note.agrees is None
     assert "without a card type" in note.note
+
+
+# --- Switch 1: region-free ----------------------------------------------------------
+
+
+def ns1(format, region="USA", **extra):
+    return EditionView(
+        id=f"e-ns1-{region}-{format}",
+        source="nscollectors_ns1",
+        region=region,
+        platform_id=130,
+        is_physical=True,
+        physical_format=format,
+        format_source="registry" if format else None,
+        **extra,
+    )
+
+
+def test_switch_1_takes_a_cartridge_from_any_region():
+    result = collapse(1, 130, [ns1("code_in_box"), ns1("game_card", "JPN")], [], GAME)
+    assert (result.physical_format, result.region_of_answer) == ("game_card", "JPN")
+    assert result.format_route == "r/NSCollectors (JPN)"
+    assert result.format_note is None
+
+
+def test_switch_1_reads_from_home_when_home_says_the_same():
+    result = collapse(1, 130, [ns1("game_card", "EUR"), ns1("game_card")], [], GAME)
+    assert (result.physical_format, result.region_of_answer) == ("game_card", "USA")
+
+
+def test_switch_1_with_only_codes_in_a_box_is_a_code_in_a_box():
+    result = collapse(1, 130, [ns1("code_in_box", "EUR")], [], GAME)
+    assert result.physical_format == "code_in_box"
+
+
+def test_switch_1_with_no_known_format_is_unknown():
+    result = collapse(1, 130, [ns1(None), ns1(None, "JPN")], [], GAME)
+    assert (result.physical_format, result.format_source) == (None, None)
+    assert result.region_of_answer == "USA"
+
+
+def test_switch_2_keeps_the_home_region_rule():
+    key_card = EditionView(
+        id="k",
+        source="nscollectors",
+        region="USA",
+        platform_id=508,
+        is_physical=True,
+        physical_format="game_key_card",
+        format_source="registry",
+    )
+    cartridge = EditionView(
+        id="c",
+        source="nscollectors",
+        region="JPN",
+        platform_id=508,
+        is_physical=True,
+        physical_format="game_card",
+        format_source="registry",
+    )
+    result = collapse(1, 508, [key_card, cartridge], [], GAME)
+    assert result.physical_format == "game_key_card"
+    assert result.format_note == "Full game on cartridge in JPN — r/NSCollectors"
+
+
+def test_a_switch_1_sheet_date_is_never_a_registry_date():
+    """Only a registry date can be published (/api/public/radar); the Switch 1
+    sheet is kept out of REGISTRY_SOURCES so nothing from it is public."""
+    result = collapse(
+        1, 130, [ns1("game_card", release_date=date(2021, 7, 20))], [], GAME
+    )
+    assert (result.release_date, result.release_source) == (
+        GAME.release_date,
+        "igdb_first",
+    )

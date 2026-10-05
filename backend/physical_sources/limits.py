@@ -48,6 +48,10 @@ CATALOGUE_PLATFORMS = frozenset({SWITCH_2, SWITCH, N64})
 # Every copy on these is a full-game cartridge: N64 had nothing else, and no
 # Game-Key Card exists for Switch 1. Used only when a listing's text is silent.
 CARTRIDGE_ONLY_PLATFORMS = frozenset({N64, SWITCH})
+# Region-free consoles with no Game-Key Card: a full cartridge in any region
+# makes the game a cartridge (switch1 spec, decision 4). Switch 2 is not one:
+# a Japanese cartridge and a US Game-Key Card are different products.
+REGION_FREE_PLATFORMS = frozenset({SWITCH})
 
 # The region a NULL item region means, and the one the collapse answers for.
 HOME_REGION = "USA"

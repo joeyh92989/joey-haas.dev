@@ -11,6 +11,11 @@ region wins. Any full cartridge there makes the game a cartridge; tiers only
 break ties between rows saying the same thing. A cartridge in another region
 is a note, never a relabel. The switch2-tracker cross-check is dropped
 wherever the sheet speaks for the same region.
+
+On a region-free platform (REGION_FREE_PLATFORMS: Switch 1, which has no
+Game-Key Card and no region lock) every region counts: any full cartridge
+anywhere makes the game a cartridge, read from the home region when a home
+row says the same.
 """
 
 from __future__ import annotations
@@ -20,7 +25,12 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
-from physical_sources.limits import FORMAT_WORDS, HOME_REGION, REGISTRY_WORDS
+from physical_sources.limits import (
+    FORMAT_WORDS,
+    HOME_REGION,
+    REGION_FREE_PLATFORMS,
+    REGISTRY_WORDS,
+)
 
 TIER_ORDER = (
     "manual",
@@ -31,13 +41,23 @@ TIER_ORDER = (
     "store_policy",
     "platform_policy",
 )
-SOURCE_ORDER = ("nscollectors", "switch2tracker", "igdb_platform", "manual")
+SOURCE_ORDER = (
+    "nscollectors",
+    "nscollectors_ns1",
+    "switch2tracker",
+    "igdb_platform",
+    "manual",
+)
 # Among formats that are not a full cartridge, the most useful first.
 FORMAT_ORDER = ("game_card", "game_key_card", "code_in_box", "disc")
+# Whose dates are registry dates, the only kind /api/public/radar publishes
+# (showcase spec change 7). The Switch 1 sheet is left out on purpose:
+# nothing from it is public (switch1 spec, Scope).
 REGISTRY_SOURCES = ("nscollectors", "switch2tracker")
 BUYABLE = frozenset({"preorder", "in_stock"})
 SOURCE_NAMES = {
     "nscollectors": "r/NSCollectors",
+    "nscollectors_ns1": "r/NSCollectors",
     "switch2tracker": "switch2-tracker",
     "igdb_platform": "platform policy",
     "manual": "manual entry",
@@ -214,6 +234,16 @@ def _best(claims: list[_Claim]) -> _Claim | None:
     )
 
 
+def _region_free_best(claims: list[_Claim], home_claims: list[_Claim]) -> _Claim | None:
+    """The best claim in any region; a home claim saying the same is
+    preferred, so the answer reads from home when it can."""
+    best = _best(claims)
+    at_home = _best(home_claims)
+    if best is not None and at_home is not None and at_home.format == best.format:
+        return at_home
+    return best
+
+
 def _release(editions, listings, game, home):
     """The release date, its precision and where it came from.
 
@@ -255,7 +285,11 @@ def collapse(
     ]
     home_claims = [c for c in claims if c.region in (home, "ALL")]
     region = home
-    if home_claims:
+    if platform_id in REGION_FREE_PLATFORMS:
+        chosen = _region_free_best(claims, home_claims)
+        if chosen is not None and chosen.region not in (home, "ALL"):
+            region = chosen.region
+    elif home_claims:
         chosen = _best(home_claims)
     else:
         chosen = _best(claims)
