@@ -125,11 +125,11 @@ body {
 
 /* Spacing below the nav belongs to the routed region, not to whichever heading
    the page happens to open with. Home's greeting sits slightly lower. */
-.nav-row + main {
+.masthead + main {
   margin-top: 2.5rem;
 }
 
-.nav-row + main.home {
+.masthead + main.home {
   margin-top: 2.75rem;
 }
 
@@ -207,6 +207,32 @@ a:hover {
 .site-header.home .tagline {
   font-size: 0.875rem;
   margin-top: 0.125rem;
+}
+
+/* Tracker pages: a wordmark, not a résumé header, and the nav beside it. */
+.masthead.compact {
+  align-items: center;
+  column-gap: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.site-header.compact {
+  gap: 0.5rem;
+}
+
+.site-header.compact .avatar {
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+.site-header.compact .site-name {
+  font-size: 1.0625rem;
+}
+
+.masthead.compact .nav-row {
+  flex: 1;
+  margin-top: 0;
 }
 
 /* Wrapping matters on a phone: four pills plus the toggle exceed 375px, and
@@ -2508,6 +2534,41 @@ footer {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 0.25rem;
+    padding-right: 2rem;
+  }
+
+  /* One nav row on a phone, never two or three: it scrolls sideways, with
+     the theme toggle at its end and a fade saying the row continues. */
+  .nav-row {
+    flex-wrap: nowrap;
+  }
+
+  .masthead.compact .nav-row {
+    flex-basis: 100%;
+    margin-top: 0.75rem;
+  }
+
+  .nav-row nav {
+    flex: 1;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    padding-right: 2rem;
+    scrollbar-width: none;
+  }
+
+  .nav-row nav a,
+  .theme-toggle {
+    flex: none;
+  }
+
+  /* A cut-off chip reads as "more", not "clipped". The #000 is an alpha
+     mask, not a colour that is displayed (only its opacity matters), so it
+     is right in both themes and the no-raw-hex rule does not apply. The
+     padding lets the last item clear the fade. */
+  .nav-row nav,
+  .chip-row {
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
   }
 
   /* The overlapping cover shrinks so the title still fits beside it. */
