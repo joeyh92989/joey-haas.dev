@@ -80,6 +80,7 @@ const TITLES = [
   ['/admin/store-list', 'Store list · Admin'],
   ['/admin/collection/42', 'Item · Admin'],
   ['/spine/42', 'Spine · Joey Haas'],
+  ['/spine/next', 'What’s next · Spine'],
 ]
 
 describe('App page titles', () => {

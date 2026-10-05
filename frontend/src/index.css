@@ -3038,3 +3038,189 @@ footer {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* What's next (/spine/next) and its shared row. One readable column at every
+   width: the page sits in the wide Spine layout so its header matches the
+   shelf's, but the rows are capped at the prose width. */
+.next-title {
+  font-size: 1.75rem;
+  margin: 0;
+}
+
+.next-fresh {
+  font-size: 0.875rem;
+  margin: 0.5rem 0 0;
+}
+
+.next-section,
+.next-skip {
+  max-width: 45rem;
+}
+
+.next-section {
+  margin-top: 2rem;
+}
+
+.next-section h2 {
+  font-size: 1.375rem;
+  margin: 0 0 0.5rem;
+}
+
+.next-section > p {
+  margin: 0.5rem 0 0;
+}
+
+.next-group h3 {
+  font-size: 1.0625rem;
+  margin: 1.25rem 0 0;
+}
+
+.next-rows {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+/* The card is a grid: cover | text, with any admin actions in an implicit
+   third column. The link (cover and title) is a subgrid over the first two
+   columns and both rows, so the meta line sits under the title and beside
+   the cover, while staying a sibling of the link rather than inside it. */
+.next-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  column-gap: 0.75rem;
+  display: grid;
+  grid-auto-columns: auto;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  padding: 0.75rem;
+  row-gap: 0.25rem;
+}
+
+.next-row-link {
+  border-radius: 4px;
+  color: inherit;
+  display: grid;
+  grid-column: 1 / 3;
+  grid-row: 1 / 3;
+  grid-template-columns: subgrid;
+  grid-template-rows: subgrid;
+}
+
+.next-row-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.next-row-cover {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+.next-row-link > .next-row-title,
+.next-tonight-name {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.next-row-title {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+
+.next-tonight-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.next-row-text {
+  align-content: start;
+  display: grid;
+  font-size: 0.875rem;
+  gap: 0.35rem;
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.next-row-reasons {
+  color: var(--text-body);
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.next-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.next-badge {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  padding: 0.05rem 0.55rem;
+}
+
+.next-badge-pick {
+  border-color: var(--accent);
+}
+
+.next-row-actions {
+  align-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+
+.next-section .sort-control {
+  margin: 0.25rem 0 0.25rem;
+}
+
+/* Not on cartridge stays closed by default. The summary is the native
+   disclosure control, so it is focusable without a tabindex. */
+.next-skip {
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+  padding-top: 0.5rem;
+}
+
+.next-skip summary {
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  padding: 0.5rem 0;
+}
+
+.next-skip summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.next-skip > p {
+  margin: 0.25rem 0 0;
+}
+
+@media (max-width: 34rem) {
+  .next-row-actions {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 0.5rem;
+  }
+}
