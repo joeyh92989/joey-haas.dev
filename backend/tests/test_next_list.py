@@ -429,3 +429,13 @@ def test_third_person_model_text_is_refused():
         "A pick the collector would make",
     ):
         assert text not in _discover([text], ["pub"], [])
+
+
+def test_the_genre_line_reads_owned_games_only():
+    """A wanted game is not on the shelf; counting it would also let a Want
+    change every public genre line before the next generation (spec, S9)."""
+    taste = public_taste(
+        [owned("want", "Wanted", rating=None, status="backlog", owned=False)], []
+    )
+    item = catalogue_item("9", "New", {"genres": ["Adventure"]}, 508, None)
+    assert public_reasons_for("radar", [], False, [], item, taste) == []

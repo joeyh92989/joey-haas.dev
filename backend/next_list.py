@@ -236,7 +236,10 @@ def public_taste(
         private_titles=tuple(
             title.strip() for title in private_titles if title.strip()
         ),
-        shelf_genres=frozenset(g for item in public_profile for g in item.genres),
+        # Owned only: a wanted game is not on the shelf (spec, S9).
+        shelf_genres=frozenset(
+            g for item in public_profile if item.owned for g in item.genres
+        ),
     )
 
 
