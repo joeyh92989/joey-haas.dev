@@ -257,8 +257,9 @@ PublicNextRow     { title, platform, physical_format, release_date|null,
   `preorder_closes_at`, `price`, `store`, `url` (but `igdb_url` and
   `cover_url` are allowed), `status`, `batch_id`. A second test asserts that
   no answered row (dismissed, skipped, wanted or owned) from an older batch
-  appears; an answered row of its kind's latest batch stays, frozen, until
-  the next generation (S9).
+  appears; an answered row of its (kind, platform)'s latest generation
+  stays, frozen, until the next one, while that generation still has a
+  pending row (S9).
 
 **6. `backend/next_list.py`, pure.** No FastAPI or SQLAlchemy in its import
 graph. It joins the existing import-graph test with `radar.py`,
@@ -320,7 +321,7 @@ standard library.
   beside `radar_load.py`. Both routes share it, so the two pages cannot
   disagree about a section except by the one public date rule and which
   rows they read: the store list reads pending rows only, the public page
-  also its kind's latest batch's answered rows (S9).
+  also the frozen answered rows (S9).
 - Each row's `release_date` is its own, any source, in every section: the
   store list never takes the public `date_shown`, which is null in Not on
   cartridge.
@@ -596,18 +597,36 @@ Where this spec departs from the brief:
 - **S9 — the public store sections are frozen to the batch** (decided
   2026-10-05, after the final review). Item 5 said no answered row ever
   appears, which made `/api/public/next` change the moment the owner
-  answered a game: anyone polling it could watch the owner shop. Now the
-  public page reads pending rows plus every answered row (wanted,
-  dismissed, owned or skipped) of its kind's latest batch, the batches
-  generated at that kind's newest `generated_at`; an answered row is
-  sectioned and reasoned exactly as a pending one, and nothing on it shows
-  the answer. Generation skips wanted, dismissed and owned rows, which keep
-  their old batch, so the next generation (nightly) drops them; a skipped
-  row is re-pended into the new batch and stays. The admin store list stays
-  live: pending only. *Accepted:* until the next generation a wanted game
-  is in both Wanted and its store section; a generation with no rows of a
-  kind, or a Radar generate limited to some platforms, leaves that kind's
-  newest `generated_at`, and so its frozen rows, where they were.
+  answered a game: anyone polling it could watch the owner shop. Now:
+  - **What is frozen.** The public page reads pending rows plus the
+    answered rows (wanted, dismissed, owned or skipped) of each
+    **(kind, platform)**'s latest generation: the batches generated at that
+    pair's newest `generated_at` (a tie is one generation). An answered row
+    is sectioned and reasoned exactly as a pending one, and nothing on it
+    shows the answer.
+  - **Why per platform.** Radar replaces pending rows only on the platforms
+    a generate covered, so a Radar generate on one platform must not end
+    another platform's frozen answers; Discover writes all its platforms
+    every time, so per platform changes nothing for it.
+  - **When it ends.** Generation skips wanted, dismissed and owned rows,
+    which keep their old batch, so the next generation on that platform
+    (nightly) drops them; a skipped row is re-pended into the new batch and
+    stays.
+  - **Fails closed.** A latest generation with no pending row left on that
+    (kind, platform) shows none of its answered rows. A generate that
+    writes no rows deletes the pending ones and leaves the old batch the
+    latest, so publishing its answers would list exactly what the owner
+    answered.
+  - **Reasons stay put.** In public mode a private title that is itself a
+    row on the page (a game answered Already own) is left out of the
+    private-title scan: it is published by name already, and scanning for
+    it would refuse a frozen Discover sentence that names it.
+  - The admin store list stays live: pending only.
+  - *Accepted residuals:* until the next generation a wanted game is in
+    both Wanted and its store section; and answering every row of a
+    (kind, platform)'s generation during the day hides all of them publicly
+    until the next generation, which tells a poller that everything there
+    was answered, though not how.
 
 ## Key decisions
 

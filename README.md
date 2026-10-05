@@ -529,9 +529,11 @@ which walks the whole body for banned keys:
   registry gave it to the day.
 - **No store data.** No store, price, pre-order window, score, rank or row id
   appears.
-- **Frozen to the batch.** The store sections hold each kind's pending rows
-  plus the rows I answered (dismissed, skipped, wanted or owned) from its
-  latest generation, shown exactly like pending ones, so answering a game
-  does not change the public page; it leaves at the next generation
-  (nightly), and a skipped game comes back. `/admin/store-list` is live.
+- **Frozen to the batch.** The store sections hold the pending rows plus
+  the rows I answered (dismissed, skipped, wanted or owned) from each kind
+  and platform's latest generation, shown exactly like pending ones, so
+  answering a game does not change the public page; it leaves at the next
+  generation (nightly), and a skipped game comes back. A generation with
+  nothing pending left shows none of its answers (spec S9).
+  `/admin/store-list` is live.
 

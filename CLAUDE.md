@@ -277,8 +277,9 @@ before pushing.
   leaves it at once. Got it is Already own
   (`POST /api/recommendations/{id}/own`). **The public What's next is
   frozen to the batch** (Spine Next spec, S9): `load_next(public=True)`
-  adds every answered row of each kind's latest batch, so an answer
-  changes `/api/public/next` only at the next generation.
+  adds the answered rows of each (kind, platform)'s latest generation
+  while it still has a pending row, so an answer changes
+  `/api/public/next` only at the next generation.
 - **E7c deploy order:** set `GOOGLE_SHEETS_API_KEY` on Render; apply `0005`
   to Neon; merge; **before the first Refresh registry, bulk-set every owned
   Switch 2 copy's format on `/admin/collection`** (the collection is all full
