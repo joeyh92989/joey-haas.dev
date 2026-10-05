@@ -7,8 +7,12 @@ name: Nightly
 # It writes: Play Next picks, the catalogue refreshes, Resolve and the Radar
 # and Discover generates, through the admin API with the JOB_TOKEN bearer
 # token, which the backend accepts only on items.JOB_ROUTES. A failed write
-# step is a warning: the steps after it run on yesterday's data, and the
-# summary and the /admin "Last nightly" line say which one failed.
+# step is a warning: the steps after it run on yesterday's data, the run
+# summary lists every step that succeeded and every one that failed, and the
+# /admin "Last nightly" line names the failed catalogue sources. A 401 is
+# not a data failure but configuration (the token differs between Render
+# and GitHub, or is not set on Render), so it fails the run, as a missing
+# secret does.
 #
 # GitHub disables scheduled workflows in a public repository after 60 days
 # with no repository activity, and this job never commits. Re-enable it
@@ -76,13 +80,17 @@ jobs:
             exit 0
           fi
           echo "token=present" >> "$GITHUB_OUTPUT"
+          ok=""
           failed=""
-          # call NAME TIMEOUT PATH [BODY]: POSTs BODY (default {}), keeps the
-          # response in NAME.json, and records anything but a 200 or 201
-          # as a warning, and so is a 200 whose body reports a failed run
-          # (refresh-registry, refresh and refresh-switch1 answer 200 with
-          # ok: false when a source fails; resolve's errors are not failures). It always returns 0, so one failed step never stops the
-          # ones after it (the shell is bash -e).
+          unauthorized=""
+          # call NAME TIMEOUT PATH [BODY]: POSTs BODY (default {}) and keeps
+          # the response in NAME.json. A 200 or 201 adds NAME to ok, unless
+          # its body reports a failed run: refresh-registry, refresh and
+          # refresh-switch1 answer 200 with ok: false when a source fails
+          # (resolve's errors are not failures). Anything else adds NAME to
+          # failed as a warning, and a 401 also sets unauthorized, which
+          # fails the run in Summarise. It always returns 0, so one failed
+          # step never stops the ones after it (the shell is bash -e).
           call() {
             local name="$1" timeout="$2" path="$3" body="$4" status
             [ -n "$body" ] || body='{}'
@@ -97,7 +105,13 @@ jobs:
                   failed="$failed $name"
                 else
                   echo "$name: ok"
+                  ok="$ok $name"
                 fi
+                ;;
+              401)
+                echo "::error::$name: HTTP 401: the API refused JOB_TOKEN"
+                failed="$failed $name"
+                unauthorized=true
                 ;;
               409)
                 echo "::warning::$name: busy (409): a refresh was already running, skipped"
@@ -135,7 +149,11 @@ jobs:
           if [ "$weekly" = true ] || [ "$FORCE_DISCOVER" = true ]; then
             call discover 300 /api/recommendations/generate '{"kind":"discover"}'
           fi
-          echo "failed=${failed# }" >> "$GITHUB_OUTPUT"
+          {
+            echo "ok=${ok# }"
+            echo "failed=${failed# }"
+            echo "unauthorized=$unauthorized"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Compare the API with the deployed snapshot
         id: compare
@@ -233,7 +251,9 @@ jobs:
         if: always()
         env:
           TOKEN: ${{ steps.refresh.outputs.token }}
+          OK: ${{ steps.refresh.outputs.ok }}
           FAILED: ${{ steps.refresh.outputs.failed }}
+          UNAUTHORIZED: ${{ steps.refresh.outputs.unauthorized }}
           OUTCOME: ${{ steps.refresh.outcome }}
         run: |
           if [ "$TOKEN" = missing ]; then
@@ -247,8 +267,18 @@ jobs:
             echo "Nightly: the refresh step did not run or did not finish; see the log" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
+          # Markdown: a list of each step's status, then a paragraph.
+          {
+            echo "Nightly refresh and generate steps:"
+            echo
+            echo "- succeeded: ${OK:-none}"
+            echo "- failed: ${FAILED:-none}"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$UNAUTHORIZED" = true ]; then
+            echo "Nightly: the API refused JOB_TOKEN (401): the Render and GitHub values differ, or JOB_TOKEN is not set on Render" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
           if [ -n "$FAILED" ]; then
-            echo "Nightly: these steps failed and later steps used yesterday's data: $FAILED" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Nightly: every refresh and generate step succeeded" >> "$GITHUB_STEP_SUMMARY"
+            echo "Nightly: the steps after a failed one used yesterday's data" >> "$GITHUB_STEP_SUMMARY"
           fi
