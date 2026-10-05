@@ -70,13 +70,19 @@ describe('Admin', () => {
     // A failed logout leaves a valid 30-day cookie behind. Showing the
     // signed-out view anyway would tell the user they are logged out on a
     // machine where the next visitor still is not.
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ email: 'admin@example.com' }),
-      })
-      .mockResolvedValueOnce({ ok: false })
+    // Routed by URL, not queued: the landing makes other calls on mount, and a
+    // queue would hand the logout call somebody else's response.
+    const fetchMock = vi.fn(async (url) => {
+      const path = String(url)
+      if (path.endsWith('/api/auth/me'))
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ email: 'admin@example.com' }),
+        }
+      if (path.endsWith('/api/auth/logout')) return { ok: false, status: 500 }
+      return { ok: true, status: 200, json: async () => ({}) }
+    })
     vi.stubGlobal('fetch', fetchMock)
 
     renderAt()
@@ -86,6 +92,10 @@ describe('Admin', () => {
     signOutButton.click()
 
     expect(await screen.findByText(/sign out failed/i)).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/auth/logout'),
+      expect.objectContaining({ method: 'POST' }),
+    )
     expect(screen.queryByText(/sign in with google/i)).not.toBeInTheDocument()
   })
 
