@@ -305,16 +305,21 @@ def _numeral_variants(key: str) -> set[str]:
 def _title_keys(title: str) -> tuple[set[str], set[str]]:
     """What a model might call a private game, as (word keys, literal keys).
 
-    Word keys are normalised: the whole title, each ":" / " - " segment of two
-    or more words, the same without a trailing edition word, and roman/arabic
-    numeral variants of all of them. A title with no Latin letters or digits
+    Word keys are normalised, with apostrophes deleted and as spaces: the
+    whole title, each ":" / " - " segment of two or more words, the same
+    without a trailing edition word, and roman/arabic numeral variants of
+    all of them. A title with no Latin letters or digits
     has no word key, so its NFKC-casefolded form is a literal key. A blocklist
     over-matches on purpose: a false hit only sends the row to rebuilt reasons."""
-    keys = {_normalise(title)}
-    for segment in _SEGMENT_SPLIT.split(title):
-        key = _normalise(segment)
-        if len(key.split()) >= 2:
-            keys.add(key)
+    keys: set[str] = set()
+    # Both apostrophe forms, as the text is read in both: "Baldur's Gate 3's"
+    # reads "baldur s gate 3 s", which only the spaced key matches.
+    for apostrophe in ("", " "):
+        keys.add(_normalise(title, apostrophe))
+        for segment in _SEGMENT_SPLIT.split(title):
+            key = _normalise(segment, apostrophe)
+            if len(key.split()) >= 2:
+                keys.add(key)
     keys.discard("")
     for key in list(keys):
         stripped = _strip_edition(key)

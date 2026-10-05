@@ -11,6 +11,7 @@ from next_list import (
     MAX_PUBLIC_REASONS,
     NOT_ON_CARTRIDGE_CAP,
     NextCandidate,
+    _names_private_game,
     catalogue_item,
     period_end,
     public_reasons_for,
@@ -439,3 +440,16 @@ def test_the_genre_line_reads_owned_games_only():
     )
     item = catalogue_item("9", "New", {"genres": ["Adventure"]}, 508, None)
     assert public_reasons_for("radar", [], False, [], item, taste) == []
+
+
+def test_a_possessive_of_a_title_with_an_apostrophe_is_caught():
+    cases = [
+        ("Baldur's Gate 3's party banter is what I want", "Baldur's Gate 3"),
+        ("Baldur’s Gate 3’s party, again", "Baldur's Gate 3"),
+        ("Marvel's Spider-Man 2's swinging, again", "Marvel's Spider-Man 2"),
+        ("Luigi’s Mansion 3's ghosts, again", "Luigi's Mansion 3"),
+    ]
+    for text, private in cases:
+        taste = public_taste([owned("pub", "Public Game")], [private])
+        assert _names_private_game(text, taste), text
+        assert text not in _discover([text], ["pub"], [private])
