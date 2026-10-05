@@ -148,6 +148,7 @@ async def _rows(factory):
         ("post", "/api/recommendations/generate"),
         ("get", "/api/recommendations?kind=radar"),
         ("get", "/api/recommendations/watching"),
+        ("get", "/api/recommendations/store-list"),
         ("post", "/api/recommendations/00000000-0000-0000-0000-000000000000/want"),
         ("post", "/api/recommendations/00000000-0000-0000-0000-000000000000/own"),
         ("get", "/api/recommendations?kind=discover"),
@@ -540,3 +541,88 @@ async def test_already_own_adds_a_private_owned_item(sessionmaker_for_test):
         "1"
     ].status == RecommendationStatus.OWNED
     assert regenerated["counts"]["suggested"] == 1  # owned and dismissed are out
+
+
+def _store_row(title: str, **fields) -> Recommendation:
+    """A pending Radar row for a full Switch 2 cartridge, dated 60 days out."""
+    metadata = {
+        "lane": "preorder",
+        "section": "suggested",
+        "release_precision": "day",
+        "release_source": "registry",
+        "hypes": 40,
+        "store_lines": [
+            {
+                "store": "Limited Run Games",
+                "price": "59.99",
+                "currency": "USD",
+                "availability": "preorder",
+                "preorder_closes_at": "2026-11-08T00:00:00+00:00",
+                "url": "https://limitedrungames.com/products/x",
+            }
+        ],
+    }
+    base = dict(
+        kind=RecommendationKind.RADAR,
+        type=ItemType.GAME,
+        title=title,
+        external_source="igdb",
+        external_id=title.lower().replace(" ", "-"),
+        release_date=TODAY + timedelta(days=60),
+        reason="Pre-orders close Nov 8 at Limited Run Games",
+        reason_source=ReasonSource.TEMPLATE,
+        based_on=["x"],
+        score=50,
+        batch_id=uuid.uuid4(),
+        status=RecommendationStatus.PENDING,
+        platform_id=508,
+        platform="Nintendo Switch 2",
+        physical_format=PhysicalFormat.GAME_CARD,
+        source_metadata=metadata,
+    )
+    overrides = fields.pop("source_metadata", None)
+    row = Recommendation(**{**base, **fields})
+    if overrides is not None:
+        row.source_metadata = {**metadata, **overrides}
+    return row
+
+
+async def _add_rows(factory, *rows):
+    async with factory() as session:
+        session.add_all(rows)
+        await session.commit()
+
+
+async def test_store_list_sections_with_private_fields(sessionmaker_for_test):
+    await _add_rows(
+        sessionmaker_for_test,
+        _store_row("Store", source_metadata={"release_source": "store"}),
+        _store_row("Out", release_date=TODAY - timedelta(days=3)),
+    )
+    async with radar_client(sessionmaker_for_test) as client:
+        response = await client.get("/api/recommendations/store-list")
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body["sections"]) == {
+        "buy_now",
+        "preorders",
+        "later",
+        "not_on_cartridge",
+    }
+    # Admin mode: a store date sections like any date, and is shown.
+    assert [r["title"] for r in body["sections"]["preorders"]] == ["Store"]
+    assert (
+        body["sections"]["preorders"][0]["release_date"]
+        == (TODAY + timedelta(days=60)).isoformat()
+    )
+    out = body["sections"]["buy_now"][0]
+    assert {"id", "score", "store_lines", "top_pick", "new", "kind"} <= set(out)
+    assert out["kind"] == "radar"
+    assert "radar" in body["generated_at"] and "stores_at" in body["catalogue"]
+    assert "registry_at" in body["catalogue"]
+
+
+async def test_store_list_is_admin_only(sessionmaker_for_test):
+    async with radar_client(sessionmaker_for_test, signed_in=False) as client:
+        response = await client.get("/api/recommendations/store-list")
+    assert response.status_code == 401
