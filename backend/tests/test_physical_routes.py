@@ -6,23 +6,28 @@ without a request leaving the process.
 """
 
 import asyncio
+import json
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from physical_support import FakeIgdb, client_for, serve_fixtures
+from physical_support import PHYSICAL, FakeIgdb, client_for, serve_fixtures
 from sqlalchemy import func, select
 
 import physical_routes
 from models import (
+    CatalogueMatch,
     CatalogueRun,
     Item,
     ItemStatus,
     ItemType,
+    MatchConfidence,
+    MatchDecision,
     OwnedFormat,
     PhysicalEdition,
     StoreListing,
 )
-from physical_sources import shopify
+from physical_sources import registry_switch1, shopify
+from physical_sources.registry import rows_from_values
 from sources.base import SourceResult
 
 pytestmark = pytest.mark.asyncio
@@ -43,6 +48,7 @@ async def _count(factory, model, *where):
     [
         ("post", "/api/physical/refresh"),
         ("post", "/api/physical/refresh-registry"),
+        ("post", "/api/physical/refresh-switch1"),
         ("post", "/api/physical/refresh-platform?platform_id=4"),
         ("post", "/api/physical/resolve"),
         ("get", "/api/physical/status"),
@@ -272,7 +278,7 @@ async def test_status_flags_a_source_after_three_failures(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test) as client:
         body = (await client.get("/api/physical/status")).json()
     by_source = {s["source"]: s for s in body["sources"]}
-    assert len(by_source) == 16
+    assert len(by_source) == 17
     assert by_source["gamefairy"]["needs_attention"] is True
     assert by_source["nicalis"]["needs_attention"] is False
     assert set(body["totals"]) == {
@@ -283,6 +289,7 @@ async def test_status_flags_a_source_after_three_failures(sessionmaker_for_test)
         "unresolved_keys",
         "keys_without_platform",
         "disagreements",
+        "switch1_unmatched",
     }
 
 
@@ -492,3 +499,203 @@ async def test_a_failed_registry_sync_is_recorded_on_the_sheet_run(
     sheet, tracker = response.json()["runs"]
     assert {"code": "sync_failed", "detail": "RuntimeError"} in sheet["errors"]
     assert tracker["ok"] is True
+
+
+# --- Switch 1 registry ----------------------------------------------------------
+
+
+def _switch_1_editions():
+    def tab(name):
+        path = PHYSICAL / "registry_switch1" / f"{name}.json"
+        return rows_from_values(json.loads(path.read_text()))
+
+    master, _ = registry_switch1.parse_master(tab("master"))
+    ciab, _ = registry_switch1.parse_ciab(tab("ciab"))
+    return registry_switch1.to_editions(master, ciab)
+
+
+DEATHS_DOOR = next(
+    row["id"]
+    for row in json.loads(
+        (PHYSICAL / "igdb" / "switch_titles_deaths_door.json").read_text()
+    )
+    if row["name"] == "Death's Door"
+)
+
+
+async def test_the_switch_1_refresh_writes_decides_and_links(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post("/api/physical/refresh-switch1")
+        totals = (await client.get("/api/physical/status")).json()["totals"]
+    assert response.status_code == 200
+    run = response.json()
+    assert (run["source"], run["name"], run["ok"]) == (
+        "nscollectors_ns1",
+        "Switch 1 registry",
+        True,
+    )
+    assert [error["code"] for error in run["errors"]] == ["info"]
+    live = await _count(
+        sessionmaker_for_test,
+        PhysicalEdition,
+        PhysicalEdition.source == "nscollectors_ns1",
+        PhysicalEdition.platform_id == 130,
+    )
+    assert run["rows_seen"] == live == len(_switch_1_editions())
+    async with sessionmaker_for_test() as session:
+        decision = await session.get(CatalogueMatch, ("death s door", 130))
+        linked = set(
+            await session.scalars(
+                select(PhysicalEdition.igdb_id).where(
+                    PhysicalEdition.source == "nscollectors_ns1",
+                    PhysicalEdition.title_normalized == "death s door",
+                )
+            )
+        )
+        automatic = await session.scalar(
+            select(func.count())
+            .select_from(CatalogueMatch)
+            .where(
+                CatalogueMatch.platform_id == 130,
+                CatalogueMatch.decided_by == MatchDecision.IGNORED,
+                CatalogueMatch.match_confidence == MatchConfidence.UNCERTAIN,
+            )
+        )
+    assert (decision.decided_by, decision.match_confidence, decision.igdb_id) == (
+        MatchDecision.AUTO,
+        MatchConfidence.EXACT,
+        DEATHS_DOOR,
+    )
+    assert linked == {DEATHS_DOOR}
+    assert totals["switch1_unmatched"] == automatic > 0
+
+
+async def test_a_second_switch_1_refresh_changes_nothing(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        await client.post("/api/physical/refresh-switch1")
+        again = (await client.post("/api/physical/refresh-switch1")).json()
+    assert (again["ok"], again["rows_changed"], again["rows_retired"]) == (True, 0, 0)
+
+
+async def test_without_a_sheets_key_the_switch_1_refresh_writes_nothing(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test, sheets_key=None) as client:
+        run = (await client.post("/api/physical/refresh-switch1")).json()
+    assert run["ok"] is False
+    assert [error["code"] for error in run["errors"]] == ["sheets_not_configured"]
+    assert await _count(sessionmaker_for_test, PhysicalEdition) == 0
+
+
+async def test_without_igdb_the_switch_1_refresh_writes_nothing(sessionmaker_for_test):
+    igdb = FakeIgdb(configured=False)
+    async with client_for(sessionmaker_for_test, igdb=igdb) as client:
+        run = (await client.post("/api/physical/refresh-switch1")).json()
+    assert (run["ok"], run["rows_seen"]) == (False, 0)
+    assert [error["code"] for error in run["errors"]] == ["igdb_not_configured"]
+    assert await _count(sessionmaker_for_test, PhysicalEdition) == 0
+    assert await _count(sessionmaker_for_test, CatalogueMatch) == 0
+
+
+async def test_a_switch_1_key_a_store_lists_is_left_to_resolve(sessionmaker_for_test):
+    key = next(
+        row.title_normalized
+        for row in _switch_1_editions()
+        if row.title_normalized != "death s door"
+    )
+    async with sessionmaker_for_test() as session:
+        session.add(
+            StoreListing(
+                store="super_rare",
+                store_product_id="s1",
+                variant_id="s1",
+                handle="s1",
+                url="https://example.test/s1",
+                region="EUR",
+                title=key,
+                title_normalized=key,
+                platform_id=130,
+                platform="Nintendo Switch",
+                is_game=True,
+                currency="GBP",
+                availability="in_stock",
+            )
+        )
+        await session.commit()
+    igdb = FakeIgdb(switch_titles=[])
+    async with client_for(sessionmaker_for_test, igdb=igdb) as client:
+        run = (await client.post("/api/physical/refresh-switch1")).json()
+    assert run["ok"] is True and run["unresolved_remaining"] >= 1
+    async with sessionmaker_for_test() as session:
+        assert await session.get(CatalogueMatch, (key, 130)) is None
+
+
+async def test_a_switch_1_refresh_during_another_write_is_409(sessionmaker_for_test):
+    gate, entered = asyncio.Event(), asyncio.Event()
+    handler = serve_fixtures(gate=gate, entered=entered)
+    async with client_for(sessionmaker_for_test, handler=handler) as client:
+        first = asyncio.create_task(client.post("/api/physical/refresh-switch1"))
+        await asyncio.wait_for(entered.wait(), timeout=10)
+        second = await client.post("/api/physical/resolve")
+        gate.set()
+        assert (await first).status_code == 200
+    assert second.status_code == 409
+
+
+async def test_status_lists_the_switch_1_registry(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/physical/status")).json()
+    source = next(s for s in body["sources"] if s["source"] == "nscollectors_ns1")
+    assert (source["name"], source["kind"], source["last_run"]) == (
+        "Switch 1 registry",
+        "registry",
+        None,
+    )
+    assert body["totals"]["switch1_unmatched"] == 0
+
+
+async def test_a_store_refresh_hands_a_hidden_switch_1_title_to_resolve(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        for key, confidence in (
+            ("hidden port", MatchConfidence.UNCERTAIN),
+            ("kept port", None),
+        ):
+            session.add(
+                StoreListing(
+                    store="super_rare",
+                    store_product_id=key,
+                    variant_id=key,
+                    handle=key.replace(" ", "-"),
+                    url="https://example.test/x",
+                    region="EUR",
+                    title=key,
+                    title_normalized=key,
+                    platform_id=130,
+                    platform="Nintendo Switch",
+                    is_game=True,
+                    currency="GBP",
+                    availability="in_stock",
+                )
+            )
+            session.add(
+                CatalogueMatch(
+                    title_normalized=key,
+                    platform_id=130,
+                    decided_by=MatchDecision.IGNORED,
+                    match_confidence=confidence,
+                )
+            )
+        await session.commit()
+    # IGDB off, so the refresh's resolve batch only counts what is open.
+    igdb = FakeIgdb(configured=False)
+    async with client_for(sessionmaker_for_test, igdb=igdb) as client:
+        response = await client.post(
+            "/api/physical/refresh", json={"stores": ["nicalis"]}
+        )
+    assert response.status_code == 200
+    async with sessionmaker_for_test() as session:
+        assert await session.get(CatalogueMatch, ("hidden port", 130)) is None
+        kept = await session.get(CatalogueMatch, ("kept port", 130))
+    assert kept.decided_by == MatchDecision.IGNORED

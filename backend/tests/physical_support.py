@@ -160,6 +160,21 @@ def listing(title_normalized, variant="1", platform_id=508, label="Nintendo Swit
 
 PHYSICAL = Path(__file__).parent / "fixtures" / "physical"
 DOMAINS = {config.domain: key for key, config in STORES.items()}
+SWITCH_1 = PHYSICAL / "registry_switch1"
+SWITCH_1_SHEET = "1FNyvbbU64Pb9lheg28gC_5fMalIYJ0aD763T7M1QqF0"
+SWITCH_1_CIAB_GID = 1406641930
+
+
+def switch_1_fixture(path: str) -> str:
+    """The recorded Switch 1 tab a values path asks for, told apart by the
+    CIAB tab's recorded title."""
+    properties = json.loads((SWITCH_1 / "properties.json").read_text())
+    titles = {
+        sheet["properties"]["sheetId"]: sheet["properties"]["title"]
+        for sheet in properties["sheets"]
+    }
+    ciab = "'" + titles[SWITCH_1_CIAB_GID].replace("'", "''") + "'"
+    return "ciab" if unquote(path).endswith(f"/values/{ciab}") else "master"
 
 
 def fixture_name(handle: str) -> str:
@@ -198,6 +213,14 @@ def serve_fixtures(
                 if recorded.exists()
                 else httpx2.Response(404)
             )
+        if host == "sheets.googleapis.com" and SWITCH_1_SHEET in path:
+            assert url.params["key"] == "sheets-key"
+            name = (
+                "properties"
+                if url.params.get("fields") == "sheets.properties"
+                else switch_1_fixture(path)
+            )
+            return httpx2.Response(200, text=(SWITCH_1 / f"{name}.json").read_text())
         if host == "sheets.googleapis.com":
             assert url.params["key"] == "sheets-key"
             if url.params.get("fields") == "sheets.properties":

@@ -15,6 +15,11 @@ A store archives the listings it no longer saw, and a registry retires its
 editions, only after a clean run: something seen, not short against the last
 successful run, and no handle or schema error -- a store whose one broken
 collection hid half its stock has not proved that stock gone.
+
+The Switch 1 registry is its own press (refresh-switch1): the sheet, then
+IGDB's Switch list for bulk matching, both read before anything is written.
+A store refresh hands back to Resolve any Switch 1 title the matcher hid
+that a store now sells.
 """
 
 from __future__ import annotations
@@ -42,6 +47,7 @@ from models import (
     StoreListing,
 )
 from physical_sources import registry as sheet
+from physical_sources import registry_switch1 as switch1_sheet
 from physical_sources import shopify, tracker, woocommerce
 from physical_sources.base import HostThrottle, PhysicalSourceError
 from physical_sources.catalogue import (
@@ -76,6 +82,11 @@ from physical_sources.resolve import (
     resolve_batch,
 )
 from physical_sources.stores import STORES
+from physical_sources.switch1_ingest import (
+    count_unmatched,
+    ingest_switch1,
+    release_listed_ignores,
+)
 from physical_sources.sync import (
     disagreements,
     item_view,
@@ -87,11 +98,12 @@ from sources.igdb import PLATFORM_NAMES
 
 logger = logging.getLogger(__name__)
 
-REGISTRY_SOURCES = ("nscollectors", "switch2tracker")
+REGISTRY_SOURCES = ("nscollectors", "switch2tracker", "nscollectors_ns1")
 SOURCE_NAMES = {
     **{key: config.name for key, config in STORES.items()},
     "nscollectors": "r/NSCollectors registry",
     "switch2tracker": "switch2-tracker",
+    "nscollectors_ns1": "Switch 1 registry",
     "igdb_platform": "N64 (IGDB)",
     "resolve": "Resolve",
 }
@@ -432,6 +444,10 @@ def create_physical_router(
         async with http_client_factory() as client:
             for key in keys:
                 runs.append(await refresh_store(session, client, throttle, key))
+        # A Switch 1 title the registry's matcher hid and a store now sells
+        # goes back to Resolve (switch1_ingest).
+        await release_listed_ignores(session)
+        await session.commit()
         outcome = await resolve_run(session)
         return RefreshOut(
             runs=runs,
@@ -529,6 +545,56 @@ def create_physical_router(
             await session.commit()
 
         snapshot, _, _ = await guarded(session, "igdb_platform", work)
+        return snapshot
+
+    @router.post("/refresh-switch1", response_model=RunOut)
+    async def refresh_switch1(
+        _lock=Depends(exclusive),
+        session: AsyncSession = Depends(get_session),
+    ) -> RunOut:
+        """The Switch 1 registry: the sheet, bulk-matched to IGDB's Switch
+        list by name, then snapshots for what matched. IGDB is still never a
+        physical source for Switch 1: refresh-platform refuses 130."""
+        previous = await previous_rows_seen(session, switch1_sheet.SOURCE)
+        throttle = HostThrottle()
+        async with http_client_factory() as client:
+
+            async def work(run):
+                try:
+                    rows, warnings = await switch1_sheet.list_editions(
+                        client, sheets_key, throttle
+                    )
+                except PhysicalSourceError as error:
+                    await finish_run(session, run, ok=False, errors=[error.as_entry()])
+                    await session.commit()
+                    return
+                outcome = await ingest_switch1(session, igdb(), rows, previous=previous)
+                errors = [_warning_entry(w) for w in warnings] + outcome.errors
+                if not outcome.fatal:
+                    errors.append(
+                        {
+                            "code": "info",
+                            "detail": f"{outcome.matched} newly matched, "
+                            f"{outcome.unmatched} unmatched, "
+                            f"{outcome.left_to_resolve} left to Resolve",
+                        }
+                        if outcome.rows
+                        else {"code": "empty", "detail": "no rows"}
+                    )
+                await finish_run(
+                    session,
+                    run,
+                    ok=outcome.rows > 0 and not outcome.fatal,
+                    rows_seen=outcome.rows,
+                    rows_changed=outcome.changed,
+                    rows_retired=outcome.retired,
+                    unresolved_remaining=await count_pending(session),
+                    short_run=outcome.short,
+                    errors=errors,
+                )
+                await session.commit()
+
+            snapshot, _, _ = await guarded(session, switch1_sheet.SOURCE, work)
         return snapshot
 
     @router.post("/resolve", response_model=ResolveOut)
@@ -759,6 +825,8 @@ def create_physical_router(
             or 0
         )
         totals["disagreements"] = len(await disagreements(session))
+        # Registry titles IGDB's Switch list could not name: hidden on purpose.
+        totals["switch1_unmatched"] = await count_unmatched(session)
         return StatusOut(sources=sources, totals=totals)
 
     return router
