@@ -155,7 +155,7 @@ def test_ciab_only_rows_become_codes_in_a_box(ciab):
     yes = [
         v for v in _column("ciab", REQUIRED_CIAB, "CIAB only?") if v.casefold() == "yes"
     ]
-    assert ciab[0] and len(ciab[0]) <= len(yes)
+    assert ciab[0] and len(ciab[0]) == len(yes)
     assert {row["physical_format"] for row in ciab[0]} == {"code_in_box"}
 
 
@@ -221,6 +221,49 @@ def test_a_ciab_no_row_adds_nothing():
     ]
     found, _ = parse_ciab(rows)
     assert [row["title"] for row in found] == ["A"]
+
+
+@pytest.mark.parametrize(
+    ("cell", "expected"),
+    [
+        ("LA-H-A5RBA-EUR1", "LA-H-A5RBA-EUR1"),
+        ("LB-H-BK6RA-CHT", "LB-H-BK6RA-CHT"),
+        ("LA-H-ATPDA-EUR / LA-H-ATPDC-EUR", "LA-H-ATPDA-EUR"),
+    ],
+)
+def test_real_cart_id_shapes_are_cartridges(cell, expected):
+    (edition,), _ = parse_master(
+        [["Game Title", "Region", "Cart ID"], ["Game", "EUR", cell]]
+    )
+    assert (edition["physical_format"], edition["cart_id"]) == ("game_card", expected)
+
+
+@pytest.mark.parametrize("cell", ["N/A", "TBA", "LA-H-12-USA"])
+def test_junk_is_not_a_cart_id(cell):
+    (edition,), _ = parse_master(
+        [["Game Title", "Region", "Cart ID"], ["Game", "EUR", cell]]
+    )
+    assert (edition["physical_format"], edition["cart_id"]) == (None, None)
+
+
+def test_a_ciab_tab_with_no_yes_row_is_a_warning():
+    rows = [
+        ["Game Title", "Region", "Publisher", "CIAB only?"],
+        ["A", "USA", "P", "No"],
+    ]
+    found, warnings = parse_ciab(rows)
+    assert found == [] and "no_ciab_only_rows" in warnings
+
+
+def test_the_recorded_cart_ids_that_fail_the_pattern_are_a_handful():
+    carts = _column("master", REQUIRED_MASTER, "Cart ID")
+    failing = [
+        cart
+        for cart in carts
+        if not SWITCH_1_CART_ID_PATTERN.match(cart.split(" / ")[0].strip().upper())
+    ]
+    print(len(carts), len(failing), failing)
+    assert len(failing) <= 0.01 * len(carts)
 
 
 def test_a_cartridge_and_a_code_in_a_box_are_two_editions():

@@ -79,6 +79,12 @@ def _reader(rows: list[list[str]], required, optional):
     return rows[header_index + 1 :], cell, warnings
 
 
+def _first_cart(text: str) -> str:
+    """A cell naming two carts ("LA-H-ATPDA-EUR / LA-H-ATPDC-EUR") is read as
+    its first."""
+    return text.split(" / ")[0].strip()
+
+
 def _release(text: str):
     released = parse_ymd(text)
     if released is not None:
@@ -94,7 +100,7 @@ def parse_master(rows: list[list[str]]) -> tuple[list[dict], list[str]]:
         title, region = cell(row, "Game Title"), cell(row, "Region").upper()
         if not title or not region:
             continue
-        cart_id = _cart_id(cell(row, "Cart ID"), SWITCH_1_CART_ID_PATTERN)
+        cart_id = _cart_id(_first_cart(cell(row, "Cart ID")), SWITCH_1_CART_ID_PATTERN)
         released, precision = _release(cell(row, "Release Date"))
         editions.append(
             {
@@ -117,6 +123,10 @@ def parse_ciab(rows: list[list[str]]) -> tuple[list[dict], list[str]]:
     rows marked "CIAB only? = Yes"."""
     body, cell, warnings = _reader(rows, REQUIRED_CIAB, OPTIONAL_CIAB)
     editions: list[dict] = []
+    if any(cell(row, "Game Title") for row in body) and not any(
+        cell(row, "CIAB only?").casefold() == "yes" for row in body
+    ):
+        warnings.append("no_ciab_only_rows")
     for row in body:
         title, region = cell(row, "Game Title"), cell(row, "Region").upper()
         if not title or not region or cell(row, "CIAB only?").casefold() != "yes":
