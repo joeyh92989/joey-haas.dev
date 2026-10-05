@@ -282,8 +282,7 @@ def test_the_recorded_cart_ids_that_fail_the_pattern_are_a_handful():
         for cart in carts
         if not SWITCH_1_CART_ID_PATTERN.match(cart.split(" / ")[0].strip().upper())
     ]
-    print(len(carts), len(failing), failing)
-    assert len(failing) <= 0.01 * len(carts)
+    assert len(failing) <= 0.01 * len(carts), failing
 
 
 def test_a_cartridge_and_a_code_in_a_box_are_two_editions():

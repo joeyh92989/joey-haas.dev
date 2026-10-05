@@ -35,7 +35,6 @@ logger = logging.getLogger(__name__)
 SOURCE = "nscollectors"
 SHEET_ID = "1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8"
 SHEETS_ROOT = "https://sheets.googleapis.com/v4/spreadsheets"
-SHEETS_API = f"{SHEETS_ROOT}/{SHEET_ID}"
 SHEETS_HOST = "sheets.googleapis.com"
 # Tab -> gid.
 TABS = {"details": 764784245, "upcoming_details": 238551450}

@@ -1,15 +1,17 @@
 """Bulk matching of Switch 1 registry titles to IGDB's Switch list (switch1
 spec B).
 
-Pure. switch1_ingest pages IGDB with page_query -- ids, names and first
-release dates only, tens of requests for every Switch game -- and this module
-matches each registry key locally, so about 4,200 titles resolve without one
-search each at IGDB's four requests a second.
+Pure. switch1_ingest pages IGDB with page_query -- id, name, first release
+date and alternative names, paged by id, one request per 500 Switch games --
+and this module matches each registry key locally, so about 4,500 titles
+(about 10,000 editions) resolve without one search each at IGDB's four
+requests a second.
 
 A key is looked up in two tables. The exact table holds each game's name and
-alternative names through normalize_title, the way registry keys are made;
-the stripped table holds them through game_title first, so "Hades Deluxe
-Edition" also answers "hades". The exact table is asked first and the
+alternative names through normalize_title alone. The stripped table holds
+them through game_title first, the way registry keys are built
+(normalize_title(game_title(title))), so "Hades Deluxe Edition" also answers
+"hades". The exact table is asked first and the
 stripped one only when the exact one knows nothing: a base game and its
 deluxe edition strip to one key, and the base game's own name should win.
 

@@ -2,12 +2,14 @@
 the Google Sheets API with registry.py's helpers.
 
 Two tabs, found by gid: Physical Release Master, one row per physical
-release of a title in a region (about 4,200 titles), and the code-in-a-box
-tab. A Master row with a Switch 1 cart ID (LA-H-...) is a full cartridge at
-the registry tier; one without is physical with an unknown format. A CIAB
-row marked "CIAB only? = Yes" is a code in a box; one marked No adds
-nothing, because its cartridge is already in Master. Every Switch 1
-cartridge counts as the full game (switch1 spec, decision 5).
+release of a title in a region (about 4,500 titles, about 10,000 editions),
+and the code-in-a-box tab. list_editions returns one EditionRow per edition,
+so a run's rows_seen counts editions, not titles. A Master row with a
+Switch 1 cart ID (LA-H-...) is a full cartridge at the registry tier; one
+without is physical with an unknown format. A CIAB row marked "CIAB only? =
+Yes" is a code in a box; one marked No adds nothing, because its cartridge
+is already in Master. Every Switch 1 cartridge counts as the full game
+(switch1 spec, decision 5).
 
 Optional columns are matched without case: the sheet spells one "Master
 TItle". It is read only to notice a header that moved; "LP #", "Other Info",

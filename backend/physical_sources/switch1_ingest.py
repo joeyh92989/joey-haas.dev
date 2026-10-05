@@ -1,10 +1,11 @@
 """The Switch 1 registry's database side (switch1 spec B).
 
 refresh-switch1 reads the sheet (registry_switch1) and hands its editions to
-ingest_switch1, which pages IGDB's Switch list by name (switch1_titles),
-upserts the editions, decides each open key, fetches snapshots for what
-matched and links the rows. IGDB is never a physical source here: a game is
-physical because the sheet lists it; IGDB only names it.
+ingest_switch1, which pages IGDB's whole Switch list by id (switch1_titles,
+one request per 500 games) to match the keys by name, upserts the editions,
+decides each open key, fetches snapshots for what matched and links the
+rows. IGDB is never a physical source here: a game is physical because the
+sheet lists it; IGDB only names it.
 
 One match is decided AUTO/EXACT, as the N64 ingest pre-decides its titles.
 No match is IGNORED, so the titles IGDB spells differently never crowd Needs
