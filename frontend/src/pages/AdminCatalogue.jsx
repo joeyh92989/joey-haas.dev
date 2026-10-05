@@ -451,7 +451,19 @@ export default function AdminCatalogue() {
       'Refreshing Switch 1…',
       '/api/physical/refresh-switch1',
     )
-    if (run) setMessage(`Switch 1: ${run.rows_seen} editions`)
+    if (!run) return
+    if (run.ok) {
+      setMessage(`Switch 1: ${run.rows_seen} editions`)
+      return
+    }
+    // A failed run is still HTTP 200; its first real error says why.
+    const failure =
+      run.errors.find((entry) => entry.code !== 'info') ?? run.errors[0]
+    setError(
+      failure
+        ? `Switch 1 refresh failed: ${failure.detail}`
+        : 'Switch 1 refresh failed',
+    )
   }
 
   async function resolveAll() {

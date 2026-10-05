@@ -607,6 +607,33 @@ describe('Switch 1 registry', () => {
     )
   })
 
+  it('words a failed Switch 1 run as a failure, not as 0 editions', async () => {
+    stubApi({
+      'POST /api/physical/refresh-switch1': () =>
+        json(
+          run('nscollectors_ns1', {
+            ok: false,
+            rows_seen: 0,
+            errors: [
+              { code: 'info', detail: 'master:missing_column:Cart ID' },
+              {
+                code: 'igdb_rate_limited',
+                detail: 'IGDB rate limit; press again',
+              },
+            ],
+          }),
+        ),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Refresh Switch 1' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Switch 1 refresh failed: IGDB rate limit; press again',
+    )
+    expect(screen.queryByText('Switch 1: 0 editions')).toBeNull()
+  })
+
   it('says nothing about unmatched titles when there are none', async () => {
     stubApi()
     renderPage()
