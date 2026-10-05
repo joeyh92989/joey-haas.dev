@@ -164,6 +164,13 @@ async def test_public_mode_drops_answered_rows_of_an_older_batch(
             kind=RecommendationKind.DISCOVER,
             status=status,
             generated_at=older,
+            batch_id=PICKS,
+        ),
+        _radar(
+            "Pick Pending",
+            kind=RecommendationKind.DISCOVER,
+            generated_at=older,
+            batch_id=PICKS,
         ),
     )
     async with sessionmaker_for_test() as session:
@@ -172,21 +179,84 @@ async def test_public_mode_drops_answered_rows_of_an_older_batch(
         "Old Pending",
         "New",
         "Pick Answered",
+        "Pick Pending",
     }
+
+
+PICKS = uuid.uuid4()
 
 
 async def test_public_mode_reads_every_batch_generated_at_the_latest_instant(
     sessionmaker_for_test,
 ):
+    """A tie is one generation: its batches freeze together."""
     at = datetime(2026, 9, 28, 6, 0, tzinfo=UTC)
     await _add(
         sessionmaker_for_test,
         _radar("First", status=RecommendationStatus.DISMISSED, generated_at=at),
         _radar("Second", status=RecommendationStatus.WANTED, generated_at=at),
+        _radar("Third", generated_at=at),
     )
     async with sessionmaker_for_test() as session:
         public = await load_next(session, public=True)
-    assert {c.title for c in public.candidates} == {"First", "Second"}
+    assert {c.title for c in public.candidates} == {"First", "Second", "Third"}
+
+
+async def test_a_platform_limited_generate_keeps_other_platforms_frozen(
+    sessionmaker_for_test,
+):
+    """Radar replaces pending rows per platform it covered, so the latest
+    batch is per (kind, platform): a generate on Switch 1 alone must not end
+    Switch 2's frozen answers, or exactly the answered games would vanish."""
+    first, later = (
+        datetime(2026, 9, 27, 6, 0, tzinfo=UTC),
+        datetime(2026, 9, 28, 6, 0, tzinfo=UTC),
+    )
+    nightly, switch1_only = uuid.uuid4(), uuid.uuid4()
+    await _add(
+        sessionmaker_for_test,
+        _radar("Two Pending", batch_id=nightly, generated_at=first),
+        _radar(
+            "Two Answered",
+            status=RecommendationStatus.DISMISSED,
+            batch_id=nightly,
+            generated_at=first,
+        ),
+        _radar(
+            "One Answered",
+            status=RecommendationStatus.DISMISSED,
+            batch_id=nightly,
+            generated_at=first,
+            platform_id=130,
+        ),
+        _radar("One Fresh", batch_id=switch1_only, generated_at=later, platform_id=130),
+    )
+    async with sessionmaker_for_test() as session:
+        public = await load_next(session, public=True)
+    assert {c.title for c in public.candidates} == {
+        "Two Pending",
+        "Two Answered",
+        "One Fresh",
+    }
+
+
+async def test_a_batch_with_nothing_pending_shows_no_answered_row(
+    sessionmaker_for_test,
+):
+    """Fails closed: after a generate that wrote no rows (its pending rows
+    deleted), the old batch is still the latest, holding only answers;
+    publishing them would list exactly what the owner answered."""
+    batch, at = uuid.uuid4(), datetime(2026, 9, 28, 6, 0, tzinfo=UTC)
+    await _add(
+        sessionmaker_for_test,
+        *[
+            _radar(f"Answered {s.value}", status=s, batch_id=batch, generated_at=at)
+            for s in ANSWERED
+        ],
+    )
+    async with sessionmaker_for_test() as session:
+        public = await load_next(session, public=True)
+    assert public.candidates == []
 
 
 async def test_candidates_run_by_score_then_title(sessionmaker_for_test):

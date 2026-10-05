@@ -58,44 +58,59 @@ def _candidate(row: Recommendation) -> NextCandidate:
     )
 
 
-async def _latest_batches(session: AsyncSession, kind: RecommendationKind) -> list:
-    """The batch ids of `kind`'s latest generation: every batch generated at
-    its newest `generated_at`, so a tie cannot hide one."""
-    newest = (
-        select(func.max(Recommendation.generated_at))
-        .where(Recommendation.kind == kind)
-        .scalar_subquery()
-    )
-    return list(
-        await session.scalars(
-            select(Recommendation.batch_id)
-            .where(Recommendation.kind == kind, Recommendation.generated_at == newest)
-            .distinct()
+async def _frozen_batches(session: AsyncSession) -> list:
+    """Where the public page keeps answered rows: per (kind, platform), the
+    batches of its latest generation (every batch at its newest
+    `generated_at`, so a tie cannot hide one), and only while that
+    generation still has a pending row there.
+
+    Per platform, because Radar replaces pending rows only on the platforms
+    a generate covered, so another platform's generation is not over. Fails
+    closed: a generation with nothing pending left (a generate that wrote no
+    rows deleted them, or the owner answered every one) shows none of its
+    answered rows, which would otherwise be exactly what was answered.
+    """
+    groups: dict[tuple, dict] = {}
+    for kind, platform_id, batch_id, at, status in await session.execute(
+        select(
+            Recommendation.kind,
+            Recommendation.platform_id,
+            Recommendation.batch_id,
+            Recommendation.generated_at,
+            Recommendation.status,
         )
-    )
+    ):
+        group = groups.setdefault((kind, platform_id), {"at": at, "rows": []})
+        group["at"] = max(group["at"], at)
+        group["rows"].append((batch_id, at, status))
+    frozen = []
+    for (kind, platform_id), group in groups.items():
+        latest = [row for row in group["rows"] if row[1] == group["at"]]
+        if any(status == RecommendationStatus.PENDING for _, _, status in latest):
+            frozen.append(
+                and_(
+                    Recommendation.kind == kind,
+                    Recommendation.platform_id == platform_id,
+                    Recommendation.batch_id.in_({batch for batch, _, _ in latest}),
+                )
+            )
+    return frozen
 
 
 async def load_next(session: AsyncSession, *, public: bool = False) -> NextData:
     """Radar and Discover rows, and the games a reason may name.
 
     Admin (the default): pending rows only, so an answer leaves the list at
-    once. Public: pending rows plus every answered row of its kind's latest
-    batch, so answering a game does not change the public page; it leaves
-    when a new generation runs (spec, S9). Generation skips answered rows,
-    which keep their batch, so a new batch ends them. Nothing on a row tells
-    the public an answered row from a pending one.
+    once. Public: pending rows plus the answered rows of each (kind,
+    platform)'s latest generation while it has a pending row left (see
+    _frozen_batches), so answering a game does not change the public page;
+    it leaves when a new generation runs (spec, S9). Generation skips
+    answered rows, which keep their batch, so a new batch ends them.
+    Nothing on a row tells the public an answered row from a pending one.
     """
     shown = Recommendation.status == RecommendationStatus.PENDING
     if public:
-        frozen = [
-            and_(
-                Recommendation.kind == kind,
-                Recommendation.batch_id.in_(batches),
-            )
-            for kind in RecommendationKind
-            if (batches := await _latest_batches(session, kind))
-        ]
-        shown = or_(shown, *frozen)
+        shown = or_(shown, *await _frozen_batches(session))
     rows = list(
         await session.scalars(
             select(Recommendation)
