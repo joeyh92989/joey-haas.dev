@@ -3883,8 +3883,9 @@ is sequential):
 - **PR A, after deploy:**
   1. smoke is green;
   2. Joey runs Actions → Nightly → Run workflow;
-  3. its summary reads "every refresh and generate step succeeded", or names
-     the failed steps;
+  3. its summary lists the steps under "succeeded" with "failed: none", or
+     names the failed steps (a 401 fails the run: the Render and GitHub
+     `JOB_TOKEN` values differ);
   4. `/admin` shows "Last nightly: catalogue <today> · ok";
   5. Render's logs for the run window show `job token accepted: POST
      /api/picker/next` and the other job routes only, and no 5xx.
