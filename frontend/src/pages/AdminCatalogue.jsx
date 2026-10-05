@@ -73,6 +73,11 @@ export function runState(run) {
   return parts.join(', ')
 }
 
+/** The Switch 1 registry titles IGDB could not name, in words. */
+export function unmatchedWords(count) {
+  return `${count} Switch 1 ${count === 1 ? 'title' : 'titles'} unmatched`
+}
+
 function SourceRow({ source, busy, onRefreshStore }) {
   const run = source.last_run
   return (
@@ -441,6 +446,14 @@ export default function AdminCatalogue() {
     if (run) setMessage(`N64: ${run.rows_seen} games`)
   }
 
+  async function refreshSwitch1() {
+    const run = await press(
+      'Refreshing Switch 1…',
+      '/api/physical/refresh-switch1',
+    )
+    if (run) setMessage(`Switch 1: ${run.rows_seen} editions`)
+  }
+
   async function resolveAll() {
     setError(null)
     setMessage(null)
@@ -503,8 +516,8 @@ export default function AdminCatalogue() {
     <section className="catalogue">
       <h1>Catalogue</h1>
       <p className="muted">
-        What exists physically, and as what: the r/NSCollectors registry, the
-        boutique stores and IGDB&apos;s N64 list.
+        What exists physically, and as what: the r/NSCollectors registries for
+        Switch 2 and Switch 1, the boutique stores and IGDB&apos;s N64 list.
       </p>
 
       <div className="catalogue-actions">
@@ -516,6 +529,9 @@ export default function AdminCatalogue() {
         </button>
         <button type="button" disabled={busy} onClick={refreshN64}>
           Refresh N64
+        </button>
+        <button type="button" disabled={busy} onClick={refreshSwitch1}>
+          Refresh Switch 1
         </button>
         <button type="button" disabled={busy} onClick={resolveAll}>
           Resolve
@@ -543,6 +559,11 @@ export default function AdminCatalogue() {
               </div>
             ))}
           </dl>
+          {status.totals.switch1_unmatched > 0 && (
+            <p className="muted">
+              {unmatchedWords(status.totals.switch1_unmatched)}
+            </p>
+          )}
 
           <div className="item-table-wrap">
             <table className="item-table catalogue-table">
