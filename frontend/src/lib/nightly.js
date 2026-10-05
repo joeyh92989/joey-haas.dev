@@ -10,10 +10,17 @@
 /** Source kinds the nightly job refreshes; Refresh N64 is manual. */
 const NIGHTLY_KINDS = new Set(['store', 'registry', 'resolve'])
 
+/**
+ * The kinds that date a night. Resolve is left out: it is often pressed by
+ * hand, and a later manual Resolve would move the night past the store
+ * walk and hide that walk's failure.
+ */
+const ANCHOR_KINDS = new Set(['store', 'registry'])
+
 /** Hours after which the line says the job may have stopped. */
 export const STALE_HOURS = 36
 
-/** Runs this close to the newest one belong to the same night. */
+/** Runs this close to the night's catalogue run belong to that night. */
 const SAME_NIGHT_MS = 6 * 3600 * 1000
 
 const WHEN = new Intl.DateTimeFormat('en-GB', {
@@ -27,7 +34,13 @@ const WHEN = new Intl.DateTimeFormat('en-GB', {
 /**
  * Summarises the latest night.
  *
- * @param {{sources?: Array<{name: string, kind: string, last_run: {finished_at: string, ok: boolean|null}|null}>}} status
+ * The night is dated by the newest finished store or registry run. A
+ * nightly-kind run within six hours of it that reports `ok: false` failed,
+ * and so did one left open by a restart (`interrupted`) that started
+ * within the last STALE_HOURS: it never finishes, so it has no other way
+ * to show.
+ *
+ * @param {{sources?: Array<{name: string, kind: string, last_run: {started_at: string, finished_at: string|null, ok: boolean|null, interrupted?: boolean}|null}>}} status
  *   `GET /api/physical/status`.
  * @param {{radar?: string|null, discover?: string|null}} generated The two
  *   kinds' last generate times.
@@ -35,40 +48,53 @@ const WHEN = new Intl.DateTimeFormat('en-GB', {
  * @returns {{catalogueAt: number|null, failed: string[], stale: boolean, radarAt: string|null, discoverAt: string|null}}
  */
 export function lastNightly(status, generated, now = Date.now()) {
-  const runs = (status?.sources ?? []).filter(
-    (source) => NIGHTLY_KINDS.has(source.kind) && source.last_run?.finished_at,
+  const sources = (status?.sources ?? []).filter((source) =>
+    NIGHTLY_KINDS.has(source.kind),
   )
-  const times = runs.map((source) => Date.parse(source.last_run.finished_at))
-  const catalogueAt = times.length ? Math.max(...times) : null
-  const failed = runs
-    .filter(
-      (source, index) =>
-        catalogueAt - times[index] <= SAME_NIGHT_MS &&
-        source.last_run.ok === false,
-    )
+  const finished = sources.filter((source) => source.last_run?.finished_at)
+  const finishedAt = (source) => Date.parse(source.last_run.finished_at)
+  const anchors = finished
+    .filter((source) => ANCHOR_KINDS.has(source.kind))
+    .map(finishedAt)
+  const catalogueAt = anchors.length ? Math.max(...anchors) : null
+  const staleMs = STALE_HOURS * 3600 * 1000
+  const failed = sources
+    .filter((source) => {
+      const run = source.last_run
+      if (run?.interrupted) return now - Date.parse(run.started_at) <= staleMs
+      return (
+        Boolean(run?.finished_at) &&
+        run.ok === false &&
+        catalogueAt !== null &&
+        Math.abs(catalogueAt - finishedAt(source)) <= SAME_NIGHT_MS
+      )
+    })
     .map((source) => source.name)
   return {
     catalogueAt,
     failed,
-    stale:
-      catalogueAt === null || now - catalogueAt > STALE_HOURS * 3600 * 1000,
+    stale: catalogueAt === null || now - catalogueAt > staleMs,
     radarAt: generated?.radar ?? null,
     discoverAt: generated?.discover ?? null,
   }
 }
 
 /**
- * The line as the admin landing shows it.
+ * The line as the admin landing shows it. Text only: the landing adds the
+ * link to the README when `summary.stale`.
  *
  * @param {ReturnType<typeof lastNightly>} summary
  * @returns {string}
  */
 export function nightlyWords(summary) {
+  const failed = `failed: ${summary.failed.join(', ')}`
   if (summary.catalogueAt === null)
-    return 'Nightly may have stopped: no catalogue run yet'
+    return summary.failed.length
+      ? `Nightly may have stopped: no catalogue run finished · ${failed}`
+      : 'Nightly may have stopped: no catalogue run yet'
   const parts = [
     `catalogue ${WHEN.format(summary.catalogueAt)}`,
-    summary.failed.length ? `failed: ${summary.failed.join(', ')}` : 'ok',
+    summary.failed.length ? failed : 'ok',
   ]
   if (summary.radarAt)
     parts.push(`Radar ${WHEN.format(Date.parse(summary.radarAt))}`)

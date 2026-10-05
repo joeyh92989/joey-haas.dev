@@ -6,8 +6,12 @@ const run = (source, kind, finished_at, ok = true, name = source) => ({
   source,
   name,
   kind,
-  last_run: finished_at ? { finished_at, ok } : null,
+  last_run: finished_at
+    ? { started_at: finished_at, finished_at, ok, interrupted: false }
+    : null,
 })
+const HOUR = 3600 * 1000
+const hoursAgo = (hours) => new Date(NOW - hours * HOUR).toISOString()
 
 describe('lastNightly', () => {
   it('takes the newest nightly run and ignores Refresh N64', () => {
@@ -43,6 +47,66 @@ describe('lastNightly', () => {
     expect(summary.failed).toEqual(['Limited Run'])
   })
 
+  it('keeps the night of the store run when a manual Resolve runs later', () => {
+    const summary = lastNightly(
+      {
+        sources: [
+          run('lrg', 'store', '2026-10-05T00:40:00Z', false, 'Limited Run'),
+          run('nscollectors', 'registry', '2026-10-05T00:20:00Z'),
+          run('resolve', 'resolve', '2026-10-05T11:30:00Z'),
+        ],
+      },
+      {},
+      NOW,
+    )
+    expect(summary.catalogueAt).toBe(Date.parse('2026-10-05T00:40:00Z'))
+    expect(summary.failed).toEqual(['Limited Run'])
+  })
+
+  it('counts a recent interrupted run as failed', () => {
+    const summary = lastNightly(
+      {
+        sources: [
+          run('nscollectors', 'registry', '2026-10-05T00:20:00Z'),
+          {
+            source: 'lrg',
+            name: 'Limited Run',
+            kind: 'store',
+            last_run: {
+              started_at: '2026-10-05T00:25:00Z',
+              finished_at: null,
+              ok: null,
+              interrupted: true,
+            },
+          },
+          {
+            source: 'old',
+            name: 'Old store',
+            kind: 'store',
+            last_run: {
+              started_at: hoursAgo(STALE_HOURS + 1),
+              finished_at: null,
+              ok: null,
+              interrupted: true,
+            },
+          },
+        ],
+      },
+      {},
+      NOW,
+    )
+    expect(summary.failed).toEqual(['Limited Run'])
+    expect(summary.stale).toBe(false)
+  })
+
+  it(`turns stale between ${STALE_HOURS - 1} and ${STALE_HOURS + 1} hours`, () => {
+    const at = (hours) =>
+      lastNightly({ sources: [run('lrg', 'store', hoursAgo(hours))] }, {}, NOW)
+        .stale
+    expect(at(STALE_HOURS - 1)).toBe(false)
+    expect(at(STALE_HOURS + 1)).toBe(true)
+  })
+
   it(`is stale after ${STALE_HOURS} hours, and with no runs at all`, () => {
     const old = lastNightly(
       { sources: [run('lrg', 'store', '2026-10-03T23:00:00Z')] },
@@ -72,6 +136,31 @@ describe('nightlyWords', () => {
     )
     expect(nightlyWords({ ...base, catalogueAt: null, stale: true })).toBe(
       'Nightly may have stopped: no catalogue run yet',
+    )
+  })
+
+  it('adds the Radar and Discover times when given', () => {
+    const words = nightlyWords({
+      catalogueAt: Date.parse('2026-10-05T00:40:00Z'),
+      failed: [],
+      stale: false,
+      radarAt: '2026-10-05T00:44:00Z',
+      discoverAt: '2026-10-05T00:46:00Z',
+    })
+    expect(words).toMatch(/ · Radar .+ · Discover .+$/)
+  })
+
+  it('names an interrupted run even when no catalogue run finished', () => {
+    expect(
+      nightlyWords({
+        catalogueAt: null,
+        failed: ['Limited Run'],
+        stale: true,
+        radarAt: null,
+        discoverAt: null,
+      }),
+    ).toBe(
+      'Nightly may have stopped: no catalogue run finished · failed: Limited Run',
     )
   })
 })

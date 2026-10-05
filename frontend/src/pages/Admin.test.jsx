@@ -109,26 +109,27 @@ describe('Admin', () => {
 })
 
 describe('Admin last nightly line', () => {
-  function stubApi(statusBody) {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url) => {
-        const path = String(url)
-        if (path.endsWith('/api/auth/me'))
-          return {
-            ok: true,
-            status: 200,
-            json: async () => ({ email: 'a@b.c' }),
-          }
-        if (path.endsWith('/api/physical/status'))
-          return { ok: true, status: 200, json: async () => statusBody }
+  function stubApi(statusBody, statusOk = true) {
+    const fetch = vi.fn(async (url) => {
+      const path = String(url)
+      if (path.endsWith('/api/auth/me'))
         return {
           ok: true,
           status: 200,
-          json: async () => ({ generated_at: null }),
+          json: async () => ({ email: 'a@b.c' }),
         }
-      }),
-    )
+      if (path.endsWith('/api/physical/status'))
+        return statusOk
+          ? { ok: true, status: 200, json: async () => statusBody }
+          : { ok: false, status: 500, json: async () => ({}) }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ generated_at: null }),
+      }
+    })
+    vi.stubGlobal('fetch', fetch)
+    return fetch
   }
 
   it('shows the latest run once signed in', async () => {
@@ -152,5 +153,30 @@ describe('Admin last nightly line', () => {
     expect(
       await screen.findByText(/Nightly may have stopped/),
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: /how to re-enable it/i }),
+    ).toHaveAttribute(
+      'href',
+      'https://github.com/joeyh92989/joey-haas.dev#nightly-job',
+    )
+  })
+
+  it('asks for nothing else when the status cannot be read', async () => {
+    const fetch = stubApi(null, false)
+    renderAt()
+    await screen.findByText('a@b.c')
+    await waitFor(() =>
+      expect(
+        fetch.mock.calls.some(([url]) =>
+          String(url).endsWith('/api/physical/status'),
+        ),
+      ).toBe(true),
+    )
+    expect(
+      fetch.mock.calls.some(([url]) =>
+        String(url).includes('/api/recommendations'),
+      ),
+    ).toBe(false)
+    expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
   })
 })
