@@ -3968,3 +3968,91 @@ or migration change anywhere in the plan.
   - `/admin/store-list` on a phone (375px): the Game-Key Card note, five sections in order, rows readable without horizontal scroll, Got it removes a row and the game appears privately on `/admin/collection`.
   - `/api/public/radar` and the public snapshot carry nothing new from Switch 1 (no row whose `release_source` came from the Switch 1 sheet).
 - **Observability:** Render logs for the API around the refresh: `POST /api/physical/refresh-switch1` → 200, the `switch 1 registry: <n> master rows, <m> ciab` line, the `igdb POST /v4/games` lines for the title pages and snapshot batches, and no `nscollectors_ns1 run failed` traceback (search by URL with `&q=`, per memory). Green smoke plus a new error in the logs is **not done**; red enters structured debugging.
+
+## Execution summary
+
+Zone 1 ran tasks 1–13 as planned (`f314271..5499539`), then one fix wave
+from the final whole-branch review. Where the code differs from the task
+text above, the code and this summary are the record.
+
+### Rulings during execution
+
+- **Cart ID pattern widened (Task 4).** The plan's
+  `^LA-H-[A-Z0-9]{5}-[A-Z]{3}$` rejected 108 of the 9,482 filled cart IDs
+  in the recording. Those rows would have become physical with no format,
+  and under the region-free collapse an EUR or CHT cartridge decides a game.
+  `limits.SWITCH_1_CART_ID_PATTERN` is now
+  `^L[A-Z]-H-[A-Z0-9]{5}-[A-Z]{3}[0-9]?$`: an optional revision digit after
+  the region (`LA-H-A5RBA-EUR1`) and an `LB-` prefix (`LB-H-BK6RA-CHT`). A
+  cell naming two carts ("A / B") is read as its first. One recorded ID
+  still fails (`LA&H-BDWKB-USA`, a typo) and is left without a format on
+  purpose.
+- **Store list release precision (Task 10).** Month dates are stored as the
+  1st, so a month-precision cartridge read as "Out now" before it was out.
+  The fix added `periodEnd(date, precision)`: a row is out only when its
+  period has ended, and otherwise a period starting within 90 days is "Ask
+  about pre-orders". Every dated row now shows `releaseWords` ("Out October
+  2026" in the pre-order section). Skip in store rows have no Got it, and
+  empty sections are not rendered; with nothing left, only the Discover and
+  Radar prompt shows.
+- **Download note (Task 2).** The recording has one Other/Edition Info note
+  that mentions downloads: a Smurfs Kart bundle ("Smurfs kart on cart; Other
+  games are digital downloads"). Decision 5 (every Switch 1 cartridge
+  counts as the full game) was kept, and the note was flagged to Joey.
+- **Recorded counts.** 4,460 Master titles, 4,497 keys and 10,264 editions
+  (10,115 Master rows and the CIAB-only codes in a box, after the ref
+  dedupe). A refresh's `rows_seen` counts editions, not titles.
+
+### Final review fix wave
+
+- Tests now pin the ingest's protections. AUTO (exact and probable), MANUAL
+  and PENDING decisions survive an ingest unchanged, and a manual link is
+  the id the editions carry. An ignore from `resolve.ignore` is never
+  revisited. `count_unmatched` excludes retired editions, other sources, a
+  human's ignore and other platforms. The store-listing exception deletes an
+  existing automatic ignore, and an archived, non-game or Switch 2 listing
+  holds no key. The route test asserts the exact info line.
+- `release_listed_ignores` in the stores route rolls back and logs a warning
+  on failure instead of returning a 500 after the store runs committed.
+- A Switch 1 row whose region is longer than 4 characters is skipped with a
+  `region_too_long` warning, rather than failing the whole run's flush.
+- The Switch 1 run's `http_error` details are a fixed message plus the
+  error's type name, never the IGDB adapter's text, which can carry a
+  request URL (the Twitch token request has `client_secret` in its query).
+- `collapse._best` breaks exact ties by region, then route, so a Switch 1
+  answer's region no longer follows database row order. Formats were never
+  affected.
+- `physical_routes.REGISTRY_SOURCES` is now `STATUS_REGISTRY_SOURCES`. A
+  public-output test puts a dated Switch 1 cartridge through a real Radar
+  generate and holds `/api/public/radar` empty.
+- `/admin/catalogue` words a failed Switch 1 run as "Switch 1 refresh
+  failed: …", not "Switch 1: 0 editions". `/admin/store-list` drops a
+  stale "Sign in" line while a new session refetches.
+- The recorder blanks Master's LP #, Other Info, Verified By and Check below
+  the header, so editors' handles are no longer in the fixture, and its
+  cart-shape line uses the production pattern. The Master tab was
+  re-recorded. Every column the parser reads came back identical, and
+  `properties.json` and `ciab.json` were unchanged. The earlier recording
+  is still in the branch's history.
+- Smaller fixes: the dead `registry.SHEETS_API` and a debug print are gone,
+  `switch1_titles`' docstring now describes its tables correctly, and the
+  docs give the counts above and describe the IGDB walk as id, name, first
+  release date and alternative names, paged by id, one request per 500
+  Switch games.
+
+### Deferred
+
+- **Sheet dates are not used for release judgment** (final review M1).
+  Discover's released filter reads IGDB's first release date for a game
+  known only from the sheet. Master rows are already released, and the
+  recording has one future-dated row, so the impact today is close to nil.
+  If it matters later, give `collapse._release` a non-public
+  `release_source` for `nscollectors_ns1` dates.
+- **Got it 409 noise and Top picks order** (M4, M5). Got it on a Discover
+  pick that is also a pending Radar row leaves the Radar row until the next
+  Radar generate, and pressing it again returns 409 "Already on your shelf".
+  Top picks are ordered by Discover's pre-score, not the model's rank.
+- **Live IGDB paging beyond page 1 is unrecorded** (M8). How many games
+  `platforms = (130)` returns, and whether IGDB accepts the larger offsets,
+  is first exercised by the first production Refresh Switch 1. Check that
+  run's errors and page count.
