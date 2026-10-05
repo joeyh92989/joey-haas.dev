@@ -1277,6 +1277,68 @@ footer {
   max-width: 45rem;
 }
 
+/* Spine's header block: the same on the shelf and on What's next. The name
+   is a p on the sub-page, so it takes the global h1's display size and weight
+   from here to match the shelf's h1. */
+.spine-header {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.75rem;
+  padding-bottom: 0.25rem;
+}
+
+.spine-name {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.spine-name a {
+  color: inherit;
+}
+
+/* The global `nav a` pill look is reset here: these read as an underlined tab
+   row, not site navigation. The hover/active selectors out-rank
+   `nav a.active:hover`. */
+.spine-tabs {
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.spine-tabs a,
+.spine-tabs a:hover,
+.spine-tabs a.active,
+.spine-tabs a.active:hover {
+  background: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 0.375rem 0;
+}
+
+.spine-tabs a {
+  color: var(--text-muted);
+}
+
+.spine-tabs a:hover {
+  color: var(--text);
+}
+
+.spine-tabs a.active,
+.spine-tabs a.active:hover {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.spine-tabs a:focus-visible,
+.spine-name a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .spine-project {
   font-size: 0.875rem;
   margin: 0.5rem 0 0;
