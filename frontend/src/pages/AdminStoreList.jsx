@@ -156,6 +156,15 @@ export default function AdminStoreList() {
     if (result.error) setError(result.error)
   }, [])
 
+  // A change of session refetches: drop the last answer (a stale "Sign in"
+  // line) until the new one lands. Adjusted during render, as React advises,
+  // because react-hooks/set-state-in-effect forbids it in the effect body.
+  const [fetchedFor, setFetchedFor] = useState(signedIn)
+  if (fetchedFor !== signedIn) {
+    setFetchedFor(signedIn)
+    setState('loading')
+  }
+
   useEffect(() => {
     let live = true
     fetchLists().then((result) => {

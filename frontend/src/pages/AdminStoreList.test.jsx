@@ -223,17 +223,21 @@ function stubApi(handlers = {}) {
   return calls
 }
 
-function renderPage() {
-  return render(
+function page(signedIn = true) {
+  return (
     <MemoryRouter initialEntries={['/admin/store-list']}>
       <Routes>
-        <Route element={<Outlet context={{ signedIn: true }} />}>
+        <Route element={<Outlet context={{ signedIn }} />}>
           <Route path="admin/store-list" element={<AdminStoreList />} />
           <Route path="admin" element={<p>Admin home</p>} />
         </Route>
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   )
+}
+
+function renderPage() {
+  return render(page())
 }
 
 afterEach(() => {
@@ -422,5 +426,27 @@ describe('AdminStoreList', () => {
     expect(
       await screen.findByRole('link', { name: 'Sign in' }),
     ).toHaveAttribute('href', '/admin')
+  })
+
+  it('drops a stale sign-in prompt while a new session refetches', async () => {
+    stubApi({
+      'GET /api/recommendations?kind=discover': () => json({}, 401),
+    })
+    const view = render(page(false))
+    await screen.findByRole('link', { name: 'Sign in' })
+    let answer
+    const waiting = new Promise((resolve) => {
+      answer = resolve
+    })
+    stubApi({
+      'GET /api/recommendations?kind=discover': () => waiting,
+    })
+    view.rerender(page(true))
+    expect(screen.getByText('Loading the list…')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull()
+    answer(json(DISCOVER))
+    expect(
+      await screen.findByRole('heading', { name: 'Top picks' }),
+    ).toBeInTheDocument()
   })
 })
