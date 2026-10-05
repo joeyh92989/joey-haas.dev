@@ -264,7 +264,10 @@ if printf '%s' "$next_body" | jq -e \
 else
   report_fail "public next has its sections" "got '${next_body:0:80}'"
 fi
-if printf '%s' "$next_body" | grep -qE "$OUTPUT_FORBIDDEN"; then
+# What's next also carries no id, rank or Discover note (spec, S1): its
+# games are keyed by item_id. Exact-quoted, so "id" never matches "item_id".
+NEXT_FORBIDDEN="${OUTPUT_FORBIDDEN%)\"}|id|rank|model_note|ranked_by)\""
+if printf '%s' "$next_body" | grep -qE "$NEXT_FORBIDDEN"; then
   report_fail "public next exposes no private fields" "found a forbidden key"
 else
   report_pass "public next exposes no private fields" "no forbidden key"
@@ -363,6 +366,9 @@ check_equals "GET /api/recommendations unauthenticated" \
   "401"
 check_equals "GET /api/recommendations/watching unauthenticated" \
   "$(http_status "$API_URL/api/recommendations/watching")" \
+  "401"
+check_equals "GET /api/recommendations/store-list unauthenticated" \
+  "$(http_status "$API_URL/api/recommendations/store-list")" \
   "401"
 check_equals "GET /api/recommendations?kind=discover unauthenticated" \
   "$(http_status "$API_URL/api/recommendations?kind=discover")" \
