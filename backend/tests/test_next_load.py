@@ -341,3 +341,23 @@ async def test_catalogue_times_is_the_stalest_good_store_run(sessionmaker_for_te
         times = await catalogue_times(session)
     assert times["stores_at"] == older
     assert times["registry_at"] == newer
+
+
+async def test_public_mode_does_not_scan_for_a_title_already_listed(
+    sessionmaker_for_test,
+):
+    """A private game that is a row on the page is published by name already;
+    scanning for it would only let an Already own change a frozen reason."""
+    at = datetime(2026, 9, 28, 6, 0, tzinfo=UTC)
+    await _add(
+        sessionmaker_for_test,
+        _game("Listed", is_public=False),
+        _game("Hidden", is_public=False),
+        _radar("Listed", status=RecommendationStatus.OWNED, generated_at=at),
+        _radar("Coming", generated_at=at),
+    )
+    async with sessionmaker_for_test() as session:
+        public = await load_next(session, public=True)
+        admin = await load_next(session)
+    assert set(public.taste.private_titles) == {"Hidden"}
+    assert set(admin.taste.private_titles) == {"Listed", "Hidden"}

@@ -125,9 +125,18 @@ async def load_next(session: AsyncSession, *, public: bool = False) -> NextData:
     )
     games = list(await session.scalars(select(Item).where(Item.type == ItemType.GAME)))
     public_games = [item for item in games if item.is_public]
+    private_titles = [item.title for item in games if not item.is_public]
+    if public:
+        # A private game that is also a row here (one the owner answered
+        # Already own on, frozen until the next generation) is published by
+        # name already. Scanning reasons for it protects nothing, and would
+        # refuse a frozen sentence the moment the owner answered (spec, S9).
+        listed = {row.title.casefold().strip() for row in rows}
+        private_titles = [
+            title for title in private_titles if title.casefold().strip() not in listed
+        ]
     taste = public_taste(
-        [to_picker_item(item) for item in public_games],
-        [item.title for item in games if not item.is_public],
+        [to_picker_item(item) for item in public_games], private_titles
     )
     generated_at: dict[str, datetime | None] = {}
     for kind in RecommendationKind:
