@@ -150,7 +150,7 @@ before pushing.
       `docs/planning/2026-09-23-tracker-e7b-*`
 - [x] Tracker E8a — Play Next at `/admin/play-next`: three named picks
       from the owned backlog with reasons, pin as Up next (shown publicly on
-      `/collection`), and `schema_check` tolerating a database ahead of the
+      `/collection`, now on What's next), and `schema_check` tolerating a database ahead of the
       code. Spec and plan: `docs/planning/2026-09-23-tracker-e8a-*`
 - [x] Tracker E7c — physical catalogue at `/admin/catalogue`: the
       r/NSCollectors registry (Sheets API), `switch2-tracker`, twelve boutique

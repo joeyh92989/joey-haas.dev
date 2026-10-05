@@ -306,7 +306,7 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Metadata sources | `backend/sources/` | One adapter per API behind a common interface: IGDB (games), TMDB (films), Comic Vine (comics); BGG is stubbed until its API is usable again. Each keeps a snapshot on the item for the shelf and the pickers |
 | Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
 | Public showcase | `backend/public.py`, `/spine`, `/spine/next` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
-| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one puts it on the public shelf as "Up next", and recent picks appear on What's next as "Tonight" |
+| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/spine/next`) as "Up next", and recent picks appear on What's next as "Tonight" |
 | Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), its Switch 1 sheet (about 4,500 titles in about 10,000 editions, bulk-matched to IGDB's Switch list), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
 | Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want adds the game as a public want, and registry-dated cartridges appear on What's next |
 | Discover | `backend/discover.py`, `/admin/discover` | Released physical games on the owner's platforms, pre-scored by taste and re-ranked by one Gemini call with reasons; falls back to the deterministic ranking when the model cannot answer; its top picks appear on What's next, with reasons that name only public games |
@@ -388,8 +388,8 @@ they are correct as written — which is also why renaming the services required
 no DNS change. Visitors never see them; the custom domains sit in front.
 
 Note: the API runs on Render's free tier, which spins down after ~15 min of
-inactivity (first request then takes ~30 s). Only `/spine` and
-`/spine/:id` call the API. They paint the build-time snapshot first and
+inactivity (first request then takes ~30 s). Only `/spine`, `/spine/next`
+and `/spine/:id` call the API. They paint the build-time snapshot first and
 show a "waking the server" state only when there is no snapshot; every other
 public page never waits on it (see [Collection snapshot](#collection-snapshot)).
 Upgrade to Starter ($7/mo) to keep it warm.
@@ -499,8 +499,8 @@ copies them, until a follow-up retires them (Spine Next spec, item 10).
 The body has these keys:
 
 - `generated_at`: `picks` (the UTC day the picks are from), `catalogue` (the
-  stalest store's last good run), `radar` and `discover` (newest pending row
-  of each kind). Any may be null.
+  stalest store's last good run), `radar` and `discover` (each kind's most
+  recent generation, whatever the status of its rows). Any may be null.
 - `tonight`: `up_next` (the pinned game, if public) and `picks` (the latest
   Play Next picks among public games), each a card with `item_id`, `type`,
   `title`, `cover_url`, `platform` and `reasons`.
@@ -514,12 +514,13 @@ The rules, held by `next_list.py` and pinned by `test_public_outputs.py`,
 which walks the whole body for banned keys:
 
 - **Public games only in reasons.** Reasons are rebuilt over public games,
-  in the first person. Discover's model sentence is published only when it
-  is the first stored line, cites at least one game, every cited game is
-  public, it names no private game title, and it is first person.
+  in the first person. Discover's model-written sentence is published only
+  when it is the first stored line, cites at least one game, every cited game is
+  public, it names no private game title, and it is not in the second person.
 - **Registry dates only.** On a suggestion, a store's or IGDB's date is never
-  published; a row with only one counts as undated. A wanted game shows its
-  own release date, which `/spine` already publishes.
+  published; a row with only one counts as undated. A wanted game shows
+  its own release date only while it is still to come, with no precision and
+  no IGDB link.
 - **No store data.** No store, price, pre-order window, score, rank or row id
   appears, and no answered suggestion (dismissed, skipped, wanted or owned).
 
