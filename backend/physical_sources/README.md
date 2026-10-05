@@ -1,11 +1,12 @@
 # `physical_sources/` — the physical catalogue's sources
 
 Which games exist physically, and as what, for games the owner does not own:
-the r/NSCollectors Switch 2 registry, `switch2-tracker` as a cross-check,
-twelve boutique stores and IGDB's N64 catalogue, read into the E7c tables
-(migration `0005`). Spec: `docs/planning/2026-09-23-tracker-e7c-design.md`;
-the plan's Execution summary records every way the live sources differed from
-it.
+the r/NSCollectors Switch 2 registry and its Switch 1 sheet, `switch2-tracker`
+as a cross-check, twelve boutique stores and IGDB's N64 catalogue, read into
+the E7c tables (migration `0005`; the Switch 1 sheet needed no migration).
+Spec: `docs/planning/2026-09-23-tracker-e7c-design.md`; the plan's Execution
+summary records every way the live sources differed from it. The Switch 1
+sheet's spec and plan are `docs/planning/2026-10-04-switch1-catalogue-*`.
 
 ## Why
 
@@ -25,6 +26,7 @@ assembled here from sources that each know a part of it.
 | `format.py` | `classify(text, policy, platform_id)`: key card, code in a box or cartridge from a listing's words | yes |
 | `parse.py` | dates with their precision, availability, edition labels, store titles, platform labels | yes |
 | `registry.py` | the sheet's two details tabs through the Google Sheets API | yes (three GETs: the tab list, then each tab) |
+| `registry_switch1.py` | the Switch 1 sheet's Master and code-in-a-box tabs (source `nscollectors_ns1`), through `registry.py`'s helpers | yes (three GETs) |
 | `tracker.py` | `switch2-tracker`'s `data/games.json` | yes (one GET) |
 | `stores.py` | `STORES`, and the interpreters that read a product through its store's config | yes |
 | `shopify.py`, `woocommerce.py` | one listing per variant; the Limited Run HTML step | yes (their `list_products`) |
@@ -32,6 +34,8 @@ assembled here from sources that each know a part of it.
 | `catalogue.py` | runs, edition and listing upserts, retire and archive | database |
 | `resolve.py` | matching rows to IGDB games; link, ignore, re-key | database |
 | `platform_policy.py` | the N64 ingest | database |
+| `switch1_titles.py` | bulk matching of Switch 1 keys to IGDB's Switch list, by name and year | yes |
+| `switch1_ingest.py` | the Switch 1 refresh: IGDB's title list, editions, match decisions, snapshots; the automatic-ignore rules | database |
 | `sync.py` | registry formats onto owned items; disagreements | database |
 
 "Pure" means no FastAPI and no SQLAlchemy in the import graph;
@@ -129,6 +133,86 @@ drops it wherever the sheet speaks for the same region. Keyed by title and
 region, never by its shifting `id`. The repository has no licence, so the
 fixture is a 30-game excerpt.
 
+**Switch 1 registry** — the r/NSCollectors "Switch Physical Releases" sheet
+(`1FNyvbbU64Pb9lheg28gC_5fMalIYJ0aD763T7M1QqF0`), a different spreadsheet from
+the Switch 2 one, read by `registry_switch1.py` with `registry.py`'s helpers
+(`fetch_properties`, `fetch_tab`, `tab_titles` take a `sheet_id`; `merge` and
+this module share `unique_by_ref`). Two tabs, found by gid: Physical Release
+Master `2004832329` and CIAB `1406641930`, recorded under
+`tests/fixtures/physical/registry_switch1/` (whole, except that the recorder
+blanks Master's LP #, Other Info, Verified By and Check cells, which the
+parser never reads). Source `nscollectors_ns1` (`physical_editions.source`
+is 20 characters), platform 130, **all regions**: the sheet lists every
+region and the collapse is region-free (see Formats).
+About 4,500 titles in about 10,000 editions: the 2026-10-04 recording has
+4,460 Master titles, 4,497 keys and 10,264 editions. A run's `rows_seen`
+counts editions, not titles.
+
+- A Master row with a Switch 1 cart ID is a `game_card` at the `registry`
+  tier; a row without one is physical with no format. The cart ID pattern is
+  `SWITCH_1_CART_ID_PATTERN` in `limits.py`, not the Switch 2 `CART_ID_PATTERN`
+  (which matches no Switch 1 ID): `LA-H-XXXXX-RRR`, optionally with a revision
+  digit after the region (`LA-H-A5RBA-EUR1`) or an `LB-` prefix
+  (`LB-H-BK6RA-CHT`). A cell naming two carts ("A / B") is read as its first.
+- A CIAB row marked "CIAB only? = Yes" is a `code_in_box`; "No" adds nothing,
+  because its cartridge is already in Master.
+- Every Switch 1 cartridge counts as the full game: no source flags the rare
+  download-required ones.
+- An edition is keyed by title, region, publisher, tab and edition info.
+- A row whose region is longer than `physical_editions.region` (4
+  characters) is skipped and named in a `region_too_long` warning, rather
+  than failing the whole run's flush.
+- Its release dates are **not registry dates**. `collapse.REGISTRY_SOURCES`
+  deliberately leaves `nscollectors_ns1` out, because
+  `/api/public/radar` publishes only registry-dated rows and nothing from this
+  sheet may reach a public route. Do not add it there. (`physical_routes.py`
+  has `STATUS_REGISTRY_SOURCES`, which only decides what the status route
+  lists, and does include it; `tests/test_public_outputs.py` puts a dated
+  Switch 1 cartridge through a real Radar generate and holds
+  `/api/public/radar` empty.)
+- Its formats feed the collapse only. `sync.py` still writes registry formats
+  onto owned Switch 2 copies alone (`KEY_CARD_PLATFORMS`).
+
+`POST /api/physical/refresh-switch1` (the "Refresh Switch 1" button) reads the
+sheet, then pages IGDB's whole Switch list by id (`switch1_titles.page_query`:
+id, name, first release date and alternative names, 500 per page, one request
+per 500 Switch games), both before anything is written: without the title
+list every key would fall to Resolve, thousands of searches. `switch1_titles.match` is pure. A key is
+looked up in the exact table (each game's name and alternative names through
+`normalize_title`) and only if that knows nothing in the stripped one (the
+same names through `game_title` first, so "Hades Deluxe Edition" answers
+"hades"). One game found is the match; several are told apart by the sheet's
+earliest year for the key, exactly one within `YEAR_TOLERANCE` (one year);
+anything else is no match. Then `switch1_ingest.record_matches` decides each
+open key (no decision yet, or an automatic ignore):
+
+- a match is `AUTO` / `EXACT`;
+- no match is `IGNORED` with `match_confidence = UNCERTAIN`, the marker of
+  an **automatic ignore**. `resolve.ignore` writes a human's ignore with
+  `match_confidence = NULL`, and nothing else writes `IGNORED` + `UNCERTAIN`,
+  so the matcher revisits only its own ignores (a title IGDB adds later, or a
+  store starts selling) and never a human's, a manual link or any other
+  decision. Automatic ignores never enter Needs match; the catalogue page
+  counts them ("N Switch 1 titles unmatched", `totals.switch1_unmatched` from
+  `count_unmatched`: automatic ignores on 130 that a live `nscollectors_ns1`
+  edition still carries) and lists none;
+- **the store-listing exception:** a key with no match that a live Switch 1
+  store listing carries is not ignored. Its automatic ignore, if any, is
+  deleted and Resolve searches it, so a store's game is never hidden by the
+  sheet's spelling. This holds after later store refreshes too: the stores
+  route (`POST /api/physical/refresh`) calls `release_listed_ignores` before
+  its resolve batch.
+
+Matched games get snapshots through `resolve.fill_games`, and `propagate`
+copies each key's decision onto the editions. `propagate` protects
+`igdb_platform` rows (N64 editions carry ids straight from IGDB) and
+deliberately not these: Switch 1 editions carry no id of their own, and a
+later manual link in Needs match must be able to override an automatic one.
+
+Switch 1 keys are not in `test_physical_keys.py`'s corpus: that test holds
+store and Switch 2 keys to the key-quality rules, and holding about 4,500
+community titles to them is separate work.
+
 **Stores** — `STORES` in `stores.py`, as of the 2026-09-25 fixtures:
 
 | Store | Adapter | Currency / region | Collections walked |
@@ -158,7 +242,10 @@ id: known, never resolved, never queued for a match.
 ratings (234 on 2026-09-25, every one with a cover) into `igdb_platform`
 editions with their ids set directly, and decides their title matches so a
 store's N64 listing links without a search. Switch 1 is cartridge-only too,
-but is never ingested: its candidates come only from the stores.
+but IGDB is never a physical source for it, because IGDB cannot tell a
+physical Switch game from a digital one (`POST /api/physical/refresh-platform`
+refuses platform 130 with a 422, and `test_switch_1_is_never_ingested` holds
+it): its candidates come from the stores and the Switch 1 registry above.
 
 ## Formats
 
@@ -173,8 +260,19 @@ the Switch.
 
 `collapse.py` turns a game's rows into one answer (D9): any full cartridge in
 the home region wins; otherwise the most useful known format; tiers only break
-ties between rows saying the same thing. A cartridge in another region is a
-note ("Full game on cartridge in EUR — Super Rare"), never a relabel.
+ties between rows saying the same thing, then source, then region and route,
+so the answer never depends on the order the rows arrive in. A cartridge in
+another region is a note ("Full game on cartridge in EUR — Super Rare"),
+never a relabel.
+
+**Switch 1 is the exception** (`REGION_FREE_PLATFORMS` in `limits.py`, which
+holds platform 130): it has no Game-Key Card and no region lock, so a full
+cartridge in *any* region makes the game a cartridge, and a home-region row
+saying the same is preferred so the answer reads from home when it can. Switch
+2 keeps the home-region rule, because a Japanese cartridge and a US Game-Key
+Card are different products. `nscollectors_ns1` sits after `nscollectors` in
+`SOURCE_ORDER`, and the sheet's dates never become registry dates (see the
+Switch 1 registry above).
 
 ## Courtesy
 

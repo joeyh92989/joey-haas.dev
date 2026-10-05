@@ -13,11 +13,16 @@ CSV export is never fetched: docs.google.com's robots.txt disallows it.
 Only fetch_properties and fetch_tab touch the network. The API key travels
 as a query parameter and is never logged, and no error raised here carries
 a request URL.
+
+The fetch and tab helpers take a sheet id and a gid table, defaulting to
+this sheet's: registry_switch1.py reads the Switch 1 sheet through them.
 """
 
 from __future__ import annotations
 
 import logging
+import re
+from collections.abc import Iterable
 from urllib.parse import quote
 
 from matching import normalize_title
@@ -29,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 SOURCE = "nscollectors"
 SHEET_ID = "1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8"
-SHEETS_API = f"https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}"
+SHEETS_ROOT = "https://sheets.googleapis.com/v4/spreadsheets"
 SHEETS_HOST = "sheets.googleapis.com"
 # Tab -> gid.
 TABS = {"details": 764784245, "upcoming_details": 238551450}
@@ -66,18 +71,19 @@ class SheetSchemaError(PhysicalSourceError):
     code = "schema_missing_columns"
 
 
-def tab_titles(properties: dict) -> dict[str, str]:
-    """{tab: current title} for TABS, from a sheets.properties response."""
+def tab_titles(properties: dict, tabs: dict[str, int] = TABS) -> dict[str, str]:
+    """{tab: current title} for `tabs` (this sheet's TABS by default), from a
+    sheets.properties response."""
     by_gid = {
         sheet.get("properties", {}).get("sheetId"): sheet.get("properties", {}).get(
             "title"
         )
         for sheet in properties.get("sheets", [])
     }
-    missing = [f"{tab} (gid {gid})" for tab, gid in TABS.items() if not by_gid.get(gid)]
+    missing = [f"{tab} (gid {gid})" for tab, gid in tabs.items() if not by_gid.get(gid)]
     if missing:
         raise SheetSchemaError(f"sheet tab not found: {', '.join(missing)}")
-    return {tab: by_gid[gid] for tab, gid in TABS.items()}
+    return {tab: by_gid[gid] for tab, gid in tabs.items()}
 
 
 def rows_from_values(payload: dict) -> list[list[str]]:
@@ -108,9 +114,11 @@ def _yes_no(value: str) -> bool | None:
     return {"yes": True, "no": False}.get(value.strip().lower())
 
 
-def _cart_id(value: str) -> str | None:
+def _cart_id(value: str, pattern: re.Pattern = CART_ID_PATTERN) -> str | None:
+    """The cell as a cart ID in `pattern`'s shape (Switch 2's by default), or
+    None: "N/A", blanks and other platforms' IDs are not one."""
     cart_id = value.strip().upper()
-    return cart_id if CART_ID_PATTERN.match(cart_id) else None
+    return cart_id if pattern.match(cart_id) else None
 
 
 def parse_details(
@@ -216,19 +224,23 @@ def _edition(row: dict) -> EditionRow:
     )
 
 
-def merge(details: list[dict], upcoming: list[dict]) -> list[EditionRow]:
-    """One EditionRow per row of either tab; a source_ref already seen is
-    dropped, so Release Details wins over Upcoming Releases and a repeated
-    row never reaches the unique key twice."""
+def unique_by_ref(rows: Iterable[EditionRow]) -> list[EditionRow]:
+    """The rows in order, a source_ref already seen dropped, so a repeated
+    row never reaches the (source, source_ref) unique key twice."""
     seen: set[str] = set()
-    rows: list[EditionRow] = []
-    for row in (*details, *upcoming):
-        edition = _edition(row)
-        if edition.source_ref in seen:
+    unique: list[EditionRow] = []
+    for row in rows:
+        if row.source_ref in seen:
             continue
-        seen.add(edition.source_ref)
-        rows.append(edition)
-    return rows
+        seen.add(row.source_ref)
+        unique.append(row)
+    return unique
+
+
+def merge(details: list[dict], upcoming: list[dict]) -> list[EditionRow]:
+    """One EditionRow per row of either tab; Release Details wins over
+    Upcoming Releases for a shared source_ref."""
+    return unique_by_ref(_edition(row) for row in (*details, *upcoming))
 
 
 def _a1_sheet(title: str) -> str:
@@ -269,21 +281,28 @@ async def _get_json(client, url: str, params: dict, throttle: HostThrottle | Non
 
 
 async def fetch_properties(
-    client, key: str, throttle: HostThrottle | None = None
+    client, key: str, throttle: HostThrottle | None = None, sheet_id: str = SHEET_ID
 ) -> dict:
-    """GET /v4/spreadsheets/{id}?fields=sheets.properties."""
+    """GET /v4/spreadsheets/{sheet_id}?fields=sheets.properties."""
     # Every query parameter goes in `params`: httpx2 replaces a URL's own
     # query string with them rather than merging.
     return await _get_json(
-        client, SHEETS_API, {"fields": "sheets.properties", "key": key}, throttle
+        client,
+        f"{SHEETS_ROOT}/{sheet_id}",
+        {"fields": "sheets.properties", "key": key},
+        throttle,
     )
 
 
 async def fetch_tab(
-    client, key: str, title: str, throttle: HostThrottle | None = None
+    client,
+    key: str,
+    title: str,
+    throttle: HostThrottle | None = None,
+    sheet_id: str = SHEET_ID,
 ) -> dict:
-    """GET /v4/spreadsheets/{id}/values/{title}: one whole tab."""
-    url = f"{SHEETS_API}/values/{quote(_a1_sheet(title), safe='')}"
+    """GET /v4/spreadsheets/{sheet_id}/values/{title}: one whole tab."""
+    url = f"{SHEETS_ROOT}/{sheet_id}/values/{quote(_a1_sheet(title), safe='')}"
     return await _get_json(client, url, {"key": key}, throttle)
 
 

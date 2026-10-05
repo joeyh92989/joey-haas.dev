@@ -1,18 +1,24 @@
 """The NSCollectors registry reader, on the recorded Sheets API responses."""
 
 import json
+import re
 from collections import Counter
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
+from urllib.parse import unquote
 
 import httpx2
 import pytest
 
-from physical_sources.base import PhysicalSourceError
+from physical_sources.base import EditionRow, PhysicalSourceError
 from physical_sources.registry import (
     CARD_TYPES,
     SheetSchemaError,
     SheetsNotConfigured,
+    _cart_id,
+    fetch_properties,
+    fetch_tab,
     list_editions,
     locate_header,
     merge,
@@ -20,6 +26,7 @@ from physical_sources.registry import (
     rows_from_values,
     source_ref,
     tab_titles,
+    unique_by_ref,
 )
 
 REGISTRY = Path(__file__).parent / "fixtures" / "physical" / "registry"
@@ -334,3 +341,62 @@ def test_title_and_source_ref_stay_raw(details, upcoming):
     duskbloods = next(e for e in editions if e.title == "Duskbloods, The")
     assert duskbloods.title_normalized == "the duskbloods"
     assert duskbloods.source_ref.startswith("duskbloods the|")
+
+
+# --- Sheet-agnostic helpers (the Switch 1 sheet reuses them) ------------------------
+
+
+def test_tab_titles_reads_any_sheets_gids():
+    properties = {"sheets": [{"properties": {"sheetId": 7, "title": "Seven"}}]}
+    assert tab_titles(properties, {"seven": 7}) == {"seven": "Seven"}
+
+
+def test_tab_titles_names_a_missing_gid_of_any_sheet():
+    with pytest.raises(SheetSchemaError, match="eight"):
+        tab_titles({"sheets": []}, {"eight": 8})
+
+
+def _row(ref: str) -> EditionRow:
+    return EditionRow(
+        source="test",
+        source_ref=ref,
+        title="T",
+        title_normalized="t",
+        platform_id=130,
+        region="USA",
+        is_physical=True,
+        physical_format=None,
+        format_source=None,
+    )
+
+
+def test_unique_by_ref_keeps_the_first_of_each_ref():
+    first, second = _row("a"), _row("b")
+    again = replace(_row("a"), title="Later")
+    assert unique_by_ref([first, second, again]) == [first, second]
+
+
+def test_cart_id_takes_another_platforms_pattern():
+    switch_1 = re.compile(r"^LA-H-[A-Z0-9]{5}-[A-Z]{3}$")
+    assert _cart_id(" la-h-aqxha-usa ", switch_1) == "LA-H-AQXHA-USA"
+    # The default is the Switch 2 shape, which no Switch 1 cart ID has.
+    assert _cart_id("LA-H-AQXHA-USA") is None
+
+
+@pytest.mark.asyncio
+async def test_fetching_reads_another_sheet_by_id():
+    paths = []
+
+    def handler(request):
+        paths.append(unquote(request.url.path))
+        if request.url.params.get("fields") == "sheets.properties":
+            return httpx2.Response(200, json={"sheets": []})
+        return httpx2.Response(200, json={"values": []})
+
+    async with _client(handler) as client:
+        await fetch_properties(client, "k", sheet_id="other-sheet")
+        await fetch_tab(client, "k", "Tab One", sheet_id="other-sheet")
+    assert paths == [
+        "/v4/spreadsheets/other-sheet",
+        "/v4/spreadsheets/other-sheet/values/'Tab One'",
+    ]

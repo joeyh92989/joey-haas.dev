@@ -77,8 +77,10 @@ compared against the spec's `STORES` table before any parser is written.
 
 `--list` prints every request and the file it writes, without fetching.
 Source names limit a run to those sources (`limited_run`, `super_rare`,
-`registry`, `tracker`, … — `--list` shows them all); `--igdb` adds one page of
-IGDB's N64 catalogue.
+`registry`, `registry_switch1`, `tracker`, … — `--list` shows them all);
+`--igdb` adds one page of IGDB's N64 catalogue. `--igdb-switch` adds one page of
+IGDB's Switch titles and its search for "Death's Door", for the Switch 1 bulk
+matcher.
 
 `--all-pages` records every page of each store listing, walking until a short
 page (at most 40 per listing), under the same `robots.txt`, throttle and
@@ -103,16 +105,16 @@ the format and date tests).
 **Needs:**
 
 - Nothing for the stores, the tracker and `robots.txt`.
-- `GOOGLE_SHEETS_API_KEY` in `backend/.env` for the registry. To create it:
+- `GOOGLE_SHEETS_API_KEY` in `backend/.env` for the registry and `registry_switch1`. To create it:
   in the Google Cloud project that holds the admin OAuth client, enable the
   Google Sheets API (APIs & Services → Library), then APIs & Services →
   Credentials → Create credentials → API key, and restrict the key to the
   Google Sheets API. A public ("anyone with the link") sheet needs nothing
   else.
-- `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` for `--igdb`, which loads config
+- `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` for `--igdb` and `--igdb-switch`, which load config
   exactly as the API does, so every required variable must be set too.
 
-It makes about 59 requests at 2 per second, across every host, with the
+It makes about 62 requests at 2 per second, across every host, with the
 tracker's User-Agent, and honours each host's `robots.txt` under
 `User-agent: *` (a host without one is allowed).
 
@@ -129,6 +131,10 @@ tracker's User-Agent, and honours each host's `robots.txt` under
 | `tracker/games.json` | a 30-game excerpt of `switch2-tracker`'s `data/games.json` |
 | `robots/<host>.txt` | each host's `robots.txt` |
 | `igdb/n64_page1.json` | with `--igdb`: one page of N64 games, id, name, cover and date |
+| `registry_switch1/properties.json` | the Switch 1 sheet's tab list, mapping gid `2004832329` (Physical Release Master) and `1406641930` (CIAB) to their current titles |
+| `registry_switch1/{master,ciab}.json` | the Switch 1 Master and code-in-a-box tabs, whole, as `spreadsheets.values.get` returns them, except that Master's LP #, Other Info, Verified By and Check cells are blanked below the header (the parser reads none of them, and Verified By holds the editors' handles); the run prints each tab's header, regions, cart IDs matching `limits.SWITCH_1_CART_ID_PATTERN`, date shapes, any Other/Edition Info mentioning downloads (counted before the blanking), and the Death's Door rows |
+| `igdb/switch_titles_p1.json` | with `--igdb-switch`: the first 500 IGDB Switch games, paged by id, with id, name, first release date and alternative names |
+| `igdb/switch_titles_deaths_door.json` | with `--igdb-switch`: IGDB's Switch search for "Death's Door", same fields |
 
 A handle with a non-ASCII character gets an ASCII file name
 (`nintendo-switch™-1` → `nintendo-switch-tm-1.p1.json`); the request uses the

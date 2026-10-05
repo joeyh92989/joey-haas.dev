@@ -77,6 +77,7 @@ const TITLES = [
   ['/admin/catalogue', 'Catalogue · Admin'],
   ['/admin/radar', 'Radar · Admin'],
   ['/admin/discover', 'Discover · Admin'],
+  ['/admin/store-list', 'Store list · Admin'],
   ['/admin/collection/42', 'Item · Admin'],
   ['/spine/42', 'Spine · Joey Haas'],
 ]

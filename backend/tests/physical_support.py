@@ -26,10 +26,22 @@ from physical_sources.stores import STORES
 from sources.base import SourceDetail, SourceRateLimited, SourceResult
 
 N64_PAGE = Path(__file__).parent / "fixtures" / "physical" / "igdb" / "n64_page1.json"
+SWITCH_TITLE_FILES = ("switch_titles_p1.json", "switch_titles_deaths_door.json")
+
+
+def recorded_switch_titles() -> list[dict]:
+    """IGDB's recorded Switch titles -- page 1 and the Death's Door search --
+    each game once, by id: what the fake pages for platform 130."""
+    rows: dict[int, dict] = {}
+    for name in SWITCH_TITLE_FILES:
+        for row in json.loads((N64_PAGE.parent / name).read_text()):
+            rows.setdefault(row["id"], row)
+    return [rows[key] for key in sorted(rows)]
 
 
 class FakeIgdb:
-    """Stands in for IgdbSource: search, fetch_many and the one raw query."""
+    """Stands in for IgdbSource: search, fetch_many and the raw queries (the N64
+    list and the Switch title pages)."""
 
     def __init__(
         self,
@@ -40,6 +52,8 @@ class FakeIgdb:
         search_error=None,
         fetch_error=None,
         missing=(),
+        switch_titles=None,
+        titles_error=None,
     ):
         self.results = results or {}
         self._configured = configured
@@ -51,6 +65,9 @@ class FakeIgdb:
         self.searches: list[tuple[str, int | None, str | None]] = []
         self.fetched: list[list[str]] = []
         self.fetch_limited = False
+        self.switch_titles = switch_titles
+        self.titles_error = titles_error
+        self.queries: list[str] = []
 
     def configured(self):
         return self._configured
@@ -81,6 +98,18 @@ class FakeIgdb:
         ]
 
     async def _query(self, body, endpoint="games"):
+        self.queries.append(body)
+        if "platforms = (130)" in body:
+            if self.titles_error is not None:
+                raise self.titles_error
+            rows = (
+                recorded_switch_titles()
+                if self.switch_titles is None
+                else self.switch_titles
+            )
+            offset = int(re.search(r"offset (\d+);", body).group(1))
+            limit = int(re.search(r"limit (\d+);", body).group(1))
+            return rows[offset : offset + limit]
         rows = json.loads(N64_PAGE.read_text())
         return [{"id": row["id"]} for row in rows]
 
@@ -131,6 +160,21 @@ def listing(title_normalized, variant="1", platform_id=508, label="Nintendo Swit
 
 PHYSICAL = Path(__file__).parent / "fixtures" / "physical"
 DOMAINS = {config.domain: key for key, config in STORES.items()}
+SWITCH_1 = PHYSICAL / "registry_switch1"
+SWITCH_1_SHEET = "1FNyvbbU64Pb9lheg28gC_5fMalIYJ0aD763T7M1QqF0"
+SWITCH_1_CIAB_GID = 1406641930
+
+
+def switch_1_fixture(path: str) -> str:
+    """The recorded Switch 1 tab a values path asks for, told apart by the
+    CIAB tab's recorded title."""
+    properties = json.loads((SWITCH_1 / "properties.json").read_text())
+    titles = {
+        sheet["properties"]["sheetId"]: sheet["properties"]["title"]
+        for sheet in properties["sheets"]
+    }
+    ciab = "'" + titles[SWITCH_1_CIAB_GID].replace("'", "''") + "'"
+    return "ciab" if unquote(path).endswith(f"/values/{ciab}") else "master"
 
 
 def fixture_name(handle: str) -> str:
@@ -169,6 +213,14 @@ def serve_fixtures(
                 if recorded.exists()
                 else httpx2.Response(404)
             )
+        if host == "sheets.googleapis.com" and SWITCH_1_SHEET in path:
+            assert url.params["key"] == "sheets-key"
+            name = (
+                "properties"
+                if url.params.get("fields") == "sheets.properties"
+                else switch_1_fixture(path)
+            )
+            return httpx2.Response(200, text=(SWITCH_1 / f"{name}.json").read_text())
         if host == "sheets.googleapis.com":
             assert url.params["key"] == "sheets-key"
             if url.params.get("fields") == "sheets.properties":

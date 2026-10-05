@@ -6,8 +6,9 @@ edition per game (region ALL, game_card at platform_policy, is_physical
 true) with igdb_id set directly. It also decides the title match for each,
 so a store's N64 listing of the same title links without a search.
 
-Switch 1 is cartridge-only too, but is never ingested: its candidates come
-only from the stores (spec §2).
+Switch 1 is cartridge-only too, but is never ingested from IGDB, which cannot
+tell a physical Switch game from a digital one: its candidates come from the
+stores and the r/NSCollectors Switch 1 registry (switch1_ingest).
 """
 
 from __future__ import annotations

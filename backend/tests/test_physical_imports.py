@@ -13,8 +13,8 @@ import pytest
 
 BACKEND = Path(__file__).resolve().parent.parent
 PACKAGE = BACKEND / "physical_sources"
-# The database layer, and the N64 ingest, which drives the IGDB adapter.
-IMPURE = {"catalogue", "resolve", "sync", "platform_policy"}
+# The database layer, and the two ingests, which drive the IGDB adapter.
+IMPURE = {"catalogue", "resolve", "sync", "platform_policy", "switch1_ingest"}
 FORBIDDEN = ("fastapi", "sqlalchemy", "models", "db")
 
 PURE_MODULES = sorted(

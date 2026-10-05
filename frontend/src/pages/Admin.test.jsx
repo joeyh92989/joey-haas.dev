@@ -51,6 +51,10 @@ describe('Admin', () => {
       await screen.findByRole('link', { name: 'Catalogue' }),
     ).toHaveAttribute('href', '/admin/catalogue')
     expect(screen.getByRole('link', { name: 'Play Next' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Store list' })).toHaveAttribute(
+      'href',
+      '/admin/store-list',
+    )
   })
 
   it('explains a rejected account without naming the authorized address', async () => {

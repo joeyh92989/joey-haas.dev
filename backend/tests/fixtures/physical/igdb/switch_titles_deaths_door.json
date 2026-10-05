@@ -1,0 +1,22 @@
+[
+  {
+    "id": 145099,
+    "alternative_names": [
+      {
+        "id": 97040,
+        "name": "데스 도어"
+      },
+      {
+        "id": 204636,
+        "name": "DeathsDoor.exe"
+      }
+    ],
+    "first_release_date": 1626739200,
+    "name": "Death's Door"
+  },
+  {
+    "id": 206673,
+    "first_release_date": 1670544000,
+    "name": "Death's Door: Ultimate Edition"
+  }
+]

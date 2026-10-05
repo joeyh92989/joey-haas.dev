@@ -48,12 +48,22 @@ CATALOGUE_PLATFORMS = frozenset({SWITCH_2, SWITCH, N64})
 # Every copy on these is a full-game cartridge: N64 had nothing else, and no
 # Game-Key Card exists for Switch 1. Used only when a listing's text is silent.
 CARTRIDGE_ONLY_PLATFORMS = frozenset({N64, SWITCH})
+# Region-free consoles with no Game-Key Card: a full cartridge in any region
+# makes the game a cartridge (switch1 spec, decision 4). Switch 2 is not one:
+# a Japanese cartridge and a US Game-Key Card are different products.
+REGION_FREE_PLATFORMS = frozenset({SWITCH})
 
 # The region a NULL item region means, and the one the collapse answers for.
 HOME_REGION = "USA"
 
 # LP-AAC4B-USA-0: format prefix, product code, region, revision.
 CART_ID_PATTERN = re.compile(r"^L[PBNA]-[A-Z0-9]{5}-[A-Z0-9]{3}-[0-9A-Z]$")
+
+# LA-H-AQXHA-USA: a Switch 1 cart's product code and region. Its own shape:
+# no Switch 1 cart ID matches CART_ID_PATTERN. The sheet also records a
+# revision digit after the region (LA-H-A5RBA-EUR1) and an LB- prefix
+# (LB-H-BK6RA-CHT).
+SWITCH_1_CART_ID_PATTERN = re.compile(r"^L[A-Z]-H-[A-Z0-9]{5}-[A-Z]{3}[0-9]?$")
 
 # How a format reads in a sentence about the owner's copy (formats.py builds
 # FORMAT_LABELS from this), and as the registry spells it.

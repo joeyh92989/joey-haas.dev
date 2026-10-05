@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import AdminCatalogue, { runState } from './AdminCatalogue.jsx'
+import AdminCatalogue, { runState, unmatchedWords } from './AdminCatalogue.jsx'
 
 function run(source, fields = {}) {
   return {
@@ -573,5 +573,71 @@ describe('finish-gate review', () => {
     expect(
       calls.filter((call) => call.path.startsWith('/api/physical/needs-match')),
     ).toHaveLength(2)
+  })
+})
+
+describe('Switch 1 registry', () => {
+  it('words the unmatched count', () => {
+    expect(unmatchedWords(1)).toBe('1 Switch 1 title unmatched')
+    expect(unmatchedWords(688)).toBe('688 Switch 1 titles unmatched')
+  })
+
+  it('refreshes Switch 1 through its route and counts what stayed unmatched', async () => {
+    const calls = stubApi({
+      'GET /api/physical/status': () =>
+        json({
+          ...STATUS,
+          totals: { ...STATUS.totals, switch1_unmatched: 688 },
+        }),
+      'POST /api/physical/refresh-switch1': () =>
+        json(run('nscollectors_ns1', { rows_seen: 4210 })),
+    })
+    renderPage()
+    expect(
+      await screen.findByText('688 Switch 1 titles unmatched'),
+    ).toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Refresh Switch 1' }),
+    )
+    expect(
+      await screen.findByText('Switch 1: 4210 editions'),
+    ).toBeInTheDocument()
+    expect(calls.map((call) => call.path)).toContain(
+      '/api/physical/refresh-switch1',
+    )
+  })
+
+  it('words a failed Switch 1 run as a failure, not as 0 editions', async () => {
+    stubApi({
+      'POST /api/physical/refresh-switch1': () =>
+        json(
+          run('nscollectors_ns1', {
+            ok: false,
+            rows_seen: 0,
+            errors: [
+              { code: 'info', detail: 'master:missing_column:Cart ID' },
+              {
+                code: 'igdb_rate_limited',
+                detail: 'IGDB rate limit; press again',
+              },
+            ],
+          }),
+        ),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Refresh Switch 1' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Switch 1 refresh failed: IGDB rate limit; press again',
+    )
+    expect(screen.queryByText('Switch 1: 0 editions')).toBeNull()
+  })
+
+  it('says nothing about unmatched titles when there are none', async () => {
+    stubApi()
+    renderPage()
+    await screen.findByRole('table', { name: 'Sources' })
+    expect(screen.queryByText(/Switch 1 titles? unmatched/)).toBeNull()
   })
 })
