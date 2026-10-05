@@ -9,7 +9,7 @@ from datetime import UTC, date, datetime, time, timedelta
 import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, update
 from starlette.middleware.sessions import SessionMiddleware
 
 import public
@@ -1045,3 +1045,34 @@ async def test_an_owned_row_of_another_game_never_lifts_the_scan(
     body = await _next(sessionmaker_for_test)
     assert "Secret Game" in {r["title"] for r in body["preorders"]}
     assert all("Secret Game" not in r for r in _reasons(body))
+
+
+async def test_answering_a_discover_platforms_only_pick_leaves_the_body(
+    sessionmaker_for_test,
+):
+    """Discover replaces every platform's pending picks at once, so it
+    freezes per kind: owning the one N64 pick must not drop it."""
+    batch, at = uuid.uuid4(), NOW - timedelta(hours=2)
+    common = dict(
+        kind=RecommendationKind.DISCOVER,
+        batch_id=batch,
+        generated_at=at,
+        release_date=TODAY - timedelta(days=100),
+    )
+    await _add(
+        sessionmaker_for_test,
+        _radar("Two Pick", platform_id=508, **common),
+        _radar("Two Pick B", platform_id=508, **common),
+        _radar("Sixty Four Pick", platform_id=4, platform="Nintendo 64", **common),
+    )
+    before = await _next(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        await session.execute(
+            update(Recommendation)
+            .where(Recommendation.title == "Sixty Four Pick")
+            .values(status=RecommendationStatus.OWNED)
+        )
+        await session.commit()
+    after = await _next(sessionmaker_for_test)
+    assert "Sixty Four Pick" in {r["title"] for r in before["buy_now"]}
+    assert after == before

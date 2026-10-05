@@ -4,7 +4,8 @@ Next's profile split into public and private (Spine Next spec, K9).
 Shared by GET /api/public/next and GET /api/recommendations/store-list, so
 the two read the same rows the same way. next_list.py decides everything.
 The one difference is which rows: the admin list is live (pending only),
-while the public sections are frozen to each kind's latest batch (spec, S9).
+while the public sections are frozen to each kind's latest batch, Radar's
+per platform (spec, S9).
 """
 
 from __future__ import annotations
@@ -60,16 +61,19 @@ def _candidate(row: Recommendation) -> NextCandidate:
 
 
 async def _frozen_batches(session: AsyncSession) -> list:
-    """Where the public page keeps answered rows: per (kind, platform), the
-    batches of its latest generation (every batch at its newest
-    `generated_at`, so a tie cannot hide one), and only while that
-    generation still has a pending row there.
+    """Where the public page keeps answered rows: per group, the batches of
+    its latest generation (every batch at its newest `generated_at`, so a
+    tie cannot hide one), and only while that generation still has a
+    pending row in the group.
 
-    Per platform, because Radar replaces pending rows only on the platforms
-    a generate covered, so another platform's generation is not over. Fails
-    closed: a generation with nothing pending left (a generate that wrote no
-    rows deleted them, or the owner answered every one) shows none of its
-    answered rows, which would otherwise be exactly what was answered.
+    Radar groups per (kind, platform), because it replaces pending rows only
+    on the platforms a generate covered, so another platform's generation is
+    not over. Discover groups per kind: every generate replaces all of its
+    pending picks, whatever the platform, so answering a platform's only
+    pick must not end that platform's freeze. Fails closed: a generation
+    with nothing pending left (a generate that wrote no rows deleted them,
+    or the owner answered every one) shows none of its answered rows, which
+    would otherwise be exactly what was answered.
     """
     groups: dict[tuple, dict] = {}
     for kind, platform_id, batch_id, at, status in await session.execute(
@@ -81,20 +85,22 @@ async def _frozen_batches(session: AsyncSession) -> list:
             Recommendation.status,
         )
     ):
-        group = groups.setdefault((kind, platform_id), {"at": at, "rows": []})
+        per_platform = kind == RecommendationKind.RADAR
+        key = (kind, platform_id if per_platform else None)
+        group = groups.setdefault(key, {"at": at, "rows": []})
         group["at"] = max(group["at"], at)
         group["rows"].append((batch_id, at, status))
     frozen = []
     for (kind, platform_id), group in groups.items():
         latest = [row for row in group["rows"] if row[1] == group["at"]]
         if any(status == RecommendationStatus.PENDING for _, _, status in latest):
-            frozen.append(
-                and_(
-                    Recommendation.kind == kind,
-                    Recommendation.platform_id == platform_id,
-                    Recommendation.batch_id.in_({batch for batch, _, _ in latest}),
-                )
-            )
+            where = [
+                Recommendation.kind == kind,
+                Recommendation.batch_id.in_({batch for batch, _, _ in latest}),
+            ]
+            if platform_id is not None:
+                where.append(Recommendation.platform_id == platform_id)
+            frozen.append(and_(*where))
     return frozen
 
 
@@ -102,8 +108,8 @@ async def load_next(session: AsyncSession, *, public: bool = False) -> NextData:
     """Radar and Discover rows, and the games a reason may name.
 
     Admin (the default): pending rows only, so an answer leaves the list at
-    once. Public: pending rows plus the answered rows of each (kind,
-    platform)'s latest generation while it has a pending row left (see
+    once. Public: pending rows plus the answered rows of each kind's latest
+    generation (Radar's per platform) while it has a pending row left (see
     _frozen_batches), so answering a game does not change the public page;
     it leaves when a new generation runs (spec, S9). Generation skips
     answered rows, which keep their batch, so a new batch ends them.
