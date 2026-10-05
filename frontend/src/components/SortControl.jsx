@@ -32,6 +32,9 @@ const NARROW = '(max-width: 34rem)'
  *   The sorts on offer; the shelf's own by default.
  * @param {boolean} [props.directional] - Whether to show the direction
  *   button; false for a page whose sorts have one fixed order.
+ * @param {string} [props.label] - The accessible name of the group and the
+ *   select's visible label; "Sort" by default. A page with a sort per
+ *   section names the section.
  */
 export default function SortControl({
   value,
@@ -41,6 +44,7 @@ export default function SortControl({
   onShuffle,
   sorts = SORTS,
   directional = true,
+  label = 'Sort',
 }) {
   const narrow = useMediaQuery(NARROW)
   const isRandom = value === 'random'
@@ -55,7 +59,7 @@ export default function SortControl({
     <div className="sort-control" data-seed={seed}>
       {narrow ? (
         <label className="sort-select">
-          Sort
+          {label}
           <select
             value={value}
             onChange={(event) => choose(event.target.value)}
@@ -68,7 +72,7 @@ export default function SortControl({
           </select>
         </label>
       ) : (
-        <div className="sort-options" role="group" aria-label="Sort">
+        <div className="sort-options" role="group" aria-label={label}>
           {sorts.map((option) => (
             <button
               key={option.value}

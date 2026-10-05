@@ -35,10 +35,43 @@ function dayWords(value) {
 
 /**
  * Rows carry no id, and a game can be on both Switches, so the title alone
- * is not unique.
+ * is not unique; two rows can still agree on every field shown, so the IGDB
+ * link and the position settle it.
  */
-function rowKey(row) {
-  return `${row.platform}|${row.title}|${row.release_date ?? ''}|${row.item_id ?? ''}`
+function rowKey(row, index) {
+  return [
+    row.platform,
+    row.title,
+    row.release_date ?? '',
+    row.item_id ?? '',
+    row.igdb_url ?? '',
+    index,
+  ].join('|')
+}
+
+/** A list from the body, or an empty one when it is missing. */
+function list(value) {
+  return Array.isArray(value) ? value : []
+}
+
+/**
+ * The body with every list the page reads. The shape check in
+ * lib/snapshot.js guards both the snapshot and the live answer; this keeps
+ * the page rendering rather than going blank if a body slips past it.
+ */
+function withLists(data) {
+  return {
+    generated_at: data.generated_at,
+    tonight: {
+      up_next: data.tonight?.up_next ?? null,
+      picks: list(data.tonight?.picks),
+    },
+    wanted: list(data.wanted),
+    buy_now: list(data.buy_now),
+    preorders: list(data.preorders),
+    later: list(data.later),
+    not_on_cartridge: list(data.not_on_cartridge),
+  }
 }
 
 function Freshness({ generated }) {
@@ -66,14 +99,15 @@ function Section({ id, children, empty, count }) {
 function Rows({ rows, section }) {
   return (
     <ul className="next-rows">
-      {rows.map((row) => (
-        <NextRow key={rowKey(row)} row={row} section={section} />
+      {rows.map((row, index) => (
+        <NextRow key={rowKey(row, index)} row={row} section={section} />
       ))}
     </ul>
   )
 }
 
 function TonightCard({ pick, label }) {
+  const reasons = pick.reasons ?? []
   return (
     <li className="next-row next-tonight-card">
       <Link to={`/spine/${pick.item_id}`} className="next-row-link">
@@ -87,9 +121,9 @@ function TonightCard({ pick, label }) {
       </Link>
       <div className="next-row-text">
         {pick.platform && <span className="muted">{pick.platform}</span>}
-        {pick.reasons.length > 0 && (
+        {reasons.length > 0 && (
           <ul className="next-row-reasons">
-            {pick.reasons.map((reason) => (
+            {reasons.map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
           </ul>
@@ -129,7 +163,8 @@ function Tonight({ tonight }) {
  */
 export default function Next() {
   usePageTitle(`${copy.title} · ${spine.name}`)
-  const { data, failed } = useSnapshotThenLive('next')
+  const { data: body, failed } = useSnapshotThenLive('next')
+  const data = body ? withLists(body) : null
   const [sort, setSort] = useState(storedSort)
   const [slow, setSlow] = useState(false)
 
@@ -173,6 +208,7 @@ export default function Next() {
             empty={copy.empty.buy_now}
           >
             <SortControl
+              label={copy.sortLabel}
               value={sort}
               direction="desc"
               sorts={SORTS}

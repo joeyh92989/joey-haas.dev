@@ -100,6 +100,25 @@ describe('SortControl as buttons', () => {
   })
 })
 
+describe('SortControl labels', () => {
+  it('is labelled Sort by default', () => {
+    renderSort()
+    expect(screen.getByRole('group', { name: 'Sort' })).toBeInTheDocument()
+  })
+
+  it('takes a label for its group and its select', () => {
+    renderSort({ label: 'Sort Buy now' })
+    expect(
+      screen.getByRole('group', { name: 'Sort Buy now' }),
+    ).toBeInTheDocument()
+    vi.mocked(useMediaQuery).mockReturnValue(true)
+    renderSort({ label: 'Sort Buy now' })
+    expect(
+      screen.getByRole('combobox', { name: 'Sort Buy now' }),
+    ).toBeInTheDocument()
+  })
+})
+
 describe('SortControl on a narrow screen', () => {
   it('is a select, and Random still has Shuffle', async () => {
     vi.mocked(useMediaQuery).mockReturnValue(true)

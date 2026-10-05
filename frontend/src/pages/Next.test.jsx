@@ -28,10 +28,10 @@ const row = (title, fields = {}) => ({
 
 const NEXT = {
   generated_at: {
-    picks: '2026-10-04',
-    catalogue: '2026-10-04T00:40:00Z',
+    picks: '2026-10-03',
+    catalogue: '2026-10-04',
     radar: null,
-    discover: '2026-10-04T00:45:00Z',
+    discover: '2026-10-04',
   },
   tonight: {
     up_next: null,
@@ -85,7 +85,10 @@ describe('Next', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'What’s next',
     )
-    expect(screen.getByText(/Picks from/)).toBeInTheDocument()
+    // The API publishes UTC days only, read at noon so no timezone moves them.
+    expect(screen.getByText(/Picks from/)).toHaveTextContent(
+      'Picks from Sat 3 Oct · catalogue refreshed Sun 4 Oct · Discover batch Sun 4 Oct',
+    )
     const headings = screen
       .getAllByRole('heading', { level: 2 })
       .map((h) => h.textContent)
@@ -237,5 +240,63 @@ describe('Next', () => {
       vi.advanceTimersByTime(3500)
     })
     expect(screen.queryByText(/Waking the server/)).toBeNull()
+  })
+
+  // The shape check guards the snapshot and the live body; the page still
+  // renders a body that slipped past it rather than going blank.
+  it('renders a body missing lists and reasons without throwing', () => {
+    mockNext({
+      data: {
+        generated_at: {},
+        tonight: {
+          up_next: null,
+          picks: [{ item_id: 'p1', type: 'game', title: 'Bare' }],
+        },
+        buy_now: [],
+      },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    expect(screen.getByText('Bare')).toBeInTheDocument()
+    expect(screen.getByText('Nothing on the want list.')).toBeInTheDocument()
+    expect(screen.getByText(/Not on cartridge \(0\)/)).toBeInTheDocument()
+  })
+
+  it('renders a body whose tonight is missing', () => {
+    mockNext({ data: { buy_now: [] }, live: true, failed: false })
+    renderPage()
+    expect(screen.getByText('Nothing pinned tonight.')).toBeInTheDocument()
+  })
+
+  it('keys rows apart by IGDB link and position', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockNext({
+      data: {
+        ...NEXT,
+        later: [
+          row('Same', { igdb_url: 'https://www.igdb.com/games/a' }),
+          row('Same', { igdb_url: 'https://www.igdb.com/games/b' }),
+          row('Same'),
+          row('Same'),
+        ],
+      },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    const later = screen.getByRole('region', { name: 'Later' })
+    expect(within(later).getAllByText('Same')).toHaveLength(4)
+    expect(
+      error.mock.calls.some((call) => String(call[0]).includes('same key')),
+    ).toBe(false)
+  })
+
+  it('names Buy now’s sort control for its section', () => {
+    mockNext({ data: NEXT, live: true, failed: false })
+    renderPage()
+    expect(
+      screen.getByRole('group', { name: 'Sort Buy now' }),
+    ).toBeInTheDocument()
   })
 })

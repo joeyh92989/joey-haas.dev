@@ -57,6 +57,7 @@ export const spine = {
       { value: 'best', label: 'Best match' },
       { value: 'newest', label: 'Newest' },
     ],
+    sortLabel: 'Sort Buy now',
     outOn: 'Out',
     band: {
       lead: 'What’s next',
