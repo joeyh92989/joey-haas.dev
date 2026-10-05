@@ -530,10 +530,13 @@ which walks the whole body for banned keys:
 - **No store data.** No store, price, pre-order window, score, rank or row id
   appears.
 - **Frozen to the batch.** The store sections hold the pending rows plus
-  the rows I answered (dismissed, skipped, wanted or owned) from each kind
-  and platform's latest generation, shown exactly like pending ones, so
+  the rows I answered (dismissed, skipped, wanted or owned) from the latest
+  generation (Discover's as a whole, Radar's per console), shown exactly
+  like pending ones, so
   answering a game does not change the public page; it leaves at the next
   generation (nightly), and a skipped game comes back. A generation with
-  nothing pending left shows none of its answers (spec S9).
+  nothing pending left shows none of its answers, and a game I answered
+  Already own stays nameable in a frozen reason only by its IGDB id, never
+  by its title (spec S9).
   `/admin/store-list` is live.
 

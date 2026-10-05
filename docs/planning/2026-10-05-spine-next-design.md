@@ -257,9 +257,9 @@ PublicNextRow     { title, platform, physical_format, release_date|null,
   `preorder_closes_at`, `price`, `store`, `url` (but `igdb_url` and
   `cover_url` are allowed), `status`, `batch_id`. A second test asserts that
   no answered row (dismissed, skipped, wanted or owned) from an older batch
-  appears; an answered row of its (kind, platform)'s latest generation
-  stays, frozen, until the next one, while that generation still has a
-  pending row (S9).
+  appears; an answered row of its group's latest generation (Discover per
+  kind, Radar per platform) stays, frozen, until the next one, while that
+  generation still has a pending row (S9).
 
 **6. `backend/next_list.py`, pure.** No FastAPI or SQLAlchemy in its import
 graph. It joins the existing import-graph test with `radar.py`,
@@ -599,32 +599,38 @@ Where this spec departs from the brief:
   appears, which made `/api/public/next` change the moment the owner
   answered a game: anyone polling it could watch the owner shop. Now:
   - **What is frozen.** The public page reads pending rows plus the
-    answered rows (wanted, dismissed, owned or skipped) of each
-    **(kind, platform)**'s latest generation: the batches generated at that
-    pair's newest `generated_at` (a tie is one generation). An answered row
-    is sectioned and reasoned exactly as a pending one, and nothing on it
-    shows the answer.
-  - **Why per platform.** Radar replaces pending rows only on the platforms
-    a generate covered, so a Radar generate on one platform must not end
-    another platform's frozen answers; Discover writes all its platforms
-    every time, so per platform changes nothing for it.
+    answered rows (wanted, dismissed, owned or skipped) of each group's
+    latest generation: the batches generated at the group's newest
+    `generated_at` (a tie is one generation). **Discover groups per kind,
+    Radar per (kind, platform).** An answered row is sectioned and reasoned
+    exactly as a pending one, and nothing on it shows the answer.
+  - **Why the groups differ.** Radar replaces pending rows only on the
+    platforms a generate covered, so a Radar generate on one platform must
+    not end another platform's frozen answers. Discover replaces all its
+    pending picks on every platform at once, so it is one group: per
+    platform, owning the only N64 pick would empty that platform's
+    generation and, failing closed, drop the pick at once.
   - **When it ends.** Generation skips wanted, dismissed and owned rows,
-    which keep their old batch, so the next generation on that platform
-    (nightly) drops them; a skipped row is re-pended into the new batch and
-    stays.
-  - **Fails closed.** A latest generation with no pending row left on that
-    (kind, platform) shows none of its answered rows. A generate that
+    which keep their old batch, so the group's next generation (nightly)
+    drops them; a skipped row is re-pended into the new batch and stays.
+  - **Fails closed.** A latest generation with no pending row left in its
+    group shows none of its answered rows. A generate that
     writes no rows deletes the pending ones and leaves the old batch the
     latest, so publishing its answers would list exactly what the owner
     answered.
-  - **Reasons stay put.** In public mode a private title that is itself a
-    row on the page (a game answered Already own) is left out of the
-    private-title scan: it is published by name already, and scanning for
-    it would refuse a frozen Discover sentence that names it.
+  - **Reasons stay put, by identity.** Already own creates a private item
+    carrying the row's IGDB id and platform, and scanning reasons for its
+    title would refuse a frozen Discover sentence that names it. So the
+    scan is lifted for a private item only when its `(external_source,
+    external_id)`, and its platform when it has one, match an **owned** row
+    of the frozen batch that the page renders
+    (`next_load.taste_sparing_owned`). Never by title: a private game with
+    no IGDB link, or a same-titled remake, stays scanned, as does a game
+    whose owned row is not rendered.
   - The admin store list stays live: pending only.
   - *Accepted residuals:* until the next generation a wanted game is in
     both Wanted and its store section; and answering every row of a
-    (kind, platform)'s generation during the day hides all of them publicly
+    group's generation during the day hides all of them publicly
     until the next generation, which tells a poller that everything there
     was answered, though not how.
 
