@@ -55,6 +55,10 @@ HOME_REGION = "USA"
 # LP-AAC4B-USA-0: format prefix, product code, region, revision.
 CART_ID_PATTERN = re.compile(r"^L[PBNA]-[A-Z0-9]{5}-[A-Z0-9]{3}-[0-9A-Z]$")
 
+# LA-H-AQXHA-USA: a Switch 1 cart's product code and region. Its own shape:
+# no Switch 1 cart ID matches CART_ID_PATTERN.
+SWITCH_1_CART_ID_PATTERN = re.compile(r"^LA-H-[A-Z0-9]{5}-[A-Z]{3}$")
+
 # How a format reads in a sentence about the owner's copy (formats.py builds
 # FORMAT_LABELS from this), and as the registry spells it.
 FORMAT_WORDS = {
