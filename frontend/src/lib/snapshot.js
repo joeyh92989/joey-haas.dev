@@ -21,6 +21,19 @@ const SHAPES = {
   stats: isObject,
   picks: Array.isArray,
   radar: Array.isArray,
+  next: (body) => isObject(body) && 'tonight' in body && 'buy_now' in body,
+}
+
+/**
+ * Whether a body has the shape a snapshot of `name` must have; the live
+ * API's answer is held to the same rule.
+ *
+ * @param {string} name
+ * @param {unknown} body
+ * @returns {boolean}
+ */
+export function isValidSnapshot(name, body) {
+  return Object.hasOwn(SHAPES, name) && SHAPES[name](body)
 }
 
 /**
