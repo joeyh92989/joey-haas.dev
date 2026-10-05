@@ -218,3 +218,65 @@ def test_without_a_key_the_switch_1_sheet_is_skipped(tmp_path, monkeypatch):
             return rec.failures
 
     assert "GOOGLE_SHEETS_API_KEY is not set" in asyncio.run(run())[0]
+
+
+def test_the_switch_1_recorder_blanks_the_columns_the_parser_never_reads(
+    tmp_path, monkeypatch, capsys
+):
+    header = [
+        "Master TItle",
+        "Game Title",
+        "Region",
+        "Release Date",
+        "Cart ID",
+        "Publisher",
+        "LP #",
+        "Edition Info",
+        "Other Info",
+        "Verified By",
+        "Check",
+    ]
+    values = {
+        "values": [
+            ["Switch Physical Releases"],
+            ["Tag @List Editor", "", "", "", "", "", "", "", "", "", "OK"],
+            [],
+            header,
+            [
+                "Hades",
+                "Hades",
+                "USA",
+                "2020/09/18",
+                "LA-H-A5RBA-EUR1",
+                "Supergiant",
+                "LP 12",
+                "Limited",
+                "Requires a download",
+                "Enixis",
+                "TRUE",
+            ],
+            ["Celeste", "Celeste", "EUR", "", "", "", "", "", "", "kingweeney"],
+        ]
+    }
+    _record_switch_1(tmp_path, monkeypatch, SWITCH_1_PROPERTIES, values)
+    written = json.loads((tmp_path / "registry_switch1" / "master.json").read_text())[
+        "values"
+    ]
+    assert written[:4] == values["values"][:4]
+    assert written[4] == [
+        "Hades",
+        "Hades",
+        "USA",
+        "2020/09/18",
+        "LA-H-A5RBA-EUR1",
+        "Supergiant",
+        "",
+        "Limited",
+    ]
+    assert written[5] == ["Celeste", "Celeste", "EUR"]
+    assert "Enixis" not in json.dumps(written)
+    # The drift report reads the columns before they are blanked, and counts
+    # cart IDs by the production pattern.
+    report = capsys.readouterr().out
+    assert "Other/Edition Info mentioning downloads: 1" in report
+    assert "Cart IDs: 1 filled, 1 shaped" in report

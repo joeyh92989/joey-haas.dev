@@ -44,6 +44,7 @@ BACKEND = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND))
 
 import config  # noqa: E402  (importing it loads backend/.env)
+from physical_sources.limits import SWITCH_1_CART_ID_PATTERN  # noqa: E402
 
 FIXTURES = BACKEND / "tests" / "fixtures" / "physical"
 
@@ -153,7 +154,10 @@ SWITCH1_MASTER_HEADER = (
     "Verified By",
     "Check",
 )
-SWITCH1_CART_ID = re.compile(r"^LA-H-[A-Z0-9]{5}-[A-Z]{3}$")
+# Master columns the parser never reads, blanked below the header before
+# master.json is written: "Verified By" holds the sheet editors' handles, and
+# none of the four is needed to test the parser.
+SWITCH1_UNREAD = ("LP #", "Other Info", "Verified By", "Check")
 
 TRACKER_URL = (
     "https://raw.githubusercontent.com/codemaverick-hub/switch2-tracker/main/"
@@ -679,8 +683,15 @@ def _switch1_report(tab: str, rows: list[list]) -> None:
         same = [column for column in columns if column] == list(SWITCH1_MASTER_HEADER)
         print(f"     matches the spec's Master header: {same}")
         carts = values("Cart ID")
-        shaped = sum(1 for cart in carts if SWITCH1_CART_ID.match(cart.upper()))
-        print(f"     Cart IDs: {len(carts)} filled, {shaped} shaped LA-H-XXXXX-RRR")
+        shaped = sum(
+            1
+            for cart in carts
+            if SWITCH_1_CART_ID_PATTERN.match(cart.split(" / ")[0].strip().upper())
+        )
+        print(
+            f"     Cart IDs: {len(carts)} filled, {shaped} shaped "
+            "(limits.SWITCH_1_CART_ID_PATTERN, first of 'A / B')"
+        )
         dates = sorted(set(values("Release Date")))
         print(f"     Release Date shapes: {dates[:5]} ... {dates[-5:]}")
         notes = [
@@ -704,6 +715,31 @@ def _switch1_report(tab: str, rows: list[list]) -> None:
     print(f"     Death's Door rows: {len(deaths_door)}")
     for row in deaths_door:
         print(f"       {row}")
+
+
+def blank_unread(rows: list[list]) -> list[list]:
+    """A copy of the Master rows with SWITCH1_UNREAD emptied below the header.
+
+    The header and the rows above it are kept as they are. Trailing empty
+    cells are dropped, as the Sheets API drops them. Without a header the rows
+    are returned unchanged and the drift report says so.
+    """
+    header = _header_index(rows, SWITCH1_REQUIRED)
+    if header is None:
+        return [list(row) for row in rows]
+    unread = {name.casefold() for name in SWITCH1_UNREAD}
+    blank = {
+        index
+        for index, cell in enumerate(rows[header])
+        if str(cell).strip().casefold() in unread
+    }
+    out = [list(row) for row in rows[: header + 1]]
+    for row in rows[header + 1 :]:
+        cells = ["" if index in blank else cell for index, cell in enumerate(row)]
+        while cells and cells[-1] == "":
+            cells.pop()
+        out.append(cells)
+    return out
 
 
 async def record_registry_switch1(recorder: Recorder, key: str | None) -> None:
@@ -736,10 +772,14 @@ async def record_registry_switch1(recorder: Recorder, key: str | None) -> None:
         payload = await recorder.get_json(out, values_url, {"key": key})
         if payload is None:
             continue
-        recorder.write_json(out, out, payload)
         rows = payload.get("values", [])
+        if tab == "master":
+            payload = {**payload, "values": blank_unread(rows)}
+        recorder.write_json(out, out, payload)
         size = len(json.dumps(payload, ensure_ascii=False)) // 1024
         print(f"ok   {out}  {len(rows)} rows, {size} KB")
+        # The live rows, not the blanked copy: the download-note count reads
+        # Other Info.
         _switch1_report(tab, rows)
 
 
