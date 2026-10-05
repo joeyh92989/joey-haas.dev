@@ -203,7 +203,8 @@ def test_model_text_survives_only_when_it_cites_public_games():
     kept = public_reasons_for(
         "discover", ["Like Public Game, I'd enjoy this"], True, ["pub"], item, taste
     )
-    assert kept == ["Like Public Game, I'd enjoy this"]
+    assert kept[0] == "Like Public Game, I'd enjoy this"
+    assert len(kept) <= MAX_PUBLIC_REASONS
     dropped = public_reasons_for(
         "discover", ["Like Secret Game"], True, ["priv"], item, taste
     )
@@ -256,3 +257,70 @@ def test_public_reasons_are_capped_and_first_person():
     )
     assert len(reasons) <= MAX_PUBLIC_REASONS
     assert all("your" not in reason.lower().split() for reason in reasons)
+
+
+def _discover(sentence_lines, based_on, private, public=("pub", "Public Game")):
+    taste = public_taste([owned(*public)], private)
+    item = catalogue_item("9", "New", SNAPSHOT, 508, None)
+    return public_reasons_for("discover", sentence_lines, True, based_on, item, taste)
+
+
+def test_only_the_model_sentence_is_published_never_store_or_price_lines():
+    stored = [
+        "Like Public Game, I'd enjoy this",
+        "Pre-orders close Nov 8 at Limited Run Games \u00b7 $59.99",
+        "Full game on cartridge",
+    ]
+    reasons = _discover(stored, ["pub"], [])
+    assert reasons[0] == "Like Public Game, I'd enjoy this"
+    joined = " ".join(reasons)
+    assert "Pre-orders" not in joined and "$" not in joined
+    assert "Full game" not in joined
+    assert len(reasons) <= MAX_PUBLIC_REASONS
+
+
+def test_a_subtitle_alone_still_names_the_private_game():
+    reasons = _discover(
+        ["Like Tears of the Kingdom, I'd enjoy this"],
+        ["pub"],
+        ["The Legend of Zelda: Tears of the Kingdom"],
+    )
+    assert all("Tears of the Kingdom" not in reason for reason in reasons)
+
+
+def test_accents_and_punctuation_do_not_hide_a_private_game():
+    reasons = _discover(
+        ["Feels like Pokemon Legends Z-A, which I love"],
+        ["pub"],
+        ["Pok\u00e9mon Legends: Z-A"],
+    )
+    assert all("Legends" not in reason for reason in reasons)
+
+
+def test_a_curly_apostrophe_does_not_hide_a_private_game():
+    reasons = _discover(
+        ["Like Luigi\u2019s Mansion 3, I'd enjoy this"],
+        ["pub"],
+        ["Luigi's Mansion 3"],
+    )
+    assert all("Mansion" not in reason for reason in reasons)
+
+
+def test_model_text_that_cites_nothing_is_rebuilt():
+    reasons = _discover(["Great pick, I'd say"], [], [])
+    assert "Great pick, I'd say" not in reasons
+
+
+def test_more_second_person_forms_are_refused():
+    for text in ("Treat yourself to this", "ya gotta play it", "u will like it"):
+        assert text not in _discover([text], ["pub"], [])
+
+
+def test_blank_stored_lines_fall_through_to_the_genre_line():
+    taste = public_taste(
+        [owned("pub", "Public Game", rating=None, status="backlog")], []
+    )
+    item = catalogue_item("9", "New", {"genres": ["Adventure"]}, 508, None)
+    assert public_reasons_for("discover", ["", "  "], True, ["pub"], item, taste) == [
+        "Shares Adventure with games on my shelf"
+    ]

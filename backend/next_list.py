@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import calendar
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -181,7 +182,12 @@ def sections(
 
 
 MAX_PUBLIC_REASONS = 2
-_SECOND_PERSON = re.compile(r"\b(you|your|yours)\b", re.IGNORECASE)
+_SECOND_PERSON = re.compile(
+    r"\b(you|your|yours|yourself|yourselves|y'all|ya|u|ur)\b", re.IGNORECASE
+)
+_QUOTES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201b": "'", "\u02bc": "'"})
+_SEGMENT_SPLIT = re.compile(r":| - | \u2013 | \u2014 ")
+_TITLE_MARKS = str.maketrans("", "", "\u2122\u00ae\u2665")
 
 
 @dataclass(frozen=True)
@@ -210,7 +216,9 @@ def public_taste(
         references=references,
         table=attribute_table(public_profile, weights) if references else {},
         public_ids=frozenset(item.id for item in public_profile),
-        private_titles=tuple(title for title in private_titles if title.strip()),
+        private_titles=tuple(
+            title.strip() for title in private_titles if title.strip()
+        ),
         shelf_genres=frozenset(g for item in public_profile for g in item.genres),
     )
 
@@ -222,24 +230,47 @@ def catalogue_item(
     return _picker_item(igdb_id, title, snapshot or {}, platform_id, released)
 
 
+def _normalise(text: str) -> str:
+    """Fold text to lower-case words for title matching: no accents, marks or
+    apostrophes, every other non-alphanumeric run a single space."""
+    text = text.translate(_TITLE_MARKS).translate(_QUOTES).replace("'", "")
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch)).casefold()
+    return " ".join(re.sub(r"[^0-9a-z]+", " ", text).split())
+
+
+def _title_keys(title: str) -> set[str]:
+    """What a model might call a private game: the whole title, and each
+    ":" / " - " segment of two or more words (a subtitle is a name too).
+    Over-matching is safe: it only sends the row to rebuilt reasons."""
+    keys = {_normalise(title)}
+    for segment in _SEGMENT_SPLIT.split(title):
+        key = _normalise(segment)
+        if len(key.split()) >= 2:
+            keys.add(key)
+    keys.discard("")
+    return keys
+
+
 def _names_private_game(text: str, taste: PublicTaste) -> bool:
+    padded = f" {_normalise(text)} "
     return any(
-        re.search(rf"(?<!\w){re.escape(title)}(?!\w)", text, re.IGNORECASE)
+        f" {key} " in padded
         for title in taste.private_titles
+        for key in _title_keys(title)
     )
 
 
-def _model_text_allowed(
-    stored: list[str], based_on: list[str], taste: PublicTaste
-) -> bool:
-    """Discover's model text may be public when every game it cites is
-    public, it names no private game it did not cite, and it is first person."""
-    text = "\n".join(stored)
+def _model_text_allowed(sentence: str, based_on: list[str], taste: PublicTaste) -> bool:
+    """Discover's model sentence may be public when it cites at least one game
+    and every game it cites is public, it names no private game, and it is
+    first person. An uncited sentence fails closed."""
     return (
-        bool(stored)
+        bool(sentence)
+        and bool(based_on)
         and all(ref in taste.public_ids for ref in based_on)
-        and not _names_private_game(text, taste)
-        and not _SECOND_PERSON.search(text)
+        and not _names_private_game(sentence, taste)
+        and not _SECOND_PERSON.search(sentence)
     )
 
 
@@ -271,16 +302,22 @@ def public_reasons_for(
     taste: PublicTaste,
 ) -> list[str]:
     """At most two first-person reasons naming public games only (spec, B8):
-    Discover's model text when it passes the gate, else reasons rebuilt over
-    public games, else one genre line, else none."""
+    Discover's model sentence (the first stored line only) when it passes the
+    gate, topped up or replaced by reasons rebuilt over public games, else one
+    genre line, else none."""
+    lines = [line.strip() for line in stored if line.strip()]
+    rebuilt = _rebuilt(item, taste)
     if (
         kind == "discover"
         and model_written
-        and _model_text_allowed(stored, based_on, taste)
+        and lines
+        and _model_text_allowed(lines[0], based_on, taste)
     ):
-        reasons = list(stored)
+        # Only the model's own sentence: the lines after it hold the store
+        # window, price and format (discover._extras) and are never public.
+        reasons = [lines[0], *(r for r in rebuilt if r != lines[0])]
     else:
-        reasons = _rebuilt(item, taste)
+        reasons = rebuilt
     if not reasons:
         line = _genre_line(item, taste)
         reasons = [line] if line else []
