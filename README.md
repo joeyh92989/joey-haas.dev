@@ -49,7 +49,7 @@ snapshot files and never call the API.
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
 | `/spine` | Spine | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. It no longer calls `/api/public/picks` or `/api/public/radar` |
-| `/spine/next` | What's next | Public: tonight's picks and the pinned Up next game, the want list, and what to look for in a store (Buy now, Pre-orders, Later, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when there is one |
+| `/spine/next` | What's next | Public: tonight's picks and the pinned Up next game, the want list, and what to look for in a store (Buy now, Pre-orders, Later, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
 | `/spine/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
 | `/collection` | Redirect | Redirects to `/spine`; `/collection/:id` redirects to `/spine/:id`, both client-side |
 | `/admin` | Admin | Google sign-in gate, reached from the footer's Sign in link |
@@ -412,8 +412,9 @@ strips.
   of (see [Nightly job](#nightly-job)).
 - **`next.json` is optional.** `/spine/next` paints `/snapshot/next.json` when
   the file exists and shows "Waking the server" until the live call answers
-  when it does not. `fetch-snapshot.mjs` does not write it yet; a later
-  change adds it, and until then the page always waits for the API.
+  when it does not. `fetch-snapshot.mjs` writes it, like `picks.json` and
+  `radar.json`, and leaves it out without failing the build when the API
+  cannot serve it yet.
 - **Setup (once):** in Render, go to the static site → Settings → Deploy Hook
   and copy the URL. In GitHub, go to Settings → Secrets and variables →
   Actions and add it as `RENDER_DEPLOY_HOOK_URL`. The URL is a secret: anyone
@@ -492,7 +493,8 @@ detail, picks, radar and next models' field sets.
 | `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge` (see below) |
 
 `/api/public/picks` and `/api/public/radar` remain, and the snapshot still
-copies them, until a follow-up retires them (Spine Next spec, item 10).
+copies them (and `/api/public/next`), until a follow-up retires the first
+two (Spine Next spec, item 10).
 
 ### `GET /api/public/next`
 

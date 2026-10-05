@@ -419,4 +419,4 @@ before pushing.
   text must pass both the id check (every cited game public) and the title
   scan (no private game named, numeral and edition variants included).
   `/spine/next` paints `/snapshot/next.json` when present; `fetch-snapshot`
-  does not write it yet.
+  writes it as an optional snapshot.
