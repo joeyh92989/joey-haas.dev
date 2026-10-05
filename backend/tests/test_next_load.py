@@ -118,6 +118,77 @@ async def test_answered_rows_are_not_candidates(sessionmaker_for_test, status):
     assert [c.title for c in data.candidates] == ["Coming"]
 
 
+ANSWERED = [
+    RecommendationStatus.WANTED,
+    RecommendationStatus.OWNED,
+    RecommendationStatus.DISMISSED,
+    RecommendationStatus.SKIPPED,
+]
+
+
+@pytest.mark.parametrize("status", ANSWERED)
+async def test_public_mode_keeps_answered_rows_of_the_latest_batch(
+    sessionmaker_for_test, status
+):
+    """The public store sections are frozen to the batch (spec, S9): an
+    answer leaves the public page only when a new generation runs."""
+    batch, at = uuid.uuid4(), datetime(2026, 9, 28, 6, 0, tzinfo=UTC)
+    await _add(
+        sessionmaker_for_test,
+        _radar("Coming", batch_id=batch, generated_at=at),
+        _radar("Answered", status=status, batch_id=batch, generated_at=at),
+    )
+    async with sessionmaker_for_test() as session:
+        public = await load_next(session, public=True)
+        admin = await load_next(session)
+    assert {c.title for c in public.candidates} == {"Coming", "Answered"}
+    assert [c.title for c in admin.candidates] == ["Coming"]
+
+
+@pytest.mark.parametrize("status", ANSWERED)
+async def test_public_mode_drops_answered_rows_of_an_older_batch(
+    sessionmaker_for_test, status
+):
+    older, newer = (
+        datetime(2026, 9, 27, 6, 0, tzinfo=UTC),
+        datetime(2026, 9, 28, 6, 0, tzinfo=UTC),
+    )
+    await _add(
+        sessionmaker_for_test,
+        _radar("Old Answer", status=status, generated_at=older),
+        _radar("Old Pending", generated_at=older),
+        _radar("New", generated_at=newer),
+        # Discover's latest batch is its own: Radar's newer one does not end it.
+        _radar(
+            "Pick Answered",
+            kind=RecommendationKind.DISCOVER,
+            status=status,
+            generated_at=older,
+        ),
+    )
+    async with sessionmaker_for_test() as session:
+        public = await load_next(session, public=True)
+    assert {c.title for c in public.candidates} == {
+        "Old Pending",
+        "New",
+        "Pick Answered",
+    }
+
+
+async def test_public_mode_reads_every_batch_generated_at_the_latest_instant(
+    sessionmaker_for_test,
+):
+    at = datetime(2026, 9, 28, 6, 0, tzinfo=UTC)
+    await _add(
+        sessionmaker_for_test,
+        _radar("First", status=RecommendationStatus.DISMISSED, generated_at=at),
+        _radar("Second", status=RecommendationStatus.WANTED, generated_at=at),
+    )
+    async with sessionmaker_for_test() as session:
+        public = await load_next(session, public=True)
+    assert {c.title for c in public.candidates} == {"First", "Second"}
+
+
 async def test_candidates_run_by_score_then_title(sessionmaker_for_test):
     await _add(
         sessionmaker_for_test,

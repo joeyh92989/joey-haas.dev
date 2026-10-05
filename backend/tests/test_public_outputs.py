@@ -667,6 +667,9 @@ NEXT_ROW_FIELDS = {
 }  # fmt: skip
 
 
+STORE_SECTIONS = ("buy_now", "preorders", "later", "not_on_cartridge")
+
+
 def _keys(value):
     if isinstance(value, dict):
         for key, inner in value.items():
@@ -730,18 +733,39 @@ async def test_no_private_key_appears_anywhere(sessionmaker_for_test):
     assert [r["title"] for r in body["not_on_cartridge"]] == ["Digital"]
 
 
-async def test_answered_rows_are_never_published(sessionmaker_for_test):
+async def test_answered_rows_of_an_older_batch_are_never_published(
+    sessionmaker_for_test,
+):
+    """Frozen to the batch (spec, S9): an answered row stays public until a
+    newer generation of its kind, then never again. The pending row of the
+    newer batch is the positive control."""
+    older = NOW - timedelta(days=1)
     await _add(
         sessionmaker_for_test,
         *[
-            _radar(f"Gone {s.value}", status=s)
+            _radar(f"Gone {s.value}", status=s, generated_at=older)
             for s in RecommendationStatus
             if s != RecommendationStatus.PENDING
         ],
+        _radar("Fresh", generated_at=NOW),
     )
     body = await _next(sessionmaker_for_test)
-    for section in ("buy_now", "preorders", "later", "not_on_cartridge"):
-        assert body[section] == []
+    published = [r["title"] for key in STORE_SECTIONS for r in body[key]]
+    assert published == ["Fresh"]
+
+
+async def test_answered_rows_of_the_latest_batch_stay_published(
+    sessionmaker_for_test,
+):
+    batch = uuid.uuid4()
+    rows = [
+        _radar(f"Kept {s.value}", status=s, batch_id=batch, generated_at=NOW)
+        for s in RecommendationStatus
+    ]
+    await _add(sessionmaker_for_test, *rows)
+    body = await _next(sessionmaker_for_test)
+    assert {r["title"] for r in body["preorders"]} == {r.title for r in rows}
+    assert FORBIDDEN.isdisjoint(set(_keys(body)))
 
 
 async def test_stored_radar_reasons_never_reach_the_public(sessionmaker_for_test):

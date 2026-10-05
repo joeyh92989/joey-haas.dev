@@ -28,6 +28,7 @@ from models import (
     StoreListing,
 )
 from physical_sources.catalogue import upsert_editions, upsert_listings
+from public import create_public_router
 from recommendations_routes import create_recommendations_router
 from sources.base import SourceError
 
@@ -66,8 +67,12 @@ def _upcoming(igdb_id, platform_id=508):
 
 
 @asynccontextmanager
-async def radar_client(factory, igdb=None, lock=None, signed_in=True):
+async def radar_client(
+    factory, igdb=None, lock=None, signed_in=True, with_public=False
+):
     app = FastAPI()
+    if with_public:
+        app.include_router(create_public_router(factory))
     app.include_router(
         create_recommendations_router(
             factory, {ItemType.GAME: igdb or FakeUpcoming()}, lock or asyncio.Lock()
@@ -626,3 +631,49 @@ async def test_store_list_is_admin_only(sessionmaker_for_test):
     async with radar_client(sessionmaker_for_test, signed_in=False) as client:
         response = await client.get("/api/recommendations/store-list")
     assert response.status_code == 401
+
+
+STORE_SECTIONS = ("buy_now", "preorders", "later", "not_on_cartridge")
+
+
+def _store_titles(body: dict) -> dict[str, list[str]]:
+    return {key: [row["title"] for row in body[key]] for key in STORE_SECTIONS}
+
+
+@pytest.mark.parametrize("answer", ["want", "own", "dismiss", "skip"])
+async def test_the_public_sections_are_frozen_to_the_batch(
+    sessionmaker_for_test, answer
+):
+    """Spec S9: an answer changes the signed-in store list at once and the
+    public sections only at the next generation, where a skipped game comes
+    back and any other answered one is gone."""
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test, with_public=True) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        rows = await _rows(sessionmaker_for_test)
+        before = (await client.get("/api/public/next")).json()
+        answered = await client.post(f"/api/recommendations/{rows['1'].id}/{answer}")
+        after = (await client.get("/api/public/next")).json()
+        admin = (await client.get("/api/recommendations/store-list")).json()
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        regenerated = (await client.get("/api/public/next")).json()
+        again = await _rows(sessionmaker_for_test)
+
+    assert answered.status_code in (200, 201)
+    assert "Dated" in _store_titles(before)["preorders"]
+    # The public body's store sections are unchanged, row for row.
+    assert {key: after[key] for key in STORE_SECTIONS} == {
+        key: before[key] for key in STORE_SECTIONS
+    }
+    assert after["generated_at"] == before["generated_at"]
+    # The signed-in list is live: the answered game is gone at once.
+    admin_titles = {r["title"] for rows_ in admin["sections"].values() for r in rows_}
+    assert "Dated" not in admin_titles and "Next Year" in admin_titles
+    # The answered row kept its batch; the rest moved to the new one.
+    assert again["1"].batch_id == rows["1"].batch_id or answer == "skip"
+    assert again["3"].batch_id != rows["3"].batch_id
+    public_titles = {
+        t for titles in _store_titles(regenerated).values() for t in titles
+    }
+    assert ("Dated" in public_titles) == (answer == "skip")
+    assert "Next Year" in public_titles

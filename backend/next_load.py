@@ -1,8 +1,10 @@
-"""What's next's database side: pending suggestions as NextCandidates, and
-Play Next's profile split into public and private (Spine Next spec, K9).
+"""What's next's database side: suggestions as NextCandidates, and Play
+Next's profile split into public and private (Spine Next spec, K9).
 
 Shared by GET /api/public/next and GET /api/recommendations/store-list, so
 the two read the same rows the same way. next_list.py decides everything.
+The one difference is which rows: the admin list is live (pending only),
+while the public sections are frozen to each kind's latest batch (spec, S9).
 """
 
 from __future__ import annotations
@@ -10,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import (
@@ -56,13 +58,54 @@ def _candidate(row: Recommendation) -> NextCandidate:
     )
 
 
-async def load_next(session: AsyncSession) -> NextData:
-    """Pending Radar and Discover rows, and the games a reason may name."""
+async def _latest_batches(session: AsyncSession, kind: RecommendationKind) -> list:
+    """The batch ids of `kind`'s latest generation: every batch generated at
+    its newest `generated_at`, so a tie cannot hide one."""
+    newest = (
+        select(func.max(Recommendation.generated_at))
+        .where(Recommendation.kind == kind)
+        .scalar_subquery()
+    )
+    return list(
+        await session.scalars(
+            select(Recommendation.batch_id)
+            .where(Recommendation.kind == kind, Recommendation.generated_at == newest)
+            .distinct()
+        )
+    )
+
+
+async def load_next(session: AsyncSession, *, public: bool = False) -> NextData:
+    """Radar and Discover rows, and the games a reason may name.
+
+    Admin (the default): pending rows only, so an answer leaves the list at
+    once. Public: pending rows plus every answered row of its kind's latest
+    batch, so answering a game does not change the public page; it leaves
+    when a new generation runs (spec, S9). Generation skips answered rows,
+    which keep their batch, so a new batch ends them. Nothing on a row tells
+    the public an answered row from a pending one.
+    """
+    shown = Recommendation.status == RecommendationStatus.PENDING
+    if public:
+        frozen = [
+            and_(
+                Recommendation.kind == kind,
+                Recommendation.batch_id.in_(batches),
+            )
+            for kind in RecommendationKind
+            if (batches := await _latest_batches(session, kind))
+        ]
+        shown = or_(shown, *frozen)
     rows = list(
         await session.scalars(
             select(Recommendation)
-            .where(Recommendation.status == RecommendationStatus.PENDING)
-            .order_by(Recommendation.score.desc(), Recommendation.title)
+            .where(shown)
+            .order_by(
+                Recommendation.score.desc(),
+                Recommendation.title,
+                Recommendation.platform_id,
+                Recommendation.external_id,
+            )
         )
     )
     games = list(await session.scalars(select(Item).where(Item.type == ItemType.GAME)))

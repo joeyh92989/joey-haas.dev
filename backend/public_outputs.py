@@ -369,10 +369,11 @@ def _wanted_row(item: Item, today: date) -> PublicNextRow:
 
 async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOut:
     """What's next for the public (spec, B5): tonight's games, the wanted
-    list, and the store sections, built by next_list in public mode."""
+    list, and the store sections, built by next_list in public mode from
+    the rows frozen to the latest batch (spec, S9)."""
     today = now.astimezone(UTC).date()
     day, picks = await public_picks_with_day(session, now)
-    data = await load_next(session)
+    data = await load_next(session, public=True)
     built = sections(data.candidates, today, public=True)
     pinned = [item for item in data.public_games if item.pinned_at is not None]
     up_next = max(pinned, key=lambda item: item.pinned_at, default=None)
