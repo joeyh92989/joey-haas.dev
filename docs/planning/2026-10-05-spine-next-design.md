@@ -653,14 +653,13 @@ Where this spec departs from the brief:
 
 ## Open questions
 
-1. **S2.** Is a registry date on Buy now rows acceptable? It is the only way
-   Newest can sort. If not, Newest becomes "New badge first, then best
-   match" and Buy now publishes no dates.
-2. **S3.** Is the admin store list's renaming acceptable (Top picks becomes
-   a badge, plus a Later section)? The alternative keeps the admin page's
-   section names as display labels over the same server keys.
-3. **Stale threshold.** Is 36 hours right for "Nightly may have stopped"?
-   It tolerates one missed night plus GitHub's schedule delays.
+None. Resolved 2026-10-05:
+
+1. **S2 accepted:** Buy now rows publish a registry date when they have one,
+   and Newest sorts by it.
+2. **S3 accepted:** the admin store list takes the public section names,
+   Top picks becomes a badge, and Later is added.
+3. **36 hours accepted** as the "Nightly may have stopped" threshold.
 
 ## Smoke test strategy
 
