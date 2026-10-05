@@ -271,11 +271,14 @@ before pushing.
   Refresh Switch 1 once on `/admin/catalogue`; expect `rows_seen` near
   10,000 (editions, not titles), and check the run's errors, since IGDB
   pages beyond the first are first walked there.
-- **The store list** (`/admin/store-list`) is frontend only, over the
-  pending Discover and Radar rows (`?kind=discover`, `?kind=radar`), phone
-  first: Top picks, Out now on Switch 2, Out now on Switch, Ask about
-  pre-orders (a dated cartridge within 90 days), Skip in store. Got it is
-  Already own (`POST /api/recommendations/{id}/own`).
+- **The store list** (`/admin/store-list`) reads
+  `GET /api/recommendations/store-list`: What's next's sections from
+  `next_list.sections` in admin mode, over pending rows only, so an answer
+  leaves it at once. Got it is Already own
+  (`POST /api/recommendations/{id}/own`). **The public What's next is
+  frozen to the batch** (Spine Next spec, S9): `load_next(public=True)`
+  adds every answered row of each kind's latest batch, so an answer
+  changes `/api/public/next` only at the next generation.
 - **E7c deploy order:** set `GOOGLE_SHEETS_API_KEY` on Render; apply `0005`
   to Neon; merge; **before the first Refresh registry, bulk-set every owned
   Switch 2 copy's format on `/admin/collection`** (the collection is all full

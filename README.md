@@ -60,7 +60,7 @@ snapshot files and never call the API.
 | `/admin/catalogue` | Catalogue | What exists physically: registries (Switch 2 and Switch 1), stores, N64 |
 | `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Want adds the game as a public want, listed on What's next |
 | `/admin/discover` | Discover | Released physical games you would love and do not own: eight picks with reasons from one Gemini call, or the taste ranking when it cannot answer |
-| `/admin/store-list` | Store list | What to look for in a store, on a phone: the same sections as What's next (Buy now with its top picks, Pre-orders, Later, Not on cartridge), read from `GET /api/recommendations/store-list`, with prices and store lines the public page never gets; Got it marks a game owned |
+| `/admin/store-list` | Store list | What to look for in a store, on a phone: the same sections as What's next (Buy now with its top picks, Pre-orders, Later, Not on cartridge), read from `GET /api/recommendations/store-list`, with prices and store lines the public page never gets. Got it marks a game owned, Want adds it to the public want list, and Not interested drops it for good; the list is live, so an answered game leaves it at once |
 | anything else | NotFound (client-side 404) | |
 
 The `/admin*` routes are absent from the site navigation deliberately. The
@@ -469,7 +469,7 @@ job's limit is 150 minutes.
   configuration rather than data and fails the run (see `JOB_TOKEN` above).
   The run summary lists every step as succeeded or failed; the "Last
   nightly" line on `/admin` names only the catalogue sources that failed.
-- **The snapshot's `next` output** carries `generated_at` times, so it differs
+- **The snapshot's `next` output** carries `generated_at` days, so it differs
   every night and the static site redeploys nightly. That is intended.
 - **Gotcha:** GitHub switches off scheduled workflows in a public repository
   after 60 days with no repository activity, and this job never commits. To
@@ -500,9 +500,10 @@ two (Spine Next spec, item 10).
 
 The body has these keys:
 
-- `generated_at`: `picks` (the UTC day the picks are from), `catalogue` (the
-  stalest store's last good run), `radar` and `discover` (each kind's most
-  recent generation, whatever the status of its rows). Any may be null.
+- `generated_at`: UTC days, never times: `picks` (the day the picks are
+  from), `catalogue` (the day of the stalest store's last good run), `radar`
+  and `discover` (the day of each kind's last generation, whatever the
+  status of its rows). Any may be null.
 - `tonight`: `up_next` (the pinned game, if public) and `picks` (the latest
   Play Next picks among public games), each a card with `item_id`, `type`,
   `title`, `cover_url`, `platform` and `reasons`.
@@ -518,11 +519,19 @@ which walks the whole body for banned keys:
 - **Public games only in reasons.** Reasons are rebuilt over public games,
   in the first person. Discover's model-written sentence is published only
   when it is the first stored line, cites at least one game, every cited game is
-  public, it names no private game title, and it is not in the second person.
+  public, it names no private game title (possessives included), and it is
+  in the first person: neither addressing the reader nor speaking of me in
+  the third person.
 - **Registry dates only.** On a suggestion, a store's or IGDB's date is never
   published; a row with only one counts as undated. A wanted game shows
   its own release date only while it is still to come, with no precision and
-  no IGDB link.
+  no IGDB link; Want copies a suggestion's date onto the item only when the
+  registry gave it to the day.
 - **No store data.** No store, price, pre-order window, score, rank or row id
-  appears, and no answered suggestion (dismissed, skipped, wanted or owned).
+  appears.
+- **Frozen to the batch.** The store sections hold each kind's pending rows
+  plus the rows I answered (dismissed, skipped, wanted or owned) from its
+  latest generation, shown exactly like pending ones, so answering a game
+  does not change the public page; it leaves at the next generation
+  (nightly), and a skipped game comes back. `/admin/store-list` is live.
 

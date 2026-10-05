@@ -69,7 +69,7 @@ Discover is the one feature that lets a language model choose, and the contract 
 
 Only one router serves data without a session. Items are private when created and reach the public shelf only when published. The public shape of an item is a fixed field list; a test pins exactly which keys each public endpoint may return, so a new column cannot leak by default.
 
-The only public page built from stored suggestions is [What’s next](/spine/next), and it is deliberately a read-only view. Its “Tonight” block is the most recent day’s Play Next output, restricted to public items, and it changes at most once a day at UTC midnight, so nobody polling the endpoint can watch me use the tool in real time. Below it sit the games I want, then what to look for in a store: Buy now, Pre-orders, Later, and a short list of games that are digital only or ship with a Game-Key Card. Discover’s top picks appear there, with a “Top pick” badge, and so do Radar’s upcoming cartridges, and each row carries public facts only: title, platform, format, a date when the registry gives one, cover art, an IGDB link, reasons and the badges, with no store, no price and no private game. A suggestion’s release date is shown only when the physical registry has one; a store’s date, or IGDB’s first date on any platform, counts as no date at all. The reasons are written in the first person and name only games that are public. They are rebuilt from public rows rather than copied from what the admin pages store, because those lines hold store names and prices. Discover’s model-written sentence is published only if it cites at least one game, every game it cites is public, it names no game I have kept private, and it is not written in the second person. Anything else falls back to a line rebuilt from my public shelf.
+The only public page built from stored suggestions is [What’s next](/spine/next), and it is deliberately a read-only view. Its “Tonight” block is the most recent day’s Play Next output, restricted to public items, and it changes at most once a day at UTC midnight, so nobody polling the endpoint can watch me use the tool in real time. Below it sit the games I want, then what to look for in a store: Buy now, Pre-orders, Later, and a short list of games that are digital only or ship with a Game-Key Card. Discover’s top picks appear there, with a “Top pick” badge, and so do Radar’s upcoming cartridges, and each row carries public facts only: title, platform, format, a date when the registry gives one, cover art, an IGDB link, reasons and the badges, with no store, no price and no private game. A suggestion’s release date is shown only when the physical registry has one; a store’s date, or IGDB’s first date on any platform, counts as no date at all. The reasons are written in the first person and name only games that are public. They are rebuilt from public rows rather than copied from what the admin pages store, because those lines hold store names and prices. Discover’s model-written sentence is published only if it cites at least one game, every game it cites is public, it names no game I have kept private, and it is in the first person, neither talking to the reader nor about me in the third person. Anything else falls back to a line rebuilt from my public shelf.
 
 One function sorts the suggestions into those sections, and the signed-in store list I use on my phone runs the same function, so the two pages cannot disagree about whether a game is out. The only difference is the rule about dates: the private page may use any date, the public one only the registry’s.
 
@@ -79,9 +79,9 @@ Here is an illustrative response, with one row each in Buy now and Pre-orders an
 {
   "generated_at": {
     "picks": "2026-10-04",
-    "catalogue": "2026-10-05T00:41:09Z",
-    "radar": "2026-10-05T00:52:30Z",
-    "discover": "2026-10-04T01:03:12Z"
+    "catalogue": "2026-10-05",
+    "radar": "2026-10-05",
+    "discover": "2026-10-04"
   },
   "tonight": { "up_next": null, "picks": [] },
   "wanted": [],
@@ -120,7 +120,7 @@ Here is an illustrative response, with one row each in Buy now and Pre-orders an
 }
 ```
 
-The ids, scores, ranks, prices, stores and pre-order windows are not in there on purpose. A test walks the whole body and fails if any of those key names appears at any depth, and a second one fails if a game I have already answered (dismissed, skipped, wanted or owned) is listed.
+The ids, scores, ranks, prices, stores and pre-order windows are not in there on purpose. A test walks the whole body and fails if any of those key names appears at any depth, and the ages in `generated_at` are days, not times. The store sections are frozen to the night's batch: when I answer a game (dismiss, skip, want or own it), the public page does not change until the next generation, so nobody can watch me shop either; a test fails if a game I answered in an earlier batch is still listed.
 
 And here is one item from the shelf endpoint, trimmed to the interesting fields:
 
