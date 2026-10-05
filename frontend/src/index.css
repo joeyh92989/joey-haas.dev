@@ -2948,7 +2948,9 @@ footer {
   margin-top: 2rem;
 }
 
-.next-section h2 {
+/* The signed-in store list's sections read at the public page's size. */
+.next-section h2,
+.store-list-section h2 {
   font-size: 1.375rem;
   margin: 0 0 0.5rem;
 }
