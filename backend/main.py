@@ -54,6 +54,11 @@ logger.info("metadata sources configured: %s", ", ".join(configured) or "none")
 
 app = FastAPI(title="joey-haas.dev API", lifespan=engine_lifespan(engine))
 
+# require_admin reads the job token from here (Spine Next spec, K1), so the
+# five routers keep their signatures. An app that never sets it -- every test
+# app -- has no token and accepts sessions only.
+app.state.job_token = config.job_token
+
 # Signed, HttpOnly, Secure, SameSite=Lax. Thirty days.
 #
 # joey-haas.dev and api.joey-haas.dev share a registrable domain, so browsers

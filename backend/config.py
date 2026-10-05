@@ -64,6 +64,10 @@ class Config:
     llm_provider: str = "gemini"
     gemini_api_key: str | None = None
     anthropic_api_key: str | None = None
+    # The nightly workflow's bearer token (Spine Next spec, A1). Unset means
+    # every bearer request is a 401 and only a session is admin, as before.
+    # It opens only items.JOB_ROUTES, never the rest of the admin API.
+    job_token: str | None = None
 
 
 # The HTTP client logs every request URL at INFO. Several source keys travel
@@ -143,4 +147,5 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         llm_provider=_optional(source, "LLM_PROVIDER") or "gemini",
         gemini_api_key=_optional(source, "GEMINI_API_KEY"),
         anthropic_api_key=_optional(source, "ANTHROPIC_API_KEY"),
+        job_token=_optional(source, "JOB_TOKEN"),
     )
