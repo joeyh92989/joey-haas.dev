@@ -677,3 +677,48 @@ async def test_the_public_sections_are_frozen_to_the_batch(
     }
     assert ("Dated" in public_titles) == (answer == "skip")
     assert "Next Year" in public_titles
+
+
+@pytest.mark.parametrize(
+    ("answer", "metadata", "kept"),
+    [
+        ("want", {"release_source": "store"}, False),
+        ("own", {"release_source": "store"}, False),
+        ("want", {"release_source": "igdb_platform"}, False),
+        ("want", {"release_precision": "month"}, False),
+        ("want", {}, True),  # a registry date to the day
+    ],
+)
+async def test_want_and_own_copy_only_a_registry_day(
+    sessionmaker_for_test, answer, metadata, kept
+):
+    """A store's date is store data, and an item has no precision column, so
+    a month would read as its first day: only a registry day is copied."""
+    row = _store_row("Coming", source_metadata=metadata)
+    await _add_rows(sessionmaker_for_test, row)
+    async with radar_client(sessionmaker_for_test, with_public=True) as client:
+        response = await client.post(f"/api/recommendations/{row.id}/{answer}")
+        body = (await client.get("/api/public/next")).json()
+    assert response.status_code == 201
+    async with sessionmaker_for_test() as session:
+        (item,) = await session.scalars(select(Item))
+    expected = TODAY + timedelta(days=60) if kept else None
+    assert item.release_date == expected
+    if answer == "want":
+        (wanted,) = body["wanted"]
+        assert wanted["release_date"] == (expected.isoformat() if kept else None)
+
+
+async def test_store_list_keeps_any_date_on_every_section(sessionmaker_for_test):
+    """The signed-in list shows the row's own date, whatever section it is
+    in: Not on cartridge has no public date, but the owner still sees one."""
+    await _add_rows(
+        sessionmaker_for_test,
+        _store_row(
+            "Digital", physical_format=None, source_metadata={"lane": "digital"}
+        ),
+    )
+    async with radar_client(sessionmaker_for_test) as client:
+        body = (await client.get("/api/recommendations/store-list")).json()
+    (row,) = body["sections"]["not_on_cartridge"]
+    assert row["release_date"] == (TODAY + timedelta(days=60)).isoformat()

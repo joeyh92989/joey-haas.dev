@@ -39,6 +39,7 @@ from models import (
     RecommendationKind,
     RecommendationStatus,
 )
+from next_list import PUBLIC_DATE_SOURCES
 from next_list import sections as next_sections
 from next_load import catalogue_times, load_next
 from picker import attribute_table, reference_weights
@@ -117,6 +118,20 @@ def _row_out(row: Recommendation) -> dict:
         "hypes": meta.get("hypes"),
         "lane": meta.get("lane"),
     }
+
+
+def _item_release_date(row: Recommendation) -> date | None:
+    """The date a Want or Already own may copy onto the item: a public
+    source's (next_list.PUBLIC_DATE_SOURCES), to the day. A store's date is
+    store data and a wanted item is public; an item has no precision
+    column, so a month or quarter would read as its first day."""
+    meta = row.source_metadata or {}
+    if (
+        meta.get("release_source") in PUBLIC_DATE_SOURCES
+        and meta.get("release_precision") == "day"
+    ):
+        return row.release_date
+    return None
 
 
 def create_recommendations_router(
@@ -484,8 +499,9 @@ def create_recommendations_router(
     @router.get("/store-list")
     async def store_list(session: AsyncSession = Depends(get_session)) -> dict:
         """The signed-in What's next: the same sections as /api/public/next
-        (next_list in admin mode, where any date counts), with the admin
-        fields and the stored reasons."""
+        (next_list in admin mode, where any date counts, over pending rows
+        only), with the admin fields, the stored reasons and each row's own
+        date, whatever its section."""
         today = _today()
         data = await load_next(session)
         built = next_sections(data.candidates, today, public=False)
@@ -496,9 +512,6 @@ def create_recommendations_router(
                 key: [
                     {
                         **_row_out(entry.candidate.payload),
-                        "release_date": entry.date_shown.isoformat()
-                        if entry.date_shown
-                        else None,
                         "top_pick": entry.top_pick,
                         "new": entry.new,
                         "kind": entry.candidate.kind,
@@ -573,7 +586,7 @@ def create_recommendations_router(
             owned_format=owned_format,
             source_metadata=snapshot or None,
             platform_id=row.platform_id,
-            release_date=row.release_date,
+            release_date=_item_release_date(row),
         )
         values = payload.model_dump()
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
