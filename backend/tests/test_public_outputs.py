@@ -1,5 +1,6 @@
 """Public picks and radar (showcase spec, D). The leak tests are the point."""
 
+import asyncio
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, time, timedelta
@@ -7,13 +8,17 @@ from datetime import UTC, date, datetime, time, timedelta
 import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
+from sqlalchemy import select
+from starlette.middleware.sessions import SessionMiddleware
 
 import public
 from models import (
+    CatalogueGame,
     Item,
     ItemStatus,
     ItemType,
     OwnedFormat,
+    PhysicalEdition,
     PhysicalFormat,
     PickAction,
     PickEvent,
@@ -24,6 +29,7 @@ from models import (
 )
 from public import create_public_router
 from public_outputs import PublicPickOut, PublicRadarOut
+from recommendations_routes import create_recommendations_router
 
 pytestmark = pytest.mark.asyncio
 
@@ -557,3 +563,94 @@ async def test_radar_publishes_no_store_price_window_or_reason(sessionmaker_for_
         "lane",
     ):
         assert leaked not in response.text
+
+
+class _NoUpcoming:
+    """IGDB for Radar's lane 3, with nothing upcoming."""
+
+    def configured(self):
+        return True
+
+    async def upcoming(self, platforms, now):
+        return []
+
+
+async def _generate_radar(factory) -> None:
+    app = FastAPI()
+    app.include_router(
+        create_recommendations_router(
+            factory, {ItemType.GAME: _NoUpcoming()}, asyncio.Lock()
+        )
+    )
+
+    @app.middleware("http")
+    async def _sign_in(request, call_next):
+        request.session["user"] = {"sub": "1", "email": "admin@example.com"}
+        return await call_next(request)
+
+    app.add_middleware(SessionMiddleware, secret_key="test-secret", https_only=False)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver", timeout=60
+    ) as client:
+        response = await client.post(
+            "/api/recommendations/generate", json={"kind": "radar"}
+        )
+    assert response.status_code == 200
+
+
+async def test_radar_never_publishes_a_switch_1_sheet_date(sessionmaker_for_test):
+    """Nothing from the Switch 1 sheet is public (switch1 spec, decision 6).
+
+    A Switch 1 cartridge the sheet dates after today goes through a real
+    Radar generate. Everything else about it would be published; only the
+    date's source keeps it off /api/public/radar.
+    """
+    released = date.today() + timedelta(days=30)
+    await _add(
+        sessionmaker_for_test,
+        CatalogueGame(
+            igdb_id=501,
+            title="Sheet Only",
+            snapshot={"genres": ["Roguelike"], "similar_games": []},
+            hypes=20,
+            release_date=released,
+        ),
+    )
+    await _add(
+        sessionmaker_for_test,
+        PhysicalEdition(
+            source="nscollectors_ns1",
+            source_ref="sheet only|USA||master|",
+            title="Sheet Only",
+            title_normalized="sheet only",
+            platform_id=130,
+            platform="Nintendo Switch",
+            region="USA",
+            is_physical=True,
+            physical_format=PhysicalFormat.GAME_CARD,
+            format_source="registry",
+            cart_id="LA-H-AAAAA-USA",
+            release_date=released,
+            release_precision="day",
+            igdb_id=501,
+        ),
+    )
+    await _generate_radar(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        (row,) = await session.scalars(
+            select(Recommendation).where(Recommendation.external_id == "501")
+        )
+    assert (row.kind, row.status, row.physical_format, row.platform_id) == (
+        RecommendationKind.RADAR,
+        RecommendationStatus.PENDING,
+        PhysicalFormat.GAME_CARD,
+        130,
+    )
+    assert row.release_date > TODAY
+    assert row.source_metadata["release_precision"] == "day"
+    assert row.source_metadata["release_source"] != "registry"
+
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/radar")
+    assert response.status_code == 200
+    assert response.json() == []

@@ -98,7 +98,9 @@ from sources.igdb import PLATFORM_NAMES
 
 logger = logging.getLogger(__name__)
 
-REGISTRY_SOURCES = ("nscollectors", "switch2tracker", "nscollectors_ns1")
+# The registry-kind rows of the status listing. Not collapse.REGISTRY_SOURCES,
+# the public radar's date gate, which leaves the Switch 1 sheet out on purpose.
+STATUS_REGISTRY_SOURCES = ("nscollectors", "switch2tracker", "nscollectors_ns1")
 SOURCE_NAMES = {
     **{key: config.name for key, config in STORES.items()},
     "nscollectors": "r/NSCollectors registry",
@@ -783,7 +785,7 @@ def create_physical_router(
         sources = []
         for source, kind in (
             *((key, "store") for key in STORES),
-            *((key, "registry") for key in REGISTRY_SOURCES),
+            *((key, "registry") for key in STATUS_REGISTRY_SOURCES),
             ("igdb_platform", "platform"),
             ("resolve", "resolve"),
         ):

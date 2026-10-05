@@ -158,8 +158,10 @@ the sheet lists every region and the collapse is region-free (see Formats).
   deliberately leaves `nscollectors_ns1` out, because
   `/api/public/radar` publishes only registry-dated rows and nothing from this
   sheet may reach a public route. Do not add it there. (`physical_routes.py`
-  has its own `REGISTRY_SOURCES`, which only decides what the status route
-  lists, and does include it.)
+  has `STATUS_REGISTRY_SOURCES`, which only decides what the status route
+  lists, and does include it; `tests/test_public_outputs.py` puts a dated
+  Switch 1 cartridge through a real Radar generate and holds
+  `/api/public/radar` empty.)
 - Its formats feed the collapse only. `sync.py` still writes registry formats
   onto owned Switch 2 copies alone (`KEY_CARD_PLATFORMS`).
 
