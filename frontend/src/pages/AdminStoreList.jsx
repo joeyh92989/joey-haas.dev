@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { releaseWords } from './AdminRadar.jsx'
 
 const UNREACHABLE = 'Could not reach the API. Try again shortly.'
 
@@ -46,15 +47,31 @@ export function addDays(date, days) {
 }
 
 /**
+ * The last day of a release's period as YYYY-MM-DD. The API stores a month,
+ * quarter or year as the period's first day, so a game dated that way is not
+ * out until the whole period has ended. No precision means a day.
+ */
+export function periodEnd(date, precision) {
+  const [year, month] = date.split('-').map(Number)
+  if (precision === 'month') return isoDay(new Date(year, month, 0))
+  if (precision === 'quarter')
+    return isoDay(new Date(year, Math.ceil(month / 3) * 3, 0))
+  if (precision === 'year') return `${year}-12-31`
+  return date
+}
+
+/**
  * Where a Radar row goes on the store list, or null when it is not on it:
- * anything that is not a full cartridge is Skip; a cartridge out by today is
- * under its console; one due within PREORDER_DAYS is worth asking about.
+ * anything that is not a full cartridge is Skip; a cartridge whose release
+ * period has ended is under its console; one whose period has not ended but
+ * starts within PREORDER_DAYS is worth asking about.
  */
 export function radarSection(row, today) {
   if (row.lane === 'digital' || SKIP_FORMATS.has(row.physical_format))
     return 'skip'
   if (row.physical_format !== 'game_card' || !row.release_date) return null
-  if (row.release_date <= isoDay(today)) return CONSOLES[row.platform] ?? null
+  if (periodEnd(row.release_date, row.release_precision) <= isoDay(today))
+    return CONSOLES[row.platform] ?? null
   return row.release_date <= isoDay(addDays(today, PREORDER_DAYS))
     ? 'preorder'
     : null
@@ -109,8 +126,10 @@ function meta(entry, key) {
       ? 'Digital only'
       : (FORMAT_WORDS[entry.physical_format] ?? 'Format unknown')
   const parts = [entry.platform, format]
-  if (key === 'preorder' && entry.release_date)
-    parts.push(`Out ${entry.release_date}`)
+  if (entry.release_date) {
+    const when = releaseWords(entry)
+    parts.push(key === 'preorder' ? `Out ${when}` : when)
+  }
   return parts.filter(Boolean).join(' · ')
 }
 
@@ -194,15 +213,18 @@ export default function AdminStoreList() {
     )
   }
 
-  const empty =
-    sections && SECTIONS.every(([key]) => sections[key].length === 0)
+  const visible = (key) =>
+    sections[key].filter((entry) => !hidden.has(entry.id))
+  const empty = sections && SECTIONS.every(([key]) => visible(key).length === 0)
 
   return (
     <section className="store-list">
       <h1>Store list</h1>
-      <p className="store-list-note">
-        On Switch 2 boxes, put back Game-Key Cards.
-      </p>
+      {!empty && (
+        <p className="store-list-note">
+          On Switch 2 boxes, put back Game-Key Cards.
+        </p>
+      )}
       <p className="catalogue-progress" role="status" aria-live="polite">
         {message ?? ''}
       </p>
@@ -221,7 +243,8 @@ export default function AdminStoreList() {
       )}
       {sections &&
         SECTIONS.map(([key, heading]) => {
-          const rows = sections[key].filter((entry) => !hidden.has(entry.id))
+          const rows = visible(key)
+          if (rows.length === 0) return null
           return (
             <section
               key={key}
@@ -229,19 +252,17 @@ export default function AdminStoreList() {
               aria-labelledby={`store-list-${key}`}
             >
               <h2 id={`store-list-${key}`}>{heading}</h2>
-              {rows.length === 0 ? (
-                <p className="muted">Nothing here.</p>
-              ) : (
-                <ul className="store-list-rows">
-                  {rows.map((entry) => {
-                    const reason = entry.reasons?.[0] ?? entry.format_note
-                    return (
-                      <li key={entry.id} className="store-list-row">
-                        <div className="store-list-text">
-                          <strong>{entry.title}</strong>
-                          <span className="muted">{meta(entry, key)}</span>
-                          {reason && <span>{reason}</span>}
-                        </div>
+              <ul className="store-list-rows">
+                {rows.map((entry) => {
+                  const reason = entry.reasons?.[0] ?? entry.format_note
+                  return (
+                    <li key={entry.id} className="store-list-row">
+                      <div className="store-list-text">
+                        <strong>{entry.title}</strong>
+                        <span className="muted">{meta(entry, key)}</span>
+                        {reason && <span>{reason}</span>}
+                      </div>
+                      {key !== 'skip' && (
                         <button
                           type="button"
                           onClick={() => gotIt(entry)}
@@ -249,11 +270,11 @@ export default function AdminStoreList() {
                         >
                           Got it
                         </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
             </section>
           )
         })}

@@ -7,8 +7,10 @@ import AdminStoreList, {
   addDays,
   buildList,
   isoDay,
+  periodEnd,
   radarSection,
 } from './AdminStoreList.jsx'
+import { releaseWords } from './AdminRadar.jsx'
 
 const TODAY = new Date(2026, 9, 4) // 4 October 2026, local time
 
@@ -65,6 +67,51 @@ describe('radarSection', () => {
 
   it('leaves off a physical game whose format is unknown', () => {
     expect(radarSection(row('a', { physical_format: null }), TODAY)).toBeNull()
+  })
+})
+
+describe('periodEnd', () => {
+  it('ends a day, a month, a quarter and a year on their last day', () => {
+    expect(periodEnd('2026-10-04', 'day')).toBe('2026-10-04')
+    expect(periodEnd('2026-10-04', null)).toBe('2026-10-04')
+    expect(periodEnd('2026-02-01', 'month')).toBe('2026-02-28')
+    expect(periodEnd('2028-02-01', 'month')).toBe('2028-02-29')
+    expect(periodEnd('2026-10-01', 'month')).toBe('2026-10-31')
+    expect(periodEnd('2026-04-01', 'quarter')).toBe('2026-06-30')
+    expect(periodEnd('2026-10-01', 'quarter')).toBe('2026-12-31')
+    expect(periodEnd('2026-01-01', 'year')).toBe('2026-12-31')
+  })
+})
+
+describe('radarSection by precision', () => {
+  it('is out only once the whole period has ended', () => {
+    const month = (release_date) =>
+      row('m', { release_date, release_precision: 'month' })
+    expect(radarSection(month('2026-10-01'), TODAY)).toBe('preorder')
+    expect(radarSection(month('2026-09-01'), TODAY)).toBe('switch2')
+    const quarter = row('q', {
+      release_date: '2026-07-01',
+      release_precision: 'quarter',
+    })
+    expect(radarSection(quarter, TODAY)).toBe('switch2')
+    const openQuarter = { ...quarter, release_date: '2026-10-01' }
+    expect(radarSection(openQuarter, TODAY)).toBe('preorder')
+    const year = row('y', {
+      release_date: '2026-01-01',
+      release_precision: 'year',
+    })
+    expect(radarSection(year, TODAY)).toBe('preorder')
+    expect(radarSection({ ...year, release_date: '2025-01-01' }, TODAY)).toBe(
+      'switch2',
+    )
+  })
+
+  it('leaves off a period that starts beyond the pre-order window', () => {
+    const later = row('l', {
+      release_date: '2027-04-01',
+      release_precision: 'quarter',
+    })
+    expect(radarSection(later, TODAY)).toBeNull()
   })
 })
 
@@ -191,6 +238,7 @@ function renderPage() {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 describe('AdminStoreList', () => {
@@ -214,7 +262,9 @@ describe('AdminStoreList', () => {
     ])
     expect(within(top).getByText('Omori')).toBeInTheDocument()
     expect(
-      within(top).getByText('Nintendo Switch · Full game on cartridge'),
+      within(top).getByText(
+        `Nintendo Switch · Full game on cartridge · ${releaseWords({ release_date: '2026-09-01' })}`,
+      ),
     ).toBeInTheDocument()
     expect(
       within(top).getByText('Because you rated Hades 10'),
@@ -228,7 +278,7 @@ describe('AdminStoreList', () => {
     ).toBeInTheDocument()
     expect(
       within(region('Ask about pre-orders')).getByText(
-        `Nintendo Switch 2 · Full game on cartridge · Out ${SOON}`,
+        `Nintendo Switch 2 · Full game on cartridge · Out ${releaseWords({ release_date: SOON })}`,
       ),
     ).toBeInTheDocument()
     const skip = region('Skip in store')
@@ -237,7 +287,13 @@ describe('AdminStoreList', () => {
       within(skip).getByText('Full game on cartridge in EUR — Super Rare'),
     ).toBeInTheDocument()
     expect(
-      within(skip).getByText('Nintendo Switch 2 · Digital only'),
+      within(skip).getByText(
+        `Nintendo Switch 2 · Digital only · ${releaseWords({ release_date: SOON })}`,
+      ),
+    ).toBeInTheDocument()
+    expect(within(skip).queryByRole('button')).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Got it: Soon Cart' }),
     ).toBeInTheDocument()
     expect(document.title).toBe('Store list · Admin')
   })
@@ -295,6 +351,51 @@ describe('AdminStoreList', () => {
     expect(screen.queryByText('Omori')).toBeNull()
   })
 
+  it('asks about a month-precision cartridge dated the 1st of this month', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 4))
+    stubApi({
+      'GET /api/recommendations?kind=discover': () => json({ picks: [] }),
+      'GET /api/recommendations?kind=radar': () =>
+        json({
+          sections: {
+            suggested: [
+              row('m1', {
+                title: 'October Cart',
+                release_date: '2026-10-01',
+                release_precision: 'month',
+              }),
+            ],
+            dated_later: [],
+            digital: [],
+          },
+        }),
+    })
+    renderPage()
+    const ask = await screen.findByRole('region', {
+      name: 'Ask about pre-orders',
+    })
+    expect(within(ask).getByText('October Cart')).toBeInTheDocument()
+    expect(within(ask).getByText(/Out October 2026/)).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Out now on Switch 2' }),
+    ).toBeNull()
+  })
+
+  it('hides sections with no rows', async () => {
+    stubApi({
+      'GET /api/recommendations?kind=radar': () =>
+        json({ sections: { suggested: [], dated_later: [], digital: [] } }),
+    })
+    renderPage()
+    await screen.findByRole('region', { name: 'Top picks' })
+    expect(
+      screen
+        .getAllByRole('heading', { level: 2 })
+        .map((heading) => heading.textContent),
+    ).toEqual(['Top picks'])
+  })
+
   it('points at Discover and Radar when there is nothing to show', async () => {
     stubApi({
       'GET /api/recommendations?kind=discover': () => json({ picks: [] }),
@@ -309,6 +410,8 @@ describe('AdminStoreList', () => {
       'href',
       '/admin/radar',
     )
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull()
+    expect(screen.queryByText(/Game-Key Cards/)).toBeNull()
   })
 
   it('asks for a sign-in when the API says 401', async () => {
