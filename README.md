@@ -402,11 +402,12 @@ strips.
 - **Written by** the Render static build: `frontend/scripts/fetch-snapshot.mjs`
   runs first in `npm run build`, and only where `VITE_API_URL` is set. See
   `frontend/scripts/README.md`.
-- **Refreshed by** every deploy, plus `.github/workflows/snapshot.yml`. It runs
-  daily at 09:23 UTC and on demand from the Actions tab, compares the live API
+- **Refreshed by** every deploy, plus `.github/workflows/nightly.yml`. It runs
+  daily at 00:17 UTC and on demand from the Actions tab, compares the live API
   bodies with the deployed `/snapshot/*.json`, and triggers a static-site
   deploy only when they differ. It never pushes, and the snapshot is never
-  committed.
+  committed. Before it compares, it refreshes the data the snapshot is made
+  of (see [Nightly job](#nightly-job)).
 - **Setup (once):** in Render, go to the static site → Settings → Deploy Hook
   and copy the URL. In GitHub, go to Settings → Secrets and variables →
   Actions and add it as `RENDER_DEPLOY_HOOK_URL`. The URL is a secret: anyone
@@ -415,10 +416,54 @@ strips.
   after 60 days with no repository activity. If the snapshot stops refreshing
   after a quiet spell, re-enable the workflow from the Actions tab.
 - **Unpublishing:** to drop an unpublished item from the snapshot at once, run
-  the Snapshot workflow from the Actions tab, or trigger a manual static-site
+  the Nightly workflow from the Actions tab, or trigger a manual static-site
   deploy.
 - **The API is not redeployed** by any of this. Its `rootDir` is `backend`, so
   Render deploys it only for changes under `backend/`.
+
+### Nightly job
+
+`nightly.yml` does every night what the owner otherwise presses by hand, then
+keeps the snapshot within a day of production. It calls admin routes with
+`Authorization: Bearer $JOB_TOKEN`, in this order:
+
+1. wake the API (up to six minutes of retries);
+2. Play Next picks (`POST /api/picker/next`);
+3. catalogue registry, then stores (`refresh-registry`, `refresh`);
+4. Switch 1 registry, on Sunday evenings only (`refresh-switch1`);
+5. Resolve, repeated while it makes progress, at most five rounds;
+6. Radar generate, then Discover generate on Sunday evenings or when the
+   `discover` input is ticked on a manual run;
+7. the snapshot compare and, only if a body differs, the static-site deploy
+   hook.
+
+"Sunday evening" is Denver time, which is Monday in UTC; the job tests
+`date -u +%u` = `1`. The store walk is the long step (up to an hour), so the
+job's limit is 150 minutes.
+
+- **`JOB_TOKEN`** is set in two places: as an environment variable on the
+  Render API service (declared in `render.yaml`, value entered in the
+  dashboard) and as a repository secret under Settings → Secrets and variables
+  → Actions. The two must match. Without the secret the job says so, refreshes
+  nothing and fails its summary step.
+- **The token opens seven routes and nothing else.** The whitelist is
+  `items.JOB_ROUTES` and `backend/tests/test_job_token.py` pins it exactly:
+  the six writes above plus `GET /api/physical/status`. A signed-in session is
+  checked as before; the token never reaches any other admin route.
+- **Pick lag.** The picks are recorded as shown today (UTC), and the public
+  list only publishes picks from before today's UTC midnight, so each run
+  publishes yesterday's picks and records today's.
+- **A failed step is a warning**, not a failure: a 409 (the catalogue was
+  busy) or a non-2xx answer skips that call, and the steps after it run on
+  yesterday's data. The run summary and the "Last nightly" line on `/admin`
+  name what failed.
+- **The snapshot's `next` output** carries `generated_at` times, so it differs
+  every night and the static site redeploys nightly. That is intended.
+- **Gotcha:** GitHub switches off scheduled workflows in a public repository
+  after 60 days with no repository activity, and this job never commits. To
+  re-enable it, open the repository's Actions tab, choose Nightly, and
+  enable the workflow. `/admin` says "Nightly may have stopped" when the last
+  catalogue run is more than 36 hours old.
 
 ## Public API
 

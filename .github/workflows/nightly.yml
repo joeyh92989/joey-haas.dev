@@ -1,0 +1,232 @@
+name: Nightly
+
+# Does every night what the owner otherwise presses by hand, then keeps the
+# build-time snapshot within a day of production (Spine Next spec, A3).
+# Replaces snapshot.yml, whose compare and deploy steps are kept verbatim.
+#
+# It writes: Play Next picks, the catalogue refreshes, Resolve and the Radar
+# and Discover generates, through the admin API with the JOB_TOKEN bearer
+# token, which the backend accepts only on items.JOB_ROUTES. A failed write
+# step is a warning: the steps after it run on yesterday's data, and the
+# summary and the /admin "Last nightly" line say which one failed.
+#
+# GitHub disables scheduled workflows in a public repository after 60 days
+# with no repository activity, and this job never commits. Re-enable it
+# under Actions -> Nightly; /admin says "Nightly may have stopped" after 36h.
+on:
+  schedule:
+    # 00:17 UTC: 18:17 in Denver in summer, 17:17 in winter. Off the hour:
+    # GitHub delays scheduled runs at the top of the hour.
+    - cron: '17 0 * * *'
+  workflow_dispatch:
+    inputs:
+      discover:
+        description: Generate a Discover batch even if it is not Sunday night
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+env:
+  SITE_URL: https://joey-haas.dev
+  API_URL: https://api.joey-haas.dev
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    # The store walk is the long step (up to an hour); Render allows a
+    # request 100 minutes.
+    timeout-minutes: 150
+    steps:
+      - name: Wake the API
+        run: |
+          # Each attempt is at most 10 s of curl plus 5 s of sleep, so 24
+          # attempts stay inside six minutes.
+          for attempt in $(seq 1 24); do
+            if curl -fsS -m 10 "$API_URL/api/health" > /dev/null; then
+              echo "API awake after $attempt attempt(s)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::The API did not wake within six minutes"
+          exit 1
+
+      - name: Refresh the picks, the catalogue and the suggestions
+        id: refresh
+        env:
+          JOB_TOKEN: ${{ secrets.JOB_TOKEN }}
+          # The inputs context keeps a boolean a boolean; on a schedule it is
+          # empty, which is not "true".
+          FORCE_DISCOVER: ${{ inputs.discover }}
+        run: |
+          if [ -z "$JOB_TOKEN" ]; then
+            echo "::error::The JOB_TOKEN secret is not set; nothing was refreshed"
+            echo "token=missing" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "token=present" >> "$GITHUB_OUTPUT"
+          failed=""
+          # call NAME TIMEOUT PATH [BODY]: POSTs BODY (default {}), keeps the
+          # response in NAME.json, and records anything but a 2xx as a
+          # warning. It always returns 0, so one failed step never stops the
+          # ones after it (the shell is bash -e).
+          call() {
+            local name="$1" timeout="$2" path="$3" body="$4" status
+            [ -n "$body" ] || body='{}'
+            status=$(curl -sS -m "$timeout" -o "$name.json" -w '%{http_code}' \
+              -X POST -H "Authorization: Bearer $JOB_TOKEN" \
+              -H 'Content-Type: application/json' -d "$body" \
+              "$API_URL$path") || status=000
+            case "$status" in
+              200 | 201) echo "$name: ok" ;;
+              409)
+                echo "::warning::$name: the catalogue was busy (409), skipped"
+                failed="$failed $name"
+                ;;
+              *)
+                echo "::warning::$name: HTTP $status"
+                failed="$failed $name"
+                ;;
+            esac
+            return 0
+          }
+          if [ "$(date -u +%u)" = 1 ]; then weekly=true; else weekly=false; fi
+
+          # Three picks recorded as shown today (UTC). /api/public/picks and
+          # /api/public/next publish them after the next UTC midnight, so
+          # each run publishes yesterday's picks and records today's.
+          call picks 120 /api/picker/next
+          call registry 900 /api/physical/refresh-registry
+          call stores 3600 /api/physical/refresh
+          # Weekly: Sunday evening in Denver is Monday in UTC.
+          if [ "$weekly" = true ]; then
+            call switch1 1800 /api/physical/refresh-switch1
+          fi
+          # Resolve while it is making progress, at most five rounds.
+          previous=""
+          for round in 1 2 3 4 5; do
+            call "resolve-$round" 600 /api/physical/resolve
+            remaining=$(jq -r '.unresolved_remaining // empty' "resolve-$round.json" 2> /dev/null || true)
+            if [ -z "$remaining" ] || [ "$remaining" = 0 ]; then break; fi
+            if [ -n "$previous" ] && [ "$remaining" -ge "$previous" ]; then break; fi
+            previous="$remaining"
+          done
+          call radar 900 /api/recommendations/generate '{"kind":"radar"}'
+          if [ "$weekly" = true ] || [ "$FORCE_DISCOVER" = true ]; then
+            call discover 300 /api/recommendations/generate '{"kind":"discover"}'
+          fi
+          echo "failed=${failed# }" >> "$GITHUB_OUTPUT"
+
+      - name: Compare the API with the deployed snapshot
+        id: compare
+        run: |
+          # GitHub's default shell is bash -e. Every live fetch and parse is
+          # checked explicitly, so a failure is reported, never read as
+          # "changed": items and stats are the snapshot and fail the step;
+          # picks, radar and next are optional, because the API can lag behind
+          # the static site (a 404 until it has deployed), so any failure there
+          # -- a status other than 200, a curl error, a body jq cannot read --
+          # is a warning and that output is skipped. next carries generated_at
+          # times, so it differs every night and the static site redeploys
+          # nightly; that is intended (spec K8). A change already found
+          # in items or stats is never discarded by an optional output.
+          # The deployed side is inside an if, where a failure still just
+          # means "changed or missing".
+          # Both sides are normalised the same way: keys sorted (-S), and
+          # arrays sorted, because the API has no unique ordering and a
+          # harmless write can reorder tied rows. An array whose elements all
+          # have an id is sorted by it. Any other array (Radar's rows have no
+          # id) is sorted by each element's serialised text, which orders
+          # every element and so leaves no ties to reorder.
+          # tostring follows key order in the text, so keys are sorted first.
+          normalise='
+            def canon:
+              if type == "object" then
+                to_entries | sort_by(.key)
+                | map({key, value: (.value | canon)}) | from_entries
+              elif type == "array" then map(canon)
+              else . end;
+            canon
+            | if type == "array" then
+                if all(.[]; type == "object" and has("id"))
+                then sort_by(.id) else sort_by(tostring) end
+              else . end'
+          # fail: an error that stops the step for items and stats, and a
+          # warning for the others, whose caller then skips the output.
+          fail() {
+            case "$name" in
+              items | stats)
+                echo "::error::$name: $1"
+                exit 1
+                ;;
+            esac
+            echo "::warning::$name: $1, so it is skipped"
+          }
+          changed=""
+          for name in items stats picks radar next; do
+            live_status=$(curl -sS -m 60 -o "live-$name.raw" -w '%{http_code}' \
+              "$API_URL/api/public/$name") || live_status=000
+            if [ "$live_status" != 200 ]; then
+              fail "the API answered $live_status"
+              continue
+            fi
+            # An empty or non-JSON 200 body produces no array or object.
+            if ! jq -e 'type == "array" or type == "object"' "live-$name.raw" > /dev/null 2>&1; then
+              fail "the API's body is not a JSON array or object"
+              continue
+            fi
+            if ! jq -S "$normalise" "live-$name.raw" > "live-$name.json"; then
+              fail "the API's body could not be normalised"
+              continue
+            fi
+            # A missing file is served as index.html, which jq rejects: that
+            # counts as changed, so the first run deploys one.
+            if curl -fsS -m 60 "$SITE_URL/snapshot/$name.json" -o "deployed-$name.raw" &&
+              jq -S "$normalise" "deployed-$name.raw" > "deployed-$name.json" 2> /dev/null &&
+              cmp -s "live-$name.json" "deployed-$name.json"; then
+              echo "$name: unchanged"
+            else
+              echo "$name: changed or missing"
+              changed="$changed $name"
+            fi
+          done
+          echo "changed=${changed# }" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger a static-site deploy
+        if: steps.compare.outputs.changed != ''
+        env:
+          CHANGED: ${{ steps.compare.outputs.changed }}
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::error::The RENDER_DEPLOY_HOOK_URL secret is not set"
+            exit 1
+          fi
+          curl -fsS -m 30 -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null
+          echo "Deploy triggered; changed: $CHANGED" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report no change
+        if: steps.compare.outputs.changed == ''
+        run: echo "Snapshot unchanged; no deploy" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Summarise
+        if: always()
+        env:
+          TOKEN: ${{ steps.refresh.outputs.token }}
+          FAILED: ${{ steps.refresh.outputs.failed }}
+        run: |
+          if [ "$TOKEN" = missing ]; then
+            echo "Nightly: the JOB_TOKEN secret is missing; nothing was refreshed" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          if [ -n "$FAILED" ]; then
+            echo "Nightly: these steps failed and later steps used yesterday's data: $FAILED" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Nightly: every refresh and generate step succeeded" >> "$GITHUB_STEP_SUMMARY"
+          fi
