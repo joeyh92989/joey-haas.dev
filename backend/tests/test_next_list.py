@@ -324,3 +324,51 @@ def test_blank_stored_lines_fall_through_to_the_genre_line():
     assert public_reasons_for("discover", ["", "  "], True, ["pub"], item, taste) == [
         "Shares Adventure with games on my shelf"
     ]
+
+
+def test_a_blank_first_line_never_promotes_the_store_line_to_the_sentence():
+    stored = [
+        "",
+        "Pre-orders close Nov 8 at Limited Run Games \u00b7 $59.99",
+        "Full game on cartridge",
+    ]
+    joined = " ".join(_discover(stored, ["pub"], []))
+    assert "Pre-orders" not in joined and "$" not in joined
+    assert "Full game" not in joined
+
+
+def test_roman_and_arabic_numerals_are_interchangeable_in_titles():
+    reasons = _discover(["Like Hades 2, I'd enjoy this"], ["pub"], ["Hades II"])
+    assert all("Hades" not in reason for reason in reasons)
+    reasons = _discover(["Like Persona V, I'd enjoy this"], ["pub"], ["Persona 5"])
+    assert all("Persona" not in reason for reason in reasons)
+
+
+def test_a_trailing_edition_word_does_not_hide_a_private_game():
+    reasons = _discover(
+        ["Like Mario Kart 8, I'd enjoy this"], ["pub"], ["Mario Kart 8 Deluxe"]
+    )
+    assert all("Mario Kart" not in reason for reason in reasons)
+
+
+def test_a_non_latin_private_title_is_matched_literally():
+    reasons = _discover(["Feels like \u5927\u795e to me"], ["pub"], ["\u5927\u795e"])
+    assert all("\u5927\u795e" not in reason for reason in reasons)
+
+
+def test_top_up_does_not_repeat_a_case_only_duplicate():
+    taste = public_taste([owned("pub", "Public Game")], [])
+    item = catalogue_item("9", "New", SNAPSHOT, 508, None)
+    rebuilt = public_reasons_for("radar", [], False, [], item, taste)[0]
+    out = public_reasons_for("discover", [rebuilt.upper()], True, ["pub"], item, taste)
+    assert len({reason.casefold() for reason in out}) == len(out)
+
+
+def test_curly_and_contracted_second_person_forms_are_refused():
+    for text in (
+        "Y\u2019all will love it",
+        "youll love it",
+        "yer gonna like it",
+        "you\u2019re set",
+    ):
+        assert text not in _discover([text], ["pub"], [])

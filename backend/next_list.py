@@ -183,8 +183,17 @@ def sections(
 
 MAX_PUBLIC_REASONS = 2
 _SECOND_PERSON = re.compile(
-    r"\b(you|your|yours|yourself|yourselves|y'all|ya|u|ur)\b", re.IGNORECASE
+    r"\b(you|your|yours|yourself|yourselves|youre|youll|yall|yer|ya|u|ur)\b",
+    re.IGNORECASE,
 )
+_ROMAN = {"ii": "2", "iii": "3", "iv": "4", "v": "5", "vi": "6", "vii": "7",
+          "viii": "8", "ix": "9", "x": "10"}  # fmt: skip
+_ARABIC = {number: roman for roman, number in _ROMAN.items()}
+_EDITION_WORDS = (
+    "game of the year edition", "definitive edition", "complete edition",
+    "directors cut", "remastered", "remaster", "remake", "deluxe", "enhanced",
+    "goty", "plus", "hd",
+)  # fmt: skip
 _QUOTES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201b": "'", "\u02bc": "'"})
 _SEGMENT_SPLIT = re.compile(r":| - | \u2013 | \u2014 ")
 _TITLE_MARKS = str.maketrans("", "", "\u2122\u00ae\u2665")
@@ -239,26 +248,85 @@ def _normalise(text: str) -> str:
     return " ".join(re.sub(r"[^0-9a-z]+", " ", text).split())
 
 
-def _title_keys(title: str) -> set[str]:
-    """What a model might call a private game: the whole title, and each
-    ":" / " - " segment of two or more words (a subtitle is a name too).
-    Over-matching is safe: it only sends the row to rebuilt reasons."""
+def _second_person(text: str) -> bool:
+    """True when `text` addresses the reader. Checked on quote-unified text,
+    and again with apostrophes deleted so "you're" and "y\u2019all" are caught."""
+    unified = text.translate(_QUOTES)
+    return bool(
+        _SECOND_PERSON.search(unified)
+        or _SECOND_PERSON.search(unified.replace("'", ""))
+    )
+
+
+def _strip_edition(key: str) -> str | None:
+    """`key` without trailing edition words, when two or more words remain."""
+    words = key.split()
+    stripped = False
+    while True:
+        for phrase in _EDITION_WORDS:
+            tail = phrase.split()
+            if len(words) - len(tail) >= 2 and words[-len(tail) :] == tail:
+                words = words[: -len(tail)]
+                stripped = True
+                break
+        else:
+            return " ".join(words) if stripped else None
+
+
+def _numeral_variants(key: str) -> set[str]:
+    """`key` with roman numerals II-X written as arabic and the reverse, each
+    word alone and all together."""
+    words = key.split()
+    out: set[str] = set()
+    for table in (_ROMAN, _ARABIC):
+        swappable = [i for i, word in enumerate(words) if word in table]
+        for i in swappable:
+            out.add(
+                " ".join(table.get(w, w) if j == i else w for j, w in enumerate(words))
+            )
+        if swappable:
+            out.add(" ".join(table.get(word, word) for word in words))
+    return out
+
+
+def _title_keys(title: str) -> tuple[set[str], set[str]]:
+    """What a model might call a private game, as (word keys, literal keys).
+
+    Word keys are normalised: the whole title, each ":" / " - " segment of two
+    or more words, the same without a trailing edition word, and roman/arabic
+    numeral variants of all of them. A title with no Latin letters or digits
+    has no word key, so its NFKC-casefolded form is a literal key. A blocklist
+    over-matches on purpose: a false hit only sends the row to rebuilt reasons."""
     keys = {_normalise(title)}
     for segment in _SEGMENT_SPLIT.split(title):
         key = _normalise(segment)
         if len(key.split()) >= 2:
             keys.add(key)
     keys.discard("")
-    return keys
+    for key in list(keys):
+        stripped = _strip_edition(key)
+        if stripped:
+            keys.add(stripped)
+    for key in list(keys):
+        keys |= _numeral_variants(key)
+    literal = set()
+    if not keys:
+        folded = unicodedata.normalize("NFKC", title).casefold().strip()
+        if folded:
+            literal.add(folded)
+    return keys, literal
 
 
 def _names_private_game(text: str, taste: PublicTaste) -> bool:
     padded = f" {_normalise(text)} "
-    return any(
-        f" {key} " in padded
-        for title in taste.private_titles
-        for key in _title_keys(title)
-    )
+    folded = unicodedata.normalize("NFKC", text).casefold()
+    for title in taste.private_titles:
+        keys, literal = _title_keys(title)
+        if any(f" {key} " in padded for key in keys):
+            return True
+        if any(key in folded for key in literal):
+            return True
+    return False
 
 
 def _model_text_allowed(sentence: str, based_on: list[str], taste: PublicTaste) -> bool:
@@ -270,7 +338,7 @@ def _model_text_allowed(sentence: str, based_on: list[str], taste: PublicTaste) 
         and bool(based_on)
         and all(ref in taste.public_ids for ref in based_on)
         and not _names_private_game(sentence, taste)
-        and not _SECOND_PERSON.search(sentence)
+        and not _second_person(sentence)
     )
 
 
@@ -283,7 +351,7 @@ def _rebuilt(item: PickerItem, taste: PublicTaste) -> list[str]:
     reasons, _based_on = _taste_reasons(
         item, similar_to, taste.references, taste.weights, taste.table
     )
-    return [reason for reason in reasons if not _SECOND_PERSON.search(reason)]
+    return [reason for reason in reasons if not _second_person(reason)]
 
 
 def _genre_line(item: PickerItem, taste: PublicTaste) -> str | None:
@@ -305,17 +373,23 @@ def public_reasons_for(
     Discover's model sentence (the first stored line only) when it passes the
     gate, topped up or replaced by reasons rebuilt over public games, else one
     genre line, else none."""
-    lines = [line.strip() for line in stored if line.strip()]
     rebuilt = _rebuilt(item, taste)
+    # Only stored[0] is ever the model's sentence: the lines after it hold the
+    # store window, price and format (discover._extras). A blank first line
+    # means there is no sentence, never that the next line is one.
+    sentence = stored[0].strip() if stored else ""
     if (
         kind == "discover"
         and model_written
-        and lines
-        and _model_text_allowed(lines[0], based_on, taste)
+        and sentence
+        and _model_text_allowed(sentence, based_on, taste)
     ):
-        # Only the model's own sentence: the lines after it hold the store
-        # window, price and format (discover._extras) and are never public.
-        reasons = [lines[0], *(r for r in rebuilt if r != lines[0])]
+        seen = {_normalise(sentence)}
+        reasons = [sentence]
+        for reason in rebuilt:
+            if _normalise(reason) not in seen:
+                seen.add(_normalise(reason))
+                reasons.append(reason)
     else:
         reasons = rebuilt
     if not reasons:
