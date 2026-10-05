@@ -8,11 +8,16 @@ from datetime import date, timedelta
 
 from next_list import (
     LATER_CAP,
+    MAX_PUBLIC_REASONS,
     NOT_ON_CARTRIDGE_CAP,
     NextCandidate,
+    catalogue_item,
     period_end,
+    public_reasons_for,
+    public_taste,
     sections,
 )
+from picker import PickerItem
 
 TODAY = date(2026, 10, 4)
 
@@ -156,3 +161,98 @@ def test_a_cartridge_with_no_date_goes_last_in_later():
 def test_an_unknown_format_is_left_out():
     out = sections([cand(1, physical_format=None, lane="dated")], TODAY, public=False)
     assert all(not entries for entries in out.values())
+
+
+def owned(item_id, title, **fields) -> PickerItem:
+    base = dict(
+        id=item_id,
+        title=title,
+        type="game",
+        status="finished",
+        owned=True,
+        rating=9,
+        favorite=False,
+        pinned=False,
+        external_id=None,
+        year=2020,
+        cover_url=None,
+        platform_id=130,
+        platform="Nintendo Switch",
+        creator=None,
+        genres=("Adventure",),
+        themes=("Mystery",),
+        keywords=("detective",),
+        game_modes=(),
+        player_perspectives=(),
+        similar_games=(),
+        community_score=None,
+        time_to_beat_hours=None,
+        release_date=None,
+        acquired_at=None,
+        started_at=None,
+    )
+    return PickerItem(**{**base, **fields})
+
+
+SNAPSHOT = {"genres": ["Adventure"], "themes": ["Mystery"], "keywords": ["detective"]}
+
+
+def test_model_text_survives_only_when_it_cites_public_games():
+    taste = public_taste([owned("pub", "Public Game")], ["Secret Game"])
+    item = catalogue_item("9", "New", SNAPSHOT, 508, None)
+    kept = public_reasons_for(
+        "discover", ["Like Public Game, I'd enjoy this"], True, ["pub"], item, taste
+    )
+    assert kept == ["Like Public Game, I'd enjoy this"]
+    dropped = public_reasons_for(
+        "discover", ["Like Secret Game"], True, ["priv"], item, taste
+    )
+    assert dropped != ["Like Secret Game"]
+
+
+def test_model_text_naming_an_uncited_private_game_is_replaced():
+    taste = public_taste([owned("pub", "Public Game")], ["Secret Game"])
+    item = catalogue_item("9", "New", SNAPSHOT, 508, None)
+    reasons = public_reasons_for(
+        "discover", ["Pairs with Secret Game nicely"], True, ["pub"], item, taste
+    )
+    assert all("Secret Game" not in reason for reason in reasons)
+
+
+def test_radar_text_is_never_read_and_never_leaks_a_store():
+    taste = public_taste([owned("pub", "Public Game")], [])
+    item = catalogue_item("9", "New", SNAPSHOT, 508, None)
+    stored = [
+        "Pre-orders close Nov 8 at Limited Run Games · $59.99",
+        "which you rated 10",
+    ]
+    reasons = public_reasons_for("radar", stored, False, ["pub"], item, taste)
+    joined = " ".join(reasons)
+    assert "Pre-orders close" not in joined and "$" not in joined
+    assert "you" not in joined.lower().split()
+
+
+def test_no_surviving_reason_falls_back_to_a_genre_line_from_the_shelf():
+    taste = public_taste(
+        [owned("pub", "Public Game", rating=None, status="backlog")], []
+    )
+    item = catalogue_item("9", "New", {"genres": ["Adventure", "Puzzle"]}, 508, None)
+    assert public_reasons_for("radar", [], False, [], item, taste) == [
+        "Shares Adventure with games on my shelf"
+    ]
+
+
+def test_no_genre_on_the_shelf_means_no_reason():
+    taste = public_taste([], [])
+    item = catalogue_item("9", "New", {"genres": ["Racing"]}, 508, None)
+    assert public_reasons_for("radar", [], False, [], item, taste) == []
+
+
+def test_public_reasons_are_capped_and_first_person():
+    taste = public_taste([owned("pub", "Public Game")], [])
+    item = catalogue_item("9", "New", SNAPSHOT, 508, None)
+    reasons = public_reasons_for(
+        "discover", ["Your kind of game", "x"], True, ["pub"], item, taste
+    )
+    assert len(reasons) <= MAX_PUBLIC_REASONS
+    assert all("your" not in reason.lower().split() for reason in reasons)

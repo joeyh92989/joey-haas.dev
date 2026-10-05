@@ -11,10 +11,12 @@ were AdminStoreList.jsx's radarSection, buildList and periodEnd.
 from __future__ import annotations
 
 import calendar
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from radar import KEY_CARD_FORMATS, NEAR_PRECISIONS
+from picker import PickerItem, attribute_table, reference_weights, similarity
+from radar import KEY_CARD_FORMATS, NEAR_PRECISIONS, _picker_item, _taste_reasons
 
 PREORDER_DAYS = 90
 NEW_DAYS = 30
@@ -176,3 +178,110 @@ def sections(
     out["later"] = later[:LATER_CAP]
     out["not_on_cartridge"] = out["not_on_cartridge"][:NOT_ON_CARTRIDGE_CAP]
     return out
+
+
+MAX_PUBLIC_REASONS = 2
+_SECOND_PERSON = re.compile(r"\b(you|your|yours)\b", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class PublicTaste:
+    """Play Next's profile built from public games only, plus what a public
+    reason must not name. Every game a rebuilt reason can name is drawn from
+    `references`, so a private game is never named (as picker.public_reasons)."""
+
+    weights: dict[str, float]
+    references: list[PickerItem]
+    table: dict[tuple[str, str], float]
+    public_ids: frozenset[str]
+    private_titles: tuple[str, ...]
+    shelf_genres: frozenset[str]
+
+
+def public_taste(
+    public_profile: list[PickerItem], private_titles: list[str]
+) -> PublicTaste:
+    """The public profile's weights, references and attribute table, with the
+    private titles a reason must not name."""
+    weights = reference_weights(public_profile)
+    references = [item for item in public_profile if item.id in weights]
+    return PublicTaste(
+        weights=weights,
+        references=references,
+        table=attribute_table(public_profile, weights) if references else {},
+        public_ids=frozenset(item.id for item in public_profile),
+        private_titles=tuple(title for title in private_titles if title.strip()),
+        shelf_genres=frozenset(g for item in public_profile for g in item.genres),
+    )
+
+
+def catalogue_item(
+    igdb_id: str, title: str, snapshot: dict, platform_id: int, released: date | None
+) -> PickerItem:
+    """A pending suggestion as the scorer reads it, from its stored snapshot."""
+    return _picker_item(igdb_id, title, snapshot or {}, platform_id, released)
+
+
+def _names_private_game(text: str, taste: PublicTaste) -> bool:
+    return any(
+        re.search(rf"(?<!\w){re.escape(title)}(?!\w)", text, re.IGNORECASE)
+        for title in taste.private_titles
+    )
+
+
+def _model_text_allowed(
+    stored: list[str], based_on: list[str], taste: PublicTaste
+) -> bool:
+    """Discover's model text may be public when every game it cites is
+    public, it names no private game it did not cite, and it is first person."""
+    text = "\n".join(stored)
+    return (
+        bool(stored)
+        and all(ref in taste.public_ids for ref in based_on)
+        and not _names_private_game(text, taste)
+        and not _SECOND_PERSON.search(text)
+    )
+
+
+def _rebuilt(item: PickerItem, taste: PublicTaste) -> list[str]:
+    """Radar's similarity and shared-traits reasons over public games only:
+    never the stored text, which holds store windows and prices."""
+    if not taste.references:
+        return []
+    _score, similar_to = similarity(item, taste.references, taste.weights)
+    reasons, _based_on = _taste_reasons(
+        item, similar_to, taste.references, taste.weights, taste.table
+    )
+    return [reason for reason in reasons if not _SECOND_PERSON.search(reason)]
+
+
+def _genre_line(item: PickerItem, taste: PublicTaste) -> str | None:
+    shared = [genre for genre in item.genres if genre in taste.shelf_genres][:2]
+    if not shared:
+        return None
+    return f"Shares {' and '.join(shared)} with games on my shelf"
+
+
+def public_reasons_for(
+    kind: str,
+    stored: list[str],
+    model_written: bool,
+    based_on: list[str],
+    item: PickerItem,
+    taste: PublicTaste,
+) -> list[str]:
+    """At most two first-person reasons naming public games only (spec, B8):
+    Discover's model text when it passes the gate, else reasons rebuilt over
+    public games, else one genre line, else none."""
+    if (
+        kind == "discover"
+        and model_written
+        and _model_text_allowed(stored, based_on, taste)
+    ):
+        reasons = list(stored)
+    else:
+        reasons = _rebuilt(item, taste)
+    if not reasons:
+        line = _genre_line(item, taste)
+        reasons = [line] if line else []
+    return reasons[:MAX_PUBLIC_REASONS]
