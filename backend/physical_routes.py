@@ -445,9 +445,15 @@ def create_physical_router(
             for key in keys:
                 runs.append(await refresh_store(session, client, throttle, key))
         # A Switch 1 title the registry's matcher hid and a store now sells
-        # goes back to Resolve (switch1_ingest).
-        await release_listed_ignores(session)
-        await session.commit()
+        # goes back to Resolve (switch1_ingest). The store runs are already
+        # committed, so a failure here is logged, never a 500; the next
+        # Switch 1 or store refresh releases them.
+        try:
+            await release_listed_ignores(session)
+            await session.commit()
+        except Exception:
+            logger.warning("releasing listed Switch 1 ignores failed", exc_info=True)
+            await session.rollback()
         outcome = await resolve_run(session)
         return RefreshOut(
             runs=runs,

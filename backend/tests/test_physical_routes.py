@@ -486,6 +486,28 @@ async def test_a_failed_resolve_after_the_stores_is_recorded(
     assert response.json()["runs"][0]["ok"] is True
 
 
+async def test_a_failed_release_of_listed_ignores_keeps_the_store_runs(
+    sessionmaker_for_test, monkeypatch, caplog
+):
+    async def failing(session):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(physical_routes, "release_listed_ignores", failing)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/physical/refresh", json={"stores": ["nicalis"]}
+        )
+    assert response.status_code == 200
+    (run,) = response.json()["runs"]
+    assert run["ok"] is True
+    assert await _count(sessionmaker_for_test, StoreListing) == run["rows_seen"]
+    # The resolve batch still ran.
+    async with sessionmaker_for_test() as session:
+        sources = set(await session.scalars(select(CatalogueRun.source)))
+    assert sources == {"nicalis", "resolve"}
+    assert "releasing listed Switch 1 ignores failed" in caplog.text
+
+
 async def test_a_failed_registry_sync_is_recorded_on_the_sheet_run(
     sessionmaker_for_test, monkeypatch
 ):
