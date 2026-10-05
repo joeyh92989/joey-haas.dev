@@ -625,7 +625,12 @@ async def test_a_switch_1_key_a_store_lists_is_left_to_resolve(sessionmaker_for_
     igdb = FakeIgdb(switch_titles=[])
     async with client_for(sessionmaker_for_test, igdb=igdb) as client:
         run = (await client.post("/api/physical/refresh-switch1")).json()
-    assert run["ok"] is True and run["unresolved_remaining"] >= 1
+    keys = {row.title_normalized for row in _switch_1_editions()}
+    assert (run["ok"], run["unresolved_remaining"]) == (True, 1)
+    assert {
+        "code": "info",
+        "detail": f"0 newly matched, {len(keys) - 1} unmatched, 1 left to Resolve",
+    } in run["errors"]
     async with sessionmaker_for_test() as session:
         assert await session.get(CatalogueMatch, (key, 130)) is None
 
