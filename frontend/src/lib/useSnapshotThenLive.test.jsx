@@ -3,6 +3,27 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readSnapshot } from './snapshot.js'
 import { useSnapshotThenLive } from './useSnapshotThenLive.js'
 
+// Records every call to a useState setter, so a test can prove the hook sets
+// no state once it is unmounted (React 19 no longer warns about that).
+const setterCalls = vi.hoisted(() => vi.fn())
+
+vi.mock('react', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    useState: (initial) => {
+      const [value, set] = actual.useState(initial)
+      return [
+        value,
+        (next) => {
+          setterCalls()
+          set(next)
+        },
+      ]
+    },
+  }
+})
+
 vi.mock('./snapshot.js', async (importOriginal) => ({
   ...(await importOriginal()),
   readSnapshot: vi.fn(),
@@ -79,11 +100,50 @@ describe('useSnapshotThenLive', () => {
         }),
       ),
     )
-    const { result, unmount } = renderHook(() => useSnapshotThenLive('next'))
+    const { unmount } = renderHook(() => useSnapshotThenLive('next'))
     unmount()
+    setterCalls.mockClear()
     resolveFetch({ ok: true, json: async () => BODY })
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(result.current.live).toBe(false)
+    expect(setterCalls).not.toHaveBeenCalled()
     expect(errors).not.toHaveBeenCalled()
+  })
+
+  it('sets no state after unmount when the API fails', async () => {
+    let rejectFetch
+    vi.mocked(readSnapshot).mockResolvedValue(BODY)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockReturnValue(
+        new Promise((_, reject) => {
+          rejectFetch = reject
+        }),
+      ),
+    )
+    const { unmount } = renderHook(() => useSnapshotThenLive('next'))
+    unmount()
+    setterCalls.mockClear()
+    rejectFetch(new Error('down'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(setterCalls).not.toHaveBeenCalled()
+  })
+
+  it('forgets the previous name when the name changes', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue(null)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url) =>
+        url.includes('/api/public/next')
+          ? Promise.resolve({ ok: true, json: async () => BODY })
+          : new Promise(() => {}),
+      ),
+    )
+    const { result, rerender } = renderHook(
+      ({ name }) => useSnapshotThenLive(name),
+      { initialProps: { name: 'next' } },
+    )
+    await waitFor(() => expect(result.current.live).toBe(true))
+    rerender({ name: 'stats' })
+    expect(result.current).toEqual({ data: null, live: false, failed: false })
   })
 })
