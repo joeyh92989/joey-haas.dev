@@ -97,3 +97,50 @@ describe('Admin', () => {
     )
   })
 })
+
+describe('Admin last nightly line', () => {
+  function stubApi(statusBody) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const path = String(url)
+        if (path.endsWith('/api/auth/me'))
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ email: 'a@b.c' }),
+          }
+        if (path.endsWith('/api/physical/status'))
+          return { ok: true, status: 200, json: async () => statusBody }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ generated_at: null }),
+        }
+      }),
+    )
+  }
+
+  it('shows the latest run once signed in', async () => {
+    stubApi({
+      sources: [
+        {
+          source: 'lrg',
+          name: 'Limited Run',
+          kind: 'store',
+          last_run: { finished_at: new Date().toISOString(), ok: false },
+        },
+      ],
+    })
+    renderAt()
+    expect(await screen.findByText(/failed: Limited Run/)).toBeInTheDocument()
+  })
+
+  it('says the job may have stopped when nothing has run', async () => {
+    stubApi({ sources: [] })
+    renderAt()
+    expect(
+      await screen.findByText(/Nightly may have stopped/),
+    ).toBeInTheDocument()
+  })
+})
