@@ -211,12 +211,19 @@ async def count_unmatched(session) -> int:
     )
 
 
+def _http_error(what: str, error: SourceError) -> dict:
+    """A fixed message and the error's type, never the adapter's text: it can
+    carry a request URL, and the Twitch token request puts client_secret in
+    its query string. The run's errors are stored and shown on the page."""
+    return {"code": "http_error", "detail": f"{what} failed: {type(error).__name__}"}
+
+
 def _title_list_error(error: SourceError) -> dict:
     if isinstance(error, SourceRateLimited):
         return {"code": "igdb_rate_limited", "detail": "IGDB rate limit; press again"}
     if isinstance(error, SourceNotConfigured):
         return {"code": "igdb_not_configured", "detail": "IGDB credentials are not set"}
-    return {"code": "http_error", "detail": str(error)}
+    return _http_error("IGDB title list", error)
 
 
 async def ingest_switch1(
@@ -261,7 +268,7 @@ async def ingest_switch1(
             }
         )
     except SourceError as error:
-        result.errors.append({"code": "http_error", "detail": str(error)})
+        result.errors.append(_http_error("IGDB game fetch", error))
     # Links every decided key whose game row exists, these among them.
     await propagate(session)
     return result

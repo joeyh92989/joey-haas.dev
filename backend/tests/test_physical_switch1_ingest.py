@@ -27,7 +27,7 @@ from physical_sources.switch1_ingest import (
     load_switch_titles,
     release_listed_ignores,
 )
-from sources.base import SourceRateLimited
+from sources.base import SourceError, SourceRateLimited
 
 pytestmark = pytest.mark.asyncio
 
@@ -426,3 +426,29 @@ async def test_a_listing_that_is_not_live_on_switch_1_releases_nothing(
         await session.commit()
     assert released == 0
     assert await _decision(sessionmaker_for_test, "obscure port") is not None
+
+
+LEAKY = "token request failed: https://id.twitch.tv/oauth2/token?client_secret=XYZ"
+
+
+async def test_a_failed_title_list_records_no_adapter_text(sessionmaker_for_test):
+    igdb = FakeIgdb(titles_error=SourceError("igdb", LEAKY))
+    result = await _ingest(sessionmaker_for_test, [ns1("Death's Door")], igdb=igdb)
+    assert result.fatal
+    assert result.errors == [
+        {"code": "http_error", "detail": "IGDB title list failed: SourceError"}
+    ]
+    assert "client_secret=XYZ" not in repr(result.errors)
+
+
+async def test_a_failed_game_fetch_records_no_adapter_text(sessionmaker_for_test):
+    igdb = FakeIgdb(
+        switch_titles=[igdb_row(7, "Death's Door")],
+        fetch_error=SourceError("igdb", LEAKY),
+    )
+    result = await _ingest(sessionmaker_for_test, [ns1("Death's Door")], igdb=igdb)
+    assert result.fatal is False
+    assert result.errors == [
+        {"code": "http_error", "detail": "IGDB game fetch failed: SourceError"}
+    ]
+    assert "client_secret=XYZ" not in repr(result.errors)
