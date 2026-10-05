@@ -279,13 +279,19 @@ class PublicNextRow(BaseModel):
 
 
 class PublicNextGenerated(BaseModel):
-    """How old each part of What's next is: the picks' UTC day, the stalest
-    store's last good run, and the latest Radar and Discover generates."""
+    """How old each part of What's next is, as UTC days: the picks' day, the
+    stalest store's last good run, and the latest Radar and Discover
+    generates. Days, never times: a timestamp would say when the owner was
+    at the admin pages."""
 
     picks: date | None
-    catalogue: datetime | None
-    radar: datetime | None
-    discover: datetime | None
+    catalogue: date | None
+    radar: date | None
+    discover: date | None
+
+
+def _utc_day(when: datetime | None) -> date | None:
+    return when.astimezone(UTC).date() if when is not None else None
 
 
 class PublicNextOut(BaseModel):
@@ -390,9 +396,9 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
     return PublicNextOut(
         generated_at=PublicNextGenerated(
             picks=day,
-            catalogue=catalogue["stores_at"],
-            radar=data.generated_at.get(RecommendationKind.RADAR.value),
-            discover=data.generated_at.get(RecommendationKind.DISCOVER.value),
+            catalogue=_utc_day(catalogue["stores_at"]),
+            radar=_utc_day(data.generated_at.get(RecommendationKind.RADAR.value)),
+            discover=_utc_day(data.generated_at.get(RecommendationKind.DISCOVER.value)),
         ),
         tonight=PublicTonight(
             up_next=_tonight_card(up_next, []) if up_next else None,

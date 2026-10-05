@@ -1,6 +1,7 @@
 """Public picks and radar (showcase spec, D). The leak tests are the point."""
 
 import asyncio
+import re
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, time, timedelta
@@ -14,6 +15,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import public
 from models import (
     CatalogueGame,
+    CatalogueRun,
     Item,
     ItemStatus,
     ItemType,
@@ -27,6 +29,7 @@ from models import (
     RecommendationKind,
     RecommendationStatus,
 )
+from physical_sources.stores import STORES
 from public import create_public_router
 from public_outputs import PublicNextOut, PublicNextRow, PublicPickOut, PublicRadarOut
 from recommendations_routes import create_recommendations_router
@@ -849,3 +852,140 @@ async def test_generated_at_names_the_pick_day(sessionmaker_for_test):
     body = await _next(sessionmaker_for_test)
     assert body["generated_at"]["picks"] == SHOWN_DAY.date().isoformat()
     assert body["tonight"]["up_next"] is None
+
+
+async def test_generated_at_publishes_utc_days_only(sessionmaker_for_test):
+    """The owner's generate and store-run times are published to the day,
+    as the pick day is: a timestamp would say when the owner was working."""
+    late = datetime(2026, 9, 27, 23, 30, tzinfo=UTC)
+    await _add(
+        sessionmaker_for_test,
+        _radar("Soon", generated_at=late),
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            generated_at=late,
+        ),
+        *[
+            CatalogueRun(
+                source=source,
+                started_at=late - timedelta(minutes=1),
+                finished_at=late,
+                ok=True,
+            )
+            for source in STORES
+        ],
+    )
+    body = await _next(sessionmaker_for_test)
+    assert body["generated_at"] == {
+        "picks": None,
+        "catalogue": "2026-09-27",
+        "radar": "2026-09-27",
+        "discover": "2026-09-27",
+    }
+
+
+NOT_FIRST_PERSON = re.compile(
+    r"\b(you|your|yours|they|their|theirs|them|the owner|the collector)\b",
+    re.IGNORECASE,
+)
+
+
+def _reasons(body: dict) -> list[str]:
+    cards = [body["tonight"]["up_next"] or {"reasons": []}, *body["tonight"]["picks"]]
+    rows = [row for key in ("wanted", *STORE_SECTIONS) for row in body[key]]
+    return [reason for row in cards + rows for reason in row["reasons"]]
+
+
+async def test_a_passing_discover_sentence_reaches_the_body(sessionmaker_for_test):
+    liked = _game("Liked", rating=9)
+    _with_ids(liked)
+    await _add(
+        sessionmaker_for_test,
+        liked,
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="Like Liked, I'd enjoy this\nIn stock at Limited Run Games",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    (row,) = body["buy_now"]
+    assert row["reasons"][0] == "Like Liked, I'd enjoy this"
+    assert all("Limited Run" not in reason for reason in row["reasons"])
+
+
+async def test_radar_reasons_are_rebuilt_over_public_games(sessionmaker_for_test):
+    traits = {"genres": ["Roguelike", "Indie"], "themes": ["Fantasy"]}
+    await _add(
+        sessionmaker_for_test,
+        _game("Liked", rating=9, source_metadata=traits),
+        _radar(
+            "Soon",
+            source_metadata={
+                "snapshot": {"url": "https://www.igdb.com/games/soon", **traits}
+            },
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    (row,) = body["preorders"]
+    assert row["reasons"]
+    text = " ".join(row["reasons"])
+    assert "Pre-orders" not in text and "$" not in text and "Limited Run" not in text
+
+
+async def test_every_reason_in_the_body_is_first_person(sessionmaker_for_test):
+    liked = _game("Liked", rating=9, favorite=True)
+    picked = _game("Picked", source_metadata={"genres": ["Roguelike"]})
+    _with_ids(liked, picked)
+    await _add(
+        sessionmaker_for_test,
+        liked,
+        picked,
+        _shown(picked, SHOWN_DAY),
+        _radar("Soon", reason="which you rated 10"),
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="They would love this, like Liked",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+        _radar(
+            "Other",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=50),
+            reason="Your kind of game, like Liked",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    reasons = _reasons(body)
+    assert reasons  # the check below must have something to read
+    assert not [reason for reason in reasons if NOT_FIRST_PERSON.search(reason)]
+
+
+async def test_a_private_pinned_or_wanted_game_never_appears(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _game("Secret Pin", is_public=False, pinned_at=datetime.now(UTC)),
+        _game(
+            "Secret Want",
+            is_public=False,
+            owned_format=OwnedFormat.NONE,
+            release_date=TODAY + timedelta(days=20),
+        ),
+        _game("Shown Want", owned_format=OwnedFormat.NONE),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/next")
+    assert "Secret" not in response.text
+    body = response.json()
+    assert body["tonight"]["up_next"] is None
+    assert [row["title"] for row in body["wanted"]] == ["Shown Want"]
