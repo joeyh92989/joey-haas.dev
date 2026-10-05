@@ -77,6 +77,27 @@ describe('SortControl as buttons', () => {
       screen.queryByRole('button', { name: 'Shuffle' }),
     ).not.toBeInTheDocument()
   })
+
+  // What's next's sorts have one fixed order each, so no direction.
+  it('offers custom sorts without a direction when not directional', () => {
+    renderSort({
+      value: 'best',
+      sorts: [
+        { value: 'best', label: 'Best match', direction: 'desc' },
+        { value: 'newest', label: 'Newest', direction: 'desc' },
+      ],
+      directional: false,
+    })
+    expect(screen.getAllByRole('button')).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Best match' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: 'Newest' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /direction/i }),
+    ).not.toBeInTheDocument()
+  })
 })
 
 describe('SortControl on a narrow screen', () => {
