@@ -71,8 +71,22 @@ describe('readSnapshot', () => {
 })
 
 describe('isValidSnapshot', () => {
-  it('accepts a next body only with its sections', () => {
-    expect(isValidSnapshot('next', { tonight: {}, buy_now: [] })).toBe(true)
+  it('accepts a next body only with every list the page reads', () => {
+    const next = {
+      tonight: { up_next: null, picks: [] },
+      wanted: [],
+      buy_now: [],
+      preorders: [],
+      later: [],
+      not_on_cartridge: [],
+    }
+    expect(isValidSnapshot('next', next)).toBe(true)
+    expect(isValidSnapshot('next', { tonight: {}, buy_now: [] })).toBe(false)
+    expect(isValidSnapshot('next', { ...next, tonight: null })).toBe(false)
+    expect(isValidSnapshot('next', { ...next, tonight: { picks: 1 } })).toBe(
+      false,
+    )
+    expect(isValidSnapshot('next', { ...next, later: {} })).toBe(false)
     expect(isValidSnapshot('next', [])).toBe(false)
     expect(isValidSnapshot('nope', {})).toBe(false)
   })

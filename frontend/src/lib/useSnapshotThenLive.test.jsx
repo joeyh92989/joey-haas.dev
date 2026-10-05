@@ -29,7 +29,15 @@ vi.mock('./snapshot.js', async (importOriginal) => ({
   readSnapshot: vi.fn(),
 }))
 
-const BODY = { tonight: { up_next: null, picks: [] }, buy_now: [] }
+// Every list What's next reads: the live body is held to the snapshot's shape.
+const BODY = {
+  tonight: { up_next: null, picks: [] },
+  wanted: [],
+  buy_now: [],
+  preorders: [],
+  later: [],
+  not_on_cartridge: [],
+}
 
 afterEach(() => {
   vi.restoreAllMocks()

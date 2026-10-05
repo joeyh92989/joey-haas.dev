@@ -8,7 +8,14 @@ import { SNAPSHOTS, fetchSnapshot } from './fetch-snapshot.mjs'
 const API = 'https://api.example.test'
 const ITEMS = [{ id: '1', title: 'Hades' }]
 const STATS = { total: 1, by_status: { finished: 1 } }
-const NEXT = { tonight: {}, buy_now: [] }
+const NEXT = {
+  tonight: { up_next: null, picks: [] },
+  wanted: [],
+  buy_now: [],
+  preorders: [],
+  later: [],
+  not_on_cartridge: [],
+}
 
 let outDir
 
@@ -221,15 +228,28 @@ describe('fetchSnapshot', () => {
     expect(await written()).toEqual([])
   })
 
-  it('declares next as optional, accepting its two sections only', () => {
+  it('declares next as optional, accepting every list the page reads', () => {
     expect(SNAPSHOTS.next.path).toBe('/api/public/next')
     expect(SNAPSHOTS.next.required).toBe(false)
     expect(SNAPSHOTS.next.valid(NEXT)).toBe(true)
     expect(SNAPSHOTS.next.valid([])).toBe(false)
+    expect(SNAPSHOTS.next.valid({ tonight: {}, buy_now: [] })).toBe(false)
+    expect(SNAPSHOTS.next.valid({ ...NEXT, tonight: { picks: {} } })).toBe(
+      false,
+    )
+    for (const key of [
+      'wanted',
+      'buy_now',
+      'preorders',
+      'later',
+      'not_on_cartridge',
+    ]) {
+      expect(SNAPSHOTS.next.valid({ ...NEXT, [key]: null })).toBe(false)
+    }
   })
 
   it('writes next verbatim when the API serves it', async () => {
-    const text = '{"tonight":{},"buy_now":[],"preorders":[]}'
+    const text = JSON.stringify(NEXT)
     const fetchImpl = api({
       '/api/health': ok({ status: 'ok' }),
       '/api/public/items': ok(ITEMS),
