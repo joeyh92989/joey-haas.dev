@@ -2918,9 +2918,12 @@ footer {
   padding: 0;
 }
 
+/* A linked line is a tap target in an aisle, so it gets the full 44px;
+   plain-text lines stay compact. */
 .store-lines a {
-  display: inline-block;
-  padding: 0.3rem 0;
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
 }
 
 /* What's next (/spine/next) and its shared row. One readable column at every

@@ -192,7 +192,14 @@ export default function AdminStoreList() {
             row={entry}
             section={key}
             actions={actions(entry, key)}
-            extra={<StoreLines lines={entry.store_lines} />}
+            extra={
+              <>
+                {entry.format_note && (
+                  <span className="muted">{entry.format_note}</span>
+                )}
+                <StoreLines lines={entry.store_lines} />
+              </>
+            }
           />
         ))}
       </ul>

@@ -292,6 +292,37 @@ describe('AdminStoreList', () => {
     expect(within(buyNow).getByText('Super Rare')).toBeInTheDocument()
   })
 
+  it("shows a row's format note, in store, whatever its reasons", async () => {
+    const note = 'Full game on cartridge in EUR — Super Rare'
+    stubApi({
+      'GET /api/recommendations/store-list': () =>
+        json({
+          ...LIST,
+          sections: {
+            ...LIST.sections,
+            preorders: [row('c', { format_note: 'Cartridge in Japan only' })],
+            not_on_cartridge: [
+              row('d', {
+                physical_format: 'game_key_card',
+                reasons: [],
+                format_note: note,
+              }),
+            ],
+          },
+        }),
+    })
+    renderPage()
+    const skip = await screen.findByRole('region', {
+      name: 'Not on cartridge',
+    })
+    expect(within(skip).getByText(note)).toBeInTheDocument()
+    const preorders = screen.getByRole('region', { name: 'Pre-orders' })
+    expect(within(preorders).getByText('Reason c')).toBeInTheDocument()
+    expect(
+      within(preorders).getByText('Cartridge in Japan only'),
+    ).toBeInTheDocument()
+  })
+
   it('points at Discover and Radar when there is nothing to show', async () => {
     stubApi({
       'GET /api/recommendations/store-list': () => json(EMPTY),
