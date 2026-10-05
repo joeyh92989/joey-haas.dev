@@ -233,10 +233,15 @@ a:hover {
 .masthead.compact .nav-row {
   flex: 1;
   margin-top: 0;
+  /* A flex item will not shrink below its content's min-content width, which
+     here is every pill in a row. Without this the row overflows the masthead
+     on a phone and the page scrolls sideways. */
+  min-width: 0;
 }
 
-/* Wrapping matters on a phone: four pills plus the toggle exceed 375px, and
-   without it the toggle is pushed off the edge rather than onto a second row. */
+/* Wraps by default so a narrow container never pushes the toggle off the
+   edge. On a phone the narrow-screen block turns wrapping off instead: the
+   nav scrolls sideways within one row. */
 .nav-row {
   align-items: center;
   display: flex;
@@ -2595,8 +2600,11 @@ footer {
   .chip-row {
     flex-wrap: nowrap;
     overflow-x: auto;
+    margin-top: -0.25rem;
     padding-bottom: 0.25rem;
     padding-right: 2rem;
+    padding-top: 0.25rem;
+    scroll-padding-inline-end: 2rem;
   }
 
   /* One nav row on a phone, never two or three: it scrolls sideways, with
@@ -2613,9 +2621,12 @@ footer {
   .nav-row nav {
     flex: 1;
     flex-wrap: nowrap;
+    margin-block: -0.25rem;
     min-width: 0;
     overflow-x: auto;
+    padding-block: 0.25rem;
     padding-right: 2rem;
+    scroll-padding-inline-end: 2rem;
     scrollbar-width: none;
   }
 
@@ -2627,9 +2638,16 @@ footer {
   /* A cut-off chip reads as "more", not "clipped". The #000 is an alpha
      mask, not a colour that is displayed (only its opacity matters), so it
      is right in both themes and the no-raw-hex rule does not apply. The
-     padding lets the last item clear the fade. */
+     padding lets the last item clear the fade, and scroll-padding keeps a
+     focused item out of it. The block padding on the scrollers (cancelled
+     by negative margin) keeps focus rings from being clipped by overflow. */
   .nav-row nav,
   .chip-row {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 calc(100% - 2rem),
+      transparent
+    );
     mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
   }
 
