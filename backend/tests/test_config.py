@@ -144,3 +144,12 @@ async def test_no_key_reaches_the_logs_through_the_http_client(caplog):
     async with httpx2.AsyncClient(transport=transport) as client:
         await fetch_properties(client, "SECRET-SHEETS-KEY")
     assert "SECRET-SHEETS-KEY" not in caplog.text
+
+
+def test_job_token_is_optional():
+    assert load_config(COMPLETE).job_token is None
+
+
+def test_job_token_is_read_and_blank_means_unset():
+    assert load_config({**COMPLETE, "JOB_TOKEN": " s3cret "}).job_token == "s3cret"
+    assert load_config({**COMPLETE, "JOB_TOKEN": "   "}).job_token is None

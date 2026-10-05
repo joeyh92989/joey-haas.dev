@@ -38,11 +38,13 @@ npm run build      # on Render: snapshot, then vite build, then the RSS feed
 ```
 
 **Refreshing.** Every deploy refreshes the snapshot. Between deploys,
-`.github/workflows/snapshot.yml` runs daily and triggers a static-site deploy
-through a Render deploy hook, but only when the live API bodies differ from
-the deployed files. It compares `items` and `stats` always; `picks` or
-`radar` are skipped with a notice while the API answers 404 for them. See the
-root README → Collection snapshot.
+`.github/workflows/nightly.yml` runs nightly at 00:17 UTC: it refreshes the
+picks, the catalogue and the suggestions first, then compares the live API
+bodies with the deployed files and triggers a static-site deploy through a
+Render deploy hook only when they differ. A failure on `items` or `stats`
+fails the compare; `picks`, `radar` and `next` are skipped with a warning
+when the API cannot serve them (a 404 until it has deployed). See the root
+README → Collection snapshot and Nightly job.
 
 **Gotchas.**
 - `public/snapshot/` is gitignored and must never be committed.

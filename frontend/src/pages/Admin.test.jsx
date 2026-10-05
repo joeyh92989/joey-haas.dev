@@ -70,13 +70,19 @@ describe('Admin', () => {
     // A failed logout leaves a valid 30-day cookie behind. Showing the
     // signed-out view anyway would tell the user they are logged out on a
     // machine where the next visitor still is not.
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ email: 'admin@example.com' }),
-      })
-      .mockResolvedValueOnce({ ok: false })
+    // Routed by URL, not queued: the landing makes other calls on mount, and a
+    // queue would hand the logout call somebody else's response.
+    const fetchMock = vi.fn(async (url) => {
+      const path = String(url)
+      if (path.endsWith('/api/auth/me'))
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ email: 'admin@example.com' }),
+        }
+      if (path.endsWith('/api/auth/logout')) return { ok: false, status: 500 }
+      return { ok: true, status: 200, json: async () => ({}) }
+    })
     vi.stubGlobal('fetch', fetchMock)
 
     renderAt()
@@ -86,6 +92,10 @@ describe('Admin', () => {
     signOutButton.click()
 
     expect(await screen.findByText(/sign out failed/i)).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/auth/logout'),
+      expect.objectContaining({ method: 'POST' }),
+    )
     expect(screen.queryByText(/sign in with google/i)).not.toBeInTheDocument()
   })
 
@@ -95,5 +105,78 @@ describe('Admin', () => {
     await waitFor(() =>
       expect(screen.getByText(/could not reach the api/i)).toBeInTheDocument(),
     )
+  })
+})
+
+describe('Admin last nightly line', () => {
+  function stubApi(statusBody, statusOk = true) {
+    const fetch = vi.fn(async (url) => {
+      const path = String(url)
+      if (path.endsWith('/api/auth/me'))
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ email: 'a@b.c' }),
+        }
+      if (path.endsWith('/api/physical/status'))
+        return statusOk
+          ? { ok: true, status: 200, json: async () => statusBody }
+          : { ok: false, status: 500, json: async () => ({}) }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ generated_at: null }),
+      }
+    })
+    vi.stubGlobal('fetch', fetch)
+    return fetch
+  }
+
+  it('shows the latest run once signed in', async () => {
+    stubApi({
+      sources: [
+        {
+          source: 'lrg',
+          name: 'Limited Run',
+          kind: 'store',
+          last_run: { finished_at: new Date().toISOString(), ok: false },
+        },
+      ],
+    })
+    renderAt()
+    expect(await screen.findByText(/failed: Limited Run/)).toBeInTheDocument()
+  })
+
+  it('says the job may have stopped when nothing has run', async () => {
+    stubApi({ sources: [] })
+    renderAt()
+    expect(
+      await screen.findByText(/Nightly may have stopped/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: /how to re-enable it/i }),
+    ).toHaveAttribute(
+      'href',
+      'https://github.com/joeyh92989/joey-haas.dev#nightly-job',
+    )
+  })
+
+  it('asks for nothing else when the status cannot be read', async () => {
+    const fetch = stubApi(null, false)
+    renderAt()
+    await screen.findByText('a@b.c')
+    await waitFor(() =>
+      expect(
+        fetch.mock.calls.some(([url]) =>
+          String(url).endsWith('/api/physical/status'),
+        ),
+      ).toBe(true),
+    )
+    expect(
+      fetch.mock.calls.some(([url]) =>
+        String(url).includes('/api/recommendations'),
+      ),
+    ).toBe(false)
+    expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
   })
 })

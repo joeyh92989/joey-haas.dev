@@ -170,7 +170,8 @@ before pushing.
       migration. E6 is retired in favour of it. Spec and plan:
       `docs/planning/2026-09-27-tracker-e8b-*`
 - [x] Tracker Showcase — the site shell, `/collection` polish, the
-      build-time snapshot (`.github/workflows/snapshot.yml`), and the
+      build-time snapshot (refreshed by `.github/workflows/nightly.yml`,
+      which replaced `snapshot.yml`), and the
       read-only "Recent picks" and "Coming to cartridge" strips from
       `/api/public/picks` and `/api/public/radar`. Radar needs one Generate
       after deploy for Coming to cartridge. Spec and plan:
@@ -293,8 +294,9 @@ before pushing.
 - `/spine` and `/spine/:id` are public and **do** call the API,
   unlike every other public page. They paint the build-time snapshot first
   (`frontend/public/snapshot/*.json`, written by
-  `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed daily by
-  `.github/workflows/snapshot.yml` through a deploy hook), then swap in live
+  `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed nightly at
+  00:17 UTC by `.github/workflows/nightly.yml` through a deploy hook, after
+  its refreshes), then swap in live
   data; "Waking the server" shows only when there is no snapshot. The
   snapshot is gitignored and never committed. See README → Collection
   snapshot.

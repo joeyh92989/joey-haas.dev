@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import secrets
 import uuid
 from collections import defaultdict
 from collections.abc import AsyncIterator
@@ -274,6 +275,41 @@ def _http_error_for(error: SourceError) -> HTTPException:
 EXTERNAL_PRESENT = "external_source IS NOT NULL AND external_id IS NOT NULL"
 
 
+# The only routes the nightly workflow's bearer token opens (Spine Next
+# spec, A2): (method, route template), templates including the router
+# prefix. Matching on the template FastAPI routed to, not the raw URL, so a
+# trailing slash or root_path cannot widen it. tests/test_job_token.py pins
+# this set; changing it means changing that test.
+JOB_ROUTES: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("POST", "/api/picker/next"),
+        ("POST", "/api/physical/refresh-registry"),
+        ("POST", "/api/physical/refresh"),
+        ("POST", "/api/physical/refresh-switch1"),
+        ("POST", "/api/physical/resolve"),
+        ("POST", "/api/recommendations/generate"),
+        ("GET", "/api/physical/status"),
+    }
+)
+
+
+def _job_route(request: Request) -> str | None:
+    """The routed template when it is a job route, else None."""
+    path = getattr(request.scope.get("route"), "path", None)
+    return path if (request.method, path) in JOB_ROUTES else None
+
+
+def _job_token_ok(request: Request) -> bool:
+    """A configured token, a job route, and a matching bearer header."""
+    expected = getattr(request.app.state, "job_token", None)
+    if not expected or _job_route(request) is None:
+        return False
+    scheme, _, presented = request.headers.get("authorization", "").partition(" ")
+    if scheme.lower() != "bearer" or not presented:
+        return False
+    return secrets.compare_digest(presented.encode(), expected.encode())
+
+
 def require_admin(request: Request) -> None:
     """Rejects anyone without the admin session.
 
@@ -282,9 +318,18 @@ def require_admin(request: Request) -> None:
     parameters, so an unauthenticated caller gets 401 and never 422 -- it cannot
     probe the request schema, and cannot learn whether an id exists by comparing
     a 401 against a 404.
+
+    The nightly workflow is the one other caller: a bearer token equal to
+    JOB_TOKEN passes on JOB_ROUTES and nowhere else. A session is checked
+    first, so nothing changes for the owner.
     """
-    if not request.session.get("user"):
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    if request.session.get("user"):
+        return
+    if _job_token_ok(request):
+        # Never the token: the method and route only.
+        logger.info("job token accepted: %s %s", request.method, _job_route(request))
+        return
+    raise HTTPException(status_code=401, detail="Not authenticated")
 
 
 async def _edition_format(

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
+import LastNightly from '../components/LastNightly.jsx'
 import { apiFetch, loginUrl } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
@@ -98,6 +99,7 @@ export default function Admin() {
 
       {status === 'signed-in' && (
         <>
+          <LastNightly />
           <p>
             Signed in as <strong>{email}</strong>.
           </p>
