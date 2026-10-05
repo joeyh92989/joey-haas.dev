@@ -328,6 +328,9 @@ check_equals "POST /api/physical/resolve unauthenticated" \
 check_equals "GET /api/physical/status unauthenticated" \
   "$(http_status "$API_URL/api/physical/status")" \
   "401"
+check_equals "POST /api/physical/refresh-switch1 unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/physical/refresh-switch1")" \
+  "401"
 check_equals "GET /admin/catalogue (deep link)" "$(http_status "$SITE_URL/admin/catalogue")" "200"
 check_equals "POST /api/recommendations/generate unauthenticated" \
   "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/recommendations/generate")" \
@@ -349,6 +352,7 @@ check_equals "POST /api/recommendations/{id}/own unauthenticated" \
   "401"
 check_equals "GET /admin/radar (deep link)" "$(http_status "$SITE_URL/admin/radar")" "200"
 check_equals "GET /admin/discover (deep link)" "$(http_status "$SITE_URL/admin/discover")" "200"
+check_equals "GET /admin/store-list (deep link)" "$(http_status "$SITE_URL/admin/store-list")" "200"
 
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in
