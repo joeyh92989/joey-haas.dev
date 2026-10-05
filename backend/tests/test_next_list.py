@@ -372,3 +372,60 @@ def test_curly_and_contracted_second_person_forms_are_refused():
         "you\u2019re set",
     ):
         assert text not in _discover([text], ["pub"], [])
+
+
+def test_an_undated_discover_pick_is_buy_now_as_discover_keeps_it():
+    """discover.released() keeps undated games; sectioning must not drop them."""
+    out = sections(
+        [cand(1, kind="discover", lane=None, release_date=None, rank=0)],
+        TODAY,
+        public=True,
+    )
+    assert titles(out["buy_now"]) == ["Game 1"]
+    (entry,) = out["buy_now"]
+    assert entry.top_pick and entry.date_shown is None and not entry.new
+
+
+def test_a_discover_pick_dated_to_this_month_is_buy_now():
+    """Discover dates by its stored day: a month-dated game whose first day
+    has passed is released to Discover, so it is not dropped here."""
+    pick = cand(
+        1,
+        kind="discover",
+        lane=None,
+        release_date=date(2026, 10, 1),
+        release_precision="month",
+    )
+    out = sections([pick], TODAY, public=False)
+    assert titles(out["buy_now"]) == ["Game 1"]
+    assert out["buy_now"][0].top_pick
+
+
+def test_new_counts_from_the_end_of_a_month_or_quarter():
+    month = cand(1, release_date=date(2026, 9, 1), release_precision="month")
+    quarter = cand(2, release_date=date(2026, 4, 1), release_precision="quarter")
+    out = sections([month, quarter], TODAY, public=False)
+    assert {e.candidate.title: e.new for e in out["buy_now"]} == {
+        "Game 1": True,
+        "Game 2": False,
+    }
+
+
+def test_a_possessive_does_not_hide_a_private_game():
+    for text in (
+        "Hollow Knight's combat, which I love",
+        "Hollow Knight’s combat, which I love",
+    ):
+        reasons = _discover([text], ["pub"], ["Hollow Knight"])
+        assert all("Hollow Knight" not in reason for reason in reasons), text
+
+
+def test_third_person_model_text_is_refused():
+    for text in (
+        "They would enjoy this",
+        "It suits their shelf",
+        "Made for them",
+        "The owner would like it",
+        "A pick the collector would make",
+    ):
+        assert text not in _discover([text], ["pub"], [])

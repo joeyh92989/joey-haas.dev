@@ -90,12 +90,15 @@ def _released(when: date | None, precision: str | None, today: date) -> bool:
 
 def _is_new(candidate: NextCandidate, today: date) -> bool:
     """A full cartridge out within the last NEW_DAYS, from any known date:
-    a boolean leaks nothing a date would."""
+    a boolean leaks nothing a date would. Age runs from the end of the
+    release's period, so a month-dated game is new for NEW_DAYS after its
+    month ends, not after its first day."""
     when = candidate.release_date
+    precision = candidate.release_precision
     return (
         candidate.physical_format == FULL_CARTRIDGE
-        and _released(when, candidate.release_precision, today)
-        and (today - when).days <= NEW_DAYS
+        and _released(when, precision, today)
+        and (today - period_end(when, precision)).days <= NEW_DAYS
     )
 
 
@@ -119,8 +122,10 @@ def sections(
     within PREORDER_DAYS, soonest first. Later: the rest of the dated
     cartridges, soonest first, then undated ones, capped. Not on cartridge:
     digital-only, Game-Key Card and code-in-a-box rows, best first, capped.
-    One row per (game, platform), Discover first; an unreleased Discover
-    pick and a row of unknown format are left out.
+    One row per (game, platform), Discover first; a Discover pick dated
+    after today and a Radar row of unknown format are left out. A Discover
+    pick is out when discover.released() says so: undated, or stored on or
+    before today, whatever the precision.
     """
     out: dict[str, list[NextEntry]] = {key: [] for key in SECTIONS}
     seen: set[tuple[str, int]] = set()
@@ -132,9 +137,9 @@ def sections(
         (c for c in candidates if c.kind == "discover"), key=_best_first
     ):
         key = (candidate.igdb_id, candidate.platform_id)
-        if key in seen or not _released(
-            candidate.release_date, candidate.release_precision, today
-        ):
+        # discover.released()'s own rule, so a pick Discover chose is shown.
+        future = candidate.release_date is not None and candidate.release_date > today
+        if key in seen or future:
             continue
         seen.add(key)
         out["buy_now"].append(
@@ -182,8 +187,11 @@ def sections(
 
 
 MAX_PUBLIC_REASONS = 2
-_SECOND_PERSON = re.compile(
-    r"\b(you|your|yours|yourself|yourselves|youre|youll|yall|yer|ya|u|ur)\b",
+# Not first person: addressing the reader, or speaking of the owner from
+# outside. A public reason is the owner's own voice ("which I rated 9").
+_NOT_FIRST_PERSON = re.compile(
+    r"\b(you|your|yours|yourself|yourselves|youre|youll|yall|yer|ya|u|ur"
+    r"|they|their|theirs|them|the owner|the collector)\b",
     re.IGNORECASE,
 )
 _ROMAN = {"ii": "2", "iii": "3", "iv": "4", "v": "5", "vi": "6", "vii": "7",
@@ -239,22 +247,24 @@ def catalogue_item(
     return _picker_item(igdb_id, title, snapshot or {}, platform_id, released)
 
 
-def _normalise(text: str) -> str:
-    """Fold text to lower-case words for title matching: no accents, marks or
-    apostrophes, every other non-alphanumeric run a single space."""
-    text = text.translate(_TITLE_MARKS).translate(_QUOTES).replace("'", "")
+def _normalise(text: str, apostrophe: str = "") -> str:
+    """Fold text to lower-case words for title matching: no accents or marks,
+    apostrophes replaced by `apostrophe` (deleted by default), every other
+    non-alphanumeric run a single space."""
+    text = text.translate(_TITLE_MARKS).translate(_QUOTES).replace("'", apostrophe)
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch)).casefold()
     return " ".join(re.sub(r"[^0-9a-z]+", " ", text).split())
 
 
-def _second_person(text: str) -> bool:
-    """True when `text` addresses the reader. Checked on quote-unified text,
-    and again with apostrophes deleted so "you're" and "y\u2019all" are caught."""
+def _not_first_person(text: str) -> bool:
+    """True when `text` addresses the reader or speaks of the owner in the
+    third person. Checked on quote-unified text, and again with apostrophes
+    deleted so "you're" and "y\u2019all" are caught."""
     unified = text.translate(_QUOTES)
     return bool(
-        _SECOND_PERSON.search(unified)
-        or _SECOND_PERSON.search(unified.replace("'", ""))
+        _NOT_FIRST_PERSON.search(unified)
+        or _NOT_FIRST_PERSON.search(unified.replace("'", ""))
     )
 
 
@@ -318,11 +328,14 @@ def _title_keys(title: str) -> tuple[set[str], set[str]]:
 
 
 def _names_private_game(text: str, taste: PublicTaste) -> bool:
-    padded = f" {_normalise(text)} "
+    """True when `text` names a private game. The text is read twice, with
+    apostrophes deleted ("Luigi's" as the key "luigis") and as spaces, so a
+    possessive ("Hollow Knight's") still ends on the key "hollow knight"."""
+    padded = (f" {_normalise(text)} ", f" {_normalise(text, ' ')} ")
     folded = unicodedata.normalize("NFKC", text).casefold()
     for title in taste.private_titles:
         keys, literal = _title_keys(title)
-        if any(f" {key} " in padded for key in keys):
+        if any(f" {key} " in form for key in keys for form in padded):
             return True
         if any(key in folded for key in literal):
             return True
@@ -338,7 +351,7 @@ def _model_text_allowed(sentence: str, based_on: list[str], taste: PublicTaste) 
         and bool(based_on)
         and all(ref in taste.public_ids for ref in based_on)
         and not _names_private_game(sentence, taste)
-        and not _second_person(sentence)
+        and not _not_first_person(sentence)
     )
 
 
@@ -351,7 +364,7 @@ def _rebuilt(item: PickerItem, taste: PublicTaste) -> list[str]:
     reasons, _based_on = _taste_reasons(
         item, similar_to, taste.references, taste.weights, taste.table
     )
-    return [reason for reason in reasons if not _second_person(reason)]
+    return [reason for reason in reasons if not _not_first_person(reason)]
 
 
 def _genre_line(item: PickerItem, taste: PublicTaste) -> str | None:
