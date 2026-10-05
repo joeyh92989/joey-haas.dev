@@ -412,9 +412,9 @@ strips.
   and copy the URL. In GitHub, go to Settings → Secrets and variables →
   Actions and add it as `RENDER_DEPLOY_HOOK_URL`. The URL is a secret: anyone
   who has it can trigger deploys.
-- **Gotcha:** GitHub switches off scheduled workflows in a public repository
-  after 60 days with no repository activity. If the snapshot stops refreshing
-  after a quiet spell, re-enable the workflow from the Actions tab.
+- **Gotcha:** if the snapshot stops refreshing after a quiet spell, GitHub
+  may have switched the schedule off; see the gotcha under
+  [Nightly job](#nightly-job).
 - **Unpublishing:** to drop an unpublished item from the snapshot at once, run
   the Nightly workflow from the Actions tab, or trigger a manual static-site
   deploy.
@@ -445,7 +445,8 @@ job's limit is 150 minutes.
   Render API service (declared in `render.yaml`, value entered in the
   dashboard) and as a repository secret under Settings → Secrets and variables
   → Actions. The two must match. Without the secret the job says so, refreshes
-  nothing and fails its summary step.
+  nothing and fails its summary step. When they differ, or the Render value
+  is not set, every call answers 401 and the run fails, naming both causes.
 - **The token opens seven routes and nothing else.** The whitelist is
   `items.JOB_ROUTES` and `backend/tests/test_job_token.py` pins it exactly:
   the six writes above plus `GET /api/physical/status`. A signed-in session is
@@ -453,10 +454,14 @@ job's limit is 150 minutes.
 - **Pick lag.** The picks are recorded as shown today (UTC), and the public
   list only publishes picks from before today's UTC midnight, so each run
   publishes yesterday's picks and records today's.
-- **A failed step is a warning**, not a failure: a 409 (the catalogue was
-  busy) or a non-2xx answer skips that call, and the steps after it run on
-  yesterday's data. The run summary and the "Last nightly" line on `/admin`
-  name what failed.
+- **A failed step is a warning**, not a failure. Only a 200 or 201 is a
+  success, and a 200 whose body reports `ok: false` (a catalogue source
+  failed) is a failure. A 409 (the catalogue was busy), a 5xx, a timeout or
+  any other answer is a warning: that call is skipped and the steps after it
+  run on yesterday's data. The one exception is a 401, which is
+  configuration rather than data and fails the run (see `JOB_TOKEN` above).
+  The run summary lists every step as succeeded or failed; the "Last
+  nightly" line on `/admin` names only the catalogue sources that failed.
 - **The snapshot's `next` output** carries `generated_at` times, so it differs
   every night and the static site redeploys nightly. That is intended.
 - **Gotcha:** GitHub switches off scheduled workflows in a public repository
