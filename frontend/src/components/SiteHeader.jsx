@@ -3,8 +3,19 @@ import { NavLink, useLocation } from 'react-router'
 import joeyPhoto from '../assets/joey.jpg'
 import { profile } from '../content/profile.js'
 
-/** The width of the fade on the nav's right edge, in px (2rem at 16px). */
+/**
+ * The width of the fade on the nav's right edge, in px. It mirrors the CSS
+ * `2rem` fade width in `.nav-row nav`'s mask (at 16px); the two change
+ * together.
+ */
 const FADE_PX = 32
+
+/**
+ * The nav's left padding, in px (0.25rem at 16px): room for the first link's
+ * focus ring, which the nav's overflow would otherwise clip. It mirrors the
+ * `padding-inline` in `.nav-row nav`; the two change together.
+ */
+const RING_PX = 4
 
 /**
  * Scrolls the nav sideways, and only sideways, so a link is fully visible and
@@ -13,7 +24,9 @@ const FADE_PX = 32
  * Not scrollIntoView: that can also scroll the page vertically, and the
  * browser's own focus scrolling leaves a partly visible link where it is,
  * under the fade. offsetLeft is measured against the nav (it is positioned),
- * so it does not change as the nav scrolls.
+ * so it does not change as the nav scrolls. A link scrolled in from the left
+ * keeps RING_PX of room for its focus ring, which also makes the first link
+ * scroll all the way back to 0.
  *
  * @param {HTMLElement | null} nav The scrolling nav.
  * @param {HTMLElement | null} link A link inside it.
@@ -22,7 +35,7 @@ function revealInNav(nav, link) {
   if (!nav || !link || nav.scrollWidth <= nav.clientWidth) return
   const right = link.offsetLeft + link.offsetWidth + FADE_PX
   if (link.offsetLeft < nav.scrollLeft) {
-    nav.scrollLeft = link.offsetLeft
+    nav.scrollLeft = Math.max(0, link.offsetLeft - RING_PX)
   } else if (right > nav.scrollLeft + nav.clientWidth) {
     nav.scrollLeft = right - nav.clientWidth
   }
