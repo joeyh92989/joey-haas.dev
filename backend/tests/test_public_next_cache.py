@@ -9,7 +9,7 @@ fingerprint, bulk statements included.
 import asyncio
 import uuid
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 
 import pytest
 import pytest_asyncio
@@ -27,6 +27,8 @@ from models import (
     ItemType,
     OwnedFormat,
     PhysicalFormat,
+    PickAction,
+    PickEvent,
     ReasonSource,
     Recommendation,
     RecommendationKind,
@@ -326,6 +328,54 @@ async def test_the_next_utc_day_rebuilds(sessionmaker_for_test, seeded, build, c
         await _next(client)
 
     assert build.calls == 2
+
+
+async def test_creating_a_public_wanted_game_rebuilds(
+    sessionmaker_for_test, seeded, build
+):
+    async with site_for(sessionmaker_for_test) as client:
+        await _warm(client, build)
+        created = await client.post(
+            "/api/items",
+            json={
+                "type": "game",
+                "title": "Newly Wanted",
+                "status": "backlog",
+                "is_public": True,
+                "owned_format": "none",
+            },
+        )
+        assert created.status_code == 201
+        body = await _next(client)
+
+    assert build.calls == 2
+    assert sorted(_titles(body, "wanted")) == ["Newly Wanted", "Wanted Game"]
+
+
+async def test_a_pick_committed_after_midnight_rebuilds(
+    sessionmaker_for_test, seeded, build, clock
+):
+    """A Play Next transaction that began before UTC midnight and commits
+    after it writes shown events dated yesterday. A build in between cannot
+    see them, and they count on the day it was built for."""
+    owned = seeded["owned"]
+    midnight = datetime.combine(NOW.date() + timedelta(days=1), time.min, UTC)
+    async with site_for(sessionmaker_for_test) as client:
+        clock(midnight + timedelta(minutes=1))
+        before = await _warm(client, build)
+        await _add(
+            sessionmaker_for_test,
+            PickEvent(
+                item_id=owned.id,
+                action=PickAction.SHOWN,
+                created_at=midnight - timedelta(seconds=5),
+            ),
+        )
+        after = await _next(client)
+
+    assert build.calls == 2
+    assert before["tonight"]["picks"] == []
+    assert [pick["title"] for pick in after["tonight"]["picks"]] == ["Owned Game"]
 
 
 async def test_a_write_that_bypasses_updated_at_still_rebuilds(

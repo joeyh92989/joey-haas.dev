@@ -434,8 +434,9 @@ before pushing.
 - **`/api/public/next` is cached on a data fingerprint**
   (`backend/public_next_cache.py`, one entry per app); admin routes are not,
   and the store list stays live. The fingerprint is the UTC day, a count and
-  an `(id, xmin)` digest of every `items` and `recommendations` row, and the
-  catalogue's finished runs. xmin, not `max(updated_at)`: SQL written by hand
+  an `(id, xmin)` digest of every `items` and `recommendations` row, the
+  catalogue's finished runs, and the windowed shown and skipped pick events
+  dated before midnight, for a Play Next commit that spans it. xmin, not `max(updated_at)`: SQL written by hand
   skips the ORM's `onupdate`, and an earlier transaction can commit after a
   later one. Anything new the body reads must join the fingerprint, or the
   page serves it stale. A restored "never" shows at the next UTC midnight.
