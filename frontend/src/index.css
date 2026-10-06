@@ -41,15 +41,15 @@
   /* The tracker shelf. Status marks are non-text marks, so each clears 3:1
      (WCAG 1.4.11) against --surface, the colour of the 2px gaps between
      stacked-bar segments; backlog also clears 3:1 against --border, which it
-     sits nearest to in lightness. Backlog is a warm ochre and abandoned a cool
-     blue-grey, so the two read apart by hue where lightness alone would not
-     separate them. Measured, dark: active 4.65, finished 10.24, backlog 4.25,
-     abandoned 3.58; backlog on --border 3.06. */
+     sits nearest to. The four step in lightness as well as hue (lightest
+     first: finished, backlog, active, abandoned), so no two sit closer than
+     1.48:1 to each other. Measured, dark: active 4.65, finished 10.24,
+     backlog 6.92, abandoned 3.15; backlog on --border 4.98. */
   --rating: var(--accent);
   --status-active: var(--accent-2);
   --status-finished: #e0cfb2;
-  --status-backlog: #9c8158;
-  --status-abandoned: #6f7a86;
+  --status-backlog: #c0a989;
+  --status-abandoned: #67717c;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
   --skeleton: #342b21;
   --grid-gap: 1rem;
@@ -82,13 +82,14 @@
   --nav-idle: #6b5f50;
   --nav-active-weight: 500;
   --code-bg: #fffffd;
-  /* Measured, light: active 4.57, finished 8.03, backlog 3.99, abandoned
-     4.62 on --surface; backlog on --border 3.39. */
+  /* Measured, light: active 4.57, finished 8.03, backlog 6.03, abandoned
+     3.46 on --surface; backlog on --border 5.11. Darkest first: finished,
+     backlog, active, abandoned; no two closer than 1.32:1. */
   --rating: var(--accent);
   --status-active: var(--accent-2);
   --status-finished: #4f4335;
-  --status-backlog: #8f6c45;
-  --status-abandoned: #5f6a75;
+  --status-backlog: #685438;
+  --status-abandoned: #737e8a;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
   --skeleton: #ebe1cf;
   --grid-gap: 1rem;
