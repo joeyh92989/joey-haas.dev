@@ -453,3 +453,40 @@ def test_a_possessive_of_a_title_with_an_apostrophe_is_caught():
         taste = public_taste([owned("pub", "Public Game")], [private])
         assert _names_private_game(text, taste), text
         assert text not in _discover([text], ["pub"], [private])
+
+
+def test_the_cap_hides_undated_rows_first():
+    far = [cand(n, release_date=TODAY + timedelta(days=200 + n)) for n in range(12)]
+    undated = [cand(100 + n, release_date=None) for n in range(3)]
+    out = sections(far + undated, TODAY, public=False)
+    assert len(out["later"]) == LATER_CAP
+    assert not {"Game 100", "Game 101", "Game 102"} & set(titles(out["later"]))
+
+
+def test_ties_on_one_date_keep_best_first_order():
+    when = TODAY + timedelta(days=30)
+    low = cand(1, release_date=when, score=10)
+    high = cand(2, release_date=when, score=90)
+    mid = cand(3, release_date=when, score=50)
+    out = sections([low, high, mid], TODAY, public=False)
+    assert titles(out["preorders"]) == ["Game 2", "Game 3", "Game 1"]
+
+
+def test_day_ninety_is_a_preorder_and_day_ninety_one_is_later():
+    ninety = cand(1, release_date=TODAY + timedelta(days=90))
+    ninety_one = cand(2, release_date=TODAY + timedelta(days=91))
+    out = sections([ninety, ninety_one], TODAY, public=False)
+    assert titles(out["preorders"]) == ["Game 1"]
+    assert titles(out["later"]) == ["Game 2"]
+
+
+def test_a_month_whose_last_day_is_today_counts_as_released():
+    last_day = date(2026, 10, 31)
+    month = cand(1, release_date=date(2026, 10, 1), release_precision="month")
+    out = sections([month], last_day, public=False)
+    assert titles(out["buy_now"]) == ["Game 1"]
+    assert out["preorders"] == []
+
+
+def test_period_end_in_a_leap_year_february_is_the_twenty_ninth():
+    assert period_end(date(2028, 2, 1), "month") == date(2028, 2, 29)

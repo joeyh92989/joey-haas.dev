@@ -299,15 +299,18 @@ def _job_route(request: Request) -> str | None:
     return path if (request.method, path) in JOB_ROUTES else None
 
 
-def _job_token_ok(request: Request) -> bool:
-    """A configured token, a job route, and a matching bearer header."""
+def _job_token_route(request: Request) -> str | None:
+    """The matched job route when the bearer token is valid for it, else None."""
     expected = getattr(request.app.state, "job_token", None)
-    if not expected or _job_route(request) is None:
-        return False
+    route = _job_route(request)
+    if not expected or route is None:
+        return None
     scheme, _, presented = request.headers.get("authorization", "").partition(" ")
     if scheme.lower() != "bearer" or not presented:
-        return False
-    return secrets.compare_digest(presented.encode(), expected.encode())
+        return None
+    return (
+        route if secrets.compare_digest(presented.encode(), expected.encode()) else None
+    )
 
 
 def require_admin(request: Request) -> None:
@@ -325,9 +328,9 @@ def require_admin(request: Request) -> None:
     """
     if request.session.get("user"):
         return
-    if _job_token_ok(request):
+    if (route := _job_token_route(request)) is not None:
         # Never the token: the method and route only.
-        logger.info("job token accepted: %s %s", request.method, _job_route(request))
+        logger.info("job token accepted: %s %s", request.method, route)
         return
     raise HTTPException(status_code=401, detail="Not authenticated")
 

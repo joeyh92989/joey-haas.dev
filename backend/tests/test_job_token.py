@@ -155,8 +155,9 @@ async def test_a_trailing_slash_does_not_widen_the_match():
         response = await http.post(
             "/api/picker/next/", headers=bearer(), json={}, follow_redirects=False
         )
-    # A redirect to the template, or a refusal; never the route's own answer.
-    assert response.status_code in (307, 401, 404)
+    # FastAPI's redirect_slashes answers 307 before routing, so the gate (and
+    # the exact-template match behind it) never sees the slashed path.
+    assert response.status_code == 307
 
 
 async def test_an_accepted_token_is_logged_without_the_token(caplog):

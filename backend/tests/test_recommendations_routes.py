@@ -627,6 +627,29 @@ async def test_store_list_sections_with_private_fields(sessionmaker_for_test):
     assert "registry_at" in body["catalogue"]
 
 
+async def test_store_list_rows_link_their_igdb_page_and_only_that(
+    sessionmaker_for_test,
+):
+    await _add_rows(
+        sessionmaker_for_test,
+        _store_row(
+            "Linked",
+            source_metadata={"snapshot": {"url": "https://www.igdb.com/games/linked"}},
+        ),
+        _store_row(
+            "Elsewhere",
+            source_metadata={"snapshot": {"url": "https://example.com/elsewhere"}},
+        ),
+        _store_row("Bare"),
+    )
+    async with radar_client(sessionmaker_for_test) as client:
+        body = (await client.get("/api/recommendations/store-list")).json()
+    rows = {r["title"]: r for r in body["sections"]["preorders"]}
+    assert rows["Linked"]["igdb_url"] == "https://www.igdb.com/games/linked"
+    assert rows["Elsewhere"]["igdb_url"] is None
+    assert rows["Bare"]["igdb_url"] is None
+
+
 async def test_store_list_is_admin_only(sessionmaker_for_test):
     async with radar_client(sessionmaker_for_test, signed_in=False) as client:
         response = await client.get("/api/recommendations/store-list")
