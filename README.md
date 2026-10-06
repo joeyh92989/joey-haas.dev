@@ -48,7 +48,7 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
-| `/spine` | Spine | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. It no longer calls `/api/public/picks` or `/api/public/radar` |
+| `/spine` | Spine | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
 | `/spine/next` | What's next | Public: tonight's picks and the pinned Up next game, the want list, and what to look for in a store (Buy now, Pre-orders, Later, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
 | `/spine/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
 | `/collection` | Redirect | Redirects to `/spine`; `/collection/:id` redirects to `/spine/:id`, both client-side |
@@ -412,8 +412,7 @@ strips.
   of (see [Nightly job](#nightly-job)).
 - **`next.json` is optional.** `/spine/next` paints `/snapshot/next.json` when
   the file exists and shows "Waking the server" until the live call answers
-  when it does not. `fetch-snapshot.mjs` writes it, like `picks.json` and
-  `radar.json`, and leaves it out without failing the build when the API
+  when it does not. `fetch-snapshot.mjs` writes it and leaves it out without failing the build when the API
   cannot serve it yet.
 - **Setup (once):** in Render, go to the static site → Settings → Deploy Hook
   and copy the URL. In GitHub, go to Settings → Secrets and variables →
@@ -458,9 +457,9 @@ job's limit is 150 minutes.
   `items.JOB_ROUTES` and `backend/tests/test_job_token.py` pins it exactly:
   the six writes above plus `GET /api/physical/status`. A signed-in session is
   checked as before; the token never reaches any other admin route.
-- **Pick lag.** The picks are recorded as shown today (UTC), and the public
-  list only publishes picks from before today's UTC midnight, so each run
-  publishes yesterday's picks and records today's.
+- **Pick lag.** The picks are recorded as shown today (UTC), and What's
+  next's `tonight` block only publishes picks from before today's UTC
+  midnight, so each run publishes yesterday's picks and records today's.
 - **A failed step is a warning**, not a failure. Only a 200 or 201 is a
   success, and a 200 whose body reports `ok: false` (a catalogue source
   failed) is a failure. A 409 (the catalogue was busy), a 5xx, a timeout or
@@ -481,20 +480,18 @@ job's limit is 150 minutes.
 
 All read-only, unauthenticated, and allowlisted by hand in `backend/public.py`
 and `backend/public_outputs.py`; `backend/tests/test_public*.py` pin the list,
-detail, picks, radar and next models' field sets.
+detail and next models' field sets.
 
 | Route | What |
 |---|---|
 | `GET /api/public/items` | Every public item, most recently finished first |
 | `GET /api/public/items/{id}` | One public item with description and similar games; 404 for unknown and private alike |
 | `GET /api/public/stats` | Counts over public rows |
-| `GET /api/public/picks` | Play Next's most recent picks among public games, with first-person reasons; changes at most once a day |
-| `GET /api/public/radar` | Up to six upcoming full-cartridge releases, registry-dated only: title, platform, date, IGDB link, cover. `/spine` no longer calls it |
 | `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge` (see below) |
 
-`/api/public/picks` and `/api/public/radar` remain, and the snapshot still
-copies them (and `/api/public/next`), until a follow-up retires the first
-two (Spine Next spec, item 10).
+`/api/public/picks` and `/api/public/radar` are retired and answer 404;
+`/api/public/next` carries both (Play Next's picks as `tonight`, Radar's
+dated cartridges in its sections), and `scripts/smoke.sh` pins the 404.
 
 ### `GET /api/public/next`
 

@@ -7,7 +7,7 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - `frontend/` — Vite + React 19 SPA, routed with react-router v8 (declarative
   mode; import from `react-router`, not `react-router-dom`). Deployed as a free
-  Render static site. Public pages other than `/spine`, `/spine/next` and `/spine/:id` make no API calls
+  Render static site. Public pages other than `/spine*` make no API calls
   (apart from RootLayout's one `/api/auth/me` session check, which fails
   quietly to signed out) — bio and project content are static modules in
   `frontend/src/content/`, so the site renders fully while the free-tier
@@ -173,10 +173,9 @@ before pushing.
 - [x] Tracker Showcase — the site shell, `/collection` polish, the
       build-time snapshot (refreshed by `.github/workflows/nightly.yml`,
       which replaced `snapshot.yml`), and the
-      read-only "Recent picks" and "Coming to cartridge" strips from
-      `/api/public/picks` and `/api/public/radar` (now on `/spine/next`,
-      see Spine Next). Radar needs one Generate
-      after deploy for Coming to cartridge. Spec and plan:
+      read-only "Recent picks" and "Coming to cartridge" strips, built on
+      `/api/public/picks` and `/api/public/radar`, which are retired (#40):
+      `/spine/next` and `/api/public/next` carry both. Spec and plan:
       `docs/planning/2026-09-28-tracker-showcase-*`
 - [x] Spine — the tracker's public name. `/spine` and `/spine/:id`, with
       client-side redirects from `/collection*` (smoke cannot see them;
@@ -266,7 +265,7 @@ before pushing.
   still never a physical source for Switch 1 (`refresh-platform` refuses
   130). The sheet's dates are never registry dates
   (`collapse.REGISTRY_SOURCES` leaves it out), so nothing from it can reach
-  `/api/public/radar`; keep it out. Its keys are not in
+  the public Radar rows on What's next; keep it out. Its keys are not in
   `test_physical_keys.py`'s corpus. No migration: after deploy, press
   Refresh Switch 1 once on `/admin/catalogue`; expect `rows_seen` near
   10,000 (editions, not titles), and check the run's errors, since IGDB
@@ -290,7 +289,7 @@ before pushing.
   is `manual` and never touched); then on `/admin/catalogue` press Refresh
   registry, Refresh stores, Resolve until nothing remains, work through
   Needs match, and Refresh N64 when wanted. Nothing from the catalogue is
-  public except the seven `/api/public/radar` fields (see Radar);
+  public except the seven Radar fields on `/api/public/next` (see Radar);
   `test_public.py` and `test_public_outputs.py` pin that.
 - IGDB fixtures for the snapshot are recorded from the live API with
   `backend/scripts/record_igdb_fixtures.py` (see `backend/scripts/README.md`);
@@ -300,10 +299,10 @@ before pushing.
   credentials are optional config checked lazily, so a missing key disables
   one media type rather than stopping the service; `main.py` logs which
   sources are configured at startup.
-- `/spine`, `/spine/next` and `/spine/:id` are public and **do** call the
-  API, unlike every other public page. `/spine` no longer calls
-  `/api/public/picks` or `/api/public/radar`; both endpoints (and their
-  snapshots) stay until the follow-up that retires them. They paint the build-time snapshot first
+- `/spine*` are public and **do** call the API, unlike every other public
+  page; `/spine/next` reads `/api/public/next`. `/api/public/picks` and
+  `/api/public/radar` are retired (404, pinned by `smoke.sh`). They paint the
+  build-time snapshot first
   (`frontend/public/snapshot/*.json`, written by
   `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed nightly at
   00:17 UTC by `.github/workflows/nightly.yml` through a deploy hook, after
@@ -343,7 +342,7 @@ before pushing.
   at the next generation, and an answered suggestion takes no second
   answer. Only an **open** pre-order (window not closed, or no window and
   the game not out) counts as one. **Only seven fields of pending Radar
-  rows are public** (`/api/public/radar`, showcase spec, "Spec changes"):
+  rows are public** (on `/api/public/next`, showcase spec, "Spec changes"):
   title, platform, format, release date and precision, IGDB link and cover
   -- for full cartridges dated to a day or month after today, registry-dated
   only (`release_source` in `source_metadata`; a store's or IGDB's date
@@ -387,7 +386,8 @@ before pushing.
   "Overdue classic" until acquired dates span 90 days, then "Waited longest".
   Pinning is its own route (`POST /api/items/{id}/pin`) because it clears
   the previous pin and records an event in one transaction.
-  `/api/public/picks` publishes up to three games that are public, owned,
+  The public picks (`tonight` on `/api/public/next`; the retired
+  `/api/public/picks` rules carried over) are up to three games that are public, owned,
   backlog or active, unpinned, with no never event and no skip at or after
   their shown event; the day is the most recent of the seven UTC days
   ending yesterday on which one of those games was shown; only events
