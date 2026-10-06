@@ -204,25 +204,24 @@ describe('fetchSnapshot', () => {
       '/api/health': ok({ status: 'ok' }),
       '/api/public/items': ok(ITEMS),
       '/api/public/stats': ok(STATS),
-      '/api/public/picks': ok([]),
+      '/api/public/next': ok(NEXT),
     })
     expect(await run(fetchImpl)).toBe('written')
-    expect(await written()).toEqual(['items.json', 'picks.json', 'stats.json'])
+    expect(await written()).toEqual(['items.json', 'next.json', 'stats.json'])
   })
 
   it('clears an earlier output it can no longer fetch, and on failure', async () => {
-    await fs.writeFile(path.join(outDir, 'radar.json'), '[]')
-    await fs.writeFile(path.join(outDir, 'picks.json.tmp'), '[]')
+    await fs.writeFile(path.join(outDir, 'next.json'), '{}')
+    await fs.writeFile(path.join(outDir, 'next.json.tmp'), '{}')
     const partial = api({
       '/api/health': ok({ status: 'ok' }),
       '/api/public/items': ok(ITEMS),
       '/api/public/stats': ok(STATS),
-      '/api/public/picks': ok([]),
     })
     expect(await run(partial)).toBe('written')
-    expect(await written()).toEqual(['items.json', 'picks.json', 'stats.json'])
+    expect(await written()).toEqual(['items.json', 'stats.json'])
 
-    await fs.writeFile(path.join(outDir, 'radar.json'), '[]')
+    await fs.writeFile(path.join(outDir, 'next.json'), '{}')
     const asleep = api({ '/api/health': new TypeError('connect refused') })
     expect(await run(asleep)).toBe('failed')
     expect(await written()).toEqual([])

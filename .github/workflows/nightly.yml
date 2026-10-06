@@ -161,7 +161,7 @@ jobs:
           # GitHub's default shell is bash -e. Every live fetch and parse is
           # checked explicitly, so a failure is reported, never read as
           # "changed": items and stats are the snapshot and fail the step;
-          # picks, radar and next are optional, because the API can lag behind
+          # next is optional, because the API can lag behind
           # the static site (a 404 until it has deployed), so any failure there
           # -- a status other than 200, a curl error, a body jq cannot read --
           # is a warning and that output is skipped. next carries generated_at
@@ -201,7 +201,7 @@ jobs:
             echo "::warning::$name: $1, so it is skipped"
           }
           changed=""
-          for name in items stats picks radar next; do
+          for name in items stats next; do
             live_status=$(curl -sS -m 60 -o "live-$name.raw" -w '%{http_code}' \
               "$API_URL/api/public/$name") || live_status=000
             if [ "$live_status" != 200 ]; then
