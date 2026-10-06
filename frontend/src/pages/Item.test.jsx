@@ -299,7 +299,9 @@ describe('Item title', () => {
   it('names the item once it loads', async () => {
     stubItem()
     await renderReady()
-    expect(document.title).toBe('Hades · Spine')
+    // The title is set by a passive effect, which React flushes after the
+    // commit that put the heading on screen: wait for it, don't read it.
+    await waitFor(() => expect(document.title).toBe('Hades · Spine'))
   })
 
   it('names the item from the snapshot while the server wakes', async () => {
@@ -325,7 +327,7 @@ describe('Item title', () => {
     stubApi({ ok: false, status: 404, json: async () => ({}) })
     renderPage()
     await screen.findByRole('heading', { name: 'Not found' })
-    expect(document.title).toBe('Not found · Joey Haas')
+    await waitFor(() => expect(document.title).toBe('Not found · Joey Haas'))
   })
 })
 
