@@ -157,6 +157,10 @@ def _identity(row: Recommendation) -> tuple[str, str, int]:
     return (row.external_source, row.external_id, row.platform_id)
 
 
+def _title_key(title: str | None) -> str:
+    return (title or "").strip().casefold()
+
+
 def taste_sparing_owned(data: NextData, shown: list[Recommendation]) -> PublicTaste:
     """The public taste, with the private-title scan lifted for exactly the
     games the owner answered Already own on in the frozen batch (spec, S9).
@@ -168,15 +172,18 @@ def taste_sparing_owned(data: NextData, shown: list[Recommendation]) -> PublicTa
     answered. The match is by identity, never by title: the item's
     (external_source, external_id) and, where it has one, its platform must
     match an owned candidate row, and a row of that same game must be among
-    `shown`, the rows the page renders. Every other private title, a
-    same-titled remake or a game with no IGDB link among them, is scanned.
+    `shown`, the rows the page renders, and the item still carries the
+    row's title, so a renamed or re-linked item is scanned like any other
+    private game (#43). Every other private title, a same-titled remake or a
+    game with no IGDB link among them, is scanned.
     """
     owned = {
-        _identity(c.payload)
+        _identity(c.payload): _title_key(c.payload.title)
         for c in data.candidates
         if c.payload.status == RecommendationStatus.OWNED
     }
-    spared = owned & {_identity(row) for row in shown}
+    shown_ids = {_identity(row) for row in shown}
+    spared = {key: title for key, title in owned.items() if key in shown_ids}
 
     def is_spared(item: Item) -> bool:
         if item.external_source is None or item.external_id is None:
@@ -184,7 +191,8 @@ def taste_sparing_owned(data: NextData, shown: list[Recommendation]) -> PublicTa
         return any(
             (source, external_id) == (item.external_source, item.external_id)
             and item.platform_id in (None, platform_id)
-            for source, external_id, platform_id in spared
+            and _title_key(item.title) == title
+            for (source, external_id, platform_id), title in spared.items()
         )
 
     return public_taste(
