@@ -31,14 +31,7 @@ from models import (
     OwnedFormat,
     PhysicalFormat,
 )
-from public_outputs import (
-    PublicNextOut,
-    PublicPickOut,
-    PublicRadarOut,
-    load_public_next,
-    load_public_picks,
-    load_public_radar,
-)
+from public_outputs import PublicNextOut, load_public_next
 
 # Lifted out of the source_metadata snapshot rather than publishing the
 # snapshot itself: its shape varies per source and may carry fields nobody
@@ -428,22 +421,6 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
                 for platform, counts in by_format.items()
             },
         )
-
-    @router.get("/picks", response_model=list[PublicPickOut])
-    async def public_picks(
-        session: AsyncSession = Depends(get_session),
-    ) -> list[PublicPickOut]:
-        """Play Next's most recent picks among public games. Read-only: the
-        picks were shown to the owner; nothing is generated here."""
-        return await load_public_picks(session, datetime.now(UTC))
-
-    @router.get("/radar", response_model=list[PublicRadarOut])
-    async def public_radar(
-        session: AsyncSession = Depends(get_session),
-    ) -> list[PublicRadarOut]:
-        """Radar's next cartridges: title, platform, date and an IGDB link.
-        No store, price or pre-order detail."""
-        return await load_public_radar(session, datetime.now(UTC).date())
 
     @router.get("/next", response_model=PublicNextOut)
     async def public_next(
