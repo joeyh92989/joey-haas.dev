@@ -183,3 +183,43 @@ first today, so a rerun may record a different one.
   row by region, so the summary adds nothing and is not read.
 - **Product galleries.** Only the first image is kept, which is all
   `image_url` uses. The full arrays were a third of the recorded bytes.
+
+## clear_store_release_dates.py
+
+Clears release dates that Want / Already own copied from a store onto items
+(#41).
+
+**Why:** before #38, answering a Radar or Discover row copied the row's
+`release_date` onto the new item whatever its source, so a store's date,
+which is store data, could reach `/api/public/items` and What's next's
+Wanted list. Since #38 only a public source's day-precise date is copied
+(`recommendations_routes._item_release_date`). The script finds items that
+still hold a copied date that rule would not copy today, by matching each
+answered (wanted or owned) recommendation to its item on
+`external_source` and `external_id` and comparing the dates. An item the
+owner has edited to a different date no longer matches its row's date and is
+left alone. So is an item whose date equals the one its own IGDB snapshot
+gives: "Refresh game metadata" overwrites `release_date` from the snapshot,
+so a matching value there is IGDB's, not the store's.
+
+**Run** from `backend/`. The first command is a dry run: it lists the items
+and changes nothing. The second clears their `release_date`.
+
+```bash
+./.venv/bin/python scripts/clear_store_release_dates.py
+./.venv/bin/python scripts/clear_store_release_dates.py --apply
+```
+
+**Needs** `backend/.env`, read through `load_config()` as the API reads it,
+so every required variable must be set. It uses `DATABASE_URL`, the pooled
+URL the API uses.
+
+**Safe to re-run:** a cleared item no longer matches its row, so a second
+run finds nothing. `--apply` clears the dates in one statement that
+re-checks each item's date, so an item changed since the dry run is skipped
+and the count printed is the rows actually cleared.
+
+**Limits:** it clears only dates that equal the recommendation's own, so a
+store date the owner has since retyped to something else is not touched.
+After `--apply`, pressing "Refresh game metadata" on
+`/admin/collection` can refill dates from IGDB.
