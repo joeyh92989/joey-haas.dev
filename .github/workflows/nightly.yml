@@ -126,9 +126,9 @@ jobs:
           }
           if [ "$(date -u +%u)" = 1 ]; then weekly=true; else weekly=false; fi
 
-          # Three picks recorded as shown today (UTC). /api/public/picks and
-          # /api/public/next publish them after the next UTC midnight, so
-          # each run publishes yesterday's picks and records today's.
+          # Three picks recorded as shown today (UTC). /api/public/next
+          # publishes them after the next UTC midnight, so each run
+          # publishes yesterday's picks and records today's.
           call picks 120 /api/picker/next
           call registry 900 /api/physical/refresh-registry
           call stores 3600 /api/physical/refresh
@@ -173,9 +173,10 @@ jobs:
           # Both sides are normalised the same way: keys sorted (-S), and
           # arrays sorted, because the API has no unique ordering and a
           # harmless write can reorder tied rows. An array whose elements all
-          # have an id is sorted by it. Any other array (Radar's rows have no
-          # id) is sorted by each element's serialised text, which orders
-          # every element and so leaves no ties to reorder.
+          # have an id is sorted by it (items). Any other top-level array would be
+          # sorted by each element's serialised text, which orders every
+          # element and so leaves no ties to reorder; stats and next are
+          # objects, so they are only key-sorted.
           # tostring follows key order in the text, so keys are sorted first.
           normalise='
             def canon:
