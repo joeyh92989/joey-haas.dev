@@ -341,11 +341,7 @@ function ItemView({
 
   return (
     <article className="item-page">
-      <div className="item-hero" data-empty={!item.cover_url || undefined}>
-        {item.cover_url && (
-          <img className="item-hero-backdrop" src={item.cover_url} alt="" />
-        )}
-      </div>
+      <div className="item-hero" />
 
       <header className="item-head">
         <div className="item-cover">

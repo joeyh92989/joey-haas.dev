@@ -1665,35 +1665,12 @@ footer {
   gap: 0.4rem 0.75rem;
 }
 
-/* Public item page. The hero band is the item's own cover, blurred and
-   dimmed with --overlay; the unblurred cover overlaps its bottom edge. */
+/* Public item page. The hero band is a plain --surface panel; the cover
+   overlaps its bottom edge. */
 .item-hero {
   background: var(--surface);
   border-radius: 8px;
   height: 13rem;
-  overflow: hidden;
-  position: relative;
-}
-
-.item-hero-backdrop {
-  filter: blur(28px) saturate(1.1);
-  height: 100%;
-  inset: 0;
-  object-fit: cover;
-  position: absolute;
-  transform: scale(1.25);
-  width: 100%;
-}
-
-.item-hero::after {
-  background: var(--overlay);
-  content: '';
-  inset: 0;
-  position: absolute;
-}
-
-.item-hero[data-empty]::after {
-  display: none;
 }
 
 .item-head {
