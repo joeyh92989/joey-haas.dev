@@ -109,7 +109,7 @@ describe('Admin', () => {
 })
 
 describe('Admin last nightly line', () => {
-  function stubApi(statusBody, statusOk = true, generated = null) {
+  function stubApi(statusBody, statusOk = true, generated = null, storeList) {
     const fetch = vi.fn(async (url) => {
       const path = String(url)
       if (path.endsWith('/api/auth/me'))
@@ -123,13 +123,15 @@ describe('Admin last nightly line', () => {
           ? { ok: true, status: 200, json: async () => statusBody }
           : { ok: false, status: 500, json: async () => ({}) }
       if (path.endsWith('/api/recommendations/store-list'))
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({
-            generated_at: generated ?? { radar: null, discover: null },
-          }),
-        }
+        return (
+          storeList ?? {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              generated_at: generated ?? { radar: null, discover: null },
+            }),
+          }
+        )
       return { ok: false, status: 404, json: async () => ({}) }
     })
     vi.stubGlobal('fetch', fetch)
@@ -223,5 +225,70 @@ describe('Admin last nightly line', () => {
       ),
     ).toBe(false)
     expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
+  })
+
+  const okStatus = () => ({
+    sources: [
+      {
+        source: 'lrg',
+        name: 'Limited Run',
+        kind: 'store',
+        last_run: { finished_at: new Date().toISOString(), ok: true },
+      },
+    ],
+  })
+
+  it.each([
+    ['a failed store list', { ok: false, status: 500, json: async () => ({}) }],
+    [
+      'a store list that is not JSON',
+      {
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError('Unexpected token <')
+        },
+      },
+    ],
+  ])('shows the line without generate times after %s', async (_, response) => {
+    stubApi(okStatus(), true, null, response)
+    renderAt()
+    const line = await screen.findByText(/Last nightly/)
+    expect(line).toHaveTextContent(/catalogue .* · ok$/)
+    expect(line).not.toHaveTextContent(/Radar|Discover/)
+  })
+
+  it('says nothing when the status body has no sources list', async () => {
+    const fetch = stubApi({ detail: 'not a status document' })
+    renderAt()
+    await screen.findByText('a@b.c')
+    await waitFor(() =>
+      expect(
+        fetch.mock.calls.some(([url]) =>
+          String(url).endsWith('/api/physical/status'),
+        ),
+      ).toBe(true),
+    )
+    expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
+  })
+
+  it('says nothing, and keeps the page, when the status request throws', async () => {
+    const fetch = vi.fn(async (url) => {
+      if (String(url).endsWith('/api/auth/me'))
+        return { ok: true, status: 200, json: async () => ({ email: 'a@b.c' }) }
+      throw new TypeError('Failed to fetch')
+    })
+    vi.stubGlobal('fetch', fetch)
+    renderAt()
+    await screen.findByText('a@b.c')
+    await waitFor(() =>
+      expect(
+        fetch.mock.calls.some(([url]) =>
+          String(url).endsWith('/api/physical/status'),
+        ),
+      ).toBe(true),
+    )
+    expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Catalogue' })).toBeInTheDocument()
   })
 })
