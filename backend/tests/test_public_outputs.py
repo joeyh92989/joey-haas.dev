@@ -31,7 +31,12 @@ from models import (
 )
 from physical_sources.stores import STORES
 from public import create_public_router
-from public_outputs import PublicNextOut, PublicNextRow, PublicPickOut, PublicRadarOut
+from public_outputs import (
+    PublicNextOut,
+    PublicNextRow,
+    PublicRadarOut,
+    PublicTonightCard,
+)
 from recommendations_routes import create_recommendations_router
 
 pytestmark = pytest.mark.asyncio
@@ -44,7 +49,9 @@ MIDNIGHT = datetime.combine(NOW.date(), time.min, tzinfo=UTC)
 # midnight and within the seven-day window.
 SHOWN_DAY = MIDNIGHT - timedelta(hours=12)
 
-PICK_FIELDS = {"id", "type", "title", "cover_url", "platform", "reasons"}
+# What a tonight card publishes. `item_id`, not `id`: What's next carries no key
+# named id (spec, S1).
+PICK_FIELDS = {"item_id", "type", "title", "cover_url", "platform", "reasons"}
 
 
 @pytest.fixture(autouse=True)
@@ -103,8 +110,8 @@ def _with_ids(*items: Item) -> tuple[Item, ...]:
     return items
 
 
-async def test_the_pick_model_publishes_exactly_these_fields():
-    assert set(PublicPickOut.model_fields) == PICK_FIELDS
+async def test_the_tonight_card_publishes_exactly_these_fields():
+    assert set(PublicTonightCard.model_fields) == PICK_FIELDS
 
 
 async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(
@@ -129,10 +136,10 @@ async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(
         _shown(older, latest - timedelta(days=1)),
     )
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/picks")
+        response = await client.get("/api/public/next")
 
     assert response.status_code == 200
-    body = response.json()
+    body = response.json()["tonight"]["picks"]
     # One day, three picks, by title: shown times ascend with the title, so
     # latest-first would be Delta, Charlie, Bravo.
     assert [row["title"] for row in body] == ["Alpha", "Bravo", "Charlie"]
@@ -195,7 +202,7 @@ async def test_picks_leave_out_what_is_not_a_public_suggestion(
         ),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert sorted(row["title"] for row in body) == ["Keep", "Skipped Before"]
 
@@ -208,15 +215,15 @@ async def test_picks_are_empty_once_the_latest_shown_day_is_a_week_old(
     await _add(sessionmaker_for_test, stale)
     await _add(sessionmaker_for_test, _shown(stale, SHOWN_DAY - timedelta(days=7)))
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/picks")
+        response = await client.get("/api/public/next")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["tonight"]["picks"] == []
 
 
 async def test_picks_are_empty_before_play_next_has_run(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/picks")
-    assert response.json() == []
+        response = await client.get("/api/public/next")
+    assert response.json()["tonight"]["picks"] == []
 
 
 async def test_a_pick_never_names_a_private_game_or_a_private_date(
@@ -240,9 +247,11 @@ async def test_a_pick_never_names_a_private_game_or_a_private_date(
     await _add(sessionmaker_for_test, secret, candidate)
     await _add(sessionmaker_for_test, _shown(candidate, SHOWN_DAY))
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/picks")
+        response = await client.get("/api/public/next")
 
-    assert [row["title"] for row in response.json()] == ["Public Candidate"]
+    assert [row["title"] for row in response.json()["tonight"]["picks"]] == [
+        "Public Candidate"
+    ]
     for leaked in (
         "Secret Favourite",
         "On the shelf since",
@@ -275,7 +284,7 @@ async def test_the_pick_day_ignores_shown_games_the_public_cannot_see(
         ),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Earlier Pick"]
 
@@ -287,7 +296,7 @@ async def test_picks_from_seven_days_ago_are_still_inside_the_window(
     await _add(sessionmaker_for_test, recent)
     await _add(sessionmaker_for_test, _shown(recent, SHOWN_DAY - timedelta(days=6)))
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Seven Days Ago"]
 
@@ -303,9 +312,9 @@ async def test_a_game_shown_today_waits_until_tomorrow(sessionmaker_for_test, cl
         _shown(today_only, MIDNIGHT + timedelta(minutes=1)),
     )
     async with client_for(sessionmaker_for_test) as client:
-        before = (await client.get("/api/public/picks")).json()
+        before = (await client.get("/api/public/next")).json()["tonight"]["picks"]
         clock(NOW + timedelta(days=1))
-        after = (await client.get("/api/public/picks")).json()
+        after = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in before] == ["Yesterday"]
     assert [row["title"] for row in after] == ["Today Only"]
@@ -330,7 +339,7 @@ async def test_a_skip_or_never_today_keeps_yesterdays_pick(sessionmaker_for_test
         ),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Nevered Today", "Skipped Today"]
 
@@ -351,7 +360,7 @@ async def test_picks_within_the_day_are_in_title_order(sessionmaker_for_test):
         _shown(echo, day + timedelta(hours=23)),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Alpha", "Echo", "Mike"]
 
@@ -366,7 +375,7 @@ async def test_a_skip_at_the_shown_instant_removes_the_pick(sessionmaker_for_tes
         PickEvent(item_id=skipped.id, action=PickAction.SKIPPED, created_at=SHOWN_DAY),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Kept"]
 
