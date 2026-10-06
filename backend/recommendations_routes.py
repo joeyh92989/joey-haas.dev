@@ -43,6 +43,7 @@ from next_list import PUBLIC_DATE_SOURCES
 from next_list import sections as next_sections
 from next_load import catalogue_times, load_next
 from picker import attribute_table, reference_weights
+from public_outputs import _igdb_url
 from radar import SECTIONS, _line_dict, build
 from radar_load import (
     DISCOVER_PLATFORMS,
@@ -117,6 +118,7 @@ def _row_out(row: Recommendation) -> dict:
         "store_lines": meta.get("store_lines", []),
         "hypes": meta.get("hypes"),
         "lane": meta.get("lane"),
+        "igdb_url": _igdb_url(meta),
     }
 
 

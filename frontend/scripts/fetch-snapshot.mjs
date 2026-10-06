@@ -57,11 +57,9 @@ export const SNAPSHOTS = {
     valid: (body) => isObject(body) && 'total' in body,
     required: true,
   },
-  // Optional: on a deploy that ships these endpoints, the static build can
-  // run before the API has finished deploying.
-  picks: { path: '/api/public/picks', valid: Array.isArray, required: false },
-  radar: { path: '/api/public/radar', valid: Array.isArray, required: false },
-  // Optional, like picks and radar: What's next (Spine Next spec, C12).
+  // Optional: on a deploy that ships this endpoint, the static build can
+  // run before the API has finished deploying. What's next (Spine Next spec,
+  // C12).
   next: {
     path: '/api/public/next',
     valid: isNextBody,

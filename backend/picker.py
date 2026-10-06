@@ -421,7 +421,7 @@ def _named(reference: PickerItem) -> str:
     """ "Hades ♥" for a favourite, "Celeste, which I rated 9" when rated.
 
     First person everywhere (showcase spec, K9): the owner reads it in admin,
-    and the public reads it under Recent picks.
+    and the public reads it on What's next (/api/public/next).
     """
     if reference.favorite:
         return f"{reference.title} ♥"

@@ -624,15 +624,28 @@ Where this spec departs from the brief:
     scan is lifted for a private item only when its `(external_source,
     external_id)`, and its platform when it has one, match an **owned** row
     of the frozen batch that the page renders
-    (`next_load.taste_sparing_owned`). Never by title: a private game with
-    no IGDB link, or a same-titled remake, stays scanned, as does a game
-    whose owned row is not rendered.
+    (`next_load.taste_sparing_owned`), **and its current title still equals
+    that row's** (casefolded and trimmed; #43, 2026-10-06). Identity alone
+    selects the row, never a title alone: a private game with no IGDB link,
+    or a same-titled remake, stays scanned, as does a game whose owned row
+    is not rendered. The title condition closes the rename: an item the
+    owner renamed, or re-linked to another title, after answering Already
+    own is scanned like any other private game, so its new title cannot
+    appear in a frozen sentence.
   - The admin store list stays live: pending only.
   - *Accepted residuals:* until the next generation a wanted game is in
     both Wanted and its store section; and answering every row of a
     group's generation during the day hides all of them publicly
     until the next generation, which tells a poller that everything there
     was answered, though not how.
+  - *Accepted 2026-10-06 (#43), with the title condition:*
+    - (a) An owned frozen row that is **not rendered**, when another frozen
+      Discover sentence names it, has that reason changed once it is owned,
+      because its private item is no longer spared. No name leaks; the
+      reason is only reworded or dropped.
+    - (c) Answering every row of a group's latest generation hides that
+      generation publicly until the next one (the fail-closed rule above,
+      restated as accepted).
 
 ## Key decisions
 

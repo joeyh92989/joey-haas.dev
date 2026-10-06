@@ -7,7 +7,7 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - `frontend/` — Vite + React 19 SPA, routed with react-router v8 (declarative
   mode; import from `react-router`, not `react-router-dom`). Deployed as a free
-  Render static site. Public pages other than `/spine`, `/spine/next` and `/spine/:id` make no API calls
+  Render static site. Public pages other than `/spine*` make no API calls
   (apart from RootLayout's one `/api/auth/me` session check, which fails
   quietly to signed out) — bio and project content are static modules in
   `frontend/src/content/`, so the site renders fully while the free-tier
@@ -173,10 +173,9 @@ before pushing.
 - [x] Tracker Showcase — the site shell, `/collection` polish, the
       build-time snapshot (refreshed by `.github/workflows/nightly.yml`,
       which replaced `snapshot.yml`), and the
-      read-only "Recent picks" and "Coming to cartridge" strips from
-      `/api/public/picks` and `/api/public/radar` (now on `/spine/next`,
-      see Spine Next). Radar needs one Generate
-      after deploy for Coming to cartridge. Spec and plan:
+      read-only "Recent picks" and "Coming to cartridge" strips, built on
+      `/api/public/picks` and `/api/public/radar`, which are retired (#40):
+      `/spine/next` and `/api/public/next` carry both. Spec and plan:
       `docs/planning/2026-09-28-tracker-showcase-*`
 - [x] Spine — the tracker's public name. `/spine` and `/spine/:id`, with
       client-side redirects from `/collection*` (smoke cannot see them;
@@ -265,8 +264,9 @@ before pushing.
   titles unmatched" (`totals.switch1_unmatched`) and lists none. IGDB is
   still never a physical source for Switch 1 (`refresh-platform` refuses
   130). The sheet's dates are never registry dates
-  (`collapse.REGISTRY_SOURCES` leaves it out), so nothing from it can reach
-  `/api/public/radar`; keep it out. Its keys are not in
+  (`collapse.REGISTRY_SOURCES` leaves it out), so none of them is public: a
+  Radar row known only from the sheet is listed on `/api/public/next`
+  undated, under Later. Keep it out. Its keys are not in
   `test_physical_keys.py`'s corpus. No migration: after deploy, press
   Refresh Switch 1 once on `/admin/catalogue`; expect `rows_seen` near
   10,000 (editions, not titles), and check the run's errors, since IGDB
@@ -280,8 +280,9 @@ before pushing.
   adds the answered rows of the latest generation (Discover per kind,
   Radar per platform) while it still has a pending row, so an answer
   changes `/api/public/next` only at the next generation. The private-title
-  scan is lifted only by identity, for an owned frozen row the page
-  renders (`next_load.taste_sparing_owned`), never by title.
+  scan is lifted only for an owned frozen row the page renders, selected by
+  identity (never by a title alone) and only while the item still carries
+  that rendered row's title (`next_load.taste_sparing_owned`).
 - **E7c deploy order:** set `GOOGLE_SHEETS_API_KEY` on Render; apply `0005`
   to Neon; merge; **before the first Refresh registry, bulk-set every owned
   Switch 2 copy's format on `/admin/collection`** (the collection is all full
@@ -290,7 +291,7 @@ before pushing.
   is `manual` and never touched); then on `/admin/catalogue` press Refresh
   registry, Refresh stores, Resolve until nothing remains, work through
   Needs match, and Refresh N64 when wanted. Nothing from the catalogue is
-  public except the seven `/api/public/radar` fields (see Radar);
+  public except What's next's rows on `/api/public/next` (see Radar);
   `test_public.py` and `test_public_outputs.py` pin that.
 - IGDB fixtures for the snapshot are recorded from the live API with
   `backend/scripts/record_igdb_fixtures.py` (see `backend/scripts/README.md`);
@@ -300,17 +301,16 @@ before pushing.
   credentials are optional config checked lazily, so a missing key disables
   one media type rather than stopping the service; `main.py` logs which
   sources are configured at startup.
-- `/spine`, `/spine/next` and `/spine/:id` are public and **do** call the
-  API, unlike every other public page. `/spine` no longer calls
-  `/api/public/picks` or `/api/public/radar`; both endpoints (and their
-  snapshots) stay until the follow-up that retires them. They paint the build-time snapshot first
+- `/spine*` are public and **do** call the API, unlike every other public
+  page; `/spine/next` reads `/api/public/next`. `/api/public/picks` and
+  `/api/public/radar` are retired (404, pinned by `smoke.sh`). `/spine*`
+  pages paint the build-time snapshot first
   (`frontend/public/snapshot/*.json`, written by
   `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed nightly at
   00:17 UTC by `.github/workflows/nightly.yml` through a deploy hook, after
-  its refreshes), then swap in live
-  data; "Waking the server" shows only when there is no snapshot. The
-  snapshot is gitignored and never committed. See README → Collection
-  snapshot.
+  its refreshes), then swap in live data; "Waking the server" shows only
+  when there is no snapshot. The snapshot is gitignored and never committed.
+  See README → Collection snapshot.
 - **Items are private when created.** `is_public` defaults to false, including
   for photo imports, so nothing reaches `/spine` until it is published
   from the admin collection page — per row, or with the bulk publish control.
@@ -342,19 +342,23 @@ before pushing.
   owned game is out of Radar and Discover for good; a skipped one returns
   at the next generation, and an answered suggestion takes no second
   answer. Only an **open** pre-order (window not closed, or no window and
-  the game not out) counts as one. **Only seven fields of pending Radar
-  rows are public** (`/api/public/radar`, showcase spec, "Spec changes"):
-  title, platform, format, release date and precision, IGDB link and cover
-  -- for full cartridges dated to a day or month after today, registry-dated
-  only (`release_source` in `source_metadata`; a store's or IGDB's date
-  never is), the top six by score.
-  Never a store, price, pre-order window, reason, score or id, and nothing
-  from Discover on this endpoint (Discover's top picks reach the public only
-  through `/api/public/next`). `tests/test_public_outputs.py` pins the
-  fields. Otherwise,
-  Want creates an ordinary item (no owned copy, backlog, public) and only
-  that reaches the public, as What's next's Wanted list, through `wanted`
-  and `release_date`; Already
+  the game not out) counts as one. **Radar and Discover rows reach the
+  public only as `PublicNextRow`s on `/api/public/next`** (Spine Next spec,
+  B5): title, platform, format, release date and precision, cover, IGDB
+  link, reasons, `top_pick`, `new`, and `item_id` on Wanted rows only.
+  Never a store, price, stock, pre-order window, score, rank, lane or
+  recommendation id. A date shows only when its `release_source` is in
+  `next_list.PUBLIC_DATE_SOURCES` (the registry); a store's, IGDB's or the
+  Switch 1 sheet's date is withheld and the cartridge goes undated to the
+  end of Later (cut first by its cap). Links are igdb.com only
+  (`IGDB_URL_PREFIX`). Reasons are rebuilt over public games; Discover's
+  model sentence passes only `next_list.public_reasons_for`'s gates (cited,
+  all-public, no private title, not second or third person), and the
+  stored store lines never do. The rows
+  are frozen to the batch (S9, see the store list).
+  `tests/test_public_outputs.py` pins the fields (`NEXT_ROW_FIELDS`) and
+  walks the body for `FORBIDDEN` keys. Want creates an ordinary item (no
+  owned copy, backlog, public), shown in What's next's Wanted list; Already
   own creates a private one with a physical copy. Both record a format only
   when the registry decided it.
 - **Discover** (E8b) is `backend/discover.py` (pure: released filter,
@@ -387,7 +391,8 @@ before pushing.
   "Overdue classic" until acquired dates span 90 days, then "Waited longest".
   Pinning is its own route (`POST /api/items/{id}/pin`) because it clears
   the previous pin and records an event in one transaction.
-  `/api/public/picks` publishes up to three games that are public, owned,
+  The public picks (`tonight` on `/api/public/next`; the retired
+  `/api/public/picks` rules carried over) are up to three games that are public, owned,
   backlog or active, unpinned, with no never event and no skip at or after
   their shown event; the day is the most recent of the seven UTC days
   ending yesterday on which one of those games was shown; only events

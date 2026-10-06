@@ -32,7 +32,7 @@ from public import (
     PublicStatsOut,
     create_public_router,
 )
-from public_outputs import PublicPickOut, PublicRadarOut
+from public_outputs import PublicNextOut
 
 pytestmark = pytest.mark.asyncio
 
@@ -659,8 +659,7 @@ PUBLIC_MODELS = (
     PublicItemOut,
     PublicItemDetailOut,
     PublicStatsOut,
-    PublicPickOut,
-    PublicRadarOut,
+    PublicNextOut,
 )
 
 
@@ -690,10 +689,14 @@ RECOMMENDATION_NAMES = (
 )
 
 
-# Showcase spec, "Spec changes" 3: a public pick carries its reasons, built
-# from public rows in the first person. That one field on that one model is
-# allowed; no other recommendation name is, on any model.
-ALLOWED_RECOMMENDATION_NAMES = {("PublicPickOut", "reasons")}
+# What's next carries the owner's reasons (rebuilt in the first person from
+# public rows) and a pre-orders section of public, registry-dated cartridges;
+# those two names are allowed on that one model, and no other model may carry
+# a recommendation name.
+ALLOWED_RECOMMENDATION_NAMES = {
+    ("PublicNextOut", "reasons"),
+    ("PublicNextOut", "preorders"),
+}
 
 
 def _named_fields(model) -> set[tuple[str, str]]:
@@ -770,15 +773,45 @@ async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test)
                 igdb_id=1,
             )
         )
+        # A pending, registry-dated Radar row carrying the store's data, so
+        # /api/public/next has the catalogue's values to leak.
+        session.add(
+            Recommendation(
+                kind=RecommendationKind.RADAR,
+                type=ItemType.GAME,
+                title="Coming Cart",
+                external_source="igdb",
+                external_id="1",
+                release_date=date.today() + timedelta(days=60),
+                reason="Pre-orders close Nov 8 at Super Rare Games",
+                reason_source=ReasonSource.TEMPLATE,
+                based_on=["someone"],
+                score=60,
+                batch_id=uuid.uuid4(),
+                status=RecommendationStatus.PENDING,
+                platform_id=508,
+                physical_format=PhysicalFormat.GAME_CARD,
+                source_metadata={
+                    "lane": "preorder",
+                    "release_precision": "day",
+                    "release_source": "registry",
+                    "store_lines": [
+                        {"store": "super_rare", "price": "44.99", "currency": "GBP"}
+                    ],
+                },
+            )
+        )
         await session.commit()
     async with client_for(sessionmaker_for_test) as client:
         items = await client.get("/api/public/items")
         stats = await client.get("/api/public/stats")
         linked = next(i for i in items.json() if i["title"] == "Linked Game")
         detail = await client.get(f"/api/public/items/{linked['id']}")
-        picks = await client.get("/api/public/picks")
-        radar = await client.get("/api/public/radar")
-    for response in (items, stats, detail, picks, radar):
+        upcoming = await client.get("/api/public/next")
+    # The pending row is published by What's next, so it is a positive control:
+    # the walk below reads a body that really carries a Radar row.
+    assert [row["title"] for row in upcoming.json()["preorders"]] == ["Coming Cart"]
+    for response in (items, stats, detail, upcoming):
         assert response.status_code == 200
         leaked = sorted(
             key
@@ -790,6 +823,9 @@ async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test)
         assert "Radar Game" not in response.text
         assert "LP-AAAAA-USA-0" not in response.text
         assert "super_rare" not in response.text
+        assert "Super Rare" not in response.text
+        assert "44.99" not in response.text
+        assert "GBP" not in response.text
 
 
 async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test):
@@ -863,8 +899,8 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
                 },
             )
         )
-        # A pending, registry-dated cartridge and a game Play Next showed, so
-        # /api/public/radar and /api/public/picks each publish a row too.
+        # A pending, registry-dated cartridge and a game Play Next showed: the
+        # item routes never name either, and What's next publishes both.
         session.add(
             Recommendation(
                 kind=RecommendationKind.RADAR,
@@ -914,16 +950,18 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
         watched = next(i for i in items.json() if i["title"] == "Watched Game")
         discovered = next(i for i in items.json() if i["title"] == "Discovered Game")
         detail = await client.get(f"/api/public/items/{watched['id']}")
-        picks = await client.get("/api/public/picks")
-        radar = await client.get("/api/public/radar")
+        upcoming = await client.get("/api/public/next")
     assert watched["wanted"] is True
     assert discovered["wanted"] is True
-    assert [row["title"] for row in picks.json()] == ["Picked Game"]
-    assert [row["title"] for row in radar.json()] == ["Coming Game"]
-    for response in (items, stats, detail, picks, radar):
+    assert [row["title"] for row in upcoming.json()["preorders"]] == ["Coming Game"]
+    # Positive control: the walk reads a body that really carries a pick.
+    picks = upcoming.json()["tonight"]["picks"]
+    assert [pick["title"] for pick in picks] == ["Picked Game"]
+    for response in (items, stats, detail, upcoming):
         assert response.status_code == 200
-        # A pick's reasons are the one allowed name (ALLOWED_RECOMMENDATION_NAMES).
-        allowed = {"reasons"} if response is picks else set()
+        # What's next's reasons and pre-orders section are the allowed names
+        # (ALLOWED_RECOMMENDATION_NAMES).
+        allowed = {"reasons", "preorders"} if response is upcoming else set()
         leaked = sorted(
             key
             for key in _keys(response.json()) - allowed
@@ -934,3 +972,5 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
         assert "Pre-orders close" not in response.text
         assert "Limited Run Games" not in response.text
         assert "Like Hades" not in response.text
+        if response is not upcoming:
+            assert "Coming Game" not in response.text

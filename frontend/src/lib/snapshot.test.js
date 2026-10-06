@@ -62,12 +62,6 @@ describe('readSnapshot', () => {
     expect(await readSnapshot('constructor')).toBeNull()
     expect(fetch).not.toHaveBeenCalled()
   })
-
-  it('reads the picks and radar snapshots as lists', async () => {
-    stubFetch(async () => ({ ok: true, json: async () => [] }))
-    expect(await readSnapshot('picks')).toEqual([])
-    expect(await readSnapshot('radar')).toEqual([])
-  })
 })
 
 describe('isValidSnapshot', () => {

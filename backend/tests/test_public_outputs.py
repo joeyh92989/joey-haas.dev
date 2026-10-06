@@ -31,7 +31,11 @@ from models import (
 )
 from physical_sources.stores import STORES
 from public import create_public_router
-from public_outputs import PublicNextOut, PublicNextRow, PublicPickOut, PublicRadarOut
+from public_outputs import (
+    PublicNextOut,
+    PublicNextRow,
+    PublicTonightCard,
+)
 from recommendations_routes import create_recommendations_router
 
 pytestmark = pytest.mark.asyncio
@@ -44,7 +48,9 @@ MIDNIGHT = datetime.combine(NOW.date(), time.min, tzinfo=UTC)
 # midnight and within the seven-day window.
 SHOWN_DAY = MIDNIGHT - timedelta(hours=12)
 
-PICK_FIELDS = {"id", "type", "title", "cover_url", "platform", "reasons"}
+# What a tonight card publishes. `item_id`, not `id`: What's next carries no key
+# named id (spec, S1).
+PICK_FIELDS = {"item_id", "type", "title", "cover_url", "platform", "reasons"}
 
 
 @pytest.fixture(autouse=True)
@@ -103,8 +109,8 @@ def _with_ids(*items: Item) -> tuple[Item, ...]:
     return items
 
 
-async def test_the_pick_model_publishes_exactly_these_fields():
-    assert set(PublicPickOut.model_fields) == PICK_FIELDS
+async def test_the_tonight_card_publishes_exactly_these_fields():
+    assert set(PublicTonightCard.model_fields) == PICK_FIELDS
 
 
 async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(
@@ -129,10 +135,10 @@ async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(
         _shown(older, latest - timedelta(days=1)),
     )
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/picks")
+        response = await client.get("/api/public/next")
 
     assert response.status_code == 200
-    body = response.json()
+    body = response.json()["tonight"]["picks"]
     # One day, three picks, by title: shown times ascend with the title, so
     # latest-first would be Delta, Charlie, Bravo.
     assert [row["title"] for row in body] == ["Alpha", "Bravo", "Charlie"]
@@ -195,7 +201,7 @@ async def test_picks_leave_out_what_is_not_a_public_suggestion(
         ),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert sorted(row["title"] for row in body) == ["Keep", "Skipped Before"]
 
@@ -208,15 +214,15 @@ async def test_picks_are_empty_once_the_latest_shown_day_is_a_week_old(
     await _add(sessionmaker_for_test, stale)
     await _add(sessionmaker_for_test, _shown(stale, SHOWN_DAY - timedelta(days=7)))
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/picks")
+        response = await client.get("/api/public/next")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["tonight"]["picks"] == []
 
 
 async def test_picks_are_empty_before_play_next_has_run(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/picks")
-    assert response.json() == []
+        response = await client.get("/api/public/next")
+    assert response.json()["tonight"]["picks"] == []
 
 
 async def test_a_pick_never_names_a_private_game_or_a_private_date(
@@ -240,9 +246,11 @@ async def test_a_pick_never_names_a_private_game_or_a_private_date(
     await _add(sessionmaker_for_test, secret, candidate)
     await _add(sessionmaker_for_test, _shown(candidate, SHOWN_DAY))
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/picks")
+        response = await client.get("/api/public/next")
 
-    assert [row["title"] for row in response.json()] == ["Public Candidate"]
+    assert [row["title"] for row in response.json()["tonight"]["picks"]] == [
+        "Public Candidate"
+    ]
     for leaked in (
         "Secret Favourite",
         "On the shelf since",
@@ -275,7 +283,7 @@ async def test_the_pick_day_ignores_shown_games_the_public_cannot_see(
         ),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Earlier Pick"]
 
@@ -287,7 +295,7 @@ async def test_picks_from_seven_days_ago_are_still_inside_the_window(
     await _add(sessionmaker_for_test, recent)
     await _add(sessionmaker_for_test, _shown(recent, SHOWN_DAY - timedelta(days=6)))
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Seven Days Ago"]
 
@@ -303,9 +311,9 @@ async def test_a_game_shown_today_waits_until_tomorrow(sessionmaker_for_test, cl
         _shown(today_only, MIDNIGHT + timedelta(minutes=1)),
     )
     async with client_for(sessionmaker_for_test) as client:
-        before = (await client.get("/api/public/picks")).json()
+        before = (await client.get("/api/public/next")).json()["tonight"]["picks"]
         clock(NOW + timedelta(days=1))
-        after = (await client.get("/api/public/picks")).json()
+        after = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in before] == ["Yesterday"]
     assert [row["title"] for row in after] == ["Today Only"]
@@ -330,7 +338,7 @@ async def test_a_skip_or_never_today_keeps_yesterdays_pick(sessionmaker_for_test
         ),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Nevered Today", "Skipped Today"]
 
@@ -351,7 +359,7 @@ async def test_picks_within_the_day_are_in_title_order(sessionmaker_for_test):
         _shown(echo, day + timedelta(hours=23)),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Alpha", "Echo", "Mike"]
 
@@ -366,20 +374,11 @@ async def test_a_skip_at_the_shown_instant_removes_the_pick(sessionmaker_for_tes
         PickEvent(item_id=skipped.id, action=PickAction.SKIPPED, created_at=SHOWN_DAY),
     )
     async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/picks")).json()
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
 
     assert [row["title"] for row in body] == ["Kept"]
 
 
-RADAR_FIELDS = {
-    "title",
-    "platform",
-    "physical_format",
-    "release_date",
-    "release_precision",
-    "igdb_url",
-    "cover_url",
-}
 TODAY = NOW.date()
 
 
@@ -428,146 +427,6 @@ def _radar(title: str, **fields) -> Recommendation:
     return row
 
 
-async def test_the_radar_model_publishes_exactly_these_fields():
-    assert set(PublicRadarOut.model_fields) == RADAR_FIELDS
-
-
-async def test_radar_lists_the_top_upcoming_cartridges_soonest_first(
-    sessionmaker_for_test,
-):
-    rows = [
-        _radar(f"Game {n}", score=n * 10, release_date=TODAY + timedelta(days=10 + n))
-        for n in range(1, 9)
-    ]
-    await _add(sessionmaker_for_test, *rows)
-    async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/radar")
-
-    assert response.status_code == 200
-    body = response.json()
-    # Top six by score (Game 3 .. Game 8), shown soonest first. Score and date
-    # disagree on purpose: the best-scored game releases last, so dropping the
-    # re-sort or taking the soonest six instead of the top six both fail.
-    assert [row["title"] for row in body] == [
-        "Game 3",
-        "Game 4",
-        "Game 5",
-        "Game 6",
-        "Game 7",
-        "Game 8",
-    ]
-    for row in body:
-        assert set(row) == RADAR_FIELDS
-        assert row["physical_format"] == "game_card"
-        assert row["igdb_url"].startswith("https://www.igdb.com/games/")
-
-
-async def test_radar_filters_precision_before_it_takes_six(sessionmaker_for_test):
-    # The best-scored row is year-dated: were the limit taken first, it would
-    # use one of the six places and a day-dated row would be lost.
-    rows = [
-        _radar(f"Day {n}", score=10 + n, release_date=TODAY + timedelta(days=10 + n))
-        for n in range(1, 7)
-    ]
-    rows.append(
-        _radar("Some Year", score=99, source_metadata={"release_precision": "year"})
-    )
-    await _add(sessionmaker_for_test, *rows)
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/radar")).json()
-    assert [row["title"] for row in body] == [f"Day {n}" for n in range(1, 7)]
-
-
-async def test_radar_leaves_out_what_is_not_a_public_upcoming_cartridge(
-    sessionmaker_for_test,
-):
-    await _add(
-        sessionmaker_for_test,
-        _radar("Keep"),
-        _radar("Discover", kind=RecommendationKind.DISCOVER),
-        _radar("Wanted", status=RecommendationStatus.WANTED),
-        _radar("Dismissed", status=RecommendationStatus.DISMISSED),
-        _radar("Key Card", physical_format=PhysicalFormat.GAME_KEY_CARD),
-        _radar("Digital", physical_format=None),
-        _radar("Released", release_date=TODAY),
-        _radar("Undated", release_date=None),
-        _radar("Some Year", source_metadata={"release_precision": "year"}),
-    )
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/radar")).json()
-    assert [row["title"] for row in body] == ["Keep"]
-
-
-async def test_radar_publishes_only_dates_the_registry_gave(sessionmaker_for_test):
-    # A store listing's date (parsed from its page) stays private, and a row
-    # stored before release_source existed stays hidden until a Generate.
-    unrecorded = _radar("Unrecorded")
-    unrecorded.source_metadata = {
-        key: value
-        for key, value in unrecorded.source_metadata.items()
-        if key != "release_source"
-    }
-    await _add(
-        sessionmaker_for_test,
-        _radar("Registry"),
-        _radar("Store Date", source_metadata={"release_source": "store"}),
-        _radar("IGDB Date", source_metadata={"release_source": "igdb_first"}),
-        unrecorded,
-    )
-    async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/radar")
-    assert [row["title"] for row in response.json()] == ["Registry"]
-
-
-async def test_radar_links_only_to_igdb(sessionmaker_for_test):
-    await _add(
-        sessionmaker_for_test,
-        _radar("Linked"),
-        _radar("Script", source_metadata={"snapshot": {"url": "javascript:alert(1)"}}),
-        _radar("Bare", source_metadata={"snapshot": {}}),
-        _radar(
-            "Plain Http",
-            source_metadata={"snapshot": {"url": "http://www.igdb.com/games/x"}},
-        ),
-        _radar(
-            "Lookalike",
-            source_metadata={
-                "snapshot": {"url": "https://www.igdb.com.example/games/x"}
-            },
-        ),
-    )
-    async with client_for(sessionmaker_for_test) as client:
-        body = {
-            row["title"]: row for row in (await client.get("/api/public/radar")).json()
-        }
-    assert body["Linked"]["igdb_url"] == "https://www.igdb.com/games/linked"
-    assert body["Script"]["igdb_url"] is None
-    assert body["Bare"]["igdb_url"] is None
-    assert body["Plain Http"]["igdb_url"] is None
-    assert body["Lookalike"]["igdb_url"] is None
-
-
-async def test_radar_publishes_no_store_price_window_or_reason(sessionmaker_for_test):
-    await _add(sessionmaker_for_test, _radar("Leaky"))
-    async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/radar")
-    assert set(response.json()[0]) == RADAR_FIELDS
-    for leaked in (
-        "Limited Run Games",
-        "59.99",
-        "Pre-orders close",
-        "limitedrungames.com",
-        "preorder",
-        "suggested",
-        "score",
-        "USD",
-        "2026-11-08",
-        "hypes",
-        "lane",
-    ):
-        assert leaked not in response.text
-
-
 class _NoUpcoming:
     """IGDB for Radar's lane 3, with nothing upcoming."""
 
@@ -601,12 +460,13 @@ async def _generate_radar(factory) -> None:
     assert response.status_code == 200
 
 
-async def test_radar_never_publishes_a_switch_1_sheet_date(sessionmaker_for_test):
-    """Nothing from the Switch 1 sheet is public (switch1 spec, decision 6).
+async def test_next_never_publishes_a_switch_1_sheet_date(sessionmaker_for_test):
+    """No date from the Switch 1 sheet is public; the row is listed undated
+    under Later (switch1 spec, decision 6; Spine Next spec, K5, S4).
 
     A Switch 1 cartridge the sheet dates after today goes through a real
-    Radar generate. Everything else about it would be published; only the
-    date's source keeps it off /api/public/radar.
+    Radar generate. The row itself may be published; the date's source
+    keeps its date off /api/public/next.
     """
     released = date.today() + timedelta(days=30)
     await _add(
@@ -654,9 +514,16 @@ async def test_radar_never_publishes_a_switch_1_sheet_date(sessionmaker_for_test
     assert row.source_metadata["release_source"] != "registry"
 
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/radar")
+        response = await client.get("/api/public/next")
     assert response.status_code == 200
-    assert response.json() == []
+    body = response.json()
+    assert body["preorders"] == []
+    (published,) = [r for key in STORE_SECTIONS for r in body[key]]
+    assert published["title"] == "Sheet Only"
+    assert published["release_date"] is None
+    assert published["release_precision"] is None
+    assert body["later"] == [published]
+    assert released.isoformat() not in response.text
 
 
 FORBIDDEN = {
@@ -843,6 +710,146 @@ async def test_store_dated_rows_are_undated_and_later(sessionmaker_for_test):
     assert body["later"][0]["title"] == "Store"
     assert body["later"][0]["release_date"] is None
     assert body["later"][0]["release_precision"] is None
+
+
+async def test_only_registry_dates_are_published(sessionmaker_for_test):
+    # A store listing's date (parsed from its page) and IGDB's first date stay
+    # private, and a row stored before release_source existed is undated
+    # until a Generate. Each is still listed, without its date.
+    unrecorded = _radar("Unrecorded")
+    unrecorded.source_metadata = {
+        key: value
+        for key, value in unrecorded.source_metadata.items()
+        if key != "release_source"
+    }
+    await _add(
+        sessionmaker_for_test,
+        _radar("Registry"),
+        _radar("Store Date", source_metadata={"release_source": "store"}),
+        _radar("IGDB Date", source_metadata={"release_source": "igdb_first"}),
+        unrecorded,
+    )
+    body = await _next(sessionmaker_for_test)
+    assert [row["title"] for row in body["preorders"]] == ["Registry"]
+    assert body["preorders"][0]["release_date"] == str(TODAY + timedelta(days=60))
+    assert {row["title"] for row in body["later"]} == {
+        "Store Date",
+        "IGDB Date",
+        "Unrecorded",
+    }
+    for row in body["later"]:
+        assert row["release_date"] is None
+        assert row["release_precision"] is None
+
+
+async def test_preorders_are_soonest_first_whatever_the_score(sessionmaker_for_test):
+    # Score and date disagree on purpose: the best-scored game releases last,
+    # so a sort by score fails. The row carries exactly the published fields.
+    rows = [
+        _radar(f"Game {n}", score=n * 10, release_date=TODAY + timedelta(days=10 + n))
+        for n in range(1, 9)
+    ]
+    await _add(sessionmaker_for_test, *rows)
+    body = await _next(sessionmaker_for_test)
+    assert [row["title"] for row in body["preorders"]] == [
+        f"Game {n}" for n in range(1, 9)
+    ]
+    for row in body["preorders"]:
+        assert set(row) == NEXT_ROW_FIELDS
+        assert row["physical_format"] == "game_card"
+        assert row["igdb_url"].startswith("https://www.igdb.com/games/")
+
+
+async def test_precision_decides_the_section_before_the_date_does(
+    sessionmaker_for_test,
+):
+    # A year-dated row is never a pre-order, however high it scores or soon
+    # its stored date falls; it waits under Later.
+    rows = [
+        _radar(f"Day {n}", score=10 + n, release_date=TODAY + timedelta(days=10 + n))
+        for n in range(1, 4)
+    ]
+    rows.append(
+        _radar("Some Year", score=99, source_metadata={"release_precision": "year"})
+    )
+    await _add(sessionmaker_for_test, *rows)
+    body = await _next(sessionmaker_for_test)
+    assert [row["title"] for row in body["preorders"]] == [
+        f"Day {n}" for n in range(1, 4)
+    ]
+    assert [row["title"] for row in body["later"]] == ["Some Year"]
+    assert body["later"][0]["release_precision"] == "year"
+
+
+async def test_each_kind_of_row_lands_in_its_own_section(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _radar("Keep"),
+        _radar("Discover", kind=RecommendationKind.DISCOVER),
+        _radar("Key Card", physical_format=PhysicalFormat.GAME_KEY_CARD),
+        _radar("Digital", physical_format=None, source_metadata={"lane": "digital"}),
+        _radar("Unknown Format", physical_format=None),
+        _radar("Released", release_date=TODAY - timedelta(days=100)),
+        _radar("Undated", release_date=None),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert [row["title"] for row in body["preorders"]] == ["Keep"]
+    assert [row["title"] for row in body["buy_now"]] == ["Released"]
+    assert [row["title"] for row in body["later"]] == ["Undated"]
+    assert {row["title"] for row in body["not_on_cartridge"]} == {"Key Card", "Digital"}
+    published = {r["title"] for key in STORE_SECTIONS for r in body[key]}
+    # A Discover pick dated after today and a row of unknown format are out.
+    assert not published & {"Discover", "Unknown Format"}
+
+
+async def test_next_links_only_to_igdb(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _radar("Linked"),
+        _radar("Script", source_metadata={"snapshot": {"url": "javascript:alert(1)"}}),
+        _radar("Bare", source_metadata={"snapshot": {}}),
+        _radar(
+            "Plain Http",
+            source_metadata={"snapshot": {"url": "http://www.igdb.com/games/x"}},
+        ),
+        _radar(
+            "Lookalike",
+            source_metadata={
+                "snapshot": {"url": "https://www.igdb.com.example/games/x"}
+            },
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    rows = {row["title"]: row for row in body["preorders"]}
+    assert set(rows) == {"Linked", "Script", "Bare", "Plain Http", "Lookalike"}
+    assert rows["Linked"]["igdb_url"] == "https://www.igdb.com/games/linked"
+    for title in ("Script", "Bare", "Plain Http", "Lookalike"):
+        assert rows[title]["igdb_url"] is None
+
+
+async def test_next_publishes_no_store_price_window_or_stored_reason(
+    sessionmaker_for_test,
+):
+    await _add(sessionmaker_for_test, _radar("Leaky"))
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/next")
+    (row,) = response.json()["preorders"]
+    assert set(row) == NEXT_ROW_FIELDS
+    for leaked in (
+        "Limited Run Games",
+        "59.99",
+        "Pre-orders close",
+        "limitedrungames.com",
+        "availability",
+        '"preorder"',
+        "suggested",
+        "score",
+        "USD",
+        "2026-11-08",
+        "hypes",
+        "lane",
+    ):
+        assert leaked not in response.text
 
 
 async def test_generated_at_names_the_pick_day(sessionmaker_for_test):

@@ -37,8 +37,6 @@ const isNextBody = (body) =>
 const SHAPES = {
   items: Array.isArray,
   stats: isObject,
-  picks: Array.isArray,
-  radar: Array.isArray,
   next: isNextBody,
 }
 

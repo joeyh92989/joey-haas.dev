@@ -2,31 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
-import RecommendationCard, {
-  dayWords,
-  utc,
-} from '../components/RecommendationCard.jsx'
+import RecommendationCard from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { dayWords, MONTH, releaseWords, utc } from '../lib/releaseWords.js'
 import { localToday } from '../lib/statusTransition.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
 const UNREACHABLE = 'Could not reach the API. Try again shortly.'
-
-const MONTH = new Intl.DateTimeFormat('en', {
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-/** A release date as precisely as it is known. */
-export function releaseWords(row) {
-  if (!row.release_date) return 'Date not announced'
-  const date = utc(row.release_date)
-  if (row.release_precision === 'year') return String(date.getUTCFullYear())
-  if (row.release_precision === 'quarter')
-    return `Q${Math.floor(date.getUTCMonth() / 3) + 1} ${date.getUTCFullYear()}`
-  if (row.release_precision === 'month') return MONTH.format(date)
-  return dayWords(row.release_date)
-}
 
 /** "2 hours ago", or "never". */
 export function ago(timestamp, now = Date.now()) {

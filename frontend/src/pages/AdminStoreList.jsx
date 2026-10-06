@@ -68,6 +68,21 @@ async function fetchList() {
 }
 
 /**
+ * Where focus should go when `button`'s row is answered and leaves: the first
+ * action of the row after it, else the row before it, else the status line.
+ * Read from the DOM before the row is hidden.
+ */
+function focusAfter(button) {
+  const list = button.closest('.store-list')
+  const status = list?.querySelector('[role="status"]')
+  const rows = [...(list?.querySelectorAll('.next-row') ?? [])]
+  const index = rows.indexOf(button.closest('.next-row'))
+  const neighbour = rows[index + 1] ?? (index > 0 ? rows[index - 1] : null)
+  const element = neighbour?.querySelector('button') ?? status
+  return element ? { element, fallback: status } : null
+}
+
+/**
  * What to look for in a store, read from the server's sections (the same
  * ones What's next shows, with the admin fields): one column, large tap
  * targets, nothing on hover, for a phone held in an aisle. Got it is Already
@@ -82,6 +97,8 @@ export default function AdminStoreList() {
   const [hidden, setHidden] = useState(() => new Set())
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  // Where focus goes once an answered row has left the DOM.
+  const [focusTarget, setFocusTarget] = useState(null)
 
   const apply = useCallback((result) => {
     setState(result.state)
@@ -108,6 +125,16 @@ export default function AdminStoreList() {
     }
   }, [apply, signedIn])
 
+  // An answered row unmounts the button that held focus, which would drop it
+  // to the page. After the render that hides the row, hand it on instead.
+  // The target is state (not a ref) so it is set in the same batch as the
+  // hide; the status line is the fallback if the target left the DOM too.
+  useEffect(() => {
+    if (!focusTarget) return
+    const { element, fallback } = focusTarget
+    ;(element.isConnected ? element : fallback)?.focus()
+  }, [focusTarget])
+
   function show(id, shown) {
     setHidden((current) => {
       const next = new Set(current)
@@ -118,7 +145,8 @@ export default function AdminStoreList() {
   }
 
   /** Answers a suggestion: `action` is 'own', 'want' or 'dismiss'. */
-  async function answer(entry, action) {
+  async function answer(entry, action, button) {
+    setFocusTarget(focusAfter(button))
     setError(null)
     setMessage(null)
     show(entry.id, false)
@@ -159,7 +187,7 @@ export default function AdminStoreList() {
       <button
         key={action}
         type="button"
-        onClick={() => answer(entry, action)}
+        onClick={(event) => answer(entry, action, event.currentTarget)}
         aria-label={`${label}: ${entry.title}`}
       >
         {label}
@@ -214,7 +242,12 @@ export default function AdminStoreList() {
           On Switch 2 boxes, put back Game-Key Cards.
         </p>
       )}
-      <p className="catalogue-progress" role="status" aria-live="polite">
+      <p
+        className="catalogue-progress"
+        role="status"
+        aria-live="polite"
+        tabIndex={-1}
+      >
         {message ?? ''}
       </p>
       {error && (

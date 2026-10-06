@@ -99,7 +99,8 @@ from sources.igdb import PLATFORM_NAMES
 logger = logging.getLogger(__name__)
 
 # The registry-kind rows of the status listing. Not collapse.REGISTRY_SOURCES,
-# the public radar's date gate, which leaves the Switch 1 sheet out on purpose.
+# which decides the registry dates /api/public/next may show, and leaves the
+# Switch 1 sheet out on purpose.
 STATUS_REGISTRY_SOURCES = ("nscollectors", "switch2tracker", "nscollectors_ns1")
 SOURCE_NAMES = {
     **{key: config.name for key, config in STORES.items()},

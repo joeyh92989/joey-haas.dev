@@ -1,4 +1,5 @@
 import CoverImage from './CoverImage.jsx'
+import { dayWords } from '../lib/releaseWords.js'
 
 // Mirrors FORMAT_WORDS in backend/physical_sources/limits.py.
 const FORMAT_WORDS = {
@@ -20,24 +21,6 @@ const ACTION_WORDS = {
   },
   own: { label: 'Already own', named: (title) => `Already own ${title}` },
   skip: { label: 'Skip', named: (title) => `Skip ${title}` },
-}
-
-const DAY = new Intl.DateTimeFormat('en', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-
-/** A date-only ISO string as a UTC Date, so formatting never shifts a day. */
-export function utc(isoDate) {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1, day))
-}
-
-/** How a date-only ISO string reads on a card: "Nov 8, 2026". */
-export function dayWords(isoDate) {
-  return DAY.format(utc(isoDate))
 }
 
 function StoreLine({ line }) {

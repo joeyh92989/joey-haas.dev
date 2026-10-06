@@ -1,9 +1,11 @@
-"""Public, read-only outputs of Play Next and Radar (showcase spec, D).
+"""The public What's next output (Spine Next spec), built from Play Next's
+and Radar's stored rows.
 
-Outputs, never inputs or state: which public games were picked recently and
-why, and which cartridges are coming. Nothing here writes, generates or spends
-quota; both read what the admin tools already stored. The models are
-allowlists, as in public.py, and tests/test_public_outputs.py pins them.
+Outputs, never inputs or state: tonight's games, the wanted list and what to
+look for in a store. Nothing here writes, generates or spends quota; it
+reads what the admin tools already stored. The models are allowlists, as in
+public.py, and tests/test_public_outputs.py pins them. (The separate picks and
+radar endpoints were retired in favour of /api/public/next.)
 
 Registered on the public router (public.py) rather than a router of its own,
 so "the one unauthenticated router" stays one.
@@ -27,9 +29,7 @@ from models import (
     PickAction,
     PickEvent,
     ReasonSource,
-    Recommendation,
     RecommendationKind,
-    RecommendationStatus,
 )
 from next_list import (
     NextEntry,
@@ -41,22 +41,21 @@ from next_list import (
 from next_load import catalogue_times, load_next, taste_sparing_owned
 from picker import public_reasons
 from picker_routes import to_picker_item
-from radar import NEAR_PRECISIONS
 from sources.igdb import IGDB_URL_PREFIX
 
 # Picks from the most recent UTC day Play Next showed a public suggestion, if
 # that day is one of the seven ending yesterday; older picks are not "recent"
-# and the section hides. Today never counts (see load_public_picks).
+# and the section hides. Today never counts (see public_picks_with_day).
 PICKS_WINDOW = timedelta(days=7)
 PICKS_LIMIT = 3
 PICKABLE = (ItemStatus.BACKLOG, ItemStatus.ACTIVE)
 
 
-class PublicPickOut(BaseModel):
-    """A recent Play Next pick as the public sees it: the game, and why.
+class _PickRow(BaseModel):
+    """A recent Play Next pick on its way to a tonight card: the game, and why.
 
     No slot, score, date or event: those describe the owner's use of the
-    tool, not the game.
+    tool, not the game. Never a response model; PublicTonightCard is.
     """
 
     id: uuid.UUID
@@ -67,19 +66,9 @@ class PublicPickOut(BaseModel):
     reasons: list[str]
 
 
-async def load_public_picks(
-    session: AsyncSession, now: datetime
-) -> list[PublicPickOut]:
-    """Up to three public, owned, unpinned backlog or active games shown on
-    the most recent day Play Next showed a game that is still a public
-    suggestion; see public_picks_with_day, which also returns that day."""
-    _day, picks = await public_picks_with_day(session, now)
-    return picks
-
-
 async def public_picks_with_day(
     session: AsyncSession, now: datetime
-) -> tuple[date | None, list[PublicPickOut]]:
+) -> tuple[date | None, list[_PickRow]]:
     """Up to three public, owned, unpinned backlog or active games shown on
     the most recent day Play Next showed a game that is still a public
     suggestion, in title order, with reasons from public rows.
@@ -148,7 +137,7 @@ async def public_picks_with_day(
     picks = ordered[:PICKS_LIMIT]
     profile = [to_picker_item(row) for row in public_rows]
     return day, [
-        PublicPickOut(
+        _PickRow(
             id=row.id,
             type=row.type,
             title=row.title,
@@ -160,85 +149,12 @@ async def public_picks_with_day(
     ]
 
 
-RADAR_LIMIT = 6
-
-
-class PublicRadarOut(BaseModel):
-    """An upcoming cartridge from Radar, as the public sees it.
-
-    Deliberately not a recommendation: no store, price, currency,
-    availability, store link, pre-order window, score, reason or id. Those
-    are the owner's shopping, and the store data is read under robots.txt
-    courtesy for private use (showcase review, Part 2).
-    """
-
-    title: str
-    platform: str | None
-    physical_format: PhysicalFormat
-    release_date: date
-    release_precision: str
-    igdb_url: str | None
-    cover_url: str | None
-
-
 def _igdb_url(metadata: dict) -> str | None:
     """IGDB's own page URL from the snapshot, or None. Anything not on
     igdb.com is dropped rather than published as a link."""
     snapshot = metadata.get("snapshot")
     url = snapshot.get("url") if isinstance(snapshot, dict) else None
     return url if isinstance(url, str) and url.startswith(IGDB_URL_PREFIX) else None
-
-
-async def load_public_radar(session: AsyncSession, today: date) -> list[PublicRadarOut]:
-    """The six best-scored pending Radar suggestions that are full cartridges
-    dated to a day or month after today, soonest first.
-
-    Pending only: a wanted game is already an item and shows in "On the
-    radar"; dismissed and owned ones are answered. Discover never appears.
-
-    Registry-dated only: a date from a store listing (often parsed from its
-    page) is store data and stays private, and IGDB's first release date is
-    for any platform. It fails closed: a row stored before `release_source`
-    was recorded stays hidden until the next Radar Generate.
-    """
-    rows = (
-        await session.execute(
-            select(Recommendation)
-            .where(
-                Recommendation.kind == RecommendationKind.RADAR,
-                Recommendation.status == RecommendationStatus.PENDING,
-                Recommendation.physical_format == PhysicalFormat.GAME_CARD,
-                Recommendation.release_date > today,
-            )
-            # Fully ordered, so ties on score cannot swap places between
-            # requests (or between the API and the snapshot).
-            .order_by(
-                Recommendation.score.desc(),
-                Recommendation.title,
-                Recommendation.platform_id,
-                Recommendation.external_id,
-            )
-        )
-    ).scalars()
-    near = [
-        row
-        for row in rows
-        if (row.source_metadata or {}).get("release_precision") in NEAR_PRECISIONS
-        and (row.source_metadata or {}).get("release_source") == "registry"
-    ][:RADAR_LIMIT]
-    near.sort(key=lambda row: (row.release_date, row.title))
-    return [
-        PublicRadarOut(
-            title=row.title,
-            platform=row.platform,
-            physical_format=row.physical_format,
-            release_date=row.release_date,
-            release_precision=row.source_metadata["release_precision"],
-            igdb_url=_igdb_url(row.source_metadata),
-            cover_url=row.cover_url,
-        )
-        for row in near
-    ]
 
 
 class PublicTonightCard(BaseModel):
@@ -342,7 +258,7 @@ def _next_row(entry: NextEntry, taste: PublicTaste) -> PublicNextRow:
     )
 
 
-def _tonight_card(game: Item | PublicPickOut, reasons: list[str]) -> PublicTonightCard:
+def _tonight_card(game: Item | _PickRow, reasons: list[str]) -> PublicTonightCard:
     """A tonight card from a public item (Up next) or a public pick."""
     return PublicTonightCard(
         item_id=game.id,

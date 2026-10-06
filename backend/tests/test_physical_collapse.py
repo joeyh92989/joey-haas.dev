@@ -195,7 +195,7 @@ def test_release_date_falls_back_to_listings_then_igdb():
 
 
 def test_the_release_date_says_where_it_came_from():
-    # The public radar publishes only registry dates, so every source is named:
+    # What's next publishes only registry dates, so every source is named:
     # a registry row in any region, a store listing, IGDB's game, or nothing.
     home = edition(
         "game_card", release_date=date(2026, 11, 19), release_precision="day"
@@ -350,7 +350,7 @@ def test_switch_2_keeps_the_home_region_rule():
 
 
 def test_a_switch_1_sheet_date_is_never_a_registry_date():
-    """Only a registry date can be published (/api/public/radar); the Switch 1
+    """Only a registry date can be published (/api/public/next); the Switch 1
     sheet is kept out of REGISTRY_SOURCES so nothing from it is public."""
     result = collapse(
         1, 130, [ns1("game_card", release_date=date(2021, 7, 20))], [], GAME

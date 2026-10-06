@@ -126,9 +126,9 @@ jobs:
           }
           if [ "$(date -u +%u)" = 1 ]; then weekly=true; else weekly=false; fi
 
-          # Three picks recorded as shown today (UTC). /api/public/picks and
-          # /api/public/next publish them after the next UTC midnight, so
-          # each run publishes yesterday's picks and records today's.
+          # Three picks recorded as shown today (UTC). /api/public/next
+          # publishes them after the next UTC midnight, so each run
+          # publishes yesterday's picks and records today's.
           call picks 120 /api/picker/next
           call registry 900 /api/physical/refresh-registry
           call stores 3600 /api/physical/refresh
@@ -161,7 +161,7 @@ jobs:
           # GitHub's default shell is bash -e. Every live fetch and parse is
           # checked explicitly, so a failure is reported, never read as
           # "changed": items and stats are the snapshot and fail the step;
-          # picks, radar and next are optional, because the API can lag behind
+          # next is optional, because the API can lag behind
           # the static site (a 404 until it has deployed), so any failure there
           # -- a status other than 200, a curl error, a body jq cannot read --
           # is a warning and that output is skipped. next carries generated_at
@@ -173,9 +173,10 @@ jobs:
           # Both sides are normalised the same way: keys sorted (-S), and
           # arrays sorted, because the API has no unique ordering and a
           # harmless write can reorder tied rows. An array whose elements all
-          # have an id is sorted by it. Any other array (Radar's rows have no
-          # id) is sorted by each element's serialised text, which orders
-          # every element and so leaves no ties to reorder.
+          # have an id is sorted by it (items). Any other top-level array
+          # would be sorted by each element's serialised text, which orders
+          # every element and so leaves no ties to reorder; stats and next are
+          # objects, so they are only key-sorted.
           # tostring follows key order in the text, so keys are sorted first.
           normalise='
             def canon:
@@ -201,7 +202,7 @@ jobs:
             echo "::warning::$name: $1, so it is skipped"
           }
           changed=""
-          for name in items stats picks radar next; do
+          for name in items stats next; do
             live_status=$(curl -sS -m 60 -o "live-$name.raw" -w '%{http_code}' \
               "$API_URL/api/public/$name") || live_status=000
             if [ "$live_status" != 200 ]; then

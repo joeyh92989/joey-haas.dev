@@ -221,36 +221,30 @@ snapshot_check() {
   fi
 }
 
-for name in items stats picks radar next; do
+for name in items stats next; do
   snapshot_check "$name"
 done
 
-# Showcase PR2: the read-only outputs. Each must be a list, must carry none
-# of the fields that describe the owner's shopping or use of the tool, and
-# every row must have exactly the public model's keys (jq's `keys` is sorted;
-# an empty list passes). The key sets mirror PublicPickOut and PublicRadarOut.
+# The read-only outputs must carry none of the fields that describe the
+# owner's shopping or use of the tool. jq checks the shape of /next below.
 OUTPUT_FORBIDDEN='"(score|slot|slot_label|store|price|currency|availability|preorder_closes_at|url|batch_id|based_on|lane|section|hypes|listing_ids|format_source|format_note|status|acquired_at|notes|cart_id|reason|reason_source)"'
-PICKS_KEYS='["cover_url","id","platform","reasons","title","type"]'
-RADAR_KEYS='["cover_url","igdb_url","physical_format","platform","release_date","release_precision","title"]'
 if ! command -v jq > /dev/null; then
-  report_fail "jq is installed" "the picks and radar key-set checks need it"
+  report_fail "jq is installed" "the public next check needs it"
 fi
-for name in picks radar; do
-  case "$name" in
-    picks) keys="$PICKS_KEYS" ;;
-    radar) keys="$RADAR_KEYS" ;;
-  esac
-  check_equals "GET /api/public/$name unauthenticated" \
-    "$(http_status "$API_URL/api/public/$name")" "200"
-  body="$(curl -s -m 90 "$API_URL/api/public/$name")"
-  if [ "${body:0:1}" != "[" ]; then
-    report_fail "public $name is a list" "got '${body:0:80}'"
-  elif printf '%s' "$body" | grep -qE "$OUTPUT_FORBIDDEN"; then
-    report_fail "public $name exposes no private fields" "found a forbidden key"
-  elif ! printf '%s' "$body" | jq -e "all(.[]; keys == $keys)" > /dev/null 2>&1; then
-    report_fail "public $name exposes no private fields" "keys are not exactly $keys"
+
+# /api/public/picks and /api/public/radar are retired; /next replaced both.
+# FastAPI's JSON 404 pins that they are gone, not merely unused: a 404 from
+# anything else (a proxy, an undeployed API) carries no JSON detail.
+for retired in picks radar; do
+  retired_resp="$(curl -s -m 90 -w '\n%{http_code}' "$API_URL/api/public/$retired")"
+  retired_status="$(printf '%s' "$retired_resp" | tail -n 1)"
+  retired_body="$(printf '%s' "$retired_resp" | sed '$d')"
+  if [ "$retired_status" = "404" ] &&
+    printf '%s' "$retired_body" | jq -e 'has("detail")' > /dev/null 2>&1; then
+    report_pass "GET /api/public/$retired is a JSON 404" "$retired_body"
   else
-    report_pass "public $name exposes no private fields" "list, exact public key set"
+    report_fail "GET /api/public/$retired is a JSON 404" \
+      "got $retired_status '$retired_body'"
   fi
 done
 
