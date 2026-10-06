@@ -40,10 +40,11 @@
   --code-bg: #1a140d;
   /* The tracker shelf. Status marks are non-text marks, so each clears 3:1
      (WCAG 1.4.11) against --surface, the colour of the 2px gaps between
-     stacked-bar segments; backlog also clears 3:1 against --border. The four step in lightness as well as hue (lightest
-     first: finished, backlog, active, abandoned), so no two sit closer than
-     1.48:1 to each other. Measured, dark: active 4.65, finished 10.24,
-     backlog 6.92, abandoned 3.15; backlog on --border 4.98. */
+     stacked-bar segments; backlog also clears 3:1 against --border. The
+     four step in lightness as well as hue (lightest first: finished,
+     backlog, active, abandoned), so no two sit closer than 1.48:1 to each
+     other. Measured, dark: active 4.65, finished 10.24, backlog 6.92,
+     abandoned 3.15; backlog on --border 4.98. */
   --rating: var(--accent);
   --status-active: var(--accent-2);
   --status-finished: #e0cfb2;

@@ -387,6 +387,8 @@ The target values were measured 2026-10-06 with the WCAG relative-luminance form
 
 `--status-finished` and `--status-active` are unchanged.
 
+> **Superseded in review:** these values separate by hue only. The shipped values step in lightness too; see the spec's PR 3 "As built" note and commit c4facbb.
+
 **(Refines spec):** the second look suggested a dark-theme backlog around lightness 45. At that level it falls below 3:1 against `--border` (about 2.8). So backlog keeps lightness 48 and separates by warmth and saturation, and abandoned separates by hue: a cool blue-grey reads as "set aside".
 
 - [ ] **Step 1.** Write `measure.py` in the scratchpad. It reads the tokens from `index.css` and prints each status colour's ratio against `--surface` (and backlog's against `--border`) for both themes. Run it before and after, and require every value ≥ 3.0.
