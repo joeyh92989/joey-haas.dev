@@ -5,6 +5,7 @@ import sys
 import uuid
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import select
@@ -175,3 +176,77 @@ async def test_clear_nulls_the_selected_dates_and_leaves_the_rest(
 async def test_clear_with_nothing_to_clear_returns_zero(sessionmaker_for_test):
     async with sessionmaker_for_test() as session:
         assert await script.clear(session, []) == 0
+
+
+async def test_a_date_an_igdb_refresh_would_also_give_is_kept(sessionmaker_for_test):
+    """Refresh game metadata overwrites release_date from the snapshot; if the
+    item's date equals the snapshot's it is IGDB's now, whatever the row said."""
+    refreshed = _game("Refreshed")
+    refreshed.source_metadata = {"first_release_date": "2026-11-20T00:00:00+00:00"}
+    async with sessionmaker_for_test() as session:
+        session.add_all(
+            [
+                refreshed,
+                _recommendation("Refreshed", RecommendationStatus.WANTED, STORE_DAY),
+            ]
+        )
+        await session.commit()
+        assert await script.find_store_dated(session) == []
+
+
+async def test_clear_skips_an_item_whose_date_changed_since_the_dry_run(
+    sessionmaker_for_test,
+):
+    await _seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        rows = await script.find_store_dated(session)
+        changed = await session.scalar(select(Item).where(Item.title == "Store Want"))
+        changed.release_date = date(2027, 1, 1)
+        await session.commit()
+        assert await script.clear(session, rows) == 1
+    async with sessionmaker_for_test() as session:
+        dates = {
+            item.title: item.release_date
+            for item in (await session.scalars(select(Item))).all()
+        }
+    assert dates["Store Want"] == date(2027, 1, 1)
+    assert dates["Discover Own"] is None
+
+
+async def _run_against_test_database(monkeypatch, engine, apply: bool) -> None:
+    url = engine.url.render_as_string(hide_password=False)
+    monkeypatch.setattr(
+        script, "load_config", lambda: SimpleNamespace(database_url=url)
+    )
+    await script.run(apply=apply)
+
+
+async def _dates(factory) -> dict:
+    async with factory() as session:
+        return {
+            item.title: item.release_date
+            for item in (await session.scalars(select(Item))).all()
+        }
+
+
+async def test_run_is_a_dry_run_unless_applied(
+    engine, sessionmaker_for_test, monkeypatch, capsys
+):
+    await _seed(sessionmaker_for_test)
+    before = await _dates(sessionmaker_for_test)
+    await _run_against_test_database(monkeypatch, engine, apply=False)
+    assert await _dates(sessionmaker_for_test) == before
+    out = capsys.readouterr().out
+    assert "2 item(s)" in out
+    assert "Dry run" in out
+
+
+async def test_run_with_apply_clears_and_a_second_run_finds_nothing(
+    engine, sessionmaker_for_test, monkeypatch, capsys
+):
+    await _seed(sessionmaker_for_test)
+    await _run_against_test_database(monkeypatch, engine, apply=True)
+    assert (await _dates(sessionmaker_for_test))["Store Want"] is None
+    capsys.readouterr()
+    await _run_against_test_database(monkeypatch, engine, apply=True)
+    assert "0 item(s)" in capsys.readouterr().out

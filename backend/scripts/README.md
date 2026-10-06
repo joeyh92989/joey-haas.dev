@@ -197,7 +197,10 @@ Wanted list. Since #38 only a public source's day-precise date is copied
 still hold a copied date that rule would not copy today, by matching each
 answered (wanted or owned) recommendation to its item on
 `external_source` and `external_id` and comparing the dates. An item the
-owner has edited since no longer matches its row's date and is left alone.
+owner has edited to a different date no longer matches its row's date and is
+left alone. So is an item whose date equals the one its own IGDB snapshot
+gives: "Refresh game metadata" overwrites `release_date` from the snapshot,
+so a matching value there is IGDB's, not the store's.
 
 **Run** from `backend/`. The first command is a dry run: it lists the items
 and changes nothing. The second clears their `release_date`.
@@ -212,9 +215,11 @@ so every required variable must be set. It uses `DATABASE_URL`, the pooled
 URL the API uses.
 
 **Safe to re-run:** a cleared item no longer matches its row, so a second
-run finds nothing. `--apply` clears every listed date in one transaction.
+run finds nothing. `--apply` clears the dates in one statement that
+re-checks each item's date, so an item changed since the dry run is skipped
+and the count printed is the rows actually cleared.
 
 **Limits:** it clears only dates that equal the recommendation's own, so a
 store date the owner has since retyped to something else is not touched.
-Pressing "Refresh game metadata" on `/admin/collection` afterwards can
-refill dates from IGDB.
+After `--apply`, pressing "Refresh game metadata" on
+`/admin/collection` can refill dates from IGDB.
