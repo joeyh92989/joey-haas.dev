@@ -280,8 +280,9 @@ before pushing.
   adds the answered rows of the latest generation (Discover per kind,
   Radar per platform) while it still has a pending row, so an answer
   changes `/api/public/next` only at the next generation. The private-title
-  scan is lifted only by identity, for an owned frozen row the page
-  renders (`next_load.taste_sparing_owned`), never by title.
+  scan is lifted only for an owned frozen row the page renders, selected by
+  identity (never by a title alone) and only while the item still carries
+  that rendered row's title (`next_load.taste_sparing_owned`).
 - **E7c deploy order:** set `GOOGLE_SHEETS_API_KEY` on Render; apply `0005`
   to Neon; merge; **before the first Refresh registry, bulk-set every owned
   Switch 2 copy's format on `/admin/collection`** (the collection is all full
@@ -348,10 +349,12 @@ before pushing.
   Never a store, price, stock, pre-order window, score, rank, lane or
   recommendation id. A date shows only when its `release_source` is in
   `next_list.PUBLIC_DATE_SOURCES` (the registry); a store's, IGDB's or the
-  Switch 1 sheet's date is withheld and the cartridge listed undated under
-  Later. Links are igdb.com only (`IGDB_URL_PREFIX`). Reasons are rebuilt
-  over public games; Discover's model sentence passes only the gates in
-  `next_list` (see below), and the stored store lines never do. The rows
+  Switch 1 sheet's date is withheld and the cartridge goes undated to the
+  end of Later (cut first by its cap). Links are igdb.com only
+  (`IGDB_URL_PREFIX`). Reasons are rebuilt over public games; Discover's
+  model sentence passes only `next_list.public_reasons_for`'s gates (cited,
+  all-public, no private title, not second or third person), and the
+  stored store lines never do. The rows
   are frozen to the batch (S9, see the store list).
   `tests/test_public_outputs.py` pins the fields (`NEXT_ROW_FIELDS`) and
   walks the body for `FORBIDDEN` keys. Want creates an ordinary item (no
