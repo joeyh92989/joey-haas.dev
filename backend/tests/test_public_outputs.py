@@ -461,11 +461,12 @@ async def _generate_radar(factory) -> None:
 
 
 async def test_next_never_publishes_a_switch_1_sheet_date(sessionmaker_for_test):
-    """Nothing from the Switch 1 sheet is public (switch1 spec, decision 6).
+    """No date from the Switch 1 sheet is public; the row is listed undated
+    under Later (switch1 spec, decision 6; Spine Next spec, K5, S4).
 
     A Switch 1 cartridge the sheet dates after today goes through a real
-    Radar generate. The row itself may be published; only the date's source
-    keeps its date off /api/public/next, so it sits undated under Later.
+    Radar generate. The row itself may be published; the date's source
+    keeps its date off /api/public/next.
     """
     released = date.today() + timedelta(days=30)
     await _add(

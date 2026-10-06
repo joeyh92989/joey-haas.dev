@@ -164,12 +164,13 @@ counts editions, not titles.
   than failing the whole run's flush.
 - Its release dates are **not registry dates**. `collapse.REGISTRY_SOURCES`
   deliberately leaves `nscollectors_ns1` out, because the public date rule
-  (`next_list.PUBLIC_DATE_SOURCES`) publishes only registry-dated rows and
-  nothing from this sheet may reach a public route. Do not add it there.
-  (`physical_routes.py` has `STATUS_REGISTRY_SOURCES`, which only decides
-  what the status route lists, and does include it; `tests/test_public_outputs.py`
-  puts a dated Switch 1 cartridge through a real Radar generate and holds
-  `/api/public/next` empty.)
+  (`next_list.PUBLIC_DATE_SOURCES`) shows only registry dates, and no date
+  from this sheet may reach a public route. Do not add it there. A Radar row
+  known only from this sheet is still listed on `/api/public/next`, undated
+  under Later. (`physical_routes.py` has `STATUS_REGISTRY_SOURCES`, which
+  only decides what the status route lists, and does include it;
+  `tests/test_public_outputs.py` puts a dated Switch 1 cartridge through a
+  real Radar generate and holds its date off `/api/public/next`.)
 - Its formats feed the collapse only. `sync.py` still writes registry formats
   onto owned Switch 2 copies alone (`KEY_CARD_PLATFORMS`).
 

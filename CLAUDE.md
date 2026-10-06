@@ -264,8 +264,9 @@ before pushing.
   titles unmatched" (`totals.switch1_unmatched`) and lists none. IGDB is
   still never a physical source for Switch 1 (`refresh-platform` refuses
   130). The sheet's dates are never registry dates
-  (`collapse.REGISTRY_SOURCES` leaves it out), so nothing from it can reach
-  the public Radar rows on What's next; keep it out. Its keys are not in
+  (`collapse.REGISTRY_SOURCES` leaves it out), so none of them is public: a
+  Radar row known only from the sheet is listed on `/api/public/next`
+  undated, under Later. Keep it out. Its keys are not in
   `test_physical_keys.py`'s corpus. No migration: after deploy, press
   Refresh Switch 1 once on `/admin/catalogue`; expect `rows_seen` near
   10,000 (editions, not titles), and check the run's errors, since IGDB
@@ -289,7 +290,7 @@ before pushing.
   is `manual` and never touched); then on `/admin/catalogue` press Refresh
   registry, Refresh stores, Resolve until nothing remains, work through
   Needs match, and Refresh N64 when wanted. Nothing from the catalogue is
-  public except the seven Radar fields on `/api/public/next` (see Radar);
+  public except What's next's rows on `/api/public/next` (see Radar);
   `test_public.py` and `test_public_outputs.py` pin that.
 - IGDB fixtures for the snapshot are recorded from the live API with
   `backend/scripts/record_igdb_fixtures.py` (see `backend/scripts/README.md`);
@@ -340,19 +341,21 @@ before pushing.
   owned game is out of Radar and Discover for good; a skipped one returns
   at the next generation, and an answered suggestion takes no second
   answer. Only an **open** pre-order (window not closed, or no window and
-  the game not out) counts as one. **Only seven fields of pending Radar
-  rows are public** (on `/api/public/next`, showcase spec, "Spec changes"):
-  title, platform, format, release date and precision, IGDB link and cover
-  -- for full cartridges dated to a day or month after today, registry-dated
-  only (`release_source` in `source_metadata`; a store's or IGDB's date
-  never is), the top six by score.
-  Never a store, price, pre-order window, reason, score or id, and nothing
-  from Discover on this endpoint (Discover's top picks reach the public only
-  through `/api/public/next`). `tests/test_public_outputs.py` pins the
-  fields. Otherwise,
-  Want creates an ordinary item (no owned copy, backlog, public) and only
-  that reaches the public, as What's next's Wanted list, through `wanted`
-  and `release_date`; Already
+  the game not out) counts as one. **Radar and Discover rows reach the
+  public only as `PublicNextRow`s on `/api/public/next`** (Spine Next spec,
+  B5): title, platform, format, release date and precision, cover, IGDB
+  link, reasons, `top_pick`, `new`, and `item_id` on Wanted rows only.
+  Never a store, price, stock, pre-order window, score, rank, lane or
+  recommendation id. A date shows only when its `release_source` is in
+  `next_list.PUBLIC_DATE_SOURCES` (the registry); a store's, IGDB's or the
+  Switch 1 sheet's date is withheld and the cartridge listed undated under
+  Later. Links are igdb.com only (`IGDB_URL_PREFIX`). Reasons are rebuilt
+  over public games; Discover's model sentence passes only the gates in
+  `next_list` (see below), and the stored store lines never do. The rows
+  are frozen to the batch (S9, see the store list).
+  `tests/test_public_outputs.py` pins the fields (`NEXT_ROW_FIELDS`) and
+  walks the body for `FORBIDDEN` keys. Want creates an ordinary item (no
+  owned copy, backlog, public), shown in What's next's Wanted list; Already
   own creates a private one with a physical copy. Both record a format only
   when the registry decided it.
 - **Discover** (E8b) is `backend/discover.py` (pure: released filter,
