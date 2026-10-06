@@ -2,18 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
-import RecommendationCard, {
-  dayWords,
-  utc,
-} from '../components/RecommendationCard.jsx'
+import RecommendationCard from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { MONTH, releaseWords } from '../lib/releaseWords.js'
+import { dayWords, MONTH, releaseWords, utc } from '../lib/releaseWords.js'
 import { localToday } from '../lib/statusTransition.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
 const UNREACHABLE = 'Could not reach the API. Try again shortly.'
-
-export { releaseWords } from '../lib/releaseWords.js'
 
 /** "2 hours ago", or "never". */
 export function ago(timestamp, now = Date.now()) {

@@ -3,12 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import AdminRadar, {
-  ago,
-  byMonth,
-  releaseWords,
-  soonestWindow,
-} from './AdminRadar.jsx'
+import AdminRadar, { ago, byMonth, soonestWindow } from './AdminRadar.jsx'
 
 function row(id, fields = {}) {
   return {
@@ -116,35 +111,11 @@ afterEach(() => {
 })
 
 describe('helpers', () => {
-  it('words a date as precisely as it is known', () => {
-    expect(releaseWords(row('x'))).toBe('Dec 4, 2026')
-    expect(releaseWords(row('x', { release_precision: 'month' }))).toBe(
-      'December 2026',
-    )
-    expect(
-      releaseWords(
-        row('x', { release_date: '2027-04-01', release_precision: 'quarter' }),
-      ),
-    ).toBe('Q2 2027')
-    expect(releaseWords(row('x', { release_precision: 'year' }))).toBe('2026')
-    expect(releaseWords(row('x', { release_date: null }))).toBe(
-      'Date not announced',
-    )
-  })
-
   it('says how long ago', () => {
     const now = Date.parse('2026-09-27T12:00:00Z')
     expect(ago(null, now)).toBe('never')
     expect(ago('2026-09-27T10:00:00Z', now)).toBe('2 h ago')
     expect(ago('2026-09-20T12:00:00Z', now)).toBe('7 d ago')
-  })
-
-  it('words a mid-quarter date as its quarter', () => {
-    expect(
-      releaseWords(
-        row('x', { release_date: '2027-08-15', release_precision: 'quarter' }),
-      ),
-    ).toBe('Q3 2027')
   })
 
   it('finds the soonest open window, ignoring closed ones', () => {
