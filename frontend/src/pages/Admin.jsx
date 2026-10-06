@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
+import LastNightly from '../components/LastNightly.jsx'
 import { apiFetch, loginUrl } from '../lib/api.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 
 /**
  * Admin area. Deliberately absent from the site navigation — reachable only by
@@ -8,6 +10,7 @@ import { apiFetch, loginUrl } from '../lib/api.js'
  * is. It keeps a personal site from looking like an app with a login wall.
  */
 export default function Admin() {
+  usePageTitle('Admin · Joey Haas')
   const [status, setStatus] = useState('checking')
   const [email, setEmail] = useState(null)
   const [slow, setSlow] = useState(false)
@@ -96,6 +99,7 @@ export default function Admin() {
 
       {status === 'signed-in' && (
         <>
+          <LastNightly />
           <p>
             Signed in as <strong>{email}</strong>.
           </p>
@@ -104,6 +108,18 @@ export default function Admin() {
           </p>
           <p>
             <Link to="/admin/play-next">Play Next</Link>
+          </p>
+          <p>
+            <Link to="/admin/catalogue">Catalogue</Link>
+          </p>
+          <p>
+            <Link to="/admin/radar">Radar</Link>
+          </p>
+          <p>
+            <Link to="/admin/discover">Discover</Link>
+          </p>
+          <p>
+            <Link to="/admin/store-list">Store list</Link>
           </p>
           <p>
             <button type="button" className="admin-signout" onClick={signOut}>

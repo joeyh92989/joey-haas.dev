@@ -30,6 +30,13 @@ report_fail() {
   fail=$((fail + 1))
 }
 
+warn=0
+
+report_warn() {
+  printf 'WARN  %-42s %s\n' "$1" "$2"
+  warn=$((warn + 1))
+}
+
 check_equals() {
   local name="$1" actual="$2" expected="$3"
   if [ "$actual" = "$expected" ]; then
@@ -65,6 +72,9 @@ check_equals "GET /nonsense-path (SPA 404)" "$(http_status "$SITE_URL/nonsense-p
 # feed.xml is different: it is a real file in dist/, and Render skips rewrite
 # rules for paths where a resource exists. So its content type distinguishes a
 # genuinely served feed from the SPA fallback, and a 200 alone does not.
+#
+# The same holds for /spine and the client-side /collection redirects: they
+# are verified in the browser after deploy, not here.
 feed_type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$SITE_URL/feed.xml")"
 case "$feed_type" in
   *xml*) report_pass "feed.xml served as XML" "$feed_type" ;;
@@ -131,21 +141,26 @@ case "$allowed_methods" in
     ;;
 esac
 
-# The public collection routes are the only unauthenticated ones, and the only
-# part of the public site that calls the API at all.
+# The public collection routes are the only unauthenticated data routes.
+# /spine and /spine/:id are the only pages that fetch them; every
+# page also asks /api/auth/me once (RootLayout) and treats failure as signed
+# out. Home and Projects read the static snapshot below, never the API.
 check_equals "GET /api/public/items unauthenticated" \
   "$(http_status "$API_URL/api/public/items")" "200"
 
 check_equals "GET /api/public/stats unauthenticated" \
   "$(http_status "$API_URL/api/public/stats")" "200"
 
-check_equals "GET /collection (deep link)" "$(http_status "$SITE_URL/collection")" "200"
+check_equals "GET /spine (deep link)" "$(http_status "$SITE_URL/spine")" "200"
+check_equals "GET /collection (legacy redirect path)" "$(http_status "$SITE_URL/collection")" "200"
 
 # Asserts an absence, which is the whole reason the public router hand-writes
 # its response model instead of serializing the ORM object. A private column
 # added later would be published with no code change and nothing to notice it.
+PRIVATE_KEYS='"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|buyable|recommendation[a-z_]*)"'
+
 public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
-if printf '%s' "$public_body" | grep -qE '"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at)"'; then
+if printf '%s' "$public_body" | grep -qE "$PRIVATE_KEYS"; then
   report_fail "public items expose no private fields" "found a private key in the response"
 else
   report_pass "public items expose no private fields" "no notes/owned_format/is_public/ids/copy details"
@@ -183,6 +198,87 @@ if printf '%s' "$stats_body" | grep -q '"by_format"'; then
 else
   report_fail "public stats has the format counts" "got '$stats_body'"
 fi
+
+# The build-time snapshot (frontend/scripts/fetch-snapshot.mjs). A build
+# whose fetch failed ships without one, and the site then behaves as it did
+# before the snapshot existed, so absence is a warning. A snapshot that is
+# present must be JSON and must hold nothing the API itself would not publish.
+snapshot_check() {
+  local name="$1" url="$SITE_URL/snapshot/$1.json" type body
+  type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$url")"
+  case "$type" in
+    application/json*) ;;
+    *)
+      report_warn "snapshot $name.json" "not deployed (got '${type:-no response}')"
+      return
+      ;;
+  esac
+  body="$(curl -s -m 90 "$url")"
+  if printf '%s' "$body" | grep -qE "$PRIVATE_KEYS"; then
+    report_fail "snapshot $name.json" "found a private key"
+  else
+    report_pass "snapshot $name.json" "JSON, public fields only"
+  fi
+}
+
+for name in items stats picks radar next; do
+  snapshot_check "$name"
+done
+
+# Showcase PR2: the read-only outputs. Each must be a list, must carry none
+# of the fields that describe the owner's shopping or use of the tool, and
+# every row must have exactly the public model's keys (jq's `keys` is sorted;
+# an empty list passes). The key sets mirror PublicPickOut and PublicRadarOut.
+OUTPUT_FORBIDDEN='"(score|slot|slot_label|store|price|currency|availability|preorder_closes_at|url|batch_id|based_on|lane|section|hypes|listing_ids|format_source|format_note|status|acquired_at|notes|cart_id|reason|reason_source)"'
+PICKS_KEYS='["cover_url","id","platform","reasons","title","type"]'
+RADAR_KEYS='["cover_url","igdb_url","physical_format","platform","release_date","release_precision","title"]'
+if ! command -v jq > /dev/null; then
+  report_fail "jq is installed" "the picks and radar key-set checks need it"
+fi
+for name in picks radar; do
+  case "$name" in
+    picks) keys="$PICKS_KEYS" ;;
+    radar) keys="$RADAR_KEYS" ;;
+  esac
+  check_equals "GET /api/public/$name unauthenticated" \
+    "$(http_status "$API_URL/api/public/$name")" "200"
+  body="$(curl -s -m 90 "$API_URL/api/public/$name")"
+  if [ "${body:0:1}" != "[" ]; then
+    report_fail "public $name is a list" "got '${body:0:80}'"
+  elif printf '%s' "$body" | grep -qE "$OUTPUT_FORBIDDEN"; then
+    report_fail "public $name exposes no private fields" "found a forbidden key"
+  elif ! printf '%s' "$body" | jq -e "all(.[]; keys == $keys)" > /dev/null 2>&1; then
+    report_fail "public $name exposes no private fields" "keys are not exactly $keys"
+  else
+    report_pass "public $name exposes no private fields" "list, exact public key set"
+  fi
+done
+
+# Spine Next: What's next is a page and a public object with its sections.
+check_equals "GET /spine/next (deep link)" "$(http_status "$SITE_URL/spine/next")" "200"
+next_body="$(curl -s -m 90 "$API_URL/api/public/next")"
+if printf '%s' "$next_body" | jq -e \
+  'type == "object" and (["tonight","wanted","buy_now","preorders","later","not_on_cartridge","generated_at"] - keys == [])' \
+  > /dev/null 2>&1; then
+  report_pass "public next has its sections" "object, all keys"
+else
+  report_fail "public next has its sections" "got '${next_body:0:80}'"
+fi
+# What's next also carries no id, rank or Discover note (spec, S1): its
+# games are keyed by item_id. Exact-quoted, so "id" never matches "item_id".
+NEXT_FORBIDDEN="${OUTPUT_FORBIDDEN%)\"}|id|rank|model_note|ranked_by)\""
+if printf '%s' "$next_body" | grep -qE "$NEXT_FORBIDDEN"; then
+  report_fail "public next exposes no private fields" "found a forbidden key"
+else
+  report_pass "public next exposes no private fields" "no forbidden key"
+fi
+
+# The nightly job's token: no token and a wrong one are both refused.
+check_equals "POST /api/picker/next with a wrong job token" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
+    -H 'Authorization: Bearer wrong' -H 'Content-Type: application/json' \
+    -d '{}' "$API_URL/api/picker/next")" \
+  "401"
 
 # 401 rather than 404 or 405 proves both routes exist, are declared ahead of
 # /{item_id}, and are gated.
@@ -224,8 +320,8 @@ fi
 
 # The item page is a nested public route; like the admin detail view below,
 # only the static host can prove its rewrite serves it on a deep link.
-check_equals "GET /collection/<id> (nested deep link)" \
-  "$(http_status "$SITE_URL/collection/00000000-0000-0000-0000-000000000000")" \
+check_equals "GET /spine/<id> (nested deep link)" \
+  "$(http_status "$SITE_URL/spine/00000000-0000-0000-0000-000000000000")" \
   "200"
 
 check_equals "POST /api/import/photos unauthenticated" \
@@ -246,6 +342,46 @@ check_equals "POST /api/items/visibility unauthenticated" \
 check_equals "GET /admin/collection/<id> (nested deep link)" \
   "$(http_status "$SITE_URL/admin/collection/00000000-0000-0000-0000-000000000000")" \
   "200"
+
+# The physical catalogue (E7c) is admin-only end to end: 401 rather than 404
+# proves each route exists and is gated before it does anything.
+check_equals "POST /api/physical/refresh unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/physical/refresh")" \
+  "401"
+check_equals "POST /api/physical/resolve unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/physical/resolve")" \
+  "401"
+check_equals "GET /api/physical/status unauthenticated" \
+  "$(http_status "$API_URL/api/physical/status")" \
+  "401"
+check_equals "POST /api/physical/refresh-switch1 unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/physical/refresh-switch1")" \
+  "401"
+check_equals "GET /admin/catalogue (deep link)" "$(http_status "$SITE_URL/admin/catalogue")" "200"
+check_equals "POST /api/recommendations/generate unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/recommendations/generate")" \
+  "401"
+check_equals "GET /api/recommendations unauthenticated" \
+  "$(http_status "$API_URL/api/recommendations?kind=radar")" \
+  "401"
+check_equals "GET /api/recommendations/watching unauthenticated" \
+  "$(http_status "$API_URL/api/recommendations/watching")" \
+  "401"
+check_equals "GET /api/recommendations/store-list unauthenticated" \
+  "$(http_status "$API_URL/api/recommendations/store-list")" \
+  "401"
+check_equals "GET /api/recommendations?kind=discover unauthenticated" \
+  "$(http_status "$API_URL/api/recommendations?kind=discover")" \
+  "401"
+check_equals "POST /api/recommendations/{id}/want unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/recommendations/00000000-0000-0000-0000-000000000000/want")" \
+  "401"
+check_equals "POST /api/recommendations/{id}/own unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/recommendations/00000000-0000-0000-0000-000000000000/own")" \
+  "401"
+check_equals "GET /admin/radar (deep link)" "$(http_status "$SITE_URL/admin/radar")" "200"
+check_equals "GET /admin/discover (deep link)" "$(http_status "$SITE_URL/admin/discover")" "200"
+check_equals "GET /admin/store-list (deep link)" "$(http_status "$SITE_URL/admin/store-list")" "200"
 
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in
@@ -268,8 +404,7 @@ else
   report_pass "CORS rejects other onrender.com origins" "no ACAO for $forged_origin"
 fi
 
-# Proves the public pages were actually decoupled from the backend, rather than
-# merely appearing decoupled.
+# Proves the public pages ship their own content, rather than fetching the retired /api/projects.
 asset="$(curl -s -m 90 "$SITE_URL/" | grep -o '/assets/[^"]*\.js' | head -1)"
 if [ -z "$asset" ]; then
   report_fail "bundle has no /api/projects reference" "no JS asset found in index.html"
@@ -293,5 +428,5 @@ else
 fi
 
 echo
-echo "$pass passed, $fail failed"
+echo "$pass passed, $fail failed, $warn warned"
 [ "$fail" -eq 0 ]

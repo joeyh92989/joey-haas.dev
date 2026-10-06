@@ -1,0 +1,352 @@
+{
+  "products": [
+    {
+      "id": 15822022017407,
+      "title": "[Special Edition] SE#02: The Midnight Walk",
+      "handle": "special-edition-se-02-the-midnight-walk",
+      "body_html": "<p>The Midnight Walk Switch 2 Special Edition</p>",
+      "published_at": "2026-08-06T15:52:44+01:00",
+      "created_at": "2026-08-04T15:10:35+01:00",
+      "updated_at": "2026-09-25T14:51:19+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Collector's Edition",
+      "tags": [
+        "Switch 2",
+        "The Midnight Walk"
+      ],
+      "variants": [
+        {
+          "id": 58110993990015,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SE#02",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "64.20",
+          "grams": 400,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15822022017407,
+          "created_at": "2026-08-04T15:10:36+01:00",
+          "updated_at": "2026-09-25T14:51:19+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 87041093828991,
+          "created_at": "2026-08-26T09:45:05+01:00",
+          "position": 1,
+          "updated_at": "2026-08-26T09:45:09+01:00",
+          "product_id": 15822022017407,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/TheMidnightWalk-SE-portrait-collection_v2.png?v=1787733909",
+          "width": 680,
+          "height": 1078
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15821856899455,
+      "title": "Sw2#02: The Midnight Walk",
+      "handle": "sw2-02-the-midnight-walk-nintendo-switch-2-edition",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div class=\"game_page_autocollapse\" id=\"aboutThisGame\">\n<div class=\"game_area_description\" id=\"game_area_description\">\n<p><meta charset=\"utf-8\"><span>Follow The Midnight Walk in a dark adventure from the minds behind Lost in Random</span><br></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div class=\"game_area_description\" id=\"game_area_content_descriptors\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch 2 game with cartridge</p>\n<p>- Interior art<br></p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p><br></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-08-06T15:52:49+01:00",
+      "created_at": "2026-08-04T12:16:39+01:00",
+      "updated_at": "2026-09-25T14:51:19+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch 2",
+      "tags": [
+        "Switch 2",
+        "The Midnight Walk"
+      ],
+      "variants": [
+        {
+          "id": 58110335844735,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SW2#02",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "46.20",
+          "grams": 150,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15821856899455,
+          "created_at": "2026-08-04T12:16:40+01:00",
+          "updated_at": "2026-09-25T14:51:19+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 86718156177791,
+          "created_at": "2026-08-04T12:39:20+01:00",
+          "position": 1,
+          "updated_at": "2026-08-04T12:39:25+01:00",
+          "product_id": 15821856899455,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/TheMidnightWalk-SW2-Gamecase.png?v=1785843565",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15821871251839,
+      "title": "Sw2 TC#02: The Midnight Walk - Trading Card Pack",
+      "handle": "sw2-tc-02-the-midnight-walk-trading-card-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of <strong>The Midnight Walk </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-08-06T15:52:51+01:00",
+      "created_at": "2026-08-04T12:32:40+01:00",
+      "updated_at": "2026-09-25T14:51:19+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Switch 2",
+        "The Midnight Walk"
+      ],
+      "variants": [
+        {
+          "id": 58110398366079,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SW2 TC#02",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15821871251839,
+          "created_at": "2026-08-04T12:32:41+01:00",
+          "updated_at": "2026-09-25T14:51:19+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 86718578491775,
+          "created_at": "2026-08-04T13:37:23+01:00",
+          "position": 1,
+          "updated_at": "2026-08-04T13:37:29+01:00",
+          "product_id": 15821871251839,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/TheMidnightWalk-SW2-TCs-Fan.png?v=1785847049",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15637923791231,
+      "title": "[Special Edition] SE#01: Minishoot' Adventures - Nintendo Switch 2 Edition",
+      "handle": "special-edition-switch-2-de-01-minishoot-adventures-switch-2-edition",
+      "body_html": "<p>The Midnight Walk Switch 2 Special Edition</p>",
+      "published_at": "2026-04-17T15:58:04+01:00",
+      "created_at": "2026-04-13T12:31:41+01:00",
+      "updated_at": "2026-09-25T14:51:19+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Collector's Edition",
+      "tags": [
+        "Minishoot' Adventures",
+        "Switch 2"
+      ],
+      "variants": [
+        {
+          "id": 57341431644543,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SE#01",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "64.20",
+          "grams": 335,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15637923791231,
+          "created_at": "2026-04-13T12:31:42+01:00",
+          "updated_at": "2026-09-25T14:51:19+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 83900152840575,
+          "created_at": "2026-04-16T13:01:16+01:00",
+          "position": 1,
+          "updated_at": "2026-04-17T10:47:13+01:00",
+          "product_id": 15637923791231,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Minishoot_SE_portrait-collection.png?v=1776419233",
+          "width": 906,
+          "height": 1437
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15637892792703,
+      "title": "SW2#01: Minishoot' Adventures - Nintendo Switch 2 Edition",
+      "handle": "srgs2-01-minishoot-adventures-switch-2",
+      "body_html": "<div class=\"p-rich_text_section\">\n<div class=\"game_page_autocollapse_ctn expanded\">\n<div class=\"game_page_autocollapse\" id=\"aboutThisGame\" data-panel='{\"type\":\"PanelGroup\"}'>\n<div class=\"game_area_description\" id=\"game_area_description\">\n<p><meta charset=\"utf-8\"><span>Fly into a charming handcrafted world and go on an adventure that mixes up open exploration with crispy twin-stick shooter action in Minishoot' Adventures. </span><br></p>\n</div>\n</div>\n</div>\n<div class=\"game_page_autocollapse_ctn\">\n<div class=\"game_page_autocollapse\">\n<div class=\"game_area_description\" id=\"game_area_content_descriptors\"></div>\n</div>\n</div>\n</div>\n<div class=\"product__content\">\n<meta charset=\"utf-8\">\n<h4 class=\"text-columns-img__heading mt0 mb0\">Each purchase includes the following items:</h4>\n<div class=\"mt10 text-columns-img__description mt--first-child-0\">\n<div class=\"metafield-rich_text_field\">\n<p>- Fully assembled Nintendo Switch game with cartridge</p>\n<p>- Interior art<br><br>- Folded Map Poster<br></p>\n<p>- Full-colour manual</p>\n<p>- Exclusive sticker</p>\n<p><br></p>\n</div>\n</div>\n</div>",
+      "published_at": "2026-04-17T15:58:04+01:00",
+      "created_at": "2026-04-13T12:04:54+01:00",
+      "updated_at": "2026-09-25T14:51:19+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Switch 2",
+      "tags": [
+        "Minishoot' Adventures",
+        "Switch 2"
+      ],
+      "variants": [
+        {
+          "id": 57341349331327,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SW2#01",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "46.20",
+          "grams": 150,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15637892792703,
+          "created_at": "2026-04-13T12:04:54+01:00",
+          "updated_at": "2026-09-25T14:51:19+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 84332768723327,
+          "created_at": "2026-05-06T09:58:02+01:00",
+          "position": 1,
+          "updated_at": "2026-05-06T09:58:06+01:00",
+          "product_id": 15637892792703,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Minishoot-SW2-Gamecase.png?v=1778057886",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15637924020607,
+      "title": "SW2 TC#01: Minishoot' Adventures - Trading Card Pack",
+      "handle": "switch-2-tc-001-toree-friends-collection-trading-card-pack",
+      "body_html": "<p>Increase your chance of collecting all the 5 variations of<strong> Minishoot' Adventures </strong>trading cards by purchasing a 3 card booster Pack. </p>\n<p><span>There are also shiny cards hidden in packs. These appear in 1 out of 6 packs. The only cards which appear as shiny variants are the 5th, full image card.</span></p>",
+      "published_at": "2026-04-17T15:58:04+01:00",
+      "created_at": "2026-04-13T12:33:08+01:00",
+      "updated_at": "2026-09-25T14:51:19+01:00",
+      "vendor": "Super Rare Games",
+      "product_type": "Trading Cards",
+      "tags": [
+        "Minishoot' Adventures",
+        "Switch 2"
+      ],
+      "variants": [
+        {
+          "id": 57341433315711,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SW2 TC#01",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "3.30",
+          "grams": 10,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 15637924020607,
+          "created_at": "2026-04-13T12:33:08+01:00",
+          "updated_at": "2026-09-25T14:51:19+01:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 83900179349887,
+          "created_at": "2026-04-16T13:03:30+01:00",
+          "position": 1,
+          "updated_at": "2026-04-16T13:03:34+01:00",
+          "product_id": 15637924020607,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2559/7528/files/Minishoot-SW2-TCs-Fan_fa7f5e0a-3dcb-4183-a550-56337426698f.png?v=1776341014",
+          "width": 885,
+          "height": 1420
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    }
+  ]
+}

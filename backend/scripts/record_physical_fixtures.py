@@ -1,0 +1,1030 @@
+"""Records live physical-catalogue sources as test fixtures for E7c.
+
+Run once, from backend/, by the owner:
+
+    ./.venv/bin/python scripts/record_physical_fixtures.py
+
+It records page 1 of every store handle in the E7c spec's STORES table, the
+NSCollectors Switch 2 registry and the Switch 1 "Switch Physical Releases"
+sheet through the Google Sheets API, an excerpt of switch2-tracker, one
+Limited Run product page and every host's robots.txt into
+tests/fixtures/physical/. With --igdb it also records one page of IGDB's N64
+catalogue; with --igdb-switch, one page of IGDB's Switch titles and the
+"Death's Door" search the Switch 1 matcher is tested on. Source names may be
+given to record only those; --list prints the plan without fetching.
+
+Why this exists: every physical_sources parser is written against real bytes,
+never against a shape remembered from the research. A handle that has gone,
+a sheet column that moved or a tag that changed shows up here, loudly, before
+any parser is written against the old shape.
+
+The stores, the tracker and robots.txt are keyless. The registry needs
+GOOGLE_SHEETS_API_KEY, and --igdb and --igdb-switch need IGDB_CLIENT_ID and
+IGDB_CLIENT_SECRET, all read from backend/.env the way the API reads them.
+Credentials never leave this process: the Sheets key travels as a query
+parameter, so only response bodies are written and no request URL carrying it
+is ever printed.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import os
+import re
+import sys
+from pathlib import Path
+from urllib.parse import quote, urlsplit
+from urllib.robotparser import RobotFileParser
+
+import httpx2
+
+BACKEND = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BACKEND))
+
+import config  # noqa: E402  (importing it loads backend/.env)
+from physical_sources.limits import SWITCH_1_CART_ID_PATTERN  # noqa: E402
+
+FIXTURES = BACKEND / "tests" / "fixtures" / "physical"
+
+# Held here because the recorder runs before physical_sources exists. Keep in
+# step with limits.USER_AGENT and the STORES table in stores.py.
+USER_AGENT = "joey-haas.dev tracker (+https://joey-haas.dev; josephthaas@gmail.com)"
+REQUEST_INTERVAL = 0.5  # 2 requests per second, across every host
+TIMEOUT = 30.0
+SHOPIFY_PAGE_SIZE = 250
+WOO_PAGE_SIZE = 100
+
+# Store key -> (host, collection handles), from the spec §2 table. Hosts are
+# the ones the stores redirect to, so robots.txt is read from the right one.
+SHOPIFY_STORES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "limited_run": (
+        "limitedrungames.com",
+        ("coming-soon", "latest-releases", "distro", "the-lr-vault", "in-stock-switch"),
+    ),
+    "iam8bit": (
+        "www.iam8bit.com",
+        ("games", "nintendo", "pre-order", "new", "restock"),
+    ),
+    "strictly_limited": (
+        "www.strictlylimitedgames.com",
+        (
+            "nintendo-switch-2",
+            "nintendo-switch",
+            "pre-order",
+            "coming-soon",
+            "in-stock",
+        ),
+    ),
+    "premium_edition": (
+        "premiumeditiongames.com",
+        (
+            "pre-order",
+            "latest-preorders",
+            "coming-soon-2",
+            "in-stock",
+            "in-stock-partners",
+        ),
+    ),
+    "nicalis": (
+        "store.nicalis.com",
+        ("nintendo-switch-2", "nintendo-switch", "new"),
+    ),
+    "aksys_us": (
+        "store.aksysgames.com",
+        ("preorder-now", "new-releases", "switch"),
+    ),
+    "aksys_eu": (
+        "store.aksyseurope.com",
+        (
+            "nintendo-switch™-1",
+            "nintendo-switch-game",
+            "pre-order-now",
+            "buy-now",
+            "sold-out",
+        ),
+    ),
+    "fangamer": ("www.fangamer.com", ("physical-games", "video-games")),
+    # Atari is not recorded: since 2026-09-25 its products.json answers every
+    # client with a Cloudflare bot challenge, which this does not get past.
+    "super_rare": (
+        "superraregames.com",
+        ("switch-2", "switch", "srg-store-new-web"),
+    ),
+}
+
+# Store key -> (domain, product category id).
+WOO_STORES: dict[str, tuple[str, int]] = {
+    "pixelheart": ("www.pixelheart.eu", 65),
+    "gamefairy": ("gamefairy.io", 22),
+    "oneprint": ("1printgames.com", 18),
+}
+
+SHEET_ID = "1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8"
+SHEETS_API = f"https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}"
+# Fixture name -> gid. Tab titles change; gids do not. The Release Summary
+# tab (gid 558942722) is not read: Details dates every row itself.
+SHEET_TABS = {
+    "details": 764784245,
+    "upcoming_details": 238551450,
+    "upcoming": 887819792,
+}
+DETAILS_TABS = ("details", "upcoming_details")
+DETAILS_REQUIRED = ("Game Title", "Region", "Card Type")
+DETAILS_OPTIONAL = ("Master Title", "Cart ID", "Publisher", "Editions", "Release Date")
+
+# The Switch 1 sheet ("Switch Physical Releases"). Fixture name -> gid.
+SWITCH1_SHEET_ID = "1FNyvbbU64Pb9lheg28gC_5fMalIYJ0aD763T7M1QqF0"
+SWITCH1_SHEETS_API = f"https://sheets.googleapis.com/v4/spreadsheets/{SWITCH1_SHEET_ID}"
+SWITCH1_TABS = {"master": 2004832329, "ciab": 1406641930}
+SWITCH1_REQUIRED = ("Game Title", "Region")
+# The Master header as the spec recorded it, typo included; the run says
+# whether the live sheet still matches it.
+SWITCH1_MASTER_HEADER = (
+    "Master TItle",
+    "Game Title",
+    "Region",
+    "Release Date",
+    "Cart ID",
+    "Publisher",
+    "LP #",
+    "Edition Info",
+    "Other Info",
+    "Verified By",
+    "Check",
+)
+# Master columns the parser never reads, blanked below the header before
+# master.json is written: "Verified By" holds the sheet editors' handles, and
+# none of the four is needed to test the parser.
+SWITCH1_UNREAD = ("LP #", "Other Info", "Verified By", "Check")
+
+TRACKER_URL = (
+    "https://raw.githubusercontent.com/codemaverick-hub/switch2-tracker/main/"
+    "data/games.json"
+)
+# The repo has no licence, so only an excerpt is ever written.
+TRACKER_EXCERPT = 30
+
+LIMITED_RUN_HTML_HANDLES = ("coming-soon", "latest-releases")
+
+IGDB_N64_QUERY = (
+    "where platforms = (4) & total_rating_count >= 5; "
+    "fields id,name,cover.image_id,first_release_date,total_rating_count; "
+    "sort id asc; limit 500;"
+)
+# Keep in step with switch1_titles.FIELDS and page_query.
+IGDB_SWITCH_QUERY = (
+    "where platforms = (130); "
+    "fields id,name,first_release_date,alternative_names.name; "
+    "sort id asc; limit 500; offset 0;"
+)
+IGDB_SWITCH_DEATHS_DOOR_QUERY = (
+    'search "Death\'s Door"; where platforms = (130); '
+    "fields id,name,first_release_date,alternative_names.name; limit 50;"
+)
+
+
+# --all-pages stops here even if a store keeps answering full pages: the
+# adapters stop at MAX_PAGES too, and a runaway walk is not a fixture.
+MAX_RECORDED_PAGES = 40
+# Past this, re-run with --strip-bodies: pages 2 and on lose their
+# descriptions, which no key, platform or game-filter test reads.
+SIZE_GATE_BYTES = 40 * 1024 * 1024
+# No listing page is anywhere near this; a body past it is refused unwritten.
+MAX_BODY_BYTES = 20 * 1024 * 1024
+
+
+def page_url(url: str, page: int) -> str:
+    """The same listing URL asking for another page."""
+    return re.sub(r"([?&]page=)\d+", rf"\g<1>{page}", url)
+
+
+def page_out(out: str, page: int) -> str:
+    """shopify/a/x.p1.json -> shopify/a/x.p<page>.json"""
+    return re.sub(r"\.p\d+\.json$", f".p{page}.json", out)
+
+
+def is_last_page(count: int, size: int) -> bool:
+    """A page shorter than the page size is the last one."""
+    return count < size
+
+
+def _safe(handle: str) -> str:
+    """An ASCII file name for a handle: nintendo-switch™-1 -> nintendo-switch-tm-1."""
+    return re.sub(r"[^a-z0-9-]+", "-", handle.replace("™", "-tm").lower()).strip("-")
+
+
+def _shopify_sources() -> dict[str, list[tuple[str, str]]]:
+    return {
+        key: [
+            (
+                f"https://{domain}/collections/{quote(handle, safe='')}/products.json"
+                f"?limit={SHOPIFY_PAGE_SIZE}&page=1",
+                f"shopify/{key}/{_safe(handle)}.p1.json",
+            )
+            for handle in handles
+        ]
+        for key, (domain, handles) in SHOPIFY_STORES.items()
+    }
+
+
+def _woo_sources() -> dict[str, list[tuple[str, str]]]:
+    return {
+        key: [
+            (
+                f"https://{domain}/wp-json/wc/store/v1/products"
+                f"?per_page={WOO_PAGE_SIZE}&page=1&category={category}",
+                f"woocommerce/{key}/category-{category}.p1.json",
+            )
+        ]
+        for key, (domain, category) in WOO_STORES.items()
+    }
+
+
+# Fixture name -> [(url, out_file)] for every fetch whose URL is known up
+# front. The registry's tab URLs, the Limited Run product page and the IGDB
+# page are decided during the run and listed by describe_dynamic().
+SOURCES: dict[str, list[tuple[str, str]]] = {
+    **_shopify_sources(),
+    **_woo_sources(),
+    "registry": [
+        (f"{SHEETS_API}?fields=sheets.properties", "registry/properties.json")
+    ],
+    "registry_switch1": [
+        (
+            f"{SWITCH1_SHEETS_API}?fields=sheets.properties",
+            "registry_switch1/properties.json",
+        )
+    ],
+    "tracker": [(TRACKER_URL, "tracker/games.json")],
+}
+
+
+def _hosts(names: list[str]) -> list[str]:
+    hosts: list[str] = []
+    for name in names:
+        if name in ("registry", "registry_switch1"):
+            continue  # the Sheets API is not governed by robots.txt
+        for url, _ in SOURCES[name]:
+            host = urlsplit(url).hostname
+            if host and host not in hosts:
+                hosts.append(host)
+    return hosts
+
+
+def describe_dynamic(
+    names: list[str], igdb: bool, igdb_switch: bool = False
+) -> list[str]:
+    lines = []
+    if "registry" in names:
+        for tab, gid in SHEET_TABS.items():
+            lines.append(
+                f"{SHEETS_API}/values/<title of gid {gid}> -> registry/{tab}.json"
+            )
+    if "registry_switch1" in names:
+        for tab, gid in SWITCH1_TABS.items():
+            lines.append(
+                f"{SWITCH1_SHEETS_API}/values/<title of gid {gid}> "
+                f"-> registry_switch1/{tab}.json"
+            )
+    if "limited_run" in names:
+        lines.append(
+            "https://limitedrungames.com/products/<first Switch 2 product in "
+            "coming-soon> -> shopify/limited_run/product.html"
+        )
+    if igdb:
+        lines.append("IGDB /v4/games, N64 -> igdb/n64_page1.json")
+    if igdb_switch:
+        lines.append("IGDB /v4/games, Switch page 1 -> igdb/switch_titles_p1.json")
+        lines.append(
+            'IGDB /v4/games, Switch search "Death\'s Door" '
+            "-> igdb/switch_titles_deaths_door.json"
+        )
+    return lines
+
+
+def _api_message(response: httpx2.Response) -> str:
+    """Google's error message, which says why a sheet refused a key."""
+    try:
+        error = response.json().get("error", {})
+    except (ValueError, AttributeError):
+        return ""
+    message = error.get("message") if isinstance(error, dict) else None
+    return f" ({message})" if message else ""
+
+
+class Recorder:
+    """Fetches, checks and writes; collects failures instead of stopping."""
+
+    def __init__(self, client: httpx2.AsyncClient, secrets: list[str | None]):
+        self.client = client
+        self.secrets = [secret for secret in secrets if secret]
+        self.failures: list[str] = []
+        self.written = 0
+        self.strip_bodies = False
+        self.robots: dict[str, RobotFileParser | None] = {}
+        self._first = True
+
+    def redact(self, text: str) -> str:
+        for secret in self.secrets:
+            text = text.replace(secret, "***")
+        return text
+
+    def fail(self, name: str, reason: str) -> None:
+        message = self.redact(f"{name}: {reason}")
+        self.failures.append(message)
+        print(f"FAIL {message}", flush=True)
+
+    async def get(
+        self, name: str, url: str, params: dict | None = None
+    ) -> httpx2.Response | None:
+        """One throttled GET. Errors are reported with any secret masked."""
+        if not self._first:
+            await asyncio.sleep(REQUEST_INTERVAL)
+        self._first = False
+        try:
+            response = await self.client.get(url, params=params)
+        except httpx2.HTTPError as error:
+            self.fail(name, f"{type(error).__name__}: {error}")
+            return None
+        if response.history:
+            # Host and path only: a query string can carry the Sheets key.
+            final = f"{response.url.host}{response.url.path}"
+            print(self.redact(f"note {name}: redirected to {final}"))
+        return response
+
+    def allowed(self, name: str, url: str) -> bool:
+        robots = self.robots.get(urlsplit(url).hostname or "")
+        if robots is None or robots.can_fetch("*", url):
+            return True
+        self.fail(name, f"robots.txt disallows {urlsplit(url).path}")
+        return False
+
+    def write(self, name: str, out: str, body: str) -> bool:
+        """Writes a body, refusing one that carries a credential."""
+        if any(secret in body for secret in self.secrets):
+            self.fail(name, "response body contains a credential; not written")
+            return False
+        path = FIXTURES / out
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body)
+        self.written += 1
+        return True
+
+    def write_json(self, name: str, out: str, payload: object) -> bool:
+        body = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+        return self.write(name, out, body)
+
+    async def get_json(
+        self, name: str, url: str, params: dict | None = None
+    ) -> object | None:
+        response = await self.get(name, url, params)
+        if response is None:
+            return None
+        if response.status_code != 200:
+            self.fail(name, f"HTTP {response.status_code}{_api_message(response)}")
+            return None
+        if len(response.content) > MAX_BODY_BYTES:
+            self.fail(name, f"body over {MAX_BODY_BYTES} bytes; not written")
+            return None
+        try:
+            return response.json()
+        except ValueError:
+            kind = response.headers.get("content-type", "unknown")
+            self.fail(name, f"200 but not JSON ({kind})")
+            return None
+
+
+async def record_robots(recorder: Recorder, hosts: list[str]) -> None:
+    """robots.txt per host. A missing file is allowed, per the courtesy policy."""
+    for host in hosts:
+        response = await recorder.get(f"robots {host}", f"https://{host}/robots.txt")
+        if response is None or response.status_code != 200:
+            status = "unreachable" if response is None else response.status_code
+            print(f"note robots/{host}.txt: {status}; treated as allowed")
+            recorder.robots[host] = None
+            continue
+        robots = RobotFileParser()
+        robots.parse(response.text.splitlines())
+        recorder.robots[host] = robots
+        recorder.write(f"robots {host}", f"robots/{host}.txt", response.text)
+        print(f"ok   robots/{host}.txt  {len(response.content)} bytes")
+
+
+def _tags(product: dict) -> list[str]:
+    tags = product.get("tags") or []
+    if isinstance(tags, str):
+        tags = [tag.strip() for tag in tags.split(",")]
+    return [tag for tag in tags if tag]
+
+
+async def record_more_pages(
+    recorder: Recorder,
+    url: str,
+    out: str,
+    first_count: int,
+    size: int,
+    products_of,
+) -> None:
+    """Pages 2 and on of one listing, until a short or empty page.
+
+    `products_of(payload)` returns the payload's product list, or None when
+    the body is not one (recorded as a failure, as page 1 is).
+    """
+    if is_last_page(first_count, size):
+        return
+    for page in range(2, MAX_RECORDED_PAGES + 1):
+        page_link, page_file = page_url(url, page), page_out(out, page)
+        if not recorder.allowed(page_file, page_link):
+            return
+        payload = await recorder.get_json(page_file, page_link)
+        products = products_of(payload) if payload is not None else None
+        if products is None:
+            if payload is not None:
+                recorder.fail(page_file, "no products list in the body")
+            return
+        if not products:
+            return
+        if not all(isinstance(product, dict) for product in products):
+            recorder.fail(page_file, "a product that is not an object; not written")
+            return
+        for product in products:
+            product["images"] = (product.get("images") or [])[:1]
+            if recorder.strip_bodies:
+                product.pop("body_html", None)
+                product.pop("description", None)
+        recorder.write_json(page_file, page_file, payload)
+        print(f"ok   {page_file}  {len(products)} products")
+        if is_last_page(len(products), size):
+            return
+    recorder.fail(out, f"more than {MAX_RECORDED_PAGES} pages; stopped")
+
+
+def _shopify_products(body: object) -> list | None:
+    products = body.get("products") if isinstance(body, dict) else None
+    return products if isinstance(products, list) else None
+
+
+def _woo_products(body: object) -> list | None:
+    return body if isinstance(body, list) else None
+
+
+async def record_shopify(
+    recorder: Recorder, key: str, all_pages: bool = False
+) -> dict[str, list[dict]]:
+    """Page 1 of each handle (every page with all_pages); returns page 1's
+    products per handle."""
+    seen: dict[str, list[dict]] = {}
+    for url, out in SOURCES[key]:
+        name = out
+        if not recorder.allowed(name, url):
+            continue
+        payload = await recorder.get_json(name, url)
+        if payload is None:
+            continue
+        products = payload.get("products") if isinstance(payload, dict) else None
+        if not isinstance(products, list):
+            recorder.fail(name, "no products list in the body")
+            continue
+        if not all(isinstance(product, dict) for product in products):
+            recorder.fail(name, "a product that is not an object; not written")
+            continue
+        for product in products:
+            # No parser reads the gallery; image_url is the first image. The
+            # rest was a third of the recorded bytes.
+            product["images"] = (product.get("images") or [])[:1]
+        recorder.write_json(name, out, payload)
+        seen[out] = products
+        tags = sorted({tag for product in products for tag in _tags(product)})
+        more = "  (full page: more pages exist)" if len(products) >= 250 else ""
+        print(f"ok   {out}  {len(products)} products{more}")
+        print(f"     tags ({len(tags)}): {', '.join(tags)}")
+        if not products:
+            print("     EMPTY: first page has no products")
+        if all_pages:
+            await record_more_pages(
+                recorder, url, out, len(products), SHOPIFY_PAGE_SIZE, _shopify_products
+            )
+    return seen
+
+
+async def record_woo(recorder: Recorder, key: str, all_pages: bool = False) -> None:
+    for url, out in SOURCES[key]:
+        if not recorder.allowed(out, url):
+            continue
+        payload = await recorder.get_json(out, url)
+        if payload is None:
+            continue
+        if not isinstance(payload, list):
+            recorder.fail(out, "expected a list of products")
+            continue
+        if not all(isinstance(product, dict) for product in payload):
+            recorder.fail(out, "a product that is not an object; not written")
+            continue
+        recorder.write_json(out, out, payload)
+        names = [str(product.get("name", "")) for product in payload]
+        print(f"ok   {out}  {len(payload)} products")
+        for product_name in names:
+            print(f"     - {product_name}")
+        if all_pages:
+            await record_more_pages(
+                recorder, url, out, len(payload), WOO_PAGE_SIZE, _woo_products
+            )
+
+
+def _is_switch_2(product: dict) -> bool:
+    for variant in product.get("variants") or []:
+        text = " ".join(
+            str(variant.get(field) or "")
+            for field in ("title", "option1", "option2", "option3")
+        ).casefold()
+        sku = str(variant.get("sku") or "").upper()
+        if "switch 2" in text or sku.startswith("NS2-"):
+            return True
+    return False
+
+
+async def record_limited_run_html(
+    recorder: Recorder, pages: dict[str, list[dict]]
+) -> None:
+    """One Switch 2 pre-order product page, for the HTML step's parser."""
+    name = "shopify/limited_run/product.html"
+    product = None
+    for handle in LIMITED_RUN_HTML_HANDLES:
+        products = pages.get(f"shopify/limited_run/{handle}.p1.json", [])
+        product = next((p for p in products if _is_switch_2(p)), None)
+        if product is not None:
+            break
+    if product is None:
+        recorder.fail(name, "no Switch 2 product in coming-soon or latest-releases")
+        return
+    url = f"https://limitedrungames.com/products/{product['handle']}"
+    if not recorder.allowed(name, url):
+        return
+    response = await recorder.get(name, url)
+    if response is None:
+        return
+    if response.status_code != 200:
+        recorder.fail(name, f"HTTP {response.status_code}")
+        return
+    recorder.write(name, name, response.text)
+    html = response.text
+    print(f"ok   {name}  {len(response.content)} bytes  ({product['handle']})")
+    folded = html.casefold()
+    print(
+        f"     'game key card' present: {'game key card' in folded}; "
+        f"'estimated ship date' present: {'estimated ship date' in folded}; "
+        f"selling_plan_groups present: {'selling_plan_groups' in html}"
+    )
+
+
+def _header_index(rows: list[list[str]], required: tuple[str, ...]) -> int | None:
+    for index, row in enumerate(rows):
+        cells = {str(cell).strip() for cell in row}
+        if all(column in cells for column in required):
+            return index
+    return None
+
+
+def _a1_sheet(title: str) -> str:
+    """The whole sheet in A1 notation; quotes are required around spaces."""
+    return "'" + title.replace("'", "''") + "'"
+
+
+async def record_registry(recorder: Recorder, key: str | None) -> None:
+    if key is None:
+        recorder.fail("registry", "GOOGLE_SHEETS_API_KEY is not set; skipped")
+        return
+    # Every query parameter goes in `params`: httpx2 replaces a URL's own
+    # query string with them rather than merging.
+    _, out = SOURCES["registry"][0]
+    properties = await recorder.get_json(
+        out, SHEETS_API, {"fields": "sheets.properties", "key": key}
+    )
+    if properties is None:
+        return
+    recorder.write_json(out, out, properties)
+    titles = {
+        sheet.get("properties", {}).get("sheetId"): sheet.get("properties", {}).get(
+            "title"
+        )
+        for sheet in properties.get("sheets", [])
+    }
+    print(f"ok   {out}  {len(titles)} tabs")
+    for tab, gid in SHEET_TABS.items():
+        print(f"     gid {gid} ({tab}) -> {titles.get(gid)!r}")
+
+    for tab, gid in SHEET_TABS.items():
+        out = f"registry/{tab}.json"
+        title = titles.get(gid)
+        if not title:
+            recorder.fail(out, f"no tab with gid {gid}")
+            continue
+        values_url = f"{SHEETS_API}/values/{quote(_a1_sheet(title), safe='')}"
+        payload = await recorder.get_json(out, values_url, {"key": key})
+        if payload is None:
+            continue
+        recorder.write_json(out, out, payload)
+        rows = payload.get("values", [])
+        required = DETAILS_REQUIRED if tab in DETAILS_TABS else ("Game Title",)
+        header = _header_index(rows, required)
+        print(f"ok   {out}  {len(rows)} rows")
+        if header is None:
+            print(f"     HEADER NOT FOUND: no row has {', '.join(required)}")
+            for index, row in enumerate(rows[:8]):
+                print(f"     row {index}: {[str(cell)[:30] for cell in row[:12]]}")
+            continue
+        columns = [str(cell).strip() for cell in rows[header]]
+        print(f"     header at row {header}: {columns}")
+        print(f"     data rows after header: {len(rows) - header - 1}")
+        if tab in DETAILS_TABS:
+            missing = [c for c in DETAILS_OPTIONAL if c not in columns]
+            ns1 = [c for c in columns if "NS1" in c]
+            print(f"     optional columns missing: {missing or 'none'}")
+            print(f"     NS1 columns: {ns1 or 'none'}")
+            card = columns.index("Card Type")
+            kinds = sorted(
+                {
+                    str(row[card]).strip()
+                    for row in rows[header + 1 :]
+                    if len(row) > card
+                }
+            )
+            print(f"     distinct Card Type values: {kinds}")
+
+
+def _switch1_report(tab: str, rows: list[list]) -> None:
+    """The drift report for one Switch 1 tab: what the parser will meet."""
+    header = _header_index(rows, SWITCH1_REQUIRED)
+    if header is None:
+        print(f"     HEADER NOT FOUND: no row has {', '.join(SWITCH1_REQUIRED)}")
+        for index, row in enumerate(rows[:8]):
+            print(f"     row {index}: {[str(cell)[:30] for cell in row[:12]]}")
+        return
+    columns = [str(cell).strip() for cell in rows[header]]
+    folded = [column.casefold() for column in columns]
+    body = rows[header + 1 :]
+    print(f"     header at row {header}: {columns}")
+    print(f"     data rows after header: {len(body)}")
+
+    def values(name: str) -> list[str]:
+        if name.casefold() not in folded:
+            return []
+        index = folded.index(name.casefold())
+        return [
+            str(row[index]).strip()
+            for row in body
+            if len(row) > index and str(row[index]).strip()
+        ]
+
+    print(f"     regions: {sorted(set(values('Region')))}")
+    if tab == "master":
+        same = [column for column in columns if column] == list(SWITCH1_MASTER_HEADER)
+        print(f"     matches the spec's Master header: {same}")
+        carts = values("Cart ID")
+        shaped = sum(
+            1
+            for cart in carts
+            if SWITCH_1_CART_ID_PATTERN.match(cart.split(" / ")[0].strip().upper())
+        )
+        print(
+            f"     Cart IDs: {len(carts)} filled, {shaped} shaped "
+            "(limits.SWITCH_1_CART_ID_PATTERN, first of 'A / B')"
+        )
+        dates = sorted(set(values("Release Date")))
+        print(f"     Release Date shapes: {dates[:5]} ... {dates[-5:]}")
+        notes = [
+            note
+            for note in values("Other Info") + values("Edition Info")
+            if "download" in note.casefold()
+        ]
+        print(f"     Other/Edition Info mentioning downloads: {len(notes)}")
+        for note in notes[:10]:
+            print(f"       - {note[:100]}")
+    else:
+        print(f"     CIAB only? values: {sorted(set(values('CIAB only?')))}")
+    deaths_door = [
+        [str(cell)[:40] for cell in row]
+        for row in body
+        if any(
+            "death's door" in str(cell).casefold().replace("\u2019", "'")
+            for cell in row
+        )
+    ]
+    print(f"     Death's Door rows: {len(deaths_door)}")
+    for row in deaths_door:
+        print(f"       {row}")
+
+
+def blank_unread(rows: list[list]) -> list[list]:
+    """A copy of the Master rows with SWITCH1_UNREAD emptied below the header.
+
+    The header and the rows above it are kept as they are. Trailing empty
+    cells are dropped, as the Sheets API drops them. Without a header the rows
+    are returned unchanged and the drift report says so.
+    """
+    header = _header_index(rows, SWITCH1_REQUIRED)
+    if header is None:
+        return [list(row) for row in rows]
+    unread = {name.casefold() for name in SWITCH1_UNREAD}
+    blank = {
+        index
+        for index, cell in enumerate(rows[header])
+        if str(cell).strip().casefold() in unread
+    }
+    out = [list(row) for row in rows[: header + 1]]
+    for row in rows[header + 1 :]:
+        cells = ["" if index in blank else cell for index, cell in enumerate(row)]
+        while cells and cells[-1] == "":
+            cells.pop()
+        out.append(cells)
+    return out
+
+
+async def record_registry_switch1(recorder: Recorder, key: str | None) -> None:
+    """The Switch 1 sheet: its tab list, then the Master and CIAB tabs whole."""
+    if key is None:
+        recorder.fail("registry_switch1", "GOOGLE_SHEETS_API_KEY is not set; skipped")
+        return
+    _, out = SOURCES["registry_switch1"][0]
+    properties = await recorder.get_json(
+        out, SWITCH1_SHEETS_API, {"fields": "sheets.properties", "key": key}
+    )
+    if properties is None:
+        return
+    recorder.write_json(out, out, properties)
+    titles = {
+        sheet.get("properties", {}).get("sheetId"): sheet.get("properties", {}).get(
+            "title"
+        )
+        for sheet in properties.get("sheets", [])
+    }
+    print(f"ok   {out}  {len(titles)} tabs")
+    for tab, gid in SWITCH1_TABS.items():
+        out = f"registry_switch1/{tab}.json"
+        title = titles.get(gid)
+        print(f"     gid {gid} ({tab}) -> {title!r}")
+        if not title:
+            recorder.fail(out, f"no tab with gid {gid}")
+            continue
+        values_url = f"{SWITCH1_SHEETS_API}/values/{quote(_a1_sheet(title), safe='')}"
+        payload = await recorder.get_json(out, values_url, {"key": key})
+        if payload is None:
+            continue
+        rows = payload.get("values", [])
+        if tab == "master":
+            payload = {**payload, "values": blank_unread(rows)}
+        recorder.write_json(out, out, payload)
+        size = len(json.dumps(payload, ensure_ascii=False)) // 1024
+        print(f"ok   {out}  {len(rows)} rows, {size} KB")
+        # The live rows, not the blanked copy: the download-note count reads
+        # Other Info.
+        _switch1_report(tab, rows)
+
+
+# Cases the tracker parser's tests need, each checked in file order.
+_TRACKER_CASES = {
+    "per-region, mixed formats": lambda g: (
+        len(set((g.get("formats") or {}).values())) > 1
+    ),
+    "per-region": lambda g: bool(g.get("formats")),
+    "fmt c, no formats": lambda g: g.get("fmt") == "c" and not g.get("formats"),
+    "fmt k": lambda g: g.get("fmt") == "k",
+    "fmt b": lambda g: g.get("fmt") == "b",
+    "fmt d": lambda g: g.get("fmt") == "d",
+    "fmt ?": lambda g: g.get("fmt") == "?",
+    "date Mon D, YYYY": lambda g: bool(
+        re.fullmatch(r"[A-Z][a-z]{2} \d{1,2}, \d{4}", str(g.get("date", "")))
+    ),
+    "date YYYY": lambda g: bool(re.fullmatch(r"\d{4}", str(g.get("date", "")))),
+    "date Qn YYYY": lambda g: bool(
+        re.fullmatch(r"Q[1-4] \d{4}", str(g.get("date", "")))
+    ),
+    "date TBA": lambda g: str(g.get("date", "")).strip().upper() == "TBA",
+}
+
+
+def _games_list(payload: object) -> tuple[list[dict], str | None]:
+    """The games array and the key holding it (None for a bare list)."""
+    if isinstance(payload, list):
+        return payload, None
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if isinstance(value, list) and value and isinstance(value[0], dict):
+                return value, key
+    return [], None
+
+
+def trim_tracker(payload: object) -> tuple[object, dict[str, int | None]]:
+    """A deterministic excerpt covering every case, filled in file order."""
+    games, key = _games_list(payload)
+    chosen: dict[str, int | None] = {}
+    picked: set[int] = set()
+    for case, test in _TRACKER_CASES.items():
+        index = next((i for i, game in enumerate(games) if test(game)), None)
+        chosen[case] = index
+        if index is not None:
+            picked.add(index)
+    for index in range(len(games)):
+        if len(picked) >= TRACKER_EXCERPT:
+            break
+        picked.add(index)
+    excerpt = [games[index] for index in sorted(picked)]
+    if key is None:
+        return excerpt, chosen
+    return {**payload, key: excerpt}, chosen
+
+
+async def record_tracker(recorder: Recorder) -> None:
+    url, out = SOURCES["tracker"][0]
+    if not recorder.allowed(out, url):
+        return
+    payload = await recorder.get_json(out, url)
+    if payload is None:
+        return
+    games, key = _games_list(payload)
+    if not games:
+        recorder.fail(out, "no games array found")
+        return
+    excerpt, chosen = trim_tracker(payload)
+    recorder.write_json(out, out, excerpt)
+    top = sorted(payload) if isinstance(payload, dict) else "a bare list"
+    print(f"ok   {out}  {len(games)} games, excerpt of {len(_games_list(excerpt)[0])}")
+    print(f"     top-level keys: {top}; games under {key!r}")
+    print(f"     game fields: {sorted(games[0])}")
+    for case, index in chosen.items():
+        print(f"     {case}: {'MISSING' if index is None else f'game #{index}'}")
+
+
+def _igdb_source(recorder: Recorder, out: str):
+    """An IgdbSource on the API's own config, or None (recorded as a failure).
+    Its credentials join the secrets every write and failure is checked for."""
+    from sources.igdb import IgdbSource
+
+    try:
+        loaded = config.load_config()
+    except config.ConfigError as error:
+        recorder.fail(out, str(error))
+        return None
+    recorder.secrets += [
+        secret
+        for secret in (loaded.igdb_client_id, loaded.igdb_client_secret)
+        if secret
+    ]
+    return IgdbSource(loaded)
+
+
+async def record_igdb(recorder: Recorder) -> None:
+    out = "igdb/n64_page1.json"
+    igdb = _igdb_source(recorder, out)
+    if igdb is None:
+        return
+    try:
+        rows = await igdb._query(IGDB_N64_QUERY)
+    except Exception as error:  # reported, redacted, and the run carries on
+        recorder.fail(out, f"{type(error).__name__}: {error}")
+        return
+    recorder.write_json(out, out, rows)
+    covered = sum(1 for row in rows if row.get("cover"))
+    print(f"ok   {out}  {len(rows)} games, {covered} with a cover")
+
+
+def _names(row: dict) -> set[str]:
+    names = {str(row.get("name", ""))}
+    names |= {
+        str(alternative.get("name", ""))
+        for alternative in row.get("alternative_names") or []
+        if isinstance(alternative, dict)
+    }
+    return {name.casefold().replace("\u2019", "'") for name in names if name}
+
+
+async def record_igdb_switch(recorder: Recorder) -> None:
+    """One page of IGDB's Switch titles and the Death's Door search, for the
+    Switch 1 bulk matcher's tests."""
+    queries = (
+        ("igdb/switch_titles_p1.json", IGDB_SWITCH_QUERY),
+        ("igdb/switch_titles_deaths_door.json", IGDB_SWITCH_DEATHS_DOOR_QUERY),
+    )
+    igdb = _igdb_source(recorder, queries[0][0])
+    if igdb is None:
+        return
+    for out, query in queries:
+        try:
+            rows = await igdb._query(query)
+        except Exception as error:  # reported, redacted, and the run carries on
+            recorder.fail(out, f"{type(error).__name__}: {error}")
+            continue
+        recorder.write_json(out, out, rows)
+        alternative = sum(1 for row in rows if row.get("alternative_names"))
+        print(f"ok   {out}  {len(rows)} games, {alternative} with alternative names")
+        if out.endswith("deaths_door.json"):
+            exact = [row.get("id") for row in rows if "death's door" in _names(row)]
+            print(f'     named or also known as "Death\'s Door": {exact}')
+
+
+def _fixture_bytes() -> int:
+    return sum(path.stat().st_size for path in FIXTURES.rglob("*") if path.is_file())
+
+
+async def record(
+    names: list[str] | None,
+    igdb: bool,
+    all_pages: bool = False,
+    strip_bodies: bool = False,
+    igdb_switch: bool = False,
+) -> None:
+    """Records the named sources (default all); exits 1 if anything failed."""
+    names = names or list(SOURCES)
+    sheets_key = os.environ.get("GOOGLE_SHEETS_API_KEY", "").strip() or None
+    async with httpx2.AsyncClient(
+        headers={"User-Agent": USER_AGENT},
+        timeout=TIMEOUT,
+        follow_redirects=True,
+    ) as client:
+        recorder = Recorder(client, [sheets_key])
+        recorder.strip_bodies = strip_bodies
+        await record_robots(recorder, _hosts(names))
+        for name in names:
+            if name in SHOPIFY_STORES:
+                pages = await record_shopify(recorder, name, all_pages)
+                if name == "limited_run":
+                    await record_limited_run_html(recorder, pages)
+            elif name in WOO_STORES:
+                await record_woo(recorder, name, all_pages)
+            elif name == "registry":
+                await record_registry(recorder, sheets_key)
+            elif name == "registry_switch1":
+                await record_registry_switch1(recorder, sheets_key)
+            elif name == "tracker":
+                await record_tracker(recorder)
+        if igdb:
+            await record_igdb(recorder)
+        if igdb_switch:
+            await record_igdb_switch(recorder)
+
+    print(f"\nwrote {recorder.written} files under {FIXTURES.relative_to(BACKEND)}")
+    size = _fixture_bytes()
+    print(f"fixtures: {size / 1024 / 1024:.1f} MB")
+    if size > SIZE_GATE_BYTES and not strip_bodies:
+        print("     over the size gate: re-run with --all-pages --strip-bodies")
+    if recorder.failures:
+        print(f"{len(recorder.failures)} failure(s):")
+        for failure in recorder.failures:
+            print(f"  - {failure}")
+        raise SystemExit(1)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "names",
+        nargs="*",
+        metavar="NAME",
+        help=f"sources to record (default all): {', '.join(SOURCES)}",
+    )
+    parser.add_argument(
+        "--igdb", action="store_true", help="also record one IGDB N64 page"
+    )
+    parser.add_argument(
+        "--igdb-switch",
+        action="store_true",
+        help="also record IGDB's Switch titles page 1 and the Death's Door search",
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="print the plan and fetch nothing"
+    )
+    parser.add_argument(
+        "--all-pages",
+        action="store_true",
+        help="record every page of each store listing, not only page 1",
+    )
+    parser.add_argument(
+        "--strip-bodies",
+        action="store_true",
+        help="with --all-pages: write pages 2 and on without descriptions",
+    )
+    args = parser.parse_args()
+    names = args.names or list(SOURCES)
+    unknown = [name for name in names if name not in SOURCES]
+    if unknown:
+        parser.error(f"unknown source(s): {', '.join(unknown)}")
+
+    if args.list:
+        for host in _hosts(names):
+            print(f"https://{host}/robots.txt -> robots/{host}.txt")
+        for name in names:
+            for url, out in SOURCES[name]:
+                more = "  (and following pages until a short page)"
+                print(f"{url} -> {out}{more if args.all_pages else ''}")
+        for line in describe_dynamic(names, args.igdb, args.igdb_switch):
+            print(line)
+        return
+    asyncio.run(
+        record(names, args.igdb, args.all_pages, args.strip_bodies, args.igdb_switch)
+    )
+
+
+if __name__ == "__main__":
+    main()

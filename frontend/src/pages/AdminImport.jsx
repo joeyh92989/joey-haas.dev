@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import { apiFetch } from '../lib/api.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const NO_MATCH = 'none'
@@ -39,6 +40,7 @@ function candidateKey(candidate) {
  * loses the batch, and re-uploading the photographs reproduces it.
  */
 export default function AdminImport() {
+  usePageTitle('Import from photos · Admin')
   const [rows, setRows] = useState([])
   const [state, setState] = useState('idle')
   const [error, setError] = useState(null)

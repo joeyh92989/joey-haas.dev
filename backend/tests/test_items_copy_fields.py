@@ -6,6 +6,7 @@ changes through it, and that a refused bulk set writes nothing at all.
 
 import uuid
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 import pytest
 from fastapi import FastAPI
@@ -13,7 +14,7 @@ from httpx2 import ASGITransport, AsyncClient
 from starlette.middleware.sessions import SessionMiddleware
 
 from items import create_items_router
-from models import Item, ItemStatus, ItemType
+from models import CatalogueGame, Item, ItemStatus, ItemType, PhysicalEdition
 
 pytestmark = pytest.mark.asyncio
 
@@ -265,3 +266,93 @@ async def test_a_bulk_set_needs_a_session(sessionmaker_for_test):
         )
 
     assert response.status_code == 401
+
+
+# --- "Use registry value": edition_id (E7c) -------------------------------------
+
+
+async def _registry(factory, **edition) -> uuid.UUID:
+    async with factory() as session:
+        session.add(CatalogueGame(igdb_id=77, title="A Game", snapshot={}))
+        row = PhysicalEdition(
+            source="nscollectors",
+            source_ref="a game|USA|pub|game card",
+            title="A Game",
+            title_normalized="a game",
+            platform_id=508,
+            platform="Nintendo Switch 2",
+            region="USA",
+            is_physical=True,
+            physical_format=edition.pop("physical_format", "game_card"),
+            format_source="registry",
+            cart_id="LB-ABCDE-USA-0",
+            igdb_id=77,
+            retired_at=datetime.now(UTC) if edition.pop("retired", False) else None,
+        )
+        session.add(row)
+        await session.commit()
+        return row.id
+
+
+def _copy(**fields) -> dict:
+    return {
+        "external_source": "igdb",
+        "external_id": "77",
+        "platform_id": 508,
+        **fields,
+    }
+
+
+async def test_patch_with_edition_id_adopts_the_registry_format(sessionmaker_for_test):
+    edition = await _registry(sessionmaker_for_test)
+    (item_id,) = await _seed(sessionmaker_for_test, _copy())
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            f"/api/items/{item_id}", json={"edition_id": str(edition)}
+        )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["physical_format"], body["format_source"]) == ("game_card", "registry")
+    # The registry's cart ID describes someone's copy, not this one.
+    assert body["cart_id"] is None
+
+
+async def test_patch_with_edition_id_is_refused_over_a_cart_id(sessionmaker_for_test):
+    edition = await _registry(sessionmaker_for_test)
+    (item_id,) = await _seed(
+        sessionmaker_for_test,
+        _copy(
+            cart_id="LP-AAC4B-USA-0",
+            physical_format="game_key_card",
+            format_source="cart_id",
+        ),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            f"/api/items/{item_id}", json={"edition_id": str(edition)}
+        )
+    assert response.status_code == 422
+    assert "LP-AAC4B-USA-0" in response.json()["detail"]
+
+
+async def test_an_unknown_or_retired_edition_is_404(sessionmaker_for_test):
+    retired = await _registry(sessionmaker_for_test, retired=True)
+    (item_id,) = await _seed(sessionmaker_for_test, _copy())
+    async with client_for(sessionmaker_for_test) as client:
+        gone = await client.patch(
+            f"/api/items/{item_id}", json={"edition_id": str(retired)}
+        )
+        unknown = await client.patch(
+            f"/api/items/{item_id}", json={"edition_id": str(uuid.uuid4())}
+        )
+    assert (gone.status_code, unknown.status_code) == (404, 404)
+
+
+async def test_an_edition_of_another_game_is_422(sessionmaker_for_test):
+    edition = await _registry(sessionmaker_for_test)
+    (item_id,) = await _seed(sessionmaker_for_test, _copy(external_id="78"))
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            f"/api/items/{item_id}", json={"edition_id": str(edition)}
+        )
+    assert response.status_code == 422

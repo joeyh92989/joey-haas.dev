@@ -1,0 +1,406 @@
+{
+  "sheets": [
+    {
+      "properties": {
+        "sheetId": 558942722,
+        "title": "Switch 2 Release Summary",
+        "index": 0,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 515,
+          "columnCount": 40,
+          "frozenRowCount": 5
+        },
+        "tabColor": {
+          "red": 1,
+          "blue": 0.21960784
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1,
+            "blue": 0.21960784
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 764784245,
+        "title": "Switch 2 Release Details",
+        "index": 1,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 753,
+          "columnCount": 27,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1,
+          "green": 0.27058825,
+          "blue": 0.32941177
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1,
+            "green": 0.27058825,
+            "blue": 0.32941177
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 2004832329,
+        "title": "Physical Release Master (Hidden) V3",
+        "index": 2,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 8720,
+          "columnCount": 26
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 616499438,
+        "title": "Physical Switch 2 Release Summary",
+        "index": 3,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 3860,
+          "columnCount": 23,
+          "frozenRowCount": 5
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1,
+          "green": 0.27058825,
+          "blue": 0.32941177
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1,
+            "green": 0.27058825,
+            "blue": 0.32941177
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 809259714,
+        "title": "USA",
+        "index": 4,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2040,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 42720573,
+        "title": "KOR",
+        "index": 5,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 660,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1980856968,
+        "title": "JPN",
+        "index": 6,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1738,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 301550978,
+        "title": "EUR",
+        "index": 7,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2061,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 917558601,
+        "title": "CHN",
+        "index": 8,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1003,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1372701321,
+        "title": "CHT",
+        "index": 9,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 677,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 277424981,
+        "title": "AUS",
+        "index": 10,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 974,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 275130355,
+        "title": "ASI",
+        "index": 11,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1061,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 887819792,
+        "title": "Upcoming Switch 2 Release Summary",
+        "index": 12,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2357,
+          "columnCount": 31,
+          "frozenRowCount": 5
+        },
+        "tabColor": {
+          "red": 0.25490198,
+          "green": 0.7019608,
+          "blue": 0.05882353
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 0.25490198,
+            "green": 0.7019608,
+            "blue": 0.05882353
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 238551450,
+        "title": "Upcoming Switch 2 Releases",
+        "index": 13,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1156,
+          "columnCount": 26,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 0.25490198,
+          "green": 0.7019608,
+          "blue": 0.05882353
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 0.25490198,
+            "green": 0.7019608,
+            "blue": 0.05882353
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 545693085,
+        "title": "Change Log",
+        "index": 14,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 11242,
+          "columnCount": 5,
+          "frozenRowCount": 2
+        },
+        "tabColor": {
+          "red": 0.23529412,
+          "green": 0.47058824,
+          "blue": 0.84705883
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 0.23529412,
+            "green": 0.47058824,
+            "blue": 0.84705883
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 773382869,
+        "title": "Upcoming Release Details V1",
+        "index": 15,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1545,
+          "columnCount": 18,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 0.6,
+          "green": 0.37254903,
+          "blue": 0.7921569
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 0.6,
+            "green": 0.37254903,
+            "blue": 0.7921569
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1817719745,
+        "title": "(Legacy) Upcoming Releases",
+        "index": 16,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 363,
+          "columnCount": 12,
+          "frozenRowCount": 3
+        },
+        "hidden": true,
+        "tabColorStyle": {
+          "rgbColor": {}
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 464003240,
+        "title": "Sheet3",
+        "index": 17,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10000,
+          "columnCount": 13
+        },
+        "hidden": true
+      }
+    }
+  ]
+}

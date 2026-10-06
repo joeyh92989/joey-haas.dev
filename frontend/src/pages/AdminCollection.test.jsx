@@ -377,10 +377,7 @@ describe('AdminCollection shelf', () => {
       'href',
       '/admin/collection/a',
     )
-    expect(card('Dune').getByRole('link')).toHaveAttribute(
-      'href',
-      '/collection/b',
-    )
+    expect(card('Dune').getByRole('link')).toHaveAttribute('href', '/spine/b')
   })
 
   it('dims finished items by default', async () => {

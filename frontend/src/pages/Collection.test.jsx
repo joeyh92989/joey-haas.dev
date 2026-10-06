@@ -2,12 +2,31 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { readSnapshot } from '../lib/snapshot.js'
 import Collection from './Collection.jsx'
 
 // A wide screen: the sort renders as buttons. The narrow select variant is
 // covered in SortControl.test.jsx.
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
+
+vi.mock('../lib/snapshot.js', () => ({ readSnapshot: vi.fn() }))
+
+// The band reads its own snapshot and API; it is tested in NextBand.test.jsx,
+// so the shelf tests do not depend on it.
+vi.mock('../components/NextBand.jsx', () => ({ default: () => null }))
+
+beforeEach(() => {
+  vi.mocked(readSnapshot).mockReset()
+  vi.mocked(readSnapshot).mockResolvedValue(null)
+})
+
+/** A snapshot of the given rows and stats, as the build wrote them. */
+function stubSnapshot({ items = ITEMS, stats = STATS } = {}) {
+  vi.mocked(readSnapshot).mockImplementation(async (name) =>
+    name === 'items' ? items : name === 'stats' ? stats : null,
+  )
+}
 
 /**
  * Queries scoped to the poster grid.
@@ -77,18 +96,28 @@ const STATS = {
   by_format: {},
 }
 
-function stubApi({ items = ITEMS, stats = STATS, itemsOk = true } = {}) {
+function stubApi({
+  items = ITEMS,
+  stats = STATS,
+  itemsOk = true,
+  statsOk = true,
+} = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url) => {
-      if (String(url).includes('/api/public/items')) {
+      const path = String(url)
+      if (path.includes('/api/public/items')) {
         return {
           ok: itemsOk,
           status: itemsOk ? 200 : 500,
           json: async () => items,
         }
       }
-      return { ok: true, status: 200, json: async () => stats }
+      return {
+        ok: statsOk,
+        status: statsOk ? 200 : 500,
+        json: async () => stats,
+      }
     }),
   )
 }
@@ -133,7 +162,7 @@ describe('Collection', () => {
 
     expect(grid().getByRole('link', { name: /Dune/ })).toHaveAttribute(
       'href',
-      '/collection/1',
+      '/spine/1',
     )
   })
 
@@ -183,6 +212,13 @@ describe('Collection', () => {
     expect(
       screen.queryByRole('region', { name: 'Favourites' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('does not ask visitors to pick favourites when there are none', async () => {
+    stubApi({ items: ITEMS.map((item) => ({ ...item, favorite: false })) })
+    await renderReady()
+
+    expect(screen.queryByText(/pick your favourites/i)).toBeNull()
   })
 
   it('draws the status bar with named segments and a legend', async () => {
@@ -533,11 +569,45 @@ describe('Collection platforms and formats', () => {
     })
     await renderReady()
 
+    const block = screen.getByRole('region', { name: 'On cartridge' })
+    expect(block.closest('.shelf-stats')).not.toBeNull()
     expect(
-      screen.getByText(
-        'Nintendo Switch 2 · 61 on cartridge · 3 Game-Key Cards · 4 not recorded, of 68',
-      ),
+      within(block).getByText('Nintendo Switch 2 — 61 of 68'),
     ).toBeInTheDocument()
+    expect(
+      within(block).getByText('3 Game-Key Cards · 4 not recorded'),
+    ).toBeInTheDocument()
+  })
+
+  it('labels the ends of the ratings axis and titles every bar', async () => {
+    stubApi()
+    await renderReady()
+
+    const ratings = screen.getByRole('region', { name: 'Ratings' })
+    const axis = ratings.querySelector('.bar-axis')
+    expect(axis).toHaveAttribute('aria-hidden', 'true')
+    expect([...axis.children].map((label) => label.textContent)).toEqual([
+      '1',
+      '10',
+    ])
+    for (const bar of within(ratings).getAllByRole('img')) {
+      expect(bar).toHaveAttribute('title', bar.getAttribute('aria-label'))
+    }
+  })
+
+  it('labels each month of the finishes strip with its initial', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-03-20T12:00:00Z'))
+    stubApi()
+    await renderReady()
+
+    const finishes = screen.getByRole('region', { name: 'Finishes' })
+    const axis = finishes.querySelector('.bar-axis')
+    expect(axis).toHaveAttribute('aria-hidden', 'true')
+    expect(axis.textContent).toBe('AMJJASONDJFM')
+    for (const bar of within(finishes).getAllByRole('img')) {
+      expect(bar).toHaveAttribute('title', bar.getAttribute('aria-label'))
+    }
   })
 
   it('has no on-cartridge line before any format is recorded', async () => {
@@ -557,33 +627,153 @@ describe('Collection platforms and formats', () => {
     })
     await renderReady()
 
-    expect(screen.queryByText(/on cartridge/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'On cartridge' })).toBeNull()
   })
 })
 
-describe('Collection Up next', () => {
-  it('shows the pinned game as Up next, linked to its page', async () => {
-    stubApi({
-      items: [
-        { ...ITEMS[0], pinned: true },
-        { ...ITEMS[1], pinned: false },
-      ],
-    })
+describe('Collection snapshot', () => {
+  it('paints the snapshot while the server wakes, with no waking notice', async () => {
+    stubSnapshot()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
     await renderReady()
 
-    const upNext = screen.getByRole('region', { name: 'Up next' })
-    expect(within(upNext).getByRole('link', { name: /Dune/ })).toHaveAttribute(
-      'href',
-      '/collection/1',
-    )
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
+    expect(screen.queryByText(/waking the server/i)).toBeNull()
   })
 
-  it('shows nothing when no game is pinned', async () => {
-    stubApi({ items: ITEMS.map((item) => ({ ...item, pinned: false })) })
+  it('replaces the snapshot with live data when it arrives', async () => {
+    stubSnapshot({ items: [ITEMS[0]] })
+    stubApi()
+    renderPage()
+
+    await waitFor(() => expect(gridTitles()).toEqual(['Gloomhaven', 'Dune']))
+  })
+
+  it('keeps the snapshot when the live load fails', async () => {
+    stubSnapshot()
+    stubApi({ itemsOk: false })
+    await renderReady()
+
+    await new Promise((done) => setTimeout(done, 50))
+    expect(screen.queryByText(/could not be loaded/i)).toBeNull()
+    expect(gridTitles()).toHaveLength(2)
+  })
+
+  it('keeps the snapshot stats when live items load but live stats fail', async () => {
+    stubSnapshot({
+      items: [ITEMS[0]],
+      stats: { ...STATS, owned: 68 },
+    })
+    stubApi({ statsOk: false })
+    renderPage()
+
+    await waitFor(() => expect(gridTitles()).toEqual(['Gloomhaven', 'Dune']))
+    const hero = within(document.querySelector('.hero-numbers'))
+    expect(hero.getByText('68')).toBeInTheDocument()
+    expect(hero.getByText('Owned')).toBeInTheDocument()
+  })
+
+  it('ignores a snapshot that arrives after the live data', async () => {
+    const releases = []
+    vi.mocked(readSnapshot).mockImplementation(
+      (name) =>
+        new Promise((done) => {
+          releases.push(() => done(name === 'items' ? [ITEMS[0]] : STATS))
+        }),
+    )
+    stubApi()
+    await renderReady()
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
+
+    for (const release of releases) release()
+    await new Promise((done) => setTimeout(done, 50))
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
+  })
+})
+
+describe('Collection and What’s next', () => {
+  it('leaves the living strips to What’s next', async () => {
+    stubSnapshot()
+    stubApi()
+    await renderReady()
+
+    for (const name of ['Recent picks', 'Coming to cartridge', 'On the radar'])
+      expect(screen.queryByRole('heading', { name })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Up next' })).toBeNull()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(
+      screen.getByRole('navigation', { name: 'Spine sections' }),
+    ).toBeInTheDocument()
+  })
+
+  it('puts the project line at the foot of the page', async () => {
+    stubSnapshot()
+    stubApi()
+    await renderReady()
+
+    expect(document.querySelector('.attribution .spine-project')).not.toBeNull()
+  })
+
+  it('keeps the header and its tabs while loading and on error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    const { unmount } = renderPage()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(
+      screen.getByRole('navigation', { name: 'Spine sections' }),
+    ).toBeInTheDocument()
+    unmount()
+
+    stubApi({ itemsOk: false })
+    renderPage()
+    await screen.findByText(/could not be loaded/i)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('navigation', { name: 'Spine sections' }),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('Collection header', () => {
+  it('names Spine, says what it is, and links the post and the source', async () => {
+    stubApi()
     await renderReady()
 
     expect(
-      screen.queryByRole('region', { name: 'Up next' }),
-    ).not.toBeInTheDocument()
+      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/^A tracker for my physical game collection:/),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/^I built this:/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /How it works/ })).toHaveAttribute(
+      'href',
+      '/blog/how-spine-works',
+    )
+    expect(screen.getByRole('link', { name: /Source/ })).toHaveAttribute(
+      'href',
+      'https://github.com/joeyh92989/joey-haas.dev',
+    )
+  })
+
+  // A cold start leads with the waking notice, not a project pitch.
+  it('keeps the project line out of the loading state', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    renderPage()
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/^I built this:/)).toBeNull()
   })
 })

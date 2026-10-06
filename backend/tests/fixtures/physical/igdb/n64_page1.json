@@ -1,0 +1,2342 @@
+[
+  {
+    "id": 154,
+    "cover": {
+      "id": 182131,
+      "image_id": "co3wj7"
+    },
+    "first_release_date": 926985600,
+    "name": "Star Wars: Episode I - Racer",
+    "total_rating_count": 210
+  },
+  {
+    "id": 156,
+    "cover": {
+      "id": 111393,
+      "image_id": "co2dy9"
+    },
+    "first_release_date": 977097600,
+    "name": "Star Wars: Episode I - Battle for Naboo",
+    "total_rating_count": 14
+  },
+  {
+    "id": 163,
+    "cover": {
+      "id": 352556,
+      "image_id": "co7k18"
+    },
+    "first_release_date": 911260800,
+    "name": "Star Wars: Rogue Squadron",
+    "total_rating_count": 130
+  },
+  {
+    "id": 164,
+    "cover": {
+      "id": 101011,
+      "image_id": "co25xv"
+    },
+    "first_release_date": 849398400,
+    "name": "Star Wars: Shadows of the Empire",
+    "total_rating_count": 85
+  },
+  {
+    "id": 188,
+    "cover": {
+      "id": 105143,
+      "image_id": "co294n"
+    },
+    "first_release_date": 943315200,
+    "name": "Indiana Jones and the Infernal Machine",
+    "total_rating_count": 36
+  },
+  {
+    "id": 360,
+    "cover": {
+      "id": 190682,
+      "image_id": "co434q"
+    },
+    "first_release_date": 973728000,
+    "name": "Disney's Donald Duck: Goin' Quackers",
+    "total_rating_count": 33
+  },
+  {
+    "id": 422,
+    "cover": {
+      "id": 323713,
+      "image_id": "co6xs1"
+    },
+    "first_release_date": 933379200,
+    "name": "LEGO Racers",
+    "total_rating_count": 85
+  },
+  {
+    "id": 647,
+    "cover": {
+      "id": 384415,
+      "image_id": "co88m7"
+    },
+    "first_release_date": 812073600,
+    "name": "Command & Conquer",
+    "total_rating_count": 340
+  },
+  {
+    "id": 699,
+    "cover": {
+      "id": 321511,
+      "image_id": "co6w2v"
+    },
+    "first_release_date": 897436800,
+    "name": "FIFA 99",
+    "total_rating_count": 118
+  },
+  {
+    "id": 705,
+    "cover": {
+      "id": 85664,
+      "image_id": "co1u3k"
+    },
+    "first_release_date": 880848000,
+    "name": "FIFA: Road to World Cup 98",
+    "total_rating_count": 124
+  },
+  {
+    "id": 779,
+    "cover": {
+      "id": 322332,
+      "image_id": "co6wpo"
+    },
+    "first_release_date": 901756800,
+    "name": "Madden NFL 99",
+    "total_rating_count": 6
+  },
+  {
+    "id": 811,
+    "cover": {
+      "id": 154604,
+      "image_id": "co3bak"
+    },
+    "first_release_date": 909792000,
+    "name": "NBA Live 99",
+    "total_rating_count": 20
+  },
+  {
+    "id": 812,
+    "cover": {
+      "id": 322346,
+      "image_id": "co6wq2"
+    },
+    "first_release_date": 878342400,
+    "name": "NFL Blitz",
+    "total_rating_count": 21
+  },
+  {
+    "id": 843,
+    "cover": {
+      "id": 375214,
+      "image_id": "co81im"
+    },
+    "first_release_date": 940464000,
+    "name": "Rayman 2: The Great Escape",
+    "total_rating_count": 208
+  },
+  {
+    "id": 912,
+    "cover": {
+      "id": 162573,
+      "image_id": "co3hfx"
+    },
+    "first_release_date": 846115200,
+    "name": "Tomb Raider",
+    "total_rating_count": 481
+  },
+  {
+    "id": 948,
+    "cover": {
+      "id": 82380,
+      "image_id": "co1rkc"
+    },
+    "first_release_date": 917568000,
+    "name": "Worms Armageddon",
+    "total_rating_count": 367
+  },
+  {
+    "id": 980,
+    "cover": {
+      "id": 120924,
+      "image_id": "co2lb0"
+    },
+    "first_release_date": 877392000,
+    "name": "Grand Theft Auto",
+    "total_rating_count": 502
+  },
+  {
+    "id": 1029,
+    "cover": {
+      "id": 170637,
+      "image_id": "co3nnx"
+    },
+    "first_release_date": 911606400,
+    "name": "The Legend of Zelda: Ocarina of Time",
+    "total_rating_count": 2168
+  },
+  {
+    "id": 1030,
+    "cover": {
+      "id": 172745,
+      "image_id": "co3pah"
+    },
+    "first_release_date": 956793600,
+    "name": "The Legend of Zelda: Majora's Mask",
+    "total_rating_count": 874
+  },
+  {
+    "id": 1074,
+    "cover": {
+      "id": 329251,
+      "image_id": "co721v"
+    },
+    "first_release_date": 835488000,
+    "name": "Super Mario 64",
+    "total_rating_count": 2080
+  },
+  {
+    "id": 1096,
+    "cover": {
+      "id": 104022,
+      "image_id": "co289i"
+    },
+    "first_release_date": 943228800,
+    "name": "Donkey Kong 64",
+    "total_rating_count": 191
+  },
+  {
+    "id": 1130,
+    "cover": {
+      "id": 254531,
+      "image_id": "co5geb"
+    },
+    "first_release_date": 917308800,
+    "name": "Castlevania",
+    "total_rating_count": 40
+  },
+  {
+    "id": 1131,
+    "cover": {
+      "id": 239526,
+      "image_id": "co54ti"
+    },
+    "first_release_date": 944611200,
+    "name": "Castlevania: Legacy of Darkness",
+    "total_rating_count": 19
+  },
+  {
+    "id": 1257,
+    "cover": {
+      "id": 320563,
+      "image_id": "co6vcj"
+    },
+    "first_release_date": 913420800,
+    "name": "South Park",
+    "total_rating_count": 48
+  },
+  {
+    "id": 1258,
+    "cover": {
+      "id": 277236,
+      "image_id": "co5xx0"
+    },
+    "first_release_date": 939686400,
+    "name": "South Park: Chef's Luv Shack",
+    "total_rating_count": 12
+  },
+  {
+    "id": 1259,
+    "cover": {
+      "id": 154518,
+      "image_id": "co3b86"
+    },
+    "first_release_date": 947030400,
+    "name": "South Park Rally",
+    "total_rating_count": 16
+  },
+  {
+    "id": 1286,
+    "cover": {
+      "id": 86478,
+      "image_id": "co1uq6"
+    },
+    "first_release_date": 983750400,
+    "name": "Conker's Bad Fur Day",
+    "total_rating_count": 150
+  },
+  {
+    "id": 1292,
+    "cover": {
+      "id": 297810,
+      "image_id": "co6dsi"
+    },
+    "first_release_date": 900633600,
+    "name": "Penny Racers",
+    "total_rating_count": 5
+  },
+  {
+    "id": 1321,
+    "cover": {
+      "id": 418589,
+      "image_id": "co8yzh"
+    },
+    "first_release_date": 857088000,
+    "name": "Turok: Dinosaur Hunter",
+    "total_rating_count": 92
+  },
+  {
+    "id": 1326,
+    "cover": {
+      "id": 139636,
+      "image_id": "co2zqs"
+    },
+    "first_release_date": 913248000,
+    "name": "Turok 2: Seeds of Evil",
+    "total_rating_count": 78
+  },
+  {
+    "id": 1327,
+    "cover": {
+      "id": 139638,
+      "image_id": "co2zqu"
+    },
+    "first_release_date": 941328000,
+    "name": "Turok: Rage Wars",
+    "total_rating_count": 15
+  },
+  {
+    "id": 1328,
+    "cover": {
+      "id": 139632,
+      "image_id": "co2zqo"
+    },
+    "first_release_date": 967593600,
+    "name": "Turok 3: Shadow of Oblivion",
+    "total_rating_count": 16
+  },
+  {
+    "id": 1355,
+    "cover": {
+      "id": 353828,
+      "image_id": "co7l0k"
+    },
+    "first_release_date": 939600000,
+    "name": "Jet Force Gemini",
+    "total_rating_count": 56
+  },
+  {
+    "id": 1463,
+    "cover": {
+      "id": 336883,
+      "image_id": "co77xv"
+    },
+    "first_release_date": 958953600,
+    "name": "Perfect Dark",
+    "total_rating_count": 178
+  },
+  {
+    "id": 1467,
+    "cover": {
+      "id": 85687,
+      "image_id": "co1u47"
+    },
+    "first_release_date": 974764800,
+    "name": "Sin and Punishment",
+    "total_rating_count": 28
+  },
+  {
+    "id": 1539,
+    "cover": {
+      "id": 152882,
+      "image_id": "co39yq"
+    },
+    "first_release_date": 910051200,
+    "name": "Wipeout 64",
+    "total_rating_count": 6
+  },
+  {
+    "id": 1610,
+    "cover": {
+      "id": 90795,
+      "image_id": "co1y23"
+    },
+    "first_release_date": 875664000,
+    "name": "Mortal Kombat Mythologies: Sub-Zero",
+    "total_rating_count": 54
+  },
+  {
+    "id": 1622,
+    "cover": {
+      "id": 237769,
+      "image_id": "co53gp"
+    },
+    "first_release_date": 873936000,
+    "name": "Mortal Kombat 4",
+    "total_rating_count": 211
+  },
+  {
+    "id": 1623,
+    "cover": {
+      "id": 90796,
+      "image_id": "co1y24"
+    },
+    "first_release_date": 962323200,
+    "name": "Mortal Kombat: Special Forces",
+    "total_rating_count": 19
+  },
+  {
+    "id": 1626,
+    "cover": {
+      "id": 131928,
+      "image_id": "co2tso"
+    },
+    "first_release_date": 916876800,
+    "name": "Super Smash Bros.",
+    "total_rating_count": 474
+  },
+  {
+    "id": 1638,
+    "cover": {
+      "id": 576176,
+      "image_id": "cocckw"
+    },
+    "first_release_date": 872294400,
+    "name": "GoldenEye 007",
+    "total_rating_count": 421
+  },
+  {
+    "id": 1842,
+    "cover": {
+      "id": 91320,
+      "image_id": "co1ygo"
+    },
+    "first_release_date": 903657600,
+    "name": "Tom Clancy's Rainbow Six",
+    "total_rating_count": 80
+  },
+  {
+    "id": 1994,
+    "cover": {
+      "id": 278554,
+      "image_id": "co5yxm"
+    },
+    "first_release_date": 912470400,
+    "name": "Actua Soccer 3",
+    "total_rating_count": 5
+  },
+  {
+    "id": 2148,
+    "cover": {
+      "id": 528449,
+      "image_id": "cobbr5"
+    },
+    "first_release_date": 899078400,
+    "name": "Banjo-Kazooie",
+    "total_rating_count": 371
+  },
+  {
+    "id": 2289,
+    "cover": {
+      "id": 91957,
+      "image_id": "co1yyd"
+    },
+    "first_release_date": 925430400,
+    "name": "Pokémon Stadium",
+    "total_rating_count": 294
+  },
+  {
+    "id": 2290,
+    "cover": {
+      "id": 228103,
+      "image_id": "co4w07"
+    },
+    "first_release_date": 976752000,
+    "name": "Pokémon Stadium 2",
+    "total_rating_count": 181
+  },
+  {
+    "id": 2324,
+    "cover": {
+      "id": 221003,
+      "image_id": "co4qiz"
+    },
+    "first_release_date": 921974400,
+    "name": "Pokémon Snap",
+    "total_rating_count": 254
+  },
+  {
+    "id": 2327,
+    "cover": {
+      "id": 96867,
+      "image_id": "co22qr"
+    },
+    "first_release_date": 913939200,
+    "name": "Mario Party",
+    "total_rating_count": 185
+  },
+  {
+    "id": 2328,
+    "cover": {
+      "id": 95861,
+      "image_id": "co21yt"
+    },
+    "first_release_date": 945388800,
+    "name": "Mario Party 2",
+    "total_rating_count": 146
+  },
+  {
+    "id": 2329,
+    "cover": {
+      "id": 95862,
+      "image_id": "co21yu"
+    },
+    "first_release_date": 976147200,
+    "name": "Mario Party 3",
+    "total_rating_count": 113
+  },
+  {
+    "id": 2342,
+    "cover": {
+      "id": 289642,
+      "image_id": "co67hm"
+    },
+    "first_release_date": 850521600,
+    "name": "Mario Kart 64",
+    "total_rating_count": 609
+  },
+  {
+    "id": 2591,
+    "cover": {
+      "id": 524514,
+      "image_id": "cob8pu"
+    },
+    "first_release_date": 862099200,
+    "name": "Star Fox 64",
+    "total_rating_count": 282
+  },
+  {
+    "id": 2642,
+    "cover": {
+      "id": 186888,
+      "image_id": "co407c"
+    },
+    "first_release_date": 913420800,
+    "name": "Hey You, Pikachu!",
+    "total_rating_count": 22
+  },
+  {
+    "id": 2644,
+    "cover": {
+      "id": 473896,
+      "image_id": "coa5ns"
+    },
+    "first_release_date": 941328000,
+    "name": "Rocket: Robot on Wheels",
+    "total_rating_count": 7
+  },
+  {
+    "id": 2713,
+    "cover": {
+      "id": 88595,
+      "image_id": "co1wcz"
+    },
+    "first_release_date": 953856000,
+    "name": "Kirby 64: The Crystal Shards",
+    "total_rating_count": 122
+  },
+  {
+    "id": 2714,
+    "cover": {
+      "id": 200482,
+      "image_id": "co4aoy"
+    },
+    "first_release_date": 973987200,
+    "name": "Tom and Jerry in Fists of Furry",
+    "total_rating_count": 12
+  },
+  {
+    "id": 2715,
+    "cover": {
+      "id": 104718,
+      "image_id": "co28su"
+    },
+    "first_release_date": 920160000,
+    "name": "Beetle Adventure Racing!",
+    "total_rating_count": 19
+  },
+  {
+    "id": 2723,
+    "cover": {
+      "id": 88723,
+      "image_id": "co1wgj"
+    },
+    "first_release_date": 880070400,
+    "name": "Diddy Kong Racing",
+    "total_rating_count": 196
+  },
+  {
+    "id": 2786,
+    "cover": {
+      "id": 111394,
+      "image_id": "co2dya"
+    },
+    "first_release_date": 930614400,
+    "name": "Rugrats: Scavenger Hunt",
+    "total_rating_count": 8
+  },
+  {
+    "id": 2792,
+    "cover": {
+      "id": 128566,
+      "image_id": "co2r7a"
+    },
+    "first_release_date": 972777600,
+    "name": "Rugrats in Paris: The Movie",
+    "total_rating_count": 9
+  },
+  {
+    "id": 2847,
+    "cover": {
+      "id": 410614,
+      "image_id": "co8sty"
+    },
+    "first_release_date": 909878400,
+    "name": "A Bug's Life",
+    "total_rating_count": 63
+  },
+  {
+    "id": 2850,
+    "cover": {
+      "id": 449969,
+      "image_id": "co9n75"
+    },
+    "first_release_date": 984528000,
+    "name": "Aidyn Chronicles: The First Mage",
+    "total_rating_count": 9
+  },
+  {
+    "id": 2858,
+    "cover": {
+      "id": 140531,
+      "image_id": "co30fn"
+    },
+    "first_release_date": 975542400,
+    "name": "Scooby-Doo! Classic Creep Capers",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3005,
+    "cover": {
+      "id": 107694,
+      "image_id": "co2b3i"
+    },
+    "first_release_date": 928108800,
+    "name": "Superman: The New Superman Adventures",
+    "total_rating_count": 34
+  },
+  {
+    "id": 3056,
+    "cover": {
+      "id": 100385,
+      "image_id": "co25gh"
+    },
+    "first_release_date": 875577600,
+    "name": "Rampage World Tour",
+    "total_rating_count": 39
+  },
+  {
+    "id": 3123,
+    "cover": {
+      "id": 323673,
+      "image_id": "co6xqx"
+    },
+    "first_release_date": 900547200,
+    "name": "Mission: Impossible",
+    "total_rating_count": 33
+  },
+  {
+    "id": 3213,
+    "cover": {
+      "id": 101117,
+      "image_id": "co260t"
+    },
+    "first_release_date": 882662400,
+    "name": "Yoshi's Story",
+    "total_rating_count": 114
+  },
+  {
+    "id": 3290,
+    "cover": {
+      "id": 341592,
+      "image_id": "co7bko"
+    },
+    "first_release_date": 970099200,
+    "name": "Power Rangers: Lightspeed Rescue",
+    "total_rating_count": 12
+  },
+  {
+    "id": 3328,
+    "cover": {
+      "id": 113062,
+      "image_id": "co2f8m"
+    },
+    "first_release_date": 888624000,
+    "name": "1080° Snowboarding",
+    "total_rating_count": 80
+  },
+  {
+    "id": 3329,
+    "cover": {
+      "id": 152868,
+      "image_id": "co39yc"
+    },
+    "first_release_date": 882489600,
+    "name": "AeroGauge",
+    "total_rating_count": 7
+  },
+  {
+    "id": 3332,
+    "cover": {
+      "id": 154515,
+      "image_id": "co3b83"
+    },
+    "first_release_date": 896659200,
+    "name": "Vigilante 8",
+    "total_rating_count": 69
+  },
+  {
+    "id": 3333,
+    "cover": {
+      "id": 154516,
+      "image_id": "co3b84"
+    },
+    "first_release_date": 942883200,
+    "name": "Vigilante 8: 2nd Offense",
+    "total_rating_count": 40
+  },
+  {
+    "id": 3335,
+    "cover": {
+      "id": 105146,
+      "image_id": "co294q"
+    },
+    "first_release_date": 883612800,
+    "name": "California Speed",
+    "total_rating_count": 8
+  },
+  {
+    "id": 3337,
+    "cover": {
+      "id": 200416,
+      "image_id": "co4an4"
+    },
+    "first_release_date": 957052800,
+    "name": "Excitebike 64",
+    "total_rating_count": 26
+  },
+  {
+    "id": 3338,
+    "cover": {
+      "id": 117789,
+      "image_id": "co2ivx"
+    },
+    "first_release_date": 968889600,
+    "name": "Ms. Pac-Man: Maze Madness",
+    "total_rating_count": 8
+  },
+  {
+    "id": 3339,
+    "cover": {
+      "id": 153176,
+      "image_id": "co3a6w"
+    },
+    "first_release_date": 933379200,
+    "name": "The New Tetris",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3340,
+    "cover": {
+      "id": 80830,
+      "image_id": "co1qda"
+    },
+    "first_release_date": 965952000,
+    "name": "Paper Mario",
+    "total_rating_count": 279
+  },
+  {
+    "id": 3342,
+    "cover": {
+      "id": 104128,
+      "image_id": "co28cg"
+    },
+    "first_release_date": 881884800,
+    "name": "Snowboard Kids",
+    "total_rating_count": 30
+  },
+  {
+    "id": 3343,
+    "cover": {
+      "id": 130695,
+      "image_id": "co2suf"
+    },
+    "first_release_date": 919382400,
+    "name": "Snowboard Kids 2",
+    "total_rating_count": 21
+  },
+  {
+    "id": 3348,
+    "cover": {
+      "id": 182078,
+      "image_id": "co3whq"
+    },
+    "first_release_date": 911174400,
+    "name": "Glover",
+    "total_rating_count": 30
+  },
+  {
+    "id": 3366,
+    "cover": {
+      "id": 120872,
+      "image_id": "co2l9k"
+    },
+    "first_release_date": 895536000,
+    "name": "Bio F.R.E.A.K.S.",
+    "total_rating_count": 12
+  },
+  {
+    "id": 3368,
+    "cover": {
+      "id": 107663,
+      "image_id": "co2b2n"
+    },
+    "first_release_date": 907113600,
+    "name": "Buck Bumble",
+    "total_rating_count": 10
+  },
+  {
+    "id": 3370,
+    "cover": {
+      "id": 154619,
+      "image_id": "co3baz"
+    },
+    "first_release_date": 920246400,
+    "name": "Hydro Thunder",
+    "total_rating_count": 35
+  },
+  {
+    "id": 3371,
+    "cover": {
+      "id": 113019,
+      "image_id": "co2f7f"
+    },
+    "first_release_date": 936057600,
+    "name": "Hot Wheels Turbo Racing",
+    "total_rating_count": 12
+  },
+  {
+    "id": 3372,
+    "cover": {
+      "id": 127765,
+      "image_id": "co2ql1"
+    },
+    "first_release_date": 922406400,
+    "name": "Lode Runner 3-D",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3378,
+    "cover": {
+      "id": 106783,
+      "image_id": "co2ae7"
+    },
+    "first_release_date": 918172800,
+    "name": "Harvest Moon 64",
+    "total_rating_count": 35
+  },
+  {
+    "id": 3394,
+    "cover": {
+      "id": 299409,
+      "image_id": "co6f0x"
+    },
+    "first_release_date": 903916800,
+    "name": "Iggy's Reckin' Balls",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3397,
+    "cover": {
+      "id": 152867,
+      "image_id": "co39yb"
+    },
+    "first_release_date": 893635200,
+    "name": "Kobe Bryant in NBA Courtside",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3401,
+    "cover": {
+      "id": 132917,
+      "image_id": "co2uk5"
+    },
+    "first_release_date": 929059200,
+    "name": "Mario Golf",
+    "total_rating_count": 64
+  },
+  {
+    "id": 3406,
+    "cover": {
+      "id": 297501,
+      "image_id": "co6djx"
+    },
+    "first_release_date": 964137600,
+    "name": "Mario Tennis",
+    "total_rating_count": 134
+  },
+  {
+    "id": 3408,
+    "cover": {
+      "id": 84766,
+      "image_id": "co1tem"
+    },
+    "first_release_date": 974073600,
+    "name": "Mickey's Speedway USA",
+    "total_rating_count": 10
+  },
+  {
+    "id": 3412,
+    "cover": {
+      "id": 557812,
+      "image_id": "cobyes"
+    },
+    "first_release_date": 867369600,
+    "name": "Mischief Makers",
+    "total_rating_count": 34
+  },
+  {
+    "id": 3414,
+    "cover": {
+      "id": 258182,
+      "image_id": "co5j7q"
+    },
+    "first_release_date": 875577600,
+    "name": "Nightmare Creatures",
+    "total_rating_count": 50
+  },
+  {
+    "id": 3415,
+    "cover": {
+      "id": 196852,
+      "image_id": "co47w4"
+    },
+    "first_release_date": 936057600,
+    "name": "Rat Attack!",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3418,
+    "cover": {
+      "id": 295556,
+      "image_id": "co6c1w"
+    },
+    "first_release_date": 974678400,
+    "name": "Banjo-Tooie",
+    "total_rating_count": 178
+  },
+  {
+    "id": 3419,
+    "cover": {
+      "id": 178434,
+      "image_id": "co3toi"
+    },
+    "first_release_date": 930700800,
+    "name": "In-Fisherman Bass Hunter 64",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3424,
+    "cover": {
+      "id": 104010,
+      "image_id": "co2896"
+    },
+    "first_release_date": 858902400,
+    "name": "Blast Corps",
+    "total_rating_count": 38
+  },
+  {
+    "id": 3426,
+    "cover": {
+      "id": 258206,
+      "image_id": "co5j8e"
+    },
+    "first_release_date": 907113600,
+    "name": "Body Harvest",
+    "total_rating_count": 18
+  },
+  {
+    "id": 3427,
+    "cover": {
+      "id": 111102,
+      "image_id": "co2dq6"
+    },
+    "first_release_date": 881366400,
+    "name": "Chameleon Twist",
+    "total_rating_count": 14
+  },
+  {
+    "id": 3436,
+    "cover": {
+      "id": 111402,
+      "image_id": "co2dyi"
+    },
+    "first_release_date": 911520000,
+    "name": "All Star Tennis '99",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3439,
+    "cover": {
+      "id": 175276,
+      "image_id": "co3r8s"
+    },
+    "first_release_date": 943920000,
+    "name": "Armorines: Project S.W.A.R.M.",
+    "total_rating_count": 8
+  },
+  {
+    "id": 3440,
+    "cover": {
+      "id": 126301,
+      "image_id": "co2pgd"
+    },
+    "first_release_date": 938476800,
+    "name": "Army Men: Sarge's Heroes",
+    "total_rating_count": 43
+  },
+  {
+    "id": 3441,
+    "cover": {
+      "id": 84620,
+      "image_id": "co1tak"
+    },
+    "first_release_date": 974764800,
+    "name": "Army Men: Sarge's Heroes 2",
+    "total_rating_count": 23
+  },
+  {
+    "id": 3442,
+    "cover": {
+      "id": 195699,
+      "image_id": "co4703"
+    },
+    "first_release_date": 880848000,
+    "name": "Automobili Lamborghini",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3444,
+    "cover": {
+      "id": 200484,
+      "image_id": "co4ap0"
+    },
+    "first_release_date": 974678400,
+    "name": "Batman Beyond: Return of the Joker",
+    "total_rating_count": 21
+  },
+  {
+    "id": 3451,
+    "cover": {
+      "id": 239678,
+      "image_id": "co54xq"
+    },
+    "first_release_date": 875232000,
+    "name": "Bomberman 64",
+    "total_rating_count": 75
+  },
+  {
+    "id": 3452,
+    "cover": {
+      "id": 277948,
+      "image_id": "co5ygs"
+    },
+    "first_release_date": 944179200,
+    "name": "Bomberman 64: The Second Attack!",
+    "total_rating_count": 15
+  },
+  {
+    "id": 3453,
+    "cover": {
+      "id": 310928,
+      "image_id": "co6nww"
+    },
+    "first_release_date": 893894400,
+    "name": "Bomberman Hero",
+    "total_rating_count": 27
+  },
+  {
+    "id": 3455,
+    "cover": {
+      "id": 261501,
+      "image_id": "co5lrx"
+    },
+    "first_release_date": 828057600,
+    "name": "Bust-A-Move 2: Arcade Edition",
+    "total_rating_count": 13
+  },
+  {
+    "id": 3461,
+    "cover": {
+      "id": 133649,
+      "image_id": "co2v4h"
+    },
+    "first_release_date": 895190400,
+    "name": "ClayFighter: Sculptor's Cut",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3462,
+    "cover": {
+      "id": 304230,
+      "image_id": "co6iqu"
+    },
+    "first_release_date": 944611200,
+    "name": "Custom Robo",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3467,
+    "cover": {
+      "id": 111400,
+      "image_id": "co2dyg"
+    },
+    "first_release_date": 975542400,
+    "name": "Dance Dance Revolution: Disney Dancing Museum",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3471,
+    "cover": {
+      "id": 115044,
+      "image_id": "co2gro"
+    },
+    "first_release_date": 860112000,
+    "name": "Doom 64",
+    "total_rating_count": 90
+  },
+  {
+    "id": 3475,
+    "cover": {
+      "id": 95584,
+      "image_id": "co21r4"
+    },
+    "first_release_date": 986688000,
+    "name": "Dr. Mario 64",
+    "total_rating_count": 19
+  },
+  {
+    "id": 3479,
+    "cover": {
+      "id": 106782,
+      "image_id": "co2ae6"
+    },
+    "first_release_date": 941328000,
+    "name": "Earthworm Jim 3D",
+    "total_rating_count": 14
+  },
+  {
+    "id": 3483,
+    "cover": {
+      "id": 187200,
+      "image_id": "co40g0"
+    },
+    "first_release_date": 949276800,
+    "name": "ECW Hardcore Revolution",
+    "total_rating_count": 8
+  },
+  {
+    "id": 3485,
+    "cover": {
+      "id": 356344,
+      "image_id": "co7myg"
+    },
+    "first_release_date": 875577600,
+    "name": "Extreme-G",
+    "total_rating_count": 25
+  },
+  {
+    "id": 3486,
+    "cover": {
+      "id": 155707,
+      "image_id": "co3c57"
+    },
+    "first_release_date": 911260800,
+    "name": "Extreme-G: XG2",
+    "total_rating_count": 12
+  },
+  {
+    "id": 3487,
+    "cover": {
+      "id": 154608,
+      "image_id": "co3bao"
+    },
+    "first_release_date": 901843200,
+    "name": "F-1 World Grand Prix",
+    "total_rating_count": 15
+  },
+  {
+    "id": 3488,
+    "cover": {
+      "id": 152756,
+      "image_id": "co39v8"
+    },
+    "first_release_date": 930873600,
+    "name": "F-1 World Grand Prix II",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3489,
+    "cover": {
+      "id": 237818,
+      "image_id": "co53i2"
+    },
+    "first_release_date": 900374400,
+    "name": "F-Zero X",
+    "total_rating_count": 116
+  },
+  {
+    "id": 3496,
+    "cover": {
+      "id": 111164,
+      "image_id": "co2drw"
+    },
+    "first_release_date": 885772800,
+    "name": "Fighters Destiny",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3497,
+    "cover": {
+      "id": 196627,
+      "image_id": "co47pv"
+    },
+    "first_release_date": 882403200,
+    "name": "Flying Dragon",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3508,
+    "cover": {
+      "id": 241633,
+      "image_id": "co56g1"
+    },
+    "first_release_date": 914371200,
+    "name": "Goemon's Great Adventure",
+    "total_rating_count": 9
+  },
+  {
+    "id": 3511,
+    "cover": {
+      "id": 157550,
+      "image_id": "co3dke"
+    },
+    "first_release_date": 971395200,
+    "name": "Hercules: The Legendary Journeys",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3513,
+    "cover": {
+      "id": 152879,
+      "image_id": "co39yn"
+    },
+    "first_release_date": 933811200,
+    "name": "Hybrid Heaven",
+    "total_rating_count": 7
+  },
+  {
+    "id": 3514,
+    "cover": {
+      "id": 316460,
+      "image_id": "co6s6k"
+    },
+    "first_release_date": 896918400,
+    "name": "International Superstar Soccer '98",
+    "total_rating_count": 13
+  },
+  {
+    "id": 3516,
+    "cover": {
+      "id": 362689,
+      "image_id": "co7rup"
+    },
+    "first_release_date": 865123200,
+    "name": "International Superstar Soccer 64",
+    "total_rating_count": 33
+  },
+  {
+    "id": 3523,
+    "cover": {
+      "id": 187495,
+      "image_id": "co40o7"
+    },
+    "first_release_date": 963532800,
+    "name": "Jeremy McGrath Supercross 2000",
+    "total_rating_count": 7
+  },
+  {
+    "id": 3533,
+    "cover": {
+      "id": 196671,
+      "image_id": "co47r3"
+    },
+    "first_release_date": 912124800,
+    "name": "Knife Edge: Nose Gunner",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3535,
+    "cover": {
+      "id": 112688,
+      "image_id": "co2ey8"
+    },
+    "first_release_date": 857174400,
+    "name": "Mace: The Dark Age",
+    "total_rating_count": 13
+  },
+  {
+    "id": 3536,
+    "cover": {
+      "id": 154629,
+      "image_id": "co3bb9"
+    },
+    "first_release_date": 878256000,
+    "name": "Madden Football 64",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3538,
+    "cover": {
+      "id": 294820,
+      "image_id": "co6bhg"
+    },
+    "first_release_date": 966902400,
+    "name": "Madden NFL 2001",
+    "total_rating_count": 9
+  },
+  {
+    "id": 3540,
+    "cover": {
+      "id": 196692,
+      "image_id": "co47ro"
+    },
+    "first_release_date": 896572800,
+    "name": "Major League Baseball Featuring Ken Griffey Jr.",
+    "total_rating_count": 10
+  },
+  {
+    "id": 3545,
+    "cover": {
+      "id": 241636,
+      "image_id": "co56g4"
+    },
+    "first_release_date": 870912000,
+    "name": "Mystical Ninja Starring Goemon",
+    "total_rating_count": 24
+  },
+  {
+    "id": 3546,
+    "cover": {
+      "id": 152763,
+      "image_id": "co39vf"
+    },
+    "first_release_date": 882403200,
+    "name": "Nagano Winter Olympics '98",
+    "total_rating_count": 7
+  },
+  {
+    "id": 3547,
+    "cover": {
+      "id": 322349,
+      "image_id": "co6wq5"
+    },
+    "first_release_date": 905472000,
+    "name": "NASCAR 99",
+    "total_rating_count": 7
+  },
+  {
+    "id": 3548,
+    "cover": {
+      "id": 322350,
+      "image_id": "co6wq6"
+    },
+    "first_release_date": 937353600,
+    "name": "NASCAR 2000",
+    "total_rating_count": 7
+  },
+  {
+    "id": 3550,
+    "cover": {
+      "id": 108875,
+      "image_id": "co2c0b"
+    },
+    "first_release_date": 829612800,
+    "name": "NBA Hangtime",
+    "total_rating_count": 16
+  },
+  {
+    "id": 3551,
+    "cover": {
+      "id": 233542,
+      "image_id": "co507a"
+    },
+    "first_release_date": 912729600,
+    "name": "NBA Jam 99",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3552,
+    "cover": {
+      "id": 196913,
+      "image_id": "co47xt"
+    },
+    "first_release_date": 941328000,
+    "name": "NBA Jam 2000",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3553,
+    "cover": {
+      "id": 151920,
+      "image_id": "co3980"
+    },
+    "first_release_date": 941328000,
+    "name": "NBA Live 2000",
+    "total_rating_count": 9
+  },
+  {
+    "id": 3558,
+    "cover": {
+      "id": 196893,
+      "image_id": "co47x9"
+    },
+    "first_release_date": 877651200,
+    "name": "NFL Quarterback Club 98",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3561,
+    "cover": {
+      "id": 114944,
+      "image_id": "co2gow"
+    },
+    "first_release_date": 907113600,
+    "name": "NHL 99",
+    "total_rating_count": 23
+  },
+  {
+    "id": 3563,
+    "cover": {
+      "id": 115743,
+      "image_id": "co2hb3"
+    },
+    "first_release_date": 888451200,
+    "name": "NHL Breakaway 98",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3568,
+    "cover": {
+      "id": 239685,
+      "image_id": "co54xx"
+    },
+    "first_release_date": 931910400,
+    "name": "Ogre Battle 64: Person of Lordly Caliber",
+    "total_rating_count": 24
+  },
+  {
+    "id": 3573,
+    "cover": {
+      "id": 257550,
+      "image_id": "co5iq6"
+    },
+    "first_release_date": 835488000,
+    "name": "Pilotwings 64",
+    "total_rating_count": 39
+  },
+  {
+    "id": 3574,
+    "cover": {
+      "id": 91882,
+      "image_id": "co1ywa"
+    },
+    "first_release_date": 969840000,
+    "name": "Pokémon Puzzle League",
+    "total_rating_count": 50
+  },
+  {
+    "id": 3578,
+    "cover": {
+      "id": 518213,
+      "image_id": "cob3ut"
+    },
+    "first_release_date": 855878400,
+    "name": "Puyo Puyo Sun",
+    "total_rating_count": 11
+  },
+  {
+    "id": 3579,
+    "cover": {
+      "id": 139425,
+      "image_id": "co2zkx"
+    },
+    "first_release_date": 920505600,
+    "name": "Puyo Puyo~n",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3580,
+    "cover": {
+      "id": 400422,
+      "image_id": "co8kyu"
+    },
+    "first_release_date": 897436800,
+    "name": "Quest 64",
+    "total_rating_count": 27
+  },
+  {
+    "id": 3581,
+    "cover": {
+      "id": 108873,
+      "image_id": "co2c09"
+    },
+    "first_release_date": 901152000,
+    "name": "Rakugakids",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3583,
+    "cover": {
+      "id": 154520,
+      "image_id": "co3b88"
+    },
+    "first_release_date": 922838400,
+    "name": "Rampage 2: Universal Tour",
+    "total_rating_count": 21
+  },
+  {
+    "id": 3585,
+    "cover": {
+      "id": 76545,
+      "image_id": "co1n29"
+    },
+    "first_release_date": 934934400,
+    "name": "Re-Volt",
+    "total_rating_count": 112
+  },
+  {
+    "id": 3586,
+    "cover": {
+      "id": 154519,
+      "image_id": "co3b87"
+    },
+    "first_release_date": 936835200,
+    "name": "Ready 2 Rumble Boxing",
+    "total_rating_count": 23
+  },
+  {
+    "id": 3588,
+    "cover": {
+      "id": 324170,
+      "image_id": "co6y4q"
+    },
+    "first_release_date": 950486400,
+    "name": "Ridge Racer 64",
+    "total_rating_count": 12
+  },
+  {
+    "id": 3589,
+    "cover": {
+      "id": 77133,
+      "image_id": "co1nil"
+    },
+    "first_release_date": 937958400,
+    "name": "Road Rash 64",
+    "total_rating_count": 10
+  },
+  {
+    "id": 3593,
+    "cover": {
+      "id": 152863,
+      "image_id": "co39y7"
+    },
+    "first_release_date": 910656000,
+    "name": "Rush 2: Extreme Racing USA",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3595,
+    "cover": {
+      "id": 113768,
+      "image_id": "co2fs8"
+    },
+    "first_release_date": 851385600,
+    "name": "San Francisco Rush: Extreme Racing",
+    "total_rating_count": 19
+  },
+  {
+    "id": 3596,
+    "cover": {
+      "id": 182312,
+      "image_id": "co3wo8"
+    },
+    "first_release_date": 915148800,
+    "name": "San Francisco Rush 2049",
+    "total_rating_count": 20
+  },
+  {
+    "id": 3598,
+    "cover": {
+      "id": 100973,
+      "image_id": "co25wt"
+    },
+    "first_release_date": 936057600,
+    "name": "Shadow Man",
+    "total_rating_count": 46
+  },
+  {
+    "id": 3600,
+    "cover": {
+      "id": 100369,
+      "image_id": "co25g1"
+    },
+    "first_release_date": 928108800,
+    "name": "Shadowgate 64: Trials of the Four Towers",
+    "total_rating_count": 6
+  },
+  {
+    "id": 3602,
+    "cover": {
+      "id": 182330,
+      "image_id": "co3woq"
+    },
+    "first_release_date": 908928000,
+    "name": "Space Station Silicon Valley",
+    "total_rating_count": 17
+  },
+  {
+    "id": 3603,
+    "cover": {
+      "id": 137294,
+      "image_id": "co2xxq"
+    },
+    "first_release_date": 967593600,
+    "name": "Spider-Man",
+    "total_rating_count": 306
+  },
+  {
+    "id": 3604,
+    "cover": {
+      "id": 358253,
+      "image_id": "co7ofh"
+    },
+    "first_release_date": 900028800,
+    "name": "Star Soldier: Vanishing Earth",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3612,
+    "cover": {
+      "id": 154600,
+      "image_id": "co3bag"
+    },
+    "first_release_date": 871257600,
+    "name": "Tetrisphere",
+    "total_rating_count": 14
+  },
+  {
+    "id": 3613,
+    "cover": {
+      "id": 227857,
+      "image_id": "co4vtd"
+    },
+    "first_release_date": 970185600,
+    "name": "Disney's Tigger's Honey Hunt",
+    "total_rating_count": 22
+  },
+  {
+    "id": 3614,
+    "cover": {
+      "id": 104717,
+      "image_id": "co28st"
+    },
+    "first_release_date": 936057600,
+    "name": "Tonic Trouble",
+    "total_rating_count": 10
+  },
+  {
+    "id": 3616,
+    "cover": {
+      "id": 154517,
+      "image_id": "co3b85"
+    },
+    "first_release_date": 911779200,
+    "name": "Top Gear Overdrive",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3617,
+    "cover": {
+      "id": 196883,
+      "image_id": "co47wz"
+    },
+    "first_release_date": 873849600,
+    "name": "Top Gear Rally",
+    "total_rating_count": 13
+  },
+  {
+    "id": 3619,
+    "cover": {
+      "id": 182561,
+      "image_id": "co3wv5"
+    },
+    "first_release_date": 942710400,
+    "name": "Toy Story 2: Buzz Lightyear to the Rescue!",
+    "total_rating_count": 138
+  },
+  {
+    "id": 3621,
+    "cover": {
+      "id": 196885,
+      "image_id": "co47x1"
+    },
+    "first_release_date": 920160000,
+    "name": "Triple Play 2000",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3627,
+    "cover": {
+      "id": 265995,
+      "image_id": "co5p8r"
+    },
+    "first_release_date": 901670400,
+    "name": "Waialae Country Club: True Golf Classics",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3628,
+    "cover": {
+      "id": 126477,
+      "image_id": "co2pl9"
+    },
+    "first_release_date": 817776000,
+    "name": "War Gods",
+    "total_rating_count": 9
+  },
+  {
+    "id": 3629,
+    "cover": {
+      "id": 478764,
+      "image_id": "coa9f0"
+    },
+    "first_release_date": 843782400,
+    "name": "Wave Race 64",
+    "total_rating_count": 91
+  },
+  {
+    "id": 3630,
+    "cover": {
+      "id": 109306,
+      "image_id": "co2cca"
+    },
+    "first_release_date": 844128000,
+    "name": "Wayne Gretzky's 3D Hockey",
+    "total_rating_count": 10
+  },
+  {
+    "id": 3631,
+    "cover": {
+      "id": 200450,
+      "image_id": "co4ao2"
+    },
+    "first_release_date": 881107200,
+    "name": "Wayne Gretzky's 3D Hockey '98",
+    "total_rating_count": 5
+  },
+  {
+    "id": 3632,
+    "cover": {
+      "id": 154514,
+      "image_id": "co3b82"
+    },
+    "first_release_date": 975628800,
+    "name": "WCW Backstage Assault",
+    "total_rating_count": 7
+  },
+  {
+    "id": 3633,
+    "cover": {
+      "id": 152869,
+      "image_id": "co39yd"
+    },
+    "first_release_date": 936057600,
+    "name": "WCW Mayhem",
+    "total_rating_count": 17
+  },
+  {
+    "id": 3634,
+    "cover": {
+      "id": 84605,
+      "image_id": "co1ta5"
+    },
+    "first_release_date": 884822400,
+    "name": "WCW Nitro",
+    "total_rating_count": 14
+  },
+  {
+    "id": 3635,
+    "cover": {
+      "id": 277081,
+      "image_id": "co5xsp"
+    },
+    "first_release_date": 880848000,
+    "name": "WCW vs. nWo: World Tour",
+    "total_rating_count": 10
+  },
+  {
+    "id": 3636,
+    "cover": {
+      "id": 154513,
+      "image_id": "co3b81"
+    },
+    "first_release_date": 912384000,
+    "name": "WCW/nWo Revenge",
+    "total_rating_count": 18
+  },
+  {
+    "id": 3637,
+    "cover": {
+      "id": 107662,
+      "image_id": "co2b2m"
+    },
+    "first_release_date": 897609600,
+    "name": "Wetrix",
+    "total_rating_count": 14
+  },
+  {
+    "id": 3641,
+    "cover": {
+      "id": 93599,
+      "image_id": "co207z"
+    },
+    "first_release_date": 891302400,
+    "name": "World Cup 98",
+    "total_rating_count": 36
+  },
+  {
+    "id": 3643,
+    "cover": {
+      "id": 277079,
+      "image_id": "co5xsn"
+    },
+    "first_release_date": 928368000,
+    "name": "WWF Attitude",
+    "total_rating_count": 31
+  },
+  {
+    "id": 3644,
+    "cover": {
+      "id": 576138,
+      "image_id": "coccju"
+    },
+    "first_release_date": 974419200,
+    "name": "WWF No Mercy",
+    "total_rating_count": 32
+  },
+  {
+    "id": 3645,
+    "cover": {
+      "id": 136596,
+      "image_id": "co2xec"
+    },
+    "first_release_date": 900374400,
+    "name": "WWF War Zone",
+    "total_rating_count": 27
+  },
+  {
+    "id": 3646,
+    "cover": {
+      "id": 576157,
+      "image_id": "cocckd"
+    },
+    "first_release_date": 939772800,
+    "name": "WWF WrestleMania 2000",
+    "total_rating_count": 25
+  },
+  {
+    "id": 4109,
+    "cover": {
+      "id": 137632,
+      "image_id": "co2y74"
+    },
+    "first_release_date": 963532800,
+    "name": "X-Men: Mutant Academy",
+    "total_rating_count": 18
+  },
+  {
+    "id": 4121,
+    "cover": {
+      "id": 90798,
+      "image_id": "co1y26"
+    },
+    "first_release_date": 844905600,
+    "name": "Mortal Kombat Trilogy",
+    "total_rating_count": 125
+  },
+  {
+    "id": 4366,
+    "cover": {
+      "id": 277230,
+      "image_id": "co5xwu"
+    },
+    "first_release_date": 933379200,
+    "name": "NFL Blitz 2000",
+    "total_rating_count": 13
+  },
+  {
+    "id": 5568,
+    "cover": {
+      "id": 158221,
+      "image_id": "co3e31"
+    },
+    "first_release_date": 941414400,
+    "name": "40 Winks",
+    "total_rating_count": 22
+  },
+  {
+    "id": 6224,
+    "cover": {
+      "id": 506531,
+      "image_id": "coauub"
+    },
+    "first_release_date": 930268800,
+    "name": "Need for Speed: V-Rally 2",
+    "total_rating_count": 25
+  },
+  {
+    "id": 8136,
+    "cover": {
+      "id": 369936,
+      "image_id": "co7xg0"
+    },
+    "first_release_date": 974419200,
+    "name": "Looney Tunes: Space Race",
+    "total_rating_count": 13
+  },
+  {
+    "id": 8333,
+    "cover": {
+      "id": 427698,
+      "image_id": "co960i"
+    },
+    "first_release_date": 965001600,
+    "name": "Sydney 2000",
+    "total_rating_count": 15
+  },
+  {
+    "id": 8497,
+    "cover": {
+      "id": 152759,
+      "image_id": "co39vb"
+    },
+    "first_release_date": 922233600,
+    "name": "Micro Machines 64 Turbo",
+    "total_rating_count": 6
+  },
+  {
+    "id": 8503,
+    "cover": {
+      "id": 107668,
+      "image_id": "co2b2s"
+    },
+    "first_release_date": 933465600,
+    "name": "Duke Nukem: Zero Hour",
+    "total_rating_count": 6
+  },
+  {
+    "id": 9067,
+    "cover": {
+      "id": 112555,
+      "image_id": "co2euj"
+    },
+    "first_release_date": 960854400,
+    "name": "StarCraft 64",
+    "total_rating_count": 15
+  },
+  {
+    "id": 10613,
+    "cover": {
+      "id": 556717,
+      "image_id": "cobxkd"
+    },
+    "first_release_date": 848880000,
+    "name": "Killer Instinct Gold",
+    "total_rating_count": 30
+  },
+  {
+    "id": 10614,
+    "cover": {
+      "id": 267375,
+      "image_id": "co5qb3"
+    },
+    "first_release_date": 974851200,
+    "name": "Mega Man 64",
+    "total_rating_count": 9
+  },
+  {
+    "id": 10615,
+    "cover": {
+      "id": 220650,
+      "image_id": "co4q96"
+    },
+    "first_release_date": 930700800,
+    "name": "Monster Truck Madness 64",
+    "total_rating_count": 7
+  },
+  {
+    "id": 10662,
+    "cover": {
+      "id": 240793,
+      "image_id": "co55sp"
+    },
+    "first_release_date": 930700800,
+    "name": "Disney's Tarzan",
+    "total_rating_count": 136
+  },
+  {
+    "id": 10663,
+    "cover": {
+      "id": 111404,
+      "image_id": "co2dyk"
+    },
+    "first_release_date": 893635200,
+    "name": "All-Star Baseball '99",
+    "total_rating_count": 5
+  },
+  {
+    "id": 10664,
+    "cover": {
+      "id": 154763,
+      "image_id": "co3bez"
+    },
+    "first_release_date": 945216000,
+    "name": "Asteroids Hyper 64",
+    "total_rating_count": 7
+  },
+  {
+    "id": 10680,
+    "cover": {
+      "id": 107692,
+      "image_id": "co2b3g"
+    },
+    "first_release_date": 878256000,
+    "name": "Duke Nukem 64",
+    "total_rating_count": 19
+  },
+  {
+    "id": 10682,
+    "cover": {
+      "id": 93596,
+      "image_id": "co207w"
+    },
+    "first_release_date": 857088000,
+    "name": "FIFA Soccer 64",
+    "total_rating_count": 7
+  },
+  {
+    "id": 10686,
+    "cover": {
+      "id": 152866,
+      "image_id": "co39ya"
+    },
+    "first_release_date": 938822400,
+    "name": "Destruction Derby 64",
+    "total_rating_count": 7
+  },
+  {
+    "id": 10687,
+    "cover": {
+      "id": 152757,
+      "image_id": "co39v9"
+    },
+    "first_release_date": 938736000,
+    "name": "Knockout Kings 2000",
+    "total_rating_count": 5
+  },
+  {
+    "id": 11466,
+    "cover": {
+      "id": 127263,
+      "image_id": "co2q73"
+    },
+    "first_release_date": 966988800,
+    "name": "Frogger 2: Swampy's Revenge",
+    "total_rating_count": 15
+  },
+  {
+    "id": 18133,
+    "cover": {
+      "id": 480004,
+      "image_id": "coaadg"
+    },
+    "first_release_date": 938649600,
+    "name": "Space Invaders",
+    "total_rating_count": 16
+  },
+  {
+    "id": 19370,
+    "cover": {
+      "id": 154649,
+      "image_id": "co3bbt"
+    },
+    "first_release_date": 941673600,
+    "name": "Paperboy",
+    "total_rating_count": 6
+  },
+  {
+    "id": 19421,
+    "cover": {
+      "id": 112792,
+      "image_id": "co2f14"
+    },
+    "first_release_date": 1002153600,
+    "name": "The Powerpuff Girls: Chemical X-Traction",
+    "total_rating_count": 7
+  },
+  {
+    "id": 43559,
+    "cover": {
+      "id": 320801,
+      "image_id": "co6vj5"
+    },
+    "first_release_date": 943056000,
+    "name": "Hype: The Time Quest",
+    "total_rating_count": 6
+  },
+  {
+    "id": 44043,
+    "cover": {
+      "id": 154660,
+      "image_id": "co3bc4"
+    },
+    "first_release_date": 877392000,
+    "name": "ClayFighter 63 1/3",
+    "total_rating_count": 16
+  },
+  {
+    "id": 44958,
+    "cover": {
+      "id": 481631,
+      "image_id": "coabmn"
+    },
+    "first_release_date": 878774400,
+    "name": "Bust-a-Move '99",
+    "total_rating_count": 9
+  },
+  {
+    "id": 47678,
+    "cover": {
+      "id": 305021,
+      "image_id": "co6jct"
+    },
+    "first_release_date": 946425600,
+    "name": "Namco Museum 64",
+    "total_rating_count": 5
+  },
+  {
+    "id": 47680,
+    "cover": {
+      "id": 78624,
+      "image_id": "co1oo0"
+    },
+    "first_release_date": 943056000,
+    "name": "WinBack: Covert Operations",
+    "total_rating_count": 12
+  },
+  {
+    "id": 47685,
+    "cover": {
+      "id": 110864,
+      "image_id": "co2djk"
+    },
+    "first_release_date": 939686400,
+    "name": "BattleTanx: Global Assault",
+    "total_rating_count": 8
+  },
+  {
+    "id": 47686,
+    "cover": {
+      "id": 151603,
+      "image_id": "co38z7"
+    },
+    "first_release_date": 914889600,
+    "name": "BattleTanx",
+    "total_rating_count": 7
+  },
+  {
+    "id": 47694,
+    "cover": {
+      "id": 469964,
+      "image_id": "coa2mk"
+    },
+    "first_release_date": 967075200,
+    "name": "Army Men: Air Combat",
+    "total_rating_count": 7
+  },
+  {
+    "id": 47758,
+    "cover": {
+      "id": 151854,
+      "image_id": "co3966"
+    },
+    "first_release_date": 907200000,
+    "name": "Gex 64: Enter the Gecko",
+    "total_rating_count": 8
+  },
+  {
+    "id": 79669,
+    "cover": {
+      "id": 196945,
+      "image_id": "co47yp"
+    },
+    "first_release_date": 884044800,
+    "name": "Robotron 64",
+    "total_rating_count": 5
+  },
+  {
+    "id": 80010,
+    "cover": {
+      "id": 86148,
+      "image_id": "co1uh0"
+    },
+    "first_release_date": 1572134400,
+    "name": "Xeno Crisis",
+    "total_rating_count": 11
+  },
+  {
+    "id": 80368,
+    "cover": {
+      "id": 101021,
+      "image_id": "co25y5"
+    },
+    "first_release_date": 1008806400,
+    "name": "Bomberman 64",
+    "total_rating_count": 9
+  },
+  {
+    "id": 84780,
+    "cover": {
+      "id": 136774,
+      "image_id": "co2xja"
+    },
+    "first_release_date": 944179200,
+    "name": "Bakuretsu Muteki Bangai-O",
+    "total_rating_count": 5
+  },
+  {
+    "id": 93641,
+    "cover": {
+      "id": 154601,
+      "image_id": "co3bah"
+    },
+    "first_release_date": 865036800,
+    "name": "Hexen",
+    "total_rating_count": 6
+  },
+  {
+    "id": 126294,
+    "cover": {
+      "id": 85748,
+      "image_id": "co1u5w"
+    },
+    "first_release_date": 938649600,
+    "name": "FIFA 2000: Major League Soccer",
+    "total_rating_count": 43
+  },
+  {
+    "id": 132642,
+    "cover": {
+      "id": 277580,
+      "image_id": "co5y6k"
+    },
+    "first_release_date": 869184000,
+    "name": "Super Mario 64: Shindou Pak Taiou Version",
+    "total_rating_count": 16
+  },
+  {
+    "id": 144507,
+    "cover": {
+      "id": 277083,
+      "image_id": "co5xsr"
+    },
+    "first_release_date": 971740800,
+    "name": "James Bond 007: The World Is Not Enough",
+    "total_rating_count": 18
+  },
+  {
+    "id": 194213,
+    "cover": {
+      "id": 212738,
+      "image_id": "co4k5e"
+    },
+    "first_release_date": 1029801600,
+    "name": "Tony Hawk's Pro Skater 3",
+    "total_rating_count": 22
+  },
+  {
+    "id": 209418,
+    "cover": {
+      "id": 232202,
+      "image_id": "co4z62"
+    },
+    "first_release_date": 890697600,
+    "name": "Quake",
+    "total_rating_count": 13
+  },
+  {
+    "id": 259743,
+    "cover": {
+      "id": 320872,
+      "image_id": "co6vl4"
+    },
+    "first_release_date": 1002844800,
+    "name": "Tony Hawk's Pro Skater 2",
+    "total_rating_count": 5
+  },
+  {
+    "id": 262016,
+    "cover": {
+      "id": 337429,
+      "image_id": "co78d1"
+    },
+    "first_release_date": 931305600,
+    "name": "Quake II",
+    "total_rating_count": 7
+  },
+  {
+    "id": 300037,
+    "cover": {
+      "id": 381390,
+      "image_id": "co86a6"
+    },
+    "first_release_date": 971654400,
+    "name": "Cruis'n Exotica",
+    "total_rating_count": 6
+  }
+]

@@ -1,0 +1,591 @@
+{
+  "sheets": [
+    {
+      "properties": {
+        "sheetId": 616499438,
+        "title": "Physical Release Summary V3",
+        "index": 0,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 4403,
+          "columnCount": 23,
+          "frozenRowCount": 5
+        },
+        "tabColor": {
+          "red": 1,
+          "green": 0.27058825,
+          "blue": 0.32941177
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1,
+            "green": 0.27058825,
+            "blue": 0.32941177
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 2004832329,
+        "title": "Physical Release Master",
+        "index": 1,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10213,
+          "columnCount": 11,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 712270754,
+        "title": "Backup of Physical Release Master",
+        "index": 2,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 9722,
+          "columnCount": 26
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 809259714,
+        "title": "USAo",
+        "index": 3,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2296,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 42720573,
+        "title": "KORo",
+        "index": 4,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 701,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 301550978,
+        "title": "EURo",
+        "index": 5,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2331,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1980856968,
+        "title": "JPNo",
+        "index": 6,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1971,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 275130355,
+        "title": "ASIo",
+        "index": 7,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1162,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 917558601,
+        "title": "CHNo",
+        "index": 8,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1003,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1372701321,
+        "title": "CHTo",
+        "index": 9,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 781,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 277424981,
+        "title": "AUSo",
+        "index": 10,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1074,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1509830418,
+        "title": "USA",
+        "index": 11,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10123,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1822975445,
+        "title": "KOR",
+        "index": 12,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10123,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1537633545,
+        "title": "EUR",
+        "index": 13,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10123,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1477168047,
+        "title": "JPN",
+        "index": 14,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10123,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1727127906,
+        "title": "ASI",
+        "index": 15,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10123,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1309503842,
+        "title": "CHN",
+        "index": 16,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10123,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 613634358,
+        "title": "CHT",
+        "index": 17,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10123,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 8123368,
+        "title": "AUS",
+        "index": 18,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10123,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 1
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 545693085,
+        "title": "Change Log",
+        "index": 19,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 12963,
+          "columnCount": 5,
+          "frozenRowCount": 2
+        },
+        "tabColor": {
+          "red": 0.23529412,
+          "green": 0.47058824,
+          "blue": 0.84705883
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 0.23529412,
+            "green": 0.47058824,
+            "blue": 0.84705883
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 887819792,
+        "title": "Upcoming Release Summary",
+        "index": 20,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 2357,
+          "columnCount": 20,
+          "frozenRowCount": 5
+        },
+        "tabColor": {
+          "red": 0.6,
+          "green": 0.37254903,
+          "blue": 0.7921569
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 0.6,
+            "green": 0.37254903,
+            "blue": 0.7921569
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 238551450,
+        "title": "Upcoming Release Details",
+        "index": 21,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1214,
+          "columnCount": 25,
+          "frozenRowCount": 4
+        },
+        "tabColor": {
+          "red": 0.6,
+          "green": 0.37254903,
+          "blue": 0.7921569
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 0.6,
+            "green": 0.37254903,
+            "blue": 0.7921569
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1406641930,
+        "title": "CIAB",
+        "index": 22,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1139,
+          "columnCount": 8
+        },
+        "tabColor": {
+          "red": 1,
+          "green": 0.6
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 1,
+            "green": 0.6
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 773382869,
+        "title": "Upcoming Release Details V1",
+        "index": 23,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 1545,
+          "columnCount": 18,
+          "frozenRowCount": 4
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 0.6,
+          "green": 0.37254903,
+          "blue": 0.7921569
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 0.6,
+            "green": 0.37254903,
+            "blue": 0.7921569
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 0,
+        "title": "(Legacy) Physical Releases",
+        "index": 24,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 3281,
+          "columnCount": 12,
+          "frozenRowCount": 4,
+          "frozenColumnCount": 1
+        },
+        "hidden": true,
+        "tabColor": {
+          "red": 0.8
+        },
+        "tabColorStyle": {
+          "rgbColor": {
+            "red": 0.8
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 1817719745,
+        "title": "(Legacy) Upcoming Releases",
+        "index": 25,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 363,
+          "columnCount": 12,
+          "frozenRowCount": 3
+        },
+        "hidden": true,
+        "tabColorStyle": {
+          "rgbColor": {}
+        }
+      }
+    },
+    {
+      "properties": {
+        "sheetId": 464003240,
+        "title": "Sheet3",
+        "index": 26,
+        "sheetType": "GRID",
+        "gridProperties": {
+          "rowCount": 10000,
+          "columnCount": 13
+        },
+        "hidden": true
+      }
+    }
+  ]
+}

@@ -2,8 +2,16 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { readSnapshot } from '../lib/snapshot.js'
 import Item from './Item.jsx'
+
+vi.mock('../lib/snapshot.js', () => ({ readSnapshot: vi.fn() }))
+
+beforeEach(() => {
+  vi.mocked(readSnapshot).mockReset()
+  vi.mocked(readSnapshot).mockResolvedValue(null)
+})
 
 const ID = '11111111-1111-1111-1111-111111111111'
 
@@ -49,10 +57,10 @@ function stubItem(overrides = {}) {
 
 function renderPage({ signedIn = false } = {}) {
   return render(
-    <MemoryRouter initialEntries={[`/collection/${ID}`]}>
+    <MemoryRouter initialEntries={[`/spine/${ID}`]}>
       <Routes>
         <Route element={<Outlet context={{ signedIn }} />}>
-          <Route path="/collection/:id" element={<Item />} />
+          <Route path="/spine/:id" element={<Item />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -196,7 +204,7 @@ describe('Item', () => {
     const strip = screen.getByRole('region', { name: 'More from this shelf' })
     expect(
       within(strip).getByRole('link', { name: 'Dead Cells' }),
-    ).toHaveAttribute('href', '/collection/a')
+    ).toHaveAttribute('href', '/spine/a')
     expect(within(strip).getAllByRole('link')).toHaveLength(2)
   })
 
@@ -262,15 +270,62 @@ describe('Item', () => {
   it('renders outside the layout without throwing', async () => {
     stubItem()
     render(
-      <MemoryRouter initialEntries={[`/collection/${ID}`]}>
+      <MemoryRouter initialEntries={[`/spine/${ID}`]}>
         <Routes>
-          <Route path="/collection/:id" element={<Item />} />
+          <Route path="/spine/:id" element={<Item />} />
         </Routes>
       </MemoryRouter>,
     )
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Hades' }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('Item title', () => {
+  beforeEach(() => {
+    document.title = 'Stale'
+  })
+
+  it('is Spine until the item is known', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    renderPage()
+    expect(document.title).toBe('Spine · Joey Haas')
+  })
+
+  it('names the item once it loads', async () => {
+    stubItem()
+    await renderReady()
+    expect(document.title).toBe('Hades · Spine')
+  })
+
+  it('names the item from the snapshot while the server wakes', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([
+      {
+        id: ID,
+        type: 'game',
+        title: 'Hades',
+        cover_url: null,
+        genres: [],
+        platforms: [],
+      },
+    ])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    renderPage()
+    await waitFor(() => expect(document.title).toBe('Hades · Spine'))
+  })
+
+  it('leaves the title to NotFound on a 404', async () => {
+    stubApi({ ok: false, status: 404, json: async () => ({}) })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Not found' })
+    expect(document.title).toBe('Not found · Joey Haas')
   })
 })
 
@@ -290,20 +345,22 @@ describe('Item copy details', () => {
     ])
   }
 
-  it('orders the chips: own platform, genres, themes, other platforms, format, completeness', async () => {
+  it('keeps the game in the chips and the copy on its own line', async () => {
     stubItem(COPY)
     await renderReady()
 
     expect(chips()).toEqual([
-      ['Nintendo Switch', false],
       ['Roguelike', false],
       ['Action', false],
       ['Fantasy', true],
       ['PC', true],
       ['PlayStation 4', true],
-      ['Full game on cartridge', false],
-      ['Complete in box', false],
     ])
+    expect(
+      screen.getByText(
+        'My copy: Nintendo Switch · Full game on cartridge · Complete in box',
+      ),
+    ).toBeInTheDocument()
   })
 
   it.each([
@@ -313,19 +370,26 @@ describe('Item copy details', () => {
   ])('names a %s copy', async (format, label) => {
     stubItem({ ...COPY, physical_format: format })
     await renderReady()
-    expect(screen.getByText(label)).toBeInTheDocument()
+    expect(
+      screen.getByText(`My copy: Nintendo Switch · ${label} · Complete in box`),
+    ).toBeInTheDocument()
   })
 
   it('says a Switch 2 copy with no recorded format is unrecorded', async () => {
     stubItem({ ...COPY, platform: 'Nintendo Switch 2', physical_format: null })
     await renderReady()
-    expect(screen.getByText('Format not recorded')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'My copy: Nintendo Switch 2 · Format not recorded · Complete in box',
+      ),
+    ).toBeInTheDocument()
   })
 
-  it('has no format chip for another platform with no format', async () => {
+  it('leaves the format out of My copy for another platform with no format', async () => {
     stubItem({ ...COPY, physical_format: null, completeness: null })
     await renderReady()
-    expect(chips().map(([text]) => text)).not.toContain('Format not recorded')
+    expect(screen.getByText('My copy: Nintendo Switch')).toBeInTheDocument()
+    expect(screen.queryByText(/Format not recorded/)).toBeNull()
   })
 
   it.each([
@@ -343,5 +407,100 @@ describe('Item copy details', () => {
     stubItem({ time_to_beat: null })
     await renderReady()
     expect(screen.queryByText('Time to beat')).not.toBeInTheDocument()
+  })
+})
+
+describe('Item voice and copy', () => {
+  it.each([false, true])(
+    'reads My rating (signed in: %s)',
+    async (signedIn) => {
+      stubItem()
+      await renderReady({ signedIn })
+      expect(screen.getByText('My rating')).toBeInTheDocument()
+      expect(screen.queryByText('Your rating')).toBeNull()
+    },
+  )
+
+  it('says what platform a wanted game is wanted for', async () => {
+    stubItem({ wanted: true, platform: 'Nintendo Switch 2' })
+    await renderReady()
+    expect(screen.getByText('Wanted for Nintendo Switch 2')).toBeInTheDocument()
+    expect(screen.queryByText(/^My copy/)).toBeNull()
+  })
+
+  it('says a wanted game with no platform is on the want list', async () => {
+    stubItem({ wanted: true, platform: null })
+    await renderReady()
+    expect(screen.getByText('On my want list')).toBeInTheDocument()
+  })
+})
+
+describe('Item snapshot preview', () => {
+  const ROW = {
+    id: ID,
+    type: 'game',
+    title: 'Hades',
+    year: 2020,
+    creator: 'Supergiant Games',
+    cover_url: 'https://images.igdb.com/hades.jpg',
+    status: 'finished',
+    rating: 9,
+    favorite: true,
+    finished_at: '2026-06-12',
+    genres: ['Roguelike', 'Action'],
+    community_score: 93.4,
+    platforms: ['PC', 'Nintendo Switch'],
+    created_at: '2026-01-01T00:00:00Z',
+    wanted: false,
+    platform: 'Nintendo Switch',
+    physical_format: 'game_card',
+    completeness: null,
+    pinned: false,
+  }
+
+  it('paints the card fields from the snapshot while the server wakes', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([ROW])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    await renderReady()
+
+    expect(screen.getByText('9 / 10')).toBeInTheDocument()
+    expect(
+      screen.getByText('My copy: Nintendo Switch · Full game on cartridge'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Defy the god of the dead.')).toBeNull()
+    expect(screen.queryByText('Community')).toBeNull()
+    expect(screen.queryByText(/waking the server/i)).toBeNull()
+  })
+
+  it('adds the detail when the API answers', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([ROW])
+    stubItem()
+    await renderReady()
+    expect(
+      await screen.findByText('Defy the god of the dead.'),
+    ).toBeInTheDocument()
+  })
+
+  it('believes the API over the snapshot about a removed item', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([ROW])
+    stubApi({ ok: false, status: 404, json: async () => ({}) })
+    renderPage()
+    expect(
+      await screen.findByRole('heading', { name: 'Not found' }),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the painted fields when the detail fails', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([ROW])
+    stubApi({ ok: false, status: 500, json: async () => ({}) })
+    await renderReady()
+    expect(
+      await screen.findByText(
+        'More detail could not be loaded. Try again shortly.',
+      ),
+    ).toBeInTheDocument()
   })
 })

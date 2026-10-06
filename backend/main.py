@@ -6,24 +6,29 @@ path for a visitor. Individual personal projects can be mounted here later as
 routers (one module per project).
 """
 
+import asyncio
 import logging
 
+import httpx2
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from auth import create_auth_router
-from config import allowed_origins, load_config
+from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
 from importer import create_import_router
 from items import create_items_router
 from llm import build_provider
+from physical_routes import create_physical_router
+from physical_sources.limits import REQUEST_TIMEOUT_SECONDS, USER_AGENT
 from picker_routes import create_picker_router
 from public import create_public_router
+from recommendations_routes import create_recommendations_router
 from schema_check import verify_schema_is_current
 from sources.registry import build_registry, configured_sources
 
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 logger = logging.getLogger(__name__)
 
 config = load_config()
@@ -42,11 +47,17 @@ engine, session_factory = create_engine_and_sessionmaker(config.database_url)
 # here as an absence at startup rather than only when someone first tries a
 # lookup and gets a 503 they have to go digging for.
 registry = build_registry(config)
-logger.info(
-    "metadata sources configured: %s", ", ".join(configured_sources(registry)) or "none"
-)
+configured = configured_sources(registry)
+if config.google_sheets_api_key:
+    configured.append("sheets")
+logger.info("metadata sources configured: %s", ", ".join(configured) or "none")
 
 app = FastAPI(title="joey-haas.dev API", lifespan=engine_lifespan(engine))
+
+# require_admin reads the job token from here (Spine Next spec, K1), so the
+# five routers keep their signatures. An app that never sets it -- every test
+# app -- has no token and accepts sessions only.
+app.state.job_token = config.job_token
 
 # Signed, HttpOnly, Secure, SameSite=Lax. Thirty days.
 #
@@ -81,6 +92,38 @@ app.add_middleware(
 app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
 app.include_router(create_picker_router(session_factory))
+
+
+def physical_http_client() -> httpx2.AsyncClient:
+    """The client the catalogue reads stores and the registry with: a
+    descriptive User-Agent, redirects followed (four stores move to www.)."""
+    return httpx2.AsyncClient(
+        headers={"User-Agent": USER_AGENT},
+        timeout=REQUEST_TIMEOUT_SECONDS,
+        follow_redirects=True,
+    )
+
+
+# One write lock for the catalogue: a store refresh and Radar's generate
+# never run at once.
+catalogue_lock = asyncio.Lock()
+app.include_router(
+    create_physical_router(
+        session_factory,
+        registry,
+        physical_http_client,
+        config.google_sheets_api_key,
+        lock=catalogue_lock,
+    )
+)
+app.include_router(
+    create_recommendations_router(
+        session_factory,
+        registry,
+        catalogue_lock,
+        provider_factory=lambda: build_provider(config),
+    )
+)
 # The provider is built per request rather than here, so an absent model key
 # is a failure of the import route alone rather than a service that will not
 # boot -- the same reasoning as the lazy source checks.

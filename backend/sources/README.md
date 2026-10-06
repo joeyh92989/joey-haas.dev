@@ -182,6 +182,13 @@ and `thing` fixtures, then implement `_parse_search` and `_parse_detail` the way
 HTTP 202 means "queued, retry". Note that "Powered by BGG" attribution is
 required for public-facing use.
 
+## Physical editions are elsewhere
+
+Which games exist on a cartridge -- the r/NSCollectors registry, the boutique
+stores, IGDB's N64 list -- is not a metadata source and does not use this
+interface. It lives in `physical_sources/`; read `physical_sources/README.md`.
+It reuses the IGDB adapter here to resolve what it finds.
+
 ## Adding a source
 
 1. Write `sources/<name>.py` with a class exposing `source_name`, `item_type`,

@@ -1,0 +1,3930 @@
+{
+  "products": [
+    {
+      "id": 8363599396921,
+      "title": "1000xRESIST Deluxe Edition",
+      "handle": "1000xresist-game-deluxe-edition",
+      "body_html": "<p>Relive and interpret the memories of the ALLMOTHER in the thrilling sci-fi adventure 1000xRESIST, available for the first time in physical form.</p>\n<p>The Deluxe Edition includes a holographic set of six pin-back buttons, a Watcher magnet, six original trading cards, a new cover and folded poster—each with original artwork by Kat Tsai—four art cards, and a mock Pacific Skies plane ticket.</p>\n<p>...alongside everything that's included inside of our Standard Edition of 1000xRESIST: A 24-page Hekki ALLMO booklet, a folded map of the Orchard, and a Jiao photo art card.</p>\n<p>1000xRESIST - Nintendo Switch™ 2 Edition includes the Nintendo Switch game and the Nintendo Switch 2 Edition upgrade pack. Upgrade pack also available separately. <meta charset=\"utf-8\">For details, visit <meta charset=\"utf-8\"><a href=\"http://support.nintendo.com/switch2/upgradepack\">Nintendo Support</a>.</p>",
+      "published_at": "2026-08-18T09:44:04-07:00",
+      "created_at": "2026-07-31T15:17:46-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "1000xRESIST",
+      "product_type": "Games",
+      "tags": [
+        "1000xRESIST",
+        "game",
+        "game_1000xRESIST",
+        "ineligible_for_sales",
+        "physical game",
+        "preorder",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 46267838103609,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "74.00",
+          "grams": 100000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8363599396921,
+          "created_at": "2026-07-31T15:17:46-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 40408539463737,
+          "created_at": "2026-07-31T15:17:11-07:00",
+          "position": 1,
+          "updated_at": "2026-07-31T15:17:12-07:00",
+          "product_id": 8363599396921,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/1xR_DX_BOTH_designview.png?v=1785536232",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8363620925497,
+      "title": "1000xRESIST Standard Edition",
+      "handle": "1000xresist-game",
+      "body_html": "<p>Relive and interpret the memories of the ALLMOTHER in the thrilling sci-fi adventure 1000xRESIST, available for the first time in physical form.</p>\n<p>Alongside the game, the Standard Edition includes a 24 page Hekki ALLMO booklet, a folded map of the Orchard, and a Jiao photo art card.</p>\n<p>1000xRESIST - Nintendo Switch™ 2 Edition includes the Nintendo Switch game and the Nintendo Switch 2 Edition upgrade pack. Upgrade pack also available separately. <meta charset=\"utf-8\">For details, visit <meta charset=\"utf-8\"><a href=\"http://support.nintendo.com/switch2/upgradepack\">Nintendo Support</a>.</p>",
+      "published_at": "2026-08-18T09:44:05-07:00",
+      "created_at": "2026-07-31T15:56:16-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "1000xRESIST",
+      "product_type": "Games",
+      "tags": [
+        "1000xRESIST",
+        "game",
+        "game_1000xRESIST",
+        "ineligible_for_sales",
+        "physical game",
+        "preorder",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 46268003713081,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "45.00",
+          "grams": 1000000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8363620925497,
+          "created_at": "2026-07-31T15:56:16-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 40408676335673,
+          "created_at": "2026-07-31T15:49:33-07:00",
+          "position": 1,
+          "updated_at": "2026-07-31T15:49:34-07:00",
+          "product_id": 8363620925497,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/1xR_SE_BOTH_ESRB_designview.png?v=1785538174",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8373072298041,
+      "title": "Stardew Valley - Stardew Valley Standard Edition",
+      "handle": "stardew-valley-standard-edition",
+      "body_html": "<p>Stardew Valley is now available in a physical edition for <meta charset=\"utf-8\">Nintendo Switch™ and Nintendo Switch™ 2! Move to the valley, become part of the local community, and create the farm of your dreams!</p>\n<p>The Standard Edition game includes a 18-page, full-color illustrated instruction manual.</p>\n<p>Physical copies of Stardew Valley for Switch contain Version 1.6, with free updates available for download as they're released.</p>\n<p>Stardew Valley - Nintendo Switch 2 Edition includes the Nintendo Switch game and the Nintendo Switch 2 Edition upgrade pack. Upgrade pack also available separately. For details, visit <meta charset=\"utf-8\"><a href=\"http://support.nintendo.com/switch2/upgradepack\">Nintendo Support</a>.</p>",
+      "published_at": "2026-08-11T10:44:32-07:00",
+      "created_at": "2026-08-11T10:25:36-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Stardew Valley",
+      "product_type": "Games",
+      "tags": [
+        "game_Stardew Valley",
+        "nintendo switch",
+        "physical game",
+        "platform_Nintendo Switch",
+        "platform_Nintendo Switch 2",
+        "stardew valley",
+        "switch",
+        "switch 2",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 46303231082553,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "39.00",
+          "grams": 10000000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8373072298041,
+          "created_at": "2026-08-11T10:25:36-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 40553588654137,
+          "created_at": "2026-08-11T10:29:51-07:00",
+          "position": 1,
+          "updated_at": "2026-08-11T10:29:52-07:00",
+          "product_id": 8373072298041,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/SDV_Switch1_2_ESRB_designview.png?v=1786469392",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8277828272185,
+      "title": "Hollow Knight: Silksong Standard Edition",
+      "handle": "hollow-knight-silksong-standard-edition",
+      "body_html": "<p>Discover a vast, haunted kingdom in Hollow Knight: Silksong! Explore, fight and survive as you ascend to the peak of a land ruled by silk and song, available now for the first time in physical form.</p>\n<p>This physical edition of Hollow Knight: Silksong includes a 32 page manual and a 9\"x12\" poster illustrated by Rubén Molina.</p>\n<p>Hollow Knight: Silksong - Nintendo Switch 2 Edition includes the Nintendo Switch game and the Nintendo Switch 2 Edition upgrade pack. Upgrade pack also available separately. For details, visit <a href=\"http://support.nintendo.com/switch2/upgradepack\">Nintendo Support</a>. </p>\n<p>Sea of Sorrow DLC is not included on game media but will be available to download for free.</p>",
+      "published_at": "2026-05-28T13:43:20-07:00",
+      "created_at": "2026-05-22T10:44:51-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Hollow Knight: Silksong",
+      "product_type": "Games",
+      "tags": [
+        "game",
+        "game_Hollow Knight: Silksong",
+        "ineligible_for_sales",
+        "physical game",
+        "preorder",
+        "silksong",
+        "team cherry",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 45890112192569,
+          "title": "Nintendo Switch 2",
+          "option1": "Nintendo Switch 2",
+          "option2": null,
+          "option3": null,
+          "sku": "SILK-GAME-STD-NS2",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "45.00",
+          "grams": 1000000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8277828272185,
+          "created_at": "2026-05-27T14:03:14-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 45890112225337,
+          "title": "PlayStation 5",
+          "option1": "PlayStation 5",
+          "option2": null,
+          "option3": null,
+          "sku": "SILK-GAME-STD-PS5",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "39.00",
+          "grams": 1000000000,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8277828272185,
+          "created_at": "2026-05-27T14:03:14-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 45890112258105,
+          "title": "Xbox Series X",
+          "option1": "Xbox Series X",
+          "option2": null,
+          "option3": null,
+          "sku": "SILK-GAME-STD-XBX",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "39.00",
+          "grams": 1000000000,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 8277828272185,
+          "created_at": "2026-05-27T14:03:14-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 40232066875449,
+          "created_at": "2026-07-17T15:24:16-07:00",
+          "position": 1,
+          "updated_at": "2026-07-17T15:24:18-07:00",
+          "product_id": 8277828272185,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/Silksong_SE_ALL_ESRB_designview_fc7ed00c-e16e-469e-b679-87a58c423c12.png?v=1784327058",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "edition",
+          "position": 1,
+          "values": [
+            "Nintendo Switch 2",
+            "PlayStation 5",
+            "Xbox Series X"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8279209771065,
+      "title": "Hollow Knight Physical Edition",
+      "handle": "hollow-knight-switch-2-ps5-game",
+      "body_html": "<p>Epic action and adventure in a vast kingdom of insects and heroes awaits, now presented with higher resolution, improved frame rates and additional effects.</p>\n<p>This physical edition of Hollow Knight includes a 28 page game manual and a 9\"x12\" poster.</p>\n<p>Hollow Knight - Nintendo Switch 2 Edition includes the Nintendo Switch game and the Nintendo Switch 2 Edition upgrade pack. Upgrade pack also available separately. For details, visit <a href=\"http://support.nintendo.com/switch2/upgradepack\">Nintendo Support</a>.</p>",
+      "published_at": "2026-05-28T13:48:58-07:00",
+      "created_at": "2026-05-25T12:18:44-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Hollow Knight",
+      "product_type": "Games",
+      "tags": [
+        "game",
+        "game_Hollow Knight",
+        "hollow knight",
+        "ineligible_for_sales",
+        "physical game",
+        "platform_Nintendo Switch 2",
+        "platform_PlayStation 5",
+        "playstation",
+        "playstation 5",
+        "preorder",
+        "switch 2",
+        "team cherry",
+        "top-level-game",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 45883106459705,
+          "title": "Nintendo Switch 2",
+          "option1": "Nintendo Switch 2",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-STD-NS2",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "39.00",
+          "grams": 1000000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8279209771065,
+          "created_at": "2026-05-25T12:27:24-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 45883106492473,
+          "title": "PlayStation 5",
+          "option1": "PlayStation 5",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-STD-PS5",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 1000000000,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 8279209771065,
+          "created_at": "2026-05-25T12:27:24-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 39609251233849,
+          "created_at": "2026-05-25T12:29:21-07:00",
+          "position": 1,
+          "updated_at": "2026-06-30T11:17:14-07:00",
+          "product_id": 8279209771065,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/HKEnhanced_SE_Switch2PS5_ESRB_designview.png?v=1782843434",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "edition",
+          "position": 1,
+          "values": [
+            "Nintendo Switch 2",
+            "PlayStation 5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8342460104761,
+      "title": "Demonschool - Physical Edition for Nintendo Switch",
+      "handle": "demonschool-game-nintendo-switch",
+      "body_html": "<p>Demonschool is a new-style tactics RPG where motion equals action. Defeat big weirdos in between the human and demon worlds as Faye and her misfit companions, while navigating university life on a mysterious island.</p>\n<p>This physical edition of Demonschool includes a 9\"x12\" double-sided poster, 4 art cards, and the 'Puzzle Killers' and 'Art of Demonschool' paid DLC included to download.</p>",
+      "published_at": "2026-07-21T09:44:26-07:00",
+      "created_at": "2026-07-14T21:57:57-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Demonschool",
+      "product_type": "Games",
+      "tags": [
+        "demonschool",
+        "ineligible_for_sales",
+        "nintendo switch",
+        "physical game",
+        "platform_Nintendo Switch",
+        "preorder",
+        "restocking_soon",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 46204210413625,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "DMS-GAME-STD-NSW",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8342460104761,
+          "created_at": "2026-07-14T21:57:57-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 40205131055161,
+          "created_at": "2026-07-15T12:31:20-07:00",
+          "position": 1,
+          "updated_at": "2026-07-15T12:31:22-07:00",
+          "product_id": 8342460104761,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/demonschool_SE_Switch_ESRB_designview.png?v=1784143882",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8336561799225,
+      "title": "Citizen Sleeper: Helion Collection for PlayStation®5",
+      "handle": "citizen-sleeper-helion-collection-game-playstation-5",
+      "body_html": "<p><em>Citizen Sleeper: Helion Collection</em> brings together two award-winning tabletop-inspired RPGs: <em>Citizen Sleeper</em> and <em>Citizen Sleeper 2: Starward Vector</em>. Play through both games on one disc, together for the first time in physical form.</p>\n<p>This physical edition of <em>Citizen Sleeper: Helion Collection</em> for PlayStation 5 includes 2 double-sided posters, 3 unique art cards, and a mini-sticker sheet.</p>",
+      "published_at": "2026-07-21T09:44:30-07:00",
+      "created_at": "2026-07-10T11:51:57-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Citizen Sleeper",
+      "product_type": "Games",
+      "tags": [
+        "citizen sleeper",
+        "citizen sleeper 2",
+        "game",
+        "game_Citizen Sleeper",
+        "ineligible_for_sales",
+        "physical game",
+        "platform_PlayStation 5",
+        "playstation",
+        "playstation 5",
+        "preorder",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 46190816526393,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "CS2-GAME-1+2-STD-PS5",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "45.00",
+          "grams": 184,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8336561799225,
+          "created_at": "2026-07-10T11:51:57-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 40141848838201,
+          "created_at": "2026-07-10T11:52:27-07:00",
+          "position": 1,
+          "updated_at": "2026-07-10T11:52:29-07:00",
+          "product_id": 8336561799225,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/CS1_2_PS5_ESRB_designview.png?v=1783709549",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8333200949305,
+      "title": "Citizen Sleeper 2: Starward Vector - Nintendo Switch 2 Edition",
+      "handle": "citizen-sleeper-2-game-nintendo-switch-2",
+      "body_html": "<p>A dice-driven RPG, in a human and heartfelt sci-fi world. You are an escaped android, with a malfunctioning body, a price on your head and no memory of your past. Get a ship, find a crew, and take on contracts while you navigate across the Starward Belt.</p>\n<p>This physical edition of <em>Citizen Sleeper 2: Starward Vector</em> for Nintendo Switch™ 2 includes a 9\"x12\" double-sided poster, 3 unique art cards, and a mini sticker sheet.</p>",
+      "published_at": "2026-07-21T09:44:28-07:00",
+      "created_at": "2026-07-08T13:18:55-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Citizen Sleeper 2",
+      "product_type": "Games",
+      "tags": [
+        "citizen sleeper 2",
+        "ineligible_for_sales",
+        "physical game",
+        "platform_Nintendo Switch 2",
+        "preorder",
+        "restocking_soon",
+        "standard edition",
+        "switch 2",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 46179246735417,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "CS2-GAME-STD-NS2",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "45.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8333200949305,
+          "created_at": "2026-07-08T13:18:55-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 40113019584569,
+          "created_at": "2026-07-08T13:23:05-07:00",
+          "position": 1,
+          "updated_at": "2026-07-08T13:23:07-07:00",
+          "product_id": 8333200949305,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/CS2_SE_switch2_preorder_ESRB_designview.png?v=1783542187",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8255225954361,
+      "title": "Little Kitty, Big City Standard Edition",
+      "handle": "little-kitty-big-city-standard-edition",
+      "body_html": "<p>A peaceful catnap turns into a whimsical adventure! Will you make your way home or will you explore what the big city has to offer first? I mean, getting home is obviously your main priority. Obviously. Well, it's one of your priorities. Maybe more of a guideline... It's definitely on your to-do list somewhere! </p>\n<p>This physical edition of <em>Little Kitty, Big City</em> for Nintendo Switch includes: </p>\n<ul>\n<li>\n<strong>A digital download code </strong>for a copy of the complete soundtrack</li>\n<li>\n<strong>A 16-page mini manual</strong>  </li>\n<li>\n<strong>Reversible cover art</strong><br>\n</li>\n<li>\n<strong>A fold-out \"Lost Kitty\" mini poster </strong>measuring about 9x12 inches. </li>\n</ul>",
+      "published_at": "2026-05-05T09:42:41-07:00",
+      "created_at": "2026-04-30T11:23:45-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Little Kitty, Big City",
+      "product_type": "Games",
+      "tags": [
+        "little kitty big city",
+        "nintendo switch",
+        "physical game",
+        "platform_Nintendo Switch",
+        "platform_PlayStation 5",
+        "playstation 5",
+        "standard edition",
+        "top-level-game",
+        "tucson-comic-con-2026",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 45790476337209,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8255225954361,
+          "created_at": "2026-04-30T11:23:45-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 39334065668153,
+          "created_at": "2026-04-30T11:18:47-07:00",
+          "position": 1,
+          "updated_at": "2026-04-30T11:18:48-07:00",
+          "product_id": 8255225954361,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/LKBC-SE-PS5Switch-ESRB-designview.png?v=1777573128",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8227897933881,
+      "title": "FAITH: The Unholy Trinity Standard Edition",
+      "handle": "faith-the-unholy-trinity-physical-game",
+      "body_html": "<p><strong>What you are about to do has not been approved by the Vatican.</strong></p>\n<p>As a young priest, struggle against demons, insane cultists, and your own weakening faith in this pixel horror game inspired by the era of classic 8-bit gaming and the \"Satanic Scare\" of the 1980s.</p>\n<p>This physical edition of <em>FAITH: The Unholy Trinity</em> includes a reversible cover, a digital download code for the original soundtrack, a 9x12 inch foldout map, a mock newspaper clipping, a sticker sheet, and an 8-page <em>Notice for Tier I Acolytes</em> booklet.</p>",
+      "published_at": "2026-05-05T09:42:42-07:00",
+      "created_at": "2026-04-08T18:46:04-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "FAITH: The Unholy Trinity",
+      "product_type": "Games",
+      "tags": [
+        "faith",
+        "faith the unholy trinity",
+        "Game_FAITH: The Unholy Trinity",
+        "nintendo switch",
+        "physical game",
+        "platform_Nintendo Switch",
+        "platform_PlayStation 5",
+        "playstation 5",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 45689440469049,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8227897933881,
+          "created_at": "2026-04-08T18:46:04-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 39085760413753,
+          "created_at": "2026-04-08T18:42:35-07:00",
+          "position": 1,
+          "updated_at": "2026-04-08T18:42:37-07:00",
+          "product_id": 8227897933881,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/Faith-SE-PS5Switch-ESRB-designview.png?v=1775698957",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8204221710393,
+      "title": "Just Shapes & Beats - Just Shapes & Beats for Nintendo Switch™",
+      "handle": "just-shapes-beats-game-nintendo-switch",
+      "body_html": "<p>Enjoy the chaotic co-op musical bullet-hell 'Just Shapes &amp; Beats', available for the first time in physical form for the Nintendo Switch!</p>\n<p>Alongside the game, the physical edition also includes these exclusive pack-in items:</p>\n<ul>\n<li>A 16 page instruction booklet breaking down music tracks, mechanics, tips, and more.</li>\n<li>A 12\"x 9\" folded poster showcasing artwork from the game.</li>\n<li>Promotional kiss-cut sticker sheet.</li>\n</ul>",
+      "published_at": "2026-03-25T06:59:02-07:00",
+      "created_at": "2026-03-11T13:55:07-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Just Shapes & Beats",
+      "product_type": "Games",
+      "tags": [
+        "game_Just Shapes and Beats",
+        "just shapes and beats",
+        "nintendo switch",
+        "physical game",
+        "platform_Nintendo Switch",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 45582476050489,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "JSB-GAME-STD-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8204221710393,
+          "created_at": "2026-03-11T13:55:08-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 38827927765049,
+          "created_at": "2026-03-11T14:01:28-07:00",
+          "position": 1,
+          "updated_at": "2026-03-11T14:01:30-07:00",
+          "product_id": 8204221710393,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/JS_B_SE_ESRB_designview.png?v=1773262890",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7965295476793,
+      "title": "UFO 50 for Nintendo Switch™ Deluxe Edition",
+      "handle": "ufo-50-game-nintendo-switch-deluxe-edition",
+      "body_html": "<p>Play forever with UFO 50, available for the first time in physical form for the Nintendo Switch!</p>\n<p>The Deluxe Edition of UFO 50 includes these relics unearthed by the UFO 50 Recovery Team:</p>\n<ul>\n<li>A <strong>100+ page companion guide</strong>, featuring tips, maps, secrets, stickers, and original art straight from the developers.</li>\n<li>\n<strong>2 unique prints</strong>, including design docs and an LX Star newsletter.</li>\n<li>\n<strong>2x sticker sheets</strong> featuring Little Buddy.</li>\n</ul>\n<p>... along with all the treasures packed inside our standard edition:</p>\n<ul>\n<li>A 12x9-inch UFO Soft <strong>promotional poster</strong> from the LXIII's launch.</li>\n<li>A <strong>postcard print</strong> of an original UFO Soft game disk.</li>\n<li>Promotional <strong>kiss-cut sticker sheet</strong>.</li>\n<li>A <strong>digital download code</strong> for a copy of the complete soundtrack.</li>\n</ul>",
+      "published_at": "2025-08-07T06:17:20-07:00",
+      "created_at": "2025-07-14T11:54:48-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "UFO 50",
+      "product_type": "Games",
+      "tags": [
+        "collector's edition",
+        "deluxe",
+        "deluxe edition",
+        "game_UFO 50",
+        "nintendo switch",
+        "physical game",
+        "platform_Nintendo Switch",
+        "restocking_soon",
+        "top-level-game",
+        "tucson-comic-con-2026",
+        "UFO 50",
+        "ufo 50 dx",
+        "ufo50"
+      ],
+      "variants": [
+        {
+          "id": 44695500226617,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "UFO-GAME-DX-NSW",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "59.00",
+          "grams": 488,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7965295476793,
+          "created_at": "2025-07-14T11:54:48-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 37694193139769,
+          "created_at": "2025-11-05T13:01:34-07:00",
+          "position": 1,
+          "updated_at": "2025-11-05T13:01:44-07:00",
+          "product_id": 7965295476793,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/UFO50_DX-designview.png?v=1762372904",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8064321781817,
+      "title": "Nine Sols Deluxe Edition",
+      "handle": "nine-sols-game-deluxe-edition",
+      "body_html": "<p>Embark on a vengeful journey across a forsaken realm to slay its powerful rulers, the Nine Sols. This beautifully hand-drawn action-platformer will test your might with brutal, skill-based combat and platforming.</p>\n<p>The Deluxe Edition of Nine Sols includes:</p>\n<ul>\n<li>An <strong>original 16-page epilogue comic</strong> from <em>Nine Sols</em> writer Shihwei Yang and artist and writer Pege Ho.</li>\n<li>A <strong>collectible, physical coin</strong> from Shuanshuan himself!</li>\n<li>A <strong>double-sided 19”x12” poster</strong> featuring a full map of New Kunlun.</li>\n<li>\n<strong>Three sticker sheets</strong>, <meta charset=\"utf-8\"> <span>including two kiss-cut sheets and a jumbo transparent sticker.</span>\n</li>\n</ul>\n<p>... along with everything that’s packed inside our standard edition of Nine Sols:</p>\n<ul>\n<li>A <strong>16-page instruction booklet</strong> straight from the developers, filled with tips, character bios, and more.</li>\n<li>Two <strong>double-sided art cards</strong> showcasing original artwork and Shuanshuan drawings.</li>\n</ul>",
+      "published_at": "2025-11-04T09:41:54-07:00",
+      "created_at": "2025-10-27T14:35:46-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Nine Sols",
+      "product_type": "Games",
+      "tags": [
+        "collector's edition",
+        "deluxe",
+        "deluxe edition",
+        "nine sols",
+        "nintendo switch",
+        "physical game",
+        "platform_Nintendo Switch",
+        "platform_PlayStation 5",
+        "playstation 5",
+        "top-level-game",
+        "type_Games",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 45095045955641,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "59.00",
+          "grams": 0,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8064321781817,
+          "created_at": "2025-10-27T14:35:46-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 37571542908985,
+          "created_at": "2025-10-27T14:45:47-07:00",
+          "position": 1,
+          "updated_at": "2025-10-27T14:45:48-07:00",
+          "product_id": 8064321781817,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/NineSols-DX-ESRB-Both-designview.png?v=1761601548",
+          "width": 1500,
+          "height": 1500
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6969474482233,
+      "title": "Celeste Deluxe Edition",
+      "handle": "celeste-deluxe-edition-game",
+      "body_html": "<p>Just in time for its fifth anniversary, Celeste is now available in a brand-new physical edition for <em></em>Nintendo Switch™ and PlayStation<meta charset=\"utf-8\"><span data-mce-fragment=\"1\">® 4, including a <strong>special deluxe edition</strong> available exclusively on Fangamer. </span></p>\n<p><span data-mce-fragment=\"1\">The Deluxe Edition includes: </span></p>\n<ul>\n<li>Reflection Art Album and Journal set</li>\n<ul>\n<li>Art album featuring illustrations by Amora B.</li>\n<li>100-page journal with affirmations written by Maddy Thorson and Heidy Motta</li>\n</ul>\n<li>Digital soundtrack download code printed on a special cassette-style J-card</li>\n<li>Golden Feather minted pin</li>\n<li>Celeste Mountain souvenir magnet<br>\n</li>\n<li>\n<strong></strong>Celeste National Park bandana</li>\n<li>\n<strong>Physical copy of the game</strong>﻿ including all content on PlayStation 4 or Nintendo Switch</li>\n</ul>",
+      "published_at": "2023-01-25T10:37:18-07:00",
+      "created_at": "2023-01-12T16:33:51-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Celeste",
+      "product_type": "Games",
+      "tags": [
+        "artist_Jon Kay",
+        "celeste",
+        "celeste dx",
+        "collector",
+        "collector's edition",
+        "deluxe",
+        "deluxe edition",
+        "exok",
+        "game",
+        "game_Celeste",
+        "jon kay",
+        "jonk",
+        "jonkay",
+        "nintendo switch",
+        "physical game",
+        "playstation",
+        "playstation 4",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 41077683683385,
+          "title": "Nintendo Switch",
+          "option1": "Nintendo Switch",
+          "option2": null,
+          "option3": null,
+          "sku": "CELESTE-GAME-CELESTE-DX-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 31282325848121,
+            "product_id": 6969474482233,
+            "position": 3,
+            "created_at": "2023-01-23T17:40:40-07:00",
+            "updated_at": "2023-08-11T12:46:58-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_Celeste_dx_switch_box_designview2-fs8.png?v=1691783218",
+            "variant_ids": [
+              41077683683385
+            ]
+          },
+          "available": true,
+          "price": "64.00",
+          "grams": 660,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6969474482233,
+          "created_at": "2023-01-12T16:33:52-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 41077683716153,
+          "title": "PlayStation 4",
+          "option1": "PlayStation 4",
+          "option2": null,
+          "option3": null,
+          "sku": "CELESTE-GAME-CELESTE-DX-PS4",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 31282325880889,
+            "product_id": 6969474482233,
+            "position": 5,
+            "created_at": "2023-01-23T17:40:40-07:00",
+            "updated_at": "2023-08-11T12:46:58-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_Celeste_dx_ps4_box_designview2-fs8.png?v=1691783218",
+            "variant_ids": [
+              41077683716153
+            ]
+          },
+          "available": true,
+          "price": "64.00",
+          "grams": 660,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 6969474482233,
+          "created_at": "2023-01-12T16:33:52-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 31282325815353,
+          "created_at": "2023-01-23T17:40:40-07:00",
+          "position": 1,
+          "updated_at": "2023-01-23T17:40:57-07:00",
+          "product_id": 6969474482233,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_Celeste_dx_BOTH_boxes_designview2-fs8.png?v=1674520857",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Nintendo Switch",
+            "PlayStation 4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2074383843385,
+      "title": "Hollow Knight Collector's Edition",
+      "handle": "hollow-knight-switch-ps4-pc-collectors-edition-game",
+      "body_html": "<p>Hollow Knight is now available in a physical edition for Nintendo Switch™ and PlayStation® 4, and PC (DRM-free disc with Steam key), including a <strong>special collector’s edition</strong> available exclusively on Fangamer.</p>\n<p>The Collector’s Edition includes:</p>\n<ul>\n<li>\n<strong>Metal brooch</strong> with display stand, wall hook, and dual-pronged fastener</li>\n<li>14-page <strong>Quirrel comic book</strong>\n</li>\n<li>\n<strong>Gift-box-style case</strong> with gold-foil filigree and a clear printed sleeve</li>\n<li>Gold-foil <strong>art print set</strong> by Ari Gibson</li>\n<li>\n<strong>Physical copy of the game</strong> on your choice of platform including all DLC: Hidden Dreams, The Grimm Troupe, Lifeblood, and Godmaster.</li>\n<li>Nintendo Switch™ copies of the Collector’s Edition include a <strong>bonus cleaning cloth</strong>\n</li>\n</ul>\n<p>All physical copies of Hollow Knight include <strong>a manual </strong>and<strong> fold-out map of Hallownest.</strong></p>",
+      "published_at": "2019-03-12T08:06:45-07:00",
+      "created_at": "2019-02-26T14:43:00-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Hollow Knight",
+      "product_type": "Games",
+      "tags": [
+        "artist_Ikuno Ohashi",
+        "artist_Jon Kay",
+        "collector",
+        "collector's edition",
+        "combodatahpid|hollow-knight-papercraft-set|2263261184057:400",
+        "combodatahpid|hollow-knight-papercraft-set|2263261184057;hpid|hollow-knight-wanderers-journal-book|2078720852025:800",
+        "combodatahpid|hollow-knight-wanderers-journal-book|2078720852025:400",
+        "game",
+        "game_Hollow Knight",
+        "hkce",
+        "hollow knight",
+        "hollow knight ce",
+        "ikuno ohashi",
+        "jon kay",
+        "jonk",
+        "jonkay",
+        "nintendo switch",
+        "oldgamepage",
+        "physical game",
+        "playstation 4",
+        "ps4",
+        "restocking_soon",
+        "switch",
+        "team cherry",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 18817103364153,
+          "title": "Nintendo Switch",
+          "option1": "Nintendo Switch",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-CE-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "79.00",
+          "grams": 593,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 2074383843385,
+          "created_at": "2019-02-26T14:43:00-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 18826268606521,
+          "title": "PlayStation 4",
+          "option1": "PlayStation 4",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-CE-PS4",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "74.00",
+          "grams": 632,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 2074383843385,
+          "created_at": "2019-02-28T15:47:23-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 18826268639289,
+          "title": "PC",
+          "option1": "PC",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-CE-PC",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "74.00",
+          "grams": 593,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 2074383843385,
+          "created_at": "2019-02-28T15:47:23-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 29607457685561,
+          "created_at": "2022-04-29T13:57:33-07:00",
+          "position": 1,
+          "updated_at": "2022-04-29T13:57:41-07:00",
+          "product_id": 2074383843385,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_hkce_combined_designview.png?v=1651265861",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Nintendo Switch",
+            "PlayStation 4",
+            "PC"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6955840077881,
+      "title": "TUNIC Deluxe Edition",
+      "handle": "tunic-deluxe-edition-game",
+      "body_html": "<p>Explore a land filled with lost legends, ancient powers, and ferocious monsters in TUNIC, an isometric action game about a small fox on a big adventure. Stranded in a ruined land, and armed with only your own curiosity, you will confront colossal beasts, collect strange and powerful items, and unravel long-lost secrets.</p>\n<p>Each Deluxe Edition of TUNIC comes packed with:</p>\n<ul>\n<li>\n<strong>Full-length staple-bound manual</strong> with the full contents of the in-game manual (full of spoilers!)</li>\n<li>\n<strong>Mini-manual</strong> with basic instructions (and no spoilers)</li>\n<li>\n<strong>Foldout map</strong> of some areas and dungeons</li>\n<li>\n<strong>Sticker sheets</strong> with iconography from the game</li>\n<li>\n<strong>Digital download code</strong> for a copy of the complete soundtrack by Lifeformed and Janice Kwan</li>\n</ul>",
+      "published_at": "2023-03-07T09:46:21-07:00",
+      "created_at": "2022-12-13T14:02:30-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "TUNIC",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "collector's edition",
+        "deluxe edition",
+        "force-sale",
+        "game_TUNIC",
+        "nintendo switch",
+        "pax east 2024",
+        "pax-east-2025",
+        "physical game",
+        "platform_Nintendo Switch",
+        "platform_PlayStation 4",
+        "platform_Xbox One",
+        "playstation 4",
+        "ps4",
+        "standard edition",
+        "studio_XBOX Game Studios",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games",
+        "xbox",
+        "xbox one"
+      ],
+      "variants": [
+        {
+          "id": 41027174596665,
+          "title": "Nintendo Switch",
+          "option1": "Nintendo Switch",
+          "option2": null,
+          "option3": null,
+          "sku": "TUNIC-GAME-DX-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "45.00",
+          "grams": 28350,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6955840077881,
+          "created_at": "2022-12-13T14:02:30-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 41027174629433,
+          "title": "PlayStation 4",
+          "option1": "PlayStation 4",
+          "option2": null,
+          "option3": null,
+          "sku": "TUNIC-GAME-DX-PS4",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "45.00",
+          "grams": 28350,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 6955840077881,
+          "created_at": "2022-12-13T14:02:30-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 41899961548857,
+          "title": "Xbox",
+          "option1": "Xbox",
+          "option2": null,
+          "option3": null,
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "45.00",
+          "grams": 28350,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 6955840077881,
+          "created_at": "2023-12-15T17:59:47-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 32404830814265,
+          "created_at": "2024-01-05T10:52:34-07:00",
+          "position": 1,
+          "updated_at": "2024-01-17T09:16:21-07:00",
+          "product_id": 6955840077881,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/TUNIC_DX_designview3.png?v=1705508181",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Nintendo Switch",
+            "PlayStation 4",
+            "Xbox"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7950876803129,
+      "title": "Crow Country Deluxe Edition",
+      "handle": "crow-country-game-deluxe-edition",
+      "body_html": "<p>A survival horror game, where you'll test yourself against puzzles and riddles as you investigate the eerie tranquility of the abandoned theme park. Don't be deceived by the whimsical surroundings, something is awfully wrong in Crow Country.</p>\n<p>This Deluxe Edition of <em>Crow Country</em> includes:</p>\n<ul>\n<li>A <strong>4-piece acrylic standee</strong> measuring about 3.1 inches tall and 3.9 inches wide.</li>\n<li>A <strong>40-page journal</strong> for taking important notes.</li>\n<li>3 retro-inspired <strong>holographic character cards</strong> featuring Mara, Arthur, and Edward Crow.</li>\n<li><strong>Two kiss-cut sticker sheets.</strong></li>\n</ul>\n<p>... along with everything that's packed inside our standard edition:</p>\n<ul>\n<li>A <strong>20-page instruction booklet</strong> straight from the developers, filled with tips, character bios, and more.</li>\n<li>A 9x12 inch <strong>double-sided folded poster</strong> showcasing an original park map and promotional flier.</li>\n</ul>",
+      "published_at": "2025-07-08T09:31:08-07:00",
+      "created_at": "2025-06-26T16:43:59-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Crow Country",
+      "product_type": "Games",
+      "tags": [
+        "collector's edition",
+        "Crow Country",
+        "crow country dx",
+        "deluxe",
+        "deluxe edition",
+        "game_Crow Country",
+        "nintendo switch",
+        "physical game",
+        "platform_Nintendo Switch",
+        "platform_PlayStation 5",
+        "playstation 5",
+        "top-level-game",
+        "type_Games"
+      ],
+      "variants": [
+        {
+          "id": 44637414522937,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "59.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7950876803129,
+          "created_at": "2025-06-26T16:44:00-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 36578039496761,
+          "created_at": "2025-06-26T16:45:26-07:00",
+          "position": 1,
+          "updated_at": "2025-06-26T16:45:33-07:00",
+          "product_id": 7950876803129,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/CrowCountry-DX-both-ESRB-designview.png?v=1750981533",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7786407100473,
+      "title": "OFF Bad Human Edition for Nintendo Switch™",
+      "handle": "off-collectors-edition-game-nintendo-switch",
+      "body_html": "<p>“I’m the Batter. I’ve been entrusted with a sacred mission.”</p>\n<p>One of the most influential RPGs of the last 20 years has finally arrived on the Nintendo Switch™ and Steam®, featuring an all-new battle system and new areas and hidden bosses from the game’s creator, Mortis Ghost.</p>\n<p>Take control of the Batter as he seeks to purify an uncanny and hopeless world haunted by specters.</p>\n<p>This special <em>OFF</em> Collector’s Edition for Nintendo Switch includes:</p>\n<ul>\n<li>A Batter bobblehead statue</li>\n<li>A set of six Zodiac cards in a foil-embossed pass case</li>\n<li>A 16-page prequel comic by Mortis Ghost, entitled <em>OF</em>\n</li>\n</ul>\n<p>… along with everything that’s packed inside our standard edition of <em>OFF</em>:</p>\n<ul>\n<li>An instruction manual</li>\n<li>Reversible cover art</li>\n<li>A “Memories of the Park” souvenir art card<br>\n</li>\n</ul>",
+      "published_at": "2024-12-19T10:10:19-07:00",
+      "created_at": "2024-12-02T12:43:06-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "OFF",
+      "product_type": "Games",
+      "tags": [
+        "collector's edition",
+        "deluxe",
+        "force-sale",
+        "game_OFF",
+        "nintendo switch",
+        "OFF",
+        "physical game",
+        "switch",
+        "top-level-game",
+        "tucson-comic-con-2026",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 44108606668857,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "OFF-GAME-CE-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "79.00",
+          "grams": 853,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7786407100473,
+          "created_at": "2024-12-02T12:43:07-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 35032092672057,
+          "created_at": "2024-12-02T14:11:06-07:00",
+          "position": 1,
+          "updated_at": "2024-12-02T14:11:08-07:00",
+          "product_id": 7786407100473,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/OFF-DX-Switch-designview.png?v=1733173868",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9755625618,
+      "title": "UNDERTALE Game Physical Edition",
+      "handle": "undertale-game-switch-ps4-vita",
+      "body_html": "<p>For the first time ever you can play UNDERTALE on Nintendo Switch™, PlayStation® 4, and soon on Xbox One! Physical copies for Switch, PS4, and PC are available now, along with a <strong>special collector’s edition</strong>, exclusively on Fangamer.</p>\n<p><meta charset=\"utf-8\"><span>All versions of the game include a <strong>24-page storybooklet illustrated by Temmie Chang</strong>, packed in the standard-edition case.</span></p>\n<p>The Collector’s edition also includes:</p>\n<ul>\n<li>The complete UNDERTALE soundtrack: Over 100 songs on 2 CDs</li>\n<li>UNDERTALE sheet music booklet featuring six songs with annotations by Toby Fox</li>\n<li>A 14k gold-plated brass music box locket</li>\n<li>A sturdy matchbox-style collector’s box</li>\n<li>A standard edition copy of UNDERTALE for PS4, Nintendo Switch™, or PC (for Windows, Mac and Linux)<br>\n</li>\n</ul>\n<p><span></span>Our new <strong>Nintendo Switch™ Collector’s Edition</strong> includes all the existing collector’s edition bonuses, plus a new slipcase, and one of three randomly chosen microfiber cleaning cloths.</p>\n<p>This product is limited to 4 per person per platform. <a href=\"https://www.fangamer.com/pages/shipping#oversells\">See our shipping page for information on per-customer limits.</a></p>\n<p><em>Music box locket concept by Seoyeon An. Sheet music arrangement and music administration by <a href=\"http://www.materiacollective.com/\">Materia Collective</a>.</em></p>",
+      "published_at": "2017-06-12T17:53:26-07:00",
+      "created_at": "2017-06-12T14:16:07-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "UNDERTALE",
+      "product_type": "Games",
+      "tags": [
+        "CE",
+        "collector",
+        "collector's",
+        "collector's edition",
+        "game_UNDERTALE",
+        "low inventory",
+        "nintendo switch",
+        "oldgamepage",
+        "pc",
+        "physical game",
+        "ps4",
+        "restocking_soon",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "undertale",
+        "undertale game",
+        "utce",
+        "variants_coming_soon",
+        "video games",
+        "vita",
+        "xbox",
+        "xbox one"
+      ],
+      "variants": [
+        {
+          "id": 15085479526457,
+          "title": "Collector's Edition Nintendo Switch",
+          "option1": "Collector's Edition Nintendo Switch",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-CE-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 5454184284217,
+            "product_id": 9755625618,
+            "position": 4,
+            "created_at": "2019-10-02T17:02:36-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_ut_switch_ce_itemview.png?v=1691803091",
+            "variant_ids": [
+              15085479526457
+            ]
+          },
+          "available": true,
+          "price": "79.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 9755625618,
+          "created_at": "2018-08-13T06:43:20-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 39257437601849,
+          "title": "Collector's Edition Xbox One",
+          "option1": "Collector's Edition Xbox One",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-CE-XBOX",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 29408218415161,
+            "product_id": 9755625618,
+            "position": 19,
+            "created_at": "2022-03-28T08:32:36-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_ut_xbox_ce_itemview-fs8_8fdc5c93-71d5-4415-9242-7719551dfa35.png?v=1691803091",
+            "variant_ids": [
+              39257437601849
+            ]
+          },
+          "available": false,
+          "price": "74.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 9755625618,
+          "created_at": "2021-03-15T10:11:06-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 36244766738,
+          "title": "Collector's Edition PS4",
+          "option1": "Collector's Edition PS4",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-CE-PS4",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 21417880274,
+            "product_id": 9755625618,
+            "position": 16,
+            "created_at": "2017-06-12T15:03:08-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_overhead_collectors_ps4_itemview.png?v=1691803091",
+            "variant_ids": [
+              36244766738
+            ]
+          },
+          "available": false,
+          "price": "74.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 9755625618,
+          "created_at": "2017-06-12T14:39:29-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 36244766802,
+          "title": "Collector's Edition PS Vita",
+          "option1": "Collector's Edition PS Vita",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-CE-PSVITA",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 21417880402,
+            "product_id": 9755625618,
+            "position": 17,
+            "created_at": "2017-06-12T15:03:10-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_overhead_collectors_vita_itemview.png?v=1691803091",
+            "variant_ids": [
+              36244766802
+            ]
+          },
+          "available": false,
+          "price": "74.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 4,
+          "product_id": 9755625618,
+          "created_at": "2017-06-12T14:39:29-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 36244766866,
+          "title": "Collector's Edition PC",
+          "option1": "Collector's Edition PC",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-CE-PC",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 21417880018,
+            "product_id": 9755625618,
+            "position": 15,
+            "created_at": "2017-06-12T15:03:07-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_overhead_collectors_pc_itemview.png?v=1691803091",
+            "variant_ids": [
+              36244766866
+            ]
+          },
+          "available": false,
+          "price": "74.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 5,
+          "product_id": 9755625618,
+          "created_at": "2017-06-12T14:39:29-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 15085496270905,
+          "title": "Nintendo Switch Standard Edition",
+          "option1": "Nintendo Switch Standard Edition",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 5452964429881,
+            "product_id": 9755625618,
+            "position": 7,
+            "created_at": "2019-10-02T17:01:06-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_ut_switch_itemview.png?v=1691803091",
+            "variant_ids": [
+              15085496270905
+            ]
+          },
+          "available": true,
+          "price": "29.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 6,
+          "product_id": 9755625618,
+          "created_at": "2018-08-13T06:44:07-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 39257437732921,
+          "title": "Xbox One Standard Edition",
+          "option1": "Xbox One Standard Edition",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-XBOX",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 29408218251321,
+            "product_id": 9755625618,
+            "position": 21,
+            "created_at": "2022-03-28T08:32:36-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_ut_xbox_itemview-fs8_843b6860-67cc-4d10-8918-226f589e9c0f.png?v=1691803091",
+            "variant_ids": [
+              39257437732921
+            ]
+          },
+          "available": false,
+          "price": "24.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 7,
+          "product_id": 9755625618,
+          "created_at": "2021-03-15T10:12:21-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 36244533458,
+          "title": "PS4 Standard Edition",
+          "option1": "PS4 Standard Edition",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-PS4",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 21417662738,
+            "product_id": 9755625618,
+            "position": 12,
+            "created_at": "2017-06-12T14:56:14-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_overhead_ps4_itemview.png?v=1691803091",
+            "variant_ids": [
+              36244533458
+            ]
+          },
+          "available": false,
+          "price": "25.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 8,
+          "product_id": 9755625618,
+          "created_at": "2017-06-12T14:16:07-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 36244766610,
+          "title": "PS Vita Standard Edition",
+          "option1": "PS Vita Standard Edition",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-PSVITA",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 21417667410,
+            "product_id": 9755625618,
+            "position": 14,
+            "created_at": "2017-06-12T14:56:21-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_overhead_vita_itemview.png?v=1691803091",
+            "variant_ids": [
+              36244766610
+            ]
+          },
+          "available": false,
+          "price": "25.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 9,
+          "product_id": 9755625618,
+          "created_at": "2017-06-12T14:39:29-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 36244766674,
+          "title": "PC Standard Edition",
+          "option1": "PC Standard Edition",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-PC",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 21417656338,
+            "product_id": 9755625618,
+            "position": 10,
+            "created_at": "2017-06-12T14:56:06-07:00",
+            "updated_at": "2023-08-11T18:18:11-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_overhead_pc_itemview.png?v=1691803091",
+            "variant_ids": [
+              36244766674
+            ]
+          },
+          "available": false,
+          "price": "25.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 10,
+          "product_id": 9755625618,
+          "created_at": "2017-06-12T14:39:29-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 29649385947193,
+          "created_at": "2022-05-06T13:58:39-07:00",
+          "position": 1,
+          "updated_at": "2022-05-06T13:58:49-07:00",
+          "product_id": 9755625618,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_ut_ce_combined_designview.png?v=1651870729",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Style",
+          "position": 1,
+          "values": [
+            "Collector's Edition Nintendo Switch",
+            "Collector's Edition Xbox One",
+            "Collector's Edition PS4",
+            "Collector's Edition PS Vita",
+            "Collector's Edition PC",
+            "Nintendo Switch Standard Edition",
+            "Xbox One Standard Edition",
+            "PS4 Standard Edition",
+            "PS Vita Standard Edition",
+            "PC Standard Edition"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7873494024249,
+      "title": "Pizza Tower for Nintendo Switch™ Collector's Edition",
+      "handle": "pizza-tower-game-collectors-edition-nintendo-switch",
+      "body_html": "<p>PLAY as Peppino Spaghetti, the supersonic Italian middle-aged man! And sometimes Gustavo. EXPLORE up to 5 floors leading to many levels, discover all of their secrets! FIGHT some monsters and other weirdos! DESTROY everything in your path, including those stupid rats. BECOME the Pizza Tower!</p>\n<p>This special collector's edition of <em>Pizza Tower</em> for Nintendo Switch™ includes:</p>\n<ul>\n<li>A 4.3-inch tall Peppino kitchen timer, designed by mushbuh</li>\n<li>A <em>Pizza Tower</em> art booklet with concept art and notes by McPig</li>\n<li>A set of 10 title screen art cards</li>\n<li>A microfiber Pizza Napkin cleaning cloth</li>\n</ul>\n<p>... along with everything that's packed inside the standard edition<em>: </em></p>\n<ul>\n<li>A 9x12 inch foldout poster with art by Noah Hush</li>\n<li>Two sticker sheets created by Kaori Takizawa. </li>\n</ul>",
+      "published_at": "2025-04-16T09:45:22-07:00",
+      "created_at": "2025-03-21T15:57:31-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Pizza Tower",
+      "product_type": "Games",
+      "tags": [
+        "CE",
+        "collector's",
+        "collector's edition",
+        "force-sale",
+        "game_Pizza Tower",
+        "nintendo switch",
+        "physical game",
+        "pizza tower",
+        "platform_Nintendo Switch",
+        "stst26",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 44370472861753,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "PZT-GAME-CE-NSW",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "79.00",
+          "grams": 907,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7873494024249,
+          "created_at": "2025-03-21T15:57:32-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 35964586721337,
+          "created_at": "2025-04-08T11:25:46-07:00",
+          "position": 1,
+          "updated_at": "2025-04-08T11:25:47-07:00",
+          "product_id": 7873494024249,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/pizza-ce-designview-fs8.png?v=1744136747",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7728857415737,
+      "title": "Little Kitty, Big City Deluxe Edition for Nintendo Switch™",
+      "handle": "little-kitty-big-city-deluxe-edition-game-nintendo-switch",
+      "body_html": "<p>A peaceful catnap turns into a whimsical adventure! Will you make your way home or will you explore what the big city has to offer first? I mean, getting home is obviously your main priority. Obviously. Well, it's one of your priorities. Maybe more of a guideline... It's definitely on your to-do list somewhere! </p>\n<p>This deluxe edition of <em>Little Kitty, Big City</em> for Nintendo Switch includes: </p>\n<ul>\n<li>\n<strong>A genuine frog cat hat</strong> <br>\n</li>\n<li>\n<strong>A fold-out Hang In There </strong>poster measuring about 12x19 inches. <br>\n</li>\n<li><strong>Two kiss-cut sticker sheets</strong></li>\n<li><strong>A pad of <em>Little Kitty, Big City</em> sticky notes</strong></li>\n</ul>\n<p>... along with everything that's packed inside our standard edition of <em>Little Kitty, Big City</em>: </p>\n<ul>\n<li>\n<strong>A digital download code </strong>for a copy of the complete soundtrack</li>\n<li>\n<strong>A 16-page mini manual</strong>  </li>\n<li>\n<strong>Reversible cover art</strong><br>\n</li>\n<li>\n<strong>A fold-out \"Lost Kitty\" mini poster </strong>measuring about 9x12 inches. </li>\n</ul>",
+      "published_at": "2024-11-12T09:54:10-07:00",
+      "created_at": "2024-10-09T12:59:05-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Little Kitty, Big City",
+      "product_type": "Games",
+      "tags": [
+        "collector's edition",
+        "deluxe",
+        "deluxe edition",
+        "little kitty big city",
+        "nintendo switch",
+        "physical game",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 43882504388665,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "LKBC-GAME-DX-NSW",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "59.00",
+          "grams": 272,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7728857415737,
+          "created_at": "2024-10-09T12:59:05-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 34659788128313,
+          "created_at": "2024-10-09T14:16:08-07:00",
+          "position": 1,
+          "updated_at": "2024-10-09T14:16:11-07:00",
+          "product_id": 7728857415737,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/LittleKittyBigCity-DX-Switch-designview.png?v=1728508571",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7227602042937,
+      "title": "OMORI Collector's Edition for Nintendo Switch™ and PlayStation 4",
+      "handle": "omori-collectors-edition-game-nintendo-switch-playstation-4",
+      "body_html": "<p>Explore a strange world full of colorful friends and foes. When the time comes, the path you’ve chosen will determine your fate... and perhaps the fate of others as well.</p>\n<p>This OMORI special collector's edition is packed in a sturdy display box. It includes:</p>\n<ul>\n<li>A <strong>piano music box</strong> that plays \"Duet.\"</li>\n<li>A <strong>sheet music booklet</strong> that wraps violin and piano arrangements for \"Duet\" up in original illustrations by OMOCAT.</li>\n<li>An <strong>envelope</strong>, fastened with a button and string and filled with keepsakes and mementos from Faraway Town.<br>\n</li>\n</ul>\n<p>All physical copies of OMORI include one of two snapshot stickers and a printed instruction manual.</p>\n<p>OMORI is ported by MP2 Games.</p>\n<p>A Japanese version of the OMORI Collector’s Edition for Nintendo Switch is now available at Fangamer Japan!<br>『OMORI』コレクターズエディションの日本語版はfangamer.jpにて発売中！ ※Nintendo Switchのみ</p>",
+      "published_at": "2024-03-01T19:56:39-07:00",
+      "created_at": "2024-02-16T12:21:03-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "OMORI",
+      "product_type": "Games",
+      "tags": [
+        "CE",
+        "collector's edition",
+        "game_OMORI",
+        "nintendo switch",
+        "oldgamepage",
+        "omocat",
+        "omori",
+        "physical game",
+        "playstation 4",
+        "studio_OMOCAT",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 42294824566841,
+          "title": "Nintendo Switch",
+          "option1": "Nintendo Switch",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 32674779660345,
+            "product_id": 7227602042937,
+            "position": 3,
+            "created_at": "2024-02-27T14:43:51-07:00",
+            "updated_at": "2024-02-27T14:44:05-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/product_omori_ce_switch_designview.png?v=1709070245",
+            "variant_ids": [
+              42294824566841
+            ]
+          },
+          "available": true,
+          "price": "84.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7227602042937,
+          "created_at": "2024-02-16T12:21:04-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 42294824599609,
+          "title": "PlayStation 4",
+          "option1": "PlayStation 4",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 32674779856953,
+            "product_id": 7227602042937,
+            "position": 5,
+            "created_at": "2024-02-27T14:43:51-07:00",
+            "updated_at": "2024-02-27T14:44:05-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/product_omori_ce_ps4_designview.png?v=1709070245",
+            "variant_ids": [
+              42294824599609
+            ]
+          },
+          "available": true,
+          "price": "84.00",
+          "grams": 198,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 7227602042937,
+          "created_at": "2024-02-16T12:21:04-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 32674779922489,
+          "created_at": "2024-02-27T14:43:51-07:00",
+          "position": 1,
+          "updated_at": "2024-02-27T14:44:05-07:00",
+          "product_id": 7227602042937,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/product_omori_ce_designview.png?v=1709070245",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Nintendo Switch",
+            "PlayStation 4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7388533948473,
+      "title": "Frog Detective: The Entire Mystery for Nintendo Switch™ Deluxe Edition",
+      "handle": "frog-detective-deluxe-edition-game-nintendo-switch",
+      "body_html": "<p>You're a detective, and a frog, and it's time to solve three thrilling mysteries!</p>\n<p>Each Frog Detective Deluxe Edition includes: </p>\n<ul>\n<li>\n<strong>A four-piece acrylic mini-standee</strong> measuring about 2.3 inches tall and 3.45 inches wide when assembled. </li>\n<li style=\"font-weight: bold;\" data-mce-style=\"font-weight: bold;\"><strong>Two kiss-cut sticker sheets</strong></li>\n<li>\n<strong>A set of three postcard-style art cards</strong> wishing you the best from Haunted Island, Warlock Woods, and Cowboy County</li>\n</ul>\n<p>... along with everything that's packed inside our standard edition of <em>Frog Detective: The Entire Mystery: </em></p>\n<ul>\n<li>\n<strong>A digital download code </strong>for a copy of the complete soundtrack. </li>\n<li><strong>Reversible cover art</strong></li>\n<li>\n<strong>Business cards</strong> from Frog Detective and Lobster Cop</li>\n</ul>",
+      "published_at": "2024-05-14T09:47:54-07:00",
+      "created_at": "2024-04-19T08:24:44-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Frog Detective",
+      "product_type": "Games",
+      "tags": [
+        "collector's edition",
+        "deluxe",
+        "deluxe edition",
+        "frog detective",
+        "game_Frog Detective",
+        "nintendo switch",
+        "pax-east-2025",
+        "physical game",
+        "retired",
+        "stst26",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 42960721084473,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "FDET-GAME-FRGDETCTV-NSW-DX",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "49.00",
+          "grams": 213,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7388533948473,
+          "created_at": "2024-04-19T08:24:44-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 33125087051833,
+          "created_at": "2024-04-19T11:00:08-07:00",
+          "position": 1,
+          "updated_at": "2024-04-19T11:00:49-07:00",
+          "product_id": 7388533948473,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/Frog-Detective-DX-Switch-designview-fs8.png?v=1713549649",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8064369885241,
+      "title": "Nine Sols Standard Edition",
+      "handle": "nine-sols-game",
+      "body_html": "<p>Embark on a vengeful journey across a forsaken realm to slay its powerful rulers, the Nine Sols. This beautifully hand-drawn action-platformer will test your might with brutal, skill-based combat and platforming.</p>\n<p>The Standard Edition of Nine Sols includes:</p>\n<ul>\n<li>A <strong>16-page instruction booklet</strong> straight from the developers, filled with tips, character bios, and more.</li>\n<li>Two <strong>double-sided art cards </strong>showcasing original artwork and Shuanshuan drawings.</li>\n</ul>",
+      "published_at": "2025-11-04T09:41:56-07:00",
+      "created_at": "2025-10-27T16:37:28-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Nine Sols",
+      "product_type": "Games",
+      "tags": [
+        "nine sols",
+        "nintendo switch",
+        "pax-west-2026",
+        "physical game",
+        "platform_Nintendo Switch",
+        "platform_PlayStation 5",
+        "playstation 5",
+        "standard edition",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 45095449198649,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": null,
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "39.00",
+          "grams": 0,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 8064369885241,
+          "created_at": "2025-10-27T16:37:28-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 37572045635641,
+          "created_at": "2025-10-27T16:41:19-07:00",
+          "position": 1,
+          "updated_at": "2025-10-27T16:42:13-07:00",
+          "product_id": 8064369885241,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/NineSols-SE-ESRB-Both-designview.png?v=1761608533",
+          "width": 1500,
+          "height": 1500
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7965326442553,
+      "title": "UFO 50 for Nintendo Switch™ Standard Edition",
+      "handle": "ufo-50-game-nintendo-switch",
+      "body_html": "<p>Play forever with UFO 50, available for the first time in physical form for the Nintendo Switch!</p>\n<p>The Standard Edition includes:</p>\n<ul>\n<li>A 12x9-inch UFO Soft <strong>promotional poster</strong> from the LXIII's launch.</li>\n<li>A <strong>postcard print</strong> of an original UFO Soft game disk.</li>\n<li>Promotional <strong>kiss-cut sticker sheet</strong>.</li>\n<li>A <strong>digital download code</strong> for a copy of the complete soundtrack.</li>\n</ul>",
+      "published_at": "2025-08-07T06:17:22-07:00",
+      "created_at": "2025-07-14T12:20:46-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "UFO 50",
+      "product_type": "Games",
+      "tags": [
+        "game_UFO 50",
+        "nintendo switch",
+        "pax-east-2026",
+        "pax-west-2026",
+        "physical game",
+        "platform_Nintendo Switch",
+        "standard edition",
+        "top-level-game",
+        "UFO 50",
+        "ufo50"
+      ],
+      "variants": [
+        {
+          "id": 44695569236025,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "UFO-GAME-STD-NSW",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7965326442553,
+          "created_at": "2025-07-14T12:20:46-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 37694199496761,
+          "created_at": "2025-11-05T13:03:53-07:00",
+          "position": 1,
+          "updated_at": "2025-11-05T13:04:04-07:00",
+          "product_id": 7965326442553,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/UFO50_SE-ESRB-designview_c02847e3-ca10-46e9-9eae-5f40ea64949d.png?v=1762373044",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7834597916729,
+      "title": "Stardew Valley Deluxe Edition for Nintendo Switch™",
+      "handle": "stardew-valley-game-deluxe-edition-nintendo-switch",
+      "body_html": "<p>Move to the valley, become part of the local community, and create the farm of your dreams!</p>\n<p>This all-new deluxe edition of <em>Stardew Valley</em> for Nintendo Switch includes a tuck box filled with: </p>\n<ul>\n<li>A wooden <strong>Friend of the Forest </strong>Junimo pin designed by Laura Verdin</li>\n<li>A <strong>mini farm deed</strong> designed by Kari Fry and Chihiro Sakaida</li>\n<li>A <strong>special 16-page mini comic </strong>by Chihiro Sakaida, author of the <a href=\"https://www.fangamer.com/collections/stardew-valley/products/stardew-valley-comic\"><em>Before the Farmer graphic novel</em></a>\n</li>\n<li>\n<strong>Four Seasons art cards </strong>illustrated on both sides by Kari Fry</li>\n<li>A <strong>fold-out poster</strong> of Kari Fry's deluxe-edition box art measuring about 8 x 13 inches</li>\n</ul>\n<p>... along with the instruction booklet packed inside our standard edition. </p>",
+      "published_at": "2025-02-25T09:11:32-07:00",
+      "created_at": "2025-01-29T11:00:18-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Stardew Valley",
+      "product_type": "Games",
+      "tags": [
+        "collector's edition",
+        "deluxe",
+        "deluxe edition",
+        "game-on-2026",
+        "game_Stardew Valley",
+        "nintendo switch",
+        "pax-east-2025",
+        "pax-west-2025",
+        "physical game",
+        "stardew",
+        "stardew valley",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 44253652582457,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SDV-GAME-DX-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "59.00",
+          "grams": 241,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7834597916729,
+          "created_at": "2025-01-29T11:00:19-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 35612748447801,
+          "created_at": "2025-02-18T12:50:31-07:00",
+          "position": 1,
+          "updated_at": "2025-02-18T12:50:32-07:00",
+          "product_id": 7834597916729,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/product_Stardew_DX_switch_designview.png?v=1739908232",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7792441622585,
+      "title": "OFF for Nintendo Switch™",
+      "handle": "off-game-nintendo-switch",
+      "body_html": "<p>“I’m the Batter. I’ve been entrusted with a sacred mission.”</p>\n<p>One of the most influential RPGs of the last 20 years has finally arrived on the Nintendo Switch™ and Steam®, featuring an all-new battle system and new areas and hidden bosses from the game’s creator, Mortis Ghost.</p>\n<p>Take control of the Batter as he seeks to purify an uncanny and hopeless world haunted by specters.</p>\n<p><em>OFF</em> for Nintendo Switch includes:</p>\n<ul>\n<li>An instruction manual</li>\n<li>Reversible cover art</li>\n<li>A “Memories of the Park” souvenir art card<br>\n</li>\n</ul>",
+      "published_at": "2024-12-19T10:10:21-07:00",
+      "created_at": "2024-12-09T16:54:16-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "OFF",
+      "product_type": "Games",
+      "tags": [
+        "force-sale",
+        "game_OFF",
+        "nintendo switch",
+        "OFF",
+        "pax-west-2026",
+        "physical game",
+        "restocking_soon",
+        "standard edition",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 44127897976889,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "OFF-GAME-STD-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7792441622585,
+          "created_at": "2024-12-09T16:54:17-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 37327291056185,
+          "created_at": "2025-09-30T10:28:14-07:00",
+          "position": 1,
+          "updated_at": "2025-09-30T10:28:18-07:00",
+          "product_id": 7792441622585,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/Off-SE-Designview.png?v=1759253298",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7950877851705,
+      "title": "Crow Country Standard Edition",
+      "handle": "crow-country-game",
+      "body_html": "<p>A survivor horror game, where you'll test yourself against puzzles and riddles as you investigate the eerie tranquility of the abandoned theme park. Don't be deceived by the whimsical surroundings, something is awfully wrong in Crow Country.</p>\n<p>This physical edition of <em>Crow Country</em> for Nintendo Switch™ includes:</p>\n<ul>\n<li>A <strong>20-page instruction booklet</strong> straight from the developers, filled with tips, character bios, and more.</li>\n<li>A 9x12 inch <strong>double-sided folded poster</strong> showcasing an original park map and promotional flier.</li>\n</ul>",
+      "published_at": "2025-07-08T09:31:08-07:00",
+      "created_at": "2025-06-26T16:48:32-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Crow Country",
+      "product_type": "Games",
+      "tags": [
+        "Crow Country",
+        "crow country se",
+        "game_Crow Country",
+        "nintendo switch",
+        "pax-east-2026",
+        "pax-west-2026",
+        "physical game",
+        "platform_Nintendo Switch",
+        "platform_PlayStation 5",
+        "playstation 5",
+        "top-level-game",
+        "tucson-comic-con-2026",
+        "type_Games"
+      ],
+      "variants": [
+        {
+          "id": 44637419339833,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 10000000,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7950877851705,
+          "created_at": "2025-06-26T16:48:33-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 36578068201529,
+          "created_at": "2025-06-26T16:53:16-07:00",
+          "position": 1,
+          "updated_at": "2025-06-26T16:53:20-07:00",
+          "product_id": 7950877851705,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/CrowCountry-SE-both-ESRB-designview.png?v=1750982000",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7943566295097,
+      "title": "ANTONBLAST for Nintendo Switch™",
+      "handle": "antonblast-game-nintendo-switch",
+      "body_html": "<p>ANTONBLAST is a fast-paced explosive action platformer that's all about destruction, available for the first time in physical form for the Nintendo Switch™!</p>\n<p>This physical edition includes:</p>\n<ul>\n<li>A retro-inspired operation card to reference as you master the game</li>\n<li>A two-sided art card ripped from the '90s</li>\n<li>Two kiss-cut sticker sheets</li>\n<li>Original reversible cover art</li>\n<li>A digital download code for a copy of the complete soundtrack</li>\n</ul>",
+      "published_at": "2025-07-08T09:30:58-07:00",
+      "created_at": "2025-06-18T14:31:19-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "ANTONBLAST",
+      "product_type": "Games",
+      "tags": [
+        "ANTONBLAST",
+        "game-on-2026",
+        "nintendo switch",
+        "pax-east-2026",
+        "pax-west-2026",
+        "physical game",
+        "platform_Nintendo Switch",
+        "switch",
+        "top-level-game",
+        "tucson-comic-con-2026",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 44608419758137,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "ANT-GAME-STD-NSW",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7943566295097,
+          "created_at": "2025-06-18T14:31:19-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 36606927077433,
+          "created_at": "2025-07-01T14:05:18-07:00",
+          "position": 1,
+          "updated_at": "2025-07-01T14:05:30-07:00",
+          "product_id": 7943566295097,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/Antonblast-SE-Switch-ESRB-designview.png?v=1751403930",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7932302819385,
+      "title": "20XX/30XX for Nintendo Switch™",
+      "handle": "20xx-30xx-game-nintendo-switch",
+      "body_html": "<p>Jump, shoot, and slash your way through 20XX and 30XX in the ultimate co-op action-platformer roguelike collection!</p>\n<p>This physical edition includes both 20XX and 30XX for Nintendo Switch™ on a single Game Card, as well as:</p>\n<ul>\n<li>A double-sided 14 page instruction booklet featuring character bios and boss info</li>\n<li>A digital download code for a copy of the complete soundtrack</li>\n<li>Two kiss-cut sticker sheets</li>\n<li>A 9x12 inch double-sided folded poster with a comprehensive list of in-game augments on each side</li>\n<li>Reversible cover with double-sided artwork</li>\n</ul>",
+      "published_at": "2025-07-08T09:30:54-07:00",
+      "created_at": "2025-06-05T15:01:45-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "20XX/30XX",
+      "product_type": "Games",
+      "tags": [
+        "20XX",
+        "30XX",
+        "nintendo switch",
+        "physical game",
+        "platform_Nintendo Switch",
+        "top-level-game",
+        "type_Games",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 44576696631353,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "30X-GAME-STD-NSW",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7932302819385,
+          "created_at": "2025-06-05T15:01:45-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 36615672299577,
+          "created_at": "2025-07-03T12:32:53-07:00",
+          "position": 1,
+          "updated_at": "2025-07-03T12:32:54-07:00",
+          "product_id": 7932302819385,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/20XX30XX-SE-Switch-ESRB-designview.png?v=1751571174",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7884765790265,
+      "title": "Luck Be a Landlord Physical Edition for Nintendo Switch™",
+      "handle": "luck-be-a-landlord-game-nintendo-switch",
+      "body_html": "<p>Collect symbols and spin to defeat capitalism in this iconic roguelike deckbuilder, available for the first time in physical form for the Nintendo Switch!</p>\n<p>Luck be a Landlord for the Nintendo Switch includes:</p>\n<ul>\n<li>A 16 page \"Symbol Guide\" booklet breaking down the game's 150+ symbols</li>\n<li>Two kiss-cut sticker sheets</li>\n<li>A digital download code for a copy of the complete soundtrack</li>\n<li>Reversible cover art</li>\n</ul>",
+      "published_at": "2025-04-22T09:47:59-07:00",
+      "created_at": "2025-04-08T10:35:38-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Luck Be a Landlord",
+      "product_type": "Games",
+      "tags": [
+        "force-sale",
+        "luck be a landlord",
+        "nintendo switch",
+        "pax-east-2026",
+        "platform_Nintendo Switch",
+        "retired",
+        "stst26",
+        "switch",
+        "top-level-game",
+        "tucson-comic-con-2026",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 44405354496057,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "LBL-GAME-STD-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7884765790265,
+          "created_at": "2025-04-08T10:35:38-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 36046056882233,
+          "created_at": "2025-04-16T14:33:40-07:00",
+          "position": 1,
+          "updated_at": "2025-04-16T14:33:41-07:00",
+          "product_id": 7884765790265,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/LuckLandlord-SE-Switch-designview.png?v=1744839221",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7873493270585,
+      "title": "Pizza Tower for Nintendo Switch™",
+      "handle": "pizza-tower-game-nintendo-switch",
+      "body_html": "<p>PLAY as Peppino Spaghetti, the supersonic Italian middle-aged man! And sometimes Gustavo. EXPLORE up to 5 floors leading to many levels, discover all of their secrets! FIGHT some monsters and other weirdos! DESTROY everything in your path, including those stupid rats. BECOME the Pizza Tower!</p>\n<p>This physical edition of <em>Pizza Tower</em> for Nintendo Switch™ includes:</p>\n<ul>\n<li>A 9x12 inch foldout poster with art by Noah Hush</li>\n<li>Two sticker sheets created by Kaori Takizawa. </li>\n</ul>",
+      "published_at": "2025-04-16T09:44:44-07:00",
+      "created_at": "2025-03-21T15:47:22-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Pizza Tower",
+      "product_type": "Games",
+      "tags": [
+        "game",
+        "game-on-2026",
+        "game_Pizza Tower",
+        "nintendo switch",
+        "pax-east-2026",
+        "pax-west-2026",
+        "physical game",
+        "pizza tower",
+        "platform_Nintendo Switch",
+        "restocking_soon",
+        "standard edition",
+        "top-level-game",
+        "tucson-comic-con-2026",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 44370469322809,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "PZT-GAME-STD-NSW",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7873493270585,
+          "created_at": "2025-03-21T15:47:23-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 35994199916601,
+          "created_at": "2025-04-10T12:07:22-07:00",
+          "position": 1,
+          "updated_at": "2025-04-10T12:08:02-07:00",
+          "product_id": 7873493270585,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/Pizza-Tower-Switch-designview-fs8.png?v=1744312082",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7227670790201,
+      "title": "Citizen Sleeper for Nintendo Switch™",
+      "handle": "citizen-sleeper-physical-game-nintendo-switch",
+      "body_html": "<p>One of 2022’s most acclaimed indies, the Game Awards-nominated Citizen Sleeper is a Tabletop-inspired narrative RPG set on Erlin’s Eye, a ruined space station that is home to thousands of people trying to survive on the edges of an interstellar capitalist society.</p>\n<p>You are a sleeper, a digitised human consciousness in an artificial body, owned by a corporation that wants you back. Thrust amongst the unfamiliar and colourful inhabitants of the Eye, you need to build friendships, earn your keep, and navigate the factions of this strange metropolis, if you hope to survive to see the next cycle.</p>\n<p>Each physical copy of <em>Citizen Sleeper</em> includes these bonuses: </p>\n<ul>\n<li>Reversible cover art</li>\n<li>Set of three Sleeper art cards </li>\n<li>Double-sided folded poster featuring a map of Erlin's Eye</li>\n<li>Kiss-cut Neovend sticker sheet</li>\n</ul>",
+      "published_at": "2024-03-12T09:35:58-07:00",
+      "created_at": "2024-02-16T13:00:00-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Citizen Sleeper",
+      "product_type": "Games",
+      "tags": [
+        "bf2025-publishing-sale",
+        "citizen sleeper",
+        "game_Citizen Sleeper",
+        "nintendo switch",
+        "pax-east-2026",
+        "physical game",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 42295006691385,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "CSL-GAME-CTZNSLPR-NSW-STD",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7227670790201,
+          "created_at": "2024-02-16T13:00:00-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 32615942651961,
+          "created_at": "2024-02-16T13:31:41-07:00",
+          "position": 1,
+          "updated_at": "2024-02-16T13:31:44-07:00",
+          "product_id": 7227670790201,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/Citizen-Sleeper-Switch-designview-fs8.png?v=1708115504",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7394009612345,
+      "title": "Frog Detective: The Entire Mystery for Nintendo Switch™",
+      "handle": "frog-detective-switch-physical",
+      "body_html": "<p>You're a detective, and a frog, and it's time to solve three thrilling mysteries!</p>\n<p><em>Frog Detective: The Entire Mystery</em> includes three cases—\"The Haunted Island,\" \"The Case of the Invisible Wizard,\" and \"Corruption at Cowboy County.\" This physical edition for Nintendo Switch includes: </p>\n<ul>\n<li>\n<strong>A digital download code </strong>for a copy of the complete soundtrack. </li>\n<li><strong>Reversible cover art</strong></li>\n<li>\n<strong>Business cards</strong> from Frog Detective and Lobster Cop</li>\n</ul>",
+      "published_at": "2024-05-14T09:47:57-07:00",
+      "created_at": "2024-04-22T13:14:41-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Frog Detective",
+      "product_type": "Games",
+      "tags": [
+        "bf2025-publishing-sale",
+        "frog detective",
+        "game_Frog Detective",
+        "nintendo switch",
+        "physical game",
+        "retired",
+        "stst26",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 42980892901433,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "FDET-GAME-FRGDETCTV-NSW-STD",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7394009612345,
+          "created_at": "2024-04-22T13:14:41-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 33146418462777,
+          "created_at": "2024-04-22T13:15:28-07:00",
+          "position": 1,
+          "updated_at": "2024-04-22T13:15:33-07:00",
+          "product_id": 7394009612345,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/Frog-Detective-DX-Switch-designview-se-fs8.png?v=1713816933",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7045866029113,
+      "title": "World of Horror for Nintendo Switch™",
+      "handle": "world-of-horror-game-nintendo-switch",
+      "body_html": "<p>Experience the quiet terror of this 1-bit love letter to Junji Ito and H.P. Lovecraft. Navigate a hellish roguelite reality with turn-based combat and cruel dilemmas. Take experimental stabs at myriad combinations of weapons, spells, and more to survive this town of cosmic horror. The inevitable awaits...</p>\n<p>Each physical copy includes a 12-page instruction manual and an OLD GODS art card set. </p>\n<p><small>Artwork and illustrations by Paweł Koźmiński<br>Cover artwork by Nina Matsumoto</small></p>",
+      "published_at": "2023-07-11T09:46:48-07:00",
+      "created_at": "2023-06-27T15:20:14-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "World of Horror",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "game",
+        "game_World of Horror",
+        "newgamepage",
+        "nina matsumoto",
+        "nintendo switch",
+        "panstasz",
+        "physical game",
+        "platform_Nintendo Switch",
+        "restocking_soon",
+        "space coyote",
+        "spacecoyote",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video games",
+        "world of horror"
+      ],
+      "variants": [
+        {
+          "id": 41294247428153,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "WOH-GAME-WRLDHRRR-STD-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "34.00",
+          "grams": 128,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7045866029113,
+          "created_at": "2023-06-27T15:20:14-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 31748379082809,
+          "created_at": "2023-06-28T16:26:41-07:00",
+          "position": 1,
+          "updated_at": "2023-06-29T13:24:43-07:00",
+          "product_id": 7045866029113,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/files/WoH-switch-designview.png?v=1688070283",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6973341499449,
+      "title": "Celeste Standard Edition",
+      "handle": "celeste-physical-game",
+      "body_html": "<p><meta charset=\"utf-8\"><meta charset=\"utf-8\"><span>Just in time for its fifth anniversary, Celeste is now available in a brand-new physical edition for </span><em></em><span>Nintendo Switch™ and PlayStation</span><meta charset=\"utf-8\"><span data-mce-fragment=\"1\">® 4!</span></p>\n<p><span data-mce-fragment=\"1\">This standard edition, featuring new cover art by Amora B. of EXOK Games, includes a 32-page manual and a 9x12-inch folded poster designed by Ian Wilding.</span></p>",
+      "published_at": "2023-01-25T10:37:26-07:00",
+      "created_at": "2023-01-19T12:46:23-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Celeste",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "celeste",
+        "celeste se",
+        "exok",
+        "game",
+        "game_Celeste",
+        "nintendo switch",
+        "physical game",
+        "playstation",
+        "playstation 4",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 41088450199609,
+          "title": "Nintendo Switch",
+          "option1": "Nintendo Switch",
+          "option2": null,
+          "option3": null,
+          "sku": "CELESTE-GAME-CELESTE-STD-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 31282324013113,
+            "product_id": 6973341499449,
+            "position": 3,
+            "created_at": "2023-01-23T17:39:42-07:00",
+            "updated_at": "2023-08-10T15:22:52-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_Celeste_standard_switch_designview2-fs8.png?v=1691706172",
+            "variant_ids": [
+              41088450199609
+            ]
+          },
+          "available": true,
+          "price": "35.00",
+          "grams": 660,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6973341499449,
+          "created_at": "2023-01-19T12:46:24-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 41088450232377,
+          "title": "PlayStation 4",
+          "option1": "PlayStation 4",
+          "option2": null,
+          "option3": null,
+          "sku": "CELESTE-GAME-CELESTE-STD-PS4",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 31282323783737,
+            "product_id": 6973341499449,
+            "position": 5,
+            "created_at": "2023-01-23T17:39:42-07:00",
+            "updated_at": "2023-08-10T15:22:52-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_Celeste_standard_PS4_designview2-fs8.png?v=1691706172",
+            "variant_ids": [
+              41088450232377
+            ]
+          },
+          "available": true,
+          "price": "35.00",
+          "grams": 660,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 6973341499449,
+          "created_at": "2023-01-19T12:46:24-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 31282324078649,
+          "created_at": "2023-01-23T17:39:42-07:00",
+          "position": 1,
+          "updated_at": "2023-01-23T17:40:04-07:00",
+          "product_id": 6973341499449,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_Celeste_standard_BOTH_games_designview2-fs8.png?v=1674520804",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Nintendo Switch",
+            "PlayStation 4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6683296366649,
+      "title": "OMORI for Nintendo Switch™ and PlayStation 4",
+      "handle": "omori-physical-game-nintendo-switch-playstation-4",
+      "body_html": "<p>Explore a strange world full of colorful friends and foes. When the time comes, the path you’ve chosen will determine your fate... and perhaps the fate of others as well.</p>\n<p>OMORI is ported by MP2 Games.</p>",
+      "published_at": "2022-03-01T10:00:14-07:00",
+      "created_at": "2022-02-23T15:51:34-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "OMORI",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "game_OMORI",
+        "nintendo switch",
+        "oldgamepage",
+        "omocat",
+        "omori",
+        "physical game",
+        "playstation 4",
+        "restocking_soon",
+        "studio_OMOCAT",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 39870726930489,
+          "title": "Nintendo Switch",
+          "option1": "Nintendo Switch",
+          "option2": null,
+          "option3": null,
+          "sku": "OMO-GAME-OMORI-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 29213132652601,
+            "product_id": 6683296366649,
+            "position": 3,
+            "created_at": "2022-02-28T14:38:03-07:00",
+            "updated_at": "2023-08-10T15:23:26-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_omori_game_switch_designview.png?v=1691706206",
+            "variant_ids": [
+              39870726930489
+            ]
+          },
+          "available": true,
+          "price": "34.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6683296366649,
+          "created_at": "2022-02-23T15:51:34-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 39870726963257,
+          "title": "PlayStation 4",
+          "option1": "PlayStation 4",
+          "option2": null,
+          "option3": null,
+          "sku": "OMO-GAME-OMORI-PS4",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 29183032655929,
+            "product_id": 6683296366649,
+            "position": 5,
+            "created_at": "2022-02-23T16:17:29-07:00",
+            "updated_at": "2023-08-10T15:23:26-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/Omori-PS4-designview-fs8.png?v=1691706206",
+            "variant_ids": [
+              39870726963257
+            ]
+          },
+          "available": true,
+          "price": "34.00",
+          "grams": 198,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 6683296366649,
+          "created_at": "2022-02-23T15:51:34-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 29213111943225,
+          "created_at": "2022-02-28T14:30:13-07:00",
+          "position": 1,
+          "updated_at": "2022-02-28T14:38:11-07:00",
+          "product_id": 6683296366649,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_omori_game_designview.png?v=1646084291",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Nintendo Switch",
+            "PlayStation 4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4809403695161,
+      "title": "Bugsnax for PlayStation 5 and PlayStation 4",
+      "handle": "bugsnax-game-playstation-5-playstation-4-nintendo-switch",
+      "body_html": "<p>Bugsnax is now available on PlayStation 4, PlayStation 5, and Nintendo Switch™!<br></p>\n<p>Bugsnax takes you on a whimsical adventure to Snaktooth Island, home of the legendary half-bug half-snack creatures, Bugsnax. Invited by intrepid explorer Elizabert Megafig, you arrive to discover your host nowhere to be found, her camp in shambles, and her followers scattered across the island alone... and hungry!</p>\n<p>It's up to you to solve the mysteries of Snaktooth Island: What happened to Lizbert? What are Bugsnax and where do they come from? But most of all, why do they taste SO GOOD?</p>\n<ul>\n<li>Discover, hunt, and capture all 100 different species of Bugsnax using a variety of contraptions and bait!</li>\n<li>Explore the diverse biomes of Snaktooth Island to track down and reunite the inhabitants of Snaxburg.</li>\n<li>Follow every lead to learn more about Lizbert's band of misfits and the mysteries of Snaktooth Island.</li>\n<li>Stuff your new friends with Bugsnax to customize them with countless new looks.</li>\n</ul>\n<p>Bugsnax for Nintendo Switch includes The Isle of BIGsnax, which is available as a free download for PS4 and PS5.</p>",
+      "published_at": "2020-10-28T08:32:03-07:00",
+      "created_at": "2020-10-22T16:50:18-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Bugsnax",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "bugsnacks",
+        "bugsnax",
+        "force-sale",
+        "game_Bugsnax",
+        "nintendo switch",
+        "oldgamepage",
+        "physical game",
+        "playstation 4",
+        "playstation 5",
+        "studio_Young Horses",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games",
+        "young horses"
+      ],
+      "variants": [
+        {
+          "id": 40065721892921,
+          "title": "Nintendo Switch",
+          "option1": "Nintendo Switch",
+          "option2": null,
+          "option3": null,
+          "sku": "BUGSNAX-GAME-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 29501709647929,
+            "product_id": 4809403695161,
+            "position": 3,
+            "created_at": "2022-04-12T09:11:10-07:00",
+            "updated_at": "2023-08-10T15:23:52-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/bugsnax_physcial_switch_designview1.png?v=1691706232",
+            "variant_ids": [
+              40065721892921
+            ]
+          },
+          "available": true,
+          "price": "39.00",
+          "grams": 184,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 4809403695161,
+          "created_at": "2022-04-12T09:10:39-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 32910607941689,
+          "title": "PlayStation 5",
+          "option1": "PlayStation 5",
+          "option2": null,
+          "option3": null,
+          "sku": "BUGSNAX-GAME-PS5",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 18669026967609,
+            "product_id": 4809403695161,
+            "position": 5,
+            "created_at": "2021-02-10T11:50:40-07:00",
+            "updated_at": "2023-08-10T15:23:52-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_bugsnax_game_ps5_designview_cb2a26a6-4c5f-42a1-8586-4133f828b0d1.png?v=1691706232",
+            "variant_ids": [
+              32910607941689
+            ]
+          },
+          "available": false,
+          "price": "39.00",
+          "grams": 184,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 4809403695161,
+          "created_at": "2020-10-22T17:01:09-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 32910607974457,
+          "title": "PlayStation 4",
+          "option1": "PlayStation 4",
+          "option2": null,
+          "option3": null,
+          "sku": "BUGSNAX-GAME-PS4",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 18669026902073,
+            "product_id": 4809403695161,
+            "position": 7,
+            "created_at": "2021-02-10T11:50:40-07:00",
+            "updated_at": "2023-08-10T15:23:52-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_bugsnax_game_ps4_designview_d47c44ab-9e94-40c7-8dc7-f9b4c0b6bb3c.png?v=1691706232",
+            "variant_ids": [
+              32910607974457
+            ]
+          },
+          "available": false,
+          "price": "39.00",
+          "grams": 184,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 4809403695161,
+          "created_at": "2020-10-22T17:01:09-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 29501709418553,
+          "created_at": "2022-04-12T09:11:10-07:00",
+          "position": 1,
+          "updated_at": "2022-04-12T09:11:19-07:00",
+          "product_id": 4809403695161,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/bugsnax_physcial_multi-platform_designview1.png?v=1649779879",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Nintendo Switch",
+            "PlayStation 5",
+            "PlayStation 4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6830812954681,
+      "title": "Ooblets for Nintendo Switch™",
+      "handle": "ooblets-game-nintendo-switch",
+      "body_html": "<p><strong>YOUR LIFE</strong></p>\n<p><strong>HAS BEEN A GIANT TOOT</strong></p>\n<p>But now you can start over in Oob, home to oodles of peculiar lil creatures.</p>\n<p>Dance, decorate, farm, explore, collect, dress up, befriend, and craft. Oh and there's also cards, shopkeeping, clubhouses, potions, and Pantsabears. There's a lot.</p>\n<p style=\"line-height: 1.2;\"><small>Map artwork by Bree Lundberg.<br>Postcard artwork by Francisco Riolobos.<br>Sticker sheet artwork by Carissa Cornelius.</small></p>",
+      "published_at": "2022-07-26T08:59:53-07:00",
+      "created_at": "2022-07-20T12:35:25-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Ooblets",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "game_Ooblets",
+        "nintendo switch",
+        "ooblets",
+        "pax east 2024",
+        "physical game",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 40491284037689,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "OOB-GAME-OOBLETS-NSW",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 128,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6830812954681,
+          "created_at": "2022-07-20T12:35:25-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 30158188544057,
+          "created_at": "2022-07-20T15:07:47-07:00",
+          "position": 1,
+          "updated_at": "2022-07-20T15:07:54-07:00",
+          "product_id": 6830812954681,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/ooblets-switch-itemview-fs8.png?v=1658354874",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6761014624313,
+      "title": "Slime Rancher Plortable Edition for Nintendo Switch™",
+      "handle": "slime-rancher-game-nintendo-switch",
+      "body_html": "<p>Welcome to the Far, Far Range!</p>\n<p>Slime Rancher is a charming, first-person, sandbox experience. Play as Beatrix LeBeau: a plucky, young rancher who sets out for a life a thousand light years away from Earth on the ‘Far, Far Range.’</p>\n<p>Each day will present new challenges and risky opportunities as you attempt to amass a great fortune in the business of slime ranching. Collect colorful slimes, grow crops, harvest resources, and explore the untamed wilds through the mastery of your all-purpose vacpack.</p>\n<p style=\"line-height: 1;\"><small>Front and inside cover artwork by Aimee Cairns.<br>Vinyl sticker artwork by Carissa Cornelius.<br>Souvenir ticket artwork by Tony Kuchar.</small></p>",
+      "published_at": "2022-05-24T09:52:02-07:00",
+      "created_at": "2022-05-17T15:55:07-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Slime Rancher",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "game_Slime Rancher",
+        "nintendo switch",
+        "pax east 2024",
+        "physical game",
+        "restocking_soon",
+        "slime rancher",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 40228880121913,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "SR-GAME-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 125,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6761014624313,
+          "created_at": "2022-05-17T15:55:07-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 29721668386873,
+          "created_at": "2022-05-17T16:33:58-07:00",
+          "position": 1,
+          "updated_at": "2022-05-17T16:34:16-07:00",
+          "product_id": 6761014624313,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/slime-rancher-designview-fs8.png?v=1652830456",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6785113423929,
+      "title": "Into the Breach for Nintendo Switch™",
+      "handle": "into-the-breach-game-nintendo-switch",
+      "body_html": "<p>The remnants of human civilization are threatened by gigantic creatures breeding beneath the earth. You must control powerful mechs from the future to hold off this alien threat. Each attempt to save the world presents a new randomly generated challenge in this turn-based strategy game from the makers of <em>FTL</em>, now available in physical form for the Nintendo Switch™.</p>\n<p><em>Into the Breach: Advanced Edition</em> features additional mech upgrades, missions, aliens, and more! </p>",
+      "published_at": "2022-06-23T10:00:26-07:00",
+      "created_at": "2022-06-07T13:30:34-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Into the Breach",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "game",
+        "game_Into the Breach",
+        "into the breach",
+        "nintendo switch",
+        "physical game",
+        "stst26",
+        "studio_Subset Games",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 40323433922617,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "BREACH-GAME-ITB-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 142,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6785113423929,
+          "created_at": "2022-06-07T13:30:35-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 29946360627257,
+          "created_at": "2022-06-17T13:08:56-07:00",
+          "position": 1,
+          "updated_at": "2022-06-17T13:09:02-07:00",
+          "product_id": 6785113423929,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_ITB_switch_physical_designview.png?v=1655496542",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6659448143929,
+      "title": "Baba Is You for Nintendo Switch™",
+      "handle": "baba-is-you-for-nintendo-switch",
+      "body_html": "<p>Baba Is You is an award-winning puzzle game where you can change the rules by which you play. In every level, the rules themselves are present as blocks you can interact with; by manipulating them, you can change how the level works and cause surprising, unexpected interactions! With some simple block-pushing you can turn yourself into a rock, turn patches of grass into dangerously hot obstacles, and even change the goal you need to reach to something entirely different.</p>\n<p>The game has over 200 levels that experiment with the game's mechanics in a multitude of ways, requiring the player to understand and manipulate the rules of the game and figure out devious ways to make the objects in the game world interact.</p>\n<p>The game was originally created for and won the Nordic Game Jam 2017. Baba Is You also won the Excellence in Design and Best Student Game awards in the Independent Games Festival 2018, and was nominated a finalist in 2 other categories, including the Seumas McNally Grand Prize.<br></p>\n<p>Front cover, poster and sticker sheet artwork by Mushbuh. Soundtrack download card artwork by Jorge M. Velez.</p>",
+      "published_at": "2022-02-15T10:10:03-07:00",
+      "created_at": "2022-01-26T16:36:02-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Baba Is You",
+      "product_type": "Games",
+      "tags": [
+        "baba is you",
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "game-on-2026",
+        "game_Baba Is You",
+        "nintendo switch",
+        "pax-east-2025",
+        "pax-east-2026",
+        "pax-west-2024",
+        "pax-west-2025",
+        "pax-west-2026",
+        "physical game",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 39765224161337,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "BABA-GAME-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 136,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6659448143929,
+          "created_at": "2022-01-26T16:36:02-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 29041572708409,
+          "created_at": "2022-02-03T15:40:59-07:00",
+          "position": 1,
+          "updated_at": "2022-02-03T15:41:03-07:00",
+          "product_id": 6659448143929,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/baba-is-you-designview-fs8.png?v=1643928063",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2100716437561,
+      "title": "Hollow Knight Standard Edition",
+      "handle": "hollow-knight-switch-ps4-pc-game",
+      "body_html": "<meta charset=\"utf-8\">\n<p>Hollow Knight is now available in a physical edition for Nintendo Switch™, PlayStation® 4, and PC (DRM-free disc with Steam key). <span>All physical copies of Hollow Knight include</span><span> </span>a manual<strong><span> </span></strong><span>and</span><strong><span> </span></strong>fold-out map of Hallownest and include all the DLC: <span>Hidden Dreams, The Grimm Troupe, Lifeblood, and Godmaster.</span></p>\n<p>Hollow Knight is also available <strong><a href=\"/products/hollow-knight-switch-ps4-pc-collectors-edition-game\">in a definitive collector's edition</a></strong> available exclusively on Fangamer!</p>",
+      "published_at": "2019-03-12T08:06:22-07:00",
+      "created_at": "2019-03-11T15:51:15-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "Hollow Knight",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "combodatahpid|hollow-knight-wanderers-journal-book|2078720852025:200",
+        "game",
+        "game_Hollow Knight",
+        "hollow knight",
+        "nintendo switch",
+        "oldgamepage",
+        "pc",
+        "physical game",
+        "playstation 4",
+        "ps4",
+        "restocking_soon",
+        "switch",
+        "team cherry",
+        "top-level-game",
+        "type_Games",
+        "video game",
+        "video games"
+      ],
+      "variants": [
+        {
+          "id": 18891276288057,
+          "title": "Nintendo Switch",
+          "option1": "Nintendo Switch",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-SWITCH",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 8006114148409,
+            "product_id": 2100716437561,
+            "position": 4,
+            "created_at": "2019-03-11T20:04:50-07:00",
+            "updated_at": "2023-08-10T15:24:48-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_hkce_game_switch_right.png?v=1691706288",
+            "variant_ids": [
+              18891276288057
+            ]
+          },
+          "available": true,
+          "price": "35.00",
+          "grams": 119,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 2100716437561,
+          "created_at": "2019-03-11T15:51:15-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 18891276320825,
+          "title": "PlayStation 4",
+          "option1": "PlayStation 4",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-PS4",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 8006114115641,
+            "product_id": 2100716437561,
+            "position": 6,
+            "created_at": "2019-03-11T20:04:49-07:00",
+            "updated_at": "2023-08-10T15:24:48-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_hkce_game_ps4_right.png?v=1691706288",
+            "variant_ids": [
+              18891276320825
+            ]
+          },
+          "available": false,
+          "price": "29.00",
+          "grams": 176,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 2100716437561,
+          "created_at": "2019-03-11T15:51:15-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 18891276353593,
+          "title": "PC",
+          "option1": "PC",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-PC",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": {
+            "id": 8006113919033,
+            "product_id": 2100716437561,
+            "position": 8,
+            "created_at": "2019-03-11T20:04:47-07:00",
+            "updated_at": "2023-08-10T15:24:48-07:00",
+            "alt": null,
+            "width": 1024,
+            "height": 1024,
+            "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_hkce_game_pc_right.png?v=1691706288",
+            "variant_ids": [
+              18891276353593
+            ]
+          },
+          "available": false,
+          "price": "29.00",
+          "grams": 176,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 2100716437561,
+          "created_at": "2019-03-11T15:51:15-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 45892511891513,
+          "title": "Nintendo Switch 2",
+          "option1": "Nintendo Switch 2",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-STD-NS2",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "39.00",
+          "grams": 1000000000,
+          "compare_at_price": null,
+          "position": 4,
+          "product_id": 2100716437561,
+          "created_at": "2026-05-27T20:13:12-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        },
+        {
+          "id": 45892522049593,
+          "title": "PlayStation 5",
+          "option1": "PlayStation 5",
+          "option2": null,
+          "option3": null,
+          "sku": "HK-GAME-STD-PS5",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "35.00",
+          "grams": 100000000,
+          "compare_at_price": null,
+          "position": 5,
+          "product_id": 2100716437561,
+          "created_at": "2026-05-27T20:14:13-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 29607463944249,
+          "created_at": "2022-04-29T13:58:23-07:00",
+          "position": 1,
+          "updated_at": "2022-04-29T13:58:29-07:00",
+          "product_id": 2100716437561,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_hk_standard_combined_designview.png?v=1651265909",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Platform",
+          "position": 1,
+          "values": [
+            "Nintendo Switch",
+            "PlayStation 4",
+            "PC",
+            "Nintendo Switch 2",
+            "PlayStation 5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6747284537401,
+      "title": "UNDERTALE Standard Edition",
+      "handle": "undertale-game",
+      "body_html": "<p>For the first time ever you can play UNDERTALE on Nintendo Switch™, PlayStation® 4, and soon on Xbox One! Physical copies for Switch, PS4, and PC are available now, along with a <strong>special collector’s edition</strong>, exclusively on Fangamer.</p>\n<p><meta charset=\"utf-8\"><span>All versions of the game include a <strong>24-page storybooklet illustrated by Temmie Chang</strong>, packed in the standard-edition case. (The storybooklet is packed inside the tuckbox for the Xbox One version.) </span></p>\n<p>This product is limited to 4 per person per platform. <a href=\"https://www.fangamer.com/pages/shipping#oversells\">See our shipping page for information on per-customer limits.</a></p>\n<p><em>Music box locket concept by Seoyeon An. Sheet music arrangement and music administration by <a href=\"http://www.materiacollective.com/\">Materia Collective</a>.</em></p>",
+      "published_at": "2022-05-06T13:59:25-07:00",
+      "created_at": "2022-05-06T12:01:39-07:00",
+      "updated_at": "2026-09-25T06:51:17-07:00",
+      "vendor": "UNDERTALE",
+      "product_type": "Games",
+      "tags": [
+        "bf2024-publishing-sale",
+        "bf2025-publishing-sale",
+        "game_UNDERTALE",
+        "nintendo switch",
+        "oldgamepage",
+        "pc",
+        "physical game",
+        "ps4",
+        "standard edition",
+        "switch",
+        "top-level-game",
+        "type_Games",
+        "undertale",
+        "undertale game",
+        "utce",
+        "video games",
+        "xbox",
+        "xbox one"
+      ],
+      "variants": [
+        {
+          "id": 40159791611961,
+          "title": "Standard Edition",
+          "option1": "Standard Edition",
+          "option2": null,
+          "option3": null,
+          "sku": "UT-GAME-DONOTUSE",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "25.00",
+          "grams": 283495,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6747284537401,
+          "created_at": "2022-05-06T12:01:40-07:00",
+          "updated_at": "2026-09-25T06:51:17-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 29649027989561,
+          "created_at": "2022-05-06T12:33:35-07:00",
+          "position": 1,
+          "updated_at": "2022-05-06T12:33:39-07:00",
+          "product_id": 6747284537401,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0014/1962/products/product_ut_se_combined_designview.png?v=1651865619",
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "options": [
+        {
+          "name": "Style",
+          "position": 1,
+          "values": [
+            "Standard Edition"
+          ]
+        }
+      ]
+    }
+  ]
+}

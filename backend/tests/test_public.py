@@ -1,15 +1,38 @@
 """The public router. The leak tests here are the point of the module."""
 
+import typing
 import uuid
 from contextlib import asynccontextmanager
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
+from pydantic import BaseModel
 
-from models import Item, ItemStatus, ItemType, OwnedFormat
-from public import PublicItemDetailOut, PublicItemOut, create_public_router
+from models import (
+    CatalogueGame,
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+    PhysicalEdition,
+    PhysicalFormat,
+    PickAction,
+    PickEvent,
+    ReasonSource,
+    Recommendation,
+    RecommendationKind,
+    RecommendationStatus,
+    StoreListing,
+)
+from public import (
+    PublicItemDetailOut,
+    PublicItemOut,
+    PublicStatsOut,
+    create_public_router,
+)
+from public_outputs import PublicPickOut, PublicRadarOut
 
 pytestmark = pytest.mark.asyncio
 
@@ -595,3 +618,319 @@ async def test_the_pinned_game_is_published_as_a_flag_not_a_date(
     assert body["Up Next"]["pinned"] is True
     assert body["Waiting"]["pinned"] is False
     assert "pinned_at" not in body["Up Next"]
+
+
+# --- The physical catalogue stays private (E7c). -------------------------------
+#
+# Nothing from the catalogue -- editions, listings, prices, IGDB snapshots,
+# the collapse's routing -- is public. These pins exist before any catalogue
+# route does, so a later change that reaches for a catalogue field in a public
+# model or response fails here first.
+
+CATALOGUE_NAMES = (
+    "store_listings",
+    "physical_editions",
+    "catalogue_",
+    "price",
+    "snapshot",
+    "format_route",
+    "listing_ids",
+)
+
+
+def _field_names(model, seen=None) -> set[str]:
+    """Every field name in a response model, nested models included."""
+    seen = seen if seen is not None else set()
+    if model in seen:
+        return set()
+    seen.add(model)
+    names = set(model.model_fields)
+    for field in model.model_fields.values():
+        for kind in (field.annotation, *typing.get_args(field.annotation)):
+            for inner in (kind, *typing.get_args(kind)):
+                if isinstance(inner, type) and issubclass(inner, BaseModel):
+                    names |= _field_names(inner, seen)
+    return names
+
+
+# Every public response model. A new one goes here, so the name checks below
+# cover it.
+PUBLIC_MODELS = (
+    PublicItemOut,
+    PublicItemDetailOut,
+    PublicStatsOut,
+    PublicPickOut,
+    PublicRadarOut,
+)
+
+
+async def test_no_public_model_names_a_catalogue_field():
+    names = set()
+    for model in PUBLIC_MODELS:
+        names |= _field_names(model)
+    leaked = sorted(n for n in names for bad in CATALOGUE_NAMES if bad in n)
+    assert leaked == []
+
+
+# E8c and E8b: suggestions, their reasons and the data behind them are never
+# public; only an item the owner wanted is, through its `wanted` flag.
+RECOMMENDATION_NAMES = (
+    "recommendation",
+    "batch_id",
+    "based_on",
+    "reason",
+    "preorder",
+    "store_line",
+    "hypes",
+    "lane",
+    "ranked_by",
+    "model_note",
+    "based_on_titles",
+    "buyable",
+)
+
+
+# Showcase spec, "Spec changes" 3: a public pick carries its reasons, built
+# from public rows in the first person. That one field on that one model is
+# allowed; no other recommendation name is, on any model.
+ALLOWED_RECOMMENDATION_NAMES = {("PublicPickOut", "reasons")}
+
+
+def _named_fields(model) -> set[tuple[str, str]]:
+    """(top-level model name, field name) for every field, nested included."""
+    return {(model.__name__, name) for name in _field_names(model)}
+
+
+async def test_no_public_model_names_a_recommendation_field():
+    names = set()
+    for model in PUBLIC_MODELS:
+        names |= _named_fields(model)
+    leaked = sorted(
+        f"{model}.{field}"
+        for model, field in names - ALLOWED_RECOMMENDATION_NAMES
+        for bad in RECOMMENDATION_NAMES
+        if bad in field
+    )
+    assert leaked == []
+
+
+def _keys(value) -> set[str]:
+    """Every key anywhere in a JSON value."""
+    if isinstance(value, dict):
+        return set(value) | set().union(*(_keys(v) for v in value.values()))
+    if isinstance(value, list):
+        return set().union(*(_keys(v) for v in value))
+    return set()
+
+
+async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test):
+    await _seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        # A public game linked to the catalogue's game, so a join that
+        # reached for catalogue rows would have something to publish.
+        session.add(
+            Item(
+                type=ItemType.GAME,
+                title="Linked Game",
+                status=ItemStatus.BACKLOG,
+                is_public=True,
+                external_source="igdb",
+                external_id="1",
+                platform_id=508,
+            )
+        )
+        session.add(CatalogueGame(igdb_id=1, title="Radar Game", snapshot={"x": 1}))
+        session.add(
+            PhysicalEdition(
+                source="nscollectors",
+                source_ref="radar game|USA||game card",
+                title="Radar Game",
+                title_normalized="radar game",
+                platform_id=508,
+                platform="Nintendo Switch 2",
+                region="USA",
+                cart_id="LP-AAAAA-USA-0",
+                igdb_id=1,
+            )
+        )
+        session.add(
+            StoreListing(
+                store="super_rare",
+                store_product_id="1",
+                variant_id="1",
+                handle="radar-game",
+                url="https://example.test/radar-game",
+                region="EUR",
+                title="Radar Game",
+                title_normalized="radar game",
+                is_game=True,
+                currency="GBP",
+                availability="preorder",
+                price=44.99,
+                igdb_id=1,
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        items = await client.get("/api/public/items")
+        stats = await client.get("/api/public/stats")
+        linked = next(i for i in items.json() if i["title"] == "Linked Game")
+        detail = await client.get(f"/api/public/items/{linked['id']}")
+        picks = await client.get("/api/public/picks")
+        radar = await client.get("/api/public/radar")
+    for response in (items, stats, detail, picks, radar):
+        assert response.status_code == 200
+        leaked = sorted(
+            key
+            for key in _keys(response.json())
+            for bad in CATALOGUE_NAMES
+            if bad in key
+        )
+        assert leaked == [], response.text
+        assert "Radar Game" not in response.text
+        assert "LP-AAAAA-USA-0" not in response.text
+        assert "super_rare" not in response.text
+
+
+async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test):
+    """A watched game is public as an item; its suggestion never is."""
+    await _seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Item(
+                type=ItemType.GAME,
+                title="Watched Game",
+                status=ItemStatus.BACKLOG,
+                is_public=True,
+                external_source="igdb",
+                external_id="77",
+                owned_format=OwnedFormat.NONE,
+                platform_id=508,
+            )
+        )
+        session.add(
+            Recommendation(
+                kind=RecommendationKind.RADAR,
+                type=ItemType.GAME,
+                title="Watched Game",
+                external_source="igdb",
+                external_id="77",
+                reason="Pre-orders close Nov 8 at Limited Run · $59.99",
+                reason_source=ReasonSource.TEMPLATE,
+                based_on=["someone"],
+                score=80,
+                batch_id=uuid.uuid4(),
+                status=RecommendationStatus.WANTED,
+                platform_id=508,
+                source_metadata={
+                    "lane": "preorder",
+                    "hypes": 12,
+                    "store_lines": [{"store": "Limited Run Games", "price": "59.99"}],
+                },
+            )
+        )
+        session.add(
+            Item(
+                type=ItemType.GAME,
+                title="Discovered Game",
+                status=ItemStatus.BACKLOG,
+                is_public=True,
+                external_source="igdb",
+                external_id="78",
+                owned_format=OwnedFormat.NONE,
+                platform_id=130,
+            )
+        )
+        session.add(
+            Recommendation(
+                kind=RecommendationKind.DISCOVER,
+                type=ItemType.GAME,
+                title="Discovered Game",
+                external_source="igdb",
+                external_id="78",
+                reason="Like Hades, a roguelike you would finish twice",
+                reason_source=ReasonSource.MODEL,
+                based_on=["someone"],
+                score=70,
+                batch_id=uuid.uuid4(),
+                status=RecommendationStatus.WANTED,
+                platform_id=130,
+                source_metadata={
+                    "ranked_by": "model",
+                    "model_note": None,
+                    "based_on_titles": ["Hades"],
+                    "buyable": True,
+                },
+            )
+        )
+        # A pending, registry-dated cartridge and a game Play Next showed, so
+        # /api/public/radar and /api/public/picks each publish a row too.
+        session.add(
+            Recommendation(
+                kind=RecommendationKind.RADAR,
+                type=ItemType.GAME,
+                title="Coming Game",
+                external_source="igdb",
+                external_id="79",
+                release_date=date.today() + timedelta(days=60),
+                reason="Pre-orders close Nov 8 at Limited Run · $59.99",
+                reason_source=ReasonSource.TEMPLATE,
+                based_on=["someone"],
+                score=60,
+                batch_id=uuid.uuid4(),
+                status=RecommendationStatus.PENDING,
+                platform_id=508,
+                physical_format=PhysicalFormat.GAME_CARD,
+                source_metadata={
+                    "lane": "preorder",
+                    "hypes": 12,
+                    "release_precision": "day",
+                    "release_source": "registry",
+                    "store_lines": [{"store": "Limited Run Games", "price": "59.99"}],
+                },
+            )
+        )
+        picked = Item(
+            id=uuid.uuid4(),
+            type=ItemType.GAME,
+            title="Picked Game",
+            status=ItemStatus.BACKLOG,
+            is_public=True,
+            owned_format=OwnedFormat.PHYSICAL,
+        )
+        session.add(picked)
+        await session.flush()
+        session.add(
+            PickEvent(
+                item_id=picked.id,
+                action=PickAction.SHOWN,
+                created_at=datetime.now(UTC) - timedelta(days=2),
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        items = await client.get("/api/public/items")
+        stats = await client.get("/api/public/stats")
+        watched = next(i for i in items.json() if i["title"] == "Watched Game")
+        discovered = next(i for i in items.json() if i["title"] == "Discovered Game")
+        detail = await client.get(f"/api/public/items/{watched['id']}")
+        picks = await client.get("/api/public/picks")
+        radar = await client.get("/api/public/radar")
+    assert watched["wanted"] is True
+    assert discovered["wanted"] is True
+    assert [row["title"] for row in picks.json()] == ["Picked Game"]
+    assert [row["title"] for row in radar.json()] == ["Coming Game"]
+    for response in (items, stats, detail, picks, radar):
+        assert response.status_code == 200
+        # A pick's reasons are the one allowed name (ALLOWED_RECOMMENDATION_NAMES).
+        allowed = {"reasons"} if response is picks else set()
+        leaked = sorted(
+            key
+            for key in _keys(response.json()) - allowed
+            for bad in RECOMMENDATION_NAMES
+            if bad in key
+        )
+        assert leaked == []
+        assert "Pre-orders close" not in response.text
+        assert "Limited Run Games" not in response.text
+        assert "Like Hades" not in response.text

@@ -1,3 +1,4 @@
+import { usePageTitle } from '../lib/usePageTitle.js'
 import { certifications, education } from '../content/education.js'
 import { experience } from '../content/experience.js'
 import { profile } from '../content/profile.js'
@@ -10,6 +11,7 @@ import { profile } from '../content/profile.js'
  * content/experience.js, and education reads from content/education.js.
  */
 export default function About() {
+  usePageTitle('About · Joey Haas')
   const paragraphs = profile.bio.split('\n\n').filter(Boolean)
 
   return (

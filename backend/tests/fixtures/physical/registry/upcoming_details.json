@@ -1,0 +1,1891 @@
+{
+  "range": "'Upcoming Switch 2 Releases'!A1:Z1156",
+  "majorDimension": "ROWS",
+  "values": [
+    [
+      "r/NSCollectors Upcoming Switch 2 Releases"
+    ],
+    [
+      "• This sheet contains all upcoming physical Switch 2 releases.\n• To provide missing information or suggested edits, tag @List Editor in the NSCollectors Discord."
+    ],
+    [],
+    [
+      "Game Title",
+      "Region",
+      "Release Date",
+      "Card Type",
+      "Cart ID",
+      "Publisher",
+      "Editions",
+      "NS1 Compatible",
+      "LP #",
+      "Verified By"
+    ],
+    [
+      "Metal Gear Solid: Master Collection Vol. 2",
+      "AUS",
+      "2026/08/27",
+      "Game-Key Card",
+      "",
+      "Konami",
+      "Day One",
+      "No"
+    ],
+    [
+      "Elden Ring Tarnished Edition",
+      "AUS",
+      "2026/08/28",
+      "Game-Key Card",
+      "",
+      "Bandai Namco",
+      "Standard",
+      "No"
+    ],
+    [
+      "Moonlight Peaks - Nintendo Switch 2 Edition",
+      "AUS",
+      "2026/08/28",
+      "Game Card",
+      "",
+      "Marvelous",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Destroy All Humans! 2 Reprobed",
+      "AUS",
+      "2026/09/15",
+      "Game-Key Card",
+      "",
+      "THQ Nordic",
+      "Standard",
+      "No"
+    ],
+    [
+      "Absolum - Nintendo Switch 2 Edition",
+      "USA",
+      "2026/09/17",
+      "Game Card",
+      "",
+      "Silver Lining Interactive",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Absolum - Nintendo Switch 2 Edition",
+      "KOR",
+      "2026/09/17",
+      "Game Card",
+      "",
+      "Arc System Works",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Graveyard Keeper 2",
+      "USA",
+      "2026/09/22",
+      "TBC",
+      "",
+      "tinyBuild",
+      "Standard",
+      "No"
+    ],
+    [
+      "Crisis Core: Final Fantasy VII Reunion",
+      "ASI",
+      "2026/09/23",
+      "Game-Key Card",
+      "",
+      "Square Enix",
+      "Standard, Collectors",
+      "No"
+    ],
+    [
+      "Crisis Core: Final Fantasy VII Reunion",
+      "CHT",
+      "2026/09/23",
+      "Game-Key Card",
+      "",
+      "Square Enix",
+      "Standard",
+      "No",
+      "",
+      "Enixis"
+    ],
+    [
+      "Hell is Us: Special Edition",
+      "JPN",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "3goo",
+      "Standard",
+      "No",
+      "",
+      "Enixis"
+    ],
+    [
+      "Gobble",
+      "JPN",
+      "2026/09/24",
+      "Game-Key Card",
+      "LP-ABU2A-JPN-0",
+      "Nippon Ichi Sotware",
+      "Standard",
+      "No",
+      "",
+      "Enixis"
+    ],
+    [
+      "Gobble",
+      "ASI",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Clouded Leopard Entertainment",
+      "Standard",
+      "No"
+    ],
+    [
+      "Gobble",
+      "CHT",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Clouded Leopard Entertainment",
+      "Standard",
+      "No"
+    ],
+    [
+      "Dragon Quest XI S: Echoes of an Elusive Age - Definitive Edition",
+      "JPN",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Square Enix",
+      "Standard",
+      "No"
+    ],
+    [
+      "Dragon Quest XI S: Echoes of an Elusive Age - Definitive Edition",
+      "ASI",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Square Enix",
+      "Standard",
+      "No"
+    ],
+    [
+      "Dragon Quest XI S: Echoes of an Elusive Age - Definitive Edition",
+      "CHT",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Square Enix",
+      "Standard",
+      "No"
+    ],
+    [
+      "Dragon Quest XI S: Echoes of an Elusive Age - Definitive Edition",
+      "KOR",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Square Enix",
+      "Standard",
+      "No"
+    ],
+    [
+      "Dragon Quest XI S: Echoes of an Elusive Age - Definitive Edition",
+      "USA",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Square Enix",
+      "Standard",
+      "No",
+      "",
+      "Enixis"
+    ],
+    [
+      "Dragon Quest XI S: Echoes of an Elusive Age - Definitive Edition",
+      "EUR",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Square Enix",
+      "Standard",
+      "No",
+      "",
+      "Enixis"
+    ],
+    [
+      "Derby Stallion 2",
+      "JPN",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Game Addict",
+      "Standard",
+      "No"
+    ],
+    [
+      "Shinobi: Art of Vengeance - Deluxe Edition",
+      "JPN",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Sega",
+      "Standard",
+      "No"
+    ],
+    [
+      "Shinobi: Art of Vengeance - Deluxe Edition",
+      "USA",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Sega",
+      "Standard",
+      "No"
+    ],
+    [
+      "Shinobi: Art of Vengeance - Deluxe Edition",
+      "ASI",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Sega",
+      "Standard",
+      "No"
+    ],
+    [
+      "Shinobi: Art of Vengeance - Deluxe Edition",
+      "CHT",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Sega",
+      "Standard",
+      "No"
+    ],
+    [
+      "Shinobi: Art of Vengeance - Deluxe Edition",
+      "EUR",
+      "2026/09/24",
+      "Game-Key Card",
+      "",
+      "Sega",
+      "Standard",
+      "No",
+      "",
+      "Enixis"
+    ],
+    [
+      "Grim Trials",
+      "JPN",
+      "2026/09/24",
+      "TBC",
+      "",
+      "Soft Source",
+      "Standard",
+      "No"
+    ],
+    [
+      "Grim Trials",
+      "ASI",
+      "2026/09/24",
+      "TBC",
+      "",
+      "Soft Source",
+      "Standard",
+      "No"
+    ],
+    [
+      "Grim Trials",
+      "CHT",
+      "2026/09/24",
+      "TBC",
+      "",
+      "Soft Source",
+      "Standard",
+      "No"
+    ],
+    [
+      "Super Bomberman Collection Nintendo Switch 2 Edition",
+      "USA",
+      "2026/09/25",
+      "Game Card",
+      "",
+      "Red Art Games",
+      "Standard",
+      "No",
+      "RAG #001"
+    ],
+    [
+      "Super Bomberman Collection Nintendo Switch 2 Edition",
+      "EUR",
+      "2026/09/25",
+      "Game Card",
+      "",
+      "Red Art Games",
+      "Standard",
+      "No",
+      "RAG #001"
+    ],
+    [
+      "EA Sports FC 27",
+      "USA",
+      "2026/09/25",
+      "Game-Key Card",
+      "",
+      "EA",
+      "Standard",
+      "No"
+    ],
+    [
+      "EA Sports FC 27",
+      "JPN",
+      "2026/09/25",
+      "Game-Key Card",
+      "",
+      "EA",
+      "Standard",
+      "No"
+    ],
+    [
+      "EA Sports FC 27",
+      "ASI",
+      "2026/09/25",
+      "Game-Key Card",
+      "",
+      "EA",
+      "Standard",
+      "No"
+    ],
+    [
+      "EA Sports FC 27",
+      "CHT",
+      "2026/09/25",
+      "Game-Key Card",
+      "",
+      "EA",
+      "Standard",
+      "No"
+    ],
+    [
+      "EA Sports FC 27",
+      "EUR",
+      "2026/09/25",
+      "Game-Key Card",
+      "",
+      "EA",
+      "Standard",
+      "No",
+      "",
+      "Enixis"
+    ],
+    [
+      "Trails in the Sky 2nd Chapter Nintendo Switch 2 Edition",
+      "EUR",
+      "2026/09/29",
+      "Game Card",
+      "",
+      "PM Studios",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Solarpunk",
+      "EUR",
+      "2026/09/29",
+      "Game Card",
+      "",
+      "Rokaplay",
+      "Limited",
+      "No"
+    ],
+    [
+      "Solarpunk",
+      "USA",
+      "2026/09/29",
+      "TBC",
+      "",
+      "U&I",
+      "Standard",
+      "No"
+    ],
+    [
+      "Binding of Isaac: Repentance+, The",
+      "USA",
+      "2026/09/30",
+      "Game Card",
+      "",
+      "Nicalis",
+      "Standard",
+      "No"
+    ],
+    [
+      "Dave the Diver Complete Edition",
+      "EUR",
+      "2026/09/30",
+      "Game Card",
+      "",
+      "Silver Lining Interactive",
+      "Standard",
+      "No"
+    ],
+    [
+      "Dave the Diver Complete Edition",
+      "AUS",
+      "2026/09/30",
+      "Game Card",
+      "",
+      "Silver Lining Interactive",
+      "Standard",
+      "No"
+    ],
+    [
+      "House Flipper 2 + the Sakura DLC",
+      "EUR",
+      "2026/09/30",
+      "Game-Key Card",
+      "",
+      "Silver Lining Interactive",
+      "Standard",
+      "No"
+    ],
+    [
+      "Order Up!!",
+      "USA",
+      "2026/09/30",
+      "Game Card",
+      "",
+      "Nicalis",
+      "Standard",
+      "No"
+    ],
+    [
+      "Over the Hill",
+      "USA",
+      "2026/09/30",
+      "Game Card",
+      "",
+      "Serenity Forge",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pastry Panic!",
+      "USA",
+      "2026/09/30",
+      "Game Card",
+      "",
+      "Nicalis",
+      "Standard",
+      "No"
+    ],
+    [
+      "Witchbrook",
+      "ASI",
+      "2026/09/30",
+      "TBC",
+      "",
+      "Chucklefish",
+      "Standard",
+      "No"
+    ],
+    [
+      "Witchbrook",
+      "AUS",
+      "2026/09/30",
+      "TBC",
+      "",
+      "Chucklefish",
+      "Standard",
+      "No"
+    ],
+    [
+      "Witchbrook",
+      "EUR",
+      "2026/09/30",
+      "TBC",
+      "",
+      "Chucklefish",
+      "Standard",
+      "No"
+    ],
+    [
+      "Witchbrook",
+      "JPN",
+      "2026/09/30",
+      "TBC",
+      "",
+      "Chucklefish",
+      "Standard",
+      "No"
+    ],
+    [
+      "Witchbrook",
+      "USA",
+      "2026/09/30",
+      "TBC",
+      "",
+      "Chucklefish",
+      "Standard",
+      "No"
+    ],
+    [
+      "Monopoly: Star Wars Heroes vs. Villains",
+      "USA",
+      "2026/09/30",
+      "Game-Key Card",
+      "",
+      "Ubisoft",
+      "Standard",
+      "No"
+    ],
+    [
+      "Monopoly: Star Wars Heroes vs. Villains",
+      "EUR",
+      "2026/09/30",
+      "Game-Key Card",
+      "",
+      "Ubisoft",
+      "Standard",
+      "No"
+    ],
+    [
+      "Minecraft Dungeons II - Deluxe Edition",
+      "EUR",
+      "2026/09/30",
+      "Game-Key Card",
+      "",
+      "Mojang",
+      "Standard",
+      "No"
+    ],
+    [
+      "Minecraft Dungeons II - Deluxe Edition",
+      "USA",
+      "2026/09/30",
+      "Game-Key Card",
+      "",
+      "Mojang",
+      "Standard",
+      "No"
+    ],
+    [
+      "Minecraft Dungeons II",
+      "JPN",
+      "2026/09/30",
+      "Game-Key Card",
+      "",
+      "Mojang",
+      "Standard",
+      "No"
+    ],
+    [
+      "Minecraft Dungeons II",
+      "CHT",
+      "2026/09/30",
+      "Game-Key Card",
+      "",
+      "Mojang",
+      "Standard",
+      "No"
+    ],
+    [
+      "Minecraft Dungeons II",
+      "ASI",
+      "2026/09/30",
+      "Game-Key Card",
+      "",
+      "Mojang",
+      "Standard",
+      "No"
+    ],
+    [
+      "Minecraft Dungeons II",
+      "KOR",
+      "2026/09/30",
+      "Game-Key Card",
+      "",
+      "Mojang",
+      "Standard",
+      "No"
+    ],
+    [
+      "Darwin's Paradox!",
+      "USA",
+      "2026/10/01",
+      "Game Card",
+      "",
+      "Limited Run Games (Distro)",
+      "Standard, Collectors",
+      "No"
+    ],
+    [
+      "Walking Dead: Streets of Survival - Deluxe Edition",
+      "EUR",
+      "2026/10/02",
+      "Game-Key Card",
+      "",
+      "Trailmark Games",
+      "Standard",
+      "No"
+    ],
+    [
+      "Walking Dead: Streets of Survival - Deluxe Edition",
+      "USA",
+      "2026/10/02",
+      "Game-Key Card",
+      "",
+      "Trailmark Games",
+      "Standard",
+      "No"
+    ],
+    [
+      "Walking Dead: Streets of Survival - Deluxe Edition",
+      "AUS",
+      "2026/10/02",
+      "Game-Key Card",
+      "",
+      "Trailmark Games",
+      "Standard",
+      "No"
+    ],
+    [
+      "Lies of P: Complete Edition",
+      "EUR",
+      "2026/10/02",
+      "Game Card",
+      "",
+      "iam8bit",
+      "Standard",
+      "No"
+    ],
+    [
+      "Lies of P: Complete Edition",
+      "USA",
+      "2026/10/02",
+      "Game Card",
+      "",
+      "iam8bit",
+      "Standard",
+      "No"
+    ],
+    [
+      "Human Fall Flat 2",
+      "EUR",
+      "2026/10/09",
+      "Game-Key Card",
+      "",
+      "Microids",
+      "Standard",
+      "No"
+    ],
+    [
+      "It Takes Two",
+      "JPN",
+      "2026/10/15",
+      "",
+      "",
+      "EA",
+      "Standard",
+      "No"
+    ],
+    [
+      "Ratatan",
+      "AUS",
+      "2026/10/15",
+      "Game Card",
+      "",
+      "Game Source Entertainment",
+      "Standard",
+      "No"
+    ],
+    [
+      "Ratatan",
+      "EUR",
+      "2026/10/15",
+      "Game Card",
+      "",
+      "Game Source Entertainment",
+      "Standard",
+      "No"
+    ],
+    [
+      "Hollow Knight Nintendo Switch 2 Edition",
+      "AUS",
+      "2026/10/16",
+      "Game Card",
+      "",
+      "Fangamer",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Hollow Knight Nintendo Switch 2 Edition",
+      "EUR",
+      "2026/10/16",
+      "Game Card",
+      "",
+      "Fangamer",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Hollow Knight Nintendo Switch 2 Edition",
+      "USA",
+      "2026/10/16",
+      "Game Card",
+      "",
+      "Fangamer",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Hollow Knight: Silksong Nintendo Switch 2 Edition",
+      "AUS",
+      "2026/10/16",
+      "Game Card",
+      "",
+      "Fangamer",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Hollow Knight: Silksong Nintendo Switch 2 Edition",
+      "EUR",
+      "2026/10/16",
+      "Game Card",
+      "",
+      "Fangamer",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Hollow Knight: Silksong Nintendo Switch 2 Edition",
+      "USA",
+      "2026/10/16",
+      "Game Card",
+      "",
+      "Fangamer",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Witch's Bakery, The",
+      "USA",
+      "2026/10/16",
+      "Game-Key Card",
+      "",
+      "Silver Lining Interactive",
+      "Standard",
+      "No"
+    ],
+    [
+      "Witch's Bakery, The",
+      "EUR",
+      "2026/10/16",
+      "Game-Key Card",
+      "",
+      "Silver Lining Interactive",
+      "Standard",
+      "No"
+    ],
+    [
+      "Azure Striker Gunvolt Trilogy Enhanced",
+      "JPN",
+      "2026/10/22",
+      "Game Card",
+      "",
+      "Inti Creates",
+      "Standard",
+      "No"
+    ],
+    [
+      "Fantastic Night Dreams Cotton Reboot!",
+      "EUR",
+      "2026/10/22",
+      "Game Card",
+      "",
+      "Clear River Games",
+      "Standard",
+      "No"
+    ],
+    [
+      "Mio: Memories In Orbit",
+      "EUR",
+      "2026/10/23",
+      "Game Card",
+      "",
+      "Pix'n Love",
+      "Standard",
+      "No"
+    ],
+    [
+      "Layers of Fear – The Final Masterpiece Edition",
+      "AUS",
+      "2026/10/28",
+      "Game Card",
+      "",
+      "Bloober",
+      "Standard",
+      "No"
+    ],
+    [
+      "Layers of Fear – The Final Masterpiece Edition",
+      "EUR",
+      "2026/10/28",
+      "Game Card",
+      "",
+      "Bloober",
+      "Standard",
+      "No"
+    ],
+    [
+      "Hello Kitty Party Land",
+      "AUS",
+      "2026/10/29",
+      "Game-Key Card",
+      "",
+      "Bandai Namco",
+      "Day One",
+      "No"
+    ],
+    [
+      "Hello Kitty Party Land",
+      "EUR",
+      "2026/10/29",
+      "Game-Key Card",
+      "",
+      "Bandai Namco",
+      "Launch",
+      "No"
+    ],
+    [
+      "Hello Kitty Party Land",
+      "USA",
+      "2026/10/29",
+      "Game-Key Card",
+      "",
+      "Bandai Namco",
+      "Day One",
+      "No"
+    ],
+    [
+      "Kuukiyomi 4: Consider It - Nintendo Switch 2 Edition",
+      "JPN",
+      "2026/10/29",
+      "Game Card",
+      "",
+      "G-Mode",
+      "Standard",
+      "No"
+    ],
+    [
+      "Steins;Gate Re:Boot",
+      "EUR",
+      "2026/10/29",
+      "Game Card",
+      "",
+      "Reef Entertainment",
+      "Standard, Steelbook",
+      "No"
+    ],
+    [
+      "Steins;Gate Re:Boot",
+      "USA",
+      "2026/10/29",
+      "Game Card",
+      "",
+      "Spike Chunsoft",
+      "Standard, Steelbook",
+      "No"
+    ],
+    [
+      "Observer System Redux",
+      "EUR",
+      "2026/10/30",
+      "TBC",
+      "",
+      "Bloober Team",
+      "Limited",
+      "No"
+    ],
+    [
+      "Trails in the Sky 2nd Chapter -Nintendo Switch 2 Edition-",
+      "AUS",
+      "2026/10/31",
+      "Game Card",
+      "",
+      "Falcom",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Trails in the Sky 2nd Chapter -Nintendo Switch 2 Edition-",
+      "EUR",
+      "2026/10/31",
+      "Game Card",
+      "",
+      "Falcom",
+      "Standard",
+      "Yes"
+    ],
+    [
+      "Legend of Zelda: Ocarina of Time ",
+      "ASI",
+      "2026/11/05",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Legend of Zelda: Ocarina of Time ",
+      "AUS",
+      "2026/11/05",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Legend of Zelda: Ocarina of Time ",
+      "CHT",
+      "2026/11/05",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Legend of Zelda: Ocarina of Time ",
+      "EUR",
+      "2026/11/05",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Legend of Zelda: Ocarina of Time ",
+      "JPN",
+      "2026/11/05",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Legend of Zelda: Ocarina of Time ",
+      "KOR",
+      "2026/11/05",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Legend of Zelda: Ocarina of Time ",
+      "USA",
+      "2026/11/05",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Danganronpa 2x2",
+      "USA",
+      "2026/11/30",
+      "Game Card",
+      "",
+      "Spike Chunsoft",
+      "Standard, Psycho Tropical Vacation Package",
+      "No"
+    ],
+    [
+      "Danganronpa 2x2",
+      "EUR",
+      "2026/11/30",
+      "Game Card",
+      "",
+      "Spike Chunsoft",
+      "Standard, Psycho Tropical Vacation Package",
+      "No"
+    ],
+    [
+      "Professor Layton and the New World of Steam",
+      "ASI",
+      "2026/11/30",
+      "TBC",
+      "",
+      "Level 5",
+      "Standard",
+      "No"
+    ],
+    [
+      "Professor Layton and the New World of Steam",
+      "AUS",
+      "2026/11/30",
+      "TBC",
+      "",
+      "Level 5",
+      "Standard",
+      "No"
+    ],
+    [
+      "Professor Layton and the New World of Steam",
+      "CHT",
+      "2026/11/30",
+      "TBC",
+      "",
+      "Level 5",
+      "Standard",
+      "No"
+    ],
+    [
+      "Professor Layton and the New World of Steam",
+      "EUR",
+      "2026/11/30",
+      "TBC",
+      "",
+      "Level 5",
+      "Standard",
+      "No"
+    ],
+    [
+      "Professor Layton and the New World of Steam",
+      "JPN",
+      "2026/11/30",
+      "TBC",
+      "",
+      "Level 5",
+      "Standard",
+      "No"
+    ],
+    [
+      "Professor Layton and the New World of Steam",
+      "KOR",
+      "2026/11/30",
+      "TBC",
+      "",
+      "Level 5",
+      "Standard",
+      "No"
+    ],
+    [
+      "Professor Layton and the New World of Steam",
+      "USA",
+      "2026/11/30",
+      "TBC",
+      "",
+      "Level 5",
+      "Standard",
+      "No"
+    ],
+    [
+      "Bluey's Happy Snaps: Deluxe Edition",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Gameloft",
+      "Standard",
+      "No"
+    ],
+    [
+      "Bluey's Happy Snaps: Deluxe Edition",
+      "AUS",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Gameloft",
+      "Standard",
+      "No"
+    ],
+    [
+      "Borderlands 4",
+      "ASI",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "2K",
+      "Standard",
+      "No"
+    ],
+    [
+      "Borderlands 4",
+      "AUS",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "2K",
+      "Standard",
+      "No"
+    ],
+    [
+      "Borderlands 4",
+      "CHT",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "2K",
+      "Standard",
+      "No"
+    ],
+    [
+      "Borderlands 4",
+      "EUR",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "2K",
+      "Standard",
+      "No"
+    ],
+    [
+      "Borderlands 4",
+      "JPN",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "2K",
+      "Standard",
+      "No"
+    ],
+    [
+      "Borderlands 4",
+      "KOR",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "2K",
+      "Standard",
+      "No"
+    ],
+    [
+      "Borderlands 4",
+      "USA",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "2K",
+      "Standard",
+      "No"
+    ],
+    [
+      "Demonschool",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Fangamer",
+      "Standard",
+      "No"
+    ],
+    [
+      "Denshattack",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Fangamer",
+      "Standard",
+      "No"
+    ],
+    [
+      "Duskbloods, The",
+      "ASI",
+      "2026/12/31",
+      "TBC",
+      "",
+      "FromSoftware",
+      "Standard",
+      "No"
+    ],
+    [
+      "Duskbloods, The",
+      "AUS",
+      "2026/12/31",
+      "TBC",
+      "",
+      "FromSoftware",
+      "Standard",
+      "No"
+    ],
+    [
+      "Duskbloods, The",
+      "CHT",
+      "2026/12/31",
+      "TBC",
+      "",
+      "FromSoftware",
+      "Standard",
+      "No"
+    ],
+    [
+      "Duskbloods, The",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "FromSoftware",
+      "Standard",
+      "No"
+    ],
+    [
+      "Duskbloods, The",
+      "JPN",
+      "2026/12/31",
+      "TBC",
+      "",
+      "FromSoftware",
+      "Standard",
+      "No"
+    ],
+    [
+      "Duskbloods, The",
+      "KOR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "FromSoftware",
+      "Standard",
+      "No"
+    ],
+    [
+      "Duskbloods, The",
+      "USA",
+      "2026/12/31",
+      "TBC",
+      "",
+      "FromSoftware",
+      "Standard",
+      "No"
+    ],
+    [
+      "Enter the Gungeon 2",
+      "AUS",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Enter the Gungeon 2",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Enter the Gungeon 2",
+      "USA",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Human Fall Flat 2",
+      "ASI",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Human Fall Flat 2",
+      "AUS",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Human Fall Flat 2",
+      "CHT",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Human Fall Flat 2",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Human Fall Flat 2",
+      "JPN",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Human Fall Flat 2",
+      "KOR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Human Fall Flat 2",
+      "USA",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Lego Batman Legacy of the Dark Knight",
+      "USA",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "WB Games",
+      "Standard, Deluxe",
+      "No"
+    ],
+    [
+      "Lego Batman Legacy of the Dark Knight",
+      "EUR",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "WB Games",
+      "Standard, Deluxe",
+      "No"
+    ],
+    [
+      "Lego Batman Legacy of the Dark Knight",
+      "AUS",
+      "2026/12/31",
+      "Game-Key Card",
+      "",
+      "WB Games",
+      "Standard",
+      "No"
+    ],
+    [
+      "Let’s Sing ABBA",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Plaion",
+      "Standard",
+      "No"
+    ],
+    [
+      "Planet of Lana II",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Microids",
+      "Standard",
+      "No"
+    ],
+    [
+      "R-Type Dimensions III",
+      "USA",
+      "2026/12/31",
+      "Game Card",
+      "",
+      "ININ",
+      "Standard, Collectors",
+      "No"
+    ],
+    [
+      "R-Type Dimensions III",
+      "EUR",
+      "2026/12/31",
+      "Game Card",
+      "",
+      "ININ",
+      "Standard, Collectors",
+      "No"
+    ],
+    [
+      "Shade Protocol",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Selecta Play",
+      "Standard",
+      "No"
+    ],
+    [
+      "Starseeker: Astroneer Expeditions",
+      "ASI",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Starseeker: Astroneer Expeditions",
+      "AUS",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Starseeker: Astroneer Expeditions",
+      "CHT",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Starseeker: Astroneer Expeditions",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Starseeker: Astroneer Expeditions",
+      "JPN",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Starseeker: Astroneer Expeditions",
+      "KOR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Starseeker: Astroneer Expeditions",
+      "USA",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Devolver Digital",
+      "Standard",
+      "No"
+    ],
+    [
+      "Wandering Sword",
+      "EUR",
+      "2026/12/31",
+      "TBC",
+      "",
+      "Red Art Games",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Waves",
+      "ASI",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Waves",
+      "AUS",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Waves",
+      "CHT",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Waves",
+      "EUR",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Waves",
+      "JPN",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Waves",
+      "KOR",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Waves",
+      "USA",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Winds",
+      "ASI",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Winds",
+      "AUS",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Winds",
+      "CHT",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Winds",
+      "EUR",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Winds",
+      "JPN",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Winds",
+      "KOR",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Pokemon Winds",
+      "USA",
+      "2027/01/01",
+      "TBC",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Metroid Ravenous",
+      "ASI",
+      "2027/01/28",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Metroid Ravenous",
+      "AUS",
+      "2027/01/28",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Metroid Ravenous",
+      "CHT",
+      "2027/01/28",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Metroid Ravenous",
+      "EUR",
+      "2027/01/28",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Metroid Ravenous",
+      "JPN",
+      "2027/01/28",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Metroid Ravenous",
+      "KOR",
+      "2027/01/28",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Metroid Ravenous",
+      "USA",
+      "2027/01/28",
+      "Game Card",
+      "",
+      "Nintendo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Hyrule Warriors: Age of Calamity – Definitive Edition",
+      "ASI",
+      "2027/02/25",
+      "Game-Key Card",
+      "",
+      "Koei Tecmo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Hyrule Warriors: Age of Calamity – Definitive Edition",
+      "AUS",
+      "2027/02/25",
+      "Game-Key Card",
+      "",
+      "Koei Tecmo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Hyrule Warriors: Age of Calamity – Definitive Edition",
+      "CHT",
+      "2027/02/25",
+      "Game-Key Card",
+      "",
+      "Koei Tecmo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Hyrule Warriors: Age of Calamity – Definitive Edition",
+      "EUR",
+      "2027/02/25",
+      "Game-Key Card",
+      "",
+      "Koei Tecmo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Hyrule Warriors: Age of Calamity – Definitive Edition",
+      "JPN",
+      "2027/02/25",
+      "Game-Key Card",
+      "",
+      "Koei Tecmo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Hyrule Warriors: Age of Calamity – Definitive Edition",
+      "KOR",
+      "2027/02/25",
+      "Game-Key Card",
+      "",
+      "Koei Tecmo",
+      "Standard",
+      "No"
+    ],
+    [
+      "Hyrule Warriors: Age of Calamity – Definitive Edition",
+      "USA",
+      "2027/02/25",
+      "Game-Key Card",
+      "",
+      "Koei Tecmo",
+      "Standard",
+      "No"
+    ],
+    [
+      "007: First Light",
+      "ASI",
+      "2027/03/31",
+      "Game-Key Card",
+      "",
+      "IO Interactive",
+      "Specialist, Legacy",
+      "No"
+    ],
+    [
+      "007: First Light",
+      "AUS",
+      "2027/03/31",
+      "Game-Key Card",
+      "",
+      "IO Interactive",
+      "Specialist, Legacy",
+      "No"
+    ],
+    [
+      "007: First Light",
+      "CHT",
+      "2027/03/31",
+      "Game-Key Card",
+      "",
+      "IO Interactive",
+      "Specialist, Legacy",
+      "No"
+    ],
+    [
+      "007: First Light",
+      "EUR",
+      "2027/03/31",
+      "Game-Key Card",
+      "",
+      "IO Interactive",
+      "Specialist, Legacy",
+      "No"
+    ],
+    [
+      "007: First Light",
+      "JPN",
+      "2027/03/31",
+      "Game-Key Card",
+      "",
+      "IO Interactive",
+      "Specialist, Legacy",
+      "No"
+    ],
+    [
+      "007: First Light",
+      "KOR",
+      "2027/03/31",
+      "Game-Key Card",
+      "",
+      "IO Interactive",
+      "Specialist, Legacy",
+      "No"
+    ],
+    [
+      "007: First Light",
+      "USA",
+      "2027/03/31",
+      "Game-Key Card",
+      "",
+      "IO Interactive",
+      "Specialist, Legacy",
+      "No"
+    ]
+  ]
+}

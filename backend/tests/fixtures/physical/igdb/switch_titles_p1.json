@@ -1,0 +1,7455 @@
+[
+  {
+    "id": 71,
+    "alternative_names": [
+      {
+        "id": 154585,
+        "name": "传送门"
+      },
+      {
+        "id": 205486,
+        "name": "hl2.exe"
+      }
+    ],
+    "first_release_date": 1191974400,
+    "name": "Portal"
+  },
+  {
+    "id": 72,
+    "alternative_names": [
+      {
+        "id": 50135,
+        "name": "포털 2"
+      },
+      {
+        "id": 210601,
+        "name": "portal2.exe"
+      }
+    ],
+    "first_release_date": 1303084800,
+    "name": "Portal 2"
+  },
+  {
+    "id": 79,
+    "alternative_names": [
+      {
+        "id": 107731,
+        "name": "スタッブス・ザ・ゾンビ"
+      }
+    ],
+    "first_release_date": 1129593600,
+    "name": "Stubbs the Zombie in Rebel Without a Pulse"
+  },
+  {
+    "id": 83,
+    "alternative_names": [
+      {
+        "id": 257669,
+        "name": "Baldur's Gate - Dark Alliance.exe"
+      }
+    ],
+    "first_release_date": 1007251200,
+    "name": "Baldur's Gate: Dark Alliance"
+  },
+  {
+    "id": 111,
+    "alternative_names": [
+      {
+        "id": 209677,
+        "name": "Amnesia.exe"
+      },
+      {
+        "id": 287386,
+        "name": "Lux Tenebras"
+      }
+    ],
+    "first_release_date": 1283904000,
+    "name": "Amnesia: The Dark Descent"
+  },
+  {
+    "id": 116,
+    "alternative_names": [
+      {
+        "id": 6143,
+        "name": "Star Wars: Caballeros de la Antigua República"
+      },
+      {
+        "id": 6142,
+        "name": "星际大战：旧共和武士"
+      },
+      {
+        "id": 193770,
+        "name": "swkotor.exe"
+      },
+      {
+        "id": 278482,
+        "name": "SW: KotOR"
+      },
+      {
+        "id": 278483,
+        "name": "KotOR"
+      }
+    ],
+    "first_release_date": 1058227200,
+    "name": "Star Wars: Knights of the Old Republic"
+  },
+  {
+    "id": 118,
+    "alternative_names": [
+      {
+        "id": 6144,
+        "name": "旧共和国武士II:西斯领主"
+      },
+      {
+        "id": 6145,
+        "name": "Star Wars: Caballeros de la Antigua República 2 - Los Señores Sith"
+      },
+      {
+        "id": 2699,
+        "name": "SW:KOTOR2"
+      },
+      {
+        "id": 2623,
+        "name": "KOTOR2"
+      },
+      {
+        "id": 42394,
+        "name": "Star Wars: Knights of the Old Republic 2"
+      },
+      {
+        "id": 291110,
+        "name": "KOTOR 2"
+      },
+      {
+        "id": 291111,
+        "name": "KOTOR II"
+      },
+      {
+        "id": 291600,
+        "name": "KOTOR:TSL"
+      },
+      {
+        "id": 271065,
+        "name": "swkotor2.exe"
+      }
+    ],
+    "first_release_date": 1102291200,
+    "name": "Star Wars: Knights of the Old Republic II - The Sith Lords"
+  },
+  {
+    "id": 136,
+    "alternative_names": [
+      {
+        "id": 69683,
+        "name": "DMC3"
+      },
+      {
+        "id": 84067,
+        "name": "Devil May Cry 3: Dantes Erwachen"
+      },
+      {
+        "id": 95361,
+        "name": "鬼泣3：但丁觉醒"
+      },
+      {
+        "id": 95362,
+        "name": "Devil May Cry 3 : L'Éveil de Dante"
+      }
+    ],
+    "first_release_date": 1108598400,
+    "name": "Devil May Cry 3: Dante's Awakening"
+  },
+  {
+    "id": 148,
+    "alternative_names": [
+      {
+        "id": 2600,
+        "name": "SW: RC"
+      },
+      {
+        "id": 3665,
+        "name": "星球大战：共和国突击队"
+      },
+      {
+        "id": 58879,
+        "name": "SW: Republic Commando"
+      },
+      {
+        "id": 58881,
+        "name": "Republic Commando"
+      },
+      {
+        "id": 58871,
+        "name": "Star Wars Republic Commando"
+      }
+    ],
+    "first_release_date": 1108598400,
+    "name": "Star Wars: Republic Commando"
+  },
+  {
+    "id": 152,
+    "alternative_names": [
+      {
+        "id": 12254,
+        "name": "JKO"
+      },
+      {
+        "id": 16341,
+        "name": "Star Wars: Jedi Knight 2 - Jedi Outcast"
+      },
+      {
+        "id": 3879,
+        "name": "杰迪武士2：杰迪放逐者"
+      },
+      {
+        "id": 235822,
+        "name": "jk2sp.exe"
+      },
+      {
+        "id": 289979,
+        "name": "JO"
+      },
+      {
+        "id": 289980,
+        "name": "JK2"
+      },
+      {
+        "id": 289981,
+        "name": "JKII"
+      }
+    ],
+    "first_release_date": 1017100800,
+    "name": "Star Wars: Jedi Knight II - Jedi Outcast"
+  },
+  {
+    "id": 153,
+    "alternative_names": [
+      {
+        "id": 12256,
+        "name": "JA"
+      },
+      {
+        "id": 3881,
+        "name": "杰迪武士：杰迪学院"
+      },
+      {
+        "id": 208039,
+        "name": "jasp.exe"
+      }
+    ],
+    "first_release_date": 1063670400,
+    "name": "Star Wars: Jedi Knight - Jedi Academy"
+  },
+  {
+    "id": 154,
+    "alternative_names": [
+      {
+        "id": 108136,
+        "name": "Episode 1 Racer"
+      },
+      {
+        "id": 138122,
+        "name": "Star Wars: Episódio I - Racer"
+      },
+      {
+        "id": 233444,
+        "name": "SWEP1RCR.EXE"
+      }
+    ],
+    "first_release_date": 926985600,
+    "name": "Star Wars: Episode I - Racer"
+  },
+  {
+    "id": 320,
+    "alternative_names": [
+      {
+        "id": 21625,
+        "name": "S.T.A.L.K.E.R.: Тень Чернобыля"
+      },
+      {
+        "id": 116000,
+        "name": "SSoC"
+      },
+      {
+        "id": 149160,
+        "name": "S.T.A.L.K.E.R.: Shadow of Chornobyl"
+      },
+      {
+        "id": 176597,
+        "name": "STALKER: Shadow of Chernobyl"
+      },
+      {
+        "id": 176598,
+        "name": "STALKER: Shadow of Chornobyl"
+      },
+      {
+        "id": 176599,
+        "name": "STALKER SoC"
+      },
+      {
+        "id": 185734,
+        "name": "Сталкер: Тень Чернобыля"
+      },
+      {
+        "id": 185735,
+        "name": "Сталкер"
+      }
+    ],
+    "first_release_date": 1174608000,
+    "name": "S.T.A.L.K.E.R.: Shadow of Chernobyl"
+  },
+  {
+    "id": 359,
+    "alternative_names": [
+      {
+        "id": 7862,
+        "name": "最终幻想15"
+      },
+      {
+        "id": 62796,
+        "name": "FINAL FANTASY XV"
+      },
+      {
+        "id": 60953,
+        "name": "Versus XIII"
+      },
+      {
+        "id": 60954,
+        "name": "Final Fantasy Versus XIII"
+      },
+      {
+        "id": 60955,
+        "name": "FF Versus XIII "
+      },
+      {
+        "id": 60956,
+        "name": "FFXV"
+      },
+      {
+        "id": 60957,
+        "name": "FF15"
+      },
+      {
+        "id": 60958,
+        "name": "Final Fantasy 15"
+      },
+      {
+        "id": 60959,
+        "name": "Final Fantasy Versus 13"
+      }
+    ],
+    "first_release_date": 1480377600,
+    "name": "Final Fantasy XV"
+  },
+  {
+    "id": 407,
+    "alternative_names": [
+      {
+        "id": 9521,
+        "name": "Mystic Quest"
+      },
+      {
+        "id": 125479,
+        "name": "Seiken Densetsu: Final Fantasy Gaiden"
+      },
+      {
+        "id": 125481,
+        "name": "聖剣伝説"
+      },
+      {
+        "id": 125482,
+        "name": "Seiken Densetsu"
+      }
+    ],
+    "first_release_date": 678067200,
+    "name": "Final Fantasy Adventure"
+  },
+  {
+    "id": 498,
+    "first_release_date": 1255996800,
+    "name": "Borderlands"
+  },
+  {
+    "id": 500,
+    "alternative_names": [
+      {
+        "id": 2705,
+        "name": "Batman:AA"
+      },
+      {
+        "id": 175055,
+        "name": "B:AA"
+      },
+      {
+        "id": 175056,
+        "name": "Arkham Asylum"
+      }
+    ],
+    "first_release_date": 1251158400,
+    "name": "Batman: Arkham Asylum"
+  },
+  {
+    "id": 501,
+    "alternative_names": [
+      {
+        "id": 39937,
+        "name": "Batman: Arkham Asylum 2"
+      },
+      {
+        "id": 52606,
+        "name": "Arkham City"
+      },
+      {
+        "id": 119905,
+        "name": "Batman: AC"
+      },
+      {
+        "id": 279056,
+        "name": "Batman: Аркхем Сити"
+      }
+    ],
+    "first_release_date": 1318896000,
+    "name": "Batman: Arkham City"
+  },
+  {
+    "id": 506,
+    "alternative_names": [
+      {
+        "id": 38700,
+        "name": "Sonic Generations: White Time and Space"
+      },
+      {
+        "id": 63966,
+        "name": "Sonic Anniversary"
+      },
+      {
+        "id": 138392,
+        "name": "Sonic Generations: Shiro no Jikuu"
+      }
+    ],
+    "first_release_date": 1320105600,
+    "name": "Sonic Generations"
+  },
+  {
+    "id": 530,
+    "alternative_names": [
+      {
+        "id": 14525,
+        "name": "Hitman 5"
+      },
+      {
+        "id": 12842,
+        "name": "Hitman Absolution"
+      },
+      {
+        "id": 252081,
+        "name": "HMA.exe"
+      }
+    ],
+    "first_release_date": 1353283200,
+    "name": "Hitman: Absolution"
+  },
+  {
+    "id": 576,
+    "alternative_names": [
+      {
+        "id": 69547,
+        "name": "DCUO"
+      }
+    ],
+    "first_release_date": 1294704000,
+    "name": "DC Universe Online"
+  },
+  {
+    "id": 769,
+    "alternative_names": [
+      {
+        "id": 94729,
+        "name": "라라 크로프트와 빛의 수호자"
+      }
+    ],
+    "first_release_date": 1282089600,
+    "name": "Lara Croft and the Guardian of Light"
+  },
+  {
+    "id": 873,
+    "alternative_names": [
+      {
+        "id": 34196,
+        "name": "Saints Row III"
+      },
+      {
+        "id": 34195,
+        "name": "Saints Row 3"
+      },
+      {
+        "id": 34197,
+        "name": "SRTT"
+      },
+      {
+        "id": 34194,
+        "name": "SR3"
+      },
+      {
+        "id": 202802,
+        "name": "game_launcher.exe"
+      }
+    ],
+    "first_release_date": 1321315200,
+    "name": "Saints Row: The Third"
+  },
+  {
+    "id": 885,
+    "alternative_names": [
+      {
+        "id": 36582,
+        "name": "SMB"
+      },
+      {
+        "id": 253387,
+        "name": "SuperMeatBoy.exe"
+      }
+    ],
+    "first_release_date": 1287532800,
+    "name": "Super Meat Boy"
+  },
+  {
+    "id": 890,
+    "alternative_names": [
+      {
+        "id": 120419,
+        "name": "Сиберия"
+      },
+      {
+        "id": 141479,
+        "name": "B. Sokal Syberia"
+      },
+      {
+        "id": 246646,
+        "name": "Game.exe"
+      },
+      {
+        "id": 278960,
+        "name": "Сибирь"
+      }
+    ],
+    "first_release_date": 1028851200,
+    "name": "Syberia"
+  },
+  {
+    "id": 942,
+    "alternative_names": [
+      {
+        "id": 200891,
+        "name": "WorldOfGoo.exe"
+      },
+      {
+        "id": 283089,
+        "name": "Goo no Wakusei"
+      },
+      {
+        "id": 279012,
+        "name": "World of Goo: Корпорация Гуу!"
+      }
+    ],
+    "first_release_date": 1223856000,
+    "name": "World of Goo"
+  },
+  {
+    "id": 978,
+    "alternative_names": [
+      {
+        "id": 57397,
+        "name": "RE: Revelations"
+      },
+      {
+        "id": 98844,
+        "name": "Biohazard: Revelations"
+      }
+    ],
+    "first_release_date": 1327536000,
+    "name": "Resident Evil: Revelations"
+  },
+  {
+    "id": 1011,
+    "alternative_names": [
+      {
+        "id": 2700,
+        "name": "BL2"
+      }
+    ],
+    "first_release_date": 1347926400,
+    "name": "Borderlands 2"
+  },
+  {
+    "id": 1262,
+    "alternative_names": [
+      {
+        "id": 6203,
+        "name": "South Park: Der Stab der Wahrheit"
+      },
+      {
+        "id": 6202,
+        "name": "South Park: Kijek Prawdy"
+      },
+      {
+        "id": 54840,
+        "name": "South Park La Vara De La Verdad"
+      },
+      {
+        "id": 260276,
+        "name": "South Park : Le Bâton de la Vérité"
+      },
+      {
+        "id": 260277,
+        "name": "South Park : Палка Истины"
+      },
+      {
+        "id": 260278,
+        "name": "South Park: Il Bastone della Verità"
+      },
+      {
+        "id": 260378,
+        "name": "South Park: The Game"
+      }
+    ],
+    "first_release_date": 1393804800,
+    "name": "South Park: The Stick of Truth"
+  },
+  {
+    "id": 1331,
+    "alternative_names": [
+      {
+        "id": 172897,
+        "name": "LIMBO"
+      },
+      {
+        "id": 185619,
+        "name": "Limbo.exe"
+      }
+    ],
+    "first_release_date": 1279670400,
+    "name": "Limbo"
+  },
+  {
+    "id": 1334,
+    "alternative_names": [
+      {
+        "id": 144864,
+        "name": "Brothers"
+      },
+      {
+        "id": 217814,
+        "name": "Brothers.exe"
+      }
+    ],
+    "first_release_date": 1375833600,
+    "name": "Brothers: A Tale of Two Sons"
+  },
+  {
+    "id": 1337,
+    "alternative_names": [
+      {
+        "id": 31898,
+        "name": "TL2"
+      },
+      {
+        "id": 31897,
+        "name": "Torchlight 2"
+      },
+      {
+        "id": 238558,
+        "name": "ModLauncher.exe"
+      }
+    ],
+    "first_release_date": 1348099200,
+    "name": "Torchlight II"
+  },
+  {
+    "id": 1338,
+    "alternative_names": [
+      {
+        "id": 155905,
+        "name": "Prison Architect: Xbox One Edition (Game Preview)"
+      },
+      {
+        "id": 155906,
+        "name": "Prison Architect: Mobile"
+      },
+      {
+        "id": 223565,
+        "name": "dowser.exe"
+      }
+    ],
+    "first_release_date": 1444089600,
+    "name": "Prison Architect"
+  },
+  {
+    "id": 1344,
+    "first_release_date": 776649600,
+    "name": "Wild Guns"
+  },
+  {
+    "id": 1363,
+    "alternative_names": [
+      {
+        "id": 237977,
+        "name": "Little Inferno.exe"
+      }
+    ],
+    "first_release_date": 1353196800,
+    "name": "Little Inferno"
+  },
+  {
+    "id": 1364,
+    "alternative_names": [
+      {
+        "id": 207450,
+        "name": "Wizorb.exe"
+      }
+    ],
+    "first_release_date": 1316390400,
+    "name": "Wizorb"
+  },
+  {
+    "id": 1384,
+    "alternative_names": [
+      {
+        "id": 24482,
+        "name": "HM"
+      },
+      {
+        "id": 229068,
+        "name": "HotlineMiami.exe"
+      }
+    ],
+    "first_release_date": 1350950400,
+    "name": "Hotline Miami"
+  },
+  {
+    "id": 1435,
+    "alternative_names": [
+      {
+        "id": 254674,
+        "name": "Fire Emblem: Mystery of the Emblem"
+      }
+    ],
+    "first_release_date": 759110400,
+    "name": "Fire Emblem: Monshou no Nazo"
+  },
+  {
+    "id": 1436,
+    "alternative_names": [
+      {
+        "id": 12341,
+        "name": "FE4"
+      },
+      {
+        "id": 177122,
+        "name": "Fire Emblem: Hikari wo Tsugumono"
+      },
+      {
+        "id": 177123,
+        "name": "ファイアーエムブレム 光をつぐもの"
+      },
+      {
+        "id": 177121,
+        "name": "Fire Emblem 4"
+      },
+      {
+        "id": 294762,
+        "name": "Fire Emblem: Seisen no Keifu"
+      }
+    ],
+    "first_release_date": 832032000,
+    "name": "Fire Emblem: Genealogy of the Holy War"
+  },
+  {
+    "id": 1516,
+    "alternative_names": [
+      {
+        "id": 30086,
+        "name": "Pokémon Vert Feuille"
+      },
+      {
+        "id": 30087,
+        "name": "Pokémon Verde Foglia"
+      },
+      {
+        "id": 30089,
+        "name": "Pokémon Verde Hoja"
+      },
+      {
+        "id": 74074,
+        "name": "Pokemon LeafGreen"
+      },
+      {
+        "id": 134537,
+        "name": "Pokémon Blattgrün"
+      },
+      {
+        "id": 137543,
+        "name": "Pokémon LeafGreen"
+      },
+      {
+        "id": 137590,
+        "name": "Pocket Monsters LeafGreen"
+      }
+    ],
+    "first_release_date": 1075334400,
+    "name": "Pokémon LeafGreen Version"
+  },
+  {
+    "id": 1559,
+    "alternative_names": [
+      {
+        "id": 30094,
+        "name": "Pokémon Rosso Fuoco"
+      },
+      {
+        "id": 30096,
+        "name": "Pokémon Rojo Fuego"
+      },
+      {
+        "id": 30093,
+        "name": "Pokémon Rouge Feu"
+      },
+      {
+        "id": 67925,
+        "name": "Pokemon FireRed"
+      },
+      {
+        "id": 134536,
+        "name": "Pokémon Feuerrot"
+      },
+      {
+        "id": 137547,
+        "name": "Pokémon FireRed"
+      },
+      {
+        "id": 137589,
+        "name": "Pocket Monsters FireRed"
+      },
+      {
+        "id": 176059,
+        "name": "Pokémon Fire Red"
+      }
+    ],
+    "first_release_date": 1075334400,
+    "name": "Pokémon FireRed Version"
+  },
+  {
+    "id": 1593,
+    "alternative_names": [
+      {
+        "id": 35310,
+        "name": "Project Eternity"
+      },
+      {
+        "id": 35311,
+        "name": "PoE"
+      }
+    ],
+    "first_release_date": 1427328000,
+    "name": "Pillars of Eternity"
+  },
+  {
+    "id": 1673,
+    "alternative_names": [
+      {
+        "id": 59990,
+        "name": "DoDonPachi SaiDaiOuJou"
+      }
+    ],
+    "first_release_date": 1334880000,
+    "name": "DoDonPachi Saidaioujou"
+  },
+  {
+    "id": 1676,
+    "alternative_names": [
+      {
+        "id": 59701,
+        "name": "DoDonPachi DaiFukkatsu"
+      },
+      {
+        "id": 177575,
+        "name": "DoDonPachi Resurrection HD+"
+      }
+    ],
+    "first_release_date": 1211414400,
+    "name": "DoDonPachi Resurrection"
+  },
+  {
+    "id": 1722,
+    "alternative_names": [
+      {
+        "id": 34070,
+        "name": "Megaman 9"
+      },
+      {
+        "id": 34069,
+        "name": "Rockman 9: The Ambition's Revival!!"
+      },
+      {
+        "id": 34067,
+        "name": "Rockman 9: Yabou no Fukkatsu!!"
+      }
+    ],
+    "first_release_date": 1222041600,
+    "name": "Mega Man 9"
+  },
+  {
+    "id": 1723,
+    "alternative_names": [
+      {
+        "id": 50763,
+        "name": "Rockman 10: Uchuu kara no Kyoui!!"
+      },
+      {
+        "id": 50765,
+        "name": "Rockman 10: Threat from Outer Space!!"
+      },
+      {
+        "id": 50766,
+        "name": "MM10"
+      }
+    ],
+    "first_release_date": 1267401600,
+    "name": "Mega Man 10"
+  },
+  {
+    "id": 1812,
+    "alternative_names": [
+      {
+        "id": 12699,
+        "name": "Dragon Warrior"
+      },
+      {
+        "id": 3011,
+        "name": "勇者斗恶龙"
+      },
+      {
+        "id": 289783,
+        "name": "DQ"
+      }
+    ],
+    "first_release_date": 1078099200,
+    "name": "Dragon Quest"
+  },
+  {
+    "id": 1813,
+    "alternative_names": [
+      {
+        "id": 3460,
+        "name": "勇者斗恶龙II"
+      },
+      {
+        "id": 3461,
+        "name": "DQII"
+      },
+      {
+        "id": 12700,
+        "name": "Dragon Warrior II"
+      },
+      {
+        "id": 45661,
+        "name": "Dragon Warrior 2"
+      },
+      {
+        "id": 106532,
+        "name": "Dragon Quest II"
+      },
+      {
+        "id": 289784,
+        "name": "DQ2"
+      },
+      {
+        "id": 250242,
+        "name": "Dragon Quest II: Gods of Evil"
+      },
+      {
+        "id": 292450,
+        "name": "Dragon Quest II: Akuryou no Kamigami"
+      }
+    ],
+    "first_release_date": 1135987200,
+    "name": "Dragon Quest II: Luminaries of the Legendary Line"
+  },
+  {
+    "id": 1814,
+    "alternative_names": [
+      {
+        "id": 37349,
+        "name": "勇者斗恶龙III 传说的开始"
+      },
+      {
+        "id": 37351,
+        "name": "勇者鬥惡龍III 接著邁向傳説"
+      },
+      {
+        "id": 12702,
+        "name": "Dragon Warrior III"
+      },
+      {
+        "id": 36816,
+        "name": "DQ3"
+      },
+      {
+        "id": 74843,
+        "name": "Dragon Quest III"
+      },
+      {
+        "id": 249775,
+        "name": "Dragon Quest III: Soshite Densetsu e..."
+      },
+      {
+        "id": 250243,
+        "name": "Dragon Quest III: Thus Into Legend..."
+      }
+    ],
+    "first_release_date": 1258588800,
+    "name": "Dragon Quest III: The Seeds of Salvation"
+  },
+  {
+    "id": 1871,
+    "alternative_names": [
+      {
+        "id": 7766,
+        "name": "The Walking Dead: The Game"
+      },
+      {
+        "id": 58305,
+        "name": "TWD"
+      },
+      {
+        "id": 148567,
+        "name": "The Walking Dead: Season One"
+      },
+      {
+        "id": 148568,
+        "name": "The Walking Dead: A Telltale Games Series"
+      },
+      {
+        "id": 231700,
+        "name": "WalkingDead101.exe"
+      }
+    ],
+    "first_release_date": 1335225600,
+    "name": "The Walking Dead"
+  },
+  {
+    "id": 1879,
+    "alternative_names": [
+      {
+        "id": 106148,
+        "name": "테라리아"
+      },
+      {
+        "id": 106121,
+        "name": "테라리아 (Terraria)"
+      },
+      {
+        "id": 178192,
+        "name": "Terraria.exe"
+      }
+    ],
+    "first_release_date": 1305504000,
+    "name": "Terraria"
+  },
+  {
+    "id": 1880,
+    "alternative_names": [
+      {
+        "id": 197886,
+        "name": "Baldur.exe"
+      }
+    ],
+    "first_release_date": 1353974400,
+    "name": "Baldur's Gate: Enhanced Edition"
+  },
+  {
+    "id": 1882,
+    "alternative_names": [
+      {
+        "id": 68368,
+        "name": "Amnesia 2"
+      },
+      {
+        "id": 242946,
+        "name": "aamfp.exe"
+      }
+    ],
+    "first_release_date": 1378771200,
+    "name": "Amnesia: A Machine for Pigs"
+  },
+  {
+    "id": 1905,
+    "alternative_names": [
+      {
+        "id": 30473,
+        "name": "堡垒之夜"
+      },
+      {
+        "id": 52137,
+        "name": "포나"
+      },
+      {
+        "id": 52325,
+        "name": "фортнайт"
+      },
+      {
+        "id": 52332,
+        "name": "فورت نايت"
+      },
+      {
+        "id": 174753,
+        "name": "Fortnite® en GeForce NOW"
+      },
+      {
+        "id": 182196,
+        "name": "フォートナイト"
+      },
+      {
+        "id": 182197,
+        "name": "포트나이트"
+      },
+      {
+        "id": 182201,
+        "name": "Fortnite Save The World"
+      },
+      {
+        "id": 276693,
+        "name": "Fortnite - Battle Royale"
+      },
+      {
+        "id": 261263,
+        "name": "Fortnight Battle Royale"
+      },
+      {
+        "id": 261264,
+        "name": "Fortnite Battle Royale"
+      }
+    ],
+    "first_release_date": 1593388800,
+    "name": "Fortnite"
+  },
+  {
+    "id": 1906,
+    "alternative_names": [
+      {
+        "id": 183033,
+        "name": "GoneHome.exe"
+      },
+      {
+        "id": 291273,
+        "name": "Gone Home: Console Edition"
+      }
+    ],
+    "first_release_date": 1376524800,
+    "name": "Gone Home"
+  },
+  {
+    "id": 1910,
+    "alternative_names": [
+      {
+        "id": 12193,
+        "name": "Outlast 1"
+      },
+      {
+        "id": 264928,
+        "name": "OutlastLauncher.exe"
+      }
+    ],
+    "first_release_date": 1378252800,
+    "name": "Outlast"
+  },
+  {
+    "id": 1912,
+    "alternative_names": [
+      {
+        "id": 145421,
+        "name": "Warface"
+      },
+      {
+        "id": 169814,
+        "name": "Варфейс"
+      },
+      {
+        "id": 200024,
+        "name": "WarfaceSteamLauncherInstaller.exe"
+      },
+      {
+        "id": 293483,
+        "name": "WarfaceSteamLauncherInstaller.exe"
+      }
+    ],
+    "first_release_date": 1382313600,
+    "name": "Warface"
+  },
+  {
+    "id": 1942,
+    "alternative_names": [
+      {
+        "id": 173745,
+        "name": "Witcher III"
+      },
+      {
+        "id": 2427,
+        "name": "Ведьмак 3: Дикая охота"
+      },
+      {
+        "id": 2495,
+        "name": "Wiedźmin 3: Dziki Gon"
+      },
+      {
+        "id": 71879,
+        "name": "巫师3：狂猎"
+      },
+      {
+        "id": 51941,
+        "name": "The Witcher III: Wild Hunt"
+      },
+      {
+        "id": 74560,
+        "name": "Witcher 3"
+      },
+      {
+        "id": 74561,
+        "name": "TW3"
+      },
+      {
+        "id": 121895,
+        "name": "巫師3：狂獵"
+      },
+      {
+        "id": 179756,
+        "name": "redprelauncher.exe"
+      },
+      {
+        "id": 256031,
+        "name": "Zaklínač 3: Divoký hon"
+      },
+      {
+        "id": 276816,
+        "name": "Вещерът 3 - Дивият лов"
+      },
+      {
+        "id": 282455,
+        "name": "ウィッチャー３　ワイルドハント"
+      },
+      {
+        "id": 276919,
+        "name": "Вещерът 3: Дивият лов"
+      }
+    ],
+    "first_release_date": 1431993600,
+    "name": "The Witcher 3: Wild Hunt"
+  },
+  {
+    "id": 1970,
+    "alternative_names": [
+      {
+        "id": 68488,
+        "name": "AC4"
+      },
+      {
+        "id": 68490,
+        "name": "Assassins Creed 4"
+      },
+      {
+        "id": 68491,
+        "name": "Assassin's Creed 4: Black Flag"
+      },
+      {
+        "id": 88537,
+        "name": "Assassin's Creed IV Черный флаг"
+      },
+      {
+        "id": 88538,
+        "name": "ACIV"
+      },
+      {
+        "id": 164395,
+        "name": "Assassin's Creed IV: Black Flag"
+      },
+      {
+        "id": 184300,
+        "name": "AC4BFSP.exe"
+      }
+    ],
+    "first_release_date": 1383004800,
+    "name": "Assassin's Creed IV Black Flag"
+  },
+  {
+    "id": 1976,
+    "alternative_names": [
+      {
+        "id": 103632,
+        "name": "こーるおぶふぁれす がんすりんがー"
+      },
+      {
+        "id": 229002,
+        "name": "CoJGunslinger.exe"
+      }
+    ],
+    "first_release_date": 1369180800,
+    "name": "Call of Juarez: Gunslinger"
+  },
+  {
+    "id": 1983,
+    "alternative_names": [
+      {
+        "id": 136649,
+        "name": "堡垒"
+      },
+      {
+        "id": 181243,
+        "name": "Бастион"
+      },
+      {
+        "id": 246074,
+        "name": "Bastion.exe"
+      }
+    ],
+    "first_release_date": 1311120000,
+    "name": "Bastion"
+  },
+  {
+    "id": 1990,
+    "alternative_names": [
+      {
+        "id": 206322,
+        "name": "vvvvvv.exe"
+      }
+    ],
+    "first_release_date": 1263168000,
+    "name": "VVVVVV"
+  },
+  {
+    "id": 1991,
+    "alternative_names": [
+      {
+        "id": 210818,
+        "name": "FEZ.exe"
+      }
+    ],
+    "first_release_date": 1334275200,
+    "name": "Fez"
+  },
+  {
+    "id": 2029,
+    "alternative_names": [
+      {
+        "id": 157591,
+        "name": "Evoland: A Short Story of Adventure Video Games Evolution"
+      },
+      {
+        "id": 270513,
+        "name": "Evoland.exe"
+      }
+    ],
+    "first_release_date": 1365033600,
+    "name": "Evoland"
+  },
+  {
+    "id": 2049,
+    "alternative_names": [
+      {
+        "id": 269585,
+        "name": "Slender - The Arrival.exe"
+      }
+    ],
+    "first_release_date": 1364256000,
+    "name": "Slender: The Arrival"
+  },
+  {
+    "id": 2050,
+    "alternative_names": [
+      {
+        "id": 211005,
+        "name": "LEGOMarvel.exe"
+      }
+    ],
+    "first_release_date": 1380499200,
+    "name": "LEGO Marvel Super Heroes"
+  },
+  {
+    "id": 2058,
+    "alternative_names": [
+      {
+        "id": 83071,
+        "name": "Payday: The Heist 2"
+      },
+      {
+        "id": 128730,
+        "name": "PAYDAY: The Heist 2"
+      },
+      {
+        "id": 128102,
+        "name": "PAYDAY 2"
+      },
+      {
+        "id": 186894,
+        "name": "payday2_win32_release.exe"
+      }
+    ],
+    "first_release_date": 1376352000,
+    "name": "Payday 2"
+  },
+  {
+    "id": 2126,
+    "alternative_names": [
+      {
+        "id": 24485,
+        "name": "HM2"
+      },
+      {
+        "id": 24484,
+        "name": "Hotline Miami 2"
+      },
+      {
+        "id": 206692,
+        "name": "HotlineMiami2.exe"
+      }
+    ],
+    "first_release_date": 1425945600,
+    "name": "Hotline Miami 2: Wrong Number"
+  },
+  {
+    "id": 2130,
+    "alternative_names": [
+      {
+        "id": 219135,
+        "name": "DustAET.exe"
+      }
+    ],
+    "first_release_date": 1344988800,
+    "name": "Dust: An Elysian Tail"
+  },
+  {
+    "id": 2135,
+    "first_release_date": 1411171200,
+    "name": "Bayonetta 2"
+  },
+  {
+    "id": 2155,
+    "alternative_names": [
+      {
+        "id": 26238,
+        "name": "Project Dark"
+      },
+      {
+        "id": 69519,
+        "name": "黑暗之魂"
+      },
+      {
+        "id": 86584,
+        "name": "다크 소울"
+      }
+    ],
+    "first_release_date": 1316649600,
+    "name": "Dark Souls"
+  },
+  {
+    "id": 2272,
+    "alternative_names": [
+      {
+        "id": 95615,
+        "name": "노 모어 히어로즈"
+      },
+      {
+        "id": 214534,
+        "name": "nmh.exe"
+      },
+      {
+        "id": 294532,
+        "name": "ノーモア★ヒーローズ"
+      }
+    ],
+    "first_release_date": 1196899200,
+    "name": "No More Heroes"
+  },
+  {
+    "id": 2273,
+    "alternative_names": [
+      {
+        "id": 237908,
+        "name": "nmh2.exe"
+      },
+      {
+        "id": 289905,
+        "name": "NMH2"
+      }
+    ],
+    "first_release_date": 1264464000,
+    "name": "No More Heroes 2: Desperate Struggle"
+  },
+  {
+    "id": 2291,
+    "first_release_date": 1343088000,
+    "name": "Thomas Was Alone"
+  },
+  {
+    "id": 2317,
+    "alternative_names": [
+      {
+        "id": 108560,
+        "name": "Toki Tori（トキ・トリ）"
+      },
+      {
+        "id": 208631,
+        "name": "tokitori.exe"
+      }
+    ],
+    "first_release_date": 1211241600,
+    "name": "Toki Tori"
+  },
+  {
+    "id": 2442,
+    "alternative_names": [
+      {
+        "id": 54956,
+        "name": "Keen Dreams"
+      },
+      {
+        "id": 54957,
+        "name": "Commander Keen 3.5: The Lost Episode"
+      },
+      {
+        "id": 134945,
+        "name": "Commander Keen: Keen Dreams"
+      }
+    ],
+    "first_release_date": 694137600,
+    "name": "Commander Keen in Keen Dreams"
+  },
+  {
+    "id": 2545,
+    "alternative_names": [
+      {
+        "id": 87764,
+        "name": "Dragon Ball Z"
+      },
+      {
+        "id": 52815,
+        "name": "Dragon Ball Z: Super Fight Story"
+      },
+      {
+        "id": 73644,
+        "name": "Dragon Ball Z: Super Butoden"
+      },
+      {
+        "id": 94194,
+        "name": "Dragon Ball Z: Super Butou-den"
+      },
+      {
+        "id": 165873,
+        "name": "Dragon ball Z"
+      },
+      {
+        "id": 181420,
+        "name": "七龍珠Z 超武鬥傳"
+      }
+    ],
+    "first_release_date": 732585600,
+    "name": "Dragon Ball Z: Super Butouden"
+  },
+  {
+    "id": 2599,
+    "alternative_names": [
+      {
+        "id": 193743,
+        "name": "nw.exe"
+      }
+    ],
+    "first_release_date": 1355097600,
+    "name": "Game Dev Tycoon"
+  },
+  {
+    "id": 2637,
+    "alternative_names": [
+      {
+        "id": 110206,
+        "name": "ブロブ カラフルなきぼう（de Blob）"
+      },
+      {
+        "id": 185415,
+        "name": "De Blob"
+      },
+      {
+        "id": 230495,
+        "name": "deBlob.exe"
+      }
+    ],
+    "first_release_date": 1215475200,
+    "name": "de Blob"
+  },
+  {
+    "id": 2638,
+    "alternative_names": [
+      {
+        "id": 10737,
+        "name": "World of Van Helsing: Deathtrap"
+      },
+      {
+        "id": 190568,
+        "name": "VanHelsing.exe"
+      },
+      {
+        "id": 291498,
+        "name": "The Incredible Adventures of Van Helsing: Deathtrap"
+      }
+    ],
+    "first_release_date": 1369180800,
+    "name": "The Incredible Adventures of Van Helsing"
+  },
+  {
+    "id": 2903,
+    "alternative_names": [
+      {
+        "id": 30679,
+        "name": "星际战甲"
+      },
+      {
+        "id": 62251,
+        "name": "Warframe"
+      },
+      {
+        "id": 131010,
+        "name": "戰甲神兵"
+      },
+      {
+        "id": 178328,
+        "name": "Launcher.exe"
+      }
+    ],
+    "first_release_date": 1364169600,
+    "name": "Warframe"
+  },
+  {
+    "id": 2924,
+    "alternative_names": [
+      {
+        "id": 32566,
+        "name": "Broken Sword 5"
+      },
+      {
+        "id": 32565,
+        "name": "Baphomet's Fluch 5: Der Sündenfall"
+      },
+      {
+        "id": 32567,
+        "name": "Broken Sword: TSC"
+      },
+      {
+        "id": 53092,
+        "name": "Broken Sword: Uroboros no Noroi"
+      },
+      {
+        "id": 53093,
+        "name": "Broken Sword 5: A Maldição da Serpente"
+      },
+      {
+        "id": 53094,
+        "name": "Broken Sword 5: La Maledizione del Serpente"
+      },
+      {
+        "id": 53095,
+        "name": "Broken Sword 5: La Maldición de la Serpiente"
+      },
+      {
+        "id": 93454,
+        "name": "Broken Sword 5 - Проклятие Змея"
+      },
+      {
+        "id": 93455,
+        "name": "Les Chevaliers de Baphomet 5 : La Malédiction du Serpent"
+      },
+      {
+        "id": 243709,
+        "name": "BS5.exe"
+      }
+    ],
+    "first_release_date": 1386115200,
+    "name": "Broken Sword 5: The Serpent's Curse"
+  },
+  {
+    "id": 2934,
+    "alternative_names": [
+      {
+        "id": 205125,
+        "name": "knightspp.exe"
+      }
+    ],
+    "first_release_date": 1351555200,
+    "name": "Knights of Pen and Paper +1 Edition"
+  },
+  {
+    "id": 2939,
+    "alternative_names": [
+      {
+        "id": 94164,
+        "name": "The Vanishing of Ethan Carter: Oculus Edition"
+      },
+      {
+        "id": 213210,
+        "name": "Launcher.exe"
+      }
+    ],
+    "first_release_date": 1411603200,
+    "name": "The Vanishing of Ethan Carter"
+  },
+  {
+    "id": 2945,
+    "alternative_names": [
+      {
+        "id": 242042,
+        "name": "TheWatchmaker.exe"
+      }
+    ],
+    "first_release_date": 1526515200,
+    "name": "The Watchmaker"
+  },
+  {
+    "id": 2990,
+    "alternative_names": [
+      {
+        "id": 101071,
+        "name": "머시나리움"
+      },
+      {
+        "id": 108622,
+        "name": "マシナリウム "
+      },
+      {
+        "id": 108536,
+        "name": "Machinarium（マシナリウム）"
+      },
+      {
+        "id": 186268,
+        "name": "Machinarium.exe"
+      },
+      {
+        "id": 279025,
+        "name": "Машинариум"
+      }
+    ],
+    "first_release_date": 1255651200,
+    "name": "Machinarium"
+  },
+  {
+    "id": 2991,
+    "alternative_names": [
+      {
+        "id": 222158,
+        "name": "swordandsworcery_pc.exe"
+      }
+    ],
+    "first_release_date": 1300924800,
+    "name": "Superbrothers: Sword & Sworcery EP"
+  },
+  {
+    "id": 3018,
+    "alternative_names": [
+      {
+        "id": 229962,
+        "name": "unepic.exe"
+      }
+    ],
+    "first_release_date": 1317340800,
+    "name": "Unepic"
+  },
+  {
+    "id": 3020,
+    "alternative_names": [
+      {
+        "id": 261414,
+        "name": "Shadowrun.exe"
+      }
+    ],
+    "first_release_date": 1374710400,
+    "name": "Shadowrun Returns"
+  },
+  {
+    "id": 3022,
+    "alternative_names": [
+      {
+        "id": 214392,
+        "name": "Transistor.exe"
+      }
+    ],
+    "first_release_date": 1400544000,
+    "name": "Transistor"
+  },
+  {
+    "id": 3026,
+    "alternative_names": [
+      {
+        "id": 107205,
+        "name": "Nihilumbra ニヒラブラ"
+      },
+      {
+        "id": 226859,
+        "name": "Nihilumbra.exe"
+      }
+    ],
+    "first_release_date": 1340755200,
+    "name": "Nihilumbra"
+  },
+  {
+    "id": 3029,
+    "alternative_names": [
+      {
+        "id": 53794,
+        "name": "Spelunky Enhanced"
+      },
+      {
+        "id": 53795,
+        "name": "Spelunky HD"
+      },
+      {
+        "id": 136105,
+        "name": "Spelunky HD Remake"
+      },
+      {
+        "id": 212612,
+        "name": "Spelunky.exe"
+      }
+    ],
+    "first_release_date": 1341360000,
+    "name": "Spelunky"
+  },
+  {
+    "id": 3087,
+    "alternative_names": [
+      {
+        "id": 68983,
+        "name": "Reds"
+      },
+      {
+        "id": 68984,
+        "name": "Double Fine Adventure"
+      },
+      {
+        "id": 260123,
+        "name": "BrokenAge.exe"
+      }
+    ],
+    "first_release_date": 1390867200,
+    "name": "Broken Age"
+  },
+  {
+    "id": 3097,
+    "alternative_names": [
+      {
+        "id": 13022,
+        "name": "The Walking Dead: Season 2"
+      },
+      {
+        "id": 208913,
+        "name": "TheWalkingDead2.exe"
+      }
+    ],
+    "first_release_date": 1387238400,
+    "name": "The Walking Dead: Season Two"
+  },
+  {
+    "id": 3099,
+    "alternative_names": [
+      {
+        "id": 196642,
+        "name": "DoorKickers.exe"
+      },
+      {
+        "id": 290288,
+        "name": "DoorKickers"
+      }
+    ],
+    "first_release_date": 1413763200,
+    "name": "Door Kickers"
+  },
+  {
+    "id": 3102,
+    "alternative_names": [
+      {
+        "id": 83070,
+        "name": "KSP"
+      }
+    ],
+    "first_release_date": 1430092800,
+    "name": "Kerbal Space Program"
+  },
+  {
+    "id": 3151,
+    "alternative_names": [
+      {
+        "id": 1348,
+        "name": "ESJ"
+      },
+      {
+        "id": 226731,
+        "name": "ElectronicSuperJoy.exe"
+      }
+    ],
+    "first_release_date": 1377216000,
+    "name": "Electronic Super Joy"
+  },
+  {
+    "id": 3152,
+    "alternative_names": [
+      {
+        "id": 186830,
+        "name": "dontstarve_steam.exe"
+      }
+    ],
+    "first_release_date": 1366675200,
+    "name": "Don't Starve"
+  },
+  {
+    "id": 3173,
+    "alternative_names": [
+      {
+        "id": 57524,
+        "name": "리스크 오브 레인"
+      },
+      {
+        "id": 260239,
+        "name": "Risk of Rain.exe"
+      }
+    ],
+    "first_release_date": 1383868800,
+    "name": "Risk of Rain"
+  },
+  {
+    "id": 3203,
+    "alternative_names": [
+      {
+        "id": 237981,
+        "name": "Game.exe"
+      }
+    ],
+    "first_release_date": 1355097600,
+    "name": "Mad Father"
+  },
+  {
+    "id": 3216,
+    "alternative_names": [
+      {
+        "id": 96721,
+        "name": "Seiken Densetsu 2"
+      }
+    ],
+    "first_release_date": 744595200,
+    "name": "Secret of Mana"
+  },
+  {
+    "id": 3221,
+    "alternative_names": [
+      {
+        "id": 104442,
+        "name": "ローグ・レガシー"
+      },
+      {
+        "id": 215556,
+        "name": "RogueLegacy.exe"
+      }
+    ],
+    "first_release_date": 1372291200,
+    "name": "Rogue Legacy"
+  },
+  {
+    "id": 3222,
+    "alternative_names": [
+      {
+        "id": 195809,
+        "name": "Chasm.exe"
+      }
+    ],
+    "first_release_date": 1532908800,
+    "name": "Chasm"
+  },
+  {
+    "id": 3227,
+    "alternative_names": [
+      {
+        "id": 189547,
+        "name": "nuclearthrone.exe"
+      },
+      {
+        "id": 290172,
+        "name": "Wasteland Kings"
+      }
+    ],
+    "first_release_date": 1449273600,
+    "name": "Nuclear Throne"
+  },
+  {
+    "id": 3230,
+    "alternative_names": [
+      {
+        "id": 243291,
+        "name": "rabbit.exe"
+      }
+    ],
+    "first_release_date": 1364515200,
+    "name": "The Night of the Rabbit"
+  },
+  {
+    "id": 3241,
+    "alternative_names": [
+      {
+        "id": 198777,
+        "name": "Cookie Clicker.exe"
+      }
+    ],
+    "first_release_date": 1376092800,
+    "name": "Cookie Clicker"
+  },
+  {
+    "id": 3245,
+    "first_release_date": 1383868800,
+    "name": "A Dark Room"
+  },
+  {
+    "id": 3373,
+    "alternative_names": [
+      {
+        "id": 53897,
+        "name": "Case and Bot: Murder in The Hotel Lisbon"
+      },
+      {
+        "id": 53919,
+        "name": "Inspector Zé e Robot Palhaço em: Crime no Hotel Lisboa"
+      },
+      {
+        "id": 264612,
+        "name": "Case&Bot.exe"
+      }
+    ],
+    "first_release_date": 1386201600,
+    "name": "Detective Case and Clown Bot in: Murder in the Hotel Lisbon"
+  },
+  {
+    "id": 3732,
+    "alternative_names": [
+      {
+        "id": 166073,
+        "name": "Pyjama Sam : Héros du goûter"
+      },
+      {
+        "id": 196029,
+        "name": "scummvm.exe"
+      },
+      {
+        "id": 266902,
+        "name": "Pyjama Sam - Suessigkeiten kriegen Saures"
+      }
+    ],
+    "first_release_date": 954979200,
+    "name": "Pajama Sam 3: You Are What You Eat From Your Head to Your Feet"
+  },
+  {
+    "id": 3736,
+    "first_release_date": 808012800,
+    "name": "Putt-Putt Saves the Zoo"
+  },
+  {
+    "id": 3737,
+    "alternative_names": [
+      {
+        "id": 261849,
+        "name": "scummvm.exe"
+      }
+    ],
+    "first_release_date": 880070400,
+    "name": "Putt-Putt Travels Through Time"
+  },
+  {
+    "id": 3743,
+    "alternative_names": [
+      {
+        "id": 29666,
+        "name": "Freddi Fisk och fallet med de försvunna sjögräsfröna"
+      },
+      {
+        "id": 154633,
+        "name": "Freddi Fish 1: Kelp Seeds"
+      },
+      {
+        "id": 154635,
+        "name": "Fritzi Fisch und der verschwundene Schatz"
+      },
+      {
+        "id": 154636,
+        "name": "Marine Malice et Le Mystère Des Graines d'Algues"
+      },
+      {
+        "id": 154637,
+        "name": "Rybka Freddi - Delo o Morskoj Kapuste"
+      }
+    ],
+    "first_release_date": 783302400,
+    "name": "Freddi Fish and The Case of the Missing Kelp Seeds"
+  },
+  {
+    "id": 3744,
+    "alternative_names": [
+      {
+        "id": 256799,
+        "name": "scummvm.exe"
+      }
+    ],
+    "first_release_date": 828057600,
+    "name": "Freddi Fish 2: The Case of the Haunted Schoolhouse"
+  },
+  {
+    "id": 3745,
+    "alternative_names": [
+      {
+        "id": 100170,
+        "name": "エフレディフィッシュ3ザケイスオブザストウルンコンクエイチシェル"
+      },
+      {
+        "id": 255692,
+        "name": "scummvm.exe"
+      }
+    ],
+    "first_release_date": 889142400,
+    "name": "Freddi Fish 3: The Case of the Stolen Conch Shell"
+  },
+  {
+    "id": 3746,
+    "alternative_names": [
+      {
+        "id": 222745,
+        "name": "scummvm.exe"
+      }
+    ],
+    "first_release_date": 941760000,
+    "name": "Freddi Fish 4: The Case of the Hogfish Rustlers of Briny Gulch"
+  },
+  {
+    "id": 3747,
+    "alternative_names": [
+      {
+        "id": 236746,
+        "name": "scummvm.exe"
+      }
+    ],
+    "first_release_date": 995500800,
+    "name": "Freddi Fish 5: The Case of the Creature of Coral Cove"
+  },
+  {
+    "id": 3772,
+    "alternative_names": [
+      {
+        "id": 74597,
+        "name": "Next Car Game: Wreckfest"
+      },
+      {
+        "id": 74596,
+        "name": "Next Car Game"
+      }
+    ],
+    "first_release_date": 1528934400,
+    "name": "Wreckfest"
+  },
+  {
+    "id": 3775,
+    "alternative_names": [
+      {
+        "id": 2628,
+        "name": "Assassin's creed: Black Flag: Le prix de la liberté"
+      },
+      {
+        "id": 103403,
+        "name": "AC:FC"
+      },
+      {
+        "id": 103404,
+        "name": "Assassin's Creed IV: Black Flag - Freedom Cry"
+      },
+      {
+        "id": 260223,
+        "name": "ACFC.exe"
+      }
+    ],
+    "first_release_date": 1387238400,
+    "name": "Assassin's Creed: Freedom Cry"
+  },
+  {
+    "id": 3830,
+    "alternative_names": [
+      {
+        "id": 107287,
+        "name": "에어 컨플릭트: 시크릿 워"
+      }
+    ],
+    "first_release_date": 1310083200,
+    "name": "Air Conflicts: Secret Wars"
+  },
+  {
+    "id": 3831,
+    "alternative_names": [
+      {
+        "id": 107285,
+        "name": "에어 컨플릭트: 퍼시픽 캐리어"
+      },
+      {
+        "id": 255740,
+        "name": "ACPC.exe"
+      }
+    ],
+    "first_release_date": 1348185600,
+    "name": "Air Conflicts: Pacific Carriers"
+  },
+  {
+    "id": 4514,
+    "alternative_names": [
+      {
+        "id": 52596,
+        "name": "Ryuuko no Ken"
+      },
+      {
+        "id": 52597,
+        "name": "Fists of Dragon and Tiger"
+      }
+    ],
+    "first_release_date": 717292800,
+    "name": "Art of Fighting"
+  },
+  {
+    "id": 4623,
+    "alternative_names": [
+      {
+        "id": 146013,
+        "name": "RainbowBell"
+      }
+    ],
+    "first_release_date": 478828800,
+    "name": "TwinBee"
+  },
+  {
+    "id": 4656,
+    "alternative_names": [
+      {
+        "id": 125455,
+        "name": "A Boy and His Blob Remake"
+      },
+      {
+        "id": 119593,
+        "name": "a boy and his blob"
+      },
+      {
+        "id": 251948,
+        "name": "Blob.exe"
+      }
+    ],
+    "first_release_date": 1255392000,
+    "name": "A Boy and His Blob"
+  },
+  {
+    "id": 4754,
+    "alternative_names": [
+      {
+        "id": 98643,
+        "name": "异形：隔离"
+      },
+      {
+        "id": 183581,
+        "name": "AI.exe"
+      }
+    ],
+    "first_release_date": 1412553600,
+    "name": "Alien: Isolation"
+  },
+  {
+    "id": 4788,
+    "alternative_names": [
+      {
+        "id": 13470,
+        "name": "Octodad 2"
+      },
+      {
+        "id": 256241,
+        "name": "OctodadDadliestCatch.exe"
+      }
+    ],
+    "first_release_date": 1391040000,
+    "name": "Octodad: Dadliest Catch"
+  },
+  {
+    "id": 4796,
+    "alternative_names": [
+      {
+        "id": 177865,
+        "name": "de Blob: The Underground"
+      },
+      {
+        "id": 267537,
+        "name": "deBlob2.exe"
+      }
+    ],
+    "first_release_date": 1298332800,
+    "name": "De Blob 2"
+  },
+  {
+    "id": 4840,
+    "alternative_names": [
+      {
+        "id": 21626,
+        "name": "S.T.A.L.K.E.R.: Чистое небо"
+      },
+      {
+        "id": 116001,
+        "name": "Stalker: Clear Sky"
+      },
+      {
+        "id": 116002,
+        "name": "SCS"
+      },
+      {
+        "id": 185736,
+        "name": "Сталкер"
+      },
+      {
+        "id": 185737,
+        "name": "Сталкер: Чисто Небо"
+      }
+    ],
+    "first_release_date": 1219363200,
+    "name": "S.T.A.L.K.E.R.: Clear Sky"
+  },
+  {
+    "id": 4843,
+    "alternative_names": [
+      {
+        "id": 150993,
+        "name": "KCD"
+      },
+      {
+        "id": 175704,
+        "name": "天国：拯救"
+      },
+      {
+        "id": 184193,
+        "name": "KingdomCome.exe"
+      }
+    ],
+    "first_release_date": 1518480000,
+    "name": "Kingdom Come: Deliverance"
+  },
+  {
+    "id": 4848,
+    "alternative_names": [
+      {
+        "id": 111100,
+        "name": "MAX マジックマーカーと兄弟の絆"
+      },
+      {
+        "id": 252306,
+        "name": "Max2.exe"
+      }
+    ],
+    "first_release_date": 1387497600,
+    "name": "Max: The Curse of Brotherhood"
+  },
+  {
+    "id": 4996,
+    "alternative_names": [
+      {
+        "id": 226983,
+        "name": "Martian Panic.exe"
+      }
+    ],
+    "first_release_date": 1282608000,
+    "name": "Martian Panic"
+  },
+  {
+    "id": 5025,
+    "first_release_date": 1320105600,
+    "name": "To the Moon"
+  },
+  {
+    "id": 5026,
+    "first_release_date": 1341360000,
+    "name": "Rainbow Moon"
+  },
+  {
+    "id": 5032,
+    "alternative_names": [
+      {
+        "id": 127535,
+        "name": "Draw a Stickman: EPIC"
+      },
+      {
+        "id": 256210,
+        "name": "DrawAStickman.Steam.exe"
+      }
+    ],
+    "first_release_date": 1351123200,
+    "name": "Draw a Stickman: Epic"
+  },
+  {
+    "id": 5033,
+    "first_release_date": 1379980800,
+    "name": "Scribblenauts Unmasked: A DC Comics Adventure"
+  },
+  {
+    "id": 5060,
+    "alternative_names": [
+      {
+        "id": 190638,
+        "name": "deponia.exe"
+      }
+    ],
+    "first_release_date": 1344297600,
+    "name": "Deponia"
+  },
+  {
+    "id": 5062,
+    "alternative_names": [
+      {
+        "id": 10952,
+        "name": "Deponia 2"
+      },
+      {
+        "id": 51771,
+        "name": "Chaos auf Deponia"
+      },
+      {
+        "id": 196109,
+        "name": "Deponia2.exe"
+      }
+    ],
+    "first_release_date": 1352160000,
+    "name": "Chaos on Deponia"
+  },
+  {
+    "id": 5064,
+    "alternative_names": [
+      {
+        "id": 205063,
+        "name": "Deponia3.exe"
+      }
+    ],
+    "first_release_date": 1381795200,
+    "name": "Goodbye Deponia"
+  },
+  {
+    "id": 5119,
+    "alternative_names": [
+      {
+        "id": 291731,
+        "name": "Real Heroes: Firefighter 3D"
+      }
+    ],
+    "first_release_date": 1249344000,
+    "name": "Real Heroes: Firefighter"
+  },
+  {
+    "id": 5145,
+    "alternative_names": [
+      {
+        "id": 1656,
+        "name": "Geheimakte Tunguska"
+      },
+      {
+        "id": 86267,
+        "name": "Secret Files: Tunguska"
+      },
+      {
+        "id": 149238,
+        "name": "Секретни файлове: Тунгуска"
+      }
+    ],
+    "first_release_date": 1157328000,
+    "name": "Secret Files: Tunguska"
+  },
+  {
+    "id": 5146,
+    "alternative_names": [
+      {
+        "id": 1638,
+        "name": "Geheimakte 2: Puritas Cordis"
+      },
+      {
+        "id": 84156,
+        "name": "Secret Files 2: Puritas Cordis"
+      }
+    ],
+    "first_release_date": 1219968000,
+    "name": "Secret Files 2: Puritas Cordis"
+  },
+  {
+    "id": 5204,
+    "alternative_names": [
+      {
+        "id": 98343,
+        "name": "Spy Fox : Opération Milkshake"
+      },
+      {
+        "id": 213045,
+        "name": "scummvm.exe"
+      }
+    ],
+    "first_release_date": 877046400,
+    "name": "Spy Fox in \"Dry Cereal\""
+  },
+  {
+    "id": 5317,
+    "alternative_names": [
+      {
+        "id": 188993,
+        "name": "NINJA GAIDEN 3 Razor's Edge.exe"
+      },
+      {
+        "id": 286627,
+        "name": "NG3RE"
+      }
+    ],
+    "first_release_date": 1353110400,
+    "name": "Ninja Gaiden 3: Razor's Edge"
+  },
+  {
+    "id": 5503,
+    "alternative_names": [
+      {
+        "id": 102003,
+        "name": "배트맨™:아캄 나이트"
+      },
+      {
+        "id": 186770,
+        "name": "BatmanAK.exe"
+      }
+    ],
+    "first_release_date": 1435017600,
+    "name": "Batman: Arkham Knight"
+  },
+  {
+    "id": 5508,
+    "alternative_names": [
+      {
+        "id": 22254,
+        "name": "Banner Saga 1"
+      }
+    ],
+    "first_release_date": 1389657600,
+    "name": "The Banner Saga"
+  },
+  {
+    "id": 5541,
+    "alternative_names": [
+      {
+        "id": 2454,
+        "name": "Sherlock Holmes: Crimes and Punishments"
+      },
+      {
+        "id": 2508,
+        "name": "Crimes & Punishmenst: Sherlock Holmes"
+      },
+      {
+        "id": 183548,
+        "name": "Sherlock Holmes Crimes and Punishments"
+      },
+      {
+        "id": 207804,
+        "name": "Sherlock.exe"
+      }
+    ],
+    "first_release_date": 1411948800,
+    "name": "Sherlock Holmes: Crimes & Punishments"
+  },
+  {
+    "id": 5552,
+    "alternative_names": [
+      {
+        "id": 94630,
+        "name": "Oddworld: Abe's Oddysee New and Tasty"
+      },
+      {
+        "id": 94631,
+        "name": "Oddworld: Abe's Oddysee New n' Tasty"
+      },
+      {
+        "id": 94632,
+        "name": "Oddworld: Abe's Oddysee New 'n Tasty"
+      },
+      {
+        "id": 94633,
+        "name": "Oddworld: Abe's Oddysee HD"
+      },
+      {
+        "id": 94628,
+        "name": "Oddworld: Abe's Oddysee – New 'n' Tasty!"
+      },
+      {
+        "id": 94629,
+        "name": "Abe's Oddysee HD"
+      },
+      {
+        "id": 171674,
+        "name": "Oddworld: New 'n' Tasty!"
+      },
+      {
+        "id": 243101,
+        "name": "NNT.exe"
+      }
+    ],
+    "first_release_date": 1405987200,
+    "name": "Oddworld: New 'n' Tasty"
+  },
+  {
+    "id": 5577,
+    "alternative_names": [
+      {
+        "id": 124686,
+        "name": "LYNE"
+      },
+      {
+        "id": 221275,
+        "name": "LYNE.exe"
+      }
+    ],
+    "first_release_date": 1388534400,
+    "name": "Lyne"
+  },
+  {
+    "id": 5592,
+    "alternative_names": [
+      {
+        "id": 27306,
+        "name": "Runner2"
+      },
+      {
+        "id": 6348,
+        "name": "Runner 2"
+      },
+      {
+        "id": 6347,
+        "name": "BIT.TRIP Runner2"
+      },
+      {
+        "id": 6349,
+        "name": "BIT.TRIP RUN!"
+      },
+      {
+        "id": 135557,
+        "name": "BIT.TRIP Presents... Runner2: Future Legend of Rhythm Alien"
+      },
+      {
+        "id": 191508,
+        "name": "runner2.exe"
+      },
+      {
+        "id": 293344,
+        "name": "Runner 2: Future Legend of Rhythm Alien"
+      }
+    ],
+    "first_release_date": 1361836800,
+    "name": "Bit.Trip Presents... Runner2: Future Legend of Rhythm Alien"
+  },
+  {
+    "id": 5605,
+    "alternative_names": [
+      {
+        "id": 124107,
+        "name": "Hover: RoG"
+      },
+      {
+        "id": 124108,
+        "name": "Hover"
+      },
+      {
+        "id": 260544,
+        "name": "hover.exe"
+      }
+    ],
+    "first_release_date": 1496188800,
+    "name": "Hover: Revolt of Gamers"
+  },
+  {
+    "id": 5607,
+    "alternative_names": [
+      {
+        "id": 37218,
+        "name": "Smite: Battleground of the Gods"
+      },
+      {
+        "id": 129944,
+        "name": "SMITE"
+      },
+      {
+        "id": 202741,
+        "name": "SmiteEAC64.exe"
+      }
+    ],
+    "first_release_date": 1395705600,
+    "name": "Smite"
+  },
+  {
+    "id": 5613,
+    "alternative_names": [
+      {
+        "id": 242184,
+        "name": "Baldur.exe"
+      }
+    ],
+    "first_release_date": 1384473600,
+    "name": "Baldur's Gate II: Enhanced Edition"
+  },
+  {
+    "id": 5645,
+    "alternative_names": [
+      {
+        "id": 229410,
+        "name": "Launcher.exe"
+      }
+    ],
+    "first_release_date": 1398297600,
+    "name": "Bullet Soul Infinite Burst"
+  },
+  {
+    "id": 5772,
+    "alternative_names": [
+      {
+        "id": 255458,
+        "name": "SteamWorldDig.exe"
+      }
+    ],
+    "first_release_date": 1375833600,
+    "name": "SteamWorld Dig"
+  },
+  {
+    "id": 5893,
+    "alternative_names": [
+      {
+        "id": 13408,
+        "name": "Tales of Space: Mutant Blobs"
+      },
+      {
+        "id": 188009,
+        "name": "Game.exe"
+      }
+    ],
+    "first_release_date": 1329782400,
+    "name": "Tales from Space: Mutant Blobs Attack"
+  },
+  {
+    "id": 5968,
+    "alternative_names": [
+      {
+        "id": 178756,
+        "name": "DoubleDragon.exe"
+      }
+    ],
+    "first_release_date": 1347321600,
+    "name": "Double Dragon Neon"
+  },
+  {
+    "id": 5973,
+    "alternative_names": [
+      {
+        "id": 182933,
+        "name": "Broforce_beta.exe"
+      }
+    ],
+    "first_release_date": 1444867200,
+    "name": "Broforce"
+  },
+  {
+    "id": 5974,
+    "alternative_names": [
+      {
+        "id": 34241,
+        "name": "Ninja Gaiden Σ"
+      },
+      {
+        "id": 34242,
+        "name": "NGS"
+      }
+    ],
+    "first_release_date": 1181779200,
+    "name": "Ninja Gaiden Sigma"
+  },
+  {
+    "id": 6005,
+    "alternative_names": [
+      {
+        "id": 6465,
+        "name": "王国保卫战"
+      },
+      {
+        "id": 6466,
+        "name": "皇家守卫军"
+      },
+      {
+        "id": 259772,
+        "name": "Kingdom Rush.exe"
+      }
+    ],
+    "first_release_date": 1324252800,
+    "name": "Kingdom Rush"
+  },
+  {
+    "id": 6006,
+    "alternative_names": [
+      {
+        "id": 217559,
+        "name": "Kingdom Rush Frontiers.exe"
+      }
+    ],
+    "first_release_date": 1370476800,
+    "name": "Kingdom Rush Frontiers"
+  },
+  {
+    "id": 6032,
+    "alternative_names": [
+      {
+        "id": 28089,
+        "name": "BL:TPS"
+      },
+      {
+        "id": 243287,
+        "name": "Launcher.exe"
+      }
+    ],
+    "first_release_date": 1413244800,
+    "name": "Borderlands: The Pre-Sequel"
+  },
+  {
+    "id": 6044,
+    "alternative_names": [
+      {
+        "id": 48466,
+        "name": "Invi?ible"
+      },
+      {
+        "id": 38047,
+        "name": "Invi?ible, Inc."
+      },
+      {
+        "id": 186213,
+        "name": "Invisible Inc"
+      },
+      {
+        "id": 247691,
+        "name": "invisibleinc.exe"
+      },
+      {
+        "id": 290130,
+        "name": "Incognita"
+      },
+      {
+        "id": 290734,
+        "name": "Inc."
+      },
+      {
+        "id": 292027,
+        "name": "Invisible, Inc. Console Edition"
+      }
+    ],
+    "first_release_date": 1431388800,
+    "name": "Invisible, Inc."
+  },
+  {
+    "id": 6066,
+    "alternative_names": [
+      {
+        "id": 106734,
+        "name": "SEVERED-セヴァード-"
+      }
+    ],
+    "first_release_date": 1461628800,
+    "name": "Severed"
+  },
+  {
+    "id": 6164,
+    "alternative_names": [
+      {
+        "id": 47235,
+        "name": "Sherlock Holmes 6"
+      },
+      {
+        "id": 1848,
+        "name": "Testament of Sherlock Holmes, Sherlock Holmes"
+      },
+      {
+        "id": 290016,
+        "name": "SH6"
+      },
+      {
+        "id": 292767,
+        "name": "The New Adventures of Sherlock Holmes: The Testament of Sherlock"
+      }
+    ],
+    "first_release_date": 1348531200,
+    "name": "The Testament of Sherlock Holmes"
+  },
+  {
+    "id": 6185,
+    "alternative_names": [
+      {
+        "id": 18480,
+        "name": "Syberia 2"
+      },
+      {
+        "id": 120418,
+        "name": "Сиберия II"
+      },
+      {
+        "id": 211373,
+        "name": "Game.exe"
+      },
+      {
+        "id": 278959,
+        "name": "Сибирь 2"
+      }
+    ],
+    "first_release_date": 1080604800,
+    "name": "Syberia II"
+  },
+  {
+    "id": 6246,
+    "alternative_names": [
+      {
+        "id": 125553,
+        "name": "BIT.TRIP RUNNER"
+      },
+      {
+        "id": 207046,
+        "name": "runner.exe"
+      },
+      {
+        "id": 283094,
+        "name": "Bit.Trip Runner: Rhythm Seijin no Gekisou"
+      }
+    ],
+    "first_release_date": 1273795200,
+    "name": "Bit.Trip Runner"
+  },
+  {
+    "id": 6328,
+    "alternative_names": [
+      {
+        "id": 196092,
+        "name": "grimrock.exe"
+      }
+    ],
+    "first_release_date": 1334102400,
+    "name": "Legend of Grimrock"
+  },
+  {
+    "id": 6384,
+    "alternative_names": [
+      {
+        "id": 219335,
+        "name": "DoubleDragonAdvance.exe"
+      }
+    ],
+    "first_release_date": 1068595200,
+    "name": "Double Dragon Advance"
+  },
+  {
+    "id": 6415,
+    "alternative_names": [
+      {
+        "id": 127977,
+        "name": "GRID: Autosport"
+      }
+    ],
+    "first_release_date": 1403568000,
+    "name": "Grid: Autosport"
+  },
+  {
+    "id": 6419,
+    "alternative_names": [
+      {
+        "id": 1930,
+        "name": "Pazuin Umininno Pazuru Denimu"
+      }
+    ],
+    "first_release_date": 1057017600,
+    "name": "Gem Smashers"
+  },
+  {
+    "id": 6475,
+    "alternative_names": [
+      {
+        "id": 38611,
+        "name": "Super Big Brother of Love"
+      },
+      {
+        "id": 96878,
+        "name": "Ai Cho Aniki"
+      }
+    ],
+    "first_release_date": 793584000,
+    "name": "Ai Chou Aniki"
+  },
+  {
+    "id": 6555,
+    "first_release_date": 1266192000,
+    "name": "Art of Balance"
+  },
+  {
+    "id": 6558,
+    "alternative_names": [
+      {
+        "id": 58182,
+        "name": "Street Gangs"
+      }
+    ],
+    "first_release_date": 633744000,
+    "name": "River City Ransom"
+  },
+  {
+    "id": 6559,
+    "alternative_names": [
+      {
+        "id": 155216,
+        "name": "Riviera 〜約束の地リヴィエラ〜"
+      },
+      {
+        "id": 177653,
+        "name": "Riviera: Yakusoku No Chi Riviera"
+      },
+      {
+        "id": 177654,
+        "name": "Yakusoku no Chi: Riviera"
+      }
+    ],
+    "first_release_date": 1026432000,
+    "name": "Riviera: The Promised Land"
+  },
+  {
+    "id": 6580,
+    "alternative_names": [
+      {
+        "id": 54434,
+        "name": "Life Goes On"
+      },
+      {
+        "id": 249110,
+        "name": "Life Goes On.exe"
+      }
+    ],
+    "first_release_date": 1397692800,
+    "name": "Life Goes On: Done to Death"
+  },
+  {
+    "id": 6581,
+    "alternative_names": [
+      {
+        "id": 290607,
+        "name": "Stick it To The Man"
+      }
+    ],
+    "first_release_date": 1384819200,
+    "name": "Stick it to the Man!"
+  },
+  {
+    "id": 6655,
+    "alternative_names": [
+      {
+        "id": 257285,
+        "name": "Mother Russia Bleeds.exe"
+      }
+    ],
+    "first_release_date": 1473033600,
+    "name": "Mother Russia Bleeds"
+  },
+  {
+    "id": 6701,
+    "alternative_names": [
+      {
+        "id": 1735,
+        "name": "Edna & Harvey 2"
+      },
+      {
+        "id": 51515,
+        "name": "Harveys neue Augen"
+      },
+      {
+        "id": 81364,
+        "name": "Edna & Harvey: Harveys neue Augen"
+      },
+      {
+        "id": 204508,
+        "name": "harvey.exe"
+      },
+      {
+        "id": 293331,
+        "name": "Edna and Harvey: Harvey's New Eyes"
+      }
+    ],
+    "first_release_date": 1350345600,
+    "name": "Edna & Harvey: Harvey's New Eyes"
+  },
+  {
+    "id": 6705,
+    "alternative_names": [
+      {
+        "id": 197437,
+        "name": "HatinTimeGame.exe"
+      }
+    ],
+    "first_release_date": 1507161600,
+    "name": "A Hat in Time"
+  },
+  {
+    "id": 6707,
+    "alternative_names": [
+      {
+        "id": 105405,
+        "name": "Tales from the Borderlands: A Telltale Games Series"
+      },
+      {
+        "id": 229623,
+        "name": "Borderlands.exe"
+      }
+    ],
+    "first_release_date": 1416873600,
+    "name": "Tales from the Borderlands"
+  },
+  {
+    "id": 6732,
+    "alternative_names": [
+      {
+        "id": 6522,
+        "name": "Rise and Shine"
+      },
+      {
+        "id": 243082,
+        "name": "RiseAndShine.exe"
+      }
+    ],
+    "first_release_date": 1484265600,
+    "name": "Rise & Shine"
+  },
+  {
+    "id": 6741,
+    "alternative_names": [
+      {
+        "id": 215542,
+        "name": "GuardDuty.exe"
+      }
+    ],
+    "first_release_date": 1556755200,
+    "name": "Guard Duty"
+  },
+  {
+    "id": 6804,
+    "alternative_names": [
+      {
+        "id": 56252,
+        "name": "One Piece: Kaizoku Musou 3"
+      },
+      {
+        "id": 190652,
+        "name": "oppw3.exe"
+      }
+    ],
+    "first_release_date": 1427328000,
+    "name": "One Piece: Pirate Warriors 3"
+  },
+  {
+    "id": 6852,
+    "alternative_names": [
+      {
+        "id": 149305,
+        "name": "Ренегат"
+      }
+    ],
+    "first_release_date": 567907200,
+    "name": "Renegade"
+  },
+  {
+    "id": 6866,
+    "alternative_names": [
+      {
+        "id": 86528,
+        "name": "뿌요뿌요 테트리스"
+      },
+      {
+        "id": 101663,
+        "name": "뿌요뿌요™테트리스®"
+      },
+      {
+        "id": 201276,
+        "name": "puyopuyotetris.exe"
+      }
+    ],
+    "first_release_date": 1391644800,
+    "name": "Puyo Puyo Tetris"
+  },
+  {
+    "id": 6880,
+    "alternative_names": [
+      {
+        "id": 102363,
+        "name": "メトロ エクソダス"
+      },
+      {
+        "id": 233634,
+        "name": "metro.exe"
+      }
+    ],
+    "first_release_date": 1408924800,
+    "name": "Metro Redux"
+  },
+  {
+    "id": 6918,
+    "alternative_names": [
+      {
+        "id": 2136,
+        "name": "ブレイズ オブ タイム"
+      },
+      {
+        "id": 190595,
+        "name": "bladesoftime.exe"
+      }
+    ],
+    "first_release_date": 1330992000,
+    "name": "Blades of Time"
+  },
+  {
+    "id": 6989,
+    "alternative_names": [
+      {
+        "id": 60218,
+        "name": "ESPGaluda 2"
+      }
+    ],
+    "first_release_date": 1132876800,
+    "name": "Espgaluda II"
+  },
+  {
+    "id": 7046,
+    "alternative_names": [
+      {
+        "id": 95472,
+        "name": "팩토리오"
+      }
+    ],
+    "first_release_date": 1597363200,
+    "name": "Factorio"
+  },
+  {
+    "id": 7067,
+    "alternative_names": [
+      {
+        "id": 47012,
+        "name": "Memories Off 7"
+      }
+    ],
+    "first_release_date": 1280361600,
+    "name": "Memories Off: Yubikiri no Kioku"
+  },
+  {
+    "id": 7068,
+    "alternative_names": [
+      {
+        "id": 59763,
+        "name": "Memories Off 6 ~T-wave~ "
+      }
+    ],
+    "first_release_date": 1219276800,
+    "name": "Memories Off 6: T-wave"
+  },
+  {
+    "id": 7087,
+    "alternative_names": [
+      {
+        "id": 268743,
+        "name": "Beatbuddy.exe"
+      }
+    ],
+    "first_release_date": 1375747200,
+    "name": "Beatbuddy: Tale of the Guardians"
+  },
+  {
+    "id": 7098,
+    "alternative_names": [
+      {
+        "id": 105786,
+        "name": "ナルト 疾風伝　ナルティメットストーム２"
+      },
+      {
+        "id": 260476,
+        "name": "NSUNS2.exe"
+      }
+    ],
+    "first_release_date": 1287100800,
+    "name": "Naruto Shippuden: Ultimate Ninja Storm 2"
+  },
+  {
+    "id": 7116,
+    "alternative_names": [
+      {
+        "id": 246695,
+        "name": "fp.exe"
+      }
+    ],
+    "first_release_date": 1405900800,
+    "name": "Freedom Planet"
+  },
+  {
+    "id": 7144,
+    "alternative_names": [
+      {
+        "id": 250519,
+        "name": "TheInnerWorld.exe"
+      }
+    ],
+    "first_release_date": 1374105600,
+    "name": "The Inner World"
+  },
+  {
+    "id": 7146,
+    "alternative_names": [
+      {
+        "id": 3687,
+        "name": "The Dark Eye: Klątwa Wron"
+      },
+      {
+        "id": 3688,
+        "name": "Das Schwarze Auge: Satinavs Ketten"
+      },
+      {
+        "id": 243328,
+        "name": "satinav.exe"
+      }
+    ],
+    "first_release_date": 1340323200,
+    "name": "The Dark Eye: Chains of Satinav"
+  },
+  {
+    "id": 7158,
+    "alternative_names": [
+      {
+        "id": 46246,
+        "name": "Agarest: Generations of War"
+      },
+      {
+        "id": 292430,
+        "name": "Agarest Senki"
+      }
+    ],
+    "first_release_date": 1190851200,
+    "name": "Record of Agarest War"
+  },
+  {
+    "id": 7168,
+    "alternative_names": [
+      {
+        "id": 2230,
+        "name": "Das Schwarze Auge: Memoria"
+      },
+      {
+        "id": 54377,
+        "name": "Memoria"
+      },
+      {
+        "id": 260503,
+        "name": "memoria.exe"
+      }
+    ],
+    "first_release_date": 1377734400,
+    "name": "The Dark Eye: Memoria"
+  },
+  {
+    "id": 7196,
+    "alternative_names": [
+      {
+        "id": 83622,
+        "name": "Ravensword 2: Shadowlands"
+      },
+      {
+        "id": 83623,
+        "name": "RAVENSWORD: SHADOWLANDS RPG"
+      },
+      {
+        "id": 255578,
+        "name": "Ravensword2.exe"
+      }
+    ],
+    "first_release_date": 1386288000,
+    "name": "Ravensword: Shadowlands"
+  },
+  {
+    "id": 7205,
+    "alternative_names": [
+      {
+        "id": 121220,
+        "name": "SUPERHOT"
+      },
+      {
+        "id": 264503,
+        "name": "SUPERHOT.exe"
+      }
+    ],
+    "first_release_date": 1456358400,
+    "name": "SuperHot"
+  },
+  {
+    "id": 7206,
+    "alternative_names": [
+      {
+        "id": 236512,
+        "name": "BattleWorldsKronos.exe"
+      }
+    ],
+    "first_release_date": 1383523200,
+    "name": "Battle Worlds: Kronos"
+  },
+  {
+    "id": 7289,
+    "alternative_names": [
+      {
+        "id": 264161,
+        "name": "Game.exe"
+      }
+    ],
+    "first_release_date": 1400630400,
+    "name": "Always Sometimes Monsters"
+  },
+  {
+    "id": 7311,
+    "first_release_date": 1285286400,
+    "name": "Lost Horizon"
+  },
+  {
+    "id": 7312,
+    "alternative_names": [
+      {
+        "id": 243086,
+        "name": "LostHorizon2.exe"
+      }
+    ],
+    "first_release_date": 1443657600,
+    "name": "Lost Horizon 2"
+  },
+  {
+    "id": 7325,
+    "alternative_names": [
+      {
+        "id": 77945,
+        "name": "Lara Croft & the Temple of Osiris"
+      },
+      {
+        "id": 21953,
+        "name": "Lara Croft und der Tempel des Osiris"
+      },
+      {
+        "id": 207296,
+        "name": "LC2.exe"
+      }
+    ],
+    "first_release_date": 1417996800,
+    "name": "Lara Croft and the Temple of Osiris"
+  },
+  {
+    "id": 7327,
+    "alternative_names": [
+      {
+        "id": 149414,
+        "name": "Soldats Inconnus : Mémoires de la Grande Guerre"
+      },
+      {
+        "id": 210774,
+        "name": "Valiant Hearts.exe"
+      }
+    ],
+    "first_release_date": 1403568000,
+    "name": "Valiant Hearts: The Great War"
+  },
+  {
+    "id": 7342,
+    "alternative_names": [
+      {
+        "id": 39715,
+        "name": "Playdead's INSIDE"
+      },
+      {
+        "id": 185618,
+        "name": "INSIDE.exe"
+      },
+      {
+        "id": 288012,
+        "name": "INSIDE"
+      }
+    ],
+    "first_release_date": 1467158400,
+    "name": "Inside"
+  },
+  {
+    "id": 7344,
+    "alternative_names": [
+      {
+        "id": 217894,
+        "name": "Ori.exe"
+      }
+    ],
+    "first_release_date": 1426032000,
+    "name": "Ori and the Blind Forest"
+  },
+  {
+    "id": 7346,
+    "alternative_names": [
+      {
+        "id": 24387,
+        "name": "TLoZ BotW"
+      },
+      {
+        "id": 51798,
+        "name": "BotW"
+      },
+      {
+        "id": 111231,
+        "name": "Breath of the Wild"
+      },
+      {
+        "id": 132653,
+        "name": "薩爾達傳說：曠野之息"
+      },
+      {
+        "id": 137950,
+        "name": "젤다 야숨"
+      },
+      {
+        "id": 175703,
+        "name": "塞尔达传说 旷野之息"
+      }
+    ],
+    "first_release_date": 1488499200,
+    "name": "The Legend of Zelda: Breath of the Wild"
+  },
+  {
+    "id": 7352,
+    "alternative_names": [
+      {
+        "id": 125276,
+        "name": "ABZÛ"
+      },
+      {
+        "id": 187138,
+        "name": "AbzuGame.exe"
+      }
+    ],
+    "first_release_date": 1470096000,
+    "name": "Abzu"
+  },
+  {
+    "id": 7385,
+    "alternative_names": [
+      {
+        "id": 34243,
+        "name": "Ninja Gaiden Σ2"
+      },
+      {
+        "id": 34244,
+        "name": "NGS2"
+      },
+      {
+        "id": 185850,
+        "name": "NINJA GAIDEN SIGMA2.exe"
+      }
+    ],
+    "first_release_date": 1254182400,
+    "name": "Ninja Gaiden Sigma 2"
+  },
+  {
+    "id": 7386,
+    "alternative_names": [
+      {
+        "id": 95560,
+        "name": "Talos Principle"
+      },
+      {
+        "id": 191660,
+        "name": "Talos.exe"
+      }
+    ],
+    "first_release_date": 1418256000,
+    "name": "The Talos Principle"
+  },
+  {
+    "id": 7393,
+    "alternative_names": [
+      {
+        "id": 183746,
+        "name": "wotblitz.exe"
+      },
+      {
+        "id": 248075,
+        "name": "World of Tanks Blitz"
+      },
+      {
+        "id": 248077,
+        "name": "Wot Blitz"
+      }
+    ],
+    "first_release_date": 1403913600,
+    "name": "World of Tanks: Blitz"
+  },
+  {
+    "id": 7444,
+    "alternative_names": [
+      {
+        "id": 108868,
+        "name": "Shovel Knight: Shovel of Hope"
+      },
+      {
+        "id": 251736,
+        "name": "ShovelOfHope.exe"
+      }
+    ],
+    "first_release_date": 1403740800,
+    "name": "Shovel Knight"
+  },
+  {
+    "id": 7542,
+    "alternative_names": [
+      {
+        "id": 128957,
+        "name": "LUXOR Evolved"
+      }
+    ],
+    "first_release_date": 1330560000,
+    "name": "Luxor Evolved"
+  },
+  {
+    "id": 7570,
+    "alternative_names": [
+      {
+        "id": 2456,
+        "name": "Assassin’s Creed: Изгой"
+      },
+      {
+        "id": 68498,
+        "name": "AC Rogue"
+      },
+      {
+        "id": 250004,
+        "name": "ACC.exe"
+      }
+    ],
+    "first_release_date": 1415664000,
+    "name": "Assassin's Creed Rogue"
+  },
+  {
+    "id": 7578,
+    "alternative_names": [
+      {
+        "id": 9766,
+        "name": "IHNMAIMS"
+      },
+      {
+        "id": 32865,
+        "name": "No tengo boca y debo gritar"
+      },
+      {
+        "id": 191479,
+        "name": "IHNMAIMS.exe"
+      },
+      {
+        "id": 292025,
+        "name": "I Have No Mouth, and I Must Scream 20th Anniversary Edition"
+      }
+    ],
+    "first_release_date": 815097600,
+    "name": "I Have No Mouth, and I Must Scream"
+  },
+  {
+    "id": 7587,
+    "alternative_names": [
+      {
+        "id": 69428,
+        "name": "Crimson Land"
+      },
+      {
+        "id": 234067,
+        "name": "Crimsonland.exe"
+      }
+    ],
+    "first_release_date": 1402444800,
+    "name": "Crimsonland"
+  },
+  {
+    "id": 7590,
+    "alternative_names": [
+      {
+        "id": 196687,
+        "name": "EscapeGoat.exe"
+      }
+    ],
+    "first_release_date": 1320192000,
+    "name": "Escape Goat"
+  },
+  {
+    "id": 7601,
+    "alternative_names": [
+      {
+        "id": 185568,
+        "name": "PlagueIncEvolved.exe"
+      }
+    ],
+    "first_release_date": 1442534400,
+    "name": "Plague Inc: Evolved"
+  },
+  {
+    "id": 7603,
+    "alternative_names": [
+      {
+        "id": 52647,
+        "name": "Hellblade"
+      },
+      {
+        "id": 52648,
+        "name": "Hell Blade"
+      },
+      {
+        "id": 209681,
+        "name": "HellbladeGame.exe"
+      }
+    ],
+    "first_release_date": 1502064000,
+    "name": "Hellblade: Senua's Sacrifice"
+  },
+  {
+    "id": 7605,
+    "alternative_names": [
+      {
+        "id": 173811,
+        "name": "Stalker: Call of Prypiat"
+      },
+      {
+        "id": 21627,
+        "name": "S.T.A.L.K.E.R.: Зов Припяти"
+      },
+      {
+        "id": 115997,
+        "name": "Stalker: Call of Pripyat"
+      },
+      {
+        "id": 177105,
+        "name": "SCOP"
+      },
+      {
+        "id": 177106,
+        "name": "StCoP"
+      },
+      {
+        "id": 177107,
+        "name": "STALKER CoP"
+      },
+      {
+        "id": 177108,
+        "name": "COP"
+      }
+    ],
+    "first_release_date": 1254441600,
+    "name": "S.T.A.L.K.E.R.: Call of Pripyat"
+  },
+  {
+    "id": 7621,
+    "first_release_date": 1495756800,
+    "name": "RiME"
+  },
+  {
+    "id": 7635,
+    "alternative_names": [
+      {
+        "id": 228806,
+        "name": "Primordia.exe"
+      }
+    ],
+    "first_release_date": 1354665600,
+    "name": "Primordia"
+  },
+  {
+    "id": 7641,
+    "alternative_names": [
+      {
+        "id": 210405,
+        "name": "Teslagrad.exe"
+      }
+    ],
+    "first_release_date": 1386892800,
+    "name": "Teslagrad"
+  },
+  {
+    "id": 7675,
+    "alternative_names": [
+      {
+        "id": 233849,
+        "name": "HardWest.exe"
+      }
+    ],
+    "first_release_date": 1446595200,
+    "name": "Hard West"
+  },
+  {
+    "id": 7684,
+    "alternative_names": [
+      {
+        "id": 263069,
+        "name": "GoaT.exe"
+      }
+    ],
+    "first_release_date": 1520899200,
+    "name": "Ghost of a Tale"
+  },
+  {
+    "id": 7707,
+    "alternative_names": [
+      {
+        "id": 119742,
+        "name": "SRIV: RE"
+      },
+      {
+        "id": 119743,
+        "name": "SR4: RE"
+      },
+      {
+        "id": 119744,
+        "name": "SRIV: Re-Elected"
+      },
+      {
+        "id": 119745,
+        "name": "SR4: Re-Elected"
+      }
+    ],
+    "first_release_date": 1421712000,
+    "name": "Saints Row IV: Re-Elected"
+  },
+  {
+    "id": 7709,
+    "alternative_names": [
+      {
+        "id": 107209,
+        "name": "Salt and Sanctuary (ソルト アンド サンクチュアリ)"
+      },
+      {
+        "id": 209037,
+        "name": "salt.exe"
+      }
+    ],
+    "first_release_date": 1458000000,
+    "name": "Salt and Sanctuary"
+  },
+  {
+    "id": 7725,
+    "alternative_names": [
+      {
+        "id": 98902,
+        "name": "BioHazard: Revelations 2"
+      },
+      {
+        "id": 98903,
+        "name": "Resident Evil: Revelations 2 (Episode One)"
+      },
+      {
+        "id": 249222,
+        "name": "rerev2.exe"
+      }
+    ],
+    "first_release_date": 1424736000,
+    "name": "Resident Evil: Revelations 2"
+  },
+  {
+    "id": 7762,
+    "alternative_names": [
+      {
+        "id": 85278,
+        "name": "Phantasm"
+      }
+    ],
+    "first_release_date": 673056000,
+    "name": "Avenging Spirit"
+  },
+  {
+    "id": 7767,
+    "alternative_names": [
+      {
+        "id": 198273,
+        "name": "MiniMetro.exe"
+      }
+    ],
+    "first_release_date": 1445472000,
+    "name": "Mini Metro"
+  },
+  {
+    "id": 7818,
+    "first_release_date": 1491868800,
+    "name": "Skyforge"
+  },
+  {
+    "id": 7857,
+    "alternative_names": [
+      {
+        "id": 201742,
+        "name": "Hatred-Win64-Shipping.exe"
+      }
+    ],
+    "first_release_date": 1433116800,
+    "name": "Hatred"
+  },
+  {
+    "id": 7878,
+    "alternative_names": [
+      {
+        "id": 195195,
+        "name": "Unturned_BE.exe"
+      }
+    ],
+    "first_release_date": 1499385600,
+    "name": "Unturned"
+  },
+  {
+    "id": 7886,
+    "alternative_names": [
+      {
+        "id": 197069,
+        "name": "Necrodancer.exe"
+      }
+    ],
+    "first_release_date": 1429747200,
+    "name": "Crypt of the NecroDancer"
+  },
+  {
+    "id": 7891,
+    "alternative_names": [
+      {
+        "id": 192472,
+        "name": "Hammerwatch.exe"
+      }
+    ],
+    "first_release_date": 1376265600,
+    "name": "Hammerwatch"
+  },
+  {
+    "id": 7936,
+    "alternative_names": [
+      {
+        "id": 2647,
+        "name": "La Mulana"
+      },
+      {
+        "id": 2648,
+        "name": "Lamulana"
+      },
+      {
+        "id": 2646,
+        "name": "La-Mulana"
+      },
+      {
+        "id": 2649,
+        "name": "La-Mulana Wii"
+      },
+      {
+        "id": 262830,
+        "name": "LamulanaWin.exe"
+      }
+    ],
+    "first_release_date": 1342137600,
+    "name": "La-Mulana"
+  },
+  {
+    "id": 7937,
+    "alternative_names": [
+      {
+        "id": 250863,
+        "name": "LaMulana2.exe"
+      },
+      {
+        "id": 290539,
+        "name": "La Mulana 2"
+      },
+      {
+        "id": 290538,
+        "name": "Lamulana 2"
+      }
+    ],
+    "first_release_date": 1532908800,
+    "name": "La-Mulana 2"
+  },
+  {
+    "id": 7964,
+    "alternative_names": [
+      {
+        "id": 244209,
+        "name": "dew.exe"
+      }
+    ],
+    "first_release_date": 1374537600,
+    "name": "Ittle Dew"
+  },
+  {
+    "id": 7965,
+    "alternative_names": [
+      {
+        "id": 159352,
+        "name": "死山"
+      },
+      {
+        "id": 159351,
+        "name": "Холат - перевал Дятлова"
+      },
+      {
+        "id": 233403,
+        "name": "Kholat.exe"
+      }
+    ],
+    "first_release_date": 1433808000,
+    "name": "Kholat"
+  },
+  {
+    "id": 8138,
+    "alternative_names": [
+      {
+        "id": 268711,
+        "name": "nightmare.exe"
+      }
+    ],
+    "first_release_date": 1411689600,
+    "name": "Neverending Nightmares"
+  },
+  {
+    "id": 8173,
+    "alternative_names": [
+      {
+        "id": 48882,
+        "name": "play of the game"
+      },
+      {
+        "id": 8936,
+        "name": "鬥陣特攻"
+      },
+      {
+        "id": 8935,
+        "name": "守望先锋"
+      },
+      {
+        "id": 53532,
+        "name": "옵치"
+      },
+      {
+        "id": 130785,
+        "name": "Overwatch 1"
+      },
+      {
+        "id": 130786,
+        "name": "OW"
+      },
+      {
+        "id": 130787,
+        "name": "OW1"
+      },
+      {
+        "id": 161501,
+        "name": "Prometheus "
+      },
+      {
+        "id": 291379,
+        "name": "Overwatch: Origins Edition"
+      }
+    ],
+    "first_release_date": 1464048000,
+    "name": "Overwatch"
+  },
+  {
+    "id": 8214,
+    "alternative_names": [
+      {
+        "id": 128169,
+        "name": "Cave Story Plus"
+      },
+      {
+        "id": 223605,
+        "name": "CaveStory+.exe"
+      }
+    ],
+    "first_release_date": 1321920000,
+    "name": "Cave Story+"
+  },
+  {
+    "id": 8250,
+    "alternative_names": [
+      {
+        "id": 213620,
+        "name": "QFI.exe"
+      }
+    ],
+    "first_release_date": 1404950400,
+    "name": "Quest for Infamy"
+  },
+  {
+    "id": 8254,
+    "alternative_names": [
+      {
+        "id": 56499,
+        "name": "Resident Evil HD Remaster"
+      },
+      {
+        "id": 56500,
+        "name": "Biohazard: HD Remaster"
+      },
+      {
+        "id": 56502,
+        "name": "baiohazaado"
+      },
+      {
+        "id": 56503,
+        "name": "biohazard"
+      },
+      {
+        "id": 56507,
+        "name": "REmake"
+      },
+      {
+        "id": 190641,
+        "name": "bhd.exe"
+      }
+    ],
+    "first_release_date": 1417046400,
+    "name": "Resident Evil"
+  },
+  {
+    "id": 8255,
+    "alternative_names": [
+      {
+        "id": 192436,
+        "name": "trine3_launcher.exe"
+      }
+    ],
+    "first_release_date": 1440028800,
+    "name": "Trine 3: The Artifacts of Power"
+  },
+  {
+    "id": 8256,
+    "alternative_names": [
+      {
+        "id": 250476,
+        "name": "NERO.exe"
+      },
+      {
+        "id": 290168,
+        "name": "NERO"
+      }
+    ],
+    "first_release_date": 1431648000,
+    "name": "N.E.R.O.: Nothing Ever Remains Obscure"
+  },
+  {
+    "id": 8288,
+    "alternative_names": [
+      {
+        "id": 25368,
+        "name": "Banner Saga 2"
+      }
+    ],
+    "first_release_date": 1461024000,
+    "name": "The Banner Saga 2"
+  },
+  {
+    "id": 8335,
+    "alternative_names": [
+      {
+        "id": 3623,
+        "name": "The Dark Eye: Blackguards 2"
+      },
+      {
+        "id": 135579,
+        "name": "Das Schwarze Auge: Blackguards 2"
+      }
+    ],
+    "first_release_date": 1421712000,
+    "name": "Blackguards 2"
+  },
+  {
+    "id": 8339,
+    "alternative_names": [
+      {
+        "id": 293317,
+        "name": "Minecraft: Story Mode - A Telltale Games Series"
+      }
+    ],
+    "first_release_date": 1444694400,
+    "name": "Minecraft: Story Mode"
+  },
+  {
+    "id": 8347,
+    "alternative_names": [
+      {
+        "id": 50201,
+        "name": "더 롱 다크"
+      },
+      {
+        "id": 206245,
+        "name": "tld.exe"
+      }
+    ],
+    "first_release_date": 1501545600,
+    "name": "The Long Dark"
+  },
+  {
+    "id": 8356,
+    "alternative_names": [
+      {
+        "id": 52797,
+        "name": "Astebreed: Definitive Edition"
+      },
+      {
+        "id": 52799,
+        "name": "Asutaburīdo"
+      },
+      {
+        "id": 238686,
+        "name": "Astebreed.exe"
+      }
+    ],
+    "first_release_date": 1388448000,
+    "name": "Astebreed"
+  },
+  {
+    "id": 8366,
+    "alternative_names": [
+      {
+        "id": 27423,
+        "name": "Sniper Elite III Afrika"
+      },
+      {
+        "id": 10404,
+        "name": "Sniper Elite 3"
+      }
+    ],
+    "first_release_date": 1403568000,
+    "name": "Sniper Elite III"
+  },
+  {
+    "id": 8409,
+    "first_release_date": 1406592000,
+    "name": "Pure Pool"
+  },
+  {
+    "id": 8424,
+    "alternative_names": [
+      {
+        "id": 193532,
+        "name": "Ultimate General Gettysburg.exe"
+      }
+    ],
+    "first_release_date": 1413417600,
+    "name": "Ultimate General: Gettysburg"
+  },
+  {
+    "id": 8430,
+    "alternative_names": [
+      {
+        "id": 106534,
+        "name": "Shantae: Kaizoku no Noroi"
+      },
+      {
+        "id": 193096,
+        "name": "ShantaeCurse.exe"
+      }
+    ],
+    "first_release_date": 1413936000,
+    "name": "Shantae and the Pirate's Curse"
+  },
+  {
+    "id": 8440,
+    "alternative_names": [
+      {
+        "id": 103721,
+        "name": "ザ ブリッジ"
+      },
+      {
+        "id": 103692,
+        "name": "ザ・ブリッジ (The Bridge)"
+      },
+      {
+        "id": 191234,
+        "name": "The Bridge.exe"
+      }
+    ],
+    "first_release_date": 1361491200,
+    "name": "The Bridge"
+  },
+  {
+    "id": 8465,
+    "alternative_names": [
+      {
+        "id": 86305,
+        "name": "Völgarr the Viking"
+      },
+      {
+        "id": 269629,
+        "name": "Volgarr.exe"
+      }
+    ],
+    "first_release_date": 1379030400,
+    "name": "Volgarr the Viking"
+  },
+  {
+    "id": 8467,
+    "first_release_date": 1409616000,
+    "name": "Velocity 2X"
+  },
+  {
+    "id": 8472,
+    "alternative_names": [
+      {
+        "id": 218840,
+        "name": "GasGuzzlers.exe"
+      }
+    ],
+    "first_release_date": 1381190400,
+    "name": "Gas Guzzlers Extreme"
+  },
+  {
+    "id": 8478,
+    "first_release_date": 1398988800,
+    "name": "Sir, You Are Being Hunted"
+  },
+  {
+    "id": 8480,
+    "alternative_names": [
+      {
+        "id": 273315,
+        "name": "WarhammerQuest.exe"
+      }
+    ],
+    "first_release_date": 1369872000,
+    "name": "Warhammer Quest"
+  },
+  {
+    "id": 8506,
+    "alternative_names": [
+      {
+        "id": 110116,
+        "name": "XEODRIFTER(ゼオドリフター)"
+      },
+      {
+        "id": 189759,
+        "name": "XeodrifterSteam.exe"
+      }
+    ],
+    "first_release_date": 1418256000,
+    "name": "Xeodrifter"
+  },
+  {
+    "id": 8596,
+    "first_release_date": 1415577600,
+    "name": "Elliot Quest"
+  },
+  {
+    "id": 8599,
+    "alternative_names": [
+      {
+        "id": 47930,
+        "name": "Gunman Story"
+      },
+      {
+        "id": 225380,
+        "name": "gunmanclive.exe"
+      }
+    ],
+    "first_release_date": 1333324800,
+    "name": "Gunman Clive"
+  },
+  {
+    "id": 8605,
+    "alternative_names": [
+      {
+        "id": 28924,
+        "name": "Gunman Story 2"
+      },
+      {
+        "id": 208605,
+        "name": "gc2.exe"
+      }
+    ],
+    "first_release_date": 1422489600,
+    "name": "Gunman Clive 2"
+  },
+  {
+    "id": 8617,
+    "alternative_names": [
+      {
+        "id": 37699,
+        "name": "Aban Hawkins & the 1001 Spikes"
+      },
+      {
+        "id": 256998,
+        "name": "1001 Spikes.exe"
+      }
+    ],
+    "first_release_date": 1401753600,
+    "name": "1001 Spikes"
+  },
+  {
+    "id": 8618,
+    "alternative_names": [
+      {
+        "id": 172302,
+        "name": "Geki Yaba Runner"
+      }
+    ],
+    "first_release_date": 1329955200,
+    "name": "2 Fast 4 Gnomz"
+  },
+  {
+    "id": 8635,
+    "alternative_names": [
+      {
+        "id": 214931,
+        "name": "AloneWithYou.exe"
+      }
+    ],
+    "first_release_date": 1471910400,
+    "name": "Alone With You"
+  },
+  {
+    "id": 8652,
+    "alternative_names": [
+      {
+        "id": 232224,
+        "name": "AxiomVerge.exe"
+      }
+    ],
+    "first_release_date": 1427760000,
+    "name": "Axiom Verge"
+  },
+  {
+    "id": 8682,
+    "alternative_names": [
+      {
+        "id": 167166,
+        "name": "Грим Фанданго Подобрено"
+      },
+      {
+        "id": 270386,
+        "name": "GrimFandango.exe"
+      }
+    ],
+    "first_release_date": 1422230400,
+    "name": "Grim Fandango Remastered"
+  },
+  {
+    "id": 8702,
+    "first_release_date": 1426118400,
+    "name": "Dreaming Sarah"
+  },
+  {
+    "id": 8716,
+    "alternative_names": [
+      {
+        "id": 37897,
+        "name": "Postal Redux"
+      }
+    ],
+    "first_release_date": 1463702400,
+    "name": "Postal: Redux"
+  },
+  {
+    "id": 8729,
+    "alternative_names": [
+      {
+        "id": 104096,
+        "name": "Vampyr ヴァンパイア"
+      },
+      {
+        "id": 252021,
+        "name": "AVGame-Win64-Shipping.exe"
+      }
+    ],
+    "first_release_date": 1528156800,
+    "name": "Vampyr"
+  },
+  {
+    "id": 8739,
+    "alternative_names": [
+      {
+        "id": 119472,
+        "name": "Monaco"
+      },
+      {
+        "id": 212010,
+        "name": "Monaco.exe"
+      }
+    ],
+    "first_release_date": 1366761600,
+    "name": "Monaco: What's Yours Is Mine"
+  },
+  {
+    "id": 8750,
+    "alternative_names": [
+      {
+        "id": 34208,
+        "name": "N Plus Plus"
+      },
+      {
+        "id": 34204,
+        "name": "CSI:科学捜査班～Slot～"
+      },
+      {
+        "id": 34205,
+        "name": "CSI:犯罪现场调查-老虎机"
+      },
+      {
+        "id": 34203,
+        "name": "NPLUSPLUS"
+      },
+      {
+        "id": 34207,
+        "name": "CSI: Слоты"
+      },
+      {
+        "id": 191190,
+        "name": "N++.exe"
+      }
+    ],
+    "first_release_date": 1438041600,
+    "name": "N++"
+  },
+  {
+    "id": 8751,
+    "alternative_names": [
+      {
+        "id": 208447,
+        "name": "Stranded_Deep_x86.exe"
+      }
+    ],
+    "first_release_date": 1421971200,
+    "name": "Stranded Deep"
+  },
+  {
+    "id": 8822,
+    "first_release_date": 1383177600,
+    "name": "Mitsurugi Kamui Hikae"
+  },
+  {
+    "id": 8862,
+    "first_release_date": 1404172800,
+    "name": "Guacamelee! Super Turbo Championship Edition"
+  },
+  {
+    "id": 8864,
+    "alternative_names": [
+      {
+        "id": 248222,
+        "name": "Dragonfall.exe"
+      }
+    ],
+    "first_release_date": 1410998400,
+    "name": "Shadowrun: Dragonfall - Director's Cut"
+  },
+  {
+    "id": 8866,
+    "alternative_names": [
+      {
+        "id": 111471,
+        "name": "Shadowgate (2014)"
+      },
+      {
+        "id": 195699,
+        "name": "Shadowgate.exe"
+      }
+    ],
+    "first_release_date": 1408579200,
+    "name": "Shadowgate"
+  },
+  {
+    "id": 8876,
+    "alternative_names": [
+      {
+        "id": 129553,
+        "name": "MIND: Path to Thalamus"
+      }
+    ],
+    "first_release_date": 1407196800,
+    "name": "Mind: Path to Thalamus"
+  },
+  {
+    "id": 8902,
+    "alternative_names": [
+      {
+        "id": 10276,
+        "name": "Choji Jigen Game Neptune Re;Birth1"
+      },
+      {
+        "id": 206337,
+        "name": "NeptuniaReBirth1.exe"
+      }
+    ],
+    "first_release_date": 1383177600,
+    "name": "Hyperdimension Neptunia Re;Birth1"
+  },
+  {
+    "id": 8921,
+    "alternative_names": [
+      {
+        "id": 214973,
+        "name": "WNight.exe"
+      }
+    ],
+    "first_release_date": 1425340800,
+    "name": "White Night"
+  },
+  {
+    "id": 8954,
+    "first_release_date": 1100649600,
+    "name": "Jets'n'Guns"
+  },
+  {
+    "id": 8957,
+    "alternative_names": [
+      {
+        "id": 271091,
+        "name": "Millie.exe"
+      }
+    ],
+    "first_release_date": 1396483200,
+    "name": "Millie"
+  },
+  {
+    "id": 8959,
+    "alternative_names": [
+      {
+        "id": 189525,
+        "name": "MutantMuddsDeluxeSteam.exe"
+      }
+    ],
+    "first_release_date": 1371081600,
+    "name": "Mutant Mudds Deluxe"
+  },
+  {
+    "id": 8965,
+    "alternative_names": [
+      {
+        "id": 167478,
+        "name": "DD"
+      },
+      {
+        "id": 167479,
+        "name": "DD1"
+      },
+      {
+        "id": 208079,
+        "name": "Darkest.exe"
+      }
+    ],
+    "first_release_date": 1453161600,
+    "name": "Darkest Dungeon"
+  },
+  {
+    "id": 8992,
+    "alternative_names": [
+      {
+        "id": 185541,
+        "name": "MouseCraft.exe"
+      }
+    ],
+    "first_release_date": 1404777600,
+    "name": "MouseCraft"
+  },
+  {
+    "id": 9026,
+    "alternative_names": [
+      {
+        "id": 277302,
+        "name": "game.exe"
+      }
+    ],
+    "first_release_date": 1374969600,
+    "name": "Solar Flux"
+  },
+  {
+    "id": 9046,
+    "alternative_names": [
+      {
+        "id": 219968,
+        "name": "chromasquad.exe"
+      }
+    ],
+    "first_release_date": 1430352000,
+    "name": "Chroma Squad"
+  },
+  {
+    "id": 9047,
+    "alternative_names": [
+      {
+        "id": 107162,
+        "name": "ビシージ: コンソール版 (Game Preview)"
+      },
+      {
+        "id": 107166,
+        "name": "ビシージ: コンソール版 "
+      },
+      {
+        "id": 200028,
+        "name": "Besiege.exe"
+      }
+    ],
+    "first_release_date": 1581984000,
+    "name": "Besiege"
+  },
+  {
+    "id": 9048,
+    "alternative_names": [
+      {
+        "id": 208087,
+        "name": "JourneyDown1.exe"
+      }
+    ],
+    "first_release_date": 1337299200,
+    "name": "The Journey Down: Chapter One"
+  },
+  {
+    "id": 9053,
+    "alternative_names": [
+      {
+        "id": 233044,
+        "name": "80 Days.exe"
+      }
+    ],
+    "first_release_date": 1406764800,
+    "name": "80 Days"
+  },
+  {
+    "id": 9061,
+    "alternative_names": [
+      {
+        "id": 154582,
+        "name": "茶杯头"
+      },
+      {
+        "id": 202128,
+        "name": "Cuphead.exe"
+      }
+    ],
+    "first_release_date": 1506643200,
+    "name": "Cuphead"
+  },
+  {
+    "id": 9072,
+    "first_release_date": 1400544000,
+    "name": "The Last Door"
+  },
+  {
+    "id": 9112,
+    "alternative_names": [
+      {
+        "id": 149290,
+        "name": "Книгата на Ненаписаните Приказки 2"
+      },
+      {
+        "id": 266469,
+        "name": "BouT2.exe"
+      }
+    ],
+    "first_release_date": 1424217600,
+    "name": "The Book of Unwritten Tales 2"
+  },
+  {
+    "id": 9136,
+    "alternative_names": [
+      {
+        "id": 124315,
+        "name": "Горогоа"
+      },
+      {
+        "id": 273076,
+        "name": "Gorogoa.exe"
+      }
+    ],
+    "first_release_date": 1513123200,
+    "name": "Gorogoa"
+  },
+  {
+    "id": 9139,
+    "alternative_names": [
+      {
+        "id": 126741,
+        "name": "ibb & obb"
+      },
+      {
+        "id": 227700,
+        "name": "ibbobb.bat"
+      }
+    ],
+    "first_release_date": 1375747200,
+    "name": "Ibb & Obb"
+  },
+  {
+    "id": 9140,
+    "alternative_names": [
+      {
+        "id": 173784,
+        "name": "Guilty Gear: The Missing Link"
+      },
+      {
+        "id": 173786,
+        "name": "ギルティ・ギア ザ・ミッシング・リンク "
+      },
+      {
+        "id": 173785,
+        "name": "ギルティ・ギア"
+      },
+      {
+        "id": 192477,
+        "name": "GuiltyGear.exe"
+      }
+    ],
+    "first_release_date": 895104000,
+    "name": "Guilty Gear"
+  },
+  {
+    "id": 9146,
+    "alternative_names": [
+      {
+        "id": 33691,
+        "name": "GUILTY GEAR XX ΛCORE PLUS R"
+      },
+      {
+        "id": 56680,
+        "name": "GGXXACPR"
+      },
+      {
+        "id": 221777,
+        "name": "GGXXACPR_Win.exe"
+      }
+    ],
+    "first_release_date": 1348099200,
+    "name": "Guilty Gear XX Accent Core Plus R"
+  },
+  {
+    "id": 9174,
+    "alternative_names": [
+      {
+        "id": 147763,
+        "name": "Little Nightmares -リトルナイトメア-"
+      },
+      {
+        "id": 190310,
+        "name": "LittleNightmares.exe"
+      },
+      {
+        "id": 290150,
+        "name": "Hunger"
+      }
+    ],
+    "first_release_date": 1493337600,
+    "name": "Little Nightmares"
+  },
+  {
+    "id": 9176,
+    "alternative_names": [
+      {
+        "id": 8915,
+        "name": "CoC"
+      },
+      {
+        "id": 290068,
+        "name": "Call of Cthulhu: The Official Video Game"
+      }
+    ],
+    "first_release_date": 1540771200,
+    "name": "Call of Cthulhu"
+  },
+  {
+    "id": 9215,
+    "first_release_date": 1425427200,
+    "name": "Shiftlings"
+  },
+  {
+    "id": 9223,
+    "first_release_date": 1399334400,
+    "name": "Outlast: Whistleblower"
+  },
+  {
+    "id": 9254,
+    "alternative_names": [
+      {
+        "id": 86400,
+        "name": "서브노티카"
+      },
+      {
+        "id": 181197,
+        "name": "Subnautica.exe"
+      }
+    ],
+    "first_release_date": 1516665600,
+    "name": "Subnautica"
+  },
+  {
+    "id": 9327,
+    "alternative_names": [
+      {
+        "id": 38491,
+        "name": "The Second Thought"
+      },
+      {
+        "id": 141403,
+        "name": "Please, Don't Touch Anything: Classic"
+      },
+      {
+        "id": 192915,
+        "name": "DontTouchAnything.exe"
+      }
+    ],
+    "first_release_date": 1427328000,
+    "name": "Please, Don't Touch Anything"
+  },
+  {
+    "id": 9369,
+    "alternative_names": [
+      {
+        "id": 231290,
+        "name": "WhisperingWillows.exe"
+      }
+    ],
+    "first_release_date": 1400284800,
+    "name": "Whispering Willows"
+  },
+  {
+    "id": 9374,
+    "alternative_names": [
+      {
+        "id": 197653,
+        "name": "PixTheCat.exe"
+      }
+    ],
+    "first_release_date": 1412640000,
+    "name": "Pix the Cat"
+  },
+  {
+    "id": 9383,
+    "alternative_names": [
+      {
+        "id": 106780,
+        "name": "Megabyte Punch メガバイトパンチ"
+      },
+      {
+        "id": 229199,
+        "name": "MegabytePunch.exe"
+      }
+    ],
+    "first_release_date": 1381795200,
+    "name": "Megabyte Punch"
+  },
+  {
+    "id": 9410,
+    "alternative_names": [
+      {
+        "id": 190171,
+        "name": "legion.exe"
+      }
+    ],
+    "first_release_date": 1432771200,
+    "name": "Red Crow Mysteries: Legion"
+  },
+  {
+    "id": 9418,
+    "alternative_names": [
+      {
+        "id": 262482,
+        "name": "BackToBed.exe"
+      }
+    ],
+    "first_release_date": 1407283200,
+    "name": "Back to Bed"
+  },
+  {
+    "id": 9457,
+    "first_release_date": 1423180800,
+    "name": "Terra Lander"
+  },
+  {
+    "id": 9465,
+    "alternative_names": [
+      {
+        "id": 210977,
+        "name": "SSZ.exe"
+      },
+      {
+        "id": 290608,
+        "name": "Strike Suit Zero Director's Cut"
+      }
+    ],
+    "first_release_date": 1396915200,
+    "name": "Strike Suit Zero: Director's Cut"
+  },
+  {
+    "id": 9484,
+    "alternative_names": [
+      {
+        "id": 242047,
+        "name": "nw.exe"
+      },
+      {
+        "id": 291506,
+        "name": "The Next Penelope: Race to Odysseus"
+      }
+    ],
+    "first_release_date": 1432857600,
+    "name": "The Next Penelope"
+  },
+  {
+    "id": 9497,
+    "alternative_names": [
+      {
+        "id": 210022,
+        "name": "140.exe"
+      }
+    ],
+    "first_release_date": 1381881600,
+    "name": "140"
+  },
+  {
+    "id": 9527,
+    "alternative_names": [
+      {
+        "id": 188574,
+        "name": "SpeedRunners: Online PVP"
+      },
+      {
+        "id": 185686,
+        "name": "SpeedRunners.exe"
+      }
+    ],
+    "first_release_date": 1461024000,
+    "name": "SpeedRunners"
+  },
+  {
+    "id": 9531,
+    "alternative_names": [
+      {
+        "id": 244329,
+        "name": "GemsOfWar.exe"
+      }
+    ],
+    "first_release_date": 1416355200,
+    "name": "Gems of War"
+  },
+  {
+    "id": 9535,
+    "alternative_names": [
+      {
+        "id": 125552,
+        "name": "BIT.TRIP BEAT"
+      },
+      {
+        "id": 244766,
+        "name": "beat.exe"
+      }
+    ],
+    "first_release_date": 1237161600,
+    "name": "Bit.Trip Beat"
+  },
+  {
+    "id": 9546,
+    "alternative_names": [
+      {
+        "id": 100633,
+        "name": "ゾンビナイトゥテラー"
+      },
+      {
+        "id": 217762,
+        "name": "znt.exe"
+      }
+    ],
+    "first_release_date": 1468972800,
+    "name": "Zombie Night Terror"
+  },
+  {
+    "id": 9547,
+    "alternative_names": [
+      {
+        "id": 57191,
+        "name": ">The Fall"
+      },
+      {
+        "id": 277377,
+        "name": "TheFall.exe"
+      }
+    ],
+    "first_release_date": 1401408000,
+    "name": "The Fall"
+  },
+  {
+    "id": 9548,
+    "alternative_names": [
+      {
+        "id": 205222,
+        "name": "SuperToyCars.exe"
+      }
+    ],
+    "first_release_date": 1393459200,
+    "name": "Super Toy Cars"
+  },
+  {
+    "id": 9620,
+    "alternative_names": [
+      {
+        "id": 19935,
+        "name": "Hyperdimension Neptunia Victory II"
+      },
+      {
+        "id": 4721,
+        "name": "Hyperdimension Neptunia VII"
+      },
+      {
+        "id": 292463,
+        "name": "Shin Jigen Game Neptune VII"
+      }
+    ],
+    "first_release_date": 1429747200,
+    "name": "Megadimension Neptunia VII"
+  },
+  {
+    "id": 9643,
+    "alternative_names": [
+      {
+        "id": 100577,
+        "name": "リターンオブザオーブラーディンエヌ"
+      },
+      {
+        "id": 191732,
+        "name": "ObraDinn.exe"
+      }
+    ],
+    "first_release_date": 1539820800,
+    "name": "Return of the Obra Dinn"
+  },
+  {
+    "id": 9661,
+    "alternative_names": [
+      {
+        "id": 122696,
+        "name": "STASIS"
+      },
+      {
+        "id": 268538,
+        "name": "STASIS.exe"
+      }
+    ],
+    "first_release_date": 1440979200,
+    "name": "Stasis"
+  },
+  {
+    "id": 9677,
+    "alternative_names": [
+      {
+        "id": 242162,
+        "name": "Tallowmere.exe"
+      }
+    ],
+    "first_release_date": 1425340800,
+    "name": "Tallowmere"
+  },
+  {
+    "id": 9683,
+    "alternative_names": [
+      {
+        "id": 4205,
+        "name": "DotE"
+      },
+      {
+        "id": 199300,
+        "name": "DungeonoftheEndless.exe"
+      }
+    ],
+    "first_release_date": 1414368000,
+    "name": "Dungeon of the Endless"
+  },
+  {
+    "id": 9687,
+    "name": "Little Devil Inside"
+  },
+  {
+    "id": 9694,
+    "alternative_names": [
+      {
+        "id": 49746,
+        "name": "Super Dangan Ronpa 2: Sayonara Zetsubou Gakuen"
+      },
+      {
+        "id": 49747,
+        "name": "Super Danganronpa 2: Farewell Despair Academy"
+      },
+      {
+        "id": 7558,
+        "name": "SDR2"
+      },
+      {
+        "id": 168667,
+        "name": "Super Dangan Ronpa 2: Sayonara Zetsubou Gakuen"
+      },
+      {
+        "id": 202131,
+        "name": "Launcher.exe"
+      }
+    ],
+    "first_release_date": 1343260800,
+    "name": "Danganronpa 2: Goodbye Despair"
+  },
+  {
+    "id": 9698,
+    "alternative_names": [
+      {
+        "id": 269258,
+        "name": "They Breathe.exe"
+      }
+    ],
+    "first_release_date": 1323129600,
+    "name": "They Breathe"
+  },
+  {
+    "id": 9706,
+    "alternative_names": [
+      {
+        "id": 10115,
+        "name": "Blood and Bacon"
+      },
+      {
+        "id": 246698,
+        "name": "Bleed.exe"
+      }
+    ],
+    "first_release_date": 1355270400,
+    "name": "Bleed"
+  },
+  {
+    "id": 9722,
+    "first_release_date": 1338595200,
+    "name": "Long Live the Queen"
+  },
+  {
+    "id": 9723,
+    "alternative_names": [
+      {
+        "id": 273382,
+        "name": "Cinders.exe"
+      }
+    ],
+    "first_release_date": 1342742400,
+    "name": "Cinders"
+  },
+  {
+    "id": 9727,
+    "alternative_names": [
+      {
+        "id": 128038,
+        "name": "SOMA"
+      },
+      {
+        "id": 259445,
+        "name": "Soma.exe"
+      }
+    ],
+    "first_release_date": 1442793600,
+    "name": "Soma"
+  },
+  {
+    "id": 9728,
+    "alternative_names": [
+      {
+        "id": 247473,
+        "name": "GlyphClient.exe"
+      }
+    ],
+    "first_release_date": 1436400000,
+    "name": "Trove"
+  },
+  {
+    "id": 9730,
+    "alternative_names": [
+      {
+        "id": 93972,
+        "name": "파이어워치"
+      },
+      {
+        "id": 108635,
+        "name": "ファイアー ウォッチ "
+      },
+      {
+        "id": 108553,
+        "name": "Firewatch（ファイアー・ウォッチ）"
+      },
+      {
+        "id": 251259,
+        "name": "firewatch.exe"
+      }
+    ],
+    "first_release_date": 1454976000,
+    "name": "Firewatch"
+  },
+  {
+    "id": 9732,
+    "alternative_names": [
+      {
+        "id": 106558,
+        "name": "더 플레임 인 더 플러드"
+      },
+      {
+        "id": 286317,
+        "name": "RiverGame.exe"
+      }
+    ],
+    "first_release_date": 1456272000,
+    "name": "The Flame in the Flood"
+  },
+  {
+    "id": 9808,
+    "alternative_names": [
+      {
+        "id": 193834,
+        "name": "Vertical Drop Heroes HD.exe"
+      }
+    ],
+    "first_release_date": 1406246400,
+    "name": "Vertical Drop Heroes HD"
+  },
+  {
+    "id": 9843,
+    "alternative_names": [
+      {
+        "id": 205092,
+        "name": "Summer In Fairbrook.exe"
+      }
+    ],
+    "first_release_date": 1264636800,
+    "name": "Flower Shop: Summer In Fairbrook"
+  },
+  {
+    "id": 9845,
+    "alternative_names": [
+      {
+        "id": 111754,
+        "name": "ショパンの復活　悪魔の逆襲！"
+      },
+      {
+        "id": 271087,
+        "name": "Frederic2.exe"
+      }
+    ],
+    "first_release_date": 1399507200,
+    "name": "Frederic: Evil Strikes Back"
+  },
+  {
+    "id": 9846,
+    "alternative_names": [
+      {
+        "id": 112467,
+        "name": "ショパンの復活　音楽を救え！"
+      },
+      {
+        "id": 248836,
+        "name": "Frederic.exe"
+      }
+    ],
+    "first_release_date": 1326758400,
+    "name": "Frederic: Resurrection of Music"
+  },
+  {
+    "id": 9864,
+    "first_release_date": 1375142400,
+    "name": "Cloudberry Kingdom"
+  },
+  {
+    "id": 9868,
+    "alternative_names": [
+      {
+        "id": 11966,
+        "name": "Choji Jigen Game Neptune Re;Birth2: Sisters Generation"
+      },
+      {
+        "id": 223026,
+        "name": "NeptuniaReBirth2.exe"
+      }
+    ],
+    "first_release_date": 1395273600,
+    "name": "Hyperdimension Neptunia Re;Birth2: Sisters Generation"
+  },
+  {
+    "id": 9869,
+    "alternative_names": [
+      {
+        "id": 49685,
+        "name": "Kami Jijigen Game Neptune Re;Birth3: V Century"
+      },
+      {
+        "id": 236266,
+        "name": "NeptuniaReBirth3.exe"
+      }
+    ],
+    "first_release_date": 1418860800,
+    "name": "Hyperdimension Neptunia Re;Birth3: V Generation"
+  },
+  {
+    "id": 9871,
+    "alternative_names": [
+      {
+        "id": 10396,
+        "name": "Chou Megami Shinkou Noire Gekishin Black Heart"
+      }
+    ],
+    "first_release_date": 1424736000,
+    "name": "Hyperdevotion Noire: Goddess Black Heart"
+  },
+  {
+    "id": 9879,
+    "alternative_names": [
+      {
+        "id": 21788,
+        "name": "I Zombie"
+      },
+      {
+        "id": 179856,
+        "name": "I, Zombie.exe"
+      }
+    ],
+    "first_release_date": 1372118400,
+    "name": "I, Zombie"
+  },
+  {
+    "id": 9881,
+    "alternative_names": [
+      {
+        "id": 230259,
+        "name": "Circuits.exe"
+      }
+    ],
+    "first_release_date": 1397692800,
+    "name": "Circuits"
+  },
+  {
+    "id": 9885,
+    "alternative_names": [
+      {
+        "id": 248986,
+        "name": "Roommates.exe"
+      }
+    ],
+    "first_release_date": 1392163200,
+    "name": "Roommates"
+  },
+  {
+    "id": 9918,
+    "alternative_names": [
+      {
+        "id": 216977,
+        "name": "LEGOJurassicWorld.exe"
+      }
+    ],
+    "first_release_date": 1433980800,
+    "name": "LEGO Jurassic World"
+  },
+  {
+    "id": 9921,
+    "alternative_names": [
+      {
+        "id": 256456,
+        "name": "Convoy.exe"
+      }
+    ],
+    "first_release_date": 1429574400,
+    "name": "Convoy"
+  },
+  {
+    "id": 9945,
+    "alternative_names": [
+      {
+        "id": 246561,
+        "name": "supercratebox.exe"
+      },
+      {
+        "id": 280787,
+        "name": "Super Crate Box - GameClub"
+      }
+    ],
+    "first_release_date": 1287705600,
+    "name": "Super Crate Box"
+  },
+  {
+    "id": 10030,
+    "alternative_names": [
+      {
+        "id": 18837,
+        "name": "Sky Force 2014"
+      },
+      {
+        "id": 227446,
+        "name": "Sky Force Anniversary.exe"
+      }
+    ],
+    "first_release_date": 1401926400,
+    "name": "Sky Force Anniversary"
+  },
+  {
+    "id": 10031,
+    "alternative_names": [
+      {
+        "id": 11605,
+        "name": "Project Ukulele"
+      },
+      {
+        "id": 249605,
+        "name": "YookaLaylee64.exe"
+      }
+    ],
+    "first_release_date": 1491868800,
+    "name": "Yooka-Laylee"
+  },
+  {
+    "id": 10040,
+    "alternative_names": [
+      {
+        "id": 222277,
+        "name": "BattleGroup2.exe"
+      }
+    ],
+    "first_release_date": 1402617600,
+    "name": "Battle Group 2"
+  },
+  {
+    "id": 10047,
+    "first_release_date": 1384214400,
+    "name": "BioShock Infinite: Burial at Sea - Episode 1"
+  },
+  {
+    "id": 10050,
+    "alternative_names": [
+      {
+        "id": 190150,
+        "name": "amazon.exe"
+      }
+    ],
+    "first_release_date": 1398816000,
+    "name": "Black Rainbow"
+  },
+  {
+    "id": 10100,
+    "alternative_names": [
+      {
+        "id": 36040,
+        "name": "Coffin Dodgers: Race in Peace"
+      },
+      {
+        "id": 244827,
+        "name": "CoffinDodgers.exe"
+      }
+    ],
+    "first_release_date": 1436313600,
+    "name": "Coffin Dodgers"
+  },
+  {
+    "id": 10116,
+    "alternative_names": [
+      {
+        "id": 33424,
+        "name": "Croixleurƒ°"
+      },
+      {
+        "id": 33425,
+        "name": "Croixleur Σ"
+      }
+    ],
+    "first_release_date": 1388361600,
+    "name": "Croixleur Sigma"
+  },
+  {
+    "id": 10137,
+    "alternative_names": [
+      {
+        "id": 241152,
+        "name": "DarkArcana_TheCarnival.exe"
+      }
+    ],
+    "first_release_date": 1349654400,
+    "name": "Dark Arcana: The Carnival"
+  },
+  {
+    "id": 10140,
+    "alternative_names": [
+      {
+        "id": 204783,
+        "name": "PPA2IP.exe"
+      }
+    ],
+    "first_release_date": 1429747200,
+    "name": "Uncanny Valley"
+  },
+  {
+    "id": 10142,
+    "alternative_names": [
+      {
+        "id": 84681,
+        "name": "Home: A Unique Horror Adventure"
+      },
+      {
+        "id": 244989,
+        "name": "home-win-eng.exe"
+      }
+    ],
+    "first_release_date": 1339804800,
+    "name": "Home"
+  },
+  {
+    "id": 10148,
+    "alternative_names": [
+      {
+        "id": 198586,
+        "name": "nitw"
+      },
+      {
+        "id": 108619,
+        "name": "ナイト・イン・ザ・ウッズ "
+      },
+      {
+        "id": 200059,
+        "name": "Night in the Woods.exe"
+      }
+    ],
+    "first_release_date": 1487635200,
+    "name": "Night in the Woods"
+  },
+  {
+    "id": 10184,
+    "alternative_names": [
+      {
+        "id": 69632,
+        "name": "DG2"
+      },
+      {
+        "id": 69633,
+        "name": "Defense Grid 2: Enhanced VR Edition"
+      },
+      {
+        "id": 237843,
+        "name": "DefenseGrid2_Release.exe"
+      }
+    ],
+    "first_release_date": 1411430400,
+    "name": "Defense Grid 2"
+  },
+  {
+    "id": 10225,
+    "alternative_names": [
+      {
+        "id": 121177,
+        "name": "HOOK"
+      },
+      {
+        "id": 241821,
+        "name": "Hook.exe"
+      }
+    ],
+    "first_release_date": 1421798400,
+    "name": "Hook"
+  },
+  {
+    "id": 10232,
+    "first_release_date": 1490832000,
+    "name": "Thimbleweed Park"
+  },
+  {
+    "id": 10233,
+    "alternative_names": [
+      {
+        "id": 103170,
+        "name": "브라울할라"
+      },
+      {
+        "id": 178334,
+        "name": "Brawlhalla.exe"
+      }
+    ],
+    "first_release_date": 1508198400,
+    "name": "Brawlhalla"
+  },
+  {
+    "id": 10239,
+    "alternative_names": [
+      {
+        "id": 30662,
+        "name": "方舟：生存进化"
+      },
+      {
+        "id": 63726,
+        "name": "ARK: Survival Evolved"
+      },
+      {
+        "id": 68431,
+        "name": "ARK: Survival of the Fittest"
+      },
+      {
+        "id": 130119,
+        "name": "方舟：生存進化"
+      },
+      {
+        "id": 200382,
+        "name": "ShooterGame_BE.exe"
+      }
+    ],
+    "first_release_date": 1503792000,
+    "name": "Ark: Survival Evolved"
+  },
+  {
+    "id": 10246,
+    "first_release_date": 1363132800,
+    "name": "Dreamscapes: The Sandman"
+  },
+  {
+    "id": 10255,
+    "alternative_names": [
+      {
+        "id": 206782,
+        "name": "KeroBlaster.exe"
+      }
+    ],
+    "first_release_date": 1399766400,
+    "name": "Kero Blaster"
+  },
+  {
+    "id": 10267,
+    "alternative_names": [
+      {
+        "id": 106500,
+        "name": "真 三国无双７ with 猛将传"
+      }
+    ],
+    "first_release_date": 1385596800,
+    "name": "Dynasty Warriors 8: Xtreme Legends"
+  },
+  {
+    "id": 10279,
+    "first_release_date": 1382400000,
+    "name": "Ethan: Meteor Hunter"
+  },
+  {
+    "id": 10316,
+    "alternative_names": [
+      {
+        "id": 190154,
+        "name": "pharaoh.exe"
+      }
+    ],
+    "first_release_date": 1621468800,
+    "name": "Fate of the Pharaoh"
+  },
+  {
+    "id": 10336,
+    "alternative_names": [
+      {
+        "id": 190178,
+        "name": "frogs.exe"
+      }
+    ],
+    "first_release_date": 1640822400,
+    "name": "Frogs vs. Storks"
+  },
+  {
+    "id": 10373,
+    "alternative_names": [
+      {
+        "id": 68589,
+        "name": "Armed Blue: Gunvolt"
+      },
+      {
+        "id": 126905,
+        "name": "Azure Striker GUNVOLT"
+      },
+      {
+        "id": 278891,
+        "name": "gv_win.exe"
+      }
+    ],
+    "first_release_date": 1408492800,
+    "name": "Azure Striker Gunvolt"
+  },
+  {
+    "id": 10480,
+    "alternative_names": [
+      {
+        "id": 190177,
+        "name": "brawe.exe"
+      }
+    ],
+    "first_release_date": 1295481600,
+    "name": "Kaptain Brawe: A Brawe New World"
+  },
+  {
+    "id": 10481,
+    "alternative_names": [
+      {
+        "id": 102111,
+        "name": "나쁜 놈을 죽이자 (Kill The Bad Guy)"
+      },
+      {
+        "id": 102122,
+        "name": "나쁜 놈을 죽이자"
+      },
+      {
+        "id": 274230,
+        "name": "KillTheBadGuy.exe"
+      }
+    ],
+    "first_release_date": 1401235200,
+    "name": "Kill the Bad Guy"
+  },
+  {
+    "id": 10486,
+    "alternative_names": [
+      {
+        "id": 190163,
+        "name": "ktales.exe"
+      }
+    ],
+    "first_release_date": 1389830400,
+    "name": "Kingdom Tales"
+  },
+  {
+    "id": 10487,
+    "alternative_names": [
+      {
+        "id": 190161,
+        "name": "ktales2.exe"
+      },
+      {
+        "id": 292783,
+        "name": "Kingdom Tales 2: Viking Saga"
+      }
+    ],
+    "first_release_date": 1407283200,
+    "name": "Kingdom Tales 2"
+  },
+  {
+    "id": 10528,
+    "alternative_names": [
+      {
+        "id": 125947,
+        "name": "fault milestone one"
+      },
+      {
+        "id": 241705,
+        "name": "faultms1.exe"
+      }
+    ],
+    "first_release_date": 1376006400,
+    "name": "Fault Milestone One"
+  },
+  {
+    "id": 10554,
+    "alternative_names": [
+      {
+        "id": 226605,
+        "name": "Monstrum.exe"
+      }
+    ],
+    "first_release_date": 1432080000,
+    "name": "Monstrum"
+  },
+  {
+    "id": 10578,
+    "alternative_names": [
+      {
+        "id": 190164,
+        "name": "witch.exe"
+      }
+    ],
+    "first_release_date": 1399852800,
+    "name": "Myths of Orion: Light from the North"
+  },
+  {
+    "id": 10646,
+    "alternative_names": [
+      {
+        "id": 4376,
+        "name": "Over The Top Tower Defence"
+      },
+      {
+        "id": 189950,
+        "name": "OTTTD-win.exe"
+      }
+    ],
+    "first_release_date": 1400025600,
+    "name": "OTTTD"
+  },
+  {
+    "id": 10681,
+    "alternative_names": [
+      {
+        "id": 226192,
+        "name": "AlwasAwakening.exe"
+      }
+    ],
+    "first_release_date": 1485993600,
+    "name": "Alwa's Awakening"
+  },
+  {
+    "id": 10760,
+    "alternative_names": [
+      {
+        "id": 86925,
+        "name": "블러드스테인드: 리추얼 오브 더 나이트"
+      },
+      {
+        "id": 104354,
+        "name": "ブラッドステインド: リチュアル オブ ザ ナイト"
+      }
+    ],
+    "first_release_date": 1560816000,
+    "name": "Bloodstained: Ritual of the Night"
+  },
+  {
+    "id": 10910,
+    "alternative_names": [
+      {
+        "id": 208799,
+        "name": "LEGO_Worlds_DX11.exe"
+      }
+    ],
+    "first_release_date": 1488844800,
+    "name": "LEGO Worlds"
+  },
+  {
+    "id": 10919,
+    "alternative_names": [
+      {
+        "id": 50209,
+        "name": "엑스컴 2"
+      }
+    ],
+    "first_release_date": 1454544000,
+    "name": "XCOM 2"
+  },
+  {
+    "id": 10949,
+    "alternative_names": [
+      {
+        "id": 103719,
+        "name": "Ys ORIGIN"
+      }
+    ],
+    "first_release_date": 1166659200,
+    "name": "Ys Origin"
+  },
+  {
+    "id": 10951,
+    "alternative_names": [
+      {
+        "id": 190157,
+        "name": "lair.exe"
+      }
+    ],
+    "first_release_date": 1394668800,
+    "name": "Tales from the Dragon Mountain 2: The Lair"
+  },
+  {
+    "id": 10952,
+    "alternative_names": [
+      {
+        "id": 240852,
+        "name": "Talisman.exe"
+      }
+    ],
+    "first_release_date": 1393286400,
+    "name": "Talisman: Digital Edition"
+  },
+  {
+    "id": 10960,
+    "alternative_names": [
+      {
+        "id": 257048,
+        "name": "THUMPER_win8.exe"
+      },
+      {
+        "id": 291513,
+        "name": "Thumper: Pocket Edition"
+      }
+    ],
+    "first_release_date": 1476057600,
+    "name": "Thumper"
+  },
+  {
+    "id": 10973,
+    "alternative_names": [
+      {
+        "id": 11766,
+        "name": "The Journey Down: Into the Mist"
+      },
+      {
+        "id": 234295,
+        "name": "JourneyDown2.exe"
+      }
+    ],
+    "first_release_date": 1408924800,
+    "name": "The Journey Down: Chapter Two"
+  },
+  {
+    "id": 10988,
+    "alternative_names": [
+      {
+        "id": 107341,
+        "name": "ゼイ・ブリード・ピクセルズ "
+      },
+      {
+        "id": 252262,
+        "name": "They Bleed Pixels PC.exe"
+      }
+    ],
+    "first_release_date": 1346198400,
+    "name": "They Bleed Pixels"
+  },
+  {
+    "id": 10989,
+    "first_release_date": 1426809600,
+    "name": "Three Fourths Home"
+  },
+  {
+    "id": 10996,
+    "alternative_names": [
+      {
+        "id": 121206,
+        "name": "Nobunaga's Ambition: Creation"
+      },
+      {
+        "id": 121205,
+        "name": "Nobunaga's Ambition: Souzou"
+      },
+      {
+        "id": 243562,
+        "name": "N14PKLauncher.exe"
+      }
+    ],
+    "first_release_date": 1386806400,
+    "name": "Nobunaga's Ambition: Sphere of Influence"
+  },
+  {
+    "id": 11000,
+    "alternative_names": [
+      {
+        "id": 113245,
+        "name": "コープスパーティー BLOOD DRIVE"
+      }
+    ],
+    "first_release_date": 1406160000,
+    "name": "Corpse Party: Blood Drive"
+  },
+  {
+    "id": 11049,
+    "alternative_names": [
+      {
+        "id": 253712,
+        "name": "Crawl.exe"
+      }
+    ],
+    "first_release_date": 1491868800,
+    "name": "Crawl"
+  },
+  {
+    "id": 11070,
+    "alternative_names": [
+      {
+        "id": 203975,
+        "name": "Perception.exe"
+      }
+    ],
+    "first_release_date": 1496102400,
+    "name": "Perception"
+  },
+  {
+    "id": 11078,
+    "alternative_names": [
+      {
+        "id": 4552,
+        "name": "Shantae: ½ Genie Hero"
+      },
+      {
+        "id": 268353,
+        "name": "ShantaeHero.exe"
+      }
+    ],
+    "first_release_date": 1482192000,
+    "name": "Shantae: Half-Genie Hero"
+  },
+  {
+    "id": 11092,
+    "first_release_date": 1363910400,
+    "name": "Anodyne"
+  },
+  {
+    "id": 11119,
+    "first_release_date": 1434240000,
+    "name": "Fallout Shelter"
+  },
+  {
+    "id": 11120,
+    "alternative_names": [
+      {
+        "id": 22114,
+        "name": "Elder Scrolls Legends"
+      },
+      {
+        "id": 9002,
+        "name": "TES: Legends"
+      },
+      {
+        "id": 290908,
+        "name": "Elder Scrolls: Legends"
+      }
+    ],
+    "first_release_date": 1489017600,
+    "name": "The Elder Scrolls: Legends"
+  },
+  {
+    "id": 11122,
+    "alternative_names": [
+      {
+        "id": 171675,
+        "name": "ToeJam & Earl: Back in the Groove!"
+      },
+      {
+        "id": 258818,
+        "name": "backinthegroove.exe"
+      }
+    ],
+    "first_release_date": 1551398400,
+    "name": "ToeJam & Earl: Back in the Groove"
+  },
+  {
+    "id": 11145,
+    "first_release_date": 1266796800,
+    "name": "Battle Kid: Fortress of Peril"
+  },
+  {
+    "id": 11161,
+    "alternative_names": [
+      {
+        "id": 28538,
+        "name": "South Park: Die rektakuläre Zerreißprobe"
+      },
+      {
+        "id": 25373,
+        "name": "South Park: The Fractured But Whole - Standard Edition"
+      },
+      {
+        "id": 28540,
+        "name": "South Park: Scontri Di-retti"
+      },
+      {
+        "id": 28536,
+        "name": "South Park: A Fenda que Abunda Força"
+      },
+      {
+        "id": 28539,
+        "name": "South Park: Retaguardia en Peligro"
+      },
+      {
+        "id": 28537,
+        "name": "South Park: L'Annale du Destin"
+      },
+      {
+        "id": 145287,
+        "name": "The Fractured But Whole"
+      },
+      {
+        "id": 145288,
+        "name": "South Park™: L’Annale du Destin™"
+      },
+      {
+        "id": 145289,
+        "name": "South Park™: Scontri Di-Retti™"
+      }
+    ],
+    "first_release_date": 1508198400,
+    "name": "South Park: The Fractured But Whole"
+  },
+  {
+    "id": 11176,
+    "first_release_date": 1518480000,
+    "name": "Crossing Souls"
+  },
+  {
+    "id": 11177,
+    "alternative_names": [
+      {
+        "id": 97019,
+        "name": "갱비스트"
+      },
+      {
+        "id": 205603,
+        "name": "Gang Beasts.exe"
+      }
+    ],
+    "first_release_date": 1513036800,
+    "name": "Gang Beasts"
+  },
+  {
+    "id": 11179,
+    "first_release_date": 1436227200,
+    "name": "Skullgirls: 2nd Encore"
+  },
+  {
+    "id": 11182,
+    "alternative_names": [
+      {
+        "id": 25435,
+        "name": "ETG"
+      },
+      {
+        "id": 121208,
+        "name": "Enter the Gungeon: Advanced Gungeons & Dragons"
+      }
+    ],
+    "first_release_date": 1459814400,
+    "name": "Enter the Gungeon"
+  },
+  {
+    "id": 11191,
+    "alternative_names": [
+      {
+        "id": 54085,
+        "name": "EarthBound Zero"
+      },
+      {
+        "id": 125324,
+        "name": "Earth Bound"
+      },
+      {
+        "id": 125459,
+        "name": "Mother"
+      },
+      {
+        "id": 125460,
+        "name": "MOTHER"
+      },
+      {
+        "id": 137926,
+        "name": "마더"
+      }
+    ],
+    "first_release_date": 1434240000,
+    "name": "EarthBound Beginnings"
+  },
+  {
+    "id": 11198,
+    "alternative_names": [
+      {
+        "id": 30546,
+        "name": "火箭联盟"
+      }
+    ],
+    "first_release_date": 1436140800,
+    "name": "Rocket League"
+  },
+  {
+    "id": 11215,
+    "alternative_names": [
+      {
+        "id": 22131,
+        "name": "Runbow Pocket"
+      },
+      {
+        "id": 235407,
+        "name": "Runbow.exe"
+      }
+    ],
+    "first_release_date": 1440633600,
+    "name": "Runbow"
+  },
+  {
+    "id": 11222,
+    "alternative_names": [
+      {
+        "id": 55546,
+        "name": "Flying Power Disc"
+      }
+    ],
+    "first_release_date": 757987200,
+    "name": "Windjammers"
+  },
+  {
+    "id": 11223,
+    "first_release_date": 1411689600,
+    "name": "Thief Town"
+  },
+  {
+    "id": 11225,
+    "alternative_names": [
+      {
+        "id": 213854,
+        "name": "Typoman.exe"
+      },
+      {
+        "id": 291525,
+        "name": "Typoman: Revised"
+      }
+    ],
+    "first_release_date": 1447891200,
+    "name": "Typoman"
+  },
+  {
+    "id": 11227,
+    "alternative_names": [
+      {
+        "id": 31892,
+        "name": "Seiken Densetsu 3"
+      },
+      {
+        "id": 31894,
+        "name": "The Legend of the Sacred Sword 3"
+      },
+      {
+        "id": 176876,
+        "name": "Secret of Mana 2"
+      }
+    ],
+    "first_release_date": 812419200,
+    "name": "Trials of Mana"
+  },
+  {
+    "id": 11233,
+    "alternative_names": [
+      {
+        "id": 117716,
+        "name": "에디스 핀치의 유산 "
+      },
+      {
+        "id": 197412,
+        "name": "FinchGame.exe"
+      }
+    ],
+    "first_release_date": 1492992000,
+    "name": "What Remains of Edith Finch"
+  },
+  {
+    "id": 11238,
+    "alternative_names": [
+      {
+        "id": 69362,
+        "name": "Cook Serve Delicioso"
+      },
+      {
+        "id": 69363,
+        "name": "Cook, Serve, Delicious: Battle Kitchen Edition"
+      },
+      {
+        "id": 184815,
+        "name": "CSDSteamBuild.exe"
+      }
+    ],
+    "first_release_date": 1349395200,
+    "name": "Cook, Serve, Delicious!"
+  },
+  {
+    "id": 11247,
+    "alternative_names": [
+      {
+        "id": 226315,
+        "name": "DuckGame.exe"
+      }
+    ],
+    "first_release_date": 1399939200,
+    "name": "Duck Game"
+  },
+  {
+    "id": 11250,
+    "alternative_names": [
+      {
+        "id": 217026,
+        "name": "Shift Happens.exe"
+      }
+    ],
+    "first_release_date": 1487721600,
+    "name": "Shift Happens"
+  },
+  {
+    "id": 11260,
+    "alternative_names": [
+      {
+        "id": 33282,
+        "name": "Армелло"
+      },
+      {
+        "id": 245854,
+        "name": "armello.exe"
+      }
+    ],
+    "first_release_date": 1421884800,
+    "name": "Armello"
+  },
+  {
+    "id": 11276,
+    "alternative_names": [
+      {
+        "id": 109849,
+        "name": "The Room Two（ザ・ルーム2)"
+      },
+      {
+        "id": 239902,
+        "name": "TheRoomTwo.exe"
+      }
+    ],
+    "first_release_date": 1386806400,
+    "name": "The Room Two"
+  },
+  {
+    "id": 11287,
+    "first_release_date": 1410825600,
+    "name": "Beach Buggy Racing"
+  },
+  {
+    "id": 11290,
+    "first_release_date": 1424131200,
+    "name": "Trivial Pursuit Live!"
+  },
+  {
+    "id": 11312,
+    "alternative_names": [
+      {
+        "id": 144075,
+        "name": "Romanshingu Sa Ga Tsū"
+      },
+      {
+        "id": 244066,
+        "name": "rs2.exe"
+      }
+    ],
+    "first_release_date": 755481600,
+    "name": "Romancing SaGa 2"
+  },
+  {
+    "id": 11349,
+    "alternative_names": [
+      {
+        "id": 242276,
+        "name": "Ironcast.exe"
+      }
+    ],
+    "first_release_date": 1427328000,
+    "name": "Ironcast"
+  },
+  {
+    "id": 11367,
+    "alternative_names": [
+      {
+        "id": 190620,
+        "name": "anna.exe"
+      }
+    ],
+    "first_release_date": 1435795200,
+    "name": "Anna's Quest"
+  },
+  {
+    "id": 11393,
+    "alternative_names": [
+      {
+        "id": 55679,
+        "name": "Chaos Child"
+      },
+      {
+        "id": 223555,
+        "name": "boot.bat"
+      }
+    ],
+    "first_release_date": 1418860800,
+    "name": "Chaos;Child"
+  },
+  {
+    "id": 11394,
+    "alternative_names": [
+      {
+        "id": 51042,
+        "name": "STEINS GATE ZÉRO"
+      },
+      {
+        "id": 231770,
+        "name": "boot.bat"
+      }
+    ],
+    "first_release_date": 1449705600,
+    "name": "Steins;Gate 0"
+  },
+  {
+    "id": 11398,
+    "alternative_names": [
+      {
+        "id": 193711,
+        "name": "Dead Synchronicity.exe"
+      },
+      {
+        "id": 290675,
+        "name": "Dead Synchronicity"
+      }
+    ],
+    "first_release_date": 1428624000,
+    "name": "Dead Synchronicity: Tomorrow Comes Today"
+  },
+  {
+    "id": 11409,
+    "alternative_names": [
+      {
+        "id": 253048,
+        "name": "Submerged-Win64-Shipping.exe"
+      }
+    ],
+    "first_release_date": 1438560000,
+    "name": "Submerged"
+  },
+  {
+    "id": 11413,
+    "alternative_names": [
+      {
+        "id": 34883,
+        "name": "planetarian ~Chiisana Hoshi no Yume~"
+      },
+      {
+        "id": 126258,
+        "name": "planetarian ~the reverie of a little planet~"
+      }
+    ],
+    "first_release_date": 1101686400,
+    "name": "Planetarian: The Reverie of a Little Planet"
+  },
+  {
+    "id": 11417,
+    "alternative_names": [
+      {
+        "id": 108603,
+        "name": "オダラス: 闇の呼び声 "
+      },
+      {
+        "id": 108433,
+        "name": "Odallus: The Dark Call (オダラス: 闇の呼び声)"
+      }
+    ],
+    "first_release_date": 1436918400,
+    "name": "Odallus: The Dark Call"
+  },
+  {
+    "id": 11423,
+    "alternative_names": [
+      {
+        "id": 240357,
+        "name": "Police.exe"
+      }
+    ],
+    "first_release_date": 1469577600,
+    "name": "This Is the Police"
+  },
+  {
+    "id": 11434,
+    "alternative_names": [
+      {
+        "id": 125970,
+        "name": "3D Mini Golf"
+      },
+      {
+        "id": 229576,
+        "name": "minigolf2015.exe"
+      }
+    ],
+    "first_release_date": 1432857600,
+    "name": "3D MiniGolf"
+  },
+  {
+    "id": 11435,
+    "alternative_names": [
+      {
+        "id": 264229,
+        "name": "6180 the moon.exe"
+      }
+    ],
+    "first_release_date": 1411084800,
+    "name": "6180 The Moon"
+  },
+  {
+    "id": 11445,
+    "alternative_names": [
+      {
+        "id": 79973,
+        "name": "Persona 4: The Ultimax Ultra Suplex Hold"
+      },
+      {
+        "id": 79974,
+        "name": "P4AU"
+      },
+      {
+        "id": 201017,
+        "name": "P4U2.exe"
+      },
+      {
+        "id": 289909,
+        "name": "P4U2"
+      }
+    ],
+    "first_release_date": 1385596800,
+    "name": "Persona 4 Arena Ultimax"
+  },
+  {
+    "id": 11488,
+    "alternative_names": [
+      {
+        "id": 250065,
+        "name": "Dropsy.exe"
+      }
+    ],
+    "first_release_date": 1441843200,
+    "name": "Dropsy"
+  },
+  {
+    "id": 11501,
+    "alternative_names": [
+      {
+        "id": 34144,
+        "name": "Attouteki Yuugi: Mugen Souls"
+      }
+    ],
+    "first_release_date": 1332374400,
+    "name": "Mugen Souls"
+  },
+  {
+    "id": 11502,
+    "alternative_names": [
+      {
+        "id": 104326,
+        "name": "페어리 펜서 F Advent Dark Force"
+      },
+      {
+        "id": 104327,
+        "name": "フェアリーフェンサー エフ Advent Dark Force"
+      }
+    ],
+    "first_release_date": 1446681600,
+    "name": "Fairy Fencer F: Advent Dark Force"
+  },
+  {
+    "id": 11503,
+    "alternative_names": [
+      {
+        "id": 4783,
+        "name": "圧倒的遊戯ムゲンソウルズZ"
+      }
+    ],
+    "first_release_date": 1366848000,
+    "name": "Mugen Souls Z"
+  },
+  {
+    "id": 11529,
+    "alternative_names": [
+      {
+        "id": 57015,
+        "name": "The Jackbox Party Pack 1"
+      },
+      {
+        "id": 57016,
+        "name": "Jackbox Party Pack"
+      },
+      {
+        "id": 57017,
+        "name": "Jackbox Party Pack 1"
+      }
+    ],
+    "first_release_date": 1416268800,
+    "name": "The Jackbox Party Pack"
+  },
+  {
+    "id": 11544,
+    "alternative_names": [
+      {
+        "id": 139475,
+        "name": "Paladins: Champions of the Realm"
+      },
+      {
+        "id": 216556,
+        "name": "PaladinsEAC.exe"
+      }
+    ],
+    "first_release_date": 1493683200,
+    "name": "Paladins"
+  },
+  {
+    "id": 11545,
+    "alternative_names": [
+      {
+        "id": 10616,
+        "name": "Yesterday 2"
+      },
+      {
+        "id": 228403,
+        "name": "YesterdayOrigins.exe"
+      }
+    ],
+    "first_release_date": 1474848000,
+    "name": "Yesterday Origins"
+  },
+  {
+    "id": 11560,
+    "alternative_names": [
+      {
+        "id": 33248,
+        "name": "AER"
+      },
+      {
+        "id": 33249,
+        "name": "AER – Memories of Old"
+      },
+      {
+        "id": 269265,
+        "name": "AER.exe"
+      }
+    ],
+    "first_release_date": 1508889600,
+    "name": "AER: Memories of Old"
+  },
+  {
+    "id": 11562,
+    "first_release_date": 1444089600,
+    "name": "Skyhill"
+  },
+  {
+    "id": 11563,
+    "alternative_names": [
+      {
+        "id": 104867,
+        "name": "셜록 홈즈: 악마의 딸"
+      }
+    ],
+    "first_release_date": 1465516800,
+    "name": "Sherlock Holmes: The Devil's Daughter"
+  },
+  {
+    "id": 11568,
+    "alternative_names": [
+      {
+        "id": 257588,
+        "name": "FutureGrind.exe"
+      }
+    ],
+    "first_release_date": 1548115200,
+    "name": "FutureGrind"
+  },
+  {
+    "id": 11587,
+    "alternative_names": [
+      {
+        "id": 194030,
+        "name": "AbsoluteDrift.exe"
+      }
+    ],
+    "first_release_date": 1438128000,
+    "name": "Absolute Drift"
+  },
+  {
+    "id": 11588,
+    "alternative_names": [
+      {
+        "id": 217747,
+        "name": "Quiplash.exe"
+      }
+    ],
+    "first_release_date": 1435622400,
+    "name": "Quiplash"
+  },
+  {
+    "id": 11597,
+    "alternative_names": [
+      {
+        "id": 237661,
+        "name": "polybridge.exe"
+      }
+    ],
+    "first_release_date": 1468281600,
+    "name": "Poly Bridge"
+  },
+  {
+    "id": 11598,
+    "alternative_names": [
+      {
+        "id": 263654,
+        "name": "ID2.exe"
+      }
+    ],
+    "first_release_date": 1479168000,
+    "name": "Ittle Dew 2"
+  },
+  {
+    "id": 11602,
+    "alternative_names": [
+      {
+        "id": 202691,
+        "name": "RoadRedemption.exe"
+      }
+    ],
+    "first_release_date": 1507075200,
+    "name": "Road Redemption"
+  },
+  {
+    "id": 11625,
+    "alternative_names": [
+      {
+        "id": 110147,
+        "name": "The Room（ザ・ルーム）"
+      },
+      {
+        "id": 275878,
+        "name": "TheRoom.exe"
+      }
+    ],
+    "first_release_date": 1348012800,
+    "name": "The Room"
+  },
+  {
+    "id": 11633,
+    "alternative_names": [
+      {
+        "id": 100588,
+        "name": "Sky Rogue（スカイローグ）"
+      },
+      {
+        "id": 242506,
+        "name": "skyrogue.exe"
+      }
+    ],
+    "first_release_date": 1503532800,
+    "name": "Sky Rogue"
+  },
+  {
+    "id": 11646,
+    "alternative_names": [
+      {
+        "id": 128221,
+        "name": "Ziggurat by Milkstone"
+      },
+      {
+        "id": 217755,
+        "name": "Ziggurat.exe"
+      }
+    ],
+    "first_release_date": 1414022400,
+    "name": "Ziggurat"
+  },
+  {
+    "id": 11649,
+    "alternative_names": [
+      {
+        "id": 108115,
+        "name": "ザ・パーク"
+      },
+      {
+        "id": 220576,
+        "name": "ThePark.exe"
+      }
+    ],
+    "first_release_date": 1445904000,
+    "name": "The Park"
+  },
+  {
+    "id": 11657,
+    "alternative_names": [
+      {
+        "id": 179836,
+        "name": "Epistory.exe"
+      },
+      {
+        "id": 290698,
+        "name": "Epistory"
+      }
+    ],
+    "first_release_date": 1459296000,
+    "name": "Epistory: Typing Chronicles"
+  },
+  {
+    "id": 11668,
+    "alternative_names": [
+      {
+        "id": 199254,
+        "name": "Dollhouse.exe"
+      }
+    ],
+    "first_release_date": 1558656000,
+    "name": "Dollhouse"
+  },
+  {
+    "id": 11709,
+    "alternative_names": [
+      {
+        "id": 190309,
+        "name": "60Seconds.exe"
+      }
+    ],
+    "first_release_date": 1432512000,
+    "name": "60 Seconds!"
+  },
+  {
+    "id": 11710,
+    "alternative_names": [
+      {
+        "id": 100154,
+        "name": "60パースシーエス"
+      },
+      {
+        "id": 201362,
+        "name": "60Parsecs.exe"
+      }
+    ],
+    "first_release_date": 1537228800,
+    "name": "60 Parsecs!"
+  },
+  {
+    "id": 11737,
+    "alternative_names": [
+      {
+        "id": 182748,
+        "name": "OuterWilds.exe"
+      }
+    ],
+    "first_release_date": 1559001600,
+    "name": "Outer Wilds"
+  },
+  {
+    "id": 11753,
+    "alternative_names": [
+      {
+        "id": 204125,
+        "name": "Sheltered.exe"
+      }
+    ],
+    "first_release_date": 1458000000,
+    "name": "Sheltered"
+  },
+  {
+    "id": 11776,
+    "alternative_names": [
+      {
+        "id": 92747,
+        "name": "ANONYMOUS;CODE"
+      },
+      {
+        "id": 243288,
+        "name": "MAGESgamelauncher.exe"
+      }
+    ],
+    "first_release_date": 1658966400,
+    "name": "Anonymous;Code"
+  },
+  {
+    "id": 11798,
+    "alternative_names": [
+      {
+        "id": 9283,
+        "name": "Evoland 2: A Slight Case of Spacetime Continuum Disorder"
+      },
+      {
+        "id": 231829,
+        "name": "Evoland2.exe"
+      }
+    ],
+    "first_release_date": 1440460800,
+    "name": "Evoland 2"
+  },
+  {
+    "id": 11816,
+    "alternative_names": [
+      {
+        "id": 52154,
+        "name": "Kono Yo no Hate de Koi wo Utau Shoujo YU-NO"
+      },
+      {
+        "id": 84869,
+        "name": "YU-NO: A Girl Who Chants Love at the Bound of this World"
+      },
+      {
+        "id": 208011,
+        "name": "boot.bat"
+      }
+    ],
+    "first_release_date": 1489622400,
+    "name": "Yu-No: A Girl Who Chants Love at the Bound of this World"
+  },
+  {
+    "id": 11821,
+    "alternative_names": [
+      {
+        "id": 182889,
+        "name": "Fran Bow.exe"
+      }
+    ],
+    "first_release_date": 1440633600,
+    "name": "Fran Bow"
+  },
+  {
+    "id": 11840,
+    "alternative_names": [
+      {
+        "id": 181366,
+        "name": "TheKingsBird.exe"
+      }
+    ],
+    "first_release_date": 1534982400,
+    "name": "The King's Bird"
+  },
+  {
+    "id": 12014,
+    "alternative_names": [
+      {
+        "id": 5698,
+        "name": "Chasm: The Shadow Zone"
+      }
+    ],
+    "first_release_date": 875577600,
+    "name": "Chasm: The Rift"
+  },
+  {
+    "id": 12070,
+    "alternative_names": [
+      {
+        "id": 255879,
+        "name": "PartyHardGame.exe"
+      }
+    ],
+    "first_release_date": 1440460800,
+    "name": "Party Hard"
+  },
+  {
+    "id": 12216,
+    "alternative_names": [
+      {
+        "id": 246252,
+        "name": "RackNRuin.exe"
+      }
+    ],
+    "first_release_date": 1427760000,
+    "name": "Rack N Ruin"
+  },
+  {
+    "id": 12502,
+    "first_release_date": 1539820800,
+    "name": "Zarvot"
+  },
+  {
+    "id": 12503,
+    "alternative_names": [
+      {
+        "id": 49557,
+        "name": "Ведьмак 3: Дикая Охота - Каменные сердца"
+      },
+      {
+        "id": 8058,
+        "name": "Wiedźmin 3: Dziki Gon - Serca z kamienia"
+      }
+    ],
+    "first_release_date": 1444608000,
+    "name": "The Witcher 3: Wild Hunt - Hearts of Stone"
+  },
+  {
+    "id": 12511,
+    "alternative_names": [
+      {
+        "id": 107202,
+        "name": "Battle Chasers: Nightwar (バトルチェイサーズ：ナイトウォー)"
+      },
+      {
+        "id": 107219,
+        "name": "バトルチェイサーズ: ナイトウォー"
+      },
+      {
+        "id": 204162,
+        "name": "BC.exe"
+      }
+    ],
+    "first_release_date": 1506988800,
+    "name": "Battle Chasers: Nightwar"
+  },
+  {
+    "id": 12513,
+    "alternative_names": [
+      {
+        "id": 264358,
+        "name": "rampage_knights.exe"
+      }
+    ],
+    "first_release_date": 1441324800,
+    "name": "Rampage Knights"
+  },
+  {
+    "id": 12517,
+    "alternative_names": [
+      {
+        "id": 5929,
+        "name": "UT"
+      },
+      {
+        "id": 98628,
+        "name": "UNDERTALE"
+      },
+      {
+        "id": 185144,
+        "name": "UNDERTALE.exe"
+      }
+    ],
+    "first_release_date": 1442275200,
+    "name": "Undertale"
+  },
+  {
+    "id": 12520,
+    "alternative_names": [
+      {
+        "id": 220444,
+        "name": "LoversInADangerousSpacetime.exe"
+      }
+    ],
+    "first_release_date": 1441756800,
+    "name": "Lovers in a Dangerous Spacetime"
+  },
+  {
+    "id": 12523,
+    "alternative_names": [
+      {
+        "id": 227868,
+        "name": "Faeria.exe"
+      }
+    ],
+    "first_release_date": 1488931200,
+    "name": "Faeria"
+  },
+  {
+    "id": 12561,
+    "alternative_names": [
+      {
+        "id": 108189,
+        "name": "ノヴァ-111 (Nova-111)"
+      },
+      {
+        "id": 108432,
+        "name": "ノヴァ-111 "
+      },
+      {
+        "id": 210430,
+        "name": "Nova111.exe"
+      }
+    ],
+    "first_release_date": 1440460800,
+    "name": "Nova-111"
+  },
+  {
+    "id": 12579,
+    "alternative_names": [
+      {
+        "id": 101027,
+        "name": "New Danganronpa V3: Minna no Koroshiai Shingakki"
+      },
+      {
+        "id": 187535,
+        "name": "Danganronpa V3"
+      }
+    ],
+    "first_release_date": 1484179200,
+    "name": "Danganronpa V3: Killing Harmony"
+  },
+  {
+    "id": 12595,
+    "alternative_names": [
+      {
+        "id": 167610,
+        "name": "YK1"
+      },
+      {
+        "id": 213378,
+        "name": "人中之龙 极"
+      },
+      {
+        "id": 213379,
+        "name": "人中之龍 極"
+      },
+      {
+        "id": 201209,
+        "name": "YakuzaKiwami.exe"
+      },
+      {
+        "id": 255066,
+        "name": "Ryu ga Gotoku Kiwami"
+      },
+      {
+        "id": 282559,
+        "name": " 龍が如く 極"
+      },
+      {
+        "id": 255067,
+        "name": "Like a Dragon Extreme"
+      }
+    ],
+    "first_release_date": 1453334400,
+    "name": "Yakuza Kiwami"
+  },
+  {
+    "id": 12597,
+    "alternative_names": [
+      {
+        "id": 223538,
+        "name": "Owlboy.exe"
+      }
+    ],
+    "first_release_date": 1477958400,
+    "name": "Owlboy"
+  },
+  {
+    "id": 12598,
+    "alternative_names": [
+      {
+        "id": 253223,
+        "name": "TheAquaticAdventureOfTheLastHuman.exe"
+      }
+    ],
+    "first_release_date": 1453161600,
+    "name": "The Aquatic Adventure of the Last Human"
+  },
+  {
+    "id": 12634,
+    "alternative_names": [
+      {
+        "id": 126420,
+        "name": "Collar × Malice"
+      }
+    ],
+    "first_release_date": 1471478400,
+    "name": "Collar x Malice"
+  },
+  {
+    "id": 12636,
+    "alternative_names": [
+      {
+        "id": 38084,
+        "name": "Suuran Digit"
+      },
+      {
+        "id": 87704,
+        "name": "Suran Digit"
+      }
+    ],
+    "first_release_date": 1476921600,
+    "name": "Suuran Digit"
+  },
+  {
+    "id": 12639,
+    "alternative_names": [
+      {
+        "id": 125808,
+        "name": "7'scarlet"
+      },
+      {
+        "id": 218823,
+        "name": "SevenScarletSteam.exe"
+      }
+    ],
+    "first_release_date": 1469059200,
+    "name": "7'Scarlet"
+  },
+  {
+    "id": 12644,
+    "alternative_names": [
+      {
+        "id": 76937,
+        "name": "兄弟之争　激情粉红"
+      }
+    ],
+    "first_release_date": 1459987200,
+    "name": "Brothers Conflict: Precious Baby"
+  },
+  {
+    "id": 12731,
+    "alternative_names": [
+      {
+        "id": 54122,
+        "name": "The Fisherman - Fishing Planet"
+      },
+      {
+        "id": 52912,
+        "name": "The Fisherman Fishing Planet"
+      },
+      {
+        "id": 178609,
+        "name": "FishingPlanet.exe"
+      }
+    ],
+    "first_release_date": 1439251200,
+    "name": "Fishing Planet"
+  },
+  {
+    "id": 12875,
+    "alternative_names": [
+      {
+        "id": 120382,
+        "name": "SUPERBEAT: XONiC"
+      },
+      {
+        "id": 292047,
+        "name": "Superbeat: Xonic EX"
+      }
+    ],
+    "first_release_date": 1445472000,
+    "name": "Superbeat: Xonic"
+  },
+  {
+    "id": 12880,
+    "first_release_date": 1436745600,
+    "name": "Holy Potatoes! A Weapon Shop?!"
+  },
+  {
+    "id": 12979,
+    "alternative_names": [
+      {
+        "id": 203845,
+        "name": "BlackseaOdyssey.exe"
+      }
+    ],
+    "first_release_date": 1464739200,
+    "name": "Blacksea Odyssey"
+  },
+  {
+    "id": 13062,
+    "alternative_names": [
+      {
+        "id": 35013,
+        "name": "Refrain’s Underground Dungeon and the Witch’s Brigade"
+      },
+      {
+        "id": 177599,
+        "name": "Refrain no Chika Meikyuu to Majo no Ryodan"
+      },
+      {
+        "id": 217911,
+        "name": "refrain.exe"
+      }
+    ],
+    "first_release_date": 1466640000,
+    "name": "Labyrinth of Refrain: Coven of Dusk"
+  },
+  {
+    "id": 13153,
+    "alternative_names": [
+      {
+        "id": 33913,
+        "name": "Тук-тук-тук"
+      },
+      {
+        "id": 226069,
+        "name": "knock.exe"
+      }
+    ],
+    "first_release_date": 1380844800,
+    "name": "Knock-knock"
+  },
+  {
+    "id": 13163,
+    "alternative_names": [
+      {
+        "id": 14254,
+        "name": "Syberia III"
+      },
+      {
+        "id": 149542,
+        "name": "Сиберия 3"
+      },
+      {
+        "id": 226749,
+        "name": "Syberia3.exe"
+      }
+    ],
+    "first_release_date": 1492646400,
+    "name": "Syberia 3"
+  },
+  {
+    "id": 13166,
+    "alternative_names": [
+      {
+        "id": 49556,
+        "name": "Ведьмак 3: Дикая Охота - Кровь и Вино"
+      },
+      {
+        "id": 8059,
+        "name": "Wiedźmin 3: Dziki Gon - Krew i wino"
+      }
+    ],
+    "first_release_date": 1464566400,
+    "name": "The Witcher 3: Wild Hunt - Blood and Wine"
+  },
+  {
+    "id": 13168,
+    "alternative_names": [
+      {
+        "id": 162703,
+        "name": "Doom and Destiny"
+      },
+      {
+        "id": 162704,
+        "name": "Doom & Destiny: The Flying Spagetti-Fantasy Adventure"
+      },
+      {
+        "id": 240333,
+        "name": "DoomAndDestiny.exe"
+      }
+    ],
+    "first_release_date": 1314230400,
+    "name": "Doom & Destiny"
+  },
+  {
+    "id": 13172,
+    "alternative_names": [
+      {
+        "id": 196677,
+        "name": "MadGamesTycoon.exe"
+      }
+    ],
+    "first_release_date": 1473724800,
+    "name": "Mad Games Tycoon"
+  },
+  {
+    "id": 13187,
+    "alternative_names": [
+      {
+        "id": 254547,
+        "name": "Guns, Gore and Cannoli"
+      },
+      {
+        "id": 267726,
+        "name": "ggc.exe"
+      }
+    ],
+    "first_release_date": 1430352000,
+    "name": "Guns, Gore & Cannoli"
+  },
+  {
+    "id": 13192,
+    "alternative_names": [
+      {
+        "id": 236166,
+        "name": "PaintTheTownRed.exe"
+      }
+    ],
+    "first_release_date": 1627516800,
+    "name": "Paint the Town Red"
+  },
+  {
+    "id": 13196,
+    "alternative_names": [
+      {
+        "id": 241737,
+        "name": "ToA.exe"
+      }
+    ],
+    "first_release_date": 1602720000,
+    "name": "Tears of Avia"
+  },
+  {
+    "id": 13197,
+    "first_release_date": 1472774400,
+    "name": "Redout"
+  }
+]

@@ -1,8 +1,10 @@
 import { Link } from 'react-router'
+import { usePageTitle } from '../lib/usePageTitle.js'
+import CoverStrip from '../components/CoverStrip.jsx'
 import { posts } from '../content/posts.js'
 
 /**
- * Landing page: a greeting, a short introduction, and two ways onward.
+ * Landing page: a greeting, a short introduction, and three ways onward.
  *
  * The introduction is JSX rather than a string in content/profile.js because it
  * carries markup — one word is set in the display serif to pull it out of the
@@ -10,6 +12,7 @@ import { posts } from '../content/posts.js'
  * the same sentence.
  */
 export default function Home() {
+  usePageTitle('Joey Haas — Senior software engineer, Denver')
   const [latest] = posts
 
   return (
@@ -34,9 +37,16 @@ export default function Home() {
         <Link className="link-card" to="/projects">
           <span className="link-card-title">See my work</span>
           <span className="link-card-arrow"> &rarr;</span>
+          <span className="link-card-sub">Spine, and this very site.</span>
+        </Link>
+        <Link className="link-card" to="/spine">
+          <span className="link-card-title">Spine</span>
+          <span className="link-card-arrow"> &rarr;</span>
           <span className="link-card-sub">
-            Projects, including this very site.
+            The game tracker I built: what I own, what I’ve finished, what’s
+            next.
           </span>
+          <CoverStrip />
         </Link>
       </div>
 

@@ -1,8 +1,13 @@
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useOutletContext } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import RootLayout from './RootLayout.jsx'
+
+// posts.js globs frontend/posts/*.md, and the Vitest config has no markdown
+// plugin, so the module is replaced. Tests push onto this array to publish.
+const content = vi.hoisted(() => ({ posts: [] }))
+vi.mock('../content/posts.js', () => content)
 
 function renderAt(path = '/') {
   return render(
@@ -24,6 +29,7 @@ beforeEach(() => {
 
 afterEach(() => {
   localStorage.clear()
+  content.posts.length = 0
   vi.restoreAllMocks()
 })
 
@@ -90,7 +96,7 @@ describe('RootLayout wide pages', () => {
   }
 
   // The tracker pages break out of the reading column; everything else keeps it.
-  it.each(['/collection', '/collection/abc', '/admin/collection/abc'])(
+  it.each(['/spine', '/spine/abc', '/admin/collection/abc'])(
     'widens %s',
     (path) => {
       expect(pageClass(path)).toContain('page-wide')
@@ -145,5 +151,90 @@ describe('RootLayout outlet context', () => {
     // Let the rejected check settle before asserting nothing changed.
     await Promise.resolve()
     expect(screen.getByText('signed in: false')).toBeInTheDocument()
+  })
+})
+
+describe('RootLayout nav', () => {
+  function navLabels() {
+    return within(screen.getByRole('navigation'))
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+  }
+
+  it('lists Spine, and no Blog while nothing is published', () => {
+    renderAt('/about')
+    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Spine'])
+  })
+
+  it('adds Blog last once a post is published', () => {
+    content.posts.push({
+      slug: 'first',
+      frontmatter: { title: 'First', date: '2026-10-01' },
+    })
+    renderAt('/about')
+    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Spine', 'Blog'])
+  })
+
+  it('keeps Spine current on an item page', () => {
+    renderAt('/spine/abc')
+    expect(
+      within(screen.getByRole('navigation')).getByRole('link', {
+        name: 'Spine',
+      }),
+    ).toHaveAttribute('aria-current', 'page')
+  })
+})
+
+describe('RootLayout footer', () => {
+  it('credits the current year and links the source', () => {
+    renderAt('/about')
+    const footer = screen.getByRole('contentinfo')
+    expect(footer).toHaveTextContent(`© ${new Date().getFullYear()} Joey Haas`)
+    expect(
+      within(footer).getByRole('link', { name: 'Source' }),
+    ).toHaveAttribute('href', 'https://github.com/joeyh92989/joey-haas.dev')
+  })
+
+  it('keeps the contact links and the sign-in door', () => {
+    renderAt('/about')
+    const footer = within(screen.getByRole('contentinfo'))
+    expect(footer.getByRole('link', { name: 'GitHub' })).toBeInTheDocument()
+    expect(footer.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
+  })
+})
+
+describe('RootLayout masthead density', () => {
+  function masthead(path) {
+    const { container } = renderAt(path)
+    return container.querySelector('.masthead')
+  }
+
+  it.each([
+    '/spine',
+    '/spine/next',
+    '/spine/abc',
+    '/admin',
+    '/admin/store-list',
+  ])('is compact on %s, with no tagline', (path) => {
+    const node = masthead(path)
+    expect(node.className).toContain('compact')
+    expect(node.querySelector('.tagline')).toBeNull()
+  })
+
+  it.each(['/', '/about', '/projects', '/blog/x'])('is full on %s', (path) => {
+    const node = masthead(path)
+    expect(node.className).not.toContain('compact')
+    expect(node.querySelector('.tagline')).not.toBeNull()
+  })
+
+  it('keeps Spine current on What’s next', () => {
+    renderAt('/spine/next')
+    expect(screen.getByRole('link', { name: 'Spine' })).toHaveClass('active')
+  })
+
+  it('keeps the toggle outside the nav landmark', () => {
+    renderAt('/spine')
+    const nav = screen.getByRole('navigation', { name: /site/i })
+    expect(within(nav).queryByRole('button')).toBeNull()
   })
 })

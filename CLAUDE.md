@@ -7,15 +7,22 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - `frontend/` — Vite + React 19 SPA, routed with react-router v8 (declarative
   mode; import from `react-router`, not `react-router-dom`). Deployed as a free
-  Render static site. Public pages make no API calls — bio and project content
-  are static modules in `frontend/src/content/`, so the site renders fully while
-  the free-tier backend is asleep. Vite still proxies `/api` to localhost:8000
-  for the authenticated features planned later.
+  Render static site. Public pages other than `/spine`, `/spine/next` and `/spine/:id` make no API calls
+  (apart from RootLayout's one `/api/auth/me` session check, which fails
+  quietly to signed out) — bio and project content are static modules in
+  `frontend/src/content/`, so the site renders fully while the free-tier
+  backend is asleep. Home and
+  Projects may read `/snapshot/items.json`, the build-time snapshot: a
+  static file on the site's own origin, not an API call. Vite proxies
+  `/api` to localhost:8000 for the tracker and the admin pages.
 - `backend/` — FastAPI app (`main.py`), **Python 3.12** to match Render.
   macOS system Python is 3.9 and cannot install this dependency set. Deployed
   as a Render web service (free tier: spins down after ~15 min idle). Config is
   validated at import (`config.py`), so the service refuses to start when an
-  env var is missing rather than running insecurely. New personal projects
+  env var is missing rather than running insecurely. Logging goes through
+  `config.configure_logging()`, which keeps the HTTP client's loggers at
+  WARNING: several source keys travel as query parameters, and at INFO the
+  client writes every request URL -- key included -- to Render's logs. New personal projects
   should be added as APIRouter modules (one file per project), as `auth.py` is.
 - `render.yaml` — Render Blueprint defining both services. Changing it and
   pushing updates the infrastructure.
@@ -71,7 +78,7 @@ before pushing.
   for the plan. Mockups and the `.superpowers/` execution scratch stay out of
   git — the first are disposable once the UI exists, the second is process
   telemetry.
-- The tracker shelf is one design system for `/collection` and
+- The tracker shelf is one design system for `/spine` and
   `/admin/collection`. Its tokens (`--rating`, `--status-*`, `--overlay`,
   `--skeleton`, `--grid-gap`) live in both theme blocks like every other
   token, and the status colors were chosen on measured contrast: each clears
@@ -89,6 +96,8 @@ before pushing.
   `QuickRate`, `ShelfCardActions`. `HeroNumbers` and `FavoritesRow` are
   exported from `pages/Collection.jsx` and reused by the admin shelf. A
   card's admin controls are a sibling of its link, never nested inside it.
+- `FilterChips` hides a group with at most one chip to show and none
+  pressed, on both shelves; a pressed chip always keeps its group.
 - Nothing on the shelf is hover-only: anything revealed on hover is also
   revealed by `:focus-within`, with `opacity` or `clip-path` rather than
   `display: none` or `visibility: hidden`, which would make it unfocusable.
@@ -141,13 +150,52 @@ before pushing.
       `docs/planning/2026-09-23-tracker-e7b-*`
 - [x] Tracker E8a — Play Next at `/admin/play-next`: three named picks
       from the owned backlog with reasons, pin as Up next (shown publicly on
-      `/collection`), and `schema_check` tolerating a database ahead of the
+      `/collection`, now on What's next), and `schema_check` tolerating a database ahead of the
       code. Spec and plan: `docs/planning/2026-09-23-tracker-e8a-*`
-- [ ] Tracker E7c (physical catalogue) next, then E8b, E8c. Spec:
-      `docs/planning/2026-09-22-tracker-enhancement-design.md` (§5.4 onward);
-      each phase gets its own plan
-- [ ] Tracker E6 — recommendations. `backend/llm.py` already provides the
-      provider-agnostic seam it needs
+- [x] Tracker E7c — physical catalogue at `/admin/catalogue`: the
+      r/NSCollectors registry (Sheets API), `switch2-tracker`, twelve boutique
+      stores and IGDB's N64 list in five new tables (migration `0005`),
+      resolved to IGDB, collapsed to one format per game, and synced onto
+      owned Switch 2 items. Spec and plan: `docs/planning/2026-09-23-tracker-e7c-*`
+- [x] Tracker E8c — Radar at `/admin/radar`: upcoming physical releases
+      and open pre-orders from the catalogue, plus IGDB's upcoming
+      digital-only games, ranked by taste; Want adds the game as a public
+      want, shown on What's next (first on `/spine`'s "On the radar" strip).
+      Migration `0006`
+      (the shared `recommendations` table). Spec and plan:
+      `docs/planning/2026-09-27-tracker-e8c-*`
+- [x] Tracker E8b — Discover at `/admin/discover`: released physical
+      games on the owner's platforms, pre-scored by taste, eight picked with
+      reasons by one Gemini call, the template eight when it cannot answer;
+      Want, Not interested, Already own, Skip, and a Rate a few panel. No
+      migration. E6 is retired in favour of it. Spec and plan:
+      `docs/planning/2026-09-27-tracker-e8b-*`
+- [x] Tracker Showcase — the site shell, `/collection` polish, the
+      build-time snapshot (refreshed by `.github/workflows/nightly.yml`,
+      which replaced `snapshot.yml`), and the
+      read-only "Recent picks" and "Coming to cartridge" strips from
+      `/api/public/picks` and `/api/public/radar` (now on `/spine/next`,
+      see Spine Next). Radar needs one Generate
+      after deploy for Coming to cartridge. Spec and plan:
+      `docs/planning/2026-09-28-tracker-showcase-*`
+- [x] Spine — the tracker's public name. `/spine` and `/spine/:id`, with
+      client-side redirects from `/collection*` (smoke cannot see them;
+      verified in the browser), Spine copy in `content/spine.js`, the
+      Projects card's `tagline`/`highlights`/`links`, `usePageTitle` on every
+      page, static link-preview meta with `public/og-card.png`, and the
+      "How Spine works" post. Spec and plan: `docs/planning/2026-10-02-spine-*`
+- [x] Switch 1 catalogue and store list — the Switch 1 registry
+      (`refresh-switch1`: about 4,500 titles, about 10,000 editions,
+      bulk-matched to IGDB, the unmatched hidden; a run's `rows_seen`
+      counts editions), region-free Switch 1 cartridges, and
+      `/admin/store-list`. No migration. Spec and plan:
+      `docs/planning/2026-10-04-switch1-catalogue-*`
+- [x] Spine Next — the nightly job (nightly.yml, JOB_TOKEN, items.JOB_ROUTES), /spine/next (What's next) from /api/public/next, the shelf trimmed to what I own with a band across, the compact masthead on tracker routes, and /admin/store-list on the same server sections. Spec and plan: docs/planning/2026-10-05-spine-next-*
+- [ ] Rotate the ComicVine API key. It was written to Render's logs until
+      2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
+      ComicVine's site has no way to regenerate it: ask their support to
+      reissue it, then update `backend/.env` and Render. The Twitch/IGDB
+      secret was rotated the same day
 - [ ] Optional: set `ADMIN_GOOGLE_SUB` after the first sign-in to pin the
       allowlist to Google's immutable subject ID rather than the email alone
 
@@ -158,7 +206,10 @@ before pushing.
   database *ahead* of the code boots with a warning, because the deploy order
   is migrate-then-merge; that is only safe because **migrations are
   additive**: add tables and columns, never rename or drop in the same release
-  (see `backend/migrations/README.md`). `0004` adds `pick_events`.
+  (see `backend/migrations/README.md`). `0004` adds `pick_events`; `0005`
+  adds the physical catalogue's five tables and four enum types, reusing
+  `physical_format` and `format_source` untouched; `0006` adds
+  `recommendations` (Radar and Discover).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -173,6 +224,74 @@ before pushing.
   contradicting one rather than overriding it. The frontend's platform list
   in `ItemForm.jsx` mirrors `PLATFORM_NAMES` in `sources/igdb.py`, which is
   the authority.
+- **The physical catalogue** lives in `backend/physical_sources/` (read its
+  README first) with routes in `physical_routes.py`, all admin-only. Its
+  parsers are pure and a test holds them to it: no FastAPI or SQLAlchemy in
+  their import graph, which is why `formats.py` imports its shared constants
+  from `physical_sources/limits.py`. **Fixtures first**: nothing reads a store
+  or the sheet until its real response is recorded by
+  `backend/scripts/record_physical_fixtures.py` and a test runs on it;
+  re-record when a store's handles change, never edit a fixture. `STORES` in
+  `stores.py` is data: twelve stores (Atari is behind a bot challenge and
+  out). robots.txt is honoured per RFC 9309, not `urllib.robotparser`, whose
+  first-match rule lets Shopify's leading `Allow: /` allow everything.
+- **The collapse rule** (`collapse.py`): any full cartridge in the home region
+  makes a game a cartridge, because the registry row and a boutique listing
+  usually describe different editions; otherwise the most useful known
+  format; tiers only break ties between rows saying the same thing, and the
+  sheet always beats `switch2-tracker` for its region. A cartridge elsewhere
+  is a note, never a relabel. **Switch 1 is the exception:** it is region-free
+  (`REGION_FREE_PLATFORMS` in `limits.py`; no Game-Key Card, no region lock),
+  so a full cartridge in any region makes the game a cartridge. Switch 2
+  keeps the home-region rule.
+- **The registry writes formats in exactly one way:**
+  `formats.apply_registry_format`, which raises for a format the owner
+  recorded (`manual`, `cart_id`, `photo`). The sync after each registry
+  refresh writes only unprotected owned Switch 2 copies; the rest are
+  disagreements, shown on `/admin/catalogue` and the edit page, where "Use
+  registry value" PATCHes `edition_id`. The registry's cart ID is never
+  copied: `items.cart_id` means "printed on my copy".
+- **The Switch 1 registry** is the r/NSCollectors "Switch Physical
+  Releases" sheet (a different spreadsheet from the Switch 2 one), read by
+  `physical_sources/registry_switch1.py` into `nscollectors_ns1` editions on
+  platform 130, all regions, and bulk-matched by `switch1_ingest.py` against
+  IGDB's Switch list paged by name (`switch1_titles.py`, pure). One exact
+  match is AUTO/EXACT; anything else is IGNORED with `match_confidence`
+  UNCERTAIN, the automatic-ignore marker (`resolve.ignore` writes a human's
+  with NULL; only the matcher and `release_listed_ignores` revisit
+  automatic ones), unless a live Switch 1 store listing carries the key,
+  which is left to Resolve, also after later store refreshes. Automatic
+  ignores never enter Needs match: `/admin/catalogue` shows "N Switch 1
+  titles unmatched" (`totals.switch1_unmatched`) and lists none. IGDB is
+  still never a physical source for Switch 1 (`refresh-platform` refuses
+  130). The sheet's dates are never registry dates
+  (`collapse.REGISTRY_SOURCES` leaves it out), so nothing from it can reach
+  `/api/public/radar`; keep it out. Its keys are not in
+  `test_physical_keys.py`'s corpus. No migration: after deploy, press
+  Refresh Switch 1 once on `/admin/catalogue`; expect `rows_seen` near
+  10,000 (editions, not titles), and check the run's errors, since IGDB
+  pages beyond the first are first walked there.
+- **The store list** (`/admin/store-list`) reads
+  `GET /api/recommendations/store-list`: What's next's sections from
+  `next_list.sections` in admin mode, over pending rows only, so an answer
+  leaves it at once. Got it is Already own
+  (`POST /api/recommendations/{id}/own`). **The public What's next is
+  frozen to the batch** (Spine Next spec, S9): `load_next(public=True)`
+  adds the answered rows of the latest generation (Discover per kind,
+  Radar per platform) while it still has a pending row, so an answer
+  changes `/api/public/next` only at the next generation. The private-title
+  scan is lifted only by identity, for an owned frozen row the page
+  renders (`next_load.taste_sparing_owned`), never by title.
+- **E7c deploy order:** set `GOOGLE_SHEETS_API_KEY` on Render; apply `0005`
+  to Neon; merge; **before the first Refresh registry, bulk-set every owned
+  Switch 2 copy's format on `/admin/collection`** (the collection is all full
+  cartridges, and the registry lists many third-party retail boxes as
+  Game-Key Cards, so a blank format would be filled wrongly; a recorded one
+  is `manual` and never touched); then on `/admin/catalogue` press Refresh
+  registry, Refresh stores, Resolve until nothing remains, work through
+  Needs match, and Refresh N64 when wanted. Nothing from the catalogue is
+  public except the seven `/api/public/radar` fields (see Radar);
+  `test_public.py` and `test_public_outputs.py` pin that.
 - IGDB fixtures for the snapshot are recorded from the live API with
   `backend/scripts/record_igdb_fixtures.py` (see `backend/scripts/README.md`);
   re-record when `FIELDS` changes.
@@ -181,11 +300,19 @@ before pushing.
   credentials are optional config checked lazily, so a missing key disables
   one media type rather than stopping the service; `main.py` logs which
   sources are configured at startup.
-- `/collection` is public and **does** call the API, unlike every other public
-  page. It handles the free-tier cold start explicitly rather than showing a
-  spinner that reads as broken.
+- `/spine`, `/spine/next` and `/spine/:id` are public and **do** call the
+  API, unlike every other public page. `/spine` no longer calls
+  `/api/public/picks` or `/api/public/radar`; both endpoints (and their
+  snapshots) stay until the follow-up that retires them. They paint the build-time snapshot first
+  (`frontend/public/snapshot/*.json`, written by
+  `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed nightly at
+  00:17 UTC by `.github/workflows/nightly.yml` through a deploy hook, after
+  its refreshes), then swap in live
+  data; "Waking the server" shows only when there is no snapshot. The
+  snapshot is gitignored and never committed. See README → Collection
+  snapshot.
 - **Items are private when created.** `is_public` defaults to false, including
-  for photo imports, so nothing reaches `/collection` until it is published
+  for photo imports, so nothing reaches `/spine` until it is published
   from the admin collection page — per row, or with the bulk publish control.
   This was missing at first: the public API, page and filter all shipped
   without a way to set the flag, so the showcase was unreachable.
@@ -199,6 +326,58 @@ before pushing.
   (`FAVORITES_LIMIT` in `items.py`); unfavouriting is never refused. Rows
   favourited before the cap are kept, not trimmed: the admin row lists them
   all with a note until they are, and the public row shows the top four.
+- **Radar** (E8c) is `backend/radar.py` (pure: sections, score, reasons,
+  caps), `backend/radar_load.py` (the catalogue, items and past answers as
+  views) and `backend/recommendations_routes.py` (admin only). It reuses
+  Play Next's profile: score = 0.55 affinity + 0.35 similarity + 10 × hype
+  (taste-led, the owner's choice) + 15 when a pre-order closes within 30
+  days; the tuning points are `TASTE_WEIGHTS`, `URGENCY_BONUS` and
+  `URGENCY_DAYS`. Generate **regenerates only** — it
+  never walks the stores (that is `/admin/catalogue`) — and shares one
+  write lock with the catalogue (`main.py`), so the two never overlap.
+  Lane 3 ("Digital so far") reads IGDB `release_dates` per platform, never
+  `first_release_date` (the earliest date on any platform), and drops
+  cancelled and Switch 2 patch releases; its fixture is recorded with
+  `backend/scripts/record_igdb_fixtures.py --upcoming`. A dismissed, wanted or
+  owned game is out of Radar and Discover for good; a skipped one returns
+  at the next generation, and an answered suggestion takes no second
+  answer. Only an **open** pre-order (window not closed, or no window and
+  the game not out) counts as one. **Only seven fields of pending Radar
+  rows are public** (`/api/public/radar`, showcase spec, "Spec changes"):
+  title, platform, format, release date and precision, IGDB link and cover
+  -- for full cartridges dated to a day or month after today, registry-dated
+  only (`release_source` in `source_metadata`; a store's or IGDB's date
+  never is), the top six by score.
+  Never a store, price, pre-order window, reason, score or id, and nothing
+  from Discover on this endpoint (Discover's top picks reach the public only
+  through `/api/public/next`). `tests/test_public_outputs.py` pins the
+  fields. Otherwise,
+  Want creates an ordinary item (no owned copy, backlog, public) and only
+  that reaches the public, as What's next's Wanted list, through `wanted`
+  and `release_date`; Already
+  own creates a private one with a physical copy. Both record a format only
+  when the registry decided it.
+- **Discover** (E8b) is `backend/discover.py` (pure: released filter,
+  pre-score, seeded shuffle, prompt, schema, validation, fallback) behind
+  the same router, loader and lock as Radar; `kind` tells them apart. A
+  Radar generate replaces its pending rows on the platforms it covered; a
+  Discover generate replaces **all** of Discover's pending picks, so its
+  list is always one batch under one ranking note. Pre-score = 0.45 affinity + 0.35 similarity + 0.20 quality
+  ± 15 × popularity by mode (safe +, balanced 0, deep −), +10 buyable
+  now, −10 unknown format; the tuning points are `DISCOVER_WEIGHTS`,
+  `POPULARITY_WEIGHT`, `BUYABLE_BONUS` and `UNKNOWN_FORMAT_PENALTY`. The
+  top twenty are shuffled with a seed from the batch id (position bias)
+  and sent in **one** `complete_json` call per generate; the model answers
+  with **indices** into that list, so it can never introduce a title, and
+  `validate` drops bad or repeated indices and foreign `based_on`
+  numbers. Any model failure (quota, timeout, unreadable answer, no
+  provider) or no valid pick falls back to the deterministic top eight
+  with template reasons, and the reason is stored as `model_note`: the
+  feature never blocks on Gemini. `_failure_note` words the reason from
+  `llm.py`'s own messages ("used up" for Gemini's per-day 429, "rate
+  limit" for the rest); change one and the other has to follow — the
+  route test builds its errors with `_quota_message` to catch that. Everything dated after today belongs to
+  Radar, never Discover.
 - **Play Next** scoring lives in `backend/picker.py`, pure and tested without
   a database; `picker_routes.py` only loads rows and records events. The
   tuning points are `PICKER_WEIGHTS` and `MOOD_BUCKETS`. The buckets hold
@@ -208,6 +387,15 @@ before pushing.
   "Overdue classic" until acquired dates span 90 days, then "Waited longest".
   Pinning is its own route (`POST /api/items/{id}/pin`) because it clears
   the previous pin and records an event in one transaction.
+  `/api/public/picks` publishes up to three games that are public, owned,
+  backlog or active, unpinned, with no never event and no skip at or after
+  their shown event; the day is the most recent of the seven UTC days
+  ending yesterday on which one of those games was shown; only events
+  before today's UTC midnight count, so the list changes at most once a
+  day; and the day's picks are in title order. Reasons come from
+  `picker.public_reasons`: rebuilt from public rows only, without the slot
+  reasons, since "On the shelf since" is read from the private
+  `acquired_at`. Reasons are first person everywhere ("which I rated 9").
 - Editing lives at `/admin/collection/:id`. A wrong external match is fixed
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not
@@ -222,3 +410,19 @@ before pushing.
   payload under Gemini's 20MB inline ceiling.
 - Source attribution on the collection page is required by TMDB's and Comic
   Vine's terms, not decoration. A test pins the TMDB wording verbatim.
+- **Job token:** `require_admin` accepts `Bearer JOB_TOKEN` only on
+  `items.JOB_ROUTES`, matched on the routed template, and
+  `tests/test_job_token.py` is the point of it: it pins the whitelist
+  exactly, so a new route cannot become reachable by the token unnoticed.
+- **Nightly order:** picks, then registry, then stores, then Switch 1
+  (Sunday evenings in Denver), then resolve (up to 5 rounds), then Radar,
+  then Discover (Sunday evenings), then the snapshot compare and the deploy
+  hook. The pick lag is accepted: each run publishes yesterday's picks.
+- **`next_list.py`** (pure, with `next_load.py` loading the rows) is the one
+  sectioning authority for `/api/public/next` and
+  `/api/recommendations/store-list`. In public mode only registry dates
+  count. Public reasons are rebuilt over public games, and Discover model
+  text must pass both the id check (every cited game public) and the title
+  scan (no private game named, numeral and edition variants included).
+  `/spine/next` paints `/snapshot/next.json` when present; `fetch-snapshot`
+  writes it as an optional snapshot.

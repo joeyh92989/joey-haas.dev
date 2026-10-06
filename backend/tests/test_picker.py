@@ -17,6 +17,7 @@ from picker import (
     attributes,
     candidates,
     length_fit,
+    public_reasons,
     quality,
     recommend,
     reference_weights,
@@ -573,7 +574,7 @@ def test_a_rated_reference_is_named_with_its_rating():
     result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
     short = next(p for p in result.picks if p.item.id == "slay")
     assert (
-        "Shares deck-building and Card & Board Game with Inscryption, which you rated 9"
+        "Shares deck-building and Card & Board Game with Inscryption, which I rated 9"
         in short.reasons
     )
 
@@ -583,3 +584,71 @@ def test_no_candidates_is_an_empty_result_not_an_error():
     assert result.picks == ()
     assert result.candidate_count == 0
     assert result.profile_size == 4
+
+
+def test_public_reasons_draw_on_the_given_profile_only():
+    # "secret" shares more with the candidate than Hades does, so the full
+    # profile would name it; the public profile leaves it out.
+    hades = item("hades", favorite=True, genres=("Roguelike", "Indie"))
+    secret = item(
+        "secret",
+        title="Secret Game",
+        rating=10,
+        status="finished",
+        genres=("Roguelike", "Indie"),
+        themes=("Fantasy",),
+    )
+    candidate = item(
+        "dead", title="Dead Cells", genres=("Roguelike", "Indie"), themes=("Fantasy",)
+    )
+
+    full = public_reasons(candidate, [hades, secret, candidate])
+    public = public_reasons(candidate, [hades, candidate])
+
+    assert any("Secret Game" in reason for reason in full)
+    # Equal weights and one kind, so the shared genres sort by name.
+    assert "Shares Indie and Roguelike with Hades ♥" in public
+    assert not any("Secret Game" in reason for reason in public)
+
+
+def test_public_reasons_leave_out_the_slot_reasons():
+    candidate = item(
+        "old",
+        acquired_at=date(2020, 1, 1),
+        started_at=date(2026, 1, 1),
+        release_date=date(1998, 11, 21),
+        time_to_beat_hours=4.0,
+    )
+
+    reasons = public_reasons(candidate, [candidate])
+
+    assert reasons == ("About 4 h — a short one",)
+    assert not any(
+        phrase in reason
+        for reason in reasons
+        for phrase in ("On the shelf since", "Started in", "Out since")
+    )
+
+
+def test_public_reasons_are_first_person_and_capped():
+    rated = item(
+        "celeste",
+        title="Celeste",
+        rating=9,
+        status="finished",
+        external_id="1",
+        genres=("Platform",),
+        similar_games=("2",),
+    )
+    candidate = item(
+        "sunshine",
+        title="Sunshine",
+        external_id="2",
+        genres=("Platform",),
+        time_to_beat_hours=10.0,
+    )
+
+    reasons = public_reasons(candidate, [rated, candidate])
+
+    assert "IGDB lists it beside Celeste, which I rated 9" in reasons
+    assert len(reasons) <= 3

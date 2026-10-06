@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router'
-import joeyPhoto from '../assets/joey.jpg'
+import { Link, Outlet, useLocation } from 'react-router'
+import SiteHeader from '../components/SiteHeader.jsx'
 import { profile } from '../content/profile.js'
+import { posts } from '../content/posts.js'
 import { apiFetch, loginUrl } from '../lib/api.js'
 
 const STORAGE_KEY = 'theme'
@@ -12,12 +13,34 @@ const STORAGE_KEY = 'theme'
  * and anything nested under it.
  */
 const WIDE_ROUTES = [
-  '/collection',
+  '/spine',
   '/admin/collection',
   '/admin/play-next',
+  '/admin/catalogue',
   '/admin/discover',
   '/admin/radar',
 ]
+
+/**
+ * Routes that are the tracker rather than the person: the masthead shrinks
+ * to a wordmark so the shelf starts in the first screen (Spine Next spec,
+ * K4). A different question from WIDE_ROUTES (is this a grid?), so its own
+ * list; same prefix rule.
+ */
+const COMPACT_ROUTES = ['/spine', '/admin']
+
+/**
+ * Whether a pathname is one of the routes or nested under one.
+ *
+ * @param {string[]} routes Route prefixes.
+ * @param {string} pathname The current location's pathname.
+ * @returns {boolean} True for a listed route or a route nested under one.
+ */
+function isUnder(routes, pathname) {
+  return routes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  )
+}
 
 /**
  * Whether a pathname gets the wide layout.
@@ -26,9 +49,25 @@ const WIDE_ROUTES = [
  * @returns {boolean} True for a wide route or a route nested under one.
  */
 function isWideRoute(pathname) {
-  return WIDE_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  )
+  return isUnder(WIDE_ROUTES, pathname)
+}
+
+/**
+ * The nav, in order. Blog is listed only while a published post exists:
+ * production builds compile drafts to null, so a repo of drafts would
+ * otherwise put a nav item in front of an empty page.
+ *
+ * @param {boolean} hasPosts Whether any post is published.
+ * @returns {{to: string, label: string, end?: boolean}[]}
+ */
+function navItems(hasPosts) {
+  return [
+    { to: '/', label: 'Home', end: true },
+    { to: '/about', label: 'About' },
+    { to: '/projects', label: 'Projects' },
+    { to: '/spine', label: 'Spine' },
+    ...(hasPosts ? [{ to: '/blog', label: 'Blog' }] : []),
+  ]
 }
 
 /**
@@ -55,8 +94,8 @@ function readStoredTheme() {
 
 /**
  * Site chrome shared by every route: header with photo, name, nav pills and
- * the theme toggle; the routed page; and a footer carrying contact links. The
- * LinkedIn link renders only when a URL has been supplied.
+ * the theme toggle; the routed page; and a footer carrying a credit line and
+ * contact links. The LinkedIn link renders only when a URL has been supplied.
  */
 export default function RootLayout() {
   const [theme, setTheme] = useState(readStoredTheme)
@@ -106,36 +145,13 @@ export default function RootLayout() {
 
   return (
     <div className={isWideRoute(pathname) ? 'page page-wide' : 'page'}>
-      <header className={isHome ? 'site-header home' : 'site-header'}>
-        <img className="avatar" src={joeyPhoto} alt="" />
-        <div>
-          <div className="site-name">{profile.name}</div>
-          <div className="tagline">{profile.tagline}</div>
-        </div>
-      </header>
-
-      {/* The toggle sits on the nav row visually but outside <nav>: it is not a
-          navigation control, and the landmark should not advertise it as one. */}
-      <div className={isHome ? 'nav-row home' : 'nav-row'}>
-        <nav>
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-          <NavLink to="/about">About</NavLink>
-          <NavLink to="/projects">Projects</NavLink>
-          <NavLink to="/blog">Blog</NavLink>
-        </nav>
-        {/* The visible label names the destination theme; the accessible name
-            has to also say what the control does. */}
-        <button
-          type="button"
-          className="theme-toggle"
-          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-          onClick={toggleTheme}
-        >
-          {theme === 'dark' ? 'Light' : 'Dark'}
-        </button>
-      </div>
+      <SiteHeader
+        compact={isUnder(COMPACT_ROUTES, pathname)}
+        isHome={isHome}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        items={navItems(posts.length > 0)}
+      />
 
       <main className={isHome ? 'home' : undefined}>
         {/* Routed pages read the session from here rather than each asking
@@ -143,28 +159,34 @@ export default function RootLayout() {
         <Outlet context={{ signedIn: Boolean(signedIn) }} />
       </main>
 
-      <footer>
-        <a href={`mailto:${profile.email}`}>{profile.email}</a>
-        {' · '}
-        <a href={profile.github}>GitHub</a>
-        {profile.linkedin && (
-          <>
-            {' · '}
-            <a href={profile.linkedin}>LinkedIn</a>
-          </>
-        )}
-        {' · '}
-        {/* Replaces having to know the /admin URL. Deliberately understated:
-            it is a door for one person, not a call to action. */}
-        {signedIn ? (
-          <Link to="/admin" className="footer-admin">
-            Admin
-          </Link>
-        ) : (
-          <a href={loginUrl} className="footer-admin">
-            Sign in
-          </a>
-        )}
+      <footer className="site-footer">
+        <p className="footer-credit">
+          &copy; {new Date().getFullYear()} {profile.name} &middot;{' '}
+          <a href={profile.repo}>Source</a>
+        </p>
+        <p className="footer-links">
+          <a href={`mailto:${profile.email}`}>{profile.email}</a>
+          {' · '}
+          <a href={profile.github}>GitHub</a>
+          {profile.linkedin && (
+            <>
+              {' · '}
+              <a href={profile.linkedin}>LinkedIn</a>
+            </>
+          )}
+          {' · '}
+          {/* Replaces having to know the /admin URL. Deliberately understated:
+              it is a door for one person, not a call to action. */}
+          {signedIn ? (
+            <Link to="/admin" className="footer-admin">
+              Admin
+            </Link>
+          ) : (
+            <a href={loginUrl} className="footer-admin">
+              Sign in
+            </a>
+          )}
+        </p>
       </footer>
     </div>
   )

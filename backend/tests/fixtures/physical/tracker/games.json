@@ -1,0 +1,756 @@
+{
+  "updated": "2026-09-25T11:20:46.010376+00:00",
+  "sources": {
+    "summary": "https://docs.google.com/spreadsheets/d/1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8/export?format=csv&gid=558942722",
+    "details": "https://docs.google.com/spreadsheets/d/1LEIJUOanvkKq9kv1fSOnD40GdE1Jt5LzSYsg8yAPmb8/export?format=csv&gid=764784245",
+    "wikipedia": "https://en.wikipedia.org/wiki/List_of_Nintendo_Switch_2_games"
+  },
+  "count": 916,
+  "games": [
+    {
+      "title": "Metal Gear Solid: Master Collection Vol. 2",
+      "publisher": "Konami",
+      "developer": "Konami",
+      "type": "t",
+      "genre": "Action",
+      "date": "Aug 27, 2026",
+      "status": "r",
+      "fmt": "k",
+      "region": "var",
+      "releases": {
+        "aus": "Aug 27, 2026"
+      },
+      "formats": {
+        "eur": "k",
+        "jpn": "k",
+        "usa": "k"
+      },
+      "editions": {
+        "eur": [
+          "Day One"
+        ],
+        "jpn": [
+          "Day One"
+        ],
+        "usa": [
+          "Day One"
+        ]
+      },
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/metalgearsolidmastercollectionvol2/1x1_MetalGearSolidMasterCollectionVol2_image500w.jpg",
+      "id": 486
+    },
+    {
+      "title": "Elden Ring Tarnished Edition",
+      "publisher": "Bandai Namco",
+      "developer": "FromSoftware",
+      "type": "t",
+      "genre": "Action RPG",
+      "date": "Aug 28, 2026",
+      "status": "r",
+      "fmt": "k",
+      "region": "var",
+      "releases": {
+        "aus": "Aug 28, 2026"
+      },
+      "formats": {
+        "asi": "k",
+        "cht": "k",
+        "eur": "k",
+        "jpn": "k",
+        "kor": "k",
+        "usa": "k"
+      },
+      "editions": {
+        "asi": [
+          "Standard"
+        ],
+        "cht": [
+          "Standard"
+        ],
+        "eur": [
+          "Standard"
+        ],
+        "jpn": [
+          "Standard"
+        ],
+        "kor": [
+          "Standard"
+        ],
+        "usa": [
+          "Standard"
+        ]
+      },
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/eldenringtarnishededition/2x1_NSwitch2_EldenRing_image500w.jpg",
+      "id": 288
+    },
+    {
+      "title": "Moonlight Peaks - Nintendo Switch 2 Edition",
+      "publisher": "Marvelous",
+      "developer": "Little Chicken",
+      "type": "n",
+      "genre": "Action",
+      "date": "Aug 28, 2026",
+      "status": "r",
+      "fmt": "c",
+      "region": "var",
+      "releases": {
+        "aus": "Aug 28, 2026"
+      },
+      "formats": {
+        "asi": "c",
+        "cht": "c",
+        "eur": "c",
+        "jpn": "c",
+        "kor": "c"
+      },
+      "editions": {
+        "asi": [
+          "Standard"
+        ],
+        "cht": [
+          "Standard"
+        ],
+        "eur": [
+          "Standard"
+        ],
+        "jpn": [
+          "Standard"
+        ],
+        "kor": [
+          "Standard"
+        ]
+      },
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/moonlightpeaksnintendoswitch2edition/1x1_MoonlightPeaksNintendoSwitch2Edition_image500w.jpg",
+      "id": 515
+    },
+    {
+      "title": "Destroy All Humans! 2 Reprobed",
+      "publisher": "THQ Nordic",
+      "developer": "Black Forest Games",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 15, 2026",
+      "status": "r",
+      "fmt": "k",
+      "region": "var",
+      "releases": {
+        "aus": "Sep 15, 2026"
+      },
+      "formats": {
+        "aus": "k",
+        "eur": "k",
+        "usa": "k"
+      },
+      "editions": {
+        "aus": [
+          "Standard"
+        ],
+        "eur": [
+          "Standard"
+        ],
+        "usa": [
+          "Standard"
+        ]
+      },
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/10_share_images/games_15/nintendo_switch_4/H2x1_NSwitch_DestroyAllHumans_image500w.jpg",
+      "id": 247
+    },
+    {
+      "title": "Absolum - Nintendo Switch 2 Edition",
+      "publisher": "Silver Lining Interactive",
+      "developer": "Guard Crush Games, Supamonks",
+      "type": "n",
+      "genre": "Action",
+      "date": "Sep 17, 2026",
+      "status": "r",
+      "fmt": "c",
+      "region": "var",
+      "releases": {
+        "usa": "Sep 17, 2026",
+        "kor": "Sep 17, 2026"
+      },
+      "formats": {
+        "eur": "c",
+        "cht": "c",
+        "jpn": "c"
+      },
+      "editions": {
+        "eur": [
+          "Standard"
+        ],
+        "cht": [
+          "Standard"
+        ],
+        "jpn": [
+          "Standard"
+        ]
+      },
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_games/absolum/1x1_Absolum_image500w.jpg",
+      "id": 9
+    },
+    {
+      "title": "Graveyard Keeper 2",
+      "publisher": "",
+      "developer": "",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 22, 2026",
+      "status": "r",
+      "fmt": "?",
+      "region": "var",
+      "releases": {
+        "usa": "Sep 22, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://assets.nintendo.eu/image/private/f_auto,q_auto,w_500/auqbqpm35yjzsfnfcnrz",
+      "id": 349
+    },
+    {
+      "title": "Crisis Core: Final Fantasy VII Reunion",
+      "publisher": "Square Enix",
+      "developer": "Square Enix, ,, Tose",
+      "type": "t",
+      "genre": "Action RPG",
+      "date": "Sep 23, 2026",
+      "status": "r",
+      "fmt": "?",
+      "region": "var",
+      "releases": {
+        "cht": "Sep 23, 2026",
+        "asi": "Sep 23, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/crisiscorefinalfantasyviireunion/1x1_CrisisCoreFinalFantasyVIIReunion_image500w.jpg",
+      "id": 213
+    },
+    {
+      "title": "Derby Stallion 2",
+      "publisher": "Game Addict",
+      "developer": "ParityBit",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 24, 2026",
+      "status": "r",
+      "fmt": "?",
+      "region": "jp",
+      "releases": {
+        "jpn": "Sep 24, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/10_share_images/games_15/nintendo_switch_download_software_1/2x1_NSwitchDS_ZombieDerby2_image500w.jpg",
+      "id": 244
+    },
+    {
+      "title": "Dragon Quest XI S: Echoes of an Elusive Age - Definitive Edition",
+      "publisher": "Square Enix",
+      "developer": "Square Enix",
+      "type": "t",
+      "genre": "Action RPG",
+      "date": "Sep 24, 2026",
+      "status": "r",
+      "fmt": "k",
+      "region": "ww",
+      "releases": {
+        "usa": "Sep 24, 2026",
+        "kor": "Sep 24, 2026",
+        "jpn": "Sep 24, 2026",
+        "eur": "Sep 24, 2026",
+        "cht": "Sep 24, 2026",
+        "asi": "Sep 24, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/dragonquestxisechoesofanelusiveagede/1x1_DragonQuestXiSEchoesOfAnElusiveAgeDE_EN_image500w.jpg",
+      "id": 268
+    },
+    {
+      "title": "Gobble",
+      "publisher": "NIS America",
+      "developer": "Nippon Ichi Software",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 24, 2026",
+      "status": "r",
+      "fmt": "?",
+      "region": "var",
+      "releases": {
+        "jpn": "Sep 24, 2026",
+        "cht": "Sep 24, 2026",
+        "asi": "Sep 24, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://img-eshop.cdn.nintendo.net/i/1d8efb1727302025b5b02a7f3a921c7a0f004db543ed13b97ac33c2b340ebd49.jpg",
+      "id": 339
+    },
+    {
+      "title": "Grim Trials",
+      "publisher": "Softsource",
+      "developer": "Glory Jam",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 24, 2026",
+      "status": "r",
+      "fmt": "?",
+      "region": "var",
+      "releases": {
+        "jpn": "Sep 24, 2026",
+        "cht": "Sep 24, 2026",
+        "asi": "Sep 24, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/grimtrials/1x1_GrimTrials_image500w.jpg",
+      "id": 352
+    },
+    {
+      "title": "Hell is Us: Special Edition",
+      "publisher": "Nacon",
+      "developer": "Rogue Factor",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 24, 2026",
+      "status": "r",
+      "fmt": "k",
+      "region": "jp",
+      "releases": {
+        "jpn": "Sep 24, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_games/tombispecialedition/1x1_TombiSpecialEdition_image500w.jpg",
+      "id": 367
+    },
+    {
+      "title": "Shinobi: Art of Vengeance - Deluxe Edition",
+      "publisher": "",
+      "developer": "",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 24, 2026",
+      "status": "r",
+      "fmt": "k",
+      "region": "ww",
+      "releases": {
+        "usa": "Sep 24, 2026",
+        "jpn": "Sep 24, 2026",
+        "eur": "Sep 24, 2026",
+        "cht": "Sep 24, 2026",
+        "asi": "Sep 24, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/shinobiartofvengeance/1x1_ShinobiArtOfVengeance_image500w.jpg",
+      "id": 687
+    },
+    {
+      "title": "EA Sports FC 27",
+      "publisher": "Electronic Arts",
+      "developer": "EA Vancouver, ,, EA Romania",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 25, 2026",
+      "status": "r",
+      "fmt": "k",
+      "region": "ww",
+      "releases": {
+        "usa": "Sep 25, 2026",
+        "jpn": "Sep 25, 2026",
+        "eur": "Sep 25, 2026",
+        "cht": "Sep 25, 2026",
+        "asi": "Sep 25, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://assets.nintendo.eu/image/private/f_auto,q_auto,w_500/n54hdf1md7hjqdjxzibu",
+      "id": 282
+    },
+    {
+      "title": "Super Bomberman Collection Nintendo Switch 2 Edition",
+      "publisher": "Clouded Leopard Entertainment",
+      "developer": "Red Art Games",
+      "type": "n",
+      "genre": "Action",
+      "date": "Sep 25, 2026",
+      "status": "r",
+      "fmt": "c",
+      "region": "var",
+      "releases": {
+        "usa": "Sep 25, 2026",
+        "eur": "Sep 25, 2026"
+      },
+      "formats": {
+        "jpn": "c",
+        "cht": "c",
+        "asi": "c"
+      },
+      "editions": {
+        "jpn": [
+          "Standard",
+          "Limited"
+        ],
+        "cht": [
+          "Standard"
+        ],
+        "asi": [
+          "Standard"
+        ]
+      },
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/superbombermancollectionns2e/1x1_SuperBombermanCollectionNS2E_image500w.jpg",
+      "id": 751
+    },
+    {
+      "title": "Solarpunk",
+      "publisher": "Rokaplay",
+      "developer": "Cyberware",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 29, 2026",
+      "status": "u",
+      "fmt": "?",
+      "region": "var",
+      "releases": {
+        "usa": "Sep 29, 2026",
+        "eur": "Sep 29, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/solarpunk/1x1_Solarpunk_image500w.jpg",
+      "id": 704
+    },
+    {
+      "title": "Trails in the Sky 2nd Chapter Nintendo Switch 2 Edition",
+      "publisher": "GungHo",
+      "developer": "Nihon Falcom",
+      "type": "n",
+      "genre": "Action",
+      "date": "Sep 29, 2026",
+      "status": "u",
+      "fmt": "c",
+      "region": "var",
+      "releases": {
+        "eur": "Sep 29, 2026"
+      },
+      "formats": {
+        "jpn": "c",
+        "cht": "c",
+        "usa": "c"
+      },
+      "editions": {
+        "jpn": [
+          "Standard",
+          "Uroboros Box"
+        ],
+        "cht": [
+          "Standard"
+        ],
+        "usa": [
+          "Standard"
+        ]
+      },
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/trailsinthesky1stchapternintendoswitch2edition_1/1x1_TrailsInTheSky1stChapterNintendoSwitch2Edition_image500w.jpg",
+      "id": 843
+    },
+    {
+      "title": "The Binding of Isaac: Repentance+",
+      "publisher": "Nicalis",
+      "developer": "Edmund McMillen",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 30, 2026",
+      "status": "u",
+      "fmt": "c",
+      "region": "var",
+      "releases": {
+        "usa": "Sep 30, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/10_share_images/games_15/nintendo_switch_4/H2x1_NSwitch_TheBindingOfIsaacAfterbirthPlus_image500w.jpg",
+      "id": 777
+    },
+    {
+      "title": "Dave the Diver Complete Edition",
+      "publisher": "",
+      "developer": "",
+      "type": "t",
+      "genre": "Life Sim",
+      "date": "Sep 30, 2026",
+      "status": "u",
+      "fmt": "k",
+      "region": "var",
+      "releases": {
+        "eur": "Sep 30, 2026",
+        "aus": "Sep 30, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/davethedivernintendoswitch2edition/1x1_DaveTheDiverNintendoSwitch2Edition_image500w.jpg",
+      "id": 227
+    },
+    {
+      "title": "House Flipper 2 + the Sakura DLC",
+      "publisher": "Frozen District",
+      "developer": "Frozen District",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 30, 2026",
+      "status": "u",
+      "fmt": "?",
+      "region": "var",
+      "releases": {
+        "eur": "Sep 30, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": null,
+      "id": 388
+    },
+    {
+      "title": "Minecraft Dungeons II",
+      "publisher": "Xbox Game Studios",
+      "developer": "Mojang Studios",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 30, 2026",
+      "status": "u",
+      "fmt": "k",
+      "region": "var",
+      "releases": {
+        "kor": "Sep 30, 2026",
+        "jpn": "Sep 30, 2026",
+        "cht": "Sep 30, 2026",
+        "asi": "Sep 30, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/minecraftdungeonsii_1/1x1_MinecraftDungeonsII_image500w.jpg",
+      "id": 498
+    },
+    {
+      "title": "Minecraft Dungeons II - Deluxe Edition",
+      "publisher": "Xbox Game Studios",
+      "developer": "Mojang Studios",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 30, 2026",
+      "status": "u",
+      "fmt": "k",
+      "region": "var",
+      "releases": {
+        "usa": "Sep 30, 2026",
+        "eur": "Sep 30, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/minecraftdungeonsii_1/1x1_MinecraftDungeonsII_image500w.jpg",
+      "id": 499
+    },
+    {
+      "title": "Monopoly: Star Wars Heroes vs. Villains",
+      "publisher": "Ubisoft",
+      "developer": "Ubisoft",
+      "type": "t",
+      "genre": "Action-Adventure",
+      "date": "Sep 30, 2026",
+      "status": "u",
+      "fmt": "k",
+      "region": "var",
+      "releases": {
+        "usa": "Sep 30, 2026",
+        "eur": "Sep 30, 2026"
+      },
+      "formats": {
+        "asi": "k",
+        "aus": "k",
+        "cht": "k",
+        "eur": "k",
+        "jpn": "k",
+        "usa": "k"
+      },
+      "editions": {
+        "asi": [
+          "Standard"
+        ],
+        "aus": [
+          "Standard"
+        ],
+        "cht": [
+          "Standard"
+        ],
+        "eur": [
+          "Standard"
+        ],
+        "jpn": [
+          "Standard"
+        ],
+        "usa": [
+          "Standard"
+        ]
+      },
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_games/monopolystarwarsheroesvsvillains/1x1_MonopolyStarWarsHeroesVsVillains_image500w.jpg",
+      "id": 508
+    },
+    {
+      "title": "Order Up!!",
+      "publisher": "Nicalis",
+      "developer": "SuperVillain Studios",
+      "type": "t",
+      "genre": "Action",
+      "date": "Sep 30, 2026",
+      "status": "u",
+      "fmt": "c",
+      "region": "var",
+      "releases": {
+        "usa": "Sep 30, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/shutenordernintendoswitch2edition/1x1_ShutenOrderNintendoSwitch2Edition_image500w.jpg",
+      "id": 567
+    },
+    {
+      "title": "Witchbrook",
+      "publisher": "Chucklefish",
+      "developer": "Chucklefish",
+      "type": "t",
+      "genre": "Action",
+      "date": "2026",
+      "status": "u",
+      "fmt": "?",
+      "region": "ww",
+      "releases": {
+        "usa": "Sep 30, 2026",
+        "jpn": "Sep 30, 2026",
+        "eur": "Sep 30, 2026",
+        "aus": "Sep 30, 2026",
+        "asi": "Sep 30, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://img-eshop.cdn.nintendo.net/i/926de91ee31f8a5a74d2b49887d2b04a04ec01ae6bd575cbbe62f11463a79ff9.jpg",
+      "id": 890
+    },
+    {
+      "title": "Enter the Gungeon 2",
+      "publisher": "Devolver Digital",
+      "developer": "Dodge Roll",
+      "type": "t",
+      "genre": "Action Roguelike",
+      "date": "Dec 31, 2026",
+      "status": "u",
+      "fmt": "d",
+      "region": "var",
+      "releases": {
+        "usa": "Dec 31, 2026",
+        "eur": "Dec 31, 2026",
+        "aus": "Dec 31, 2026"
+      },
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/enterthegungeon2/2x1_NSwitch2_EnterTheGungeon2_image500w.jpg",
+      "id": 290
+    },
+    {
+      "title": "1001 Threads of Mizan",
+      "publisher": "MBC Game Studio",
+      "developer": "MBC Game Studio",
+      "type": "t",
+      "genre": "Action",
+      "date": "TBA",
+      "status": "u",
+      "fmt": "?",
+      "region": "ww",
+      "releases": {},
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": null,
+      "id": 3
+    },
+    {
+      "title": "The Elder Scrolls V: Skyrim Anniversary Edition",
+      "publisher": "Bethesda Softworks",
+      "developer": "Bethesda Game Studios",
+      "type": "t",
+      "genre": "Action",
+      "date": "Dec 9, 2025",
+      "status": "r",
+      "fmt": "b",
+      "region": "ww",
+      "releases": {},
+      "formats": {},
+      "editions": {},
+      "note": "Code in Box — physical retail box contains download code only",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/theelderscrollsvskyrimanniversaryedition/1x1_TheElderScrollsVSkyrimAnniversaryEdition_image500w.jpg",
+      "id": 783
+    },
+    {
+      "title": "Nobunaga's Ambition: Hishou",
+      "publisher": "Koei Tecmo",
+      "developer": "Kou Shibusawa",
+      "type": "t",
+      "genre": "Strategy RPG",
+      "date": "Q4 2026",
+      "status": "u",
+      "fmt": "k",
+      "region": "ww",
+      "releases": {},
+      "formats": {},
+      "editions": {},
+      "note": "",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/consolearchivesnobunagasambition/1x1_ConsoleArchivesNobunagasAmbition_image500w.jpg",
+      "id": 546
+    },
+    {
+      "title": "WWE 2K25",
+      "publisher": "2K",
+      "developer": "Visual Concepts",
+      "type": "t",
+      "genre": "Action",
+      "date": "Jul 23, 2025",
+      "status": "r",
+      "fmt": "k",
+      "region": "ww",
+      "releases": {},
+      "formats": {
+        "usa": "b",
+        "eur": "k",
+        "aus": "k"
+      },
+      "editions": {},
+      "note": "USA: Code in Box (retail box + download code) · EUR/AUS: Game-Key Card",
+      "art": "https://www.nintendo.com/eu/media/images/assets/nintendo_switch_2_games/wwe2k25standardedition/2x1_WWE2K25StandardEdition_image500w.jpg",
+      "id": 897
+    }
+  ]
+}

@@ -61,3 +61,7 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      # The nightly workflow's bearer token (.github/workflows/nightly.yml).
+      # Opens only items.JOB_ROUTES. Unset: the job's calls are 401s.
+      - key: JOB_TOKEN
+        sync: false

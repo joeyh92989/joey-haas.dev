@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Iterable
 from datetime import UTC, datetime
 
 import httpx2
@@ -42,6 +43,9 @@ logger = logging.getLogger(__name__)
 TOKEN_URL = "https://id.twitch.tv/oauth2/token"
 API_ROOT = "https://api.igdb.com/v4"
 IMAGE_ROOT = "https://images.igdb.com/igdb/image/upload"
+# IGDB's own game pages. A snapshot keeps a URL only under this prefix, and
+# the public radar links only to one (public_outputs.py).
+IGDB_URL_PREFIX = "https://www.igdb.com/"
 COVER_SIZE = "t_cover_big"
 THUMBNAIL_SIZE = "t_cover_small"
 SEARCH_LIMIT = 10
@@ -126,7 +130,7 @@ FIELDS = (
     "platforms.name,platforms.id,involved_companies.company.name,"
     "involved_companies.developer,similar_games,themes.name,themes.id,"
     "keywords.name,game_modes.name,player_perspectives.name,hypes,"
-    "game_status.status;"
+    "game_status.status,url;"
 )
 TIME_TO_BEAT_FIELDS = "fields game_id,hastily,normally,completely,count;"
 
@@ -167,6 +171,93 @@ def date_from_unix(value: int | None) -> str | None:
 
 def _names(row: dict, field: str) -> list[str]:
     return [entry["name"] for entry in row.get(field) or [] if entry.get("name")]
+
+
+# Radar's lane 3 (E8c): upcoming release dates on the owner's platforms.
+# release_dates, not games.first_release_date, which is the earliest date on
+# any platform (live, 2026-09-27: Persona 4 Revival's Switch 2 date is later).
+UPCOMING_FIELDS = (
+    "fields date,date_format,platform,status,"
+    "game.id,game.name,game.hypes,game.game_type,game.cover.image_id,"
+    "game.genres.name,game.themes.name,game.keywords.name,"
+    "game.game_modes.name,game.player_perspectives.name,game.similar_games;"
+)
+# Main game, remake, remaster, expanded game, port (IGDB /v4/game_types).
+UPCOMING_GAME_TYPES = frozenset({0, 8, 9, 10, 11})
+# Cancelled, and the two Switch 2 patch releases (/v4/release_date_statuses).
+UPCOMING_EXCLUDED_STATUSES = frozenset({5, 35, 36})
+UPCOMING_MIN_HYPES = 5
+UPCOMING_PAGE = 500
+UPCOMING_MAX_PAGES = 4
+# /v4/date_formats: YYYYMMDD, YYYYMM, YYYY, then four quarters; 7 is TBD.
+_DATE_PRECISION = {
+    0: "day",
+    1: "month",
+    2: "year",
+    3: "quarter",
+    4: "quarter",
+    5: "quarter",
+    6: "quarter",
+}
+
+
+def parse_upcoming(rows: list[dict], platform_ids: frozenset[int]) -> list[dict]:
+    """IGDB release dates on the owner's platforms, as Radar's lane-3 rows.
+
+    One row per (game, platform), the earliest date winning. Keeps main
+    games, remakes, remasters, expanded games and ports with at least
+    UPCOMING_MIN_HYPES follows; drops cancelled releases, Switch 2 patch
+    releases and a date IGDB has as TBD. `snapshot` carries the keys Play
+    Next's profile reads.
+    """
+    found: dict[tuple[int, int], dict] = {}
+    for row in rows:
+        game = row.get("game")
+        platform = row.get("platform")
+        if not isinstance(game, dict) or platform not in platform_ids:
+            continue
+        precision = _DATE_PRECISION.get(row.get("date_format"))
+        released = date_from_unix(row.get("date"))
+        if precision is None or released is None:
+            continue
+        if row.get("status") in UPCOMING_EXCLUDED_STATUSES:
+            continue
+        if game.get("game_type", 0) not in UPCOMING_GAME_TYPES:
+            continue
+        hypes = game.get("hypes") if isinstance(game.get("hypes"), int) else 0
+        if hypes < UPCOMING_MIN_HYPES or not isinstance(game.get("id"), int):
+            continue
+        if not (game.get("name") or "").strip():
+            continue  # nothing to show or to add to the shelf
+        key = (game["id"], platform)
+        if key in found and found[key]["release_date"] <= released:
+            continue
+        image_id = (game.get("cover") or {}).get("image_id")
+        found[key] = {
+            "igdb_id": game["id"],
+            "title": game.get("name") or "",
+            "cover_url": f"{IMAGE_ROOT}/{COVER_SIZE}/{image_id}.jpg"
+            if image_id
+            else None,
+            "platform_id": platform,
+            "release_date": released,
+            "release_precision": precision,
+            "hypes": hypes,
+            "snapshot": {
+                "genres": _names(game, "genres"),
+                "themes": _names(game, "themes"),
+                "keywords": _names(game, "keywords")[:KEYWORD_LIMIT],
+                "game_modes": _names(game, "game_modes"),
+                "player_perspectives": _names(game, "player_perspectives"),
+                "similar_games": [
+                    other
+                    for other in game.get("similar_games") or []
+                    if isinstance(other, int)
+                ],
+                "hypes": hypes,
+            },
+        }
+    return sorted(found.values(), key=lambda row: (row["release_date"], row["igdb_id"]))
 
 
 def _ids(row: dict, field: str) -> list[int]:
@@ -336,6 +427,11 @@ class IgdbSource:
         ]
         snapshot = {
             "genres": _names(row, "genres"),
+            # IGDB's own page, for the public radar's link (showcase spec,
+            # K7). Kept only when it is on igdb.com.
+            "url": row.get("url")
+            if str(row.get("url") or "").startswith(IGDB_URL_PREFIX)
+            else None,
             "description": row.get("summary") or None,
             "community_score": row.get("total_rating") or row.get("rating"),
             "community_votes": row.get("total_rating_count"),
@@ -430,6 +526,31 @@ class IgdbSource:
             raise SourceError(self.source_name, f"no game with id {external_id}")
         times = await self._times_to_beat([external_id])
         return self._parse_detail(payload[0], times.get(external_id))
+
+    async def upcoming(self, platform_ids: Iterable[int], now: int) -> list[dict]:
+        """Radar's lane 3: release dates after `now` (Unix time) on these
+        platforms, UPCOMING_PAGE at a time, at most UPCOMING_MAX_PAGES."""
+        ids = frozenset(platform_ids)
+        where = f"where platform = ({','.join(map(str, sorted(ids)))}) & date > {now};"
+        rows: list[dict] = []
+        for page in range(UPCOMING_MAX_PAGES):
+            batch = await self._query(
+                f"{UPCOMING_FIELDS} {where} sort date asc; "
+                f"limit {UPCOMING_PAGE}; offset {page * UPCOMING_PAGE};",
+                endpoint="release_dates",
+            )
+            rows.extend(batch)
+            if len(batch) < UPCOMING_PAGE:
+                break
+        else:
+            # The hype floor is applied after paging, so a full cap can hide
+            # far-dated games; say so rather than lose them silently.
+            logger.warning(
+                "igdb upcoming: stopped at %d pages; later release dates not read",
+                UPCOMING_MAX_PAGES,
+            )
+        logger.info("igdb upcoming: %d release dates on %s", len(rows), sorted(ids))
+        return parse_upcoming(rows, ids)
 
     async def fetch_many(self, external_ids: list[str]) -> list[SourceDetail]:
         """Full detail for many IGDB ids, BATCH at a time.
