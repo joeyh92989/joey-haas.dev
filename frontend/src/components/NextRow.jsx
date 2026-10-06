@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { spine } from '../content/spine.js'
-import { releaseWords } from '../pages/AdminRadar.jsx'
+import { releaseWords } from '../lib/releaseWords.js'
 import CoverImage from './CoverImage.jsx'
 
 /** As a meta line starts; mirrors FORMAT_WORDS in physical_sources/limits.py. */

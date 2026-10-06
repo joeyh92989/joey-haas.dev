@@ -7,26 +7,13 @@ import RecommendationCard, {
   utc,
 } from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { MONTH, releaseWords } from '../lib/releaseWords.js'
 import { localToday } from '../lib/statusTransition.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
 const UNREACHABLE = 'Could not reach the API. Try again shortly.'
 
-const MONTH = new Intl.DateTimeFormat('en', {
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-/** A release date as precisely as it is known. */
-export function releaseWords(row) {
-  if (!row.release_date) return 'Date not announced'
-  const date = utc(row.release_date)
-  if (row.release_precision === 'year') return String(date.getUTCFullYear())
-  if (row.release_precision === 'quarter')
-    return `Q${Math.floor(date.getUTCMonth() / 3) + 1} ${date.getUTCFullYear()}`
-  if (row.release_precision === 'month') return MONTH.format(date)
-  return dayWords(row.release_date)
-}
+export { releaseWords } from '../lib/releaseWords.js'
 
 /** "2 hours ago", or "never". */
 export function ago(timestamp, now = Date.now()) {

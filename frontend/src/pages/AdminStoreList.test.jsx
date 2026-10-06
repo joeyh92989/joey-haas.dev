@@ -10,6 +10,7 @@ function row(id, fields = {}) {
     id,
     title: `Game ${id}`,
     cover_url: null,
+    igdb_url: `https://www.igdb.com/games/game-${id}`,
     release_date: '2026-09-01',
     release_precision: 'day',
     platform: 'Nintendo Switch 2',
@@ -234,9 +235,76 @@ describe('AdminStoreList', () => {
     for (const item of rows) {
       const link = item.querySelector('.next-row-link')
       expect(link).not.toBeNull()
+      expect(link.tagName).toBe('A')
       expect(within(link).queryByRole('button')).toBeNull()
       expect(within(item).getAllByRole('button').length).toBeGreaterThan(0)
     }
+  })
+
+  it("moves focus to the next row's first action after an answer", async () => {
+    stubApi({
+      'POST /api/recommendations/a/own': () => json({ item_id: 'x' }, 201),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Got it: Game a' }),
+    )
+    expect(screen.queryByText('Game a')).toBeNull()
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Got it: Game b' }),
+    )
+    await screen.findByText('Added Game a to the collection')
+  })
+
+  it('falls back to the row before when the answered row was the last', async () => {
+    stubApi({
+      'POST /api/recommendations/d/dismiss': () => json({}, 200),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Not interested: Game d' }),
+    )
+    expect(screen.queryByText('Game d')).toBeNull()
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Got it: Game c' }),
+    )
+    await screen.findByText('Dropped Game d')
+  })
+
+  it('moves focus to the status line when no row is left', async () => {
+    stubApi({
+      'GET /api/recommendations/store-list': () =>
+        json({
+          ...LIST,
+          sections: { ...EMPTY.sections, preorders: [row('c')] },
+        }),
+      'POST /api/recommendations/c/own': () => json({ item_id: 'x' }, 201),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Got it: Game c' }),
+    )
+    expect(screen.queryByText('Game c')).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole('status'))
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Added Game c to the collection',
+    )
+  })
+
+  it('leaves focus alone when the answer fails and the row returns', async () => {
+    stubApi({
+      'POST /api/recommendations/a/own': () =>
+        json({ detail: 'Database unavailable' }, 500),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Got it: Game a' }),
+    )
+    await screen.findByRole('alert')
+    expect(screen.getByText('Game a')).toBeInTheDocument()
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Got it: Game b' }),
+    )
   })
 
   it('lists where to buy, with the price and any pre-order', async () => {
