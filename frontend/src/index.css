@@ -40,14 +40,16 @@
   --code-bg: #1a140d;
   /* The tracker shelf. Status marks are non-text marks, so each clears 3:1
      (WCAG 1.4.11) against --surface, the colour of the 2px gaps between
-     stacked-bar segments; backlog also clears 3:1 against --border, which it
-     sits nearest to in hue. Measured, dark: active 4.65, finished 10.24,
-     backlog 5.02, abandoned 3.55; backlog on --border 3.61. */
+     stacked-bar segments; backlog also clears 3:1 against --border. The
+     four step in lightness as well as hue (lightest first: finished,
+     backlog, active, abandoned), so no two sit closer than 1.48:1 to each
+     other. Measured, dark: active 4.65, finished 10.24, backlog 6.92,
+     abandoned 3.15; backlog on --border 4.98. */
   --rating: var(--accent);
   --status-active: var(--accent-2);
   --status-finished: #e0cfb2;
-  --status-backlog: #a38f72;
-  --status-abandoned: #7a7874;
+  --status-backlog: #c0a989;
+  --status-abandoned: #67717c;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
   --skeleton: #342b21;
   --grid-gap: 1rem;
@@ -80,13 +82,14 @@
   --nav-idle: #6b5f50;
   --nav-active-weight: 500;
   --code-bg: #fffffd;
-  /* Measured, light: active 4.57, finished 8.03, backlog 4.02, abandoned
-     3.38 on --surface; backlog on --border 3.41. */
+  /* Measured, light: active 4.57, finished 8.03, backlog 6.03, abandoned
+     3.46 on --surface; backlog on --border 5.11. Darkest first: finished,
+     backlog, active, abandoned; no two closer than 1.32:1. */
   --rating: var(--accent);
   --status-active: var(--accent-2);
   --status-finished: #4f4335;
-  --status-backlog: #836f55;
-  --status-abandoned: #817e7a;
+  --status-backlog: #685438;
+  --status-abandoned: #737e8a;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
   --skeleton: #ebe1cf;
   --grid-gap: 1rem;
@@ -1662,35 +1665,12 @@ footer {
   gap: 0.4rem 0.75rem;
 }
 
-/* Public item page. The hero band is the item's own cover, blurred and
-   dimmed with --overlay; the unblurred cover overlaps its bottom edge. */
+/* Public item page. The hero band is a plain --surface panel; the cover
+   overlaps its bottom edge. */
 .item-hero {
   background: var(--surface);
   border-radius: 8px;
   height: 13rem;
-  overflow: hidden;
-  position: relative;
-}
-
-.item-hero-backdrop {
-  filter: blur(28px) saturate(1.1);
-  height: 100%;
-  inset: 0;
-  object-fit: cover;
-  position: absolute;
-  transform: scale(1.25);
-  width: 100%;
-}
-
-.item-hero::after {
-  background: var(--overlay);
-  content: '';
-  inset: 0;
-  position: absolute;
-}
-
-.item-hero[data-empty]::after {
-  display: none;
 }
 
 .item-head {

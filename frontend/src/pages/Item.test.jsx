@@ -86,12 +86,16 @@ describe('Item', () => {
     expect(String(fetch.mock.calls[0][0])).toContain(`/api/public/items/${ID}`)
   })
 
-  it('shows the hero: blurred band, cover, title, year, creator, status in words', async () => {
+  it('shows the hero: plain band, cover, title, year, creator, status in words', async () => {
     stubItem()
     await renderReady()
 
     const hero = document.querySelector('.item-hero')
-    expect(hero.querySelector('.item-hero-backdrop')).toHaveAttribute(
+    expect(hero).not.toBeNull()
+    expect(hero).not.toHaveAttribute('data-empty')
+    expect(document.querySelector('.item-hero-backdrop')).toBeNull()
+    expect(hero.querySelector('img')).toBeNull()
+    expect(document.querySelector('.item-cover img')).toHaveAttribute(
       'src',
       DETAIL.cover_url,
     )
@@ -99,12 +103,14 @@ describe('Item', () => {
     expect(screen.getByText('Finished · June 2026')).toBeInTheDocument()
   })
 
-  it('falls back to a plain band and the placeholder without a cover', async () => {
+  it('keeps the plain band and shows the placeholder without a cover', async () => {
     stubItem({ cover_url: null })
     await renderReady()
 
     expect(document.querySelector('.item-hero-backdrop')).toBeNull()
-    expect(document.querySelector('.item-hero')).toHaveAttribute('data-empty')
+    expect(document.querySelector('.item-hero')).not.toHaveAttribute(
+      'data-empty',
+    )
     expect(document.querySelector('.cover-placeholder')).not.toBeNull()
   })
 

@@ -138,6 +138,7 @@ see D3 for why the digest replaced them.
   - backlog becomes a darker tan, around lightness 45 in dark;
   - abandoned goes cooler and darker, so it reads as "set aside";
   - finished stays the cream, and playing keeps the sage.
+- **As built (deviation):** separating by hue alone left light active and abandoned at 1.01:1 to each other, so the four now step in lightness as well. Backlog went *lighter* in dark (`#c0a989`) and darker in light (`#685438`); abandoned is `#67717c` dark, `#737e8a` light. Every mark still clears 3:1 against `--surface`, backlog against `--border`, and no two statuses sit closer than 1.48:1 (dark) or 1.32:1 (light). The ratios are in `index.css` and commit c4facbb.
 - The rule from CLAUDE.md, which matches WCAG 1.4.11's 3:1 minimum for non-text marks:
   - each status colour clears 3:1 against `--surface` in both themes;
   - `--status-backlog` also clears 3:1 against `--border`.
