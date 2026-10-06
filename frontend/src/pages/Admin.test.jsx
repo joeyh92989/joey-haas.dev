@@ -177,6 +177,7 @@ describe('Admin last nightly line', () => {
     })
     renderAt()
     const line = await screen.findByText(/Last nightly/)
+    expect(line).not.toHaveClass('admin-error')
     expect(line).toHaveTextContent(`Radar ${when.format(Date.parse(radar))}`)
     expect(line).toHaveTextContent(
       `Discover ${when.format(Date.parse(discover))}`,
@@ -194,6 +195,9 @@ describe('Admin last nightly line', () => {
     expect(
       await screen.findByText(/Nightly may have stopped/),
     ).toBeInTheDocument()
+    expect(screen.getByText(/Nightly may have stopped/)).toHaveClass(
+      'admin-error',
+    )
     expect(
       screen.getByRole('link', { name: /how to re-enable it/i }),
     ).toHaveAttribute(

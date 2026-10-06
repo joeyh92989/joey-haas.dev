@@ -205,6 +205,22 @@ describe('Next', () => {
     expect(within(details).getByText('Digital')).toBeInTheDocument()
   })
 
+  it('counts Not on cartridge only when there is something in it', () => {
+    mockNext({ data: NEXT, live: true, failed: false })
+    const first = renderPage()
+    expect(screen.getByText('Not on cartridge (1)')).toBeInTheDocument()
+    first.unmount()
+
+    mockNext({
+      data: { ...NEXT, not_on_cartridge: [] },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    expect(screen.getByText('Not on cartridge')).toBeInTheDocument()
+    expect(screen.queryByText(/Not on cartridge \(/)).toBeNull()
+  })
+
   it('shows stale data when the live call failed after a snapshot', () => {
     mockNext({ data: NEXT, live: false, failed: true })
     renderPage()
@@ -260,7 +276,7 @@ describe('Next', () => {
     renderPage()
     expect(screen.getByText('Bare')).toBeInTheDocument()
     expect(screen.getByText('Nothing on the want list.')).toBeInTheDocument()
-    expect(screen.getByText(/Not on cartridge \(0\)/)).toBeInTheDocument()
+    expect(screen.getByText('Not on cartridge')).toBeInTheDocument()
   })
 
   it('renders a body whose tonight is missing', () => {

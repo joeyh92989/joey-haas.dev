@@ -21,9 +21,9 @@ async function generatedAt(response) {
 }
 
 /**
- * One muted line on the admin landing: when the nightly job last refreshed
- * the catalogue, and whether it failed; when it may have stopped, a link to
- * how to re-enable it. Silent when the status cannot be read; the page's
+ * One line on the admin landing: when the nightly job last refreshed the
+ * catalogue, and whether it failed. Muted normally; when it may have stopped,
+ * it is an error line with a link to how to re-enable it. Silent when the status cannot be read; the page's
  * other links still work.
  */
 export default function LastNightly() {
@@ -54,7 +54,7 @@ export default function LastNightly() {
 
   if (!summary) return null
   return (
-    <p className="muted">
+    <p className={summary.stale ? 'admin-error last-nightly' : 'muted'}>
       {nightlyWords(summary)}
       {summary.stale && (
         <>

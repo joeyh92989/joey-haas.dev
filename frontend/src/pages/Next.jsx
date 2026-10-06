@@ -238,7 +238,9 @@ export default function Next() {
           </Section>
           <details className="next-skip">
             <summary>
-              {copy.sections.not_on_cartridge} ({data.not_on_cartridge.length})
+              {copy.sections.not_on_cartridge}
+              {data.not_on_cartridge.length > 0 &&
+                ` (${data.not_on_cartridge.length})`}
             </summary>
             <p className="muted">{copy.notOnCartridge}</p>
             {data.not_on_cartridge.length === 0 ? (
