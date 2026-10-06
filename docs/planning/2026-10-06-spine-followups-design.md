@@ -96,18 +96,24 @@ in-process cache:
 ```text
 fingerprint = (
   UTC today,
-  per kind: max(generated_at), count(*) grouped by status,
-  count(items), max(items.updated_at),
-  max(catalogue_runs.finished_at),
+  count(items), digest of every items row's (id, xmin),
+  count(recommendations), digest of every recommendations row's (id, xmin),
+  count(catalogue_runs.finished_at), max(catalogue_runs.finished_at),
+  count of shown and skipped pick events in [midnight - 7 days, midnight),
 )
 ```
 
+As shipped (Task 12 and its fix round). The plan first named
+`max(items.updated_at)` and per-kind status counts with `max(generated_at)`;
+see D3 for why the digest replaced them.
+
 - **Fingerprint query.** One cheap aggregate query per request, against the full build. Every input that can change the body changes the fingerprint:
   - a new generation;
-  - an answer, which changes the status counts;
-  - any item edit or delete;
-  - a catalogue run;
-  - the UTC day, which is what makes the picks roll over.
+  - an answer, which gives the row a new `xmin`;
+  - any item insert, edit or delete, by any write path;
+  - a catalogue run finishing, in whatever order runs commit;
+  - the UTC day, which is what makes the picks roll over;
+  - a Play Next commit that lands after midnight with shown or skipped events dated before it.
 - **On a match:** return the cached body.
 - **On a miss:** build it under an `asyncio.Lock` so concurrent misses build once, then store it.
 - **Reach.** The route in `public.py` calls the cache. The admin store list stays uncached and live.
@@ -165,6 +171,9 @@ fingerprint = (
 - **D1 — One spec, four PRs, by risk and kind:** cleanup, then performance, then visual, then data. Each PR can be reviewed alone and closes its issues.
 - **D2 — #40's guarantees survive the route's removal.** Every picks rule is re-pinned through `/next`, and a radar test is deleted only where `/next` already has a twin. *Tradeoff:* more test churn than simply deleting them.
 - **D3 — #44 caches on a data fingerprint, not a TTL.** A TTL would serve a stale batch after a generation, or reveal an answer at TTL expiry. A fingerprint changes only when the inputs do. *Tradeoff:* one aggregate query per request.
+  - **Items and recommendations are fingerprinted by a row count plus a digest of every row's `(id, xmin)`, not `max(updated_at)`.** Postgres gives a row a new `xmin` on every UPDATE, whoever issues it. `max(updated_at)` misses two cases. SQL written by hand skips SQLAlchemy's `onupdate`. And `updated_at` is `now()`, the transaction's start time, so an earlier transaction that commits after a later one leaves the max unchanged. A test pins each case. The digest also needs no list of the columns the body reads.
+  - **Catalogue runs:** a count of finished runs plus the latest finish. Runs are never deleted and finish once, so the count moves even when runs commit out of order.
+  - **Pick events:** the day key covers events written today. The one gap is a Play Next transaction that starts before midnight and commits after it, writing shown events dated yesterday. So the fingerprint counts shown and skipped events inside the window and before midnight. Those are deleted only with their item, so the count moves only on such a late commit. NEVER is left out, which keeps the accepted restore delay.
 - **D4 — Never events stay unbounded.** A never is permanent, so the window applies only to shown and skipped events.
 - **D5 — #43 (b) adds a title-equality condition on top of identity.** It closes the rename case without touching how (a) and (c) behave.
 - **D6 — The backdrop is dropped, not reworked.** That is the second look's "safer fit", and it is one fewer surface to keep right in both themes.
@@ -179,8 +188,8 @@ fingerprint = (
 | CLAUDE.md, status tokens | ≥3:1 against `--surface` in both themes; backlog also against `--border`; record the ratios | Align |
 | `docs/planning/2026-10-05-site-design-second-look.md`, findings 3 and 4 | Direction for the colours; drop the backdrop | Align |
 | `public_outputs.public_picks_with_day` | NEVER is permanent; skips matter only after a shown event | D4 |
-| `models.py` | `items.updated_at` has `onupdate`; recommendations have no update column, hence the status counts | D3 |
-| The S9 freeze, `next_load` | Answers change the status counts, which the fingerprint includes, so the cache cannot hide or leak an answer differently from the uncached route | D3 |
+| `models.py`, `items.py` | `items.updated_at` has `onupdate`, and the bulk routes go through SQLAlchemy, so every route bumps it. But hand-written SQL skips it, and `now()` is the transaction's start time, so commits can land out of order. Hence the `(id, xmin)` digest for items and recommendations | D3 |
+| The S9 freeze, `next_load` | An answer gives its row a new `xmin`, which the fingerprint includes, so the cache cannot hide or leak an answer differently from the uncached route | D3 |
 
 ## Open questions
 

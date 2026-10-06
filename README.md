@@ -493,6 +493,10 @@ detail and next models' field sets.
 `/api/public/next` carries both (Play Next's picks as `tonight`, Radar's
 dated cartridges in its sections), and `scripts/smoke.sh` pins the 404.
 
+`/api/public/next` is cached on a data fingerprint
+(`backend/public_next_cache.py`) and rebuilt only when its inputs change;
+admin routes, the store list included, are not cached.
+
 ### `GET /api/public/next`
 
 The body has these keys:
