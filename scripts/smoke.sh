@@ -233,9 +233,20 @@ if ! command -v jq > /dev/null; then
 fi
 
 # /api/public/picks and /api/public/radar are retired; /next replaced both.
-# A 404 pins that they are gone, not merely unused.
-check_equals "GET /api/public/picks is retired" \
-  "$(http_status "$API_URL/api/public/picks")" "404"
+# FastAPI's JSON 404 pins that they are gone, not merely unused: a 404 from
+# anything else (a proxy, an undeployed API) carries no JSON detail.
+for retired in picks radar; do
+  retired_resp="$(curl -s -m 90 -w '\n%{http_code}' "$API_URL/api/public/$retired")"
+  retired_status="$(printf '%s' "$retired_resp" | tail -n 1)"
+  retired_body="$(printf '%s' "$retired_resp" | sed '$d')"
+  if [ "$retired_status" = "404" ] &&
+    printf '%s' "$retired_body" | jq -e 'has("detail")' > /dev/null 2>&1; then
+    report_pass "GET /api/public/$retired is a JSON 404" "$retired_body"
+  else
+    report_fail "GET /api/public/$retired is a JSON 404" \
+      "got $retired_status '$retired_body'"
+  fi
+done
 
 # Spine Next: What's next is a page and a public object with its sections.
 check_equals "GET /spine/next (deep link)" "$(http_status "$SITE_URL/spine/next")" "200"
