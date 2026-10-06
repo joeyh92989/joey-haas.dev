@@ -50,7 +50,7 @@ SOURCE_ORDER = (
 )
 # Among formats that are not a full cartridge, the most useful first.
 FORMAT_ORDER = ("game_card", "game_key_card", "code_in_box", "disc")
-# Whose dates are registry dates, the only kind /api/public/radar publishes
+# Whose dates are registry dates, the only kind /api/public/next publishes
 # (showcase spec change 7). The Switch 1 sheet is left out on purpose:
 # nothing from it is public (switch1 spec, Scope).
 REGISTRY_SOURCES = ("nscollectors", "switch2tracker")

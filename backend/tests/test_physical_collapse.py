@@ -350,7 +350,7 @@ def test_switch_2_keeps_the_home_region_rule():
 
 
 def test_a_switch_1_sheet_date_is_never_a_registry_date():
-    """Only a registry date can be published (/api/public/radar); the Switch 1
+    """Only a registry date can be published (/api/public/next); the Switch 1
     sheet is kept out of REGISTRY_SOURCES so nothing from it is public."""
     result = collapse(
         1, 130, [ns1("game_card", release_date=date(2021, 7, 20))], [], GAME
