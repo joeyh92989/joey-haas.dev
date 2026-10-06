@@ -173,9 +173,9 @@ jobs:
           # Both sides are normalised the same way: keys sorted (-S), and
           # arrays sorted, because the API has no unique ordering and a
           # harmless write can reorder tied rows. An array whose elements all
-          # have an id is sorted by it (items). Any other top-level array would be
-          # sorted by each element's serialised text, which orders every
-          # element and so leaves no ties to reorder; stats and next are
+          # have an id is sorted by it (items). Any other top-level array
+          # would be sorted by each element's serialised text, which orders
+          # every element and so leaves no ties to reorder; stats and next are
           # objects, so they are only key-sorted.
           # tostring follows key order in the text, so keys are sorted first.
           normalise='

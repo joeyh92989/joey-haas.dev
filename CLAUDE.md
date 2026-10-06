@@ -301,15 +301,14 @@ before pushing.
   sources are configured at startup.
 - `/spine*` are public and **do** call the API, unlike every other public
   page; `/spine/next` reads `/api/public/next`. `/api/public/picks` and
-  `/api/public/radar` are retired (404, pinned by `smoke.sh`). They paint the
-  build-time snapshot first
+  `/api/public/radar` are retired (404, pinned by `smoke.sh`). `/spine*`
+  pages paint the build-time snapshot first
   (`frontend/public/snapshot/*.json`, written by
   `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed nightly at
   00:17 UTC by `.github/workflows/nightly.yml` through a deploy hook, after
-  its refreshes), then swap in live
-  data; "Waking the server" shows only when there is no snapshot. The
-  snapshot is gitignored and never committed. See README → Collection
-  snapshot.
+  its refreshes), then swap in live data; "Waking the server" shows only
+  when there is no snapshot. The snapshot is gitignored and never committed.
+  See README → Collection snapshot.
 - **Items are private when created.** `is_public` defaults to false, including
   for photo imports, so nothing reaches `/spine` until it is published
   from the admin collection page — per row, or with the bulk publish control.
