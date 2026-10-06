@@ -118,6 +118,19 @@ describe('SiteHeader keeps the current item in view', () => {
     expect(nav.scrollLeft).toBe(100)
   })
 
+  it('scrolls back a link whose focus ring alone is clipped on the left', () => {
+    stubLayout({ startOffset: 4 })
+    renderHeader('/spine')
+    const nav = screen.getByRole('navigation', { name: 'Site' })
+    // About starts at 104, 2px inside the visible edge: the link shows, its
+    // 4px ring does not.
+    nav.scrollLeft = 102
+
+    fireEvent.focusIn(screen.getByRole('link', { name: 'About' }))
+
+    expect(nav.scrollLeft).toBe(100)
+  })
+
   it('survives a layout engine that reports nothing', () => {
     renderHeader('/spine')
     expect(screen.getByRole('navigation', { name: 'Site' }).scrollLeft).toBe(0)

@@ -24,9 +24,9 @@ const RING_PX = 4
  * Not scrollIntoView: that can also scroll the page vertically, and the
  * browser's own focus scrolling leaves a partly visible link where it is,
  * under the fade. offsetLeft is measured against the nav (it is positioned),
- * so it does not change as the nav scrolls. A link scrolled in from the left
- * keeps RING_PX of room for its focus ring, which also makes the first link
- * scroll all the way back to 0.
+ * so it does not change as the nav scrolls. A link counts as hidden on the
+ * left when its focus ring is, and is scrolled in with RING_PX of room for
+ * that ring, which also makes the first link scroll all the way back to 0.
  *
  * @param {HTMLElement | null} nav The scrolling nav.
  * @param {HTMLElement | null} link A link inside it.
@@ -34,7 +34,7 @@ const RING_PX = 4
 function revealInNav(nav, link) {
   if (!nav || !link || nav.scrollWidth <= nav.clientWidth) return
   const right = link.offsetLeft + link.offsetWidth + FADE_PX
-  if (link.offsetLeft < nav.scrollLeft) {
+  if (link.offsetLeft - RING_PX < nav.scrollLeft) {
     nav.scrollLeft = Math.max(0, link.offsetLeft - RING_PX)
   } else if (right > nav.scrollLeft + nav.clientWidth) {
     nav.scrollLeft = right - nav.clientWidth
