@@ -206,6 +206,45 @@ async def test_picks_leave_out_what_is_not_a_public_suggestion(
     assert sorted(row["title"] for row in body) == ["Keep", "Skipped Before"]
 
 
+async def test_a_never_from_a_month_ago_still_excludes_a_game_shown_yesterday(
+    sessionmaker_for_test,
+):
+    # The event query is bounded to the window for shown and skipped events,
+    # but a never is permanent: it must stay outside that bound.
+    kept, refused = _with_ids(_game("Kept"), _game("Refused"))
+    await _add(sessionmaker_for_test, kept, refused)
+    await _add(
+        sessionmaker_for_test,
+        _shown(kept, SHOWN_DAY),
+        _shown(refused, SHOWN_DAY),
+        PickEvent(
+            item_id=refused.id,
+            action=PickAction.NEVER,
+            created_at=SHOWN_DAY - timedelta(days=30),
+        ),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
+
+    assert [row["title"] for row in body] == ["Kept"]
+
+
+async def test_a_shown_event_from_ten_days_ago_does_not_count(
+    sessionmaker_for_test,
+):
+    old, recent = _with_ids(_game("Old"), _game("Recent"))
+    await _add(sessionmaker_for_test, old, recent)
+    await _add(
+        sessionmaker_for_test,
+        _shown(old, SHOWN_DAY - timedelta(days=10)),
+        _shown(recent, SHOWN_DAY),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
+
+    assert [row["title"] for row in body] == ["Recent"]
+
+
 async def test_picks_are_empty_once_the_latest_shown_day_is_a_week_old(
     sessionmaker_for_test,
 ):

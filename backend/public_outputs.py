@@ -17,7 +17,7 @@ import uuid
 from datetime import UTC, date, datetime, time, timedelta
 
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import (
@@ -111,6 +111,13 @@ async def public_picks_with_day(
                     (PickAction.SHOWN, PickAction.NEVER, PickAction.SKIPPED)
                 ),
                 PickEvent.created_at < midnight,
+                # A never is permanent, while shown and skipped events matter
+                # only inside the window (a skip counts only at or after a
+                # windowed shown event).
+                or_(
+                    PickEvent.action == PickAction.NEVER,
+                    PickEvent.created_at >= window_start,
+                ),
             )
         )
     ).all()
