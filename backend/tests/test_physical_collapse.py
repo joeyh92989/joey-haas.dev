@@ -195,7 +195,7 @@ def test_release_date_falls_back_to_listings_then_igdb():
 
 
 def test_the_release_date_says_where_it_came_from():
-    # The public radar publishes only registry dates, so every source is named:
+    # What's next publishes only registry dates, so every source is named:
     # a registry row in any region, a store listing, IGDB's game, or nothing.
     home = edition(
         "game_card", release_date=date(2026, 11, 19), release_precision="day"
