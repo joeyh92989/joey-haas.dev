@@ -169,21 +169,24 @@ def taste_sparing_owned(data: NextData, shown: list[Recommendation]) -> PublicTa
     platform (recommendations_routes._add_item), and the frozen row stays
     on the page by name until the next generation, so scanning reasons for
     that item would only refuse a frozen sentence the moment the owner
-    answered. The match is by identity, never by title: the item's
-    (external_source, external_id) and, where it has one, its platform must
-    match an owned candidate row, and a row of that same game must be among
-    `shown`, the rows the page renders, and the item still carries the
-    row's title, so a renamed or re-linked item is scanned like any other
-    private game (#43). Every other private title, a same-titled remake or a
-    game with no IGDB link among them, is scanned.
+    answered. Identity alone selects the row, never a title alone: the
+    item's (external_source, external_id) and, where it has one, its
+    platform must match an owned candidate row. The item must also still
+    carry the title of a row of that game among `shown`, the rows the page
+    renders, so a renamed or re-linked item, or one whose game is rendered
+    under another kind's title, is scanned like any other private game
+    (#43). Every other private title, a same-titled remake or a game with no
+    IGDB link among them, is scanned.
     """
     owned = {
-        _identity(c.payload): _title_key(c.payload.title)
+        _identity(c.payload)
         for c in data.candidates
         if c.payload.status == RecommendationStatus.OWNED
     }
-    shown_ids = {_identity(row) for row in shown}
-    spared = {key: title for key, title in owned.items() if key in shown_ids}
+    rendered: dict[tuple[str, str, int], set[str]] = {}
+    for row in shown:
+        if _identity(row) in owned:
+            rendered.setdefault(_identity(row), set()).add(_title_key(row.title))
 
     def is_spared(item: Item) -> bool:
         if item.external_source is None or item.external_id is None:
@@ -191,8 +194,8 @@ def taste_sparing_owned(data: NextData, shown: list[Recommendation]) -> PublicTa
         return any(
             (source, external_id) == (item.external_source, item.external_id)
             and item.platform_id in (None, platform_id)
-            and _title_key(item.title) == title
-            for (source, external_id, platform_id), title in spared.items()
+            and _title_key(item.title) in titles
+            for (source, external_id, platform_id), titles in rendered.items()
         )
 
     return public_taste(

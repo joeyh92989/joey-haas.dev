@@ -415,3 +415,40 @@ async def test_the_title_match_ignores_case_and_surrounding_space(
     sessionmaker_for_test,
 ):
     assert await _scanned_titles(sessionmaker_for_test, "  HADES ii ") == set()
+
+
+async def test_the_title_must_be_a_rendered_rows_not_only_the_owned_rows(
+    sessionmaker_for_test,
+):
+    """The owned Radar row is deduplicated behind a Discover row of the same
+    game under another title, so the page renders "Hades 2", never "Hades
+    II": the item's title is not on the page and stays scanned. A rendered
+    row carrying the item's title lifts it."""
+    at = datetime(2026, 9, 28, 6, 0, tzinfo=UTC)
+    await _add(
+        sessionmaker_for_test,
+        _game(
+            "Hades II",
+            is_public=False,
+            external_source="igdb",
+            external_id="hades-ii",
+            platform_id=508,
+        ),
+        _radar("Hades II", status=RecommendationStatus.OWNED, generated_at=at),
+        _radar("Pending", generated_at=at),
+        _radar(
+            "Hades 2",
+            kind=RecommendationKind.DISCOVER,
+            external_id="hades-ii",
+            generated_at=at,
+        ),
+    )
+    async with sessionmaker_for_test() as session:
+        public = await load_next(session, public=True)
+    rows = {(c.kind, c.title): c.payload for c in public.candidates}
+    discover_row = rows[("discover", "Hades 2")]
+    radar_row = rows[("radar", "Hades II")]
+    assert set(taste_sparing_owned(public, [discover_row]).private_titles) == {
+        "Hades II"
+    }
+    assert set(taste_sparing_owned(public, [radar_row]).private_titles) == set()
