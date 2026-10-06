@@ -777,6 +777,7 @@ async def test_precision_decides_the_section_before_the_date_does(
         f"Day {n}" for n in range(1, 4)
     ]
     assert [row["title"] for row in body["later"]] == ["Some Year"]
+    assert body["later"][0]["release_precision"] == "year"
 
 
 async def test_each_kind_of_row_lands_in_its_own_section(sessionmaker_for_test):
@@ -839,6 +840,7 @@ async def test_next_publishes_no_store_price_window_or_stored_reason(
         "Pre-orders close",
         "limitedrungames.com",
         "availability",
+        '"preorder"',
         "suggested",
         "score",
         "USD",

@@ -30,6 +30,7 @@ from public import (
     PublicStatsOut,
     create_public_router,
 )
+from public_outputs import PublicNextOut
 
 pytestmark = pytest.mark.asyncio
 
@@ -656,6 +657,7 @@ PUBLIC_MODELS = (
     PublicItemOut,
     PublicItemDetailOut,
     PublicStatsOut,
+    PublicNextOut,
 )
 
 
@@ -685,6 +687,16 @@ RECOMMENDATION_NAMES = (
 )
 
 
+# What's next carries the owner's reasons (rebuilt in the first person from
+# public rows) and a pre-orders section of public, registry-dated cartridges;
+# those two names are allowed on that one model, and no other model may carry
+# a recommendation name.
+ALLOWED_RECOMMENDATION_NAMES = {
+    ("PublicNextOut", "reasons"),
+    ("PublicNextOut", "preorders"),
+}
+
+
 def _named_fields(model) -> set[tuple[str, str]]:
     """(top-level model name, field name) for every field, nested included."""
     return {(model.__name__, name) for name in _field_names(model)}
@@ -696,7 +708,7 @@ async def test_no_public_model_names_a_recommendation_field():
         names |= _named_fields(model)
     leaked = sorted(
         f"{model}.{field}"
-        for model, field in names
+        for model, field in names - ALLOWED_RECOMMENDATION_NAMES
         for bad in RECOMMENDATION_NAMES
         if bad in field
     )
@@ -759,13 +771,45 @@ async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test)
                 igdb_id=1,
             )
         )
+        # A pending, registry-dated Radar row carrying the store's data, so
+        # /api/public/next has the catalogue's values to leak.
+        session.add(
+            Recommendation(
+                kind=RecommendationKind.RADAR,
+                type=ItemType.GAME,
+                title="Coming Cart",
+                external_source="igdb",
+                external_id="1",
+                release_date=date.today() + timedelta(days=60),
+                reason="Pre-orders close Nov 8 at Super Rare Games",
+                reason_source=ReasonSource.TEMPLATE,
+                based_on=["someone"],
+                score=60,
+                batch_id=uuid.uuid4(),
+                status=RecommendationStatus.PENDING,
+                platform_id=508,
+                physical_format=PhysicalFormat.GAME_CARD,
+                source_metadata={
+                    "lane": "preorder",
+                    "release_precision": "day",
+                    "release_source": "registry",
+                    "store_lines": [
+                        {"store": "super_rare", "price": "44.99", "currency": "GBP"}
+                    ],
+                },
+            )
+        )
         await session.commit()
     async with client_for(sessionmaker_for_test) as client:
         items = await client.get("/api/public/items")
         stats = await client.get("/api/public/stats")
         linked = next(i for i in items.json() if i["title"] == "Linked Game")
         detail = await client.get(f"/api/public/items/{linked['id']}")
-    for response in (items, stats, detail):
+        upcoming = await client.get("/api/public/next")
+    # The pending row is published by What's next, so it is a positive control:
+    # the walk below reads a body that really carries a Radar row.
+    assert [row["title"] for row in upcoming.json()["preorders"]] == ["Coming Cart"]
+    for response in (items, stats, detail, upcoming):
         assert response.status_code == 200
         leaked = sorted(
             key
@@ -777,6 +821,9 @@ async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test)
         assert "Radar Game" not in response.text
         assert "LP-AAAAA-USA-0" not in response.text
         assert "super_rare" not in response.text
+        assert "Super Rare" not in response.text
+        assert "44.99" not in response.text
+        assert "GBP" not in response.text
 
 
 async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test):
@@ -883,13 +930,18 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
         watched = next(i for i in items.json() if i["title"] == "Watched Game")
         discovered = next(i for i in items.json() if i["title"] == "Discovered Game")
         detail = await client.get(f"/api/public/items/{watched['id']}")
+        upcoming = await client.get("/api/public/next")
     assert watched["wanted"] is True
     assert discovered["wanted"] is True
-    for response in (items, stats, detail):
+    assert [row["title"] for row in upcoming.json()["preorders"]] == ["Coming Game"]
+    for response in (items, stats, detail, upcoming):
         assert response.status_code == 200
+        # What's next's reasons and pre-orders section are the allowed names
+        # (ALLOWED_RECOMMENDATION_NAMES).
+        allowed = {"reasons", "preorders"} if response is upcoming else set()
         leaked = sorted(
             key
-            for key in _keys(response.json())
+            for key in _keys(response.json()) - allowed
             for bad in RECOMMENDATION_NAMES
             if bad in key
         )
@@ -897,4 +949,5 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
         assert "Pre-orders close" not in response.text
         assert "Limited Run Games" not in response.text
         assert "Like Hades" not in response.text
-        assert "Coming Game" not in response.text
+        if response is not upcoming:
+            assert "Coming Game" not in response.text
