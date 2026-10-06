@@ -2909,7 +2909,9 @@ footer {
   padding: 0.5rem 1rem;
 }
 
-.store-list .next-row-actions button:focus-visible {
+/* The status line takes focus when the last answered row leaves. */
+.store-list .next-row-actions button:focus-visible,
+.store-list .catalogue-progress:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

@@ -291,7 +291,7 @@ describe('AdminStoreList', () => {
     )
   })
 
-  it('leaves focus alone when the answer fails and the row returns', async () => {
+  it('keeps focus on the next row when the answer fails and the row returns', async () => {
     stubApi({
       'POST /api/recommendations/a/own': () =>
         json({ detail: 'Database unavailable' }, 500),
