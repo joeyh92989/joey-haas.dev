@@ -31,6 +31,7 @@ from models import (
     OwnedFormat,
     PhysicalFormat,
 )
+from public_next_cache import PublicNextCache
 from public_outputs import PublicNextOut, load_public_next
 
 # Lifted out of the source_metadata snapshot rather than publishing the
@@ -308,6 +309,9 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
     is_public, so the gate is the data rather than the caller.
     """
     router = APIRouter(prefix="/api/public", tags=["public"])
+    # One per router, so one per app: /next's body, rebuilt only when its
+    # inputs change (public_next_cache.py).
+    next_cache = PublicNextCache()
 
     async def get_session() -> AsyncIterator[AsyncSession]:
         async with factory() as session:
@@ -427,8 +431,9 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         session: AsyncSession = Depends(get_session),
     ) -> PublicNextOut:
         """What's next: tonight's games, the wanted list, and what to look
-        for in a store. Read-only; names only public games; no store data."""
-        return await load_public_next(session, datetime.now(UTC))
+        for in a store. Read-only; names only public games; no store data.
+        Served from next_cache while the data it was built from is unchanged."""
+        return await next_cache.get(session, datetime.now(UTC), load_public_next)
 
     # Declared last, after the literal /items and /stats: a typed uuid would
     # 422 rather than fall through, but the order keeps that from mattering.
