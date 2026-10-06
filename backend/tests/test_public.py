@@ -18,6 +18,8 @@ from models import (
     OwnedFormat,
     PhysicalEdition,
     PhysicalFormat,
+    PickAction,
+    PickEvent,
     ReasonSource,
     Recommendation,
     RecommendationKind,
@@ -897,7 +899,8 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
                 },
             )
         )
-        # A pending, registry-dated cartridge: the item routes never name it.
+        # A pending, registry-dated cartridge and a game Play Next showed: the
+        # item routes never name either, and What's next publishes both.
         session.add(
             Recommendation(
                 kind=RecommendationKind.RADAR,
@@ -923,6 +926,23 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
                 },
             )
         )
+        picked = Item(
+            id=uuid.uuid4(),
+            type=ItemType.GAME,
+            title="Picked Game",
+            status=ItemStatus.BACKLOG,
+            is_public=True,
+            owned_format=OwnedFormat.PHYSICAL,
+        )
+        session.add(picked)
+        await session.flush()
+        session.add(
+            PickEvent(
+                item_id=picked.id,
+                action=PickAction.SHOWN,
+                created_at=datetime.now(UTC) - timedelta(days=2),
+            )
+        )
         await session.commit()
     async with client_for(sessionmaker_for_test) as client:
         items = await client.get("/api/public/items")
@@ -934,6 +954,9 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
     assert watched["wanted"] is True
     assert discovered["wanted"] is True
     assert [row["title"] for row in upcoming.json()["preorders"]] == ["Coming Game"]
+    # Positive control: the walk reads a body that really carries a pick.
+    picks = upcoming.json()["tonight"]["picks"]
+    assert [pick["title"] for pick in picks] == ["Picked Game"]
     for response in (items, stats, detail, upcoming):
         assert response.status_code == 200
         # What's next's reasons and pre-orders section are the allowed names

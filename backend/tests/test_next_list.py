@@ -458,7 +458,8 @@ def test_a_possessive_of_a_title_with_an_apostrophe_is_caught():
 def test_the_cap_hides_undated_rows_first():
     far = [cand(n, release_date=TODAY + timedelta(days=200 + n)) for n in range(12)]
     undated = [cand(100 + n, release_date=None) for n in range(3)]
-    out = sections(far + undated, TODAY, public=False)
+    # Undated first in the input, so truncating in input order would fail.
+    out = sections(undated + far, TODAY, public=False)
     assert len(out["later"]) == LATER_CAP
     assert not {"Game 100", "Game 101", "Game 102"} & set(titles(out["later"]))
 

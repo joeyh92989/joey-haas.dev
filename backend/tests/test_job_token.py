@@ -12,13 +12,14 @@ renamed route cannot leave a dead entry behind.
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from types import SimpleNamespace
 
 import pytest
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, Request
 from httpx2 import ASGITransport, AsyncClient
 from starlette.middleware.sessions import SessionMiddleware
 
-from items import JOB_ROUTES, create_items_router, require_admin
+from items import JOB_ROUTES, _job_token_route, create_items_router, require_admin
 from physical_routes import create_physical_router
 from picker_routes import create_picker_router
 from recommendations_routes import create_recommendations_router
@@ -150,7 +151,7 @@ async def test_the_token_opens_no_other_real_route(method, path):
     assert response.status_code == 401
 
 
-async def test_a_trailing_slash_does_not_widen_the_match():
+async def test_a_trailing_slash_is_redirected_before_the_gate():
     async with real_client() as http:
         response = await http.post(
             "/api/picker/next/", headers=bearer(), json={}, follow_redirects=False
@@ -158,6 +159,27 @@ async def test_a_trailing_slash_does_not_widen_the_match():
     # FastAPI's redirect_slashes answers 307 before routing, so the gate (and
     # the exact-template match behind it) never sees the slashed path.
     assert response.status_code == 307
+
+
+def _routed(template: str, token: str = TOKEN) -> Request:
+    """A request as the gate sees it: routed to `template`, bearing `token`."""
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": template,
+            "headers": [(b"authorization", f"Bearer {token}".encode())],
+            "app": SimpleNamespace(state=SimpleNamespace(job_token=TOKEN)),
+            "route": SimpleNamespace(path=template),
+        }
+    )
+
+
+async def test_a_valid_token_never_authorises_a_slashed_template():
+    # Were a route ever registered at the slashed template, the match is
+    # still exact: only the whitelisted spelling passes.
+    assert _job_token_route(_routed("/api/picker/next")) == "/api/picker/next"
+    assert _job_token_route(_routed("/api/picker/next/")) is None
 
 
 async def test_an_accepted_token_is_logged_without_the_token(caplog):
