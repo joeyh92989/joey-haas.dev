@@ -28,6 +28,24 @@ const isObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 
 /**
+ * What's next's body: Next.jsx reads `.length` on each of these lists, so a
+ * body missing one would blank the page. Keep in step with `isNextBody` in
+ * src/lib/snapshot.js: the two predicates must be identical.
+ */
+const NEXT_LISTS = [
+  'wanted',
+  'buy_now',
+  'preorders',
+  'later',
+  'not_on_cartridge',
+]
+const isNextBody = (body) =>
+  isObject(body) &&
+  isObject(body.tonight) &&
+  Array.isArray(body.tonight.picks) &&
+  NEXT_LISTS.every((key) => Array.isArray(body[key]))
+
+/**
  * The snapshots, the endpoint each copies, the shape it must have, and
  * whether the build can go without it. A required snapshot that fails fails
  * them all; an optional one is only left out.
@@ -43,6 +61,12 @@ export const SNAPSHOTS = {
   // run before the API has finished deploying.
   picks: { path: '/api/public/picks', valid: Array.isArray, required: false },
   radar: { path: '/api/public/radar', valid: Array.isArray, required: false },
+  // Optional, like picks and radar: What's next (Spine Next spec, C12).
+  next: {
+    path: '/api/public/next',
+    valid: isNextBody,
+    required: false,
+  },
 }
 
 const WAKE_BUDGET_MS = 120_000

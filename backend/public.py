@@ -32,8 +32,10 @@ from models import (
     PhysicalFormat,
 )
 from public_outputs import (
+    PublicNextOut,
     PublicPickOut,
     PublicRadarOut,
+    load_public_next,
     load_public_picks,
     load_public_radar,
 )
@@ -442,6 +444,14 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         """Radar's next cartridges: title, platform, date and an IGDB link.
         No store, price or pre-order detail."""
         return await load_public_radar(session, datetime.now(UTC).date())
+
+    @router.get("/next", response_model=PublicNextOut)
+    async def public_next(
+        session: AsyncSession = Depends(get_session),
+    ) -> PublicNextOut:
+        """What's next: tonight's games, the wanted list, and what to look
+        for in a store. Read-only; names only public games; no store data."""
+        return await load_public_next(session, datetime.now(UTC))
 
     # Declared last, after the literal /items and /stats: a typed uuid would
     # 422 rather than fall through, but the order keeps that from mattering.

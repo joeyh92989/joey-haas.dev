@@ -14,6 +14,7 @@ import Collection from './pages/Collection.jsx'
 import BlogPost from './pages/BlogPost.jsx'
 import Home from './pages/Home.jsx'
 import Item from './pages/Item.jsx'
+import Next from './pages/Next.jsx'
 import NotFound from './pages/NotFound.jsx'
 import PlayNext from './pages/PlayNext.jsx'
 import Projects from './pages/Projects.jsx'
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="about" element={<About />} />
         <Route path="projects" element={<Projects />} />
         <Route path="spine" element={<Collection />} />
+        <Route path="spine/next" element={<Next />} />
         <Route path="spine/:id" element={<Item />} />
         {/* Pre-rename URLs, kept so links already shared still land. */}
         <Route path="collection" element={<Navigate to="/spine" replace />} />

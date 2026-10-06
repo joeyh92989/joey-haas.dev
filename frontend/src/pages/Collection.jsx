@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
+import NextBand from '../components/NextBand.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
+import SpineHeader from '../components/SpineHeader.jsx'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { readSnapshot } from '../lib/snapshot.js'
-import { localToday } from '../lib/statusTransition.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import {
   countBy,
@@ -222,155 +223,6 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
   )
 }
 
-/**
- * The game being played next (decision D2): one card, linked to its page.
- * Nothing when no public game is pinned; a pinned private game is never in
- * the public list to begin with.
- */
-function UpNext({ items }) {
-  const pinned = items.find((item) => item.pinned)
-  if (!pinned) return null
-  return (
-    <section className="up-next up-next-public" aria-label="Up next">
-      <Link to={`/spine/${pinned.id}`} className="up-next-link">
-        <span className="up-next-cover">
-          <CoverImage src={pinned.cover_url} type={pinned.type} alt="" />
-        </span>
-        <span>
-          <span className="pick-slot">Up next</span>
-          <span className="up-next-title">{pinned.title}</span>
-        </span>
-      </Link>
-    </section>
-  )
-}
-
-/**
- * Games the owner is watching that are still to come, soonest first: the
- * public side of Radar. It reads only public items (`wanted`, a future
- * `release_date`); a suggestion, its store or its pre-order never reaches
- * this page.
- */
-function OnTheRadar({ items }) {
-  const today = localToday()
-  const coming = items
-    .filter(
-      (item) => item.wanted && item.release_date && item.release_date > today,
-    )
-    .sort((a, b) => a.release_date.localeCompare(b.release_date))
-  if (!coming.length) return null
-  return (
-    <section className="on-the-radar" aria-label="On the radar">
-      <h2>On the radar</h2>
-      <PosterGrid
-        items={coming}
-        size="compact"
-        renderCard={(item) => (
-          <PosterCard item={item} to={`/spine/${item.id}`} />
-        )}
-      />
-    </section>
-  )
-}
-
-const RELEASE_DAY = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-
-/** "Mar 2027" for a month-precise release, "Mar 12, 2027" for a dated one. */
-function releaseText(release) {
-  const [year, month, day] = release.release_date.split('-').map(Number)
-  const date = new Date(Date.UTC(year, month - 1, day))
-  return (
-    release.release_precision === 'day' ? RELEASE_DAY : MONTH_LABEL
-  ).format(date)
-}
-
-/**
- * Play Next's most recent picks among public games, with the reasons it
- * gave, in the first person. Read-only: no buttons, nothing generated here
- * (showcase spec, D). Nothing when there are none.
- */
-function RecentPicks({ picks }) {
-  if (picks.length === 0) return null
-  return (
-    <section className="recent-picks" aria-label="Recent picks">
-      <h2>Recent picks</h2>
-      <ul className="recent-picks-list">
-        {picks.map((pick) => (
-          <li key={pick.id} className="recent-pick">
-            <Link to={`/spine/${pick.id}`} className="recent-pick-link">
-              <span className="recent-pick-cover">
-                <CoverImage src={pick.cover_url} type={pick.type} alt="" />
-              </span>
-              <span className="recent-pick-title">{pick.title}</span>
-            </Link>
-            {pick.reasons.length > 0 && (
-              <ul className="recent-pick-reasons">
-                {pick.reasons.map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
-/**
- * Radar's next full-cartridge releases: title, platform and date, linked to
- * IGDB when a link is known. Never a store, a price or a pre-order window.
- */
-function ComingToCartridge({ releases }) {
-  if (releases.length === 0) return null
-  return (
-    <section className="coming-to-cartridge" aria-label="Coming to cartridge">
-      <h2>Coming to cartridge</h2>
-      <ul className="coming-list">
-        {releases.map((release) => {
-          const body = (
-            <>
-              <span className="coming-cover">
-                <CoverImage src={release.cover_url} type="game" alt="" />
-              </span>
-              <span className="coming-title">{release.title}</span>
-              <span className="coming-meta muted">
-                {[release.platform, releaseText(release)]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </span>
-            </>
-          )
-          return (
-            // Radar covers Switch and Switch 2, so one game (one IGDB page)
-            // can be two rows: the platform is part of the key either way.
-            <li
-              key={`${release.igdb_url ?? release.title}-${release.platform}-${release.release_date}`}
-            >
-              {release.igdb_url ? (
-                <a
-                  href={release.igdb_url}
-                  className="coming-link"
-                  rel="noreferrer noopener"
-                >
-                  {body}
-                </a>
-              ) : (
-                <span className="coming-link">{body}</span>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-    </section>
-  )
-}
-
 /** One stacked bar of the four statuses, in shelf order, with a legend. */
 function StatusBar({ byStatus }) {
   const present = STATUS_ORDER.filter((status) => byStatus[status] > 0)
@@ -511,8 +363,6 @@ export default function Collection() {
   usePageTitle(`${spine.name} · Joey Haas`)
   const [items, setItems] = useState([])
   const [stats, setStats] = useState(null)
-  const [picks, setPicks] = useState([])
-  const [releases, setReleases] = useState([])
   const [state, setState] = useState('loading')
   const [slow, setSlow] = useState(false)
   const [filters, setFilters] = useState(NO_FILTER)
@@ -585,33 +435,6 @@ export default function Collection() {
     }
   }, [load])
 
-  // The two read-only outputs. Extras, not the shelf: each paints from its
-  // snapshot, is replaced by live data, and fails silently.
-  useEffect(() => {
-    let cancelled = false
-    for (const [name, apply] of [
-      ['picks', setPicks],
-      ['radar', setReleases],
-    ]) {
-      let live = false
-      readSnapshot(name).then((rows) => {
-        if (!cancelled && !live && rows) apply(rows)
-      })
-      apiFetch(`/api/public/${name}`)
-        .then((response) => (response.ok ? response.json() : null))
-        .then((rows) => {
-          if (!cancelled && Array.isArray(rows)) {
-            live = true
-            apply(rows)
-          }
-        })
-        .catch(() => {})
-    }
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   function changeSize(next) {
     setSize(next)
     writeShelfPref('shelf.public.size', next)
@@ -625,7 +448,7 @@ export default function Collection() {
   if (state === 'loading') {
     return (
       <section>
-        <h1>{spine.name}</h1>
+        <SpineHeader />
         <p className="muted" role="status">
           {slow
             ? 'Waking the server — it sleeps when idle, so this takes about thirty seconds.'
@@ -647,7 +470,7 @@ export default function Collection() {
   if (state === 'error') {
     return (
       <section>
-        <h1>{spine.name}</h1>
+        <SpineHeader />
         <p className="admin-error">
           The collection could not be loaded. Try again shortly.
         </p>
@@ -699,17 +522,7 @@ export default function Collection() {
 
   return (
     <section>
-      <h1>{spine.name}</h1>
-      <p className="spine-lede">{spine.tagline}</p>
-      <p className="spine-project muted">
-        {spine.projectLine}{' '}
-        <Link to={spine.links.post.to}>
-          {spine.links.post.label} <span aria-hidden="true">&rarr;</span>
-        </Link>{' '}
-        <a href={spine.links.source.href}>
-          {spine.links.source.label} <span aria-hidden="true">&rarr;</span>
-        </a>
-      </p>
+      <SpineHeader />
 
       {items.length === 0 ? (
         <p className="muted">Nothing here yet.</p>
@@ -723,12 +536,7 @@ export default function Collection() {
             />
           )}
 
-          <UpNext items={items} />
-          <RecentPicks picks={picks} />
-          <div className="radar-row">
-            <OnTheRadar items={items} />
-            <ComingToCartridge releases={releases} />
-          </div>
+          <NextBand />
 
           <FavoritesRow items={items} linkFor={(item) => `/spine/${item.id}`} />
 
@@ -786,6 +594,15 @@ export default function Collection() {
       )}
 
       <footer className="attribution">
+        <p className="spine-project">
+          {spine.projectLine}{' '}
+          <Link to={spine.links.post.to}>
+            {spine.links.post.label} <span aria-hidden="true">&rarr;</span>
+          </Link>{' '}
+          <a href={spine.links.source.href}>
+            {spine.links.source.label} <span aria-hidden="true">&rarr;</span>
+          </a>
+        </p>
         <p>
           This product uses the TMDB API but is not endorsed or certified by
           TMDB.{' '}

@@ -221,7 +221,7 @@ snapshot_check() {
   fi
 }
 
-for name in items stats picks radar; do
+for name in items stats picks radar next; do
   snapshot_check "$name"
 done
 
@@ -253,6 +253,32 @@ for name in picks radar; do
     report_pass "public $name exposes no private fields" "list, exact public key set"
   fi
 done
+
+# Spine Next: What's next is a page and a public object with its sections.
+check_equals "GET /spine/next (deep link)" "$(http_status "$SITE_URL/spine/next")" "200"
+next_body="$(curl -s -m 90 "$API_URL/api/public/next")"
+if printf '%s' "$next_body" | jq -e \
+  'type == "object" and (["tonight","wanted","buy_now","preorders","later","not_on_cartridge","generated_at"] - keys == [])' \
+  > /dev/null 2>&1; then
+  report_pass "public next has its sections" "object, all keys"
+else
+  report_fail "public next has its sections" "got '${next_body:0:80}'"
+fi
+# What's next also carries no id, rank or Discover note (spec, S1): its
+# games are keyed by item_id. Exact-quoted, so "id" never matches "item_id".
+NEXT_FORBIDDEN="${OUTPUT_FORBIDDEN%)\"}|id|rank|model_note|ranked_by)\""
+if printf '%s' "$next_body" | grep -qE "$NEXT_FORBIDDEN"; then
+  report_fail "public next exposes no private fields" "found a forbidden key"
+else
+  report_pass "public next exposes no private fields" "no forbidden key"
+fi
+
+# The nightly job's token: no token and a wrong one are both refused.
+check_equals "POST /api/picker/next with a wrong job token" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
+    -H 'Authorization: Bearer wrong' -H 'Content-Type: application/json' \
+    -d '{}' "$API_URL/api/picker/next")" \
+  "401"
 
 # 401 rather than 404 or 405 proves both routes exist, are declared ahead of
 # /{item_id}, and are gated.
@@ -340,6 +366,9 @@ check_equals "GET /api/recommendations unauthenticated" \
   "401"
 check_equals "GET /api/recommendations/watching unauthenticated" \
   "$(http_status "$API_URL/api/recommendations/watching")" \
+  "401"
+check_equals "GET /api/recommendations/store-list unauthenticated" \
+  "$(http_status "$API_URL/api/recommendations/store-list")" \
   "401"
 check_equals "GET /api/recommendations?kind=discover unauthenticated" \
   "$(http_status "$API_URL/api/recommendations?kind=discover")" \

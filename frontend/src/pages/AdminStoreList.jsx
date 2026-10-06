@@ -2,143 +2,77 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
-import { releaseWords } from './AdminRadar.jsx'
+import NextRow from '../components/NextRow.jsx'
+import { spine } from '../content/spine.js'
+import { groupByPlatform } from '../lib/next.js'
 
 const UNREACHABLE = 'Could not reach the API. Try again shortly.'
 
-/** How far ahead a dated cartridge is worth asking a store about. */
-export const PREORDER_DAYS = 90
+/** The server's sections, in the order a store visit reads them. */
+const SECTION_ORDER = ['buy_now', 'preorders', 'later', 'not_on_cartridge']
 
-/** [key, heading], in the order a store visit reads them. */
-export const SECTIONS = [
-  ['top', 'Top picks'],
-  ['switch2', 'Out now on Switch 2'],
-  ['switch', 'Out now on Switch'],
-  ['preorder', 'Ask about pre-orders'],
-  ['skip', 'Skip in store'],
-]
-
-// Mirrors PLATFORM_WORDS in backend/radar.py, which names each row's platform.
-const CONSOLES = {
-  'Nintendo Switch 2': 'switch2',
-  'Nintendo Switch': 'switch',
-}
-const SKIP_FORMATS = new Set(['game_key_card', 'code_in_box'])
-// Mirrors FORMAT_WORDS in backend/physical_sources/limits.py, as a line starts.
-const FORMAT_WORDS = {
-  game_card: 'Full game on cartridge',
-  game_key_card: 'Game-Key Card',
-  code_in_box: 'Code in a box',
-  disc: 'Disc',
+/** Each answer's route and the line that confirms it. */
+const ANSWERS = {
+  own: (title) => `Added ${title} to the collection`,
+  want: (title) => `Added ${title} to the want list`,
+  dismiss: (title) => `Dropped ${title}`,
 }
 
-/** A local date as YYYY-MM-DD, the shape the API's dates come in. */
-export function isoDay(date) {
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${date.getFullYear()}-${month}-${day}`
+const CURRENCY_SIGNS = { USD: '$', EUR: '€', GBP: '£' }
+
+/** A listing's price as a store shows it: "$59.99", else "59.99 CAD". */
+function money(line) {
+  const amount = Number(line.price).toFixed(2)
+  const sign = CURRENCY_SIGNS[line.currency]
+  if (sign) return `${sign}${amount}`
+  return line.currency ? `${amount} ${line.currency}` : amount
 }
 
-/** `date` moved by `days` calendar days. */
-export function addDays(date, days) {
-  const next = new Date(date)
-  next.setDate(next.getDate() + days)
-  return next
+/** One store's listing as a line: store · price · pre-order. */
+function storeWords(line) {
+  const price = line.price != null ? ` · ${money(line)}` : ''
+  const preorder = line.availability === 'preorder' ? ' · pre-order' : ''
+  return `${line.store}${price}${preorder}`
 }
 
-/**
- * The last day of a release's period as YYYY-MM-DD. The API stores a month,
- * quarter or year as the period's first day, so a game dated that way is not
- * out until the whole period has ended. No precision means a day.
- */
-export function periodEnd(date, precision) {
-  const [year, month] = date.split('-').map(Number)
-  if (precision === 'month') return isoDay(new Date(year, month, 0))
-  if (precision === 'quarter')
-    return isoDay(new Date(year, Math.ceil(month / 3) * 3, 0))
-  if (precision === 'year') return `${year}-12-31`
-  return date
+/** Where a game is listed; a line with a URL links to the store's page. */
+function StoreLines({ lines }) {
+  if (!lines?.length) return null
+  return (
+    <ul className="store-lines">
+      {lines.map((line, index) => (
+        <li key={`${line.store}-${index}`}>
+          {line.url ? (
+            <a href={line.url} rel="noreferrer noopener">
+              {storeWords(line)}
+            </a>
+          ) : (
+            storeWords(line)
+          )}
+        </li>
+      ))}
+    </ul>
+  )
 }
 
-/**
- * Where a Radar row goes on the store list, or null when it is not on it:
- * anything that is not a full cartridge is Skip; a cartridge whose release
- * period has ended is under its console; one whose period has not ended but
- * starts within PREORDER_DAYS is worth asking about.
- */
-export function radarSection(row, today) {
-  if (row.lane === 'digital' || SKIP_FORMATS.has(row.physical_format))
-    return 'skip'
-  if (row.physical_format !== 'game_card' || !row.release_date) return null
-  if (periodEnd(row.release_date, row.release_precision) <= isoDay(today))
-    return CONSOLES[row.platform] ?? null
-  return row.release_date <= isoDay(addDays(today, PREORDER_DAYS))
-    ? 'preorder'
-    : null
-}
-
-/** Discover's picks and Radar's rows as the store list's sections. */
-export function buildList(discover, radar, today) {
-  const sections = Object.fromEntries(SECTIONS.map(([key]) => [key, []]))
-  const seen = new Set()
-  function add(key, entry) {
-    const game = `${entry.title}|${entry.platform}`
-    if (seen.has(game)) return
-    seen.add(game)
-    sections[key].push(entry)
-  }
-  const byScore = (a, b) => b.score - a.score
-  for (const pick of [...(discover?.picks ?? [])].sort(byScore))
-    add('top', pick)
-  const rows = Object.values(radar?.sections ?? {}).flat()
-  for (const entry of rows.sort(byScore)) {
-    const key = radarSection(entry, today)
-    if (key) add(key, entry)
-  }
-  sections.preorder.sort((a, b) => a.release_date.localeCompare(b.release_date))
-  return sections
-}
-
-async function fetchLists() {
+async function fetchList() {
   try {
-    const [discover, radar] = await Promise.all([
-      apiFetch('/api/recommendations?kind=discover'),
-      apiFetch('/api/recommendations?kind=radar'),
-    ])
-    if (discover.status === 401 || radar.status === 401)
-      return { state: 'unauthorized' }
-    if (!discover.ok)
-      return { state: 'error', error: await errorMessage(discover) }
-    if (!radar.ok) return { state: 'error', error: await errorMessage(radar) }
-    return {
-      state: 'ready',
-      discover: await discover.json(),
-      radar: await radar.json(),
-    }
+    const response = await apiFetch('/api/recommendations/store-list')
+    if (response.status === 401) return { state: 'unauthorized' }
+    if (!response.ok)
+      return { state: 'error', error: await errorMessage(response) }
+    return { state: 'ready', list: await response.json() }
   } catch {
     return { state: 'error', error: UNREACHABLE }
   }
 }
 
-function meta(entry, key) {
-  const format =
-    entry.lane === 'digital'
-      ? 'Digital only'
-      : (FORMAT_WORDS[entry.physical_format] ?? 'Format unknown')
-  const parts = [entry.platform, format]
-  if (entry.release_date) {
-    const when = releaseWords(entry)
-    parts.push(key === 'preorder' ? `Out ${when}` : when)
-  }
-  return parts.filter(Boolean).join(' · ')
-}
-
 /**
- * What to look for in a store, read from the pending Discover picks and Radar
- * rows: one column, large tap targets, nothing on hover, for a phone held in
- * an aisle. Got it is Discover's Already own: the game becomes a private
- * owned item and leaves both lists. The row goes at once and comes back if
- * the server refuses.
+ * What to look for in a store, read from the server's sections (the same
+ * ones What's next shows, with the admin fields): one column, large tap
+ * targets, nothing on hover, for a phone held in an aisle. Got it is Already
+ * own, Want adds the game to the want list, Not interested drops it for
+ * good. The row goes at once and comes back if the server refuses.
  */
 export default function AdminStoreList() {
   usePageTitle('Store list · Admin')
@@ -151,8 +85,7 @@ export default function AdminStoreList() {
 
   const apply = useCallback((result) => {
     setState(result.state)
-    if (result.state === 'ready')
-      setSections(buildList(result.discover, result.radar, new Date()))
+    if (result.state === 'ready') setSections(result.list.sections ?? {})
     if (result.error) setError(result.error)
   }, [])
 
@@ -167,7 +100,7 @@ export default function AdminStoreList() {
 
   useEffect(() => {
     let live = true
-    fetchLists().then((result) => {
+    fetchList().then((result) => {
       if (live) apply(result)
     })
     return () => {
@@ -184,14 +117,16 @@ export default function AdminStoreList() {
     })
   }
 
-  async function gotIt(entry) {
+  /** Answers a suggestion: `action` is 'own', 'want' or 'dismiss'. */
+  async function answer(entry, action) {
     setError(null)
     setMessage(null)
     show(entry.id, false)
     try {
-      const response = await apiFetch(`/api/recommendations/${entry.id}/own`, {
-        method: 'POST',
-      })
+      const response = await apiFetch(
+        `/api/recommendations/${entry.id}/${action}`,
+        { method: 'POST' },
+      )
       if (response.status === 409) {
         // errorMessage words every 409 as a running refresh; here it is the
         // suggestion's own answer ("Already on your shelf"), so it stays off.
@@ -204,11 +139,32 @@ export default function AdminStoreList() {
         setError(await errorMessage(response))
         return
       }
-      setMessage(`Added ${entry.title} to the collection`)
+      setMessage(ANSWERS[action](entry.title))
     } catch {
       show(entry.id, true)
       setError(UNREACHABLE)
     }
+  }
+
+  function actions(entry, key) {
+    const choices =
+      key === 'not_on_cartridge'
+        ? [['dismiss', 'Not interested']]
+        : [
+            ['own', 'Got it'],
+            ['want', 'Want'],
+            ['dismiss', 'Not interested'],
+          ]
+    return choices.map(([action, label]) => (
+      <button
+        key={action}
+        type="button"
+        onClick={() => answer(entry, action)}
+        aria-label={`${label}: ${entry.title}`}
+      >
+        {label}
+      </button>
+    ))
   }
 
   if (state === 'unauthorized') {
@@ -223,8 +179,32 @@ export default function AdminStoreList() {
   }
 
   const visible = (key) =>
-    sections[key].filter((entry) => !hidden.has(entry.id))
-  const empty = sections && SECTIONS.every(([key]) => visible(key).length === 0)
+    (sections?.[key] ?? []).filter((entry) => !hidden.has(entry.id))
+  const empty =
+    sections && SECTION_ORDER.every((key) => visible(key).length === 0)
+
+  function rows(entries, key) {
+    return (
+      <ul className="next-rows">
+        {entries.map((entry) => (
+          <NextRow
+            key={entry.id}
+            row={entry}
+            section={key}
+            actions={actions(entry, key)}
+            extra={
+              <>
+                {entry.format_note && (
+                  <span className="muted">{entry.format_note}</span>
+                )}
+                <StoreLines lines={entry.store_lines} />
+              </>
+            }
+          />
+        ))}
+      </ul>
+    )
+  }
 
   return (
     <section className="store-list">
@@ -251,39 +231,24 @@ export default function AdminStoreList() {
         </p>
       )}
       {sections &&
-        SECTIONS.map(([key, heading]) => {
-          const rows = visible(key)
-          if (rows.length === 0) return null
+        SECTION_ORDER.map((key) => {
+          const entries = visible(key)
+          if (entries.length === 0) return null
           return (
             <section
               key={key}
               className="store-list-section"
               aria-labelledby={`store-list-${key}`}
             >
-              <h2 id={`store-list-${key}`}>{heading}</h2>
-              <ul className="store-list-rows">
-                {rows.map((entry) => {
-                  const reason = entry.reasons?.[0] ?? entry.format_note
-                  return (
-                    <li key={entry.id} className="store-list-row">
-                      <div className="store-list-text">
-                        <strong>{entry.title}</strong>
-                        <span className="muted">{meta(entry, key)}</span>
-                        {reason && <span>{reason}</span>}
-                      </div>
-                      {key !== 'skip' && (
-                        <button
-                          type="button"
-                          onClick={() => gotIt(entry)}
-                          aria-label={`Got it: ${entry.title}`}
-                        >
-                          Got it
-                        </button>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
+              <h2 id={`store-list-${key}`}>{spine.next.sections[key]}</h2>
+              {key === 'buy_now'
+                ? groupByPlatform(entries).map((group) => (
+                    <div key={group.platform} className="next-group">
+                      <h3>{group.platform}</h3>
+                      {rows(group.rows, key)}
+                    </div>
+                  ))
+                : rows(entries, key)}
             </section>
           )
         })}

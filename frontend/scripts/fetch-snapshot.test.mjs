@@ -3,11 +3,19 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchSnapshot } from './fetch-snapshot.mjs'
+import { SNAPSHOTS, fetchSnapshot } from './fetch-snapshot.mjs'
 
 const API = 'https://api.example.test'
 const ITEMS = [{ id: '1', title: 'Hades' }]
 const STATS = { total: 1, by_status: { finished: 1 } }
+const NEXT = {
+  tonight: { up_next: null, picks: [] },
+  wanted: [],
+  buy_now: [],
+  preorders: [],
+  later: [],
+  not_on_cartridge: [],
+}
 
 let outDir
 
@@ -218,5 +226,54 @@ describe('fetchSnapshot', () => {
     const asleep = api({ '/api/health': new TypeError('connect refused') })
     expect(await run(asleep)).toBe('failed')
     expect(await written()).toEqual([])
+  })
+
+  it('declares next as optional, accepting every list the page reads', () => {
+    expect(SNAPSHOTS.next.path).toBe('/api/public/next')
+    expect(SNAPSHOTS.next.required).toBe(false)
+    expect(SNAPSHOTS.next.valid(NEXT)).toBe(true)
+    expect(SNAPSHOTS.next.valid([])).toBe(false)
+    expect(SNAPSHOTS.next.valid({ tonight: {}, buy_now: [] })).toBe(false)
+    expect(SNAPSHOTS.next.valid({ ...NEXT, tonight: { picks: {} } })).toBe(
+      false,
+    )
+    for (const key of [
+      'wanted',
+      'buy_now',
+      'preorders',
+      'later',
+      'not_on_cartridge',
+    ]) {
+      expect(SNAPSHOTS.next.valid({ ...NEXT, [key]: null })).toBe(false)
+    }
+  })
+
+  it('writes next verbatim when the API serves it', async () => {
+    const text = JSON.stringify(NEXT)
+    const fetchImpl = api({
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+      '/api/public/next': ok(JSON.parse(text), text),
+    })
+    expect(await run(fetchImpl)).toBe('written')
+    expect(await written()).toEqual(['items.json', 'next.json', 'stats.json'])
+    expect(await fs.readFile(path.join(outDir, 'next.json'), 'utf8')).toBe(text)
+  })
+
+  it('builds without next when it is missing or has the wrong shape', async () => {
+    const base = {
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    }
+    // 404: the API has not deployed the endpoint yet.
+    expect(await run(api(base))).toBe('written')
+    expect(await written()).toEqual(['items.json', 'stats.json'])
+
+    expect(await run(api({ ...base, '/api/public/next': ok([]) }))).toBe(
+      'written',
+    )
+    expect(await written()).toEqual(['items.json', 'stats.json'])
   })
 })

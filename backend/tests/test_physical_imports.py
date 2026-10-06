@@ -21,8 +21,8 @@ PURE_MODULES = sorted(
     path.stem
     for path in PACKAGE.glob("*.py")
     if path.stem != "__init__" and path.stem not in IMPURE
-) + ["matching", "picker", "radar", "discover"]
-TOP_LEVEL = {"matching", "picker", "radar", "discover"}
+) + ["matching", "picker", "radar", "discover", "next_list"]
+TOP_LEVEL = {"matching", "picker", "radar", "discover", "next_list"}
 
 
 def test_the_base_modules_exist():

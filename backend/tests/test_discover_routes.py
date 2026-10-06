@@ -28,6 +28,7 @@ from models import (
     RecommendationStatus,
 )
 from physical_sources.catalogue import upsert_editions
+from public import create_public_router
 from recommendations_routes import create_recommendations_router
 
 pytestmark = pytest.mark.asyncio
@@ -61,9 +62,11 @@ class FakeIgdb:
 
 @asynccontextmanager
 async def discover_client(
-    factory, provider=None, no_provider=False, provider_factory=None
+    factory, provider=None, no_provider=False, provider_factory=None, with_public=False
 ):
     app = FastAPI()
+    if with_public:
+        app.include_router(create_public_router(factory))
     app.include_router(
         create_recommendations_router(
             factory,
@@ -489,3 +492,68 @@ async def test_the_overload_note_reads_llms_own_wording():
     """llm.py builds its overload message inline; if its wording changes,
     _failure_note has to follow it."""
     assert "Gemini is overloaded (HTTP" in inspect.getsource(llm)
+
+
+class NamingProvider(FakeProvider):
+    """Picks Released B, then Released A, and B's sentence names A."""
+
+    async def complete_json(self, prompt, schema, images=None):
+        self.prompts.append(prompt)
+        picks = [
+            ("Released B", "Like Hades, and Released A before it."),
+            ("Released A", "Like Hades: Released A."),
+        ]
+        return {
+            "picks": [
+                {"index": _index_of(prompt, title), "reason": reason, "based_on": [1]}
+                for title, reason in picks
+                if f"] {title}" in prompt
+            ]
+        }
+
+
+STORE_SECTIONS = ("buy_now", "preorders", "later", "not_on_cartridge")
+
+
+@pytest.mark.parametrize("answer", ["own", "want", "dismiss", "skip"])
+async def test_a_discover_answer_leaves_the_public_page_as_it_was(
+    sessionmaker_for_test, answer
+):
+    """Spec S9 for Discover. Released B's model sentence names Released A
+    and cites a public game. Owning A makes it a private item, whose title
+    must not then refuse B's sentence: A is a row on the page already, so the
+    body stays byte for byte the same. The next generate ends the answer."""
+    await _seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        hades = await session.scalar(select(Item).where(Item.title == "Hades"))
+        hades.is_public = True
+        await session.commit()
+    async with discover_client(
+        sessionmaker_for_test, provider=NamingProvider(), with_public=True
+    ) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "discover"})
+        before = await client.get("/api/public/next")
+        row = (await _discover_rows(sessionmaker_for_test))["1"]
+        answered = await client.post(f"/api/recommendations/{row.id}/{answer}")
+        after = await client.get("/api/public/next")
+        admin = (await client.get("/api/recommendations/store-list")).json()
+        await client.post("/api/recommendations/generate", json={"kind": "discover"})
+        regenerated = (await client.get("/api/public/next")).json()
+
+    assert answered.status_code in (200, 201)
+    body = before.json()
+    (pick_b,) = [r for r in body["buy_now"] if r["title"] == "Released B"]
+    assert pick_b["reasons"][0] == "Like Hades, and Released A before it."
+    assert "Released A" in {r["title"] for r in body["buy_now"]}
+    if answer == "want":
+        # Want adds a public item to Wanted; the store sections are untouched.
+        assert {k: after.json()[k] for k in STORE_SECTIONS} == {
+            k: body[k] for k in STORE_SECTIONS
+        }
+    else:
+        assert after.text == before.text
+    admin_titles = {r["title"] for rows in admin["sections"].values() for r in rows}
+    assert "Released A" not in admin_titles and "Released B" in admin_titles
+    public_titles = {r["title"] for k in STORE_SECTIONS for r in regenerated[k]}
+    assert ("Released A" in public_titles) == (answer == "skip")
+    assert "Released B" in public_titles

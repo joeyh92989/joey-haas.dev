@@ -109,7 +109,7 @@ describe('Admin', () => {
 })
 
 describe('Admin last nightly line', () => {
-  function stubApi(statusBody, statusOk = true) {
+  function stubApi(statusBody, statusOk = true, generated = null) {
     const fetch = vi.fn(async (url) => {
       const path = String(url)
       if (path.endsWith('/api/auth/me'))
@@ -122,11 +122,15 @@ describe('Admin last nightly line', () => {
         return statusOk
           ? { ok: true, status: 200, json: async () => statusBody }
           : { ok: false, status: 500, json: async () => ({}) }
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ generated_at: null }),
-      }
+      if (path.endsWith('/api/recommendations/store-list'))
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            generated_at: generated ?? { radar: null, discover: null },
+          }),
+        }
+      return { ok: false, status: 404, json: async () => ({}) }
     })
     vi.stubGlobal('fetch', fetch)
     return fetch
@@ -145,6 +149,43 @@ describe('Admin last nightly line', () => {
     })
     renderAt()
     expect(await screen.findByText(/failed: Limited Run/)).toBeInTheDocument()
+  })
+
+  it('reads the generate times from the store list', async () => {
+    const radar = new Date(Date.now() - 3600 * 1000).toISOString()
+    const discover = new Date(Date.now() - 1800 * 1000).toISOString()
+    const fetch = stubApi(
+      {
+        sources: [
+          {
+            source: 'lrg',
+            name: 'Limited Run',
+            kind: 'store',
+            last_run: { finished_at: new Date().toISOString(), ok: true },
+          },
+        ],
+      },
+      true,
+      { radar, discover },
+    )
+    const when = new Intl.DateTimeFormat('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    renderAt()
+    const line = await screen.findByText(/Last nightly/)
+    expect(line).toHaveTextContent(`Radar ${when.format(Date.parse(radar))}`)
+    expect(line).toHaveTextContent(
+      `Discover ${when.format(Date.parse(discover))}`,
+    )
+    expect(
+      fetch.mock.calls.some(([url]) =>
+        String(url).endsWith('/api/recommendations/store-list'),
+      ),
+    ).toBe(true)
   })
 
   it('says the job may have stopped when nothing has run', async () => {

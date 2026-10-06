@@ -12,6 +12,10 @@ vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 
 vi.mock('../lib/snapshot.js', () => ({ readSnapshot: vi.fn() }))
 
+// The band reads its own snapshot and API; it is tested in NextBand.test.jsx,
+// so the shelf tests do not depend on it.
+vi.mock('../components/NextBand.jsx', () => ({ default: () => null }))
+
 beforeEach(() => {
   vi.mocked(readSnapshot).mockReset()
   vi.mocked(readSnapshot).mockResolvedValue(null)
@@ -97,8 +101,6 @@ function stubApi({
   stats = STATS,
   itemsOk = true,
   statsOk = true,
-  picks = [],
-  radar = [],
 } = {}) {
   vi.stubGlobal(
     'fetch',
@@ -110,12 +112,6 @@ function stubApi({
           status: itemsOk ? 200 : 500,
           json: async () => items,
         }
-      }
-      if (path.includes('/api/public/picks')) {
-        return { ok: true, status: 200, json: async () => picks }
-      }
-      if (path.includes('/api/public/radar')) {
-        return { ok: true, status: 200, json: async () => radar }
       }
       return {
         ok: statsOk,
@@ -635,104 +631,6 @@ describe('Collection platforms and formats', () => {
   })
 })
 
-describe('Collection Up next', () => {
-  it('shows the pinned game as Up next, linked to its page', async () => {
-    stubApi({
-      items: [
-        { ...ITEMS[0], pinned: true },
-        { ...ITEMS[1], pinned: false },
-      ],
-    })
-    await renderReady()
-
-    const upNext = screen.getByRole('region', { name: 'Up next' })
-    expect(within(upNext).getByRole('link', { name: /Dune/ })).toHaveAttribute(
-      'href',
-      '/spine/1',
-    )
-  })
-
-  it('shows nothing when no game is pinned', async () => {
-    stubApi({ items: ITEMS.map((item) => ({ ...item, pinned: false })) })
-    await renderReady()
-
-    expect(
-      screen.queryByRole('region', { name: 'Up next' }),
-    ).not.toBeInTheDocument()
-  })
-})
-
-describe('Collection On the radar', () => {
-  // Local dates, as the strip compares them (toISOString would be UTC and,
-  // late in the evening, already tomorrow).
-  const later = (days) => {
-    const date = new Date()
-    date.setDate(date.getDate() + days)
-    const pad = (value) => String(value).padStart(2, '0')
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-  }
-
-  it('lists watched games still to come, soonest first, after Up next', async () => {
-    stubApi({
-      items: [
-        { ...ITEMS[0], pinned: true },
-        {
-          ...ITEMS[1],
-          id: 'w1',
-          title: 'Far Off',
-          wanted: true,
-          release_date: later(200),
-        },
-        {
-          ...ITEMS[1],
-          id: 'w2',
-          title: 'Soon',
-          wanted: true,
-          release_date: later(20),
-        },
-        {
-          ...ITEMS[1],
-          id: 'w3',
-          title: 'Out Already',
-          wanted: true,
-          release_date: '2020-01-01',
-        },
-        {
-          ...ITEMS[1],
-          id: 'o1',
-          title: 'Owned Later',
-          wanted: false,
-          release_date: later(30),
-        },
-      ],
-    })
-    await renderReady()
-
-    const radar = screen.getByRole('region', { name: 'On the radar' })
-    const titles = within(radar)
-      .getAllByRole('link')
-      .map((link) => link.textContent)
-    expect(titles).toEqual([
-      expect.stringContaining('Soon'),
-      expect.stringContaining('Far Off'),
-    ])
-    const upNext = screen.getByRole('region', { name: 'Up next' })
-    expect(
-      upNext.compareDocumentPosition(radar) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
-  })
-
-  it('shows nothing when nothing watched is still to come', async () => {
-    stubApi({
-      items: [{ ...ITEMS[1], id: 'w4', wanted: true, release_date: later(0) }],
-    })
-    await renderReady()
-    expect(
-      screen.queryByRole('region', { name: 'On the radar' }),
-    ).not.toBeInTheDocument()
-  })
-})
-
 describe('Collection snapshot', () => {
   it('paints the snapshot while the server wakes, with no waking notice', async () => {
     stubSnapshot()
@@ -796,146 +694,50 @@ describe('Collection snapshot', () => {
   })
 })
 
-describe('Collection outputs', () => {
-  const PICK = {
-    id: '2',
-    type: 'boardgame',
-    title: 'Gloomhaven',
-    cover_url: null,
-    platform: null,
-    reasons: ['Shares Fantasy with Dune, which I rated 9'],
-  }
-  const RELEASE = {
-    title: 'Metroid Prime 4',
-    platform: 'Nintendo Switch 2',
-    physical_format: 'game_card',
-    release_date: '2027-03-12',
-    release_precision: 'month',
-    igdb_url: 'https://www.igdb.com/games/metroid-prime-4',
-    cover_url: null,
-  }
-
-  it('lists recent picks with their reasons and no buttons', async () => {
-    stubApi({ picks: [PICK] })
+describe('Collection and What’s next', () => {
+  it('leaves the living strips to What’s next', async () => {
+    stubSnapshot()
+    stubApi()
     await renderReady()
 
-    const section = await screen.findByRole('region', { name: 'Recent picks' })
+    for (const name of ['Recent picks', 'Coming to cartridge', 'On the radar'])
+      expect(screen.queryByRole('heading', { name })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Up next' })).toBeNull()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(
-      within(section).getByRole('link', { name: /Gloomhaven/ }),
-    ).toHaveAttribute('href', '/spine/2')
-    expect(
-      within(section).getByText('Shares Fantasy with Dune, which I rated 9'),
-    ).toBeInTheDocument()
-    expect(within(section).queryByRole('button')).toBeNull()
-  })
-
-  it('lists coming cartridges with a month and an IGDB link', async () => {
-    stubApi({
-      radar: [RELEASE, { ...RELEASE, title: 'Unlinked', igdb_url: null }],
-    })
-    await renderReady()
-
-    const section = await screen.findByRole('region', {
-      name: 'Coming to cartridge',
-    })
-    expect(
-      within(section).getByRole('link', { name: /Metroid Prime 4/ }),
-    ).toHaveAttribute('href', 'https://www.igdb.com/games/metroid-prime-4')
-    expect(
-      within(section).getAllByText('Nintendo Switch 2 · Mar 2027'),
-    ).toHaveLength(2)
-    expect(within(section).queryByRole('link', { name: /Unlinked/ })).toBeNull()
-    expect(within(section).getByText('Unlinked').closest('a')).toBeNull()
-    expect(
-      within(section).getByRole('link', { name: /Metroid Prime 4/ }),
-    ).toHaveAttribute('rel', expect.stringContaining('noopener'))
-  })
-
-  it('gives a day-precise release its day', async () => {
-    stubApi({ radar: [{ ...RELEASE, release_precision: 'day' }] })
-    await renderReady()
-
-    const section = await screen.findByRole('region', {
-      name: 'Coming to cartridge',
-    })
-    expect(
-      within(section).getByText('Nintendo Switch 2 · Mar 12, 2027'),
+      screen.getByRole('navigation', { name: 'Spine sections' }),
     ).toBeInTheDocument()
   })
 
-  it('keeps rows of one game apart by platform and by date', async () => {
-    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const unlinked = { ...RELEASE, igdb_url: null }
-    stubApi({
-      radar: [
-        RELEASE,
-        { ...RELEASE, platform: 'Nintendo Switch' },
-        unlinked,
-        { ...unlinked, release_date: '2027-05-01' },
-      ],
-    })
+  it('puts the project line at the foot of the page', async () => {
+    stubSnapshot()
+    stubApi()
     await renderReady()
 
-    const section = await screen.findByRole('region', {
-      name: 'Coming to cartridge',
-    })
-    expect(within(section).getAllByText('Metroid Prime 4')).toHaveLength(4)
-    expect(
-      errors.mock.calls.filter((call) => String(call[0]).includes('same key')),
-    ).toEqual([])
+    expect(document.querySelector('.attribution .spine-project')).not.toBeNull()
   })
 
-  it('keeps live picks when a late snapshot arrives', async () => {
-    const releases = []
-    vi.mocked(readSnapshot).mockImplementation(
-      (name) =>
-        new Promise((done) => {
-          const rows = {
-            items: [ITEMS[0]],
-            stats: STATS,
-            picks: [{ ...PICK, id: '9', title: 'Stale Pick' }],
-            radar: [],
-          }[name]
-          releases.push(() => done(rows))
-        }),
-    )
-    stubApi({ picks: [PICK] })
-    await renderReady()
-    const section = await screen.findByRole('region', { name: 'Recent picks' })
-    expect(within(section).getByText('Gloomhaven')).toBeInTheDocument()
-
-    for (const release of releases) release()
-    await new Promise((done) => setTimeout(done, 50))
-    expect(within(section).getByText('Gloomhaven')).toBeInTheDocument()
-    expect(screen.queryByText('Stale Pick')).toBeNull()
-  })
-
-  it('paints both from the snapshot while the server wakes', async () => {
-    vi.mocked(readSnapshot).mockImplementation(
-      async (name) =>
-        ({ items: ITEMS, stats: STATS, picks: [PICK], radar: [RELEASE] })[name],
-    )
+  it('keeps the header and its tabs while loading and on error', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => new Promise(() => {})),
     )
-    await renderReady()
-
+    const { unmount } = renderPage()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(
-      await screen.findByRole('region', { name: 'Recent picks' }),
+      screen.getByRole('navigation', { name: 'Spine sections' }),
+    ).toBeInTheDocument()
+    unmount()
+
+    stubApi({ itemsOk: false })
+    renderPage()
+    await screen.findByText(/could not be loaded/i)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Spine' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('region', { name: 'Coming to cartridge' }),
+      screen.getByRole('navigation', { name: 'Spine sections' }),
     ).toBeInTheDocument()
-  })
-
-  it('shows neither section when both are empty', async () => {
-    stubApi()
-    await renderReady()
-    expect(screen.queryByRole('region', { name: 'Recent picks' })).toBeNull()
-    expect(
-      screen.queryByRole('region', { name: 'Coming to cartridge' }),
-    ).toBeNull()
   })
 })
 

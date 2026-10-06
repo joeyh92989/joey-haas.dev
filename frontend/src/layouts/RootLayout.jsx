@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router'
-import joeyPhoto from '../assets/joey.jpg'
+import { Link, Outlet, useLocation } from 'react-router'
+import SiteHeader from '../components/SiteHeader.jsx'
 import { profile } from '../content/profile.js'
 import { posts } from '../content/posts.js'
 import { apiFetch, loginUrl } from '../lib/api.js'
@@ -22,15 +22,34 @@ const WIDE_ROUTES = [
 ]
 
 /**
+ * Routes that are the tracker rather than the person: the masthead shrinks
+ * to a wordmark so the shelf starts in the first screen (Spine Next spec,
+ * K4). A different question from WIDE_ROUTES (is this a grid?), so its own
+ * list; same prefix rule.
+ */
+const COMPACT_ROUTES = ['/spine', '/admin']
+
+/**
+ * Whether a pathname is one of the routes or nested under one.
+ *
+ * @param {string[]} routes Route prefixes.
+ * @param {string} pathname The current location's pathname.
+ * @returns {boolean} True for a listed route or a route nested under one.
+ */
+function isUnder(routes, pathname) {
+  return routes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  )
+}
+
+/**
  * Whether a pathname gets the wide layout.
  *
  * @param {string} pathname The current location's pathname.
  * @returns {boolean} True for a wide route or a route nested under one.
  */
 function isWideRoute(pathname) {
-  return WIDE_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  )
+  return isUnder(WIDE_ROUTES, pathname)
 }
 
 /**
@@ -126,35 +145,13 @@ export default function RootLayout() {
 
   return (
     <div className={isWideRoute(pathname) ? 'page page-wide' : 'page'}>
-      <header className={isHome ? 'site-header home' : 'site-header'}>
-        <img className="avatar" src={joeyPhoto} alt="" />
-        <div>
-          <div className="site-name">{profile.name}</div>
-          <div className="tagline">{profile.tagline}</div>
-        </div>
-      </header>
-
-      {/* The toggle sits on the nav row visually but outside <nav>: it is not a
-          navigation control, and the landmark should not advertise it as one. */}
-      <div className={isHome ? 'nav-row home' : 'nav-row'}>
-        <nav>
-          {navItems(posts.length > 0).map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end}>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        {/* The visible label names the destination theme; the accessible name
-            has to also say what the control does. */}
-        <button
-          type="button"
-          className="theme-toggle"
-          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-          onClick={toggleTheme}
-        >
-          {theme === 'dark' ? 'Light' : 'Dark'}
-        </button>
-      </div>
+      <SiteHeader
+        compact={isUnder(COMPACT_ROUTES, pathname)}
+        isHome={isHome}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        items={navItems(posts.length > 0)}
+      />
 
       <main className={isHome ? 'home' : undefined}>
         {/* Routed pages read the session from here rather than each asking

@@ -15,12 +15,43 @@
 const isObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 
+/**
+ * What's next's body: Next.jsx reads `.length` on each of these lists, so a
+ * body missing one would blank the page. Keep in step with `isNextBody` in
+ * scripts/fetch-snapshot.mjs: the two predicates must be identical.
+ */
+const NEXT_LISTS = [
+  'wanted',
+  'buy_now',
+  'preorders',
+  'later',
+  'not_on_cartridge',
+]
+const isNextBody = (body) =>
+  isObject(body) &&
+  isObject(body.tonight) &&
+  Array.isArray(body.tonight.picks) &&
+  NEXT_LISTS.every((key) => Array.isArray(body[key]))
+
 /** Each snapshot's name and the shape its body must have to be used. */
 const SHAPES = {
   items: Array.isArray,
   stats: isObject,
   picks: Array.isArray,
   radar: Array.isArray,
+  next: isNextBody,
+}
+
+/**
+ * Whether a body has the shape a snapshot of `name` must have; the live
+ * API's answer is held to the same rule.
+ *
+ * @param {string} name
+ * @param {unknown} body
+ * @returns {boolean}
+ */
+export function isValidSnapshot(name, body) {
+  return Object.hasOwn(SHAPES, name) && SHAPES[name](body)
 }
 
 /**

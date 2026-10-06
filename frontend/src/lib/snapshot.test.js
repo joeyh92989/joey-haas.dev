@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { readSnapshot } from './snapshot.js'
+import { isValidSnapshot, readSnapshot } from './snapshot.js'
 
 function stubFetch(impl) {
   const fetch = vi.fn(impl)
@@ -67,5 +67,27 @@ describe('readSnapshot', () => {
     stubFetch(async () => ({ ok: true, json: async () => [] }))
     expect(await readSnapshot('picks')).toEqual([])
     expect(await readSnapshot('radar')).toEqual([])
+  })
+})
+
+describe('isValidSnapshot', () => {
+  it('accepts a next body only with every list the page reads', () => {
+    const next = {
+      tonight: { up_next: null, picks: [] },
+      wanted: [],
+      buy_now: [],
+      preorders: [],
+      later: [],
+      not_on_cartridge: [],
+    }
+    expect(isValidSnapshot('next', next)).toBe(true)
+    expect(isValidSnapshot('next', { tonight: {}, buy_now: [] })).toBe(false)
+    expect(isValidSnapshot('next', { ...next, tonight: null })).toBe(false)
+    expect(isValidSnapshot('next', { ...next, tonight: { picks: 1 } })).toBe(
+      false,
+    )
+    expect(isValidSnapshot('next', { ...next, later: {} })).toBe(false)
+    expect(isValidSnapshot('next', [])).toBe(false)
+    expect(isValidSnapshot('nope', {})).toBe(false)
   })
 })

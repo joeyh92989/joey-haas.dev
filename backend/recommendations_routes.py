@@ -28,7 +28,6 @@ from items import ItemIn, _copy_fields, require_admin
 from llm import LLMError, LLMProvider
 from models import (
     CatalogueGame,
-    CatalogueRun,
     FormatSource,
     Item,
     ItemStatus,
@@ -40,8 +39,9 @@ from models import (
     RecommendationKind,
     RecommendationStatus,
 )
-from physical_sources.catalogue import latest_runs
-from physical_sources.stores import STORES
+from next_list import PUBLIC_DATE_SOURCES
+from next_list import sections as next_sections
+from next_load import catalogue_times, load_next
 from picker import attribute_table, reference_weights
 from radar import SECTIONS, _line_dict, build
 from radar_load import (
@@ -118,6 +118,20 @@ def _row_out(row: Recommendation) -> dict:
         "hypes": meta.get("hypes"),
         "lane": meta.get("lane"),
     }
+
+
+def _item_release_date(row: Recommendation) -> date | None:
+    """The date a Want or Already own may copy onto the item: a public
+    source's (next_list.PUBLIC_DATE_SOURCES), to the day. A store's date is
+    store data and a wanted item is public; an item has no precision
+    column, so a month or quarter would read as its first day."""
+    meta = row.source_metadata or {}
+    if (
+        meta.get("release_source") in PUBLIC_DATE_SOURCES
+        and meta.get("release_precision") == "day"
+    ):
+        return row.release_date
+    return None
 
 
 def create_recommendations_router(
@@ -475,28 +489,37 @@ def create_recommendations_router(
             section = (row.source_metadata or {}).get("section")
             if section in sections:
                 sections[section].append(_row_out(row))
-        runs = await latest_runs(session)
-        # Each store's last good run, whatever its latest run did; the
-        # stalest of those is how old the pre-orders may be.
-        store_times = list(
-            await session.scalars(
-                select(func.max(CatalogueRun.finished_at))
-                .where(
-                    CatalogueRun.source.in_(tuple(STORES)),
-                    CatalogueRun.ok.is_(True),
-                )
-                .group_by(CatalogueRun.source)
-            )
-        )
-        registry_run = runs.get("nscollectors")
         return {
             "generated_at": generated_at,
             "personalised": personalised,
-            "catalogue": {
-                "stores_at": min(store_times, default=None),
-                "registry_at": registry_run.finished_at if registry_run else None,
-            },
+            "catalogue": await catalogue_times(session),
             "sections": sections,
+        }
+
+    @router.get("/store-list")
+    async def store_list(session: AsyncSession = Depends(get_session)) -> dict:
+        """The signed-in What's next: the same sections as /api/public/next
+        (next_list in admin mode, where any date counts, over pending rows
+        only), with the admin fields, the stored reasons and each row's own
+        date, whatever its section."""
+        today = _today()
+        data = await load_next(session)
+        built = next_sections(data.candidates, today, public=False)
+        return {
+            "generated_at": data.generated_at,
+            "catalogue": await catalogue_times(session),
+            "sections": {
+                key: [
+                    {
+                        **_row_out(entry.candidate.payload),
+                        "top_pick": entry.top_pick,
+                        "new": entry.new,
+                        "kind": entry.candidate.kind,
+                    }
+                    for entry in entries
+                ]
+                for key, entries in built.items()
+            },
         }
 
     @router.get("/watching")
@@ -563,7 +586,7 @@ def create_recommendations_router(
             owned_format=owned_format,
             source_metadata=snapshot or None,
             platform_id=row.platform_id,
-            release_date=row.release_date,
+            release_date=_item_release_date(row),
         )
         values = payload.model_dump()
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))

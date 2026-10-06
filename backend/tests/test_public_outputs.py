@@ -1,6 +1,7 @@
 """Public picks and radar (showcase spec, D). The leak tests are the point."""
 
 import asyncio
+import re
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, time, timedelta
@@ -8,12 +9,13 @@ from datetime import UTC, date, datetime, time, timedelta
 import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, update
 from starlette.middleware.sessions import SessionMiddleware
 
 import public
 from models import (
     CatalogueGame,
+    CatalogueRun,
     Item,
     ItemStatus,
     ItemType,
@@ -27,8 +29,9 @@ from models import (
     RecommendationKind,
     RecommendationStatus,
 )
+from physical_sources.stores import STORES
 from public import create_public_router
-from public_outputs import PublicPickOut, PublicRadarOut
+from public_outputs import PublicNextOut, PublicNextRow, PublicPickOut, PublicRadarOut
 from recommendations_routes import create_recommendations_router
 
 pytestmark = pytest.mark.asyncio
@@ -654,3 +657,422 @@ async def test_radar_never_publishes_a_switch_1_sheet_date(sessionmaker_for_test
         response = await client.get("/api/public/radar")
     assert response.status_code == 200
     assert response.json() == []
+
+
+FORBIDDEN = {
+    "id", "score", "rank", "hypes", "lane", "store_lines", "format_note",
+    "model_note", "ranked_by", "based_on", "based_on_titles", "listing_ids",
+    "preorder_closes_at", "price", "store", "url", "status", "batch_id",
+}  # fmt: skip
+NEXT_ROW_FIELDS = {
+    "title", "platform", "physical_format", "release_date", "release_precision",
+    "cover_url", "igdb_url", "reasons", "top_pick", "new", "item_id",
+}  # fmt: skip
+
+
+STORE_SECTIONS = ("buy_now", "preorders", "later", "not_on_cartridge")
+
+
+def _keys(value):
+    if isinstance(value, dict):
+        for key, inner in value.items():
+            yield key
+            yield from _keys(inner)
+    elif isinstance(value, list):
+        for inner in value:
+            yield from _keys(inner)
+
+
+async def _next(factory) -> dict:
+    async with client_for(factory) as client:
+        response = await client.get("/api/public/next")
+    assert response.status_code == 200
+    return response.json()
+
+
+async def test_the_next_row_model_publishes_exactly_these_fields():
+    assert set(PublicNextRow.model_fields) == NEXT_ROW_FIELDS
+    assert set(PublicNextOut.model_fields) == {
+        "generated_at",
+        "tonight",
+        "wanted",
+        "buy_now",
+        "preorders",
+        "later",
+        "not_on_cartridge",
+    }
+
+
+async def test_no_private_key_appears_anywhere(sessionmaker_for_test):
+    pinned = _game("Pinned", pinned_at=datetime.now(UTC))
+    picked = _game("Picked")
+    wanted = _game(
+        "Wanted", owned_format=OwnedFormat.NONE, release_date=TODAY + timedelta(days=40)
+    )
+    _with_ids(pinned, picked, wanted)
+    await _add(
+        sessionmaker_for_test,
+        pinned,
+        picked,
+        wanted,
+        _shown(picked, SHOWN_DAY),
+        _radar("Soon"),
+        _radar("Out", release_date=TODAY - timedelta(days=3)),
+        _radar("Digital", physical_format=None, source_metadata={"lane": "digital"}),
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert FORBIDDEN.isdisjoint(set(_keys(body)))
+    assert body["tonight"]["up_next"]["title"] == "Pinned"
+    assert [p["title"] for p in body["tonight"]["picks"]] == ["Picked"]
+    assert [w["title"] for w in body["wanted"]] == ["Wanted"]
+    assert body["wanted"][0]["item_id"] == str(wanted.id)
+    assert {r["title"] for r in body["buy_now"]} == {"Out", "Pick"}
+    assert [r["title"] for r in body["preorders"]] == ["Soon"]
+    assert [r["title"] for r in body["not_on_cartridge"]] == ["Digital"]
+
+
+async def test_answered_rows_of_an_older_batch_are_never_published(
+    sessionmaker_for_test,
+):
+    """Frozen to the batch (spec, S9): an answered row stays public until a
+    newer generation of its kind, then never again. The pending row of the
+    newer batch is the positive control."""
+    older = NOW - timedelta(days=1)
+    await _add(
+        sessionmaker_for_test,
+        *[
+            _radar(f"Gone {s.value}", status=s, generated_at=older)
+            for s in RecommendationStatus
+            if s != RecommendationStatus.PENDING
+        ],
+        _radar("Fresh", generated_at=NOW),
+    )
+    body = await _next(sessionmaker_for_test)
+    published = [r["title"] for key in STORE_SECTIONS for r in body[key]]
+    assert published == ["Fresh"]
+
+
+async def test_answered_rows_of_the_latest_batch_stay_published(
+    sessionmaker_for_test,
+):
+    batch = uuid.uuid4()
+    rows = [
+        _radar(f"Kept {s.value}", status=s, batch_id=batch, generated_at=NOW)
+        for s in RecommendationStatus
+    ]
+    await _add(sessionmaker_for_test, *rows)
+    body = await _next(sessionmaker_for_test)
+    assert {r["title"] for r in body["preorders"]} == {r.title for r in rows}
+    assert FORBIDDEN.isdisjoint(set(_keys(body)))
+
+
+async def test_stored_radar_reasons_never_reach_the_public(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _game("Liked", rating=9),
+        _radar(
+            "Soon",
+            reason="Pre-orders close Nov 8 at Limited Run Games · $59.99"
+            "\nwhich you rated 10",
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    text = " ".join(r for row in body["preorders"] for r in row["reasons"])
+    assert "Pre-orders" not in text and "$" not in text and " you " not in f" {text} "
+
+
+async def test_a_blank_first_line_never_promotes_a_store_line(sessionmaker_for_test):
+    """Only the first stored line is ever the model's sentence; the lines
+    after it are the store window, price and format (discover._extras). A
+    blank first line means no sentence, never that the store line is one."""
+    liked = _game("Liked", rating=9)
+    _with_ids(liked)
+    await _add(
+        sessionmaker_for_test,
+        liked,
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="\nPre-orders close Nov 8 at Limited Run Games · $59.99"
+            "\nFull game on cartridge",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert [row["title"] for row in body["buy_now"]] == ["Pick"]
+    text = " ".join(r for row in body["buy_now"] for r in row["reasons"])
+    assert "Pre-orders" not in text and "$" not in text
+
+
+async def test_a_discover_reason_citing_a_private_game_is_replaced(
+    sessionmaker_for_test,
+):
+    hidden = _game("Hidden Gem", is_public=False, rating=10)
+    _with_ids(hidden)
+    await _add(
+        sessionmaker_for_test,
+        hidden,
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="Because I loved Hidden Gem",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(hidden.id)],
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert [row["title"] for row in body["buy_now"]] == ["Pick"]
+    assert all("Hidden Gem" not in r for row in body["buy_now"] for r in row["reasons"])
+
+
+async def test_store_dated_rows_are_undated_and_later(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _radar("Store", source_metadata={"release_source": "store"}),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert body["preorders"] == []
+    assert body["later"][0]["title"] == "Store"
+    assert body["later"][0]["release_date"] is None
+    assert body["later"][0]["release_precision"] is None
+
+
+async def test_generated_at_names_the_pick_day(sessionmaker_for_test):
+    picked = _game("Picked")
+    _with_ids(picked)
+    await _add(sessionmaker_for_test, picked, _shown(picked, SHOWN_DAY))
+    body = await _next(sessionmaker_for_test)
+    assert body["generated_at"]["picks"] == SHOWN_DAY.date().isoformat()
+    assert body["tonight"]["up_next"] is None
+
+
+async def test_generated_at_publishes_utc_days_only(sessionmaker_for_test):
+    """The owner's generate and store-run times are published to the day,
+    as the pick day is: a timestamp would say when the owner was working."""
+    late = datetime(2026, 9, 27, 23, 30, tzinfo=UTC)
+    await _add(
+        sessionmaker_for_test,
+        _radar("Soon", generated_at=late),
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            generated_at=late,
+        ),
+        *[
+            CatalogueRun(
+                source=source,
+                started_at=late - timedelta(minutes=1),
+                finished_at=late,
+                ok=True,
+            )
+            for source in STORES
+        ],
+    )
+    body = await _next(sessionmaker_for_test)
+    assert body["generated_at"] == {
+        "picks": None,
+        "catalogue": "2026-09-27",
+        "radar": "2026-09-27",
+        "discover": "2026-09-27",
+    }
+
+
+NOT_FIRST_PERSON = re.compile(
+    r"\b(you|your|yours|they|their|theirs|them|the owner|the collector)\b",
+    re.IGNORECASE,
+)
+
+
+def _reasons(body: dict) -> list[str]:
+    cards = [body["tonight"]["up_next"] or {"reasons": []}, *body["tonight"]["picks"]]
+    rows = [row for key in ("wanted", *STORE_SECTIONS) for row in body[key]]
+    return [reason for row in cards + rows for reason in row["reasons"]]
+
+
+async def test_a_passing_discover_sentence_reaches_the_body(sessionmaker_for_test):
+    liked = _game("Liked", rating=9)
+    _with_ids(liked)
+    await _add(
+        sessionmaker_for_test,
+        liked,
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="Like Liked, I'd enjoy this\nIn stock at Limited Run Games",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    (row,) = body["buy_now"]
+    assert row["reasons"][0] == "Like Liked, I'd enjoy this"
+    assert all("Limited Run" not in reason for reason in row["reasons"])
+
+
+async def test_radar_reasons_are_rebuilt_over_public_games(sessionmaker_for_test):
+    traits = {"genres": ["Roguelike", "Indie"], "themes": ["Fantasy"]}
+    await _add(
+        sessionmaker_for_test,
+        _game("Liked", rating=9, source_metadata=traits),
+        _radar(
+            "Soon",
+            source_metadata={
+                "snapshot": {"url": "https://www.igdb.com/games/soon", **traits}
+            },
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    (row,) = body["preorders"]
+    assert row["reasons"]
+    text = " ".join(row["reasons"])
+    assert "Pre-orders" not in text and "$" not in text and "Limited Run" not in text
+
+
+async def test_every_reason_in_the_body_is_first_person(sessionmaker_for_test):
+    liked = _game("Liked", rating=9, favorite=True)
+    picked = _game("Picked", source_metadata={"genres": ["Roguelike"]})
+    _with_ids(liked, picked)
+    await _add(
+        sessionmaker_for_test,
+        liked,
+        picked,
+        _shown(picked, SHOWN_DAY),
+        _radar("Soon", reason="which you rated 10"),
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="They would love this, like Liked",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+        _radar(
+            "Other",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=50),
+            reason="Your kind of game, like Liked",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+    )
+    body = await _next(sessionmaker_for_test)
+    reasons = _reasons(body)
+    assert reasons  # the check below must have something to read
+    assert not [reason for reason in reasons if NOT_FIRST_PERSON.search(reason)]
+
+
+async def test_a_private_pinned_or_wanted_game_never_appears(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _game("Secret Pin", is_public=False, pinned_at=datetime.now(UTC)),
+        _game(
+            "Secret Want",
+            is_public=False,
+            owned_format=OwnedFormat.NONE,
+            release_date=TODAY + timedelta(days=20),
+        ),
+        _game("Shown Want", owned_format=OwnedFormat.NONE),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/next")
+    assert "Secret" not in response.text
+    body = response.json()
+    assert body["tonight"]["up_next"] is None
+    assert [row["title"] for row in body["wanted"]] == ["Shown Want"]
+
+
+async def _seed_same_title(factory, *extra):
+    """A Discover sentence naming "Secret Game", a private favourite rated 10
+    with no IGDB link, cited alongside a public game."""
+    liked = _game("Liked", rating=9)
+    secret = _game("Secret Game", rating=10, is_public=False, favorite=True)
+    _with_ids(liked, secret)
+    await _add(
+        factory,
+        liked,
+        secret,
+        _radar(
+            "Pick",
+            kind=RecommendationKind.DISCOVER,
+            release_date=TODAY - timedelta(days=100),
+            reason="Like Liked and Secret Game, I'd enjoy this",
+            reason_source=ReasonSource.MODEL,
+            based_on=[str(liked.id)],
+        ),
+        *extra,
+    )
+
+
+async def test_a_row_sharing_a_private_title_never_lifts_the_scan(
+    sessionmaker_for_test,
+):
+    """The reviewer's probe: a pending Radar row of unknown format (a
+    candidate that is never rendered) titled like a private game must not
+    let a sentence name that game."""
+    await _seed_same_title(
+        sessionmaker_for_test, _radar("Secret Game", physical_format=None)
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/next")
+    assert "Secret Game" not in response.text
+
+
+async def test_an_owned_row_of_another_game_never_lifts_the_scan(
+    sessionmaker_for_test,
+):
+    """A remake sharing the title: the owned, rendered row is a different
+    IGDB game from the private item, so the private item stays scanned."""
+    await _seed_same_title(
+        sessionmaker_for_test,
+        _radar(
+            "Secret Game",
+            external_id="remake",
+            status=RecommendationStatus.OWNED,
+            generated_at=NOW,
+        ),
+        _radar("Coming", generated_at=NOW),
+    )
+    body = await _next(sessionmaker_for_test)
+    assert "Secret Game" in {r["title"] for r in body["preorders"]}
+    assert all("Secret Game" not in r for r in _reasons(body))
+
+
+async def test_answering_a_discover_platforms_only_pick_leaves_the_body(
+    sessionmaker_for_test,
+):
+    """Discover replaces every platform's pending picks at once, so it
+    freezes per kind: owning the one N64 pick must not drop it."""
+    batch, at = uuid.uuid4(), NOW - timedelta(hours=2)
+    common = dict(
+        kind=RecommendationKind.DISCOVER,
+        batch_id=batch,
+        generated_at=at,
+        release_date=TODAY - timedelta(days=100),
+    )
+    await _add(
+        sessionmaker_for_test,
+        _radar("Two Pick", platform_id=508, **common),
+        _radar("Two Pick B", platform_id=508, **common),
+        _radar("Sixty Four Pick", platform_id=4, platform="Nintendo 64", **common),
+    )
+    before = await _next(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        await session.execute(
+            update(Recommendation)
+            .where(Recommendation.title == "Sixty Four Pick")
+            .values(status=RecommendationStatus.OWNED)
+        )
+        await session.commit()
+    after = await _next(sessionmaker_for_test)
+    assert "Sixty Four Pick" in {r["title"] for r in before["buy_now"]}
+    assert after == before

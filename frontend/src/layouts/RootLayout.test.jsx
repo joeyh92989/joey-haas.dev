@@ -202,3 +202,39 @@ describe('RootLayout footer', () => {
     expect(footer.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
   })
 })
+
+describe('RootLayout masthead density', () => {
+  function masthead(path) {
+    const { container } = renderAt(path)
+    return container.querySelector('.masthead')
+  }
+
+  it.each([
+    '/spine',
+    '/spine/next',
+    '/spine/abc',
+    '/admin',
+    '/admin/store-list',
+  ])('is compact on %s, with no tagline', (path) => {
+    const node = masthead(path)
+    expect(node.className).toContain('compact')
+    expect(node.querySelector('.tagline')).toBeNull()
+  })
+
+  it.each(['/', '/about', '/projects', '/blog/x'])('is full on %s', (path) => {
+    const node = masthead(path)
+    expect(node.className).not.toContain('compact')
+    expect(node.querySelector('.tagline')).not.toBeNull()
+  })
+
+  it('keeps Spine current on What’s next', () => {
+    renderAt('/spine/next')
+    expect(screen.getByRole('link', { name: 'Spine' })).toHaveClass('active')
+  })
+
+  it('keeps the toggle outside the nav landmark', () => {
+    renderAt('/spine')
+    const nav = screen.getByRole('navigation', { name: /site/i })
+    expect(within(nav).queryByRole('button')).toBeNull()
+  })
+})

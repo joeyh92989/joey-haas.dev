@@ -218,8 +218,8 @@ like picks and radar, with its models and loader in `public_outputs.py`.
 
 ```text
 PublicNextOut
-  generated_at: { picks: date|null, catalogue: datetime|null,
-                  radar: datetime|null, discover: datetime|null }
+  generated_at: { picks: date|null, catalogue: date|null,
+                  radar: date|null, discover: date|null }   # UTC days
   tonight:      { up_next: PublicTonightCard|null,
                   picks: [PublicTonightCard] }        # == load_public_picks
   wanted:       [PublicNextRow]                       # item_id set
@@ -231,21 +231,24 @@ PublicNextRow     { title, platform, physical_format, release_date|null,
                     reasons (≤2), top_pick, new, item_id|null }
 ```
 
-- **`generated_at`:**
+- **`generated_at`:** UTC days only, never times, so the body does not say
+  when the owner was at the admin pages.
   - `picks` is the UTC day `load_public_picks` chose, or null.
   - `catalogue` is the stalest store's last good run, computed the same way
     the admin Radar list does it (`min` over each store's latest
     `ok = true` `finished_at`).
-  - `radar` and `discover` are the newest `generated_at` of each kind's
-    pending rows.
+  - `radar` and `discover` are each kind's last generation: the newest
+    `generated_at` over its rows, whatever their status.
 - **`tonight`:**
   - `up_next` is the pinned item, if it is public; its `reasons` is `[]`.
   - `picks` is exactly `load_public_picks`, re-shaped so `id` becomes
     `item_id` (K3).
-- **`wanted`** holds public items with `wanted = true`:
+- **`wanted`** holds public game items with `wanted = true`:
   - `item_id` is set, so the page links to `/spine/:id`;
-  - `release_date` is the item's own date (IGDB, already public on
-    `/spine`), set only when it is after today;
+  - `release_date` is the item's own date (already public on `/spine`),
+    set only when it is after today. Want and Already own copy a
+    suggestion's date onto the item only when the registry gave it to the
+    day: a store's date is store data, and an item has no precision column;
   - `reasons` is `[]`.
 - **The leak test** (`test_public_outputs.py`) walks the whole body
   recursively and asserts none of these keys appear at any depth: `id`,
@@ -253,7 +256,10 @@ PublicNextRow     { title, platform, physical_format, release_date|null,
   `model_note`, `ranked_by`, `based_on`, `based_on_titles`, `listing_ids`,
   `preorder_closes_at`, `price`, `store`, `url` (but `igdb_url` and
   `cover_url` are allowed), `status`, `batch_id`. A second test asserts that
-  no answered row (dismissed, skipped, wanted or owned) appears.
+  no answered row (dismissed, skipped, wanted or owned) from an older batch
+  appears; an answered row of its group's latest generation (Discover per
+  kind, Radar per platform) stays, frozen, until the next one, while that
+  generation still has a pending row (S9).
 
 **6. `backend/next_list.py`, pure.** No FastAPI or SQLAlchemy in its import
 graph. It joins the existing import-graph test with `radar.py`,
@@ -270,8 +276,9 @@ standard library.
   list of `NextEntry(candidate, top_pick, new, date_shown)`. The rules are
   `AdminStoreList.jsx`'s, moved:
   1. A Discover pick goes to `buy_now` with `top_pick = True`, highest score
-     first. A Discover row that is not released (its period has not ended)
-     is dropped.
+     first. A Discover row dated after today is dropped: Discover's own rule
+     (`discover.released`), so an undated pick, or one dated to the current
+     month, is kept.
   2. A Radar row that is digital-lane, or whose format is `game_key_card`
      or `code_in_box`, goes to `not_on_cartridge`, highest score first,
      capped at 12.
@@ -288,9 +295,10 @@ standard library.
   store's date counts as undated, so it goes last in `later` with
   `date_shown = None`. With `public=False`, any date is used, which is what
   the admin page shows today.
-- **The `new` badge.** `new = full cartridge and 0 ≤ (today − release_date)
-  ≤ 30 days`, computed from any known date in both modes. A boolean leaks
-  nothing.
+- **The `new` badge.** `new = full cartridge, out, and 0 ≤ (today −
+  period_end(release_date)) ≤ 30 days`, computed from any known date in both
+  modes, so a month-dated game is new for 30 days after its month ends. A
+  boolean leaks nothing.
 - **Helpers.** `period_end(date, precision)` is moved from the JSX.
   `genre_line(genres)` returns "Shares Mystery and Story rich with games on
   my shelf", or None when there are no genres.
@@ -309,9 +317,14 @@ standard library.
   `new`.
 - It also returns `generated_at` and `catalogue`, as `/api/public/next`
   does, plus `registry_at`.
-- The loader is `next_load.py`: database → `NextCandidate`s, pending rows of
-  both kinds, beside `radar_load.py`. Both routes share it, so the two pages
-  cannot disagree about a section except by the one public date rule.
+- The loader is `next_load.py`: database → `NextCandidate`s of both kinds,
+  beside `radar_load.py`. Both routes share it, so the two pages cannot
+  disagree about a section except by the one public date rule and which
+  rows they read: the store list reads pending rows only, the public page
+  also the frozen answered rows (S9).
+- Each row's `release_date` is its own, any source, in every section: the
+  store list never takes the public `date_shown`, which is null in Not on
+  cartridge.
 
 **8. Public reasons are rebuilt at read time** (K2). The rule is that a
 public reason names only public games.
@@ -406,12 +419,15 @@ Every section keeps its heading and shows its empty-state line from
 `content/spine.js` rather than disappearing.
 
 **12. Snapshot first.** `next` joins `SNAPSHOTS` in `fetch-snapshot.mjs` as
-an optional output, valid when it is an object holding `tonight` and
-`buy_now`. `/spine` does snapshot-then-API inline today: an
+an optional output, valid when it is an object whose `tonight` is an
+object with a `picks` list and whose `wanted`, `buy_now`, `preorders`,
+`later` and `not_on_cartridge` are lists: every list `Next.jsx` reads. The
+predicate is identical in `lib/snapshot.js`, which holds the live answer to
+it too, and `Next.jsx` still falls back to empty lists. `/spine` does snapshot-then-API inline today: an
 effect over `readSnapshot` then `apiFetch`, where live data wins and a
 painted snapshot outranks an error. The strips' copy of that effect goes when
 the strips go. A small hook, `lib/useSnapshotThenLive.js`
-(`useSnapshotThenLive(name)` → `{ data, live, error }`), carries the same
+(`useSnapshotThenLive(name)` → `{ data, live, failed }`), carries the same
 rules for `Next.jsx` and `NextBand`. `Collection.jsx`'s own shelf loader
 stays as it is. "Waking the server" shows only when there is no snapshot.
 
@@ -578,6 +594,45 @@ Where this spec departs from the brief:
   16 says "the same route list").
 - **S8 — "Sunday" is Sunday evening in Denver**, which is Monday in UTC
   (decided 2026-10-05).
+- **S9 — the public store sections are frozen to the batch** (decided
+  2026-10-05, after the final review). Item 5 said no answered row ever
+  appears, which made `/api/public/next` change the moment the owner
+  answered a game: anyone polling it could watch the owner shop. Now:
+  - **What is frozen.** The public page reads pending rows plus the
+    answered rows (wanted, dismissed, owned or skipped) of each group's
+    latest generation: the batches generated at the group's newest
+    `generated_at` (a tie is one generation). **Discover groups per kind,
+    Radar per (kind, platform).** An answered row is sectioned and reasoned
+    exactly as a pending one, and nothing on it shows the answer.
+  - **Why the groups differ.** Radar replaces pending rows only on the
+    platforms a generate covered, so a Radar generate on one platform must
+    not end another platform's frozen answers. Discover replaces all its
+    pending picks on every platform at once, so it is one group: per
+    platform, owning the only N64 pick would empty that platform's
+    generation and, failing closed, drop the pick at once.
+  - **When it ends.** Generation skips wanted, dismissed and owned rows,
+    which keep their old batch, so the group's next generation (nightly)
+    drops them; a skipped row is re-pended into the new batch and stays.
+  - **Fails closed.** A latest generation with no pending row left in its
+    group shows none of its answered rows. A generate that
+    writes no rows deletes the pending ones and leaves the old batch the
+    latest, so publishing its answers would list exactly what the owner
+    answered.
+  - **Reasons stay put, by identity.** Already own creates a private item
+    carrying the row's IGDB id and platform, and scanning reasons for its
+    title would refuse a frozen Discover sentence that names it. So the
+    scan is lifted for a private item only when its `(external_source,
+    external_id)`, and its platform when it has one, match an **owned** row
+    of the frozen batch that the page renders
+    (`next_load.taste_sparing_owned`). Never by title: a private game with
+    no IGDB link, or a same-titled remake, stays scanned, as does a game
+    whose owned row is not rendered.
+  - The admin store list stays live: pending only.
+  - *Accepted residuals:* until the next generation a wanted game is in
+    both Wanted and its store section; and answering every row of a
+    group's generation during the day hides all of them publicly
+    until the next generation, which tells a poller that everything there
+    was answered, though not how.
 
 ## Key decisions
 

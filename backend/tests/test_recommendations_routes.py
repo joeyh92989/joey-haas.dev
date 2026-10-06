@@ -28,6 +28,7 @@ from models import (
     StoreListing,
 )
 from physical_sources.catalogue import upsert_editions, upsert_listings
+from public import create_public_router
 from recommendations_routes import create_recommendations_router
 from sources.base import SourceError
 
@@ -66,8 +67,12 @@ def _upcoming(igdb_id, platform_id=508):
 
 
 @asynccontextmanager
-async def radar_client(factory, igdb=None, lock=None, signed_in=True):
+async def radar_client(
+    factory, igdb=None, lock=None, signed_in=True, with_public=False
+):
     app = FastAPI()
+    if with_public:
+        app.include_router(create_public_router(factory))
     app.include_router(
         create_recommendations_router(
             factory, {ItemType.GAME: igdb or FakeUpcoming()}, lock or asyncio.Lock()
@@ -148,6 +153,7 @@ async def _rows(factory):
         ("post", "/api/recommendations/generate"),
         ("get", "/api/recommendations?kind=radar"),
         ("get", "/api/recommendations/watching"),
+        ("get", "/api/recommendations/store-list"),
         ("post", "/api/recommendations/00000000-0000-0000-0000-000000000000/want"),
         ("post", "/api/recommendations/00000000-0000-0000-0000-000000000000/own"),
         ("get", "/api/recommendations?kind=discover"),
@@ -540,3 +546,179 @@ async def test_already_own_adds_a_private_owned_item(sessionmaker_for_test):
         "1"
     ].status == RecommendationStatus.OWNED
     assert regenerated["counts"]["suggested"] == 1  # owned and dismissed are out
+
+
+def _store_row(title: str, **fields) -> Recommendation:
+    """A pending Radar row for a full Switch 2 cartridge, dated 60 days out."""
+    metadata = {
+        "lane": "preorder",
+        "section": "suggested",
+        "release_precision": "day",
+        "release_source": "registry",
+        "hypes": 40,
+        "store_lines": [
+            {
+                "store": "Limited Run Games",
+                "price": "59.99",
+                "currency": "USD",
+                "availability": "preorder",
+                "preorder_closes_at": "2026-11-08T00:00:00+00:00",
+                "url": "https://limitedrungames.com/products/x",
+            }
+        ],
+    }
+    base = dict(
+        kind=RecommendationKind.RADAR,
+        type=ItemType.GAME,
+        title=title,
+        external_source="igdb",
+        external_id=title.lower().replace(" ", "-"),
+        release_date=TODAY + timedelta(days=60),
+        reason="Pre-orders close Nov 8 at Limited Run Games",
+        reason_source=ReasonSource.TEMPLATE,
+        based_on=["x"],
+        score=50,
+        batch_id=uuid.uuid4(),
+        status=RecommendationStatus.PENDING,
+        platform_id=508,
+        platform="Nintendo Switch 2",
+        physical_format=PhysicalFormat.GAME_CARD,
+        source_metadata=metadata,
+    )
+    overrides = fields.pop("source_metadata", None)
+    row = Recommendation(**{**base, **fields})
+    if overrides is not None:
+        row.source_metadata = {**metadata, **overrides}
+    return row
+
+
+async def _add_rows(factory, *rows):
+    async with factory() as session:
+        session.add_all(rows)
+        await session.commit()
+
+
+async def test_store_list_sections_with_private_fields(sessionmaker_for_test):
+    await _add_rows(
+        sessionmaker_for_test,
+        _store_row("Store", source_metadata={"release_source": "store"}),
+        _store_row("Out", release_date=TODAY - timedelta(days=3)),
+    )
+    async with radar_client(sessionmaker_for_test) as client:
+        response = await client.get("/api/recommendations/store-list")
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body["sections"]) == {
+        "buy_now",
+        "preorders",
+        "later",
+        "not_on_cartridge",
+    }
+    # Admin mode: a store date sections like any date, and is shown.
+    assert [r["title"] for r in body["sections"]["preorders"]] == ["Store"]
+    assert (
+        body["sections"]["preorders"][0]["release_date"]
+        == (TODAY + timedelta(days=60)).isoformat()
+    )
+    out = body["sections"]["buy_now"][0]
+    assert {"id", "score", "store_lines", "top_pick", "new", "kind"} <= set(out)
+    assert out["kind"] == "radar"
+    assert "radar" in body["generated_at"] and "stores_at" in body["catalogue"]
+    assert "registry_at" in body["catalogue"]
+
+
+async def test_store_list_is_admin_only(sessionmaker_for_test):
+    async with radar_client(sessionmaker_for_test, signed_in=False) as client:
+        response = await client.get("/api/recommendations/store-list")
+    assert response.status_code == 401
+
+
+STORE_SECTIONS = ("buy_now", "preorders", "later", "not_on_cartridge")
+
+
+def _store_titles(body: dict) -> dict[str, list[str]]:
+    return {key: [row["title"] for row in body[key]] for key in STORE_SECTIONS}
+
+
+@pytest.mark.parametrize("answer", ["want", "own", "dismiss", "skip"])
+async def test_the_public_sections_are_frozen_to_the_batch(
+    sessionmaker_for_test, answer
+):
+    """Spec S9: an answer changes the signed-in store list at once and the
+    public sections only at the next generation, where a skipped game comes
+    back and any other answered one is gone."""
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test, with_public=True) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        rows = await _rows(sessionmaker_for_test)
+        before = (await client.get("/api/public/next")).json()
+        answered = await client.post(f"/api/recommendations/{rows['1'].id}/{answer}")
+        after = (await client.get("/api/public/next")).json()
+        admin = (await client.get("/api/recommendations/store-list")).json()
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        regenerated = (await client.get("/api/public/next")).json()
+        again = await _rows(sessionmaker_for_test)
+
+    assert answered.status_code in (200, 201)
+    assert "Dated" in _store_titles(before)["preorders"]
+    # The public body's store sections are unchanged, row for row.
+    assert {key: after[key] for key in STORE_SECTIONS} == {
+        key: before[key] for key in STORE_SECTIONS
+    }
+    assert after["generated_at"] == before["generated_at"]
+    # The signed-in list is live: the answered game is gone at once.
+    admin_titles = {r["title"] for rows_ in admin["sections"].values() for r in rows_}
+    assert "Dated" not in admin_titles and "Next Year" in admin_titles
+    # The answered row kept its batch; the rest moved to the new one.
+    assert again["1"].batch_id == rows["1"].batch_id or answer == "skip"
+    assert again["3"].batch_id != rows["3"].batch_id
+    public_titles = {
+        t for titles in _store_titles(regenerated).values() for t in titles
+    }
+    assert ("Dated" in public_titles) == (answer == "skip")
+    assert "Next Year" in public_titles
+
+
+@pytest.mark.parametrize(
+    ("answer", "metadata", "kept"),
+    [
+        ("want", {"release_source": "store"}, False),
+        ("own", {"release_source": "store"}, False),
+        ("want", {"release_source": "igdb_platform"}, False),
+        ("want", {"release_precision": "month"}, False),
+        ("want", {}, True),  # a registry date to the day
+    ],
+)
+async def test_want_and_own_copy_only_a_registry_day(
+    sessionmaker_for_test, answer, metadata, kept
+):
+    """A store's date is store data, and an item has no precision column, so
+    a month would read as its first day: only a registry day is copied."""
+    row = _store_row("Coming", source_metadata=metadata)
+    await _add_rows(sessionmaker_for_test, row)
+    async with radar_client(sessionmaker_for_test, with_public=True) as client:
+        response = await client.post(f"/api/recommendations/{row.id}/{answer}")
+        body = (await client.get("/api/public/next")).json()
+    assert response.status_code == 201
+    async with sessionmaker_for_test() as session:
+        (item,) = await session.scalars(select(Item))
+    expected = TODAY + timedelta(days=60) if kept else None
+    assert item.release_date == expected
+    if answer == "want":
+        (wanted,) = body["wanted"]
+        assert wanted["release_date"] == (expected.isoformat() if kept else None)
+
+
+async def test_store_list_keeps_any_date_on_every_section(sessionmaker_for_test):
+    """The signed-in list shows the row's own date, whatever section it is
+    in: Not on cartridge has no public date, but the owner still sees one."""
+    await _add_rows(
+        sessionmaker_for_test,
+        _store_row(
+            "Digital", physical_format=None, source_metadata={"lane": "digital"}
+        ),
+    )
+    async with radar_client(sessionmaker_for_test) as client:
+        body = (await client.get("/api/recommendations/store-list")).json()
+    (row,) = body["sections"]["not_on_cartridge"]
+    assert row["release_date"] == (TODAY + timedelta(days=60)).isoformat()
