@@ -191,6 +191,17 @@ def apply_copy_fields(changes: dict, row: Item | None) -> dict:
         effective_cart = None if clearing else current("cart_id")
     implied = CART_ID_FORMATS[effective_cart[:2]] if effective_cart else None
 
+    # The LA rule above, from the other side: a platform change alone must
+    # not make Switch 2 the platform of a copy whose cart ID is a Switch 1 one.
+    if (
+        "platform_id" in result
+        and "cart_id" not in result
+        and platform == SWITCH_2
+        and effective_cart
+        and effective_cart.startswith("LA")
+    ):
+        raise CopyFieldError("LA is a Switch 1 cartridge, so the platform looks wrong.")
+
     # 3. A stated format must agree with the cart ID.
     stated = result.get("physical_format")
     if implied is not None and stated is not None and _value(stated) != implied.value:

@@ -686,6 +686,15 @@ def create_items_router(
             values["id"] = uuid.uuid4()
             rows.append(values)
 
+        # A multi-row INSERT takes its columns from the first row: a key some
+        # rows lack (apply_copy_fields adds `platform` and `format_source`
+        # only when their inputs were sent) either fails to compile or is
+        # silently dropped from the later rows. Every row gets every key.
+        columns = set().union(*rows) if rows else set()
+        for values in rows:
+            for column in columns:
+                values.setdefault(column, None)
+
         # Checked before the insert and over the whole batch, so a batch that
         # would cross the limit is refused whole. A favourited row that ON
         # CONFLICT would skip as a duplicate still counts: conservative, and
