@@ -14,6 +14,7 @@ import base64
 import itertools
 import json
 
+import httpx2
 import pytest
 
 from config import Config
@@ -217,9 +218,12 @@ class _FakeClient:
         self._calls.append(url.split("/models/")[-1].split(":")[0])
         # The last queued response repeats, so a test that cares about "keeps
         # failing" need not count the exact number of attempts up front.
-        return (
+        queued = (
             self._responses.pop(0) if len(self._responses) > 1 else self._responses[0]
         )
+        if isinstance(queued, Exception):
+            raise queued
+        return queued
 
 
 def _patch_client(monkeypatch, responses: list[_FakeResponse]) -> list[str]:
@@ -449,3 +453,38 @@ async def test_a_429_with_no_quota_detail_still_reads_sensibly(monkeypatch):
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
 
     assert "rate limit" in str(excinfo.value).lower()
+
+
+class _NotJsonResponse(_FakeResponse):
+    def json(self) -> dict:
+        raise ValueError("Expecting value: line 1 column 1")
+
+
+@pytest.mark.asyncio
+async def test_a_timeout_is_retried_like_a_504(monkeypatch):
+    ok = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
+    calls = _patch_client(
+        monkeypatch,
+        [httpx2.ReadTimeout("read timed out"), _FakeResponse(200, ok)],
+    )
+
+    result = await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    assert result == {"titles": ["Dune"]}
+    assert len(calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_a_2xx_that_is_not_json_is_an_llm_error(monkeypatch):
+    # A ValueError here would skip Discover's template fallback and 500.
+    _patch_client(monkeypatch, [_NotJsonResponse(200)])
+    with pytest.raises(LLMError, match="not JSON"):
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+
+@pytest.mark.asyncio
+async def test_timeouts_everywhere_say_so_rather_than_an_http_status(monkeypatch):
+    _patch_client(monkeypatch, [httpx2.ReadTimeout("read timed out")])
+    with pytest.raises(LLMError, match="did not answer in time") as raised:
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+    assert "HTTP" not in str(raised.value)

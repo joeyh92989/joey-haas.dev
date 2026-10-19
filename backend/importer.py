@@ -12,7 +12,8 @@ function of the image, and the entire resolution path testable with no model
 calls at all.
 
 Nothing is persisted by this module. The browser holds the detections between
-upload and commit, and the photographs are never written to disk.
+upload and commit, and the photographs are not kept beyond the request
+(Starlette spools one over 1 MB to a temporary file until the request ends).
 """
 
 from __future__ import annotations
@@ -42,6 +43,10 @@ ACCEPTED_MEDIA_TYPES = frozenset(
 # A shelf is a handful of photographs, not an album. The cap exists because the
 # whole batch travels inline in one request under a 20 MB ceiling.
 MAX_PHOTOS = 20
+# Per photo, checked as the upload is parsed, before it is handed on. A phone
+# photo is 2-8 MB. Base64 adds a third, so 14 MB encodes to under Gemini's
+# 20 MB inline limit with room left for the prompt; 15 MB would not.
+MAX_PHOTO_BYTES = 14 * 1024 * 1024
 
 MEDIA_TYPE_VALUES = [t.value for t in ItemType]
 
@@ -286,9 +291,18 @@ def create_import_router(
                         "upload JPEG, PNG, WebP, or HEIC images"
                     ),
                 )
-            # Straight from the request into the provider payload. Nothing is
-            # written to disk: Render's free tier loses it on restart anyway,
-            # and the photographs have no value once the titles are read.
+            if upload.size is not None and upload.size > MAX_PHOTO_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=(
+                        f"{upload.filename or 'file'} is "
+                        f"{upload.size // (1024 * 1024)} MB; upload photos of "
+                        f"at most {MAX_PHOTO_BYTES // (1024 * 1024)} MB"
+                    ),
+                )
+            # Straight from the request into the provider payload, and not
+            # kept: Render's free tier loses its disk on restart anyway, and
+            # the photographs have no value once the titles are read.
             images.append(Image(upload.content_type, await upload.read()))
 
         try:

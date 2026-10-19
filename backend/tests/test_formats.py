@@ -102,6 +102,18 @@ def test_an_la_cart_in_the_same_body_as_switch_2_is_refused():
         apply_copy_fields({"cart_id": "LA-AAAAA-USA-0", "platform_id": 508}, None)
 
 
+def test_moving_an_la_copy_to_switch_2_is_refused():
+    # The same rule from the platform's side: no cart_id in the body.
+    row = _row(platform_id=130, cart_id="LA-AAAAA-USA-0")
+    with pytest.raises(CopyFieldError, match="Switch 1 cartridge"):
+        apply_copy_fields({"platform_id": 508}, row)
+
+
+def test_an_la_copy_can_stay_on_switch_1():
+    row = _row(platform_id=508, cart_id="LA-AAAAA-USA-0")
+    assert apply_copy_fields({"platform_id": 130}, row)["platform"]
+
+
 def test_an_la_cart_on_a_switch_copy_is_a_game_card():
     result = apply_copy_fields({"cart_id": "LA-AAAAA-USA-0"}, _row(platform_id=130))
     assert result["physical_format"] == "game_card"

@@ -6,10 +6,12 @@ else. Both providers enforce the schema server-side -- Gemini through
 responseSchema, Anthropic through output_config.format -- so neither returns
 prose that has to be salvaged with a regex.
 
-Images are passed inline as base64 and never written to disk. Render's free
-tier has an ephemeral disk, so anything written there is lost on restart while
-still being a data-retention surface, and the photographs have no value once
-the titles have been read off them.
+Images are passed inline as base64 and are not kept beyond the request.
+(Starlette spools an upload over 1 MB to a temporary file while the request
+is open; it is removed when the request ends.) Render's free tier has an
+ephemeral disk, so anything kept there is lost on restart while still being a
+data-retention surface, and the photographs have no value once the titles
+have been read off them.
 """
 
 from __future__ import annotations
@@ -259,6 +261,7 @@ class GeminiProvider:
 
         last_status: int | None = None
         last_body: dict | None = None
+        timed_out = False
         started = monotonic()
 
         def spent() -> float:
@@ -279,12 +282,31 @@ class GeminiProvider:
             # followed by a wait.
             for attempt in range(len(RETRY_DELAYS_SECONDS) + 1):
                 try:
-                    async with httpx2.AsyncClient(timeout=TIMEOUT) as client:
+                    # Never longer than the budget has left: a timed-out
+                    # attempt followed by a full second one would double it.
+                    remaining = TOTAL_BUDGET_SECONDS - spent()
+                    async with httpx2.AsyncClient(
+                        timeout=min(TIMEOUT, max(5.0, remaining))
+                    ) as client:
                         response = await client.post(
                             f"{GEMINI_ROOT}/{model}:generateContent",
                             json=body,
                             headers={"x-goog-api-key": self._api_key},
                         )
+                except httpx2.TimeoutException as error:
+                    # The same outage as a 504, so retried and fallen through
+                    # like one, within the same budget.
+                    logger.info(
+                        "gemini %s attempt %d timed out: %s", model, attempt + 1, error
+                    )
+                    last_status, last_body, timed_out = 504, None, True
+                    if (
+                        attempt < len(RETRY_DELAYS_SECONDS)
+                        and spent() < TOTAL_BUDGET_SECONDS
+                    ):
+                        await asyncio.sleep(RETRY_DELAYS_SECONDS[attempt])
+                        continue
+                    break
                 except httpx2.HTTPError as error:
                     raise LLMError(f"Gemini request failed: {error}") from error
 
@@ -296,8 +318,17 @@ class GeminiProvider:
                     len(images),
                 )
 
+                timed_out = False
                 if response.status_code < 400:
-                    return self._parse(response.json())
+                    try:
+                        payload = response.json()
+                    except ValueError as error:
+                        # Not an LLMError otherwise, so Discover's template
+                        # fallback would not run and the route would 500.
+                        raise LLMError(
+                            f"Gemini returned a body that is not JSON: {error}"
+                        ) from error
+                    return self._parse(payload)
 
                 last_status = response.status_code
                 try:
@@ -326,6 +357,12 @@ class GeminiProvider:
 
         if last_status == RATE_LIMIT_STATUS:
             raise LLMError(_quota_message(last_body, tried=len(self._models)))
+        if timed_out:
+            # No response came back, so no HTTP status to report.
+            raise LLMError(
+                f"Gemini did not answer in time — tried {', '.join(self._models)}. "
+                "Try again in a few minutes."
+            )
         if last_status in OVERLOAD_STATUSES:
             raise LLMError(
                 f"Gemini is overloaded (HTTP {last_status}) — tried "
@@ -376,18 +413,24 @@ class AnthropicProvider:
         images = images or []
         guard_payload_size(images)
 
-        client = anthropic.AsyncAnthropic(api_key=self._api_key, timeout=TIMEOUT)
-        try:
-            response = await client.messages.create(
-                model=self._model,
-                max_tokens=MAX_TOKENS,
-                messages=[
-                    {"role": "user", "content": self._build_content(prompt, images)}
-                ],
-                output_config={"format": {"type": "json_schema", "schema": schema}},
-            )
-        except anthropic.APIError as error:
-            raise LLMError(f"Anthropic request failed: {error}") from error
+        # A client per call, closed with it: an unclosed one leaks its pool.
+        async with anthropic.AsyncAnthropic(
+            api_key=self._api_key, timeout=TIMEOUT
+        ) as client:
+            try:
+                response = await client.messages.create(
+                    model=self._model,
+                    max_tokens=MAX_TOKENS,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": self._build_content(prompt, images),
+                        }
+                    ],
+                    output_config={"format": {"type": "json_schema", "schema": schema}},
+                )
+            except anthropic.APIError as error:
+                raise LLMError(f"Anthropic request failed: {error}") from error
 
         logger.info(
             "anthropic %s -> %s (%d images)",

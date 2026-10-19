@@ -23,6 +23,7 @@ from pathlib import Path
 from alembic.config import Config as AlembicConfig
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from asyncpg.exceptions import CannotConnectNowError, PostgresConnectionError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import Config
@@ -86,6 +87,22 @@ def _read_revision(connection) -> str | None:
     return MigrationContext.configure(connection).get_current_revision()
 
 
+# Neon's free tier suspends compute when idle, and a cold wake can drop or
+# stall the first connection. A failed connect at boot exits the process and
+# Render restarts it, which costs far more than a short retry here. Only
+# connecting is retried: a schema mismatch is an answer, not a failure.
+CONNECT_ATTEMPTS = 3
+CONNECT_RETRY_SECONDS = (2.0, 5.0)
+# asyncpg's errors arrive unwrapped from engine.connect(). Connection-level
+# ones only: an authentication or missing-database error fails at once.
+CONNECT_ERRORS = (
+    OSError,
+    TimeoutError,
+    PostgresConnectionError,
+    CannotConnectNowError,  # "the database system is starting up"
+)
+
+
 async def database_revision(config: Config) -> str | None:
     """The revision the database believes it is at, or None if unmigrated.
 
@@ -94,12 +111,23 @@ async def database_revision(config: Config) -> str | None:
     synchronous driver to the dependency set for one query at startup.
     """
     url = normalize_async_url(config.database_url_direct)
-    engine = create_async_engine(url, connect_args=connect_args_for(url), future=True)
-    try:
-        async with engine.connect() as connection:
-            return await connection.run_sync(_read_revision)
-    finally:
-        await engine.dispose()
+    for attempt in range(CONNECT_ATTEMPTS):
+        engine = create_async_engine(
+            url, connect_args=connect_args_for(url), future=True
+        )
+        try:
+            async with engine.connect() as connection:
+                return await connection.run_sync(_read_revision)
+        except CONNECT_ERRORS as error:
+            if attempt == CONNECT_ATTEMPTS - 1:
+                raise
+            logger.warning(
+                "schema check could not connect (attempt %d): %s", attempt + 1, error
+            )
+            await asyncio.sleep(CONNECT_RETRY_SECONDS[attempt])
+        finally:
+            await engine.dispose()
+    raise AssertionError("unreachable")
 
 
 def verify_schema_is_current(config: Config) -> None:

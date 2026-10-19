@@ -221,6 +221,19 @@ async def test_too_many_photos_is_rejected():
     assert response.status_code == 422
 
 
+async def test_an_oversized_photo_is_refused_before_it_is_read(monkeypatch):
+    monkeypatch.setattr("importer.MAX_PHOTO_BYTES", 4)
+    provider = StubProvider()
+    async with client_for({}, provider) as client:
+        response = await client.post(
+            "/api/import/photos",
+            files={"photos": ("big.jpg", b"\xff\xd8 too big", "image/jpeg")},
+        )
+
+    assert response.status_code == 413
+    assert "big.jpg" in response.json()["detail"]
+
+
 async def test_import_requires_the_admin_session():
     async with client_for({}, StubProvider(), signed_in=False) as client:
         response = await client.post("/api/import/photos", files={"photos": JPEG})

@@ -290,3 +290,21 @@ async def test_a_failing_source_still_leaves_the_items_created(
     assert response.json()["created"] == 1
     assert response.json()["enriched"] == 0
     assert listed[0]["cover_url"] is None
+
+
+@pytest.mark.parametrize("platform_first", [True, False])
+async def test_rows_with_and_without_a_platform_insert_together(
+    sessionmaker_for_test, platform_first
+):
+    """A multi-row INSERT takes its columns from the first row; a later row's
+    platform must neither crash the insert nor be dropped."""
+    with_platform = _item("Hades", type="game", platform_id=130)
+    without = _item("Dune")
+    rows = [with_platform, without] if platform_first else [without, with_platform]
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post("/api/items/bulk", json={"items": rows})
+        listed = {row["title"]: row for row in (await client.get("/api/items")).json()}
+
+    assert response.status_code == 201, response.text
+    assert listed["Hades"]["platform"] == "Nintendo Switch"
+    assert listed["Dune"]["platform"] is None
