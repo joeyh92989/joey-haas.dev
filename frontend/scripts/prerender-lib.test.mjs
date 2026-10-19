@@ -10,6 +10,7 @@ import {
   spineFeed,
   noindex,
   publicRoutes,
+  routeUrl,
   renderHead,
   robots,
   sitemap,
@@ -149,6 +150,36 @@ describe('renderHead', () => {
     expect(out).toContain('<meta name="twitter:card" content="summary" />')
     expect(out).not.toContain('og:image:width')
   })
+
+  it('gives item, year and month pages their slash URL, and nothing else', () => {
+    const routes = publicRoutes({
+      posts: [POST],
+      items: [{ ...ITEM, finished_at: '2026-09-14' }],
+    })
+    const urls = Object.fromEntries(
+      routes.map((route) => [route.path, routeUrl(route)]),
+    )
+    expect(urls[`/spine/${ITEM.id}`]).toBe(
+      `https://joey-haas.dev/spine/${ITEM.id}/`,
+    )
+    expect(urls['/spine/year/2026']).toBe(
+      'https://joey-haas.dev/spine/year/2026/',
+    )
+    expect(urls['/spine/journal/2026-09']).toBe(
+      'https://joey-haas.dev/spine/journal/2026-09/',
+    )
+    expect(urls['/']).toBe('https://joey-haas.dev/')
+    expect(urls['/spine']).toBe('https://joey-haas.dev/spine')
+    expect(urls['/spine/next']).toBe('https://joey-haas.dev/spine/next')
+    expect(urls['/blog/how-spine-works']).toBe(
+      'https://joey-haas.dev/blog/how-spine-works',
+    )
+    const head = renderHead(SHELL, routeAt(routes, `/spine/${ITEM.id}`))
+    const url = `https://joey-haas.dev/spine/${ITEM.id}/`
+    expect(head).toContain(`<link rel="canonical" href="${url}" />`)
+    expect(head).toContain(`<meta property="og:url" content="${url}" />`)
+    expect(sitemap(routes)).toContain(`<loc>${url}</loc>`)
+  })
 })
 
 describe('ADMIN_ROUTES', () => {
@@ -203,7 +234,7 @@ describe('spineFeed', () => {
     expect(xml).toContain(
       '<description>Newer (Nintendo Switch 2, rated 9/10).</description>',
     )
-    expect(xml).toContain('<link>https://joey-haas.dev/spine/b</link>')
+    expect(xml).toContain('<link>https://joey-haas.dev/spine/b/</link>')
   })
 
   it('is announced in the head of /spine and /now', () => {
@@ -265,7 +296,7 @@ describe('journal month routes', () => {
       items: [{ ...ITEM, id: 'a', finished_at: '2026-09-01' }],
     })
     expect(sitemap(routes)).toContain(
-      '<loc>https://joey-haas.dev/spine/journal/2026-09</loc>',
+      '<loc>https://joey-haas.dev/spine/journal/2026-09/</loc>',
     )
   })
 })

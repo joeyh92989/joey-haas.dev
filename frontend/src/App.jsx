@@ -14,6 +14,7 @@ import Now from './pages/Now.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Projects from './pages/Projects.jsx'
 import YearInReview, { CurrentYear } from './pages/YearInReview.jsx'
+import { itemPath } from './lib/spinePaths.js'
 
 // The admin pages serve one person, so they load on demand instead of
 // shipping to every visitor in the main chunk. RootLayout's Suspense
@@ -34,7 +35,7 @@ const PlayNext = lazy(() => import('./pages/PlayNext.jsx'))
  */
 function CollectionItemRedirect() {
   const { id } = useParams()
-  return <Navigate to={`/spine/${encodeURIComponent(id)}`} replace />
+  return <Navigate to={itemPath(id)} replace />
 }
 
 /**

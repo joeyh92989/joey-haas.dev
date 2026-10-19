@@ -22,6 +22,7 @@ import {
   topFavourites,
   writeShelfPref,
 } from '../lib/shelf.js'
+import { itemPath } from '../lib/spinePaths.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 
@@ -550,7 +551,7 @@ export default function Collection() {
 
           <NextBand />
 
-          <FavoritesRow items={items} linkFor={(item) => `/spine/${item.id}`} />
+          <FavoritesRow items={items} linkFor={(item) => itemPath(item.id)} />
 
           {stats && stats.total > 0 && (
             <div className="shelf-stats">
@@ -611,7 +612,7 @@ export default function Collection() {
               renderCard={(item) => (
                 <PosterCard
                   item={item}
-                  to={`/spine/${item.id}`}
+                  to={itemPath(item.id)}
                   dimmed={dim && isDimmable(item)}
                 />
               )}

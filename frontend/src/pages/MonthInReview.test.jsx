@@ -87,10 +87,10 @@ describe('MonthInReview', () => {
     const nav = screen.getByRole('navigation', { name: 'Months' })
     expect(
       within(nav).getByRole('link', { name: /August 2026/ }),
-    ).toHaveAttribute('href', '/spine/journal/2026-08')
+    ).toHaveAttribute('href', '/spine/journal/2026-08/')
     expect(
       within(nav).getByRole('link', { name: '2026 in review' }),
-    ).toHaveAttribute('href', '/spine/year/2026')
+    ).toHaveAttribute('href', '/spine/year/2026/')
     expect(within(nav).getAllByRole('link')).toHaveLength(2)
     expect(
       within(nav).getByRole('link', { name: 'Previous month: August 2026' }),
@@ -149,7 +149,7 @@ describe('MonthInReview', () => {
     renderAt('/spine/journal/2026-12')
     expect(
       screen.getByRole('link', { name: 'Next month: January 2027' }),
-    ).toHaveAttribute('href', '/spine/journal/2027-01')
+    ).toHaveAttribute('href', '/spine/journal/2027-01/')
   })
 
   it('reports a failed load', () => {

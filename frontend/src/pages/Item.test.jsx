@@ -210,7 +210,7 @@ describe('Item', () => {
     const strip = screen.getByRole('region', { name: 'More from this shelf' })
     expect(
       within(strip).getByRole('link', { name: 'Dead Cells' }),
-    ).toHaveAttribute('href', '/spine/a')
+    ).toHaveAttribute('href', '/spine/a/')
     expect(within(strip).getAllByRole('link')).toHaveLength(2)
   })
 

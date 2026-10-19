@@ -125,7 +125,12 @@ before pushing.
   because a rewrite to a file the build did not write serves an empty 200
   rather than the SPA. `prerender-lib.test.mjs` checks the rules match the
   pages exactly. `/spine/:id`, `/spine/year/:year` and
-  `/spine/journal/:month` stay on the catch-all.
+  `/spine/journal/:month` stay on the catch-all, so their prerendered heads
+  are served only at the slash form (`/spine/<id>/`). Every link, canonical,
+  `og:url`, sitemap entry and feed link uses that form, built by
+  `src/lib/spinePaths.js`; never hand-write a Spine item, year or month path.
+  Don't add a slash with a redirect rule: on Render it loops for any path
+  without a file (tried on 2026-10-19).
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish

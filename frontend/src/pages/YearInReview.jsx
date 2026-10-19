@@ -9,6 +9,7 @@ import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { isoMonth } from '../lib/monthInReview.js'
 import { finishYears, yearInReview } from '../lib/yearInReview.js'
 import NotFound from './NotFound.jsx'
+import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
 
 const MONTHS = [
   'Jan',
@@ -42,9 +43,7 @@ function plural(count, word) {
 
 /** /spine/year: this calendar year's page. */
 export function CurrentYear() {
-  return (
-    <Navigate to={`${spine.path}/year/${new Date().getFullYear()}`} replace />
-  )
+  return <Navigate to={yearPath(new Date().getFullYear())} replace />
 }
 
 /**
@@ -88,7 +87,7 @@ export default function YearInReview() {
                 {other}
               </span>
             ) : (
-              <Link key={other} to={`${spine.path}/year/${other}`}>
+              <Link key={other} to={yearPath(other)}>
                 {other}
               </Link>
             ),
@@ -111,7 +110,7 @@ export default function YearInReview() {
         <p className="muted">
           No finishes recorded in {year} yet.{' '}
           {years.length > 0 ? (
-            <Link to={`${spine.path}/year/${years[0]}`}>See {years[0]}</Link>
+            <Link to={yearPath(years[0])}>See {years[0]}</Link>
           ) : (
             <Link to={spine.path}>Back to the shelf</Link>
           )}
@@ -177,11 +176,7 @@ export default function YearInReview() {
                   // A month with a finish or a session opens its journal
                   // page; an empty one stays a plain mark.
                   return count > 0 || playedMonths.has(month) ? (
-                    <Link
-                      key={month}
-                      to={`${spine.path}/journal/${month}`}
-                      {...bar}
-                    >
+                    <Link key={month} to={monthPath(month)} {...bar}>
                       {figure}
                     </Link>
                   ) : (
@@ -223,7 +218,7 @@ export default function YearInReview() {
                   <>
                     {' '}
                     Furthest apart:{' '}
-                    <Link to={`${spine.path}/${versus.furthest.item.id}`}>
+                    <Link to={itemPath(versus.furthest.item.id)}>
                       {versus.furthest.item.title}
                     </Link>
                     , which I rated {versus.furthest.item.rating}/10 against the
@@ -242,7 +237,7 @@ export default function YearInReview() {
                 items={review.favourites}
                 size="compact"
                 renderCard={(item) => (
-                  <PosterCard item={item} to={`${spine.path}/${item.id}`} />
+                  <PosterCard item={item} to={itemPath(item.id)} />
                 )}
               />
             </section>
@@ -256,7 +251,7 @@ export default function YearInReview() {
                   <time dateTime={item.finished_at}>
                     {shortDate(item.finished_at)}
                   </time>
-                  <Link to={`${spine.path}/${item.id}`}>{item.title}</Link>
+                  <Link to={itemPath(item.id)}>{item.title}</Link>
                   {item.rating != null && (
                     <span className="muted">{item.rating}/10</span>
                   )}
@@ -278,7 +273,7 @@ export default function YearInReview() {
             {played.map((row, index) => (
               <li key={`${row.item_id}-${row.played_on}-${index}`}>
                 <time dateTime={row.played_on}>{shortDate(row.played_on)}</time>
-                <Link to={`${spine.path}/${row.item_id}`}>{row.title}</Link>
+                <Link to={itemPath(row.item_id)}>{row.title}</Link>
                 {row.minutes != null && (
                   <span className="muted">{row.minutes} min</span>
                 )}

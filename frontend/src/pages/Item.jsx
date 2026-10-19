@@ -10,6 +10,7 @@ import { readSnapshot } from '../lib/snapshot.js'
 import { STATUS_LABEL } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
+import { itemPath } from '../lib/spinePaths.js'
 
 const MONTH_YEAR = new Intl.DateTimeFormat('en', {
   month: 'long',
@@ -408,7 +409,7 @@ function ItemView({
             items={similar}
             size="compact"
             renderCard={(card) => (
-              <PosterCard item={card} to={`/spine/${card.id}`} />
+              <PosterCard item={card} to={itemPath(card.id)} />
             )}
           />
         </section>

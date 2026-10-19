@@ -165,7 +165,7 @@ describe('Collection', () => {
 
     expect(grid().getByRole('link', { name: /Dune/ })).toHaveAttribute(
       'href',
-      '/spine/1',
+      '/spine/1/',
     )
   })
 

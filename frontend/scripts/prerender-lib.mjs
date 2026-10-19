@@ -10,6 +10,7 @@ import {
   monthInReview,
   monthName,
 } from '../src/lib/monthInReview.js'
+import { itemPath } from '../src/lib/spinePaths.js'
 import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 
 export const SITE_URL = 'https://joey-haas.dev'
@@ -105,7 +106,7 @@ export function excerpt(markdown) {
  *   Published posts.
  * @param {object[]} input.items The snapshot's public items.
  * @returns {{path: string, title: string, description: string,
- *   type: string, image: object, lastmod?: string}[]}
+ *   type: string, image: object, lastmod?: string, slash?: boolean}[]}
  */
 export function publicRoutes({ posts, items }) {
   const page = (path, title, description) => ({
@@ -185,6 +186,7 @@ export function publicRoutes({ posts, items }) {
         `${item.title} · ${spine.name}`,
         `${item.title}${where}, ${place} on ${spine.name}.${rated}`,
       ),
+      slash: true,
       image: item.cover_url?.startsWith('https://')
         ? { url: item.cover_url, alt: `Cover of ${item.title}` }
         : DEFAULT_IMAGE,
@@ -200,6 +202,7 @@ export function publicRoutes({ posts, items }) {
         `${year} in review · ${spine.name}`,
         `${count} ${count === 1 ? 'game' : 'games'} finished in ${year}: the months, the genres and every finish, from ${profile.name}’s ${spine.name}.`,
       ),
+      slash: true,
       feed: SPINE_FEED,
     })
   }
@@ -215,15 +218,27 @@ export function publicRoutes({ posts, items }) {
         `${name} · ${spine.name}`,
         `${count} ${count === 1 ? 'game' : 'games'} finished in ${name}, and the days played, from ${profile.name}’s ${spine.name}.`,
       ),
+      slash: true,
       feed: SPINE_FEED,
     })
   }
   return routes
 }
 
+/**
+ * A route's public URL. Item, year and month pages (`slash`) are only served
+ * prerendered at their slash form (see src/lib/spinePaths.js), so that is the
+ * URL crawlers and link previews are given; every other page has a rewrite
+ * for its bare form in render.yaml.
+ */
+export function routeUrl(route) {
+  if (route.path === '/') return `${SITE_URL}/`
+  return `${SITE_URL}${route.path}${route.slash ? '/' : ''}`
+}
+
 /** The head tags a route gets, replacing the shell's site-wide ones. */
 export function headTags(route) {
-  const url = `${SITE_URL}${route.path === '/' ? '/' : route.path}`
+  const url = routeUrl(route)
   const image = route.image
   const lines = [
     `<title>${escapeHtml(route.title)}</title>`,
@@ -307,7 +322,7 @@ export function spineFeed(items) {
     .slice(0, FEED_SIZE)
   const entries = finished
     .map((item) => {
-      const url = `${SITE_URL}${spine.path}/${encodeURIComponent(item.id)}`
+      const url = `${SITE_URL}${itemPath(item.id)}`
       const details = [
         item.platform,
         item.rating != null ? `rated ${item.rating}/10` : null,
@@ -342,7 +357,7 @@ export function sitemap(routes) {
   const entries = routes
     .map((route) => {
       const lastmod = route.lastmod ? `<lastmod>${route.lastmod}</lastmod>` : ''
-      return `  <url><loc>${escapeHtml(`${SITE_URL}${route.path}`)}</loc>${lastmod}</url>`
+      return `  <url><loc>${escapeHtml(routeUrl(route))}</loc>${lastmod}</url>`
     })
     .join('\n')
   return `<?xml version="1.0" encoding="UTF-8"?>

@@ -9,6 +9,7 @@ import { groupByPlatform, sortBuyNow } from '../lib/next.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
+import { itemPath } from '../lib/spinePaths.js'
 
 const copy = spine.next
 const SORTS = copy.sorts.map((sort) => ({ ...sort, direction: 'desc' }))
@@ -110,7 +111,7 @@ function TonightCard({ pick, label }) {
   const reasons = pick.reasons ?? []
   return (
     <li className="next-row next-tonight-card">
-      <Link to={`/spine/${pick.item_id}`} className="next-row-link">
+      <Link to={itemPath(pick.item_id)} className="next-row-link">
         <span className="next-row-cover">
           <CoverImage src={pick.cover_url} type={pick.type} alt="" />
         </span>
