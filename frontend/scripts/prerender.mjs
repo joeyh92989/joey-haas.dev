@@ -19,6 +19,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  ADMIN_ROUTES,
   noindex,
   publicRoutes,
   renderHead,
@@ -61,7 +62,11 @@ async function readItems() {
       await fs.readFile(path.join(dist, 'snapshot', 'items.json'), 'utf8'),
     )
     return Array.isArray(body) ? body : []
-  } catch {
+  } catch (error) {
+    // No snapshot is normal (CI, local builds); a broken one is worth a line.
+    if (error.code !== 'ENOENT') {
+      console.warn(`prerender: snapshot unreadable, no item pages: ${error}`)
+    }
     return []
   }
 }
@@ -94,7 +99,7 @@ for (const route of routes) {
       : renderHead(shell, route)
   await write(route.path, html)
 }
-await write('/admin', noindex(shell))
+for (const route of ADMIN_ROUTES) await write(route, noindex(shell))
 await fs.writeFile(path.join(dist, 'sitemap.xml'), sitemap(routes), 'utf8')
 await fs.writeFile(path.join(dist, 'robots.txt'), robots(), 'utf8')
 console.log(`prerendered ${routes.length} route(s), sitemap.xml and robots.txt`)

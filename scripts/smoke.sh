@@ -90,7 +90,8 @@ fi
 
 # Prerendered heads (frontend/scripts/prerender.mjs): each public route is a
 # real file whose <title> is its own, which the SPA fallback's never is. This
-# is also what a link preview reads.
+# is also what a link preview reads. An empty title here most likely means
+# Render began redirecting /about to /about/ (curl does not follow it).
 about_title="$(curl -s -m 90 "$SITE_URL/about" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /about has its own prerendered title" "$about_title" "<title>About · Joey Haas</title>"
 next_title="$(curl -s -m 90 "$SITE_URL/spine/next" | grep -o '<title>[^<]*</title>')"

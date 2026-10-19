@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
+  ADMIN_ROUTES,
   clip,
   excerpt,
   noindex,
@@ -22,6 +23,7 @@ const POST = {
   body: '## Heading\n\nSpine is the tracker behind the [shelf](/spine). It uses `code` and *emphasis*.\n\nSecond paragraph.',
 }
 const ITEM = {
+  type: 'game',
   id: '6f1c2c1e-0000-4000-8000-000000000001',
   title: 'Hades II',
   platform: 'Nintendo Switch 2',
@@ -79,6 +81,22 @@ describe('publicRoutes', () => {
     )
   })
 
+  it('words a film or a wanted game by what it is', () => {
+    const [film, wanted] = publicRoutes({
+      posts: [],
+      items: [
+        { id: 'f', title: 'Heat', type: 'movie' },
+        { id: 'w', title: 'Pikmin 5', type: 'game', wanted: true },
+      ],
+    }).slice(-2)
+    expect(film.description).toBe(
+      'Heat, in Joey Haas’s film collection on Spine.',
+    )
+    expect(wanted.description).toBe(
+      'Pikmin 5, on Joey Haas’s want list on Spine.',
+    )
+  })
+
   it('leaves out Blog with nothing published, and items without an id', () => {
     const bare = publicRoutes({ posts: [], items: [{ title: 'No id' }] })
     expect(bare.map((route) => route.path)).not.toContain('/blog')
@@ -126,6 +144,17 @@ describe('renderHead', () => {
     const out = renderHead(SHELL, item)
     expect(out).toContain('<meta name="twitter:card" content="summary" />')
     expect(out).not.toContain('og:image:width')
+  })
+})
+
+describe('ADMIN_ROUTES', () => {
+  // A new admin page in App.jsx without a row here would be indexable.
+  it('lists every fixed admin path in App.jsx', () => {
+    const app = fs.readFileSync(path.join(here, '..', 'src', 'App.jsx'), 'utf8')
+    const paths = [...app.matchAll(/<Route path="(admin[^":]*)"/g)].map(
+      ([, route]) => `/${route}`,
+    )
+    expect([...ADMIN_ROUTES].sort()).toEqual(paths.sort())
   })
 })
 

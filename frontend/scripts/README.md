@@ -80,8 +80,10 @@ applies the `/* → /index.html` rewrite, and serves `spine/next/index.html` at
 
 **Privacy.** Items come only from the snapshot, which holds what
 `/api/public/items` serves: public items. A build without a snapshot (CI,
-local) prerenders no item pages. `/admin` gets a `noindex` copy, and
-`robots.txt` disallows `/admin`.
+local) prerenders no item pages. Each admin page in `ADMIN_ROUTES` gets a
+`noindex` copy, and `robots.txt` disallows `/admin`; an admin item page
+(`/admin/collection/<id>`) falls back to the home file, which robots.txt
+already keeps crawlers away from. Keep `ADMIN_ROUTES` in step with `App.jsx`.
 
 **Gotchas.**
 - `dist/index.html` is both the home page and the SPA fallback for every

@@ -18,6 +18,30 @@ const DEFAULT_IMAGE = {
   alt: 'Joey Haas, senior software engineer, and Spine, a tracker for my physical game collection.',
 }
 
+/** How an item's type reads in "in Joey Haas’s …". */
+const ITEM_KINDS = {
+  game: 'game collection',
+  movie: 'film collection',
+  comic: 'comic collection',
+  boardgame: 'board game collection',
+}
+
+/**
+ * The admin pages in App.jsx. Each gets a noindex copy of the shell, since
+ * the home file (the SPA fallback) is indexable. robots.txt also disallows
+ * /admin; this covers a crawler that reached one by a link anyway.
+ */
+export const ADMIN_ROUTES = [
+  '/admin',
+  '/admin/collection',
+  '/admin/import',
+  '/admin/play-next',
+  '/admin/catalogue',
+  '/admin/radar',
+  '/admin/discover',
+  '/admin/store-list',
+]
+
 /** Room for a search result snippet; longer is cut at a word. */
 const DESCRIPTION_LIMIT = 160
 
@@ -115,18 +139,23 @@ export function publicRoutes({ posts, items }) {
         excerpt(post.body),
       ),
       type: 'article',
-      lastmod: post.date,
+      // The sitemap wants W3C dates; anything else is left out, not passed on.
+      ...(/^\d{4}-\d{2}-\d{2}$/.test(post.date) ? { lastmod: post.date } : {}),
     })
   }
   for (const item of items) {
     if (item?.id == null || !item.title) continue
     const where = item.platform ? ` on ${item.platform}` : ''
     const rated = item.rating != null ? ` Rated ${item.rating}/10.` : ''
+    const kind = ITEM_KINDS[item.type] ?? 'collection'
+    const place = item.wanted
+      ? `on ${profile.name}’s want list`
+      : `in ${profile.name}’s ${kind}`
     routes.push({
       ...page(
         `${spine.path}/${encodeURIComponent(item.id)}`,
         `${item.title} · ${spine.name}`,
-        `${item.title}${where}, in ${profile.name}’s game collection on ${spine.name}.${rated}`,
+        `${item.title}${where}, ${place} on ${spine.name}.${rated}`,
       ),
       image: item.cover_url?.startsWith('https://')
         ? { url: item.cover_url, alt: `Cover of ${item.title}` }
