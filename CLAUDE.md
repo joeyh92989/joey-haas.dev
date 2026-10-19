@@ -110,6 +110,12 @@ before pushing.
 - Anything viewport-dependent reads `useMediaQuery` from
   `lib/useMediaQuery.js`, never `matchMedia` directly: jsdom has no
   `matchMedia`, so the hook returns false there and tests stub it.
+- Link previews and search titles come from `frontend/scripts/prerender.mjs`,
+  which writes `dist/<route>/index.html` with its own head for every public
+  route after `vite build` (copy from `src/content/`, items from the
+  snapshot only). A new public page needs its row in `publicRoutes`
+  (`prerender-lib.mjs`) or it previews as the site card. Render serves those
+  files before the SPA rewrite; `render.yaml` needs nothing for it.
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish

@@ -88,6 +88,26 @@ else
   report_fail "feed.xml is a well-formed channel" "missing <channel> or site URL"
 fi
 
+# Prerendered heads (frontend/scripts/prerender.mjs): each public route is a
+# real file whose <title> is its own, which the SPA fallback's never is. This
+# is also what a link preview reads.
+about_title="$(curl -s -m 90 "$SITE_URL/about" | grep -o '<title>[^<]*</title>')"
+check_equals "GET /about has its own prerendered title" "$about_title" "<title>About · Joey Haas</title>"
+next_title="$(curl -s -m 90 "$SITE_URL/spine/next" | grep -o '<title>[^<]*</title>')"
+check_equals "GET /spine/next has its own prerendered title" "$next_title" "<title>What’s next · Spine</title>"
+
+robots_body="$(curl -s -m 90 "$SITE_URL/robots.txt")"
+if printf '%s' "$robots_body" | grep -q '^Disallow: /admin'; then
+  report_pass "robots.txt disallows /admin" "served as a file, not the SPA"
+else
+  report_fail "robots.txt disallows /admin" "missing; likely the SPA fallback"
+fi
+sitemap_type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$SITE_URL/sitemap.xml")"
+case "$sitemap_type" in
+  *xml*) report_pass "sitemap.xml served as XML" "$sitemap_type" ;;
+  *) report_fail "sitemap.xml served as XML" "got '$sitemap_type' — likely the SPA fallback" ;;
+esac
+
 # Like feed.xml, resume.pdf is a real file in dist/ rather than a route, so the
 # content type is what distinguishes a served file from the SPA fallback: the
 # rewrite would return index.html with a 200 if the asset were missing.
