@@ -31,6 +31,7 @@ describe('nowLists', () => {
     const { playing, finished } = nowLists([
       item('1', { status: 'active' }),
       item('2', { status: 'active', wanted: true }),
+      item('8', { status: 'active', type: 'movie' }),
       item('3', { status: 'finished', finished_at: '2026-01-02' }),
       item('4', { status: 'finished', finished_at: '2026-09-30' }),
       item('5', { status: 'finished', finished_at: '2026-05-01' }),

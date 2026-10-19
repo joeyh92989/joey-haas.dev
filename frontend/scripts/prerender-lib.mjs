@@ -265,7 +265,9 @@ const FEED_SIZE = 20
  */
 export function spineFeed(items) {
   const finished = items
-    .filter((item) => item?.id != null && item.title && item.finished_at)
+    // Games only, as the channel says; the shelf also holds films and comics.
+    .filter((item) => item?.type === 'game' && !item.wanted)
+    .filter((item) => item.id != null && item.title && item.finished_at)
     .filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.finished_at))
     .sort((a, b) => b.finished_at.localeCompare(a.finished_at))
     .slice(0, FEED_SIZE)

@@ -29,9 +29,9 @@ export default function Colophon() {
           a font service.
         </li>
         <li>
-          Dark by default, with a light theme a click away. Every color pair was
-          chosen by measured contrast, including the code highlighting, which
-          Shiki renders at build time in both themes.
+          Dark by default, with a light theme a click away. The code
+          highlighting, which Shiki renders at build time in both themes, and
+          the shelf&rsquo;s status colors were chosen by measured contrast.
         </li>
         <li>
           Blog posts are Markdown compiled at build time. Each page is

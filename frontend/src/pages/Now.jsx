@@ -26,7 +26,9 @@ const DAY = new Intl.DateTimeFormat('en', {
  * @returns {{playing: object[], finished: object[]}}
  */
 export function nowLists(items) {
-  const owned = items.filter((item) => !item.wanted)
+  // Games only: the shelf also holds films, comics and board games, and
+  // "Playing" means a game here.
+  const owned = items.filter((item) => item.type === 'game' && !item.wanted)
   return {
     playing: owned.filter((item) => item.status === 'active'),
     finished: owned
@@ -61,7 +63,8 @@ export default function Now() {
   }, [])
 
   const { playing, finished } = nowLists(items ?? [])
-  const empty = items !== null && playing.length + finished.length === 0
+  const empty =
+    items !== null && !upNext && playing.length + finished.length === 0
 
   return (
     <section className="now">

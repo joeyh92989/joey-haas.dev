@@ -183,6 +183,13 @@ describe('spineFeed', () => {
       { ...ITEM, id: 'a', title: 'Older', finished_at: '2026-03-01' },
       { ...ITEM, id: 'b', title: 'Newer', finished_at: '2026-09-30' },
       { ...ITEM, id: 'c', title: 'Backlog', finished_at: null },
+      {
+        ...ITEM,
+        id: 'd',
+        title: 'A film',
+        type: 'movie',
+        finished_at: '2026-09-01',
+      },
     ])
     const titles = [...xml.matchAll(/<title>([^<]*)<\/title>/g)].map(
       ([, title]) => title,
