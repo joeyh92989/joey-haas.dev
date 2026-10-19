@@ -381,7 +381,9 @@ before pushing.
   `llm.py`'s own messages ("used up" for Gemini's per-day 429, "rate
   limit" for the rest); change one and the other has to follow — the
   route test builds its errors with `_quota_message` to catch that. Everything dated after today belongs to
-  Radar, never Discover.
+  Radar, never Discover; "after today" means the release's whole period
+  (a "Q4 2026" game is upcoming until 31 December). Out, upcoming and open
+  pre-order are decided only in `physical_sources/release_rules.py`.
 - **Play Next** scoring lives in `backend/picker.py`, pure and tested without
   a database; `picker_routes.py` only loads rows and records events. The
   tuning points are `PICKER_WEIGHTS` and `MOOD_BUCKETS`. The buckets hold

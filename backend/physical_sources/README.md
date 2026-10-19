@@ -31,6 +31,7 @@ assembled here from sources that each know a part of it.
 | `stores.py` | `STORES`, and the interpreters that read a product through its store's config | yes |
 | `shopify.py`, `woocommerce.py` | one listing per variant; the Limited Run HTML step | yes (their `list_products`) |
 | `collapse.py` | one honest format per game and platform; the item note | yes |
+| `release_rules.py` | when a dated release is out, upcoming, or open for pre-order: a month, quarter or year counts to its last day. Radar, Discover, What's next and `collapse.py` all ask here | yes |
 | `catalogue.py` | runs, edition and listing upserts, retire and archive | database |
 | `resolve.py` | matching rows to IGDB games; link, ignore, re-key | database |
 | `platform_policy.py` | the N64 ingest | database |
