@@ -74,7 +74,10 @@ describe('YearInReview', () => {
       '30',
     )
     expect(
-      screen.getByRole('img', { name: 'Sep 2026: 1 finished' }),
+      screen.getByRole('link', { name: 'Sep 2026: 1 finished' }),
+    ).toHaveAttribute('href', '/spine/journal/2026-09')
+    expect(
+      screen.getByRole('img', { name: 'Aug 2026: 0 finished' }),
     ).toBeInTheDocument()
     const finished = screen.getByRole('heading', { name: 'Finishes' })
     expect(finished.nextSibling).toHaveTextContent('Sep 30Hades II10/10')
@@ -105,6 +108,17 @@ describe('YearInReview', () => {
     expect(section).toHaveTextContent('2 days with a session logged.')
     const played = section.querySelector('ol')
     expect(played).toHaveTextContent('Sep 29Hades II60 min')
+  })
+
+  it('links a month with sessions but no finish to its journal page', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.rows = [
+      { item_id: 'a', title: 'Hades II', played_on: '2026-07-04', minutes: 20 },
+    ]
+    renderAt('/spine/year/2026')
+    expect(
+      screen.getByRole('link', { name: 'Jul 2026: 0 finished' }),
+    ).toHaveAttribute('href', '/spine/journal/2026-07')
   })
 
   it('says so when a year has no finishes', () => {
