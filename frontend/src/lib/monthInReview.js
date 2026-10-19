@@ -35,7 +35,12 @@ export function monthName(value) {
   return NAME.format(new Date(Date.UTC(year, month - 1, 1)))
 }
 
-function isoMonth(value) {
+/**
+ * The `yyyy-mm` a date string falls in, or null when it has none.
+ *
+ * @param {unknown} value
+ */
+export function isoMonth(value) {
   return typeof value === 'string' && MONTH.test(value.slice(0, 7))
     ? value.slice(0, 7)
     : null
@@ -62,13 +67,16 @@ export function finishMonths(items) {
  *
  * `previous` and `next` are the nearest months with a finish or a session.
  * The diary is fetched a year at a time, so sessions only count for the
- * months of the year they were fetched for; finishes count for every year.
+ * years passed in: the page passes the month's year, and the neighbouring
+ * year's sessions as `nearby` in January and December. Finishes count for
+ * every year.
  *
  * @param {object[]} items Public items.
  * @param {object[]} sessions Public diary rows ({item_id, title, played_on, minutes}).
  * @param {string} month `yyyy-mm`.
+ * @param {object[]} [nearby] More diary rows that count only as neighbours.
  */
-export function monthInReview(items, sessions, month) {
+export function monthInReview(items, sessions, month, nearby = []) {
   const parsed = parseMonth(month)
   if (!parsed) return null
 
@@ -90,7 +98,7 @@ export function monthInReview(items, sessions, month) {
   const months = new Set(
     [
       ...owned.map((item) => isoMonth(item.finished_at)),
-      ...sessions.map((row) => isoMonth(row.played_on)),
+      ...[...sessions, ...nearby].map((row) => isoMonth(row.played_on)),
     ].filter(Boolean),
   )
   const sorted = [...months].sort()
@@ -100,6 +108,8 @@ export function monthInReview(items, sessions, month) {
     year: parsed.year,
     finished,
     days,
+    sessionCount: inMonth.length,
+    timedSessions: inMonth.filter((row) => row.minutes != null).length,
     minutes: inMonth.reduce((sum, row) => sum + (row.minutes ?? 0), 0),
     previous: sorted.filter((other) => other < month).at(-1) ?? null,
     next: sorted.find((other) => other > month) ?? null,

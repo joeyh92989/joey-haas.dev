@@ -5,7 +5,7 @@ import SpineHeader from '../components/SpineHeader.jsx'
 import { spine } from '../content/spine.js'
 import { monthInReview, monthName, parseMonth } from '../lib/monthInReview.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
-import { usePublicDiary } from '../lib/usePublicDiary.js'
+import { usePublicDiaryState } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NotFound from './NotFound.jsx'
 
@@ -33,15 +33,22 @@ export default function MonthInReview() {
   const { data, failed } = useSnapshotThenLive('items')
   // Hooks run before the not-found return below; an invalid month asks for
   // nothing.
-  const played = usePublicDiary(parsed ? parsed.year : null)
+  const diary = usePublicDiaryState(parsed ? parsed.year : null)
+  // January and December also look one year over, so the month links reach
+  // a neighbouring month that has sessions but no finish.
+  const edge = parsed?.month === 1 ? -1 : parsed?.month === 12 ? 1 : null
+  const nearby = usePublicDiaryState(edge ? parsed.year + edge : null)
   const name = parsed ? monthName(month) : null
   usePageTitle(name ? `${name} · ${spine.name}` : null)
 
   if (!parsed) return <NotFound />
 
   const items = Array.isArray(data) ? data : []
-  const review = monthInReview(items, played, month)
-  const empty = review.finished.length === 0 && review.days.length === 0
+  const review = monthInReview(items, diary.sessions, month, nearby.sessions)
+  // Said only once the diary has answered, so a month with sessions never
+  // claims to be empty while they load; a failed diary claims only finishes.
+  const empty =
+    diary.settled && review.finished.length === 0 && review.days.length === 0
 
   return (
     <section className="year-review">
@@ -51,7 +58,9 @@ export default function MonthInReview() {
       <nav className="month-nav" aria-label="Months">
         {review.previous && (
           <Link to={`${spine.path}/journal/${review.previous}`}>
-            <span aria-hidden="true">&larr;</span> {monthName(review.previous)}
+            <span aria-hidden="true">&larr;</span>{' '}
+            <span className="visually-hidden">Previous month:</span>{' '}
+            {monthName(review.previous)}
           </Link>
         )}
         <Link to={`${spine.path}/year/${review.year}`}>
@@ -59,6 +68,7 @@ export default function MonthInReview() {
         </Link>
         {review.next && (
           <Link to={`${spine.path}/journal/${review.next}`}>
+            <span className="visually-hidden">Next month:</span>{' '}
             {monthName(review.next)} <span aria-hidden="true">&rarr;</span>
           </Link>
         )}
@@ -76,7 +86,11 @@ export default function MonthInReview() {
       )}
 
       {data && empty && (
-        <p className="muted">Nothing finished or played in {name}.</p>
+        <p className="muted">
+          {diary.failed
+            ? `Nothing finished in ${name}.`
+            : `Nothing finished or played in ${name}.`}
+        </p>
       )}
 
       {review.finished.length > 0 && (
@@ -98,7 +112,11 @@ export default function MonthInReview() {
           <p className="muted">
             {review.days.length} {review.days.length === 1 ? 'day' : 'days'}{' '}
             with a session logged
-            {review.minutes > 0 && `, ${review.minutes} minutes in all`}.
+            {review.minutes > 0 &&
+              (review.timedSessions < review.sessionCount
+                ? `, at least ${review.minutes} minutes`
+                : `, ${review.minutes} minutes in all`)}
+            .
           </p>
           <ol className="month-days">
             {review.days.map((day) => (

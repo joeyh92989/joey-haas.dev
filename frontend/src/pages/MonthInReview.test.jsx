@@ -10,9 +10,17 @@ const answer = vi.hoisted(() => ({
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
   useSnapshotThenLive: () => answer.value,
 }))
-const diary = vi.hoisted(() => ({ rows: [] }))
+const diary = vi.hoisted(() => ({
+  rows: [],
+  settled: true,
+  failed: false,
+  nearby: [],
+}))
 vi.mock('../lib/usePublicDiary.js', () => ({
-  usePublicDiary: () => diary.rows,
+  usePublicDiaryState: (year) =>
+    year === 2026
+      ? { sessions: diary.rows, settled: diary.settled, failed: diary.failed }
+      : { sessions: diary.nearby, settled: true, failed: false },
 }))
 
 function game(id, title, finishedAt) {
@@ -51,7 +59,7 @@ function renderAt(path) {
 
 afterEach(() => {
   answer.value = { data: null, live: false, failed: false }
-  diary.rows = []
+  Object.assign(diary, { rows: [], settled: true, failed: false, nearby: [] })
 })
 
 describe('MonthInReview', () => {
@@ -68,9 +76,7 @@ describe('MonthInReview', () => {
     expect(within(finished).queryByText('Pikmin 4')).toBeNull()
 
     const played = screen.getByRole('region', { name: 'Played' })
-    expect(played).toHaveTextContent(
-      '2 days with a session logged, 45 minutes in all.',
-    )
+    expect(played).toHaveTextContent('2 days with a session logged')
     expect(within(played).getByText('45 min')).toBeInTheDocument()
     const days = within(played).getAllByRole('time')
     expect(days.map((day) => day.getAttribute('datetime'))).toEqual([
@@ -85,10 +91,13 @@ describe('MonthInReview', () => {
     expect(
       within(nav).getByRole('link', { name: '2026 in review' }),
     ).toHaveAttribute('href', '/spine/year/2026')
-    expect(within(nav).queryByRole('link', { name: /→/ })).toBeNull()
+    expect(within(nav).getAllByRole('link')).toHaveLength(2)
+    expect(
+      within(nav).getByRole('link', { name: 'Previous month: August 2026' }),
+    ).toBeInTheDocument()
   })
 
-  it('shows finishes alone when the diary is empty or failed', () => {
+  it('shows finishes alone when the diary is empty', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
     renderAt('/spine/journal/2026-10')
     expect(screen.getByRole('region', { name: 'Finished' })).toBeInTheDocument()
@@ -103,6 +112,46 @@ describe('MonthInReview', () => {
     ).toBeInTheDocument()
   })
 
+  it('waits for the diary before saying a month is empty', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.settled = false
+    renderAt('/spine/journal/2026-09')
+    expect(screen.queryByText(/^Nothing/)).toBeNull()
+  })
+
+  it('claims only finishes when the diary failed', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.failed = true
+    renderAt('/spine/journal/2026-09')
+    expect(
+      screen.getByText('Nothing finished in September 2026.'),
+    ).toBeInTheDocument()
+  })
+
+  it('says at least when some sessions have no minutes', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.rows = SESSIONS
+    renderAt('/spine/journal/2026-10')
+    expect(screen.getByRole('region', { name: 'Played' })).toHaveTextContent(
+      '2 days with a session logged, at least 45 minutes.',
+    )
+  })
+
+  it('reaches into the next year from December', () => {
+    answer.value = {
+      data: [game('a', 'Hades II', '2026-12-03')],
+      live: true,
+      failed: false,
+    }
+    diary.nearby = [
+      { item_id: 'a', title: 'Hades II', played_on: '2027-01-05', minutes: 5 },
+    ]
+    renderAt('/spine/journal/2026-12')
+    expect(
+      screen.getByRole('link', { name: 'Next month: January 2027' }),
+    ).toHaveAttribute('href', '/spine/journal/2027-01')
+  })
+
   it('reports a failed load', () => {
     answer.value = { data: null, live: false, failed: true }
     renderAt('/spine/journal/2026-10')
@@ -113,7 +162,9 @@ describe('MonthInReview', () => {
     'treats %s as not found',
     (month) => {
       renderAt(`/spine/journal/${month}`)
-      expect(screen.queryByRole('heading', { name: /2026/ })).toBeNull()
+      expect(
+        screen.getByRole('heading', { level: 1, name: 'Not found' }),
+      ).toBeInTheDocument()
       expect(screen.queryByRole('navigation', { name: 'Months' })).toBeNull()
     },
   )

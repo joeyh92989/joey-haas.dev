@@ -124,7 +124,8 @@ before pushing.
   unpublishing one means removing it: there are no placeholder rules,
   because a rewrite to a file the build did not write serves an empty 200
   rather than the SPA. `prerender-lib.test.mjs` checks the rules match the
-  pages exactly. `/spine/:id` and `/spine/year/:year` stay on the catch-all.
+  pages exactly. `/spine/:id`, `/spine/year/:year` and
+  `/spine/journal/:month` stay on the catch-all.
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish

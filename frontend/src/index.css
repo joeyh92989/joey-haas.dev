@@ -1569,6 +1569,17 @@ footer {
   background: var(--status-finished);
 }
 
+/* A month bar that links to its journal page is clickable over the whole
+   column, not just its painted height: a quiet month is a 2px stub. */
+a.month-bar::before {
+  bottom: 0;
+  content: '';
+  height: 4rem;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
 .rating-bar:focus-visible,
 .month-bar:focus-visible {
   outline: 2px solid var(--text);

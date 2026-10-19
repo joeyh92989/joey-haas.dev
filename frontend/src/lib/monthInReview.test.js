@@ -109,3 +109,28 @@ describe('finishMonths', () => {
     expect(finishMonths(ITEMS)).toEqual(['2026-10', '2026-08', '2025-12'])
   })
 })
+
+describe('monthInReview neighbours across a year boundary', () => {
+  it('reaches December from January through the nearby sessions', () => {
+    const items = [game('a', '2026-01-10'), game('b', '2025-06-01')]
+    const nearby = [
+      { item_id: 'a', title: 'a', played_on: '2025-12-30', minutes: 10 },
+    ]
+    expect(monthInReview(items, [], '2026-01').previous).toBe('2025-06')
+    expect(monthInReview(items, [], '2026-01', nearby).previous).toBe('2025-12')
+  })
+
+  it('reaches January from December the same way', () => {
+    const nearby = [
+      { item_id: 'a', title: 'a', played_on: '2027-01-02', minutes: null },
+    ]
+    const review = monthInReview(
+      [game('a', '2026-12-01')],
+      [],
+      '2026-12',
+      nearby,
+    )
+    expect(review.next).toBe('2027-01')
+    expect(review.days).toEqual([])
+  })
+})

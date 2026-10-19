@@ -117,7 +117,7 @@ describe('YearInReview', () => {
     ]
     renderAt('/spine/year/2026')
     expect(
-      screen.getByRole('link', { name: 'Jul 2026: 0 finished' }),
+      screen.getByRole('link', { name: 'Jul 2026: 0 finished, played' }),
     ).toHaveAttribute('href', '/spine/journal/2026-07')
   })
 

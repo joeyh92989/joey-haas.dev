@@ -6,6 +6,7 @@ import { spine } from '../content/spine.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { usePublicDiary } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
+import { isoMonth } from '../lib/monthInReview.js'
 import { finishYears, yearInReview } from '../lib/yearInReview.js'
 import NotFound from './NotFound.jsx'
 
@@ -61,7 +62,7 @@ export default function YearInReview() {
   // nothing.
   const played = usePublicDiary(valid ? year : null)
   const daysPlayed = new Set(played.map((row) => row.played_on)).size
-  const playedMonths = new Set(played.map((row) => row.played_on.slice(0, 7)))
+  const playedMonths = new Set(played.map((row) => isoMonth(row.played_on)))
   usePageTitle(valid ? `${year} in review · ${spine.name}` : null)
 
   if (!valid) return <NotFound />
@@ -160,8 +161,10 @@ export default function YearInReview() {
             <div className="bar-column year-months">
               <div className="month-bars">
                 {review.byMonth.map((count, index) => {
-                  const label = `${MONTHS[index]} ${year}: ${count} finished`
                   const month = `${year}-${String(index + 1).padStart(2, '0')}`
+                  const label = `${MONTHS[index]} ${year}: ${count} finished${
+                    playedMonths.has(month) ? ', played' : ''
+                  }`
                   const bar = {
                     className: 'month-bar',
                     'aria-label': label,

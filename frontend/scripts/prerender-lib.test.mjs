@@ -275,7 +275,7 @@ describe('render.yaml rewrites', () => {
   // page needs its own rewrite ahead of the SPA catch-all. A rewrite to a
   // file the build did not write serves an empty 200, so every rule must
   // name a page this build writes: no placeholders, and a post's rule comes
-  // and goes with the post. Item and year pages stay on the catch-all.
+  // and goes with the post. Item, year and month pages stay on the catch-all.
   const yaml = fs.readFileSync(
     path.join(here, '..', '..', 'render.yaml'),
     'utf8',
