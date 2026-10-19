@@ -7,9 +7,11 @@
  * every URL on the site previews as "Joey Haas". Only the head changes; the
  * body is the same SPA shell, and the app renders the page as before.
  *
- * Render serves a file that exists before applying the SPA rewrite, and
- * serves dist/blog/<slug>/index.html at /blog/<slug>, so no render.yaml
- * change is needed. Spine items come from the build-time snapshot, which
+ * Render serves dist/blog/<slug>/index.html at /blog/<slug>/ only: without
+ * the slash the SPA catch-all wins. render.yaml therefore rewrites each
+ * prerendered path to its file ahead of the catch-all, and a new page
+ * needs its rule there too (prerender-lib.test.mjs checks). Item and year
+ * pages are not rewritten yet. Spine items come from the build-time snapshot, which
  * holds public items only; without a snapshot, items are simply skipped.
  *
  * Runs after `vite build`, so dist/ already exists.

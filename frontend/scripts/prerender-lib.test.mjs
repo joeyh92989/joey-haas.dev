@@ -234,3 +234,40 @@ describe('year in review routes', () => {
     )
   })
 })
+
+describe('render.yaml rewrites', () => {
+  // Render serves dist/x/index.html at /x/ but not at /x, so each prerendered
+  // page needs its own rewrite ahead of the SPA catch-all. Item and year
+  // pages are not covered yet: a placeholder rewrite to a file that is not
+  // there (an item published after the build) may 404 rather than fall
+  // through, which /blog/:slug is deployed first to find out.
+  const PENDING = [/^\/spine\/year\/\d+$/, /^\/spine\/[^/]+$/]
+  const yaml = fs.readFileSync(
+    path.join(here, '..', '..', 'render.yaml'),
+    'utf8',
+  )
+  const rules = [
+    ...yaml.matchAll(/- type: rewrite\s+source: (\S+)\s+destination: (\S+)/g),
+  ].map(([, source, destination]) => ({ source, destination }))
+  const matches = (source, route) =>
+    new RegExp(
+      `^${source.replace(/:[a-z]+/g, '[^/]+').replace('*', '.*')}$`,
+    ).test(route)
+
+  it('rewrites every prerendered page to its own file', () => {
+    const routes = publicRoutes({ posts: [POST], items: [ITEM] })
+      .map((route) => route.path)
+      .filter((route) => route !== '/')
+    for (const route of routes) {
+      const rule = rules.find((r) => matches(r.source, route))
+      const pending = PENDING.some((pattern) => pattern.test(route))
+      if (pending && rule?.source === '/*') continue
+      expect(rule?.source, route).not.toBe('/*')
+      expect(rule.destination).toBe(`${rule.source}/index.html`)
+    }
+  })
+
+  it('keeps the SPA catch-all last', () => {
+    expect(rules.at(-1)).toEqual({ source: '/*', destination: '/index.html' })
+  })
+})
