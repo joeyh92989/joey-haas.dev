@@ -196,6 +196,14 @@ before pushing.
       `/admin/store-list`. No migration. Spec and plan:
       `docs/planning/2026-10-04-switch1-catalogue-*`
 - [x] Spine Next — the nightly job (nightly.yml, JOB_TOKEN, items.JOB_ROUTES), /spine/next (What's next) from /api/public/next, the shelf trimmed to what I own with a band across, the compact masthead on tracker routes, and /admin/store-list on the same server sections. Spec and plan: docs/planning/2026-10-05-spine-next-*
+- [x] Review follow-ups (2026-10-18 review), a six-PR stack #53–#58: one
+      release-date authority (`physical_sources/release_rules.py`), the SPA
+      shell (route focus, error boundary, lazy admin), prerendered heads with
+      sitemap and robots, backend hardening, `/now`, `/colophon`, shelf
+      search, `/spine/feed.xml`, and Year in review at `/spine/year/:year`.
+      Spec and plan: `docs/planning/2026-10-18-review-followups-design.md`.
+      Held for Joey: session re-check and Origin middleware (auth),
+      `healthCheckPath` (render.yaml), a play-session journal (migration)
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to

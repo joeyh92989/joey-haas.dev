@@ -69,7 +69,8 @@ app renders the page as before.
 
 **Routes.** The static pages (`/`, `/about`, `/projects`, `/spine`,
 `/spine/next`, `/now`, `/colophon`, and `/blog` while a post is published), every published post,
-and every item in `dist/snapshot/items.json`. An item's preview image is its
+every item in `dist/snapshot/items.json`, and a Year in review page
+for each year with a finish (`/spine/year/<year>`). An item's preview image is its
 cover; a post's description is its first paragraph. Copy comes from
 `src/content/`, so a wording change there reaches the previews.
 

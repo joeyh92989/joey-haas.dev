@@ -5,6 +5,7 @@
  */
 import { profile } from '../src/content/profile.js'
 import { spine } from '../src/content/spine.js'
+import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 
 export const SITE_URL = 'https://joey-haas.dev'
 
@@ -182,6 +183,19 @@ export function publicRoutes({ posts, items }) {
       image: item.cover_url?.startsWith('https://')
         ? { url: item.cover_url, alt: `Cover of ${item.title}` }
         : DEFAULT_IMAGE,
+    })
+  }
+  // One page per year with a finish, from the same pure function the page
+  // uses, so the preview's count is the page's count.
+  for (const year of finishYears(items)) {
+    const { count } = yearInReview(items, year)
+    routes.push({
+      ...page(
+        `${spine.path}/year/${year}`,
+        `${year} in review · ${spine.name}`,
+        `${count} ${count === 1 ? 'game' : 'games'} finished in ${year}: the months, the genres and every finish, from ${profile.name}’s ${spine.name}.`,
+      ),
+      feed: SPINE_FEED,
     })
   }
   return routes

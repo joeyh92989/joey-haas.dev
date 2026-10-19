@@ -12,6 +12,7 @@ import Next from './pages/Next.jsx'
 import Now from './pages/Now.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Projects from './pages/Projects.jsx'
+import YearInReview, { CurrentYear } from './pages/YearInReview.jsx'
 
 // The admin pages serve one person, so they load on demand instead of
 // shipping to every visitor in the main chunk. RootLayout's Suspense
@@ -60,6 +61,8 @@ export default function App() {
         <Route path="colophon" element={<Colophon />} />
         <Route path="spine" element={<Collection />} />
         <Route path="spine/next" element={<Next />} />
+        <Route path="spine/year" element={<CurrentYear />} />
+        <Route path="spine/year/:year" element={<YearInReview />} />
         <Route path="spine/:id" element={<Item />} />
         {/* Pre-rename URLs, kept so links already shared still land. */}
         <Route path="collection" element={<Navigate to="/spine" replace />} />

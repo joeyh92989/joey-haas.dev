@@ -211,3 +211,26 @@ describe('spineFeed', () => {
     expect(head).toContain('href="/spine/feed.xml"')
   })
 })
+
+describe('year in review routes', () => {
+  it('adds a page per year with a finish', () => {
+    const routes = publicRoutes({
+      posts: [],
+      items: [
+        { ...ITEM, id: 'a', finished_at: '2026-03-01' },
+        { ...ITEM, id: 'b', finished_at: '2026-09-30' },
+        { ...ITEM, id: 'c', finished_at: '2025-12-01' },
+        { ...ITEM, id: 'd', finished_at: '2024-01-01', wanted: true },
+      ],
+    })
+    const years = routes.filter((route) => route.path.includes('/year/'))
+    expect(years.map((route) => route.path)).toEqual([
+      '/spine/year/2026',
+      '/spine/year/2025',
+    ])
+    expect(years[0].title).toBe('2026 in review · Spine')
+    expect(years[0].description.startsWith('2 games finished in 2026')).toBe(
+      true,
+    )
+  })
+})

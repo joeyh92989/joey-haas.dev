@@ -83,6 +83,9 @@ const TITLES = [
   ['/admin/collection/42', 'Item · Admin'],
   ['/spine/42', 'Spine · Joey Haas'],
   ['/spine/next', 'What’s next · Spine'],
+  ['/spine/year/2025', '2025 in review · Spine'],
+  // Redirects to this calendar year's page.
+  ['/spine/year', `${new Date().getFullYear()} in review · Spine`],
 ]
 
 describe('App page titles', () => {
