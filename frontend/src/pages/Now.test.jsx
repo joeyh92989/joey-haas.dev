@@ -74,11 +74,11 @@ describe('Now', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Hades II/ })).toHaveAttribute(
       'href',
-      '/spine/1',
+      '/spine/1/',
     )
     expect(
       screen.getByRole('link', { name: 'Metroid Prime 4' }),
-    ).toHaveAttribute('href', '/spine/8')
+    ).toHaveAttribute('href', '/spine/8/')
     expect(screen.getByText(/Sep 30, 2026 · rated 9/)).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'finished games (RSS)' }),

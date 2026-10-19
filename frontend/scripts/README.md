@@ -94,8 +94,8 @@ their prerendered heads are served only at the trailing-slash URL. So those
 routes carry `slash: true`, and `routeUrl` gives them the slash form in the
 canonical, `og:url` and sitemap, as `src/lib/spinePaths.js` does for every
 in-app link and the feed. A redirect from the bare form would loop on Render
-for any path without a file, so the bare form stays the SPA. Asset URLs are root-absolute (`/assets/…`), so they
-resolve from any depth.
+for any path without a file, so the bare form stays the SPA. Asset URLs are
+root-absolute (`/assets/…`), so they resolve from any depth.
 
 **Privacy.** Items come only from the snapshot, which holds what
 `/api/public/items` serves: public items. A build without a snapshot (CI,

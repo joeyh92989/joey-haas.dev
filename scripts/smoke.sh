@@ -105,8 +105,8 @@ check_equals "GET /spine/next has its own prerendered title" "$next_title" "<tit
 # to the SPA shell, not an empty 200.
 if command -v jq > /dev/null; then
   snapshot_items="$(curl -s -m 90 "$SITE_URL/snapshot/items.json")"
-  first_id="$(printf '%s' "$snapshot_items" | jq -r '.[0].id // empty' 2>/dev/null)"
-  first_title="$(printf '%s' "$snapshot_items" | jq -r '.[0].title // empty | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;") | gsub("\""; "&quot;")' 2>/dev/null)"
+  first_id="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].id // empty' 2>/dev/null)"
+  first_title="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].title // empty | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;") | gsub("\""; "&quot;")' 2>/dev/null)"
   if [ -n "$first_id" ]; then
     item_page="$(curl -s -m 90 "$SITE_URL/spine/$first_id/")"
     check_equals "GET /spine/<id>/ has its own prerendered title" \
@@ -118,12 +118,14 @@ if command -v jq > /dev/null; then
   else
     report_fail "snapshot has an item" "no id in $SITE_URL/snapshot/items.json"
   fi
-  finish_year="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.wanted | not) | .finished_at // empty | select(test("^[0-9]{4}-"))] | max // empty | .[0:4]' 2>/dev/null)"
+  finish_year="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.type == "game" and (.wanted | not)) | .finished_at // empty | select(test("^[0-9]{4}-"))] | max // empty | .[0:4]' 2>/dev/null)"
   if [ -n "$finish_year" ]; then
     check_equals "GET /spine/year/<year>/ has its own prerendered title" \
       "$(curl -s -m 90 "$SITE_URL/spine/year/$finish_year/" | grep -o '<title>[^<]*</title>')" \
       "<title>$finish_year in review · Spine</title>"
   fi
+else
+  report_warn "jq missing" "item and year head checks skipped"
 fi
 unknown_slash="$(curl -s -m 90 -w '\n%{http_code}' "$SITE_URL/spine/00000000-0000-0000-0000-000000000000/")"
 if [ "$(printf '%s' "$unknown_slash" | tail -n 1)" = "200" ] && printf '%s' "$unknown_slash" | grep -q '<div id="root">'; then

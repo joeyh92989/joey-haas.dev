@@ -4,6 +4,7 @@ import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import { spine } from '../content/spine.js'
 import { readSnapshot } from '../lib/snapshot.js'
+import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
 const RECENT = 4
@@ -94,7 +95,7 @@ export default function Now() {
             items={playing}
             size="compact"
             renderCard={(item) => (
-              <PosterCard item={item} to={`${spine.path}/${item.id}`} />
+              <PosterCard item={item} to={itemPath(item.id)} />
             )}
           />
         </section>
@@ -104,7 +105,7 @@ export default function Now() {
         <section aria-labelledby="now-up-next">
           <h2 id="now-up-next">Up next</h2>
           <p>
-            <Link to={`${spine.path}/${upNext.item_id}`}>{upNext.title}</Link>
+            <Link to={itemPath(upNext.item_id)}>{upNext.title}</Link>
             {upNext.platform && (
               <span className="muted"> · {upNext.platform}</span>
             )}
@@ -118,7 +119,7 @@ export default function Now() {
           <ul className="now-finished">
             {finished.map((item) => (
               <li key={item.id}>
-                <Link to={`${spine.path}/${item.id}`}>{item.title}</Link>
+                <Link to={itemPath(item.id)}>{item.title}</Link>
                 <span className="muted">
                   {' '}
                   · {finishedOn(item.finished_at)}
