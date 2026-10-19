@@ -83,13 +83,15 @@ rule, but it serves `spine/next/index.html` only at `/spine/next/`. At
 `/spine/next` the `/* → /index.html` catch-all wins and the page previews as
 the site card (found in production on 2026-10-19, after #55). So
 `render.yaml` rewrites each prerendered path to its own `index.html` ahead of
-the catch-all, and `prerender-lib.test.mjs` fails when a route in
-`publicRoutes` has no rule. Item pages (`/spine/:id`) and year pages are
-pending: a placeholder rewrite whose file the build did not write (an item
-published after the last build) may 404 instead of falling through to the
-SPA. `/blog/:slug` is the probe: after deploy, `/blog/example` (a draft, so no
-file) shows which. Asset URLs are root-absolute (`/assets/…`), so they resolve
-from any depth.
+the catch-all, and `prerender-lib.test.mjs` fails unless the rules name
+exactly the static pages and the published posts. There are no placeholders:
+a rewrite to a file the build did not write serves an **empty 200**, not the
+SPA (a `/blog/:slug` rule did this to `/blog/example`, a draft, on
+2026-10-19). So publishing or unpublishing a post means adding or removing its
+rule. Item pages (`/spine/:id`) and year pages change between deploys and stay
+on the catch-all; their prerendered heads are served only at the
+trailing-slash URL. Asset URLs are root-absolute (`/assets/…`), so they
+resolve from any depth.
 
 **Privacy.** Items come only from the snapshot, which holds what
 `/api/public/items` serves: public items. A build without a snapshot (CI,

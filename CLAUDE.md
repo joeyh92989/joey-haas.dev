@@ -120,9 +120,11 @@ before pushing.
   (`prerender-lib.mjs`) or it previews as the site card, **and** a rewrite
   in `render.yaml` ahead of the `/*` catch-all: Render serves
   `dist/about/index.html` at `/about/` but not at `/about`, where the
-  catch-all wins. `prerender-lib.test.mjs` checks every route has its rule.
-  `/spine/:id` and `/spine/year/:year` are not rewritten yet (a rewrite to a
-  file the build did not write may 404).
+  catch-all wins. Every published post needs its own rule too, and
+  unpublishing one means removing it: there are no placeholder rules,
+  because a rewrite to a file the build did not write serves an empty 200
+  rather than the SPA. `prerender-lib.test.mjs` checks the rules match the
+  pages exactly. `/spine/:id` and `/spine/year/:year` stay on the catch-all.
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish
