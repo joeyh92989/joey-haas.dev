@@ -43,9 +43,10 @@ ACCEPTED_MEDIA_TYPES = frozenset(
 # A shelf is a handful of photographs, not an album. The cap exists because the
 # whole batch travels inline in one request under a 20 MB ceiling.
 MAX_PHOTOS = 20
-# Per photo, checked before the bytes are read. A phone photo is 2-8 MB; the
-# whole request still has to fit Gemini's 20 MB inline limit once encoded.
-MAX_PHOTO_BYTES = 15 * 1024 * 1024
+# Per photo, checked as the upload is parsed, before it is handed on. A phone
+# photo is 2-8 MB. Base64 adds a third, so 14 MB encodes to under Gemini's
+# 20 MB inline limit with room left for the prompt; 15 MB would not.
+MAX_PHOTO_BYTES = 14 * 1024 * 1024
 
 MEDIA_TYPE_VALUES = [t.value for t in ItemType]
 

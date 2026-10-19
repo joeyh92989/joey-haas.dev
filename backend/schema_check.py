@@ -23,7 +23,7 @@ from pathlib import Path
 from alembic.config import Config as AlembicConfig
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy.exc import InterfaceError, OperationalError
+from asyncpg.exceptions import CannotConnectNowError, PostgresConnectionError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import Config
@@ -93,7 +93,14 @@ def _read_revision(connection) -> str | None:
 # connecting is retried: a schema mismatch is an answer, not a failure.
 CONNECT_ATTEMPTS = 3
 CONNECT_RETRY_SECONDS = (2.0, 5.0)
-CONNECT_ERRORS = (OSError, TimeoutError, OperationalError, InterfaceError)
+# asyncpg's errors arrive unwrapped from engine.connect(). Connection-level
+# ones only: an authentication or missing-database error fails at once.
+CONNECT_ERRORS = (
+    OSError,
+    TimeoutError,
+    PostgresConnectionError,
+    CannotConnectNowError,  # "the database system is starting up"
+)
 
 
 async def database_revision(config: Config) -> str | None:

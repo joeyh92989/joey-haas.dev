@@ -480,3 +480,11 @@ async def test_a_2xx_that_is_not_json_is_an_llm_error(monkeypatch):
     _patch_client(monkeypatch, [_NotJsonResponse(200)])
     with pytest.raises(LLMError, match="not JSON"):
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+
+@pytest.mark.asyncio
+async def test_timeouts_everywhere_say_so_rather_than_an_http_status(monkeypatch):
+    _patch_client(monkeypatch, [httpx2.ReadTimeout("read timed out")])
+    with pytest.raises(LLMError, match="did not answer in time") as raised:
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+    assert "HTTP" not in str(raised.value)

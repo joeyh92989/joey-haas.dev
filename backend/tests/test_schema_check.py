@@ -1,4 +1,5 @@
 import pytest
+from asyncpg.exceptions import CannotConnectNowError
 
 from schema_check import (
     SchemaMismatchError,
@@ -67,7 +68,8 @@ class _FlakyEngine:
             async def __aenter__(self):
                 engine.state["connects"] += 1
                 if engine.state["connects"] <= engine.state["failures"]:
-                    raise OSError("connection refused")
+                    # What a waking Neon answers before it accepts queries.
+                    raise CannotConnectNowError("the database system is starting up")
                 return self
 
             async def __aexit__(self, *_):
@@ -105,6 +107,6 @@ async def test_a_cold_database_is_retried_at_boot(monkeypatch):
 async def test_a_database_that_never_answers_still_fails_boot(monkeypatch):
     schema_check = _flaky(monkeypatch, failures=5)
     config = type("C", (), {"database_url_direct": "postgresql://u:p@h/db"})()
-    with pytest.raises(OSError):
+    with pytest.raises(CannotConnectNowError):
         await schema_check.database_revision(config)
     assert _FlakyEngine.state["connects"] == schema_check.CONNECT_ATTEMPTS

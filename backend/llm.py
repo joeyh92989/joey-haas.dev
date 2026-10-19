@@ -261,6 +261,7 @@ class GeminiProvider:
 
         last_status: int | None = None
         last_body: dict | None = None
+        timed_out = False
         started = monotonic()
 
         def spent() -> float:
@@ -281,7 +282,12 @@ class GeminiProvider:
             # followed by a wait.
             for attempt in range(len(RETRY_DELAYS_SECONDS) + 1):
                 try:
-                    async with httpx2.AsyncClient(timeout=TIMEOUT) as client:
+                    # Never longer than the budget has left: a timed-out
+                    # attempt followed by a full second one would double it.
+                    remaining = TOTAL_BUDGET_SECONDS - spent()
+                    async with httpx2.AsyncClient(
+                        timeout=min(TIMEOUT, max(5.0, remaining))
+                    ) as client:
                         response = await client.post(
                             f"{GEMINI_ROOT}/{model}:generateContent",
                             json=body,
@@ -293,7 +299,7 @@ class GeminiProvider:
                     logger.info(
                         "gemini %s attempt %d timed out: %s", model, attempt + 1, error
                     )
-                    last_status, last_body = 504, None
+                    last_status, last_body, timed_out = 504, None, True
                     if (
                         attempt < len(RETRY_DELAYS_SECONDS)
                         and spent() < TOTAL_BUDGET_SECONDS
@@ -312,6 +318,7 @@ class GeminiProvider:
                     len(images),
                 )
 
+                timed_out = False
                 if response.status_code < 400:
                     try:
                         payload = response.json()
@@ -350,6 +357,12 @@ class GeminiProvider:
 
         if last_status == RATE_LIMIT_STATUS:
             raise LLMError(_quota_message(last_body, tried=len(self._models)))
+        if timed_out:
+            # No response came back, so no HTTP status to report.
+            raise LLMError(
+                f"Gemini did not answer in time — tried {', '.join(self._models)}. "
+                "Try again in a few minutes."
+            )
         if last_status in OVERLOAD_STATUSES:
             raise LLMError(
                 f"Gemini is overloaded (HTTP {last_status}) — tried "
