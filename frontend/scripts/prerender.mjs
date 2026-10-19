@@ -9,9 +9,10 @@
  *
  * Render serves dist/blog/<slug>/index.html at /blog/<slug>/ only: without
  * the slash the SPA catch-all wins. render.yaml therefore rewrites each
- * prerendered path to its file ahead of the catch-all, and a new page
- * needs its rule there too (prerender-lib.test.mjs checks). Item and year
- * pages are not rewritten yet. Spine items come from the build-time snapshot, which
+ * prerendered path to its file ahead of the catch-all, and a new page or
+ * post needs its rule there too (prerender-lib.test.mjs checks). Item and
+ * year pages are not rewritten: a rule whose file is missing serves an
+ * empty page. Spine items come from the build-time snapshot, which
  * holds public items only; without a snapshot, items are simply skipped.
  *
  * Runs after `vite build`, so dist/ already exists.

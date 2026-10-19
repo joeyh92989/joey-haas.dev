@@ -11,6 +11,10 @@ services:
     # of the catch-all. Keep them in step with publicRoutes in
     # prerender-lib.mjs (prerender-lib.test.mjs checks). An existing file is
     # served before any rule, so /about/ and the assets are unaffected.
+    # No placeholders: a rewrite to a file the build did not write (a draft,
+    # a mistyped slug) serves an empty 200, not the SPA (seen on 2026-10-19
+    # with /blog/:slug), so each published post gets its own rule. Item and
+    # year pages change between deploys and stay on the catch-all.
     routes:
       - type: rewrite
         source: /about
@@ -34,8 +38,8 @@ services:
         source: /blog
         destination: /blog/index.html
       - type: rewrite
-        source: /blog/:slug
-        destination: /blog/:slug/index.html
+        source: /blog/how-spine-works
+        destination: /blog/how-spine-works/index.html
       - type: rewrite
         source: /*
         destination: /index.html
