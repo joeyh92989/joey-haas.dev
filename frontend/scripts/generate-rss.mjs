@@ -1,10 +1,10 @@
 /**
  * Generates dist/feed.xml from the markdown in frontend/posts/.
  *
- * Reads frontmatter only and never renders post HTML. A second markdown
- * pipeline would be a second thing to keep in sync with the first, and the two
- * would drift; reading only frontmatter means this script cannot disagree with
- * the site about how a post renders, because it never renders one.
+ * Reads frontmatter and the first paragraph's plain text, and never renders
+ * post HTML. A second markdown pipeline would be a second thing to keep in
+ * sync with the first, and the two would drift; never rendering means this
+ * script cannot disagree with the site about how a post renders.
  *
  * Runs after `vite build`, so dist/ already exists.
  */
@@ -12,8 +12,8 @@ import matter from 'gray-matter'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { SITE_URL, excerpt } from './prerender-lib.mjs'
 
-const SITE_URL = 'https://joey-haas.dev'
 const SITE_TITLE = 'Joey Haas'
 const SITE_DESCRIPTION = 'Posts from joey-haas.dev'
 
@@ -45,12 +45,15 @@ const names = (await fs.readdir(postsDir)).filter((name) =>
 const items = []
 for (const name of names) {
   const raw = await fs.readFile(path.join(postsDir, name), 'utf8')
-  const { data } = matter(raw)
+  const { data, content } = matter(raw)
   if (data.draft === true) continue
   items.push({
     slug: name.replace(/\.md$/, ''),
     title: String(data.title),
     date: toDateString(data.date),
+    // The first paragraph, as plain text: the same excerpt the post's
+    // prerendered description uses.
+    description: excerpt(content),
   })
 }
 
@@ -60,6 +63,7 @@ const entries = items
   .map(
     (item) => `    <item>
       <title>${escapeXml(item.title)}</title>
+      <description>${escapeXml(item.description)}</description>
       <link>${SITE_URL}/blog/${escapeXml(item.slug)}</link>
       <guid isPermaLink="true">${SITE_URL}/blog/${escapeXml(item.slug)}</guid>
       <pubDate>${new Date(item.date).toUTCString()}</pubDate>
