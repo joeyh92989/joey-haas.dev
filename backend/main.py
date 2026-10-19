@@ -14,13 +14,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from auth import create_auth_router
+from auth import admin_identity, create_auth_router
 from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
 from errors import add_json_errors
 from importer import create_import_router
 from items import create_items_router
 from llm import build_provider
+from origin_check import add_origin_check
 from physical_routes import create_physical_router
 from physical_sources.limits import REQUEST_TIMEOUT_SECONDS, USER_AGENT
 from picker_routes import create_picker_router
@@ -59,6 +60,8 @@ app = FastAPI(title="joey-haas.dev API", lifespan=engine_lifespan(engine))
 # five routers keep their signatures. An app that never sets it -- every test
 # app -- has no token and accepts sessions only.
 app.state.job_token = config.job_token
+# Every request's session is held to today's allowlist (auth.session_admin).
+app.state.admin_identity = admin_identity(config)
 
 # Signed, HttpOnly, Secure, SameSite=Lax. Thirty days.
 #
@@ -77,6 +80,9 @@ app.add_middleware(
 # Inside CORS (added before it), so an unhandled error's 500 still carries
 # Access-Control-Allow-Origin and the SPA can read it (errors.py).
 add_json_errors(app)
+# Inside CORS too: a state-changing request from a foreign browser origin is
+# refused, which SameSite=Lax alone does not do for *.joey-haas.dev.
+add_origin_check(app, allowed_origins(config))
 
 # An explicit allowlist, not a regex.
 #

@@ -182,6 +182,22 @@ email and the subject must match.
 It cannot be required from the start, because the value is unknowable until the
 first login.
 
+### Sessions follow the allowlist
+
+The session is a signed cookie that lasts thirty days. Every admin request
+re-checks it against today's `ADMIN_EMAIL` and `ADMIN_GOOGLE_SUB`
+(`auth.session_admin`), so changing either ends sessions issued under the old
+values at their next request; there is no need to rotate `SESSION_SECRET` for
+that. Rotating `SESSION_SECRET` still ends every session at once.
+
+### Cross-origin writes are refused
+
+`SameSite=Lax` withholds the cookie from cross-site requests, but every
+`*.joey-haas.dev` host is the same site. `origin_check.py` refuses any POST,
+PUT, PATCH or DELETE whose `Origin` header is present and not the frontend's
+origin (403 `Origin not allowed`). Requests with no `Origin` (curl, the
+nightly job) are not from a browser page and pass to the usual auth check.
+
 ### Running the tests and checks
 
 ```sh
