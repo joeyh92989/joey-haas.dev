@@ -172,13 +172,29 @@ check_equals "GET /api/public/items unauthenticated" \
 check_equals "GET /api/public/stats unauthenticated" \
   "$(http_status "$API_URL/api/public/stats")" "200"
 
+# The play journal (migration 0007): the diary is public games only and
+# never the note; the journal itself is admin only. curl sends no Origin, so
+# the POST reaches the auth check rather than origin_check.py.
+check_equals "GET /api/public/diary?year=2026" \
+  "$(http_status "$API_URL/api/public/diary?year=2026")" "200"
+check_equals "GET /api/public/diary with a nonsense year is 422" \
+  "$(http_status "$API_URL/api/public/diary?year=1066")" "422"
+diary_body="$(curl -s -m 90 "$API_URL/api/public/diary?year=2026")"
+if printf '%s' "$diary_body" | grep -qE "$PRIVATE_KEYS"; then
+  report_fail "public diary exposes no private fields" "found a private key"
+else
+  report_pass "public diary exposes no private fields" "no note"
+fi
+check_equals "POST /api/items/{id}/sessions unauthenticated" \
+  "$(curl -s -o /dev/null -w '%{http_code}' -m 90 -X POST -H 'Content-Type: application/json' -d '{}' "$API_URL/api/items/00000000-0000-4000-8000-000000000000/sessions")" "401"
+
 check_equals "GET /spine (deep link)" "$(http_status "$SITE_URL/spine")" "200"
 check_equals "GET /collection (legacy redirect path)" "$(http_status "$SITE_URL/collection")" "200"
 
 # Asserts an absence, which is the whole reason the public router hand-writes
 # its response model instead of serializing the ORM object. A private column
 # added later would be published with no code change and nothing to notice it.
-PRIVATE_KEYS='"(notes|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|buyable|recommendation[a-z_]*)"'
+PRIVATE_KEYS='"(notes|note|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|buyable|recommendation[a-z_]*)"'
 
 public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
 if printf '%s' "$public_body" | grep -qE "$PRIVATE_KEYS"; then

@@ -169,7 +169,41 @@ against the previous branch.
 
 Session re-check and Origin middleware (auth), `healthCheckPath`
 (`render.yaml`), and the play-session journal (migration). Presented to Joey
-with the stack; each needs his go.
+with the stack; each needs his go. **Joey: "go to all" (2026-10-19).**
+
+### Milestone 2 (carve-outs): PRs 7–9
+
+**PR 7, `fix/session-hardening`** (auth). `auth.session_admin` re-checks the
+session's email and sub against `app.state.admin_identity` on every request
+and drops a stale session's user; `origin_check.py` refuses POST, PUT, PATCH
+and DELETE whose `Origin` is present and not the frontend's.
+
+**PR 8, `chore/render-health-check`** (render.yaml). `healthCheckPath:
+/api/health` on the API service.
+
+**PR 9, `feat/play-journal`** (migration `0007`). The spec:
+
+- **Problem.** Spine knows when a game was finished and nothing about the
+  play in between, so it has no history to show over time (Backloggd's
+  Journal, Letterboxd's Diary).
+- **Data.** Migration `0007` adds `play_sessions`: `id`, `item_id` (FK to
+  `items`, cascade), `played_on` (date), `minutes` (nullable, > 0), `note`
+  (nullable, private), `created_at`. Index on `(item_id, played_on)` and
+  `(played_on)`. Additive: one new table, nothing existing changes.
+- **Admin.** `GET/POST /api/items/{id}/sessions` and
+  `DELETE /api/items/{id}/sessions/{session_id}`, admin only. The admin item
+  page gets a Journal section: log a session (date defaults to today; minutes
+  and a note optional) and the list with delete.
+- **Public.** `GET /api/public/diary?year=YYYY`: sessions of public items
+  only, as `{item_id, title, cover_url, platform, played_on, minutes}`.
+  Never the note. Pinned by `test_public_outputs.py`. Year in review shows
+  "Days played" and a Played section from it, live only (no snapshot), and
+  stays as it is when the call fails or returns nothing.
+- **Out.** A one-tap "played today" on the shelf card, session tags, and a
+  public journal page of its own. Each is a small follow-up once there is
+  data.
+- **Deploy order.** Apply `0007` to Neon, then merge. `schema_check` refuses
+  to boot behind the schema, which is the guard.
 
 ### Environment tests
 

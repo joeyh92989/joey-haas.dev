@@ -27,6 +27,7 @@ from models import (
     StoreListing,
 )
 from public import (
+    PublicDiaryEntry,
     PublicItemDetailOut,
     PublicItemOut,
     PublicStatsOut,
@@ -660,6 +661,7 @@ PUBLIC_MODELS = (
     PublicItemDetailOut,
     PublicStatsOut,
     PublicNextOut,
+    PublicDiaryEntry,
 )
 
 
@@ -974,3 +976,54 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
         assert "Like Hades" not in response.text
         if response is not upcoming:
             assert "Coming Game" not in response.text
+
+
+# --- The play journal's public diary (migration 0007). --------------------
+
+DIARY_FIELDS = {"item_id", "title", "cover_url", "platform", "played_on", "minutes"}
+
+
+async def test_the_diary_model_publishes_exactly_these_fields():
+    assert set(PublicDiaryEntry.model_fields) == DIARY_FIELDS
+
+
+async def test_the_diary_is_public_games_only_and_never_the_note(
+    sessionmaker_for_test,
+):
+    from models import PlaySession
+
+    async with sessionmaker_for_test() as session:
+        shown = Item(type=ItemType.GAME, title="Shown", status="active", is_public=True)
+        hidden = Item(
+            type=ItemType.GAME, title="Hidden", status="active", is_public=False
+        )
+        session.add_all([shown, hidden])
+        await session.flush()
+        session.add_all(
+            [
+                PlaySession(
+                    item_id=shown.id,
+                    played_on=date(2026, 10, 1),
+                    minutes=45,
+                    note="private thoughts",
+                ),
+                PlaySession(item_id=shown.id, played_on=date(2026, 10, 3)),
+                PlaySession(item_id=shown.id, played_on=date(2025, 12, 31)),
+                PlaySession(item_id=hidden.id, played_on=date(2026, 10, 2)),
+            ]
+        )
+        await session.commit()
+
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/diary", params={"year": 2026})
+        bad = await client.get("/api/public/diary", params={"year": 1066})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [(row["title"], row["played_on"]) for row in body] == [
+        ("Shown", "2026-10-03"),
+        ("Shown", "2026-10-01"),
+    ]
+    assert set(body[0]) == DIARY_FIELDS
+    assert "private thoughts" not in response.text
+    assert bad.status_code == 422

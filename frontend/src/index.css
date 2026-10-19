@@ -1127,13 +1127,15 @@ footer {
   }
 }
 
-.item-relink {
+.item-relink,
+.play-journal {
   border-top: 1px solid var(--border);
   margin-top: 1.25rem;
   padding-top: 1rem;
 }
 
-.item-relink h2 {
+.item-relink h2,
+.play-journal h2 {
   font-size: 0.8125rem;
   letter-spacing: 0.04em;
   margin: 0 0 0.35rem;
@@ -1143,6 +1145,39 @@ footer {
 .item-relink p {
   font-size: 0.75rem;
   margin: 0 0 0.5rem;
+}
+
+/* The play journal: a compact form, then the logged days. */
+.play-journal-form {
+  display: grid;
+  font-size: 0.8125rem;
+  gap: 0.35rem;
+}
+
+.play-journal-form button {
+  justify-self: start;
+  margin-top: 0.35rem;
+}
+
+.play-journal-list {
+  display: grid;
+  font-size: 0.8125rem;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.play-journal-list li {
+  align-items: baseline;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 6.5rem 1fr auto;
+}
+
+.play-journal-list time {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .item-detail-link {

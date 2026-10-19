@@ -4,6 +4,7 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import { spine } from '../content/spine.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { usePublicDiary } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { finishYears, yearInReview } from '../lib/yearInReview.js'
 import NotFound from './NotFound.jsx'
@@ -56,6 +57,10 @@ export default function YearInReview() {
   const valid = /^\d{4}$/.test(param ?? '')
   const year = Number(param)
   const { data, failed } = useSnapshotThenLive('items')
+  // Hooks run before the not-found return below; an invalid year asks for
+  // nothing.
+  const played = usePublicDiary(valid ? year : null)
+  const daysPlayed = new Set(played.map((row) => row.played_on)).size
   usePageTitle(valid ? `${year} in review · ${spine.name}` : null)
 
   if (!valid) return <NotFound />
@@ -133,6 +138,12 @@ export default function YearInReview() {
                     ` (${review.timedCount} of ${review.count})`}
                 </dt>
                 <dd>{review.hours}</dd>
+              </div>
+            )}
+            {daysPlayed > 0 && (
+              <div>
+                <dt>Days played</dt>
+                <dd>{daysPlayed}</dd>
               </div>
             )}
             {review.favourites.length > 0 && (
@@ -222,7 +233,7 @@ export default function YearInReview() {
           )}
 
           <section aria-labelledby="year-diary">
-            <h2 id="year-diary">Diary</h2>
+            <h2 id="year-diary">Finishes</h2>
             <ol className="year-diary">
               {[...review.finished].reverse().map((item) => (
                 <li key={item.id}>
@@ -238,6 +249,27 @@ export default function YearInReview() {
             </ol>
           </section>
         </>
+      )}
+
+      {played.length > 0 && (
+        <section aria-labelledby="year-played">
+          <h2 id="year-played">Played</h2>
+          <p className="muted">
+            {daysPlayed} {daysPlayed === 1 ? 'day' : 'days'} with a session
+            logged.
+          </p>
+          <ol className="year-diary">
+            {played.map((row, index) => (
+              <li key={`${row.item_id}-${row.played_on}-${index}`}>
+                <time dateTime={row.played_on}>{shortDate(row.played_on)}</time>
+                <Link to={`${spine.path}/${row.item_id}`}>{row.title}</Link>
+                {row.minutes != null && (
+                  <span className="muted">{row.minutes} min</span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
       )}
     </section>
   )

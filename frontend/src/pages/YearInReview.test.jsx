@@ -10,6 +10,10 @@ const answer = vi.hoisted(() => ({
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
   useSnapshotThenLive: () => answer.value,
 }))
+const diary = vi.hoisted(() => ({ rows: [] }))
+vi.mock('../lib/usePublicDiary.js', () => ({
+  usePublicDiary: () => diary.rows,
+}))
 
 const ITEMS = [
   {
@@ -54,6 +58,7 @@ function renderAt(path) {
 
 afterEach(() => {
   answer.value = { data: null, live: false, failed: false }
+  diary.rows = []
 })
 
 describe('YearInReview', () => {
@@ -71,13 +76,35 @@ describe('YearInReview', () => {
     expect(
       screen.getByRole('img', { name: 'Sep 2026: 1 finished' }),
     ).toBeInTheDocument()
-    const diary = screen.getByRole('heading', { name: 'Diary' }).nextSibling
-    expect(diary).toHaveTextContent('Sep 30Hades II10/10')
+    const finished = screen.getByRole('heading', { name: 'Finishes' })
+    expect(finished.nextSibling).toHaveTextContent('Sep 30Hades II10/10')
     expect(screen.getByRole('link', { name: '2025' })).toHaveAttribute(
       'href',
       '/spine/year/2025',
     )
     expect(screen.getByText(/I rated 1 higher and 0 lower/)).toBeInTheDocument()
+  })
+
+  it('shows days played and the sessions from the public diary', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.rows = [
+      { item_id: 'a', title: 'Hades II', played_on: '2026-09-29', minutes: 60 },
+      {
+        item_id: 'a',
+        title: 'Hades II',
+        played_on: '2026-09-28',
+        minutes: null,
+      },
+      { item_id: 'b', title: 'Pikmin 4', played_on: '2026-09-28', minutes: 30 },
+    ]
+    renderAt('/spine/year/2026')
+    expect(screen.getByText('Days played').nextSibling).toHaveTextContent('2')
+    const section = screen.getByRole('heading', {
+      name: 'Played',
+    }).parentElement
+    expect(section).toHaveTextContent('2 days with a session logged.')
+    const played = section.querySelector('ol')
+    expect(played).toHaveTextContent('Sep 29Hades II60 min')
   })
 
   it('says so when a year has no finishes', () => {

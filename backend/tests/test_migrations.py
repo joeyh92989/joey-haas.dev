@@ -390,3 +390,25 @@ async def test_is_physical_keeps_null(clean_database):
         )
     assert value is True
     assert column_default is None
+
+
+# --- Revision 0007: play_sessions. -----------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_0007_adds_play_sessions_and_downgrades_cleanly(clean_database):
+    assert _alembic("upgrade", "0007").returncode == 0
+    async with clean_database.connect() as connection:
+        before = await connection.scalar(
+            text("SELECT count(*) FROM pg_tables WHERE tablename = 'play_sessions'")
+        )
+    result = _alembic("downgrade", "0006")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        after = await connection.scalar(
+            text("SELECT count(*) FROM pg_tables WHERE tablename = 'play_sessions'")
+        )
+        recommendations = await connection.scalar(
+            text("SELECT count(*) FROM pg_tables WHERE tablename = 'recommendations'")
+        )
+    assert (before, after, recommendations) == (1, 0, 1)

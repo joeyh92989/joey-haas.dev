@@ -8,6 +8,7 @@ import {
   PLATFORM_OPTIONS,
 } from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
+import PlayJournal from '../components/PlayJournal.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
@@ -551,6 +552,8 @@ export default function AdminItem() {
             {relinking && <p className="muted">Re-linking…</p>}
             <MetadataPicker type={form.type} onSelect={relink} />
           </div>
+
+          <PlayJournal itemId={item.id} />
         </div>
 
         <form className="item-detail-form" onSubmit={save}>
