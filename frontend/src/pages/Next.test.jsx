@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import Next from './Next.jsx'
+import { spine } from '../content/spine.js'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
@@ -87,21 +88,21 @@ describe('Next', () => {
     )
     // The API publishes UTC days only, read at noon so no timezone moves them.
     expect(screen.getByText(/Picks from/)).toHaveTextContent(
-      'Picks from Sat 3 Oct · catalogue refreshed Sun 4 Oct · Discover batch Sun 4 Oct',
+      'Picks from Sat 3 Oct · release list checked Sun 4 Oct · suggestions from Sun 4 Oct',
     )
     const headings = screen
       .getAllByRole('heading', { level: 2 })
       .map((h) => h.textContent)
     expect(headings).toEqual([
       'Tonight',
-      'Wanted',
-      'Buy now',
-      'Pre-orders',
-      'Later',
+      spine.next.sections.wanted,
+      spine.next.sections.buy_now,
+      spine.next.sections.preorders,
+      spine.next.sections.later,
     ])
-    expect(screen.getByText('Nothing pinned tonight.')).toBeInTheDocument()
-    expect(screen.getByText('Nothing on the want list.')).toBeInTheDocument()
-    expect(screen.getByText('Nothing further out yet.')).toBeInTheDocument()
+    expect(screen.getByText(spine.next.empty.upNext)).toBeInTheDocument()
+    expect(screen.getByText(spine.next.empty.wanted)).toBeInTheDocument()
+    expect(screen.getByText(spine.next.empty.later)).toBeInTheDocument()
   })
 
   it('sets the page title', () => {
@@ -137,13 +138,15 @@ describe('Next', () => {
       '/spine/p1',
     ])
     expect(within(links[0]).getByText('Up next')).toBeInTheDocument()
-    expect(within(tonight).queryByText('Nothing pinned tonight.')).toBeNull()
+    expect(within(tonight).queryByText(spine.next.empty.upNext)).toBeNull()
   })
 
   it('groups Buy now by console and sorts by newest on request', async () => {
     mockNext({ data: NEXT, live: true, failed: false })
     renderPage()
-    const buy = screen.getByRole('region', { name: 'Buy now' })
+    const buy = screen.getByRole('region', {
+      name: spine.next.sections.buy_now,
+    })
     expect(
       within(buy)
         .getAllByRole('heading', { level: 3 })
@@ -160,7 +163,9 @@ describe('Next', () => {
   it('offers no direction for Buy now’s fixed-order sorts', () => {
     mockNext({ data: NEXT, live: true, failed: false })
     renderPage()
-    const buy = screen.getByRole('region', { name: 'Buy now' })
+    const buy = screen.getByRole('region', {
+      name: spine.next.sections.buy_now,
+    })
     expect(within(buy).queryByRole('button', { name: /direction/i })).toBeNull()
   })
 
@@ -175,10 +180,9 @@ describe('Next', () => {
     unmount()
     localStorage.setItem('shelf.next.sort', '"price"')
     renderPage()
-    expect(screen.getByRole('button', { name: 'Best match' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    expect(
+      screen.getByRole('button', { name: spine.next.sorts[0].label }),
+    ).toHaveAttribute('aria-pressed', 'true')
   })
 
   // A game can be on both Switches, so the title alone is not a row's key.
@@ -192,7 +196,9 @@ describe('Next', () => {
       failed: false,
     })
     renderPage()
-    const buy = screen.getByRole('region', { name: 'Buy now' })
+    const buy = screen.getByRole('region', {
+      name: spine.next.sections.buy_now,
+    })
     expect(within(buy).getAllByText('Twice')).toHaveLength(2)
   })
 
@@ -201,7 +207,9 @@ describe('Next', () => {
     const { container } = renderPage()
     const details = container.querySelector('details')
     expect(within(details).getByText(/Not on cartridge/)).toBeInTheDocument()
-    expect(within(details).getByText(/not for the shelf/)).toBeInTheDocument()
+    expect(
+      within(details).getByText(spine.next.notOnCartridge),
+    ).toBeInTheDocument()
     expect(within(details).getByText('Digital')).toBeInTheDocument()
   })
 
@@ -224,16 +232,16 @@ describe('Next', () => {
   it('shows stale data when the live call failed after a snapshot', () => {
     mockNext({ data: NEXT, live: false, failed: true })
     renderPage()
-    expect(screen.getByRole('region', { name: 'Buy now' })).toBeInTheDocument()
-    expect(screen.queryByText(/could not be loaded/)).toBeNull()
+    expect(
+      screen.getByRole('region', { name: spine.next.sections.buy_now }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(spine.next.error)).toBeNull()
   })
 
   it('says it could not load with neither snapshot nor live data', () => {
     mockNext({ data: null, live: false, failed: true })
     renderPage()
-    expect(
-      screen.getByText('What’s next could not be loaded. Try again shortly.'),
-    ).toBeInTheDocument()
+    expect(screen.getByText(spine.next.error)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull()
   })
 
@@ -275,14 +283,14 @@ describe('Next', () => {
     })
     renderPage()
     expect(screen.getByText('Bare')).toBeInTheDocument()
-    expect(screen.getByText('Nothing on the want list.')).toBeInTheDocument()
+    expect(screen.getByText(spine.next.empty.wanted)).toBeInTheDocument()
     expect(screen.getByText('Not on cartridge')).toBeInTheDocument()
   })
 
   it('renders a body whose tonight is missing', () => {
     mockNext({ data: { buy_now: [] }, live: true, failed: false })
     renderPage()
-    expect(screen.getByText('Nothing pinned tonight.')).toBeInTheDocument()
+    expect(screen.getByText(spine.next.empty.upNext)).toBeInTheDocument()
   })
 
   it('keys rows apart by IGDB link and position', () => {
@@ -301,7 +309,9 @@ describe('Next', () => {
       failed: false,
     })
     renderPage()
-    const later = screen.getByRole('region', { name: 'Later' })
+    const later = screen.getByRole('region', {
+      name: spine.next.sections.later,
+    })
     expect(within(later).getAllByText('Same')).toHaveLength(4)
     expect(
       error.mock.calls.some((call) => String(call[0]).includes('same key')),
@@ -312,7 +322,7 @@ describe('Next', () => {
     mockNext({ data: NEXT, live: true, failed: false })
     renderPage()
     expect(
-      screen.getByRole('group', { name: 'Sort Buy now' }),
+      screen.getByRole('group', { name: spine.next.sortLabel }),
     ).toBeInTheDocument()
   })
 })

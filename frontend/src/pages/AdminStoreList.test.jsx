@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminStoreList from './AdminStoreList.jsx'
+import { spine } from '../content/spine.js'
 
 function row(id, fields = {}) {
   return {
@@ -95,7 +96,9 @@ describe('AdminStoreList', () => {
   it('shows the non-empty server sections in order, Buy now by console', async () => {
     const calls = stubApi()
     renderPage()
-    const buyNow = await screen.findByRole('region', { name: 'Buy now' })
+    const buyNow = await screen.findByRole('region', {
+      name: spine.next.sections.buy_now,
+    })
     expect(
       screen.getByText('On Switch 2 boxes, put back Game-Key Cards.'),
     ).toBeInTheDocument()
@@ -103,7 +106,11 @@ describe('AdminStoreList', () => {
       screen
         .getAllByRole('heading', { level: 2 })
         .map((heading) => heading.textContent),
-    ).toEqual(['Buy now', 'Pre-orders', 'Not on cartridge'])
+    ).toEqual([
+      spine.next.sections.buy_now,
+      spine.next.sections.preorders,
+      spine.next.sections.not_on_cartridge,
+    ])
     expect(
       within(buyNow)
         .getAllByRole('heading', { level: 3 })
@@ -112,7 +119,9 @@ describe('AdminStoreList', () => {
     expect(within(buyNow).getByText('Game a')).toBeInTheDocument()
     expect(within(buyNow).getByText('Top pick')).toBeInTheDocument()
     expect(within(buyNow).getByText('Reason a')).toBeInTheDocument()
-    const preorders = screen.getByRole('region', { name: 'Pre-orders' })
+    const preorders = screen.getByRole('region', {
+      name: spine.next.sections.preorders,
+    })
     expect(
       within(preorders).getByText(
         /^Nintendo Switch 2 · Full game on cartridge · Out /,
@@ -207,7 +216,9 @@ describe('AdminStoreList', () => {
       path: '/api/recommendations/c/want',
     })
     // The section had one row, so it goes with it.
-    expect(screen.queryByRole('region', { name: 'Pre-orders' })).toBeNull()
+    expect(
+      screen.queryByRole('region', { name: spine.next.sections.preorders }),
+    ).toBeNull()
   })
 
   it('drops a game with Not interested', async () => {
@@ -229,7 +240,7 @@ describe('AdminStoreList', () => {
   it('keeps every button outside its row link', async () => {
     stubApi()
     const { container } = renderPage()
-    await screen.findByRole('region', { name: 'Buy now' })
+    await screen.findByRole('region', { name: spine.next.sections.buy_now })
     const rows = container.querySelectorAll('.next-row')
     expect(rows).toHaveLength(4)
     for (const item of rows) {
@@ -348,7 +359,9 @@ describe('AdminStoreList', () => {
         }),
     })
     renderPage()
-    const buyNow = await screen.findByRole('region', { name: 'Buy now' })
+    const buyNow = await screen.findByRole('region', {
+      name: spine.next.sections.buy_now,
+    })
     const link = within(buyNow).getByRole('link', {
       name: 'Limited Run · $59.99',
     })
@@ -384,7 +397,9 @@ describe('AdminStoreList', () => {
       name: 'Not on cartridge',
     })
     expect(within(skip).getByText(note)).toBeInTheDocument()
-    const preorders = screen.getByRole('region', { name: 'Pre-orders' })
+    const preorders = screen.getByRole('region', {
+      name: spine.next.sections.preorders,
+    })
     expect(within(preorders).getByText('Reason c')).toBeInTheDocument()
     expect(
       within(preorders).getByText('Cartridge in Japan only'),
@@ -446,7 +461,7 @@ describe('AdminStoreList', () => {
     expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull()
     answer(json(LIST))
     expect(
-      await screen.findByRole('heading', { name: 'Buy now' }),
+      await screen.findByRole('heading', { name: spine.next.sections.buy_now }),
     ).toBeInTheDocument()
   })
 })

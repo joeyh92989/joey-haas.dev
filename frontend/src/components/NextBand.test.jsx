@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NextBand from './NextBand.jsx'
+import { spine } from '../content/spine.js'
 
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
   useSnapshotThenLive: vi.fn(),
@@ -30,7 +31,7 @@ describe('NextBand', () => {
     expect(link).toHaveAttribute('href', '/spine/next')
     expect(link).toHaveTextContent('What’s next')
     expect(link).toHaveTextContent(
-      'Tonight: Hades II · 11 to buy · 9 pre-orders',
+      'Tonight: Hades II · 11 in stores · 9 coming soon',
     )
     expect(useSnapshotThenLive).toHaveBeenCalledWith('next')
   })
@@ -45,7 +46,7 @@ describe('NextBand', () => {
     })
     renderBand()
     const link = screen.getByRole('link')
-    expect(link).toHaveTextContent('1 to buy · 0 pre-orders')
+    expect(link).toHaveTextContent('1 in stores · 0 coming soon')
     expect(link).not.toHaveTextContent('Tonight')
   })
 
