@@ -19,6 +19,7 @@ from discover import (
     references,
     released,
     shortlist,
+    top_up,
     validate,
 )
 from physical_sources.collapse import Candidate, StoreLine
@@ -316,6 +317,22 @@ def test_fallback_is_the_top_eight_with_template_reasons():
     picks = fallback(candidates, profile, TODAY)
     assert [p.candidate for p in picks] == candidates[:PICKS]
     assert all(p.ranked_by == "template" and p.reasons for p in picks)
+
+
+def test_a_partial_model_answer_is_topped_up_from_the_template():
+    candidates = prescore([_pool(500 + i) for i in range(12)], [], "balanced", TODAY)
+    short = shortlist(candidates, 3)
+    model = validate(
+        {"picks": [{"index": 0, "reason": "Yes."}, {"index": 1, "reason": "Also."}]},
+        short,
+        [],
+    )
+    picks = top_up(model, candidates, [], TODAY)
+    ids = [p.candidate.game.candidate.igdb_id for p in picks]
+    assert len(picks) == PICKS and len(set(ids)) == PICKS
+    assert picks[:2] == model
+    assert all(p.ranked_by == "template" for p in picks[2:])
+    assert top_up([], candidates, [], TODAY) == []
 
 
 def test_fallback_needs_no_profile():

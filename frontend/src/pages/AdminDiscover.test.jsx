@@ -82,6 +82,14 @@ describe('rankingWords', () => {
         model_note: "Gemini's daily quota is used up",
       }),
     ).toBe("Ranked by taste alone: Gemini's daily quota is used up.")
+    expect(
+      rankingWords({
+        ...DISCOVER,
+        model_note: '2 of its 8 picks held up; taste alone ranked the rest',
+      }),
+    ).toBe(
+      'Ranked by Gemini: 2 of its 8 picks held up; taste alone ranked the rest.',
+    )
     expect(rankingWords({ ...DISCOVER, picks: [] })).toBeNull()
   })
 })

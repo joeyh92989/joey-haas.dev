@@ -20,6 +20,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import discover
@@ -360,6 +361,12 @@ def create_recommendations_router(
                 )
                 if not picks:
                     note = "The model's picks did not hold up"
+                elif len(picks) < discover.PICKS:
+                    note = (
+                        f"{len(picks)} of its {discover.PICKS} picks held up; "
+                        "taste alone ranked the rest"
+                    )
+                    picks = discover.top_up(picks, candidates, profile, today)
             if not picks:
                 picks = discover.fallback(candidates, profile, today)
         ranked_by = picks[0].ranked_by if picks else "template"
@@ -603,7 +610,14 @@ def create_recommendations_router(
                 setattr(item, field, value)
         session.add(item)
         row.status = answered
-        await session.commit()
+        try:
+            await session.commit()
+        except IntegrityError:
+            # Two answers for one game at once (a Radar and a Discover row,
+            # or two platforms): the check above passed for both, and
+            # ux_items_external let only the first insert through.
+            await session.rollback()
+            raise HTTPException(status_code=409, detail="Already on your shelf")
         return {"item_id": str(item.id)}
 
     @router.post("/{recommendation_id}/want", status_code=201)

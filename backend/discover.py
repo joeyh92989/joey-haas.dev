@@ -413,3 +413,19 @@ def fallback(
             )
         )
     return found
+
+
+def top_up(
+    picks: list[Pick],
+    candidates: list[Candidate],
+    profile: list[PickerItem],
+    today: date,
+) -> list[Pick]:
+    """The model's picks, filled to PICKS from the template ranking when it
+    kept fewer: two valid picks make a batch of eight, not two. No picks
+    stays no picks, which is fallback()'s case, not this one."""
+    if not picks or len(picks) >= PICKS:
+        return picks
+    chosen = {pick.candidate.game.candidate.igdb_id for pick in picks}
+    rest = [c for c in candidates if c.game.candidate.igdb_id not in chosen]
+    return picks + fallback(rest, profile, today)[: PICKS - len(picks)]
