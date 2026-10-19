@@ -99,9 +99,7 @@ describe('AdminStoreList', () => {
     const buyNow = await screen.findByRole('region', {
       name: spine.next.sections.buy_now,
     })
-    expect(
-      screen.getByText('On Switch 2 boxes, put back Game-Key Cards.'),
-    ).toBeInTheDocument()
+    expect(screen.getByText(spine.storeList.note)).toBeInTheDocument()
     expect(
       screen
         .getAllByRole('heading', { level: 2 })
@@ -199,7 +197,7 @@ describe('AdminStoreList', () => {
     expect(screen.queryByText('Game a')).toBeNull()
   })
 
-  it('adds a game to the want list with Want', async () => {
+  it('adds a game to my list with Want', async () => {
     const calls = stubApi({
       'POST /api/recommendations/c/want': () => json({ item_id: 'x' }, 201),
     })
@@ -209,7 +207,7 @@ describe('AdminStoreList', () => {
     )
     expect(screen.queryByText('Game c')).toBeNull()
     expect(
-      await screen.findByText('Added Game c to the want list'),
+      await screen.findByText('Added Game c to my list'),
     ).toBeInTheDocument()
     expect(calls).toContainEqual({
       method: 'POST',
@@ -419,7 +417,7 @@ describe('AdminStoreList', () => {
       '/admin/radar',
     )
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull()
-    expect(screen.queryByText(/Game-Key Cards/)).toBeNull()
+    expect(screen.queryByText(/Game-Key Card/)).toBeNull()
   })
 
   it('says why when the list cannot be read', async () => {

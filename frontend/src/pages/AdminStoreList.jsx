@@ -11,12 +11,7 @@ const UNREACHABLE = 'Could not reach the API. Try again shortly.'
 /** The server's sections, in the order a store visit reads them. */
 const SECTION_ORDER = ['buy_now', 'preorders', 'later', 'not_on_cartridge']
 
-/** Each answer's route and the line that confirms it. */
-const ANSWERS = {
-  own: (title) => `Added ${title} to the collection`,
-  want: (title) => `Added ${title} to the want list`,
-  dismiss: (title) => `Dropped ${title}`,
-}
+const copy = spine.storeList
 
 const CURRENCY_SIGNS = { USD: '$', EUR: '€', GBP: '£' }
 
@@ -86,11 +81,11 @@ function focusAfter(button) {
  * What to look for in a store, read from the server's sections (the same
  * ones What's next shows, with the admin fields): one column, large tap
  * targets, nothing on hover, for a phone held in an aisle. Got it is Already
- * own, Want adds the game to the want list, Not interested drops it for
+ * own, Want adds the game to my list, Not interested drops it for
  * good. The row goes at once and comes back if the server refuses.
  */
 export default function AdminStoreList() {
-  usePageTitle('Store list · Admin')
+  usePageTitle(`${copy.title} · Admin`)
   const { signedIn = false } = useOutletContext() ?? {}
   const [state, setState] = useState('loading')
   const [sections, setSections] = useState(null)
@@ -167,7 +162,7 @@ export default function AdminStoreList() {
         setError(await errorMessage(response))
         return
       }
-      setMessage(ANSWERS[action](entry.title))
+      setMessage(copy.answered[action](entry.title))
     } catch {
       show(entry.id, true)
       setError(UNREACHABLE)
@@ -176,31 +171,28 @@ export default function AdminStoreList() {
 
   function actions(entry, key) {
     const choices =
-      key === 'not_on_cartridge'
-        ? [['dismiss', 'Not interested']]
-        : [
-            ['own', 'Got it'],
-            ['want', 'Want'],
-            ['dismiss', 'Not interested'],
-          ]
-    return choices.map(([action, label]) => (
-      <button
-        key={action}
-        type="button"
-        onClick={(event) => answer(entry, action, event.currentTarget)}
-        aria-label={`${label}: ${entry.title}`}
-      >
-        {label}
-      </button>
-    ))
+      key === 'not_on_cartridge' ? ['dismiss'] : ['own', 'want', 'dismiss']
+    return choices.map((action) => {
+      const label = copy.answers[action]
+      return (
+        <button
+          key={action}
+          type="button"
+          onClick={(event) => answer(entry, action, event.currentTarget)}
+          aria-label={`${label}: ${entry.title}`}
+        >
+          {label}
+        </button>
+      )
+    })
   }
 
   if (state === 'unauthorized') {
     return (
       <section>
-        <h1>Store list</h1>
+        <h1>{copy.title}</h1>
         <p>
-          <Link to="/admin">Sign in</Link> to see the store list.
+          <Link to="/admin">Sign in</Link> {copy.signIn}
         </p>
       </section>
     )
@@ -236,12 +228,8 @@ export default function AdminStoreList() {
 
   return (
     <section className="store-list">
-      <h1>Store list</h1>
-      {!empty && (
-        <p className="store-list-note">
-          On Switch 2 boxes, put back Game-Key Cards.
-        </p>
-      )}
+      <h1>{copy.title}</h1>
+      {!empty && <p className="store-list-note">{copy.note}</p>}
       <p
         className="catalogue-progress"
         role="status"
@@ -255,12 +243,12 @@ export default function AdminStoreList() {
           {error}
         </p>
       )}
-      {state === 'loading' && <p className="muted">Loading the list…</p>}
+      {state === 'loading' && <p className="muted">{copy.loading}</p>}
       {empty && (
         <p className="muted">
-          Nothing to look for yet: generate{' '}
-          <Link to="/admin/discover">Discover</Link> and{' '}
-          <Link to="/admin/radar">Radar</Link> first.
+          {copy.empty.before} <Link to="/admin/discover">Discover</Link>{' '}
+          {copy.empty.and} <Link to="/admin/radar">Radar</Link>{' '}
+          {copy.empty.after}
         </p>
       )}
       {sections &&

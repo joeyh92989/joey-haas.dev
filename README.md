@@ -49,7 +49,7 @@ snapshot files and never call the API.
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
 | `/spine` | Spine | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
-| `/spine/next` | What's next | Public: tonight's picks and the pinned Up next game, the want list, and what to look for in a store (Buy now, Pre-orders, Later, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
+| `/spine/next` | What's next | Public: tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
 | `/spine/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
 | `/collection` | Redirect | Redirects to `/spine`; `/collection/:id` redirects to `/spine/:id`, both client-side |
 | `/admin` | Admin | Google sign-in gate, reached from the footer's Sign in link |
@@ -60,7 +60,7 @@ snapshot files and never call the API.
 | `/admin/catalogue` | Catalogue | What exists physically: registries (Switch 2 and Switch 1), stores, N64 |
 | `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Want adds the game as a public want, listed on What's next |
 | `/admin/discover` | Discover | Released physical games you would love and do not own: eight picks with reasons from one Gemini call, or the taste ranking when it cannot answer |
-| `/admin/store-list` | Store list | What to look for in a store, on a phone: the same sections as What's next (Buy now with its top picks, Pre-orders, Later, Not on cartridge), read from `GET /api/recommendations/store-list`, with prices and store lines the public page never gets. Got it marks a game owned, Want adds it to the public want list, and Not interested drops it for good; the list is live, so an answered game leaves it at once |
+| `/admin/store-list` | Store list | What to look for in a store, on a phone: the same sections as What's next (In stores now with its top picks, Coming soon, Further out, Not on cartridge), read from `GET /api/recommendations/store-list`, with prices and store lines the public page never gets. Got it marks a game owned, Want adds it to my public list, and Not interested drops it for good; the list is live, so an answered game leaves it at once |
 | anything else | NotFound (client-side 404) | |
 
 The `/admin*` routes are absent from the site navigation deliberately. The

@@ -28,7 +28,7 @@ export const spine = {
   next: {
     path: '/spine/next',
     title: 'What’s next',
-    lede: 'What I could play tonight from my own shelf, and what I am looking for in a store. Full cartridges only, ranked against the games I have finished and liked, and rebuilt every night.',
+    lede: 'What I could play tonight from my shelf, and what I am looking for in a store. Full cartridges only, ranked by what I have liked, rebuilt nightly.',
     fresh: {
       picks: 'Picks from',
       catalogue: 'release list checked',
@@ -58,7 +58,7 @@ export const spine = {
       { value: 'best', label: 'Best fit' },
       { value: 'newest', label: 'Newest' },
     ],
-    sortLabel: 'Sort In stores now',
+    sortLabel: 'Sort what is in stores now',
     outOn: 'Out',
     /** As a meta line starts; mirrors FORMAT_WORDS in physical_sources/limits.py. */
     formats: {
@@ -81,5 +81,27 @@ export const spine = {
     waking:
       'Waking the server. It sleeps when nobody is using it, so this takes about thirty seconds.',
     error: 'What’s next did not load. Try again in a minute.',
+  },
+  /** /admin/store-list: What's next's sections with my answers on them. */
+  storeList: {
+    title: 'Store list',
+    signIn: 'to see the store list.',
+    note: 'On a Switch 2 box, look for the Game-Key Card label and put those back.',
+    loading: 'Loading the list…',
+    empty: {
+      before: 'Nothing to look for yet. Generate',
+      and: 'and',
+      after: 'first.',
+    },
+    answers: {
+      own: 'Got it',
+      want: 'Want',
+      dismiss: 'Not interested',
+    },
+    answered: {
+      own: (title) => `Added ${title} to the collection`,
+      want: (title) => `Added ${title} to my list`,
+      dismiss: (title) => `Dropped ${title}`,
+    },
   },
 }

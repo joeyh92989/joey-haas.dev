@@ -6,7 +6,7 @@ import { spine } from '../content/spine.js'
  * page's job (Spine Next spec, B6).
  */
 
-/** Buy now's console groups, in a store visit's order. */
+/** In stores now's console groups (`buy_now`), in a store visit's order. */
 export const NEXT_PLATFORMS = [
   'Nintendo Switch 2',
   'Nintendo Switch',
@@ -37,7 +37,7 @@ export function groupByPlatform(rows) {
 }
 
 /**
- * Buy now in the visitor's chosen order: the server's best match, or the
+ * In stores now (`buy_now`) in the visitor's chosen order: the server's best fit, or the
  * newest public date first with undated rows last.
  *
  * @param {Array<{release_date: string|null}>} rows

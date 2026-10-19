@@ -4,7 +4,6 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NextBand from './NextBand.jsx'
-import { spine } from '../content/spine.js'
 
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
   useSnapshotThenLive: vi.fn(),
