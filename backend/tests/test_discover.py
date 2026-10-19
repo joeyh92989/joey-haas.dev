@@ -19,6 +19,7 @@ from discover import (
     references,
     released,
     shortlist,
+    top_up,
     validate,
 )
 from physical_sources.collapse import Candidate, StoreLine
@@ -115,6 +116,13 @@ def test_released_keeps_the_past_and_the_undated_and_leaves_the_future_to_radar(
     assert released(_pool(2, released_on=None), TODAY, "any")
     assert released(_pool(3, released_on=TODAY), TODAY, "any")
     assert not released(_pool(4, released_on=TODAY + timedelta(days=1)), TODAY, "any")
+    # A coarse date is upcoming until its whole period has ended.
+    quarter = _pool(10, released_on=date(2026, 7, 1), release_precision="quarter")
+    year = _pool(11, released_on=date(2026, 1, 1), release_precision="year")
+    month = _pool(12, released_on=date(2026, 8, 1), release_precision="month")
+    assert not released(quarter, TODAY, "any")
+    assert not released(year, TODAY, "any")
+    assert released(month, TODAY, "any")
 
 
 def test_recent_keeps_three_years():
@@ -139,7 +147,9 @@ def test_eligible_drops_excluded_and_key_cards_unless_asked_and_keeps_unknown():
 def test_buyable_means_in_stock_or_an_open_preorder():
     assert buyable(_pool(1, store_lines=(_line("in_stock"),)), TODAY)
     assert buyable(_pool(2, store_lines=(_line("preorder", TODAY),)), TODAY)
-    assert buyable(_pool(3, store_lines=(_line("preorder"),)), TODAY)
+    # No window: open only while the game is not out (undated counts as not out).
+    assert buyable(_pool(3, released_on=None, store_lines=(_line("preorder"),)), TODAY)
+    assert not buyable(_pool(7, store_lines=(_line("preorder"),)), TODAY)
     assert not buyable(
         _pool(4, store_lines=(_line("preorder", TODAY - timedelta(days=1)),)), TODAY
     )
@@ -307,6 +317,22 @@ def test_fallback_is_the_top_eight_with_template_reasons():
     picks = fallback(candidates, profile, TODAY)
     assert [p.candidate for p in picks] == candidates[:PICKS]
     assert all(p.ranked_by == "template" and p.reasons for p in picks)
+
+
+def test_a_partial_model_answer_is_topped_up_from_the_template():
+    candidates = prescore([_pool(500 + i) for i in range(12)], [], "balanced", TODAY)
+    short = shortlist(candidates, 3)
+    model = validate(
+        {"picks": [{"index": 0, "reason": "Yes."}, {"index": 1, "reason": "Also."}]},
+        short,
+        [],
+    )
+    picks = top_up(model, candidates, [], TODAY)
+    ids = [p.candidate.game.candidate.igdb_id for p in picks]
+    assert len(picks) == PICKS and len(set(ids)) == PICKS
+    assert picks[:2] == model
+    assert all(p.ranked_by == "template" for p in picks[2:])
+    assert top_up([], candidates, [], TODAY) == []
 
 
 def test_fallback_needs_no_profile():

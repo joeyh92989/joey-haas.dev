@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from physical_sources.collapse import Candidate, StoreLine
+from physical_sources.release_rules import is_upcoming
 from picker import (
     PickerItem,
     _named,
@@ -94,13 +95,14 @@ def section_for(
 ) -> str | None:
     """Where a lane 1-2 candidate goes, or None when it is not on Radar.
 
-    An open pre-order is always Suggested; otherwise the game must come out
-    after today, day or month precision being Suggested and year or quarter
-    Dated later. A Game-Key Card or code in a box is off unless asked (D7).
+    An open pre-order is always Suggested; otherwise the game's release
+    period must end after today (a "Q4" game stays until 31 December), day
+    or month precision being Suggested and year or quarter Dated later. A
+    Game-Key Card or code in a box is off unless asked (D7).
     """
     if not include_key_cards and candidate.physical_format in KEY_CARD_FORMATS:
         return None
-    upcoming = candidate.release_date is not None and candidate.release_date > today
+    upcoming = is_upcoming(candidate.release_date, candidate.release_precision, today)
     if lane != "preorder" and not upcoming:
         return None
     if lane == "preorder" or candidate.release_precision in NEAR_PRECISIONS:

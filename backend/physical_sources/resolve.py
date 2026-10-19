@@ -62,6 +62,7 @@ from sources.base import (
     SourceError,
     SourceNotConfigured,
     SourceRateLimited,
+    SourceUnavailable,
 )
 from sources.igdb import BATCH, PLATFORM_NAMES
 
@@ -420,8 +421,20 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
                 }
             )
             break
+        except SourceUnavailable as error:
+            # An outage touches every key after this one: stop, leave them
+            # all pending, and let the next press (or night) try again.
+            logger.warning("resolve stopped, IGDB unavailable: %s", error)
+            result.errors.append(
+                {
+                    "code": "igdb_unavailable",
+                    "detail": "IGDB is not answering; press again",
+                }
+            )
+            break
         except SourceError as error:
-            # Queued for a human rather than retried forever by the loop.
+            # A refusal that is not an outage: queued for a human rather than
+            # retried forever by the loop.
             logger.warning("resolve %r on %s failed: %s", title, platform_id, error)
             await _decide(
                 session,
@@ -470,6 +483,11 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
             result.pending += 1
     await session.flush()
 
+    if any(error["code"] == "igdb_unavailable" for error in result.errors):
+        # Filling games would only wait on the same outage again.
+        await propagate(session)
+        result.unresolved_remaining = await count_pending(session)
+        return result
     try:
         result.games_fetched = await fill_games(session, igdb)
     except SourceRateLimited:

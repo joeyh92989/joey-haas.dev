@@ -27,6 +27,7 @@ from sources.base import (
     SourceError,
     SourceNotConfigured,
     SourceRateLimited,
+    SourceUnavailable,
 )
 
 
@@ -404,7 +405,7 @@ async def test_n64_ingest_failures_write_nothing(session, igdb, code):
 @pytest.mark.asyncio
 async def test_a_failed_search_parks_the_key_for_a_human(session):
     await upsert_editions(session, [edition("A Game")], "nscollectors", retire=True)
-    igdb = FakeIgdb(search_error=SourceError("igdb", "HTTP 500"))
+    igdb = FakeIgdb(search_error=SourceError("igdb", "HTTP 400 from IGDB"))
     outcome = await resolve_batch(session, igdb)
     (match,) = await _all(session, CatalogueMatch)
     assert (match.decided_by.value, match.candidates, outcome.pending) == (
@@ -413,6 +414,19 @@ async def test_a_failed_search_parks_the_key_for_a_human(session):
         1,
     )
     assert outcome.unresolved_remaining == 0
+
+
+@pytest.mark.asyncio
+async def test_an_igdb_outage_stops_the_batch_and_parks_nothing(session):
+    await upsert_editions(
+        session, [edition("A Game"), edition("B Game")], "nscollectors", retire=True
+    )
+    igdb = FakeIgdb(search_error=SourceUnavailable("igdb", "HTTP 503 from IGDB"))
+    outcome = await resolve_batch(session, igdb)
+    assert [e["code"] for e in outcome.errors] == ["igdb_unavailable"]
+    assert igdb.fetched == []  # no second wait on the same outage
+    assert await _all(session, CatalogueMatch) == []
+    assert (outcome.pending, outcome.unresolved_remaining) == (0, 2)
 
 
 @pytest.mark.asyncio

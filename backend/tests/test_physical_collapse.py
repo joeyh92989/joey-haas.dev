@@ -183,6 +183,21 @@ def test_release_date_prefers_the_home_registry_row():
     )
 
 
+def test_release_date_prefers_a_precise_date_inside_a_coarse_one():
+    # A collector's row dated "2026" would win on its 1 January start date.
+    rows = [
+        edition("game_card", release_date=date(2026, 11, 14), release_precision="day"),
+        edition(
+            "game_key_card", release_date=date(2026, 1, 1), release_precision="year"
+        ),
+    ]
+    result = collapse(1, 508, rows, [], GAME)
+    assert (result.release_date, result.release_precision) == (
+        date(2026, 11, 14),
+        "day",
+    )
+
+
 def test_release_date_falls_back_to_listings_then_igdb():
     dated = listing(
         "Limited Run",

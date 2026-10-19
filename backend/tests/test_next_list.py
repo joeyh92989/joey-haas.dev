@@ -387,18 +387,25 @@ def test_an_undated_discover_pick_is_buy_now_as_discover_keeps_it():
     assert entry.top_pick and entry.date_shown is None and not entry.new
 
 
-def test_a_discover_pick_dated_to_this_month_is_buy_now():
-    """Discover dates by its stored day: a month-dated game whose first day
-    has passed is released to Discover, so it is not dropped here."""
-    pick = cand(
+def test_a_discover_pick_dated_to_this_month_waits_for_the_month_to_end():
+    """discover.released()'s rule: a month-dated game is out once its whole
+    month has ended, so this month's game is Radar's, last month's Buy now."""
+    this_month = cand(
         1,
         kind="discover",
         lane=None,
-        release_date=date(2026, 10, 1),
+        release_date=date(TODAY.year, TODAY.month, 1),
         release_precision="month",
     )
-    out = sections([pick], TODAY, public=False)
-    assert titles(out["buy_now"]) == ["Game 1"]
+    last_month = cand(
+        2,
+        kind="discover",
+        lane=None,
+        release_date=date(2026, 9, 1),
+        release_precision="month",
+    )
+    out = sections([this_month, last_month], TODAY, public=False)
+    assert titles(out["buy_now"]) == ["Game 2"]
     assert out["buy_now"][0].top_pick
 
 

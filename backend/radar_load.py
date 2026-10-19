@@ -24,6 +24,7 @@ from models import (
     StoreListing,
 )
 from physical_sources.collapse import GameView, ListingView, collapse
+from physical_sources.release_rules import listing_date, preorder_open
 from physical_sources.stores import STORES
 from physical_sources.sync import edition_view
 from picker import PickerItem
@@ -45,15 +46,24 @@ def _value(value: object) -> object:
     return getattr(value, "value", value)
 
 
-def open_preorder(line: ListingView, today: date) -> bool:
+def open_preorder(
+    line: ListingView,
+    today: date,
+    game_date: date | None = None,
+    game_precision: str | None = None,
+) -> bool:
     """A pre-order still taking orders: its window has not closed, or, with no
-    window stated, the game is not out yet. A listing a store still marks as
-    pre-order after either is stale, not open."""
-    if line.availability != "preorder":
-        return False
-    if line.preorder_closes_at is not None:
-        return line.preorder_closes_at >= today
-    return line.release_date is None or line.release_date > today
+    window stated, the game is not out yet, judged by the listing's own date
+    or else the game's. A listing a store still marks as pre-order after
+    either is stale, not open."""
+    return preorder_open(
+        line.availability,
+        line.preorder_closes_at,
+        *listing_date(
+            line.release_date, line.release_precision, game_date, game_precision
+        ),
+        today,
+    )
 
 
 def listing_view(row: StoreListing) -> ListingView:
@@ -144,7 +154,20 @@ async def load_pool(
             else None
         )
         its_listings = listings[(igdb_id, platform_id)]
-        open_lines = [line for line in its_listings if open_preorder(line, today)]
+        candidate = collapse(
+            igdb_id,
+            platform_id,
+            editions[(igdb_id, platform_id)],
+            its_listings,
+            game_view,
+        )
+        open_lines = [
+            line
+            for line in its_listings
+            if open_preorder(
+                line, today, candidate.release_date, candidate.release_precision
+            )
+        ]
         windows = [
             line.preorder_closes_at
             for line in open_lines
@@ -152,13 +175,7 @@ async def load_pool(
         ]
         pool.append(
             PoolGame(
-                candidate=collapse(
-                    igdb_id,
-                    platform_id,
-                    editions[(igdb_id, platform_id)],
-                    its_listings,
-                    game_view,
-                ),
+                candidate=candidate,
                 snapshot=game.snapshot if game else {},
                 hypes=game.hypes if game else None,
                 lane="preorder" if open_lines else "dated",

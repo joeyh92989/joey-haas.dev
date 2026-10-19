@@ -445,6 +445,46 @@ async def test_watching_a_game_added_by_hand_is_409(sessionmaker_for_test):
     assert response.json()["detail"] == "Already on your shelf"
 
 
+async def test_a_duplicate_that_slips_past_the_check_is_409_not_500(
+    sessionmaker_for_test, monkeypatch
+):
+    """Two answers for one game at once both pass the existence check; the
+    unique index stops the second insert, which must read as a 409."""
+    from sqlalchemy import false
+
+    import recommendations_routes
+
+    await _seed(sessionmaker_for_test)
+    async with radar_client(sessionmaker_for_test) as client:
+        await client.post("/api/recommendations/generate", json={"kind": "radar"})
+        async with sessionmaker_for_test() as session:
+            session.add(
+                Item(
+                    type=ItemType.GAME,
+                    title="Dated",
+                    status="backlog",
+                    external_source="igdb",
+                    external_id="1",
+                    owned_format=OwnedFormat.PHYSICAL,
+                )
+            )
+            await session.commit()
+        real_select = recommendations_routes.select
+
+        def blind_select(*columns):
+            query = real_select(*columns)
+            # The existence check alone sees nothing, as in the race.
+            return query.where(false()) if columns == (Item.id,) else query
+
+        monkeypatch.setattr(recommendations_routes, "select", blind_select)
+        row = (await _rows(sessionmaker_for_test))["1"]
+        response = await client.post(f"/api/recommendations/{row.id}/want")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Already on your shelf"
+    # The rollback undid the answer too: the suggestion is still waiting.
+    assert (await _rows(sessionmaker_for_test))["1"].status == row.status
+
+
 async def test_a_wanted_game_cannot_be_dismissed_but_a_skipped_one_can_be_wanted(
     sessionmaker_for_test,
 ):

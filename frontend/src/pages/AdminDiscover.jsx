@@ -49,7 +49,12 @@ async function fetchDiscover() {
 /** How the current picks were ranked, in words. */
 export function rankingWords(discover) {
   if (!discover?.picks?.length) return null
-  if (discover.ranked_by === 'model') return 'Ranked by Gemini.'
+  if (discover.ranked_by === 'model') {
+    // A partial answer is topped up from the template and says so.
+    return discover.model_note
+      ? `Ranked by Gemini: ${discover.model_note}.`
+      : 'Ranked by Gemini.'
+  }
   return discover.model_note
     ? `Ranked by taste alone: ${discover.model_note}.`
     : 'Ranked by taste alone.'

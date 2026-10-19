@@ -42,6 +42,15 @@ class SourceRateLimited(SourceError):
     """The source refused the call for rate reasons, after retries."""
 
 
+class SourceUnavailable(SourceError):
+    """The source could not answer: a timeout, a dropped connection or a 5xx.
+
+    Transient, unlike a 4xx or an unreadable answer: a caller working through
+    a batch should stop and try again later rather than record a miss for
+    every key the outage touches.
+    """
+
+
 @dataclass(frozen=True)
 class SourceResult:
     """One candidate from a search: enough to render a picker row."""

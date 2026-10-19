@@ -115,6 +115,18 @@ def test_a_future_day_date_is_suggested_and_a_year_date_is_dated_later():
     assert section_for(quarter, "dated", TODAY, False) == "dated_later"
 
 
+def test_a_coarse_date_stays_on_radar_until_its_period_ends():
+    # Stored as the period's first day: 1 Jul for Q3, 1 Jan for the year.
+    quarter = _candidate(5, release_date=date(2026, 7, 1), release_precision="quarter")
+    year = _candidate(6, release_date=date(2026, 1, 1), release_precision="year")
+    month = _candidate(8, release_date=date(2026, 9, 1), release_precision="month")
+    ended = _candidate(9, release_date=date(2026, 8, 1), release_precision="month")
+    assert section_for(quarter, "dated", TODAY, False) == "dated_later"
+    assert section_for(year, "dated", TODAY, False) == "dated_later"
+    assert section_for(month, "dated", TODAY, False) == "suggested"
+    assert section_for(ended, "dated", TODAY, False) is None
+
+
 def test_a_past_date_is_not_on_radar_unless_it_is_a_preorder():
     past = _candidate(4, release_date=date(2026, 1, 1), release_precision="day")
     assert section_for(past, "dated", TODAY, False) is None

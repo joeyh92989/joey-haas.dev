@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from config import Config
-from sources.base import SourceNotConfigured
+from sources.base import SourceError, SourceNotConfigured, SourceUnavailable
 from sources.igdb import (
     PLATFORM_IDS,
     PLATFORM_NAMES,
@@ -184,6 +184,18 @@ async def test_the_token_is_fetched_once_and_reused(monkeypatch):
 
     assert calls.count("token") == 1
     assert calls.count("games") == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status", "transient"), [(503, True), (500, True), (400, False)]
+)
+async def test_a_5xx_is_unavailable_and_a_4xx_is_not(monkeypatch, status, transient):
+    # resolve stops a batch on an outage but parks a refused key for a human.
+    _patch_http(monkeypatch, [_FakeResponse(status, None)])
+    with pytest.raises(SourceError) as raised:
+        await IgdbSource(_config()).search("one")
+    assert isinstance(raised.value, SourceUnavailable) is transient
 
 
 @pytest.mark.asyncio
