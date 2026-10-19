@@ -21,6 +21,11 @@ services:
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    # Render routes a new deploy's traffic only after this answers 2xx, and
+    # restarts an instance that fails it for 60 seconds. /api/health touches
+    # no database, so a sleeping Neon cannot fail it; a boot that refuses the
+    # schema never answers it, so a bad deploy is cancelled rather than live.
+    healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.4
