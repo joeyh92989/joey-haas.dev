@@ -1,9 +1,9 @@
 # Build scripts
 
-Two Node scripts run around `vite build` (`npm run build`):
+Three Node scripts run around `vite build` (`npm run build`):
 
 ```
-fetch-snapshot.mjs  →  vite build  →  generate-rss.mjs
+fetch-snapshot.mjs  →  vite build  →  prerender.mjs  →  generate-rss.mjs
 ```
 
 ## fetch-snapshot.mjs
@@ -34,7 +34,7 @@ strips, so they still make no API calls.
 
 ```bash
 npm run snapshot   # fetch from production into public/snapshot/ for local dev
-npm run build      # on Render: snapshot, then vite build, then the RSS feed
+npm run build      # on Render: snapshot, vite build, prerender, then the RSS feed
 ```
 
 **Refreshing.** Every deploy refreshes the snapshot. Between deploys,
@@ -57,9 +57,45 @@ README → Collection snapshot and Nightly job.
   API. Change what the API publishes and you change what the snapshot
   publishes, so `test_public.py` covers both.
 
+## prerender.mjs
+
+**What and why.** Crawlers and link previewers (Slack, iMessage, LinkedIn)
+mostly do not run JavaScript, so before this every URL previewed as "Joey
+Haas" with the site card. After `vite build`, it writes a copy of
+`dist/index.html` for every public route, each with its own `<title>`,
+description, canonical URL and Open Graph tags, plus `sitemap.xml` and
+`robots.txt`. Only the head changes: the body is the same SPA shell, and the
+app renders the page as before.
+
+**Routes.** The static pages (`/`, `/about`, `/projects`, `/spine`,
+`/spine/next`, and `/blog` while a post is published), every published post,
+and every item in `dist/snapshot/items.json`. An item's preview image is its
+cover; a post's description is its first paragraph. Copy comes from
+`src/content/`, so a wording change there reaches the previews.
+
+**Why no `render.yaml` change.** Render serves a file that exists before it
+applies the `/* → /index.html` rewrite, and serves `spine/next/index.html` at
+`/spine/next` without a trailing-slash redirect. Asset URLs are root-absolute
+(`/assets/…`), so they resolve from any depth.
+
+**Privacy.** Items come only from the snapshot, which holds what
+`/api/public/items` serves: public items. A build without a snapshot (CI,
+local) prerenders no item pages. Each admin page in `ADMIN_ROUTES` gets a
+`noindex` copy, and `robots.txt` disallows `/admin`; an admin item page
+(`/admin/collection/<id>`) falls back to the home file, which robots.txt
+already keeps crawlers away from. Keep `ADMIN_ROUTES` in step with `App.jsx`.
+
+**Gotchas.**
+- `dist/index.html` is both the home page and the SPA fallback for every
+  other path, so it keeps no canonical or `og:url`: an unknown path must not
+  claim to be the home page.
+- The pure parts (routes, head, excerpt, sitemap) live in
+  `prerender-lib.mjs` and are tested in `prerender-lib.test.mjs`.
+
 ## generate-rss.mjs
 
-It writes `dist/feed.xml` from the frontmatter in `frontend/posts/`, skipping
-drafts. It reads frontmatter only and never renders post HTML, so it can't
-disagree with the site about how a post renders. It runs after `vite build`,
-because it writes into `dist/`.
+It writes `dist/feed.xml` from `frontend/posts/`, skipping drafts. Each item
+carries the post's first paragraph as plain text (`excerpt` in
+`prerender-lib.mjs`, the same one the prerendered description uses). It never
+renders post HTML, so it can't disagree with the site about how a post
+renders. It runs after `vite build`, because it writes into `dist/`.
