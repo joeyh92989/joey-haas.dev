@@ -5,6 +5,11 @@
  */
 import { profile } from '../src/content/profile.js'
 import { spine } from '../src/content/spine.js'
+import {
+  finishMonths,
+  monthInReview,
+  monthName,
+} from '../src/lib/monthInReview.js'
 import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 
 export const SITE_URL = 'https://joey-haas.dev'
@@ -194,6 +199,21 @@ export function publicRoutes({ posts, items }) {
         `${spine.path}/year/${year}`,
         `${year} in review · ${spine.name}`,
         `${count} ${count === 1 ? 'game' : 'games'} finished in ${year}: the months, the genres and every finish, from ${profile.name}’s ${spine.name}.`,
+      ),
+      feed: SPINE_FEED,
+    })
+  }
+  // One page per month with a finish. Months with only sessions keep the
+  // SPA's head: the diary has no snapshot to build from.
+  for (const month of finishMonths(items)) {
+    const { finished } = monthInReview(items, [], month)
+    const name = monthName(month)
+    const count = finished.length
+    routes.push({
+      ...page(
+        `${spine.path}/journal/${month}`,
+        `${name} · ${spine.name}`,
+        `${count} ${count === 1 ? 'game' : 'games'} finished in ${name}, and the days played, from ${profile.name}’s ${spine.name}.`,
       ),
       feed: SPINE_FEED,
     })

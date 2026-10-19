@@ -42,6 +42,22 @@ function isoMonth(value) {
 }
 
 /**
+ * The months with at least one finish, newest first.
+ *
+ * @param {object[]} items Public items.
+ * @returns {string[]} `yyyy-mm` months.
+ */
+export function finishMonths(items) {
+  const months = new Set(
+    items
+      .filter(isOwnedGame)
+      .map((item) => isoMonth(item.finished_at))
+      .filter(Boolean),
+  )
+  return [...months].sort().reverse()
+}
+
+/**
  * Everything the month page shows.
  *
  * `previous` and `next` are the nearest months with a finish or a session.

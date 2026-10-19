@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { monthInReview, monthName, parseMonth } from './monthInReview.js'
+import {
+  finishMonths,
+  monthInReview,
+  monthName,
+  parseMonth,
+} from './monthInReview.js'
 
 function game(id, finishedAt, extra = {}) {
   return {
@@ -96,5 +101,11 @@ describe('monthInReview', () => {
     const review = monthInReview([game('a', '2026-10-03')], [], '2026-10')
     expect(review.previous).toBeNull()
     expect(review.next).toBeNull()
+  })
+})
+
+describe('finishMonths', () => {
+  it('lists the months with an owned game finish, newest first', () => {
+    expect(finishMonths(ITEMS)).toEqual(['2026-10', '2026-08', '2025-12'])
   })
 })
