@@ -68,10 +68,6 @@ def _usable_date(candidate: NextCandidate, public: bool) -> date | None:
     return candidate.release_date
 
 
-def _released(when: date | None, precision: str | None, today: date) -> bool:
-    return is_out(when, precision, today)
-
-
 def _is_new(candidate: NextCandidate, today: date) -> bool:
     """A full cartridge out within the last NEW_DAYS, from any known date:
     a boolean leaks nothing a date would. Age runs from the end of the
@@ -81,7 +77,7 @@ def _is_new(candidate: NextCandidate, today: date) -> bool:
     precision = candidate.release_precision
     return (
         candidate.physical_format == FULL_CARTRIDGE
-        and _released(when, precision, today)
+        and is_out(when, precision, today)
         and (today - period_end(when, precision)).days <= NEW_DAYS
     )
 
@@ -152,7 +148,7 @@ def sections(
         precision = candidate.release_precision
         if when is None:
             undated.append(NextEntry(candidate, False, False, None))
-        elif _released(when, precision, today):
+        elif is_out(when, precision, today):
             out["buy_now"].append(
                 NextEntry(candidate, False, _is_new(candidate, today), when)
             )

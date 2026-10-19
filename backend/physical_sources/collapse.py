@@ -127,6 +127,8 @@ class StoreLine:
     url: str
     listing_format: str | None
     listing_id: str
+    release_date: date | None = None
+    release_precision: str | None = None
 
 
 @dataclass(frozen=True)
@@ -344,6 +346,8 @@ def collapse(
                 url=listing.url,
                 listing_format=listing.format_hint,
                 listing_id=listing.id,
+                release_date=listing.release_date,
+                release_precision=listing.release_precision,
             )
             for listing in listings
         ),

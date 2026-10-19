@@ -23,6 +23,7 @@ from models import (
     StoreListing,
 )
 from physical_sources.catalogue import upsert_editions, upsert_listings
+from physical_sources.collapse import ListingView
 from radar_load import (
     DISCOVER_PLATFORMS,
     RADAR_PLATFORMS,
@@ -287,6 +288,22 @@ async def test_open_preorder_boundaries(session, closes, released, is_open):
     )
     (row,) = await session.scalars(select(StoreListing))
     assert open_preorder(listing_view(row), TODAY) is is_open
+
+
+async def test_an_undated_windowless_preorder_is_judged_by_the_games_date():
+    # The listing has no date of its own; the game came out last month.
+    line = ListingView(
+        id="l1",
+        store="super_rare",
+        store_name="Super Rare Games",
+        region="USA",
+        platform_id=508,
+        availability="preorder",
+        url="https://example.test/l1",
+    )
+    assert open_preorder(line, TODAY)
+    assert not open_preorder(line, TODAY, TODAY - timedelta(days=30), "day")
+    assert open_preorder(line, TODAY, TODAY.replace(day=1), "quarter")
 
 
 async def test_discover_reads_n64_from_the_collection_and_radar_does_not(session):

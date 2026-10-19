@@ -481,6 +481,8 @@ async def test_a_duplicate_that_slips_past_the_check_is_409_not_500(
         response = await client.post(f"/api/recommendations/{row.id}/want")
     assert response.status_code == 409
     assert response.json()["detail"] == "Already on your shelf"
+    # The rollback undid the answer too: the suggestion is still waiting.
+    assert (await _rows(sessionmaker_for_test))["1"].status == row.status
 
 
 async def test_a_wanted_game_cannot_be_dismissed_but_a_skipped_one_can_be_wanted(

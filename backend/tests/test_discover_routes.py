@@ -212,9 +212,7 @@ async def test_the_model_ranks_released_unowned_games(sessionmaker_for_test):
     # Two model picks, topped up from the template with the one left over.
     assert result["count"] == 3
     assert result["ranked_by"] == "model"
-    assert (
-        result["model_note"] == "2 of its 8 picks held up; taste alone ranked the rest"
-    )
+    assert result["model_note"] == "it chose 2; taste alone ranked the rest"
     (prompt,) = provider.prompts
     assert "Coming Soon" not in prompt and "Owned Already" not in prompt
     assert "Released C" in prompt  # the collection has no games on a platform

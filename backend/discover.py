@@ -18,7 +18,7 @@ import random
 from dataclasses import dataclass
 from datetime import date
 
-from physical_sources.release_rules import is_upcoming, preorder_open
+from physical_sources.release_rules import is_upcoming, listing_date, preorder_open
 from picker import (
     PickerItem,
     affinity,
@@ -150,8 +150,12 @@ def buyable(game: PoolGame, today: date) -> bool:
         or preorder_open(
             line.availability,
             line.preorder_closes_at,
-            candidate.release_date,
-            candidate.release_precision,
+            *listing_date(
+                line.release_date,
+                line.release_precision,
+                candidate.release_date,
+                candidate.release_precision,
+            ),
             today,
         )
         for line in candidate.store_lines

@@ -57,6 +57,22 @@ def preorder_open(
     return release_date is None or is_upcoming(release_date, precision, today)
 
 
+def listing_date(
+    line_date: date | None,
+    line_precision: str | None,
+    game_date: date | None,
+    game_precision: str | None,
+) -> tuple[date | None, str | None]:
+    """The date a listing's pre-order is judged by: its own, else the game's.
+
+    Radar and Discover both ask with this, so an undated, windowless
+    pre-order on a game already out is stale on both pages.
+    """
+    if line_date is not None:
+        return line_date, line_precision
+    return game_date, game_precision
+
+
 def sharpest_first(release_date: date, precision: str | None) -> tuple:
     """Sort key for picking one date from several: the period that ends
     soonest, the finer precision on a tie. "2026" (ends 31 Dec) loses to

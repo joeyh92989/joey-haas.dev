@@ -361,12 +361,10 @@ def create_recommendations_router(
                 )
                 if not picks:
                     note = "The model's picks did not hold up"
-                elif len(picks) < discover.PICKS:
-                    note = (
-                        f"{len(picks)} of its {discover.PICKS} picks held up; "
-                        "taste alone ranked the rest"
-                    )
-                    picks = discover.top_up(picks, candidates, profile, today)
+                kept = len(picks)
+                picks = discover.top_up(picks, candidates, profile, today)
+                if kept and len(picks) > kept:
+                    note = f"it chose {kept}; taste alone ranked the rest"
             if not picks:
                 picks = discover.fallback(candidates, profile, today)
         ranked_by = picks[0].ranked_by if picks else "template"
@@ -612,12 +610,17 @@ def create_recommendations_router(
         row.status = answered
         try:
             await session.commit()
-        except IntegrityError:
+        except IntegrityError as error:
             # Two answers for one game at once (a Radar and a Discover row,
             # or two platforms): the check above passed for both, and
-            # ux_items_external let only the first insert through.
+            # ux_items_external let only the first insert through. Any other
+            # constraint is a real failure, not a duplicate.
             await session.rollback()
-            raise HTTPException(status_code=409, detail="Already on your shelf")
+            if "ux_items_external" not in str(error.orig):
+                raise
+            raise HTTPException(
+                status_code=409, detail="Already on your shelf"
+            ) from None
         return {"item_id": str(item.id)}
 
     @router.post("/{recommendation_id}/want", status_code=201)

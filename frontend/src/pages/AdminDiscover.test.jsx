@@ -85,11 +85,9 @@ describe('rankingWords', () => {
     expect(
       rankingWords({
         ...DISCOVER,
-        model_note: '2 of its 8 picks held up; taste alone ranked the rest',
+        model_note: 'it chose 2; taste alone ranked the rest',
       }),
-    ).toBe(
-      'Ranked by Gemini: 2 of its 8 picks held up; taste alone ranked the rest.',
-    )
+    ).toBe('Ranked by Gemini: it chose 2; taste alone ranked the rest.')
     expect(rankingWords({ ...DISCOVER, picks: [] })).toBeNull()
   })
 })

@@ -424,6 +424,7 @@ async def test_an_igdb_outage_stops_the_batch_and_parks_nothing(session):
     igdb = FakeIgdb(search_error=SourceUnavailable("igdb", "HTTP 503 from IGDB"))
     outcome = await resolve_batch(session, igdb)
     assert [e["code"] for e in outcome.errors] == ["igdb_unavailable"]
+    assert igdb.fetched == []  # no second wait on the same outage
     assert await _all(session, CatalogueMatch) == []
     assert (outcome.pending, outcome.unresolved_remaining) == (0, 2)
 

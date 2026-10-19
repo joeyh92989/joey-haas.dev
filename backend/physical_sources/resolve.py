@@ -483,6 +483,11 @@ async def resolve_batch(session, igdb, limit: int = RESOLVE_LIMIT) -> ResolveRes
             result.pending += 1
     await session.flush()
 
+    if any(error["code"] == "igdb_unavailable" for error in result.errors):
+        # Filling games would only wait on the same outage again.
+        await propagate(session)
+        result.unresolved_remaining = await count_pending(session)
+        return result
     try:
         result.games_fetched = await fill_games(session, igdb)
     except SourceRateLimited:
