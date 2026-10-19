@@ -17,7 +17,7 @@ import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -30,6 +30,7 @@ from models import (
     ItemType,
     OwnedFormat,
     PhysicalFormat,
+    PlaySession,
 )
 from public_next_cache import PublicNextCache
 from public_outputs import PublicNextOut, load_public_next
@@ -152,6 +153,19 @@ class PublicStatsOut(BaseModel):
     by_platform: dict[str, int]
     # Keyed by IGDB platform id, for key-card platforms only.
     by_format: dict[str, PublicFormatCounts]
+
+
+class PublicDiaryEntry(BaseModel):
+    """One day a public game was played. Written by hand: the session's note
+    is the owner's and is absent by construction, as is any other item field
+    the shelf does not already show."""
+
+    item_id: uuid.UUID
+    title: str
+    cover_url: str | None
+    platform: str | None
+    played_on: date
+    minutes: int | None
 
 
 def _string_list(value: object) -> list[str]:
@@ -329,6 +343,34 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         )
         result = await session.execute(statement)
         return [_to_public(item) for item in result.scalars()]
+
+    @router.get("/diary", response_model=list[PublicDiaryEntry])
+    async def public_diary(
+        year: int = Query(ge=2000, le=2100),
+        session: AsyncSession = Depends(get_session),
+    ) -> list[PublicDiaryEntry]:
+        """A year of play sessions, public games only, most recent first."""
+        statement = (
+            select(PlaySession, Item)
+            .join(Item, Item.id == PlaySession.item_id)
+            .where(
+                Item.is_public.is_(True),
+                PlaySession.played_on >= date(year, 1, 1),
+                PlaySession.played_on <= date(year, 12, 31),
+            )
+            .order_by(PlaySession.played_on.desc(), PlaySession.created_at.desc())
+        )
+        return [
+            PublicDiaryEntry(
+                item_id=item.id,
+                title=item.title,
+                cover_url=item.cover_url,
+                platform=item.platform,
+                played_on=row.played_on,
+                minutes=row.minutes,
+            )
+            for row, item in (await session.execute(statement)).all()
+        ]
 
     @router.get("/stats", response_model=PublicStatsOut)
     async def public_stats(

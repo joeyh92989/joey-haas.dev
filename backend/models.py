@@ -284,6 +284,37 @@ class PickEvent(Base):
     )
 
 
+class PlaySession(Base):
+    """One day a game was played (migration 0007): the play journal.
+
+    `minutes` is optional, and `note` is the owner's and never public: the
+    public diary carries the date, the game and the minutes only. Deleted
+    with its item.
+    """
+
+    __tablename__ = "play_sessions"
+    __table_args__ = (
+        CheckConstraint(
+            "minutes IS NULL OR minutes > 0", name="play_sessions_minutes_positive"
+        ),
+        Index("ix_play_sessions_item_played", "item_id", "played_on"),
+        Index("ix_play_sessions_played_on", "played_on"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("items.id", ondelete="CASCADE"), nullable=False
+    )
+    played_on: Mapped[date] = mapped_column(Date, nullable=False)
+    minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 # --- The physical catalogue (migration 0005) --------------------------------
 #
 # What exists physically, and as what, for games the owner does not own. Rows

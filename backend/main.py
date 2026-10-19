@@ -20,6 +20,7 @@ from db import create_engine_and_sessionmaker, engine_lifespan
 from errors import add_json_errors
 from importer import create_import_router
 from items import create_items_router
+from journal_routes import create_journal_router
 from llm import build_provider
 from origin_check import add_origin_check
 from physical_routes import create_physical_router
@@ -103,6 +104,7 @@ app.add_middleware(
 app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
 app.include_router(create_picker_router(session_factory))
+app.include_router(create_journal_router(session_factory))
 
 
 def physical_http_client() -> httpx2.AsyncClient:

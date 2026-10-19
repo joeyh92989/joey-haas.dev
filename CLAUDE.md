@@ -202,8 +202,10 @@ before pushing.
       sitemap and robots, backend hardening, `/now`, `/colophon`, shelf
       search, `/spine/feed.xml`, and Year in review at `/spine/year/:year`.
       Spec and plan: `docs/planning/2026-10-18-review-followups-design.md`.
-      Held for Joey: session re-check and Origin middleware (auth),
-      `healthCheckPath` (render.yaml), a play-session journal (migration)
+      Then the carve-outs (#59–#61): sessions re-checked against the
+      allowlist and foreign-origin writes refused (`auth.session_admin`,
+      `origin_check.py`), `healthCheckPath` in render.yaml, and the play
+      journal (migration `0007`)
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -222,7 +224,8 @@ before pushing.
   (see `backend/migrations/README.md`). `0004` adds `pick_events`; `0005`
   adds the physical catalogue's five tables and four enum types, reusing
   `physical_format` and `format_source` untouched; `0006` adds
-  `recommendations` (Radar and Discover).
+  `recommendations` (Radar and Discover); `0007` adds `play_sessions`
+  (the play journal).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -419,6 +422,13 @@ before pushing.
   `picker.public_reasons`: rebuilt from public rows only, without the slot
   reasons, since "On the shelf since" is read from the private
   `acquired_at`. Reasons are first person everywhere ("which I rated 9").
+- **The play journal** (migration `0007`, `play_sessions`) is logged on the
+  admin item page (`components/PlayJournal.jsx`, `journal_routes.py`): one
+  row per day played, optional minutes, a private note. The public diary,
+  `GET /api/public/diary?year=`, carries only public games and never the
+  note (`PublicDiaryEntry`, pinned in `test_public.py`); Year in review
+  reads it live (no snapshot) and reads complete without it. **Deploy
+  order:** apply `0007` to Neon, then merge.
 - Editing lives at `/admin/collection/:id`. A wrong external match is fixed
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not
