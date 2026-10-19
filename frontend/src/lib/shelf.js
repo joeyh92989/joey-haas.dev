@@ -152,6 +152,33 @@ export function filterItems(items, value) {
   )
 }
 
+/** Lower case without accents, so "pokemon" finds "Pokémon". */
+function fold(text) {
+  return text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+}
+
+/**
+ * The rows whose title, creator or platform contain every word of the
+ * query, ignoring case and accents. An empty query matches everything.
+ *
+ * @param {object[]} items Shelf rows.
+ * @param {string} query What was typed in the shelf's search box.
+ * @returns {object[]}
+ */
+export function searchItems(items, query) {
+  const words = fold(query).split(/\s+/).filter(Boolean)
+  if (words.length === 0) return items
+  return items.filter((item) => {
+    const haystack = fold(
+      [item.title, item.creator, item.platform].filter(Boolean).join(' '),
+    )
+    return words.every((word) => haystack.includes(word))
+  })
+}
+
 /** The selection with nothing chosen. */
 export const NO_FILTER = {
   type: null,

@@ -5,6 +5,7 @@ import {
   filterItems,
   NO_FILTER,
   readShelfPref,
+  searchItems,
   sortItems,
   STATUS_LABEL,
   STATUS_ORDER,
@@ -113,6 +114,27 @@ describe('sortItems', () => {
     sortItems(input, 'rating', 'asc', 1)
     sortItems(input, 'random', 'asc', 7)
     expect(input).toEqual(ITEMS)
+  })
+})
+
+describe('searchItems', () => {
+  const rows = [
+    { id: 1, title: 'Pokémon Legends: Z-A', platform: 'Nintendo Switch 2' },
+    { id: 2, title: 'Dune', creator: 'Denis Villeneuve' },
+    { id: 3, title: 'Hades II', platform: 'Nintendo Switch' },
+  ]
+  const ids = (query) => searchItems(rows, query).map((row) => row.id)
+
+  it('matches every word in title, creator or platform, ignoring case and accents', () => {
+    expect(ids('pokemon')).toEqual([1])
+    expect(ids('VILLENEUVE')).toEqual([2])
+    expect(ids('switch hades')).toEqual([3])
+    expect(ids('switch')).toEqual([1, 3])
+  })
+
+  it('returns everything for an empty query and nothing for a miss', () => {
+    expect(ids('   ')).toEqual([1, 2, 3])
+    expect(ids('zelda')).toEqual([])
   })
 })
 

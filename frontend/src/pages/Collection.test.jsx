@@ -335,6 +335,23 @@ describe('Collection', () => {
     expect(grid().getByText('Gloomhaven')).toBeInTheDocument()
   })
 
+  it('searches the shelf by title', async () => {
+    stubApi()
+    await renderReady()
+
+    await userEvent.type(
+      screen.getByRole('searchbox', { name: 'Search the shelf' }),
+      'gloom',
+    )
+    expect(gridTitles()).toEqual(['Gloomhaven'])
+
+    await userEvent.clear(screen.getByRole('searchbox'))
+    await userEvent.type(screen.getByRole('searchbox'), 'zelda')
+    expect(
+      screen.getByText('Nothing on the shelf matches “zelda”.'),
+    ).toBeInTheDocument()
+  })
+
   it('filters to the want list', async () => {
     stubApi()
     await renderReady()

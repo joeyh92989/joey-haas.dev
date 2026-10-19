@@ -15,6 +15,7 @@ import {
   filterItems,
   NO_FILTER,
   readShelfPref,
+  searchItems,
   sortItems,
   STATUS_LABEL,
   STATUS_ORDER,
@@ -369,6 +370,7 @@ export default function Collection() {
   const [state, setState] = useState('loading')
   const [slow, setSlow] = useState(false)
   const [filters, setFilters] = useState(NO_FILTER)
+  const [query, setQuery] = useState('')
   const [sort, setSort] = useState({ value: 'added', direction: 'desc' })
   const [seed, setSeed] = useState(() => Date.now())
   const [size, setSize] = useState(() => {
@@ -520,7 +522,7 @@ export default function Collection() {
     },
   ]
   const visible = sortItems(
-    filterItems(items, filters),
+    filterItems(searchItems(items, query), filters),
     sort.value,
     sort.direction,
     seed,
@@ -570,6 +572,17 @@ export default function Collection() {
             </div>
           )}
 
+          <label className="shelf-search">
+            <span className="visually-hidden">Search the shelf</span>
+            <input
+              id="shelf-search"
+              type="search"
+              placeholder="Search titles"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+
           <ShelfToolbar
             groups={groups}
             toggles={toggles}
@@ -586,7 +599,11 @@ export default function Collection() {
           />
 
           {visible.length === 0 ? (
-            <p className="muted">Nothing matches those filters.</p>
+            <p className="muted">
+              {query.trim()
+                ? `Nothing on the shelf matches “${query.trim()}”.`
+                : 'Nothing matches those filters.'}
+            </p>
           ) : (
             <PosterGrid
               items={visible}
