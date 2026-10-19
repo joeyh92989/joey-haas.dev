@@ -40,6 +40,7 @@ Errors are typed (`sources/base.py`):
 |---|---|---|
 | `SourceNotConfigured` | No credentials on this deploy | 503 on the picker; `unresolved` in an import |
 | `SourceRateLimited` | Refused for rate reasons, after retries | 429 |
+| `SourceUnavailable` | Timeout, dropped connection or 5xx: transient (IGDB so far) | 502; stops a resolve batch |
 | `SourceError` | Anything else | 502 |
 
 `SourceNotConfigured` is deliberately not a failure. It means the feature was

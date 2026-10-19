@@ -35,6 +35,7 @@ from sources.base import (
     SourceNotConfigured,
     SourceRateLimited,
     SourceResult,
+    SourceUnavailable,
     Throttle,
 )
 
@@ -303,10 +304,15 @@ class IgdbSource:
                     },
                 )
         except httpx2.HTTPError as error:
-            raise SourceError(
+            raise SourceUnavailable(
                 self.source_name, f"token request failed: {error}"
             ) from error
 
+        if response.status_code >= 500:
+            raise SourceUnavailable(
+                self.source_name,
+                f"HTTP {response.status_code} from Twitch while getting a token",
+            )
         if response.status_code >= 400:
             raise SourceError(
                 self.source_name,
@@ -343,7 +349,7 @@ class IgdbSource:
                         f"{API_ROOT}/{endpoint}", content=body, headers=headers
                     )
             except httpx2.HTTPError as error:
-                raise SourceError(
+                raise SourceUnavailable(
                     self.source_name, f"request failed: {error}"
                 ) from error
 
@@ -357,6 +363,10 @@ class IgdbSource:
                 continue
             if response.status_code == 429:
                 raise SourceRateLimited(self.source_name, "rate limited by IGDB")
+            if response.status_code >= 500:
+                raise SourceUnavailable(
+                    self.source_name, f"HTTP {response.status_code} from IGDB"
+                )
             if response.status_code >= 400:
                 raise SourceError(
                     self.source_name, f"HTTP {response.status_code} from IGDB"
