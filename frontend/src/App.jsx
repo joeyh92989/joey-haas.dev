@@ -4,10 +4,12 @@ import RootLayout from './layouts/RootLayout.jsx'
 import About from './pages/About.jsx'
 import Blog from './pages/Blog.jsx'
 import Collection from './pages/Collection.jsx'
+import Colophon from './pages/Colophon.jsx'
 import BlogPost from './pages/BlogPost.jsx'
 import Home from './pages/Home.jsx'
 import Item from './pages/Item.jsx'
 import Next from './pages/Next.jsx'
+import Now from './pages/Now.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Projects from './pages/Projects.jsx'
 
@@ -54,6 +56,8 @@ export default function App() {
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="now" element={<Now />} />
+        <Route path="colophon" element={<Colophon />} />
         <Route path="spine" element={<Collection />} />
         <Route path="spine/next" element={<Next />} />
         <Route path="spine/:id" element={<Item />} />

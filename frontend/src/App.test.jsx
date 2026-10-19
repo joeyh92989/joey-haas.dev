@@ -66,6 +66,8 @@ const TITLES = [
   ['/', 'Joey Haas — Senior software engineer, Denver'],
   ['/about', 'About · Joey Haas'],
   ['/projects', 'Projects · Joey Haas'],
+  ['/now', 'Now · Joey Haas'],
+  ['/colophon', 'Colophon · Joey Haas'],
   ['/blog', 'Blog · Joey Haas'],
   ['/spine', 'Spine · Joey Haas'],
   ['/nonsense-path', 'Not found · Joey Haas'],

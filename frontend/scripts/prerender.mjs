@@ -25,6 +25,7 @@ import {
   renderHead,
   robots,
   sitemap,
+  spineFeed,
 } from './prerender-lib.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -81,10 +82,8 @@ async function write(route, html) {
 }
 
 const shell = await fs.readFile(path.join(dist, 'index.html'), 'utf8')
-const routes = publicRoutes({
-  posts: await readPosts(),
-  items: await readItems(),
-})
+const items = await readItems()
+const routes = publicRoutes({ posts: await readPosts(), items })
 
 for (const route of routes) {
   // The home page's file is also the SPA fallback for every other path, so
@@ -102,4 +101,9 @@ for (const route of routes) {
 for (const route of ADMIN_ROUTES) await write(route, noindex(shell))
 await fs.writeFile(path.join(dist, 'sitemap.xml'), sitemap(routes), 'utf8')
 await fs.writeFile(path.join(dist, 'robots.txt'), robots(), 'utf8')
+await fs.writeFile(
+  path.join(dist, 'spine', 'feed.xml'),
+  spineFeed(items),
+  'utf8',
+)
 console.log(`prerendered ${routes.length} route(s), sitemap.xml and robots.txt`)

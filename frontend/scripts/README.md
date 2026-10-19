@@ -68,10 +68,14 @@ description, canonical URL and Open Graph tags, plus `sitemap.xml` and
 app renders the page as before.
 
 **Routes.** The static pages (`/`, `/about`, `/projects`, `/spine`,
-`/spine/next`, and `/blog` while a post is published), every published post,
+`/spine/next`, `/now`, `/colophon`, and `/blog` while a post is published), every published post,
 and every item in `dist/snapshot/items.json`. An item's preview image is its
 cover; a post's description is its first paragraph. Copy comes from
 `src/content/`, so a wording change there reaches the previews.
+
+**Spine's feed.** It also writes `dist/spine/feed.xml`, the twenty most
+recent finishes in the snapshot (`spineFeed`), announced in the heads of
+`/spine` and `/now`. A build without a snapshot writes an empty channel.
 
 **Why no `render.yaml` change.** Render serves a file that exists before it
 applies the `/* → /index.html` rewrite, and serves `spine/next/index.html` at

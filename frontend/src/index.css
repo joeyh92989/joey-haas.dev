@@ -3163,3 +3163,44 @@ main h1[tabindex='-1']:focus {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Shelf search ---------- */
+
+.shelf-search {
+  display: block;
+  margin: 0 0 1rem;
+  max-width: 24rem;
+}
+
+.shelf-search input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+  width: 100%;
+}
+
+.shelf-search input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Now and Colophon ---------- */
+
+.now h2,
+.colophon h2 {
+  font-size: 1.15rem;
+  margin: 2rem 0 0.75rem;
+}
+
+.now-finished,
+.prose-list {
+  color: var(--text-body);
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  max-width: 58ch;
+  padding-left: 1.1rem;
+}
