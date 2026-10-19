@@ -238,3 +238,69 @@ describe('RootLayout masthead density', () => {
     expect(within(nav).queryByRole('button')).toBeNull()
   })
 })
+
+function Boom() {
+  throw new Error('render failed')
+}
+
+function routedAt(path) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route element={<RootLayout />}>
+          <Route path="/" element={<h1>Home page</h1>} />
+          <Route path="/about" element={<h1>About page</h1>} />
+          <Route path="/broken" element={<Boom />} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+describe('RootLayout route changes', () => {
+  it('offers a skip link to the main content', () => {
+    renderAt('/')
+    const skip = screen.getByRole('link', { name: 'Skip to content' })
+    expect(skip).toHaveAttribute('href', '#main')
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main')
+  })
+
+  it('leaves focus and scroll alone on the first page', () => {
+    const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    routedAt('/')
+    expect(scroll).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('scrolls to the top and focuses the new page heading', () => {
+    const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    routedAt('/')
+    fireEvent.click(screen.getByRole('link', { name: 'About' }))
+    const heading = screen.getByRole('heading', { name: 'About page' })
+    expect(scroll).toHaveBeenCalledWith(0, 0)
+    expect(document.activeElement).toBe(heading)
+    expect(heading).toHaveAttribute('tabindex', '-1')
+  })
+
+  it('keeps the chrome up when a page fails to render', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    routedAt('/broken')
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'This page hit a problem',
+    )
+    expect(
+      screen.getByRole('navigation', { name: /site/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('clears a page error on the next navigation', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    routedAt('/broken')
+    fireEvent.click(screen.getByRole('link', { name: 'About' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(
+      screen.getByRole('heading', { name: 'About page' }),
+    ).toBeInTheDocument()
+  })
+})

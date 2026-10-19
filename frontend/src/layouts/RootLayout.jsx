@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router'
+import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
 import SiteHeader from '../components/SiteHeader.jsx'
 import { profile } from '../content/profile.js'
 import { posts } from '../content/posts.js'
 import { apiFetch, loginUrl } from '../lib/api.js'
+import { useRouteFocus } from '../lib/useRouteFocus.js'
 
 const STORAGE_KEY = 'theme'
 
@@ -102,6 +104,7 @@ export default function RootLayout() {
   const [signedIn, setSignedIn] = useState(false)
   const { pathname } = useLocation()
   const isHome = pathname === '/'
+  const mainRef = useRouteFocus()
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -145,6 +148,9 @@ export default function RootLayout() {
 
   return (
     <div className={isWideRoute(pathname) ? 'page page-wide' : 'page'}>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
       <SiteHeader
         compact={isUnder(COMPACT_ROUTES, pathname)}
         isHome={isHome}
@@ -153,10 +159,26 @@ export default function RootLayout() {
         items={navItems(posts.length > 0)}
       />
 
-      <main className={isHome ? 'home' : undefined}>
-        {/* Routed pages read the session from here rather than each asking
-            /api/auth/me again against a backend that may be asleep. */}
-        <Outlet context={{ signedIn: Boolean(signedIn) }} />
+      <main
+        id="main"
+        ref={mainRef}
+        tabIndex={-1}
+        className={isHome ? 'home' : undefined}
+      >
+        <RouteErrorBoundary key={pathname}>
+          {/* Lazy admin pages wait here; public pages are in the main chunk. */}
+          <Suspense
+            fallback={
+              <p className="muted" role="status">
+                Loading…
+              </p>
+            }
+          >
+            {/* Routed pages read the session from here rather than each asking
+                /api/auth/me again against a backend that may be asleep. */}
+            <Outlet context={{ signedIn: Boolean(signedIn) }} />
+          </Suspense>
+        </RouteErrorBoundary>
       </main>
 
       <footer className="site-footer">
