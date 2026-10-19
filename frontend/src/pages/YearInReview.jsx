@@ -71,7 +71,9 @@ export default function YearInReview() {
       <SpineHeader asLink />
       <h1>{year} in review</h1>
 
-      {years.length > 1 && (
+      {/* Shown whenever another year has finishes: in January the redirect
+          lands on a year with none yet, and the way back is this nav. */}
+      {years.some((other) => other !== year) && (
         <nav className="year-nav" aria-label="Years">
           {years.map((other) =>
             other === year ? (
@@ -101,7 +103,12 @@ export default function YearInReview() {
       {data && review.count === 0 && (
         <p className="muted">
           No finishes recorded in {year} yet.{' '}
-          <Link to={spine.path}>Back to the shelf</Link>.
+          {years.length > 0 ? (
+            <Link to={`${spine.path}/year/${years[0]}`}>See {years[0]}</Link>
+          ) : (
+            <Link to={spine.path}>Back to the shelf</Link>
+          )}
+          .
         </p>
       )}
 

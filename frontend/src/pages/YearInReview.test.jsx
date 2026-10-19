@@ -84,6 +84,14 @@ describe('YearInReview', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
     renderAt('/spine/year/2023')
     expect(screen.getByText(/No finishes recorded in 2023/)).toBeInTheDocument()
+    // The way back to a year that has some, as every January needs.
+    expect(screen.getByRole('link', { name: 'See 2026' })).toHaveAttribute(
+      'href',
+      '/spine/year/2026',
+    )
+    expect(
+      screen.getByRole('navigation', { name: 'Years' }),
+    ).toBeInTheDocument()
   })
 
   it('reports a failed load', () => {

@@ -74,7 +74,12 @@ export function yearInReview(items, year) {
 
   const compared = rated
     .filter((item) => item.community_score != null)
-    .map((item) => ({ item, gap: item.rating * 10 - item.community_score }))
+    // Rounded as the page shows it, so "higher" never contradicts the
+    // figures printed beside it.
+    .map((item) => ({
+      item,
+      gap: item.rating * 10 - Math.round(item.community_score),
+    }))
   const furthest = compared.reduce(
     (best, entry) =>
       best === null || Math.abs(entry.gap) > Math.abs(best.gap) ? entry : best,
