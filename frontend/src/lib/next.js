@@ -1,10 +1,12 @@
+import { spine } from '../content/spine.js'
+
 /**
  * What's next's page-side helpers. The sections themselves come from the
  * server (backend/next_list.py); grouping by console and sorting are the
  * page's job (Spine Next spec, B6).
  */
 
-/** Buy now's console groups, in a store visit's order. */
+/** In stores now's console groups (`buy_now`), in a store visit's order. */
 export const NEXT_PLATFORMS = [
   'Nintendo Switch 2',
   'Nintendo Switch',
@@ -21,7 +23,7 @@ export const NEXT_PLATFORMS = [
 export function groupByPlatform(rows) {
   const groups = new Map()
   for (const row of rows) {
-    const key = row.platform ?? 'Other'
+    const key = row.platform ?? spine.next.otherPlatform
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key).push(row)
   }
@@ -35,7 +37,7 @@ export function groupByPlatform(rows) {
 }
 
 /**
- * Buy now in the visitor's chosen order: the server's best match, or the
+ * In stores now (`buy_now`) in the visitor's chosen order: the server's best fit, or the
  * newest public date first with undated rows last.
  *
  * @param {Array<{release_date: string|null}>} rows

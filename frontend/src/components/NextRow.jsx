@@ -3,22 +3,14 @@ import { spine } from '../content/spine.js'
 import { releaseWords } from '../lib/releaseWords.js'
 import CoverImage from './CoverImage.jsx'
 
-/** As a meta line starts; mirrors FORMAT_WORDS in physical_sources/limits.py. */
-export const FORMAT_WORDS = {
-  game_card: 'Full game on cartridge',
-  game_key_card: 'Game-Key Card',
-  code_in_box: 'Code in a box',
-  disc: 'Disc',
-}
-
 const MAX_REASONS = 2
 
 function metaLine(row, section) {
   const format =
     row.lane === 'digital' ||
     (section === 'not_on_cartridge' && !row.physical_format)
-      ? 'Digital only'
-      : (FORMAT_WORDS[row.physical_format] ?? 'Format unknown')
+      ? spine.next.digitalOnly
+      : (spine.next.formats[row.physical_format] ?? spine.next.formatUnknown)
   const parts = [row.platform, format]
   if (row.release_date) {
     const when = releaseWords(row)
