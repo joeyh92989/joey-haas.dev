@@ -53,3 +53,58 @@ def test_code_head_is_read_from_the_migrations_directory():
     # Reads the real migrations/versions tree rather than a fixture, so a
     # migration added without a matching head would surface here.
     assert code_head_revision() == "0006"
+
+
+class _FlakyEngine:
+    """Fails to connect `failures` times across all engines, then answers."""
+
+    state = {"failures": 0, "connects": 0}
+
+    def connect(self):
+        engine = self
+
+        class _Connection:
+            async def __aenter__(self):
+                engine.state["connects"] += 1
+                if engine.state["connects"] <= engine.state["failures"]:
+                    raise OSError("connection refused")
+                return self
+
+            async def __aexit__(self, *_):
+                return False
+
+            async def run_sync(self, _fn):
+                return "0006"
+
+        return _Connection()
+
+    async def dispose(self):
+        return None
+
+
+def _flaky(monkeypatch, failures):
+    import schema_check
+
+    _FlakyEngine.state = {"failures": failures, "connects": 0}
+    monkeypatch.setattr(
+        schema_check, "create_async_engine", lambda *_a, **_k: _FlakyEngine()
+    )
+    monkeypatch.setattr(schema_check, "CONNECT_RETRY_SECONDS", (0, 0))
+    return schema_check
+
+
+@pytest.mark.asyncio
+async def test_a_cold_database_is_retried_at_boot(monkeypatch):
+    schema_check = _flaky(monkeypatch, failures=2)
+    config = type("C", (), {"database_url_direct": "postgresql://u:p@h/db"})()
+    assert await schema_check.database_revision(config) == "0006"
+    assert _FlakyEngine.state["connects"] == 3
+
+
+@pytest.mark.asyncio
+async def test_a_database_that_never_answers_still_fails_boot(monkeypatch):
+    schema_check = _flaky(monkeypatch, failures=5)
+    config = type("C", (), {"database_url_direct": "postgresql://u:p@h/db"})()
+    with pytest.raises(OSError):
+        await schema_check.database_revision(config)
+    assert _FlakyEngine.state["connects"] == schema_check.CONNECT_ATTEMPTS

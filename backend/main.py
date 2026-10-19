@@ -17,6 +17,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from auth import create_auth_router
 from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
+from errors import add_json_errors
 from importer import create_import_router
 from items import create_items_router
 from llm import build_provider
@@ -72,6 +73,10 @@ app.add_middleware(
     same_site="lax",
     https_only=True,
 )
+
+# Inside CORS (added before it), so an unhandled error's 500 still carries
+# Access-Control-Allow-Origin and the SPA can read it (errors.py).
+add_json_errors(app)
 
 # An explicit allowlist, not a regex.
 #
