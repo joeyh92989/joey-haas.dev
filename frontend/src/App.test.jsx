@@ -56,7 +56,9 @@ describe('App redirects', () => {
   it('carries the id from /collection/:id to /spine/:id', async () => {
     renderAt('/collection/42')
     await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent(/^\/spine\/42$/),
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        /^\/spine\/42\/$/,
+      ),
     )
   })
 })

@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { spine } from '../content/spine.js'
 import { releaseWords } from '../lib/releaseWords.js'
 import CoverImage from './CoverImage.jsx'
+import { itemPath } from '../lib/spinePaths.js'
 
 const MAX_REASONS = 2
 
@@ -43,7 +44,7 @@ export default function NextRow({ row, section, actions, extra }) {
     </>
   )
   const link = row.item_id ? (
-    <Link to={`/spine/${row.item_id}`} className="next-row-link">
+    <Link to={itemPath(row.item_id)} className="next-row-link">
       {body}
     </Link>
   ) : row.igdb_url ? (

@@ -29,6 +29,7 @@ import {
   isDimmable,
   platformGroup,
 } from './Collection.jsx'
+import { itemPath } from '../lib/spinePaths.js'
 
 const STATUSES = STATUS_ORDER
 
@@ -474,7 +475,7 @@ export default function AdminCollection() {
       seed,
     )
     const linkFor = (item) =>
-      item.is_public ? `/spine/${item.id}` : `/admin/collection/${item.id}`
+      item.is_public ? itemPath(item.id) : `/admin/collection/${item.id}`
 
     return (
       <>

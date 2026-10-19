@@ -97,6 +97,44 @@ check_equals "GET /about has its own prerendered title" "$about_title" "<title>A
 next_title="$(curl -s -m 90 "$SITE_URL/spine/next" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /spine/next has its own prerendered title" "$next_title" "<title>What’s next · Spine</title>"
 
+# Item, year and month pages are prerendered too, but Render serves them only
+# at the slash form (/spine/<id>/), which every link, canonical URL and
+# sitemap entry uses (frontend/src/lib/spinePaths.js). A redirect from the
+# bare form loops on Render, so there is none: the bare form stays the SPA.
+# A slash path with no file (an item newer than the build) must fall through
+# to the SPA shell, not an empty 200.
+if command -v jq > /dev/null; then
+  snapshot_items="$(curl -s -m 90 "$SITE_URL/snapshot/items.json")"
+  first_id="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].id // empty' 2>/dev/null)"
+  first_title="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].title // empty | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;") | gsub("\""; "&quot;")' 2>/dev/null)"
+  if [ -n "$first_id" ]; then
+    item_page="$(curl -s -m 90 "$SITE_URL/spine/$first_id/")"
+    check_equals "GET /spine/<id>/ has its own prerendered title" \
+      "$(printf '%s' "$item_page" | grep -o '<title>[^<]*</title>')" \
+      "<title>$first_title · Spine</title>"
+    check_equals "GET /spine/<id>/ has a slash canonical" \
+      "$(printf '%s' "$item_page" | grep -o '<link rel="canonical"[^>]*>')" \
+      "<link rel=\"canonical\" href=\"$SITE_URL/spine/$first_id/\" />"
+  else
+    report_fail "snapshot has an item" "no id in $SITE_URL/snapshot/items.json"
+  fi
+  finish_year="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.type == "game" and (.wanted | not)) | .finished_at // empty | select(test("^[0-9]{4}-"))] | max // empty | .[0:4]' 2>/dev/null)"
+  if [ -n "$finish_year" ]; then
+    check_equals "GET /spine/year/<year>/ has its own prerendered title" \
+      "$(curl -s -m 90 "$SITE_URL/spine/year/$finish_year/" | grep -o '<title>[^<]*</title>')" \
+      "<title>$finish_year in review · Spine</title>"
+  fi
+else
+  report_warn "jq missing" "item and year head checks skipped"
+fi
+unknown_slash="$(curl -s -m 90 -w '\n%{http_code}' "$SITE_URL/spine/00000000-0000-0000-0000-000000000000/")"
+if [ "$(printf '%s' "$unknown_slash" | tail -n 1)" = "200" ] && printf '%s' "$unknown_slash" | grep -q '<div id="root">'; then
+  report_pass "GET /spine/<unknown>/ falls through to the SPA" "200 with the app shell"
+else
+  report_fail "GET /spine/<unknown>/ falls through to the SPA" \
+    "got $(printf '%s' "$unknown_slash" | tail -n 1), or no app shell"
+fi
+
 robots_body="$(curl -s -m 90 "$SITE_URL/robots.txt")"
 if printf '%s' "$robots_body" | grep -q '^Disallow: /admin'; then
   report_pass "robots.txt disallows /admin" "served as a file, not the SPA"

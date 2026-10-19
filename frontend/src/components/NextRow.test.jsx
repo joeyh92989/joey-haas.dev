@@ -47,7 +47,7 @@ describe('NextRow', () => {
     const { unmount } = renderRow({ row: { ...BASE, item_id: 'abc' } })
     expect(screen.getByRole('link', { name: /Ratatan/ })).toHaveAttribute(
       'href',
-      '/spine/abc',
+      '/spine/abc/',
     )
     unmount()
     renderRow()

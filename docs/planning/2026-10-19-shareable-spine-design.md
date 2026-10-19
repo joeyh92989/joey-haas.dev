@@ -130,6 +130,16 @@ live for a few minutes, then deleted; smoke was 67/67 afterwards. Redirects
 can't express "add a slash" on Render, so PR C needs a different mechanism
 before Tasks 8–10 go ahead.
 
+**Replan (2026-10-19): slash links only.** No Render rules. Canonical,
+`og:url`, sitemap, the feed and every in-app link use the slash form
+(`/spine/<id>/`, `/spine/year/<y>/`, `/spine/journal/<yyyy-mm>/`), built by
+`src/lib/spinePaths.js`, and Render already serves the prerendered file
+there. Shared slash links preview as the item; a bare link someone types by
+hand still previews as the site card, which is accepted. Frontend only, so
+no production risk. Task 8 is dropped (no `render.yaml` change), Task 9 is
+done by the helper across every link builder, and Task 10's smoke checks
+assert the slash form. Branch `fix/slash-links`.
+
 ## Key decisions and tradeoffs
 
 | Decision | Why | Cost |

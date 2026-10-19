@@ -8,6 +8,7 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import { usePublicDiaryState } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NotFound from './NotFound.jsx'
+import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
 
 const DAY = new Intl.DateTimeFormat('en', {
   weekday: 'short',
@@ -57,17 +58,15 @@ export default function MonthInReview() {
 
       <nav className="month-nav" aria-label="Months">
         {review.previous && (
-          <Link to={`${spine.path}/journal/${review.previous}`}>
+          <Link to={monthPath(review.previous)}>
             <span aria-hidden="true">&larr;</span>{' '}
             <span className="visually-hidden">Previous month:</span>{' '}
             {monthName(review.previous)}
           </Link>
         )}
-        <Link to={`${spine.path}/year/${review.year}`}>
-          {review.year} in review
-        </Link>
+        <Link to={yearPath(review.year)}>{review.year} in review</Link>
         {review.next && (
-          <Link to={`${spine.path}/journal/${review.next}`}>
+          <Link to={monthPath(review.next)}>
             <span className="visually-hidden">Next month:</span>{' '}
             {monthName(review.next)} <span aria-hidden="true">&rarr;</span>
           </Link>
@@ -100,7 +99,7 @@ export default function MonthInReview() {
             items={review.finished}
             size="compact"
             renderCard={(item) => (
-              <PosterCard item={item} to={`${spine.path}/${item.id}`} />
+              <PosterCard item={item} to={itemPath(item.id)} />
             )}
           />
         </section>
@@ -125,9 +124,7 @@ export default function MonthInReview() {
                 <ul className="year-diary">
                   {day.sessions.map((row, index) => (
                     <li key={`${row.item_id}-${index}`}>
-                      <Link to={`${spine.path}/${row.item_id}`}>
-                        {row.title}
-                      </Link>
+                      <Link to={itemPath(row.item_id)}>{row.title}</Link>
                       {row.minutes != null && (
                         <span className="muted">{row.minutes} min</span>
                       )}

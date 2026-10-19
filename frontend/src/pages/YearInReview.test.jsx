@@ -75,7 +75,7 @@ describe('YearInReview', () => {
     )
     expect(
       screen.getByRole('link', { name: 'Sep 2026: 1 finished' }),
-    ).toHaveAttribute('href', '/spine/journal/2026-09')
+    ).toHaveAttribute('href', '/spine/journal/2026-09/')
     expect(
       screen.getByRole('img', { name: 'Aug 2026: 0 finished' }),
     ).toBeInTheDocument()
@@ -83,7 +83,7 @@ describe('YearInReview', () => {
     expect(finished.nextSibling).toHaveTextContent('Sep 30Hades II10/10')
     expect(screen.getByRole('link', { name: '2025' })).toHaveAttribute(
       'href',
-      '/spine/year/2025',
+      '/spine/year/2025/',
     )
     expect(screen.getByText(/I rated 1 higher and 0 lower/)).toBeInTheDocument()
   })
@@ -118,7 +118,7 @@ describe('YearInReview', () => {
     renderAt('/spine/year/2026')
     expect(
       screen.getByRole('link', { name: 'Jul 2026: 0 finished, played' }),
-    ).toHaveAttribute('href', '/spine/journal/2026-07')
+    ).toHaveAttribute('href', '/spine/journal/2026-07/')
   })
 
   it('says so when a year has no finishes', () => {
@@ -128,7 +128,7 @@ describe('YearInReview', () => {
     // The way back to a year that has some, as every January needs.
     expect(screen.getByRole('link', { name: 'See 2026' })).toHaveAttribute(
       'href',
-      '/spine/year/2026',
+      '/spine/year/2026/',
     )
     expect(
       screen.getByRole('navigation', { name: 'Years' }),
