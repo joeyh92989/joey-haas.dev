@@ -28,6 +28,16 @@ const isObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 
 /**
+ * The stats body. Keep in step with `isStatsBody` in src/lib/snapshot.js:
+ * the two predicates must be identical.
+ */
+const isStatsBody = (body) =>
+  isObject(body) &&
+  'total' in body &&
+  isObject(body.rating_histogram) &&
+  isObject(body.finishes_by_month)
+
+/**
  * What's next's body: Next.jsx reads `.length` on each of these lists, so a
  * body missing one would blank the page. Keep in step with `isNextBody` in
  * src/lib/snapshot.js: the two predicates must be identical.
@@ -54,7 +64,7 @@ export const SNAPSHOTS = {
   items: { path: '/api/public/items', valid: Array.isArray, required: true },
   stats: {
     path: '/api/public/stats',
-    valid: (body) => isObject(body) && 'total' in body,
+    valid: isStatsBody,
     required: true,
   },
   // Optional: on a deploy that ships this endpoint, the static build can

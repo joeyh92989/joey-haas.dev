@@ -33,10 +33,20 @@ const isNextBody = (body) =>
   Array.isArray(body.tonight.picks) &&
   NEXT_LISTS.every((key) => Array.isArray(body[key]))
 
+/**
+ * The stats body: Collection.jsx reads keys of both maps. Keep in step with
+ * `isStatsBody` in scripts/fetch-snapshot.mjs.
+ */
+const isStatsBody = (body) =>
+  isObject(body) &&
+  'total' in body &&
+  isObject(body.rating_histogram) &&
+  isObject(body.finishes_by_month)
+
 /** Each snapshot's name and the shape its body must have to be used. */
 const SHAPES = {
   items: Array.isArray,
-  stats: isObject,
+  stats: isStatsBody,
   next: isNextBody,
 }
 

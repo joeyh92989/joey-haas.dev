@@ -16,10 +16,15 @@ import { useState } from 'react'
  * @param {string|null} props.src - Cover URL, or null when there is none.
  * @param {string} props.type - One of the ItemType values.
  * @param {string} [props.alt] - Accessible name; empty when purely decorative.
+ * @param {boolean} [props.priority] - The page's main image (an item page's
+ *   cover): fetched at once rather than lazily, since it is what the page is
+ *   waiting to paint.
  */
-export default function CoverImage({ src, type, alt = '' }) {
-  const [failed, setFailed] = useState(false)
-  const missing = !src || failed
+export default function CoverImage({ src, type, alt = '', priority = false }) {
+  // The URL that failed, not a flag: a new src (the live item replacing the
+  // snapshot, or a re-link) gets its own try.
+  const [failedSrc, setFailedSrc] = useState(null)
+  const missing = !src || failedSrc === src
 
   return (
     <span className={`cover cover-${type}`} data-missing={missing || undefined}>
@@ -29,8 +34,9 @@ export default function CoverImage({ src, type, alt = '' }) {
         <img
           src={src}
           alt={alt}
-          loading="lazy"
-          onError={() => setFailed(true)}
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : undefined}
+          onError={() => setFailedSrc(src)}
         />
       )}
     </span>

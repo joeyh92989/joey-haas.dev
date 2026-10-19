@@ -296,7 +296,7 @@ function ItemPage({ id }) {
 
   return (
     <section>
-      <p className="admin-error">
+      <p className="admin-error" role="alert">
         This item could not be loaded. Try again shortly.
       </p>
     </section>
@@ -345,7 +345,7 @@ function ItemView({
 
       <header className="item-head">
         <div className="item-cover">
-          <CoverImage src={item.cover_url} type={item.type} alt="" />
+          <CoverImage src={item.cover_url} type={item.type} alt="" priority />
         </div>
         <div className="item-heading">
           <h1>{item.title}</h1>

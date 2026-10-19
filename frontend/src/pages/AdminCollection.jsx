@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import ItemForm, {
@@ -141,8 +141,14 @@ export default function AdminCollection() {
     }
   }, [])
 
+  // Every save ends in a reload, and two quick saves overlap: only the
+  // newest reload may apply, or an older list overwrites a newer one.
+  const loadSeq = useRef(0)
+
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current
     const result = await fetchItems()
+    if (seq !== loadSeq.current) return
     setItems(result.items)
     setStatus(result.status)
   }, [fetchItems])
@@ -151,9 +157,11 @@ export default function AdminCollection() {
     // Both the API and the database sleep when idle, so a first load can wake
     // two services. Without this the page looks broken rather than slow.
     const timer = setTimeout(() => setSlow(true), 3000)
+    const seq = ++loadSeq.current
 
     fetchItems()
       .then((result) => {
+        if (seq !== loadSeq.current) return
         setItems(result.items)
         setStatus(result.status)
       })

@@ -8,7 +8,7 @@ import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
-import { readSnapshot } from '../lib/snapshot.js'
+import { isValidSnapshot, readSnapshot } from '../lib/snapshot.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import {
   countBy,
@@ -322,10 +322,13 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
                   key={month.key}
                   className="month-bar"
                   role="img"
+                  tabIndex={0}
                   aria-label={label}
                   title={label}
                   style={{ '--share': counts[index] / most }}
-                />
+                >
+                  <span className="rating-bar-count">{counts[index]}</span>
+                </span>
               )
             })}
           </div>
@@ -388,10 +391,17 @@ export default function Collection() {
         apiFetch('/api/public/stats'),
       ])
       if (!itemsResponse.ok) return { state: 'error', items: [], stats: null }
+      // Live bodies are held to the snapshot's shape rule: a 200 with the
+      // wrong shape is an error, not a crash in the render below.
+      const items = await itemsResponse.json()
+      if (!isValidSnapshot('items', items)) {
+        return { state: 'error', items: [], stats: null }
+      }
+      const stats = statsResponse.ok ? await statsResponse.json() : null
       return {
         state: 'ready',
-        items: await itemsResponse.json(),
-        stats: statsResponse.ok ? await statsResponse.json() : null,
+        items,
+        stats: isValidSnapshot('stats', stats) ? stats : null,
       }
     } catch {
       return { state: 'error', items: [], stats: null }
@@ -471,7 +481,7 @@ export default function Collection() {
     return (
       <section>
         <SpineHeader />
-        <p className="admin-error">
+        <p className="admin-error" role="alert">
           The collection could not be loaded. Try again shortly.
         </p>
       </section>
