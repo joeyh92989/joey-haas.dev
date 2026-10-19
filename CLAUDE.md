@@ -220,8 +220,9 @@ before pushing.
       ComicVine's site has no way to regenerate it: ask their support to
       reissue it, then update `backend/.env` and Render. The Twitch/IGDB
       secret was rotated the same day
-- [ ] Optional: set `ADMIN_GOOGLE_SUB` after the first sign-in to pin the
-      allowlist to Google's immutable subject ID rather than the email alone
+- [x] `ADMIN_GOOGLE_SUB` set on the Render API service, pinning the
+      allowlist to Google's immutable subject ID as well as the email. A wrong
+      value rejects every sign-in; clear it in Render to fall back to email-only
 
 ## Media tracker
 
