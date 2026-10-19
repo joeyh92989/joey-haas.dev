@@ -258,11 +258,11 @@ export default function Next() {
 
       <footer className="attribution">
         <p>
-          Game data from{' '}
+          {copy.attribution.before}{' '}
           <a href="https://www.igdb.com/" rel="noreferrer noopener">
-            IGDB
+            {copy.attribution.label}
           </a>
-          .
+          {copy.attribution.after}
         </p>
       </footer>
     </section>

@@ -60,6 +60,17 @@ export const spine = {
     ],
     sortLabel: 'Sort Buy now',
     outOn: 'Out',
+    /** As a meta line starts; mirrors FORMAT_WORDS in physical_sources/limits.py. */
+    formats: {
+      game_card: 'Full game on cartridge',
+      game_key_card: 'Game-Key Card',
+      code_in_box: 'Code in a box',
+      disc: 'Disc',
+    },
+    digitalOnly: 'Digital only',
+    formatUnknown: 'Format unknown',
+    otherPlatform: 'Other',
+    attribution: { before: 'Game data from', label: 'IGDB', after: '.' },
     band: {
       lead: 'What’s next',
       tonight: 'Tonight:',

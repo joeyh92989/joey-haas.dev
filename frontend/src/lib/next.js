@@ -1,3 +1,5 @@
+import { spine } from '../content/spine.js'
+
 /**
  * What's next's page-side helpers. The sections themselves come from the
  * server (backend/next_list.py); grouping by console and sorting are the
@@ -21,7 +23,7 @@ export const NEXT_PLATFORMS = [
 export function groupByPlatform(rows) {
   const groups = new Map()
   for (const row of rows) {
-    const key = row.platform ?? 'Other'
+    const key = row.platform ?? spine.next.otherPlatform
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key).push(row)
   }
