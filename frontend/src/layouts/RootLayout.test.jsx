@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useOutletContext } from 'react-router'
+import {
+  MemoryRouter,
+  Navigate,
+  Route,
+  Routes,
+  useOutletContext,
+} from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import RootLayout from './RootLayout.jsx'
 
@@ -251,6 +257,7 @@ function routedAt(path) {
           <Route path="/" element={<h1>Home page</h1>} />
           <Route path="/about" element={<h1>About page</h1>} />
           <Route path="/broken" element={<Boom />} />
+          <Route path="/old" element={<Navigate to="/about" replace />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -280,6 +287,14 @@ describe('RootLayout route changes', () => {
     expect(scroll).toHaveBeenCalledWith(0, 0)
     expect(document.activeElement).toBe(heading)
     expect(heading).toHaveAttribute('tabindex', '-1')
+  })
+
+  it('treats a redirect as part of the first load', () => {
+    const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    routedAt('/old')
+    expect(screen.getByRole('heading', { name: 'About page' })).toBeVisible()
+    expect(scroll).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(document.body)
   })
 
   it('keeps the chrome up when a page fails to render', () => {
