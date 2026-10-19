@@ -190,7 +190,11 @@ export default function Next() {
           {slow ? copy.waking : copy.loading}
         </p>
       )}
-      {!data && failed && <p className="admin-error">{copy.error}</p>}
+      {!data && failed && (
+        <p className="admin-error" role="alert">
+          {copy.error}
+        </p>
+      )}
 
       {data && (
         <>

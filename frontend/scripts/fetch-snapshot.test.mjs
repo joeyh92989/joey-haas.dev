@@ -7,7 +7,12 @@ import { SNAPSHOTS, fetchSnapshot } from './fetch-snapshot.mjs'
 
 const API = 'https://api.example.test'
 const ITEMS = [{ id: '1', title: 'Hades' }]
-const STATS = { total: 1, by_status: { finished: 1 } }
+const STATS = {
+  total: 1,
+  by_status: { finished: 1 },
+  rating_histogram: {},
+  finishes_by_month: {},
+}
 const NEXT = {
   tonight: { up_next: null, picks: [] },
   wanted: [],

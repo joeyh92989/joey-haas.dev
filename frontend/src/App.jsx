@@ -1,14 +1,7 @@
+import { lazy } from 'react'
 import { Navigate, Route, Routes, useParams } from 'react-router'
 import RootLayout from './layouts/RootLayout.jsx'
 import About from './pages/About.jsx'
-import Admin from './pages/Admin.jsx'
-import AdminCatalogue from './pages/AdminCatalogue.jsx'
-import AdminDiscover from './pages/AdminDiscover.jsx'
-import AdminRadar from './pages/AdminRadar.jsx'
-import AdminStoreList from './pages/AdminStoreList.jsx'
-import AdminCollection from './pages/AdminCollection.jsx'
-import AdminImport from './pages/AdminImport.jsx'
-import AdminItem from './pages/AdminItem.jsx'
 import Blog from './pages/Blog.jsx'
 import Collection from './pages/Collection.jsx'
 import BlogPost from './pages/BlogPost.jsx'
@@ -16,8 +9,20 @@ import Home from './pages/Home.jsx'
 import Item from './pages/Item.jsx'
 import Next from './pages/Next.jsx'
 import NotFound from './pages/NotFound.jsx'
-import PlayNext from './pages/PlayNext.jsx'
 import Projects from './pages/Projects.jsx'
+
+// The admin pages serve one person, so they load on demand instead of
+// shipping to every visitor in the main chunk. RootLayout's Suspense
+// boundary covers the wait.
+const Admin = lazy(() => import('./pages/Admin.jsx'))
+const AdminCatalogue = lazy(() => import('./pages/AdminCatalogue.jsx'))
+const AdminDiscover = lazy(() => import('./pages/AdminDiscover.jsx'))
+const AdminRadar = lazy(() => import('./pages/AdminRadar.jsx'))
+const AdminStoreList = lazy(() => import('./pages/AdminStoreList.jsx'))
+const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
+const AdminImport = lazy(() => import('./pages/AdminImport.jsx'))
+const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
+const PlayNext = lazy(() => import('./pages/PlayNext.jsx'))
 
 /**
  * The pre-rename item URL. `Navigate` does not interpolate route params, so
@@ -26,6 +31,16 @@ import Projects from './pages/Projects.jsx'
 function CollectionItemRedirect() {
   const { id } = useParams()
   return <Navigate to={`/spine/${encodeURIComponent(id)}`} replace />
+}
+
+/**
+ * The admin item page, remounted per id: going from one item to another
+ * (back and forward included) must not carry the first item's form, or a
+ * Save would PATCH it under the second item's URL.
+ */
+function KeyedAdminItem() {
+  const { id } = useParams()
+  return <AdminItem key={id} />
 }
 
 /**
@@ -53,7 +68,7 @@ export default function App() {
         <Route path="admin/radar" element={<AdminRadar />} />
         <Route path="admin/discover" element={<AdminDiscover />} />
         <Route path="admin/store-list" element={<AdminStoreList />} />
-        <Route path="admin/collection/:id" element={<AdminItem />} />
+        <Route path="admin/collection/:id" element={<KeyedAdminItem />} />
         <Route path="blog" element={<Blog />} />
         <Route path="blog/:slug" element={<BlogPost />} />
         <Route path="*" element={<NotFound />} />

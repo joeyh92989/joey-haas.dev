@@ -234,17 +234,22 @@ export default function AdminItem() {
   }, [id])
 
   useEffect(() => {
+    let cancelled = false
     const timer = setTimeout(() => setSlow(true), 3000)
 
     fetchItem()
       .then((result) => {
+        if (cancelled) return
         setItem(result.item)
         setForm(result.item ? toForm(result.item) : null)
         setState(result.state)
       })
       .finally(() => clearTimeout(timer))
 
-    return () => clearTimeout(timer)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [fetchItem])
 
   async function save(event) {

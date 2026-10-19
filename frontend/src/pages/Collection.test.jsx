@@ -10,7 +10,10 @@ import Collection from './Collection.jsx'
 // covered in SortControl.test.jsx.
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 
-vi.mock('../lib/snapshot.js', () => ({ readSnapshot: vi.fn() }))
+vi.mock('../lib/snapshot.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  readSnapshot: vi.fn(),
+}))
 
 // The band reads its own snapshot and API; it is tested in NextBand.test.jsx,
 // so the shelf tests do not depend on it.
@@ -279,6 +282,8 @@ describe('Collection', () => {
     const months = within(finishes).getAllByRole('img')
     expect(months).toHaveLength(12)
     expect(months.at(-1)).toHaveAccessibleName('Sep 2026: 0 finished')
+    // Reachable by keyboard, like the rating bars: the count is not hover-only.
+    expect(months.every((month) => month.tabIndex === 0)).toBe(true)
     expect(months[0]).toHaveAccessibleName('Oct 2025: 0 finished')
     expect(
       within(finishes).getByRole('img', { name: 'Mar 2026: 2 finished' }),
@@ -473,7 +478,19 @@ describe('Collection', () => {
     stubApi({ itemsOk: false })
     renderPage()
 
-    expect(await screen.findByText(/could not be loaded/i)).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /could not be loaded/i,
+    )
+  })
+
+  it('treats a live body of the wrong shape as a failed load', async () => {
+    // A 200 whose body is not a list would otherwise throw in the render.
+    stubApi({ items: { detail: 'not a list' }, stats: { total: 1 } })
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /could not be loaded/i,
+    )
   })
 
   it('renders the required TMDB attribution verbatim', async () => {

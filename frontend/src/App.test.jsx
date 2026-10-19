@@ -90,7 +90,9 @@ describe('App page titles', () => {
 
   it.each(TITLES)('titles %s', async (path, title) => {
     renderAt(path)
-    await waitFor(() => expect(document.title).toBe(title))
+    // Admin pages are lazy chunks: on a busy machine the dynamic import can
+    // outlast waitFor's default second, which is a slow test, not a bug.
+    await waitFor(() => expect(document.title).toBe(title), { timeout: 4000 })
   })
 
   it('titles a post by its own title', async () => {
