@@ -99,7 +99,11 @@ describe('YearInReview', () => {
     ]
     renderAt('/spine/year/2026')
     expect(screen.getByText('Days played').nextSibling).toHaveTextContent('2')
-    const played = screen.getByRole('heading', { name: 'Played' }).nextSibling
+    const section = screen.getByRole('heading', {
+      name: 'Played',
+    }).parentElement
+    expect(section).toHaveTextContent('2 days with a session logged.')
+    const played = section.querySelector('ol')
     expect(played).toHaveTextContent('Sep 29Hades II60 min')
   })
 

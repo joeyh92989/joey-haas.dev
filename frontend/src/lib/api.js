@@ -25,6 +25,10 @@ export async function errorMessage(response) {
   try {
     const body = await response.json()
     if (typeof body.detail === 'string') return body.detail
+    // FastAPI's validation errors: a list, each with a readable `msg`.
+    if (Array.isArray(body.detail) && typeof body.detail[0]?.msg === 'string') {
+      return body.detail[0].msg
+    }
   } catch {
     // Not JSON; the status says enough.
   }

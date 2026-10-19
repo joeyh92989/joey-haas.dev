@@ -33,7 +33,10 @@ backend, deployed on Render via Blueprint (render.yaml).
 - Backend dev: `cd backend && source .venv/bin/activate && uvicorn main:app --reload` (http://localhost:8000)
 - Frontend build check: `cd frontend && npm run build`
 - Frontend tests: `cd frontend && npm test`
-- Backend tests: `cd backend && ./.venv/bin/pytest`
+- Backend tests: `cd backend && ./.venv/bin/pytest`. One run at a time: every
+  run drops and recreates the schema in the one local test database, so two
+  at once (a second worktree, a review agent) fail each other with "relation
+  items does not exist" and deadlocks, not with real bugs
 - Post-deploy smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`
 
 ## Deploying

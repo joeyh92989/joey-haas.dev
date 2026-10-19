@@ -64,7 +64,8 @@ async def test_a_session_is_logged_listed_and_deleted(sessionmaker_for_test):
 
 async def test_a_future_day_and_a_bad_minute_count_are_refused(sessionmaker_for_test):
     item_id = await _item(sessionmaker_for_test)
-    tomorrow = (datetime.now(UTC).date() + timedelta(days=1)).isoformat()
+    # Two days on: one past UTC's today is allowed for timezones ahead of it.
+    tomorrow = (datetime.now(UTC).date() + timedelta(days=2)).isoformat()
     async with client_for(sessionmaker_for_test) as client:
         future = await client.post(
             f"/api/items/{item_id}/sessions", json={"played_on": tomorrow}

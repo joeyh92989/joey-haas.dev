@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -90,11 +90,12 @@ def create_journal_router(factory: async_sessionmaker[AsyncSession]) -> APIRoute
         session: AsyncSession = Depends(get_session),
     ) -> SessionOut:
         """Logs a day of play. A future date is refused: a journal records what
-        happened."""
+        happened. "Future" allows one day past UTC's today, because the page
+        sends the owner's local date, which runs ahead of UTC east of it."""
         await _item(session, item_id)
         today = datetime.now(UTC).date()
         played_on = payload.played_on or today
-        if played_on > today:
+        if played_on > today + timedelta(days=1):
             raise HTTPException(
                 status_code=422, detail="A session cannot be in the future"
             )

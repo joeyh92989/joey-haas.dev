@@ -254,6 +254,10 @@ export default function YearInReview() {
       {played.length > 0 && (
         <section aria-labelledby="year-played">
           <h2 id="year-played">Played</h2>
+          <p className="muted">
+            {daysPlayed} {daysPlayed === 1 ? 'day' : 'days'} with a session
+            logged.
+          </p>
           <ol className="year-diary">
             {played.map((row, index) => (
               <li key={`${row.item_id}-${row.played_on}-${index}`}>
