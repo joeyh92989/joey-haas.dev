@@ -1,0 +1,75 @@
+import { Link } from 'react-router'
+import { profile } from '../content/profile.js'
+import { spine } from '../content/spine.js'
+import { usePageTitle } from '../lib/usePageTitle.js'
+
+/**
+ * How the site is made. Every line is a fact about this repository; a change
+ * to the stack should change this page in the same pull request.
+ */
+export default function Colophon() {
+  usePageTitle('Colophon · Joey Haas')
+
+  return (
+    <section className="colophon">
+      <h1>Colophon</h1>
+      <p className="prose">
+        How this site is built, for anyone who wants to know. The whole thing is
+        open: <a href={profile.repo}>the source is on GitHub</a>.
+      </p>
+
+      <h2>Frontend</h2>
+      <ul className="prose-list">
+        <li>
+          React 19 and Vite, routed with React Router. Plain CSS with design
+          tokens; no CSS framework.
+        </li>
+        <li>
+          Set in Newsreader and Public Sans, self-hosted rather than loaded from
+          a font service.
+        </li>
+        <li>
+          Dark by default, with a light theme a click away. Every color pair was
+          chosen by measured contrast, including the code highlighting, which
+          Shiki renders at build time in both themes.
+        </li>
+        <li>
+          Blog posts are Markdown compiled at build time. Each page is
+          prerendered with its own title and link preview, and there is an{' '}
+          <a href="/feed.xml">RSS feed</a>.
+        </li>
+      </ul>
+
+      <h2>Backend</h2>
+      <ul className="prose-list">
+        <li>
+          FastAPI on Python 3.12, with Postgres 18 on Neon. Migrations are
+          additive and applied by hand; the API refuses to boot behind them.
+        </li>
+        <li>
+          <Link to={spine.path}>{spine.name}</Link> reads game metadata from
+          IGDB, and films and comics from TMDB and Comic Vine. Gemini reads
+          titles off shelf photos and writes Discover&rsquo;s picks, answering
+          only with games from a list it is given.
+        </li>
+        <li>
+          A nightly GitHub Actions job refreshes the picks and the physical
+          release catalogue, then redeploys the site when the shelf has changed,
+          so its snapshot stays current.
+        </li>
+      </ul>
+
+      <h2>Hosting</h2>
+      <ul className="prose-list">
+        <li>
+          Render&rsquo;s free tier: a static site and a web service that sleeps
+          when idle. Public pages paint from a build-time snapshot, so nothing
+          waits for it to wake.
+        </li>
+        <li>
+          Sign-in to the admin is Google OAuth, allowlisted to one account.
+        </li>
+      </ul>
+    </section>
+  )
+}

@@ -42,6 +42,12 @@ export const ADMIN_ROUTES = [
   '/admin/store-list',
 ]
 
+/** Spine's finishes feed, announced in the head of the pages that show them. */
+const SPINE_FEED = {
+  href: `${spine.path}/feed.xml`,
+  title: `${spine.name}: finished games`,
+}
+
 /** Room for a search result snippet; longer is cut at a word. */
 const DESCRIPTION_LIMIT = 160
 
@@ -119,11 +125,27 @@ export function publicRoutes({ posts, items }) {
       `Projects · ${profile.name}`,
       `What ${profile.name} builds outside work, including ${spine.name}: ${spine.projectsTagline.toLowerCase()}.`,
     ),
-    page(spine.path, `${spine.name} · ${profile.name}`, spine.tagline),
+    {
+      ...page(spine.path, `${spine.name} · ${profile.name}`, spine.tagline),
+      feed: SPINE_FEED,
+    },
     page(
       spine.next.path,
       `${spine.next.title} · ${spine.name}`,
       clip(spine.next.lede),
+    ),
+    {
+      ...page(
+        '/now',
+        `Now · ${profile.name}`,
+        `What ${profile.name} is playing, what is next and what was just finished, from ${spine.name}.`,
+      ),
+      feed: SPINE_FEED,
+    },
+    page(
+      '/colophon',
+      `Colophon · ${profile.name}`,
+      `How joey-haas.dev is built: React and Vite, FastAPI and Postgres, on Render's free tier.`,
     ),
   ]
   if (posts.length > 0) {
@@ -190,6 +212,11 @@ export function headTags(route) {
     // A cover is portrait: the large card would crop it to a strip.
     `<meta name="twitter:card" content="${image.width ? 'summary_large_image' : 'summary'}" />`,
   )
+  if (route.feed) {
+    lines.push(
+      `<link rel="alternate" type="application/rss+xml" title="${escapeHtml(route.feed.title)}" href="${escapeHtml(route.feed.href)}" />`,
+    )
+  }
   return lines.join('\n    ')
 }
 
@@ -225,6 +252,53 @@ export function noindex(html) {
     '</head>',
     '  <meta name="robots" content="noindex" />\n  </head>',
   )
+}
+
+const FEED_SIZE = 20
+
+/**
+ * /spine/feed.xml: the most recent finishes, newest first. Built from the
+ * snapshot's public items, so it says nothing the shelf does not.
+ *
+ * @param {object[]} items The snapshot's public items.
+ * @returns {string}
+ */
+export function spineFeed(items) {
+  const finished = items
+    .filter((item) => item?.id != null && item.title && item.finished_at)
+    .filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.finished_at))
+    .sort((a, b) => b.finished_at.localeCompare(a.finished_at))
+    .slice(0, FEED_SIZE)
+  const entries = finished
+    .map((item) => {
+      const url = `${SITE_URL}${spine.path}/${encodeURIComponent(item.id)}`
+      const details = [
+        item.platform,
+        item.rating != null ? `rated ${item.rating}/10` : null,
+      ]
+        .filter(Boolean)
+        .join(', ')
+      return `    <item>
+      <title>${escapeHtml(`Finished ${item.title}`)}</title>
+      <link>${escapeHtml(url)}</link>
+      <guid isPermaLink="false">${escapeHtml(`${url}#finished-${item.finished_at}`)}</guid>
+      <pubDate>${new Date(`${item.finished_at}T00:00:00Z`).toUTCString()}</pubDate>
+      <description>${escapeHtml(details ? `${item.title} (${details}).` : `${item.title}.`)}</description>
+    </item>`
+    })
+    .join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeHtml(`${spine.name}: finished games`)}</title>
+    <link>${SITE_URL}${spine.path}</link>
+    <description>${escapeHtml(`Games ${profile.name} has finished, from ${spine.name}.`)}</description>
+    <language>en-us</language>
+    <atom:link href="${SITE_URL}${spine.path}/feed.xml" rel="self" type="application/rss+xml"/>
+${entries}
+  </channel>
+</rss>
+`
 }
 
 /** sitemap.xml for the public routes. */

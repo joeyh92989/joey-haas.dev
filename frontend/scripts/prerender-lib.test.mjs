@@ -6,6 +6,7 @@ import {
   ADMIN_ROUTES,
   clip,
   excerpt,
+  spineFeed,
   noindex,
   publicRoutes,
   renderHead,
@@ -58,6 +59,8 @@ describe('publicRoutes', () => {
       '/projects',
       '/spine',
       '/spine/next',
+      '/now',
+      '/colophon',
       '/blog',
       '/blog/how-spine-works',
       `/spine/${ITEM.id}`,
@@ -100,7 +103,7 @@ describe('publicRoutes', () => {
   it('leaves out Blog with nothing published, and items without an id', () => {
     const bare = publicRoutes({ posts: [], items: [{ title: 'No id' }] })
     expect(bare.map((route) => route.path)).not.toContain('/blog')
-    expect(bare).toHaveLength(5)
+    expect(bare).toHaveLength(7)
   })
 })
 
@@ -167,9 +170,37 @@ describe('noindex, sitemap and robots', () => {
 
   it('lists every route, with a post’s date', () => {
     const xml = sitemap(publicRoutes({ posts: [POST], items: [ITEM] }))
-    expect(xml.match(/<url>/g)).toHaveLength(8)
+    expect(xml.match(/<url>/g)).toHaveLength(10)
     expect(xml).toContain(
       '<loc>https://joey-haas.dev/blog/how-spine-works</loc><lastmod>2026-10-02</lastmod>',
     )
+  })
+})
+
+describe('spineFeed', () => {
+  it('lists finishes newest first, and nothing unfinished', () => {
+    const xml = spineFeed([
+      { ...ITEM, id: 'a', title: 'Older', finished_at: '2026-03-01' },
+      { ...ITEM, id: 'b', title: 'Newer', finished_at: '2026-09-30' },
+      { ...ITEM, id: 'c', title: 'Backlog', finished_at: null },
+    ])
+    const titles = [...xml.matchAll(/<title>([^<]*)<\/title>/g)].map(
+      ([, title]) => title,
+    )
+    expect(titles).toEqual([
+      'Spine: finished games',
+      'Finished Newer',
+      'Finished Older',
+    ])
+    expect(xml).toContain(
+      '<description>Newer (Nintendo Switch 2, rated 9/10).</description>',
+    )
+    expect(xml).toContain('<link>https://joey-haas.dev/spine/b</link>')
+  })
+
+  it('is announced in the head of /spine and /now', () => {
+    const routes = publicRoutes({ posts: [], items: [] })
+    const head = renderHead(SHELL, routeAt(routes, '/now'))
+    expect(head).toContain('href="/spine/feed.xml"')
   })
 })
