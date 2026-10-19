@@ -219,7 +219,9 @@ before pushing.
 
 ## Media tracker
 
-- **Migrations must be applied to Neon before deploying.** `schema_check`
+- **Migrations must be applied to Neon before deploying**, from the PR's
+  worktree with `backend/scripts/migrate_neon.py current` then `upgrade`
+  (worktrees have no `.env`; the script reads the main checkout's). `schema_check`
   refuses to boot behind the schema, which is it working, not failing. A
   database *ahead* of the code boots with a warning, because the deploy order
   is migrate-then-merge; that is only safe because **migrations are

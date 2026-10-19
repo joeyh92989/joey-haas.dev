@@ -31,6 +31,10 @@ there.
 `env.py` reads `DATABASE_URL_DIRECT` only: Neon's direct endpoint, not the
 pooled one. `backend/.env` supplies it locally.
 
+From a worktree, which has no `backend/.env`, use
+`scripts/migrate_neon.py` (see `scripts/README.md`): it takes the URL from
+the main checkout's `.env` and runs that worktree's migrations.
+
 ## The rule: migrations are additive
 
 A migration adds tables and columns. It never renames or drops one in the same
@@ -48,6 +52,7 @@ migration once no deployed code reads it.
 
 ## Deploy order
 
-1. `alembic upgrade head` against Neon.
+1. `alembic upgrade head` against Neon (`scripts/migrate_neon.py upgrade`
+   from the PR's worktree).
 2. Merge; Render deploys.
 3. Smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`.
