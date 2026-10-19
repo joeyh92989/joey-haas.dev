@@ -223,3 +223,34 @@ and the count printed is the rows actually cleared.
 store date the owner has since retyped to something else is not touched.
 After `--apply`, pressing "Refresh game metadata" on
 `/admin/collection` can refill dates from IGDB.
+
+## migrate_neon.py
+
+Runs Alembic against the production database (Neon) from the main checkout
+or any worktree.
+
+**Why:** a worktree has no `backend/.env`, and the main checkout's
+migrations folder is `main`'s, which lacks the migration a PR adds. The
+deploy order is *migrate, then merge*, so the migration has to run from the
+PR's own worktree. The script finds the main checkout through git's common
+directory, reads `DATABASE_URL_DIRECT` (only that variable) from its
+`backend/.env`, and runs this checkout's Alembic with it.
+
+**Run** from `backend/` in the worktree whose migrations should be applied:
+
+```bash
+./.venv/bin/python scripts/migrate_neon.py current   # the revision Neon is on
+./.venv/bin/python scripts/migrate_neon.py history   # every revision, current marked
+./.venv/bin/python scripts/migrate_neon.py upgrade   # alembic upgrade head
+```
+
+Check `current` first: it should name the revision before the PR's.
+
+**Needs** `DATABASE_URL_DIRECT` in the main checkout's `backend/.env`, and a
+`.venv` in the checkout it runs from.
+
+**Limits:** there is no `downgrade`. Migrations are additive
+(`migrations/README.md`), and rolling one back is a deliberate step taken
+with `alembic` by hand. Output lines containing `://` are dropped so the URL
+never reaches a terminal or a log; an Alembic error that quotes the URL loses
+that line. To review the SQL first, run `alembic upgrade head --sql` by hand.
