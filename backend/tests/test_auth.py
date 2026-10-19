@@ -1,12 +1,13 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 from starlette.middleware.sessions import SessionMiddleware
 
-from auth import create_auth_router, is_allowed
+from auth import admin_identity, create_auth_router, is_allowed
 from config import Config
+from items import require_admin
 
 BASE = Config(
     google_client_id="client-id",
@@ -155,3 +156,51 @@ def test_session_never_contains_a_token():
     raw = response.headers.get("set-cookie", "")
     assert "SECRETACCESSTOKEN" not in raw
     assert "SECRETIDTOKEN" not in raw
+
+
+def build_guarded_client(config=BASE):
+    """The auth routes plus one admin-only route, with the allowlist on
+    app.state as main.py sets it."""
+    app = FastAPI()
+    app.add_middleware(
+        SessionMiddleware, secret_key=config.session_secret, https_only=True
+    )
+    app.include_router(create_auth_router(config))
+    app.state.admin_identity = admin_identity(config)
+
+    @app.get("/api/guarded", dependencies=[Depends(require_admin)])
+    async def guarded():
+        return {"ok": True}
+
+    return TestClient(app, base_url="https://testserver"), app
+
+
+def test_admin_identity_lowercases_and_pins_only_when_set():
+    assert admin_identity(BASE) == ("admin@example.com", None)
+    pinned = Config(**{**BASE.__dict__, "admin_google_sub": " 123 "})
+    assert admin_identity(pinned) == ("admin@example.com", "123")
+
+
+def test_a_session_matching_the_allowlist_passes():
+    client, _ = build_guarded_client()
+    sign_in(client)
+    assert client.get("/api/guarded").status_code == 200
+    assert client.get("/api/auth/me").status_code == 200
+
+
+def test_a_session_issued_before_the_admin_email_changed_is_ended():
+    client, app = build_guarded_client()
+    sign_in(client)
+    app.state.admin_identity = ("new-admin@example.com", None)
+
+    assert client.get("/api/guarded").status_code == 401
+    # Cleared, not just refused: restoring the old value does not revive it.
+    app.state.admin_identity = admin_identity(BASE)
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_pinning_the_google_sub_ends_a_session_for_another_account():
+    client, app = build_guarded_client()
+    sign_in(client)  # sub 123
+    app.state.admin_identity = ("admin@example.com", "999")
+    assert client.get("/api/auth/me").status_code == 401

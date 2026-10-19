@@ -45,6 +45,41 @@ def is_allowed(userinfo: Mapping[str, object], config: Config) -> bool:
     return True
 
 
+def admin_identity(config: Config) -> tuple[str, str | None]:
+    """The allowlist a session is held to: the email, lower-cased, and the
+    pinned Google subject when ADMIN_GOOGLE_SUB is set. main.py stores it on
+    app.state for session_admin."""
+    sub = (config.admin_google_sub or "").strip()
+    return config.admin_email.strip().lower(), sub or None
+
+
+def session_admin(request: Request) -> dict | None:
+    """The session's admin, re-checked against today's allowlist.
+
+    The session is a signed cookie that lasts thirty days, and before this it
+    was trusted for all of them: changing ADMIN_EMAIL or pinning
+    ADMIN_GOOGLE_SUB did not end a session issued under the old values. Now a
+    session that no longer matches is cleared and treated as signed out.
+
+    An app with no admin_identity on its state accepts any session. That is
+    every test app; main.py always sets it.
+    """
+    user = request.session.get("user")
+    if not user:
+        return None
+    identity = getattr(request.app.state, "admin_identity", None)
+    if identity is None:
+        return user
+    email, sub = identity
+    if str(user.get("email") or "").strip().lower() != email or (
+        sub is not None and str(user.get("sub") or "") != sub
+    ):
+        logger.warning("Cleared a session that no longer matches the allowlist")
+        request.session.clear()
+        return None
+    return user
+
+
 def create_auth_router(config: Config) -> APIRouter:
     """Builds the auth routes bound to this configuration.
 
@@ -107,7 +142,7 @@ def create_auth_router(config: Config) -> APIRouter:
     @router.get("/me")
     async def me(request: Request):
         """Reports the signed-in admin, or 401."""
-        user = request.session.get("user")
+        user = session_admin(request)
         if not user:
             return JSONResponse({"detail": "Not authenticated"}, status_code=401)
         return {"email": user["email"]}

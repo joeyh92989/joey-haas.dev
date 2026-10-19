@@ -16,6 +16,7 @@ from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from auth import session_admin
 from formats import CopyFieldError, apply_copy_fields
 from models import (
     Completeness,
@@ -324,9 +325,10 @@ def require_admin(request: Request) -> None:
 
     The nightly workflow is the one other caller: a bearer token equal to
     JOB_TOKEN passes on JOB_ROUTES and nowhere else. A session is checked
-    first, so nothing changes for the owner.
+    first, so nothing changes for the owner. The session is re-checked
+    against the allowlist on every request (auth.session_admin).
     """
-    if request.session.get("user"):
+    if session_admin(request) is not None:
         return
     if (route := _job_token_route(request)) is not None:
         # Never the token: the method and route only.
