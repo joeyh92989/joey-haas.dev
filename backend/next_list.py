@@ -10,12 +10,12 @@ were AdminStoreList.jsx's radarSection, buildList and periodEnd.
 
 from __future__ import annotations
 
-import calendar
 import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from physical_sources.release_rules import is_out, is_upcoming, period_end
 from picker import PickerItem, attribute_table, reference_weights, similarity
 from radar import KEY_CARD_FORMATS, NEAR_PRECISIONS, _picker_item, _taste_reasons
 
@@ -61,22 +61,6 @@ class NextEntry:
     date_shown: date | None
 
 
-def period_end(released: date, precision: str | None) -> date:
-    """The last day of a release's period. A month, quarter or year is stored
-    as the period's first day, so a game dated that way is not out until the
-    whole period has ended. No precision means a day."""
-    if precision == "month":
-        return released.replace(
-            day=calendar.monthrange(released.year, released.month)[1]
-        )
-    if precision == "quarter":
-        month = ((released.month - 1) // 3 + 1) * 3
-        return date(released.year, month, calendar.monthrange(released.year, month)[1])
-    if precision == "year":
-        return date(released.year, 12, 31)
-    return released
-
-
 def _usable_date(candidate: NextCandidate, public: bool) -> date | None:
     """The date sectioning may use: any in admin mode, a public one in public."""
     if public and candidate.release_source not in PUBLIC_DATE_SOURCES:
@@ -85,7 +69,7 @@ def _usable_date(candidate: NextCandidate, public: bool) -> date | None:
 
 
 def _released(when: date | None, precision: str | None, today: date) -> bool:
-    return when is not None and period_end(when, precision) <= today
+    return is_out(when, precision, today)
 
 
 def _is_new(candidate: NextCandidate, today: date) -> bool:
@@ -124,8 +108,8 @@ def sections(
     digital-only, Game-Key Card and code-in-a-box rows, best first, capped.
     One row per (game, platform), Discover first; a Discover pick dated
     after today and a Radar row of unknown format are left out. A Discover
-    pick is out when discover.released() says so: undated, or stored on or
-    before today, whatever the precision.
+    pick is out when discover.released() says so: undated, or its whole
+    release period ended by today.
     """
     out: dict[str, list[NextEntry]] = {key: [] for key in SECTIONS}
     seen: set[tuple[str, int]] = set()
@@ -138,7 +122,7 @@ def sections(
     ):
         key = (candidate.igdb_id, candidate.platform_id)
         # discover.released()'s own rule, so a pick Discover chose is shown.
-        future = candidate.release_date is not None and candidate.release_date > today
+        future = is_upcoming(candidate.release_date, candidate.release_precision, today)
         if key in seen or future:
             continue
         seen.add(key)

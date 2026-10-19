@@ -18,6 +18,7 @@ import random
 from dataclasses import dataclass
 from datetime import date
 
+from physical_sources.release_rules import is_upcoming, preorder_open
 from picker import (
     PickerItem,
     affinity,
@@ -121,10 +122,11 @@ class Pick:
 def released(game: PoolGame, today: date, window: str) -> bool:
     """Out already (or undated), and within the window when it is recent.
 
-    Everything dated after today belongs to Radar (parent spec §7.1).
+    Everything dated after today belongs to Radar (parent spec §7.1); a
+    month, quarter or year date is after today until its period has ended.
     """
     when = game.candidate.release_date
-    if when is not None and when > today:
+    if is_upcoming(when, game.candidate.release_precision, today):
         return False
     if window == "recent":
         return when is not None and when >= _years_before(today, RECENT_YEARS)
@@ -140,14 +142,19 @@ def _years_before(today: date, years: int) -> date:
 
 
 def buyable(game: PoolGame, today: date) -> bool:
-    """In stock somewhere, or on a pre-order whose window is still open."""
+    """In stock somewhere, or on an open pre-order (release_rules): a
+    pre-order line with no window on a game already out is stale."""
+    candidate = game.candidate
     return any(
         line.availability == "in_stock"
-        or (
-            line.availability == "preorder"
-            and (line.preorder_closes_at is None or line.preorder_closes_at >= today)
+        or preorder_open(
+            line.availability,
+            line.preorder_closes_at,
+            candidate.release_date,
+            candidate.release_precision,
+            today,
         )
-        for line in game.candidate.store_lines
+        for line in candidate.store_lines
     )
 
 

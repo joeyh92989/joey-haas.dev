@@ -24,6 +24,7 @@ from models import (
     StoreListing,
 )
 from physical_sources.collapse import GameView, ListingView, collapse
+from physical_sources.release_rules import preorder_open
 from physical_sources.stores import STORES
 from physical_sources.sync import edition_view
 from picker import PickerItem
@@ -49,11 +50,13 @@ def open_preorder(line: ListingView, today: date) -> bool:
     """A pre-order still taking orders: its window has not closed, or, with no
     window stated, the game is not out yet. A listing a store still marks as
     pre-order after either is stale, not open."""
-    if line.availability != "preorder":
-        return False
-    if line.preorder_closes_at is not None:
-        return line.preorder_closes_at >= today
-    return line.release_date is None or line.release_date > today
+    return preorder_open(
+        line.availability,
+        line.preorder_closes_at,
+        line.release_date,
+        line.release_precision,
+        today,
+    )
 
 
 def listing_view(row: StoreListing) -> ListingView:

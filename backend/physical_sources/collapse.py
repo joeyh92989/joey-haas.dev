@@ -31,6 +31,7 @@ from physical_sources.limits import (
     REGION_FREE_PLATFORMS,
     REGISTRY_WORDS,
 )
+from physical_sources.release_rules import sharpest_first
 
 TIER_ORDER = (
     "manual",
@@ -251,7 +252,8 @@ def _release(editions, listings, game, home):
     """The release date, its precision and where it came from.
 
     A registry row in the home region first, then one in any region, then a
-    store listing, then IGDB's first release date for the game. The source
+    store listing, then IGDB's first release date for the game. Within a
+    pool, the period that ends soonest wins, the finer one on a tie. The source
     is returned too because only a registry date is public.
     """
     registry = [e for e in editions if e.source in REGISTRY_SOURCES and e.release_date]
@@ -261,7 +263,10 @@ def _release(editions, listings, game, home):
         ([listing for listing in listings if listing.release_date], "store"),
     ):
         if pool:
-            first = min(pool, key=lambda row: row.release_date)
+            first = min(
+                pool,
+                key=lambda row: sharpest_first(row.release_date, row.release_precision),
+            )
             return first.release_date, first.release_precision, source
     if game is not None and game.release_date:
         return game.release_date, "day", "igdb_first"
