@@ -6,10 +6,12 @@ else. Both providers enforce the schema server-side -- Gemini through
 responseSchema, Anthropic through output_config.format -- so neither returns
 prose that has to be salvaged with a regex.
 
-Images are passed inline as base64 and never written to disk. Render's free
-tier has an ephemeral disk, so anything written there is lost on restart while
-still being a data-retention surface, and the photographs have no value once
-the titles have been read off them.
+Images are passed inline as base64 and are not kept beyond the request.
+(Starlette spools an upload over 1 MB to a temporary file while the request
+is open; it is removed when the request ends.) Render's free tier has an
+ephemeral disk, so anything kept there is lost on restart while still being a
+data-retention surface, and the photographs have no value once the titles
+have been read off them.
 """
 
 from __future__ import annotations
@@ -285,6 +287,20 @@ class GeminiProvider:
                             json=body,
                             headers={"x-goog-api-key": self._api_key},
                         )
+                except httpx2.TimeoutException as error:
+                    # The same outage as a 504, so retried and fallen through
+                    # like one, within the same budget.
+                    logger.info(
+                        "gemini %s attempt %d timed out: %s", model, attempt + 1, error
+                    )
+                    last_status, last_body = 504, None
+                    if (
+                        attempt < len(RETRY_DELAYS_SECONDS)
+                        and spent() < TOTAL_BUDGET_SECONDS
+                    ):
+                        await asyncio.sleep(RETRY_DELAYS_SECONDS[attempt])
+                        continue
+                    break
                 except httpx2.HTTPError as error:
                     raise LLMError(f"Gemini request failed: {error}") from error
 
@@ -297,7 +313,15 @@ class GeminiProvider:
                 )
 
                 if response.status_code < 400:
-                    return self._parse(response.json())
+                    try:
+                        payload = response.json()
+                    except ValueError as error:
+                        # Not an LLMError otherwise, so Discover's template
+                        # fallback would not run and the route would 500.
+                        raise LLMError(
+                            f"Gemini returned a body that is not JSON: {error}"
+                        ) from error
+                    return self._parse(payload)
 
                 last_status = response.status_code
                 try:
@@ -376,18 +400,24 @@ class AnthropicProvider:
         images = images or []
         guard_payload_size(images)
 
-        client = anthropic.AsyncAnthropic(api_key=self._api_key, timeout=TIMEOUT)
-        try:
-            response = await client.messages.create(
-                model=self._model,
-                max_tokens=MAX_TOKENS,
-                messages=[
-                    {"role": "user", "content": self._build_content(prompt, images)}
-                ],
-                output_config={"format": {"type": "json_schema", "schema": schema}},
-            )
-        except anthropic.APIError as error:
-            raise LLMError(f"Anthropic request failed: {error}") from error
+        # A client per call, closed with it: an unclosed one leaks its pool.
+        async with anthropic.AsyncAnthropic(
+            api_key=self._api_key, timeout=TIMEOUT
+        ) as client:
+            try:
+                response = await client.messages.create(
+                    model=self._model,
+                    max_tokens=MAX_TOKENS,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": self._build_content(prompt, images),
+                        }
+                    ],
+                    output_config={"format": {"type": "json_schema", "schema": schema}},
+                )
+            except anthropic.APIError as error:
+                raise LLMError(f"Anthropic request failed: {error}") from error
 
         logger.info(
             "anthropic %s -> %s (%d images)",

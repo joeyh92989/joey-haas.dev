@@ -415,7 +415,9 @@ before pushing.
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not
   necessary.
-- The photo importer sends images to the model and never writes them to disk.
+- The photo importer sends images to the model and keeps nothing after the
+  request (Starlette spools an upload over 1 MB to a temp file until the
+  request ends). Each photo is capped at `MAX_PHOTO_BYTES` before it is read.
   Confidence is computed from string distance, never self-reported by the
   model — see `backend/matching.py`.
 - **The importer sends one photo per request.** Three in one request took
