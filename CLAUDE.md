@@ -117,8 +117,12 @@ before pushing.
   which writes `dist/<route>/index.html` with its own head for every public
   route after `vite build` (copy from `src/content/`, items from the
   snapshot only). A new public page needs its row in `publicRoutes`
-  (`prerender-lib.mjs`) or it previews as the site card. Render serves those
-  files before the SPA rewrite; `render.yaml` needs nothing for it.
+  (`prerender-lib.mjs`) or it previews as the site card, **and** a rewrite
+  in `render.yaml` ahead of the `/*` catch-all: Render serves
+  `dist/about/index.html` at `/about/` but not at `/about`, where the
+  catch-all wins. `prerender-lib.test.mjs` checks every route has its rule.
+  `/spine/:id` and `/spine/year/:year` are not rewritten yet (a rewrite to a
+  file the build did not write may 404).
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish

@@ -5,7 +5,37 @@ services:
     runtime: static
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/dist
+    # Render serves dist/about/index.html at /about/ but not at /about: there
+    # the catch-all wins, and the prerendered head (frontend/scripts/
+    # prerender.mjs) is lost. These name each prerendered page's file, ahead
+    # of the catch-all. Keep them in step with publicRoutes in
+    # prerender-lib.mjs (prerender-lib.test.mjs checks). An existing file is
+    # served before any rule, so /about/ and the assets are unaffected.
     routes:
+      - type: rewrite
+        source: /about
+        destination: /about/index.html
+      - type: rewrite
+        source: /projects
+        destination: /projects/index.html
+      - type: rewrite
+        source: /spine
+        destination: /spine/index.html
+      - type: rewrite
+        source: /spine/next
+        destination: /spine/next/index.html
+      - type: rewrite
+        source: /now
+        destination: /now/index.html
+      - type: rewrite
+        source: /colophon
+        destination: /colophon/index.html
+      - type: rewrite
+        source: /blog
+        destination: /blog/index.html
+      - type: rewrite
+        source: /blog/:slug
+        destination: /blog/:slug/index.html
       - type: rewrite
         source: /*
         destination: /index.html

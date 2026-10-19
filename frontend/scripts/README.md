@@ -78,10 +78,18 @@ cover; a post's description is its first paragraph. Copy comes from
 recent finishes in the snapshot (`spineFeed`), announced in the heads of
 `/spine` and `/now`. A build without a snapshot writes an empty channel.
 
-**Why no `render.yaml` change.** Render serves a file that exists before it
-applies the `/* → /index.html` rewrite, and serves `spine/next/index.html` at
-`/spine/next` without a trailing-slash redirect. Asset URLs are root-absolute
-(`/assets/…`), so they resolve from any depth.
+**The `render.yaml` rewrites.** Render serves an existing file before any
+rule, but it serves `spine/next/index.html` only at `/spine/next/`. At
+`/spine/next` the `/* → /index.html` catch-all wins and the page previews as
+the site card (found in production on 2026-10-19, after #55). So
+`render.yaml` rewrites each prerendered path to its own `index.html` ahead of
+the catch-all, and `prerender-lib.test.mjs` fails when a route in
+`publicRoutes` has no rule. Item pages (`/spine/:id`) and year pages are
+pending: a placeholder rewrite whose file the build did not write (an item
+published after the last build) may 404 instead of falling through to the
+SPA. `/blog/:slug` is the probe: after deploy, `/blog/example` (a draft, so no
+file) shows which. Asset URLs are root-absolute (`/assets/…`), so they resolve
+from any depth.
 
 **Privacy.** Items come only from the snapshot, which holds what
 `/api/public/items` serves: public items. A build without a snapshot (CI,
