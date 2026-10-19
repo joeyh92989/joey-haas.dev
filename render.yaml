@@ -15,6 +15,9 @@ services:
     # a mistyped slug) serves an empty 200, not the SPA (seen on 2026-10-19
     # with /blog/:slug), so each published post gets its own rule. Item and
     # year pages change between deploys and stay on the catch-all.
+    # Don't add a slash with a redirect (/spine/:id -> /spine/:id/): Render
+    # matches the slash form against the same source and loops for any path
+    # without a file (probed on production, 2026-10-19).
     routes:
       - type: rewrite
         source: /about
