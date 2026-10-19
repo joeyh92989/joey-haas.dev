@@ -23,6 +23,7 @@ export const spine = {
   tabs: {
     shelf: { to: '/spine', label: 'Shelf' },
     next: { to: '/spine/next', label: 'What’s next' },
+    year: { to: '/spine/year', label: 'Year in review' },
   },
   next: {
     path: '/spine/next',
