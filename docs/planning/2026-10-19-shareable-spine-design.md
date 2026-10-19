@@ -121,6 +121,15 @@ To keep crawlers consistent:
 `/spine/abc//` and loop. Task 7 probes this on production before anything
 else ships, and the rollback is to delete the three rules.
 
+**Task 7 result (2026-10-19): failed, rules removed.** Render matches
+`/spine/abc/` against `/spine/:id` and redirects it to itself, so any path
+without a prerendered file loops (`/spine/<zero-uuid>`, `/spine/year`,
+`/spine/journal/2026-10` all hit `--max-redirs 3`). Paths with a file were
+fine (`/spine/<real-id>` → 1 hop → the item's title). The three rules were
+live for a few minutes, then deleted; smoke was 67/67 afterwards. Redirects
+can't express "add a slash" on Render, so PR C needs a different mechanism
+before Tasks 8–10 go ahead.
+
 ## Key decisions and tradeoffs
 
 | Decision | Why | Cost |
