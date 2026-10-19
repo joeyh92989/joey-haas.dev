@@ -7,7 +7,7 @@
 const TOP_GENRES = 5
 
 /** A game on the shelf, not a want: the year is about games played. */
-function isOwnedGame(item) {
+export function isOwnedGame(item) {
   return item.type === 'game' && !item.wanted
 }
 

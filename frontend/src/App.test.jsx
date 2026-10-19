@@ -84,6 +84,7 @@ const TITLES = [
   ['/spine/42', 'Spine · Joey Haas'],
   ['/spine/next', 'What’s next · Spine'],
   ['/spine/year/2025', '2025 in review · Spine'],
+  ['/spine/journal/2026-10', 'October 2026 · Spine'],
   // Redirects to this calendar year's page.
   ['/spine/year', `${new Date().getFullYear()} in review · Spine`],
 ]

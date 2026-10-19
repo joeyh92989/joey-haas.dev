@@ -236,12 +236,46 @@ describe('year in review routes', () => {
   })
 })
 
+describe('journal month routes', () => {
+  it('adds a page per month with a finish', () => {
+    const routes = publicRoutes({
+      posts: [],
+      items: [
+        { ...ITEM, id: 'a', finished_at: '2026-09-01' },
+        { ...ITEM, id: 'b', finished_at: '2026-09-30' },
+        { ...ITEM, id: 'c', finished_at: '2025-12-01' },
+        { ...ITEM, id: 'd', finished_at: '2024-01-01', wanted: true },
+      ],
+    })
+    const months = routes.filter((route) => route.path.includes('/journal/'))
+    expect(months.map((route) => route.path)).toEqual([
+      '/spine/journal/2026-09',
+      '/spine/journal/2025-12',
+    ])
+    expect(months[0].title).toBe('September 2026 · Spine')
+    expect(
+      months[0].description.startsWith('2 games finished in September 2026'),
+    ).toBe(true)
+    expect(months[1].description.startsWith('1 game finished')).toBe(true)
+  })
+
+  it('lists the month pages in the sitemap', () => {
+    const routes = publicRoutes({
+      posts: [],
+      items: [{ ...ITEM, id: 'a', finished_at: '2026-09-01' }],
+    })
+    expect(sitemap(routes)).toContain(
+      '<loc>https://joey-haas.dev/spine/journal/2026-09</loc>',
+    )
+  })
+})
+
 describe('render.yaml rewrites', () => {
   // Render serves dist/x/index.html at /x/ but not at /x, so each prerendered
   // page needs its own rewrite ahead of the SPA catch-all. A rewrite to a
   // file the build did not write serves an empty 200, so every rule must
   // name a page this build writes: no placeholders, and a post's rule comes
-  // and goes with the post. Item and year pages stay on the catch-all.
+  // and goes with the post. Item, year and month pages stay on the catch-all.
   const yaml = fs.readFileSync(
     path.join(here, '..', '..', 'render.yaml'),
     'utf8',

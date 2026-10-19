@@ -1569,6 +1569,17 @@ footer {
   background: var(--status-finished);
 }
 
+/* A month bar that links to its journal page is clickable over the whole
+   column, not just its painted height: a quiet month is a 2px stub. */
+a.month-bar::before {
+  bottom: 0;
+  content: '';
+  height: 4rem;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
 .rating-bar:focus-visible,
 .month-bar:focus-visible {
   outline: 2px solid var(--text);
@@ -3261,6 +3272,33 @@ main h1[tabindex='-1']:focus {
 .year-nav [aria-current='page'] {
   color: var(--text);
   font-weight: 600;
+}
+
+.month-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.month-days {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  max-width: 58ch;
+  padding-left: 0;
+}
+
+.month-days > li > time {
+  color: var(--text-muted);
+  display: block;
+  font-size: 0.8125rem;
+  margin-bottom: 0.25rem;
+}
+
+.month-days .year-diary li {
+  grid-template-columns: 1fr auto;
 }
 
 .year-numbers {
