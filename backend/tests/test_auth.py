@@ -204,3 +204,13 @@ def test_pinning_the_google_sub_ends_a_session_for_another_account():
     sign_in(client)  # sub 123
     app.state.admin_identity = ("admin@example.com", "999")
     assert client.get("/api/auth/me").status_code == 401
+
+
+def test_the_production_app_holds_sessions_to_the_allowlist():
+    """session_admin accepts any session on an app without admin_identity
+    (every test app), so main.py must always set it. main.py cannot be
+    imported here (it loads config at import), so its source is read."""
+    from pathlib import Path
+
+    source = (Path(__file__).parent.parent / "main.py").read_text()
+    assert "app.state.admin_identity = admin_identity(config)" in source

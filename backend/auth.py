@@ -59,7 +59,7 @@ def session_admin(request: Request) -> dict | None:
     The session is a signed cookie that lasts thirty days, and before this it
     was trusted for all of them: changing ADMIN_EMAIL or pinning
     ADMIN_GOOGLE_SUB did not end a session issued under the old values. Now a
-    session that no longer matches is cleared and treated as signed out.
+    session that no longer matches loses its user and is treated as signed out.
 
     An app with no admin_identity on its state accepts any session. That is
     every test app; main.py always sets it.
@@ -74,8 +74,9 @@ def session_admin(request: Request) -> dict | None:
     if str(user.get("email") or "").strip().lower() != email or (
         sub is not None and str(user.get("sub") or "") != sub
     ):
-        logger.warning("Cleared a session that no longer matches the allowlist")
-        request.session.clear()
+        logger.warning("Ended a session that no longer matches the allowlist")
+        # The user only: a sign-in in progress keeps Authlib's state keys.
+        request.session.pop("user", None)
         return None
     return user
 
