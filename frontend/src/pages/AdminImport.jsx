@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import { apiFetch } from '../lib/api.js'
-import { usePageTitle } from '../lib/usePageTitle.js'
 import { ACTION_ERROR } from '../content/status.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -41,7 +41,6 @@ function candidateKey(candidate) {
  * loses the batch, and re-uploading the photographs reproduces it.
  */
 export default function AdminImport() {
-  usePageTitle('Import from photos · Admin')
   const [rows, setRows] = useState([])
   const [state, setState] = useState('idle')
   const [error, setError] = useState(null)
@@ -193,11 +192,15 @@ export default function AdminImport() {
 
   return (
     <section>
-      <h1>Import from photos</h1>
-      <p className="muted">
-        Photograph your shelves, then check what was read before anything is
-        saved. <Link to="/admin/collection">Back to the collection</Link>.
-      </p>
+      <AdminPageHeader
+        title="Import photos"
+        description={
+          <>
+            Photograph your shelves, then check what was read before anything is
+            saved. <Link to="/admin/collection">Back to the shelf</Link>.
+          </>
+        }
+      />
 
       <form className="import-form" onSubmit={upload}>
         <label htmlFor="photos">Shelf photos</label>

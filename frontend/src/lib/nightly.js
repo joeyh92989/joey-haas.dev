@@ -1,10 +1,12 @@
 /**
- * The admin landing's "Last nightly" line (Spine Next spec, A4).
+ * The Dashboard's nightly status: the header's one line and the jobs panel
+ * (Spine Next spec, A4; site refresh, T12).
  *
- * Read from the catalogue's run status and the two generate times; there is
- * no table of nightly runs, so this reports the latest catalogue run,
- * whoever started it (K6). The stale warning also catches GitHub switching
- * the schedule off after 60 days without repository activity.
+ * Read from the catalogue's run status, the two generate times and the
+ * snapshot's build time; there is no table of nightly runs, so this reports
+ * the latest catalogue run, whoever started it (K6). The stale state also
+ * catches GitHub switching the schedule off after 60 days without
+ * repository activity.
  */
 
 /** Source kinds the nightly job refreshes; Refresh N64 is manual. */
@@ -17,8 +19,13 @@ const NIGHTLY_KINDS = new Set(['store', 'registry', 'resolve'])
  */
 const ANCHOR_KINDS = new Set(['store', 'registry'])
 
-/** Hours after which the line says the job may have stopped. */
+/** Hours after which a nightly job reads stale. */
 export const STALE_HOURS = 36
+
+/** Discover generates on Sunday evenings only, so a week and a day. */
+export const DISCOVER_STALE_HOURS = 8 * 24
+
+const HOUR_MS = 3600 * 1000
 
 /** Runs this close to the night's catalogue run belong to that night. */
 const SAME_NIGHT_MS = 6 * 3600 * 1000
@@ -79,27 +86,102 @@ export function lastNightly(status, generated, now = Date.now()) {
   }
 }
 
+/** A run time as the Dashboard shows it: "Sun 18 Oct, 22:41". */
+export function whenWords(ms) {
+  return WHEN.format(ms)
+}
+
+/** Milliseconds from an ISO string, or null for a missing or bad one. */
+function parsed(iso) {
+  const ms = iso ? Date.parse(iso) : NaN
+  return Number.isNaN(ms) ? null : ms
+}
+
 /**
- * The line as the admin landing shows it. Text only: the landing adds the
- * link to the README when `summary.stale`.
+ * One row per nightly job, in the order the nightly runs them: the
+ * catalogue refresh, Radar, Discover, and the public snapshot. A job with
+ * no time is "unknown" rather than stale, except the catalogue, whose
+ * absence is the clearest sign the schedule has stopped.
+ *
+ * The snapshot goes stale on the catalogue's clock: What's next carries
+ * its generate times, so the nightly redeploys the static site every night
+ * (spec K8), and an old build time means the deploy hook has stopped.
  *
  * @param {ReturnType<typeof lastNightly>} summary
- * @returns {string}
+ * @param {string|null} snapshotAt `fetched_at` from `/snapshot/meta.json`.
+ * @param {number} [now] Milliseconds since the epoch.
+ * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null, stopped?: boolean}>}
+ *   `stopped` is on the catalogue row only: the schedule may have stopped,
+ *   which a failure on its last night would otherwise hide.
  */
-export function nightlyWords(summary) {
-  const failed = `failed: ${summary.failed.join(', ')}`
-  if (summary.catalogueAt === null)
-    return summary.failed.length
-      ? `Nightly may have stopped: no catalog run finished · ${failed}`
-      : 'Nightly may have stopped: no catalog run yet'
-  const parts = [
-    `catalog ${WHEN.format(summary.catalogueAt)}`,
-    summary.failed.length ? failed : 'ok',
+export function nightlyJobs(summary, snapshotAt, now = Date.now()) {
+  const age = (at, hours) => {
+    if (at === null) return 'unknown'
+    return now - at > hours * HOUR_MS ? 'stale' : 'ok'
+  }
+  const radarAt = parsed(summary.radarAt)
+  const discoverAt = parsed(summary.discoverAt)
+  const builtAt = parsed(snapshotAt)
+  let catalogue = 'Registries, stores and matching'
+  if (summary.failed.length) catalogue = `Failed: ${summary.failed.join(', ')}`
+  else if (summary.catalogueAt === null) catalogue = 'No catalog run yet'
+  return [
+    {
+      key: 'catalog',
+      label: 'Catalog refresh',
+      at: summary.catalogueAt,
+      summary: catalogue,
+      state: summary.failed.length ? 'failed' : summary.stale ? 'stale' : 'ok',
+      runNow: '/admin/catalogue',
+      stopped: summary.stale,
+    },
+    {
+      key: 'radar',
+      label: 'Radar',
+      at: radarAt,
+      summary: radarAt === null ? 'Not generated yet' : 'Upcoming releases',
+      state: age(radarAt, STALE_HOURS),
+      runNow: '/admin/radar',
+    },
+    {
+      key: 'discover',
+      label: 'Discover',
+      at: discoverAt,
+      summary:
+        discoverAt === null ? 'Not generated yet' : 'Sunday evenings only',
+      state: age(discoverAt, DISCOVER_STALE_HOURS),
+      runNow: '/admin/discover',
+    },
+    {
+      key: 'snapshot',
+      label: 'Public snapshot',
+      at: builtAt,
+      summary: builtAt === null ? 'No build time recorded' : 'Rebuilt nightly',
+      state: age(builtAt, STALE_HOURS),
+      runNow: null,
+    },
   ]
-  if (summary.radarAt)
-    parts.push(`Radar ${WHEN.format(Date.parse(summary.radarAt))}`)
-  if (summary.discoverAt)
-    parts.push(`Discover ${WHEN.format(Date.parse(summary.discoverAt))}`)
-  const lead = summary.stale ? 'Nightly may have stopped' : 'Last nightly'
-  return `${lead}: ${parts.join(' · ')}`
+}
+
+const SEVERITY = ['unknown', 'ok', 'stale', 'failed']
+
+/**
+ * The header's nightly words: the worst known state and the newest time.
+ * Unknown jobs are left out, so a local build without a snapshot still
+ * reads ok; it is "unknown" only when nothing is known.
+ *
+ * @param {ReturnType<typeof nightlyJobs>} jobs
+ * @returns {{state: 'ok'|'stale'|'failed'|'unknown', words: string}}
+ */
+export function nightlyHeadline(jobs) {
+  const state = jobs.reduce(
+    (worst, job) =>
+      SEVERITY.indexOf(job.state) > SEVERITY.indexOf(worst) ? job.state : worst,
+    'unknown',
+  )
+  const times = jobs.map((job) => job.at).filter((at) => at !== null)
+  const words = times.length
+    ? `nightly ${state} · ${whenWords(Math.max(...times))}`
+    : `nightly ${state}`
+  return { state, words }
 }

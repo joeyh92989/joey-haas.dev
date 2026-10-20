@@ -33,10 +33,20 @@ function renderAt(path) {
 }
 
 beforeEach(() => {
-  // Never answers: every API-backed page stays in its loading state.
+  // Signed in, so the admin routes get past AdminLayout's session check;
+  // nothing else answers, so every API-backed page stays in its loading
+  // state.
   vi.stubGlobal(
     'fetch',
-    vi.fn(() => new Promise(() => {})),
+    vi.fn((url) =>
+      String(url).endsWith('/api/auth/me')
+        ? Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ email: 'admin@example.com' }),
+          })
+        : new Promise(() => {}),
+    ),
   )
 })
 
@@ -74,15 +84,16 @@ const TITLES = [
   ['/spine', 'Spine · Joey Haas'],
   ['/nonsense-path', 'Not found · Joey Haas'],
   ['/blog/no-such-post', 'Not found · Joey Haas'],
-  ['/admin', 'Admin · Joey Haas'],
-  ['/admin/collection', 'Collection · Admin'],
-  ['/admin/import', 'Import from photos · Admin'],
-  ['/admin/play-next', 'Play Next · Admin'],
-  ['/admin/catalogue', 'Catalog · Admin'],
-  ['/admin/radar', 'Radar · Admin'],
-  ['/admin/discover', 'Discover · Admin'],
-  ['/admin/store-list', 'Store list · Admin'],
-  ['/admin/collection/42', 'Item · Admin'],
+  ['/admin', 'Dashboard · Admin · Joey Haas'],
+  ['/admin/collection', 'Shelf · Admin · Joey Haas'],
+  ['/admin/import', 'Import photos · Admin · Joey Haas'],
+  ['/admin/play-next', 'Play Next · Admin · Joey Haas'],
+  ['/admin/catalogue', 'Sources · Admin · Joey Haas'],
+  ['/admin/radar', 'Radar · Admin · Joey Haas'],
+  ['/admin/discover', 'Discover · Admin · Joey Haas'],
+  ['/admin/store-list', 'Store list · Admin · Joey Haas'],
+  ['/admin/collection/42', 'Item · Admin · Joey Haas'],
+  ['/admin/no-such-page', 'Not found · Joey Haas'],
   ['/spine/42', 'Spine · Joey Haas'],
   ['/spine/next', 'What’s next · Spine'],
   ['/spine/year/2025', '2025 in review · Spine'],
@@ -115,15 +126,19 @@ describe('App page titles', () => {
     )
   })
 
-  // A route added to App.jsx without a row here fails this test. The two
-  // /collection redirects set no title, so they are not counted.
+  // A route added to App.jsx without a row here fails this test. Layout
+  // routes (the ones with children) and the two /collection redirects set
+  // no title, so they are not counted.
   it('covers every titled route', () => {
     const source = readFileSync(
       resolve(dirname(fileURLToPath(import.meta.url)), 'App.jsx'),
       'utf8',
     )
-    const routes = source.match(/<Route (?:path=|index)/g) ?? []
-    const redirects = source.match(/<Route path="collection/g) ?? []
-    expect(TITLES).toHaveLength(routes.length - redirects.length)
+    const routes = source
+      .split('\n')
+      .filter((line) => /<Route (?:path=|index)/.test(line))
+      .filter((line) => !/\}>\s*$/.test(line))
+      .filter((line) => !/Navigate|Redirect/.test(line))
+    expect(TITLES).toHaveLength(routes.length)
   })
 })

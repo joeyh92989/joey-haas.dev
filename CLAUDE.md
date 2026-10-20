@@ -91,7 +91,14 @@ before pushing.
   recorded beside the tokens in `index.css`.
 - Tracker pages break out of the 45rem prose column via `page-wide` (72rem),
   which `RootLayout` applies to any path in its `WIDE_ROUTES` list or nested
-  under one. Add a new tracker route there, not in a page's own CSS.
+  under one. Add a new public tracker route there, not in a page's own CSS.
+  `/admin*` is not in it: `SHELL_ROUTES` drops the public masthead, footer
+  and page frame, and `AdminLayout` (`layouts/`) checks the session once and
+  renders every admin page inside `AdminShell` (sidebar, phone tab bar). A
+  new admin page is a child route of `AdminLayout` in `App.jsx`, a row in
+  `ADMIN_GROUPS` and in `ADMIN_ROUTES` (`prerender-lib.mjs`), and titles
+  itself through `AdminPageHeader`. Admin pages build from `StatTile`,
+  `Panel` and `JobStatusRow`.
   Home, About and Projects take the 1040px `page-content` measure through
   `CONTENT_ROUTES` (exact paths, a trailing slash ignored); every other page keeps the 45rem
   column unless it is in `WIDE_ROUTES` (72rem).
@@ -100,7 +107,8 @@ before pushing.
 - Shelf components live in `frontend/src/components/`: `PosterCard`,
   `PosterGrid`, `FilterChips`, `SortControl`, `ShelfToolbar`, `Stars`,
   `QuickRate`, `ShelfCardActions`. `HeroNumbers` and `FavoritesRow` are
-  exported from `pages/Collection.jsx` and reused by the admin shelf. A
+  exported from `pages/Collection.jsx`; the admin shelf reuses
+  `FavoritesRow` and shows its figures as `StatTile`s. A
   card's admin controls are a sibling of its link, never nested inside it.
 - `FilterChips` hides a group with at most one chip to show and none
   pressed, on both shelves; a pressed chip always keeps its group.

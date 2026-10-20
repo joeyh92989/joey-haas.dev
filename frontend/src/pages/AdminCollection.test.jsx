@@ -315,13 +315,14 @@ describe('AdminCollection shelf', () => {
     expect(localStorage.getItem('shelf.admin.view')).toBe('"list"')
   })
 
-  it('keeps the add form, import link and bulk controls in both views', async () => {
+  it('keeps the add form and bulk controls in both views', async () => {
     stubApi()
     await renderShelf()
 
     expect(
-      screen.getByRole('link', { name: /import from photos/i }),
+      screen.getByRole('heading', { level: 1, name: 'Shelf' }),
     ).toBeInTheDocument()
+    expect(screen.getByText(/of 2 public$/)).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /publish all 2/i }),
     ).toBeInTheDocument()
@@ -348,7 +349,7 @@ describe('AdminCollection shelf', () => {
     })
     await renderShelf()
 
-    const hero = document.querySelector('.hero-numbers')
+    const hero = screen.getByLabelText('Shelf totals')
     // Star Fox (physical) and Dune (NULL) are owned; the want is not.
     expect(within(hero).getByText('Owned').nextSibling).toHaveTextContent('2')
     expect(within(hero).getByText('Finished').nextSibling).toHaveTextContent(
@@ -850,16 +851,5 @@ describe('AdminCollection shelf platforms', () => {
 
     const titles = [...document.querySelectorAll('.poster-grid .poster-title')]
     expect(titles.map((node) => node.textContent)).toEqual(['Dune'])
-  })
-})
-
-describe('AdminCollection Play Next link', () => {
-  it('links to Play Next', async () => {
-    stubApi()
-    renderPage()
-
-    expect(
-      await screen.findByRole('link', { name: /play next/i }),
-    ).toHaveAttribute('href', '/admin/play-next')
   })
 })

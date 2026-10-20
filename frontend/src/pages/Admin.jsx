@@ -1,128 +1,241 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
-import LastNightly from '../components/LastNightly.jsx'
-import { apiFetch, loginUrl } from '../lib/api.js'
-import { usePageTitle } from '../lib/usePageTitle.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
+import { Link, useOutletContext } from 'react-router'
+import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import JobStatusRow, { StatusText } from '../components/JobStatusRow.jsx'
+import Panel from '../components/Panel.jsx'
+import StatTile, { StatTiles } from '../components/StatTile.jsx'
+import { apiFetch } from '../lib/api.js'
+import { dashboardCounts, recentChanges } from '../lib/dashboard.js'
+import {
+  lastNightly,
+  nightlyHeadline,
+  nightlyJobs,
+  whenWords,
+} from '../lib/nightly.js'
+import { readSnapshot } from '../lib/snapshot.js'
+
+/** The README section that says how to switch the schedule back on. */
+const REENABLE_URL = 'https://github.com/joeyh92989/joey-haas.dev#nightly-job'
+
+/** The API's state in the header, as a status and its words. */
+const API_WORDS = {
+  checking: { state: 'unknown', words: 'Checking the API' },
+  awake: { state: 'ok', words: 'API awake' },
+  'signed-out': { state: 'failed', words: 'Session ended — reload to sign in' },
+  error: { state: 'failed', words: 'API error' },
+  unreachable: { state: 'failed', words: 'API unreachable' },
+}
+
+/** What a status answer says about the API, as a key of API_WORDS. */
+function apiState(response) {
+  if (response.ok) return 'awake'
+  if (response.status === 401 || response.status === 403) return 'signed-out'
+  return 'error'
+}
+
+/** Radar's and Discover's generate times from the store list, or nulls. */
+async function generatedAt(response) {
+  const none = { radar: null, discover: null }
+  if (!response?.ok) return none
+  try {
+    const body = await response.json()
+    return {
+      radar: body?.generated_at?.radar ?? null,
+      discover: body?.generated_at?.discover ?? null,
+    }
+  } catch {
+    return none
+  }
+}
 
 /**
- * Admin area. Deliberately absent from the site navigation — reachable only by
- * typing the URL. That is not a security control; the server-side session check
- * is. It keeps a personal site from looking like an app with a login wall.
+ * The catalogue status, the generate times and the snapshot's build time.
+ * Never rejects. A status that cannot be read leaves `status` null, and the
+ * jobs panel says so rather than reading as a stopped schedule.
+ */
+async function loadNightly() {
+  const meta = readSnapshot('meta')
+  let api = 'unreachable'
+  let status = null
+  let generated = { radar: null, discover: null }
+  try {
+    const response = await apiFetch('/api/physical/status')
+    // Any answer means the server is up; only a failed request is unreachable.
+    api = apiState(response)
+    if (response.ok) {
+      const body = await response.json().catch(() => null)
+      // Not a status document: no jobs rather than "may have stopped".
+      if (Array.isArray(body?.sources)) {
+        status = body
+        generated = await generatedAt(
+          await apiFetch('/api/recommendations/store-list').catch(() => null),
+        )
+      }
+    }
+  } catch {
+    // Unreachable API: the header says so; the tiles and links still work.
+  }
+  return { api, status, generated, snapshotAt: (await meta)?.fetched_at }
+}
+
+/**
+ * The admin landing, at /admin: the API and nightly state, four headline
+ * figures, the nightly jobs, quick actions and the newest changes.
+ * AdminLayout has already checked the session and loads the rows.
  */
 export default function Admin() {
-  usePageTitle('Admin · Joey Haas')
-  const [status, setStatus] = useState('checking')
-  const [email, setEmail] = useState(null)
-  const [slow, setSlow] = useState(false)
-  const [searchParams] = useSearchParams()
-  const denied = searchParams.get('error') === 'access_denied'
+  const { items } = useOutletContext() ?? {}
+  const [nightly, setNightly] = useState(null)
+  // One clock for the visit, so ages and the year agree across renders.
+  const [now] = useState(() => Date.now())
 
   useEffect(() => {
-    // The API sleeps on Render's free tier, so a first request after idle can
-    // take ~30 seconds. Without this the page looks broken rather than slow.
-    const timer = setTimeout(() => setSlow(true), 3000)
-
-    apiFetch('/api/auth/me')
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        setEmail(data ? data.email : null)
-        setStatus(data ? 'signed-in' : 'signed-out')
-      })
-      .catch(() => setStatus('error'))
-      .finally(() => clearTimeout(timer))
-
-    return () => clearTimeout(timer)
+    let live = true
+    loadNightly().then((loaded) => {
+      if (live) setNightly(loaded)
+    })
+    return () => {
+      live = false
+    }
   }, [])
 
-  async function signOut() {
-    // Only claim to be signed out if the server actually cleared the session.
-    // Flipping the UI on a failed request would leave a valid 30-day cookie
-    // behind while the page says otherwise — worst on a shared machine, where
-    // the next visitor would still be authenticated.
-    try {
-      const response = await apiFetch('/api/auth/logout', { method: 'POST' })
-      if (!response.ok) {
-        setStatus('signout-failed')
-        return
-      }
-    } catch {
-      setStatus('signout-failed')
-      return
-    }
-
-    setEmail(null)
-    setStatus('signed-out')
-  }
+  const year = new Date(now).getUTCFullYear()
+  const counts = items ? dashboardCounts(items, year) : null
+  const jobs = nightly?.status
+    ? nightlyJobs(
+        lastNightly(nightly.status, nightly.generated, now),
+        nightly.snapshotAt ?? null,
+        now,
+      )
+    : null
+  const headline = jobs ? nightlyHeadline(jobs) : null
+  const api = API_WORDS[nightly?.api ?? 'checking']
+  const pending = nightly?.status?.totals?.pending_keys
+  const changes = items ? recentChanges(items, jobs ?? []) : []
 
   return (
-    <section>
-      <h1>Admin</h1>
+    <section className="dashboard">
+      <AdminPageHeader title="Dashboard">
+        <span role="status" className="admin-head-status">
+          <StatusText state={api.state}>{api.words}</StatusText>
+          {headline && (
+            <StatusText state={headline.state}>{headline.words}</StatusText>
+          )}
+        </span>
+      </AdminPageHeader>
 
-      {denied && (
-        <p className="admin-error">
-          That account is not authorized for this site.
-        </p>
-      )}
+      <StatTiles label="Dashboard figures">
+        <StatTile
+          label="Owned"
+          value={counts ? counts.owned : '—'}
+          detail={
+            counts &&
+            `${counts.ownedPublic} public · ${counts.ownedHidden} hidden`
+          }
+        />
+        <StatTile
+          label={`Finished · ${year}`}
+          value={counts ? counts.finishedThisYear : '—'}
+          detail={
+            counts &&
+            `${counts.finished} all time${
+              counts.averageRating === null
+                ? ''
+                : ` · avg ${counts.averageRating.toFixed(1)}`
+            }`
+          }
+        />
+        <StatTile
+          label="Needs attention"
+          value={typeof pending === 'number' ? pending : '—'}
+          detail="catalog rows need a match"
+        />
+        {/* Filled by the analytics read once the beacon ships. */}
+        <StatTile label="Views · 7 days" value="—" detail="Not tracked yet" />
+      </StatTiles>
 
-      {status === 'checking' && (
-        <p className="muted">{slow ? WAKING : 'Checking your session…'}</p>
-      )}
+      <div className="dashboard-two">
+        <Panel title="Nightly jobs">
+          {jobs ? (
+            <ul className="job-list">
+              {jobs.map((job) => (
+                <JobStatusRow
+                  key={job.key}
+                  job={job}
+                  extra={
+                    job.stopped && (
+                      <>
+                        {' · '}
+                        <a href={REENABLE_URL}>how to re-enable it</a>
+                      </>
+                    )
+                  }
+                />
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">
+              {nightly
+                ? 'The nightly status could not be read.'
+                : 'Reading the nightly status…'}
+            </p>
+          )}
+        </Panel>
 
-      {status === 'error' && <p className="admin-error">{LOAD_ERROR}</p>}
+        <Panel title="Quick actions" className="quick-actions">
+          <Link to="/admin/import">
+            Import photos<small>Read a shelf, then review</small>
+          </Link>
+          <Link to="/admin/store-list">
+            Store list<small>What to look for in person</small>
+          </Link>
+          <Link to="/admin/collection">
+            Add a game<small>Title, platform, copy format</small>
+          </Link>
+          <Link to="/admin/discover">
+            Rate a few
+            <small>
+              {counts ? `${counts.unrated} finished, unrated` : 'On Discover'}
+            </small>
+          </Link>
+        </Panel>
+      </div>
 
-      {status === 'signed-out' && (
-        <p>
-          <a className="admin-signin" href={loginUrl}>
-            Sign in with Google
-          </a>
-        </p>
-      )}
-
-      {status === 'signout-failed' && (
-        <>
-          <p className="admin-error">
-            Sign out failed — you are still signed in. Try again.
-          </p>
-          <p>
-            <button type="button" className="admin-signout" onClick={signOut}>
-              Sign out
-            </button>
-          </p>
-        </>
-      )}
-
-      {status === 'signed-in' && (
-        <>
-          <LastNightly />
-          <p>
-            Signed in as <strong>{email}</strong>.
-          </p>
-          <p>
-            <Link to="/admin/collection">Collection</Link>
-          </p>
-          <p>
-            <Link to="/admin/play-next">Play Next</Link>
-          </p>
-          <p>
-            <Link to="/admin/catalogue">Catalog</Link>
-          </p>
-          <p>
-            <Link to="/admin/radar">Radar</Link>
-          </p>
-          <p>
-            <Link to="/admin/discover">Discover</Link>
-          </p>
-          <p>
-            <Link to="/admin/store-list">Store list</Link>
-          </p>
-          <p>
-            <button type="button" className="admin-signout" onClick={signOut}>
-              Sign out
-            </button>
-          </p>
-        </>
-      )}
+      <Panel
+        title="Recent changes"
+        action={
+          <Link to="/admin/collection">
+            Shelf <span aria-hidden="true">→</span>
+          </Link>
+        }
+      >
+        {changes.length ? (
+          <div className="item-table-wrap">
+            <table className="item-table recent-table">
+              <thead>
+                <tr>
+                  <th scope="col">Item</th>
+                  <th scope="col">Change</th>
+                  <th scope="col">When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {changes.map((change) => (
+                  <tr key={change.key}>
+                    <td>
+                      <Link to={change.to}>{change.title}</Link>
+                    </td>
+                    <td>{change.change}</td>
+                    <td className="job-when">{whenWords(change.at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted">{items ? 'Nothing yet.' : 'Loading…'}</p>
+        )}
+      </Panel>
     </section>
   )
 }

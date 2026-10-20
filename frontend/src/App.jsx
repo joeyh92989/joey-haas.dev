@@ -18,7 +18,8 @@ import { itemPath } from './lib/spinePaths.js'
 
 // The admin pages serve one person, so they load on demand instead of
 // shipping to every visitor in the main chunk. RootLayout's Suspense
-// boundary covers the wait.
+// boundary covers the layout's wait, and AdminLayout's each page's.
+const AdminLayout = lazy(() => import('./layouts/AdminLayout.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
 const AdminCatalogue = lazy(() => import('./pages/AdminCatalogue.jsx'))
 const AdminDiscover = lazy(() => import('./pages/AdminDiscover.jsx'))
@@ -70,15 +71,19 @@ export default function App() {
         {/* Pre-rename URLs, kept so links already shared still land. */}
         <Route path="collection" element={<Navigate to="/spine" replace />} />
         <Route path="collection/:id" element={<CollectionItemRedirect />} />
-        <Route path="admin" element={<Admin />} />
-        <Route path="admin/collection" element={<AdminCollection />} />
-        <Route path="admin/import" element={<AdminImport />} />
-        <Route path="admin/play-next" element={<PlayNext />} />
-        <Route path="admin/catalogue" element={<AdminCatalogue />} />
-        <Route path="admin/radar" element={<AdminRadar />} />
-        <Route path="admin/discover" element={<AdminDiscover />} />
-        <Route path="admin/store-list" element={<AdminStoreList />} />
-        <Route path="admin/collection/:id" element={<KeyedAdminItem />} />
+        <Route path="admin" element={<AdminLayout />}>
+          <Route index element={<Admin />} />
+          <Route path="collection" element={<AdminCollection />} />
+          <Route path="import" element={<AdminImport />} />
+          <Route path="play-next" element={<PlayNext />} />
+          <Route path="catalogue" element={<AdminCatalogue />} />
+          <Route path="radar" element={<AdminRadar />} />
+          <Route path="discover" element={<AdminDiscover />} />
+          <Route path="store-list" element={<AdminStoreList />} />
+          <Route path="collection/:id" element={<KeyedAdminItem />} />
+          {/* Inside the shell, so a mistyped admin URL keeps the sidebar. */}
+          <Route path="*" element={<NotFound />} />
+        </Route>
         <Route path="blog" element={<Blog />} />
         <Route path="blog/:slug" element={<BlogPost />} />
         <Route path="*" element={<NotFound />} />

@@ -186,9 +186,19 @@ describe('ADMIN_ROUTES', () => {
   // A new admin page in App.jsx without a row here would be indexable.
   it('lists every fixed admin path in App.jsx', () => {
     const app = fs.readFileSync(path.join(here, '..', 'src', 'App.jsx'), 'utf8')
-    const paths = [...app.matchAll(/<Route path="(admin[^":]*)"/g)].map(
-      ([, route]) => `/${route}`,
+    // The admin pages are nested under AdminLayout's route: its index is
+    // /admin, and each fixed child path joins onto it. The block ends at the
+    // </Route> indented as its opening tag, so a nested group cannot end it.
+    const admin = app.match(/^( *)<Route path="admin"[\s\S]*?^\1<\/Route>/m)
+    expect(admin, 'the admin route block in App.jsx').not.toBeNull()
+    // Its children, without the opening tag's own path="admin".
+    const block = admin[0].slice(admin[0].indexOf('\n'))
+    const children = [...block.matchAll(/<Route path="([^":*]+)"/g)].map(
+      ([, route]) => `/admin/${route}`,
     )
+    const paths = block.includes('<Route index')
+      ? ['/admin', ...children]
+      : children
     expect([...ADMIN_ROUTES].sort()).toEqual(paths.sort())
   })
 })

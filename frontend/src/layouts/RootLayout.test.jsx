@@ -102,12 +102,9 @@ describe('RootLayout page widths', () => {
   }
 
   // The tracker pages break out to 72rem; everything nested under one too.
-  it.each(['/spine', '/spine/abc', '/admin/collection/abc'])(
-    'widens %s',
-    (path) => {
-      expect(pageClass(path)).toBe('page page-wide')
-    },
-  )
+  it.each(['/spine', '/spine/abc', '/spine/year/2026'])('widens %s', (path) => {
+    expect(pageClass(path)).toBe('page page-wide')
+  })
 
   // Cards and columns take the masthead's 1040px measure.
   it.each(['/', '/about', '/projects', '/about/'])(
@@ -119,7 +116,7 @@ describe('RootLayout page widths', () => {
 
   // Prose keeps the reading column, including pages nested under a content
   // route's path.
-  it.each(['/blog', '/blog/x', '/now', '/colophon', '/admin', '/about/x'])(
+  it.each(['/blog', '/blog/x', '/now', '/colophon', '/about/x'])(
     'keeps %s to the reading column',
     (path) => {
       expect(pageClass(path)).toBe('page')
@@ -230,9 +227,23 @@ describe('RootLayout footer', () => {
   })
 })
 
+describe('RootLayout admin routes', () => {
+  // The admin shell brings its own frame, so the public one steps aside.
+  it.each(['/admin', '/admin/collection/abc'])(
+    'renders no masthead or footer on %s',
+    (path) => {
+      const { container } = renderAt(path)
+      expect(container.querySelector('.mast')).toBeNull()
+      expect(container.querySelector('.site-footer')).toBeNull()
+      expect(container.firstChild).toHaveClass('site-admin')
+      expect(screen.getByRole('link', { name: /skip to/i })).toBeInTheDocument()
+    },
+  )
+})
+
 describe('RootLayout masthead', () => {
   // One masthead everywhere: the tracker no longer gets a compact variant.
-  it.each(['/', '/about', '/spine', '/spine/next', '/admin'])(
+  it.each(['/', '/about', '/spine', '/spine/next'])(
     'is the same masthead on %s',
     (path) => {
       const { container } = renderAt(path)

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { usePageTitle } from '../lib/usePageTitle.js'
+import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import NextRow from '../components/NextRow.jsx'
 import { spine } from '../content/spine.js'
 import { groupByPlatform } from '../lib/next.js'
@@ -84,7 +84,6 @@ function focusAfter(button) {
  * good. The row goes at once and comes back if the server refuses.
  */
 export default function AdminStoreList() {
-  usePageTitle(`${copy.title} · Admin`)
   const { signedIn = false } = useOutletContext() ?? {}
   const [state, setState] = useState('loading')
   const [sections, setSections] = useState(null)
@@ -189,7 +188,7 @@ export default function AdminStoreList() {
   if (state === 'unauthorized') {
     return (
       <section>
-        <h1>{copy.title}</h1>
+        <AdminPageHeader title={copy.title} />
         <p>
           <Link to="/admin">Sign in</Link> {copy.signIn}
         </p>
@@ -227,7 +226,7 @@ export default function AdminStoreList() {
 
   return (
     <section className="store-list">
-      <h1>{copy.title}</h1>
+      <AdminPageHeader title={copy.title} />
       {!empty && <p className="store-list-note">{copy.note}</p>}
       <p
         className="catalogue-progress"

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
+import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
+import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { usePageTitle } from '../lib/usePageTitle.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 
 const KIND_ORDER = ['registry', 'store', 'platform', 'resolve']
@@ -362,7 +363,6 @@ function Disagreements() {
  * first error rather than hammering IGDB.
  */
 export default function AdminCatalogue() {
-  usePageTitle('Catalog · Admin')
   const { signedIn = false } = useOutletContext() ?? {}
   const [state, setState] = useState('loading')
   const [status, setStatus] = useState(null)
@@ -510,7 +510,7 @@ export default function AdminCatalogue() {
   if (state === 'unauthorized') {
     return (
       <section>
-        <h1>Catalog</h1>
+        <AdminPageHeader title="Sources" />
         <p>
           <Link to="/admin">Sign in</Link> to see the catalog.
         </p>
@@ -527,29 +527,51 @@ export default function AdminCatalogue() {
 
   return (
     <section className="catalogue">
-      <h1>Catalog</h1>
-      <p className="muted">
-        What exists physically, and as what: the r/NSCollectors registries for
-        Switch 2 and Switch 1, the boutique stores and IGDB&apos;s N64 list.
-      </p>
-
-      <div className="catalogue-actions">
-        <button type="button" disabled={busy} onClick={() => refreshStores()}>
+      <AdminPageHeader
+        title="Sources"
+        description="What exists physically, and as what: the r/NSCollectors registries for Switch 2 and Switch 1, the boutique stores and IGDB’s N64 list."
+      >
+        <button
+          type="button"
+          className="btn sm"
+          disabled={busy}
+          onClick={() => refreshStores()}
+        >
           Refresh stores
         </button>
-        <button type="button" disabled={busy} onClick={refreshRegistry}>
+        <button
+          type="button"
+          className="btn sm"
+          disabled={busy}
+          onClick={refreshRegistry}
+        >
           Refresh registry
         </button>
-        <button type="button" disabled={busy} onClick={refreshN64}>
+        <button
+          type="button"
+          className="btn sm"
+          disabled={busy}
+          onClick={refreshN64}
+        >
           Refresh N64
         </button>
-        <button type="button" disabled={busy} onClick={refreshSwitch1}>
+        <button
+          type="button"
+          className="btn sm"
+          disabled={busy}
+          onClick={refreshSwitch1}
+        >
           Refresh Switch 1
         </button>
-        <button type="button" disabled={busy} onClick={resolveAll}>
+        <button
+          type="button"
+          className="btn sm"
+          disabled={busy}
+          onClick={resolveAll}
+        >
           Resolve
         </button>
-      </div>
+      </AdminPageHeader>
 
       <p className="catalogue-progress" role="status" aria-live="polite">
         {running ?? message ?? ''}
@@ -564,14 +586,15 @@ export default function AdminCatalogue() {
 
       {status && (
         <>
-          <dl className="catalogue-totals">
+          <StatTiles label="Catalog totals">
             {TOTAL_LABELS.map(([key, label]) => (
-              <div key={key}>
-                <dt>{label}</dt>
-                <dd>{status.totals[key] ?? 0}</dd>
-              </div>
+              <StatTile
+                key={key}
+                label={label}
+                value={status.totals[key] ?? 0}
+              />
             ))}
-          </dl>
+          </StatTiles>
           {status.totals.switch1_unmatched > 0 && (
             <p className="muted">
               {unmatchedWords(status.totals.switch1_unmatched)}

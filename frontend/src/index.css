@@ -238,6 +238,11 @@ a:hover {
   padding: 4px 9px;
 }
 
+.btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .mast {
   background: var(--bg);
   border-bottom: 1px solid var(--line);
@@ -1095,19 +1100,445 @@ footer {
   text-decoration: none;
 }
 
-.admin-signout {
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-3);
-  cursor: pointer;
-  font: 500 0.8125rem var(--font-sans);
-  padding: 0.375rem 0.75rem;
+/* The admin shell: a 232px sidebar beside the page on a desktop, a tab bar
+   under it on a phone. It replaces the public masthead and footer. */
+.admin-app {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  min-height: 100vh;
 }
 
-.admin-signout:hover {
+.admin-app-phone {
+  display: block;
+}
+
+.admin-side {
   background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 16px 12px;
+  position: sticky;
+  top: 0;
+}
+
+.admin-side .brand {
+  padding: 6px 10px 16px;
+}
+
+.admin-side-group .kicker {
+  margin-top: 14px;
+  padding: 0 10px 6px;
+}
+
+.admin-side-group ul {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+}
+
+.admin-side-nav a {
+  align-items: center;
+  border-radius: var(--radius);
+  color: var(--text-2);
+  display: flex;
+  font-size: 0.875rem;
+  gap: 10px;
+  padding: 7px 10px;
+}
+
+.admin-side-nav a:hover {
   color: var(--text);
+  text-decoration: none;
+}
+
+/* --accent-soft is one of the backgrounds the text tokens are measured on
+   (see the token block). */
+.admin-side-nav a.active {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.admin-side-count {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  font-weight: 400;
+  margin-left: auto;
+}
+
+.admin-side-foot {
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  margin-top: auto;
+  padding: 12px 10px 4px;
+}
+
+.admin-side-email {
+  overflow-wrap: anywhere;
+}
+
+.admin-side-nav a:focus-visible,
+.admin-side-foot a:focus-visible,
+.admin-side-foot button:focus-visible,
+.admin-tabs a:focus-visible,
+.admin-tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.admin-main {
+  min-width: 0;
+  padding: 28px 32px 40px;
+}
+
+.admin-main:focus {
+  outline: none;
+}
+
+/* The phone tab bar: fixed to the bottom, five equal 44px+ targets. */
+.admin-tabs {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  left: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  position: fixed;
+  right: 0;
+  z-index: 30;
+}
+
+.admin-tabs a,
+.admin-tabs button {
+  background: none;
+  border: 0;
+  color: var(--text-3);
+  cursor: pointer;
+  font: 500 0.75rem var(--font-sans);
+  min-height: 3rem;
+  padding: 10px 4px 12px;
+  text-align: center;
+}
+
+.admin-tabs a:hover {
+  text-decoration: none;
+}
+
+.admin-tabs a.active,
+.admin-tabs button.active {
+  color: var(--accent);
+}
+
+.admin-sheet .link-button {
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 1rem;
+  min-height: 2.75rem;
+  padding: 0.625rem 0;
+  text-align: left;
+  text-decoration: none;
+}
+
+.admin-sheet-email {
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+  padding-top: 0.625rem;
+}
+
+/* The phone tab bar sits over the page's foot, so the page keeps clear of it. */
+.admin-app-phone .admin-main {
+  padding: 18px 16px 90px;
+}
+
+/* The shelf's action sheet is pinned to the same edge: it opens over the
+   tab bar, or the bar would hide its last row of controls. */
+.admin-app-phone .shelf-sheet {
+  z-index: 40;
+}
+
+/* The signed-out, waking and error states: a plain centred panel, no shell. */
+.admin-gate {
+  display: grid;
+  min-height: 100vh;
+  padding: 24px 16px;
+  place-items: center;
+}
+
+.admin-gate-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-width: 26rem;
+  padding: 24px;
+  width: 100%;
+}
+
+.admin-gate-panel h1 {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+}
+
+.admin-gate:focus {
+  outline: none;
+}
+
+/* Every admin page's header: title and description, then its controls. */
+.admin-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-bottom: 22px;
+}
+
+.admin-head h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.admin-head-desc {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.admin-head-end,
+.admin-head-status {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.admin-head-end {
+  margin-left: auto;
+}
+
+/* Status in a header or a job row: a dot and the word, never the dot alone.
+   Dots on --surface: ok and warn as measured in the token block; --text-3
+   (unknown) at least 4.79 dark and 4.61 light. Failed is also squared, so
+   stale and failed differ in shape as well as in the word. */
+.status-text {
+  align-items: center;
+  color: var(--text-2);
+  display: inline-flex;
+  font: 500 0.75rem var(--font-mono);
+  gap: 6px;
+}
+
+.status-dot {
+  background: var(--ok);
+  border-radius: 50%;
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+
+.status-dot.stale,
+.status-dot.failed {
+  background: var(--warn);
+}
+
+.status-dot.failed {
+  border-radius: 1px;
+}
+
+.status-dot.unknown {
+  background: var(--text-3);
+}
+
+.stat-tiles {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 22px;
+}
+
+.stat-tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.stat-tile .kicker {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  color: var(--text);
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.stat-detail {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.panel-head {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.panel-head h2 {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.panel-head a {
+  font-size: 0.8125rem;
+}
+
+.panel-body {
+  padding: 14px 16px;
+}
+
+/* Dashboard (/admin): jobs and quick actions side by side, then changes. */
+.dashboard-two {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  margin-bottom: 14px;
+}
+
+/* Side by side, so the prose rule spacing stacked sections does not apply. */
+.dashboard-two > .panel {
+  margin-top: 0;
+}
+
+.job-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.job-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  font-size: 0.84375rem;
+  gap: 4px 12px;
+  /* Wide enough for the longest time, "Wed 30 Sept, 00:17". */
+  grid-template-columns: 9rem minmax(0, 1fr) auto auto;
+  padding: 8px 0;
+}
+
+.job-row:first-child {
+  border-top: 0;
+}
+
+.job-when {
+  color: var(--text-3);
+  font: 0.75rem var(--font-mono);
+  white-space: nowrap;
+}
+
+.job-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.job-label {
+  color: var(--text);
+}
+
+.job-summary {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.job-run {
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.quick-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.quick-actions a {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.875rem;
+  padding: 12px;
+  text-decoration: none;
+}
+
+.quick-actions a:hover {
+  border-color: var(--line-strong);
+}
+
+.quick-actions small {
+  color: var(--text-3);
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+/* Three short columns: they wrap on a phone rather than scroll, so When
+   stays in view. */
+.item-table.recent-table {
+  font-size: 0.84375rem;
+  min-width: 0;
+}
+
+.recent-table tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Beside the sidebar, four tiles would be too narrow for their labels. */
+@media (max-width: 900px) {
+  .dashboard-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stat-tiles {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  /* Time over the text, the state and Run now under it. */
+  .job-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .job-when,
+  .job-text {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Collection table and add form (/admin/collection). */
@@ -1522,15 +1953,6 @@ footer {
 }
 
 /* Bulk visibility controls above the collection table. */
-.bulk-visibility {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-}
-
-.bulk-visibility button,
 .play-next-status button,
 .pick-actions button,
 .up-next button,
@@ -1546,7 +1968,6 @@ footer {
   padding: 0.35rem 0.6rem;
 }
 
-.bulk-visibility button:hover:not(:disabled),
 .play-next-status button:hover:not(:disabled),
 .pick-actions button:hover:not(:disabled),
 .up-next button:hover:not(:disabled),
@@ -1555,7 +1976,6 @@ footer {
   border-color: var(--accent);
 }
 
-.bulk-visibility button:disabled,
 .pick-actions button:disabled,
 .up-next button:disabled {
   cursor: default;
@@ -2330,10 +2750,6 @@ a.month-bar::before {
   padding: 0.2rem 0.4rem;
 }
 
-.view-toggle {
-  margin: 1rem 0 1.5rem;
-}
-
 .play-next-status p {
   margin: 0 0 0.5rem;
 }
@@ -2717,14 +3133,6 @@ a.month-bar::before {
 }
 
 /* Physical catalogue (/admin/catalogue). */
-.catalogue-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1.25rem 0 0.5rem;
-}
-
-.catalogue-actions button,
 .catalogue-table button,
 .needs-match button,
 .registry-line button {
@@ -2738,14 +3146,12 @@ a.month-bar::before {
   padding: 0.4rem 0.7rem;
 }
 
-.catalogue-actions button:hover:not(:disabled),
 .catalogue-table button:hover:not(:disabled),
 .needs-match button:hover:not(:disabled),
 .registry-line button:hover:not(:disabled) {
   border-color: var(--accent);
 }
 
-.catalogue-actions button:disabled,
 .catalogue-table button:disabled,
 .needs-match button:disabled,
 .registry-line button:disabled {
@@ -2756,31 +3162,6 @@ a.month-bar::before {
 .catalogue-progress {
   color: var(--text-3);
   min-height: 1.5em;
-}
-
-.catalogue-totals {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-  margin: 1rem 0 1.5rem;
-}
-
-.catalogue-totals div {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-}
-
-.catalogue-totals dt {
-  color: var(--text-3);
-  font-size: 0.75rem;
-}
-
-.catalogue-totals dd {
-  color: var(--text);
-  font-size: 1.25rem;
-  margin: 0;
 }
 
 .catalogue-table th[scope='row'] {
