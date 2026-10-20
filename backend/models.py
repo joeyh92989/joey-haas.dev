@@ -316,7 +316,6 @@ class PlaySession(Base):
     )
 
 
-
 # --- Analytics (migration 0008) ----------------------------------------------
 #
 # First-party page views from the public beacon (analytics_routes.py). No row
@@ -370,6 +369,7 @@ class DailyStat(Base):
     value: Mapped[str] = mapped_column(Text, primary_key=True)
     views: Mapped[int] = mapped_column(Integer, nullable=False)
     visitors: Mapped[int] = mapped_column(Integer, nullable=False)
+
 
 # --- The physical catalogue (migration 0005) --------------------------------
 #
