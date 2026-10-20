@@ -149,6 +149,9 @@ jobs:
           if [ "$weekly" = true ] || [ "$FORCE_DISCOVER" = true ]; then
             call discover 300 /api/recommendations/generate '{"kind":"discover"}'
           fi
+          # Rolls up every finished day's page views and drops raw rows
+          # past 90 days. Idempotent, so a missed night is caught up here.
+          call rollup 120 /api/analytics/rollup
           {
             echo "ok=${ok# }"
             echo "failed=${failed# }"

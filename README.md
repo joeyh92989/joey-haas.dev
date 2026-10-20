@@ -53,6 +53,7 @@ snapshot files and never call the API.
 | `/spine/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
 | `/collection` | Redirect | Redirects to `/spine`; `/collection/:id` redirects to `/spine/:id`, both client-side |
 | `/admin` | Dashboard | Google sign-in gate, reached from the footer's Sign in link; once signed in, the API and nightly status, headline counts, the nightly jobs, quick actions and recent changes |
+| `/admin/analytics` | Analytics | Page views, visitors, views per day, pages, referrers and devices over 7, 30, 90 days or all time, from the first-party beacon (see [Analytics](#analytics)) |
 | `/admin/collection` | Shelf | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
 | `/admin/collection/:id` | Edit item | Every field, plus re-linking to a different IGDB/TMDB/Comic Vine match |
 | `/admin/import` | Import | Photograph a shelf; a vision model reads the titles and each is resolved against its source |
@@ -456,7 +457,8 @@ keeps the snapshot within a day of production. It calls admin routes with
 5. Resolve, repeated while it makes progress, at most five rounds;
 6. Radar generate, then Discover generate on Sunday evenings or when the
    `discover` input is ticked on a manual run;
-7. the snapshot compare and, only if a body differs, the static-site deploy
+7. the page-view rollup (`POST /api/analytics/rollup`);
+8. the snapshot compare and, only if a body differs, the static-site deploy
    hook.
 
 "Sunday evening" is Denver time, which is Monday in UTC; the job tests
@@ -469,9 +471,9 @@ job's limit is 150 minutes.
   → Actions. The two must match. Without the secret the job says so, refreshes
   nothing and fails its summary step. When they differ, or the Render value
   is not set, every call answers 401 and the run fails, naming both causes.
-- **The token opens seven routes and nothing else.** The whitelist is
+- **The token opens eight routes and nothing else.** The whitelist is
   `items.JOB_ROUTES` and `backend/tests/test_job_token.py` pins it exactly:
-  the six writes above plus `GET /api/physical/status`. A signed-in session is
+  the seven writes above plus `GET /api/physical/status`. A signed-in session is
   checked as before; the token never reaches any other admin route.
 - **Pick lag.** The picks are recorded as shown today (UTC), and What's
   next's `tonight` block only publishes picks from before today's UTC
@@ -492,6 +494,37 @@ job's limit is 150 minutes.
   enable the workflow. The Dashboard at `/admin` marks the catalog refresh
   stale, with a link here, when the last catalogue run is more than 36 hours
   old.
+
+## Analytics
+
+First-party and cookie-free; no third-party script is loaded and nothing
+leaves the site's own API.
+
+- **The beacon** (`frontend/src/lib/useAnalyticsBeacon.js`, mounted in
+  `RootLayout`) sends `{path, ref, device}` with `navigator.sendBeacon` once
+  per public route change: the path, the referring hostname on the first
+  view only, and desktop, phone or tablet. It waits for the session check
+  and sends nothing while signed in, on `/admin*`, or under Global Privacy
+  Control or Do Not Track.
+- **`POST /api/track`** (`backend/analytics_routes.py`) is unauthenticated
+  and always answers 204. It drops anything that is not a public route, a
+  hostname and a known device, a body over 1 KB, a signed-in admin, and
+  `Sec-GPC` or `DNT`. One IP counts at most 100 views a UTC day, in memory.
+- **A visitor** is `HMAC(salt, ip + "\n" + user agent)`, where the salt is
+  derived from `SESSION_SECRET` and the UTC date, so it changes at midnight
+  and nothing joins one day to the next. Neither the IP nor the user agent
+  is stored or logged. The IP is `CF-Connecting-IP`, never
+  `X-Forwarded-For`, whose first entry the caller chooses.
+- **Storage** is migration `0008`: `page_views` (raw rows, kept 90 days) and
+  `daily_stats` (per day, per page, referrer and device). The nightly
+  rollup recomputes every finished day that still has raw rows, then
+  deletes raw rows older than 90 days; it is idempotent, so a missed night
+  is caught up by the next.
+- **`GET /api/analytics?range=7d|30d|90d|all`** is admin only and cached for
+  a minute. It reads `daily_stats` for rolled-up days and counts the rest
+  (today, or a missed night) from raw rows.
+- **Undercounting is accepted:** the free API sleeps, and a beacon sent
+  while it wakes can be lost.
 
 ## Public API
 
