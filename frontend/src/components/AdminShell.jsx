@@ -7,7 +7,7 @@ import { useRouteFocus } from '../lib/useRouteFocus.js'
  * The admin navigation, in sidebar order. Routes keep their old URLs; only
  * the labels moved ("Collection" is the Shelf, "Catalog" is Sources).
  */
-export const ADMIN_GROUPS = [
+const ADMIN_GROUPS = [
   {
     label: 'Overview',
     items: [{ to: '/admin', label: 'Dashboard', end: true }],
@@ -149,6 +149,13 @@ export default function AdminShell({ email, ownedCount, onSignOut, children }) {
   const mainRef = useRouteFocus()
   const { pathname } = useLocation()
   const [sheet, setSheet] = useState(null)
+  // A sheet belongs to the tab bar: crossing the breakpoint closes it, or it
+  // would open again by itself on the way back to a phone width.
+  const [sheetPhone, setSheetPhone] = useState(phone)
+  if (sheetPhone !== phone) {
+    setSheetPhone(phone)
+    setSheet(null)
+  }
   const tabRefs = {
     picks: useRef(null),
     stores: useRef(null),

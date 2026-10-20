@@ -1100,21 +1100,6 @@ footer {
   text-decoration: none;
 }
 
-.admin-signout {
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-3);
-  cursor: pointer;
-  font: 500 0.8125rem var(--font-sans);
-  padding: 0.375rem 0.75rem;
-}
-
-.admin-signout:hover {
-  background: var(--surface);
-  color: var(--text);
-}
-
 /* The admin shell: a 232px sidebar beside the page on a desktop, a tab bar
    under it on a phone. It replaces the public masthead and footer. */
 .admin-app {
@@ -1271,6 +1256,12 @@ footer {
   padding: 18px 16px 90px;
 }
 
+/* The shelf's action sheet is pinned to the same edge: it opens over the
+   tab bar, or the bar would hide its last row of controls. */
+.admin-app-phone .shelf-sheet {
+  z-index: 40;
+}
+
 /* The signed-out, waking and error states: a plain centred panel, no shell. */
 .admin-gate {
   display: grid;
@@ -1318,11 +1309,15 @@ footer {
   margin-top: 4px;
 }
 
-.admin-head-end {
+.admin-head-end,
+.admin-head-status {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
+}
+
+.admin-head-end {
   margin-left: auto;
 }
 
@@ -1447,7 +1442,8 @@ footer {
   display: grid;
   font-size: 0.84375rem;
   gap: 4px 12px;
-  grid-template-columns: 7.5rem minmax(0, 1fr) auto auto;
+  /* Wide enough for the longest time, "Wed 30 Sept, 00:17". */
+  grid-template-columns: 9rem minmax(0, 1fr) auto auto;
   padding: 8px 0;
 }
 
@@ -1518,17 +1514,18 @@ footer {
   border-bottom: 0;
 }
 
+/* Beside the sidebar, four tiles would be too narrow for their labels. */
 @media (max-width: 900px) {
   .dashboard-two {
     grid-template-columns: minmax(0, 1fr);
   }
-}
 
-@media (max-width: 700px) {
   .stat-tiles {
     grid-template-columns: 1fr 1fr;
   }
+}
 
+@media (max-width: 700px) {
   .quick-actions {
     grid-template-columns: 1fr;
   }

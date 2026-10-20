@@ -191,6 +191,27 @@ describe('AdminShell tab bar', () => {
     expect(tab).toHaveFocus()
   })
 
+  it('closes an open sheet when the width leaves the phone layout', () => {
+    media.phone = true
+    // A new element each time: React skips a rerender of the same one.
+    const tree = () => (
+      <MemoryRouter initialEntries={['/admin']}>
+        <AdminShell email={null} ownedCount={null} onSignOut={() => {}}>
+          <p>Page body</p>
+        </AdminShell>
+      </MemoryRouter>
+    )
+    const { rerender } = render(tree())
+    fireEvent.click(within(tabs()).getByRole('button', { name: 'Picks' }))
+    media.phone = false
+    rerender(tree())
+    media.phone = true
+    rerender(tree())
+    expect(
+      within(tabs()).getByRole('button', { name: 'Picks' }),
+    ).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('signs out from More', () => {
     media.phone = true
     const onSignOut = vi.fn()

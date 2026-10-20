@@ -19,7 +19,8 @@ export default function StatTile({ label, value, detail }) {
 }
 
 /**
- * A row of tiles: four across on a desktop, two on a phone.
+ * A row of tiles: four across on a desktop, two on a narrow screen. The
+ * name sits on a group around the list, since a bare <dl> takes no label.
  *
  * @param {object} props
  * @param {string} [props.label] An accessible name for the row.
@@ -27,8 +28,8 @@ export default function StatTile({ label, value, detail }) {
  */
 export function StatTiles({ label, children }) {
   return (
-    <dl className="stat-tiles" aria-label={label}>
-      {children}
-    </dl>
+    <div role="group" aria-label={label}>
+      <dl className="stat-tiles">{children}</dl>
+    </div>
   )
 }
