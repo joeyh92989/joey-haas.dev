@@ -10,7 +10,8 @@ import { spine } from './spine.js'
  *
  * `url` is null when there is no publicly reachable link. `to` is an internal
  * route, used when the project lives on this site rather than elsewhere.
- * `strip: 'favourites'` shows the collection's favourite covers. `tagline`,
+ * `strip: 'favourites'` shows the collection's favourite covers. `summary` is
+ * Home's one-line version of a card. `tagline`,
  * `highlights` and `links` are optional; `links` entries take `to` for a route
  * or `href` for an external URL, and carry no arrow.
  */
@@ -46,6 +47,8 @@ export const projects = [
   },
   {
     name: 'This Website',
+    summary:
+      'React and Vite, FastAPI behind Google sign-in, Postgres on Neon, and a pull-request pipeline to Render.',
     description:
       'This site: a React and Vite frontend with a markdown blog compiled at build time, a FastAPI backend behind Google sign-in, Postgres on Neon, and a pull-request pipeline that deploys to Render on merge.',
     links: [

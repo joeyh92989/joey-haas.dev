@@ -15,6 +15,8 @@ export const spine = {
   tagline:
     'A tracker for my physical game collection: what I own, what I’ve finished, and what to play next.',
   projectsTagline: 'A tracker for a physical game collection',
+  homeLine:
+    'A tracker for a physical game collection: photo import, a physical catalog, and picks that say why.',
   projectLine:
     'I built this: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
   links: {

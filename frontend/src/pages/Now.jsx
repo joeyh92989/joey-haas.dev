@@ -3,11 +3,10 @@ import { Link } from 'react-router'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import { spine } from '../content/spine.js'
+import { nowLists } from '../lib/nowLists.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
-
-const RECENT = 4
 
 const DAY = new Intl.DateTimeFormat('en', {
   day: 'numeric',
@@ -16,34 +15,18 @@ const DAY = new Intl.DateTimeFormat('en', {
   timeZone: 'UTC',
 })
 
+function finishedOn(isoDate) {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  return DAY.format(new Date(Date.UTC(year, month - 1, day)))
+}
+
 /**
  * What the shelf says I am doing now: playing, up next, just finished.
  *
  * A /now page (nownownow.com) written by Spine instead of by hand, so it is
  * never stale by more than a night. Like Home and Projects it reads only the
  * build-time snapshot, never the API, so it renders while the backend sleeps.
- *
- * @param {object[]} items The snapshot's public items.
- * @returns {{playing: object[], finished: object[]}}
  */
-export function nowLists(items) {
-  // Games only: the shelf also holds films, comics and board games, and
-  // "Playing" means a game here.
-  const owned = items.filter((item) => item.type === 'game' && !item.wanted)
-  return {
-    playing: owned.filter((item) => item.status === 'active'),
-    finished: owned
-      .filter((item) => item.finished_at)
-      .sort((a, b) => b.finished_at.localeCompare(a.finished_at))
-      .slice(0, RECENT),
-  }
-}
-
-function finishedOn(isoDate) {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  return DAY.format(new Date(Date.UTC(year, month - 1, day)))
-}
-
 export default function Now() {
   usePageTitle('Now · Joey Haas')
   const [items, setItems] = useState(null)

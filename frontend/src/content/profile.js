@@ -7,13 +7,28 @@
  *
  * Bio paragraphs are separated by a blank line; About.jsx splits on '\n\n'.
  * Work history lives in experience.js.
+ *
+ * `headline` is Home's hero and the only place its claim is made; About
+ * opens with the bio instead, so the two pages do not start on one line.
+ * `accent` is the headline's closing phrase, set in the serif italic.
  */
 export const profile = {
   name: 'Joey Haas',
   tagline: 'Senior software engineer · Denver, Colorado',
+  headline: {
+    lead: 'Backend systems where correctness and money are the',
+    accent: 'same problem.',
+  },
+  lede: 'I’m a senior software engineer at Guild, building the payments and ledger systems behind employer-funded education. Eight years as a product manager before that, so I care as much about why we build things as how.',
+  /** Home's facts table, after which the derived Last shipped and Playing rows. */
+  facts: [
+    { label: 'Now', value: 'Guild · Senior Software Engineer' },
+    { label: 'Focus', value: 'Payments & ledger systems' },
+    { label: 'Stack', value: 'Node · TypeScript · Python · Postgres' },
+  ],
   bio: `I'm a senior software engineer at Guild, where five years of engineering on the payments team have gone into the backend systems that fund, track, and reconcile every learner benefit dollar — spend-writing APIs, funding context, tax classification, and the eligibility migration underneath them.
 
-Before the code, eight years as a product manager across enterprise SaaS, payments, and video. I still work like one: architecture doc, then squad alignment, then the endpoint — and the data forensics when something goes wrong. Most useful on systems where correctness and money are the same problem.`,
+Before the code, eight years as a product manager across enterprise SaaS, payments, and video. I still work like one: architecture doc, then squad alignment, then the endpoint — and the data forensics when something goes wrong.`,
   email: 'josephthaas@gmail.com',
   github: 'https://github.com/joeyh92989',
   /** This site's repository: the footer, Projects and /spine link to it. */
