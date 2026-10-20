@@ -81,6 +81,8 @@ export default function App() {
           <Route path="discover" element={<AdminDiscover />} />
           <Route path="store-list" element={<AdminStoreList />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />
+          {/* Inside the shell, so a mistyped admin URL keeps the sidebar. */}
+          <Route path="*" element={<NotFound />} />
         </Route>
         <Route path="blog" element={<Blog />} />
         <Route path="blog/:slug" element={<BlogPost />} />

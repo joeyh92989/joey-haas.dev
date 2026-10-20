@@ -93,6 +93,7 @@ const TITLES = [
   ['/admin/discover', 'Discover · Admin · Joey Haas'],
   ['/admin/store-list', 'Store list · Admin · Joey Haas'],
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
+  ['/admin/no-such-page', 'Not found · Joey Haas'],
   ['/spine/42', 'Spine · Joey Haas'],
   ['/spine/next', 'What’s next · Spine'],
   ['/spine/year/2025', '2025 in review · Spine'],
