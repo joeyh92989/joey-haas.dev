@@ -222,9 +222,9 @@ async def test_an_empty_read_is_all_zeros_with_the_launch_date(sessionmaker_for_
     assert body["range"] == "7d"
     assert (body["views"], body["visitors"], body["best_day"]) == (0, 0, None)
     assert len(body["series"]) == 7
-    assert body["live_since"] == "2026-10-19"
+    assert body["live_since"] == "2026-10-20"
     assert (default.json()["range"], len(default.json()["series"])) == ("30d", 30)
-    assert everything.json()["start"] == "2026-10-19"
+    assert everything.json()["start"] == "2026-10-20"
     assert bad.status_code == 422
 
 

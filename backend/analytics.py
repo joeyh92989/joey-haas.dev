@@ -30,7 +30,7 @@ from datetime import date, timedelta
 
 # The day the beacon went live: the empty state's "live since", and where
 # the All range starts. Set to the merge date.
-ANALYTICS_LIVE_SINCE = date(2026, 10, 19)
+ANALYTICS_LIVE_SINCE = date(2026, 10, 20)
 
 MAX_BODY_BYTES = 1024
 MAX_PATH = 200
