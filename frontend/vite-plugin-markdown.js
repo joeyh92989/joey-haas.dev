@@ -15,7 +15,7 @@ import { unified } from 'unified'
 /*
  * Picked on measured contrast against the --code-bg values they sit on, not on
  * looks. Every color either theme emits across fifteen sample languages clears
- * 4.5:1: worst 4.53 light (the red used for string escapes) and 4.62 dark (the
+ * 4.5:1: worst 4.53 light (the red used for string escapes) and 4.89 dark (the
  * grey used for JSX and HTML angle brackets). The vitesse pair used before
  * failed six of nine tokens on light and three of nine on dark, even against
  * plain white and near-black.

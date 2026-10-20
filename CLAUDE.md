@@ -48,8 +48,8 @@ before pushing.
 ## Conventions
 
 - Plain CSS in `frontend/src/index.css`. No CSS framework unless deliberately
-  added. Design tokens are CSS variables declared twice: warm-dark values on
-  `:root` and warm-light overrides under `[data-theme='light']`. Style with the
+  added. Design tokens are CSS variables declared twice: dark values on
+  `:root` and light overrides under `[data-theme='light']`. Style with the
   tokens, never with raw hex — a literal color will be wrong in one theme.
 - Theming: dark is the brand default and is written into the markup as
   `<html data-theme="dark">`, so it survives a JavaScript failure. A pre-paint
@@ -87,8 +87,8 @@ before pushing.
   token, and the status colors were chosen on measured contrast: each clears
   3:1 against `--surface` in both themes (they are non-text marks, and the
   stacked bar's 2px gaps are `--surface`), and `--status-backlog` also clears
-  3:1 against `--border`. Changing one means measuring again; the ratios are
-  in the commit that added them.
+  3:1 against `--line`. Changing one means measuring again; the ratios are
+  recorded beside the tokens in `index.css`.
 - Tracker pages break out of the 45rem prose column via `page-wide` (72rem),
   which `RootLayout` applies to any path in its `WIDE_ROUTES` list or nested
   under one. Add a new tracker route there, not in a page's own CSS.

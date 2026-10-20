@@ -1,5 +1,6 @@
 /*
- * Warm Personal theme.
+ * Ledger theme (site refresh, 2026-10-19): one neutral scale, one cool
+ * accent, hairline rules, a mono face for metadata.
  *
  * Dark is the brand default and lives on :root; [data-theme='light'] on <html>
  * overrides it. index.html ships data-theme="dark" in the markup so the dark
@@ -9,50 +10,59 @@
  * Handoff sizes are given in px; they are expressed here in rem against the
  * 16px browser default (identical rendering, but text still scales for readers
  * who raise their browser font size).
+ *
+ * Every text token clears 4.5:1 on every background it is set on (--bg,
+ * --surface, --sunken and --accent-soft, the active sidebar row), and every
+ * non-text mark clears 3:1 against --surface (WCAG 1.4.11). The mockup's
+ * --text-3 and --chart-2 failed and were moved in lightness only; the
+ * ratios are recorded beside each.
  */
 :root {
-  --bg: #201a14;
-  --surface: #2a2219;
-  --surface-raised: #2a2219;
-  --border: #443929;
-  --text: #f6eddd;
-  --text-body: #c9bba5;
-  --text-muted: #a4937c;
-  --accent: #d98e5f;
-  /* Lifted from the handoff's #6f8577, which reached only 4.34:1 on --bg and
-     3.95:1 on --surface. Only lightness was moved (47.8% to 52.8%); hue and
-     saturation survive to within a degree and a third of a point, which is as
-     close as 8-bit channels allow. The sage reads the same and clears AA. */
-  --accent-2: #7c9184;
-  --tag-bg: #2a2219;
-  --tag-border: #443929;
-  --tag-text: #c9bba5;
-  --nav-active-bg: #f6eddd;
-  --nav-active-text: #201a14;
-  --nav-idle: #a4937c;
-  /* The inverted pill reads lighter on dark, so it carries more weight. */
-  --nav-active-weight: 600;
+  --bg: #0f1114;
+  --surface: #15181c;
+  --sunken: #1b1f24;
+  --line: #262b32;
+  /* Decorative only (button borders, the timeline rail), so not held to
+     3:1: every control it outlines carries its own label. */
+  --line-strong: #3a414a;
+  /* Measured, dark, lowest of --bg / --surface / --sunken / --accent-soft:
+     text 13.11, text-2 7.30, text-3 4.79 (the mockup's #7d848e reached
+     only 4.04 on --accent-soft and 4.39 on --sunken), accent 5.76. */
+  --text: #eceef1;
+  --text-2: #aeb4bd;
+  --text-3: #8a919b;
+  --accent: #6ea0ef;
+  /* --accent-ink on --accent 7.15; --bg on --text (pressed chips, the
+     monogram) 16.27. */
+  --accent-ink: #0f1114;
+  --accent-soft: #1a2638;
+  /* Marks on --surface: ok 8.27, warn 8.51, chart 6.73, chart-2 3.15 (the
+     mockup's #2e4467 reached 1.81). */
+  --ok: #5ec48d;
+  --warn: #e3a94a;
+  --chart: #6ea0ef;
+  --chart-2: #4a6896;
   /* Code blocks get their own token because the syntax colors do not clear AA
-     on the surface tokens: measured across fifteen languages, this is the
-     lightest warm paper on which every dark-plus token reaches 4.5:1 (worst
-     4.62 — the grey used for JSX and HTML angle brackets). On --surface that
-     grey drops to 3.96. */
-  --code-bg: #1a140d;
+     on every surface: measured across fifteen languages, every dark-plus
+     color reaches 4.89:1 here (worst: the grey used for JSX and HTML angle
+     brackets). On --surface that grey drops to 4.51, on --sunken to 4.19. */
+  --code-bg: #0c0e11;
   /* The tracker shelf. Status marks are non-text marks, so each clears 3:1
      (WCAG 1.4.11) against --surface, the colour of the 2px gaps between
-     stacked-bar segments; backlog also clears 3:1 against --border. The
+     stacked-bar segments; backlog also clears 3:1 against --line. The
      four step in lightness as well as hue (lightest first: finished,
-     backlog, active, abandoned), so no two sit closer than 1.48:1 to each
-     other. Measured, dark: active 4.65, finished 10.24, backlog 6.92,
-     abandoned 3.15; backlog on --border 4.98. */
-  --rating: var(--accent);
-  --status-active: var(--accent-2);
-  --status-finished: #e0cfb2;
-  --status-backlog: #c0a989;
-  --status-abandoned: #67717c;
+     active, backlog, abandoned), so no two sit closer than 1.48:1 to each
+     other. Measured, dark: finished 14.22, active 8.27, backlog 5.60,
+     abandoned 3.71; backlog on --line 4.48; rating 8.51. */
+  --rating: var(--warn);
+  --status-active: var(--ok);
+  --status-finished: #e3e6ea;
+  --status-backlog: #8a919b;
+  --status-abandoned: #6b737e;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
-  --skeleton: #342b21;
+  --skeleton: var(--sunken);
   --grid-gap: 1rem;
+  --radius: 6px;
   --font-sans:
     'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', sans-serif;
@@ -63,37 +73,41 @@
 }
 
 [data-theme='light'] {
-  --bg: #faf6ef;
-  --surface: #f2eadb;
-  --surface-raised: #fffdf8;
-  --border: #e4d8c2;
-  --text: #2a2520;
-  --text-body: #4a4136;
-  /* Both darkened from the handoff (#8a7c6a, #b85c38), which fell between
-     3.40:1 and 4.47:1 against the light surfaces. These carry every piece of
-     secondary text and every prose link in this theme, so they have to clear
-     4.5:1 on the darkest of them (--surface). */
-  --text-muted: #746859;
-  --accent: #a45232;
-  --accent-2: #52705f;
-  --tag-bg: #eef1ea;
-  --tag-border: #d8e0d3;
-  --tag-text: #52705f;
-  --nav-active-bg: #2a2520;
-  --nav-active-text: #faf6ef;
-  --nav-idle: #6b5f50;
-  --nav-active-weight: 500;
-  --code-bg: #fffffd;
-  /* Measured, light: active 4.57, finished 8.03, backlog 6.03, abandoned
-     3.46 on --surface; backlog on --border 5.11. Darkest first: finished,
-     backlog, active, abandoned; no two closer than 1.32:1. */
-  --rating: var(--accent);
-  --status-active: var(--accent-2);
-  --status-finished: #4f4335;
-  --status-backlog: #685438;
-  --status-abandoned: #737e8a;
+  --bg: #fcfcfb;
+  --surface: #ffffff;
+  --sunken: #f3f3f0;
+  --line: #e4e4df;
+  --line-strong: #c9c9c2;
+  /* Measured, light, lowest of --bg / --surface / --sunken / --accent-soft:
+     text 15.65, text-2 7.18, text-3 4.61 (the mockup's #7a808a reached
+     only 3.46 to 3.98), accent 5.31. */
+  --text: #15171a;
+  --text-2: #4a4f57;
+  --text-3: #666c75;
+  --accent: #1f5fbf;
+  /* --accent-ink on --accent 6.09; --bg on --text 17.49. */
+  --accent-ink: #ffffff;
+  --accent-soft: #e8f0fc;
+  /* Marks on --surface: ok 5.32, warn 4.24, chart 6.09, chart-2 3.10 (the
+     mockup's #9fbce8 reached 1.94). */
+  --ok: #1f7a4d;
+  --warn: #b26a00;
+  --chart: #1f5fbf;
+  --chart-2: #7393cb;
+  /* Every light-plus color reaches 4.53:1 on white (worst: the red used for
+     string escapes); on --bg it drops to 4.41. */
+  --code-bg: #ffffff;
+  /* Measured, light, on --surface: finished 13.46, backlog 6.24, active
+     4.58, abandoned 3.22; backlog on --line 4.90; rating 4.24. Darkest
+     first: finished, backlog, active, abandoned; no two closer than
+     1.36:1, and active is the only green. */
+  --rating: var(--warn);
+  --status-active: #2a8556;
+  --status-finished: #2b2f35;
+  --status-backlog: #5b616a;
+  --status-abandoned: #8a9099;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
-  --skeleton: #ebe1cf;
+  --skeleton: #ecece8;
   --grid-gap: 1rem;
   color-scheme: light;
 }
@@ -106,7 +120,7 @@
 
 body {
   background: var(--bg);
-  color: var(--text-body);
+  color: var(--text-2);
   font-family: var(--font-sans);
   font-size: 0.9375rem;
   line-height: 1.65;
@@ -164,7 +178,7 @@ a:hover {
 }
 
 .muted {
-  color: var(--text-muted);
+  color: var(--text-3);
 }
 
 /* ---------- Site header ---------- */
@@ -178,7 +192,7 @@ a:hover {
 /* The asset is already a square crop centered on the face, so object-fit only
    has to guard against a future replacement with different proportions. */
 .avatar {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 50%;
   flex: none;
   height: 3.5rem;
@@ -194,7 +208,7 @@ a:hover {
 }
 
 .site-header .tagline {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.84375rem;
   margin-top: 0.0625rem;
 }
@@ -263,7 +277,7 @@ nav {
 
 nav a {
   border-radius: 999px;
-  color: var(--nav-idle);
+  color: var(--text-2);
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 0.375rem 0.9375rem;
@@ -279,9 +293,9 @@ nav a:hover {
 
 nav a.active,
 nav a.active:hover {
-  background: var(--nav-active-bg);
-  color: var(--nav-active-text);
-  font-weight: var(--nav-active-weight);
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 500;
 }
 
 .nav-row.home {
@@ -290,9 +304,9 @@ nav a.active:hover {
 
 .theme-toggle {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--text-muted);
+  color: var(--text-3);
   cursor: pointer;
   font: 500 0.8125rem var(--font-sans);
   margin-left: auto;
@@ -324,7 +338,7 @@ nav a:focus-visible,
 }
 
 .intro {
-  color: var(--text-body);
+  color: var(--text-2);
   margin-top: 0.875rem;
   max-width: 54ch;
 }
@@ -344,7 +358,7 @@ nav a:focus-visible,
 
 .link-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--text);
   flex: 1;
@@ -353,7 +367,7 @@ nav a:focus-visible,
 }
 
 .link-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   text-decoration: none;
 }
 
@@ -367,7 +381,7 @@ nav a:focus-visible,
 }
 
 .link-card-sub {
-  color: var(--text-muted);
+  color: var(--text-3);
   display: block;
   font-size: 0.8125rem;
   margin-top: 0.1875rem;
@@ -383,7 +397,7 @@ nav a:focus-visible,
 
 .latest-post {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 12px;
   display: block;
   margin-top: 1rem;
@@ -391,12 +405,12 @@ nav a:focus-visible,
 }
 
 .latest-post:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   text-decoration: none;
 }
 
 .latest-kicker {
-  color: var(--accent-2);
+  color: var(--text-3);
   display: block;
   font-size: 0.65625rem;
   font-weight: 600;
@@ -421,7 +435,7 @@ section + section {
 }
 
 .prose {
-  color: var(--text-body);
+  color: var(--text-2);
   margin-top: 0.75rem;
   max-width: 58ch;
 }
@@ -432,7 +446,7 @@ section + section {
 
 /* The rule is the spine of the timeline; each entry hangs a dot on it. */
 .timeline {
-  border-left: 2px solid var(--border);
+  border-left: 2px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 1.625rem;
@@ -445,7 +459,7 @@ section + section {
 }
 
 .timeline-entry::before {
-  background: var(--accent-2);
+  background: var(--line-strong);
   border-radius: 50%;
   content: '';
   height: 0.625rem;
@@ -466,7 +480,7 @@ section + section {
 }
 
 .timeline-company {
-  color: var(--accent-2);
+  color: var(--text-3);
   font-size: 0.875rem;
 }
 
@@ -475,7 +489,7 @@ section + section {
 }
 
 .timeline-meta {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   margin-top: 0.125rem;
@@ -483,7 +497,7 @@ section + section {
 }
 
 .timeline-summary {
-  color: var(--text-body);
+  color: var(--text-2);
   font-size: 0.875rem;
   margin-top: 0.375rem;
   max-width: 54ch;
@@ -499,9 +513,9 @@ section + section {
 
 .chip-list li {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--text-body);
+  color: var(--text-2);
   font-size: 0.8125rem;
   padding: 0.25rem 0.8125rem;
 }
@@ -519,8 +533,8 @@ section + section {
 }
 
 .expertise-list li {
-  border-left: 2px solid var(--border);
-  color: var(--text-body);
+  border-left: 2px solid var(--line);
+  color: var(--text-2);
   font-size: 0.875rem;
   padding-left: 0.75rem;
 }
@@ -535,8 +549,8 @@ section + section {
 }
 
 .project-card {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 1.375rem 1.5rem;
 }
@@ -548,7 +562,7 @@ section + section {
 }
 
 .project-card p {
-  color: var(--text-body);
+  color: var(--text-2);
   font-size: 0.90625rem;
   margin-top: 0.375rem;
 }
@@ -558,13 +572,13 @@ section + section {
 }
 
 .project-card .project-tagline {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.875rem;
   margin: 0.125rem 0 0.75rem;
 }
 
 .project-highlights {
-  color: var(--text-body);
+  color: var(--text-2);
   font-size: 0.875rem;
   margin: 0.625rem 0 0;
   padding-left: 1.125rem;
@@ -593,10 +607,10 @@ section + section {
 }
 
 .tech-list li {
-  background: var(--tag-bg);
-  border: 1px solid var(--tag-border);
+  background: var(--sunken);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--tag-text);
+  color: var(--text-2);
   font-size: 0.78125rem;
   padding: 0.1875rem 0.75rem;
 }
@@ -609,7 +623,7 @@ section + section {
 }
 
 .post-list li {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   padding-bottom: 1.25rem;
 }
 
@@ -639,7 +653,7 @@ section + section {
 
 .post-meta {
   align-items: center;
-  color: var(--text-muted);
+  color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
   font-size: 0.8125rem;
@@ -658,9 +672,9 @@ section + section {
 
 .draft-badge {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   margin-left: 0.5rem;
@@ -669,7 +683,7 @@ section + section {
 }
 
 .post-body {
-  color: var(--text-body);
+  color: var(--text-2);
   margin-top: 1.5rem;
 }
 
@@ -699,22 +713,22 @@ section + section {
 }
 
 .post-body blockquote {
-  border-left: 3px solid var(--border);
-  color: var(--text-muted);
+  border-left: 3px solid var(--line);
+  color: var(--text-3);
   margin-bottom: 1rem;
   padding-left: 1rem;
 }
 
 .post-body :not(pre) > code {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 4px;
   font-size: 0.85em;
   padding: 0.1rem 0.35rem;
 }
 
 .post-body pre {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   margin-bottom: 1rem;
   overflow-x: auto;
@@ -731,7 +745,7 @@ section + section {
 
 .post-body th,
 .post-body td {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   padding: 0.4rem 0.7rem;
   text-align: left;
 }
@@ -746,12 +760,11 @@ section + section {
  * narrow the span selector — as written it also matches the .line wrappers, so
  * a transformer that colors a whole line would have that color overridden.
  */
-/* Shiki's own block backgrounds are near-black and pure white — the only cold
-   surfaces in a warm design. Swapping the paper for a palette token costs
-   contrast against the syntax colors, which is why the themes in
-   vite-plugin-markdown.js were chosen to clear 4.5:1 on these exact
-   backgrounds. Light needs to sit a shade above --surface-raised: the red the
-   themes use for string escapes reaches 4.53:1 here and only 4.46:1 there. */
+/* Shiki's own block backgrounds are swapped for --code-bg, which is chosen
+   with the themes in vite-plugin-markdown.js so every syntax color clears
+   4.5:1 on it: 4.53:1 light (the red used for string escapes), 4.89:1 dark.
+   Neither palette's --bg or --surface would do: light drops to 4.41 on
+   --bg, dark to 4.51 on --surface. */
 .post-body .shiki {
   background-color: var(--code-bg) !important;
 }
@@ -776,8 +789,8 @@ section + section {
 /* ---------- Footer ---------- */
 
 footer {
-  border-top: 1px solid var(--border);
-  color: var(--text-muted);
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
   font-size: 0.84375rem;
   margin-top: 2.75rem;
   padding-top: 1.125rem;
@@ -810,7 +823,7 @@ footer {
 
 .admin-error {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-left: 3px solid var(--accent);
   border-radius: 8px;
   color: var(--text);
@@ -820,7 +833,7 @@ footer {
 
 .admin-signin {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
   display: inline-block;
   font-size: 0.8125rem;
@@ -829,15 +842,15 @@ footer {
 }
 
 .admin-signin:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   text-decoration: none;
 }
 
 .admin-signout {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--text-muted);
+  color: var(--text-3);
   cursor: pointer;
   font: 500 0.8125rem var(--font-sans);
   padding: 0.375rem 0.75rem;
@@ -863,7 +876,7 @@ footer {
 .item-table select,
 .item-table button {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   font: inherit;
@@ -872,7 +885,7 @@ footer {
 }
 
 .item-form input::placeholder {
-  color: var(--text-muted);
+  color: var(--text-3);
 }
 
 .item-form input:focus-visible,
@@ -899,7 +912,7 @@ footer {
 }
 
 .metadata-picker label {
-  color: var(--text-muted);
+  color: var(--text-3);
   display: block;
   font-size: 0.8125rem;
   margin-bottom: 0.3rem;
@@ -907,7 +920,7 @@ footer {
 
 .metadata-picker input[type='search'] {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   font: inherit;
@@ -924,7 +937,7 @@ footer {
 }
 
 .candidate-list {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   list-style: none;
   margin: 0.5rem 0 0;
@@ -935,7 +948,7 @@ footer {
 }
 
 .candidate-list li + li {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
 }
 
 .candidate-list button {
@@ -955,7 +968,7 @@ footer {
 
 .candidate-list button:hover,
 .candidate-list button:focus-visible {
-  background: var(--surface-raised);
+  background: var(--sunken);
 }
 
 /* Fixed box so a missing or slow poster does not reflow the whole list. */
@@ -969,8 +982,8 @@ footer {
 }
 
 .candidate-thumb-empty {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--sunken);
+  border: 1px solid var(--line);
   display: block;
 }
 
@@ -994,8 +1007,8 @@ footer {
    posters are 2:3, game covers nearer 3:4, board game box shots roughly
    square. One ratio for all of them looks broken on a mixed shelf. */
 .cover {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--sunken);
+  border: 1px solid var(--line);
   border-radius: 4px;
   display: block;
   overflow: hidden;
@@ -1032,7 +1045,7 @@ footer {
 }
 
 .import-form input[type='file'] {
-  color: var(--text-body);
+  color: var(--text-2);
   font: inherit;
   font-size: 0.875rem;
 }
@@ -1041,7 +1054,7 @@ footer {
 .import-table input,
 .import-table select {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   font: inherit;
@@ -1067,13 +1080,13 @@ footer {
 }
 
 .import-result {
-  color: var(--text-body);
+  color: var(--text-2);
 }
 
 /* Text, never colour alone. A badge distinguished only by colour tells
    nothing to a reader who cannot see the difference. */
 .confidence {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
   display: inline-block;
   font-size: 0.75rem;
@@ -1082,12 +1095,12 @@ footer {
 }
 
 .confidence-exact {
-  border-color: var(--accent-2);
+  border-color: var(--ok);
   color: var(--text);
 }
 
 .confidence-probable {
-  color: var(--text-body);
+  color: var(--text-2);
 }
 
 .confidence-uncertain {
@@ -1131,7 +1144,7 @@ footer {
 
 .item-relink,
 .play-journal {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   margin-top: 1.25rem;
   padding-top: 1rem;
 }
@@ -1178,7 +1191,7 @@ footer {
 }
 
 .play-journal-list time {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1195,7 +1208,7 @@ footer {
 }
 
 .item-detail-form label {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.8125rem;
 }
 
@@ -1203,7 +1216,7 @@ footer {
 .item-detail-form select,
 .item-detail-form textarea {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   font: inherit;
@@ -1235,7 +1248,7 @@ footer {
 
 .item-detail-actions button {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   cursor: pointer;
@@ -1275,7 +1288,7 @@ footer {
 .play-next-empty button,
 .play-next-reroll button {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   cursor: pointer;
@@ -1308,7 +1321,7 @@ footer {
 
 /* Understated on purpose: a door for one person, not a call to action. */
 .footer-admin {
-  color: var(--text-muted);
+  color: var(--text-3);
 }
 
 /* Public collection showcase. */
@@ -1316,7 +1329,7 @@ footer {
 /* /spine: the header block above the hero numbers. Capped at the prose
    width so the lede does not run the full 72rem of the wide page. */
 .spine-lede {
-  color: var(--text-body);
+  color: var(--text-2);
   font-size: 1.0625rem;
   margin: 0.375rem 0 0;
   max-width: 45rem;
@@ -1326,7 +1339,7 @@ footer {
    is a p on the sub-page, so it takes the global h1's display size and weight
    from here to match the shelf's h1. */
 .spine-header {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   margin-bottom: 1.75rem;
   padding-bottom: 0.25rem;
 }
@@ -1365,7 +1378,7 @@ footer {
 }
 
 .spine-tabs a {
-  color: var(--text-muted);
+  color: var(--text-3);
 }
 
 .spine-tabs a:hover {
@@ -1419,7 +1432,7 @@ footer {
 }
 
 .hero-numbers dt {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
   margin-top: 0.35rem;
@@ -1458,7 +1471,7 @@ footer {
 
 .favourite-empty {
   aspect-ratio: 3 / 4;
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--line);
   border-radius: 4px;
 }
 
@@ -1474,7 +1487,7 @@ footer {
 }
 
 .stat-count {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1592,7 +1605,7 @@ a.month-bar::before {
    shows on focus as well as hover, so nothing is hover-only. */
 .rating-bar-count {
   bottom: 100%;
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
   left: 50%;
@@ -1626,7 +1639,7 @@ a.month-bar::before {
 }
 
 .bar-axis {
-  color: var(--text-muted);
+  color: var(--text-3);
   display: flex;
   font-size: 0.6875rem;
   justify-content: space-between;
@@ -1661,7 +1674,7 @@ a.month-bar::before {
 }
 
 .stat-big-label {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.75rem;
   white-space: nowrap;
 }
@@ -1774,21 +1787,21 @@ a.month-bar::before {
 
 /* The owner's copy: its own line, not a chip among the game's genres. */
 .item-copy {
-  color: var(--text-body);
+  color: var(--text-2);
   font-size: 0.9375rem;
   margin: 0.25rem 0 0;
 }
 
 .item-chip {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--text-body);
+  color: var(--text-2);
   font-size: 0.8125rem;
   padding: 0.15rem 0.65rem;
 }
 
 .item-chip-muted {
-  color: var(--text-muted);
+  color: var(--text-3);
 }
 
 .item-description-wrap {
@@ -1817,13 +1830,13 @@ a.month-bar::before {
 
 .item-tile {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.85rem 1rem;
 }
 
 .item-tile dt {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
   margin-bottom: 0.35rem;
@@ -1861,7 +1874,7 @@ a.month-bar::before {
 .quick-rate-target {
   background: none;
   border: 0;
-  color: var(--text-muted);
+  color: var(--text-3);
   cursor: pointer;
   font: inherit;
   height: 1.2em;
@@ -1900,7 +1913,7 @@ a.month-bar::before {
   }
 
   .quick-rate-target:hover ~ .quick-rate-target {
-    color: var(--text-muted);
+    color: var(--text-3);
   }
 }
 
@@ -1932,7 +1945,7 @@ a.month-bar::before {
 
 .shelf-actions-row select {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
   font: inherit;
@@ -1944,7 +1957,7 @@ a.month-bar::before {
 .shelf-favourite {
   background: none;
   border: 0;
-  color: var(--text-muted);
+  color: var(--text-3);
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
@@ -1970,7 +1983,7 @@ a.month-bar::before {
 
 .shelf-publish {
   align-items: center;
-  color: var(--text-muted);
+  color: var(--text-3);
   display: inline-flex;
   font-size: 0.75rem;
   gap: 0.2rem;
@@ -1978,7 +1991,7 @@ a.month-bar::before {
 
 .shelf-actions-toggle {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text);
   cursor: pointer;
@@ -1988,8 +2001,8 @@ a.month-bar::before {
 }
 
 .shelf-sheet {
-  background: var(--surface-raised);
-  border-top: 1px solid var(--border);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
   bottom: 0;
   box-shadow: 0 -8px 24px var(--overlay);
   left: 0;
@@ -2021,7 +2034,7 @@ a.month-bar::before {
 .shelf-nudge {
   align-items: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
@@ -2039,7 +2052,7 @@ a.month-bar::before {
 .bulk-set {
   align-items: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
@@ -2050,7 +2063,7 @@ a.month-bar::before {
 
 .bulk-set label {
   align-items: center;
-  color: var(--text-muted);
+  color: var(--text-3);
   display: flex;
   font-size: 0.8125rem;
   gap: 0.4rem;
@@ -2058,7 +2071,7 @@ a.month-bar::before {
 
 .bulk-set select {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
   font: inherit;
@@ -2085,7 +2098,7 @@ a.month-bar::before {
 .up-next {
   align-items: center;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-left: 3px solid var(--status-active);
   border-radius: 8px;
   display: flex;
@@ -2111,7 +2124,7 @@ a.month-bar::before {
 
 .pick-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -2190,9 +2203,9 @@ a.month-bar::before {
 
 .chip {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--text-body);
+  color: var(--text-2);
   cursor: pointer;
   font: inherit;
   font-size: 0.8125rem;
@@ -2202,7 +2215,7 @@ a.month-bar::before {
 }
 
 .chip:hover {
-  border-color: var(--text-muted);
+  border-color: var(--text-3);
 }
 
 .chip:focus-visible {
@@ -2211,9 +2224,9 @@ a.month-bar::before {
 }
 
 .chip[aria-pressed='true'] {
-  background: var(--nav-active-bg);
-  border-color: var(--nav-active-bg);
-  color: var(--nav-active-text);
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
 }
 
 .chip-count {
@@ -2230,7 +2243,7 @@ a.month-bar::before {
 
 .sort-select {
   align-items: center;
-  color: var(--text-muted);
+  color: var(--text-3);
   display: flex;
   font-size: 0.8125rem;
   gap: 0.4rem;
@@ -2238,7 +2251,7 @@ a.month-bar::before {
 
 .sort-select select {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   font: inherit;
@@ -2352,7 +2365,7 @@ a.month-bar::before {
   background: var(--overlay);
   border-radius: 3px;
   bottom: 0.4rem;
-  color: var(--text-muted);
+  color: var(--text-3);
   display: flex;
   font-size: 0.75rem;
   font-weight: 600;
@@ -2414,8 +2427,8 @@ a.month-bar::before {
 }
 
 .attribution {
-  border-top: 1px solid var(--border);
-  color: var(--text-muted);
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
   font-size: 0.75rem;
   margin-top: 2.5rem;
   padding-top: 1rem;
@@ -2439,13 +2452,13 @@ a.month-bar::before {
 
 .item-table th,
 .item-table td {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   padding: 0.5rem 0.7rem;
   text-align: left;
 }
 
 .item-table th {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -2465,7 +2478,7 @@ a.month-bar::before {
 .needs-match button,
 .registry-line button {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   cursor: pointer;
@@ -2490,7 +2503,7 @@ a.month-bar::before {
 }
 
 .catalogue-progress {
-  color: var(--text-muted);
+  color: var(--text-3);
   min-height: 1.5em;
 }
 
@@ -2503,13 +2516,13 @@ a.month-bar::before {
 
 .catalogue-totals div {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
 }
 
 .catalogue-totals dt {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.75rem;
 }
 
@@ -2555,7 +2568,7 @@ a.month-bar::before {
 
 .needs-match-row,
 .disagreement-list li {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   padding: 0.75rem 0;
 }
 
@@ -2568,7 +2581,7 @@ a.month-bar::before {
 
 .needs-match-controls select {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   font: inherit;
@@ -2594,7 +2607,7 @@ a.month-bar::before {
 }
 
 .run-errors {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.8125rem;
   list-style: none;
   margin: 0.25rem 0 0;
@@ -2720,7 +2733,7 @@ a.month-bar::before {
 .radar-header button,
 .radar-actions button {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   cursor: pointer;
@@ -2751,8 +2764,8 @@ a.month-bar::before {
   grid-template-columns: 5.5rem 1fr;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 
@@ -2838,8 +2851,8 @@ a.month-bar::before {
 .rate-a-few {
   margin: 1.5rem 0;
   padding: 0.75rem 1rem;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 
@@ -2863,8 +2876,8 @@ a.month-bar::before {
 }
 
 .rate-a-few-table thead th {
-  border-bottom: 1px solid var(--border);
-  color: var(--text-body);
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
   font-size: 0.8125rem;
   font-weight: 600;
 }
@@ -2879,21 +2892,21 @@ a.month-bar::before {
 }
 
 /* Stripes on --bg: in the dark theme --surface is the panel's own color.
-   The row being rated lights up on --border; its secondary text stays on
-   --text-body, which clears 4.5:1 there in both themes (--text-muted does
-   not). */
+   The row being rated lights up on --line; its secondary text stays on
+   --text-2, which clears 4.5:1 there in both themes (6.83 dark, 6.46
+   light; --text-3 does not, at 4.48 and 4.15). */
 .rate-a-few-table tbody tr:nth-child(even) {
   background: var(--bg);
 }
 
 .rate-a-few-table tbody tr:hover,
 .rate-a-few-table tbody tr:focus-within {
-  background: var(--border);
+  background: var(--line);
 }
 
 .rate-a-few-platform,
 .rate-a-few-score {
-  color: var(--text-body);
+  color: var(--text-2);
   font-size: 0.875rem;
 }
 
@@ -2904,7 +2917,7 @@ a.month-bar::before {
 
 .rate-a-few-actions button {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   cursor: pointer;
@@ -2917,7 +2930,7 @@ a.month-bar::before {
    targets of at least 44px, and nothing that needs a hover. */
 .store-list-note {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   margin: 1rem 0;
@@ -2931,8 +2944,8 @@ a.month-bar::before {
 /* The store list's rows are What's next's shared row (.next-row), with the
    answers as large buttons and the store lines under the reasons. */
 .store-list .next-row-actions button {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   cursor: pointer;
@@ -3018,7 +3031,7 @@ a.month-bar::before {
    the cover, while staying a sibling of the link rather than inside it. */
 .next-row {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   column-gap: 0.75rem;
   display: grid;
@@ -3082,7 +3095,7 @@ a.month-bar::before {
 }
 
 .next-row-reasons {
-  color: var(--text-body);
+  color: var(--text-2);
   margin: 0;
   padding-left: 1.1rem;
 }
@@ -3095,7 +3108,7 @@ a.month-bar::before {
 
 .next-badge {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text);
   font-size: 0.75rem;
@@ -3123,7 +3136,7 @@ a.month-bar::before {
 /* Not on cartridge stays closed by default. The summary is the native
    disclosure control, so it is focusable without a tabindex. */
 .next-skip {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   margin-top: 2rem;
   padding-top: 0.5rem;
 }
@@ -3157,7 +3170,7 @@ a.month-bar::before {
 /* /spine: one line under the hero numbers, linking across to What's next. */
 .next-band {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   margin: 1.5rem 0;
   padding: 0.75rem 1rem;
@@ -3172,7 +3185,7 @@ a.month-bar::before {
    thing on the page. */
 .skip-link {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
   left: 1rem;
@@ -3222,7 +3235,7 @@ main h1[tabindex='-1']:focus {
 
 .shelf-search input {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
   font: inherit;
@@ -3245,7 +3258,7 @@ main h1[tabindex='-1']:focus {
 
 .now-finished,
 .prose-list {
-  color: var(--text-body);
+  color: var(--text-2);
   display: grid;
   gap: 0.45rem;
   margin: 0;
@@ -3293,7 +3306,7 @@ main h1[tabindex='-1']:focus {
 }
 
 .month-days > li > time {
-  color: var(--text-muted);
+  color: var(--text-3);
   display: block;
   font-size: 0.8125rem;
   margin-bottom: 0.25rem;
@@ -3311,7 +3324,7 @@ main h1[tabindex='-1']:focus {
 }
 
 .year-numbers dt {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-size: 0.8125rem;
 }
 
@@ -3329,7 +3342,7 @@ main h1[tabindex='-1']:focus {
 
 .year-genres,
 .year-diary {
-  color: var(--text-body);
+  color: var(--text-2);
   display: grid;
   gap: 0.4rem;
   margin: 0;
@@ -3349,6 +3362,6 @@ main h1[tabindex='-1']:focus {
 }
 
 .year-diary time {
-  color: var(--text-muted);
+  color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
