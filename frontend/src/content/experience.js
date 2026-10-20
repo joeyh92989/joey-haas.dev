@@ -3,8 +3,8 @@
  *
  * Entries are grouped by employer rather than by role: a promotion inside one
  * company is a single arrow-joined entry, which keeps the timeline readable at
- * the width of the page. `current: true` marks the present role — About uses it
- * to pick the accent dot color, so exactly one entry should carry it.
+ * the width of the page. `current: true` marks the present role — About gives
+ * it the accent dot, so exactly one entry should carry it.
  *
  * @typedef {object} ExperienceEntry
  * @property {string} role Title, or `earlier → later` for a promotion.
@@ -24,7 +24,7 @@ export const experience = [
     company: 'Guild',
     meta: '2021 – present · Denver, CO',
     summary:
-      'Owned the spend-writing APIs and the eligibility-platform migration end to end — API contract, rollout, alerting, and the incident forensics after.',
+      'Owned the APIs that record benefit spending, and the funding side of the company-wide eligibility migration — contract, rollout, alerting, and the incident forensics after.',
     short:
       'Owned the APIs that record benefit spending, and the funding side of a company-wide eligibility migration.',
     current: true,
@@ -34,7 +34,7 @@ export const experience = [
     company: 'Guild',
     meta: '2020 – 2021 · Denver, CO',
     summary:
-      'Balance tracking and external benefits administration for Fortune 1000 employer partners.',
+      'Balance tracking and external-benefits administration for Fortune 1000 customers.',
     short:
       'Balance tracking and external-benefits administration for Fortune 1000 customers.',
   },
@@ -43,7 +43,7 @@ export const experience = [
     company: 'MJ Freeway',
     meta: '2018 – 2019 · Denver, CO',
     summary:
-      'Product owner for the core suite — cultivation, processing, and point of sale — on a two-to-three-week release cadence.',
+      'Product owner for the core suite of cannabis seed-to-sale software — cultivation, processing, and point of sale — on a two-to-three-week release cadence.',
     short: 'core-suite product owner',
     earlier: true,
   },

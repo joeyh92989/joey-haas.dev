@@ -26,9 +26,17 @@ export const profile = {
     { label: 'Focus', value: 'Payments & ledger systems' },
     { label: 'Stack', value: 'Node · TypeScript · Python · Postgres' },
   ],
-  bio: `I'm a senior software engineer at Guild, where five years of engineering on the payments team have gone into the backend systems that fund, track, and reconcile every learner benefit dollar — spend-writing APIs, funding context, tax classification, and the eligibility migration underneath them.
+  bio: `I'm a senior software engineer at Guild, on the payments team. For five years I've built the backend that funds, tracks and reconciles education benefits for enterprise employers: the APIs that record spending, the ledger behind them, the tax rules on top, and one service's side of a company-wide migration to a new eligibility platform.
 
-Before the code, eight years as a product manager across enterprise SaaS, payments, and video. I still work like one: architecture doc, then squad alignment, then the endpoint — and the data forensics when something goes wrong.`,
+Before the code, eight years as a product manager across enterprise SaaS, payments and video. I still work like one: architecture doc, then team alignment, then the endpoint — and the data forensics when something goes wrong.`,
+  location: 'Denver, Colorado',
+  /** About's key/value list, above the résumé link. */
+  aboutFacts: [
+    { label: 'Role', value: 'Senior Software Engineer' },
+    { label: 'Company', value: 'Guild' },
+    { label: 'Engineering', value: '5 years' },
+    { label: 'Product', value: '8 years' },
+  ],
   email: 'josephthaas@gmail.com',
   github: 'https://github.com/joeyh92989',
   /** This site's repository: the footer, Projects and /spine link to it. */
@@ -62,9 +70,7 @@ Before the code, eight years as a product manager across enterprise SaaS, paymen
     'GraphQL (AppSync)',
     'AWS (Lambda, RDS)',
     'REST API design',
-    'Mocha · Chai · Sinon',
-    'Integration testing · BDD',
-    'Snyk',
+    'Testing · Mocha, Chai, BDD',
     'Salesforce · NetSuite',
     'GitHub Actions CI',
   ],
