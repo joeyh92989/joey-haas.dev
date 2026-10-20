@@ -289,6 +289,16 @@ the pieces with `.*` backtracks exponentially on a star-heavy pattern, and
 robots.txt is third-party text. Redirects are followed only within a store's
 own site over https; one that leaves it is recorded as `redirected_off_site`.
 A walk stops at a short page, a page that adds nothing new, or `MAX_PAGES`.
+A 429 is retried once, after the host's `Retry-After` in seconds (capped at
+`RATE_LIMIT_MAX_WAIT`; `RATE_LIMIT_DEFAULT_WAIT` without one), up to
+`RATE_LIMIT_RETRIES_PER_HOST` retries per host per run. A second 429 fails a
+collection handle, skips a product page for the run, and on robots.txt
+disallows the whole host: a 429 there is "come back later", never "no
+rules". On 2026-10-20 every Shopify store answered 429 to page 1 of its
+first collection, while the same request from another network got a 200.
+Probably Shopify limiting Render's shared outbound IP across its stores;
+unconfirmed, since nothing can be run from the instance itself. A run with
+errors never archives, so nothing was lost.
 
 ## Adding a store
 

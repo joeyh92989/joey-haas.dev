@@ -20,6 +20,13 @@ PAGE_SIZE_WOO = 100
 # is a placeholder, not a price.
 MAX_PRICE = Decimal("999999.99")
 REQUEST_TIMEOUT_SECONDS = 30.0
+# A 429 is retried once, after the host's Retry-After in seconds, capped;
+# without one (or with a date), after the default. At most
+# RATE_LIMIT_RETRIES_PER_HOST retries per host per run, so a host that keeps
+# limiting adds at most 5 x 30s to the run, whatever it asks for.
+RATE_LIMIT_MAX_WAIT = 30.0
+RATE_LIMIT_DEFAULT_WAIT = 10.0
+RATE_LIMIT_RETRIES_PER_HOST = 5
 # A walk stops here even if pages keep coming full: a host that ignores the
 # page parameter would otherwise serve the same page forever.
 MAX_PAGES = 40

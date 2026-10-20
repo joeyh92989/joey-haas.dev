@@ -139,6 +139,31 @@ async def test_robots_for_a_5xx_means_disallow_all():
         assert await robots_for("example.test", client) == DISALLOW_ALL
 
 
+async def _no_sleep(seconds):
+    pass
+
+
+@pytest.mark.asyncio
+async def test_robots_for_retries_a_429():
+    body = (ROBOTS / "superraregames.com.txt").read_text()
+    answers = [
+        httpx2.Response(429, headers={"Retry-After": "1"}),
+        httpx2.Response(200, text=body),
+    ]
+
+    async with _client(lambda request: answers.pop(0)) as client:
+        robots = await robots_for("superraregames.com", client, sleep=_no_sleep)
+    assert robots not in (ALLOW_ALL, DISALLOW_ALL)
+    assert allowed(robots, f"https://superraregames.com{SHOPIFY_PATH}")
+
+
+@pytest.mark.asyncio
+async def test_robots_for_a_second_429_means_disallow_all():
+    # A 429 is a 4xx, but it is "come back later", never "no rules".
+    async with _client(lambda request: httpx2.Response(429)) as client:
+        assert await robots_for("example.test", client, sleep=_no_sleep) == DISALLOW_ALL
+
+
 @pytest.mark.asyncio
 async def test_robots_for_a_network_error_means_disallow_all():
     def handler(request):

@@ -13,7 +13,13 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 
-from physical_sources.limits import MAX_PRICE, REQUESTS_PER_SECOND
+from physical_sources.limits import (
+    MAX_PRICE,
+    RATE_LIMIT_DEFAULT_WAIT,
+    RATE_LIMIT_MAX_WAIT,
+    RATE_LIMIT_RETRIES_PER_HOST,
+    REQUESTS_PER_SECOND,
+)
 
 
 @dataclass(frozen=True)
@@ -99,10 +105,24 @@ class HostThrottle:
     does the same per source, but importing it would pull in SQLAlchemy.
     """
 
-    def __init__(self, per_second: float = REQUESTS_PER_SECOND) -> None:
+    def __init__(
+        self,
+        per_second: float = REQUESTS_PER_SECOND,
+        retries: int = RATE_LIMIT_RETRIES_PER_HOST,
+    ) -> None:
         self._interval = 1.0 / per_second
         self._next: dict[str, float] = {}
         self._locks: dict[str, asyncio.Lock] = {}
+        self._retries = retries
+        self._retried: dict[str, int] = {}
+
+    def take_retry(self, host: str) -> bool:
+        """Whether `host` may have one more 429 retry this run."""
+        used = self._retried.get(host, 0)
+        if used >= self._retries:
+            return False
+        self._retried[host] = used + 1
+        return True
 
     async def wait(self, host: str) -> None:
         lock = self._locks.setdefault(host, asyncio.Lock())
@@ -120,13 +140,24 @@ def _same_site(host: str, other: str | None) -> bool:
     return (other or "").removeprefix("www.") == bare
 
 
-async def throttled_get(client, url: str, host: str, throttle: HostThrottle | None):
-    """One GET, spaced per host; a transport failure becomes an http_error.
+def retry_after(value: str | None) -> float:
+    """Seconds to wait before retrying a 429: Retry-After in seconds, capped
+    at RATE_LIMIT_MAX_WAIT, or RATE_LIMIT_DEFAULT_WAIT for none or a date."""
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        return RATE_LIMIT_DEFAULT_WAIT
+    if not seconds >= 0:  # negative, or NaN
+        return RATE_LIMIT_DEFAULT_WAIT
+    return min(seconds, RATE_LIMIT_MAX_WAIT)
 
-    Redirects are followed only within the store's own site (four stores
-    move their bare domain to `www.`). One that leaves it is refused: that
-    host's robots.txt was never read and its throttle never applied.
-    """
+
+def may_retry(host: str, throttle: HostThrottle | None) -> bool:
+    """Whether a 429 from `host` gets its retry; always, without a throttle."""
+    return throttle is None or throttle.take_retry(host)
+
+
+async def _get(client, url: str, host: str, throttle: HostThrottle | None):
     if throttle is not None:
         await throttle.wait(host)
     try:
@@ -141,6 +172,26 @@ async def throttled_get(client, url: str, host: str, throttle: HostThrottle | No
         raise PhysicalSourceError(
             f"{url} redirected to {response.url.host}", code="redirected_off_site"
         )
+    return response
+
+
+async def throttled_get(
+    client, url: str, host: str, throttle: HostThrottle | None, sleep=asyncio.sleep
+):
+    """One GET, spaced per host; a transport failure becomes an http_error.
+
+    Redirects are followed only within the store's own site (four stores
+    move their bare domain to `www.`). One that leaves it is refused: that
+    host's robots.txt was never read and its throttle never applied.
+
+    A 429 is retried once, after retry_after(), while the host has retries
+    left in the throttle's budget; a second 429 goes back to the caller,
+    which handles it like any other status. `sleep` is for tests.
+    """
+    response = await _get(client, url, host, throttle)
+    if response.status_code == 429 and may_retry(host, throttle):
+        await sleep(retry_after(response.headers.get("retry-after")))
+        response = await _get(client, url, host, throttle)
     return response
 
 

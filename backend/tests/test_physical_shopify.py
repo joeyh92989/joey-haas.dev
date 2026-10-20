@@ -567,6 +567,82 @@ async def test_redirects_stay_on_the_stores_site(location, allowed_through):
             assert error.value.code == "redirected_off_site"
 
 
+def _rate_limited_client(*responses):
+    """A client answering with `responses` in order, and the URLs asked."""
+    queue = list(responses)
+    asked = []
+
+    def handler(request):
+        asked.append(str(request.url))
+        return queue.pop(0)
+
+    return httpx2.AsyncClient(transport=httpx2.MockTransport(handler)), asked
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("retry_after", "waited"),
+    [
+        ("5", 5.0),
+        ("600", 30.0),
+        ("inf", 30.0),
+        (None, 10.0),
+        ("-1", 10.0),
+        ("nan", 10.0),
+        ("Wed, 21 Oct 2026 07:28:00 GMT", 10.0),
+    ],
+)
+async def test_a_429_is_retried_once_after_its_retry_after(retry_after, waited):
+    headers = {"Retry-After": retry_after} if retry_after else {}
+    client, asked = _rate_limited_client(
+        httpx2.Response(429, headers=headers), httpx2.Response(200, json={})
+    )
+    slept = []
+
+    async def sleep(seconds):
+        slept.append(seconds)
+
+    async with client:
+        url = "https://fangamer.com/collections/games/products.json"
+        response = await throttled_get(client, url, "fangamer.com", None, sleep=sleep)
+    assert response.status_code == 200
+    assert slept == [waited]
+    assert len(asked) == 2
+
+
+@pytest.mark.asyncio
+async def test_a_second_429_is_returned_to_the_caller():
+    client, asked = _rate_limited_client(httpx2.Response(429), httpx2.Response(429))
+
+    async def sleep(seconds):
+        pass
+
+    async with client:
+        url = "https://fangamer.com/collections/games/products.json"
+        response = await throttled_get(client, url, "fangamer.com", None, sleep=sleep)
+    assert response.status_code == 429
+    assert len(asked) == 2
+
+
+@pytest.mark.asyncio
+async def test_a_hosts_retries_are_capped_per_run():
+    client, asked = _rate_limited_client(*(httpx2.Response(429) for _ in range(5)))
+    throttle = HostThrottle(per_second=1000, retries=2)
+    slept = []
+
+    async def sleep(seconds):
+        slept.append(seconds)
+
+    async with client:
+        for _ in range(3):
+            url = "https://fangamer.com/collections/games/products.json"
+            await throttled_get(client, url, "fangamer.com", throttle, sleep=sleep)
+    # Two retried requests, then the third 429 goes straight back.
+    assert len(asked) == 5
+    assert len(slept) == 2
+    assert throttle.take_retry("other.test")
+
+
 @pytest.mark.asyncio
 async def test_a_product_that_cannot_be_read_is_skipped_and_recorded():
     broken = {**_product(2), "variants": [None]}
