@@ -51,7 +51,7 @@ export const projects = [
     summary:
       'React and Vite, FastAPI behind Google sign-in, Postgres on Neon, and a pull-request pipeline to Render.',
     description:
-      'This site: a React and Vite frontend with a markdown blog compiled at build time, a FastAPI backend behind Google sign-in, Postgres on Neon, and a pull-request pipeline that deploys to Render on merge. Built to be read, and to be read by a recruiter who clicks View source.',
+      'A React and Vite frontend with a markdown blog compiled at build time, a FastAPI backend behind Google sign-in, Postgres on Neon, and a pull-request pipeline that deploys to Render on merge. Built to be read, and to be read by a recruiter who clicks View source.',
     links: [
       { href: profile.repo, label: 'Source' },
       { href: `${profile.repo}/actions`, label: 'CI pipeline' },
