@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
+import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import RateAFew from '../components/RateAFew.jsx'
 import RecommendationCard, {
   DISCOVER_ACTIONS,
 } from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { usePageTitle } from '../lib/usePageTitle.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 
 const POPULARITY = [
@@ -93,7 +93,6 @@ function Choice({ legend, name, options, value, onChange }) {
  * from the catalogue's best-scoring twenty.
  */
 export default function AdminDiscover() {
-  usePageTitle('Discover · Admin')
   const { signedIn = false } = useOutletContext() ?? {}
   const [state, setState] = useState('loading')
   const [discover, setDiscover] = useState(null)
@@ -222,7 +221,7 @@ export default function AdminDiscover() {
   if (state === 'unauthorized') {
     return (
       <section>
-        <h1>Discover</h1>
+        <AdminPageHeader title="Discover" />
         <p>
           <Link to="/admin">Sign in</Link> to see Discover.
         </p>
@@ -235,11 +234,19 @@ export default function AdminDiscover() {
 
   return (
     <section className="radar discover">
-      <h1>Discover</h1>
-      <p className="muted">
-        Physical games already out on your platforms that you would love and do
-        not own, picked from the catalog.
-      </p>
+      <AdminPageHeader
+        title="Discover"
+        description="Physical games already out on your platforms that you would love and do not own, picked from the catalog."
+      >
+        <button
+          type="button"
+          className="btn primary"
+          disabled={busy}
+          onClick={generate}
+        >
+          {busy ? 'Working…' : "Generate — uses one of today's Gemini requests"}
+        </button>
+      </AdminPageHeader>
 
       <div className="discover-controls">
         <Choice
@@ -278,9 +285,6 @@ export default function AdminDiscover() {
       </div>
 
       <div className="radar-header">
-        <button type="button" disabled={busy} onClick={generate}>
-          {busy ? 'Working…' : "Generate — uses one of today's Gemini requests"}
-        </button>
         <label>
           <input
             type="checkbox"

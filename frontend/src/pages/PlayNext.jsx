@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import { Link } from 'react-router'
+import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import { apiFetch } from '../lib/api.js'
-import { usePageTitle } from '../lib/usePageTitle.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const TIMES = [
@@ -118,7 +118,6 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
  * services, and the slow message says so rather than looking broken.
  */
 export default function PlayNext() {
-  usePageTitle('Play Next · Admin')
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
   const [items, setItems] = useState([])
@@ -258,10 +257,18 @@ export default function PlayNext() {
     excludeMore((result?.picks ?? []).map((pick) => pick.item.id))
   }
 
+  // One header for every state, so the page never re-titles as it loads.
+  const header = (
+    <AdminPageHeader
+      title="Play Next"
+      description="Three picks from the backlog, scored against what you rated, loved and finished."
+    />
+  )
+
   if (status === 'loading') {
     return (
       <section>
-        <h1>Play Next</h1>
+        {header}
         <p className="muted">{slow ? WAKING : 'Loading…'}</p>
       </section>
     )
@@ -270,7 +277,7 @@ export default function PlayNext() {
   if (status === 'unauthorized') {
     return (
       <section>
-        <h1>Play Next</h1>
+        {header}
         <p className="admin-error">
           Not signed in. <Link to="/admin">Go to admin</Link>.
         </p>
@@ -281,7 +288,7 @@ export default function PlayNext() {
   if (status === 'error') {
     return (
       <section>
-        <h1>Play Next</h1>
+        {header}
         <p className="admin-error">{LOAD_ERROR}</p>
       </section>
     )
@@ -299,11 +306,7 @@ export default function PlayNext() {
 
   return (
     <section>
-      <h1>Play Next</h1>
-      <p className="muted">
-        Three picks from the backlog, scored against what you rated, loved and
-        finished.
-      </p>
+      {header}
 
       {error && (
         <p className="admin-error" role="alert">

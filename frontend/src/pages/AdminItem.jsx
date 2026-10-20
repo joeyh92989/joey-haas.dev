@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import {
   CARTRIDGE_ERA_PLATFORMS,
@@ -10,7 +11,6 @@ import {
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import PlayJournal from '../components/PlayJournal.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { usePageTitle } from '../lib/usePageTitle.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -209,7 +209,6 @@ export default function AdminItem() {
   const navigate = useNavigate()
 
   const [item, setItem] = useState(null)
-  usePageTitle(item ? `${item.title} · Admin` : 'Item · Admin')
   const [form, setForm] = useState(null)
   const [state, setState] = useState('loading')
   const [slow, setSlow] = useState(false)
@@ -447,10 +446,18 @@ export default function AdminItem() {
           : event.target.value,
     }))
 
+  // One header for every state: "Item" until the row loads, then its title.
+  const header = (
+    <AdminPageHeader
+      title={state === 'ready' && item ? item.title : 'Item'}
+      description={<Link to="/admin/collection">← Back to the shelf</Link>}
+    />
+  )
+
   if (state === 'loading') {
     return (
       <section>
-        <h1>Item</h1>
+        {header}
         <p className="muted">{slow ? WAKING : 'Loading…'}</p>
       </section>
     )
@@ -459,7 +466,7 @@ export default function AdminItem() {
   if (state === 'unauthorized') {
     return (
       <section>
-        <h1>Item</h1>
+        {header}
         <p className="admin-error">
           Not signed in. <Link to="/admin">Go to admin</Link>.
         </p>
@@ -470,11 +477,8 @@ export default function AdminItem() {
   if (state === 'missing') {
     return (
       <section>
-        <h1>Item</h1>
-        <p className="admin-error">
-          No item with that id.{' '}
-          <Link to="/admin/collection">Back to the collection</Link>.
-        </p>
+        {header}
+        <p className="admin-error">No item with that id.</p>
       </section>
     )
   }
@@ -482,7 +486,7 @@ export default function AdminItem() {
   if (state === 'error') {
     return (
       <section>
-        <h1>Item</h1>
+        {header}
         <p className="admin-error">{LOAD_ERROR}</p>
       </section>
     )
@@ -490,11 +494,7 @@ export default function AdminItem() {
 
   return (
     <section>
-      <p className="muted">
-        <Link to="/admin/collection">← Back to the collection</Link>
-      </p>
-
-      <h1>{item.title}</h1>
+      {header}
 
       {error && (
         <p className="admin-error" role="alert">

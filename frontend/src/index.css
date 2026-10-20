@@ -238,6 +238,11 @@ a:hover {
   padding: 4px 9px;
 }
 
+.btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .mast {
   background: var(--bg);
   border-bottom: 1px solid var(--line);
@@ -1835,15 +1840,6 @@ footer {
 }
 
 /* Bulk visibility controls above the collection table. */
-.bulk-visibility {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-}
-
-.bulk-visibility button,
 .play-next-status button,
 .pick-actions button,
 .up-next button,
@@ -1859,7 +1855,6 @@ footer {
   padding: 0.35rem 0.6rem;
 }
 
-.bulk-visibility button:hover:not(:disabled),
 .play-next-status button:hover:not(:disabled),
 .pick-actions button:hover:not(:disabled),
 .up-next button:hover:not(:disabled),
@@ -1868,7 +1863,6 @@ footer {
   border-color: var(--accent);
 }
 
-.bulk-visibility button:disabled,
 .pick-actions button:disabled,
 .up-next button:disabled {
   cursor: default;
@@ -2643,10 +2637,6 @@ a.month-bar::before {
   padding: 0.2rem 0.4rem;
 }
 
-.view-toggle {
-  margin: 1rem 0 1.5rem;
-}
-
 .play-next-status p {
   margin: 0 0 0.5rem;
 }
@@ -3030,14 +3020,6 @@ a.month-bar::before {
 }
 
 /* Physical catalogue (/admin/catalogue). */
-.catalogue-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1.25rem 0 0.5rem;
-}
-
-.catalogue-actions button,
 .catalogue-table button,
 .needs-match button,
 .registry-line button {
@@ -3051,14 +3033,12 @@ a.month-bar::before {
   padding: 0.4rem 0.7rem;
 }
 
-.catalogue-actions button:hover:not(:disabled),
 .catalogue-table button:hover:not(:disabled),
 .needs-match button:hover:not(:disabled),
 .registry-line button:hover:not(:disabled) {
   border-color: var(--accent);
 }
 
-.catalogue-actions button:disabled,
 .catalogue-table button:disabled,
 .needs-match button:disabled,
 .registry-line button:disabled {
@@ -3069,31 +3049,6 @@ a.month-bar::before {
 .catalogue-progress {
   color: var(--text-3);
   min-height: 1.5em;
-}
-
-.catalogue-totals {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-  margin: 1rem 0 1.5rem;
-}
-
-.catalogue-totals div {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-}
-
-.catalogue-totals dt {
-  color: var(--text-3);
-  font-size: 0.75rem;
-}
-
-.catalogue-totals dd {
-  color: var(--text);
-  font-size: 1.25rem;
-  margin: 0;
 }
 
 .catalogue-table th[scope='row'] {

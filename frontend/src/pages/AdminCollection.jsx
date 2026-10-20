@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
+import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import ItemForm, {
   FORMAT_OPTIONS,
@@ -10,8 +11,8 @@ import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfCardActions from '../components/ShelfCardActions.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
+import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { apiFetch } from '../lib/api.js'
-import { usePageTitle } from '../lib/usePageTitle.js'
 import {
   countBy,
   filterItems,
@@ -23,12 +24,7 @@ import {
   writeShelfPref,
 } from '../lib/shelf.js'
 import { localToday, statusTransition } from '../lib/statusTransition.js'
-import {
-  FavoritesRow,
-  HeroNumbers,
-  isDimmable,
-  platformGroup,
-} from './Collection.jsx'
+import { FavoritesRow, isDimmable, platformGroup } from './Collection.jsx'
 import { itemPath } from '../lib/spinePaths.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
@@ -66,6 +62,18 @@ function heroFigures(items) {
   }
 }
 
+/** The shelf's three headline figures, as the admin's stat tiles. */
+function HeroTiles({ owned, finished, finishedThisYear }) {
+  const year = new Date().getUTCFullYear()
+  return (
+    <StatTiles label="Shelf totals">
+      <StatTile label="Owned" value={owned} />
+      <StatTile label="Finished" value={finished} />
+      <StatTile label={`Finished in ${year}`} value={finishedThisYear} />
+    </StatTiles>
+  )
+}
+
 /** The nudge's sentence, counted live from the rows. */
 function nudgeText(unrated) {
   const noun = unrated.every((item) => item.type === 'game') ? 'game' : 'item'
@@ -95,7 +103,6 @@ const EMPTY_FORM = {
  * exists so that reads as slow rather than broken.
  */
 export default function AdminCollection() {
-  usePageTitle('Collection · Admin')
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
@@ -480,7 +487,7 @@ export default function AdminCollection() {
 
     return (
       <>
-        <HeroNumbers {...heroFigures(rows)} />
+        <HeroTiles {...heroFigures(rows)} />
 
         <FavoritesRow items={rows} linkFor={linkFor} placeholders />
 
@@ -591,10 +598,68 @@ export default function AdminCollection() {
     )
   }
 
+  // One header for every state. The bulk controls join it once there are
+  // rows: the counts are the point, since publishing a whole collection
+  // should be a deliberate act, not an unlabelled button.
+  const ready = status === 'ready' && items.length > 0
+  const header = (
+    <AdminPageHeader
+      title="Shelf"
+      description={
+        ready ? `${publicCount} of ${items.length} public` : undefined
+      }
+    >
+      {ready && (
+        <>
+          <button
+            type="button"
+            className="btn sm"
+            disabled={bulkBusy || publicCount === items.length}
+            onClick={() => setAllVisibility(true)}
+          >
+            Publish all {items.length}
+          </button>
+          <button
+            type="button"
+            className="btn sm"
+            disabled={bulkBusy || publicCount === 0}
+            onClick={() => setAllVisibility(false)}
+          >
+            Hide all
+          </button>
+          <button
+            type="button"
+            className="btn sm"
+            disabled={refreshing}
+            onClick={refreshGames}
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh game metadata'}
+          </button>
+          <div className="chip-row" role="group" aria-label="View">
+            {[
+              ['shelf', 'Shelf'],
+              ['list', 'List'],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className="chip"
+                aria-pressed={view === value}
+                onClick={() => changeView(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </AdminPageHeader>
+  )
+
   if (status === 'loading') {
     return (
       <section>
-        <h1>Collection</h1>
+        {header}
         <p className="muted">{slow ? WAKING : 'Loading…'}</p>
       </section>
     )
@@ -603,7 +668,7 @@ export default function AdminCollection() {
   if (status === 'unauthorized') {
     return (
       <section>
-        <h1>Collection</h1>
+        {header}
         <p className="admin-error">
           Not signed in. <Link to="/admin">Go to admin</Link>.
         </p>
@@ -614,7 +679,7 @@ export default function AdminCollection() {
   if (status === 'error') {
     return (
       <section>
-        <h1>Collection</h1>
+        {header}
         <p className="admin-error">{LOAD_ERROR}</p>
       </section>
     )
@@ -622,19 +687,13 @@ export default function AdminCollection() {
 
   return (
     <section>
-      <h1>Collection</h1>
+      {header}
 
       {error && (
         <p className="admin-error" role="alert">
           {error}
         </p>
       )}
-
-      <p className="muted">
-        <Link to="/admin/import">Import from photos →</Link>
-        {' · '}
-        <Link to="/admin/play-next">Play Next →</Link>
-      </p>
 
       <MetadataPicker type={form.type} onSelect={applyCandidate} />
 
@@ -651,52 +710,11 @@ export default function AdminCollection() {
         <p className="muted">Nothing in the collection yet.</p>
       ) : (
         <>
-          {/* The counts are the point: publishing a whole collection should
-              be a deliberate act, not an unlabelled button. */}
-          <div className="bulk-visibility">
-            <span className="muted">
-              {publicCount} of {items.length} public
-            </span>
-            <button
-              type="button"
-              disabled={bulkBusy || publicCount === items.length}
-              onClick={() => setAllVisibility(true)}
-            >
-              Publish all {items.length}
-            </button>
-            <button
-              type="button"
-              disabled={bulkBusy || publicCount === 0}
-              onClick={() => setAllVisibility(false)}
-            >
-              Hide all
-            </button>
-            <button type="button" disabled={refreshing} onClick={refreshGames}>
-              {refreshing ? 'Refreshing…' : 'Refresh game metadata'}
-            </button>
-            {refreshResult && (
-              <span className="muted" role="status">
-                {`Updated ${refreshResult.updated} · skipped ${refreshResult.skipped} · failed ${refreshResult.failed}`}
-              </span>
-            )}
-          </div>
-
-          <div className="view-toggle chip-row" role="group" aria-label="View">
-            {[
-              ['shelf', 'Shelf'],
-              ['list', 'List'],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className="chip"
-                aria-pressed={view === value}
-                onClick={() => changeView(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {refreshResult && (
+            <p className="muted" role="status">
+              {`Updated ${refreshResult.updated} · skipped ${refreshResult.skipped} · failed ${refreshResult.failed}`}
+            </p>
+          )}
 
           {view === 'shelf' ? (
             renderShelf()

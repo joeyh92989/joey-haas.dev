@@ -141,7 +141,7 @@ describe('AdminStoreList', () => {
     expect(calls).toEqual([
       { method: 'GET', path: '/api/recommendations/store-list' },
     ])
-    expect(document.title).toBe('Store list · Admin')
+    expect(document.title).toBe('Store list · Admin · Joey Haas')
   })
 
   it('drops a row as soon as Got it is pressed and marks the game owned', async () => {

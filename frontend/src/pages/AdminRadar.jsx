@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
+import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import RecommendationCard from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { dayWords, MONTH, releaseWords, utc } from '../lib/releaseWords.js'
 import { localToday } from '../lib/statusTransition.js'
-import { usePageTitle } from '../lib/usePageTitle.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 
 /** "2 hours ago", or "never". */
@@ -129,7 +129,6 @@ function Cards({ rows, busy, onAnswer, level }) {
 }
 
 export default function AdminRadar() {
-  usePageTitle('Radar · Admin')
   const { signedIn = false } = useOutletContext() ?? {}
   const [state, setState] = useState('loading')
   const [radar, setRadar] = useState(null)
@@ -235,7 +234,7 @@ export default function AdminRadar() {
   if (state === 'unauthorized') {
     return (
       <section>
-        <h1>Radar</h1>
+        <AdminPageHeader title="Radar" />
         <p>
           <Link to="/admin">Sign in</Link> to see the radar.
         </p>
@@ -256,16 +255,21 @@ export default function AdminRadar() {
 
   return (
     <section className="radar">
-      <h1>Radar</h1>
-      <p className="muted">
-        Upcoming physical releases and open pre-orders from the catalog, ranked
-        by your taste.
-      </p>
-
-      <div className="radar-header">
-        <button type="button" disabled={busy} onClick={generate}>
+      <AdminPageHeader
+        title="Radar"
+        description="Upcoming physical releases and open pre-orders from the catalog, ranked by your taste."
+      >
+        <button
+          type="button"
+          className="btn primary"
+          disabled={busy}
+          onClick={generate}
+        >
           {busy ? 'Working…' : 'Generate'}
         </button>
+      </AdminPageHeader>
+
+      <div className="radar-header">
         <label>
           <input
             type="checkbox"
