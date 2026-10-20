@@ -275,9 +275,10 @@ a:hover {
   width: 26px;
 }
 
-/* The underline is the full height of the bar: the 20px padding puts the
-   2px border on the masthead's hairline. */
+/* The links are the full height of the bar, so the 2px underline sits on
+   the masthead's hairline whatever the line height. */
 .site-nav {
+  align-self: stretch;
   display: flex;
   font-size: 0.875rem;
   gap: 22px;
@@ -285,9 +286,11 @@ a:hover {
 }
 
 .site-nav a {
+  align-items: center;
   border-bottom: 2px solid transparent;
+  border-top: 2px solid transparent;
   color: var(--text-2);
-  padding: 20px 0 18px;
+  display: flex;
 }
 
 .site-nav a:hover {
