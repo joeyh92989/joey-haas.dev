@@ -5,7 +5,7 @@
  * is included. That works because the site and the API share a registrable
  * domain, which makes the request same-site.
  */
-const API_URL = import.meta.env.VITE_API_URL || ''
+export const API_URL = import.meta.env.VITE_API_URL || ''
 
 /** Fetches an API path with the session cookie attached. */
 export function apiFetch(path, options = {}) {
