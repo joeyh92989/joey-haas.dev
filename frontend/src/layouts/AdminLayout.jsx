@@ -30,8 +30,10 @@ async function loadItems() {
 
 /**
  * Every /admin route. It checks the session once, then renders the routed
- * page inside the admin shell; until then, and for every way that check or
- * a sign-out can go wrong, it renders a plain centred panel with no shell.
+ * page inside the admin shell; until then, and for every way that check can
+ * go wrong, it renders a plain centred panel with no shell. A failed
+ * sign-out stays in the shell, so the page and anything unsaved on it
+ * survive.
  *
  * The admin area is deliberately absent from the site navigation. That is
  * not a security control; the server-side session check is. It keeps a
@@ -46,7 +48,10 @@ export default function AdminLayout() {
   const [email, setEmail] = useState(null)
   const [slow, setSlow] = useState(false)
   const [items, setItems] = useState(null)
+  const [signOutFailed, setSignOutFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const itemsLoaded = useRef(false)
+  const signedOutHere = useRef(false)
   const [searchParams] = useSearchParams()
   const { pathname } = useLocation()
   const mainRef = useRouteFocus()
@@ -61,17 +66,41 @@ export default function AdminLayout() {
     // take ~30 seconds. Without this the page looks broken rather than slow.
     const timer = setTimeout(() => setSlow(true), 3000)
 
+    let live = true
     apiFetch('/api/auth/me')
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        setEmail(data ? data.email : null)
-        setStatus(data ? 'signed-in' : 'signed-out')
+      .then(async (response) => {
+        if (!live) return
+        // Only the API saying no means signed out. A 502 while Render
+        // deploys is the server, not the session, and must not offer sign-in.
+        if (response.status === 401 || response.status === 403) {
+          setStatus('signed-out')
+          return
+        }
+        if (!response.ok) throw new Error(`status ${response.status}`)
+        const data = await response.json()
+        if (!live) return
+        setEmail(data.email)
+        setStatus('signed-in')
       })
-      .catch(() => setStatus('error'))
+      .catch(() => {
+        if (live) setStatus('error')
+      })
       .finally(() => clearTimeout(timer))
 
-    return () => clearTimeout(timer)
-  }, [])
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
+  }, [attempt])
+
+  useEffect(() => {
+    // The shell, and the control that had focus, have just gone: start the
+    // reader on the gate rather than at the top of the document.
+    if (status === 'signed-out' && signedOutHere.current) {
+      signedOutHere.current = false
+      mainRef.current?.focus()
+    }
+  }, [status, mainRef])
 
   useEffect(() => {
     // Loaded once on sign-in, and again whenever the Dashboard opens, so its
@@ -93,21 +122,29 @@ export default function AdminLayout() {
     // Flipping the UI on a failed request would leave a valid 30-day cookie
     // behind while the page says otherwise — worst on a shared machine, where
     // the next visitor would still be authenticated.
+    setSignOutFailed(false)
     try {
       const response = await apiFetch('/api/auth/logout', { method: 'POST' })
       if (!response.ok) {
-        setStatus('signout-failed')
+        setSignOutFailed(true)
         return
       }
     } catch {
-      setStatus('signout-failed')
+      setSignOutFailed(true)
       return
     }
 
     setEmail(null)
     setItems(null)
     itemsLoaded.current = false
+    signedOutHere.current = true
     setStatus('signed-out')
+  }
+
+  function retry() {
+    setSlow(false)
+    setStatus('checking')
+    setAttempt((count) => count + 1)
   }
 
   if (signedIn) {
@@ -116,6 +153,11 @@ export default function AdminLayout() {
       : null
     return (
       <AdminShell email={email} ownedCount={owned} onSignOut={signOut}>
+        {signOutFailed && (
+          <p className="admin-error" role="alert">
+            Sign out failed — you are still signed in. Try again.
+          </p>
+        )}
         {/* Keyed on the path, so an error on one page is not carried to the
             next; the shell stays up either way. */}
         <RouteErrorBoundary key={pathname}>
@@ -139,16 +181,29 @@ export default function AdminLayout() {
         <h1>Admin</h1>
 
         {denied && (
-          <p className="admin-error">
+          <p className="admin-error" role="alert">
             That account is not authorized for this site.
           </p>
         )}
 
         {status === 'checking' && (
-          <p className="muted">{slow ? WAKING : 'Checking your session…'}</p>
+          <p className="muted" role="status">
+            {slow ? WAKING : 'Checking your session…'}
+          </p>
         )}
 
-        {status === 'error' && <p className="admin-error">{LOAD_ERROR}</p>}
+        {status === 'error' && (
+          <>
+            <p className="admin-error" role="alert">
+              {LOAD_ERROR}
+            </p>
+            <p>
+              <button type="button" className="btn" onClick={retry}>
+                Try again
+              </button>
+            </p>
+          </>
+        )}
 
         {status === 'signed-out' && (
           <p>
@@ -156,19 +211,6 @@ export default function AdminLayout() {
               Sign in with Google
             </a>
           </p>
-        )}
-
-        {status === 'signout-failed' && (
-          <>
-            <p className="admin-error">
-              Sign out failed — you are still signed in. Try again.
-            </p>
-            <p>
-              <button type="button" className="admin-signout" onClick={signOut}>
-                Sign out
-              </button>
-            </p>
-          </>
         )}
       </section>
     </main>

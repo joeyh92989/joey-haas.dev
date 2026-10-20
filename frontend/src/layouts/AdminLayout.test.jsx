@@ -30,13 +30,16 @@ function stubApi({
   me = { email: 'admin@example.com' },
   items = [],
   logout,
+  session,
 } = {}) {
   const fetch = vi.fn(async (url) => {
     const path = String(url)
     if (path.endsWith('/api/auth/me'))
-      return me
-        ? { ok: true, status: 200, json: async () => me }
-        : { ok: false, status: 401, json: async () => ({}) }
+      return session
+        ? session()
+        : me
+          ? { ok: true, status: 200, json: async () => me }
+          : { ok: false, status: 401, json: async () => ({}) }
     if (path.endsWith('/api/items'))
       return { ok: true, status: 200, json: async () => items }
     if (path.endsWith('/api/auth/logout'))
@@ -102,12 +105,19 @@ describe('AdminLayout session states', () => {
     renderAt()
     ;(await screen.findByRole('button', { name: /sign out/i })).click()
 
-    expect(await screen.findByText(/sign out failed/i)).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /sign out failed/i,
+    )
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/auth/logout'),
       expect.objectContaining({ method: 'POST' }),
     )
     expect(screen.queryByText(/sign in with google/i)).not.toBeInTheDocument()
+    // The shell and the page stay, so nothing unsaved on it is lost.
+    expect(screen.getByTestId('page')).toBeInTheDocument()
+    expect(
+      screen.getByRole('navigation', { name: 'Admin' }),
+    ).toBeInTheDocument()
   })
 
   it('offers sign-in again after a sign-out the server confirmed', async () => {
@@ -116,6 +126,19 @@ describe('AdminLayout session states', () => {
     ;(await screen.findByRole('button', { name: /sign out/i })).click()
     expect(await screen.findByText(/sign in with google/i)).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: 'Admin' })).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole('main'))
+  })
+
+  it('reads a server error on the session check as an error, with a retry', async () => {
+    let answer = { ok: false, status: 503, json: async () => ({}) }
+    stubApi({ session: () => answer })
+    renderAt()
+    expect(await screen.findByRole('alert')).toHaveTextContent(/didn’t load/i)
+    expect(screen.queryByText(/sign in with google/i)).not.toBeInTheDocument()
+
+    answer = { ok: true, status: 200, json: async () => ({ email: 'a@b.c' }) }
+    screen.getByRole('button', { name: 'Try again' }).click()
+    expect(await screen.findByTestId('page')).toBeInTheDocument()
   })
 
   it('reports an unreachable API rather than hanging silently', async () => {
