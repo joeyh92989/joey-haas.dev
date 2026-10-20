@@ -1,12 +1,230 @@
+import { useEffect, useState } from 'react'
+import { Link, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
-import LastNightly from '../components/LastNightly.jsx'
+import JobStatusRow, { StatusText } from '../components/JobStatusRow.jsx'
+import Panel from '../components/Panel.jsx'
+import StatTile, { StatTiles } from '../components/StatTile.jsx'
+import { apiFetch } from '../lib/api.js'
+import { dashboardCounts, recentChanges } from '../lib/dashboard.js'
+import {
+  lastNightly,
+  nightlyHeadline,
+  nightlyJobs,
+  whenWords,
+} from '../lib/nightly.js'
+import { readSnapshot } from '../lib/snapshot.js'
 
-/** The admin landing, at /admin. AdminLayout has already checked the session. */
+/** The README section that says how to switch the schedule back on. */
+const REENABLE_URL = 'https://github.com/joeyh92989/joey-haas.dev#nightly-job'
+
+/** The API's state in the header, as a status and its words. */
+const API_WORDS = {
+  checking: { state: 'unknown', words: 'Checking the API' },
+  awake: { state: 'ok', words: 'API awake' },
+  unreachable: { state: 'failed', words: 'API unreachable' },
+}
+
+/** Radar's and Discover's generate times from the store list, or nulls. */
+async function generatedAt(response) {
+  const none = { radar: null, discover: null }
+  if (!response?.ok) return none
+  try {
+    const body = await response.json()
+    return {
+      radar: body?.generated_at?.radar ?? null,
+      discover: body?.generated_at?.discover ?? null,
+    }
+  } catch {
+    return none
+  }
+}
+
+/**
+ * The catalogue status, the generate times and the snapshot's build time.
+ * Never rejects. A status that cannot be read leaves `status` null, and the
+ * jobs panel says so rather than reading as a stopped schedule.
+ */
+async function loadNightly() {
+  const meta = readSnapshot('meta')
+  let api = 'unreachable'
+  let status = null
+  let generated = { radar: null, discover: null }
+  try {
+    const response = await apiFetch('/api/physical/status')
+    if (response?.ok) {
+      api = 'awake'
+      const body = await response.json().catch(() => null)
+      // Not a status document: no jobs rather than "may have stopped".
+      if (Array.isArray(body?.sources)) {
+        status = body
+        generated = await generatedAt(
+          await apiFetch('/api/recommendations/store-list').catch(() => null),
+        )
+      }
+    }
+  } catch {
+    // Unreachable API: the header says so; the tiles and links still work.
+  }
+  return { api, status, generated, snapshotAt: (await meta)?.fetched_at }
+}
+
+/**
+ * The admin landing, at /admin: the API and nightly state, four headline
+ * figures, the nightly jobs, quick actions and the newest changes.
+ * AdminLayout has already checked the session and loads the rows.
+ */
 export default function Admin() {
+  const { items } = useOutletContext() ?? {}
+  const [nightly, setNightly] = useState(null)
+  // One clock for the visit, so ages and the year agree across renders.
+  const [now] = useState(() => Date.now())
+
+  useEffect(() => {
+    let live = true
+    loadNightly().then((loaded) => {
+      if (live) setNightly(loaded)
+    })
+    return () => {
+      live = false
+    }
+  }, [])
+
+  const year = new Date(now).getUTCFullYear()
+  const counts = items ? dashboardCounts(items, year) : null
+  const jobs = nightly?.status
+    ? nightlyJobs(
+        lastNightly(nightly.status, nightly.generated, now),
+        nightly.snapshotAt ?? null,
+        now,
+      )
+    : null
+  const headline = jobs ? nightlyHeadline(jobs) : null
+  const api = API_WORDS[nightly?.api ?? 'checking']
+  const pending = nightly?.status?.totals?.pending_keys
+  const changes = items ? recentChanges(items, jobs ?? []) : []
+
   return (
-    <section>
-      <AdminPageHeader title="Dashboard" />
-      <LastNightly />
+    <section className="dashboard">
+      <AdminPageHeader title="Dashboard">
+        <StatusText state={api.state}>{api.words}</StatusText>
+        {headline && (
+          <StatusText state={headline.state}>{headline.words}</StatusText>
+        )}
+      </AdminPageHeader>
+
+      <StatTiles label="Dashboard figures">
+        <StatTile
+          label="Owned"
+          value={counts ? counts.owned : '—'}
+          detail={
+            counts &&
+            `${counts.ownedPublic} public · ${counts.ownedHidden} hidden`
+          }
+        />
+        <StatTile
+          label={`Finished · ${year}`}
+          value={counts ? counts.finishedThisYear : '—'}
+          detail={
+            counts &&
+            `${counts.finished} all time${
+              counts.averageRating === null
+                ? ''
+                : ` · avg ${counts.averageRating.toFixed(1)}`
+            }`
+          }
+        />
+        <StatTile
+          label="Needs attention"
+          value={typeof pending === 'number' ? pending : '—'}
+          detail="catalog rows need a match"
+        />
+        {/* Filled by the analytics read once the beacon ships. */}
+        <StatTile label="Views · 7 days" value="—" detail="Not tracked yet" />
+      </StatTiles>
+
+      <div className="dashboard-two">
+        <Panel title="Nightly jobs">
+          {jobs ? (
+            <ul className="job-list">
+              {jobs.map((job) => (
+                <JobStatusRow
+                  key={job.key}
+                  job={job}
+                  extra={
+                    job.key === 'catalog' &&
+                    job.state === 'stale' && (
+                      <>
+                        {' · '}
+                        <a href={REENABLE_URL}>how to re-enable it</a>
+                      </>
+                    )
+                  }
+                />
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">
+              {nightly
+                ? 'The nightly status could not be read.'
+                : 'Reading the nightly status…'}
+            </p>
+          )}
+        </Panel>
+
+        <Panel title="Quick actions" className="quick-actions">
+          <Link to="/admin/import">
+            Import photos<small>Read a shelf, then review</small>
+          </Link>
+          <Link to="/admin/store-list">
+            Store list<small>What to look for in person</small>
+          </Link>
+          <Link to="/admin/collection">
+            Add a game<small>Title, platform, copy format</small>
+          </Link>
+          <Link to="/admin/discover">
+            Rate a few
+            <small>
+              {counts ? `${counts.unrated} finished, unrated` : 'On Discover'}
+            </small>
+          </Link>
+        </Panel>
+      </div>
+
+      <Panel
+        title="Recent changes"
+        action={
+          <Link to="/admin/collection">
+            Shelf <span aria-hidden="true">→</span>
+          </Link>
+        }
+      >
+        {changes.length ? (
+          <div className="item-table-wrap">
+            <table className="item-table recent-table">
+              <thead>
+                <tr>
+                  <th scope="col">Item</th>
+                  <th scope="col">Change</th>
+                  <th scope="col">When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {changes.map((change) => (
+                  <tr key={change.key}>
+                    <td>
+                      <Link to={change.to}>{change.title}</Link>
+                    </td>
+                    <td>{change.change}</td>
+                    <td className="job-when">{whenWords(change.at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted">{items ? 'Nothing yet.' : 'Loading…'}</p>
+        )}
+      </Panel>
     </section>
   )
 }

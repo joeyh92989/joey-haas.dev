@@ -77,6 +77,13 @@ export const SNAPSHOTS = {
   },
 }
 
+/**
+ * Written beside the snapshots, never fetched: `{fetched_at}`, so the admin
+ * Dashboard can say when the public snapshot was last built. It is part of
+ * the published set and is cleared with it.
+ */
+const META = 'meta'
+
 const WAKE_BUDGET_MS = 120_000
 const WAKE_INTERVAL_MS = 5_000
 const REQUEST_TIMEOUT_MS = 30_000
@@ -110,7 +117,7 @@ async function getTextWithRetry(fetchImpl, url, sleep) {
  */
 async function clearSnapshotFiles(outDir) {
   await Promise.all(
-    Object.keys(SNAPSHOTS).flatMap((name) =>
+    [...Object.keys(SNAPSHOTS), META].flatMap((name) =>
       [`${name}.json`, `${name}.json.tmp`].map((file) =>
         fs.rm(path.join(outDir, file), { force: true }).catch(() => {}),
       ),
@@ -143,7 +150,8 @@ async function wake({ apiUrl, fetchImpl, sleep, now }) {
  * @param {string} options.outDir Directory to write `{name}.json` into.
  * @param {typeof fetch} [options.fetchImpl]
  * @param {(ms: number) => Promise<void>} [options.sleep]
- * @param {() => number} [options.now] Milliseconds, for the wake budget.
+ * @param {() => number} [options.now] Milliseconds, for the wake budget
+ *   and the time recorded in `meta.json`.
  * @param {(line: string) => void} [options.log]
  * @returns {Promise<'skipped'|'written'|'failed'>} Never rejects.
  */
@@ -190,6 +198,7 @@ export async function fetchSnapshot({
       log(`snapshot: ${error.message}; leaving ${name} out`)
     }
   }
+  texts[META] = JSON.stringify({ fetched_at: new Date(now()).toISOString() })
   const tmpPaths = []
   try {
     await fs.mkdir(outDir, { recursive: true })

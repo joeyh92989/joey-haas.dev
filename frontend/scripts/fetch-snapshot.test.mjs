@@ -90,13 +90,26 @@ describe('fetchSnapshot', () => {
       '/api/public/stats': ok(STATS),
     })
     expect(await run(fetchImpl)).toBe('written')
-    expect(await written()).toEqual(['items.json', 'stats.json'])
+    expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
     expect(
       JSON.parse(await fs.readFile(path.join(outDir, 'items.json'), 'utf8')),
     ).toEqual(ITEMS)
     expect(
       JSON.parse(await fs.readFile(path.join(outDir, 'stats.json'), 'utf8')),
     ).toEqual(STATS)
+  })
+
+  it('records when it fetched, for the admin Dashboard', async () => {
+    const fetchImpl = api({
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    })
+    const at = Date.parse('2026-10-19T00:20:00Z')
+    expect(await run(fetchImpl, { now: () => at })).toBe('written')
+    expect(
+      JSON.parse(await fs.readFile(path.join(outDir, 'meta.json'), 'utf8')),
+    ).toEqual({ fetched_at: '2026-10-19T00:20:00.000Z' })
   })
 
   it('writes the bytes the API sent, not a re-serialisation of them', async () => {
@@ -212,7 +225,12 @@ describe('fetchSnapshot', () => {
       '/api/public/next': ok(NEXT),
     })
     expect(await run(fetchImpl)).toBe('written')
-    expect(await written()).toEqual(['items.json', 'next.json', 'stats.json'])
+    expect(await written()).toEqual([
+      'items.json',
+      'meta.json',
+      'next.json',
+      'stats.json',
+    ])
   })
 
   it('clears an earlier output it can no longer fetch, and on failure', async () => {
@@ -224,7 +242,7 @@ describe('fetchSnapshot', () => {
       '/api/public/stats': ok(STATS),
     })
     expect(await run(partial)).toBe('written')
-    expect(await written()).toEqual(['items.json', 'stats.json'])
+    expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
 
     await fs.writeFile(path.join(outDir, 'next.json'), '{}')
     const asleep = api({ '/api/health': new TypeError('connect refused') })
@@ -261,7 +279,12 @@ describe('fetchSnapshot', () => {
       '/api/public/next': ok(JSON.parse(text), text),
     })
     expect(await run(fetchImpl)).toBe('written')
-    expect(await written()).toEqual(['items.json', 'next.json', 'stats.json'])
+    expect(await written()).toEqual([
+      'items.json',
+      'meta.json',
+      'next.json',
+      'stats.json',
+    ])
     expect(await fs.readFile(path.join(outDir, 'next.json'), 'utf8')).toBe(text)
   })
 
@@ -273,11 +296,11 @@ describe('fetchSnapshot', () => {
     }
     // 404: the API has not deployed the endpoint yet.
     expect(await run(api(base))).toBe('written')
-    expect(await written()).toEqual(['items.json', 'stats.json'])
+    expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
 
     expect(await run(api({ ...base, '/api/public/next': ok([]) }))).toBe(
       'written',
     )
-    expect(await written()).toEqual(['items.json', 'stats.json'])
+    expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
   })
 })

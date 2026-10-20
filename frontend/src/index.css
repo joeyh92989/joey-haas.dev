@@ -1422,9 +1422,120 @@ footer {
   padding: 14px 16px;
 }
 
+/* Dashboard (/admin): jobs and quick actions side by side, then changes. */
+.dashboard-two {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  margin-bottom: 14px;
+}
+
+.job-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.job-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  font-size: 0.84375rem;
+  gap: 4px 12px;
+  grid-template-columns: 7.5rem minmax(0, 1fr) auto auto;
+  padding: 8px 0;
+}
+
+.job-row:first-child {
+  border-top: 0;
+}
+
+.job-when {
+  color: var(--text-3);
+  font: 0.75rem var(--font-mono);
+  white-space: nowrap;
+}
+
+.job-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.job-label {
+  color: var(--text);
+}
+
+.job-summary {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.job-run {
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.quick-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.quick-actions a {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.875rem;
+  padding: 12px;
+  text-decoration: none;
+}
+
+.quick-actions a:hover {
+  border-color: var(--line-strong);
+}
+
+.quick-actions small {
+  color: var(--text-3);
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+/* The changes table sits flush in its panel; the scroll wrapper keeps a
+   narrow screen from scrolling the page. */
+.recent-table {
+  font-size: 0.84375rem;
+  min-width: 26rem;
+}
+
+.recent-table tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .dashboard-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 700px) {
   .stat-tiles {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  /* Time over the text, the state and Run now under it. */
+  .job-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .job-when,
+  .job-text {
+    grid-column: 1 / -1;
   }
 }
 

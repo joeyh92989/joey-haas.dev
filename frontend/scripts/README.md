@@ -26,6 +26,10 @@ strips, so they still make no API calls.
   behaves as it did before the snapshot existed.
 - Required snapshots (`items`, `stats`) are written together or not at all.
 - `next` is optional; if it fails, the build leaves that file out.
+- Beside them it writes `meta.json`, `{"fetched_at": "<ISO time>"}`, which
+  the admin Dashboard reads for the snapshot row of its jobs panel. It is
+  not an API body, so the nightly compare does not read it, and it is
+  cleared with the others when a run fails.
 - When it runs, it first deletes the snapshot files an earlier run left in
   `public/snapshot/` (temp files too), and does so again on every failure, so
   a failed run ships no snapshot rather than a stale one.

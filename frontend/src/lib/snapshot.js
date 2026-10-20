@@ -43,11 +43,21 @@ const isStatsBody = (body) =>
   isObject(body.rating_histogram) &&
   isObject(body.finishes_by_month)
 
+/**
+ * When the snapshot was fetched, for the Dashboard's jobs panel. Written by
+ * scripts/fetch-snapshot.mjs beside the others, not fetched from the API.
+ */
+const isMetaBody = (body) =>
+  isObject(body) &&
+  typeof body.fetched_at === 'string' &&
+  !Number.isNaN(Date.parse(body.fetched_at))
+
 /** Each snapshot's name and the shape its body must have to be used. */
 const SHAPES = {
   items: Array.isArray,
   stats: isStatsBody,
   next: isNextBody,
+  meta: isMetaBody,
 }
 
 /**

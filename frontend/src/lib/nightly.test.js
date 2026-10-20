@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { lastNightly, nightlyWords, STALE_HOURS } from './nightly.js'
+import {
+  DISCOVER_STALE_HOURS,
+  lastNightly,
+  nightlyHeadline,
+  nightlyJobs,
+  STALE_HOURS,
+} from './nightly.js'
 
 const NOW = Date.parse('2026-10-05T12:00:00Z')
 const run = (source, kind, finished_at, ok = true, name = source) => ({
@@ -118,49 +124,112 @@ describe('lastNightly', () => {
   })
 })
 
-describe('nightlyWords', () => {
-  it('says ok, failed or may have stopped', () => {
-    const base = {
-      catalogueAt: Date.parse('2026-10-05T00:40:00Z'),
-      failed: [],
-      stale: false,
-      radarAt: null,
-      discoverAt: null,
-    }
-    expect(nightlyWords(base)).toMatch(/^Last nightly: catalog .+ · ok$/)
-    expect(nightlyWords({ ...base, failed: ['Limited Run'] })).toMatch(
-      /failed: Limited Run/,
-    )
-    expect(nightlyWords({ ...base, stale: true })).toMatch(
-      /^Nightly may have stopped/,
-    )
-    expect(nightlyWords({ ...base, catalogueAt: null, stale: true })).toBe(
-      'Nightly may have stopped: no catalog run yet',
-    )
+const summary = (overrides = {}) => ({
+  catalogueAt: NOW - HOUR,
+  failed: [],
+  stale: false,
+  radarAt: hoursAgo(1),
+  discoverAt: hoursAgo(1),
+  ...overrides,
+})
+const byKey = (jobs) => Object.fromEntries(jobs.map((job) => [job.key, job]))
+
+describe('nightlyJobs', () => {
+  it('lists the four jobs in nightly order, all ok', () => {
+    const jobs = nightlyJobs(summary(), hoursAgo(1), NOW)
+    expect(jobs.map((job) => job.key)).toEqual([
+      'catalog',
+      'radar',
+      'discover',
+      'snapshot',
+    ])
+    expect(jobs.map((job) => job.state)).toEqual(['ok', 'ok', 'ok', 'ok'])
+    expect(jobs.map((job) => job.runNow)).toEqual([
+      '/admin/catalogue',
+      '/admin/radar',
+      '/admin/discover',
+      null,
+    ])
   })
 
-  it('adds the Radar and Discover times when given', () => {
-    const words = nightlyWords({
-      catalogueAt: Date.parse('2026-10-05T00:40:00Z'),
-      failed: [],
-      stale: false,
-      radarAt: '2026-10-05T00:44:00Z',
-      discoverAt: '2026-10-05T00:46:00Z',
+  it(`reads Radar stale after ${STALE_HOURS} hours`, () => {
+    const at = (hours) =>
+      byKey(nightlyJobs(summary({ radarAt: hoursAgo(hours) }), null, NOW)).radar
+        .state
+    expect(at(STALE_HOURS - 1)).toBe('ok')
+    expect(at(STALE_HOURS + 1)).toBe('stale')
+  })
+
+  it(`gives Discover ${DISCOVER_STALE_HOURS} hours, a week and a day`, () => {
+    const at = (hours) =>
+      byKey(nightlyJobs(summary({ discoverAt: hoursAgo(hours) }), null, NOW))
+        .discover.state
+    expect(at(STALE_HOURS + 1)).toBe('ok')
+    expect(at(DISCOVER_STALE_HOURS + 1)).toBe('stale')
+  })
+
+  it('names the failed sources on the catalog row', () => {
+    const catalog = byKey(
+      nightlyJobs(summary({ failed: ['Limited Run', 'Fangamer'] }), null, NOW),
+    ).catalog
+    expect(catalog.state).toBe('failed')
+    expect(catalog.summary).toBe('Failed: Limited Run, Fangamer')
+  })
+
+  it('reads a stopped schedule as stale, with no catalog run', () => {
+    const catalog = byKey(
+      nightlyJobs(summary({ catalogueAt: null, stale: true }), null, NOW),
+    ).catalog
+    expect(catalog.state).toBe('stale')
+    expect(catalog.summary).toBe('No catalog run yet')
+  })
+
+  it('reads a missing meta.json, or a missing generate, as unknown', () => {
+    const jobs = byKey(
+      nightlyJobs(
+        summary({ radarAt: null, discoverAt: 'nonsense' }),
+        null,
+        NOW,
+      ),
+    )
+    expect(jobs.snapshot.state).toBe('unknown')
+    expect(jobs.snapshot.at).toBeNull()
+    expect(jobs.radar.state).toBe('unknown')
+    expect(jobs.discover.state).toBe('unknown')
+  })
+
+  it('never reads an old snapshot as stale', () => {
+    const jobs = byKey(nightlyJobs(summary(), hoursAgo(24 * 30), NOW))
+    expect(jobs.snapshot.state).toBe('ok')
+  })
+})
+
+describe('nightlyHeadline', () => {
+  it('takes the worst known state and the newest time', () => {
+    const jobs = nightlyJobs(
+      summary({ radarAt: hoursAgo(STALE_HOURS + 2) }),
+      null,
+      NOW,
+    )
+    const headline = nightlyHeadline(jobs)
+    expect(headline.state).toBe('stale')
+    expect(headline.words).toMatch(/^nightly stale · \S+/)
+  })
+
+  it('lets a failure outrank staleness', () => {
+    const jobs = nightlyJobs(
+      summary({ failed: ['Limited Run'], radarAt: hoursAgo(STALE_HOURS + 2) }),
+      null,
+      NOW,
+    )
+    expect(nightlyHeadline(jobs).state).toBe('failed')
+  })
+
+  it('says unknown, with no time, when nothing is known', () => {
+    const unknown = [{ state: 'unknown', at: null }]
+    expect(nightlyHeadline(unknown)).toEqual({
+      state: 'unknown',
+      words: 'nightly unknown',
     })
-    expect(words).toMatch(/ · Radar .+ · Discover .+$/)
-  })
-
-  it('names an interrupted run even when no catalog run finished', () => {
-    expect(
-      nightlyWords({
-        catalogueAt: null,
-        failed: ['Limited Run'],
-        stale: true,
-        radarAt: null,
-        discoverAt: null,
-      }),
-    ).toBe(
-      'Nightly may have stopped: no catalog run finished · failed: Limited Run',
-    )
   })
 })

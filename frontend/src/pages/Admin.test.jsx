@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminLayout from '../layouts/AdminLayout.jsx'
@@ -7,7 +7,7 @@ import Admin from './Admin.jsx'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 
-// Rendered under its layout, which checks the session first.
+// Rendered under its layout, which checks the session and loads the rows.
 function renderAt(path = '/admin') {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -20,191 +20,281 @@ function renderAt(path = '/admin') {
   )
 }
 
+const HOUR = 3600 * 1000
+const ago = (hours) => new Date(Date.now() - hours * HOUR).toISOString()
+const json = (body, ok = true) => ({
+  ok,
+  status: ok ? 200 : 500,
+  json: async () => body,
+})
+const YEAR = new Date().getUTCFullYear()
+
+const ITEMS = [
+  {
+    id: 1,
+    title: 'Dredge',
+    type: 'game',
+    status: 'active',
+    owned_format: 'cartridge',
+    is_public: true,
+    rating: null,
+    finished_at: null,
+    updated_at: ago(2),
+  },
+  {
+    id: 2,
+    title: 'Celeste',
+    type: 'game',
+    status: 'finished',
+    owned_format: 'cartridge',
+    is_public: false,
+    rating: 9,
+    finished_at: `${YEAR}-02-01`,
+    updated_at: ago(30),
+  },
+  {
+    id: 3,
+    title: 'Hades',
+    type: 'game',
+    status: 'finished',
+    owned_format: 'none',
+    is_public: true,
+    rating: null,
+    finished_at: `${YEAR - 1}-05-01`,
+    updated_at: ago(60),
+  },
+]
+
+const status = (overrides = {}) => ({
+  sources: [
+    {
+      source: 'lrg',
+      name: 'Limited Run',
+      kind: 'store',
+      last_run: { started_at: ago(1), finished_at: ago(1), ok: true },
+    },
+  ],
+  totals: { pending_keys: 210 },
+  ...overrides,
+})
+
+/** One stub per endpoint; any can be swapped for a response or a throw. */
+function stubApi(routes = {}) {
+  const defaults = {
+    '/api/auth/me': () => json({ email: 'a@b.c' }),
+    '/api/items': () => json(ITEMS),
+    '/api/physical/status': () => json(status()),
+    '/api/recommendations/store-list': () =>
+      json({ generated_at: { radar: ago(1), discover: ago(1) } }),
+    '/snapshot/meta.json': () => json({ fetched_at: ago(3) }),
+  }
+  const table = { ...defaults, ...routes }
+  const fetch = vi.fn(async (url) => {
+    const path = String(url).replace(/^https?:\/\/[^/]+/, '')
+    const handler = table[path]
+    if (!handler) return json({}, false)
+    return handler()
+  })
+  vi.stubGlobal('fetch', fetch)
+  return fetch
+}
+
+const called = (fetch, path) =>
+  fetch.mock.calls.some(([url]) => String(url).endsWith(path))
+
 afterEach(() => {
+  vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
 
-describe('Admin last nightly line', () => {
-  function stubApi(statusBody, statusOk = true, generated = null, storeList) {
-    const fetch = vi.fn(async (url) => {
-      const path = String(url)
-      if (path.endsWith('/api/auth/me'))
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ email: 'a@b.c' }),
-        }
-      if (path.endsWith('/api/physical/status'))
-        return statusOk
-          ? { ok: true, status: 200, json: async () => statusBody }
-          : { ok: false, status: 500, json: async () => ({}) }
-      if (path.endsWith('/api/recommendations/store-list'))
-        return (
-          storeList ?? {
-            ok: true,
-            status: 200,
-            json: async () => ({
-              generated_at: generated ?? { radar: null, discover: null },
-            }),
-          }
-        )
-      return { ok: false, status: 404, json: async () => ({}) }
-    })
-    vi.stubGlobal('fetch', fetch)
-    return fetch
-  }
-
-  it('shows the latest run once signed in', async () => {
-    stubApi({
-      sources: [
-        {
-          source: 'lrg',
-          name: 'Limited Run',
-          kind: 'store',
-          last_run: { finished_at: new Date().toISOString(), ok: false },
-        },
-      ],
-    })
-    renderAt()
-    expect(await screen.findByText(/failed: Limited Run/)).toBeInTheDocument()
-  })
-
-  it('reads the generate times from the store list', async () => {
-    const radar = new Date(Date.now() - 3600 * 1000).toISOString()
-    const discover = new Date(Date.now() - 1800 * 1000).toISOString()
-    const fetch = stubApi(
-      {
-        sources: [
-          {
-            source: 'lrg',
-            name: 'Limited Run',
-            kind: 'store',
-            last_run: { finished_at: new Date().toISOString(), ok: true },
-          },
-        ],
-      },
-      true,
-      { radar, discover },
-    )
-    const when = new Intl.DateTimeFormat('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    renderAt()
-    const line = await screen.findByText(/Last nightly/)
-    expect(line).not.toHaveClass('admin-error')
-    expect(line).toHaveTextContent(`Radar ${when.format(Date.parse(radar))}`)
-    expect(line).toHaveTextContent(
-      `Discover ${when.format(Date.parse(discover))}`,
-    )
-    expect(
-      fetch.mock.calls.some(([url]) =>
-        String(url).endsWith('/api/recommendations/store-list'),
-      ),
-    ).toBe(true)
-  })
-
-  it('says the job may have stopped when nothing has run', async () => {
-    stubApi({ sources: [] })
+describe('Admin Dashboard', () => {
+  it('titles the page and says the API is awake and the nightly ok', async () => {
+    stubApi()
     renderAt()
     expect(
-      await screen.findByText(/Nightly may have stopped/),
+      await screen.findByRole('heading', { level: 1, name: 'Dashboard' }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Nightly may have stopped/)).toHaveClass(
-      'admin-error',
-    )
+    expect(await screen.findByText('API awake')).toBeInTheDocument()
+    expect(screen.getByText(/^nightly ok · /)).toBeInTheDocument()
+    expect(document.title).toBe('Dashboard · Admin · Joey Haas')
+  })
+
+  it('counts the tiles from the rows and the catalog status', async () => {
+    stubApi()
+    renderAt()
+    const tiles = await screen.findByLabelText('Dashboard figures')
+    await within(tiles).findByText('1 public · 1 hidden')
+    expect(within(tiles).getByText('Owned').nextSibling).toHaveTextContent('2')
     expect(
-      screen.getByRole('link', { name: /how to re-enable it/i }),
+      within(tiles).getByText(`Finished · ${YEAR}`).nextSibling,
+    ).toHaveTextContent('1')
+    expect(within(tiles).getByText('2 all time · avg 9.0')).toBeInTheDocument()
+    expect(
+      (await within(tiles).findByText('210')).previousSibling,
+    ).toHaveTextContent('Needs attention')
+    expect(
+      within(tiles).getByText('Views · 7 days').nextSibling,
+    ).toHaveTextContent('—')
+  })
+
+  it('lists the four nightly jobs with their state in words', async () => {
+    stubApi()
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const rows = await within(panel).findAllByRole('listitem')
+    expect(rows).toHaveLength(4)
+    expect(rows[0]).toHaveTextContent('Catalog refresh')
+    expect(rows[0]).toHaveTextContent(/ok/)
+    expect(rows[3]).toHaveTextContent('Public snapshot')
+    expect(
+      within(panel).getByRole('link', { name: 'Run now: Radar' }),
+    ).toHaveAttribute('href', '/admin/radar')
+    expect(
+      within(rows[3]).queryByRole('link', { name: /Run now/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('names a failed source and reads failed in the header', async () => {
+    stubApi({
+      '/api/physical/status': () =>
+        json(
+          status({
+            sources: [
+              {
+                source: 'lrg',
+                name: 'Limited Run',
+                kind: 'store',
+                last_run: {
+                  started_at: ago(1),
+                  finished_at: ago(1),
+                  ok: false,
+                },
+              },
+            ],
+          }),
+        ),
+    })
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    expect(
+      await within(panel).findByText('Failed: Limited Run'),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/^nightly failed · /)).toBeInTheDocument()
+  })
+
+  it('links how to re-enable the schedule when nothing has run', async () => {
+    stubApi({ '/api/physical/status': () => json(status({ sources: [] })) })
+    renderAt()
+    expect(
+      await screen.findByRole('link', { name: /how to re-enable it/i }),
     ).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989/joey-haas.dev#nightly-job',
     )
+    expect(screen.getByText(/^nightly stale/)).toBeInTheDocument()
   })
 
-  it('asks for nothing else when the status cannot be read', async () => {
-    const fetch = stubApi(null, false)
+  it('reads the snapshot as unknown without meta.json', async () => {
+    stubApi({ '/snapshot/meta.json': () => json({}, false) })
     renderAt()
-    await screen.findByText('a@b.c')
-    await waitFor(() =>
-      expect(
-        fetch.mock.calls.some(([url]) =>
-          String(url).endsWith('/api/physical/status'),
-        ),
-      ).toBe(true),
-    )
-    expect(
-      fetch.mock.calls.some(([url]) =>
-        String(url).includes('/api/recommendations'),
-      ),
-    ).toBe(false)
-    expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const rows = await within(panel).findAllByRole('listitem')
+    expect(rows[3]).toHaveTextContent('No build time recorded')
+    expect(rows[3]).toHaveTextContent('unknown')
+    // An unknown job does not drag the headline down.
+    expect(screen.getByText(/^nightly ok · /)).toBeInTheDocument()
   })
 
-  const okStatus = () => ({
-    sources: [
-      {
-        source: 'lrg',
-        name: 'Limited Run',
-        kind: 'store',
-        last_run: { finished_at: new Date().toISOString(), ok: true },
-      },
-    ],
-  })
-
-  it.each([
-    ['a failed store list', { ok: false, status: 500, json: async () => ({}) }],
-    [
-      'a store list that is not JSON',
-      {
-        ok: true,
-        status: 200,
-        json: async () => {
-          throw new SyntaxError('Unexpected token <')
-        },
-      },
-    ],
-  ])('shows the line without generate times after %s', async (_, response) => {
-    stubApi(okStatus(), true, null, response)
-    renderAt()
-    const line = await screen.findByText(/Last nightly/)
-    expect(line).toHaveTextContent(/catalog .* · ok$/)
-    expect(line).not.toHaveTextContent(/Radar|Discover/)
-  })
-
-  it('says nothing when the status body has no sources list', async () => {
-    const fetch = stubApi({ detail: 'not a status document' })
-    renderAt()
-    await screen.findByText('a@b.c')
-    await waitFor(() =>
-      expect(
-        fetch.mock.calls.some(([url]) =>
-          String(url).endsWith('/api/physical/status'),
-        ),
-      ).toBe(true),
-    )
-    expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
-  })
-
-  it('says nothing, and keeps the page, when the status request throws', async () => {
-    const fetch = vi.fn(async (url) => {
-      if (String(url).endsWith('/api/auth/me'))
-        return { ok: true, status: 200, json: async () => ({ email: 'a@b.c' }) }
-      throw new TypeError('Failed to fetch')
+  it('keeps the jobs when the store list fails, with generates unknown', async () => {
+    stubApi({
+      '/api/recommendations/store-list': () => json({}, false),
     })
-    vi.stubGlobal('fetch', fetch)
     renderAt()
-    await screen.findByText('a@b.c')
-    await waitFor(() =>
-      expect(
-        fetch.mock.calls.some(([url]) =>
-          String(url).endsWith('/api/physical/status'),
-        ),
-      ).toBe(true),
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const rows = await within(panel).findAllByRole('listitem')
+    expect(rows[1]).toHaveTextContent('Not generated yet')
+    expect(rows[1]).toHaveTextContent('unknown')
+  })
+
+  it('asks for nothing else, and says so, when the status cannot be read', async () => {
+    const fetch = stubApi({ '/api/physical/status': () => json({}, false) })
+    renderAt()
+    expect(await screen.findByText('API unreachable')).toBeInTheDocument()
+    expect(
+      screen.getByText('The nightly status could not be read.'),
+    ).toBeInTheDocument()
+    expect(called(fetch, '/api/recommendations/store-list')).toBe(false)
+    expect(screen.queryByText(/^nightly /)).not.toBeInTheDocument()
+  })
+
+  it('reads a status body with no sources as no jobs, not a stopped schedule', async () => {
+    stubApi({
+      '/api/physical/status': () => json({ detail: 'not a status document' }),
+    })
+    renderAt()
+    expect(
+      await screen.findByText('The nightly status could not be read.'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('API awake')).toBeInTheDocument()
+    expect(screen.queryByText(/how to re-enable/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the page when the status request throws', async () => {
+    stubApi({
+      '/api/physical/status': () => {
+        throw new TypeError('Failed to fetch')
+      },
+    })
+    renderAt()
+    expect(await screen.findByText('API unreachable')).toBeInTheDocument()
+    const panel = screen.getByRole('region', { name: 'Quick actions' })
+    expect(
+      within(panel).getByRole('link', { name: /Import photos/ }),
+    ).toHaveAttribute('href', '/admin/import')
+  })
+
+  it('offers the quick actions, with the unrated count', async () => {
+    stubApi()
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Quick actions' })
+    expect(
+      await within(panel).findByRole('link', { name: /Rate a few/ }),
+    ).toHaveTextContent('1 finished, unrated')
+    expect(
+      within(panel).getByRole('link', { name: /Store list/ }),
+    ).toHaveAttribute('href', '/admin/store-list')
+    expect(
+      within(panel).getByRole('link', { name: /Add a game/ }),
+    ).toHaveAttribute('href', '/admin/collection')
+  })
+
+  it('lists the newest edits and runs, each linked', async () => {
+    stubApi()
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Recent changes' })
+    const table = await within(panel).findByRole('table')
+    const rows = within(table).getAllByRole('row').slice(1)
+    expect(rows[0]).toHaveTextContent('Catalog refresh')
+    expect(rows[0]).toHaveTextContent('Ran')
+    expect(within(table).getByRole('link', { name: 'Dredge' })).toHaveAttribute(
+      'href',
+      '/admin/collection/1',
     )
-    expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Sources' })).toBeInTheDocument()
+    expect(within(table).getByText('Edited · Playing')).toBeInTheDocument()
+  })
+
+  it('waits on the status before calling it unreachable', async () => {
+    let release
+    stubApi({
+      '/api/physical/status': () =>
+        new Promise((resolve) => {
+          release = () => resolve(json(status()))
+        }),
+    })
+    renderAt()
+    expect(await screen.findByText('Checking the API')).toBeInTheDocument()
+    await waitFor(() => expect(release).toBeTypeOf('function'))
+    release()
+    expect(await screen.findByText('API awake')).toBeInTheDocument()
   })
 })

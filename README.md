@@ -52,7 +52,7 @@ snapshot files and never call the API.
 | `/spine/next` | What's next | Public: tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
 | `/spine/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
 | `/collection` | Redirect | Redirects to `/spine`; `/collection/:id` redirects to `/spine/:id`, both client-side |
-| `/admin` | Admin | Google sign-in gate, reached from the footer's Sign in link |
+| `/admin` | Dashboard | Google sign-in gate, reached from the footer's Sign in link; once signed in, the API and nightly status, headline counts, the nightly jobs, quick actions and recent changes |
 | `/admin/collection` | Collection (admin) | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
 | `/admin/collection/:id` | Edit item | Every field, plus re-linking to a different IGDB/TMDB/Comic Vine match |
 | `/admin/import` | Import | Photograph a shelf; a vision model reads the titles and each is resolved against its source |
@@ -489,8 +489,9 @@ job's limit is 150 minutes.
 - **Gotcha:** GitHub switches off scheduled workflows in a public repository
   after 60 days with no repository activity, and this job never commits. To
   re-enable it, open the repository's Actions tab, choose Nightly, and
-  enable the workflow. `/admin` says "Nightly may have stopped" when the last
-  catalogue run is more than 36 hours old.
+  enable the workflow. The Dashboard at `/admin` marks the catalog refresh
+  stale, with a link here, when the last catalogue run is more than 36 hours
+  old.
 
 ## Public API
 
