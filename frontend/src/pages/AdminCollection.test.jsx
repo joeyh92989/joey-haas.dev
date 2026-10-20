@@ -363,9 +363,9 @@ describe('AdminCollection shelf', () => {
     stubApi()
     await renderShelf()
 
-    const row = screen.getByRole('region', { name: 'Favourites' })
+    const row = screen.getByRole('region', { name: 'Favorites' })
     expect(row.querySelectorAll('.favourite-empty')).toHaveLength(4)
-    expect(within(row).getByText(/pick your favourites/i)).toBeInTheDocument()
+    expect(within(row).getByText(/pick your favorites/i)).toBeInTheDocument()
   })
 
   // A private item has no public page; linking there would be a 404.
@@ -428,7 +428,7 @@ describe('AdminCollection shelf', () => {
     await renderShelf()
 
     await userEvent.click(
-      card('Star Fox').getByRole('button', { name: 'Favourite' }),
+      card('Star Fox').getByRole('button', { name: 'Favorite' }),
     )
 
     await waitFor(() =>
@@ -493,7 +493,7 @@ describe('AdminCollection shelf', () => {
 
     const before = reads()
     await userEvent.click(
-      card('Star Fox').getByRole('button', { name: 'Favourite' }),
+      card('Star Fox').getByRole('button', { name: 'Favorite' }),
     )
 
     await waitFor(() => expect(reads()).toBe(before + 1))
@@ -563,7 +563,7 @@ describe('AdminCollection nudge', () => {
 })
 
 describe('AdminCollection favourites cap', () => {
-  const FULL = 'You already have 4 favourites. Unfavourite one first.'
+  const FULL = 'You already have 4 favorites. Unfavorite one first.'
 
   /** Star Fox and Dune plus `count` favourited games. */
   function withFavourites(count) {
@@ -583,7 +583,7 @@ describe('AdminCollection favourites cap', () => {
     const mock = stubApi({ items: withFavourites(4) })
     await renderShelf()
 
-    const heart = card('Star Fox').getByRole('button', { name: 'Favourite' })
+    const heart = card('Star Fox').getByRole('button', { name: 'Favorite' })
     expect(heart).toHaveAttribute('aria-disabled', 'true')
 
     await userEvent.click(heart)
@@ -597,7 +597,7 @@ describe('AdminCollection favourites cap', () => {
     await renderShelf()
 
     await userEvent.click(
-      card('Favourite 0').getByRole('button', { name: 'Favourite' }),
+      card('Favourite 0').getByRole('button', { name: 'Favorite' }),
     )
 
     await waitFor(() =>
@@ -621,7 +621,7 @@ describe('AdminCollection favourites cap', () => {
     await renderShelf()
 
     await userEvent.click(
-      card('Star Fox').getByRole('button', { name: 'Favourite' }),
+      card('Star Fox').getByRole('button', { name: 'Favorite' }),
     )
 
     expect(await screen.findByRole('alert')).toHaveTextContent(FULL)
@@ -648,11 +648,11 @@ describe('AdminCollection favourites cap', () => {
     stubApi({ items: withFavourites(6) })
     await renderShelf()
 
-    const row = screen.getByRole('region', { name: 'Favourites' })
+    const row = screen.getByRole('region', { name: 'Favorites' })
     expect(within(row).getAllByRole('link')).toHaveLength(6)
     expect(
       within(row).getByText(
-        '6 favourites. The public page shows four; unfavourite 2.',
+        '6 favorites. The public page shows four; unfavorite 2.',
       ),
     ).toBeInTheDocument()
     expect(row.querySelectorAll('.favourite-empty')).toHaveLength(0)
@@ -662,7 +662,7 @@ describe('AdminCollection favourites cap', () => {
     stubApi({ items: withFavourites(4) })
     await renderShelf()
 
-    const row = screen.getByRole('region', { name: 'Favourites' })
+    const row = screen.getByRole('region', { name: 'Favorites' })
     expect(within(row).getAllByRole('link')).toHaveLength(4)
     expect(row.querySelectorAll('.favourite-empty')).toHaveLength(0)
     expect(row.querySelector('.favourites-hint')).toBeNull()

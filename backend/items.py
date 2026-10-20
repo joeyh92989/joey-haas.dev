@@ -47,9 +47,7 @@ logger = logging.getLogger(__name__)
 # setting the flag -- the shelf, the edit page, the create form and the photo
 # importer -- has to pass through.
 FAVORITES_LIMIT = 4
-FAVORITES_FULL = (
-    f"You already have {FAVORITES_LIMIT} favourites. Unfavourite one first."
-)
+FAVORITES_FULL = f"You already have {FAVORITES_LIMIT} favorites. Unfavorite one first."
 
 
 class ItemIn(BaseModel):

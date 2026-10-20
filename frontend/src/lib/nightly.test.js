@@ -127,7 +127,7 @@ describe('nightlyWords', () => {
       radarAt: null,
       discoverAt: null,
     }
-    expect(nightlyWords(base)).toMatch(/^Last nightly: catalogue .+ · ok$/)
+    expect(nightlyWords(base)).toMatch(/^Last nightly: catalog .+ · ok$/)
     expect(nightlyWords({ ...base, failed: ['Limited Run'] })).toMatch(
       /failed: Limited Run/,
     )
@@ -135,7 +135,7 @@ describe('nightlyWords', () => {
       /^Nightly may have stopped/,
     )
     expect(nightlyWords({ ...base, catalogueAt: null, stale: true })).toBe(
-      'Nightly may have stopped: no catalogue run yet',
+      'Nightly may have stopped: no catalog run yet',
     )
   })
 
@@ -150,7 +150,7 @@ describe('nightlyWords', () => {
     expect(words).toMatch(/ · Radar .+ · Discover .+$/)
   })
 
-  it('names an interrupted run even when no catalogue run finished', () => {
+  it('names an interrupted run even when no catalog run finished', () => {
     expect(
       nightlyWords({
         catalogueAt: null,
@@ -160,7 +160,7 @@ describe('nightlyWords', () => {
         discoverAt: null,
       }),
     ).toBe(
-      'Nightly may have stopped: no catalogue run finished · failed: Limited Run',
+      'Nightly may have stopped: no catalog run finished · failed: Limited Run',
     )
   })
 })

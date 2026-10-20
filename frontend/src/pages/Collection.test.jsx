@@ -199,7 +199,7 @@ describe('Collection', () => {
     stubApi({ items: favourites })
     await renderReady()
 
-    const row = within(screen.getByRole('region', { name: 'Favourites' }))
+    const row = within(screen.getByRole('region', { name: 'Favorites' }))
     expect(row.getAllByRole('link').map((link) => link.textContent)).toEqual([
       'High',
       'Also Mid',
@@ -213,7 +213,7 @@ describe('Collection', () => {
     await renderReady()
 
     expect(
-      screen.queryByRole('region', { name: 'Favourites' }),
+      screen.queryByRole('region', { name: 'Favorites' }),
     ).not.toBeInTheDocument()
   })
 
@@ -221,7 +221,7 @@ describe('Collection', () => {
     stubApi({ items: ITEMS.map((item) => ({ ...item, favorite: false })) })
     await renderReady()
 
-    expect(screen.queryByText(/pick your favourites/i)).toBeNull()
+    expect(screen.queryByText(/pick your favorites/i)).toBeNull()
   })
 
   it('draws the status bar with named segments and a legend', async () => {
@@ -551,7 +551,7 @@ describe('Collection', () => {
     expect(document.querySelector('.status-bar')).toBeNull()
     expect(document.querySelector('.shelf-toolbar')).toBeNull()
     expect(
-      screen.queryByRole('region', { name: 'Favourites' }),
+      screen.queryByRole('region', { name: 'Favorites' }),
     ).not.toBeInTheDocument()
   })
 })

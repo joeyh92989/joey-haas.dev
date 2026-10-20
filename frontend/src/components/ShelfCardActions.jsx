@@ -68,7 +68,7 @@ export default function ShelfCardActions({
           type="button"
           className="shelf-favourite"
           aria-pressed={Boolean(item.favorite)}
-          aria-label="Favourite"
+          aria-label="Favorite"
           aria-disabled={blocked || undefined}
           aria-describedby={blocked ? fullNoteId : undefined}
           onClick={() => onFavorite(item, !item.favorite)}
@@ -77,7 +77,7 @@ export default function ShelfCardActions({
         </button>
         {blocked && (
           <span id={fullNoteId} className="visually-hidden">
-            Four favourites already set. Unfavourite one first.
+            Four favorites already set. Unfavorite one first.
           </span>
         )}
         <select

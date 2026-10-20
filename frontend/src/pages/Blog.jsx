@@ -1,9 +1,11 @@
 import { Link } from 'react-router'
+import Kicker from '../components/Kicker.jsx'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { formatDate, posts } from '../content/posts.js'
 
 /**
- * Blog index. Posts newest first.
+ * Blog index. Posts newest first, as dated rows: the date in mono, then the
+ * title and the post's `summary` when it has one.
  *
  * The empty state is the normal case at launch: the blog ships with nothing
  * published, and post #1 arrives whenever it is written.
@@ -16,24 +18,24 @@ export default function Blog() {
       {posts.length === 0 ? (
         <p className="prose muted">No posts yet.</p>
       ) : (
-        <ul className="post-list">
+        <ul className="row-list post-rows" role="list">
           {posts.map((post) => (
             <li key={post.slug}>
-              <Link to={`/blog/${post.slug}`}>{post.frontmatter.title}</Link>
-              {post.frontmatter.draft && (
-                <span className="draft-badge">Draft</span>
-              )}
-              <div className="post-meta">
+              <Kicker as="span">
                 <time dateTime={post.frontmatter.date}>
                   {formatDate(post.frontmatter.date)}
                 </time>
-                {post.frontmatter.tags.length > 0 && (
-                  <ul className="tech-list">
-                    {post.frontmatter.tags.map((tag) => (
-                      <li key={tag}>{tag}</li>
-                    ))}
-                  </ul>
-                )}
+              </Kicker>
+              <div>
+                <h2>
+                  <Link to={`/blog/${post.slug}`}>
+                    {post.frontmatter.title}
+                  </Link>
+                  {post.frontmatter.draft && (
+                    <span className="draft-badge">Draft</span>
+                  )}
+                </h2>
+                {post.frontmatter.summary && <p>{post.frontmatter.summary}</p>}
               </div>
             </li>
           ))}

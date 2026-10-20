@@ -64,13 +64,13 @@ describe('PosterCard', () => {
 
   it('shows the heart only for a favourite', () => {
     renderCard()
-    expect(screen.getByRole('img', { name: 'Favourite' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Favorite' })).toBeInTheDocument()
   })
 
   it('shows no heart for an item that is not a favourite', () => {
     renderCard({ item: { ...ITEM, favorite: false } })
     expect(
-      screen.queryByRole('img', { name: 'Favourite' }),
+      screen.queryByRole('img', { name: 'Favorite' }),
     ).not.toBeInTheDocument()
   })
 

@@ -362,7 +362,7 @@ function Disagreements() {
  * first error rather than hammering IGDB.
  */
 export default function AdminCatalogue() {
-  usePageTitle('Catalogue · Admin')
+  usePageTitle('Catalog · Admin')
   const { signedIn = false } = useOutletContext() ?? {}
   const [state, setState] = useState('loading')
   const [status, setStatus] = useState(null)
@@ -510,9 +510,9 @@ export default function AdminCatalogue() {
   if (state === 'unauthorized') {
     return (
       <section>
-        <h1>Catalogue</h1>
+        <h1>Catalog</h1>
         <p>
-          <Link to="/admin">Sign in</Link> to see the catalogue.
+          <Link to="/admin">Sign in</Link> to see the catalog.
         </p>
       </section>
     )
@@ -527,7 +527,7 @@ export default function AdminCatalogue() {
 
   return (
     <section className="catalogue">
-      <h1>Catalogue</h1>
+      <h1>Catalog</h1>
       <p className="muted">
         What exists physically, and as what: the r/NSCollectors registries for
         Switch 2 and Switch 1, the boutique stores and IGDB&apos;s N64 list.
@@ -560,7 +560,7 @@ export default function AdminCatalogue() {
         </p>
       )}
 
-      {state === 'loading' && <p className="muted">Loading the catalogue…</p>}
+      {state === 'loading' && <p className="muted">Loading the catalog…</p>}
 
       {status && (
         <>

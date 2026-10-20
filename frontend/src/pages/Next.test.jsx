@@ -87,8 +87,8 @@ describe('Next', () => {
       'What’s next',
     )
     // The API publishes UTC days only, read at noon so no timezone moves them.
-    expect(screen.getByText(/Picks from/)).toHaveTextContent(
-      'Picks from Sat 3 Oct · release list checked Sun 4 Oct · suggestions from Sun 4 Oct',
+    expect(screen.getByText(/^Picks /)).toHaveTextContent(
+      'Picks Sat 3 Oct · Releases checked Sun 4 Oct · Suggestions Sun 4 Oct',
     )
     const headings = screen
       .getAllByRole('heading', { level: 2 })

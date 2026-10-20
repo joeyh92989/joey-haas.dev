@@ -150,7 +150,7 @@ export default function YearInReview() {
             )}
             {review.favourites.length > 0 && (
               <div>
-                <dt>Favourites</dt>
+                <dt>Favorites</dt>
                 <dd>{review.favourites.length}</dd>
               </div>
             )}
@@ -233,7 +233,7 @@ export default function YearInReview() {
 
           {review.favourites.length > 0 && (
             <section aria-labelledby="year-favourites">
-              <h2 id="year-favourites">Favourites</h2>
+              <h2 id="year-favourites">Favorites</h2>
               <PosterGrid
                 items={review.favourites}
                 size="compact"

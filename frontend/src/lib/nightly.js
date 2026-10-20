@@ -90,10 +90,10 @@ export function nightlyWords(summary) {
   const failed = `failed: ${summary.failed.join(', ')}`
   if (summary.catalogueAt === null)
     return summary.failed.length
-      ? `Nightly may have stopped: no catalogue run finished · ${failed}`
-      : 'Nightly may have stopped: no catalogue run yet'
+      ? `Nightly may have stopped: no catalog run finished · ${failed}`
+      : 'Nightly may have stopped: no catalog run yet'
   const parts = [
-    `catalogue ${WHEN.format(summary.catalogueAt)}`,
+    `catalog ${WHEN.format(summary.catalogueAt)}`,
     summary.failed.length ? failed : 'ok',
   ]
   if (summary.radarAt)

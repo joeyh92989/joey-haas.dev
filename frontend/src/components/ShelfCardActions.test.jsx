@@ -69,7 +69,7 @@ describe('ShelfCardActions on a pointer device', () => {
     await userEvent.click(screen.getByRole('radio', { name: 'Clear rating' }))
     expect(handlers.onRate).toHaveBeenLastCalledWith(ITEM, null)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Favourite' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Favorite' }))
     expect(handlers.onFavorite).toHaveBeenCalledWith(ITEM, true)
 
     await userEvent.selectOptions(
@@ -87,7 +87,7 @@ describe('ShelfCardActions on a pointer device', () => {
   it('shows the favourite as pressed, and unfavourites', async () => {
     pointer(true)
     const handlers = renderActions({ ...ITEM, favorite: true })
-    const heart = screen.getByRole('button', { name: 'Favourite' })
+    const heart = screen.getByRole('button', { name: 'Favorite' })
     expect(heart).toHaveAttribute('aria-pressed', 'true')
     await userEvent.click(heart)
     expect(handlers.onFavorite).toHaveBeenCalledWith(
@@ -114,11 +114,11 @@ describe('ShelfCardActions when four favourites are set', () => {
   it('marks the empty heart unavailable, and says why', () => {
     pointer(true)
     renderFull()
-    const heart = screen.getByRole('button', { name: 'Favourite' })
+    const heart = screen.getByRole('button', { name: 'Favorite' })
     expect(heart).toHaveAttribute('aria-disabled', 'true')
     expect(heart).not.toBeDisabled()
     expect(heart).toHaveAccessibleDescription(
-      'Four favourites already set. Unfavourite one first.',
+      'Four favorites already set. Unfavorite one first.',
     )
   })
 
@@ -126,14 +126,14 @@ describe('ShelfCardActions when four favourites are set', () => {
   it('still reports a click on the unavailable heart', async () => {
     pointer(true)
     const handlers = renderFull()
-    await userEvent.click(screen.getByRole('button', { name: 'Favourite' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Favorite' }))
     expect(handlers.onFavorite).toHaveBeenCalledWith(ITEM, true)
   })
 
   it('leaves a favourite’s own heart available, so it can be unfavourited', () => {
     pointer(true)
     renderFull({ ...ITEM, favorite: true })
-    const heart = screen.getByRole('button', { name: 'Favourite' })
+    const heart = screen.getByRole('button', { name: 'Favorite' })
     expect(heart).not.toHaveAttribute('aria-disabled')
     expect(heart).not.toHaveAccessibleDescription()
   })
@@ -142,7 +142,7 @@ describe('ShelfCardActions when four favourites are set', () => {
     pointer(true)
     renderActions()
     expect(
-      screen.getByRole('button', { name: 'Favourite' }),
+      screen.getByRole('button', { name: 'Favorite' }),
     ).not.toHaveAttribute('aria-disabled')
   })
 })

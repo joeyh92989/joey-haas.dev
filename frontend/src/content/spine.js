@@ -8,6 +8,12 @@ import { LOAD_ERROR, WAKING } from './status.js'
  * canonical line and appears only as the /spine lede; `projectsTagline` is
  * a deliberate shorter variant for the Projects card (Spine brief, "The
  * name"). Link labels carry no arrow: pages append it.
+ *
+ * Voice, for every public string on the site: contractions ("I'm",
+ * "what's") and American spelling (favorites, catalog, normalized, colors).
+ * Only words a visitor reads move; routes such as /admin/catalogue, module
+ * names and API fields such as `catalogue` keep their spelling, since
+ * renaming them would break links and the API contract.
  */
 export const spine = {
   name: 'Spine',
@@ -15,6 +21,8 @@ export const spine = {
   tagline:
     'A tracker for my physical game collection: what I own, what I’ve finished, and what to play next.',
   projectsTagline: 'A tracker for a physical game collection',
+  homeLine:
+    'A tracker for a physical game collection: photo import, a physical catalog, and picks that say why.',
   projectLine:
     'I built this: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
   links: {
@@ -29,11 +37,11 @@ export const spine = {
   next: {
     path: '/spine/next',
     title: 'What’s next',
-    lede: 'What I could play tonight from my shelf, and what I am looking for in a store. Full cartridges only, ranked by what I have liked, rebuilt nightly.',
+    lede: 'What I could play tonight, and what I’m looking for in stores. Full cartridges only, ranked by what I’ve liked, rebuilt nightly.',
     fresh: {
-      picks: 'Picks from',
-      catalogue: 'release list checked',
-      discover: 'suggestions from',
+      picks: 'Picks',
+      catalogue: 'Releases checked',
+      discover: 'Suggestions',
     },
     sections: {
       tonight: 'Tonight',
@@ -45,9 +53,9 @@ export const spine = {
     },
     empty: {
       upNext: 'Nothing lined up for tonight.',
-      picks: 'No picks yet. They are rebuilt every night.',
+      picks: 'No picks yet — they’re rebuilt every night.',
       wanted: 'The list is empty, for now.',
-      buy_now: 'Nothing worth buying today.',
+      buy_now: 'Nothing in stores right now.',
       preorders: 'No cartridges due in the next 90 days.',
       later: 'Nothing announced further out.',
       not_on_cartridge: 'Nothing to skip.',
@@ -59,7 +67,7 @@ export const spine = {
       { value: 'best', label: 'Best fit' },
       { value: 'newest', label: 'Newest' },
     ],
-    sortLabel: 'Sort what is in stores now',
+    sortLabel: 'Sort what’s in stores now',
     outOn: 'Out',
     /** As a meta line starts; mirrors FORMAT_WORDS in physical_sources/limits.py. */
     formats: {

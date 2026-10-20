@@ -197,8 +197,8 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
   const extra = favourites.length - FAVOURITES_SHOWN
 
   return (
-    <section className="favourites" aria-label="Favourites">
-      <h2>Favourites</h2>
+    <section className="favourites" aria-label="Favorites">
+      <h2>Favorites</h2>
       <ul className="favourites-row">
         {favourites.map((item) => (
           <li key={item.id}>
@@ -214,12 +214,12 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
       </ul>
       {extra > 0 && (
         <p className="muted favourites-hint">
-          {`${favourites.length} favourites. The public page shows four; unfavourite ${extra}.`}
+          {`${favourites.length} favorites. The public page shows four; unfavorite ${extra}.`}
         </p>
       )}
       {empty > 0 && (
         <p className="muted favourites-hint">
-          Pick your favourites — the heart on any card.
+          Pick your favorites — the heart on any card.
         </p>
       )}
     </section>

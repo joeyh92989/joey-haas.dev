@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import CoverStrip from '../components/CoverStrip.jsx'
+import Kicker from '../components/Kicker.jsx'
 import { projects } from '../content/projects.js'
 
 /**
@@ -10,7 +11,8 @@ import { projects } from '../content/projects.js'
  * A project with `to` lives on this site and is linked with a router Link, so
  * it navigates without a full page load; `url` links away.
  * `strip: 'favourites'` adds the collection's cover strip, read from the build-time
- * snapshot, not the API. `tagline`, `highlights` and `links` render only when set.
+ * snapshot, not the API. `tagline`, `line`, `highlights` and `links` render
+ * only when set. The cards share Home's Work card language, one per row.
  */
 export default function Projects() {
   usePageTitle('Projects · Joey Haas')
@@ -20,6 +22,11 @@ export default function Projects() {
       <div className="project-grid">
         {projects.map((project) => (
           <article key={project.name} className="project-card">
+            {project.tagline && (
+              <Kicker as="span" className="project-tagline">
+                {project.tagline}
+              </Kicker>
+            )}
             <h2>
               {project.to ? (
                 <Link to={project.to}>{project.name}</Link>
@@ -29,9 +36,6 @@ export default function Projects() {
                 project.name
               )}
             </h2>
-            {project.tagline && (
-              <p className="project-tagline">{project.tagline}</p>
-            )}
             {project.strip === 'favourites' && <CoverStrip />}
             <p>{project.description}</p>
             {project.highlights && (
@@ -56,6 +60,7 @@ export default function Projects() {
                 )}
               </p>
             )}
+            {project.line && <p className="project-line">{project.line}</p>}
             <ul className="tech-list">
               {project.tech.map((tech) => (
                 <li key={tech}>{tech}</li>

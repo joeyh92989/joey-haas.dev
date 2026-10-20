@@ -365,9 +365,7 @@ a:hover {
 .nav-sheet a:focus-visible,
 .brand:focus-visible,
 .btn:focus-visible,
-.link-card:focus-visible,
-.latest-post:focus-visible,
-.post-list li > a:focus-visible {
+.card:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -395,60 +393,133 @@ a:hover {
 
 /* ---------- Home ---------- */
 
-.greeting {
-  font-size: 2.5rem;
+/* The hero: the headline, lede and actions, with the facts table beside them
+   on a desktop and under them on a phone. */
+.hero {
+  align-items: start;
+  display: grid;
+  gap: 48px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr);
+  padding: 2.5rem 0 3.75rem;
 }
 
-.intro {
-  color: var(--text-2);
+/* One of the two serif headlines on the site; About's title is the other. */
+.hero-title {
+  font: 500 3.5rem/1.05 var(--font-display);
+  letter-spacing: -0.02em;
   margin-top: 0.875rem;
+  max-width: 18ch;
+}
+
+/* 500 is the italic cut main.jsx loads; any other weight is synthesised. */
+.hero-title em {
+  color: var(--accent);
+  font-style: italic;
+}
+
+.hero-lede {
+  color: var(--text-2);
+  font-size: 1.125rem;
+  margin: 1.125rem 0 1.625rem;
   max-width: 54ch;
 }
 
-/* The serif italic pulls one word out of the sans paragraph — the sentence is
-   about caring why, so the word "why" is what gets the emphasis. 500 is the
-   italic cut main.jsx loads; any other weight would be synthesised. */
-.intro em {
-  color: var(--accent);
-  font-family: var(--font-display);
-  font-weight: 500;
-}
-
-.link-cards {
+.hero-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.link-card {
+.facts {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  color: var(--text);
-  flex: 1;
-  padding: 1.125rem 1.25rem;
-  transition: border-color 0.2s;
+  border-radius: var(--radius);
 }
 
-.link-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+.facts > div {
+  border-top: 1px solid var(--line);
+  display: flex;
+  font-size: 0.875rem;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.facts > div:first-child {
+  border-top: 0;
+}
+
+.facts dt {
+  color: var(--text-2);
+  flex: none;
+}
+
+.facts dd {
+  color: var(--text);
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Home's Work and Experience: a hairline above, the heading and its "all"
+   link on one line. */
+.home-section {
+  border-top: 1px solid var(--line);
+  margin-top: 0;
+  padding: 2.5rem 0;
+}
+
+.section-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  margin-bottom: 1.125rem;
+}
+
+.section-head h2 {
+  font-size: 1.25rem;
+}
+
+.section-head a {
+  font-size: 0.875rem;
+}
+
+.card-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* A card is a link, but its text keeps the text colours: the border is what
+   answers hover, so the card never reads as a block of accent. */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  display: block;
+  padding: 20px;
+}
+
+.card:hover {
+  border-color: var(--line-strong);
   text-decoration: none;
 }
 
-.link-card-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.link-card-arrow {
-  color: var(--accent);
-}
-
-.link-card-sub {
-  color: var(--text-3);
+.card .kicker {
   display: block;
-  font-size: 0.8125rem;
-  margin-top: 0.1875rem;
+  margin-bottom: 10px;
+}
+
+.card h3 {
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+
+.card p {
+  color: var(--text-2);
+  font-size: 0.875rem;
 }
 
 /* Home and Projects: four favourite covers from the build-time snapshot. */
@@ -456,40 +527,65 @@ a:hover {
   display: grid;
   gap: 0.375rem;
   grid-template-columns: repeat(4, minmax(0, 3.25rem));
-  margin-top: 0.75rem;
+  margin-top: 0.875rem;
 }
 
-.latest-post {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  display: block;
-  margin-top: 1rem;
-  padding: 1.125rem 1.25rem;
+/* Dated rows: the date in mono on the left, a title and one line beside it.
+   Home's work history and the blog index. */
+.row-list {
+  list-style: none;
 }
 
-.latest-post:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-  text-decoration: none;
+.row-list > li {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 140px minmax(0, 1fr);
+  padding: 16px 0;
 }
 
-.latest-kicker {
-  color: var(--text-3);
-  display: block;
-  font-size: 0.65625rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.row-list > li:first-child {
+  border-top: 0;
 }
 
-.latest-title {
-  color: var(--text);
-  display: block;
-  font-family: var(--font-sans);
-  font-size: 1.0625rem;
-  font-weight: 600;
-  line-height: 1.3;
-  margin-top: 0.25rem;
+.row-list .kicker {
+  padding-top: 0.125rem;
+}
+
+.row-list h3 {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.row-list p {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+@media (max-width: 700px) {
+  .hero {
+    gap: 24px;
+    grid-template-columns: 1fr;
+    padding: 0.5rem 0 2rem;
+  }
+
+  .hero-title {
+    font-size: 2.375rem;
+  }
+
+  .hero-lede {
+    font-size: 1rem;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .row-list > li {
+    gap: 4px;
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------- About ---------- */
@@ -508,29 +604,99 @@ section + section {
   margin-top: 0.75rem;
 }
 
-/* The rule is the spine of the timeline; each entry hangs a dot on it. */
-.timeline {
-  border-left: 2px solid var(--line);
+/* The aside holds still beside the body on a desktop and leads it on a
+   phone. */
+.about {
+  display: grid;
+  gap: 56px;
+  grid-template-columns: 280px minmax(0, 1fr);
+  padding-top: 1rem;
+}
+
+.about-aside {
+  align-self: start;
+  position: sticky;
+  top: 24px;
+}
+
+.about-photo {
+  border-radius: var(--radius);
+  display: block;
+  height: 96px;
+  margin-bottom: 20px;
+  object-fit: cover;
+  width: 96px;
+}
+
+/* The other serif headline, beside Home's hero. */
+.about-title {
+  font: 500 2.5rem/1.05 var(--font-display);
+  margin-bottom: 8px;
+}
+
+.about-aside .kicker {
+  margin-bottom: 18px;
+}
+
+.about-facts {
+  font-size: 0.875rem;
+}
+
+.about-facts > div {
+  border-top: 1px solid var(--line);
   display: flex;
-  flex-direction: column;
-  gap: 1.625rem;
-  margin-top: 1.25rem;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.about-facts dt {
+  color: var(--text-2);
+}
+
+.about-facts dd {
+  color: var(--text);
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Section labels: headings by structure, set as kickers. */
+.about-label {
+  color: var(--text-3);
+  font: 500 0.75rem var(--font-mono);
+  letter-spacing: 0.02em;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.about-body .prose {
+  max-width: 64ch;
+}
+
+/* A hairline rail with a dot per entry; the current role's dot is the
+   accent. */
+.timeline {
+  border-left: 1px solid var(--line-strong);
+  list-style: none;
+  margin-left: 4px;
+  padding-left: 22px;
 }
 
 .timeline-entry {
-  padding-left: 1.625rem;
+  padding-bottom: 22px;
   position: relative;
 }
 
 .timeline-entry::before {
   background: var(--line-strong);
+  border: 2px solid var(--bg);
   border-radius: 50%;
   content: '';
-  height: 0.625rem;
-  left: -0.375rem;
+  height: 9px;
+  left: -27px;
   position: absolute;
-  top: 0.375rem;
-  width: 0.625rem;
+  top: 7px;
+  width: 9px;
 }
 
 .timeline-entry.current::before {
@@ -538,33 +704,35 @@ section + section {
 }
 
 .timeline-role {
-  color: var(--text);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 
 .timeline-company {
-  color: var(--text-3);
-  font-size: 0.875rem;
-}
-
-.timeline-entry.current .timeline-company {
-  color: var(--accent);
+  color: var(--text-2);
+  font-weight: 500;
 }
 
 .timeline-meta {
-  color: var(--text-3);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  margin-top: 0.125rem;
-  text-transform: uppercase;
+  margin: 3px 0 6px;
 }
 
 .timeline-summary {
   color: var(--text-2);
   font-size: 0.875rem;
-  margin-top: 0.375rem;
-  max-width: 54ch;
+  max-width: 64ch;
+}
+
+@media (max-width: 700px) {
+  .about {
+    gap: 28px;
+    grid-template-columns: 1fr;
+    padding-top: 0;
+  }
+
+  .about-aside {
+    position: static;
+  }
 }
 
 .chip-list {
@@ -582,6 +750,14 @@ section + section {
   color: var(--text-2);
   font-size: 0.8125rem;
   padding: 0.25rem 0.8125rem;
+}
+
+/* About's chips are mono labels, squared off; the shelf keeps its pills. */
+.about .chip-list li {
+  background: var(--sunken);
+  border-radius: 4px;
+  font: 500 0.75rem var(--font-mono);
+  padding: 3px 8px;
 }
 
 /* Grid rather than CSS multi-column: multicol needs break-inside: avoid on
@@ -612,16 +788,18 @@ section + section {
   margin-top: 1.125rem;
 }
 
+/* Home's Work card at full width: the same surface, hairline and radius,
+   but an article rather than a link, so there is no hover state. */
 .project-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 1.375rem 1.5rem;
+  border-radius: var(--radius);
+  padding: 20px;
 }
 
 /* An h2 by document structure, but on the card's scale, not the page's. */
 .project-card h2 {
-  font-size: 1.3125rem;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
@@ -636,9 +814,13 @@ section + section {
 }
 
 .project-card .project-tagline {
-  color: var(--text-3);
-  font-size: 0.875rem;
-  margin: 0.125rem 0 0.75rem;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.project-card .project-line {
+  color: var(--text);
+  margin-top: 0.875rem;
 }
 
 .project-highlights {
@@ -660,7 +842,7 @@ section + section {
   margin: 0.75rem 0 0;
 }
 
-/* Tags are the one place the sage accent appears in light mode, so they read
+/* Tech and tag chips: squared and mono, like About's toolbox, so they read
    as metadata rather than as another link. */
 .tech-list {
   display: flex;
@@ -672,45 +854,30 @@ section + section {
 
 .tech-list li {
   background: var(--sunken);
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--text-2);
-  font-size: 0.78125rem;
-  padding: 0.1875rem 0.75rem;
+  font: 500 0.75rem var(--font-mono);
+  padding: 3px 8px;
 }
 
 /* ---------- Blog ---------- */
 
-.post-list {
-  list-style: none;
+/* The index's rows are .row-list; only the title's scale is the blog's own.
+   An h2 here, since the page's h1 sits above it. */
+.post-rows {
   margin-top: 1.125rem;
 }
 
-.post-list li {
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 1.25rem;
+.post-rows h2 {
+  font-size: 1.125rem;
+  font-weight: 500;
 }
 
-.post-list li + li {
-  padding-top: 1.25rem;
-}
-
-/* The dividers separate posts from each other, not the list from the footer —
-   a trailing rule would sit just above the footer's own and read as an empty
-   row. */
-.post-list li:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.post-list li > a {
+.post-rows h2 a {
   color: var(--text);
-  font-family: var(--font-sans);
-  font-size: 1.3125rem;
-  font-weight: 600;
 }
 
-.post-list li > a:hover {
+.post-rows h2 a:hover {
   color: var(--accent);
   text-decoration: none;
 }
@@ -729,11 +896,6 @@ section + section {
   margin-top: 0;
 }
 
-.post-meta .tech-list li {
-  font-size: 0.75rem;
-  padding: 0.125rem 0.625rem;
-}
-
 .draft-badge {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -744,6 +906,12 @@ section + section {
   margin-left: 0.5rem;
   padding: 0.125rem 0.625rem;
   text-transform: uppercase;
+}
+
+.post-summary {
+  color: var(--text-2);
+  font-size: 1.125rem;
+  margin-top: 0.5rem;
 }
 
 .post-body {
@@ -2741,14 +2909,6 @@ a.month-bar::before {
   .poster-grid,
   .poster-grid[data-size='compact'] {
     --poster-min: 6rem;
-  }
-
-  .link-cards {
-    flex-direction: column;
-  }
-
-  .greeting {
-    font-size: 2rem;
   }
 }
 

@@ -150,7 +150,7 @@ describe('AdminItem', () => {
   // The API caps favourites at four. Its 409 explains the rule; the page
   // shows that rather than a generic failure, and keeps the unsaved form.
   it('shows the server’s reason when a fifth favourite is refused', async () => {
-    const detail = 'You already have 4 favourites. Unfavourite one first.'
+    const detail = 'You already have 4 favorites. Unfavorite one first.'
     stubApi({
       onWrite: () => ({
         ok: false,
@@ -160,11 +160,11 @@ describe('AdminItem', () => {
     })
     renderPage()
 
-    await userEvent.click(await screen.findByLabelText('Favourite'))
+    await userEvent.click(await screen.findByLabelText('Favorite'))
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(detail)
-    expect(screen.getByLabelText('Favourite')).toBeChecked()
+    expect(screen.getByLabelText('Favorite')).toBeChecked()
   })
 
   it('publishes from the detail view too', async () => {

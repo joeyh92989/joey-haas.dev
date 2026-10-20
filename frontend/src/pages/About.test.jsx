@@ -30,6 +30,31 @@ describe('About', () => {
     }
   })
 
+  it('marks the current role, and only that one', () => {
+    render(<About />)
+    const current = document.querySelectorAll('.timeline-entry.current')
+    expect(current).toHaveLength(1)
+    expect(current[0]).toHaveTextContent(
+      experience.find((entry) => entry.current).role,
+    )
+  })
+
+  it('sums up the profile beside the body, with the resume', () => {
+    render(<About />)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'About' }),
+    ).toBeInTheDocument()
+    for (const fact of profile.aboutFacts) {
+      expect(screen.getByText(fact.label).nextSibling).toHaveTextContent(
+        fact.value,
+      )
+    }
+    expect(screen.getByRole('link', { name: 'Resume (PDF)' })).toHaveAttribute(
+      'href',
+      '/resume.pdf',
+    )
+  })
+
   it('renders every toolbox chip', () => {
     render(<About />)
     expect(profile.toolbox.length).toBeGreaterThan(0)

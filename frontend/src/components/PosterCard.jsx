@@ -96,7 +96,7 @@ export default function PosterCard({ item, to, actions, dimmed = false }) {
           )}
           {coming && <span className="upcoming-ribbon">{coming}</span>}
           {item.favorite && (
-            <span className="poster-heart" role="img" aria-label="Favourite">
+            <span className="poster-heart" role="img" aria-label="Favorite">
               ♥
             </span>
           )}

@@ -735,7 +735,7 @@ export default function AdminItem() {
             onChange={set('notes')}
           />
 
-          <label htmlFor="favorite">Favourite</label>
+          <label htmlFor="favorite">Favorite</label>
           <input
             id="favorite"
             type="checkbox"

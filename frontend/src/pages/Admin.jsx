@@ -105,7 +105,7 @@ export default function Admin() {
             <Link to="/admin/play-next">Play Next</Link>
           </p>
           <p>
-            <Link to="/admin/catalogue">Catalogue</Link>
+            <Link to="/admin/catalogue">Catalog</Link>
           </p>
           <p>
             <Link to="/admin/radar">Radar</Link>

@@ -78,7 +78,7 @@ const TITLES = [
   ['/admin/collection', 'Collection · Admin'],
   ['/admin/import', 'Import from photos · Admin'],
   ['/admin/play-next', 'Play Next · Admin'],
-  ['/admin/catalogue', 'Catalogue · Admin'],
+  ['/admin/catalogue', 'Catalog · Admin'],
   ['/admin/radar', 'Radar · Admin'],
   ['/admin/discover', 'Discover · Admin'],
   ['/admin/store-list', 'Store list · Admin'],

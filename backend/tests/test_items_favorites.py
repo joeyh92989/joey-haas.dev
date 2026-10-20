@@ -84,7 +84,7 @@ async def test_a_fifth_favourite_is_refused_by_patch(sessionmaker_for_test):
         response = await client.patch(f"/api/items/{ids[4]}", json={"favorite": True})
 
     assert response.status_code == 409
-    assert "Unfavourite one first" in response.json()["detail"]
+    assert "Unfavorite one first" in response.json()["detail"]
     assert await _favorite_count(sessionmaker_for_test) == 4
 
 
