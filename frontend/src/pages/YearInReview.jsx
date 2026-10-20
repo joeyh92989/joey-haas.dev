@@ -10,6 +10,7 @@ import { isoMonth } from '../lib/monthInReview.js'
 import { finishYears, yearInReview } from '../lib/yearInReview.js'
 import NotFound from './NotFound.jsx'
 import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
+import { LOAD_ERROR } from '../content/status.js'
 
 const MONTHS = [
   'Jan',
@@ -102,7 +103,7 @@ export default function YearInReview() {
       )}
       {!data && failed && (
         <p className="admin-error" role="alert">
-          The shelf could not be loaded. Try again shortly.
+          {LOAD_ERROR}
         </p>
       )}
 

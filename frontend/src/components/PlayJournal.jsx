@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ACTION_ERROR } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { localToday } from '../lib/statusTransition.js'
 
@@ -71,7 +72,7 @@ export default function PlayJournal({ itemId }) {
       setNote('')
       setSessions(await fetchSessions())
     } catch {
-      setError('The server could not be reached.')
+      setError(ACTION_ERROR)
     } finally {
       setSaving(false)
     }
@@ -90,7 +91,7 @@ export default function PlayJournal({ itemId }) {
       }
       setSessions((current) => current.filter((row) => row.id !== sessionId))
     } catch {
-      setError('The server could not be reached.')
+      setError(ACTION_ERROR)
     }
   }
 

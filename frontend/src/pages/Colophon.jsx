@@ -25,8 +25,8 @@ export default function Colophon() {
           tokens; no CSS framework.
         </li>
         <li>
-          Set in Newsreader and Public Sans, self-hosted rather than loaded from
-          a font service.
+          Set in Inter, JetBrains Mono and Source Serif 4, self-hosted rather
+          than loaded from a font service.
         </li>
         <li>
           Dark by default, with a light theme a click away. The code

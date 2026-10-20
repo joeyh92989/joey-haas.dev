@@ -103,7 +103,7 @@ describe('Admin', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
     renderAt()
     await waitFor(() =>
-      expect(screen.getByText(/could not reach the api/i)).toBeInTheDocument(),
+      expect(screen.getByText(/didn’t load/i)).toBeInTheDocument(),
     )
   })
 })

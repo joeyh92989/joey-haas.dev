@@ -138,7 +138,7 @@ describe('YearInReview', () => {
   it('reports a failed load', () => {
     answer.value = { data: null, live: false, failed: true }
     renderAt('/spine/year/2026')
-    expect(screen.getByRole('alert')).toHaveTextContent('could not be loaded')
+    expect(screen.getByRole('alert')).toHaveTextContent('didn’t load')
   })
 
   it('treats a year that is not a year as not found', () => {

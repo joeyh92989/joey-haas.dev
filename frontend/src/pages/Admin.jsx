@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import LastNightly from '../components/LastNightly.jsx'
 import { apiFetch, loginUrl } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { LOAD_ERROR, WAKING } from '../content/status.js'
 
 /**
  * Admin area. Deliberately absent from the site navigation — reachable only by
@@ -65,16 +66,10 @@ export default function Admin() {
       )}
 
       {status === 'checking' && (
-        <p className="muted">
-          {slow ? 'Waking the server…' : 'Checking your session…'}
-        </p>
+        <p className="muted">{slow ? WAKING : 'Checking your session…'}</p>
       )}
 
-      {status === 'error' && (
-        <p className="admin-error">
-          Could not reach the API. Try again shortly.
-        </p>
-      )}
+      {status === 'error' && <p className="admin-error">{LOAD_ERROR}</p>}
 
       {status === 'signed-out' && (
         <p>

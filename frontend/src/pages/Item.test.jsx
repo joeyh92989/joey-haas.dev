@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { LOAD_ERROR } from '../content/status.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import Item from './Item.jsx'
 
@@ -237,7 +238,7 @@ describe('Item', () => {
   it('reports any other failure', async () => {
     stubApi({ ok: false, status: 500, json: async () => ({}) })
     renderPage()
-    expect(await screen.findByText(/could not be loaded/i)).toBeInTheDocument()
+    expect(await screen.findByText(/didn’t load/i)).toBeInTheDocument()
   })
 
   it('announces the cold start while the server wakes', async () => {
@@ -505,10 +506,11 @@ describe('Item snapshot preview', () => {
     vi.mocked(readSnapshot).mockResolvedValue([ROW])
     stubApi({ ok: false, status: 500, json: async () => ({}) })
     await renderReady()
+    expect(await screen.findByText(LOAD_ERROR)).toBeInTheDocument()
+    // The preview stays up with a note; the error page would replace it.
     expect(
-      await screen.findByText(
-        'More detail could not be loaded. Try again shortly.',
-      ),
+      screen.getByRole('heading', { level: 1, name: 'Hades' }),
     ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

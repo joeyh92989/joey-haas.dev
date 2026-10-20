@@ -11,6 +11,7 @@ import MetadataPicker from '../components/MetadataPicker.jsx'
 import PlayJournal from '../components/PlayJournal.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const STATUSES = ['backlog', 'active', 'finished', 'abandoned']
@@ -171,7 +172,7 @@ function RegistryLine({ item, onAdopted }) {
       }
       onAdopted(await response.json())
     } catch {
-      setError('Could not reach the API. Try again shortly.')
+      setError(ACTION_ERROR)
     } finally {
       setBusy(false)
     }
@@ -291,7 +292,7 @@ export default function AdminItem() {
       setForm(toForm(updated))
       setSavedAt(Date.now())
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
     } finally {
       setSaving(false)
     }
@@ -355,7 +356,7 @@ export default function AdminItem() {
       applyServerItem(await refreshed.json())
       setSavedAt(Date.now())
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
     } finally {
       setRelinking(false)
     }
@@ -396,7 +397,7 @@ export default function AdminItem() {
       }
       applyServerItem(await response.json())
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
     }
   }
 
@@ -414,7 +415,7 @@ export default function AdminItem() {
       }
       applyServerItem(await reread.json())
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
     }
   }
 
@@ -431,7 +432,7 @@ export default function AdminItem() {
         return
       }
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
       return
     }
     navigate('/admin/collection')
@@ -450,7 +451,7 @@ export default function AdminItem() {
     return (
       <section>
         <h1>Item</h1>
-        <p className="muted">{slow ? 'Waking the server…' : 'Loading…'}</p>
+        <p className="muted">{slow ? WAKING : 'Loading…'}</p>
       </section>
     )
   }
@@ -482,9 +483,7 @@ export default function AdminItem() {
     return (
       <section>
         <h1>Item</h1>
-        <p className="admin-error">
-          Could not reach the API. Try again shortly.
-        </p>
+        <p className="admin-error">{LOAD_ERROR}</p>
       </section>
     )
   }

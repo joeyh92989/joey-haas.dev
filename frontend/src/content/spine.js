@@ -1,4 +1,5 @@
 import { profile } from './profile.js'
+import { LOAD_ERROR, WAKING } from './status.js'
 
 /**
  * Spine's public copy: the tracker's name and the lines that say what it is.
@@ -78,9 +79,8 @@ export const spine = {
       preorders: 'coming soon',
     },
     loading: 'Loading…',
-    waking:
-      'Waking the server. It sleeps when nobody is using it, so this takes about thirty seconds.',
-    error: 'What’s next did not load. Try again in a minute.',
+    waking: WAKING,
+    error: LOAD_ERROR,
   },
   /** /admin/store-list: What's next's sections with my answers on them. */
   storeList: {

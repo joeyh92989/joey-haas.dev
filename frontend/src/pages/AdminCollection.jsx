@@ -30,6 +30,7 @@ import {
   platformGroup,
 } from './Collection.jsx'
 import { itemPath } from '../lib/spinePaths.js'
+import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const STATUSES = STATUS_ORDER
 
@@ -228,7 +229,7 @@ export default function AdminCollection() {
         }).catch(() => {})
       }
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
       return
     } finally {
       setSaving(false)
@@ -266,7 +267,7 @@ export default function AdminCollection() {
         return
       }
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
       return
     }
     await load()
@@ -342,7 +343,7 @@ export default function AdminCollection() {
         return
       }
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
       return
     } finally {
       setBulkBusy(false)
@@ -395,7 +396,7 @@ export default function AdminCollection() {
         return
       }
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
       return
     } finally {
       setBulkBusy(false)
@@ -425,7 +426,7 @@ export default function AdminCollection() {
       }
       setRefreshResult(await response.json())
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
       return
     } finally {
       setRefreshing(false)
@@ -442,7 +443,7 @@ export default function AdminCollection() {
         return
       }
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
       return
     }
     await load()
@@ -594,7 +595,7 @@ export default function AdminCollection() {
     return (
       <section>
         <h1>Collection</h1>
-        <p className="muted">{slow ? 'Waking the server…' : 'Loading…'}</p>
+        <p className="muted">{slow ? WAKING : 'Loading…'}</p>
       </section>
     )
   }
@@ -614,9 +615,7 @@ export default function AdminCollection() {
     return (
       <section>
         <h1>Collection</h1>
-        <p className="admin-error">
-          Could not reach the API. Try again shortly.
-        </p>
+        <p className="admin-error">{LOAD_ERROR}</p>
       </section>
     )
   }

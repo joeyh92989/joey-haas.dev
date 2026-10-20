@@ -95,22 +95,43 @@ describe('RootLayout theme toggle', () => {
   })
 })
 
-describe('RootLayout wide pages', () => {
+describe('RootLayout page widths', () => {
   function pageClass(path) {
     const { container } = renderAt(path)
-    return container.querySelector('.page').className
+    return container.querySelector('main').className
   }
 
-  // The tracker pages break out of the reading column; everything else keeps it.
+  // The tracker pages break out to 72rem; everything nested under one too.
   it.each(['/spine', '/spine/abc', '/admin/collection/abc'])(
     'widens %s',
     (path) => {
-      expect(pageClass(path)).toContain('page-wide')
+      expect(pageClass(path)).toBe('page page-wide')
     },
   )
 
-  it.each(['/about', '/', '/admin', '/blog'])('keeps %s narrow', (path) => {
-    expect(pageClass(path)).not.toContain('page-wide')
+  // Cards and columns take the masthead's 1040px measure.
+  it.each(['/', '/about', '/projects', '/about/'])(
+    'gives %s the content width',
+    (path) => {
+      expect(pageClass(path)).toBe('page page-content')
+    },
+  )
+
+  // Prose keeps the reading column, including pages nested under a content
+  // route's path.
+  it.each(['/blog', '/blog/x', '/now', '/colophon', '/admin', '/about/x'])(
+    'keeps %s to the reading column',
+    (path) => {
+      expect(pageClass(path)).toBe('page')
+    },
+  )
+
+  // The masthead and footer rows follow the page out on the tracker routes.
+  it('widens the chrome with the tracker pages only', () => {
+    const { container, unmount } = renderAt('/spine')
+    expect(container.firstChild).toHaveClass('site-wide')
+    unmount()
+    expect(renderAt('/about').container.firstChild).not.toHaveClass('site-wide')
   })
 })
 
@@ -209,29 +230,19 @@ describe('RootLayout footer', () => {
   })
 })
 
-describe('RootLayout masthead density', () => {
-  function masthead(path) {
-    const { container } = renderAt(path)
-    return container.querySelector('.masthead')
-  }
-
-  it.each([
-    '/spine',
-    '/spine/next',
-    '/spine/abc',
-    '/admin',
-    '/admin/store-list',
-  ])('is compact on %s, with no tagline', (path) => {
-    const node = masthead(path)
-    expect(node.className).toContain('compact')
-    expect(node.querySelector('.tagline')).toBeNull()
-  })
-
-  it.each(['/', '/about', '/projects', '/blog/x'])('is full on %s', (path) => {
-    const node = masthead(path)
-    expect(node.className).not.toContain('compact')
-    expect(node.querySelector('.tagline')).not.toBeNull()
-  })
+describe('RootLayout masthead', () => {
+  // One masthead everywhere: the tracker no longer gets a compact variant.
+  it.each(['/', '/about', '/spine', '/spine/next', '/admin'])(
+    'is the same masthead on %s',
+    (path) => {
+      const { container } = renderAt(path)
+      expect(container.querySelectorAll('.mast')).toHaveLength(1)
+      expect(screen.getByRole('link', { name: /Joey Haas/ })).toHaveAttribute(
+        'href',
+        '/',
+      )
+    },
+  )
 
   it('keeps Spine current on What’s next', () => {
     renderAt('/spine/next')

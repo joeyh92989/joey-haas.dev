@@ -7,8 +7,7 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { dayWords, MONTH, releaseWords, utc } from '../lib/releaseWords.js'
 import { localToday } from '../lib/statusTransition.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
-
-const UNREACHABLE = 'Could not reach the API. Try again shortly.'
+import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 
 /** "2 hours ago", or "never". */
 export function ago(timestamp, now = Date.now()) {
@@ -91,7 +90,7 @@ async function fetchRadar() {
       watching: await watching.json(),
     }
   } catch {
-    return { state: 'error', error: UNREACHABLE }
+    return { state: 'error', error: LOAD_ERROR }
   }
 }
 
@@ -179,7 +178,7 @@ export default function AdminRadar() {
       if (result.digital_error)
         setError(`Digital so far is missing: ${result.digital_error}`)
     } catch {
-      setError(UNREACHABLE)
+      setError(ACTION_ERROR)
     } finally {
       // Read the radar before the buttons come back, so an answer pressed
       // now is not undone by an older list arriving after it.
@@ -227,7 +226,7 @@ export default function AdminRadar() {
         apply(await fetchRadar())
       }
     } catch {
-      setError(UNREACHABLE)
+      setError(ACTION_ERROR)
     } finally {
       setBusy(false)
     }

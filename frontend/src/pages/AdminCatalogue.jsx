@@ -3,6 +3,7 @@ import { Link, useOutletContext } from 'react-router'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 
 const KIND_ORDER = ['registry', 'store', 'platform', 'resolve']
 
@@ -48,7 +49,7 @@ async function fetchStatus() {
   } catch {
     return {
       state: 'error',
-      error: 'Could not reach the API. Try again shortly.',
+      error: LOAD_ERROR,
     }
   }
 }
@@ -260,7 +261,7 @@ function NeedsMatch({ onChange }) {
       })
       if (!response.ok) return await errorMessage(response)
     } catch {
-      return 'Could not reach the API. Try again shortly.'
+      return ACTION_ERROR
     }
     // Decided rows leave the list here; nothing is reloaded.
     setState((current) => ({
@@ -402,7 +403,7 @@ export default function AdminCatalogue() {
       }
       return await response.json()
     } catch {
-      setError('Could not reach the API. Try again shortly.')
+      setError(ACTION_ERROR)
       return null
     } finally {
       setRunning(null)
@@ -498,7 +499,7 @@ export default function AdminCatalogue() {
         }
       }
     } catch {
-      setError('Could not reach the API. Try again shortly.')
+      setError(ACTION_ERROR)
     } finally {
       setRunning(null)
       setRound((current) => current + 1)

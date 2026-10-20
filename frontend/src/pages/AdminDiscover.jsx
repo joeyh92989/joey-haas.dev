@@ -6,8 +6,7 @@ import RecommendationCard, {
 } from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
-
-const UNREACHABLE = 'Could not reach the API. Try again shortly.'
+import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 
 const POPULARITY = [
   ['safe', 'Safe'],
@@ -42,7 +41,7 @@ async function fetchDiscover() {
       items: items.ok ? await items.json() : [],
     }
   } catch {
-    return { state: 'error', error: UNREACHABLE }
+    return { state: 'error', error: LOAD_ERROR }
   }
 }
 
@@ -159,7 +158,7 @@ export default function AdminDiscover() {
       setMessage(result.count === 1 ? '1 pick' : `${result.count} picks`)
       setEmptyNote(result.count ? null : result.model_note)
     } catch {
-      setError(UNREACHABLE)
+      setError(ACTION_ERROR)
     } finally {
       // Read the picks before the buttons come back, so an answer pressed
       // now is not undone by an older list arriving after it.
@@ -214,7 +213,7 @@ export default function AdminDiscover() {
       if (action === 'want') setMessage(`Wanted ${row.title}`)
       if (action === 'own') setMessage(`Added ${row.title} to the collection`)
     } catch {
-      setError(UNREACHABLE)
+      setError(ACTION_ERROR)
     } finally {
       setBusy(false)
     }

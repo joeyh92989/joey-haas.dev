@@ -495,9 +495,7 @@ describe('Collection', () => {
     stubApi({ itemsOk: false })
     renderPage()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      /could not be loaded/i,
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(/didn’t load/i)
   })
 
   it('treats a live body of the wrong shape as a failed load', async () => {
@@ -505,9 +503,7 @@ describe('Collection', () => {
     stubApi({ items: { detail: 'not a list' }, stats: { total: 1 } })
     renderPage()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      /could not be loaded/i,
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(/didn’t load/i)
   })
 
   it('renders the required TMDB attribution verbatim', async () => {
@@ -692,7 +688,7 @@ describe('Collection snapshot', () => {
     await renderReady()
 
     await new Promise((done) => setTimeout(done, 50))
-    expect(screen.queryByText(/could not be loaded/i)).toBeNull()
+    expect(screen.queryByText(/didn’t load/i)).toBeNull()
     expect(gridTitles()).toHaveLength(2)
   })
 
@@ -765,7 +761,7 @@ describe('Collection and What’s next', () => {
 
     stubApi({ itemsOk: false })
     renderPage()
-    await screen.findByText(/could not be loaded/i)
+    await screen.findByText(/didn’t load/i)
     expect(
       screen.getByRole('heading', { level: 1, name: 'Spine' }),
     ).toBeInTheDocument()
