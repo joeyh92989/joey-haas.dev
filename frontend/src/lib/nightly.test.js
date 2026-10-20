@@ -199,9 +199,11 @@ describe('nightlyJobs', () => {
     expect(jobs.discover.state).toBe('unknown')
   })
 
-  it('never reads an old snapshot as stale', () => {
-    const jobs = byKey(nightlyJobs(summary(), hoursAgo(24 * 30), NOW))
-    expect(jobs.snapshot.state).toBe('ok')
+  it(`reads the snapshot stale after ${STALE_HOURS} hours`, () => {
+    const at = (hours) =>
+      byKey(nightlyJobs(summary(), hoursAgo(hours), NOW)).snapshot.state
+    expect(at(STALE_HOURS - 1)).toBe('ok')
+    expect(at(STALE_HOURS + 1)).toBe('stale')
   })
 })
 

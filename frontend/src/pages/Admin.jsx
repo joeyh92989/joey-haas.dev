@@ -21,7 +21,16 @@ const REENABLE_URL = 'https://github.com/joeyh92989/joey-haas.dev#nightly-job'
 const API_WORDS = {
   checking: { state: 'unknown', words: 'Checking the API' },
   awake: { state: 'ok', words: 'API awake' },
+  'signed-out': { state: 'failed', words: 'Session ended — reload to sign in' },
+  error: { state: 'failed', words: 'API error' },
   unreachable: { state: 'failed', words: 'API unreachable' },
+}
+
+/** What a status answer says about the API, as a key of API_WORDS. */
+function apiState(response) {
+  if (response.ok) return 'awake'
+  if (response.status === 401 || response.status === 403) return 'signed-out'
+  return 'error'
 }
 
 /** Radar's and Discover's generate times from the store list, or nulls. */
@@ -51,8 +60,9 @@ async function loadNightly() {
   let generated = { radar: null, discover: null }
   try {
     const response = await apiFetch('/api/physical/status')
-    if (response?.ok) {
-      api = 'awake'
+    // Any answer means the server is up; only a failed request is unreachable.
+    api = apiState(response)
+    if (response.ok) {
       const body = await response.json().catch(() => null)
       // Not a status document: no jobs rather than "may have stopped".
       if (Array.isArray(body?.sources)) {
@@ -106,10 +116,12 @@ export default function Admin() {
   return (
     <section className="dashboard">
       <AdminPageHeader title="Dashboard">
-        <StatusText state={api.state}>{api.words}</StatusText>
-        {headline && (
-          <StatusText state={headline.state}>{headline.words}</StatusText>
-        )}
+        <span role="status" className="admin-head-status">
+          <StatusText state={api.state}>{api.words}</StatusText>
+          {headline && (
+            <StatusText state={headline.state}>{headline.words}</StatusText>
+          )}
+        </span>
       </AdminPageHeader>
 
       <StatTiles label="Dashboard figures">

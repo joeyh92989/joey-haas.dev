@@ -246,12 +246,50 @@ describe('Admin Dashboard', () => {
   it('asks for nothing else, and says so, when the status cannot be read', async () => {
     const fetch = stubApi({ '/api/physical/status': () => json({}, false) })
     renderAt()
-    expect(await screen.findByText('API unreachable')).toBeInTheDocument()
+    // The server answered, so it is up: an error, not unreachable.
+    expect(await screen.findByText('API error')).toBeInTheDocument()
     expect(
       screen.getByText('The nightly status could not be read.'),
     ).toBeInTheDocument()
     expect(called(fetch, '/api/recommendations/store-list')).toBe(false)
     expect(screen.queryByText(/^nightly /)).not.toBeInTheDocument()
+  })
+
+  it('says the session ended when the status answers 401', async () => {
+    stubApi({
+      '/api/physical/status': () => ({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      }),
+    })
+    renderAt()
+    expect(
+      await screen.findByText('Session ended — reload to sign in'),
+    ).toBeInTheDocument()
+  })
+
+  it('reads the generate times from the store list', async () => {
+    stubApi({
+      '/api/recommendations/store-list': () =>
+        json({ generated_at: { radar: ago(40), discover: ago(2) } }),
+    })
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const rows = await within(panel).findAllByRole('listitem')
+    expect(rows[1]).toHaveTextContent('Upcoming releases')
+    expect(rows[1]).toHaveTextContent('stale')
+    expect(rows[2]).toHaveTextContent('Sunday evenings only')
+    expect(rows[2]).toHaveTextContent('ok')
+  })
+
+  it('reads the snapshot build time from meta.json', async () => {
+    stubApi({ '/snapshot/meta.json': () => json({ fetched_at: ago(40) }) })
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const rows = await within(panel).findAllByRole('listitem')
+    expect(rows[3]).toHaveTextContent('Rebuilt nightly')
+    expect(rows[3]).toHaveTextContent('stale')
   })
 
   it('reads a status body with no sources as no jobs, not a stopped schedule', async () => {

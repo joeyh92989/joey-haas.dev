@@ -103,9 +103,9 @@ function parsed(iso) {
  * no time is "unknown" rather than stale, except the catalogue, whose
  * absence is the clearest sign the schedule has stopped.
  *
- * The snapshot is never stale by age: the nightly redeploys the static
- * site only when the public bodies differ, so an old build time on a quiet
- * week is the job working. Its failures show in the workflow run instead.
+ * The snapshot goes stale on the catalogue's clock: What's next carries
+ * its generate times, so the nightly redeploys the static site every night
+ * (spec K8), and an old build time means the deploy hook has stopped.
  *
  * @param {ReturnType<typeof lastNightly>} summary
  * @param {string|null} snapshotAt `fetched_at` from `/snapshot/meta.json`.
@@ -156,11 +156,8 @@ export function nightlyJobs(summary, snapshotAt, now = Date.now()) {
       key: 'snapshot',
       label: 'Public snapshot',
       at: builtAt,
-      summary:
-        builtAt === null
-          ? 'No build time recorded'
-          : 'Built when public data changes',
-      state: builtAt === null ? 'unknown' : 'ok',
+      summary: builtAt === null ? 'No build time recorded' : 'Rebuilt nightly',
+      state: age(builtAt, STALE_HOURS),
       runNow: null,
     },
   ]
