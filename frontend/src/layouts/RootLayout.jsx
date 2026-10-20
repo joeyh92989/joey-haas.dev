@@ -1,10 +1,10 @@
 import { Suspense, useEffect, useState } from 'react'
-import { Link, Outlet, useLocation } from 'react-router'
+import { Outlet, useLocation } from 'react-router'
 import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
-import SiteHeader from '../components/SiteHeader.jsx'
-import { profile } from '../content/profile.js'
+import SiteFooter from '../components/SiteFooter.jsx'
+import SiteMast from '../components/SiteMast.jsx'
 import { posts } from '../content/posts.js'
-import { apiFetch, loginUrl } from '../lib/api.js'
+import { apiFetch } from '../lib/api.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
 const STORAGE_KEY = 'theme'
@@ -22,14 +22,6 @@ const WIDE_ROUTES = [
   '/admin/discover',
   '/admin/radar',
 ]
-
-/**
- * Routes that are the tracker rather than the person: the masthead shrinks
- * to a wordmark so the shelf starts in the first screen (Spine Next spec,
- * K4). A different question from WIDE_ROUTES (is this a grid?), so its own
- * list; same prefix rule.
- */
-const COMPACT_ROUTES = ['/spine', '/admin']
 
 /**
  * Whether a pathname is one of the routes or nested under one.
@@ -95,15 +87,14 @@ function readStoredTheme() {
 }
 
 /**
- * Site chrome shared by every route: header with photo, name, nav pills and
- * the theme toggle; the routed page; and a footer carrying a credit line and
- * contact links. The LinkedIn link renders only when a URL has been supplied.
+ * Site chrome shared by every route: the masthead, the routed page and the
+ * footer. The masthead is the same everywhere; only the page's width
+ * changes with the route.
  */
 export default function RootLayout() {
   const [theme, setTheme] = useState(readStoredTheme)
   const [signedIn, setSignedIn] = useState(false)
   const { pathname } = useLocation()
-  const isHome = pathname === '/'
   const mainRef = useRouteFocus()
 
   useEffect(() => {
@@ -146,14 +137,14 @@ export default function RootLayout() {
     })
   }
 
+  const wide = isWideRoute(pathname)
+
   return (
-    <div className={isWideRoute(pathname) ? 'page page-wide' : 'page'}>
+    <div className={wide ? 'site site-wide' : 'site'}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <SiteHeader
-        compact={isUnder(COMPACT_ROUTES, pathname)}
-        isHome={isHome}
+      <SiteMast
         theme={theme}
         onToggleTheme={toggleTheme}
         items={navItems(posts.length > 0)}
@@ -163,7 +154,7 @@ export default function RootLayout() {
         id="main"
         ref={mainRef}
         tabIndex={-1}
-        className={isHome ? 'home' : undefined}
+        className={wide ? 'page page-wide' : 'page'}
       >
         <RouteErrorBoundary key={pathname}>
           {/* Lazy admin pages wait here; public pages are in the main chunk. */}
@@ -181,36 +172,7 @@ export default function RootLayout() {
         </RouteErrorBoundary>
       </main>
 
-      <footer className="site-footer">
-        <p className="footer-credit">
-          &copy; {new Date().getFullYear()} {profile.name} &middot;{' '}
-          <a href={profile.repo}>Source</a> &middot; <Link to="/now">Now</Link>{' '}
-          &middot; <Link to="/colophon">Colophon</Link>
-        </p>
-        <p className="footer-links">
-          <a href={`mailto:${profile.email}`}>{profile.email}</a>
-          {' · '}
-          <a href={profile.github}>GitHub</a>
-          {profile.linkedin && (
-            <>
-              {' · '}
-              <a href={profile.linkedin}>LinkedIn</a>
-            </>
-          )}
-          {' · '}
-          {/* Replaces having to know the /admin URL. Deliberately understated:
-              it is a door for one person, not a call to action. */}
-          {signedIn ? (
-            <Link to="/admin" className="footer-admin">
-              Admin
-            </Link>
-          ) : (
-            <a href={loginUrl} className="footer-admin">
-              Sign in
-            </a>
-          )}
-        </p>
-      </footer>
+      <SiteFooter signedIn={Boolean(signedIn)} />
     </div>
   )
 }

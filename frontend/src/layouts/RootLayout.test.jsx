@@ -209,29 +209,19 @@ describe('RootLayout footer', () => {
   })
 })
 
-describe('RootLayout masthead density', () => {
-  function masthead(path) {
-    const { container } = renderAt(path)
-    return container.querySelector('.masthead')
-  }
-
-  it.each([
-    '/spine',
-    '/spine/next',
-    '/spine/abc',
-    '/admin',
-    '/admin/store-list',
-  ])('is compact on %s, with no tagline', (path) => {
-    const node = masthead(path)
-    expect(node.className).toContain('compact')
-    expect(node.querySelector('.tagline')).toBeNull()
-  })
-
-  it.each(['/', '/about', '/projects', '/blog/x'])('is full on %s', (path) => {
-    const node = masthead(path)
-    expect(node.className).not.toContain('compact')
-    expect(node.querySelector('.tagline')).not.toBeNull()
-  })
+describe('RootLayout masthead', () => {
+  // One masthead everywhere: the tracker no longer gets a compact variant.
+  it.each(['/', '/about', '/spine', '/spine/next', '/admin'])(
+    'is the same masthead on %s',
+    (path) => {
+      const { container } = renderAt(path)
+      expect(container.querySelectorAll('.mast')).toHaveLength(1)
+      expect(screen.getByRole('link', { name: /Joey Haas/ })).toHaveAttribute(
+        'href',
+        '/',
+      )
+    },
+  )
 
   it('keeps Spine current on What’s next', () => {
     renderAt('/spine/next')

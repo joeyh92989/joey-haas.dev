@@ -130,26 +130,28 @@ body {
     color 0.2s;
 }
 
-.page {
-  max-width: 45rem;
+/* The outer measure every full-width band shares: the masthead and footer
+   rows, and (from T5) the content pages. 1040px with 24px gutters, 16px on
+   a phone. */
+.wrap {
   margin: 0 auto;
-  padding: 3.25rem 1.25rem 2.75rem;
+  max-width: 1040px;
+  padding-inline: 24px;
+}
+
+/* The routed region. A 45rem reading column by default; the tracker pages
+   widen it, and the masthead and footer rows follow them out. */
+.page {
+  margin: 0 auto;
+  max-width: 45rem;
+  padding: 2.5rem 24px 0;
 }
 
 /* The tracker pages: a grid of covers wants the width a prose column does
    not. Same gutters; only the limit moves. */
-.page.page-wide {
+.page.page-wide,
+.site-wide .wrap {
   max-width: 72rem;
-}
-
-/* Spacing below the nav belongs to the routed region, not to whichever heading
-   the page happens to open with. Home's greeting sits slightly lower. */
-.masthead + main {
-  margin-top: 2.5rem;
-}
-
-.masthead + main.home {
-  margin-top: 2.75rem;
 }
 
 /* Headings are the serif voice of the design; body copy stays sans. */
@@ -181,154 +183,206 @@ a:hover {
   color: var(--text-3);
 }
 
-/* ---------- Site header ---------- */
+/* ---------- Masthead ---------- */
 
-.site-header {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-/* The asset is already a square crop centered on the face, so object-fit only
-   has to guard against a future replacement with different proportions. */
-.avatar {
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  flex: none;
-  height: 3.5rem;
-  object-fit: cover;
-  width: 3.5rem;
-}
-
-.site-header .site-name {
-  font-family: var(--font-sans);
-  font-size: 1.5rem;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.site-header .tagline {
+/* The mono label above a heading or a group. */
+.kicker {
   color: var(--text-3);
-  font-size: 0.84375rem;
-  margin-top: 0.0625rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-/* Home introduces the person, so it gets the larger of the two header sizes. */
-.site-header.home .avatar {
-  height: 4.75rem;
-  width: 4.75rem;
-}
-
-.site-header.home .site-name {
-  font-size: 1.875rem;
-}
-
-.site-header.home .tagline {
-  font-size: 0.875rem;
-  margin-top: 0.125rem;
-}
-
-/* Tracker pages: a wordmark, not a résumé header, and the nav beside it. */
-.masthead.compact {
+.btn {
   align-items: center;
-  column-gap: 1.25rem;
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.site-header.compact {
-  gap: 0.5rem;
-}
-
-.site-header.compact .avatar {
-  height: 1.5rem;
-  width: 1.5rem;
-}
-
-.site-header.compact .site-name {
-  font-size: 1.0625rem;
-}
-
-.masthead.compact .nav-row {
-  flex: 1;
-  margin-top: 0;
-  /* A flex item will not shrink below its content's min-content width, which
-     here is every pill in a row. Without this the row overflows the masthead
-     on a phone and the page scrolls sideways. */
-  min-width: 0;
-}
-
-/* Wraps by default so a narrow container never pushes the toggle off the
-   edge. On a phone the narrow-screen block turns wrapping off instead: the
-   nav scrolls sideways within one row. */
-.nav-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1.375rem;
-}
-
-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-nav a {
-  border-radius: 999px;
-  color: var(--text-2);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  padding: 0.375rem 0.9375rem;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-}
-
-nav a:hover {
   background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: 500 0.8125rem var(--font-sans);
+  gap: 6px;
+  padding: 6px 12px;
+}
+
+.btn:hover {
+  border-color: var(--text-3);
   text-decoration: none;
 }
 
-nav a.active,
-nav a.active:hover {
-  background: var(--text);
-  color: var(--bg);
-  font-weight: 500;
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
-.nav-row.home {
-  margin-top: 1.5rem;
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-2);
 }
 
-.theme-toggle {
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-3);
-  cursor: pointer;
-  font: 500 0.8125rem var(--font-sans);
-  margin-left: auto;
-  padding: 0.375rem 0.75rem;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s,
-    color 0.2s;
-}
-
-.theme-toggle:hover {
-  background: var(--surface);
+.btn.ghost:hover {
   color: var(--text);
 }
 
-nav a:focus-visible,
-.theme-toggle:focus-visible,
+.btn.sm {
+  font-size: 0.75rem;
+  padding: 4px 9px;
+}
+
+.mast {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.mast-row {
+  align-items: center;
+  display: flex;
+  gap: 28px;
+  height: 60px;
+}
+
+.brand {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  flex: none;
+  font-weight: 600;
+  gap: 10px;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+/* Mono 500: the 600 cut of JetBrains Mono is not loaded (main.jsx). */
+.brand .mark {
+  background: var(--text);
+  border-radius: 6px;
+  color: var(--bg);
+  display: grid;
+  font: 500 0.75rem var(--font-mono);
+  height: 26px;
+  place-items: center;
+  width: 26px;
+}
+
+/* The underline is the full height of the bar: the 20px padding puts the
+   2px border on the masthead's hairline. */
+.site-nav {
+  display: flex;
+  font-size: 0.875rem;
+  gap: 22px;
+  margin-left: 8px;
+}
+
+.site-nav a {
+  border-bottom: 2px solid transparent;
+  color: var(--text-2);
+  padding: 20px 0 18px;
+}
+
+.site-nav a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.site-nav a.active {
+  border-bottom-color: var(--text);
+  color: var(--text);
+}
+
+.mast-end {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* Shown only on a phone, where it stands in for the nav. */
+.mast-menu {
+  display: none;
+}
+
+/* The phone nav: a sheet from the top, over a dimmed page. */
+.nav-sheet {
+  background: var(--surface);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  margin: 0;
+  max-height: 100dvh;
+  max-width: none;
+  padding: 0;
+  width: 100%;
+}
+
+.nav-sheet::backdrop {
+  background: var(--overlay);
+}
+
+.nav-sheet-body {
+  padding: 12px 16px 20px;
+}
+
+.nav-sheet-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.nav-sheet nav {
+  display: grid;
+}
+
+.nav-sheet nav a {
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 1rem;
+  /* A 44px tap target. */
+  min-height: 2.75rem;
+  padding: 0.625rem 0;
+}
+
+.nav-sheet nav a.active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.site-nav a:focus-visible,
+.nav-sheet a:focus-visible,
+.brand:focus-visible,
+.btn:focus-visible,
 .link-card:focus-visible,
 .latest-post:focus-visible,
 .post-list li > a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  .wrap,
+  .page {
+    padding-inline: 16px;
+  }
+
+  .mast-row {
+    gap: 12px;
+    height: 54px;
+  }
+
+  .site-nav,
+  .mast-resume {
+    display: none;
+  }
+
+  .mast-menu {
+    display: inline-flex;
+  }
 }
 
 /* ---------- Home ---------- */
@@ -796,18 +850,35 @@ footer {
   padding-top: 1.125rem;
 }
 
-/* The site footer's two groups: credit left, contact links right. They wrap
-   onto separate lines on a narrow screen. Scoped by class so the shelf's
-   attribution footer keeps its stacked paragraphs. */
+/* The site footer: a full-width rule, then the credit and the contact links
+   at the two ends of the row, stacked on a phone. Scoped by class so the
+   shelf's attribution footer keeps the generic rule above. */
 .site-footer {
+  font-size: 0.8125rem;
+  margin-top: 3rem;
+  padding: 24px 0 36px;
+}
+
+.site-footer-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem 1.5rem;
+  gap: 8px 16px;
   justify-content: space-between;
+}
+
+.site-footer a {
+  color: var(--text-2);
 }
 
 .site-footer p {
   margin: 0;
+}
+
+@media (max-width: 700px) {
+  .site-footer-row {
+    flex-direction: column;
+    gap: 6px;
+  }
 }
 
 /* ---------- Admin ---------- */
@@ -1361,6 +1432,8 @@ footer {
    row, not site navigation. The hover/active selectors out-rank
    `nav a.active:hover`. */
 .spine-tabs {
+  display: flex;
+  flex-wrap: wrap;
   gap: 1.25rem;
   margin-top: 0.75rem;
 }
@@ -2628,64 +2701,12 @@ a.month-bar::before {
     scroll-padding-inline-end: 2rem;
   }
 
-  /* One nav row on a phone, never two or three: it scrolls sideways, with
-     the theme toggle at its end and a fade saying the row continues. */
-  .nav-row {
-    flex-wrap: nowrap;
-  }
-
-  .masthead.compact .nav-row {
-    flex-basis: 100%;
-    margin-top: 0.75rem;
-  }
-
-  .nav-row nav {
-    flex: 1;
-    flex-wrap: nowrap;
-    margin-block: -0.25rem;
-    min-width: 0;
-    margin-inline-start: -0.25rem;
-    overflow-x: auto;
-    padding-block: 0.25rem;
-    /* The left padding (cancelled by the negative margin) keeps the first
-       item's focus ring from being clipped; the start scroll-padding and
-       SiteHeader's RING_PX mirror it. The right padding clears the fade. */
-    padding-inline: 0.25rem 2rem;
-    scroll-padding-inline-start: 0.25rem;
-    scroll-padding-inline-end: 2rem;
-    scrollbar-width: none;
-  }
-
-  .nav-row nav a,
-  .theme-toggle {
-    flex: none;
-  }
-
-  /* Tighter pills so the whole nav fits where it can, at a 44px tap target
-     (the height comes from min-height, not padding, so the text stays
-     centred). Where it still cannot fit, the row scrolls under the fade. */
-  .nav-row nav {
-    gap: 0.25rem;
-    /* Positioned so SiteHeader can measure a link's offsetLeft against the
-       nav, which does not change as the nav scrolls. */
-    position: relative;
-  }
-
-  .nav-row nav a,
-  .theme-toggle {
-    align-items: center;
-    display: flex;
-    min-height: 2.75rem;
-    padding-inline: 0.6rem;
-  }
-
   /* A cut-off chip reads as "more", not "clipped". The #000 is an alpha
      mask, not a colour that is displayed (only its opacity matters), so it
      is right in both themes and the no-raw-hex rule does not apply. The
      padding lets the last item clear the fade, and scroll-padding keeps a
      focused item out of it. The block padding on the scrollers (cancelled
      by negative margin) keeps focus rings from being clipped by overflow. */
-  .nav-row nav,
   .chip-row {
     -webkit-mask-image: linear-gradient(
       to right,
