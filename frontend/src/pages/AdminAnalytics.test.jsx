@@ -70,6 +70,16 @@ afterEach(() => {
 })
 
 describe('AdminAnalytics', () => {
+  it('says loading, not "None yet", before the first read answers', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    render(<AdminAnalytics />)
+    expect(screen.queryByText('None yet.')).not.toBeInTheDocument()
+    expect(screen.getAllByText('Loading…')).toHaveLength(4)
+  })
+
   it('opens on 30 days and shows zeros with the launch date when empty', async () => {
     const fetch = stubApi({ '30d': json(body(30)) })
     render(<AdminAnalytics />)

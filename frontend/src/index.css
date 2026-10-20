@@ -1549,7 +1549,6 @@ footer {
   border: 1px solid var(--line-strong);
   border-radius: 6px;
   display: inline-flex;
-  overflow: hidden;
 }
 
 .range-control button {
@@ -1563,6 +1562,22 @@ footer {
 
 .range-control button + button {
   border-left: 1px solid var(--line);
+}
+
+.range-control button:first-child {
+  border-radius: 5px 0 0 5px;
+}
+
+.range-control button:last-child {
+  border-radius: 0 5px 5px 0;
+}
+
+/* Raised so the next button's background cannot paint over the outline. */
+.range-control button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 1;
 }
 
 .range-control button[aria-pressed='true'] {

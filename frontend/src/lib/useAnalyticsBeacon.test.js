@@ -53,8 +53,8 @@ describe('useAnalyticsBeacon', () => {
     expect(beacon.mock.calls[0][0]).toMatch(/\/api\/track$/)
     expect(bodies()).toEqual([
       { path: '/', ref: '', device: 'desktop' },
-      { path: '/about', ref: '', device: 'desktop' },
-      { path: '/spine', ref: '', device: 'desktop' },
+      { path: '/about', ref: null, device: 'desktop' },
+      { path: '/spine', ref: null, device: 'desktop' },
     ])
   })
 
@@ -103,7 +103,7 @@ describe('useAnalyticsBeacon', () => {
     setReferrer('https://news.example.com/item?id=1')
     const go = mount('/')
     go('/about')
-    expect(bodies().map((body) => body.ref)).toEqual(['news.example.com', ''])
+    expect(bodies().map((body) => body.ref)).toEqual(['news.example.com', null])
 
     beacon.mockClear()
     setReferrer(`${window.location.origin}/about`)

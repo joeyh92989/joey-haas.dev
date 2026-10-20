@@ -36,8 +36,9 @@ function referrerHost() {
  * Nothing is sent until the session check has answered and said signed out
  * (`signedIn === false`; null is still checking), on `/admin*`, when the
  * browser sends GPC or Do Not Track, or when sendBeacon is missing. The body
- * is `{path, ref, device}` and nothing else; the referrer goes with the first
- * view of the visit only.
+ * is `{path, ref, device}` and nothing else. `ref` is where the visit came
+ * from on its first view ('' for direct) and null on every later one, which
+ * the server leaves out of the referrer counts.
  *
  * @param {string} pathname The current location's pathname.
  * @param {boolean | null} signedIn The session, or null while it is checked.
@@ -55,7 +56,7 @@ export function useAnalyticsBeacon(pathname, signedIn) {
     if (pathname === EXCLUDED || pathname.startsWith(`${EXCLUDED}/`)) return
     if (optedOut() || typeof navigator.sendBeacon !== 'function') return
     sent.current = pathname
-    const ref = first.current ? referrerHost() : ''
+    const ref = first.current ? referrerHost() : null
     first.current = false
     navigator.sendBeacon(
       `${API_URL}/api/track`,

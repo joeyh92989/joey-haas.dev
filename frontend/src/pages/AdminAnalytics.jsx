@@ -71,6 +71,8 @@ export default function AdminAnalytics() {
   }
 
   const best = data?.best_day
+  // What a list shows before its first body: not "None yet", which is a count.
+  const pending = <p className="muted">{error ? '—' : 'Loading…'}</p>
   const span =
     data && (SPAN_WORDS[data.range] ?? `since ${dayLabel(data.start)}`)
 
@@ -138,25 +140,37 @@ export default function AdminAnalytics() {
 
       <div className="analytics-two">
         <Panel title="Pages" action={<span className="kicker">views</span>}>
-          <BarList label="Pages by views" rows={data?.pages ?? []} />
+          {data ? (
+            <BarList label="Pages by views" rows={data.pages} />
+          ) : (
+            pending
+          )}
         </Panel>
-        <div className="analytics-stack">
+        <div>
           <Panel
             title="Referrers"
             action={<span className="kicker">visitors</span>}
           >
-            <BarList
-              label="Referrers by visitors"
-              rows={data?.referrers ?? []}
-              name={referrerName}
-            />
+            {data ? (
+              <BarList
+                label="Referrers by visitors"
+                rows={data.referrers}
+                name={referrerName}
+              />
+            ) : (
+              pending
+            )}
           </Panel>
           <Panel title="Devices" action={<span className="kicker">views</span>}>
-            <BarList
-              label="Devices by views"
-              rows={data?.devices ?? []}
-              name={(value) => DEVICE_NAMES[value] ?? value}
-            />
+            {data ? (
+              <BarList
+                label="Devices by views"
+                rows={data.devices}
+                name={(value) => DEVICE_NAMES[value] ?? value}
+              />
+            ) : (
+              pending
+            )}
           </Panel>
         </div>
       </div>
