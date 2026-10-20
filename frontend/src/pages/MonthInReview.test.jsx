@@ -155,7 +155,7 @@ describe('MonthInReview', () => {
   it('reports a failed load', () => {
     answer.value = { data: null, live: false, failed: true }
     renderAt('/spine/journal/2026-10')
-    expect(screen.getByRole('alert')).toHaveTextContent('could not be loaded')
+    expect(screen.getByRole('alert')).toHaveTextContent('didn’t load')
   })
 
   it.each(['2026-13', 'october', '2026-1'])(

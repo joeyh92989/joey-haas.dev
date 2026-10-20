@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import { apiFetch } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const TIMES = [
   ['any', 'Any'],
@@ -171,7 +172,7 @@ export default function PlayNext() {
         setResult(await response.json())
       })
       .catch(() => {
-        if (!cancelled) setError('Could not reach the API.')
+        if (!cancelled) setError(LOAD_ERROR)
       })
     return () => {
       cancelled = true
@@ -208,7 +209,7 @@ export default function PlayNext() {
       }
       return true
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
       return false
     } finally {
       setBusy(false)
@@ -261,7 +262,7 @@ export default function PlayNext() {
     return (
       <section>
         <h1>Play Next</h1>
-        <p className="muted">{slow ? 'Waking the server…' : 'Loading…'}</p>
+        <p className="muted">{slow ? WAKING : 'Loading…'}</p>
       </section>
     )
   }
@@ -281,9 +282,7 @@ export default function PlayNext() {
     return (
       <section>
         <h1>Play Next</h1>
-        <p className="admin-error">
-          Could not reach the API. Try again shortly.
-        </p>
+        <p className="admin-error">{LOAD_ERROR}</p>
       </section>
     )
   }

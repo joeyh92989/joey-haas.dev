@@ -159,7 +159,7 @@ function Tonight({ tonight }) {
 /**
  * What's next (Spine Next spec, C11): tonight's games from the shelf, the
  * want list, and what to look for in a store, from GET /api/public/next.
- * Paints the build-time snapshot first; "Waking the server" only without
+ * Paints the build-time snapshot first; the waking line only without
  * one. Read-only: no buttons that write, and no store, price or stock.
  */
 export default function Next() {

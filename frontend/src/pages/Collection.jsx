@@ -23,6 +23,7 @@ import {
   writeShelfPref,
 } from '../lib/shelf.js'
 import { itemPath } from '../lib/spinePaths.js'
+import { LOAD_ERROR, WAKING } from '../content/status.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 
@@ -463,9 +464,7 @@ export default function Collection() {
       <section>
         <SpineHeader />
         <p className="muted" role="status">
-          {slow
-            ? 'Waking the server — it sleeps when idle, so this takes about thirty seconds.'
-            : 'Loading…'}
+          {slow ? WAKING : 'Loading…'}
         </p>
         <ul className="skeleton-grid" aria-hidden="true">
           {Array.from({ length: SKELETON_CARDS }, (_, index) => (
@@ -485,7 +484,7 @@ export default function Collection() {
       <section>
         <SpineHeader />
         <p className="admin-error" role="alert">
-          The collection could not be loaded. Try again shortly.
+          {LOAD_ERROR}
         </p>
       </section>
     )

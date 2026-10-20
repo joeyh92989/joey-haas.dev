@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import { apiFetch } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { ACTION_ERROR } from '../content/status.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const NO_MATCH = 'none'
@@ -185,7 +186,7 @@ export default function AdminImport() {
       setRows([])
       setState('done')
     } catch {
-      setError('Could not reach the API.')
+      setError(ACTION_ERROR)
       setState('reviewing')
     }
   }

@@ -11,6 +11,7 @@ import { STATUS_LABEL } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 import { itemPath } from '../lib/spinePaths.js'
+import { LOAD_ERROR, WAKING } from '../content/status.js'
 
 const MONTH_YEAR = new Intl.DateTimeFormat('en', {
   month: 'long',
@@ -274,11 +275,7 @@ function ItemPage({ id }) {
         item={preview}
         detail={false}
         signedIn={signedIn}
-        note={
-          result.state === 'error'
-            ? 'More detail could not be loaded. Try again shortly.'
-            : null
-        }
+        note={result.state === 'error' ? LOAD_ERROR : null}
       />
     )
   }
@@ -287,9 +284,7 @@ function ItemPage({ id }) {
     return (
       <section>
         <p className="muted" role="status">
-          {slow
-            ? 'Waking the server — it sleeps when idle, so this takes about thirty seconds.'
-            : 'Loading…'}
+          {slow ? WAKING : 'Loading…'}
         </p>
       </section>
     )
@@ -298,7 +293,7 @@ function ItemPage({ id }) {
   return (
     <section>
       <p className="admin-error" role="alert">
-        This item could not be loaded. Try again shortly.
+        {LOAD_ERROR}
       </p>
     </section>
   )

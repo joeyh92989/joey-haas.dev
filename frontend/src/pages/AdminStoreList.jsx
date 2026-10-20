@@ -5,8 +5,7 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import NextRow from '../components/NextRow.jsx'
 import { spine } from '../content/spine.js'
 import { groupByPlatform } from '../lib/next.js'
-
-const UNREACHABLE = 'Could not reach the API. Try again shortly.'
+import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 
 /** The server's sections, in the order a store visit reads them. */
 const SECTION_ORDER = ['buy_now', 'preorders', 'later', 'not_on_cartridge']
@@ -58,7 +57,7 @@ async function fetchList() {
       return { state: 'error', error: await errorMessage(response) }
     return { state: 'ready', list: await response.json() }
   } catch {
-    return { state: 'error', error: UNREACHABLE }
+    return { state: 'error', error: LOAD_ERROR }
   }
 }
 
@@ -165,7 +164,7 @@ export default function AdminStoreList() {
       setMessage(copy.answered[action](entry.title))
     } catch {
       show(entry.id, true)
-      setError(UNREACHABLE)
+      setError(ACTION_ERROR)
     }
   }
 

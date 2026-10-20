@@ -9,6 +9,7 @@ import { usePublicDiaryState } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NotFound from './NotFound.jsx'
 import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
+import { LOAD_ERROR } from '../content/status.js'
 
 const DAY = new Intl.DateTimeFormat('en', {
   weekday: 'short',
@@ -80,7 +81,7 @@ export default function MonthInReview() {
       )}
       {!data && failed && (
         <p className="admin-error" role="alert">
-          The shelf could not be loaded. Try again shortly.
+          {LOAD_ERROR}
         </p>
       )}
 

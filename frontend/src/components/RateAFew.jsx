@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import QuickRate from './QuickRate.jsx'
+import { ACTION_ERROR } from '../content/status.js'
 
 const PREF = 'discover.rate-a-few'
 const LIMIT = 6
@@ -71,7 +72,7 @@ export default function RateAFew({ items, onRated }) {
       setScores((current) => new Map(current).set(item.id, rating))
       onRated?.()
     } catch {
-      setError('Could not reach the API. Try again shortly.')
+      setError(ACTION_ERROR)
     } finally {
       setSaving((current) => {
         const next = new Set(current)
