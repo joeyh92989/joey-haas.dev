@@ -113,6 +113,17 @@ describe('SiteMast', () => {
     expect(document.activeElement).toBe(menuButton())
   })
 
+  // Any other native close (a form, devtools) brings the state back in step.
+  it('follows a close it did not ask for', () => {
+    const { container } = renderAt()
+    fireEvent.click(menuButton())
+    sheet(container).removeAttribute('open')
+    fireEvent(sheet(container), new Event('close'))
+    expect(menuButton()).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(menuButton())
+    expect(sheet(container)).toHaveAttribute('open')
+  })
+
   it('closes when a link in the sheet is followed', () => {
     const { container } = renderAt()
     fireEvent.click(menuButton())

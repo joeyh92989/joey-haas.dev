@@ -30,4 +30,17 @@ describe('status lines', () => {
       .map(([path]) => path.slice(SRC.length))
     expect(holders).toEqual(['content/status.js'])
   })
+
+  // A re-typed copy (straight apostrophe, hyphen for the dash, a wrapped
+  // line) slips past the exact match above; these catch the wording itself.
+  it.each([
+    ['waking', /waking the server/i],
+    ['load error', /didn.t load|did not load|could not be loaded/i],
+    ['unreachable', /could not be reached|could(?: not|n.t) reach the server/i],
+  ])('no page words its own %s line', (_, pattern) => {
+    const holders = files
+      .filter(([, source]) => pattern.test(source))
+      .map(([path]) => path.slice(SRC.length))
+    expect(holders).toEqual(['content/status.js'])
+  })
 })

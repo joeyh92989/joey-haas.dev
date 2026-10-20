@@ -23,14 +23,6 @@ export default function SiteMast({ theme, onToggleTheme, items }) {
   const menuRef = useRef(null)
   const target = theme === 'dark' ? 'light' : 'dark'
 
-  function closeMenu() {
-    setMenuOpen(false)
-    // Said explicitly rather than left to the dialog: the browser's own
-    // restore is not guaranteed once React has re-rendered the sheet. A link
-    // in the sheet still wins, because the route change moves focus after.
-    menuRef.current?.focus()
-  }
-
   return (
     <header className="mast">
       <div className="wrap mast-row">
@@ -72,7 +64,12 @@ export default function SiteMast({ theme, onToggleTheme, items }) {
           </button>
         </div>
       </div>
-      <MobileNavSheet open={menuOpen} onClose={closeMenu} items={items} />
+      <MobileNavSheet
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={items}
+        returnFocusRef={menuRef}
+      />
     </header>
   )
 }

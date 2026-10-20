@@ -93,7 +93,8 @@ before pushing.
   which `RootLayout` applies to any path in its `WIDE_ROUTES` list or nested
   under one. Add a new tracker route there, not in a page's own CSS.
   Home, About and Projects take the 1040px `page-content` measure through
-  `CONTENT_ROUTES` (exact paths); every other page keeps the 45rem column.
+  `CONTENT_ROUTES` (exact paths, a trailing slash ignored); every other page keeps the 45rem
+  column unless it is in `WIDE_ROUTES` (72rem).
   `RootLayout` also passes `{ signedIn }` as outlet context, so a routed page
   reads the session instead of calling `/api/auth/me` again.
 - Shelf components live in `frontend/src/components/`: `PosterCard`,

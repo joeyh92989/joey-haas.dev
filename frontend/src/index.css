@@ -159,7 +159,7 @@ body {
   max-width: 72rem;
 }
 
-/* Headings are the serif voice of the design; body copy stays sans. */
+/* Headings are sans 500; the serif is kept for the Home and About headlines. */
 h1,
 h2,
 h3 {
@@ -406,10 +406,12 @@ a:hover {
 }
 
 /* The serif italic pulls one word out of the sans paragraph — the sentence is
-   about caring why, so the word "why" is what gets the emphasis. */
+   about caring why, so the word "why" is what gets the emphasis. 500 is the
+   italic cut main.jsx loads; any other weight would be synthesised. */
 .intro em {
   color: var(--accent);
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
+  font-weight: 500;
 }
 
 .link-cards {

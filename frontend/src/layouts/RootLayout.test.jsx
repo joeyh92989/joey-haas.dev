@@ -110,7 +110,7 @@ describe('RootLayout page widths', () => {
   )
 
   // Cards and columns take the masthead's 1040px measure.
-  it.each(['/', '/about', '/projects'])(
+  it.each(['/', '/about', '/projects', '/about/'])(
     'gives %s the content width',
     (path) => {
       expect(pageClass(path)).toBe('page page-content')

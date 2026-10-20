@@ -507,5 +507,10 @@ describe('Item snapshot preview', () => {
     stubApi({ ok: false, status: 500, json: async () => ({}) })
     await renderReady()
     expect(await screen.findByText(LOAD_ERROR)).toBeInTheDocument()
+    // The preview stays up with a note; the error page would replace it.
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Hades' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

@@ -145,9 +145,11 @@ export default function RootLayout() {
   }
 
   const wide = isWideRoute(pathname)
+  // Render serves the prerendered pages at /about/ as well as /about.
+  const path = pathname.replace(/\/+$/, '') || '/'
   const pageClass = wide
     ? 'page page-wide'
-    : CONTENT_ROUTES.includes(pathname)
+    : CONTENT_ROUTES.includes(path)
       ? 'page page-content'
       : 'page'
 
