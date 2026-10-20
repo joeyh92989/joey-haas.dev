@@ -25,3 +25,6 @@ venv/
 # frontend/scripts/fetch-snapshot.mjs. Fetched per build, never committed:
 # unpublishing an item should not leave it in git history.
 frontend/public/snapshot/
+
+# Design mockups shared between Code and Cowork; disposable once the UI exists.
+docs/planning/mockups/
