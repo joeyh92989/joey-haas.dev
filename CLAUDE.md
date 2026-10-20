@@ -10,9 +10,9 @@ backend, deployed on Render via Blueprint (render.yaml).
   Render static site. Public pages other than `/spine*` make no API calls
   (apart from RootLayout's one `/api/auth/me` session check, which fails
   quietly to signed out, and the analytics beacon, a fire-and-forget
-  `sendBeacon` to `/api/track` that nothing waits on) — bio and project content are static modules in
-  `frontend/src/content/`, so the site renders fully while the free-tier
-  backend is asleep. Home and
+  `sendBeacon` to `/api/track` that nothing waits on) — bio and project
+  content are static modules in `frontend/src/content/`, so the site
+  renders fully while the free-tier backend is asleep. Home and
   Projects may read `/snapshot/items.json`, the build-time snapshot: a
   static file on the site's own origin, not an API call. Vite proxies
   `/api` to localhost:8000 for the tracker and the admin pages.
@@ -239,8 +239,10 @@ before pushing.
       the nightly rollup, and `/admin/analytics`. See README → Analytics.
       `main.py` mounts two unauthenticated routers, the public reads and the
       beacon; the beacon's own validation is its gate. Its daily cap counts
-      per IP, not per visitor hash, because the user agent half of the hash
-      is the caller's to vary. **Deploy order:** apply `0008` to Neon, then
+      per IP (an IPv6 /64), not per visitor hash, because the user agent
+      half of the hash is the caller's to vary, under a 5,000-a-day ceiling
+      for the site. Referrers count only a visit's first view (later views
+      send `ref: null`). **Deploy order:** apply `0008` to Neon, then
       merge. Spec and plan: `docs/planning/2026-10-19-site-refresh-design.md`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
@@ -492,7 +494,8 @@ before pushing.
 - **Nightly order:** picks, then registry, then stores, then Switch 1
   (Sunday evenings in Denver), then resolve (up to 5 rounds), then Radar,
   then Discover (Sunday evenings), then the page-view rollup, then the
-  snapshot compare and the deploy hook. The pick lag is accepted: each run publishes yesterday's picks.
+  snapshot compare and the deploy hook. The pick lag is accepted: each run
+  publishes yesterday's picks.
 - **`next_list.py`** (pure, with `next_load.py` loading the rows) is the one
   sectioning authority for `/api/public/next` and
   `/api/recommendations/store-list`. In public mode only registry dates

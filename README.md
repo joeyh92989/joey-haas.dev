@@ -502,19 +502,28 @@ leaves the site's own API.
 
 - **The beacon** (`frontend/src/lib/useAnalyticsBeacon.js`, mounted in
   `RootLayout`) sends `{path, ref, device}` with `navigator.sendBeacon` once
-  per public route change: the path, the referring hostname on the first
-  view only, and desktop, phone or tablet. It waits for the session check
+  per public route change: the path, the referring hostname on a visit's
+  first view (`''` for direct, `null` on every later view, which the
+  referrer counts leave out), and desktop, phone or tablet. It waits for the session check
   and sends nothing while signed in, on `/admin*`, or under Global Privacy
   Control or Do Not Track.
 - **`POST /api/track`** (`backend/analytics_routes.py`) is unauthenticated
-  and always answers 204. It drops anything that is not a public route, a
-  hostname and a known device, a body over 1 KB, a signed-in admin, and
-  `Sec-GPC` or `DNT`. One IP counts at most 100 views a UTC day, in memory.
+  and answers 204 to anything `origin_check` lets through (a foreign
+  `Origin` is refused with 403 first). It drops anything that is not a
+  public route, a hostname and a known device, a body over 1 KB, a
+  signed-in admin, and `Sec-GPC` or `DNT`. Caps, in memory and reset at UTC
+  midnight: one IP (an IPv6 address counts as its /64) stores at most 100
+  views a day, the whole site at most 5,000, and past 10,000 distinct IPs
+  in a day a new one is not counted.
 - **A visitor** is `HMAC(salt, ip + "\n" + user agent)`, where the salt is
   derived from `SESSION_SECRET` and the UTC date, so it changes at midnight
-  and nothing joins one day to the next. Neither the IP nor the user agent
-  is stored or logged. The IP is `CF-Connecting-IP`, never
-  `X-Forwarded-For`, whose first entry the caller chooses.
+  and the stored hashes do not join one day to the next. The salt is
+  derived rather than discarded, so whoever holds `SESSION_SECRET` could
+  test a known IP and user agent against a stored day. Neither the IP nor
+  the user agent is stored or logged. The IP is `CF-Connecting-IP`, then
+  `True-Client-IP`, never `X-Forwarded-For`, whose first entry the caller
+  chooses. That Render's edge always sets `CF-Connecting-IP` is assumed,
+  not yet confirmed on a live request.
 - **Storage** is migration `0008`: `page_views` (raw rows, kept 90 days) and
   `daily_stats` (per day, per page, referrer and device). The nightly
   rollup recomputes every finished day that still has raw rows, then
