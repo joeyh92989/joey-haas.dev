@@ -194,6 +194,33 @@ describe('Admin Dashboard', () => {
     expect(screen.getByText(/^nightly stale/)).toBeInTheDocument()
   })
 
+  it('still links how to re-enable it when the last, old night failed', async () => {
+    stubApi({
+      '/api/physical/status': () =>
+        json(
+          status({
+            sources: [
+              {
+                source: 'lrg',
+                name: 'Limited Run',
+                kind: 'store',
+                last_run: {
+                  started_at: ago(40),
+                  finished_at: ago(40),
+                  ok: false,
+                },
+              },
+            ],
+          }),
+        ),
+    })
+    renderAt()
+    expect(
+      await screen.findByRole('link', { name: /how to re-enable it/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/^nightly failed/)).toBeInTheDocument()
+  })
+
   it('reads the snapshot as unknown without meta.json', async () => {
     stubApi({ '/snapshot/meta.json': () => json({}, false) })
     renderAt()

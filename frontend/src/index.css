@@ -1430,6 +1430,11 @@ footer {
   margin-bottom: 14px;
 }
 
+/* Side by side, so the prose rule spacing stacked sections does not apply. */
+.dashboard-two > .panel {
+  margin-top: 0;
+}
+
 .job-list {
   list-style: none;
   margin: 0;
@@ -1502,11 +1507,11 @@ footer {
   margin-top: 2px;
 }
 
-/* The changes table sits flush in its panel; the scroll wrapper keeps a
-   narrow screen from scrolling the page. */
-.recent-table {
+/* Three short columns: they wrap on a phone rather than scroll, so When
+   stays in view. */
+.item-table.recent-table {
   font-size: 0.84375rem;
-  min-width: 26rem;
+  min-width: 0;
 }
 
 .recent-table tr:last-child td {

@@ -110,7 +110,9 @@ function parsed(iso) {
  * @param {ReturnType<typeof lastNightly>} summary
  * @param {string|null} snapshotAt `fetched_at` from `/snapshot/meta.json`.
  * @param {number} [now] Milliseconds since the epoch.
- * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null}>}
+ * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null, stopped?: boolean}>}
+ *   `stopped` is on the catalogue row only: the schedule may have stopped,
+ *   which a failure on its last night would otherwise hide.
  */
 export function nightlyJobs(summary, snapshotAt, now = Date.now()) {
   const age = (at, hours) => {
@@ -131,6 +133,7 @@ export function nightlyJobs(summary, snapshotAt, now = Date.now()) {
       summary: catalogue,
       state: summary.failed.length ? 'failed' : summary.stale ? 'stale' : 'ok',
       runNow: '/admin/catalogue',
+      stopped: summary.stale,
     },
     {
       key: 'radar',

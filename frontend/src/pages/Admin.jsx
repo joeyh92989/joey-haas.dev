@@ -151,8 +151,7 @@ export default function Admin() {
                   key={job.key}
                   job={job}
                   extra={
-                    job.key === 'catalog' &&
-                    job.state === 'stale' && (
+                    job.stopped && (
                       <>
                         {' · '}
                         <a href={REENABLE_URL}>how to re-enable it</a>

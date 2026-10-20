@@ -181,6 +181,7 @@ describe('nightlyJobs', () => {
       nightlyJobs(summary({ catalogueAt: null, stale: true }), null, NOW),
     ).catalog
     expect(catalog.state).toBe('stale')
+    expect(catalog.stopped).toBe(true)
     expect(catalog.summary).toBe('No catalog run yet')
   })
 
