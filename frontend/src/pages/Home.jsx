@@ -88,7 +88,7 @@ export default function Home() {
               See {spine.name}
             </Link>
             <a href={profile.github} className="btn ghost">
-              GitHub ↗
+              GitHub <span aria-hidden="true">↗</span>
             </a>
           </div>
         </div>
@@ -98,7 +98,9 @@ export default function Home() {
       <section className="home-section" aria-labelledby="home-work">
         <div className="section-head">
           <h2 id="home-work">Work</h2>
-          <Link to="/projects">All projects →</Link>
+          <Link to="/projects">
+            All projects <span aria-hidden="true">→</span>
+          </Link>
         </div>
         <div className="card-grid">
           <Link to={spine.path} className="card">
@@ -127,7 +129,9 @@ export default function Home() {
       <section className="home-section" aria-labelledby="home-experience">
         <div className="section-head">
           <h2 id="home-experience">Experience</h2>
-          <a href="/resume.pdf">Full resume (PDF) →</a>
+          <a href="/resume.pdf">
+            Full resume (PDF) <span aria-hidden="true">→</span>
+          </a>
         </div>
         <ul className="row-list" role="list">
           {homeExperience().map((row) => (

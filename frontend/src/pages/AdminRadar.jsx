@@ -285,7 +285,7 @@ export default function AdminRadar() {
       {radar && radar.personalised === false && (
         <p className="muted">
           Ranked by anticipation: rate, finish or favorite a few games to
-          personalise.
+          personalize.
         </p>
       )}
       {message && <p role="status">{message}</p>}

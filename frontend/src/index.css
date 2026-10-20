@@ -663,8 +663,8 @@ section + section {
 /* Section labels: headings by structure, set as kickers. */
 .about-label {
   color: var(--text-3);
-  font: 500 0.8125rem var(--font-mono);
-  letter-spacing: 0.08em;
+  font: 500 0.75rem var(--font-mono);
+  letter-spacing: 0.02em;
   margin-bottom: 14px;
   text-transform: uppercase;
 }
@@ -814,6 +814,7 @@ section + section {
 }
 
 .project-card .project-tagline {
+  display: block;
   margin-bottom: 10px;
 }
 
@@ -905,6 +906,12 @@ section + section {
   margin-left: 0.5rem;
   padding: 0.125rem 0.625rem;
   text-transform: uppercase;
+}
+
+.post-summary {
+  color: var(--text-2);
+  font-size: 1.125rem;
+  margin-top: 0.5rem;
 }
 
 .post-body {

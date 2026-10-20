@@ -34,8 +34,12 @@ export default function About() {
           <div>
             <dt>Resume</dt>
             <dd>
-              <a href="/resume.pdf" download="Joey Haas Resume.pdf">
-                PDF ↓
+              <a
+                href="/resume.pdf"
+                download="Joey Haas Resume.pdf"
+                aria-label="Resume (PDF)"
+              >
+                PDF <span aria-hidden="true">↓</span>
               </a>
             </dd>
           </div>

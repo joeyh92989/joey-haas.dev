@@ -67,7 +67,7 @@ describe('Home', () => {
       'href',
       '/spine',
     )
-    expect(screen.getByRole('link', { name: 'GitHub ↗' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989',
     )

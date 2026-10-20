@@ -23,7 +23,9 @@ export default function Projects() {
         {projects.map((project) => (
           <article key={project.name} className="project-card">
             {project.tagline && (
-              <Kicker className="project-tagline">{project.tagline}</Kicker>
+              <Kicker as="span" className="project-tagline">
+                {project.tagline}
+              </Kicker>
             )}
             <h2>
               {project.to ? (
