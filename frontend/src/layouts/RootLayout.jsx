@@ -24,6 +24,13 @@ const WIDE_ROUTES = [
 ]
 
 /**
+ * Routes laid out on the site's full 1040px measure rather than the reading
+ * column: pages of cards and columns, not running prose. Matched exactly,
+ * since '/' would otherwise match everything.
+ */
+const CONTENT_ROUTES = ['/', '/about', '/projects']
+
+/**
  * Whether a pathname is one of the routes or nested under one.
  *
  * @param {string[]} routes Route prefixes.
@@ -138,6 +145,11 @@ export default function RootLayout() {
   }
 
   const wide = isWideRoute(pathname)
+  const pageClass = wide
+    ? 'page page-wide'
+    : CONTENT_ROUTES.includes(pathname)
+      ? 'page page-content'
+      : 'page'
 
   return (
     <div className={wide ? 'site site-wide' : 'site'}>
@@ -150,12 +162,7 @@ export default function RootLayout() {
         items={navItems(posts.length > 0)}
       />
 
-      <main
-        id="main"
-        ref={mainRef}
-        tabIndex={-1}
-        className={wide ? 'page page-wide' : 'page'}
-      >
+      <main id="main" ref={mainRef} tabIndex={-1} className={pageClass}>
         <RouteErrorBoundary key={pathname}>
           {/* Lazy admin pages wait here; public pages are in the main chunk. */}
           <Suspense

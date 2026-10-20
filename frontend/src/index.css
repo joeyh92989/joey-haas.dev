@@ -131,7 +131,7 @@ body {
 }
 
 /* The outer measure every full-width band shares: the masthead and footer
-   rows, and (from T5) the content pages. 1040px with 24px gutters, 16px on
+   rows, and the content pages (.page-content). 1040px with 24px gutters, 16px on
    a phone. */
 .wrap {
   margin: 0 auto;
@@ -145,6 +145,11 @@ body {
   margin: 0 auto;
   max-width: 45rem;
   padding: 2.5rem 24px 0;
+}
+
+/* Home, About and Projects: cards and columns on the masthead's measure. */
+.page.page-content {
+  max-width: 1040px;
 }
 
 /* The tracker pages: a grid of covers wants the width a prose column does

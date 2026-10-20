@@ -95,22 +95,43 @@ describe('RootLayout theme toggle', () => {
   })
 })
 
-describe('RootLayout wide pages', () => {
+describe('RootLayout page widths', () => {
   function pageClass(path) {
     const { container } = renderAt(path)
-    return container.querySelector('.page').className
+    return container.querySelector('main').className
   }
 
-  // The tracker pages break out of the reading column; everything else keeps it.
+  // The tracker pages break out to 72rem; everything nested under one too.
   it.each(['/spine', '/spine/abc', '/admin/collection/abc'])(
     'widens %s',
     (path) => {
-      expect(pageClass(path)).toContain('page-wide')
+      expect(pageClass(path)).toBe('page page-wide')
     },
   )
 
-  it.each(['/about', '/', '/admin', '/blog'])('keeps %s narrow', (path) => {
-    expect(pageClass(path)).not.toContain('page-wide')
+  // Cards and columns take the masthead's 1040px measure.
+  it.each(['/', '/about', '/projects'])(
+    'gives %s the content width',
+    (path) => {
+      expect(pageClass(path)).toBe('page page-content')
+    },
+  )
+
+  // Prose keeps the reading column, including pages nested under a content
+  // route's path.
+  it.each(['/blog', '/blog/x', '/now', '/colophon', '/admin', '/about/x'])(
+    'keeps %s to the reading column',
+    (path) => {
+      expect(pageClass(path)).toBe('page')
+    },
+  )
+
+  // The masthead and footer rows follow the page out on the tracker routes.
+  it('widens the chrome with the tracker pages only', () => {
+    const { container, unmount } = renderAt('/spine')
+    expect(container.firstChild).toHaveClass('site-wide')
+    unmount()
+    expect(renderAt('/about').container.firstChild).not.toHaveClass('site-wide')
   })
 })
 

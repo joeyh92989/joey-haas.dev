@@ -92,6 +92,8 @@ before pushing.
 - Tracker pages break out of the 45rem prose column via `page-wide` (72rem),
   which `RootLayout` applies to any path in its `WIDE_ROUTES` list or nested
   under one. Add a new tracker route there, not in a page's own CSS.
+  Home, About and Projects take the 1040px `page-content` measure through
+  `CONTENT_ROUTES` (exact paths); every other page keeps the 45rem column.
   `RootLayout` also passes `{ signedIn }` as outlet context, so a routed page
   reads the session instead of calling `/api/auth/me` again.
 - Shelf components live in `frontend/src/components/`: `PosterCard`,
