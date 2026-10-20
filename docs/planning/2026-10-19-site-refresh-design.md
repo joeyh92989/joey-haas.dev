@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: docs/planning/mockups/2026-10-19-site-refresh/
 chosen: chosen.html
 ---
@@ -440,3 +440,300 @@ Newsreader and Public Sans fontsource imports.
   proposed lines in the PR rather than before it.
 - **`docs/planning/mockups/`** is not in `.gitignore`; add it when picking
   this up, before the folder lands in a commit.
+
+---
+
+# Plan (Code, 2026-10-19)
+
+Written against `feat/site-refresh` at `dd77ca7`. Paths are relative to the
+repo root; `fe/` means `frontend/src/`.
+
+## Answers to "Open questions for Code"
+
+| Question | Decision | Why |
+|---|---|---|
+| Endpoint | `POST /api/track` in a new `backend/analytics_routes.py` (its own unauthenticated router, not `public.py`, which is the read-only `is_public` surface its leak tests walk). Always 204. The body is read with `await request.body()` and parsed by hand: `sendBeacon` sends a `text/plain` string, which keeps it a CORS simple request (no preflight) and which FastAPI would not parse as a JSON model. | `origin_check.py:30` passes a POST whose `Origin` is `FRONTEND_URL`, so a beacon from `https://joey-haas.dev` is accepted with no change |
+| Body | `{path, ref, device}`. **`width` is dropped**: neither proposed table stores it, and no screen shows it | Don't collect what isn't shown |
+| Client IP | `CF-Connecting-IP`, then `True-Client-IP`, then `request.client.host` (local dev). Never the leftmost `X-Forwarded-For`: Render's proxy appends to it, so a caller controls its first entry ([Render, PocketBase article](https://render.com/articles/host-pocketbase-on-render); [community thread](https://community.render.com/t/accessing-client-ips-in-a-node-express-app/36282)). Uvicorn's `--proxy-headers` is not turned on | Cloudflare overwrites `CF-Connecting-IP` on every request to a public Render service |
+| Salt | **Derived**, no table and no new env var: `salt = HMAC-SHA256(SESSION_SECRET, "analytics-salt:" + utc_date)`, `visitor_hash = HMAC-SHA256(salt, ip + "\n" + ua)[:32 hex]`. Neither the IP nor the UA is stored or logged | Simplest; the salt changes at UTC midnight. Rotating `SESSION_SECRET` mid-day splits one day's visitors, which is acceptable |
+| Abuse | Three layers: (1) the server validates and normalises every field. `path` must match a public route pattern (the `publicRoutes` list plus `/spine/<id>/`, `/spine/year/<y>/`, `/spine/journal/<m>/`, `/blog/<slug>`), is ≤ 200 chars, and drops any query string. `ref` must be a hostname ≤ 100 chars or empty; `device` must be in `{desktop, phone, tablet}`. Anything else is dropped (still 204). (2) An in-memory per-`visitor_hash` daily cap of 100 accepted views, reset at UTC midnight and bounded to 10,000 keys. (3) The body is capped at 1 KB | A free dyno has one process, so memory is enough; the cap also bounds what one bot can add to a day |
+| Tables | `page_views(id bigserial, day date, path text, referrer_host text NULL, device text, visitor_hash text, created_at timestamptz default now())`, indexed on `(day)`. **`daily_stats` deviates** from the proposed shape: it is `(day date, dimension text, value text, views int, visitors int, PK(day, dimension, value))` with `dimension ∈ {total, path, referrer, device}`. With the proposed one-row-per-(path, ref, device) shape, distinct visitors are not additive across rows, so a day's visitor total could not be read back from the rollup | Needed so the AC "the rollup totals for a day equal the raw counts" holds for visitors as well as views |
+| Rollup | `POST /api/analytics/rollup`, admin or job token (added to `items.JOB_ROUTES` and `test_job_token.py`'s `EXPECTED`). For every day before today that has raw rows, it recomputes that day's `daily_stats` (delete, then insert in one transaction), then deletes raw rows older than 90 days. This makes it idempotent, so a missed night is caught up by the next run. Called by `nightly.yml` as the step after `discover` | Matches the nightly preference; the 90-day deletion doesn't depend on Joey opening the page |
+| Read | `GET /api/analytics?range=7d|30d|90d|all` under `require_admin`, returning one body: tiles, day series, the three lists, `live_since`. It reads `daily_stats` for past days and aggregates today's raw rows live. A 60 s cache keyed on `(range, monotonic() // 60)`, following `PublicNextCache`'s lock and double-check shape | One request after the session check |
+| `live_since` | `ANALYTICS_LIVE_SINCE` constant in `analytics.py`, set to the merge date in the PR | The empty state needs a date, and a table for one timestamp isn't worth it |
+| Recent changes | v1 is derived, with no new table: the five newest `items.updated_at` from `GET /api/items` (title, "edited", relative time) merged with the nightly outcomes from `/api/physical/status` and the generate times. Item rows say only that something changed and when | The spec allows this; an `events` table can come later |
+| Dashboard counts | Computed client-side from `GET /api/items` (the Shelf already loads it): owned, public/hidden, finished this year, all-time finished, average rating. Needs attention = `totals.pending_keys` from `/api/physical/status`. **This deviates from the Performance note**, which allowed only the two status calls plus the analytics read. Accepted: a single cached read of the full list is cheap for a collection this size, and no admin counts endpoint exists | Avoids a backend endpoint for numbers the client already gets |
+| Snapshot row | There is no snapshot timestamp today. `fetch-snapshot.mjs` writes an optional `/snapshot/meta.json` `{fetched_at}`, and `snapshot.js` `SHAPES` gains `meta`. The Dashboard reads it from the site's own origin. When it is absent, the row reads "unknown" rather than failing. This is the only change to the snapshot pipeline | The Dashboard's jobs panel needs a time for the snapshot |
+| Playing on Home | Yes: snapshot items carry `status`, and "Playing" is `status === 'active'` (`lib/shelf.js:16`). Home reuses `Now.jsx`'s `nowLists()` filter (lifted to `lib/`); the row is omitted when nothing is active | No API call |
+| Fonts | `@fontsource/inter@5.3.0`, `@fontsource/jetbrains-mono@5.3.0`, `@fontsource/source-serif-4@5.3.0`. Source Serif's 5.3.1 is 8 days old, so it is pinned to 5.3.0. All the needed `latin-<w>[-italic].css` entry points exist. Latin woff2 total: **181 kB vs 130 kB today (+39%)**, 8 cuts vs 7. Mono loads only where a mono label renders, and the serif only on Home and About | Spec asked for this to be watched; it is flagged in the PR |
+| Mobile sheet | Native `<dialog>` + `showModal()`, with no polyfill (supported in every evergreen browser since 2022). `cancel` closes it, and focus goes back to the Menu button explicitly, since jsdom doesn't implement `showModal`: tests stub `HTMLDialogElement.prototype.showModal`/`close` | Focus trap and inert background come with it |
+| Prerender | Heads are unchanged. `SITE_DESCRIPTION` (`scripts/prerender-lib.mjs:18`) is hard-coded and is reworded only if Joey's final Home lede changes the claim | Spec AC: heads unchanged |
+| Copy | Defaults below apply; Joey finesses the wording in each PR | |
+
+**Copy defaults** (from the review's open questions; Joey overrides in the
+PR): contractions everywhere; American spelling in UI copy, with the note in
+`spine.js`; "Last shipped" = the newest post, with the row omitted when
+there is none; the toolbox testing chips fold into one "Testing" chip; MJ
+Freeway's domain is named as the review drafts it; the post's "boring parts"
+clause is checked against the post and cut if nothing pays it off.
+
+## Delivery shape
+
+Four stacked PRs, each in its own worktree and branched from the one below.
+This follows the #53–#58 stack precedent. Each one is reviewable on its own
+and leaves `main` deployable.
+
+```mermaid
+graph LR
+  A["PR 1 · feat/site-refresh<br/>identity + shell"] --> B["PR 2 · feat/site-refresh-public<br/>public pages + copy"]
+  B --> C["PR 3 · feat/site-refresh-admin<br/>admin shell + Dashboard"]
+  C --> D["PR 4 · feat/site-analytics<br/>beacon, 0008, rollup, Analytics"]
+```
+
+PR 1–3 are frontend only, apart from `fetch-snapshot.mjs`. PR 4 holds every
+carve-out: the migration, the CI workflow, the job-token whitelist, and an
+unauthenticated write route.
+
+## Tasks
+
+ACs refer to the spec's Acceptance criteria where they apply. Every task ends
+with `npm test` + `npm run lint` green (and `pytest` + `ruff` for backend
+tasks) before its commit.
+
+### PR 1 — identity and site chrome (`feat/site-refresh`)
+
+**T1. Fonts.** Swap the fontsource packages and imports; set `--font-sans`,
+`--font-mono` and `--font-display`; update the static-cuts comment in
+`main.jsx`.
+- Files: `frontend/package.json`, lockfile, `fe/main.jsx`, `fe/index.css` (font tokens)
+- AC: no Newsreader or Public Sans import is left; every weight the CSS uses has a matching import (grep `font-weight` against the imports); the build passes
+- Tests: build; grep check recorded in the commit message
+
+**T2. Tokens and contrast.** Replace the token set with the spec's
+inventory in both theme blocks (dark on `:root`, light under
+`[data-theme='light']`), and alias or rename every old token across
+`index.css`: `--border`→`--line`, `--text-body`→`--text-2`,
+`--text-muted`→`--text-3`, `--surface-raised`→`--sunken`; the
+`--tag-*`/`--nav-*` tokens fold into the new ones. Measure every
+text/background pair to 4.5:1 and every non-text mark (the `--status-*`
+set, `--rating`, chart bars, the backlog status on `--line`) to 3:1 with a
+scratch WCAG script, adjust the mockup values where they fail, and record
+the ratios in comments in the existing style. Re-measure `--code-bg`
+against both Shiki themes.
+- Files: `fe/index.css`
+- AC: spec contrast AC; no raw hex outside the two token blocks (grep); the shelf renders without a visual regression (manual, both themes)
+- Tests: existing suite; contrast script output pasted into the PR
+
+**T3. Shared strings.** Add `fe/content/status.js` with one waking line
+and one load-error line (review 1.3), and import it everywhere the survey
+found waking and "Could not reach the API" copy: Collection, Item, Next via
+`spine.js`, YearInReview, MonthInReview, and the admin pages. Action-specific
+"Could not …" messages stay.
+- Files: `fe/content/status.js`, `fe/content/spine.js`, about 12 pages
+- AC: spec copy AC (exactly one waking string and one load-error string in `fe/`)
+- Tests: update the assertions on the old strings; a test that grep-counts the strings
+
+**T4. SiteMast + MobileNavSheet + footer.** Add `SiteMast` (monogram, name,
+NavLinks with an active underline, "Resume ↓" to `/resume.pdf`, theme
+toggle; on a phone, a Menu button opening `MobileNavSheet`, a `<dialog>`).
+Extract the footer into a `SiteFooter` component with the same links. In
+`RootLayout`, remove `COMPACT_ROUTES` and render the same masthead
+everywhere; delete `SiteHeader` and its scroll-reveal logic. `SpineHeader`
+keeps its Spine title, lede and tabs, but loses its compact-masthead role.
+`Kicker` is added here.
+- Files: `fe/components/{SiteMast,MobileNavSheet,SiteFooter,Kicker}.jsx` (+ tests), `fe/layouts/RootLayout.jsx`, delete `SiteHeader.jsx`/`.test.jsx`, `fe/index.css`
+- AC: the masthead matches `chosen.html` at 1280 and 400; the keyboard AC (Escape closes the sheet and focus returns to Menu); the skip link and `useRouteFocus` still work; the toggle and `localStorage('theme')` behave as before
+- Tests: SiteMast (active link, toggle label, Menu opens and closes the sheet, Escape returns focus); SiteFooter (signed in/out); RootLayout tests updated (drop "masthead density", keep theme, wide, outlet, footer)
+
+**T5. Page widths.** Add a `.wrap` (1040px, 24px/16px gutters) for Home,
+About and Projects, via a `CONTENT_ROUTES` list beside `WIDE_ROUTES` in
+`RootLayout`; prose stays 45rem and Spine stays 72rem.
+- Files: `fe/layouts/RootLayout.jsx`, `fe/index.css`
+- Tests: RootLayout width tests for each class
+
+PR 1 also re-skins the Spine public pages through the tokens alone, with a
+manual pass at 1280/400 in both themes.
+
+### PR 2 — public pages and copy (`feat/site-refresh-public`)
+
+**T6. Home.** A two-column hero with the serif headline (italic accent
+phrase `aria-hidden` on a duplicate visual span; the sentence is read once),
+the lede, three actions, and a `FactsTable` (Now/Focus/Stack from
+`profile.js`, Last shipped from posts, Playing from the snapshot via the
+lifted `lib/nowLists.js`). Then the Work cards (Spine with `CoverStrip`,
+This site, latest post) and the Experience rows (the three pre-Guild roles
+grouped). Copy review §2.
+- Files: `fe/pages/Home.jsx`, `fe/components/FactsTable.jsx`, `fe/lib/nowLists.js` (moved from `Now.jsx`), `fe/content/profile.js`, `fe/index.css`
+- AC: spec Home AC; "correctness and money are the same problem" appears in exactly one place
+- Tests: Home (facts rows, Playing omitted when there's no active item, cards link, no accent on card text by class); nowLists unit tests moved
+
+**T7. About.** A sticky aside (photo, serif title, kicker, key/value
+list), labelled sections, the experience timeline with an accent dot on the
+current role, education under Experience, and toolbox chips. Copy §3.1–3.4
+(the bio and experience rewrites are drafts for Joey).
+- Files: `fe/pages/About.jsx`, `fe/content/{profile,experience,education}.js`, `fe/index.css`
+- AC: spec About AC; the copy AC's banned-word grep is clean
+- Tests: About (all roles listed, current role marked, resume link present)
+
+**T8. Projects, Blog, BlogPost, Now, Colophon, NotFound.** Projects uses the
+card language and `spine.projectLine` ("This site"). Blog becomes list
+rows. The prose pages get the new type. NotFound gets two links out.
+Colophon names Inter, JetBrains Mono and Source Serif 4; **its analytics
+line lands in PR 4**, where the beacon ships. Copy §4–§7, plus the
+American-spelling pass (§1.2) over `fe/` and `frontend/posts/`, with the
+decision recorded in `spine.js`.
+- Files: those pages, `fe/content/{projects,spine}.js`, `frontend/posts/*.md`, `fe/index.css`
+- AC: spec copy AC (spelling grep finds only routes, module names and API fields)
+- Tests: update the existing page tests; a Colophon font-names test
+
+### PR 3 — admin shell and Dashboard (`feat/site-refresh-admin`)
+
+**T9. Shell primitives.** `AdminShell` (232px `<nav aria-label="Admin">`
+sidebar with the four groups, the Shelf owned count, and a foot with email,
+View site and Sign out; under 700px a five-item bottom tab bar with
+`aria-current` and `<dialog>` sheets for Picks, Stores and More),
+`AdminPageHeader` (title, description, right slot; calls `usePageTitle` with
+`<Page> · Admin · Joey Haas` per review 1.4), `StatTile`, and `Panel`. Shell
+navigation reads `useMediaQuery('(max-width: 700px)')`.
+- Files: `fe/components/{AdminShell,AdminPageHeader,StatTile,Panel}.jsx` (+ tests), `fe/index.css`
+- Tests: groups and labels as in the spec table; tab bar under the stubbed media query; sheets open and close on Escape; `aria-current`
+
+**T10. Route the shell.** In `App.jsx`, nest the admin routes under an
+`AdminLayout` route that renders `AdminShell` once signed in, and the plain
+centred panel (with today's copy) for checking, waking, denied, signed out
+and sign-out failed. `RootLayout` renders no masthead or footer on
+`/admin*`, but keeps the theme state and outlet context, and drops the admin
+entries from `WIDE_ROUTES`. Sign-out moves from `Admin.jsx` into the
+shell.
+- Files: `fe/App.jsx`, `fe/layouts/{RootLayout,AdminLayout}.jsx`, `fe/pages/Admin.jsx`
+- AC: no admin page shows the public chrome; every admin URL is unchanged; the admin chunk is still lazy (build output)
+- Tests: RootLayout (no chrome on `/admin*`); AdminLayout state tests carried over from `Admin.test.jsx`; App route test that every admin path resolves
+
+**T11. Move the pages into the header.** Each admin page swaps its `<h1>`
+block for `AdminPageHeader`, and its controls move to the right slot:
+Collection (title "Shelf"; publish/hide/refresh and the Shelf/List toggle;
+`HeroNumbers` → `StatTile`s), Import, Play Next, Discover and Radar
+(the Generate toolbar), Catalogue (title "Sources"; refresh buttons;
+`catalogue-totals` → `StatTile`s), Store list, and the Item page (back link
+as the description). The repeated per-state `<h1>`s collapse into the one
+header.
+- Files: the nine admin pages, their tests, `fe/index.css` (old header CSS removed)
+- AC: every admin page renders inside the shell with the shared header (spec AC)
+- Tests: update the existing 191 admin tests; heading queries stay role-based
+
+**T12. Dashboard.** `/admin` content: the header status (API awake ·
+nightly), four `StatTile`s (Views · 7 days shows "—" until PR 4), a nightly
+jobs `Panel` of `JobStatusRow`s (catalogue, Radar, Discover, snapshot;
+ok/stale/failed as text and dot; "Run now" links to Catalogue, Radar and
+Discover), quick actions, and Recent changes. The data comes from
+`lib/nightly.js` (extended to one row per job), `/api/items`, and
+`/snapshot/meta.json` (with `fetch-snapshot.mjs` writing it and `SHAPES`
+gaining `meta`). `LastNightly` is retired into the panel.
+- Files: `fe/pages/Admin.jsx`, `fe/components/JobStatusRow.jsx`, `fe/lib/{nightly,dashboard,snapshot}.js`, `frontend/scripts/fetch-snapshot.mjs`, `scripts/README.md`
+- AC: spec Dashboard AC; status is never colour alone
+- Tests: `dashboard.js` counts (owned, public/hidden, finished this year, average); job rows (ok, stale after 36h, failed); a missing `meta.json` reads "unknown"; fetch-snapshot writes `meta.json`
+
+### PR 4 — analytics (`feat/site-analytics`) — carve-out
+
+**T13. Migration `0008` + models.** Add `page_views` and `daily_stats` as
+above, additive only, with models matching exactly (`test_migrations.py`
+diffs them).
+- Files: `backend/migrations/versions/0008_add_analytics.py`, `backend/models.py`, `backend/migrations/README.md` (revision list)
+- Tests: `test_migrations.py` (the up/down cycle and model diff)
+
+**T14. Pure analytics core.** `backend/analytics.py`, with no FastAPI or
+SQLAlchemy: `client_ip(headers, fallback)`, `daily_salt(secret, day)`,
+`visitor_hash`, `normalise(body) -> Event | None` (the path patterns,
+hostname, device enum), `DailyCap`, `summarise(rows, range)` (tiles, Best
+day with the dominant-referrer note when one referrer has >50% of the
+views, series, lists), and `ANALYTICS_LIVE_SINCE`.
+- Tests: `test_analytics.py`. Same IP+UA on the same day gives the same hash, and the next day a different one; the hash never contains the IP; `CF-Connecting-IP` wins over a spoofed `X-Forwarded-For`; bad paths, refs and devices are dropped; the cap blocks the 101st view and resets the next day; a summary over an empty range is all zeros
+
+**T15. Routes.** `analytics_routes.py`: `create_track_router` (`POST
+/api/track`, 204 always, body ≤ 1 KB, skips when `Sec-GPC: 1` or `DNT: 1`)
+and `create_analytics_router` (`GET /api/analytics`, `POST
+/api/analytics/rollup`, `require_admin`). Register both in `main.py`, and
+update the "one unauthenticated router" comment. Add the rollup to
+`JOB_ROUTES`, `test_job_token.py`'s `EXPECTED`, and `_real_app()`.
+- Files: `backend/analytics_routes.py`, `backend/main.py`, `backend/items.py`, `backend/tests/{test_analytics_routes,test_job_token}.py`
+- AC: the spec's beacon ACs: two posts from one client on one day give one visitor and two views; the next day is a new visitor; the stored row has no IP or UA; rows older than 90 days are gone after the rollup; the rollup totals equal the raw counts, views *and* visitors; the read is 401 without a session, and the track route needs none; a `text/plain` body is accepted, and a foreign `Origin` is refused by `origin_check`
+- Tests: as the AC, against the real test DB
+
+**T16. Beacon.** `useAnalyticsBeacon(pathname, signedIn)` mounted in
+`RootLayout`. It sends one `navigator.sendBeacon(API_URL + '/api/track',
+JSON.stringify(body))` per pathname change, only once `signedIn === false`
+(it waits while the session check is pending, and treats a failed check as
+signed out). It never sends on `/admin*`, when
+`navigator.globalPrivacyControl` is set or `navigator.doNotTrack === '1'`,
+or when `sendBeacon` is missing. `ref` is the `document.referrer`
+hostname on the first hit only, and empty when it is the site's own host.
+`device` comes from `(pointer: coarse)` plus width, read through
+`useMediaQuery`.
+- Files: `fe/lib/useAnalyticsBeacon.js` (+ test), `fe/layouts/RootLayout.jsx`
+- AC: spec beacon AC: exactly one beacon per route change, and none when signed in, on admin, or with GPC
+- Tests: a stubbed `sendBeacon` counts calls across three navigations; none signed in, on `/admin`, with GPC or with DNT; nothing before the session resolves; the body has exactly `{path, ref, device}`
+
+**T17. Analytics page + Dashboard tile.** `/admin/analytics` with
+`RangeControl`, four `StatTile`s, `DayBars` (accent on the highest day, the
+soft tint on the rest, UTC labels, a visually hidden table, `aria-label` on
+each bar), three `BarList`s, the footnote, and the empty state with
+`live_since`. The Dashboard's "Views · 7 days" reads `?range=7d`. The
+sidebar's Analytics item goes live, and Colophon gains its analytics line.
+- Files: `fe/pages/AdminAnalytics.jsx`, `fe/components/{RangeControl,DayBars,BarList}.jsx` (+ tests), `fe/App.jsx`, `fe/pages/{Admin,Colophon}.jsx`
+- AC: spec Analytics AC, including the empty state
+- Tests: empty state; range switch refetches; the highest bar is marked; the hidden table has the values
+
+**T18. Nightly + smoke.** Add `call rollup 120 /api/analytics/rollup` after
+`discover` in `nightly.yml`. Add smoke checks to `scripts/smoke.sh`: `POST
+/api/track` with a `text/plain` body returns 204, and `GET /api/analytics`
+without a session returns 401. Update the README's admin and nightly
+sections and the root `CLAUDE.md` (beacon, `0008`, the rollup in the
+nightly order).
+- Files: `.github/workflows/nightly.yml`, `scripts/smoke.sh`, `README.md`, `CLAUDE.md`
+
+## Parallel-safe flags
+
+Run everything sequentially. PR 4's backend tasks (T13–T15) touch no
+frontend file and *could* run in parallel with PR 2–3; they are kept
+sequential because the backend suite shares one test database (see the
+repo `CLAUDE.md`), and the plan doesn't need the speed.
+
+## Milestones
+
+```
+Milestone 1 (auto): T1–T12 — PRs 1, 2, 3 opened as a stack
+STOP — carve-out review: migration 0008, an unauthenticated write route,
+       JOB_ROUTES change, nightly.yml change
+Milestone 2 (auto after "go"): T13–T18 — PR 4 opened
+Deploy (Joey asks): apply 0008 to Neon from PR 4's worktree
+       (migrate_neon.py current → upgrade), then merge 1→2→3→4 in order
+```
+
+## Environment test section
+
+- **Local, per PR:** `npm test`, `npm run lint`, `npm run build`. For PR 4,
+  also `./.venv/bin/pytest` (one run at a time) and `ruff check`.
+- **Browser, per PR:** run the dev servers, then check each changed screen
+  at 1280 and 400 in both themes against `chosen.html`; tab through the
+  keyboard AC; check the shelf and Next pages for regressions.
+- **Lighthouse (PR 3, PR 4):** accessibility on `/`, `/about`, `/admin`,
+  and `/admin/analytics`, with no contrast or name/label failures.
+- **Beacon (PR 4, local):** in the network panel, one `track` request per
+  navigation as a signed-out visitor; none signed in, on `/admin`, or with
+  GPC turned on in the browser. Then `psql` shows rows with no IP or UA,
+  and a manual rollup run matches the raw counts.
+- **Post-deploy:** `./scripts/smoke.sh https://joey-haas.dev
+  https://api.joey-haas.dev` after each merge. After PR 4, check one real
+  view landed via `/admin/analytics`. After the next nightly, check the
+  rollup step logged ok and the Dashboard jobs panel shows all four rows.
+
+## Risks
+
+- **T2 is the biggest diff**: 3,352 lines of CSS on renamed tokens. Aliasing
+  the old names for one commit and then removing them keeps each commit
+  reviewable.
+- **T11 touches 191 admin tests.** Heading queries are role-based, so most
+  should survive; the controls moving into the header slot change DOM
+  order, not roles.
+- **Sleeping API**: beacons sent during a cold start can be lost (accepted
+  in Key decision 4); the Analytics footnote says so.
