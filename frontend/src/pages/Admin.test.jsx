@@ -135,6 +135,22 @@ describe('Admin Dashboard', () => {
     expect(
       within(tiles).getByText('Views · 7 days').nextSibling,
     ).toHaveTextContent('—')
+    expect(
+      await within(tiles).findByText('Could not be read'),
+    ).toBeInTheDocument()
+  })
+
+  it('reads the views tile from the last seven days of analytics', async () => {
+    const fetch = stubApi({
+      '/api/analytics?range=7d': () => json({ views: 42, visitors: 1 }),
+    })
+    renderAt()
+    const tiles = await screen.findByLabelText('Dashboard figures')
+    expect(await within(tiles).findByText('1 visitor')).toBeInTheDocument()
+    expect(
+      within(tiles).getByText('Views · 7 days').nextSibling,
+    ).toHaveTextContent('42')
+    expect(called(fetch, '/api/analytics?range=7d')).toBe(true)
   })
 
   it('lists the four nightly jobs with their state in words', async () => {

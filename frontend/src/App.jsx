@@ -21,6 +21,7 @@ import { itemPath } from './lib/spinePaths.js'
 // boundary covers the layout's wait, and AdminLayout's each page's.
 const AdminLayout = lazy(() => import('./layouts/AdminLayout.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
+const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics.jsx'))
 const AdminCatalogue = lazy(() => import('./pages/AdminCatalogue.jsx'))
 const AdminDiscover = lazy(() => import('./pages/AdminDiscover.jsx'))
 const AdminRadar = lazy(() => import('./pages/AdminRadar.jsx'))
@@ -73,6 +74,7 @@ export default function App() {
         <Route path="collection/:id" element={<CollectionItemRedirect />} />
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<Admin />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="collection" element={<AdminCollection />} />
           <Route path="import" element={<AdminImport />} />
           <Route path="play-next" element={<PlayNext />} />

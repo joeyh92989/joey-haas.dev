@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, FastAPI, Request
 from httpx2 import ASGITransport, AsyncClient
 from starlette.middleware.sessions import SessionMiddleware
 
+from analytics_routes import create_analytics_router
 from items import JOB_ROUTES, _job_token_route, create_items_router, require_admin
 from physical_routes import create_physical_router
 from picker_routes import create_picker_router
@@ -35,6 +36,7 @@ EXPECTED = {
     ("POST", "/api/physical/resolve"),
     ("POST", "/api/recommendations/generate"),
     ("GET", "/api/physical/status"),
+    ("POST", "/api/analytics/rollup"),
 }
 
 
@@ -77,7 +79,7 @@ def bearer(value: str = TOKEN) -> dict:
 
 
 def _real_app() -> FastAPI:
-    """The four admin routers as main.py includes them, with no database."""
+    """The admin routers as main.py includes them, with no database."""
     app = FastAPI()
     app.state.job_token = TOKEN
     lock = asyncio.Lock()
@@ -85,6 +87,7 @@ def _real_app() -> FastAPI:
     app.include_router(create_picker_router(None))
     app.include_router(create_physical_router(None, {}, lambda: None, None, lock=lock))
     app.include_router(create_recommendations_router(None, {}, lock))
+    app.include_router(create_analytics_router(None))
     app.add_middleware(SessionMiddleware, secret_key="test", https_only=False)
     return app
 
@@ -111,6 +114,7 @@ async def test_every_whitelisted_route_exists_on_the_real_routers():
     app.include_router(create_picker_router(None))
     app.include_router(create_physical_router(None, {}, lambda: None, None, lock=lock))
     app.include_router(create_recommendations_router(None, {}, lock))
+    app.include_router(create_analytics_router(None))
     # FastAPI 0.141 includes routers lazily, so app.routes holds one opaque
     # entry per router; the OpenAPI schema lists the flattened templates.
     real = {
@@ -142,6 +146,7 @@ async def test_the_token_passes_the_gate_on_each_real_route(method, path):
         ("POST", "/api/items"),
         ("POST", "/api/physical/refresh-platform"),
         ("GET", "/api/recommendations?kind=radar"),
+        ("GET", "/api/analytics"),
         ("POST", "/api/recommendations/0b7c6f3e-1111-4c1c-9a50-000000000001/want"),
     ],
 )

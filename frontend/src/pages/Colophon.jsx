@@ -69,6 +69,10 @@ export default function Colophon() {
         <li>
           Sign-in to the admin is Google OAuth, allowlisted to one account.
         </li>
+        <li>
+          A cookie-free beacon counts page views; nothing is sent to a third
+          party, and signed-in visits are excluded.
+        </li>
       </ul>
     </section>
   )

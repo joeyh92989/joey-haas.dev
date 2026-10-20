@@ -10,7 +10,10 @@ import { useRouteFocus } from '../lib/useRouteFocus.js'
 const ADMIN_GROUPS = [
   {
     label: 'Overview',
-    items: [{ to: '/admin', label: 'Dashboard', end: true }],
+    items: [
+      { to: '/admin', label: 'Dashboard', end: true },
+      { to: '/admin/analytics', label: 'Analytics' },
+    ],
   },
   {
     label: 'Collection',
@@ -48,7 +51,10 @@ const SHEETS = {
   },
   more: {
     label: 'More',
-    items: [{ to: '/admin/import', label: 'Import photos' }],
+    items: [
+      { to: '/admin/analytics', label: 'Analytics' },
+      { to: '/admin/import', label: 'Import photos' },
+    ],
   },
 }
 

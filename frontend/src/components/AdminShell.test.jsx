@@ -56,7 +56,7 @@ describe('AdminShell sidebar', () => {
           .map((link) => link.firstChild.textContent),
       ])
     expect(groups).toEqual([
-      ['Overview', ['Dashboard']],
+      ['Overview', ['Dashboard', 'Analytics']],
       ['Collection', ['Shelf', 'Import photos']],
       ['Recommend', ['Play Next', 'Discover', 'Radar']],
       ['Catalog', ['Sources', 'Store list']],
@@ -72,6 +72,7 @@ describe('AdminShell sidebar', () => {
         .map((link) => link.getAttribute('href')),
     ).toEqual([
       '/admin',
+      '/admin/analytics',
       '/admin/collection',
       '/admin/import',
       '/admin/play-next',
@@ -164,7 +165,7 @@ describe('AdminShell tab bar', () => {
   it.each([
     ['Picks', ['Play Next', 'Discover', 'Radar']],
     ['Stores', ['Sources', 'Store list']],
-    ['More', ['Import photos', 'View site ↗']],
+    ['More', ['Analytics', 'Import photos', 'View site ↗']],
   ])('opens %s as a sheet of its pages', (tab, links) => {
     media.phone = true
     renderAt()

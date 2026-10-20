@@ -5,6 +5,7 @@ import SiteFooter from '../components/SiteFooter.jsx'
 import SiteMast from '../components/SiteMast.jsx'
 import { posts } from '../content/posts.js'
 import { apiFetch } from '../lib/api.js'
+import { useAnalyticsBeacon } from '../lib/useAnalyticsBeacon.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
 const STORAGE_KEY = 'theme'
@@ -100,9 +101,11 @@ function readStoredTheme() {
  */
 export default function RootLayout() {
   const [theme, setTheme] = useState(readStoredTheme)
-  const [signedIn, setSignedIn] = useState(false)
+  // null until the session check answers: the beacon waits for it.
+  const [signedIn, setSignedIn] = useState(null)
   const { pathname } = useLocation()
   const mainRef = useRouteFocus()
+  useAnalyticsBeacon(pathname, signedIn)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -118,7 +121,9 @@ export default function RootLayout() {
       .then((response) => {
         if (!cancelled) setSignedIn(response.ok)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setSignedIn(false)
+      })
     return () => {
       cancelled = true
     }

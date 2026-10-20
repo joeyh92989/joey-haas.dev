@@ -233,6 +233,14 @@ fi
 check_equals "POST /api/items/{id}/sessions unauthenticated" \
   "$(curl -s -o /dev/null -w '%{http_code}' -m 90 -X POST -H 'Content-Type: application/json' -d '{}' "$API_URL/api/items/00000000-0000-4000-8000-000000000000/sessions")" "401"
 
+# Analytics (migration 0008). The beacon answers 204 to anything, so this
+# proves the route is up; its path is no public route, so the view is
+# dropped and a smoke run never adds to the counts. The read is admin only.
+check_equals "POST /api/track answers 204 (text/plain, dropped)" \
+  "$(curl -s -o /dev/null -w '%{http_code}' -m 90 -X POST -H 'Content-Type: text/plain;charset=UTF-8' -d '{"path":"/smoke-check","ref":"","device":"desktop"}' "$API_URL/api/track")" "204"
+check_equals "GET /api/analytics unauthenticated" \
+  "$(http_status "$API_URL/api/analytics")" "401"
+
 check_equals "GET /spine (deep link)" "$(http_status "$SITE_URL/spine")" "200"
 check_equals "GET /collection (legacy redirect path)" "$(http_status "$SITE_URL/collection")" "200"
 

@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import {
   MemoryRouter,
   Navigate,
@@ -339,5 +345,64 @@ describe('RootLayout route changes', () => {
     expect(
       screen.getByRole('heading', { name: 'About page' }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('RootLayout analytics beacon', () => {
+  let beacon
+
+  beforeEach(() => {
+    beacon = vi.fn(() => true)
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: beacon,
+      configurable: true,
+    })
+  })
+
+  afterEach(() => {
+    delete navigator.sendBeacon
+  })
+
+  const paths = () => beacon.mock.calls.map(([, body]) => JSON.parse(body).path)
+  const navTo = (name) =>
+    fireEvent.click(
+      within(screen.getByRole('navigation')).getByRole('link', { name }),
+    )
+
+  it('waits for the session check, then sends one per navigation', async () => {
+    let resolve
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(
+      new Promise((done) => {
+        resolve = done
+      }),
+    )
+    renderAt('/')
+    await Promise.resolve()
+    expect(beacon).not.toHaveBeenCalled()
+
+    resolve(new Response('{}', { status: 401 }))
+    await waitFor(() => expect(paths()).toEqual(['/']))
+    navTo('About')
+    navTo('Projects')
+    expect(paths()).toEqual(['/', '/about', '/projects'])
+  })
+
+  it('counts a session check that throws as signed out', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(
+      new TypeError('Failed to fetch'),
+    )
+    renderAt('/about')
+    await waitFor(() => expect(paths()).toEqual(['/about']))
+  })
+
+  it('sends nothing for a signed-in visit', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{}', { status: 200 }),
+    )
+    renderAt('/')
+    expect(
+      await screen.findByRole('link', { name: 'Admin' }),
+    ).toBeInTheDocument()
+    expect(beacon).not.toHaveBeenCalled()
   })
 })
