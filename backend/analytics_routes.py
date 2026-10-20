@@ -1,7 +1,8 @@
 """Analytics routes: the public beacon, the admin read and the nightly rollup.
 
-`POST /api/track` is unauthenticated and always answers 204, so a visitor's
-browser never sees an error and a caller learns nothing from the answer.
+`POST /api/track` is unauthenticated and answers 204 to every request that
+origin_check lets through (a foreign Origin is a 403 before it runs), so a
+visitor's browser never sees an error and a caller learns nothing from it.
 The body is validated by analytics.normalise; the visitor is a daily-salted
 hash, and neither the IP nor the user agent is stored or logged.
 
@@ -134,9 +135,13 @@ class SummaryCache:
 
 
 async def _raw_stats(
-    session: AsyncSession, days: list[date] | None, since: date | None = None
+    session: AsyncSession,
+    days: list[date] | None,
+    since: date | None = None,
+    skip: set[date] | None = None,
 ) -> list[Stat]:
-    """Stat rows computed from raw views, for `days` or from `since` on."""
+    """Stat rows computed from raw views, for `days` or from `since` on,
+    leaving out the days in `skip` in SQL rather than after loading them."""
     query = select(
         PageView.day,
         PageView.path,
@@ -148,6 +153,8 @@ async def _raw_stats(
         query = query.where(PageView.day.in_(days))
     if since is not None:
         query = query.where(PageView.day >= since)
+    if skip:
+        query = query.where(PageView.day.not_in(skip))
     grouped: dict[date, list[tuple]] = {}
     for day, *view in (await session.execute(query)).all():
         grouped.setdefault(day, []).append(tuple(view))
@@ -155,15 +162,20 @@ async def _raw_stats(
 
 
 def create_analytics_router(
-    factory: async_sessionmaker[AsyncSession], now: Clock = _utc_now
+    factory: async_sessionmaker[AsyncSession],
+    now: Clock = _utc_now,
+    cache: SummaryCache | None = None,
 ) -> APIRouter:
-    """The admin read and the rollup."""
+    """The admin read and the rollup. `cache` is for tests."""
     router = APIRouter(
         prefix="/api/analytics",
         tags=["analytics"],
         dependencies=[Depends(require_admin)],
     )
-    cache = SummaryCache()
+    cache = cache or SummaryCache()
+    # Two overlapping rollups (a manual run during the nightly one) would
+    # each delete a day's stats and then both insert them.
+    rollup_lock = asyncio.Lock()
 
     async def get_session() -> AsyncIterator[AsyncSession]:
         async with factory() as session:
@@ -195,11 +207,7 @@ def create_analytics_router(
                 for row in rolled
             ]
             done = {stat.day for stat in stats}
-            pending = [
-                stat
-                for stat in await _raw_stats(session, None, since=start)
-                if stat.day not in done
-            ]
+            pending = await _raw_stats(session, None, since=start, skip=done)
             return summarise([*stats, *pending], start, today)
 
         return {"range": span, **await cache.get(span, build)}
@@ -209,6 +217,10 @@ def create_analytics_router(
         """Recomputes daily_stats for every finished day that still has raw
         rows, then deletes raw rows older than RETENTION_DAYS. Idempotent, so
         a missed night is caught up by the next run."""
+        async with rollup_lock:
+            return await _rollup(session)
+
+    async def _rollup(session: AsyncSession) -> dict:
         today = now().astimezone(UTC).date()
         days = list(
             (

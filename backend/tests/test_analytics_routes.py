@@ -12,6 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from analytics_routes import (
     SummaryCache,
+    _read_capped,
     create_analytics_router,
     create_track_router,
 )
@@ -38,11 +39,11 @@ class Clock:
 
 
 @asynccontextmanager
-async def client_for(factory, clock=None, signed_in=False):
+async def client_for(factory, clock=None, signed_in=False, cache=None):
     clock = clock or Clock(datetime(2026, 10, 20, 12, tzinfo=UTC))
     app = FastAPI()
     app.include_router(create_track_router(factory, SECRET, now=clock))
-    app.include_router(create_analytics_router(factory, now=clock))
+    app.include_router(create_analytics_router(factory, now=clock, cache=cache))
     if signed_in:
 
         @app.middleware("http")
@@ -178,6 +179,19 @@ async def test_one_ip_counts_100_views_a_day_whatever_its_user_agent(
     assert len(await rows(sessionmaker_for_test)) == 101
 
 
+async def test_the_body_is_read_no_further_than_the_cap():
+    pulled = []
+
+    class Streaming:
+        async def stream(self):
+            for n in range(100):
+                pulled.append(n)
+                yield b"x" * 512
+
+    assert await _read_capped(Streaming()) is None
+    assert len(pulled) == 3
+
+
 async def test_a_database_failure_still_answers_204():
     def broken():
         raise RuntimeError("no database")
@@ -200,6 +214,8 @@ async def test_the_read_and_the_rollup_need_a_session(sessionmaker_for_test):
 async def test_an_empty_read_is_all_zeros_with_the_launch_date(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test, signed_in=True) as client:
         response = await client.get("/api/analytics?range=7d")
+        default = await client.get("/api/analytics")
+        everything = await client.get("/api/analytics?range=all")
         bad = await client.get("/api/analytics?range=1y")
     body = response.json()
     assert response.status_code == 200
@@ -207,6 +223,8 @@ async def test_an_empty_read_is_all_zeros_with_the_launch_date(sessionmaker_for_
     assert (body["views"], body["visitors"], body["best_day"]) == (0, 0, None)
     assert len(body["series"]) == 7
     assert body["live_since"] == "2026-10-19"
+    assert (default.json()["range"], len(default.json()["series"])) == ("30d", 30)
+    assert everything.json()["start"] == "2026-10-19"
     assert bad.status_code == 422
 
 
@@ -275,3 +293,20 @@ async def test_the_read_is_cached_for_a_minute():
     assert await cache.get("7d", build) == {"n": 1}
     assert await cache.get("7d", build) == {"n": 1}
     assert await cache.get("7d", build) == {"n": 2}
+
+
+async def test_a_rollup_clears_the_cached_read(sessionmaker_for_test):
+    factory = sessionmaker_for_test
+    yesterday = date(2026, 10, 19)
+    await _view(factory, yesterday, visitor="a")
+    clock = Clock(datetime(2026, 10, 20, 0, 17, tzinfo=UTC))
+    # A clock that never moves: only the rollup's clear can refresh the read.
+    cache = SummaryCache(clock=lambda: 0.0)
+    async with client_for(factory, clock, signed_in=True, cache=cache) as client:
+        before = (await client.get("/api/analytics?range=7d")).json()
+        await _view(factory, yesterday, visitor="b")
+        await client.post("/api/analytics/rollup", headers={"origin": SITE})
+        after = (await client.get("/api/analytics?range=7d")).json()
+    # Yesterday is now rolled up with its raw rows kept: counted once.
+    assert (before["views"], after["views"]) == (1, 2)
+    assert after["visitors"] == 2

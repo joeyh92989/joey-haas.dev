@@ -108,9 +108,7 @@ def test_true_client_ip_then_the_socket():
     ],
 )
 def test_a_public_path_is_kept_in_one_form(path, expected):
-    assert normalise(body(path=path)) == Event(
-        path=expected, ref=None, device="desktop"
-    )
+    assert normalise(body(path=path)) == Event(path=expected, ref="", device="desktop")
 
 
 @pytest.mark.parametrize(
@@ -132,9 +130,12 @@ def test_a_path_that_is_not_a_public_route_is_dropped(path):
     assert normalise(body(path=path)) is None
 
 
-def test_a_referrer_is_a_lower_case_hostname_or_nothing():
+def test_a_referrer_is_a_lower_case_hostname_direct_or_absent():
     assert normalise(body(ref="News.YCombinator.com")).ref == "news.ycombinator.com"
+    assert normalise(body(ref="")).ref == ""
+    # A later view of the visit sends null, or no ref at all.
     assert normalise(body(ref=None)).ref is None
+    assert normalise(b'{"path": "/", "device": "desktop"}').ref is None
     for bad in ("https://x.com/", "x.com/path", "a b", "x" * 101, 7, "<script>"):
         assert normalise(body(ref=bad)) is None, bad
 
@@ -159,6 +160,21 @@ def test_the_cap_blocks_the_101st_view_and_resets_the_next_day():
     assert cap.allow("k", DAY + timedelta(days=1)) is True
 
 
+def test_an_ipv6_address_is_capped_as_its_64():
+    salt = daily_salt("secret", DAY)
+    one = cap_key(salt, "2001:db8:1:2::1")
+    assert cap_key(salt, "2001:db8:1:2:ffff:ffff:ffff:ffff") == one
+    assert cap_key(salt, "2001:db8:1:3::1") != one
+    assert cap_key(salt, "not an ip") == cap_key(salt, "not an ip")
+
+
+def test_the_cap_stops_the_whole_site_at_its_daily_total():
+    cap = DailyCap(total=3)
+    assert all(cap.allow(key, DAY) for key in ("a", "b", "c"))
+    assert cap.allow("d", DAY) is False
+    assert cap.allow("d", DAY + timedelta(days=1)) is True
+
+
 def test_the_cap_refuses_new_keys_once_full():
     cap = DailyCap(limit=5, max_keys=2)
     assert cap.allow("a", DAY) and cap.allow("b", DAY)
@@ -177,7 +193,7 @@ def test_a_day_rolls_up_by_dimension_with_true_visitor_counts():
     stats = rollup_day(
         DAY,
         views(
-            ("/", None, "desktop", "v1"),
+            ("/", "", "desktop", "v1"),
             ("/about", None, "desktop", "v1"),
             ("/", "x.com", "phone", "v2"),
         ),
@@ -186,7 +202,8 @@ def test_a_day_rolls_up_by_dimension_with_true_visitor_counts():
     assert table[("total", "")] == (3, 2)
     assert table[("path", "/")] == (2, 2)
     assert table[("path", "/about")] == (1, 1)
-    assert table[("referrer", "")] == (2, 1)
+    # The later view of v1's visit is in no referrer row.
+    assert table[("referrer", "")] == (1, 1)
     assert table[("referrer", "x.com")] == (1, 1)
     assert table[("device", "desktop")] == (2, 1)
     assert all(s.day == DAY for s in stats)
@@ -206,17 +223,17 @@ def test_a_summary_over_an_empty_range_is_all_zeros():
 def test_a_summary_adds_days_and_names_a_dominant_referrer():
     yesterday = DAY - timedelta(days=1)
     stats = [
-        *rollup_day(yesterday, views(("/", None, "desktop", "a"))),
+        *rollup_day(yesterday, views(("/", "", "desktop", "a"))),
         *rollup_day(
             DAY,
             views(
                 ("/", "x.com", "phone", "a"),
                 ("/about", "x.com", "phone", "b"),
-                ("/", None, "desktop", "c"),
+                ("/", "", "desktop", "c"),
             ),
         ),
         # Outside the range: ignored.
-        *rollup_day(DAY - timedelta(days=30), views(("/", None, "desktop", "z"))),
+        *rollup_day(DAY - timedelta(days=30), views(("/", "", "desktop", "z"))),
     ]
     summary = summarise(stats, DAY - timedelta(days=6), DAY)
     assert (summary["views"], summary["visitors"]) == (4, 4)
@@ -237,9 +254,25 @@ def test_a_summary_adds_days_and_names_a_dominant_referrer():
 
 def test_no_dominant_referrer_at_half_or_less():
     stats = rollup_day(
-        DAY, views(("/", "x.com", "phone", "a"), ("/", None, "desktop", "b"))
+        DAY, views(("/", "x.com", "phone", "a"), ("/", "", "desktop", "b"))
     )
     assert summarise(stats, DAY, DAY)["best_day"]["referrer"] is None
+
+
+def test_referrers_count_visitors_by_where_their_visits_began():
+    # Three visitors from x.com read two pages each; one came direct.
+    rows = [("/", "", "desktop", "d")]
+    for visitor in ("a", "b", "c"):
+        rows += [("/", "x.com", "phone", visitor), ("/now", None, "phone", visitor)]
+    # One of them came back from x.com later the same day: still one visitor.
+    rows.append(("/about", "x.com", "phone", "a"))
+    summary = summarise(rollup_day(DAY, views(*rows)), DAY, DAY)
+    assert summary["referrers"] == [
+        {"value": "", "count": 1},
+        {"value": "x.com", "count": 3},
+    ]
+    # Four of the five visits began at x.com, though most views did not.
+    assert summary["best_day"] == {"day": DAY, "views": 8, "referrer": "x.com"}
 
 
 def test_ranges_end_today_and_all_starts_at_the_launch():

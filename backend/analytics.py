@@ -5,12 +5,15 @@ No FastAPI or SQLAlchemy here; analytics_routes.py loads and stores rows.
 A beacon from a public page carries `{path, ref, device}` and nothing that
 identifies anyone. The server counts a visitor as an HMAC of the client's IP
 and user agent under a salt derived from SESSION_SECRET and the UTC date, so
-the salt changes at midnight: one person is one visitor per day and cannot
-be followed from one day to the next. Neither the IP nor the user agent is
+the salt changes at midnight: one person is one visitor per day, and the
+stored hashes do not link one day to the next. The salt is derived, not
+thrown away, so whoever holds SESSION_SECRET could still test a known IP
+and user agent against a stored day. Neither the IP nor the user agent is
 stored or logged.
 
-Abuse is bounded three ways: every field is validated and anything unexpected
-is dropped; one IP counts at most DAILY_CAP views a day (in memory, which is
+Abuse is bounded four ways: every field is validated and anything unexpected
+is dropped; one IP (an IPv6 /64) counts at most DAILY_CAP views a day; the
+whole site stores at most DAILY_TOTAL views a day (both in memory, which is
 enough on one free dyno); and the body is capped at MAX_BODY_BYTES.
 """
 
@@ -18,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import re
 from collections.abc import Iterable, Mapping
@@ -32,6 +36,9 @@ MAX_BODY_BYTES = 1024
 MAX_PATH = 200
 MAX_REF = 100
 DAILY_CAP = 100
+# Views stored a day across every IP: far above a personal site's traffic,
+# and a ceiling on what a flood from many addresses can add to the table.
+DAILY_TOTAL = 5_000
 # Distinct IPs the cap remembers in a day. Past it, new IPs are refused
 # rather than evicting old ones, so memory stays bounded under a flood.
 CAP_KEYS = 10_000
@@ -71,7 +78,9 @@ _HOSTNAME = re.compile(
 
 @dataclass(frozen=True)
 class Event:
-    """One accepted view, validated. `ref` is a hostname or None (direct)."""
+    """One accepted view, validated. `ref` is the referring hostname, '' for
+    a visit that came direct, or None for a later view of the same visit,
+    which says nothing about where the visit came from."""
 
     path: str
     ref: str | None
@@ -84,8 +93,10 @@ def client_ip(headers: Mapping[str, str], fallback: str | None) -> str:
     or lower-case keyed.
 
     Never X-Forwarded-For: Render's proxy appends to it, so its first entry
-    is whatever the caller sent. Cloudflare overwrites CF-Connecting-IP on
-    every request to a public Render service.
+    is whatever the caller sent. Assumed, not verified from this repo: that
+    Render's Cloudflare edge sets CF-Connecting-IP on every request, so the
+    caller cannot choose it. Were it missing, a caller could pick its
+    True-Client-IP and with it a fresh cap.
     """
     for name in ("cf-connecting-ip", "true-client-ip"):
         value = (headers.get(name) or "").strip()
@@ -111,7 +122,13 @@ def visitor_hash(salt: bytes, ip: str, user_agent: str) -> str:
 def cap_key(salt: bytes, ip: str) -> str:
     """What the daily cap counts by: the IP alone, salted. Not the visitor
     hash, whose user agent half the caller chooses: varying it would make
-    every view a new visitor with a fresh allowance."""
+    every view a new visitor with a fresh allowance. An IPv6 address counts
+    as its /64, the block one host is usually given, for the same reason."""
+    try:
+        if ipaddress.ip_address(ip).version == 6:
+            ip = str(ipaddress.ip_network(f"{ip}/64", strict=False))
+    except ValueError:
+        pass
     return hmac.new(salt, f"cap\n{ip}".encode(), hashlib.sha256).hexdigest()[:32]
 
 
@@ -135,7 +152,8 @@ def normalise(body: bytes) -> Event | None:
 
     `sendBeacon` posts a text/plain string, so the body is parsed here
     rather than by FastAPI. Every field must be valid: a bad path, referrer
-    or device drops the view.
+    or device drops the view. A null or missing `ref` is a later view of a
+    visit; '' is a direct one.
     """
     if len(body) > MAX_BODY_BYTES:
         return None
@@ -147,41 +165,51 @@ def normalise(body: bytes) -> Event | None:
         return None
     path = normalise_path(data.get("path"))
     device = data.get("device")
-    ref = data.get("ref") or None
+    ref = data.get("ref")
     if path is None or device not in DEVICES:
         return None
     if ref is not None:
         if not isinstance(ref, str) or len(ref) > MAX_REF:
             return None
         ref = ref.lower()
-        if not _HOSTNAME.fullmatch(ref):
+        if ref and not _HOSTNAME.fullmatch(ref):
             return None
     return Event(path=path, ref=ref, device=device)
 
 
 class DailyCap:
-    """At most `limit` accepted views per key per UTC day, in memory.
+    """At most `limit` accepted views per key and `total` across all keys
+    per UTC day, in memory.
 
     Forgets everything at the first call of a new day. Holds at most
     `max_keys` keys; a new key past that is refused.
     """
 
-    def __init__(self, limit: int = DAILY_CAP, max_keys: int = CAP_KEYS) -> None:
+    def __init__(
+        self,
+        limit: int = DAILY_CAP,
+        max_keys: int = CAP_KEYS,
+        total: int = DAILY_TOTAL,
+    ) -> None:
         self._limit = limit
         self._max_keys = max_keys
+        self._total = total
         self._day: date | None = None
         self._counts: dict[str, int] = {}
+        self._allowed = 0
 
     def allow(self, key: str, day: date) -> bool:
         if day != self._day:
             self._day = day
             self._counts.clear()
+            self._allowed = 0
         count = self._counts.get(key, 0)
-        if count >= self._limit:
+        if count >= self._limit or self._allowed >= self._total:
             return False
         if count == 0 and len(self._counts) >= self._max_keys:
             return False
         self._counts[key] = count + 1
+        self._allowed += 1
         return True
 
 
@@ -201,7 +229,9 @@ def rollup_day(
 ) -> list[Stat]:
     """A day's Stat rows from its raw views, `(path, referrer_host, device,
     visitor_hash)` each. The total row counts the day's distinct visitors;
-    per-value rows count theirs, which do not add up to it."""
+    per-value rows count theirs, which do not add up to it. Referrer rows
+    count only the views that carried one, the first of each visit ('' for
+    direct); a NULL referrer is a later view and is left out of them."""
     groups: dict[tuple[str, str], tuple[int, set[str]]] = {}
 
     def add(dimension: str, value: str, visitor: str) -> None:
@@ -212,7 +242,8 @@ def rollup_day(
     for path, referrer, device, visitor in views:
         add("total", "", visitor)
         add("path", path, visitor)
-        add("referrer", referrer or "", visitor)
+        if referrer is not None:
+            add("referrer", referrer, visitor)
         add("device", device, visitor)
     return [
         Stat(day, dimension, value, count, len(visitors))
@@ -241,7 +272,7 @@ def summarise(stats: Iterable[Stat], start: date, end: date) -> dict:
     Visitors over a range are the sum of each day's visitors: the salt
     changes daily, so one person on two days is two. Best day is the day
     with the most views (the latest on a tie), with the referrer that
-    brought more than half of them, when one did.
+    brought more than half of its visits, when one did.
     """
     by_day: dict[date, int] = {}
     visitors = 0
@@ -249,6 +280,8 @@ def summarise(stats: Iterable[Stat], start: date, end: date) -> dict:
     referrers: dict[str, int] = {}
     devices: dict[str, int] = {}
     day_referrers: dict[date, dict[str, int]] = {}
+    # Visits begun each day: the views that carried a referrer, '' included.
+    day_entries: dict[date, int] = {}
     for stat in stats:
         if not start <= stat.day <= end:
             continue
@@ -259,6 +292,7 @@ def summarise(stats: Iterable[Stat], start: date, end: date) -> dict:
             pages[stat.value] = pages.get(stat.value, 0) + stat.views
         elif stat.dimension == "referrer":
             referrers[stat.value] = referrers.get(stat.value, 0) + stat.visitors
+            day_entries[stat.day] = day_entries.get(stat.day, 0) + stat.views
             if stat.value:
                 day_referrers.setdefault(stat.day, {})[stat.value] = stat.views
         elif stat.dimension == "device":
@@ -273,7 +307,7 @@ def summarise(stats: Iterable[Stat], start: date, end: date) -> dict:
             (
                 host
                 for host, count in day_referrers.get(best_day, {}).items()
-                if count * 2 > best_views
+                if count * 2 > day_entries.get(best_day, 0)
             ),
             None,
         )
