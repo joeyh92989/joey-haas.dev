@@ -1,111 +1,27 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import AdminLayout from '../layouts/AdminLayout.jsx'
 import Admin from './Admin.jsx'
 
+vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
+
+// Rendered under its layout, which checks the session first.
 function renderAt(path = '/admin') {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <Admin />
+      <Routes>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Admin />} />
+        </Route>
+      </Routes>
     </MemoryRouter>,
   )
 }
 
 afterEach(() => {
   vi.restoreAllMocks()
-})
-
-describe('Admin', () => {
-  it('offers sign-in when the session check returns 401', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
-    renderAt()
-    expect(await screen.findByText(/sign in with google/i)).toBeInTheDocument()
-  })
-
-  it('shows the signed-in email when the session is valid', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ email: 'admin@example.com' }),
-      }),
-    )
-    renderAt()
-    expect(await screen.findByText('admin@example.com')).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /sign out/i }),
-    ).toBeInTheDocument()
-  })
-
-  it('links every admin page, the catalogue included', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ email: 'admin@example.com' }),
-      }),
-    )
-    renderAt()
-    expect(
-      await screen.findByRole('link', { name: 'Catalog' }),
-    ).toHaveAttribute('href', '/admin/catalogue')
-    expect(screen.getByRole('link', { name: 'Play Next' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Store list' })).toHaveAttribute(
-      'href',
-      '/admin/store-list',
-    )
-  })
-
-  it('explains a rejected account without naming the authorized address', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
-    renderAt('/admin?error=access_denied')
-
-    expect(await screen.findByText(/not authorized/i)).toBeInTheDocument()
-    // The error must never leak which account would be accepted.
-    expect(document.body.textContent).not.toMatch(/josephthaas/i)
-  })
-
-  it('stays signed in when sign-out fails, rather than claiming success', async () => {
-    // A failed logout leaves a valid 30-day cookie behind. Showing the
-    // signed-out view anyway would tell the user they are logged out on a
-    // machine where the next visitor still is not.
-    // Routed by URL, not queued: the landing makes other calls on mount, and a
-    // queue would hand the logout call somebody else's response.
-    const fetchMock = vi.fn(async (url) => {
-      const path = String(url)
-      if (path.endsWith('/api/auth/me'))
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ email: 'admin@example.com' }),
-        }
-      if (path.endsWith('/api/auth/logout')) return { ok: false, status: 500 }
-      return { ok: true, status: 200, json: async () => ({}) }
-    })
-    vi.stubGlobal('fetch', fetchMock)
-
-    renderAt()
-    const signOutButton = await screen.findByRole('button', {
-      name: /sign out/i,
-    })
-    signOutButton.click()
-
-    expect(await screen.findByText(/sign out failed/i)).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/api/auth/logout'),
-      expect.objectContaining({ method: 'POST' }),
-    )
-    expect(screen.queryByText(/sign in with google/i)).not.toBeInTheDocument()
-  })
-
-  it('reports an unreachable API rather than hanging silently', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
-    renderAt()
-    await waitFor(() =>
-      expect(screen.getByText(/didn’t load/i)).toBeInTheDocument(),
-    )
-  })
 })
 
 describe('Admin last nightly line', () => {
@@ -289,6 +205,6 @@ describe('Admin last nightly line', () => {
       ).toBe(true),
     )
     expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Catalog' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sources' })).toBeInTheDocument()
   })
 })

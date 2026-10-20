@@ -14,14 +14,13 @@ const STORAGE_KEY = 'theme'
  * and item pages are grids of covers, not prose. Each entry matches itself
  * and anything nested under it.
  */
-const WIDE_ROUTES = [
-  '/spine',
-  '/admin/collection',
-  '/admin/play-next',
-  '/admin/catalogue',
-  '/admin/discover',
-  '/admin/radar',
-]
+const WIDE_ROUTES = ['/spine']
+
+/**
+ * Routes that bring their own frame: the admin shell replaces the masthead
+ * and footer, and lays out its own pages.
+ */
+const SHELL_ROUTES = ['/admin']
 
 /**
  * Routes laid out on the site's full 1040px measure rather than the reading
@@ -96,7 +95,8 @@ function readStoredTheme() {
 /**
  * Site chrome shared by every route: the masthead, the routed page and the
  * footer. The masthead is the same everywhere; only the page's width
- * changes with the route.
+ * changes with the route. The admin routes keep the theme and the outlet
+ * context but render none of the chrome: AdminLayout brings the shell.
  */
 export default function RootLayout() {
   const [theme, setTheme] = useState(readStoredTheme)
@@ -144,6 +144,31 @@ export default function RootLayout() {
     })
   }
 
+  const context = { signedIn: Boolean(signedIn) }
+
+  if (isUnder(SHELL_ROUTES, pathname)) {
+    return (
+      <div className="site site-admin">
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+        {/* Not keyed on the path: AdminLayout stays mounted across admin
+            pages, so its session check runs once, and keys its own. */}
+        <RouteErrorBoundary>
+          <Suspense
+            fallback={
+              <p className="muted" role="status">
+                Loading…
+              </p>
+            }
+          >
+            <Outlet context={context} />
+          </Suspense>
+        </RouteErrorBoundary>
+      </div>
+    )
+  }
+
   const wide = isWideRoute(pathname)
   // Render serves the prerendered pages at /about/ as well as /about.
   const path = pathname.replace(/\/+$/, '') || '/'
@@ -176,7 +201,7 @@ export default function RootLayout() {
           >
             {/* Routed pages read the session from here rather than each asking
                 /api/auth/me again against a backend that may be asleep. */}
-            <Outlet context={{ signedIn: Boolean(signedIn) }} />
+            <Outlet context={context} />
           </Suspense>
         </RouteErrorBoundary>
       </main>
