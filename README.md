@@ -53,11 +53,11 @@ snapshot files and never call the API.
 | `/spine/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
 | `/collection` | Redirect | Redirects to `/spine`; `/collection/:id` redirects to `/spine/:id`, both client-side |
 | `/admin` | Dashboard | Google sign-in gate, reached from the footer's Sign in link; once signed in, the API and nightly status, headline counts, the nightly jobs, quick actions and recent changes |
-| `/admin/collection` | Collection (admin) | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
+| `/admin/collection` | Shelf | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
 | `/admin/collection/:id` | Edit item | Every field, plus re-linking to a different IGDB/TMDB/Comic Vine match |
 | `/admin/import` | Import | Photograph a shelf; a vision model reads the titles and each is resolved against its source |
 | `/admin/play-next` | Play Next | Three picks from the owned backlog |
-| `/admin/catalogue` | Catalogue | What exists physically: registries (Switch 2 and Switch 1), stores, N64 |
+| `/admin/catalogue` | Sources | What exists physically: registries (Switch 2 and Switch 1), stores, N64 |
 | `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Want adds the game as a public want, listed on What's next |
 | `/admin/discover` | Discover | Released physical games you would love and do not own: eight picks with reasons from one Gemini call, or the taste ranking when it cannot answer |
 | `/admin/store-list` | Store list | What to look for in a store, on a phone: the same sections as What's next (In stores now with its top picks, Coming soon, Further out, Not on cartridge), read from `GET /api/recommendations/store-list`, with prices and store lines the public page never gets. Got it marks a game owned, Want adds it to my public list, and Not interested drops it for good; the list is live, so an answered game leaves it at once |
