@@ -48,7 +48,7 @@ describe('Admin', () => {
     )
     renderAt()
     expect(
-      await screen.findByRole('link', { name: 'Catalogue' }),
+      await screen.findByRole('link', { name: 'Catalog' }),
     ).toHaveAttribute('href', '/admin/catalogue')
     expect(screen.getByRole('link', { name: 'Play Next' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Store list' })).toHaveAttribute(
@@ -254,7 +254,7 @@ describe('Admin last nightly line', () => {
     stubApi(okStatus(), true, null, response)
     renderAt()
     const line = await screen.findByText(/Last nightly/)
-    expect(line).toHaveTextContent(/catalogue .* · ok$/)
+    expect(line).toHaveTextContent(/catalog .* · ok$/)
     expect(line).not.toHaveTextContent(/Radar|Discover/)
   })
 
@@ -289,6 +289,6 @@ describe('Admin last nightly line', () => {
       ).toBe(true),
     )
     expect(screen.queryByText(/nightly/i)).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Catalogue' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Catalog' })).toBeInTheDocument()
   })
 })

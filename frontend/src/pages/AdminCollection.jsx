@@ -46,7 +46,7 @@ const SIZES = ['comfortable', 'compact']
 
 /** The favourites row's size; the API refuses a fifth (see items.py). */
 const FAVORITES_LIMIT = 4
-const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favourites. Unfavourite one first.`
+const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favorites. Unfavorite one first.`
 
 /** Below this many rated or favourited items, the shelf asks for ratings. */
 const NUDGE_BELOW = 5

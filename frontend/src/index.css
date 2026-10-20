@@ -365,8 +365,7 @@ a:hover {
 .nav-sheet a:focus-visible,
 .brand:focus-visible,
 .btn:focus-visible,
-.card:focus-visible,
-.post-list li > a:focus-visible {
+.card:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -789,16 +788,18 @@ section + section {
   margin-top: 1.125rem;
 }
 
+/* Home's Work card at full width: the same surface, hairline and radius,
+   but an article rather than a link, so there is no hover state. */
 .project-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 1.375rem 1.5rem;
+  border-radius: var(--radius);
+  padding: 20px;
 }
 
 /* An h2 by document structure, but on the card's scale, not the page's. */
 .project-card h2 {
-  font-size: 1.3125rem;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
@@ -813,9 +814,12 @@ section + section {
 }
 
 .project-card .project-tagline {
-  color: var(--text-3);
-  font-size: 0.875rem;
-  margin: 0.125rem 0 0.75rem;
+  margin-bottom: 10px;
+}
+
+.project-card .project-line {
+  color: var(--text);
+  margin-top: 0.875rem;
 }
 
 .project-highlights {
@@ -837,7 +841,7 @@ section + section {
   margin: 0.75rem 0 0;
 }
 
-/* Tags are the one place the sage accent appears in light mode, so they read
+/* Tech and tag chips: squared and mono, like About's toolbox, so they read
    as metadata rather than as another link. */
 .tech-list {
   display: flex;
@@ -849,45 +853,30 @@ section + section {
 
 .tech-list li {
   background: var(--sunken);
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--text-2);
-  font-size: 0.78125rem;
-  padding: 0.1875rem 0.75rem;
+  font: 500 0.75rem var(--font-mono);
+  padding: 3px 8px;
 }
 
 /* ---------- Blog ---------- */
 
-.post-list {
-  list-style: none;
+/* The index's rows are .row-list; only the title's scale is the blog's own.
+   An h2 here, since the page's h1 sits above it. */
+.post-rows {
   margin-top: 1.125rem;
 }
 
-.post-list li {
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 1.25rem;
+.post-rows h2 {
+  font-size: 1.125rem;
+  font-weight: 500;
 }
 
-.post-list li + li {
-  padding-top: 1.25rem;
-}
-
-/* The dividers separate posts from each other, not the list from the footer —
-   a trailing rule would sit just above the footer's own and read as an empty
-   row. */
-.post-list li:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.post-list li > a {
+.post-rows h2 a {
   color: var(--text);
-  font-family: var(--font-sans);
-  font-size: 1.3125rem;
-  font-weight: 600;
 }
 
-.post-list li > a:hover {
+.post-rows h2 a:hover {
   color: var(--accent);
   text-decoration: none;
 }
@@ -904,11 +893,6 @@ section + section {
 
 .post-meta .tech-list {
   margin-top: 0;
-}
-
-.post-meta .tech-list li {
-  font-size: 0.75rem;
-  padding: 0.125rem 0.625rem;
 }
 
 .draft-badge {

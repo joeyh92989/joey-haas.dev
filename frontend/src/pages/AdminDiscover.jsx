@@ -64,7 +64,7 @@ export function emptyWords(discover, emptyNote) {
   if (emptyNote) return `Nothing to pick: ${emptyNote}.`
   if (discover?.generated_at)
     return 'Nothing left to answer. Generate for more.'
-  return 'Nothing yet. Generate to read the catalogue.'
+  return 'Nothing yet. Generate to read the catalog.'
 }
 
 function Choice({ legend, name, options, value, onChange }) {
@@ -238,7 +238,7 @@ export default function AdminDiscover() {
       <h1>Discover</h1>
       <p className="muted">
         Physical games already out on your platforms that you would love and do
-        not own, picked from the catalogue.
+        not own, picked from the catalog.
       </p>
 
       <div className="discover-controls">
@@ -295,8 +295,8 @@ export default function AdminDiscover() {
       {ranking && <p className="muted">{ranking}</p>}
       {discover && discover.personalised === false && (
         <p className="muted">
-          Ranked by the community alone: rate, finish or favourite a few games
-          to personalise.
+          Ranked by the community alone: rate, finish or favorite a few games to
+          personalise.
         </p>
       )}
       {message && <p role="status">{message}</p>}

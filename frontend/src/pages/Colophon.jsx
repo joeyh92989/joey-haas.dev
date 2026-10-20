@@ -29,13 +29,13 @@ export default function Colophon() {
           than loaded from a font service.
         </li>
         <li>
-          Dark by default, with a light theme a click away. The code
-          highlighting, which Shiki renders at build time in both themes, and
-          the shelf&rsquo;s status colors were chosen by measured contrast.
+          Dark by default, with a light theme a click away. Shiki renders code
+          highlighting at build time in both themes. Its colors, and the
+          shelf&rsquo;s status colors, were chosen by measured contrast.
         </li>
         <li>
           Blog posts are Markdown compiled at build time. Each page is
-          prerendered with its own title and link preview, and there is an{' '}
+          prerendered with its own title and link preview, and there&rsquo;s an{' '}
           <a href="/feed.xml">RSS feed</a>.
         </li>
       </ul>
@@ -50,11 +50,11 @@ export default function Colophon() {
           <Link to={spine.path}>{spine.name}</Link> reads game metadata from
           IGDB, and films and comics from TMDB and Comic Vine. Gemini reads
           titles off shelf photos and writes Discover&rsquo;s picks, answering
-          only with games from a list it is given.
+          only with games from a list it&rsquo;s given.
         </li>
         <li>
           A nightly GitHub Actions job refreshes the picks and the physical
-          release catalogue, then redeploys the site when the shelf has changed,
+          release catalog, then redeploys the site when the shelf has changed,
           so its snapshot stays current.
         </li>
       </ul>

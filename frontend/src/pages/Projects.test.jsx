@@ -23,6 +23,7 @@ vi.mock('../content/projects.js', () => ({
       name: 'Spine',
       tagline: 'A tracker for a physical game collection',
       description: 'A tracker.',
+      line: 'I built this.',
       highlights: ['Photo import.', 'Play Next.'],
       links: [
         { to: '/spine', label: 'Open Spine' },
@@ -37,7 +38,7 @@ vi.mock('../content/projects.js', () => ({
       strip: 'favourites',
     },
     {
-      name: 'This Website',
+      name: 'This site',
       description: 'This site.',
       tech: ['Vite'],
       url: 'https://github.com/joeyh92989/joey-haas.dev',
@@ -63,7 +64,7 @@ describe('Projects', () => {
     expect(cards[1].querySelector('.cover-strip')).toBeNull()
   })
 
-  it('renders a tagline and highlights only where set', () => {
+  it('renders a tagline, line and highlights only where set', () => {
     const { container } = renderProjects()
     const cards = container.querySelectorAll('.project-card')
     expect(cards[0].querySelector('.project-tagline')).toHaveTextContent(
@@ -72,6 +73,10 @@ describe('Projects', () => {
     expect(cards[0].querySelectorAll('.project-highlights li')).toHaveLength(2)
     expect(cards[1].querySelector('.project-tagline')).toBeNull()
     expect(cards[1].querySelector('.project-highlights')).toBeNull()
+    expect(cards[0].querySelector('.project-line')).toHaveTextContent(
+      'I built this.',
+    )
+    expect(cards[1].querySelector('.project-line')).toBeNull()
   })
 
   it('links in-site with the router and away with an anchor', () => {
@@ -96,7 +101,7 @@ describe('Projects', () => {
       'href',
       '/spine',
     )
-    expect(screen.getByRole('link', { name: 'This Website' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'This site' })).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989/joey-haas.dev',
     )

@@ -64,7 +64,7 @@ describe('Now', () => {
     ).toHaveAttribute('href', '/spine/8/')
     expect(screen.getByText(/Sep 30, 2026 · rated 9/)).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: 'finished games (RSS)' }),
+      screen.getByRole('link', { name: 'RSS feed of finished games' }),
     ).toHaveAttribute('href', '/spine/feed.xml')
   })
 

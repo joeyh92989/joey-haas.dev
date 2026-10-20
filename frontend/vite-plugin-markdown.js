@@ -110,6 +110,8 @@ export default function markdown() {
         date: toDateString(data.date, slug, this),
         tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
         draft,
+        // Optional: a line or two for the blog index and Home's card.
+        ...(data.summary ? { summary: String(data.summary) } : {}),
       }
 
       return {

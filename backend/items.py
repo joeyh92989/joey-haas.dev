@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 # importer -- has to pass through.
 FAVORITES_LIMIT = 4
 FAVORITES_FULL = (
-    f"You already have {FAVORITES_LIMIT} favourites. Unfavourite one first."
+    f"You already have {FAVORITES_LIMIT} favorites. Unfavorite one first."
 )
 
 
