@@ -1110,6 +1110,319 @@ footer {
   color: var(--text);
 }
 
+/* The admin shell: a 232px sidebar beside the page on a desktop, a tab bar
+   under it on a phone. It replaces the public masthead and footer. */
+.admin-app {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.admin-app-phone {
+  display: block;
+}
+
+.admin-side {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 16px 12px;
+  position: sticky;
+  top: 0;
+}
+
+.admin-side .brand {
+  padding: 6px 10px 16px;
+}
+
+.admin-side-group .kicker {
+  margin-top: 14px;
+  padding: 0 10px 6px;
+}
+
+.admin-side-group ul {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+}
+
+.admin-side-nav a {
+  align-items: center;
+  border-radius: var(--radius);
+  color: var(--text-2);
+  display: flex;
+  font-size: 0.875rem;
+  gap: 10px;
+  padding: 7px 10px;
+}
+
+.admin-side-nav a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* --accent-soft is one of the backgrounds the text tokens are measured on
+   (see the token block). */
+.admin-side-nav a.active {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.admin-side-count {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  font-weight: 400;
+  margin-left: auto;
+}
+
+.admin-side-foot {
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  margin-top: auto;
+  padding: 12px 10px 4px;
+}
+
+.admin-side-email {
+  overflow-wrap: anywhere;
+}
+
+.admin-side-nav a:focus-visible,
+.admin-side-foot a:focus-visible,
+.admin-side-foot button:focus-visible,
+.admin-tabs a:focus-visible,
+.admin-tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.admin-main {
+  min-width: 0;
+  padding: 28px 32px 40px;
+}
+
+.admin-main:focus {
+  outline: none;
+}
+
+/* The phone tab bar: fixed to the bottom, five equal 44px+ targets. */
+.admin-tabs {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  left: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  position: fixed;
+  right: 0;
+  z-index: 30;
+}
+
+.admin-tabs a,
+.admin-tabs button {
+  background: none;
+  border: 0;
+  color: var(--text-3);
+  cursor: pointer;
+  font: 500 0.75rem var(--font-sans);
+  min-height: 3rem;
+  padding: 10px 4px 12px;
+  text-align: center;
+}
+
+.admin-tabs a:hover {
+  text-decoration: none;
+}
+
+.admin-tabs a.active,
+.admin-tabs button.active {
+  color: var(--accent);
+}
+
+.admin-sheet .link-button {
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 1rem;
+  min-height: 2.75rem;
+  padding: 0.625rem 0;
+  text-align: left;
+  text-decoration: none;
+}
+
+.admin-sheet-email {
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+  padding-top: 0.625rem;
+}
+
+/* The phone tab bar sits over the page's foot, so the page keeps clear of it. */
+.admin-app-phone .admin-main {
+  padding: 18px 16px 90px;
+}
+
+/* The signed-out, waking and error states: a plain centred panel, no shell. */
+.admin-gate {
+  display: grid;
+  min-height: 100vh;
+  padding: 24px 16px;
+  place-items: center;
+}
+
+.admin-gate-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-width: 26rem;
+  padding: 24px;
+  width: 100%;
+}
+
+.admin-gate-panel h1 {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+}
+
+.admin-gate:focus {
+  outline: none;
+}
+
+/* Every admin page's header: title and description, then its controls. */
+.admin-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-bottom: 22px;
+}
+
+.admin-head h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.admin-head-desc {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.admin-head-end {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-left: auto;
+}
+
+/* Status in a header or a job row: a dot and the word, never the dot alone.
+   Dots on --surface: ok and warn as measured in the token block; --text-3
+   (unknown) at least 4.79 dark and 4.61 light. Failed is also squared, so
+   stale and failed differ in shape as well as in the word. */
+.status-text {
+  align-items: center;
+  color: var(--text-2);
+  display: inline-flex;
+  font: 500 0.75rem var(--font-mono);
+  gap: 6px;
+}
+
+.status-dot {
+  background: var(--ok);
+  border-radius: 50%;
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+
+.status-dot.stale,
+.status-dot.failed {
+  background: var(--warn);
+}
+
+.status-dot.failed {
+  border-radius: 1px;
+}
+
+.status-dot.unknown {
+  background: var(--text-3);
+}
+
+.stat-tiles {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 22px;
+}
+
+.stat-tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.stat-tile .kicker {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  color: var(--text);
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.stat-detail {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.panel-head {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.panel-head h2 {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.panel-head a {
+  font-size: 0.8125rem;
+}
+
+.panel-body {
+  padding: 14px 16px;
+}
+
+@media (max-width: 700px) {
+  .stat-tiles {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* Collection table and add form (/admin/collection). */
 .item-form {
   display: flex;
