@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from analytics_routes import create_analytics_router, create_track_router
 from auth import admin_identity, create_auth_router
 from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
@@ -105,6 +106,7 @@ app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
 app.include_router(create_picker_router(session_factory))
 app.include_router(create_journal_router(session_factory))
+app.include_router(create_analytics_router(session_factory))
 
 
 def physical_http_client() -> httpx2.AsyncClient:
@@ -141,9 +143,12 @@ app.include_router(
 # is a failure of the import route alone rather than a service that will not
 # boot -- the same reasoning as the lazy source checks.
 app.include_router(create_import_router(registry, lambda: build_provider(config)))
-# The one unauthenticated router. Every query inside it filters on is_public,
-# so the gate is the data rather than the caller.
+# The two unauthenticated routers. Every query in the public one filters on
+# is_public, so the gate is the data rather than the caller. The beacon only
+# writes: a validated path, referrer and device under a daily-salted visitor
+# hash, capped per IP per day, answering 204 whatever it does.
 app.include_router(create_public_router(session_factory))
+app.include_router(create_track_router(session_factory, config.session_secret))
 
 
 @app.get("/api/health")
