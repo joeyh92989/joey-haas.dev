@@ -44,4 +44,15 @@ describe('Colophon', () => {
       ).toBeInTheDocument()
     }
   })
+
+  it('says how the analytics count, and that nothing goes to a third party', () => {
+    render(
+      <MemoryRouter>
+        <Colophon />
+      </MemoryRouter>,
+    )
+    expect(
+      screen.getByText(/cookie-free beacon counts page views/),
+    ).toHaveTextContent(/no.* third\s+party/)
+  })
 })

@@ -4,6 +4,7 @@ import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import JobStatusRow, { StatusText } from '../components/JobStatusRow.jsx'
 import Panel from '../components/Panel.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
+import { counted } from '../lib/analytics.js'
 import { apiFetch } from '../lib/api.js'
 import { dashboardCounts, recentChanges } from '../lib/dashboard.js'
 import {
@@ -79,6 +80,21 @@ async function loadNightly() {
 }
 
 /**
+ * The last seven days' views and visitors, or null when they cannot be
+ * read. Never rejects: the tile shows a dash rather than failing the page.
+ */
+async function loadViews() {
+  try {
+    const response = await apiFetch('/api/analytics?range=7d')
+    if (!response.ok) return null
+    const body = await response.json()
+    return typeof body?.views === 'number' ? body : null
+  } catch {
+    return null
+  }
+}
+
+/**
  * The admin landing, at /admin: the API and nightly state, four headline
  * figures, the nightly jobs, quick actions and the newest changes.
  * AdminLayout has already checked the session and loads the rows.
@@ -89,10 +105,16 @@ export default function Admin() {
   // One clock for the visit, so ages and the year agree across renders.
   const [now] = useState(() => Date.now())
 
+  // undefined while loading; null when the read failed.
+  const [views, setViews] = useState(undefined)
+
   useEffect(() => {
     let live = true
     loadNightly().then((loaded) => {
       if (live) setNightly(loaded)
+    })
+    loadViews().then((loaded) => {
+      if (live) setViews(loaded)
     })
     return () => {
       live = false
@@ -150,8 +172,15 @@ export default function Admin() {
           value={typeof pending === 'number' ? pending : '—'}
           detail="catalog rows need a match"
         />
-        {/* Filled by the analytics read once the beacon ships. */}
-        <StatTile label="Views · 7 days" value="—" detail="Not tracked yet" />
+        <StatTile
+          label="Views · 7 days"
+          value={views ? views.views : '—'}
+          detail={
+            views
+              ? counted(views.visitors, 'visitor')
+              : views === null && 'Could not be read'
+          }
+        />
       </StatTiles>
 
       <div className="dashboard-two">

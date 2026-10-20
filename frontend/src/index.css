@@ -1541,6 +1541,150 @@ footer {
   }
 }
 
+/* Analytics (/admin/analytics). The bars use --chart (the peak and the
+   list fills) and --chart-2 (the other days), both measured on --surface
+   above; the list fills sit on a --sunken track, where --chart measures
+   6.26 dark and 5.48 light. */
+.range-control {
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.range-control button {
+  background: var(--surface);
+  border: 0;
+  color: var(--text-2);
+  cursor: pointer;
+  font: 500 0.75rem var(--font-sans);
+  padding: 5px 11px;
+}
+
+.range-control button + button {
+  border-left: 1px solid var(--line);
+}
+
+.range-control button[aria-pressed='true'] {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.analytics > .panel {
+  margin-bottom: 14px;
+}
+
+.analytics-two {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.analytics-two .panel + .panel {
+  margin-top: 14px;
+}
+
+.analytics-empty {
+  padding: 2.5rem 0;
+  text-align: center;
+}
+
+.analytics-empty p {
+  margin: 0;
+}
+
+.analytics-empty p + p {
+  font-size: 0.8125rem;
+  margin-top: 6px;
+}
+
+.analytics-note {
+  color: var(--text-3);
+  font-size: 0.78125rem;
+  margin-top: 14px;
+  max-width: 45rem;
+}
+
+.day-bars-chart {
+  align-items: flex-end;
+  display: flex;
+  gap: 2px;
+  height: 180px;
+  padding-top: 8px;
+}
+
+.day-bar {
+  background: var(--chart-2);
+  border-radius: 2px 2px 0 0;
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.day-bar.peak {
+  background: var(--chart);
+}
+
+.day-bars-axis {
+  color: var(--text-3);
+  display: flex;
+  font: 0.6875rem var(--font-mono);
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.bar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bar-list li {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  font-size: 0.84375rem;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 70px 50px;
+  padding: 7px 0;
+}
+
+.bar-list li:first-child {
+  border-top: 0;
+}
+
+.bar-list-label {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-list-track {
+  background: var(--sunken);
+  border-radius: 3px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.bar-list-fill {
+  background: var(--chart);
+  display: block;
+  height: 100%;
+}
+
+.bar-list-count {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .analytics-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Collection table and add form (/admin/collection). */
 .item-form {
   display: flex;

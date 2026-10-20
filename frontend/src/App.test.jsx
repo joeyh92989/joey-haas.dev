@@ -85,6 +85,7 @@ const TITLES = [
   ['/nonsense-path', 'Not found · Joey Haas'],
   ['/blog/no-such-post', 'Not found · Joey Haas'],
   ['/admin', 'Dashboard · Admin · Joey Haas'],
+  ['/admin/analytics', 'Analytics · Admin · Joey Haas'],
   ['/admin/collection', 'Shelf · Admin · Joey Haas'],
   ['/admin/import', 'Import photos · Admin · Joey Haas'],
   ['/admin/play-next', 'Play Next · Admin · Joey Haas'],
