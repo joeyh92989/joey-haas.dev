@@ -412,3 +412,25 @@ async def test_0007_adds_play_sessions_and_downgrades_cleanly(clean_database):
             text("SELECT count(*) FROM pg_tables WHERE tablename = 'recommendations'")
         )
     assert (before, after, recommendations) == (1, 0, 1)
+
+
+# --- Revision 0008: analytics. ---------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_0008_adds_the_analytics_tables_and_downgrades_cleanly(clean_database):
+    tables = text(
+        "SELECT count(*) FROM pg_tables "
+        "WHERE tablename IN ('page_views', 'daily_stats')"
+    )
+    assert _alembic("upgrade", "0008").returncode == 0
+    async with clean_database.connect() as connection:
+        before = await connection.scalar(tables)
+    result = _alembic("downgrade", "0007")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        after = await connection.scalar(tables)
+        journal = await connection.scalar(
+            text("SELECT count(*) FROM pg_tables WHERE tablename = 'play_sessions'")
+        )
+    assert (before, after, journal) == (2, 0, 1)

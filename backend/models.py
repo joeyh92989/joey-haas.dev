@@ -9,6 +9,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     CHAR,
+    BigInteger,
     Boolean,
     CheckConstraint,
     Date,
@@ -314,6 +315,61 @@ class PlaySession(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
+
+
+# --- Analytics (migration 0008) ----------------------------------------------
+#
+# First-party page views from the public beacon (analytics_routes.py). No row
+# holds an IP address or a user agent: a visitor is a hash salted per UTC day,
+# so the same person cannot be followed from one day to the next.
+
+
+class PageView(Base):
+    """One accepted beacon: a public page viewed. Kept 90 days, then deleted
+    by the nightly rollup once `daily_stats` holds its day."""
+
+    __tablename__ = "page_views"
+    __table_args__ = (
+        CheckConstraint(
+            "device IN ('desktop', 'phone', 'tablet')", name="page_views_device_known"
+        ),
+        Index("ix_page_views_day", "day"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    day: Mapped[date] = mapped_column(Date, nullable=False)
+    path: Mapped[str] = mapped_column(Text, nullable=False)
+    # A hostname only; NULL is a direct visit or a same-site navigation.
+    referrer_host: Mapped[str | None] = mapped_column(Text, nullable=True)
+    device: Mapped[str] = mapped_column(Text, nullable=False)
+    visitor_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class DailyStat(Base):
+    """A finished day's counts for one value of one dimension.
+
+    `dimension` is total, path, referrer or device; `value` is the path, the
+    referrer host ('' for direct), the device, or '' for the total. Visitors
+    are counted per row, because distinct visitors do not add up across rows:
+    the total row is the only true count of a day's visitors.
+    """
+
+    __tablename__ = "daily_stats"
+    __table_args__ = (
+        CheckConstraint(
+            "dimension IN ('total', 'path', 'referrer', 'device')",
+            name="daily_stats_dimension_known",
+        ),
+    )
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    dimension: Mapped[str] = mapped_column(Text, primary_key=True)
+    value: Mapped[str] = mapped_column(Text, primary_key=True)
+    views: Mapped[int] = mapped_column(Integer, nullable=False)
+    visitors: Mapped[int] = mapped_column(Integer, nullable=False)
 
 # --- The physical catalogue (migration 0005) --------------------------------
 #
