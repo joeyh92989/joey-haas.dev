@@ -67,7 +67,8 @@ export const spine = {
       titles: (titles, platforms) =>
         `${titles} matched titles on ${platforms} platforms`,
       stores: 'Stores',
-      listings: (watched, listings) => `${watched} watched, ${listings} listings`,
+      listings: (watched, listings) =>
+        `${watched} watched, ${listings} listings`,
     },
     features: [
       {
