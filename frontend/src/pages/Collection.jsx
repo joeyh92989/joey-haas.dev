@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
+import FeatureStrip from '../components/FeatureStrip.jsx'
 import NextBand from '../components/NextBand.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
+import StatusStrip from '../components/StatusStrip.jsx'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { isValidSnapshot, readSnapshot } from '../lib/snapshot.js'
@@ -549,6 +551,11 @@ export default function Collection() {
           )}
 
           <NextBand />
+
+          {/* The status endpoint arrives in Milestone 2; until then, hidden. */}
+          <StatusStrip status={null} next={null} />
+
+          <FeatureStrip />
 
           <FavoritesRow items={items} linkFor={(item) => itemPath(item.id)} />
 

@@ -188,6 +188,19 @@ describe('Collection', () => {
     expect(hero.getByText(/^Finished in \d{4}$/)).toBeInTheDocument()
   })
 
+  it('puts the feature strip between the hero numbers and favourites', async () => {
+    stubApi()
+    await renderReady()
+
+    const hero = document.querySelector('.hero-numbers')
+    const strip = screen.getByRole('region', { name: 'What Spine does' })
+    const favourites = screen.getByRole('region', { name: 'Favorites' })
+    const follows = Node.DOCUMENT_POSITION_FOLLOWING
+    expect(hero.compareDocumentPosition(strip) & follows).toBeTruthy()
+    expect(strip.compareDocumentPosition(favourites) & follows).toBeTruthy()
+    expect(document.querySelector('.tour-status')).toBeNull()
+  })
+
   it('shows favourites, highest rated first, up to four', async () => {
     const favourites = [
       { ...ITEMS[0], id: 'a', title: 'Low', rating: 2 },
@@ -515,8 +528,11 @@ describe('Collection', () => {
         /This product uses the TMDB API but is not endorsed or certified by TMDB/i,
       ),
     ).toBeInTheDocument()
-    expect(screen.getByText(/IGDB/)).toBeInTheDocument()
-    expect(screen.getByText(/Comic Vine/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'IGDB' })).toHaveAttribute(
+      'href',
+      'https://www.igdb.com/',
+    )
+    expect(screen.getByRole('link', { name: 'Comic Vine' })).toBeInTheDocument()
   })
 
   it('shows a rating as stars without claiming one that is absent', async () => {

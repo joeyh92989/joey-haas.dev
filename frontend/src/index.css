@@ -4522,7 +4522,167 @@ main h1[tabindex='-1']:focus {
   padding: 0.75rem 0.875rem;
 }
 
+.tour-status {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  margin: 1.25rem 0 1.5rem;
+  overflow-x: auto;
+}
+
+.tour-status div {
+  border-left: 1px solid var(--line);
+  flex: 1;
+  min-width: 0;
+  padding: 0.625rem 1rem;
+}
+
+.tour-status div:first-child {
+  border-left: 0;
+}
+
+.tour-status dt {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.65625rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tour-status dd {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0.125rem 0 0;
+}
+
+.tour-status dd small {
+  color: var(--text-3);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+
+.tour-status-dot.ok {
+  color: var(--ok);
+}
+
+.tour-status-dot.stale {
+  color: var(--warn);
+}
+
+.tour-does {
+  margin: 0.5rem 0 1.75rem;
+}
+
+.tour-does-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  justify-content: space-between;
+  margin-bottom: 0.625rem;
+}
+
+.tour-does-head h2 {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.tour-does-cards {
+  display: grid;
+  gap: 0.625rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tour-does-cards a {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: inherit;
+  display: block;
+  height: 100%;
+  padding: 0.75rem 0.875rem;
+}
+
+.tour-does-cards a:hover,
+.tour-does-cards a:focus-visible {
+  border-color: var(--line-strong);
+  text-decoration: none;
+}
+
+.tour-does-n {
+  color: var(--accent);
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.tour-does-cards b {
+  color: var(--text);
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.125rem;
+}
+
+.tour-does-line {
+  color: var(--text-3);
+  display: block;
+  font-size: 0.78125rem;
+  line-height: 1.4;
+}
+
 @media (max-width: 34rem) {
+  .tour-status {
+    flex-direction: column;
+  }
+
+  .tour-status div {
+    align-items: baseline;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0.875rem;
+  }
+
+  .tour-status div:first-child {
+    border-top: 0;
+  }
+
+  .tour-status dd {
+    margin: 0;
+    text-align: right;
+  }
+
+  .tour-status dd small {
+    display: inline;
+    margin-left: 0.375rem;
+  }
+
+  .tour-does-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tour-does-cards li:last-child {
+    grid-column: 1 / -1;
+  }
+
   .tour-title {
     font-size: 2.125rem;
   }
