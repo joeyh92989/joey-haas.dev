@@ -352,6 +352,40 @@ else
   report_pass "public next exposes no private fields" "no forbidden key"
 fi
 
+# Spine tour: the field guide is a page with its own head, and the status
+# behind the landing's strip is five counts, nothing more.
+check_equals "GET /spine/how (deep link)" "$(http_status "$SITE_URL/spine/how")" "200"
+how_html="$(curl -s -m 90 "$SITE_URL/spine/how")"
+check_equals "GET /spine/how has its own prerendered title" \
+  "$(printf '%s' "$how_html" | grep -o '<title>[^<]*</title>')" "<title>How it works · Spine</title>"
+# The tour draws stores as "store withheld"; none of the watched stores'
+# hosts (STORES in backend/physical_sources/stores.py) may reach its page.
+STORE_HOSTS='limitedrungames|iam8bit|strictlylimitedgames|premiumeditiongames|nicalis|aksysgames|aksyseurope|fangamer|superraregames|pixelheart|gamefairy|1printgames'
+if printf '%s' "$how_html" | grep -qiE "$STORE_HOSTS"; then
+  report_fail "GET /spine/how names no store" "found a store host"
+else
+  report_pass "GET /spine/how names no store" "no store host"
+fi
+check_equals "GET /api/public/status" "$(http_status "$API_URL/api/public/status")" "200"
+status_body="$(curl -s -m 90 "$API_URL/api/public/status")"
+if printf '%s' "$status_body" | jq -e \
+  'type == "object" and (keys == ["listings","platforms","refreshed_at","stores_watched","titles"])' \
+  > /dev/null 2>&1; then
+  report_pass "public status has exactly its five keys" "object, five keys"
+else
+  report_fail "public status has exactly its five keys" "got '${status_body:0:80}'"
+fi
+status_snapshot="$(curl -s -m 90 "$SITE_URL/snapshot/status.json")"
+for status_source in "API:$status_body" "snapshot:$status_snapshot"; do
+  label="${status_source%%:*}"
+  body="${status_source#*:}"
+  if printf '%s' "$body" | grep -qE "$PRIVATE_KEYS|$NEXT_FORBIDDEN"; then
+    report_fail "public status ($label) exposes no private fields" "found a forbidden key"
+  else
+    report_pass "public status ($label) exposes no private fields" "no forbidden key"
+  fi
+done
+
 # The nightly job's token: no token and a wrong one are both refused.
 check_equals "POST /api/picker/next with a wrong job token" \
   "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
