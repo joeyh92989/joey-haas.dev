@@ -42,8 +42,11 @@
   --warn: #e3a94a;
   --chart: #6ea0ef;
   --chart-2: #4a6896;
-  /* The tour's redaction stripe (Spine tour spec). */
-  --redact: repeating-linear-gradient(135deg, #262b32 0 6px, #1b1f24 6px 12px);
+  /* The tour's redaction stripe. Its darker stripe is the mark: 3.30 on
+     --surface (the mockup's #262b32 reached 1.25). Tour pill borders use
+     ok 8.27, warn 8.51, accent 6.73 above; the New badge, accent text on
+     --bg, is 7.15. */
+  --redact: repeating-linear-gradient(135deg, #626b77 0 6px, #1b1f24 6px 12px);
   /* Code blocks get their own token because the syntax colors do not clear AA
      on every surface: measured across fifteen languages, every dark-plus
      color reaches 4.89:1 here (worst: the grey used for JSX and HTML angle
@@ -96,7 +99,9 @@
   --warn: #b26a00;
   --chart: #1f5fbf;
   --chart-2: #7393cb;
-  --redact: repeating-linear-gradient(135deg, #e4e4df 0 6px, #f3f3f0 6px 12px);
+  /* Redaction stripe 3.25 on --surface (mockup #e4e4df: 1.28). Pill
+     borders ok 5.32, warn 4.24, accent 6.09; the New badge on --bg 5.93. */
+  --redact: repeating-linear-gradient(135deg, #8a8f98 0 6px, #f3f3f0 6px 12px);
   /* Every light-plus color reaches 4.53:1 on white (worst: the red used for
      string escapes); on --bg it drops to 4.41. */
   --code-bg: #ffffff;
