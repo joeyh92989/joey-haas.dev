@@ -48,10 +48,6 @@ function radarRows(next) {
     .filter(Boolean)
 }
 
-/**
- * A live box's body: the rows once there are some, the stop's empty line
- * once the source has answered without any, and a loading line until then.
- */
 const COUNT = new Intl.NumberFormat('en')
 
 /** Stop 2 with the catalog's live counts, once the status has answered. */
@@ -73,6 +69,10 @@ function withCounts(stop, status) {
   return { ...stop, capture: { ...stop.capture, facts: [catalog, ...facts] } }
 }
 
+/**
+ * A live box's body: the rows once there are some, the stop's empty line
+ * once the source has answered without any, and a loading line until then.
+ */
 function Live({ state, empty, children, count }) {
   if (count > 0) return children
   if (!state.data && !state.failed) {
@@ -125,7 +125,7 @@ export default function HowItWorks() {
   const radar = radarRows(next.data)
   const tonight = next.data?.tonight
   const upNext = tonight?.up_next ?? null
-  const firstPick = list(tonight?.picks)[0]
+  const [firstPick, ...otherPicks] = list(tonight?.picks)
 
   const live = {
     1: (
@@ -152,6 +152,11 @@ export default function HowItWorks() {
           {upNext && <TonightCard pick={upNext} label={spine.next.upNext} />}
           {firstPick && <TonightCard pick={firstPick} label={null} />}
         </ul>
+        {otherPicks.length > 0 && (
+          <NewestCovers
+            games={otherPicks.map((pick) => ({ ...pick, id: pick.item_id }))}
+          />
+        )}
       </Live>
     ),
     4: (

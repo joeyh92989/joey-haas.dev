@@ -168,6 +168,24 @@ describe('HowItWorks', () => {
     expect(pick).toHaveTextContent('Waited longest on the shelf')
   })
 
+  it('shows the day’s other picks as covers on stop 3', () => {
+    const second = {
+      ...NEXT.tonight.picks[0],
+      item_id: 'p2',
+      title: 'Second Pick',
+    }
+    mockData({
+      items: ready(ITEMS),
+      next: ready({
+        ...NEXT,
+        tonight: { ...NEXT.tonight, picks: [...NEXT.tonight.picks, second] },
+      }),
+    })
+    renderAt()
+    const cover = within(stop(3)).getByRole('link', { name: 'Second Pick' })
+    expect(cover).toHaveAttribute('href', '/spine/p2/')
+  })
+
   it('shows one coming-soon and one further-out row on stop 4', () => {
     mockData({ items: ready(ITEMS), next: ready(NEXT) })
     renderAt()
