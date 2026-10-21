@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { spine } from '../content/spine.js'
+import { axeViolations } from '../lib/axe.test-util.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import HowItWorks from './HowItWorks.jsx'
 
@@ -183,4 +184,15 @@ describe('HowItWorks', () => {
       screen.getByRole('heading', { level: 2, name: spine.how.stops[4].title }),
     ).toHaveFocus()
   })
+
+  it('has no axe violations, with data and without', async () => {
+    mockData({ items: ready(ITEMS), next: ready(NEXT) })
+    const { container, unmount } = renderAt()
+    expect(await axeViolations(container)).toEqual([])
+    unmount()
+
+    mockData({ items: empty, next: empty })
+    const bare = renderAt()
+    expect(await axeViolations(bare.container)).toEqual([])
+  }, 15_000)
 })

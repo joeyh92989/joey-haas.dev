@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import Collection from './Collection.jsx'
 
@@ -200,6 +201,15 @@ describe('Collection', () => {
     expect(strip.compareDocumentPosition(favourites) & follows).toBeTruthy()
     expect(document.querySelector('.tour-status')).toBeNull()
   })
+
+  it('has no axe violations on the landing', async () => {
+    stubApi()
+    await renderReady()
+
+    // The render container, like the other page tests: the page is drawn
+    // without RootLayout's <main>, so the whole body has no landmarks.
+    expect(await axeViolations(document.body.firstElementChild)).toEqual([])
+  }, 15_000)
 
   it('shows favourites, highest rated first, up to four', async () => {
     const favourites = [
