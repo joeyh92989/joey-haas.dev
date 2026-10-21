@@ -37,8 +37,7 @@ describe('Capture', () => {
     const table = screen.getByRole('table')
     expect(within(table).getAllByRole('columnheader')).toHaveLength(3)
     const cells = within(table).getAllByRole('cell')
-    expect(cells[1]).toHaveTextContent('store withheld')
-    expect(cells[1]).not.toHaveTextContent('cartridge (US)')
+    expect(cells[1]).toHaveTextContent('store withheld cartridge (US)')
     expect(within(cells[2]).getByText('cartridge')).toHaveClass(
       'tour-pill',
       'tour-pill-ok',

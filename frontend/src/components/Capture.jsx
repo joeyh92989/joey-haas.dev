@@ -21,10 +21,18 @@ export default function Capture({ url, tag, note, children }) {
   )
 }
 
-/** A cell from spine.how: text, `{ pill, tone }` or `{ redacted }`. */
+/**
+ * A cell from spine.how: text, `{ pill, tone }`, or `{ redacted }`, which
+ * draws the store's name withheld and then the text.
+ */
 function Cell({ value }) {
   if (value && typeof value === 'object') {
-    if ('redacted' in value) return <Redacted text={value.redacted} />
+    if ('redacted' in value)
+      return (
+        <>
+          <Redacted /> {value.redacted}
+        </>
+      )
     if ('pill' in value) {
       const tone = value.tone ? ` tour-pill-${value.tone}` : ''
       return <span className={`tour-pill${tone}`}>{value.pill}</span>
