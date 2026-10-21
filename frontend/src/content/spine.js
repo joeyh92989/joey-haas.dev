@@ -33,6 +33,306 @@ export const spine = {
     shelf: { to: '/spine', label: 'Shelf' },
     next: { to: '/spine/next', label: 'What’s next' },
     year: { to: '/spine/year', label: 'Year in review' },
+    // `badge` marks the tab for its first release; drop it in a later copy
+    // pass (Spine tour spec, open question 4).
+    how: { to: '/spine/how', label: 'How it works', badge: 'New' },
+  },
+  /**
+   * /spine/how, the field guide (Spine tour spec). Each stop's `code` paths
+   * are repo-relative and spine.test.js checks they exist. Capture rows are
+   * drawn and illustrative: the real figures behind them (scores, stores,
+   * prices) never reach the public API, so they can't be shown live.
+   */
+  how: {
+    path: '/spine/how',
+    title: 'How Spine works, in eight stops',
+    description:
+      'A guided tour of Spine: photo import, the physical catalog, Play Next, Radar, Discover and the nightly job, each public result beside the signed-in tool that made it.',
+    lede: 'Everything on the Shelf and What’s next comes out of a pipeline I run for myself. Each stop shows the public result beside the signed-in tool that made it, drawn, with the code it runs.',
+    tocLabel: 'Stops',
+    live: 'Live, from the public API',
+    behind: 'Behind the sign-in',
+    stopLabel: 'Stop',
+    featuresLabel: 'What Spine does',
+    tour: 'Take the tour',
+    redacted: 'store withheld',
+    features: [
+      {
+        stop: 1,
+        title: 'Reads the shelf',
+        line: 'A photo in, titles out, matched to IGDB.',
+      },
+      {
+        stop: 2,
+        title: 'Knows the format',
+        line: 'Cartridge or Game-Key Card, from a registry and twelve stores.',
+      },
+      {
+        stop: 3,
+        title: 'Picks tonight',
+        line: 'Six weighted terms score the backlog and say why.',
+      },
+      {
+        stop: 4,
+        title: 'Watches the stores',
+        line: 'What’s out, what’s coming, what to skip.',
+      },
+      {
+        stop: 7,
+        title: 'Rebuilds nightly',
+        line: 'Nothing here waits for me to press a button.',
+      },
+    ],
+    stops: [
+      {
+        n: 1,
+        where: '/admin/import',
+        title: 'Reads the shelf from a photo',
+        claim:
+          'A vision model reads the titles off a photo of the shelf. It’s never asked how sure it is: the server compares each title with IGDB’s by string similarity and marks the match exact, probable or uncertain, so I only check the doubtful ones.',
+        why: {
+          lead: 'Why this way:',
+          text: 'a model’s confidence can’t be tested, and a similarity score can. The model returns titles only, so the whole matching path runs in tests without a model call.',
+        },
+        code: ['backend/importer.py', 'backend/matching.py'],
+        live: {
+          caption:
+            'The newest games on the shelf. The import itself isn’t public: nothing about a photo is kept after the request.',
+          empty: 'Nothing on the shelf yet.',
+        },
+        capture: {
+          url: '/admin/import',
+          tag: 'signed in',
+          note: 'The signed-in tool, drawn, with illustrative rows. The model returns titles; the server does the matching.',
+          columns: ['Title', 'Match', 'Confidence'],
+          rows: [
+            ['DREDGE', 'Dredge', { pill: 'exact', tone: 'ok' }],
+            [
+              'DAEMON X MACHINA',
+              'Daemon X Machina',
+              { pill: 'exact', tone: 'ok' },
+            ],
+            [
+              'OBRA DINN',
+              'Return of the Obra Dinn',
+              { pill: 'probable', tone: 'warn' },
+            ],
+            [
+              'NIGHT TRAP',
+              'Night Trap: 25th Anniversary Edition',
+              { pill: 'uncertain', tone: 'warn' },
+            ],
+          ],
+        },
+      },
+      {
+        n: 2,
+        where: '/admin/catalogue',
+        title: 'Knows cartridge from Game-Key Card',
+        claim:
+          'A Switch 2 box can hold the full game or only a key to download it. Spine reads the r/NSCollectors registry, the Switch 1 release sheet and twelve boutique stores, and collapses them to one honest format per game.',
+        why: {
+          lead: 'The collapse rule:',
+          text: 'any full cartridge in the home region makes a game a cartridge, because a registry row and a store listing usually describe different editions. Switch 1 is region-free, so any region counts there. A format I recorded from my own copy is never overwritten.',
+        },
+        code: ['backend/physical_sources/collapse.py', 'backend/formats.py'],
+        live: {
+          caption:
+            'From What’s next: a full cartridge, and a row I skip because the box holds a key, not the game.',
+          empty: 'No rows on What’s next yet.',
+        },
+        capture: {
+          url: '/admin/catalogue',
+          tag: 'signed in',
+          note: 'Store names and prices never leave the signed-in page. Rows are illustrative.',
+          facts: [
+            ['Switch 2 registry', 'refreshed nightly'],
+            ['Switch 1 sheet', 'about 4,500 titles, about 10,000 editions'],
+            ['Stores', '12 watched'],
+          ],
+          columns: ['Game', 'Registry', 'Store', 'Collapsed to'],
+          rows: [
+            [
+              'Game A',
+              'Game-Key Card (EU)',
+              { redacted: 'cartridge (US)' },
+              { pill: 'cartridge', tone: 'ok' },
+            ],
+            [
+              'Game B',
+              'Game-Key Card (US)',
+              { redacted: 'Game-Key Card' },
+              { pill: 'Game-Key Card', tone: 'warn' },
+            ],
+            [
+              'Game C',
+              '—',
+              { redacted: 'cartridge (US)' },
+              { pill: 'cartridge', tone: 'ok' },
+            ],
+          ],
+        },
+      },
+      {
+        n: 3,
+        where: '/admin/play-next',
+        title: 'Picks tonight’s game',
+        claim:
+          'Six weighted terms score the backlog: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, whether it fits the evening, how long it’s waited, and a little random jitter. Each pick says why.',
+        why: {
+          lead: 'No model here.',
+          text: 'The scoring is pure Python, tested without a database, and the public reasons are rebuilt from public games only.',
+        },
+        code: ['backend/picker.py'],
+        live: {
+          caption:
+            'Up next, which I pin, and the day’s picks. The picks change at most once a day.',
+          empty: 'Nothing lined up for tonight.',
+        },
+        capture: {
+          url: '/admin/play-next',
+          tag: 'signed in',
+          note: 'Each term is 0–100; the score is their weighted mean, less 15 for each day in the last two weeks the game was already shown. Values are illustrative.',
+          pick: 'Dredge',
+          terms: [
+            { label: 'Affinity', weight: 35, value: 82 },
+            { label: 'Similarity', weight: 20, value: 74 },
+            { label: 'Quality', weight: 15, value: 68 },
+            { label: 'Length fit', weight: 15, value: 60 },
+            { label: 'Waiting', weight: 10, value: 91 },
+            { label: 'Jitter', weight: 5, value: 12 },
+          ],
+        },
+      },
+      {
+        n: 4,
+        where: '/admin/radar',
+        title: 'Watches for the next cartridge',
+        claim:
+          'Radar ranks upcoming physical releases and open pre-orders with the same taste profile, plus a bonus when a pre-order closes within 30 days.',
+        why: {
+          lead: 'Public rows carry public facts only:',
+          text: 'title, platform, format, a registry date, a cover and an IGDB link. Never a store, a price, stock or a score.',
+        },
+        code: ['backend/radar.py'],
+        live: {
+          caption:
+            'Coming soon and Further out. A date shows only when the community registry has one; a store’s date never does.',
+          empty: 'Nothing coming up yet.',
+        },
+        capture: {
+          url: '/admin/radar',
+          tag: 'signed in',
+          note: 'score = 0.55 affinity + 0.35 similarity + 10 × hype, plus 15 when a pre-order closes within 30 days. Rows are illustrative.',
+          columns: ['Lane', 'Game', 'Score', 'Pre-order', 'Answer'],
+          rows: [
+            [
+              'pre-order',
+              'Game D',
+              '78 +15',
+              { redacted: 'closes in 9 days' },
+              { pill: 'Want', tone: 'acc' },
+            ],
+            ['dated', 'Game E', '71', '—', '—'],
+            ['digital so far', 'Game F', '64', '—', 'Skip'],
+          ],
+        },
+      },
+      {
+        n: 5,
+        where: '/admin/discover',
+        title: 'Suggests what to buy',
+        claim:
+          'Discover pre-scores released physical games on my platforms, then one Gemini call picks eight of the top twenty and writes the reasons. When the model can’t answer, the top eight by score stand in.',
+        why: {
+          lead: 'Why positions:',
+          text: 'the model answers with positions in a list I built, never titles. A model that returns titles can invent one; one that returns positions can’t.',
+        },
+        code: ['backend/discover.py'],
+        capture: {
+          url: '/admin/discover',
+          tag: 'signed in',
+          note: 'Twenty pre-scored candidates, shuffled so their order doesn’t bias the model. Rows are illustrative.',
+          columns: ['#', 'Candidate', 'Pre-score', 'Picked', 'Answer'],
+          rows: [
+            ['3', 'Game G', '81', { pill: 'yes', tone: 'acc' }, 'Want'],
+            ['7', 'Game H', '77', { pill: 'yes', tone: 'acc' }, '—'],
+            ['12', 'Game I', '69', 'no', '—'],
+            ['15', 'Game J', '66', { pill: 'yes', tone: 'acc' }, 'Already own'],
+          ],
+        },
+      },
+      {
+        n: 6,
+        where: '/admin/store-list',
+        title: 'Fits in a pocket in a store',
+        claim:
+          'The signed-in store list has What’s next’s sections, built by the same server function, with Got it, Want and Not interested on every row for the shop floor.',
+        code: ['backend/next_list.py'],
+      },
+      {
+        n: 7,
+        where: 'nightly.yml',
+        title: 'Rebuilds itself every night',
+        claim:
+          'At 00:17 UTC a GitHub Actions job takes the day’s picks, refreshes the registry and the stores, regenerates Radar (and Discover once a week), and redeploys the static site only when the snapshot changed.',
+        why: {
+          lead: 'Why a job token:',
+          text: 'it works only on a pinned list of routes, and a test fails if that list grows unnoticed.',
+        },
+        code: ['.github/workflows/nightly.yml'],
+        capture: {
+          url: 'nightly.yml',
+          tag: 'GitHub Actions',
+          note: 'Some of one run, drawn, in the job’s order. Timings are illustrative.',
+          columns: ['Step', 'Result', 'Took'],
+          rows: [
+            ['picks', { pill: 'ok', tone: 'ok' }, '2 s'],
+            ['registry', { pill: 'ok', tone: 'ok' }, '41 s'],
+            ['stores', { pill: 'ok', tone: 'ok' }, '3 m 10 s'],
+            ['resolve', { pill: 'ok', tone: 'ok' }, '12 s'],
+            ['radar', { pill: 'ok', tone: 'ok' }, '6 s'],
+            ['discover (weekly)', { pill: 'skipped' }, '—'],
+            [
+              'snapshot changed: deploy',
+              { pill: 'ok', tone: 'ok' },
+              '1 m 48 s',
+            ],
+          ],
+        },
+      },
+      {
+        n: 8,
+        where: 'tests',
+        title: 'Keeps the private parts private',
+        claim:
+          'A test pins exactly which keys a public row may carry and walks every body for forbidden ones. Reasons are rebuilt over public games only, and a model’s sentence is published only when every game it cites is public.',
+        code: ['backend/tests/test_public_outputs.py'],
+        capture: {
+          url: 'test_public_outputs.py',
+          tag: 'pytest',
+          note: 'A new key fails the test until it’s added to the allowlist on purpose.',
+          code: [
+            '# a public row is exactly these keys',
+            'NEXT_ROW_FIELDS = {',
+            '    "title", "platform", "physical_format", "release_date", "release_precision",',
+            '    "cover_url", "igdb_url", "reasons", "top_pick", "new", "item_id",',
+            '}',
+            '# and no key anywhere in the body is one of these',
+            'FORBIDDEN = {',
+            '    "id", "score", "rank", "hypes", "lane", "store_lines", "format_note",',
+            '    "model_note", "ranked_by", "based_on", "based_on_titles", "listing_ids",',
+            '    "preorder_closes_at", "price", "store", "url", "status", "batch_id",',
+            '}',
+          ].join('\n'),
+        },
+      },
+    ],
+    closing: {
+      longVersion: 'The long version',
+      source: 'Source on GitHub',
+      shelf: 'Back to the shelf',
+    },
   },
   next: {
     path: '/spine/next',

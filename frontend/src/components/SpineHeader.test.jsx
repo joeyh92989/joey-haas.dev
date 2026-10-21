@@ -40,4 +40,23 @@ describe('SpineHeader', () => {
       'active',
     )
   })
+
+  it('has a fourth tab, How it works, active only on its page', () => {
+    renderAt('/spine/how', { asLink: true })
+    const how = screen.getByRole('link', { name: /How it works/ })
+    expect(how).toHaveAttribute('href', '/spine/how')
+    expect(how).toHaveClass('active')
+    expect(how).toHaveTextContent('New')
+    expect(screen.getByRole('link', { name: 'Shelf' })).not.toHaveClass(
+      'active',
+    )
+    expect(screen.getAllByRole('link', { name: /./ })).toHaveLength(5)
+  })
+
+  it('leaves How it works inactive elsewhere under /spine', () => {
+    renderAt('/spine/next', { asLink: true })
+    expect(screen.getByRole('link', { name: /How it works/ })).not.toHaveClass(
+      'active',
+    )
+  })
 })

@@ -783,10 +783,11 @@ describe('Collection header', () => {
       screen.getByText(/^A tracker for my physical game collection:/),
     ).toBeInTheDocument()
     expect(screen.getByText(/^I built this:/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /How it works/ })).toHaveAttribute(
-      'href',
-      '/blog/how-spine-works',
-    )
+    // The tab row has its own How it works link; this is the project line's.
+    const project = document.querySelector('.spine-project')
+    expect(
+      within(project).getByRole('link', { name: /How it works/ }),
+    ).toHaveAttribute('href', '/blog/how-spine-works')
     expect(screen.getByRole('link', { name: /Source/ })).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989/joey-haas.dev',
