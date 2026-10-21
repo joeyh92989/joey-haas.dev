@@ -32,6 +32,9 @@ services:
         source: /spine/next
         destination: /spine/next/index.html
       - type: rewrite
+        source: /spine/how
+        destination: /spine/how/index.html
+      - type: rewrite
         source: /now
         destination: /now/index.html
       - type: rewrite
