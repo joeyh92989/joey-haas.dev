@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: docs/planning/mockups/2026-10-21-spine-tour/
 chosen: chosen.html
 ---
