@@ -56,6 +56,16 @@ const isNextBody = (body) =>
   NEXT_LISTS.every((key) => Array.isArray(body[key]))
 
 /**
+ * The status strip's body (spine tour). Keep in step with `isStatusBody` in
+ * src/lib/snapshot.js: the two predicates must be identical.
+ */
+const STATUS_COUNTS = ['titles', 'platforms', 'stores_watched', 'listings']
+const isStatusBody = (body) =>
+  isObject(body) &&
+  (body.refreshed_at === null || typeof body.refreshed_at === 'string') &&
+  STATUS_COUNTS.every((key) => Number.isInteger(body[key]))
+
+/**
  * The snapshots, the endpoint each copies, the shape it must have, and
  * whether the build can go without it. A required snapshot that fails fails
  * them all; an optional one is only left out.
@@ -73,6 +83,14 @@ export const SNAPSHOTS = {
   next: {
     path: '/api/public/next',
     valid: isNextBody,
+    required: false,
+  },
+  // Optional for the same reason: the status strip (spine tour). It is not
+  // in the nightly compare; next differs every night, so the redeploy that
+  // follows carries a fresh one.
+  status: {
+    path: '/api/public/status',
+    valid: isStatusBody,
     required: false,
   },
 }
