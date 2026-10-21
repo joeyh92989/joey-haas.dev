@@ -28,12 +28,14 @@ from models import (
     Recommendation,
     RecommendationKind,
     RecommendationStatus,
+    StoreListing,
 )
 from physical_sources.stores import STORES
 from public import create_public_router
 from public_outputs import (
     PublicNextOut,
     PublicNextRow,
+    PublicStatusOut,
     PublicTonightCard,
 )
 from recommendations_routes import create_recommendations_router
@@ -1122,3 +1124,118 @@ async def test_answering_a_discover_platforms_only_pick_leaves_the_body(
     after = await _next(sessionmaker_for_test)
     assert "Sixty Four Pick" in {r["title"] for r in before["buy_now"]}
     assert after == before
+
+
+# The /spine status strip (spine tour plan, answer 1).
+STATUS_FIELDS = {"refreshed_at", "titles", "platforms", "stores_watched", "listings"}
+
+
+def _edition(ref: str, **fields) -> PhysicalEdition:
+    base = dict(
+        source="nscollectors",
+        source_ref=ref,
+        title=ref,
+        title_normalized=ref,
+        platform_id=508,
+        platform="Nintendo Switch 2",
+        region="USA",
+    )
+    return PhysicalEdition(**{**base, **fields})
+
+
+def _listing(handle: str, availability: str) -> StoreListing:
+    return StoreListing(
+        store="super_rare",
+        store_product_id=handle,
+        variant_id=handle,
+        handle=handle,
+        url=f"https://example.test/{handle}",
+        region="EUR",
+        title=handle,
+        title_normalized=handle,
+        is_game=True,
+        currency="GBP",
+        availability=availability,
+        price=44.99,
+    )
+
+
+def _run(source: str, finished: datetime | None, ok: bool | None) -> CatalogueRun:
+    return CatalogueRun(
+        source=source,
+        started_at=(finished or NOW) - timedelta(minutes=5),
+        finished_at=finished,
+        ok=ok,
+    )
+
+
+async def _status(factory):
+    async with client_for(factory) as client:
+        return await client.get("/api/public/status")
+
+
+async def test_the_status_model_publishes_exactly_these_fields():
+    assert set(PublicStatusOut.model_fields) == STATUS_FIELDS
+    assert not STATUS_FIELDS & FORBIDDEN
+
+
+async def test_an_empty_catalogue_reports_zeros_and_no_refresh(sessionmaker_for_test):
+    response = await _status(sessionmaker_for_test)
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "public, max-age=300"
+    assert response.json() == {
+        "refreshed_at": None,
+        "titles": 0,
+        "platforms": 0,
+        "stores_watched": len(STORES),
+        "listings": 0,
+    }
+
+
+async def test_status_counts_matched_live_titles_and_live_listings(
+    sessionmaker_for_test,
+):
+    await _add(
+        sessionmaker_for_test,
+        CatalogueGame(igdb_id=1, title="One", snapshot={}),
+        CatalogueGame(igdb_id=2, title="Two", snapshot={}),
+    )
+    await _add(
+        sessionmaker_for_test,
+        _edition("one usa", igdb_id=1),
+        _edition("one eur", igdb_id=1, region="EUR"),
+        _edition("two ns1", igdb_id=2, platform_id=130, platform="Nintendo Switch"),
+        # Unmatched, as the hidden Switch 1 rows are: a platform, not a title.
+        _edition("unmatched", platform_id=130, platform="Nintendo Switch"),
+        _edition("retired", igdb_id=2, platform_id=4, retired_at=NOW),
+        _listing("live", "in_stock"),
+        _listing("preorder", "preorder"),
+        _listing("gone", "archived"),
+    )
+
+    body = (await _status(sessionmaker_for_test)).json()
+
+    assert (body["titles"], body["platforms"], body["listings"]) == (2, 2, 2)
+
+
+async def test_refreshed_is_the_newest_good_store_or_registry_run(
+    sessionmaker_for_test,
+):
+    store = next(iter(STORES))
+    good = NOW - timedelta(hours=14, seconds=42)
+    await _add(
+        sessionmaker_for_test,
+        _run(store, good, True),
+        _run("nscollectors", good - timedelta(hours=1), True),
+        # Later, but failed, still open, or pressed by hand: none counts.
+        _run(store, NOW - timedelta(hours=2), False),
+        _run("nscollectors", None, None),
+        _run("resolve", NOW - timedelta(hours=1), True),
+        _run("igdb_platform", NOW - timedelta(hours=1), True),
+    )
+
+    body = (await _status(sessionmaker_for_test)).json()
+
+    expected = good.replace(second=0, microsecond=0)
+    assert datetime.fromisoformat(body["refreshed_at"]) == expected

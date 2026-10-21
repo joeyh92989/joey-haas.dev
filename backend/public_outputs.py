@@ -217,6 +217,19 @@ def _utc_day(when: datetime | None) -> date | None:
     return when.astimezone(UTC).date() if when is not None else None
 
 
+class PublicStatusOut(BaseModel):
+    """GET /api/public/status: the /spine status strip. Counts and one
+    minute, nothing per store or per game. Flat, because test_public.py
+    bans `catalogue_` in public field names and smoke.sh the key `store`.
+    tests/test_public_outputs.py pins the fields."""
+
+    refreshed_at: datetime | None
+    titles: int
+    platforms: int
+    stores_watched: int
+    listings: int
+
+
 class PublicNextOut(BaseModel):
     """GET /api/public/next: tonight, the wanted list, and the four store
     sections. tests/test_public_outputs.py pins the fields and walks the

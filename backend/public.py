@@ -17,7 +17,7 @@ import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -32,8 +32,16 @@ from models import (
     PhysicalFormat,
     PlaySession,
 )
+from physical_sources import registry, registry_switch1, tracker
+from physical_sources.catalogue import status_counts
+from physical_sources.stores import STORES
 from public_next_cache import PublicNextCache
-from public_outputs import PublicNextOut, load_public_next
+from public_outputs import PublicNextOut, PublicStatusOut, load_public_next
+
+# The runs that date the status strip's "Last refreshed": the stores and the
+# registries, as on the Dashboard (lib/nightly.js, ANCHOR_KINDS). Resolve and
+# Refresh N64 are pressed by hand, and would move it.
+REFRESH_SOURCES = (*STORES, registry.SOURCE, tracker.SOURCE, registry_switch1.SOURCE)
 
 # Lifted out of the source_metadata snapshot rather than publishing the
 # snapshot itself: its shape varies per source and may carry fields nobody
@@ -476,6 +484,18 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         for in a store. Read-only; names only public games; no store data.
         Served from next_cache while the data it was built from is unchanged."""
         return await next_cache.get(session, datetime.now(UTC), load_public_next)
+
+    @router.get("/status", response_model=PublicStatusOut)
+    async def public_status(
+        response: Response,
+        session: AsyncSession = Depends(get_session),
+    ) -> PublicStatusOut:
+        """The /spine status strip: when the catalogue last refreshed and how
+        big it is. Uncached on the server (four counts over about 10k rows);
+        the header spares repeat visits."""
+        response.headers["Cache-Control"] = "public, max-age=300"
+        counts = await status_counts(session, REFRESH_SOURCES)
+        return PublicStatusOut(**counts, stores_watched=len(STORES))
 
     # Declared last, after the literal /items and /stats: a typed uuid would
     # 422 rather than fall through, but the order keeps that from mattering.
