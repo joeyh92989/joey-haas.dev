@@ -7,6 +7,7 @@ import Collection from './pages/Collection.jsx'
 import Colophon from './pages/Colophon.jsx'
 import BlogPost from './pages/BlogPost.jsx'
 import Home from './pages/Home.jsx'
+import HowItWorks from './pages/HowItWorks.jsx'
 import Item from './pages/Item.jsx'
 import MonthInReview from './pages/MonthInReview.jsx'
 import Next from './pages/Next.jsx'
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="colophon" element={<Colophon />} />
         <Route path="spine" element={<Collection />} />
         <Route path="spine/next" element={<Next />} />
+        <Route path="spine/how" element={<HowItWorks />} />
         <Route path="spine/year" element={<CurrentYear />} />
         <Route path="spine/year/:year" element={<YearInReview />} />
         <Route path="spine/journal/:month" element={<MonthInReview />} />

@@ -107,7 +107,9 @@ function Rows({ rows, section }) {
   )
 }
 
-function TonightCard({ pick, label }) {
+/** A tonight game: cover, slot label, title, platform and reasons. Shared
+ * with the tour's Play Next stop. */
+export function TonightCard({ pick, label }) {
   const reasons = pick.reasons ?? []
   return (
     <li className="next-row next-tonight-card">

@@ -329,9 +329,9 @@ export const spine = {
       },
     ],
     closing: {
-      longVersion: 'The long version',
-      source: 'Source on GitHub',
-      shelf: 'Back to the shelf',
+      longVersion: { to: '/blog/how-spine-works', label: 'The long version' },
+      source: { href: profile.repo, label: 'Source on GitHub' },
+      shelf: { to: '/spine', label: 'Back to the shelf' },
     },
   },
   next: {
