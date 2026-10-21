@@ -15,6 +15,13 @@ import { LOAD_ERROR, WAKING } from './status.js'
  * names and API fields such as `catalogue` keep their spelling, since
  * renaming them would break links and the API contract.
  */
+/** The tour, and the post it shortens: the post is the long version. */
+const links = {
+  post: { to: '/spine/how', label: 'How it works' },
+  longVersion: { to: '/blog/how-spine-works', label: 'The long version' },
+  source: { href: profile.repo, label: 'Source' },
+}
+
 export const spine = {
   name: 'Spine',
   path: '/spine',
@@ -25,10 +32,7 @@ export const spine = {
     'A tracker for a physical game collection: photo import, a physical catalog, and picks that say why.',
   projectLine:
     'I built this: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
-  links: {
-    post: { to: '/blog/how-spine-works', label: 'How it works' },
-    source: { href: profile.repo, label: 'Source' },
-  },
+  links,
   tabs: {
     shelf: { to: '/spine', label: 'Shelf' },
     next: { to: '/spine/next', label: 'What’s next' },
@@ -329,7 +333,7 @@ export const spine = {
       },
     ],
     closing: {
-      longVersion: { to: '/blog/how-spine-works', label: 'The long version' },
+      longVersion: links.longVersion,
       source: { href: profile.repo, label: 'Source on GitHub' },
       shelf: { to: '/spine', label: 'Back to the shelf' },
     },
@@ -339,7 +343,7 @@ export const spine = {
     refreshed: 'Last refreshed',
     fresh: 'refreshed in the last day',
     stale: 'not refreshed in over a day',
-    catalogue: 'Catalogue',
+    catalogue: 'Catalog',
     titles: 'titles',
     platforms: 'platforms',
     stores: 'Stores watched',

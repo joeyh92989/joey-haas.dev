@@ -27,7 +27,7 @@ describe('StatusStrip', () => {
     const terms = screen.getAllByRole('term').map((term) => term.textContent)
     expect(terms).toEqual([
       'Last refreshed',
-      'Catalogue',
+      'Catalog',
       'Stores watched',
       'Picks',
       'Discover',
