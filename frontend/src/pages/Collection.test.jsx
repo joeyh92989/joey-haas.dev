@@ -100,6 +100,14 @@ const STATS = {
   by_format: {},
 }
 
+const STATUS_BODY = {
+  refreshed_at: '2026-10-21T00:40:00Z',
+  titles: 5724,
+  platforms: 2,
+  stores_watched: 12,
+  listings: 121958,
+}
+
 function stubApi({
   items = ITEMS,
   stats = STATS,
@@ -207,15 +215,7 @@ describe('Collection', () => {
   })
 
   it('shows the status strip after the band once the status answers', async () => {
-    stubApi({
-      status: {
-        refreshed_at: '2026-10-21T00:40:00Z',
-        titles: 5724,
-        platforms: 2,
-        stores_watched: 12,
-        listings: 121958,
-      },
-    })
+    stubApi({ status: STATUS_BODY })
     await renderReady()
 
     const strip = await screen.findByLabelText('Spine status')
@@ -227,8 +227,9 @@ describe('Collection', () => {
   })
 
   it('has no axe violations on the landing', async () => {
-    stubApi()
+    stubApi({ status: STATUS_BODY })
     await renderReady()
+    await screen.findByLabelText('Spine status')
 
     // The render container, like the other page tests: the page is drawn
     // without RootLayout's <main>, so the whole body has no landmarks.

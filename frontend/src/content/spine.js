@@ -351,8 +351,8 @@ export const spine = {
   status: {
     label: 'Spine status',
     refreshed: 'Last refreshed',
-    fresh: 'refreshed in the last day',
-    stale: 'not refreshed in over a day',
+    fresh: 'refreshed in the last 36 hours',
+    stale: 'not refreshed in over 36 hours',
     catalogue: 'Catalog',
     titles: 'titles',
     platforms: 'platforms',

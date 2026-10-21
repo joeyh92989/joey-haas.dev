@@ -47,7 +47,7 @@ describe('StatusStrip', () => {
   it('names the dot fresh within a day and a half', () => {
     render(<StatusStrip status={STATUS} next={NEXT} now={NOW} />)
     expect(
-      screen.getByRole('img', { name: 'refreshed in the last day' }),
+      screen.getByRole('img', { name: 'refreshed in the last 36 hours' }),
     ).toBeInTheDocument()
   })
 
@@ -57,7 +57,7 @@ describe('StatusStrip', () => {
       <StatusStrip status={STATUS} next={NEXT} now={later} />,
     )
     expect(
-      screen.getByRole('img', { name: 'not refreshed in over a day' }),
+      screen.getByRole('img', { name: 'not refreshed in over 36 hours' }),
     ).toBeInTheDocument()
 
     rerender(
@@ -68,7 +68,7 @@ describe('StatusStrip', () => {
       />,
     )
     expect(
-      screen.getByRole('img', { name: 'not refreshed in over a day' }),
+      screen.getByRole('img', { name: 'not refreshed in over 36 hours' }),
     ).toBeInTheDocument()
     expect(screen.getAllByText('—')).toHaveLength(3)
   })
