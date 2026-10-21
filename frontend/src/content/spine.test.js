@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -9,6 +9,22 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const { how } = spine
 
 describe('spine.how', () => {
+  it('names no watched store, by name or by host', () => {
+    // Read from the backend's store list, so a new store is covered at once.
+    // The tour draws stores as "store withheld"; its copy ships in the JS
+    // bundle, which the smoke check on the prerendered page cannot see.
+    const stores = readFileSync(
+      join(REPO, 'backend', 'physical_sources', 'stores.py'),
+      'utf8',
+    )
+    const names = [...stores.matchAll(/^\s+(?:name|domain)="([^"]+)"/gm)].map(
+      (match) => match[1].replace(/^(www|store)\./, '').toLowerCase(),
+    )
+    expect(names.length).toBeGreaterThanOrEqual(24)
+    const copy = JSON.stringify(how).toLowerCase()
+    for (const name of names) expect(copy, name).not.toContain(name)
+  })
+
   it('has eight stops, numbered in order, each with its required copy', () => {
     expect(how.stops.map((stop) => stop.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
     for (const stop of how.stops) {
