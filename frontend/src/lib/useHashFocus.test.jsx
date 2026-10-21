@@ -42,6 +42,17 @@ describe('useHashFocus', () => {
     expect(screen.getByRole('heading', { name: 'Two' })).toHaveFocus()
   })
 
+  it('lands on the heading again when the same link is pressed twice', () => {
+    renderAt('/spine/how')
+    const link = screen.getByRole('link', { name: 'Go to two' })
+    act(() => link.click())
+    const heading = screen.getByRole('heading', { name: 'Two' })
+    act(() => link.focus())
+    expect(heading).not.toHaveFocus()
+    act(() => link.click())
+    expect(heading).toHaveFocus()
+  })
+
   it('does nothing for an id that is not on the page', () => {
     renderAt('/spine/how#stop-9')
     expect(document.body).toHaveFocus()
