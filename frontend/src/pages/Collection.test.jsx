@@ -16,8 +16,8 @@ vi.mock('../lib/snapshot.js', async (importOriginal) => ({
   readSnapshot: vi.fn(),
 }))
 
-// The band reads its own snapshot and API; it is tested in NextBand.test.jsx,
-// so the shelf tests do not depend on it.
+// The band is tested in NextBand.test.jsx, so the shelf tests do not
+// depend on it.
 vi.mock('../components/NextBand.jsx', () => ({ default: () => null }))
 
 beforeEach(() => {
@@ -105,11 +105,15 @@ function stubApi({
   stats = STATS,
   itemsOk = true,
   statsOk = true,
+  status = null,
 } = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url) => {
       const path = String(url)
+      if (status && path.includes('/api/public/status')) {
+        return { ok: true, status: 200, json: async () => status }
+      }
       if (path.includes('/api/public/items')) {
         return {
           ok: itemsOk,
@@ -200,6 +204,26 @@ describe('Collection', () => {
     expect(hero.compareDocumentPosition(strip) & follows).toBeTruthy()
     expect(strip.compareDocumentPosition(favourites) & follows).toBeTruthy()
     expect(document.querySelector('.tour-status')).toBeNull()
+  })
+
+  it('shows the status strip after the band once the status answers', async () => {
+    stubApi({
+      status: {
+        refreshed_at: '2026-10-21T00:40:00Z',
+        titles: 5724,
+        platforms: 2,
+        stores_watched: 12,
+        listings: 121958,
+      },
+    })
+    await renderReady()
+
+    const strip = await screen.findByLabelText('Spine status')
+    expect(strip).toHaveTextContent('5,724 titles')
+    const does = screen.getByRole('region', { name: 'What Spine does' })
+    expect(
+      strip.compareDocumentPosition(does) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 
   it('has no axe violations on the landing', async () => {
