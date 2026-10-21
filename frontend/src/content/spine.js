@@ -60,6 +60,15 @@ export const spine = {
     featuresLabel: 'What Spine does',
     tour: 'Take the tour',
     redacted: 'store withheld',
+    // Stop 2's facts once /api/public/status answers: the catalog line is
+    // added and the stores line gains its listings.
+    counts: {
+      catalog: 'Catalog',
+      titles: (titles, platforms) =>
+        `${titles} matched titles on ${platforms} platforms`,
+      stores: 'Stores',
+      listings: (watched, listings) => `${watched} watched, ${listings} listings`,
+    },
     features: [
       {
         stop: 1,

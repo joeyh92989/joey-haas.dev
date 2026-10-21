@@ -75,9 +75,17 @@ const NEXT = {
   not_on_cartridge: [row('Key Card', { physical_format: 'game_key_card' })],
 }
 
-function mockData({ items, next }) {
-  vi.mocked(useSnapshotThenLive).mockImplementation((name) =>
-    name === 'items' ? items : next,
+const STATUS = {
+  refreshed_at: '2026-10-21T00:40:00Z',
+  titles: 5724,
+  platforms: 2,
+  stores_watched: 12,
+  listings: 121958,
+}
+
+function mockData({ items, next, status = empty }) {
+  vi.mocked(useSnapshotThenLive).mockImplementation(
+    (name) => ({ items, next, status })[name],
   )
 }
 
@@ -132,6 +140,22 @@ describe('HowItWorks', () => {
     expect(within(stop(2)).getByText('Top Cart')).toBeInTheDocument()
     expect(within(stop(2)).getByText('Key Card')).toBeInTheDocument()
     expect(within(stop(2)).queryByText('Plain Cart')).toBeNull()
+  })
+
+  it('states the catalog’s live counts on stop 2 once the status answers', () => {
+    mockData({ items: ready(ITEMS), next: ready(NEXT), status: ready(STATUS) })
+    renderAt()
+    const two = within(stop(2))
+    expect(
+      two.getByText('5,724 matched titles on 2 platforms'),
+    ).toBeInTheDocument()
+    expect(two.getByText('12 watched, 121,958 listings')).toBeInTheDocument()
+  })
+
+  it('keeps stop 2’s written facts without a status', () => {
+    mockData({ items: ready(ITEMS), next: ready(NEXT) })
+    renderAt()
+    expect(within(stop(2)).queryByText(/matched titles/)).toBeNull()
   })
 
   it('shows Up next and the first pick with its own reason on stop 3', () => {

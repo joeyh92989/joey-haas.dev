@@ -52,6 +52,27 @@ function radarRows(next) {
  * A live box's body: the rows once there are some, the stop's empty line
  * once the source has answered without any, and a loading line until then.
  */
+const COUNT = new Intl.NumberFormat('en')
+
+/** Stop 2 with the catalog's live counts, once the status has answered. */
+function withCounts(stop, status) {
+  if (stop.n !== 2 || !stop.capture?.facts || !status) return stop
+  const counts = copy.counts
+  const facts = stop.capture.facts.map(([label, value]) =>
+    label === counts.stores
+      ? [
+          label,
+          counts.listings(status.stores_watched, COUNT.format(status.listings)),
+        ]
+      : [label, value],
+  )
+  const catalog = [
+    counts.catalog,
+    counts.titles(COUNT.format(status.titles), status.platforms),
+  ]
+  return { ...stop, capture: { ...stop.capture, facts: [catalog, ...facts] } }
+}
+
 function Live({ state, empty, children, count }) {
   if (count > 0) return children
   if (!state.data && !state.failed) {
@@ -97,6 +118,7 @@ export default function HowItWorks() {
   useHashFocus()
   const items = useSnapshotThenLive('items')
   const next = useSnapshotThenLive('next')
+  const status = useSnapshotThenLive('status')
 
   const games = newestGames(items.data)
   const formats = formatRows(next.data)
@@ -146,7 +168,7 @@ export default function HowItWorks() {
       <p className="tour-lede">{copy.lede}</p>
       <StopIndex />
       {copy.stops.map((stop) => (
-        <Stop key={stop.n} stop={stop}>
+        <Stop key={stop.n} stop={withCounts(stop, status.data)}>
           {live[stop.n]}
         </Stop>
       ))}
