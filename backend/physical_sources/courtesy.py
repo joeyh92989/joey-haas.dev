@@ -18,12 +18,13 @@ for this run, because an unreachable file is not evidence of consent.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-from physical_sources.base import HostThrottle
+from physical_sources.base import HostThrottle, may_retry, retry_after
 from physical_sources.limits import USER_AGENT
 
 logger = logging.getLogger(__name__)
@@ -147,17 +148,33 @@ def allowed(robots: Robots | None, url: str) -> bool:
     return robots is None or robots.can_fetch(url)
 
 
-async def robots_for(host: str, client, throttle: HostThrottle | None = None) -> Robots:
-    """One GET of https://<host>/robots.txt, read per RFC 9309 §2.3.1."""
+async def _get_robots(host: str, client, throttle: HostThrottle | None):
     if throttle is not None:
         await throttle.wait(host)
-    url = f"https://{host}/robots.txt"
+    return await client.get(f"https://{host}/robots.txt")
+
+
+async def robots_for(
+    host: str, client, throttle: HostThrottle | None = None, sleep=asyncio.sleep
+) -> Robots:
+    """One GET of https://<host>/robots.txt, read per RFC 9309 §2.3.1.
+
+    A 429 is "come back later", not "no rules": it is retried once like any
+    other request (base.throttled_get), and a second 429 disallows all, so a
+    host is never walked without its rules having been read.
+    """
     try:
-        response = await client.get(url)
+        response = await _get_robots(host, client, throttle)
+        if response.status_code == 429 and may_retry(host, throttle):
+            await sleep(retry_after(response.headers.get("retry-after")))
+            response = await _get_robots(host, client, throttle)
     except Exception as error:  # any transport failure is "unreachable"
         logger.warning("robots.txt for %s unreachable (%s): disallow all", host, error)
         return DISALLOW_ALL
     status = response.status_code
+    if status == 429:
+        logger.warning("robots.txt for %s: HTTP 429 twice, disallow all", host)
+        return DISALLOW_ALL
     if 400 <= status < 500:
         logger.info("robots.txt for %s: HTTP %s, no rules", host, status)
         return ALLOW_ALL
