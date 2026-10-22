@@ -295,16 +295,18 @@ A 429 is retried once, after the host's `Retry-After` in seconds (capped at
 collection handle, skips a product page for the run, and on robots.txt
 disallows the whole host: a 429 there is "come back later", never "no
 rules". On 2026-10-20 every Shopify store answered 429 to page 1 of its
-first collection, while the same request from another network got a 200:
-Shopify limiting Render's shared outbound IP, already spent by the time our
-first request arrived. It is a limit, not a block. The logs showed
+first collection, while the same request from another network got a 200.
+Probably Shopify limiting Render's shared outbound IP, already spent by
+other traffic before our first request; unconfirmed, since nothing can be
+run from the instance itself. Either way it is a limit, not a block: the logs showed
 `Retry-After: 60` on every 429, and retries succeeded (Limited Run went from
 40 variants to 215 once they ran), but at a 30s cap many came back early and
 were refused again, so `RATE_LIMIT_MAX_WAIT` is 60. A run with errors never
-archives, so nothing was lost. Every 429 is logged at WARNING (host, path,
-Retry-After, the wait, or "no retries left this run"), and a run's error
-reads `HTTP 429 (Retry-After: N)` rather than a bare status. Only the path
-is logged: a query string can carry a source's key.
+archives, so nothing was lost. Every 429 on a store page is logged at
+WARNING (host, path, Retry-After, the wait, or "no retries left this run"),
+and a run's error reads `HTTP 429 (Retry-After: N)` rather than a bare
+status; robots.txt logs only a second 429. Only the path is logged: a query
+string can carry a source's key.
 
 ## Adding a store
 

@@ -25,8 +25,9 @@ REQUEST_TIMEOUT_SECONDS = 30.0
 # RATE_LIMIT_RETRIES_PER_HOST retries per host per run, so a host that keeps
 # limiting adds at most 5 x 60s to the run, whatever it asks for. The cap is
 # Shopify's own Retry-After (60 on every 429 from Render, 2026-10-20): at 30
-# the retry came back early and was refused again. Nine Shopify stores at the
-# worst case is 45 minutes of waiting, inside the nightly's 3600s stores call.
+# the retry came back early and was refused again. The bound is twelve stores
+# x 5 x 60s = 60 minutes of waiting, the whole of the nightly's 3600s stores
+# call; the nine Shopify stores alone, the realistic case, are 45 minutes.
 RATE_LIMIT_MAX_WAIT = 60.0
 RATE_LIMIT_DEFAULT_WAIT = 10.0
 RATE_LIMIT_RETRIES_PER_HOST = 5
