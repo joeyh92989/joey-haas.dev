@@ -24,10 +24,11 @@ REQUEST_TIMEOUT_SECONDS = 30.0
 # without one (or with a date), after the default. At most
 # RATE_LIMIT_RETRIES_PER_HOST retries per host per run, so a host that keeps
 # limiting adds at most 5 x 60s to the run, whatever it asks for. The cap is
-# Shopify's own Retry-After (60 on every 429 from Render, 2026-10-20): at 30
-# the retry came back early and was refused again. The bound is twelve stores
-# x 5 x 60s = 60 minutes of waiting; the nightly's stores call allows 90
-# (nightly.yml), leaving the walk itself and its resolve batch 30.
+# Shopify's own Retry-After (60 on every 429 from Render, 2026-10-20). From
+# Render it did not help: Shopify limits Render's shared IP, and retries
+# after 60s were refused too, so the nightly walks Shopify on its GitHub
+# runner (scripts/walk_stores.py), where the bound is nine stores x 5 x 60s
+# = 45 minutes of waiting inside the walk's 75 (nightly.yml).
 RATE_LIMIT_MAX_WAIT = 60.0
 RATE_LIMIT_DEFAULT_WAIT = 10.0
 RATE_LIMIT_RETRIES_PER_HOST = 5

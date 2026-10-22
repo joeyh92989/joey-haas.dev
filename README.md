@@ -452,7 +452,11 @@ keeps the snapshot within a day of production. It calls admin routes with
 
 1. wake the API (up to six minutes of retries);
 2. Play Next picks (`POST /api/picker/next`);
-3. catalogue registry, then stores (`refresh-registry`, `refresh`);
+3. catalogue registry, then the WooCommerce stores (`refresh-registry`,
+   `refresh` with `{"adapter": "woocommerce"}`), then the Shopify stores,
+   walked on the runner by `backend/scripts/walk_stores.py`, which posts
+   each one to `POST /api/physical/stores/{key}/ingest` (Shopify
+   rate-limits Render's IP);
 4. Switch 1 registry, on Sunday evenings only (`refresh-switch1`);
 5. Resolve, repeated while it makes progress, at most five rounds;
 6. Radar generate, then Discover generate on Sunday evenings or when the
@@ -462,8 +466,9 @@ keeps the snapshot within a day of production. It calls admin routes with
    hook.
 
 "Sunday evening" is Denver time, which is Monday in UTC; the job tests
-`date -u +%u` = `1`. The store walk is the long step (up to an hour), so the
-job's limit is 150 minutes.
+`date -u +%u` = `1`. The Shopify walk is the long step (up to 75 minutes, on
+the runner; about half a minute when no store answers 429), so the job's
+limit is 150 minutes.
 
 - **`JOB_TOKEN`** is set in two places: as an environment variable on the
   Render API service (declared in `render.yaml`, value entered in the
@@ -471,9 +476,12 @@ job's limit is 150 minutes.
   → Actions. The two must match. Without the secret the job says so, refreshes
   nothing and fails its summary step. When they differ, or the Render value
   is not set, every call answers 401 and the run fails, naming both causes.
-- **The token opens eight routes and nothing else.** The whitelist is
+- **The token opens ten routes and nothing else.** The whitelist is
   `items.JOB_ROUTES` and `backend/tests/test_job_token.py` pins it exactly:
-  the seven writes above plus `GET /api/physical/status`. A signed-in session is
+  the writes above (the ingest among them) plus `GET /api/physical/status`
+  and `GET /api/physical/stores/{key}/html-skip`. The ingest makes the token
+  a write credential for store listings, bounded by its validation (that
+  store's own rows on its own host, real enums, store tiers only). A signed-in session is
   checked as before; the token never reaches any other admin route.
 - **Pick lag.** The picks are recorded as shown today (UTC), and What's
   next's `tonight` block only publishes picks from before today's UTC

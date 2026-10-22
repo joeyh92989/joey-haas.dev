@@ -202,8 +202,9 @@ open key (no decision yet, or an automatic ignore):
   store listing carries is not ignored. Its automatic ignore, if any, is
   deleted and Resolve searches it, so a store's game is never hidden by the
   sheet's spelling. This holds after later store refreshes too: the stores
-  route (`POST /api/physical/refresh`) calls `release_listed_ignores` before
-  its resolve batch.
+  route (`POST /api/physical/refresh`) and the runner's ingest route
+  (`POST /api/physical/stores/{key}/ingest`) call `release_listed_ignores`
+  before the next resolve batch.
 
 Matched games get snapshots through `resolve.fill_games`, and `propagate`
 copies each key's decision onto the editions. `propagate` protects
@@ -294,15 +295,24 @@ A 429 is retried once, after the host's `Retry-After` in seconds (capped at
 `RATE_LIMIT_RETRIES_PER_HOST` retries per host per run. A second 429 fails a
 collection handle, skips a product page for the run, and on robots.txt
 disallows the whole host: a 429 there is "come back later", never "no
-rules". On 2026-10-20 every Shopify store answered 429 to page 1 of its
-first collection, while the same request from another network got a 200.
-Probably Shopify limiting Render's shared outbound IP, already spent by
-other traffic before our first request; unconfirmed, since nothing can be
-run from the instance itself. Either way it is a limit, not a block: the logs showed
-`Retry-After: 60` on every 429, and retries succeeded (Limited Run went from
-40 variants to 215 once they ran), but at a 30s cap many came back early and
-were refused again, so `RATE_LIMIT_MAX_WAIT` is 60. A run with errors never
-archives, so nothing was lost. Every 429 on a store page is logged at
+rules". On 2026-10-20 every Shopify store answered 429 from Render, and
+after #77 retries that waited out `Retry-After: 60` were refused just the
+same: Shopify limits Render's shared outbound IP, which other tenants spend
+around the clock. From a GitHub runner the same requests were all answered
+200, and the full walk of all nine stores ran with no errors in 28 seconds
+(2026-10-22 spike, `docs/planning/2026-10-22-shopify-walk-on-runner-design.md`).
+So **the nightly walks the Shopify stores on its runner**
+(`backend/scripts/walk_stores.py`), with this package's own code, and posts
+each store's rows to `POST /api/physical/stores/{key}/ingest`, serialised by
+`wire.py` (pure, strict on reading back). The API records the run through
+`record_store`, the same function a walk on Render uses, so the archive rule
+is identical; it accepts only that store's rows on its own host, real enums
+and the store tiers. `GET /api/physical/stores/{key}/html-skip` gives the
+runner the Limited Run pages read this week. WooCommerce stays on Render
+(`/refresh` with `{"adapter": "woocommerce"}`). The admin "Refresh stores"
+button still walks every store from Render and will 429 on Shopify. The
+backoff (`RATE_LIMIT_MAX_WAIT` 60) still applies on the runner. A run with
+errors never archives, so nothing was lost. Every 429 on a store page is logged at
 WARNING (host, path, Retry-After, the wait, or "no retries left this run"),
 and a run's error reads `HTTP 429 (Retry-After: N)` rather than a bare
 status; robots.txt logs only a second 429. Only the path is logged: a query

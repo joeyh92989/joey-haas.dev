@@ -491,7 +491,10 @@ before pushing.
   `items.JOB_ROUTES`, matched on the routed template, and
   `tests/test_job_token.py` is the point of it: it pins the whitelist
   exactly, so a new route cannot become reachable by the token unnoticed.
-- **Nightly order:** picks, then registry, then stores, then Switch 1
+- **Nightly order:** picks, then registry, then the WooCommerce stores on
+  Render, then the Shopify stores walked on the runner
+  (`backend/scripts/walk_stores.py`, posting each to
+  `/api/physical/stores/{key}/ingest`: Shopify rate-limits Render's IP), then Switch 1
   (Sunday evenings in Denver), then resolve (up to 5 rounds), then Radar,
   then Discover (Sunday evenings), then the page-view rollup, then the
   snapshot compare and the deploy hook. The pick lag is accepted: each run
