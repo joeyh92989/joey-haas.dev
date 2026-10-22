@@ -25,13 +25,15 @@ that a store now sells.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import uuid
 from collections.abc import AsyncIterator, Callable
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -42,13 +44,16 @@ from models import (
     CatalogueRun,
     Item,
     ItemType,
+    ListingAvailability,
     MatchDecision,
     PhysicalEdition,
+    PhysicalFormat,
+    ReleasePrecision,
     StoreListing,
 )
 from physical_sources import registry as sheet
 from physical_sources import registry_switch1 as switch1_sheet
-from physical_sources import shopify, tracker, woocommerce
+from physical_sources import shopify, tracker, wire, woocommerce
 from physical_sources.base import HostThrottle, PhysicalSourceError
 from physical_sources.catalogue import (
     count_live,
@@ -66,6 +71,7 @@ from physical_sources.catalogue import (
 from physical_sources.collapse import item_note
 from physical_sources.courtesy import robots_for
 from physical_sources.limits import (
+    MAX_PRICE,
     NEEDS_ATTENTION_AFTER,
     REGISTRY_WORDS,
     RESOLVE_LIMIT,
@@ -131,6 +137,9 @@ class RunOut(BaseModel):
 
 class RefreshIn(BaseModel):
     stores: list[str] | None = None
+    # Every store on one adapter; `stores` wins when both are given. The
+    # nightly refreshes WooCommerce here and walks Shopify on its runner.
+    adapter: Literal["shopify", "woocommerce"] | None = None
 
 
 class RefreshOut(BaseModel):
@@ -228,6 +237,111 @@ class DisagreementOut(BaseModel):
 
 class DisagreementsOut(BaseModel):
     items: list[DisagreementOut]
+
+
+# One store's walk, posted by the nightly runner (scripts/walk_stores.py).
+# The caps are far above any store (iam8bit, the largest, lists about 600
+# rows on page 1) and only bound a body's size.
+MAX_INGEST_ROWS = 20_000
+MAX_INGEST_ERRORS = 200
+
+
+class IngestIn(BaseModel):
+    products: list[dict] = Field(max_length=MAX_INGEST_ROWS)
+    errors: list[dict] = Field(max_length=MAX_INGEST_ERRORS)
+
+
+class HtmlSkipOut(BaseModel):
+    handles: list[str]
+
+
+# store_listings' column lengths; Text columns get a generous cap, raw a
+# serialised one (a body excerpt plus tags and options).
+_TEXT_LIMITS = {
+    "store": 40,
+    "store_product_id": 40,
+    "variant_id": 40,
+    "region": 4,
+    "title": 500,
+    "title_normalized": 500,
+    "edition_label": 100,
+    "platform_label": 60,
+    "currency": 3,
+    "handle": 2000,
+    "url": 2000,
+    "release_text": 2000,
+    "format_evidence": 2000,
+    "image_url": 2000,
+    "availability": 20,
+    "release_precision": 20,
+    "format_hint": 20,
+    "format_tier": 20,
+}
+MAX_RAW_CHARS = 50_000
+# What a walk writes: never archived (the run decides that) and only the
+# store tiers, never an owner's (manual, cart_id, photo) or the registry's.
+_WALK_VALUES = {
+    "availability": {
+        a.value for a in ListingAvailability if a is not ListingAvailability.ARCHIVED
+    },
+    "release_precision": {p.value for p in ReleasePrecision},
+    "format_hint": {f.value for f in PhysicalFormat},
+    "format_tier": {"store_text", "store_policy", "platform_policy"},
+}
+
+
+def ingest_rows(key: str, body: IngestIn) -> tuple[list, list]:
+    """The posted walk as rows and errors, or a 422 naming the first problem.
+
+    Only a store's own rows: its key, its host. Database constraints are
+    still the last word; this answers the runner with a reason instead of a
+    failed run.
+    """
+    config = STORES[key]
+    prefix = f"https://{config.domain}/"
+    products, errors = [], []
+    for index, data in enumerate(body.products):
+        try:
+            product = wire.product_from_wire(data)
+        except ValueError as error:
+            raise HTTPException(422, f"products[{index}]: {error}") from None
+        problem = _row_problem(product, key, prefix)
+        if problem:
+            raise HTTPException(422, f"products[{index}]: {problem}")
+        products.append(product)
+    for index, data in enumerate(body.errors):
+        try:
+            error = wire.error_from_wire(data)
+        except ValueError as problem:
+            raise HTTPException(422, f"errors[{index}]: {problem}") from None
+        if len(error.code) > 60 or len(error.detail) > 2000:
+            raise HTTPException(422, f"errors[{index}]: too long")
+        errors.append(error)
+    return products, errors
+
+
+def _row_problem(product, key: str, prefix: str) -> str | None:
+    if product.store != key:
+        return f"store is {product.store!r}, not {key!r}"
+    if not product.url.startswith(prefix):
+        return "url is not on the store's host"
+    for name, limit in _TEXT_LIMITS.items():
+        value = getattr(product, name)
+        if value is not None and len(value) > limit:
+            return f"{name} is longer than {limit}"
+    for name, allowed in _WALK_VALUES.items():
+        value = getattr(product, name)
+        if value is not None and value not in allowed:
+            return f"{name} {value!r} is not one a walk writes"
+    if product.platform_id is not None and not 0 < product.platform_id < 2**15:
+        return "platform_id is out of range"
+    if product.price is not None and not 0 <= product.price <= MAX_PRICE:
+        return "price is out of range"
+    if any(len(handle) > 200 for handle in product.collections_seen):
+        return "a collection handle is too long"
+    if len(json.dumps(product.raw)) > MAX_RAW_CHARS:
+        return f"raw is longer than {MAX_RAW_CHARS} characters"
+    return None
 
 
 def run_out(run) -> RunOut:
@@ -339,11 +453,44 @@ def create_physical_router(
             await session.commit()
             return run_out(run), run_id, None
 
+    async def record_store(session, run, key: str, products, errors) -> None:
+        """One store walk's rows and errors written as its run, wherever the
+        walk ran: archiving only after a clean run (module docstring)."""
+        previous = await previous_rows_seen(session, key)
+        seen = len(products)
+        short = is_short(seen, previous)
+        ok = seen > 0
+        changed, archived = await upsert_listings(
+            session, products, key, archive=ok and not short and not errors
+        )
+        await finish_run(
+            session,
+            run,
+            ok=ok,
+            rows_seen=seen,
+            rows_changed=changed,
+            rows_retired=archived,
+            short_run=short,
+            errors=[error.as_entry() for error in errors],
+        )
+        await session.commit()
+
+    async def release_listed(session) -> None:
+        # A Switch 1 title the registry's matcher hid and a store now sells
+        # goes back to Resolve (switch1_ingest). The store runs are already
+        # committed, so a failure here is logged, never a 500; the next
+        # Switch 1 or store refresh releases them.
+        try:
+            await release_listed_ignores(session)
+            await session.commit()
+        except Exception:
+            logger.warning("releasing listed Switch 1 ignores failed", exc_info=True)
+            await session.rollback()
+
     async def refresh_store(session, client, throttle, key: str):
         config = STORES[key]
 
         async def work(run):
-            previous = await previous_rows_seen(session, key)
             robots = await robots_for(config.domain, client, throttle)
             if config.adapter == "shopify":
                 skip = await recently_checked_handles(session, key)
@@ -354,23 +501,7 @@ def create_physical_router(
                 products, errors = await woocommerce.list_products(
                     config, client, robots, throttle
                 )
-            seen = len(products)
-            short = is_short(seen, previous)
-            ok = seen > 0
-            changed, archived = await upsert_listings(
-                session, products, key, archive=ok and not short and not errors
-            )
-            await finish_run(
-                session,
-                run,
-                ok=ok,
-                rows_seen=seen,
-                rows_changed=changed,
-                rows_retired=archived,
-                short_run=short,
-                errors=[error.as_entry() for error in errors],
-            )
-            await session.commit()
+            await record_store(session, run, key, products, errors)
 
         snapshot, _, _ = await guarded(session, key, work)
         return snapshot
@@ -435,8 +566,13 @@ def create_physical_router(
         _lock=Depends(exclusive),
         session: AsyncSession = Depends(get_session),
     ) -> RefreshOut:
-        """Walks the named stores (default all), then one resolve batch."""
-        keys = (body.stores if body and body.stores else None) or list(STORES)
+        """Walks the named stores (default all, or all on `adapter`), then one
+        resolve batch."""
+        keys = (body.stores if body and body.stores else None) or [
+            key
+            for key, config in STORES.items()
+            if body is None or body.adapter in (None, config.adapter)
+        ]
         unknown = [key for key in keys if key not in STORES]
         if unknown:
             raise HTTPException(
@@ -447,21 +583,44 @@ def create_physical_router(
         async with http_client_factory() as client:
             for key in keys:
                 runs.append(await refresh_store(session, client, throttle, key))
-        # A Switch 1 title the registry's matcher hid and a store now sells
-        # goes back to Resolve (switch1_ingest). The store runs are already
-        # committed, so a failure here is logged, never a 500; the next
-        # Switch 1 or store refresh releases them.
-        try:
-            await release_listed_ignores(session)
-            await session.commit()
-        except Exception:
-            logger.warning("releasing listed Switch 1 ignores failed", exc_info=True)
-            await session.rollback()
+        await release_listed(session)
         outcome = await resolve_run(session)
         return RefreshOut(
             runs=runs,
             unresolved_remaining=outcome.unresolved_remaining,
         )
+
+    def shopify_store(key: str) -> str:
+        if key not in STORES or STORES[key].adapter != "shopify":
+            raise HTTPException(422, f"Not a Shopify store: {key}")
+        return key
+
+    @router.get("/stores/{key}/html-skip", response_model=HtmlSkipOut)
+    async def html_skip(
+        key: str, session: AsyncSession = Depends(get_session)
+    ) -> HtmlSkipOut:
+        """The handles whose product page a walk read within
+        HTML_RECHECK_DAYS, for a walk run off Render to skip."""
+        handles = await recently_checked_handles(session, shopify_store(key))
+        return HtmlSkipOut(handles=sorted(handles))
+
+    @router.post("/stores/{key}/ingest", response_model=RunOut)
+    async def ingest(
+        key: str,
+        body: IngestIn,
+        _lock=Depends(exclusive),
+        session: AsyncSession = Depends(get_session),
+    ) -> RunOut:
+        """One Shopify store's walk, read on the nightly runner, recorded as
+        that store's run exactly as a walk here would be (record_store)."""
+        products, errors = ingest_rows(shopify_store(key), body)
+
+        async def work(run):
+            await record_store(session, run, key, products, errors)
+
+        snapshot, _, _ = await guarded(session, key, work)
+        await release_listed(session)
+        return snapshot
 
     @router.post("/refresh-registry", response_model=RefreshOut)
     async def refresh_registry(
