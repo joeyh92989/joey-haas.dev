@@ -22,6 +22,12 @@ rounds back to back at 2 requests a second per host. Run 39732326160:
 requests from Render the same evening: 429 on nearly all of them, again
 after 60s.
 
+Round 2, run 39734226233: this branch's `walk_stores.py` on a runner, the
+full walk (robots, every collection page, Limited Run's product pages with
+no skip list) posting to a stand-in API on localhost. All nine stores, 1,788
+rows, **0 errors**, exit 0 in 28 seconds. The largest body was iam8bit's at
+1.34 MB (562 rows); the rest were under 1.2 MB.
+
 ## Decision
 
 The nightly runner walks the Shopify stores; Render only writes what it
@@ -98,6 +104,25 @@ sequenceDiagram
 - **GitHub's runner IPs are shared too.** The spike is one evening. If they
   start 429ing, the #77 backoff still applies on the runner (same code).
 - WooCommerce stays on Render: it works there, and moving it buys nothing.
+- **Body size is bounded per row, not per request.** FastAPI parses a body
+  before any dependency runs, so a token holder could post one far larger
+  than the 1.3 MB a real store sends. Only the token reaches it; a request
+  size cap would be middleware for every route. Accepted for now.
+- **Runner hardening:** checkout without persisted credentials; checkout,
+  setup-python and the install are non-fatal, so a PyPI outage fails only
+  `shopify-stores`. The actions stay on tags, as in `ci.yml`, and httpx2 at
+  `requirements.txt`'s floor, as on Render.
+
+## Review (finish gate)
+
+Three parallel reviewers (security, correctness, CI/docs), each finding
+checked against the code. Fixed: a refused ingest now records a failed run
+(`ingest_refused`) instead of none; the script waits out a 409 (six tries,
+90s apart) and survives a 200 that is not a run; the workflow hardening
+above; the stale docs (`physical_sources/README.md`'s 429 paragraph, the
+root README's nightly and token sections, CLAUDE.md's nightly order).
+Accepted: the token's new write scope, ingest-time `started_at`, the body
+size, and a crashed walk reading as a short run too.
 
 ## Smoke
 

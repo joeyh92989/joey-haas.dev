@@ -18,7 +18,7 @@ Spec: `2026-10-22-shopify-walk-on-runner-design.md`. Branch
    `adapter` filter on `/refresh`.
 3. **Runner script.** `backend/scripts/walk_stores.py` and
    `tests/test_walk_stores.py` against MockTransport for both the stores
-   (recorded fixtures) and the API; exit codes 0/1/2; a raising walk posts
+   (recorded fixtures) and the API; exit codes 0/1/3; a raising walk posts
    an `internal` error. README section in `backend/scripts/README.md`.
 4. **Nightly.** `nightly.yml`: checkout, setup-python, `pip install` the
    `httpx2` line, WooCommerce-only `call stores`, then the script.
