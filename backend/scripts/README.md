@@ -1,6 +1,7 @@
 # backend/scripts
 
-One-off tools run by hand. Nothing here is imported by the app.
+One-off tools run by hand, and `walk_stores.py`, which the nightly
+workflow runs. Nothing here is imported by the app.
 
 ## record_igdb_fixtures.py
 
@@ -254,3 +255,43 @@ Check `current` first: it should name the revision before the PR's.
 with `alembic` by hand. Output lines containing `://` are dropped so the URL
 never reaches a terminal or a log; an Alembic error that quotes the URL loses
 that line. To review the SQL first, run `alembic upgrade head --sql` by hand.
+
+## walk_stores.py
+
+Walks the nine Shopify stores from wherever it runs and posts each store's
+rows to the API, which records the store's catalogue run. The nightly
+workflow runs it on its GitHub runner, after the WooCommerce-only
+`/api/physical/refresh`.
+
+**Why:** Shopify rate-limits Render's shared outbound IP. From Render, nearly
+every store request is answered 429, also after waiting out the 60-second
+`Retry-After` (#77), because other tenants on that IP use the allowance up.
+From a GitHub runner the same requests were all answered 200
+(`docs/planning/2026-10-22-shopify-walk-on-runner-design.md`). The walk is
+the API's own pure code (`physical_sources.shopify`); only where it reads
+from moved. For each store it asks `GET /api/physical/stores/{key}/html-skip`
+for the product pages read this week, walks, and posts
+`POST /api/physical/stores/{key}/ingest`. The API applies the same archive
+rule as a walk on Render (`physical_routes.record_store`).
+
+**Run** from `backend/`. Store keys are optional; the default is every
+Shopify store.
+
+```bash
+API_URL=http://localhost:8000 JOB_TOKEN=... ./.venv/bin/python scripts/walk_stores.py nicalis
+```
+
+**Needs** `API_URL` and `JOB_TOKEN` (the API's own `JOB_TOKEN`; the routes
+are in `items.JOB_ROUTES`), and only `httpx2` beside the standard library:
+it imports no config, FastAPI or SQLAlchemy (a test pins that), so the
+runner installs one package.
+
+**Exit status:** 0 when every store's run is ok; 1 when any store's run
+failed or was not recorded (a 422 names the row, a 409 means a refresh was
+running); 3 when the API answered 401, which the nightly treats as
+configuration and fails the run. 2 is argparse's usage error.
+
+**Limits:** a run's `started_at` is when its ingest arrived, not when the
+walk began. A walk that raises is posted as one `internal` error, so the run
+is recorded as failed rather than missing. The admin "Refresh stores" button
+still walks every store from Render, and Shopify still answers it 429.
