@@ -43,8 +43,8 @@ env:
 jobs:
   nightly:
     runs-on: ubuntu-latest
-    # The Shopify walk is the long step (up to 75 minutes, on this runner);
-    # Render allows a request 100 minutes.
+    # The Shopify walk is the long step (up to 75 minutes, on this runner,
+    # not on Render).
     timeout-minutes: 150
     steps:
       - name: Wake the API
@@ -63,13 +63,22 @@ jobs:
 
       # The Shopify stores are walked here, not on Render: Shopify
       # rate-limits Render's shared IP (backend/scripts/README.md,
-      # walk_stores.py). The walk needs only httpx2, at requirements.txt's pin.
+      # walk_stores.py). The walk needs only httpx2, at requirements.txt's
+      # floor. None of the three is fatal: if one fails, the walk fails and
+      # is reported as shopify-stores, and the rest of the night still runs.
       - uses: actions/checkout@v7
+        continue-on-error: true
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v7
+        continue-on-error: true
         with:
           python-version: '3.12'
       - name: Install the store walk's one dependency
-        run: pip install "$(grep -E '^httpx2([<>=!~ ]|$)' backend/requirements.txt)"
+        continue-on-error: true
+        run: |
+          requirement=$(grep -m1 -E '^httpx2([[<>=!~ ]|$)' backend/requirements.txt | sed 's/[[:space:]]*#.*//')
+          pip install "$requirement"
 
       - name: Refresh the picks, the catalogue and the suggestions
         id: refresh
