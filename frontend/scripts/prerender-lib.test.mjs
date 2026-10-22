@@ -61,6 +61,7 @@ describe('publicRoutes', () => {
       '/projects',
       '/spine',
       '/spine/next',
+      '/spine/how',
       '/now',
       '/colophon',
       '/blog',
@@ -72,6 +73,7 @@ describe('publicRoutes', () => {
   it('titles pages the way the app does', () => {
     expect(routeAt(routes, '/about').title).toBe('About · Joey Haas')
     expect(routeAt(routes, '/spine/next').title).toBe('What’s next · Spine')
+    expect(routeAt(routes, '/spine/how').title).toBe('How it works · Spine')
     expect(routeAt(routes, '/blog/how-spine-works').title).toBe(
       'How Spine works · Joey Haas',
     )
@@ -105,7 +107,7 @@ describe('publicRoutes', () => {
   it('leaves out Blog with nothing published, and items without an id', () => {
     const bare = publicRoutes({ posts: [], items: [{ title: 'No id' }] })
     expect(bare.map((route) => route.path)).not.toContain('/blog')
-    expect(bare).toHaveLength(7)
+    expect(bare).toHaveLength(8)
   })
 })
 
@@ -212,7 +214,7 @@ describe('noindex, sitemap and robots', () => {
 
   it('lists every route, with a post’s date', () => {
     const xml = sitemap(publicRoutes({ posts: [POST], items: [ITEM] }))
-    expect(xml.match(/<url>/g)).toHaveLength(10)
+    expect(xml.match(/<url>/g)).toHaveLength(11)
     expect(xml).toContain(
       '<loc>https://joey-haas.dev/blog/how-spine-works</loc><lastmod>2026-10-02</lastmod>',
     )

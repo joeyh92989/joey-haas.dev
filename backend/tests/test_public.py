@@ -33,7 +33,7 @@ from public import (
     PublicStatsOut,
     create_public_router,
 )
-from public_outputs import PublicNextOut
+from public_outputs import PublicNextOut, PublicStatusOut
 
 pytestmark = pytest.mark.asyncio
 
@@ -662,6 +662,7 @@ PUBLIC_MODELS = (
     PublicStatsOut,
     PublicNextOut,
     PublicDiaryEntry,
+    PublicStatusOut,
 )
 
 

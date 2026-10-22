@@ -84,4 +84,26 @@ describe('isValidSnapshot', () => {
     expect(isValidSnapshot('next', [])).toBe(false)
     expect(isValidSnapshot('nope', {})).toBe(false)
   })
+
+  it('accepts a status body with a time or none, and integer counts', () => {
+    const status = {
+      refreshed_at: '2026-10-21T00:21:00Z',
+      titles: 5724,
+      platforms: 2,
+      stores_watched: 12,
+      listings: 1958,
+    }
+    expect(isValidSnapshot('status', status)).toBe(true)
+    expect(isValidSnapshot('status', { ...status, refreshed_at: null })).toBe(
+      true,
+    )
+    expect(isValidSnapshot('status', { ...status, refreshed_at: 1 })).toBe(
+      false,
+    )
+    expect(isValidSnapshot('status', { ...status, titles: '5724' })).toBe(false)
+    expect(isValidSnapshot('status', { ...status, listings: undefined })).toBe(
+      false,
+    )
+    expect(isValidSnapshot('status', [])).toBe(false)
+  })
 })

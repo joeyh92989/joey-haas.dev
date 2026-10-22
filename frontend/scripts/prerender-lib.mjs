@@ -142,6 +142,11 @@ export function publicRoutes({ posts, items }) {
       `${spine.next.title} · ${spine.name}`,
       clip(spine.next.lede),
     ),
+    page(
+      spine.how.path,
+      `${spine.tabs.how.label} · ${spine.name}`,
+      spine.how.description,
+    ),
     {
       ...page(
         '/now',

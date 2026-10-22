@@ -303,4 +303,35 @@ describe('fetchSnapshot', () => {
     )
     expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
   })
+
+  it('declares status as optional and writes it when served', async () => {
+    const status = {
+      refreshed_at: null,
+      titles: 0,
+      platforms: 0,
+      stores_watched: 12,
+      listings: 0,
+    }
+    expect(SNAPSHOTS.status.path).toBe('/api/public/status')
+    expect(SNAPSHOTS.status.required).toBe(false)
+    expect(SNAPSHOTS.status.valid(status)).toBe(true)
+    expect(SNAPSHOTS.status.valid({ ...status, titles: null })).toBe(false)
+
+    const base = {
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    }
+    expect(await run(api({ ...base, '/api/public/status': ok(status) }))).toBe(
+      'written',
+    )
+    expect(await written()).toEqual([
+      'items.json',
+      'meta.json',
+      'stats.json',
+      'status.json',
+    ])
+    expect(await run(api(base))).toBe('written')
+    expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
+  })
 })

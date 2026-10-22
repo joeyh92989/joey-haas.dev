@@ -432,3 +432,35 @@ async def count_live(session) -> dict[str, int]:
         .where(StoreListing.availability != "archived")
     )
     return {"live_editions": editions or 0, "live_listings": listings or 0}
+
+
+async def status_counts(session, sources: tuple[str, ...]) -> dict:
+    """The public status strip's figures (spine tour plan, answer 1).
+
+    `refreshed_at` is the newest good run of `sources`, to the minute; a
+    failed run or one still open never counts. `titles` counts matched
+    games only, so the unmatched Switch 1 rows hidden from the admin stay
+    out of it too.
+    """
+    refreshed_at = await session.scalar(
+        select(func.max(CatalogueRun.finished_at)).where(
+            CatalogueRun.source.in_(sources), CatalogueRun.ok.is_(True)
+        )
+    )
+    live = PhysicalEdition.retired_at.is_(None)
+    titles, platforms = (
+        await session.execute(
+            select(
+                func.count(func.distinct(PhysicalEdition.igdb_id)),
+                func.count(func.distinct(PhysicalEdition.platform_id)),
+            ).where(live)
+        )
+    ).one()
+    return {
+        "refreshed_at": (
+            refreshed_at.replace(second=0, microsecond=0) if refreshed_at else None
+        ),
+        "titles": titles,
+        "platforms": platforms,
+        "listings": (await count_live(session))["live_listings"],
+    }

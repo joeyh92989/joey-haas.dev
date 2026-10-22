@@ -52,11 +52,22 @@ const isMetaBody = (body) =>
   typeof body.fetched_at === 'string' &&
   !Number.isNaN(Date.parse(body.fetched_at))
 
+/**
+ * The status strip's body (spine tour). Keep in step with `isStatusBody` in
+ * scripts/fetch-snapshot.mjs: the two predicates must be identical.
+ */
+const STATUS_COUNTS = ['titles', 'platforms', 'stores_watched', 'listings']
+const isStatusBody = (body) =>
+  isObject(body) &&
+  (body.refreshed_at === null || typeof body.refreshed_at === 'string') &&
+  STATUS_COUNTS.every((key) => Number.isInteger(body[key]))
+
 /** Each snapshot's name and the shape its body must have to be used. */
 const SHAPES = {
   items: Array.isArray,
   stats: isStatsBody,
   next: isNextBody,
+  status: isStatusBody,
   meta: isMetaBody,
 }
 

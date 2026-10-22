@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
+import FeatureStrip from '../components/FeatureStrip.jsx'
 import NextBand from '../components/NextBand.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
+import StatusStrip from '../components/StatusStrip.jsx'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { isValidSnapshot, readSnapshot } from '../lib/snapshot.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import {
   countBy,
   filterItems,
@@ -367,6 +370,9 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
  */
 export default function Collection() {
   usePageTitle(`${spine.name} · Joey Haas`)
+  // Read here, once, for the band and the status strip.
+  const next = useSnapshotThenLive('next').data
+  const status = useSnapshotThenLive('status').data
   const [items, setItems] = useState([])
   const [stats, setStats] = useState(null)
   const [state, setState] = useState('loading')
@@ -548,7 +554,11 @@ export default function Collection() {
             />
           )}
 
-          <NextBand />
+          <NextBand next={next} />
+
+          <StatusStrip status={status} next={next} />
+
+          <FeatureStrip />
 
           <FavoritesRow items={items} linkFor={(item) => itemPath(item.id)} />
 
