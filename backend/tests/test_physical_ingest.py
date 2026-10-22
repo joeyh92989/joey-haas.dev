@@ -154,6 +154,12 @@ async def test_a_row_that_is_not_the_stores_own_is_422(
     assert response.status_code == 422
     assert detail in response.json()["detail"]
     assert await live(sessionmaker_for_test, "super_rare") == 0
+    # Refused, but recorded: the store shows as failing, not as last week's run.
+    async with sessionmaker_for_test() as session:
+        run = await session.scalar(select(CatalogueRun))
+    assert (run.source, run.ok, run.rows_seen) == ("super_rare", False, 0)
+    assert run.errors[0]["code"] == "ingest_refused"
+    assert detail in run.errors[0]["detail"]
 
 
 @pytest.mark.parametrize("key", ["atari", "pixelheart"])
@@ -164,6 +170,8 @@ async def test_only_a_shopify_store_takes_an_ingest(sessionmaker_for_test, key):
         )
         skip = await client.get(f"/api/physical/stores/{key}/html-skip")
     assert ingest.status_code == skip.status_code == 422
+    async with sessionmaker_for_test() as session:
+        assert await session.scalar(select(CatalogueRun)) is None
 
 
 async def test_a_malformed_error_is_422(sessionmaker_for_test):

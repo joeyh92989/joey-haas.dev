@@ -612,8 +612,25 @@ def create_physical_router(
         session: AsyncSession = Depends(get_session),
     ) -> RunOut:
         """One Shopify store's walk, read on the nightly runner, recorded as
-        that store's run exactly as a walk here would be (record_store)."""
-        products, errors = ingest_rows(shopify_store(key), body)
+        that store's run exactly as a walk here would be (record_store).
+
+        A refused body is still recorded, as a failed run naming the reason,
+        so /admin/catalogue shows the store failing rather than a stale run.
+        """
+        try:
+            products, errors = ingest_rows(shopify_store(key), body)
+        except HTTPException as refused:
+            if key not in STORES or STORES[key].adapter != "shopify":
+                raise
+            run = await start_run(session, key)
+            await finish_run(
+                session,
+                run,
+                ok=False,
+                errors=[{"code": "ingest_refused", "detail": refused.detail[:500]}],
+            )
+            await session.commit()
+            raise
 
         async def work(run):
             await record_store(session, run, key, products, errors)
