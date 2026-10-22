@@ -24,6 +24,7 @@ from physical_sources.base import (
     PhysicalSourceError,
     StoreProduct,
     plausible_price,
+    status_text,
     throttled_get,
 )
 from physical_sources.courtesy import Robots, allowed
@@ -275,7 +276,7 @@ async def _walk(
         response = await throttled_get(client, url, config.domain, throttle)
         if response.status_code != 200:
             raise PhysicalSourceError(
-                f"{handle} page {page}: HTTP {response.status_code}", code="http_error"
+                f"{handle} page {page}: {status_text(response)}", code="http_error"
             )
         try:
             batch = parse_page(response.json())

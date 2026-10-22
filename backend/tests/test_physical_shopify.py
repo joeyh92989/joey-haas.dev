@@ -11,7 +11,12 @@ from pathlib import Path
 import httpx2
 import pytest
 
-from physical_sources.base import HostThrottle, PhysicalSourceError, throttled_get
+from physical_sources.base import (
+    HostThrottle,
+    PhysicalSourceError,
+    status_text,
+    throttled_get,
+)
 from physical_sources.courtesy import parse_robots
 from physical_sources.limits import CATALOGUE_PLATFORMS
 from physical_sources.shopify import (
@@ -641,6 +646,72 @@ async def test_a_hosts_retries_are_capped_per_run():
     assert len(asked) == 5
     assert len(slept) == 2
     assert throttle.take_retry("other.test")
+
+
+@pytest.mark.asyncio
+async def test_a_429_is_logged_with_its_retry_after_and_the_wait(caplog):
+    client, _ = _rate_limited_client(
+        httpx2.Response(429, headers={"Retry-After": "0"}),
+        httpx2.Response(429, headers={"Retry-After": "0"}),
+    )
+
+    async def sleep(seconds):
+        pass
+
+    async with client:
+        url = "https://fangamer.com/collections/games/products.json?limit=250&page=1"
+        with caplog.at_level("WARNING", logger="physical_sources.base"):
+            await throttled_get(client, url, "fangamer.com", None, sleep=sleep)
+    first, second = [r.getMessage() for r in caplog.records]
+    assert first == (
+        "fangamer.com /collections/games/products.json: HTTP 429 "
+        "(Retry-After: 0), retrying in 0s"
+    )
+    assert second == (
+        "fangamer.com /collections/games/products.json: HTTP 429 "
+        "(Retry-After: 0) again after the retry"
+    )
+    # Only the path: some sources carry a key in the query string.
+    assert "limit=" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_a_429_past_the_retry_budget_is_logged(caplog):
+    client, _ = _rate_limited_client(httpx2.Response(429))
+    throttle = HostThrottle(per_second=1000, retries=0)
+    async with client:
+        url = "https://fangamer.com/collections/games/products.json"
+        with caplog.at_level("WARNING", logger="physical_sources.base"):
+            await throttled_get(client, url, "fangamer.com", throttle)
+    assert [r.getMessage() for r in caplog.records] == [
+        "fangamer.com /collections/games/products.json: HTTP 429 "
+        "(no Retry-After), no retries left this run"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("response", "text"),
+    [
+        (httpx2.Response(404), "HTTP 404"),
+        (httpx2.Response(429), "HTTP 429 (no Retry-After)"),
+        (
+            httpx2.Response(429, headers={"Retry-After": "2"}),
+            "HTTP 429 (Retry-After: 2)",
+        ),
+    ],
+)
+def test_status_text_names_a_429s_retry_after(response, text):
+    assert status_text(response) == text
+
+
+@pytest.mark.asyncio
+async def test_a_rate_limited_collection_reports_its_retry_after():
+    def handler(request):
+        return httpx2.Response(429, headers={"Retry-After": "0"})
+
+    rows, errors = await _walk_with(handler, _single_handle_store())
+    assert rows == []
+    assert [e.detail for e in errors] == ["switch page 1: HTTP 429 (Retry-After: 0)"]
 
 
 @pytest.mark.asyncio
