@@ -287,11 +287,18 @@ it imports no config, FastAPI or SQLAlchemy (a test pins that), so the
 runner installs one package.
 
 **Exit status:** 0 when every store's run is ok; 1 when any store's run
-failed or was not recorded (a 422 names the row, a 409 means a refresh was
-running); 3 when the API answered 401, which the nightly treats as
-configuration and fails the run. 2 is argparse's usage error.
+failed or was not recorded; 3 when the API answered 401, which the nightly
+treats as configuration and fails the run. 2 is argparse's usage error.
+
+**Answers:** a 422 names the row and the problem, and the API records it as
+a failed run (`ingest_refused`), so `/admin/catalogue` shows the store
+failing. A 409 means another call's refresh or resolve still holds the
+catalogue lock; the rows are posted again after 90 seconds, up to six
+times. A 200 that is not a run (a proxy's page) fails that store only.
 
 **Limits:** a run's `started_at` is when its ingest arrived, not when the
 walk began. A walk that raises is posted as one `internal` error, so the run
-is recorded as failed rather than missing. The admin "Refresh stores" button
-still walks every store from Render, and Shopify still answers it 429.
+is recorded as failed rather than missing; a store never posted (the step's
+timeout, a failed install) gets no run that night, and only the nightly's
+summary shows it. The admin "Refresh stores" button still walks every store
+from Render, and Shopify still answers it 429.

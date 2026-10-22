@@ -114,6 +114,56 @@ async def test_a_refused_ingest_fails_that_store_and_the_rest_go_on():
     ]
 
 
+RUN = {
+    "ok": True,
+    "rows_seen": 1,
+    "rows_changed": 1,
+    "rows_retired": 0,
+    "short_run": False,
+    "errors": [],
+}
+
+
+async def test_a_busy_catalogue_is_waited_out(monkeypatch):
+    monkeypatch.setattr(walk_stores, "BUSY_WAIT_SECONDS", 0)
+    posts = []
+
+    def answer(request):
+        if request.method == "GET":
+            return httpx2.Response(200, json={"handles": []})
+        posts.append(request.url.path)
+        return httpx2.Response(409 if len(posts) < 3 else 200, json=RUN)
+
+    api, _ = fake_api(answer)
+    async with api, stores() as client:
+        assert await walk_stores.run(["nicalis"], client, api) == 0
+    assert len(posts) == 3
+
+
+async def test_a_catalogue_busy_past_every_retry_fails_the_store(monkeypatch):
+    monkeypatch.setattr(walk_stores, "BUSY_WAIT_SECONDS", 0)
+    api, seen = fake_api(lambda request: httpx2.Response(409))
+    async with api, stores() as client:
+        assert await walk_stores.run(["nicalis"], client, api) == 1
+    posts = [path for method, path in seen if method == "POST"]
+    assert len(posts) == walk_stores.BUSY_RETRIES + 1
+
+
+async def test_a_200_that_is_not_the_api_fails_that_store_only():
+    def answer(request):
+        if "super_rare" in request.url.path:
+            return httpx2.Response(200, text="<html>waking</html>")
+        if request.method == "GET":
+            return httpx2.Response(200, json={"handles": []})
+        return httpx2.Response(200, json=RUN)
+
+    api, seen = fake_api(answer)
+    async with api, stores() as client:
+        status = await walk_stores.run(["super_rare", "nicalis"], client, api)
+    assert status == 1
+    assert ("POST", "/api/physical/stores/nicalis/ingest") in seen
+
+
 async def test_an_unreachable_api_fails_every_store():
     def answer(request):
         raise httpx2.ConnectError("down", request=request)

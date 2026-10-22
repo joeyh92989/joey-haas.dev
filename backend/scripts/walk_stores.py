@@ -50,6 +50,11 @@ SHOPIFY = [key for key, config in STORES.items() if config.adapter == "shopify"]
 # An ingest writes a few hundred rows to Neon; the API may also be waking.
 API_TIMEOUT_SECONDS = 300.0
 UNAUTHORIZED = 3
+# A 409 means another call's refresh or resolve still runs on the API; each
+# of those is capped at 15 minutes, so 6 waits of a minute and a half cover
+# most of one without stretching a bad night far.
+BUSY_RETRIES = 6
+BUSY_WAIT_SECONDS = 90.0
 
 
 class Unauthorized(Exception):
@@ -69,7 +74,11 @@ async def html_skip(api, key: str) -> frozenset[str]:
     if response.status_code != 200:
         logger.warning("%s: html-skip answered %s", key, response.status_code)
         return frozenset()
-    return frozenset(response.json()["handles"])
+    try:
+        return frozenset(response.json()["handles"])
+    except (ValueError, KeyError, TypeError):
+        logger.warning("%s: html-skip answered 200 without its handles", key)
+        return frozenset()
 
 
 async def walk(key: str, client, throttle, skip: frozenset[str]) -> tuple:
@@ -92,15 +101,24 @@ async def ingest(api, key: str, products, errors) -> bool:
         "products": [wire.product_to_wire(p) for p in products],
         "errors": [wire.error_to_wire(e) for e in errors],
     }
-    try:
-        response = await api.post(f"/api/physical/stores/{key}/ingest", json=body)
-    except httpx2.HTTPError as error:
-        logger.warning("%s: ingest failed: %s", key, type(error).__name__)
-        return False
+    for attempt in range(BUSY_RETRIES + 1):
+        try:
+            response = await api.post(f"/api/physical/stores/{key}/ingest", json=body)
+        except httpx2.HTTPError as error:
+            logger.warning("%s: ingest failed: %s", key, type(error).__name__)
+            return False
+        # 409: an earlier call's refresh still holds the catalogue lock (its
+        # curl may have given up first). The rows are in hand; wait and post
+        # them again rather than lose the walk.
+        if response.status_code != 409 or attempt == BUSY_RETRIES:
+            break
+        logger.info("%s: catalogue busy (409), posting again shortly", key)
+        await asyncio.sleep(BUSY_WAIT_SECONDS)
     if response.status_code == 401:
         raise Unauthorized
     if response.status_code != 200:
-        # A 422 names the row and the problem; a 409 is a refresh running.
+        # A 422 names the row and the problem (the API records it as a
+        # failed run); a 409 here outlasted every retry.
         logger.warning(
             "%s: ingest answered %s: %s",
             key,
@@ -108,7 +126,15 @@ async def ingest(api, key: str, products, errors) -> bool:
             response.text[:500],
         )
         return False
-    run = response.json()
+    try:
+        run = response.json()
+        return _logged(key, run)
+    except (ValueError, KeyError, TypeError):
+        logger.warning("%s: ingest answered 200 without a run", key)
+        return False
+
+
+def _logged(key: str, run: dict) -> bool:
     logger.info(
         "%s: ok=%s seen=%s changed=%s archived=%s short=%s",
         key,
