@@ -298,7 +298,11 @@ rules". On 2026-10-20 every Shopify store answered 429 to page 1 of its
 first collection, while the same request from another network got a 200.
 Probably Shopify limiting Render's shared outbound IP across its stores;
 unconfirmed, since nothing can be run from the instance itself. A run with
-errors never archives, so nothing was lost.
+errors never archives, so nothing was lost. To tell a limit worth waiting
+out from a block, every 429 is logged at WARNING (host, path, Retry-After,
+the wait, or "no retries left this run"), and a run's error reads
+`HTTP 429 (Retry-After: N)` rather than a bare status. Only the path is
+logged: a query string can carry a source's key.
 
 ## Adding a store
 

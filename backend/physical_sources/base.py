@@ -9,9 +9,11 @@ SQLAlchemy.
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
+from urllib.parse import urlsplit
 
 from physical_sources.limits import (
     MAX_PRICE,
@@ -20,6 +22,8 @@ from physical_sources.limits import (
     RATE_LIMIT_RETRIES_PER_HOST,
     REQUESTS_PER_SECOND,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -187,12 +191,35 @@ async def throttled_get(
     A 429 is retried once, after retry_after(), while the host has retries
     left in the throttle's budget; a second 429 goes back to the caller,
     which handles it like any other status. `sleep` is for tests.
+
+    Every 429 is logged with its Retry-After and what was done about it,
+    naming the path only: a query string can carry a source's key.
     """
     response = await _get(client, url, host, throttle)
-    if response.status_code == 429 and may_retry(host, throttle):
-        await sleep(retry_after(response.headers.get("retry-after")))
-        response = await _get(client, url, host, throttle)
+    if response.status_code != 429:
+        return response
+    where = f"{host} {urlsplit(url).path}"
+    if not may_retry(host, throttle):
+        logger.warning("%s: %s, no retries left this run", where, status_text(response))
+        return response
+    wait = retry_after(response.headers.get("retry-after"))
+    logger.warning("%s: %s, retrying in %.0fs", where, status_text(response), wait)
+    await sleep(wait)
+    response = await _get(client, url, host, throttle)
+    if response.status_code == 429:
+        logger.warning("%s: %s again after the retry", where, status_text(response))
     return response
+
+
+def status_text(response) -> str:
+    """'HTTP <status>' for a run's error detail, with a 429's Retry-After,
+    so /admin/catalogue shows how long a store asked us to wait."""
+    if response.status_code != 429:
+        return f"HTTP {response.status_code}"
+    value = response.headers.get("retry-after")
+    if value is None:
+        return "HTTP 429 (no Retry-After)"
+    return f"HTTP 429 (Retry-After: {value})"
 
 
 def plausible_price(value: Decimal | None) -> Decimal | None:
