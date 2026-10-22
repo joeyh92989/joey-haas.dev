@@ -43,8 +43,8 @@ env:
 jobs:
   nightly:
     runs-on: ubuntu-latest
-    # The store walk is the long step (up to 90 minutes); Render allows a
-    # request 100 minutes.
+    # The Shopify walk is the long step (up to 75 minutes, on this runner);
+    # Render allows a request 100 minutes.
     timeout-minutes: 150
     steps:
       - name: Wake the API
@@ -60,6 +60,16 @@ jobs:
           done
           echo "::error::The API did not wake within six minutes"
           exit 1
+
+      # The Shopify stores are walked here, not on Render: Shopify
+      # rate-limits Render's shared IP (backend/scripts/README.md,
+      # walk_stores.py). The walk needs only httpx2, at requirements.txt's pin.
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install the store walk's one dependency
+        run: pip install "$(grep -E '^httpx2([<>=!~ ]|$)' backend/requirements.txt)"
 
       - name: Refresh the picks, the catalogue and the suggestions
         id: refresh
@@ -131,9 +141,30 @@ jobs:
           # publishes yesterday's picks and records today's.
           call picks 120 /api/picker/next
           call registry 900 /api/physical/refresh-registry
-          # 90 minutes: a run can spend 60 waiting out 429s (12 stores x 5
-          # retries x 60s, limits.py) before its own fetching and resolve.
-          call stores 5400 /api/physical/refresh
+          # WooCommerce on Render, then the nine Shopify stores walked on
+          # this runner and posted to the API store by store. 75 minutes for
+          # the walk: up to 45 waiting out 429s (9 stores x 5 retries x 60s,
+          # limits.py) should this runner's IP be limited too. Its exit
+          # status: 0 ok, 3 the API refused JOB_TOKEN, anything else (124
+          # for the timeout) a failed or unrecorded store.
+          call stores 900 /api/physical/refresh '{"adapter":"woocommerce"}'
+          walk=0
+          (cd backend && timeout 4500 python scripts/walk_stores.py) || walk=$?
+          case "$walk" in
+            0)
+              echo "shopify-stores: ok"
+              ok="$ok shopify-stores"
+              ;;
+            3)
+              echo "::error::shopify-stores: HTTP 401: the API refused JOB_TOKEN"
+              failed="$failed shopify-stores"
+              unauthorized=true
+              ;;
+            *)
+              echo "::warning::shopify-stores: exit $walk: a store's run failed or was not recorded"
+              failed="$failed shopify-stores"
+              ;;
+          esac
           # Weekly: Sunday evening in Denver is Monday in UTC.
           if [ "$weekly" = true ]; then
             call switch1 1800 /api/physical/refresh-switch1

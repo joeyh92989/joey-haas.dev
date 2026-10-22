@@ -73,7 +73,8 @@ sequenceDiagram
 - **`backend/scripts/walk_stores.py`:** for each Shopify store, html-skip,
   walk, ingest. A walk that raises posts one `internal` error so the run is
   still recorded as failed. Exit 0 when every run is ok, 1 when any failed,
-  2 on a 401 (configuration, which fails the nightly as a 401 does now).
+  3 on a 401 (configuration, which fails the nightly as a 401 does now;
+  not 2, which argparse uses for a usage error).
 - **nightly.yml:** checkout + `setup-python` 3.12 + `pip install httpx2`
   before the refresh step; `call stores` becomes the WooCommerce-only call
   (900s), then the script, whose exit code feeds `ok` / `failed` /
