@@ -43,7 +43,7 @@ env:
 jobs:
   nightly:
     runs-on: ubuntu-latest
-    # The store walk is the long step (up to an hour); Render allows a
+    # The store walk is the long step (up to 90 minutes); Render allows a
     # request 100 minutes.
     timeout-minutes: 150
     steps:
@@ -131,7 +131,9 @@ jobs:
           # publishes yesterday's picks and records today's.
           call picks 120 /api/picker/next
           call registry 900 /api/physical/refresh-registry
-          call stores 3600 /api/physical/refresh
+          # 90 minutes: a run can spend 60 waiting out 429s (12 stores x 5
+          # retries x 60s, limits.py) before its own fetching and resolve.
+          call stores 5400 /api/physical/refresh
           # Weekly: Sunday evening in Denver is Monday in UTC.
           if [ "$weekly" = true ]; then
             call switch1 1800 /api/physical/refresh-switch1
