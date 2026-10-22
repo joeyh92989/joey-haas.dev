@@ -23,8 +23,11 @@ REQUEST_TIMEOUT_SECONDS = 30.0
 # A 429 is retried once, after the host's Retry-After in seconds, capped;
 # without one (or with a date), after the default. At most
 # RATE_LIMIT_RETRIES_PER_HOST retries per host per run, so a host that keeps
-# limiting adds at most 5 x 30s to the run, whatever it asks for.
-RATE_LIMIT_MAX_WAIT = 30.0
+# limiting adds at most 5 x 60s to the run, whatever it asks for. The cap is
+# Shopify's own Retry-After (60 on every 429 from Render, 2026-10-20): at 30
+# the retry came back early and was refused again. Nine Shopify stores at the
+# worst case is 45 minutes of waiting, inside the nightly's 3600s stores call.
+RATE_LIMIT_MAX_WAIT = 60.0
 RATE_LIMIT_DEFAULT_WAIT = 10.0
 RATE_LIMIT_RETRIES_PER_HOST = 5
 # A walk stops here even if pages keep coming full: a host that ignores the
