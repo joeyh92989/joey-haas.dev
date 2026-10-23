@@ -16,13 +16,13 @@ import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 export const SITE_URL = 'https://joey-haas.dev'
 
 const SITE_DESCRIPTION =
-  'Joey Haas is a senior software engineer in Denver building payments and ledger systems, and Spine, a tracker for a physical game collection.'
+  'Joey Haas is a senior software engineer in Denver building payments and ledger systems, and My Shelf, a tracker for his physical game collection.'
 
 const DEFAULT_IMAGE = {
   url: `${SITE_URL}/og-card.png`,
   width: 1200,
   height: 630,
-  alt: 'Joey Haas, senior software engineer, and Spine, a tracker for my physical game collection.',
+  alt: 'Joey Haas, senior software engineer, and My Shelf, a tracker for his physical game collection.',
 }
 
 /** How an item's type reads in "in Joey Haas’s …". */

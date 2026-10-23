@@ -133,6 +133,21 @@ describe('renderHead', () => {
     expect(html.match(/name="description"/g)).toHaveLength(1)
   })
 
+  // renderHead replaces the shell's tags, so its defaults are what ships:
+  // they must say what index.html says.
+  it('gives the home page the shell’s description and image alt', () => {
+    const shellContent = (attr) =>
+      SHELL.match(new RegExp(`${attr}"\\s+content="([^"]*)"`))[1]
+    const home = renderHead(
+      SHELL,
+      routeAt(publicRoutes({ posts: [], items: [] }), '/'),
+    )
+    expect(home).toContain(`content="${shellContent('name="description')}"`)
+    expect(home).toContain(
+      `content="${shellContent('property="og:image:alt')}"`,
+    )
+  })
+
   it('keeps the rest of the shell', () => {
     expect(html).toContain('<div id="root"></div>')
     expect(html).toContain("localStorage.getItem('theme')")
