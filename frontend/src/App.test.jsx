@@ -75,7 +75,7 @@ describe('App redirects', () => {
 
 /** [path, title]; each later task adds its routes' rows. */
 const TITLES = [
-  ['/', 'Joey Haas — Senior software engineer, Denver'],
+  ['/', 'Joey Haas · Senior software engineer, Denver'],
   ['/about', 'About · Joey Haas'],
   ['/projects', 'Projects · Joey Haas'],
   ['/now', 'Now · Joey Haas'],

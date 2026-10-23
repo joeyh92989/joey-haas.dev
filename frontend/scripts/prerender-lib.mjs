@@ -120,7 +120,7 @@ export function publicRoutes({ posts, items }) {
   const routes = [
     page(
       '/',
-      `${profile.name} — Senior software engineer, Denver`,
+      `${profile.name} · Senior software engineer, Denver`,
       SITE_DESCRIPTION,
     ),
     page(

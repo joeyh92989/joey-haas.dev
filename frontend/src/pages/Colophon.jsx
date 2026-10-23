@@ -25,7 +25,7 @@ export default function Colophon() {
           tokens; no CSS framework.
         </li>
         <li>
-          Set in Inter, JetBrains Mono and Source Serif 4, self-hosted rather
+          Set in Inter, JetBrains Mono, and Source Serif 4, self-hosted rather
           than loaded from a font service.
         </li>
         <li>
@@ -48,14 +48,14 @@ export default function Colophon() {
         </li>
         <li>
           <Link to={spine.path}>{spine.name}</Link> reads game metadata from
-          IGDB, and films and comics from TMDB and Comic Vine. Gemini reads
-          titles off shelf photos and writes Discover&rsquo;s picks, answering
-          only with games from a list it&rsquo;s given.
+          IGDB, and film and comic metadata from TMDB and Comic Vine. Gemini
+          reads titles from shelf photos and writes Discover&rsquo;s picks,
+          answering only with games from a list it&rsquo;s given.
         </li>
         <li>
           A nightly GitHub Actions job refreshes the picks and the physical
-          release catalog, then redeploys the site when the shelf has changed,
-          so its snapshot stays current.
+          release catalog, then redeploys the site when the collection has
+          changed, so its snapshot stays current.
         </li>
       </ul>
 

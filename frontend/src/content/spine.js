@@ -27,9 +27,9 @@ export const spine = {
   path: '/spine',
   tagline:
     'A tracker for my physical game collection: what I own, what I’ve finished, and what to play next.',
-  projectsTagline: 'A tracker for a physical game collection',
+  projectsTagline: 'A tracker for my physical game collection',
   homeLine:
-    'A tracker for a physical game collection: photo import, a physical catalog, and picks that say why.',
+    'A tracker for my physical game collection: it reads the shelf from a photo, knows which boxes hold a real cartridge, and picks what to play next.',
   projectLine:
     'I built this: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
   links,
@@ -47,15 +47,15 @@ export const spine = {
    */
   how: {
     path: '/spine/how',
-    title: 'How Spine works, in eight stops',
+    title: 'How My Shelf works, in eight stops',
     description:
-      'A guided tour of Spine: photo import, the physical catalog, Play Next, Radar, Discover and the nightly job, each public result beside the signed-in tool that made it.',
-    lede: 'Everything on the Shelf and What’s next comes out of a pipeline I run for myself. Each stop shows the public result beside the signed-in tool that made it, drawn, with the code it runs.',
+      'A guided tour of My Shelf: photo import, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
+    lede: 'Everything on the Collection and What’s next pages comes out of a pipeline I run for myself. Each stop pairs the public result with a drawing of the signed-in tool that made it and links to the code it runs.',
     tocLabel: 'Stops',
     live: 'Live, from the public API',
     behind: 'Behind the sign-in',
     stopLabel: 'Stop',
-    featuresLabel: 'What Spine does',
+    featuresLabel: 'What it does',
     tour: 'Take the tour',
     redacted: 'store withheld',
     // Stop 2's facts once /api/public/status answers: the catalog line is
@@ -142,7 +142,7 @@ export const spine = {
         where: '/admin/catalogue',
         title: 'Knows cartridge from Game-Key Card',
         claim:
-          'A Switch 2 box can hold the full game or only a key to download it. Spine reads the r/NSCollectors registry, the Switch 1 release sheet and twelve boutique stores, and collapses them to one honest format per game.',
+          'A Switch 2 box can hold the full game or only a key to download it. My Shelf reads the r/NSCollectors registry, the Switch 1 release sheet, and twelve boutique stores, and collapses them to one honest format per game.',
         why: {
           lead: 'The collapse rule:',
           text: 'any full cartridge in the home region makes a game a cartridge, because a registry row and a store listing usually describe different editions. Switch 1 is region-free, so any region counts there. A format I recorded from my own copy is never overwritten.',
@@ -198,7 +198,7 @@ export const spine = {
         code: ['backend/picker.py'],
         live: {
           caption:
-            'Up next, which I pin, and the day’s picks. The picks change at most once a day.',
+            'Up next, which I pin by hand, and the day’s picks, which change at most once a day.',
           empty: 'Nothing lined up for tonight.',
         },
         capture: {
@@ -277,9 +277,9 @@ export const spine = {
       {
         n: 6,
         where: '/admin/store-list',
-        title: 'Fits in a pocket in a store',
+        title: 'Comes along to the store',
         claim:
-          'The signed-in store list has What’s next’s sections, built by the same server function, with Got it, Want and Not interested on every row for the shop floor.',
+          'The signed-in store list uses the same sections as What’s next, built by the same server function, with Got it, Want, and Not interested on every row so I can answer from the shop floor.',
         code: ['backend/next_list.py'],
       },
       {
@@ -287,7 +287,7 @@ export const spine = {
         where: 'nightly.yml',
         title: 'Rebuilds itself every night',
         claim:
-          'At 00:17 UTC a GitHub Actions job takes the day’s picks, refreshes the registry and the stores, regenerates Radar (and Discover once a week), and redeploys the static site only when the snapshot changed.',
+          'At 00:17 UTC, a GitHub Actions job records the day’s picks, refreshes the registry and the stores, regenerates Radar (and Discover once a week), and redeploys the static site only when the snapshot has changed.',
         why: {
           lead: 'Why a job token:',
           text: 'it works only on a pinned list of routes, and a test fails if that list grows unnoticed.',
@@ -296,7 +296,7 @@ export const spine = {
         capture: {
           url: 'nightly.yml',
           tag: 'GitHub Actions',
-          note: 'Some of one run, drawn, in the job’s order. Timings are illustrative.',
+          note: 'Part of one run, in the job’s order. Timings are illustrative.',
           columns: ['Step', 'Result', 'Took'],
           rows: [
             ['picks', { pill: 'ok', tone: 'ok' }, '2 s'],
@@ -318,7 +318,7 @@ export const spine = {
         where: 'tests',
         title: 'Keeps the private parts private',
         claim:
-          'A test pins exactly which keys a public row may carry and walks every body for forbidden ones. Reasons are rebuilt over public games only, and a model’s sentence is published only when every game it cites is public.',
+          'A test pins exactly which keys a public row may carry and walks every response body for forbidden ones. Reasons are rebuilt from public games only, and a model’s sentence is published only when every game it cites is public.',
         code: ['backend/tests/test_public_outputs.py'],
         capture: {
           url: 'test_public_outputs.py',
@@ -347,7 +347,7 @@ export const spine = {
     },
   },
   status: {
-    label: 'Spine status',
+    label: 'Status',
     refreshed: 'Last refreshed',
     fresh: 'refreshed in the last 36 hours',
     stale: 'not refreshed in over 36 hours',

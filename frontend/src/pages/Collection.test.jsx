@@ -206,7 +206,7 @@ describe('Collection', () => {
     await renderReady()
 
     const hero = document.querySelector('.hero-numbers')
-    const strip = screen.getByRole('region', { name: 'What Spine does' })
+    const strip = screen.getByRole('region', { name: 'What it does' })
     const favourites = screen.getByRole('region', { name: 'Favorites' })
     const follows = Node.DOCUMENT_POSITION_FOLLOWING
     expect(hero.compareDocumentPosition(strip) & follows).toBeTruthy()
@@ -218,9 +218,9 @@ describe('Collection', () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
 
-    const strip = await screen.findByLabelText('Spine status')
+    const strip = await screen.findByLabelText('Status', { selector: 'dl' })
     expect(strip).toHaveTextContent('5,724 titles')
-    const does = screen.getByRole('region', { name: 'What Spine does' })
+    const does = screen.getByRole('region', { name: 'What it does' })
     expect(
       strip.compareDocumentPosition(does) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
@@ -229,7 +229,7 @@ describe('Collection', () => {
   it('has no axe violations on the landing', async () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
-    await screen.findByLabelText('Spine status')
+    await screen.findByLabelText('Status', { selector: 'dl' })
 
     // The render container, like the other page tests: the page is drawn
     // without RootLayout's <main>, so the whole body has no landmarks.
@@ -597,7 +597,9 @@ describe('Collection', () => {
     })
     renderPage()
 
-    expect(await screen.findByText(/nothing here yet/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/nothing on the shelf yet/i),
+    ).toBeInTheDocument()
     expect(document.querySelector('.hero-numbers')).toBeNull()
     expect(document.querySelector('.status-bar')).toBeNull()
     expect(document.querySelector('.shelf-toolbar')).toBeNull()

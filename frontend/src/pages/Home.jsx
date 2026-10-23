@@ -37,7 +37,7 @@ function lastShipped(post) {
  * is the newest post and is left out while there is none.
  */
 export default function Home() {
-  usePageTitle('Joey Haas — Senior software engineer, Denver')
+  usePageTitle('Joey Haas · Senior software engineer, Denver')
   const [latest] = posts
   const [playing, setPlaying] = useState([])
 

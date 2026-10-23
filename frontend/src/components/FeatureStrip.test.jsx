@@ -12,7 +12,7 @@ describe('FeatureStrip', () => {
       </MemoryRouter>,
     )
 
-    const strip = screen.getByRole('region', { name: 'What Spine does' })
+    const strip = screen.getByRole('region', { name: 'What it does' })
     expect(
       within(strip).getByRole('link', { name: /Take the tour/ }),
     ).toHaveAttribute('href', '/spine/how')
