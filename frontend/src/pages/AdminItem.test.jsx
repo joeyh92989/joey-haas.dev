@@ -319,7 +319,7 @@ describe('AdminItem', () => {
     )
 
     expect(
-      await screen.findByText(/linked, but the metadata could not be fetched/i),
+      await screen.findByText(/linked, but the metadata couldn’t be fetched/i),
     ).toBeInTheDocument()
   })
 
@@ -608,7 +608,7 @@ describe('AdminItem edits made while a re-link is in flight', () => {
     answer()
 
     expect(
-      await screen.findByText(/linked, but the metadata could not be fetched/i),
+      await screen.findByText(/linked, but the metadata couldn’t be fetched/i),
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Rating')).toHaveValue(8)
   })

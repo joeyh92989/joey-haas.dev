@@ -148,7 +148,7 @@ describe('AdminAnalytics', () => {
     expect(tile('Page views')).toHaveTextContent('—')
     fireEvent.click(screen.getByRole('button', { name: '7d' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Session ended — reload to sign in',
+      'Your session ended. Reload to sign in.',
     )
   })
 })

@@ -42,7 +42,7 @@ const SIZES = ['comfortable', 'compact']
 
 /** The favourites row's size; the API refuses a fifth (see items.py). */
 const FAVORITES_LIMIT = 4
-const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favorites. Unfavorite one first.`
+const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favorites. Remove one first.`
 
 /** Below this many rated or favourited items, the shelf asks for ratings. */
 const NUDGE_BELOW = 5
@@ -330,9 +330,7 @@ export default function AdminCollection() {
   async function setAllVisibility(isPublic) {
     if (
       isPublic &&
-      !window.confirm(
-        `Publish all ${items.length} items to the public collection page?`,
-      )
+      !window.confirm(`Publish all ${items.length} items to My Shelf?`)
     ) {
       return
     }

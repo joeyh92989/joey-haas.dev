@@ -20,7 +20,9 @@ describe('SpineHeader', () => {
     ).toBeInTheDocument()
     const tabs = screen.getByRole('navigation', { name: 'My Shelf sections' })
     expect(tabs).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Collection' })).toHaveClass('active')
+    expect(screen.getByRole('link', { name: 'Collection' })).toHaveClass(
+      'active',
+    )
     expect(screen.getByRole('link', { name: 'What’s next' })).not.toHaveClass(
       'active',
     )

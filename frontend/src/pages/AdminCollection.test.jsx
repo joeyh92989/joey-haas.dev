@@ -564,7 +564,7 @@ describe('AdminCollection nudge', () => {
 })
 
 describe('AdminCollection favourites cap', () => {
-  const FULL = 'You already have 4 favorites. Unfavorite one first.'
+  const FULL = 'You already have 4 favorites. Remove one first.'
 
   /** Star Fox and Dune plus `count` favourited games. */
   function withFavourites(count) {

@@ -281,7 +281,7 @@ describe('Admin Dashboard', () => {
     })
     renderAt()
     expect(
-      await screen.findByText('Session ended — reload to sign in'),
+      await screen.findByText('Your session ended. Reload to sign in.'),
     ).toBeInTheDocument()
   })
 

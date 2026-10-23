@@ -344,7 +344,7 @@ export default function AdminItem() {
       if (!refreshed.ok) {
         applyServerItem(await linked.json())
         setError(
-          'Linked, but the metadata could not be fetched. Try saving again.',
+          'Linked, but the metadata couldn’t be fetched. Try saving again.',
         )
         return
       }
@@ -420,8 +420,7 @@ export default function AdminItem() {
 
   async function remove() {
     // Deleting is the one irreversible thing this page does.
-    if (!window.confirm(`Delete “${item.title}”? This cannot be undone.`))
-      return
+    if (!window.confirm(`Delete “${item.title}”? This can’t be undone.`)) return
 
     setError(null)
     try {

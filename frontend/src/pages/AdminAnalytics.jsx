@@ -26,7 +26,7 @@ const referrerName = (value) => value || 'Direct / none'
 /** What went wrong, in words, for a read that did not answer 200. */
 function failureWords(response) {
   if (response?.status === 401 || response?.status === 403) {
-    return 'Session ended — reload to sign in'
+    return 'Your session ended. Reload to sign in.'
   }
   return 'The analytics could not be read.'
 }

@@ -261,7 +261,7 @@ export default function PlayNext() {
   const header = (
     <AdminPageHeader
       title="Play Next"
-      description="Three picks from the backlog, scored against what you rated, loved and finished."
+      description="Three picks from the backlog, scored against what you’ve rated, loved, and finished."
     />
   )
 
@@ -375,8 +375,8 @@ export default function PlayNext() {
       {result && result.profile_size < PROFILE_NUDGE_BELOW && (
         <p className="shelf-nudge">
           These picks have little to go on yet.{' '}
-          <Link to="/admin/collection">Rate a few finished games</Link> and they
-          get sharper.
+          <Link to="/admin/collection">Rate a few finished games</Link>, and
+          they’ll get sharper.
         </p>
       )}
 

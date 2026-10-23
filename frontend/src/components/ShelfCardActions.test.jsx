@@ -118,7 +118,7 @@ describe('ShelfCardActions when four favourites are set', () => {
     expect(heart).toHaveAttribute('aria-disabled', 'true')
     expect(heart).not.toBeDisabled()
     expect(heart).toHaveAccessibleDescription(
-      'Four favorites already set. Unfavorite one first.',
+      'Four favorites already set. Remove one first.',
     )
   })
 
