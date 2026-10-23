@@ -72,19 +72,19 @@ describe('publicRoutes', () => {
 
   it('titles pages the way the app does', () => {
     expect(routeAt(routes, '/about').title).toBe('About · Joey Haas')
-    expect(routeAt(routes, '/spine/next').title).toBe('What’s next · Spine')
-    expect(routeAt(routes, '/spine/how').title).toBe('How it works · Spine')
+    expect(routeAt(routes, '/spine/next').title).toBe('What’s next · My Shelf')
+    expect(routeAt(routes, '/spine/how').title).toBe('How it works · My Shelf')
     expect(routeAt(routes, '/blog/how-spine-works').title).toBe(
       'How Spine works · Joey Haas',
     )
-    expect(routeAt(routes, `/spine/${ITEM.id}`).title).toBe('Hades II · Spine')
+    expect(routeAt(routes, `/spine/${ITEM.id}`).title).toBe('Hades II · My Shelf')
   })
 
   it('previews an item with its cover and a plain description', () => {
     const item = routeAt(routes, `/spine/${ITEM.id}`)
     expect(item.image.url).toBe(ITEM.cover_url)
     expect(item.description).toBe(
-      'Hades II on Nintendo Switch 2, in Joey Haas’s game collection on Spine. Rated 9/10.',
+      'Hades II on Nintendo Switch 2, in Joey Haas’s game collection on My Shelf. Rated 9/10.',
     )
   })
 
@@ -97,10 +97,10 @@ describe('publicRoutes', () => {
       ],
     }).slice(-2)
     expect(film.description).toBe(
-      'Heat, in Joey Haas’s film collection on Spine.',
+      'Heat, in Joey Haas’s film collection on My Shelf.',
     )
     expect(wanted.description).toBe(
-      'Pikmin 5, on Joey Haas’s want list on Spine.',
+      'Pikmin 5, on Joey Haas’s want list on My Shelf.',
     )
   })
 
@@ -239,7 +239,7 @@ describe('spineFeed', () => {
       ([, title]) => title,
     )
     expect(titles).toEqual([
-      'Spine: finished games',
+      'My Shelf: finished games',
       'Finished Newer',
       'Finished Older',
     ])
@@ -272,7 +272,7 @@ describe('year in review routes', () => {
       '/spine/year/2026',
       '/spine/year/2025',
     ])
-    expect(years[0].title).toBe('2026 in review · Spine')
+    expect(years[0].title).toBe('2026 in review · My Shelf')
     expect(years[0].description.startsWith('2 games finished in 2026')).toBe(
       true,
     )
@@ -295,7 +295,7 @@ describe('journal month routes', () => {
       '/spine/journal/2026-09',
       '/spine/journal/2025-12',
     ])
-    expect(months[0].title).toBe('September 2026 · Spine')
+    expect(months[0].title).toBe('September 2026 · My Shelf')
     expect(
       months[0].description.startsWith('2 games finished in September 2026'),
     ).toBe(true)

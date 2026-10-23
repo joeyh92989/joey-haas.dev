@@ -300,7 +300,7 @@ describe('Item title', () => {
       vi.fn(() => new Promise(() => {})),
     )
     renderPage()
-    expect(document.title).toBe('Spine · Joey Haas')
+    expect(document.title).toBe('My Shelf · Joey Haas')
   })
 
   it('names the item once it loads', async () => {
@@ -308,7 +308,7 @@ describe('Item title', () => {
     await renderReady()
     // The title is set by a passive effect, which React flushes after the
     // commit that put the heading on screen: wait for it, don't read it.
-    await waitFor(() => expect(document.title).toBe('Hades · Spine'))
+    await waitFor(() => expect(document.title).toBe('Hades · My Shelf'))
   })
 
   it('names the item from the snapshot while the server wakes', async () => {
@@ -327,7 +327,7 @@ describe('Item title', () => {
       vi.fn(() => new Promise(() => {})),
     )
     renderPage()
-    await waitFor(() => expect(document.title).toBe('Hades · Spine'))
+    await waitFor(() => expect(document.title).toBe('Hades · My Shelf'))
   })
 
   it('leaves the title to NotFound on a 404', async () => {

@@ -193,7 +193,7 @@ describe('RootLayout nav', () => {
 
   it('lists Spine, and no Blog while nothing is published', () => {
     renderAt('/about')
-    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Spine'])
+    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'My Shelf'])
   })
 
   it('adds Blog last once a post is published', () => {
@@ -202,14 +202,14 @@ describe('RootLayout nav', () => {
       frontmatter: { title: 'First', date: '2026-10-01' },
     })
     renderAt('/about')
-    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Spine', 'Blog'])
+    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'My Shelf', 'Blog'])
   })
 
   it('keeps Spine current on an item page', () => {
     renderAt('/spine/abc')
     expect(
       within(screen.getByRole('navigation')).getByRole('link', {
-        name: 'Spine',
+        name: 'My Shelf',
       }),
     ).toHaveAttribute('aria-current', 'page')
   })
@@ -263,7 +263,7 @@ describe('RootLayout masthead', () => {
 
   it('keeps Spine current on What’s next', () => {
     renderAt('/spine/next')
-    expect(screen.getByRole('link', { name: 'Spine' })).toHaveClass('active')
+    expect(screen.getByRole('link', { name: 'My Shelf' })).toHaveClass('active')
   })
 
   it('keeps the toggle outside the nav landmark', () => {

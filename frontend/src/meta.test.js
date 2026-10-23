@@ -17,9 +17,9 @@ function meta(key) {
 }
 
 describe('index.html meta', () => {
-  it('describes the site and Spine', () => {
+  it('describes the site and My Shelf', () => {
     expect(meta('description')).toBe(
-      'Joey Haas is a senior software engineer in Denver building payments and ledger systems, and Spine, a tracker for a physical game collection.',
+      'Joey Haas is a senior software engineer in Denver building payments and ledger systems, and My Shelf, a tracker for his physical game collection.',
     )
     expect(meta('og:description')).toBe(meta('description'))
   })

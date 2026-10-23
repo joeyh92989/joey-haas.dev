@@ -66,7 +66,7 @@ function navItems(hasPosts) {
     { to: '/', label: 'Home', end: true },
     { to: '/about', label: 'About' },
     { to: '/projects', label: 'Projects' },
-    { to: '/spine', label: 'Spine' },
+    { to: '/spine', label: 'My Shelf' },
     ...(hasPosts ? [{ to: '/blog', label: 'Blog' }] : []),
   ]
 }

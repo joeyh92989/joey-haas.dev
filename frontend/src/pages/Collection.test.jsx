@@ -786,7 +786,7 @@ describe('Collection and What’s next', () => {
     expect(screen.queryByRole('region', { name: 'Up next' })).toBeNull()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(
-      screen.getByRole('navigation', { name: 'Spine sections' }),
+      screen.getByRole('navigation', { name: 'My Shelf sections' }),
     ).toBeInTheDocument()
   })
 
@@ -806,7 +806,7 @@ describe('Collection and What’s next', () => {
     const { unmount } = renderPage()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(
-      screen.getByRole('navigation', { name: 'Spine sections' }),
+      screen.getByRole('navigation', { name: 'My Shelf sections' }),
     ).toBeInTheDocument()
     unmount()
 
@@ -814,10 +814,10 @@ describe('Collection and What’s next', () => {
     renderPage()
     await screen.findByText(/didn’t load/i)
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('navigation', { name: 'Spine sections' }),
+      screen.getByRole('navigation', { name: 'My Shelf sections' }),
     ).toBeInTheDocument()
   })
 })
@@ -828,7 +828,7 @@ describe('Collection header', () => {
     await renderReady()
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
     ).toBeInTheDocument()
     expect(
       screen.getByText(/^A tracker for my physical game collection:/),
@@ -854,7 +854,7 @@ describe('Collection header', () => {
     renderPage()
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
     ).toBeInTheDocument()
     expect(screen.queryByText(/^I built this:/)).toBeNull()
   })

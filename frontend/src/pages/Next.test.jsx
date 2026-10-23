@@ -108,7 +108,7 @@ describe('Next', () => {
   it('sets the page title', () => {
     mockNext({ data: NEXT, live: true, failed: false })
     renderPage()
-    expect(document.title).toBe('What’s next · Spine')
+    expect(document.title).toBe('What’s next · My Shelf')
   })
 
   it('links tonight’s picks to their item pages, with Up next first', () => {

@@ -81,7 +81,7 @@ const TITLES = [
   ['/now', 'Now · Joey Haas'],
   ['/colophon', 'Colophon · Joey Haas'],
   ['/blog', 'Blog · Joey Haas'],
-  ['/spine', 'Spine · Joey Haas'],
+  ['/spine', 'My Shelf · Joey Haas'],
   ['/nonsense-path', 'Not found · Joey Haas'],
   ['/blog/no-such-post', 'Not found · Joey Haas'],
   ['/admin', 'Dashboard · Admin · Joey Haas'],
@@ -95,13 +95,13 @@ const TITLES = [
   ['/admin/store-list', 'Store list · Admin · Joey Haas'],
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
   ['/admin/no-such-page', 'Not found · Joey Haas'],
-  ['/spine/42', 'Spine · Joey Haas'],
-  ['/spine/next', 'What’s next · Spine'],
-  ['/spine/how', 'How it works · Spine'],
-  ['/spine/year/2025', '2025 in review · Spine'],
-  ['/spine/journal/2026-10', 'October 2026 · Spine'],
+  ['/spine/42', 'My Shelf · Joey Haas'],
+  ['/spine/next', 'What’s next · My Shelf'],
+  ['/spine/how', 'How it works · My Shelf'],
+  ['/spine/year/2025', '2025 in review · My Shelf'],
+  ['/spine/journal/2026-10', 'October 2026 · My Shelf'],
   // Redirects to this calendar year's page.
-  ['/spine/year', `${new Date().getFullYear()} in review · Spine`],
+  ['/spine/year', `${new Date().getFullYear()} in review · My Shelf`],
 ]
 
 describe('App page titles', () => {

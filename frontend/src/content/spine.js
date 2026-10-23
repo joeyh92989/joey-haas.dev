@@ -23,7 +23,7 @@ const links = {
 }
 
 export const spine = {
-  name: 'Spine',
+  name: 'My Shelf',
   path: '/spine',
   tagline:
     'A tracker for my physical game collection: what I own, what I’ve finished, and what to play next.',
@@ -34,12 +34,10 @@ export const spine = {
     'I built this: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
   links,
   tabs: {
-    shelf: { to: '/spine', label: 'Shelf' },
+    shelf: { to: '/spine', label: 'Collection' },
     next: { to: '/spine/next', label: 'What’s next' },
     year: { to: '/spine/year', label: 'Year in review' },
-    // `badge` marks the tab for its first release; drop it in a later copy
-    // pass (Spine tour spec, open question 4).
-    how: { to: '/spine/how', label: 'How it works', badge: 'New' },
+    how: { to: '/spine/how', label: 'How it works' },
   },
   /**
    * /spine/how, the field guide (Spine tour spec). Each stop's `code` paths
