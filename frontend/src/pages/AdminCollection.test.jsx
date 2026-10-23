@@ -771,7 +771,7 @@ describe('AdminCollection bulk set', () => {
 
   it('keeps the selection and says why when the server refuses', async () => {
     const detail =
-      'Could not update: Star Fox (The cart ID says Game-Key Card; clear the cart ID to record a different format.)'
+      'Couldn’t update: Star Fox (The cart ID says Game-Key Card; clear the cart ID to record a different format.)'
     stubApi({
       onWrite: () => ({
         ok: false,

@@ -143,7 +143,7 @@ describe('AdminAnalytics', () => {
     stubApi({ '30d': new TypeError('Failed to fetch'), '7d': json({}, 401) })
     render(<AdminAnalytics />)
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'The analytics could not be read.',
+      'The analytics couldn’t be read.',
     )
     expect(tile('Page views')).toHaveTextContent('—')
     fireEvent.click(screen.getByRole('button', { name: '7d' }))

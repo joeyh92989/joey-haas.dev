@@ -106,14 +106,14 @@ export default function AdminImport() {
         })
         if (!response.ok) {
           const detail = await response.json().catch(() => ({}))
-          failures.push(`${file.name}: ${detail.detail || 'could not be read'}`)
+          failures.push(`${file.name}: ${detail.detail || 'couldn’t be read'}`)
           continue
         }
         const { detections } = await response.json()
         // Offset by what is already collected so indices stay unique.
         collected.push(...detections.map((d) => toRow(d, collected.length)))
       } catch {
-        failures.push(`${file.name}: could not reach the API`)
+        failures.push(`${file.name}: couldn’t reach the API`)
       }
     }
 

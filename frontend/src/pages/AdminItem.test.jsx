@@ -150,7 +150,7 @@ describe('AdminItem', () => {
   // The API caps favourites at four. Its 409 explains the rule; the page
   // shows that rather than a generic failure, and keeps the unsaved form.
   it('shows the server’s reason when a fifth favourite is refused', async () => {
-    const detail = 'You already have 4 favorites. Unfavorite one first.'
+    const detail = 'You already have 4 favorites. Remove one first.'
     stubApi({
       onWrite: () => ({
         ok: false,
