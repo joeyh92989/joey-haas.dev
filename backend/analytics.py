@@ -51,7 +51,10 @@ DIMENSIONS = ("total", "path", "referrer", "device")
 RANGES: dict[str, int | None] = {"7d": 7, "30d": 30, "90d": 90, "all": None}
 
 # The public routes, as the router in frontend/src/App.jsx has them. A path
-# that matches none of them is not counted: a typo, a scan or a 404.
+# that matches none of them is not counted: a typo, a scan or a 404. The
+# pre-rename /spine* paths are not counted either: they only redirect to
+# /shelf*, which the beacon then reports, so counting both would count a
+# visit twice. Rows recorded before the rename keep their /spine path.
 _EXACT_PATHS = frozenset(
     {
         "/",
@@ -60,15 +63,15 @@ _EXACT_PATHS = frozenset(
         "/now",
         "/colophon",
         "/blog",
-        "/spine",
-        "/spine/next",
-        "/spine/year",
+        "/shelf",
+        "/shelf/next",
+        "/shelf/year",
     }
 )
 _PATTERNS = (
-    re.compile(r"/spine/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),
-    re.compile(r"/spine/year/\d{4}"),
-    re.compile(r"/spine/journal/\d{4}-\d{2}"),
+    re.compile(r"/shelf/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),
+    re.compile(r"/shelf/year/\d{4}"),
+    re.compile(r"/shelf/journal/\d{4}-\d{2}"),
     re.compile(r"/blog/[a-z0-9]+(?:-[a-z0-9]+)*"),
 )
 _HOSTNAME = re.compile(
