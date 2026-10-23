@@ -92,7 +92,7 @@ function mockData({ items, next, status = empty }) {
 const ready = (data) => ({ data, live: true, failed: false })
 const empty = { data: null, live: false, failed: true }
 
-function renderAt(path = '/spine/how') {
+function renderAt(path = '/shelf/how') {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <HowItWorks />
@@ -118,7 +118,7 @@ describe('HowItWorks', () => {
     expect(within(toc).getAllByRole('link')).toHaveLength(8)
     expect(within(toc).getAllByRole('link')[2]).toHaveAttribute(
       'href',
-      '/spine/how#stop-3',
+      '/shelf/how#stop-3',
     )
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(8)
     expect(document.title).toBe('How it works · My Shelf')
@@ -183,7 +183,7 @@ describe('HowItWorks', () => {
     })
     renderAt()
     const cover = within(stop(3)).getByRole('link', { name: 'Second Pick' })
-    expect(cover).toHaveAttribute('href', '/spine/p2/')
+    expect(cover).toHaveAttribute('href', '/shelf/p2/')
   })
 
   it('shows one coming-soon and one further-out row on stop 4', () => {
@@ -221,7 +221,7 @@ describe('HowItWorks', () => {
 
   it('focuses the stop named by the hash', () => {
     mockData({ items: ready(ITEMS), next: ready(NEXT) })
-    renderAt('/spine/how#stop-5')
+    renderAt('/shelf/how#stop-5')
     expect(
       screen.getByRole('heading', { level: 2, name: spine.how.stops[4].title }),
     ).toHaveFocus()

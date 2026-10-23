@@ -17,14 +17,14 @@ import { LOAD_ERROR, WAKING } from './status.js'
  */
 /** The tour, and the post it shortens: the post is the long version. */
 const links = {
-  post: { to: '/spine/how', label: 'How it works' },
+  post: { to: '/shelf/how', label: 'How it works' },
   longVersion: { to: '/blog/how-spine-works', label: 'The long version' },
   source: { href: profile.repo, label: 'Source' },
 }
 
 export const spine = {
   name: 'My Shelf',
-  path: '/spine',
+  path: '/shelf',
   tagline:
     'A tracker for my physical game collection: what I own, what I’ve finished, and what to play next.',
   projectsTagline: 'A tracker for my physical game collection',
@@ -34,10 +34,10 @@ export const spine = {
     'I built this myself: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
   links,
   tabs: {
-    shelf: { to: '/spine', label: 'Collection' },
-    next: { to: '/spine/next', label: 'What’s next' },
-    year: { to: '/spine/year', label: 'Year in review' },
-    how: { to: '/spine/how', label: 'How it works' },
+    shelf: { to: '/shelf', label: 'Collection' },
+    next: { to: '/shelf/next', label: 'What’s next' },
+    year: { to: '/shelf/year', label: 'Year in review' },
+    how: { to: '/shelf/how', label: 'How it works' },
   },
   /**
    * /spine/how, the field guide (Spine tour spec). Each stop's `code` paths
@@ -46,7 +46,7 @@ export const spine = {
    * prices) never reach the public API, so they can't be shown live.
    */
   how: {
-    path: '/spine/how',
+    path: '/shelf/how',
     title: 'How My Shelf works, in eight stops',
     description:
       'A guided tour of My Shelf: photo import, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
@@ -343,7 +343,7 @@ export const spine = {
     closing: {
       longVersion: links.longVersion,
       source: { href: profile.repo, label: 'Source on GitHub' },
-      shelf: { to: '/spine', label: 'Back to the shelf' },
+      shelf: { to: '/shelf', label: 'Back to the shelf' },
     },
   },
   status: {
@@ -360,7 +360,7 @@ export const spine = {
     discover: 'Discover',
   },
   next: {
-    path: '/spine/next',
+    path: '/shelf/next',
     title: 'What’s next',
     lede: 'What I could play tonight, and what I’m watching for in stores. Full cartridges only, ranked by what I’ve liked, rebuilt every night.',
     fresh: {

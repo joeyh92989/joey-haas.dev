@@ -66,7 +66,7 @@ function mockNext(state) {
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/spine/next']}>
+    <MemoryRouter initialEntries={['/shelf/next']}>
       <Next />
     </MemoryRouter>,
   )
@@ -134,8 +134,8 @@ describe('Next', () => {
     const tonight = screen.getByRole('region', { name: 'Tonight' })
     const links = within(tonight).getAllByRole('link')
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      '/spine/u1/',
-      '/spine/p1/',
+      '/shelf/u1/',
+      '/shelf/p1/',
     ])
     expect(within(links[0]).getByText('Up next')).toBeInTheDocument()
     expect(within(tonight).queryByText(spine.next.empty.upNext)).toBeNull()

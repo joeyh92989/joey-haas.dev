@@ -56,19 +56,22 @@ afterEach(() => {
 })
 
 describe('App redirects', () => {
-  it('sends /collection to /spine', async () => {
-    renderAt('/collection')
+  // Each pre-rename URL lands on its /shelf page in one hop.
+  it.each([
+    ['/spine', /^\/shelf$/],
+    ['/spine/next', /^\/shelf\/next$/],
+    ['/spine/how', /^\/shelf\/how$/],
+    ['/spine/year', new RegExp(`^/shelf/year/${new Date().getFullYear()}/$`)],
+    ['/spine/year/2025', /^\/shelf\/year\/2025\/$/],
+    ['/spine/journal/2026-10', /^\/shelf\/journal\/2026-10\/$/],
+    ['/spine/42', /^\/shelf\/42\/$/],
+    ['/spine/42/', /^\/shelf\/42\/$/],
+    ['/collection', /^\/shelf$/],
+    ['/collection/42', /^\/shelf\/42\/$/],
+  ])('sends %s to its /shelf page', async (from, to) => {
+    renderAt(from)
     await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent(/^\/spine$/),
-    )
-  })
-
-  it('carries the id from /collection/:id to /spine/:id', async () => {
-    renderAt('/collection/42')
-    await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent(
-        /^\/spine\/42\/$/,
-      ),
+      expect(screen.getByTestId('location')).toHaveTextContent(to),
     )
   })
 })
@@ -81,7 +84,7 @@ const TITLES = [
   ['/now', 'Now · Joey Haas'],
   ['/colophon', 'Colophon · Joey Haas'],
   ['/blog', 'Blog · Joey Haas'],
-  ['/spine', 'My Shelf · Joey Haas'],
+  ['/shelf', 'My Shelf · Joey Haas'],
   ['/nonsense-path', 'Not found · Joey Haas'],
   ['/blog/no-such-post', 'Not found · Joey Haas'],
   ['/admin', 'Dashboard · Admin · Joey Haas'],
@@ -95,12 +98,14 @@ const TITLES = [
   ['/admin/store-list', 'Store list · Admin · Joey Haas'],
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
   ['/admin/no-such-page', 'Not found · Joey Haas'],
-  ['/spine/42', 'My Shelf · Joey Haas'],
-  ['/spine/next', 'What’s next · My Shelf'],
-  ['/spine/how', 'How it works · My Shelf'],
-  ['/spine/year/2025', '2025 in review · My Shelf'],
-  ['/spine/journal/2026-10', 'October 2026 · My Shelf'],
+  ['/shelf/42', 'My Shelf · Joey Haas'],
+  ['/shelf/next', 'What’s next · My Shelf'],
+  ['/shelf/how', 'How it works · My Shelf'],
+  ['/shelf/year/2025', '2025 in review · My Shelf'],
+  ['/shelf/journal/2026-10', 'October 2026 · My Shelf'],
   // Redirects to this calendar year's page.
+  ['/shelf/year', `${new Date().getFullYear()} in review · My Shelf`],
+  // The pre-rename form, which goes straight to the same page.
   ['/spine/year', `${new Date().getFullYear()} in review · My Shelf`],
 ]
 

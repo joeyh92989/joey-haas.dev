@@ -15,7 +15,7 @@ import Now from './pages/Now.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Projects from './pages/Projects.jsx'
 import YearInReview, { CurrentYear } from './pages/YearInReview.jsx'
-import { itemPath } from './lib/spinePaths.js'
+import { itemPath, monthPath, yearPath } from './lib/spinePaths.js'
 
 // The admin pages serve one person, so they load on demand instead of
 // shipping to every visitor in the main chunk. RootLayout's Suspense
@@ -33,12 +33,12 @@ const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
 const PlayNext = lazy(() => import('./pages/PlayNext.jsx'))
 
 /**
- * The pre-rename item URL. `Navigate` does not interpolate route params, so
- * the id is read here and carried to /spine/:id.
+ * A pre-rename URL with a param. `Navigate` does not interpolate route
+ * params, so the params are read here and handed to `to`, which builds the
+ * /shelf path.
  */
-function CollectionItemRedirect() {
-  const { id } = useParams()
-  return <Navigate to={itemPath(id)} replace />
+function ParamRedirect({ to }) {
+  return <Navigate to={to(useParams())} replace />
 }
 
 /**
@@ -64,16 +64,42 @@ export default function App() {
         <Route path="projects" element={<Projects />} />
         <Route path="now" element={<Now />} />
         <Route path="colophon" element={<Colophon />} />
-        <Route path="spine" element={<Collection />} />
-        <Route path="spine/next" element={<Next />} />
-        <Route path="spine/how" element={<HowItWorks />} />
+        <Route path="shelf" element={<Collection />} />
+        <Route path="shelf/next" element={<Next />} />
+        <Route path="shelf/how" element={<HowItWorks />} />
+        <Route path="shelf/year" element={<CurrentYear />} />
+        <Route path="shelf/year/:year" element={<YearInReview />} />
+        <Route path="shelf/journal/:month" element={<MonthInReview />} />
+        <Route path="shelf/:id" element={<Item />} />
+        {/* Pre-rename URLs, kept so links already shared still land. Each
+            goes straight to /shelf, never through another redirect. */}
+        <Route path="spine" element={<Navigate to="/shelf" replace />} />
+        <Route
+          path="spine/next"
+          element={<Navigate to="/shelf/next" replace />}
+        />
+        <Route
+          path="spine/how"
+          element={<Navigate to="/shelf/how" replace />}
+        />
         <Route path="spine/year" element={<CurrentYear />} />
-        <Route path="spine/year/:year" element={<YearInReview />} />
-        <Route path="spine/journal/:month" element={<MonthInReview />} />
-        <Route path="spine/:id" element={<Item />} />
-        {/* Pre-rename URLs, kept so links already shared still land. */}
-        <Route path="collection" element={<Navigate to="/spine" replace />} />
-        <Route path="collection/:id" element={<CollectionItemRedirect />} />
+        <Route
+          path="spine/year/:year"
+          element={<ParamRedirect to={({ year }) => yearPath(year)} />}
+        />
+        <Route
+          path="spine/journal/:month"
+          element={<ParamRedirect to={({ month }) => monthPath(month)} />}
+        />
+        <Route
+          path="spine/:id"
+          element={<ParamRedirect to={({ id }) => itemPath(id)} />}
+        />
+        <Route path="collection" element={<Navigate to="/shelf" replace />} />
+        <Route
+          path="collection/:id"
+          element={<ParamRedirect to={({ id }) => itemPath(id)} />}
+        />
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<Admin />} />
           <Route path="analytics" element={<AdminAnalytics />} />

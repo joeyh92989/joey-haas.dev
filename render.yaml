@@ -15,7 +15,11 @@ services:
     # a mistyped slug) serves an empty 200, not the SPA (seen on 2026-10-19
     # with /blog/:slug), so each published post gets its own rule. Item and
     # year pages change between deploys and stay on the catch-all.
-    # Don't add a slash with a redirect (/spine/:id -> /spine/:id/): Render
+    # The three /spine rules are the tracker's pre-rename URLs: the build
+    # writes their heads (legacyRoutes), so links shared before the move to
+    # /shelf keep their previews, and the app redirects the visitor. Feed
+    # readers need no rule: dist/spine/feed.xml is a file.
+    # Don't add a slash with a redirect (/shelf/:id -> /shelf/:id/): Render
     # matches the slash form against the same source and loops for any path
     # without a file (probed on production, 2026-10-19).
     routes:
@@ -26,14 +30,14 @@ services:
         source: /projects
         destination: /projects/index.html
       - type: rewrite
-        source: /spine
-        destination: /spine/index.html
+        source: /shelf
+        destination: /shelf/index.html
       - type: rewrite
-        source: /spine/next
-        destination: /spine/next/index.html
+        source: /shelf/next
+        destination: /shelf/next/index.html
       - type: rewrite
-        source: /spine/how
-        destination: /spine/how/index.html
+        source: /shelf/how
+        destination: /shelf/how/index.html
       - type: rewrite
         source: /now
         destination: /now/index.html
@@ -46,6 +50,15 @@ services:
       - type: rewrite
         source: /blog/how-spine-works
         destination: /blog/how-spine-works/index.html
+      - type: rewrite
+        source: /spine
+        destination: /spine/index.html
+      - type: rewrite
+        source: /spine/next
+        destination: /spine/next/index.html
+      - type: rewrite
+        source: /spine/how
+        destination: /spine/how/index.html
       - type: rewrite
         source: /*
         destination: /index.html

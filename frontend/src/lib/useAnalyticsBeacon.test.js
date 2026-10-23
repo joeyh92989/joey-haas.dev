@@ -48,13 +48,13 @@ describe('useAnalyticsBeacon', () => {
   it('sends one beacon per route change, with exactly path, ref and device', () => {
     const go = mount('/')
     go('/about')
-    go('/spine')
+    go('/shelf')
     expect(beacon).toHaveBeenCalledTimes(3)
     expect(beacon.mock.calls[0][0]).toMatch(/\/api\/track$/)
     expect(bodies()).toEqual([
       { path: '/', ref: '', device: 'desktop' },
       { path: '/about', ref: null, device: 'desktop' },
-      { path: '/spine', ref: null, device: 'desktop' },
+      { path: '/shelf', ref: null, device: 'desktop' },
     ])
   })
 

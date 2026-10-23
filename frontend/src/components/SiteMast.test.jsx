@@ -7,7 +7,7 @@ import SiteMast from './SiteMast.jsx'
 const ITEMS = [
   { to: '/', label: 'Home', end: true },
   { to: '/about', label: 'About' },
-  { to: '/spine', label: 'My Shelf' },
+  { to: '/shelf', label: 'My Shelf' },
 ]
 
 function renderAt(path = '/', props = {}) {
@@ -51,7 +51,7 @@ afterEach(() => {
 
 describe('SiteMast', () => {
   it('marks the current page in the nav', () => {
-    renderAt('/spine/abc')
+    renderAt('/shelf/abc')
     const nav = screen.getByRole('navigation', { name: 'Site' })
     expect(within(nav).getByRole('link', { name: 'My Shelf' })).toHaveAttribute(
       'aria-current',

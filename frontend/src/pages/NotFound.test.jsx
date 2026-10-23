@@ -13,7 +13,7 @@ describe('NotFound', () => {
     )
     expect(screen.getByRole('link', { name: 'the shelf' })).toHaveAttribute(
       'href',
-      '/spine',
+      '/shelf',
     )
     expect(screen.getByRole('link', { name: 'go home' })).toHaveAttribute(
       'href',

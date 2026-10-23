@@ -3,12 +3,12 @@ import { itemPath, monthPath, yearPath } from './spinePaths.js'
 
 describe('spine paths', () => {
   it('ends every page path with a slash', () => {
-    expect(itemPath('abc')).toBe('/spine/abc/')
-    expect(yearPath(2026)).toBe('/spine/year/2026/')
-    expect(monthPath('2026-10')).toBe('/spine/journal/2026-10/')
+    expect(itemPath('abc')).toBe('/shelf/abc/')
+    expect(yearPath(2026)).toBe('/shelf/year/2026/')
+    expect(monthPath('2026-10')).toBe('/shelf/journal/2026-10/')
   })
 
   it('encodes the item id', () => {
-    expect(itemPath('a/b')).toBe('/spine/a%2Fb/')
+    expect(itemPath('a/b')).toBe('/shelf/a%2Fb/')
   })
 })

@@ -51,7 +51,7 @@ function renderAt(path) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/spine/journal/:month" element={<MonthInReview />} />
+        <Route path="/shelf/journal/:month" element={<MonthInReview />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -66,7 +66,7 @@ describe('MonthInReview', () => {
   it('shows the month’s finishes, sessions by day and its neighbours', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
     diary.rows = SESSIONS
-    renderAt('/spine/journal/2026-10')
+    renderAt('/shelf/journal/2026-10')
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'October 2026' }),
@@ -87,10 +87,10 @@ describe('MonthInReview', () => {
     const nav = screen.getByRole('navigation', { name: 'Months' })
     expect(
       within(nav).getByRole('link', { name: /August 2026/ }),
-    ).toHaveAttribute('href', '/spine/journal/2026-08/')
+    ).toHaveAttribute('href', '/shelf/journal/2026-08/')
     expect(
       within(nav).getByRole('link', { name: '2026 in review' }),
-    ).toHaveAttribute('href', '/spine/year/2026/')
+    ).toHaveAttribute('href', '/shelf/year/2026/')
     expect(within(nav).getAllByRole('link')).toHaveLength(2)
     expect(
       within(nav).getByRole('link', { name: 'Previous month: August 2026' }),
@@ -99,14 +99,14 @@ describe('MonthInReview', () => {
 
   it('shows finishes alone when the diary is empty', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
-    renderAt('/spine/journal/2026-10')
+    renderAt('/shelf/journal/2026-10')
     expect(screen.getByRole('region', { name: 'Finished' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Played' })).toBeNull()
   })
 
   it('says so when a month has nothing in it', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
-    renderAt('/spine/journal/2026-09')
+    renderAt('/shelf/journal/2026-09')
     expect(
       screen.getByText('Nothing finished or played in September 2026.'),
     ).toBeInTheDocument()
@@ -115,14 +115,14 @@ describe('MonthInReview', () => {
   it('waits for the diary before saying a month is empty', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
     diary.settled = false
-    renderAt('/spine/journal/2026-09')
+    renderAt('/shelf/journal/2026-09')
     expect(screen.queryByText(/^Nothing/)).toBeNull()
   })
 
   it('claims only finishes when the diary failed', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
     diary.failed = true
-    renderAt('/spine/journal/2026-09')
+    renderAt('/shelf/journal/2026-09')
     expect(
       screen.getByText('Nothing finished in September 2026.'),
     ).toBeInTheDocument()
@@ -131,7 +131,7 @@ describe('MonthInReview', () => {
   it('says at least when some sessions have no minutes', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
     diary.rows = SESSIONS
-    renderAt('/spine/journal/2026-10')
+    renderAt('/shelf/journal/2026-10')
     expect(screen.getByRole('region', { name: 'Played' })).toHaveTextContent(
       '2 days with a session logged, at least 45 minutes.',
     )
@@ -146,22 +146,22 @@ describe('MonthInReview', () => {
     diary.nearby = [
       { item_id: 'a', title: 'Hades II', played_on: '2027-01-05', minutes: 5 },
     ]
-    renderAt('/spine/journal/2026-12')
+    renderAt('/shelf/journal/2026-12')
     expect(
       screen.getByRole('link', { name: 'Next month: January 2027' }),
-    ).toHaveAttribute('href', '/spine/journal/2027-01/')
+    ).toHaveAttribute('href', '/shelf/journal/2027-01/')
   })
 
   it('reports a failed load', () => {
     answer.value = { data: null, live: false, failed: true }
-    renderAt('/spine/journal/2026-10')
+    renderAt('/shelf/journal/2026-10')
     expect(screen.getByRole('alert')).toHaveTextContent('didn’t load')
   })
 
   it.each(['2026-13', 'october', '2026-1'])(
     'treats %s as not found',
     (month) => {
-      renderAt(`/spine/journal/${month}`)
+      renderAt(`/shelf/journal/${month}`)
       expect(
         screen.getByRole('heading', { level: 1, name: 'Not found' }),
       ).toBeInTheDocument()

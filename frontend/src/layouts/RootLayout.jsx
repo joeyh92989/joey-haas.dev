@@ -4,6 +4,7 @@ import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
 import SiteFooter from '../components/SiteFooter.jsx'
 import SiteMast from '../components/SiteMast.jsx'
 import { posts } from '../content/posts.js'
+import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { useAnalyticsBeacon } from '../lib/useAnalyticsBeacon.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
@@ -15,7 +16,7 @@ const STORAGE_KEY = 'theme'
  * and item pages are grids of covers, not prose. Each entry matches itself
  * and anything nested under it.
  */
-const WIDE_ROUTES = ['/spine']
+const WIDE_ROUTES = ['/shelf']
 
 /**
  * Routes that bring their own frame: the admin shell replaces the masthead
@@ -66,7 +67,7 @@ function navItems(hasPosts) {
     { to: '/', label: 'Home', end: true },
     { to: '/about', label: 'About' },
     { to: '/projects', label: 'Projects' },
-    { to: '/spine', label: 'My Shelf' },
+    { to: spine.path, label: spine.name },
     ...(hasPosts ? [{ to: '/blog', label: 'Blog' }] : []),
   ]
 }

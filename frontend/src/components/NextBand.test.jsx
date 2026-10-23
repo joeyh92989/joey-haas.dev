@@ -19,7 +19,7 @@ describe('NextBand', () => {
       preorders: Array(9).fill({}),
     })
     const link = screen.getByRole('link')
-    expect(link).toHaveAttribute('href', '/spine/next')
+    expect(link).toHaveAttribute('href', '/shelf/next')
     expect(link).toHaveTextContent('What’s next')
     expect(link).toHaveTextContent(
       'Tonight: Hades II · 11 in stores · 9 coming soon',

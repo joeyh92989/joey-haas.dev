@@ -65,7 +65,7 @@ describe('Home', () => {
     )
     expect(screen.getByRole('link', { name: 'See My Shelf' })).toHaveAttribute(
       'href',
-      '/spine',
+      '/shelf',
     )
     expect(screen.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
       'href',
@@ -104,7 +104,7 @@ describe('Home', () => {
     ).getAllByRole('link')
     expect(work.map((link) => link.getAttribute('href'))).toEqual([
       '/projects',
-      '/spine',
+      '/shelf',
       '/colophon',
       '/blog/how-spine-works',
     ])

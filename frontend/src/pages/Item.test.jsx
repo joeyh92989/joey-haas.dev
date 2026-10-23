@@ -58,10 +58,10 @@ function stubItem(overrides = {}) {
 
 function renderPage({ signedIn = false } = {}) {
   return render(
-    <MemoryRouter initialEntries={[`/spine/${ID}`]}>
+    <MemoryRouter initialEntries={[`/shelf/${ID}`]}>
       <Routes>
         <Route element={<Outlet context={{ signedIn }} />}>
-          <Route path="/spine/:id" element={<Item />} />
+          <Route path="/shelf/:id" element={<Item />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -211,7 +211,7 @@ describe('Item', () => {
     const strip = screen.getByRole('region', { name: 'More from this shelf' })
     expect(
       within(strip).getByRole('link', { name: 'Dead Cells' }),
-    ).toHaveAttribute('href', '/spine/a/')
+    ).toHaveAttribute('href', '/shelf/a/')
     expect(within(strip).getAllByRole('link')).toHaveLength(2)
   })
 
@@ -277,9 +277,9 @@ describe('Item', () => {
   it('renders outside the layout without throwing', async () => {
     stubItem()
     render(
-      <MemoryRouter initialEntries={[`/spine/${ID}`]}>
+      <MemoryRouter initialEntries={[`/shelf/${ID}`]}>
         <Routes>
-          <Route path="/spine/:id" element={<Item />} />
+          <Route path="/shelf/:id" element={<Item />} />
         </Routes>
       </MemoryRouter>,
     )

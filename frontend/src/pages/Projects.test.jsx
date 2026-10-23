@@ -26,14 +26,14 @@ vi.mock('../content/projects.js', () => ({
       line: 'I built this.',
       highlights: ['Photo import.', 'Play Next.'],
       links: [
-        { to: '/spine', label: 'Open Spine' },
+        { to: '/shelf', label: 'Open Spine' },
         {
           href: 'https://github.com/joeyh92989/joey-haas.dev',
           label: 'Source',
         },
       ],
       tech: ['React'],
-      to: '/spine',
+      to: '/shelf',
       url: null,
       strip: 'favourites',
     },
@@ -83,7 +83,7 @@ describe('Projects', () => {
     const { container } = renderProjects()
     expect(screen.getByRole('link', { name: /Open Spine/ })).toHaveAttribute(
       'href',
-      '/spine',
+      '/shelf',
     )
     // The decorative arrow stays out of the accessible name.
     expect(screen.getByRole('link', { name: 'Open Spine' })).toBeInTheDocument()
@@ -99,7 +99,7 @@ describe('Projects', () => {
     renderProjects()
     expect(screen.getByRole('link', { name: 'Spine' })).toHaveAttribute(
       'href',
-      '/spine',
+      '/shelf',
     )
     expect(screen.getByRole('link', { name: 'This site' })).toHaveAttribute(
       'href',

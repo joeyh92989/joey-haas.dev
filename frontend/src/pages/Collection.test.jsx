@@ -178,7 +178,7 @@ describe('Collection', () => {
 
     expect(grid().getByRole('link', { name: /Dune/ })).toHaveAttribute(
       'href',
-      '/spine/1/',
+      '/shelf/1/',
     )
   })
 
@@ -840,7 +840,7 @@ describe('Collection header', () => {
     const project = document.querySelector('.spine-project')
     expect(
       within(project).getByRole('link', { name: /How it works/ }),
-    ).toHaveAttribute('href', '/spine/how')
+    ).toHaveAttribute('href', '/shelf/how')
     expect(screen.getByRole('link', { name: /Source/ })).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989/joey-haas.dev',

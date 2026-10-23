@@ -112,7 +112,8 @@ export default function Now() {
             ))}
           </ul>
           <p className="muted">
-            Also as an <a href="/spine/feed.xml">RSS feed of finished games</a>.
+            Also as an{' '}
+            <a href={`${spine.path}/feed.xml`}>RSS feed of finished games</a>.
           </p>
         </section>
       )}
