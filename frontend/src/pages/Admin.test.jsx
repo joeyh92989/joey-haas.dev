@@ -265,7 +265,7 @@ describe('Admin Dashboard', () => {
     // The server answered, so it is up: an error, not unreachable.
     expect(await screen.findByText('API error')).toBeInTheDocument()
     expect(
-      screen.getByText('The nightly status could not be read.'),
+      screen.getByText('The nightly status couldn’t be read.'),
     ).toBeInTheDocument()
     expect(called(fetch, '/api/recommendations/store-list')).toBe(false)
     expect(screen.queryByText(/^nightly /)).not.toBeInTheDocument()
@@ -314,7 +314,7 @@ describe('Admin Dashboard', () => {
     })
     renderAt()
     expect(
-      await screen.findByText('The nightly status could not be read.'),
+      await screen.findByText('The nightly status couldn’t be read.'),
     ).toBeInTheDocument()
     expect(screen.getByText('API awake')).toBeInTheDocument()
     expect(screen.queryByText(/how to re-enable/)).not.toBeInTheDocument()

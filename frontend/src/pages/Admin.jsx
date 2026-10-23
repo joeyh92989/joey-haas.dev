@@ -208,7 +208,7 @@ export default function Admin() {
           ) : (
             <p className="muted">
               {nightly
-                ? 'The nightly status could not be read.'
+                ? 'The nightly status couldn’t be read.'
                 : 'Reading the nightly status…'}
             </p>
           )}

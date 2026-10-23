@@ -28,7 +28,7 @@ function failureWords(response) {
   if (response?.status === 401 || response?.status === 403) {
     return 'Your session ended. Reload to sign in.'
   }
-  return 'The analytics could not be read.'
+  return 'The analytics couldn’t be read.'
 }
 
 /**

@@ -336,7 +336,7 @@ async def test_an_unreadable_answer_falls_back(sessionmaker_for_test):
             )
         ).json()
     assert result["ranked_by"] == "template"
-    assert result["model_note"] == "The model's answer could not be read (ValueError)"
+    assert result["model_note"] == "The model’s answer couldn’t be read (ValueError)"
     assert result["count"] == 3
 
 

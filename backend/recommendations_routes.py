@@ -175,7 +175,7 @@ def create_recommendations_router(
             return [], str(error)
         except Exception as error:  # an unreadable answer must not cost lanes 1-2
             logger.exception("radar lane 3 failed unexpectedly")
-            return [], f"IGDB answer could not be read ({type(error).__name__})"
+            return [], f"IGDB answer couldn’t be read ({type(error).__name__})"
 
     async def _replace_pending(
         session: AsyncSession,
@@ -323,7 +323,7 @@ def create_recommendations_router(
             logger.exception("discover model call failed unexpectedly")
             return (
                 None,
-                f"The model's answer could not be read ({type(error).__name__})",
+                f"The model’s answer couldn’t be read ({type(error).__name__})",
             )
         return payload, None
 

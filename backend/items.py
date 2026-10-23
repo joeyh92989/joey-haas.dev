@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 # setting the flag -- the shelf, the edit page, the create form and the photo
 # importer -- has to pass through.
 FAVORITES_LIMIT = 4
-FAVORITES_FULL = f"You already have {FAVORITES_LIMIT} favorites. Unfavorite one first."
+FAVORITES_FULL = f"You already have {FAVORITES_LIMIT} favorites. Remove one first."
 
 
 class ItemIn(BaseModel):
@@ -639,7 +639,7 @@ def create_items_router(
                 refused.append(f"{row.title} ({error})")
         if refused:
             raise HTTPException(
-                status_code=422, detail=f"Could not update: {'; '.join(refused)}"
+                status_code=422, detail=f"Couldn’t update: {'; '.join(refused)}"
             )
 
         for row, row_changes in planned:

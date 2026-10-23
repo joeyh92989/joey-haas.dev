@@ -653,7 +653,7 @@ describe('AdminCollection favourites cap', () => {
     expect(within(row).getAllByRole('link')).toHaveLength(6)
     expect(
       within(row).getByText(
-        '6 favorites. The public page shows four; unfavorite 2.',
+        '6 favorites. The public page shows four; remove 2.',
       ),
     ).toBeInTheDocument()
     expect(row.querySelectorAll('.favourite-empty')).toHaveLength(0)
@@ -771,7 +771,7 @@ describe('AdminCollection bulk set', () => {
 
   it('keeps the selection and says why when the server refuses', async () => {
     const detail =
-      'Could not update: Star Fox (The cart ID says Game-Key Card; clear the cart ID to record a different format.)'
+      'Couldn’t update: Star Fox (The cart ID says Game-Key Card; clear the cart ID to record a different format.)'
     stubApi({
       onWrite: () => ({
         ok: false,
