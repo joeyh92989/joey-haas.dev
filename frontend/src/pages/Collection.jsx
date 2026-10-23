@@ -217,7 +217,7 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
       </ul>
       {extra > 0 && (
         <p className="muted favourites-hint">
-          {`${favourites.length} favorites. The public page shows four; unfavorite ${extra}.`}
+          {`${favourites.length} favorites. The public page shows four; remove ${extra}.`}
         </p>
       )}
       {empty > 0 && (

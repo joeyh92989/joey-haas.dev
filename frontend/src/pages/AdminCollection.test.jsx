@@ -653,7 +653,7 @@ describe('AdminCollection favourites cap', () => {
     expect(within(row).getAllByRole('link')).toHaveLength(6)
     expect(
       within(row).getByText(
-        '6 favorites. The public page shows four; unfavorite 2.',
+        '6 favorites. The public page shows four; remove 2.',
       ),
     ).toBeInTheDocument()
     expect(row.querySelectorAll('.favourite-empty')).toHaveLength(0)

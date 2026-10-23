@@ -362,7 +362,7 @@ async def test_an_unreadable_lane_three_keeps_lanes_one_and_two(sessionmaker_for
         result = (
             await client.post("/api/recommendations/generate", json={"kind": "radar"})
         ).json()
-    assert result["digital_error"] == "IGDB answer could not be read (ValueError)"
+    assert result["digital_error"] == "IGDB answer couldn’t be read (ValueError)"
     assert result["counts"]["suggested"] == 2
 
 
