@@ -62,7 +62,7 @@ export const experience = [
     company: 'iBAHN',
     meta: '2012 – 2014 · Denver, CO',
     summary:
-      'In-room hospitality video platform for Marriott, Hilton, and Four Seasons properties.',
+      'In-room hospitality video platform built for Marriott, Hilton, and Four Seasons properties.',
     short: 'in-room hospitality video',
     earlier: true,
   },

@@ -85,7 +85,9 @@ describe('YearInReview', () => {
       'href',
       '/spine/year/2025/',
     )
-    expect(screen.getByText(/I rated 1 higher and 0 lower/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/higher than the crowd on 1 and lower on 0/),
+    ).toBeInTheDocument()
   })
 
   it('shows days played and the sessions from the public diary', () => {

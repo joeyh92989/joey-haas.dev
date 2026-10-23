@@ -14,8 +14,8 @@ export default function Colophon() {
     <section className="colophon">
       <h1>Colophon</h1>
       <p className="prose">
-        How this site is built, for anyone who wants to know. The whole thing is
-        open: <a href={profile.repo}>the source is on GitHub</a>.
+        How this site is built, for anyone curious. The whole thing is open:{' '}
+        <a href={profile.repo}>the source is on GitHub</a>.
       </p>
 
       <h2>Frontend</h2>
@@ -29,12 +29,12 @@ export default function Colophon() {
           than loaded from a font service.
         </li>
         <li>
-          Dark by default, with a light theme a click away. Shiki renders code
-          highlighting at build time in both themes. Its colors, and the
-          shelf&rsquo;s status colors, were chosen by measured contrast.
+          Dark by default, with a light theme one click away. Shiki renders code
+          highlighting at build time in both themes. Code colors and the
+          shelf&rsquo;s status colors were chosen by measured contrast.
         </li>
         <li>
-          Blog posts are Markdown compiled at build time. Each page is
+          Blog posts are Markdown, compiled at build time. Each page is
           prerendered with its own title and link preview, and there&rsquo;s an{' '}
           <a href="/feed.xml">RSS feed</a>.
         </li>
@@ -44,7 +44,8 @@ export default function Colophon() {
       <ul className="prose-list">
         <li>
           FastAPI on Python 3.12, with Postgres 18 on Neon. Migrations are
-          additive and applied by hand; the API refuses to boot behind them.
+          additive and applied by hand. The API won&rsquo;t boot if the database
+          is behind one.
         </li>
         <li>
           <Link to={spine.path}>{spine.name}</Link> reads game metadata from
@@ -63,15 +64,13 @@ export default function Colophon() {
       <ul className="prose-list">
         <li>
           Render&rsquo;s free tier: a static site and a web service that sleeps
-          when idle. Public pages paint from a build-time snapshot, so nothing
-          waits for it to wake.
+          when idle. Public pages load from a build-time snapshot, so nothing
+          waits for the service to wake up.
         </li>
+        <li>Admin sign-in is Google OAuth, allowlisted to one account.</li>
         <li>
-          Sign-in to the admin is Google OAuth, allowlisted to one account.
-        </li>
-        <li>
-          A cookie-free beacon counts page views; nothing is sent to a third
-          party, and signed-in visits are excluded.
+          A cookie-free beacon counts page views. Nothing goes to a third party,
+          and signed-in visits are excluded.
         </li>
       </ul>
     </section>

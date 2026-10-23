@@ -31,7 +31,7 @@ export const spine = {
   homeLine:
     'A tracker for my physical game collection: it reads the shelf from a photo, knows which boxes hold a real cartridge, and picks what to play next.',
   projectLine:
-    'I built this: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
+    'I built this myself: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
   links,
   tabs: {
     shelf: { to: '/spine', label: 'Collection' },
@@ -72,17 +72,17 @@ export const spine = {
       {
         stop: 1,
         title: 'Reads the shelf',
-        line: 'A photo in, titles out, matched to IGDB.',
+        line: 'One photo in, titles out, matched to IGDB.',
       },
       {
         stop: 2,
         title: 'Knows the format',
-        line: 'Cartridge or Game-Key Card, from a registry and twelve stores.',
+        line: 'Cartridge or Game-Key Card, pulled from a registry and twelve stores.',
       },
       {
         stop: 3,
         title: 'Picks tonight',
-        line: 'Six weighted terms score the backlog and say why.',
+        line: 'Six weighted terms score the backlog and explain each pick.',
       },
       {
         stop: 4,
@@ -101,15 +101,15 @@ export const spine = {
         where: '/admin/import',
         title: 'Reads the shelf from a photo',
         claim:
-          'A vision model reads the titles off a photo of the shelf. It’s never asked how sure it is: the server compares each title with IGDB’s by string similarity and marks the match exact, probable or uncertain, so I only check the doubtful ones.',
+          'A vision model reads the titles off a photo of the shelf. It’s never asked how confident it is: the server compares each title against IGDB by string similarity and marks the match exact, probable, or uncertain, so I only have to check the doubtful ones.',
         why: {
           lead: 'Why this way:',
-          text: 'a model’s confidence can’t be tested, and a similarity score can. The model returns titles only, so the whole matching path runs in tests without a model call.',
+          text: 'a model’s confidence can’t be tested, but a similarity score can. The model returns titles only, so the entire matching path runs in tests without ever calling the model.',
         },
         code: ['backend/importer.py', 'backend/matching.py'],
         live: {
           caption:
-            'The newest games on the shelf. The import itself isn’t public: nothing about a photo is kept after the request.',
+            'The newest games on the shelf. The import itself isn’t public: nothing from a photo is kept after the request completes.',
           empty: 'Nothing on the shelf yet.',
         },
         capture: {
@@ -145,7 +145,7 @@ export const spine = {
           'A Switch 2 box can hold the full game or only a key to download it. My Shelf reads the r/NSCollectors registry, the Switch 1 release sheet, and twelve boutique stores, and collapses them to one honest format per game.',
         why: {
           lead: 'The collapse rule:',
-          text: 'any full cartridge in the home region makes a game a cartridge, because a registry row and a store listing usually describe different editions. Switch 1 is region-free, so any region counts there. A format I recorded from my own copy is never overwritten.',
+          text: 'any full cartridge in the home region makes a game a cartridge, because a registry row and a store listing usually describe different editions of the same title. Switch 1 is region-free, so any region counts there. A format I recorded from my own copy is never overwritten.',
         },
         code: ['backend/physical_sources/collapse.py', 'backend/formats.py'],
         live: {
@@ -190,10 +190,10 @@ export const spine = {
         where: '/admin/play-next',
         title: 'Picks tonight’s game',
         claim:
-          'Six weighted terms score the backlog: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, whether it fits the evening, how long it’s waited, and a little random jitter. Each pick says why.',
+          'Six weighted terms score the backlog: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, whether it fits the evening, how long it’s been waiting, and a little random jitter. Each pick comes with a reason.',
         why: {
           lead: 'No model here.',
-          text: 'The scoring is pure Python, tested without a database, and the public reasons are rebuilt from public games only.',
+          text: 'The scoring is pure Python, tested without a database, and the public reasons are always rebuilt from public games only.',
         },
         code: ['backend/picker.py'],
         live: {
@@ -221,15 +221,15 @@ export const spine = {
         where: '/admin/radar',
         title: 'Watches for the next cartridge',
         claim:
-          'Radar ranks upcoming physical releases and open pre-orders with the same taste profile, plus a bonus when a pre-order closes within 30 days.',
+          'Radar ranks upcoming physical releases and open pre-orders using the same taste profile, with a small bonus when a pre-order closes within 30 days.',
         why: {
           lead: 'Public rows carry public facts only:',
-          text: 'title, platform, format, a registry date, a cover and an IGDB link. Never a store, a price, stock or a score.',
+          text: 'title, platform, format, a registry date, a cover, and an IGDB link. Never a store, a price, stock, or a score.',
         },
         code: ['backend/radar.py'],
         live: {
           caption:
-            'Coming soon and Further out. A date shows only when the community registry has one; a store’s date never does.',
+            'Coming soon and Further out. A date only appears when the community registry has one. A store’s date never counts.',
           empty: 'Nothing coming up yet.',
         },
         capture: {
@@ -255,10 +255,10 @@ export const spine = {
         where: '/admin/discover',
         title: 'Suggests what to buy',
         claim:
-          'Discover pre-scores released physical games on my platforms, then one Gemini call picks eight of the top twenty and writes the reasons. When the model can’t answer, the top eight by score stand in.',
+          'Discover pre-scores released physical games on my platforms, then one Gemini call picks eight from the top twenty and writes the reasons. When the model can’t answer, the top eight by score fill in.',
         why: {
           lead: 'Why positions:',
-          text: 'the model answers with positions in a list I built, never titles. A model that returns titles can invent one; one that returns positions can’t.',
+          text: 'the model answers with positions in a list I built, never with titles. A model that returns titles can invent one; a model that returns positions can’t.',
         },
         code: ['backend/discover.py'],
         capture: {
@@ -362,7 +362,7 @@ export const spine = {
   next: {
     path: '/spine/next',
     title: 'What’s next',
-    lede: 'What I could play tonight, and what I’m looking for in stores. Full cartridges only, ranked by what I’ve liked, rebuilt nightly.',
+    lede: 'What I could play tonight, and what I’m watching for in stores. Full cartridges only, ranked by what I’ve liked, rebuilt every night.',
     fresh: {
       picks: 'Picks',
       catalogue: 'Releases checked',

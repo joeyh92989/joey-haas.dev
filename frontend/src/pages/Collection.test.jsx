@@ -835,7 +835,7 @@ describe('Collection header', () => {
     expect(
       screen.getByText(/^A tracker for my physical game collection:/),
     ).toBeInTheDocument()
-    expect(screen.getByText(/^I built this:/)).toBeInTheDocument()
+    expect(screen.getByText(/^I built this myself:/)).toBeInTheDocument()
     // The tab row has its own How it works link; this is the project line's.
     const project = document.querySelector('.spine-project')
     expect(
@@ -858,6 +858,6 @@ describe('Collection header', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
     ).toBeInTheDocument()
-    expect(screen.queryByText(/^I built this:/)).toBeNull()
+    expect(screen.queryByText(/^I built this myself:/)).toBeNull()
   })
 })

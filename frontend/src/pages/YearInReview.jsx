@@ -213,18 +213,18 @@ export default function YearInReview() {
               <h2 id="year-versus">Against the crowd</h2>
               <p className="prose">
                 Of {plural(versus.compared, 'rated finish')} with an IGDB
-                community score, I rated {versus.higher} higher and{' '}
-                {versus.lower} lower than the crowd.
+                community score, I went higher than the crowd on {versus.higher}{' '}
+                and lower on {versus.lower}.
                 {versus.furthest && versus.furthest.gap !== 0 && (
                   <>
                     {' '}
-                    Furthest apart:{' '}
+                    Biggest gap:{' '}
                     <Link to={itemPath(versus.furthest.item.id)}>
                       {versus.furthest.item.title}
                     </Link>
-                    , which I rated {versus.furthest.item.rating}/10 against the
-                    community&rsquo;s{' '}
-                    {Math.round(versus.furthest.item.community_score)}/100.
+                    . I gave it {versus.furthest.item.rating}/10; the community
+                    gave it {Math.round(versus.furthest.item.community_score)}
+                    /100.
                   </>
                 )}
               </p>

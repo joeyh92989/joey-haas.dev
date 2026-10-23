@@ -257,7 +257,7 @@ export default function AdminRadar() {
     <section className="radar">
       <AdminPageHeader
         title="Radar"
-        description="Upcoming physical releases and open pre-orders from the catalog, ranked by your taste."
+        description="Upcoming physical releases and open pre-orders from the catalog, ranked by your taste profile."
       >
         <button
           type="button"

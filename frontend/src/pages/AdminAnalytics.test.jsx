@@ -85,7 +85,7 @@ describe('AdminAnalytics', () => {
     render(<AdminAnalytics />)
     expect(
       await screen.findByText(
-        'No views yet. The beacon is live; check back tomorrow.',
+        'No views yet. The beacon is running. Check back tomorrow.',
       ),
     ).toBeInTheDocument()
     expect(screen.getByText('Live since Thu 8 Oct.')).toBeInTheDocument()
@@ -103,7 +103,7 @@ describe('AdminAnalytics', () => {
   it('reads a new range when one is pressed', async () => {
     const fetch = stubApi({ '30d': json(body(30)), '7d': json(FULL) })
     render(<AdminAnalytics />)
-    await screen.findByText(/beacon is live/)
+    await screen.findByText(/beacon is running/)
     fireEvent.click(screen.getByRole('button', { name: '7d' }))
     expect(
       await screen.findByText('Mon 12 Oct · news.example.com'),
