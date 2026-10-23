@@ -144,7 +144,7 @@ describe('AdminItem', () => {
     await userEvent.type(await screen.findByLabelText('Rating'), '8')
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(await screen.findByText(/could not save/i)).toBeInTheDocument()
+    expect(await screen.findByText(/couldn’t save/i)).toBeInTheDocument()
   })
 
   // The API caps favourites at four. Its 409 explains the rule; the page

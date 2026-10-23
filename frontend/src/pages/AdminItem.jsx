@@ -282,7 +282,7 @@ export default function AdminItem() {
                 .catch(() => null)
             : null
         setError(
-          typeof detail === 'string' ? detail : 'Could not save those changes.',
+          typeof detail === 'string' ? detail : 'Couldn’t save those changes.',
         )
         return
       }
@@ -334,7 +334,7 @@ export default function AdminItem() {
         }),
       })
       if (!linked.ok) {
-        setError('Could not link that record.')
+        setError('Couldn’t link that record.')
         return
       }
 
@@ -390,7 +390,7 @@ export default function AdminItem() {
           .then((payload) => payload?.detail)
           .catch(() => null)
         setError(
-          typeof detail === 'string' ? detail : 'Could not change Up next.',
+          typeof detail === 'string' ? detail : 'Couldn’t change Up next.',
         )
         return
       }
@@ -409,7 +409,7 @@ export default function AdminItem() {
       })
       const reread = response.ok ? await apiFetch(`/api/items/${id}`) : null
       if (!reread?.ok) {
-        setError('Could not restore it to Play Next.')
+        setError('Couldn’t restore it to Play Next.')
         return
       }
       applyServerItem(await reread.json())
@@ -426,7 +426,7 @@ export default function AdminItem() {
     try {
       const response = await apiFetch(`/api/items/${id}`, { method: 'DELETE' })
       if (!response.ok) {
-        setError('Could not delete that item.')
+        setError('Couldn’t delete that item.')
         return
       }
     } catch {

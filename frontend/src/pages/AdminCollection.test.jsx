@@ -132,7 +132,7 @@ describe('AdminCollection', () => {
 
     await userEvent.click(await screen.findByLabelText('Public: Star Fox'))
 
-    expect(await screen.findByText(/could not change/i)).toBeInTheDocument()
+    expect(await screen.findByText(/couldn’t change/i)).toBeInTheDocument()
     // No optimistic flip: the checkbox still shows the pre-toggle value. The
     // failure path returns before reloading, so this is the last state the
     // server confirmed rather than a fresh re-read.
@@ -480,7 +480,7 @@ describe('AdminCollection shelf', () => {
       card('Star Fox').getByRole('radio', { name: 'Rate 7 out of 10' }),
     )
 
-    expect(await screen.findByText(/could not update/i)).toBeInTheDocument()
+    expect(await screen.findByText(/couldn’t update/i)).toBeInTheDocument()
     expect(
       card('Star Fox').getByRole('radio', { name: 'Rate 7 out of 10' }),
     ).toHaveAttribute('aria-checked', 'false')
@@ -639,7 +639,7 @@ describe('AdminCollection favourites cap', () => {
     )
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Could not update that item.',
+      'Couldn’t update that item.',
     )
   })
 

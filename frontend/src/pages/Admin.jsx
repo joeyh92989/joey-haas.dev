@@ -181,7 +181,7 @@ export default function Admin() {
           detail={
             views
               ? counted(views.visitors, 'visitor')
-              : views === null && 'Could not be read'
+              : views === null && 'Couldn’t be read'
           }
         />
       </StatTiles>

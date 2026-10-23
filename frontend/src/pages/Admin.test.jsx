@@ -136,7 +136,7 @@ describe('Admin Dashboard', () => {
       within(tiles).getByText('Views · 7 days').nextSibling,
     ).toHaveTextContent('—')
     expect(
-      await within(tiles).findByText('Could not be read'),
+      await within(tiles).findByText('Couldn’t be read'),
     ).toBeInTheDocument()
   })
 

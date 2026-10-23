@@ -164,7 +164,7 @@ export default function PlayNext() {
       .then(async (response) => {
         if (cancelled) return
         if (!response.ok) {
-          setError('Could not get picks. Try again shortly.')
+          setError('Couldn’t get picks. Try again shortly.')
           return
         }
         setError(null)
@@ -223,7 +223,7 @@ export default function PlayNext() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ item_id: itemId, action }),
       },
-      'Could not save that.',
+      'Couldn’t save that.',
     )
   }
 
@@ -231,7 +231,7 @@ export default function PlayNext() {
     const ok = await send(
       `/api/items/${itemId}/pin`,
       { method: 'POST' },
-      'Could not pin that game.',
+      'Couldn’t pin that game.',
     )
     if (ok) setRound((current) => current + 1)
   }
@@ -240,7 +240,7 @@ export default function PlayNext() {
     const ok = await send(
       `/api/items/${itemId}/pin`,
       { method: 'DELETE' },
-      'Could not unpin that game.',
+      'Couldn’t unpin that game.',
     )
     if (ok) setRound((current) => current + 1)
   }
