@@ -73,8 +73,8 @@ check_equals "GET /nonsense-path (SPA 404)" "$(http_status "$SITE_URL/nonsense-p
 # rules for paths where a resource exists. So its content type distinguishes a
 # genuinely served feed from the SPA fallback, and a 200 alone does not.
 #
-# The same holds for /spine and the client-side /collection redirects: they
-# are verified in the browser after deploy, not here.
+# The same holds for the client-side /spine* and /collection redirects to
+# /shelf*: they are verified in the browser after deploy, not here.
 feed_type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$SITE_URL/feed.xml")"
 case "$feed_type" in
   *xml*) report_pass "feed.xml served as XML" "$feed_type" ;;
@@ -88,17 +88,31 @@ else
   report_fail "feed.xml is a well-formed channel" "missing <channel> or site URL"
 fi
 
+# The shelf's feed is a real file at both its URL and the pre-rename one,
+# which is in subscribers' readers; neither may fall to the SPA.
+for shelf_feed in /shelf/feed.xml /spine/feed.xml; do
+  shelf_feed_type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$SITE_URL$shelf_feed")"
+  case "$shelf_feed_type" in
+    *xml*) report_pass "$shelf_feed served as XML" "$shelf_feed_type" ;;
+    *) report_fail "$shelf_feed served as XML" "got '$shelf_feed_type' — likely the SPA fallback" ;;
+  esac
+done
+
 # Prerendered heads (frontend/scripts/prerender.mjs): each public route is a
 # real file whose <title> is its own, which the SPA fallback's never is. This
 # is also what a link preview reads. An empty title here most likely means
 # Render began redirecting /about to /about/ (curl does not follow it).
 about_title="$(curl -s -m 90 "$SITE_URL/about" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /about has its own prerendered title" "$about_title" "<title>About · Joey Haas</title>"
-next_title="$(curl -s -m 90 "$SITE_URL/spine/next" | grep -o '<title>[^<]*</title>')"
-check_equals "GET /spine/next has its own prerendered title" "$next_title" "<title>What’s next · Spine</title>"
+next_title="$(curl -s -m 90 "$SITE_URL/shelf/next" | grep -o '<title>[^<]*</title>')"
+check_equals "GET /shelf/next has its own prerendered title" "$next_title" "<title>What’s next · My Shelf</title>"
+# The pre-rename URL keeps its preview, with the canonical on /shelf.
+check_equals "GET /spine/next (legacy) has a /shelf canonical" \
+  "$(curl -s -m 90 "$SITE_URL/spine/next" | grep -o '<link rel="canonical"[^>]*>')" \
+  "<link rel=\"canonical\" href=\"$SITE_URL/shelf/next\" />"
 
 # Item, year and month pages are prerendered too, but Render serves them only
-# at the slash form (/spine/<id>/), which every link, canonical URL and
+# at the slash form (/shelf/<id>/), which every link, canonical URL and
 # sitemap entry uses (frontend/src/lib/spinePaths.js). A redirect from the
 # bare form loops on Render, so there is none: the bare form stays the SPA.
 # A slash path with no file (an item newer than the build) must fall through
@@ -108,30 +122,33 @@ if command -v jq > /dev/null; then
   first_id="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].id // empty' 2>/dev/null)"
   first_title="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].title // empty | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;") | gsub("\""; "&quot;")' 2>/dev/null)"
   if [ -n "$first_id" ]; then
-    item_page="$(curl -s -m 90 "$SITE_URL/spine/$first_id/")"
-    check_equals "GET /spine/<id>/ has its own prerendered title" \
+    item_page="$(curl -s -m 90 "$SITE_URL/shelf/$first_id/")"
+    check_equals "GET /shelf/<id>/ has its own prerendered title" \
       "$(printf '%s' "$item_page" | grep -o '<title>[^<]*</title>')" \
-      "<title>$first_title · Spine</title>"
-    check_equals "GET /spine/<id>/ has a slash canonical" \
+      "<title>$first_title · My Shelf</title>"
+    check_equals "GET /shelf/<id>/ has a slash canonical" \
       "$(printf '%s' "$item_page" | grep -o '<link rel="canonical"[^>]*>')" \
-      "<link rel=\"canonical\" href=\"$SITE_URL/spine/$first_id/\" />"
+      "<link rel=\"canonical\" href=\"$SITE_URL/shelf/$first_id/\" />"
+    check_equals "GET /spine/<id>/ (legacy) has a /shelf canonical" \
+      "$(curl -s -m 90 "$SITE_URL/spine/$first_id/" | grep -o '<link rel="canonical"[^>]*>')" \
+      "<link rel=\"canonical\" href=\"$SITE_URL/shelf/$first_id/\" />"
   else
     report_fail "snapshot has an item" "no id in $SITE_URL/snapshot/items.json"
   fi
   finish_year="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.type == "game" and (.wanted | not)) | .finished_at // empty | select(test("^[0-9]{4}-"))] | max // empty | .[0:4]' 2>/dev/null)"
   if [ -n "$finish_year" ]; then
-    check_equals "GET /spine/year/<year>/ has its own prerendered title" \
-      "$(curl -s -m 90 "$SITE_URL/spine/year/$finish_year/" | grep -o '<title>[^<]*</title>')" \
-      "<title>$finish_year in review · Spine</title>"
+    check_equals "GET /shelf/year/<year>/ has its own prerendered title" \
+      "$(curl -s -m 90 "$SITE_URL/shelf/year/$finish_year/" | grep -o '<title>[^<]*</title>')" \
+      "<title>$finish_year in review · My Shelf</title>"
   fi
 else
   report_warn "jq missing" "item and year head checks skipped"
 fi
-unknown_slash="$(curl -s -m 90 -w '\n%{http_code}' "$SITE_URL/spine/00000000-0000-0000-0000-000000000000/")"
+unknown_slash="$(curl -s -m 90 -w '\n%{http_code}' "$SITE_URL/shelf/00000000-0000-0000-0000-000000000000/")"
 if [ "$(printf '%s' "$unknown_slash" | tail -n 1)" = "200" ] && printf '%s' "$unknown_slash" | grep -q '<div id="root">'; then
-  report_pass "GET /spine/<unknown>/ falls through to the SPA" "200 with the app shell"
+  report_pass "GET /shelf/<unknown>/ falls through to the SPA" "200 with the app shell"
 else
-  report_fail "GET /spine/<unknown>/ falls through to the SPA" \
+  report_fail "GET /shelf/<unknown>/ falls through to the SPA" \
     "got $(printf '%s' "$unknown_slash" | tail -n 1), or no app shell"
 fi
 
@@ -201,7 +218,7 @@ case "$allowed_methods" in
 esac
 
 # The public collection routes are the only unauthenticated data routes.
-# /spine and /spine/:id are the only pages that fetch them; every
+# /shelf and /shelf/:id are the only pages that fetch them; every
 # page also asks /api/auth/me once (RootLayout) and treats failure as signed
 # out. Home and Projects read the static snapshot below, never the API.
 check_equals "GET /api/public/items unauthenticated" \
@@ -241,7 +258,8 @@ check_equals "POST /api/track answers 204 (text/plain, dropped)" \
 check_equals "GET /api/analytics unauthenticated" \
   "$(http_status "$API_URL/api/analytics")" "401"
 
-check_equals "GET /spine (deep link)" "$(http_status "$SITE_URL/spine")" "200"
+check_equals "GET /shelf (deep link)" "$(http_status "$SITE_URL/shelf")" "200"
+check_equals "GET /spine (legacy redirect path)" "$(http_status "$SITE_URL/spine")" "200"
 check_equals "GET /collection (legacy redirect path)" "$(http_status "$SITE_URL/collection")" "200"
 
 public_body="$(curl -s -m 90 "$API_URL/api/public/items")"
@@ -334,7 +352,7 @@ for retired in picks radar; do
 done
 
 # Spine Next: What's next is a page and a public object with its sections.
-check_equals "GET /spine/next (deep link)" "$(http_status "$SITE_URL/spine/next")" "200"
+check_equals "GET /shelf/next (deep link)" "$(http_status "$SITE_URL/shelf/next")" "200"
 next_body="$(curl -s -m 90 "$API_URL/api/public/next")"
 if printf '%s' "$next_body" | jq -e \
   'type == "object" and (["tonight","wanted","buy_now","preorders","later","not_on_cartridge","generated_at"] - keys == [])' \
@@ -354,17 +372,17 @@ fi
 
 # Spine tour: the field guide is a page with its own head, and the status
 # behind the landing's strip is five counts, nothing more.
-check_equals "GET /spine/how (deep link)" "$(http_status "$SITE_URL/spine/how")" "200"
-how_html="$(curl -s -m 90 "$SITE_URL/spine/how")"
-check_equals "GET /spine/how has its own prerendered title" \
-  "$(printf '%s' "$how_html" | grep -o '<title>[^<]*</title>')" "<title>How it works · Spine</title>"
+check_equals "GET /shelf/how (deep link)" "$(http_status "$SITE_URL/shelf/how")" "200"
+how_html="$(curl -s -m 90 "$SITE_URL/shelf/how")"
+check_equals "GET /shelf/how has its own prerendered title" \
+  "$(printf '%s' "$how_html" | grep -o '<title>[^<]*</title>')" "<title>How it works · My Shelf</title>"
 # The tour draws stores as "store withheld"; none of the watched stores'
 # hosts (STORES in backend/physical_sources/stores.py) may reach its page.
 STORE_HOSTS='limitedrungames|iam8bit|strictlylimitedgames|premiumeditiongames|nicalis|aksysgames|aksyseurope|fangamer|superraregames|pixelheart|gamefairy|1printgames'
 if printf '%s' "$how_html" | grep -qiE "$STORE_HOSTS"; then
-  report_fail "GET /spine/how names no store" "found a store host"
+  report_fail "GET /shelf/how names no store" "found a store host"
 else
-  report_pass "GET /spine/how names no store" "no store host"
+  report_pass "GET /shelf/how names no store" "no store host"
 fi
 check_equals "GET /api/public/status" "$(http_status "$API_URL/api/public/status")" "200"
 status_body="$(curl -s -m 90 "$API_URL/api/public/status")"
@@ -433,8 +451,8 @@ fi
 
 # The item page is a nested public route; like the admin detail view below,
 # only the static host can prove its rewrite serves it on a deep link.
-check_equals "GET /spine/<id> (nested deep link)" \
-  "$(http_status "$SITE_URL/spine/00000000-0000-0000-0000-000000000000")" \
+check_equals "GET /shelf/<id> (nested deep link)" \
+  "$(http_status "$SITE_URL/shelf/00000000-0000-0000-0000-000000000000")" \
   "200"
 
 check_equals "POST /api/import/photos unauthenticated" \

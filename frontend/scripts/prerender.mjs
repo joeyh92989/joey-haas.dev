@@ -12,8 +12,10 @@
  * prerendered path to its file ahead of the catch-all, and a new page or
  * post needs its rule there too (prerender-lib.test.mjs checks). Item and
  * year pages are not rewritten: a rule whose file is missing serves an
- * empty page. Spine items come from the build-time snapshot, which
- * holds public items only; without a snapshot, items are simply skipped.
+ * empty page. The pre-rename /spine pages get heads too (legacyRoutes),
+ * and the feed is written at both prefixes. Shelf items come from the
+ * build-time snapshot, which holds public items only; without a snapshot,
+ * items are simply skipped.
  *
  * Runs after `vite build`, so dist/ already exists.
  */
@@ -23,6 +25,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   ADMIN_ROUTES,
+  LEGACY_PREFIX,
+  legacyRoutes,
   noindex,
   publicRoutes,
   renderHead,
@@ -30,6 +34,7 @@ import {
   sitemap,
   spineFeed,
 } from './prerender-lib.mjs'
+import { spine } from '../src/content/spine.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(here, '..', 'dist')
@@ -101,12 +106,19 @@ for (const route of routes) {
       : renderHead(shell, route)
   await write(route.path, html)
 }
+// Pre-rename heads: written, never listed in the sitemap.
+for (const route of legacyRoutes(routes)) {
+  await write(route.path, renderHead(shell, route))
+}
 for (const route of ADMIN_ROUTES) await write(route, noindex(shell))
 await fs.writeFile(path.join(dist, 'sitemap.xml'), sitemap(routes), 'utf8')
 await fs.writeFile(path.join(dist, 'robots.txt'), robots(), 'utf8')
-await fs.writeFile(
-  path.join(dist, 'spine', 'feed.xml'),
-  spineFeed(items),
-  'utf8',
-)
+// The feed at its /shelf URL and, byte for byte, at the old one, so existing
+// subscribers keep receiving it without a redirect rule.
+const feed = spineFeed(items)
+for (const prefix of [spine.path, LEGACY_PREFIX]) {
+  const dir = path.join(dist, ...prefix.split('/').filter(Boolean))
+  await fs.mkdir(dir, { recursive: true })
+  await fs.writeFile(path.join(dir, 'feed.xml'), feed, 'utf8')
+}
 console.log(`prerendered ${routes.length} route(s), sitemap.xml and robots.txt`)

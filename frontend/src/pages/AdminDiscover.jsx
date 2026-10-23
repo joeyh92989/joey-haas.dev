@@ -236,7 +236,7 @@ export default function AdminDiscover() {
     <section className="radar discover">
       <AdminPageHeader
         title="Discover"
-        description="Physical games already out on your platforms that you would love and do not own, picked from the catalog."
+        description="Released physical games on your platforms that fit your taste and aren’t on your shelf, picked from the catalog."
       >
         <button
           type="button"
@@ -279,7 +279,10 @@ export default function AdminDiscover() {
             ))}
           </div>
           {!platforms.length && (
-            <p className="muted">None chosen: your collection&apos;s.</p>
+            <p className="muted">
+              No platforms chosen. Candidates come from every platform in your
+              collection.
+            </p>
           )}
         </fieldset>
       </div>

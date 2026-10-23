@@ -77,7 +77,7 @@ export default function ShelfCardActions({
         </button>
         {blocked && (
           <span id={fullNoteId} className="visually-hidden">
-            Four favorites already set. Unfavorite one first.
+            Four favorites already set. Remove one first.
           </span>
         )}
         <select

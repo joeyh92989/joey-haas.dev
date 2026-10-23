@@ -58,10 +58,10 @@ function stubItem(overrides = {}) {
 
 function renderPage({ signedIn = false } = {}) {
   return render(
-    <MemoryRouter initialEntries={[`/spine/${ID}`]}>
+    <MemoryRouter initialEntries={[`/shelf/${ID}`]}>
       <Routes>
         <Route element={<Outlet context={{ signedIn }} />}>
-          <Route path="/spine/:id" element={<Item />} />
+          <Route path="/shelf/:id" element={<Item />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -211,7 +211,7 @@ describe('Item', () => {
     const strip = screen.getByRole('region', { name: 'More from this shelf' })
     expect(
       within(strip).getByRole('link', { name: 'Dead Cells' }),
-    ).toHaveAttribute('href', '/spine/a/')
+    ).toHaveAttribute('href', '/shelf/a/')
     expect(within(strip).getAllByRole('link')).toHaveLength(2)
   })
 
@@ -277,9 +277,9 @@ describe('Item', () => {
   it('renders outside the layout without throwing', async () => {
     stubItem()
     render(
-      <MemoryRouter initialEntries={[`/spine/${ID}`]}>
+      <MemoryRouter initialEntries={[`/shelf/${ID}`]}>
         <Routes>
-          <Route path="/spine/:id" element={<Item />} />
+          <Route path="/shelf/:id" element={<Item />} />
         </Routes>
       </MemoryRouter>,
     )
@@ -294,13 +294,13 @@ describe('Item title', () => {
     document.title = 'Stale'
   })
 
-  it('is Spine until the item is known', () => {
+  it('is My Shelf until the item is known', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => new Promise(() => {})),
     )
     renderPage()
-    expect(document.title).toBe('Spine · Joey Haas')
+    expect(document.title).toBe('My Shelf · Joey Haas')
   })
 
   it('names the item once it loads', async () => {
@@ -308,7 +308,7 @@ describe('Item title', () => {
     await renderReady()
     // The title is set by a passive effect, which React flushes after the
     // commit that put the heading on screen: wait for it, don't read it.
-    await waitFor(() => expect(document.title).toBe('Hades · Spine'))
+    await waitFor(() => expect(document.title).toBe('Hades · My Shelf'))
   })
 
   it('names the item from the snapshot while the server wakes', async () => {
@@ -327,7 +327,7 @@ describe('Item title', () => {
       vi.fn(() => new Promise(() => {})),
     )
     renderPage()
-    await waitFor(() => expect(document.title).toBe('Hades · Spine'))
+    await waitFor(() => expect(document.title).toBe('Hades · My Shelf'))
   })
 
   it('leaves the title to NotFound on a 404', async () => {

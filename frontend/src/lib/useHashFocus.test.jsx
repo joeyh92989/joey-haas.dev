@@ -29,21 +29,21 @@ function renderAt(entry) {
 
 describe('useHashFocus', () => {
   it('focuses the section heading named by the hash on mount', () => {
-    renderAt('/spine/how#stop-1')
+    renderAt('/shelf/how#stop-1')
     const heading = screen.getByRole('heading', { name: 'One' })
     expect(heading).toHaveFocus()
     expect(heading).toHaveAttribute('tabindex', '-1')
   })
 
   it('follows a hash link on the same page', () => {
-    renderAt('/spine/how')
+    renderAt('/shelf/how')
     expect(document.body).toHaveFocus()
     act(() => screen.getByRole('link', { name: 'Go to two' }).click())
     expect(screen.getByRole('heading', { name: 'Two' })).toHaveFocus()
   })
 
   it('lands on the heading again when the same link is pressed twice', () => {
-    renderAt('/spine/how')
+    renderAt('/shelf/how')
     const link = screen.getByRole('link', { name: 'Go to two' })
     act(() => link.click())
     const heading = screen.getByRole('heading', { name: 'Two' })
@@ -54,12 +54,12 @@ describe('useHashFocus', () => {
   })
 
   it('does nothing for an id that is not on the page', () => {
-    renderAt('/spine/how#stop-9')
+    renderAt('/shelf/how#stop-9')
     expect(document.body).toHaveFocus()
   })
 
   it('survives a malformed hash', () => {
-    renderAt('/spine/how#%E0%A4%A')
+    renderAt('/shelf/how#%E0%A4%A')
     expect(document.body).toHaveFocus()
   })
 })

@@ -25,7 +25,7 @@ from analytics import (
 DAY = date(2026, 10, 20)
 IP = "203.0.113.7"
 UA = "Mozilla/5.0 (Macintosh)"
-ITEM = "/spine/0b7c6f3e-1111-4c1c-9a50-000000000001"
+ITEM = "/shelf/0b7c6f3e-1111-4c1c-9a50-000000000001"
 
 
 def body(**fields) -> bytes:
@@ -100,10 +100,11 @@ def test_true_client_ip_then_the_socket():
         ("/", "/"),
         ("/about", "/about"),
         ("/about/", "/about"),
-        ("/spine/next?utm=x", "/spine/next"),
+        ("/shelf/next?utm=x", "/shelf/next"),
+        ("/shelf/how/", "/shelf/how"),
         (f"{ITEM}/", ITEM),
-        ("/spine/year/2026/", "/spine/year/2026"),
-        ("/spine/journal/2026-10/", "/spine/journal/2026-10"),
+        ("/shelf/year/2026/", "/shelf/year/2026"),
+        ("/shelf/journal/2026-10/", "/shelf/journal/2026-10"),
         ("/blog/how-spine-works#top", "/blog/how-spine-works"),
     ],
 )
@@ -117,7 +118,10 @@ def test_a_public_path_is_kept_in_one_form(path, expected):
         "/admin",
         "/admin/collection",
         "/wp-login.php",
-        "/spine/not-an-id",
+        "/shelf/not-an-id",
+        "/spine",
+        "/spine/next",
+        "/spine/0b7c6f3e-1111-4c1c-9a50-000000000001",
         "/collection",
         "/blog/../admin",
         "about",

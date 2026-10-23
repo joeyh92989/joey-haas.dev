@@ -108,7 +108,7 @@ describe('RootLayout page widths', () => {
   }
 
   // The tracker pages break out to 72rem; everything nested under one too.
-  it.each(['/spine', '/spine/abc', '/spine/year/2026'])('widens %s', (path) => {
+  it.each(['/shelf', '/shelf/abc', '/shelf/year/2026'])('widens %s', (path) => {
     expect(pageClass(path)).toBe('page page-wide')
   })
 
@@ -131,7 +131,7 @@ describe('RootLayout page widths', () => {
 
   // The masthead and footer rows follow the page out on the tracker routes.
   it('widens the chrome with the tracker pages only', () => {
-    const { container, unmount } = renderAt('/spine')
+    const { container, unmount } = renderAt('/shelf')
     expect(container.firstChild).toHaveClass('site-wide')
     unmount()
     expect(renderAt('/about').container.firstChild).not.toHaveClass('site-wide')
@@ -191,9 +191,9 @@ describe('RootLayout nav', () => {
       .map((link) => link.textContent)
   }
 
-  it('lists Spine, and no Blog while nothing is published', () => {
+  it('lists My Shelf, and no Blog while nothing is published', () => {
     renderAt('/about')
-    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Spine'])
+    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'My Shelf'])
   })
 
   it('adds Blog last once a post is published', () => {
@@ -202,14 +202,20 @@ describe('RootLayout nav', () => {
       frontmatter: { title: 'First', date: '2026-10-01' },
     })
     renderAt('/about')
-    expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'Spine', 'Blog'])
+    expect(navLabels()).toEqual([
+      'Home',
+      'About',
+      'Projects',
+      'My Shelf',
+      'Blog',
+    ])
   })
 
-  it('keeps Spine current on an item page', () => {
-    renderAt('/spine/abc')
+  it('keeps My Shelf current on an item page', () => {
+    renderAt('/shelf/abc')
     expect(
       within(screen.getByRole('navigation')).getByRole('link', {
-        name: 'Spine',
+        name: 'My Shelf',
       }),
     ).toHaveAttribute('aria-current', 'page')
   })
@@ -249,7 +255,7 @@ describe('RootLayout admin routes', () => {
 
 describe('RootLayout masthead', () => {
   // One masthead everywhere: the tracker no longer gets a compact variant.
-  it.each(['/', '/about', '/spine', '/spine/next'])(
+  it.each(['/', '/about', '/shelf', '/shelf/next'])(
     'is the same masthead on %s',
     (path) => {
       const { container } = renderAt(path)
@@ -261,13 +267,13 @@ describe('RootLayout masthead', () => {
     },
   )
 
-  it('keeps Spine current on What’s next', () => {
-    renderAt('/spine/next')
-    expect(screen.getByRole('link', { name: 'Spine' })).toHaveClass('active')
+  it('keeps My Shelf current on What’s next', () => {
+    renderAt('/shelf/next')
+    expect(screen.getByRole('link', { name: 'My Shelf' })).toHaveClass('active')
   })
 
   it('keeps the toggle outside the nav landmark', () => {
-    renderAt('/spine')
+    renderAt('/shelf')
     const nav = screen.getByRole('navigation', { name: /site/i })
     expect(within(nav).queryByRole('button')).toBeNull()
   })

@@ -22,7 +22,10 @@ const REENABLE_URL = 'https://github.com/joeyh92989/joey-haas.dev#nightly-job'
 const API_WORDS = {
   checking: { state: 'unknown', words: 'Checking the API' },
   awake: { state: 'ok', words: 'API awake' },
-  'signed-out': { state: 'failed', words: 'Session ended — reload to sign in' },
+  'signed-out': {
+    state: 'failed',
+    words: 'Your session ended. Reload to sign in.',
+  },
   error: { state: 'failed', words: 'API error' },
   unreachable: { state: 'failed', words: 'API unreachable' },
 }
@@ -178,7 +181,7 @@ export default function Admin() {
           detail={
             views
               ? counted(views.visitors, 'visitor')
-              : views === null && 'Could not be read'
+              : views === null && 'Couldn’t be read'
           }
         />
       </StatTiles>

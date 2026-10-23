@@ -529,7 +529,7 @@ export default function AdminCatalogue() {
     <section className="catalogue">
       <AdminPageHeader
         title="Sources"
-        description="What exists physically, and as what: the r/NSCollectors registries for Switch 2 and Switch 1, the boutique stores and IGDB’s N64 list."
+        description="What exists physically, and in which format: the r/NSCollectors registries for Switch 2 and Switch 1, the boutique stores, and IGDB’s N64 list."
       >
         <button
           type="button"

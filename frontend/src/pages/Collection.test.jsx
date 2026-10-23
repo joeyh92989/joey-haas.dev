@@ -178,7 +178,7 @@ describe('Collection', () => {
 
     expect(grid().getByRole('link', { name: /Dune/ })).toHaveAttribute(
       'href',
-      '/spine/1/',
+      '/shelf/1/',
     )
   })
 
@@ -206,7 +206,7 @@ describe('Collection', () => {
     await renderReady()
 
     const hero = document.querySelector('.hero-numbers')
-    const strip = screen.getByRole('region', { name: 'What Spine does' })
+    const strip = screen.getByRole('region', { name: 'What it does' })
     const favourites = screen.getByRole('region', { name: 'Favorites' })
     const follows = Node.DOCUMENT_POSITION_FOLLOWING
     expect(hero.compareDocumentPosition(strip) & follows).toBeTruthy()
@@ -218,9 +218,9 @@ describe('Collection', () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
 
-    const strip = await screen.findByLabelText('Spine status')
+    const strip = await screen.findByLabelText('Status', { selector: 'dl' })
     expect(strip).toHaveTextContent('5,724 titles')
-    const does = screen.getByRole('region', { name: 'What Spine does' })
+    const does = screen.getByRole('region', { name: 'What it does' })
     expect(
       strip.compareDocumentPosition(does) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
@@ -229,7 +229,7 @@ describe('Collection', () => {
   it('has no axe violations on the landing', async () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
-    await screen.findByLabelText('Spine status')
+    await screen.findByLabelText('Status', { selector: 'dl' })
 
     // The render container, like the other page tests: the page is drawn
     // without RootLayout's <main>, so the whole body has no landmarks.
@@ -597,7 +597,9 @@ describe('Collection', () => {
     })
     renderPage()
 
-    expect(await screen.findByText(/nothing here yet/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/nothing on the shelf yet/i),
+    ).toBeInTheDocument()
     expect(document.querySelector('.hero-numbers')).toBeNull()
     expect(document.querySelector('.status-bar')).toBeNull()
     expect(document.querySelector('.shelf-toolbar')).toBeNull()
@@ -786,7 +788,7 @@ describe('Collection and What’s next', () => {
     expect(screen.queryByRole('region', { name: 'Up next' })).toBeNull()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(
-      screen.getByRole('navigation', { name: 'Spine sections' }),
+      screen.getByRole('navigation', { name: 'My Shelf sections' }),
     ).toBeInTheDocument()
   })
 
@@ -806,7 +808,7 @@ describe('Collection and What’s next', () => {
     const { unmount } = renderPage()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(
-      screen.getByRole('navigation', { name: 'Spine sections' }),
+      screen.getByRole('navigation', { name: 'My Shelf sections' }),
     ).toBeInTheDocument()
     unmount()
 
@@ -814,31 +816,31 @@ describe('Collection and What’s next', () => {
     renderPage()
     await screen.findByText(/didn’t load/i)
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('navigation', { name: 'Spine sections' }),
+      screen.getByRole('navigation', { name: 'My Shelf sections' }),
     ).toBeInTheDocument()
   })
 })
 
 describe('Collection header', () => {
-  it('names Spine, says what it is, and links the post and the source', async () => {
+  it('names My Shelf, says what it is, and links the post and the source', async () => {
     stubApi()
     await renderReady()
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
     ).toBeInTheDocument()
     expect(
       screen.getByText(/^A tracker for my physical game collection:/),
     ).toBeInTheDocument()
-    expect(screen.getByText(/^I built this:/)).toBeInTheDocument()
+    expect(screen.getByText(/^I built this myself:/)).toBeInTheDocument()
     // The tab row has its own How it works link; this is the project line's.
     const project = document.querySelector('.spine-project')
     expect(
       within(project).getByRole('link', { name: /How it works/ }),
-    ).toHaveAttribute('href', '/spine/how')
+    ).toHaveAttribute('href', '/shelf/how')
     expect(screen.getByRole('link', { name: /Source/ })).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989/joey-haas.dev',
@@ -854,8 +856,8 @@ describe('Collection header', () => {
     renderPage()
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
     ).toBeInTheDocument()
-    expect(screen.queryByText(/^I built this:/)).toBeNull()
+    expect(screen.queryByText(/^I built this myself:/)).toBeNull()
   })
 })

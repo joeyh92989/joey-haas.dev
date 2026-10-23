@@ -19,16 +19,16 @@ export const profile = {
     lead: 'Backend systems where correctness and money are the',
     accent: 'same problem.',
   },
-  lede: 'I’m a senior software engineer at Guild, building the payments and ledger systems behind employer-funded education. Eight years as a product manager before that, so I care as much about why we build things as how.',
+  lede: 'I’m a senior software engineer at Guild, building the payments and ledger systems behind employer-funded education. I spent eight years as a product manager before that, so I care as much about why we build things as how.',
   /** Home's facts table, after which the derived Last shipped and Playing rows. */
   facts: [
     { label: 'Now', value: 'Guild · Senior Software Engineer' },
     { label: 'Focus', value: 'Payments & ledger systems' },
     { label: 'Stack', value: 'Node · TypeScript · Python · Postgres' },
   ],
-  bio: `I'm a senior software engineer at Guild, on the payments team. For five years I've built the backend that funds, tracks and reconciles education benefits for enterprise employers: the APIs that record spending, the ledger behind them, the tax rules on top, and one service's side of a company-wide migration to a new eligibility platform.
+  bio: `I’m a senior software engineer at Guild, on the payments team. For five years I’ve built the backend that funds, tracks, and reconciles education benefits for enterprise employers: the APIs that record spending, the ledger behind them, the tax rules on top, and one service’s side of a company-wide migration to a new eligibility platform.
 
-Before the code, eight years as a product manager across enterprise SaaS, payments and video. I still work like one: architecture doc, then team alignment, then the endpoint — and the data forensics when something goes wrong.`,
+Before the code, I spent eight years as a product manager across enterprise SaaS, payments, and video. I still work like one: architecture doc first, then team alignment, then the endpoint, and the data forensics when something goes wrong.`,
   location: 'Denver, Colorado',
   /** About's key/value list, above the résumé link. */
   aboutFacts: [

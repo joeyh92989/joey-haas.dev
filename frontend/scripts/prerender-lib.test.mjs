@@ -5,8 +5,10 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   ADMIN_ROUTES,
+  LEGACY_PREFIX,
   clip,
   excerpt,
+  legacyRoutes,
   spineFeed,
   noindex,
   publicRoutes,
@@ -59,32 +61,34 @@ describe('publicRoutes', () => {
       '/',
       '/about',
       '/projects',
-      '/spine',
-      '/spine/next',
-      '/spine/how',
+      '/shelf',
+      '/shelf/next',
+      '/shelf/how',
       '/now',
       '/colophon',
       '/blog',
       '/blog/how-spine-works',
-      `/spine/${ITEM.id}`,
+      `/shelf/${ITEM.id}`,
     ])
   })
 
   it('titles pages the way the app does', () => {
     expect(routeAt(routes, '/about').title).toBe('About · Joey Haas')
-    expect(routeAt(routes, '/spine/next').title).toBe('What’s next · Spine')
-    expect(routeAt(routes, '/spine/how').title).toBe('How it works · Spine')
+    expect(routeAt(routes, '/shelf/next').title).toBe('What’s next · My Shelf')
+    expect(routeAt(routes, '/shelf/how').title).toBe('How it works · My Shelf')
     expect(routeAt(routes, '/blog/how-spine-works').title).toBe(
       'How Spine works · Joey Haas',
     )
-    expect(routeAt(routes, `/spine/${ITEM.id}`).title).toBe('Hades II · Spine')
+    expect(routeAt(routes, `/shelf/${ITEM.id}`).title).toBe(
+      'Hades II · My Shelf',
+    )
   })
 
   it('previews an item with its cover and a plain description', () => {
-    const item = routeAt(routes, `/spine/${ITEM.id}`)
+    const item = routeAt(routes, `/shelf/${ITEM.id}`)
     expect(item.image.url).toBe(ITEM.cover_url)
     expect(item.description).toBe(
-      'Hades II on Nintendo Switch 2, in Joey Haas’s game collection on Spine. Rated 9/10.',
+      'Hades II on Nintendo Switch 2, in Joey Haas’s game collection on My Shelf. Rated 9/10.',
     )
   })
 
@@ -97,10 +101,10 @@ describe('publicRoutes', () => {
       ],
     }).slice(-2)
     expect(film.description).toBe(
-      'Heat, in Joey Haas’s film collection on Spine.',
+      'Heat, in Joey Haas’s film collection on My Shelf.',
     )
     expect(wanted.description).toBe(
-      'Pikmin 5, on Joey Haas’s want list on Spine.',
+      'Pikmin 5, on Joey Haas’s want list on My Shelf.',
     )
   })
 
@@ -129,6 +133,21 @@ describe('renderHead', () => {
     expect(html.match(/name="description"/g)).toHaveLength(1)
   })
 
+  // renderHead replaces the shell's tags, so its defaults are what ships:
+  // they must say what index.html says.
+  it('gives the home page the shell’s description and image alt', () => {
+    const shellContent = (attr) =>
+      SHELL.match(new RegExp(`${attr}"\\s+content="([^"]*)"`))[1]
+    const home = renderHead(
+      SHELL,
+      routeAt(publicRoutes({ posts: [], items: [] }), '/'),
+    )
+    expect(home).toContain(`content="${shellContent('name="description')}"`)
+    expect(home).toContain(
+      `content="${shellContent('property="og:image:alt')}"`,
+    )
+  })
+
   it('keeps the rest of the shell', () => {
     expect(html).toContain('<div id="root"></div>')
     expect(html).toContain("localStorage.getItem('theme')")
@@ -146,7 +165,7 @@ describe('renderHead', () => {
   it('uses a summary card for a portrait cover', () => {
     const item = routeAt(
       publicRoutes({ posts: [], items: [ITEM] }),
-      `/spine/${ITEM.id}`,
+      `/shelf/${ITEM.id}`,
     )
     const out = renderHead(SHELL, item)
     expect(out).toContain('<meta name="twitter:card" content="summary" />')
@@ -161,26 +180,57 @@ describe('renderHead', () => {
     const urls = Object.fromEntries(
       routes.map((route) => [route.path, routeUrl(route)]),
     )
-    expect(urls[`/spine/${ITEM.id}`]).toBe(
-      `https://joey-haas.dev/spine/${ITEM.id}/`,
+    expect(urls[`/shelf/${ITEM.id}`]).toBe(
+      `https://joey-haas.dev/shelf/${ITEM.id}/`,
     )
-    expect(urls['/spine/year/2026']).toBe(
-      'https://joey-haas.dev/spine/year/2026/',
+    expect(urls['/shelf/year/2026']).toBe(
+      'https://joey-haas.dev/shelf/year/2026/',
     )
-    expect(urls['/spine/journal/2026-09']).toBe(
-      'https://joey-haas.dev/spine/journal/2026-09/',
+    expect(urls['/shelf/journal/2026-09']).toBe(
+      'https://joey-haas.dev/shelf/journal/2026-09/',
     )
     expect(urls['/']).toBe('https://joey-haas.dev/')
-    expect(urls['/spine']).toBe('https://joey-haas.dev/spine')
-    expect(urls['/spine/next']).toBe('https://joey-haas.dev/spine/next')
+    expect(urls['/shelf']).toBe('https://joey-haas.dev/shelf')
+    expect(urls['/shelf/next']).toBe('https://joey-haas.dev/shelf/next')
     expect(urls['/blog/how-spine-works']).toBe(
       'https://joey-haas.dev/blog/how-spine-works',
     )
-    const head = renderHead(SHELL, routeAt(routes, `/spine/${ITEM.id}`))
-    const url = `https://joey-haas.dev/spine/${ITEM.id}/`
+    const head = renderHead(SHELL, routeAt(routes, `/shelf/${ITEM.id}`))
+    const url = `https://joey-haas.dev/shelf/${ITEM.id}/`
     expect(head).toContain(`<link rel="canonical" href="${url}" />`)
     expect(head).toContain(`<meta property="og:url" content="${url}" />`)
     expect(sitemap(routes)).toContain(`<loc>${url}</loc>`)
+  })
+})
+
+describe('legacyRoutes', () => {
+  const routes = publicRoutes({
+    posts: [],
+    items: [{ ...ITEM, finished_at: '2026-09-01' }],
+  })
+  const legacy = legacyRoutes(routes)
+
+  it('writes the shelf, What’s next, How it works and items at /spine', () => {
+    expect(legacy.map((route) => route.path)).toEqual([
+      LEGACY_PREFIX,
+      `${LEGACY_PREFIX}/next`,
+      `${LEGACY_PREFIX}/how`,
+      `${LEGACY_PREFIX}/${ITEM.id}`,
+    ])
+  })
+
+  it('points the canonical URL and og:url at /shelf', () => {
+    const route = legacy.find((entry) => entry.path.endsWith(ITEM.id))
+    const head = renderHead(SHELL, route)
+    const url = `https://joey-haas.dev/shelf/${ITEM.id}/`
+    expect(head).toContain(`<link rel="canonical" href="${url}" />`)
+    expect(head).toContain(`<meta property="og:url" content="${url}" />`)
+    expect(head).toContain('<title>Hades II · My Shelf</title>')
+    expect(head).not.toContain('/spine/')
+  })
+
+  it('stays out of the sitemap', () => {
+    expect(sitemap(routes)).not.toContain('/spine')
   })
 })
 
@@ -239,20 +289,33 @@ describe('spineFeed', () => {
       ([, title]) => title,
     )
     expect(titles).toEqual([
-      'Spine: finished games',
+      'My Shelf: finished games',
       'Finished Newer',
       'Finished Older',
     ])
     expect(xml).toContain(
       '<description>Newer (Nintendo Switch 2, rated 9/10).</description>',
     )
-    expect(xml).toContain('<link>https://joey-haas.dev/spine/b/</link>')
+    expect(xml).toContain('<link>https://joey-haas.dev/shelf/b/</link>')
   })
 
-  it('is announced in the head of /spine and /now', () => {
+  it('keeps each GUID on the pre-rename item URL', () => {
+    // What a /spine build wrote, so no reader sees an entry again as new.
+    const xml = spineFeed([
+      { ...ITEM, id: 'a b', title: 'Spaced', finished_at: '2026-03-01' },
+    ])
+    expect(xml).toContain(
+      '<guid isPermaLink="false">https://joey-haas.dev/spine/a%20b/#finished-2026-03-01</guid>',
+    )
+    expect(xml).toContain(
+      '<atom:link href="https://joey-haas.dev/shelf/feed.xml" rel="self"',
+    )
+  })
+
+  it('is announced in the head of /shelf and /now', () => {
     const routes = publicRoutes({ posts: [], items: [] })
     const head = renderHead(SHELL, routeAt(routes, '/now'))
-    expect(head).toContain('href="/spine/feed.xml"')
+    expect(head).toContain('href="/shelf/feed.xml"')
   })
 })
 
@@ -269,10 +332,10 @@ describe('year in review routes', () => {
     })
     const years = routes.filter((route) => route.path.includes('/year/'))
     expect(years.map((route) => route.path)).toEqual([
-      '/spine/year/2026',
-      '/spine/year/2025',
+      '/shelf/year/2026',
+      '/shelf/year/2025',
     ])
-    expect(years[0].title).toBe('2026 in review · Spine')
+    expect(years[0].title).toBe('2026 in review · My Shelf')
     expect(years[0].description.startsWith('2 games finished in 2026')).toBe(
       true,
     )
@@ -292,10 +355,10 @@ describe('journal month routes', () => {
     })
     const months = routes.filter((route) => route.path.includes('/journal/'))
     expect(months.map((route) => route.path)).toEqual([
-      '/spine/journal/2026-09',
-      '/spine/journal/2025-12',
+      '/shelf/journal/2026-09',
+      '/shelf/journal/2025-12',
     ])
-    expect(months[0].title).toBe('September 2026 · Spine')
+    expect(months[0].title).toBe('September 2026 · My Shelf')
     expect(
       months[0].description.startsWith('2 games finished in September 2026'),
     ).toBe(true)
@@ -308,7 +371,7 @@ describe('journal month routes', () => {
       items: [{ ...ITEM, id: 'a', finished_at: '2026-09-01' }],
     })
     expect(sitemap(routes)).toContain(
-      '<loc>https://joey-haas.dev/spine/journal/2026-09/</loc>',
+      '<loc>https://joey-haas.dev/shelf/journal/2026-09/</loc>',
     )
   })
 })
@@ -341,7 +404,8 @@ describe('render.yaml rewrites', () => {
       date: String(data.date),
       body: content,
     }))
-  const pages = publicRoutes({ posts, items: [] })
+  const built = publicRoutes({ posts, items: [] })
+  const pages = [...built, ...legacyRoutes(built)]
     .map((route) => route.path)
     .filter((route) => route !== '/')
 

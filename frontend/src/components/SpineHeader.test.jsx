@@ -14,47 +14,49 @@ function renderAt(path, props) {
 
 describe('SpineHeader', () => {
   it('is the page h1 on the shelf, with the tab row', () => {
-    renderAt('/spine')
+    renderAt('/shelf')
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Spine' }),
+      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
     ).toBeInTheDocument()
-    const tabs = screen.getByRole('navigation', { name: 'Spine sections' })
+    const tabs = screen.getByRole('navigation', { name: 'My Shelf sections' })
     expect(tabs).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Shelf' })).toHaveClass('active')
+    expect(screen.getByRole('link', { name: 'Collection' })).toHaveClass(
+      'active',
+    )
     expect(screen.getByRole('link', { name: 'What’s next' })).not.toHaveClass(
       'active',
     )
   })
 
   it('links back to the shelf, not an h1, on a sub-page', () => {
-    renderAt('/spine/next', { asLink: true })
+    renderAt('/shelf/next', { asLink: true })
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
-    expect(screen.getByRole('link', { name: 'Spine' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'My Shelf' })).toHaveAttribute(
       'href',
-      '/spine',
+      '/shelf',
     )
     expect(screen.getByRole('link', { name: 'What’s next' })).toHaveClass(
       'active',
     )
-    expect(screen.getByRole('link', { name: 'Shelf' })).not.toHaveClass(
+    expect(screen.getByRole('link', { name: 'Collection' })).not.toHaveClass(
       'active',
     )
   })
 
   it('has a fourth tab, How it works, active only on its page', () => {
-    renderAt('/spine/how', { asLink: true })
-    const how = screen.getByRole('link', { name: /How it works/ })
-    expect(how).toHaveAttribute('href', '/spine/how')
+    renderAt('/shelf/how', { asLink: true })
+    const how = screen.getByRole('link', { name: 'How it works' })
+    expect(how).toHaveAttribute('href', '/shelf/how')
     expect(how).toHaveClass('active')
-    expect(how).toHaveTextContent('New')
-    expect(screen.getByRole('link', { name: 'Shelf' })).not.toHaveClass(
+    expect(how.querySelector('.spine-tab-badge')).toBeNull()
+    expect(screen.getByRole('link', { name: 'Collection' })).not.toHaveClass(
       'active',
     )
     expect(screen.getAllByRole('link', { name: /./ })).toHaveLength(5)
   })
 
-  it('leaves How it works inactive elsewhere under /spine', () => {
-    renderAt('/spine/next', { asLink: true })
+  it('leaves How it works inactive elsewhere under /shelf', () => {
+    renderAt('/shelf/next', { asLink: true })
     expect(screen.getByRole('link', { name: /How it works/ })).not.toHaveClass(
       'active',
     )

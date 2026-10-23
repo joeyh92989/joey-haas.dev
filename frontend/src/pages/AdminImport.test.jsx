@@ -204,7 +204,7 @@ describe('AdminImport', () => {
     await uploadAPhoto()
 
     expect(
-      await screen.findByText(/no titles could be read/i),
+      await screen.findByText(/couldn’t read any titles/i),
     ).toBeInTheDocument()
   })
 
@@ -317,7 +317,7 @@ describe('AdminImport', () => {
 
     expect(await screen.findByText(/overloaded/i)).toBeInTheDocument()
     expect(
-      screen.queryByText(/no titles could be read/i),
+      screen.queryByText(/couldn’t read any titles/i),
     ).not.toBeInTheDocument()
   })
 

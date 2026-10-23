@@ -42,7 +42,7 @@ const SIZES = ['comfortable', 'compact']
 
 /** The favourites row's size; the API refuses a fifth (see items.py). */
 const FAVORITES_LIMIT = 4
-const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favorites. Unfavorite one first.`
+const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favorites. Remove one first.`
 
 /** Below this many rated or favourited items, the shelf asks for ratings. */
 const NUDGE_BELOW = 5
@@ -222,7 +222,7 @@ export default function AdminCollection() {
         body: JSON.stringify(body),
       })
       if (!response.ok) {
-        setError('Could not save that item.')
+        setError('Couldn’t save that item.')
         return
       }
       // Enrichment is a second call on purpose: the snapshot, cover, and
@@ -252,7 +252,7 @@ export default function AdminCollection() {
    * showing the last state the server confirmed, so a card never claims a
    * rating or a status that was not saved.
    */
-  async function patchItem(id, body, failure = 'Could not update that item.') {
+  async function patchItem(id, body, failure = 'Couldn’t update that item.') {
     setError(null)
     try {
       const response = await apiFetch(`/api/items/${id}`, {
@@ -299,7 +299,7 @@ export default function AdminCollection() {
     return patchItem(
       id,
       { is_public: isPublic },
-      'Could not change that item’s visibility.',
+      'Couldn’t change that item’s visibility.',
     )
   }
 
@@ -330,9 +330,7 @@ export default function AdminCollection() {
   async function setAllVisibility(isPublic) {
     if (
       isPublic &&
-      !window.confirm(
-        `Publish all ${items.length} items to the public collection page?`,
-      )
+      !window.confirm(`Publish all ${items.length} items to My Shelf?`)
     ) {
       return
     }
@@ -346,7 +344,7 @@ export default function AdminCollection() {
         body: JSON.stringify({ is_public: isPublic }),
       })
       if (!response.ok) {
-        setError('Could not change visibility.')
+        setError('Couldn’t change visibility.')
         return
       }
     } catch {
@@ -398,7 +396,7 @@ export default function AdminCollection() {
           .then((payload) => payload?.detail)
           .catch(() => null)
         setError(
-          typeof detail === 'string' ? detail : 'Could not update those items.',
+          typeof detail === 'string' ? detail : 'Couldn’t update those items.',
         )
         return
       }
@@ -428,7 +426,7 @@ export default function AdminCollection() {
         { method: 'POST' },
       )
       if (!response.ok) {
-        setError('Could not refresh game metadata.')
+        setError('Couldn’t refresh game metadata.')
         return
       }
       setRefreshResult(await response.json())
@@ -446,7 +444,7 @@ export default function AdminCollection() {
     try {
       const response = await apiFetch(`/api/items/${id}`, { method: 'DELETE' })
       if (!response.ok) {
-        setError('Could not delete that item.')
+        setError('Couldn’t delete that item.')
         return
       }
     } catch {

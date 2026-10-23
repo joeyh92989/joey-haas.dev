@@ -49,7 +49,7 @@ describe('homeExperience', () => {
     expect(rows[2]).toEqual({
       key: 'earlier',
       dates: '2012 – 2019',
-      title: 'Beta Corp · Gamma — Product',
+      title: 'Beta Corp · Gamma — Product management',
       summary: 'Shipped the app; ran video.',
     })
   })

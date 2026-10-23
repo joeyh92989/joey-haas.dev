@@ -16,13 +16,13 @@ import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 export const SITE_URL = 'https://joey-haas.dev'
 
 const SITE_DESCRIPTION =
-  'Joey Haas is a senior software engineer in Denver building payments and ledger systems, and Spine, a tracker for a physical game collection.'
+  'Joey Haas is a senior software engineer in Denver building payments and ledger systems, and My Shelf, a tracker for his physical game collection.'
 
 const DEFAULT_IMAGE = {
   url: `${SITE_URL}/og-card.png`,
   width: 1200,
   height: 630,
-  alt: 'Joey Haas, senior software engineer, and Spine, a tracker for my physical game collection.',
+  alt: 'Joey Haas, senior software engineer, and My Shelf, a tracker for his physical game collection.',
 }
 
 /** How an item's type reads in "in Joey Haas’s …". */
@@ -49,6 +49,14 @@ export const ADMIN_ROUTES = [
   '/admin/discover',
   '/admin/store-list',
 ]
+
+/**
+ * The tracker's path before it moved to /shelf. Links already shared to
+ * /spine, /spine/next, /spine/how and /spine/<id>/ keep their previews
+ * through legacyRoutes(), and feed GUIDs stay on it so readers do not see
+ * every entry again.
+ */
+export const LEGACY_PREFIX = '/spine'
 
 /** Spine's finishes feed, announced in the head of the pages that show them. */
 const SPINE_FEED = {
@@ -107,7 +115,9 @@ export function excerpt(markdown) {
  *   Published posts.
  * @param {object[]} input.items The snapshot's public items.
  * @returns {{path: string, title: string, description: string,
- *   type: string, image: object, lastmod?: string, slash?: boolean}[]}
+ *   type: string, image: object, lastmod?: string, slash?: boolean,
+ *   legacy?: boolean}[]}
+ *   `legacy` marks a page that also had a /spine URL; see legacyRoutes().
  */
 export function publicRoutes({ posts, items }) {
   const page = (path, title, description) => ({
@@ -120,7 +130,7 @@ export function publicRoutes({ posts, items }) {
   const routes = [
     page(
       '/',
-      `${profile.name} — Senior software engineer, Denver`,
+      `${profile.name} · Senior software engineer, Denver`,
       SITE_DESCRIPTION,
     ),
     page(
@@ -136,17 +146,24 @@ export function publicRoutes({ posts, items }) {
     {
       ...page(spine.path, `${spine.name} · ${profile.name}`, spine.tagline),
       feed: SPINE_FEED,
+      legacy: true,
     },
-    page(
-      spine.next.path,
-      `${spine.next.title} · ${spine.name}`,
-      clip(spine.next.lede),
-    ),
-    page(
-      spine.how.path,
-      `${spine.tabs.how.label} · ${spine.name}`,
-      spine.how.description,
-    ),
+    {
+      ...page(
+        spine.next.path,
+        `${spine.next.title} · ${spine.name}`,
+        clip(spine.next.lede),
+      ),
+      legacy: true,
+    },
+    {
+      ...page(
+        spine.how.path,
+        `${spine.tabs.how.label} · ${spine.name}`,
+        spine.how.description,
+      ),
+      legacy: true,
+    },
     {
       ...page(
         '/now',
@@ -193,6 +210,7 @@ export function publicRoutes({ posts, items }) {
         `${item.title}${where}, ${place} on ${spine.name}.${rated}`,
       ),
       slash: true,
+      legacy: true,
       image: item.cover_url?.startsWith('https://')
         ? { url: item.cover_url, alt: `Cover of ${item.title}` }
         : DEFAULT_IMAGE,
@@ -232,6 +250,28 @@ export function publicRoutes({ posts, items }) {
 }
 
 /**
+ * The heads written at the pre-rename /spine URLs: the shelf, What's next,
+ * How it works and every item page. Each is its /shelf route under the old
+ * path, with the canonical URL and og:url still on /shelf, so a link shared
+ * before the rename previews as the page and search engines index the new
+ * URL. The app then redirects the visitor. Year and month pages had no
+ * shared links worth keeping and fall to the catch-all and the redirect.
+ * Not in the sitemap.
+ *
+ * @param {object[]} routes publicRoutes()'s entries.
+ * @returns {object[]} Routes with `path` under LEGACY_PREFIX and `canonical`.
+ */
+export function legacyRoutes(routes) {
+  return routes
+    .filter((route) => route.legacy)
+    .map((route) => ({
+      ...route,
+      path: `${LEGACY_PREFIX}${route.path.slice(spine.path.length)}`,
+      canonical: routeUrl(route),
+    }))
+}
+
+/**
  * A route's public URL. Item, year and month pages (`slash`) are only served
  * prerendered at their slash form (see src/lib/spinePaths.js), so that is the
  * URL crawlers and link previews are given; every other page has a rewrite
@@ -244,7 +284,7 @@ export function routeUrl(route) {
 
 /** The head tags a route gets, replacing the shell's site-wide ones. */
 export function headTags(route) {
-  const url = routeUrl(route)
+  const url = route.canonical ?? routeUrl(route)
   const image = route.image
   const lines = [
     `<title>${escapeHtml(route.title)}</title>`,
@@ -312,8 +352,10 @@ export function noindex(html) {
 const FEED_SIZE = 20
 
 /**
- * /spine/feed.xml: the most recent finishes, newest first. Built from the
- * snapshot's public items, so it says nothing the shelf does not.
+ * /shelf/feed.xml: the most recent finishes, newest first. Built from the
+ * snapshot's public items, so it says nothing the shelf does not. The build
+ * also writes the same body at /spine/feed.xml, the URL already in
+ * subscribers' readers.
  *
  * @param {object[]} items The snapshot's public items.
  * @returns {string}
@@ -329,6 +371,9 @@ export function spineFeed(items) {
   const entries = finished
     .map((item) => {
       const url = `${SITE_URL}${itemPath(item.id)}`
+      // Fixed to the pre-rename item URL: a reader keys entries on the GUID,
+      // so moving it to /shelf would show all twenty again as new.
+      const guid = `${SITE_URL}${LEGACY_PREFIX}/${encodeURIComponent(item.id)}/#finished-${item.finished_at}`
       const details = [
         item.platform,
         item.rating != null ? `rated ${item.rating}/10` : null,
@@ -338,7 +383,7 @@ export function spineFeed(items) {
       return `    <item>
       <title>${escapeHtml(`Finished ${item.title}`)}</title>
       <link>${escapeHtml(url)}</link>
-      <guid isPermaLink="false">${escapeHtml(`${url}#finished-${item.finished_at}`)}</guid>
+      <guid isPermaLink="false">${escapeHtml(guid)}</guid>
       <pubDate>${new Date(`${item.finished_at}T00:00:00Z`).toUTCString()}</pubDate>
       <description>${escapeHtml(details ? `${item.title} (${details}).` : `${item.title}.`)}</description>
     </item>`

@@ -53,6 +53,6 @@ describe('Colophon', () => {
     )
     expect(
       screen.getByText(/cookie-free beacon counts page views/),
-    ).toHaveTextContent(/no.* third\s+party/)
+    ).toHaveTextContent(/Nothing goes to a third\s+party/)
   })
 })

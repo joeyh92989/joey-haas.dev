@@ -7,7 +7,7 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - `frontend/` — Vite + React 19 SPA, routed with react-router v8 (declarative
   mode; import from `react-router`, not `react-router-dom`). Deployed as a free
-  Render static site. Public pages other than `/spine*` make no API calls
+  Render static site. Public pages other than `/shelf*` make no API calls
   (apart from RootLayout's one `/api/auth/me` session check, which fails
   quietly to signed out, and the analytics beacon, a fire-and-forget
   `sendBeacon` to `/api/track` that nothing waits on) — bio and project
@@ -82,7 +82,7 @@ before pushing.
   for the plan. Mockups and the `.superpowers/` execution scratch stay out of
   git — the first are disposable once the UI exists, the second is process
   telemetry.
-- The tracker shelf is one design system for `/spine` and
+- The tracker shelf is one design system for `/shelf` and
   `/admin/collection`. Its tokens (`--rating`, `--status-*`, `--overlay`,
   `--skeleton`, `--grid-gap`) live in both theme blocks like every other
   token, and the status colors were chosen on measured contrast: each clears
@@ -136,13 +136,22 @@ before pushing.
   unpublishing one means removing it: there are no placeholder rules,
   because a rewrite to a file the build did not write serves an empty 200
   rather than the SPA. `prerender-lib.test.mjs` checks the rules match the
-  pages exactly. `/spine/:id`, `/spine/year/:year` and
-  `/spine/journal/:month` stay on the catch-all, so their prerendered heads
-  are served only at the slash form (`/spine/<id>/`). Every link, canonical,
+  pages exactly. `/shelf/:id`, `/shelf/year/:year` and
+  `/shelf/journal/:month` stay on the catch-all, so their prerendered heads
+  are served only at the slash form (`/shelf/<id>/`). Every link, canonical,
   `og:url`, sitemap entry and feed link uses that form, built by
-  `src/lib/spinePaths.js`; never hand-write a Spine item, year or month path.
+  `src/lib/spinePaths.js`; never hand-write a shelf item, year or month path.
   Don't add a slash with a redirect rule: on Render it loops for any path
   without a file (tried on 2026-10-19).
+  The tracker moved from `/spine` to `/shelf` (copy pass, 2026-10-22).
+  Every `/spine*` and `/collection*` route redirects client-side to its
+  `/shelf` page in `App.jsx`; `legacyRoutes` in `prerender-lib.mjs` writes
+  heads at `/spine`, `/spine/next`, `/spine/how` and `/spine/<id>/`
+  (canonical on `/shelf`), `render.yaml` keeps the three `/spine` rewrites
+  after the `/shelf` ones, and the feed is written to both
+  `dist/shelf/feed.xml` and `dist/spine/feed.xml`. Feed GUIDs stay on the
+  `/spine` item URL (`LEGACY_PREFIX`): changing them reposts every entry.
+  Code names (`spine.js`, `SpineHeader`, `spinePaths.js`) keep `spine`.
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish
@@ -360,9 +369,9 @@ before pushing.
   credentials are optional config checked lazily, so a missing key disables
   one media type rather than stopping the service; `main.py` logs which
   sources are configured at startup.
-- `/spine*` are public and **do** call the API, unlike every other public
-  page; `/spine/next` reads `/api/public/next`. `/api/public/picks` and
-  `/api/public/radar` are retired (404, pinned by `smoke.sh`). `/spine*`
+- `/shelf*` are public and **do** call the API, unlike every other public
+  page; `/shelf/next` reads `/api/public/next`. `/api/public/picks` and
+  `/api/public/radar` are retired (404, pinned by `smoke.sh`). `/shelf*`
   pages paint the build-time snapshot first
   (`frontend/public/snapshot/*.json`, written by
   `frontend/scripts/fetch-snapshot.mjs` on Render and refreshed nightly at
@@ -371,7 +380,7 @@ before pushing.
   when there is no snapshot. The snapshot is gitignored and never committed.
   See README → Collection snapshot.
 - **Items are private when created.** `is_public` defaults to false, including
-  for photo imports, so nothing reaches `/spine` until it is published
+  for photo imports, so nothing reaches `/shelf` until it is published
   from the admin collection page — per row, or with the bulk publish control.
   This was missing at first: the public API, page and filter all shipped
   without a way to set the flag, so the showcase was unreachable.
@@ -505,7 +514,7 @@ before pushing.
   count. Public reasons are rebuilt over public games, and Discover model
   text must pass both the id check (every cited game public) and the title
   scan (no private game named, numeral and edition variants included).
-  `/spine/next` paints `/snapshot/next.json` when present; `fetch-snapshot`
+  `/shelf/next` paints `/snapshot/next.json` when present; `fetch-snapshot`
   writes it as an optional snapshot.
 - **`/api/public/next` is cached on a data fingerprint**
   (`backend/public_next_cache.py`, one entry per app); admin routes are not,

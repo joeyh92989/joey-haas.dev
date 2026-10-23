@@ -12,17 +12,17 @@ describe('FeatureStrip', () => {
       </MemoryRouter>,
     )
 
-    const strip = screen.getByRole('region', { name: 'What Spine does' })
+    const strip = screen.getByRole('region', { name: 'What it does' })
     expect(
       within(strip).getByRole('link', { name: /Take the tour/ }),
-    ).toHaveAttribute('href', '/spine/how')
+    ).toHaveAttribute('href', '/shelf/how')
     const cards = within(strip.querySelector('ul')).getAllByRole('link')
     expect(cards.map((card) => card.getAttribute('href'))).toEqual([
-      '/spine/how#stop-1',
-      '/spine/how#stop-2',
-      '/spine/how#stop-3',
-      '/spine/how#stop-4',
-      '/spine/how#stop-7',
+      '/shelf/how#stop-1',
+      '/shelf/how#stop-2',
+      '/shelf/how#stop-3',
+      '/shelf/how#stop-4',
+      '/shelf/how#stop-7',
     ])
     expect(cards[0]).toHaveAccessibleName(/^Reads the shelf/)
   })

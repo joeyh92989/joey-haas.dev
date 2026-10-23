@@ -24,9 +24,9 @@ export const experience = [
     company: 'Guild',
     meta: '2021 – present · Denver, CO',
     summary:
-      'Owned the APIs that record benefit spending, and the funding side of the company-wide eligibility migration — contract, rollout, alerting, and the incident forensics after.',
+      'Owned the APIs that record benefit spending and the funding side of a company-wide eligibility migration: the API contract, the rollout, the alerting, and the incident forensics afterward.',
     short:
-      'Owned the APIs that record benefit spending, and the funding side of a company-wide eligibility migration.',
+      'Owned the APIs that record benefit spending and the funding side of a company-wide eligibility migration.',
     current: true,
   },
   {
@@ -43,7 +43,7 @@ export const experience = [
     company: 'MJ Freeway',
     meta: '2018 – 2019 · Denver, CO',
     summary:
-      'Product owner for the core suite of cannabis seed-to-sale software — cultivation, processing, and point of sale — on a two-to-three-week release cadence.',
+      'Product owner for the core suite of cannabis seed-to-sale software (cultivation, processing, and point of sale), shipping every two to three weeks.',
     short: 'core-suite product owner',
     earlier: true,
   },
@@ -62,7 +62,7 @@ export const experience = [
     company: 'iBAHN',
     meta: '2012 – 2014 · Denver, CO',
     summary:
-      'In-room hospitality video platform for Marriott, Hilton, and Four Seasons properties.',
+      'In-room hospitality video platform built for Marriott, Hilton, and Four Seasons properties.',
     short: 'in-room hospitality video',
     earlier: true,
   },
@@ -96,7 +96,7 @@ export function homeExperience(entries = experience) {
   rows.push({
     key: 'earlier',
     dates: `${start} – ${end}`,
-    title: `${earlier.map((entry) => entry.companyShort ?? entry.company).join(' · ')} — Product`,
+    title: `${earlier.map((entry) => entry.companyShort ?? entry.company).join(' · ')} — Product management`,
     summary: `${summary[0].toUpperCase()}${summary.slice(1)}.`,
   })
   return rows

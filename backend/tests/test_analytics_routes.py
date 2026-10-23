@@ -25,7 +25,7 @@ SITE = "https://joey-haas.dev"
 SECRET = "test-session-secret"
 IP = "203.0.113.7"
 UA = "Mozilla/5.0 (Macintosh) Test"
-ITEM = "/spine/0b7c6f3e-1111-4c1c-9a50-000000000001/"
+ITEM = "/shelf/0b7c6f3e-1111-4c1c-9a50-000000000001/"
 
 
 class Clock:

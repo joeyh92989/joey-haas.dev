@@ -177,7 +177,7 @@ export default function AdminImport() {
         body: JSON.stringify({ items: payload }),
       })
       if (!response.ok) {
-        setError('Could not save those items.')
+        setError('Couldn’t save those items.')
         setState('reviewing')
         return
       }
@@ -229,8 +229,8 @@ export default function AdminImport() {
 
       {state === 'empty' && (
         <p className="muted">
-          No titles could be read from those photos. Try a closer or better-lit
-          shot.
+          Couldn’t read any titles from those photos. Try a closer shot or
+          better lighting.
         </p>
       )}
 

@@ -181,7 +181,7 @@ function Tiles({ item, detail }) {
 }
 
 /**
- * One public item: `/spine/:id`.
+ * One public item: `/shelf/:id`.
  *
  * Keyed on the id so that following a "More from this shelf" card, which
  * reuses this route, starts from a clean load rather than the last item's

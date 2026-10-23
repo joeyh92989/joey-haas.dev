@@ -1,12 +1,12 @@
 ---
-title: How Spine works
+title: How My Shelf works
 date: 2026-10-02
-tags: [spine, engineering]
-summary: 'The engineering behind Spine, the tracker for my game shelf: photo import, a physical catalog and picks that say why. One rule runs through it, which is that the model never grades its own work.'
+tags: [shelf, engineering]
+summary: 'The engineering behind My Shelf, the tracker for my game collection: photo import, a physical catalog, and picks that say why. One rule runs through it: the model never grades its own work.'
 draft: false
 ---
 
-Spine is the tracker behind the [shelf on this site](/spine). It knows what I own on cartridge, what I’ve finished, what I should play next, and what’s about to be released that I’d want. This post is the engineering behind it: what each part does, which decisions were deliberate, and where the boring parts are deliberately boring.
+My Shelf tracks the [game collection on this site](/shelf). It knows what I own on cartridge, what I’ve finished, what I should play next, and what’s about to be released that I’d want. This post is the engineering behind it: what each part does, which decisions were deliberate, and where the boring parts are deliberately boring.
 
 The whole thing runs on free tiers. A React and Vite frontend is a static site on Render; a FastAPI backend is a free Render web service; Postgres 18 lives on Neon’s free plan. Every push to `main` deploys both, and `main` only takes merges from pull requests whose CI passes.
 
@@ -34,7 +34,7 @@ Each resolved item keeps a snapshot of what its source said (genres, themes, key
 
 ## The physical catalog
 
-To know what exists on cartridge, Spine keeps its own catalog. It reads a community-maintained registry of Switch 2 physical editions through the Google Sheets API, a second community tracker as a cross-check, twelve boutique stores’ public product JSON (Shopify and WooCommerce, read under their robots.txt rules), and IGDB’s N64 list for the older shelf. Each listing is resolved to an IGDB game, then collapsed to one honest format per game and platform, then synced onto the Switch 2 copies I own.
+To know what exists on cartridge, My Shelf keeps its own catalog. It reads a community-maintained registry of Switch 2 physical editions through the Google Sheets API, a second community tracker as a cross-check, twelve boutique stores’ public product JSON (Shopify and WooCommerce, read under their robots.txt rules), and IGDB’s N64 list for the older shelf. Each listing is resolved to an IGDB game, then collapsed to one honest format per game and platform, then synced onto the Switch 2 copies I own.
 
 The collapse rule is the part I’d defend in a review. A registry row and a store listing usually describe different editions of the same game: a retail Game-Key Card beside a Limited Run or Super Rare full cartridge. So the best edition in my home region wins. Any full cartridge there makes the game a cartridge; the sources’ trust tiers only break ties between rows that say the same thing. A cartridge in another region is a note on the item, never a relabel. And the registry may write a format only through one function that refuses to overwrite a value I set by hand, read from a cartridge ID, or confirmed from a photo.
 
@@ -44,7 +44,7 @@ As of this writing the catalog holds about 1,300 registry editions and 1,950 sto
 
 Play Next answers the only question that matters at nine in the evening: of the thirty games in the backlog, which one tonight? It’s a pure module. Items and past pick events arrive as dataclasses and scored picks leave the same way, so every rule is tested on fixtures.
 
-It starts by building a taste profile from my own games. Each finished, favorited, abandoned or rated game is a reference with a weight (a favorite counts 1.0, a finish 0.3, an abandonment −0.5), adjusted by how far my rating sits from my average. Each attribute the references carry (genre, theme, keyword, game mode, perspective, developer) gets the mean weight of the games carrying it. A backlog game then scores on six terms:
+It starts by building a taste profile from my own games. Each finished, favorited, abandoned, or rated game is a reference with a weight (a favorite counts 1.0, a finish 0.3, an abandonment −0.5), adjusted by how far my rating sits from my average. Each attribute the references carry (genre, theme, keyword, game mode, perspective, developer) gets the mean weight of the games carrying it. A backlog game then scores on six terms:
 
 ```python
 # Each term scores 0-100; the total is their weighted mean.
@@ -64,13 +64,13 @@ Three picks come back in named slots (Best fit, Short and sweet, Overdue classic
 
 Radar is the catalog pointed forward: upcoming physical releases and open pre-orders on my platforms, plus IGDB’s upcoming games that have no physical edition yet, ranked by the same taste profile. Marking one as *Want* creates an ordinary public item, which What’s next lists as wanted.
 
-Discover is the one feature that lets a language model choose, and the contract around it is the point. The server takes the catalog’s released games I don’t own, drops anything ineligible, pre-scores them against the taste profile (affinity 0.45, similarity 0.35, quality 0.20, then a popularity term, a small bonus for being buyable right now and a penalty for an unknown format), and shortlists twenty in a seeded shuffle. The model sees one prompt describing my taste and those twenty candidates, and answers with *indices* into that list plus a short reason for each. It can’t introduce a title, because a pick is only an index into that list. The answer is validated against the schema and the index range, and if the model fails, times out, or exhausts the free-tier quota across the fallback chain of models, the deterministic top eight stand in and the status line says so.
+Discover is the one feature that lets a language model choose, and the contract around it is the point. The server takes the catalog’s released games I don’t own, drops anything ineligible, pre-scores them against the taste profile (affinity 0.45, similarity 0.35, quality 0.20, then a popularity term, a small bonus for being buyable right now, and a penalty for an unknown format), and shortlists twenty in a seeded shuffle. The model sees one prompt describing my taste and those twenty candidates, and answers with *indices* into that list plus a short reason for each. It can’t introduce a title, because a pick is only an index into that list. The answer is validated against the schema and the index range, and if the model fails, times out, or exhausts the free-tier quota across the fallback chain of models, the deterministic top eight stand in and the status line says so.
 
 ## What the public sees, and what it doesn’t
 
 Only one router serves data without a session. Items are private when created and reach the public shelf only when published. The public shape of an item is a fixed field list; a test pins exactly which keys each public endpoint may return, so a new column can’t leak by default.
 
-The only public page built from stored suggestions is [What’s next](/spine/next), and it’s deliberately a read-only view. Its “Tonight” block is the most recent day’s Play Next output, restricted to public items, and it changes at most once a day at UTC midnight, so nobody polling `/api/public/next` can watch me use the tool in real time. Below it sit the games on my list, then what to look for in a store: In stores now, Coming soon (cartridges due in the next 90 days), Further out, and Not on cartridge, a short list of games that are digital only or ship with a Game-Key Card. Discover’s top picks appear there, with a “Top pick” badge, and so do Radar’s upcoming cartridges, and each row carries public facts only: title, platform, format, a date when the registry gives one, cover art, an IGDB link, reasons and the badges, with no store, no price and no private game. A suggestion’s release date is shown only when the physical registry has one; a store’s date, or IGDB’s first date on any platform, counts as no date at all. The reasons are written in the first person and name only games that are public. They’re rebuilt from public rows rather than copied from what the admin pages store, because those lines hold store names and prices. Discover’s model-written sentence is published only if it cites at least one game, every game it cites is public, it names no game I’ve kept private, and it’s in the first person, neither talking to the reader nor about me in the third person. Anything else falls back to a line rebuilt from my public shelf.
+The only public page built from stored suggestions is [What’s next](/shelf/next), and it’s deliberately a read-only view. Its “Tonight” block is the most recent day’s Play Next output, restricted to public items, and it changes at most once a day at UTC midnight, so nobody polling `/api/public/next` can watch me use the tool in real time. Below it sit the games on my list, then what to look for in a store: In stores now, Coming soon (cartridges due in the next 90 days), Further out, and Not on cartridge, a short list of games that are digital only or ship with a Game-Key Card. Discover’s top picks appear there, with a “Top pick” badge, and so do Radar’s upcoming cartridges, and each row carries public facts only: title, platform, format, a date when the registry gives one, cover art, an IGDB link, reasons, and the badges, with no store, no price, and no private game. A suggestion’s release date is shown only when the physical registry has one; a store’s date, or IGDB’s first date on any platform, counts as no date at all. The reasons are written in the first person and name only games that are public. They’re rebuilt from public rows rather than copied from what the admin pages store, because those lines hold store names and prices. Discover’s model-written sentence is published only if it cites at least one game, every game it cites is public, it names no game I’ve kept private, and it’s in the first person, neither talking to the reader nor about me in the third person. Anything else falls back to a line rebuilt from my public shelf.
 
 One function sorts the suggestions into those sections, and the signed-in store list I use on my phone runs the same function, so the two pages can’t disagree about whether a game is out. The only difference is the rule about dates: the private page may use any date, the public one only the registry’s.
 
@@ -121,7 +121,7 @@ Here is an illustrative response, with one row each in `buy_now` and `preorders`
 }
 ```
 
-The ids, scores, ranks, prices, stores and pre-order windows aren’t in there on purpose. A test walks the whole body and fails if any of those key names appears at any depth, and the ages in `generated_at` are days, not times. The store sections are frozen to the night's batch: when I answer a game (dismiss, skip, want or own it), the public page doesn’t change until the next generation, so nobody can watch me shop either; a test fails if a game I answered in an earlier batch is still listed.
+The ids, scores, ranks, prices, stores, and pre-order windows aren’t in there on purpose. A test walks the whole body and fails if any of those key names appears at any depth, and the ages in `generated_at` are days, not times. The store sections are frozen to the night’s batch: when I answer a game (dismiss, skip, want, or own it), the public page doesn’t change until the next generation, so nobody can watch me shop either; a test fails if a game I answered in an earlier batch is still listed.
 
 And here’s one item from the shelf endpoint, trimmed to the interesting fields:
 
@@ -151,4 +151,4 @@ CI runs the backend through `ruff`, `pytest` against a real Postgres, and `pip-a
 
 ## What’s next
 
-A year-in-review page for the shelf, the N64 collection on its own platform, and board games once BoardGameGeek issues API tokens again. Beyond that, the thing most likely to improve Play Next isn’t code but data: every finish, rating and abandonment sharpens the profile it scores against.
+Since this was written, the shelf has gained a [year in review](/shelf/year) and a [guided tour](/shelf/how) of the pipeline above. Still to come: the N64 collection on its own platform, and board games once BoardGameGeek issues API tokens again. Beyond that, the thing most likely to improve Play Next isn’t code but data: every finish, rating, and abandonment sharpens the profile it scores against.

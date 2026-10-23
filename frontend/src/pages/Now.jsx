@@ -54,9 +54,9 @@ export default function Now() {
     <section className="now">
       <h1>Now</h1>
       <p className="prose">
-        What I&rsquo;m playing, what&rsquo;s next and what I just finished,
-        written by <Link to={spine.path}>{spine.name}</Link> each night rather
-        than by hand.
+        What I&rsquo;m playing, what&rsquo;s next, and what I just finished.{' '}
+        <Link to={spine.path}>{spine.name}</Link> writes this page every night,
+        so it&rsquo;s never more than a day old.
       </p>
 
       {items === null && (
@@ -66,7 +66,7 @@ export default function Now() {
       )}
       {empty && (
         <p className="muted">
-          Nothing to show from this build. The shelf is on{' '}
+          Nothing to show from this build. The collection is on{' '}
           <Link to={spine.path}>{spine.name}</Link>.
         </p>
       )}
@@ -112,7 +112,8 @@ export default function Now() {
             ))}
           </ul>
           <p className="muted">
-            Also as an <a href="/spine/feed.xml">RSS feed of finished games</a>.
+            Also as an{' '}
+            <a href={`${spine.path}/feed.xml`}>RSS feed of finished games</a>.
           </p>
         </section>
       )}

@@ -57,15 +57,15 @@ describe('Home', () => {
     ).toBeInTheDocument()
   })
 
-  it('offers About, Spine and GitHub', () => {
+  it('offers About, My Shelf, and GitHub', () => {
     renderHome()
     expect(screen.getByRole('link', { name: 'About me' })).toHaveAttribute(
       'href',
       '/about',
     )
-    expect(screen.getByRole('link', { name: 'See Spine' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'See My Shelf' })).toHaveAttribute(
       'href',
-      '/spine',
+      '/shelf',
     )
     expect(screen.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
       'href',
@@ -104,7 +104,7 @@ describe('Home', () => {
     ).getAllByRole('link')
     expect(work.map((link) => link.getAttribute('href'))).toEqual([
       '/projects',
-      '/spine',
+      '/shelf',
       '/colophon',
       '/blog/how-spine-works',
     ])

@@ -57,18 +57,18 @@ describe('Now', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Hades II/ })).toHaveAttribute(
       'href',
-      '/spine/1/',
+      '/shelf/1/',
     )
     expect(
       screen.getByRole('link', { name: 'Metroid Prime 4' }),
-    ).toHaveAttribute('href', '/spine/8/')
+    ).toHaveAttribute('href', '/shelf/8/')
     expect(screen.getByText(/Sep 30, 2026 · rated 9/)).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'RSS feed of finished games' }),
-    ).toHaveAttribute('href', '/spine/feed.xml')
+    ).toHaveAttribute('href', '/shelf/feed.xml')
   })
 
-  it('points to Spine when the build has no snapshot', async () => {
+  it('points to My Shelf when the build has no snapshot', async () => {
     renderPage()
     expect(await screen.findByText(/Nothing to show/)).toBeInTheDocument()
   })

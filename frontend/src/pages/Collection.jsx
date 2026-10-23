@@ -222,7 +222,7 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
       )}
       {empty > 0 && (
         <p className="muted favourites-hint">
-          Pick your favorites — the heart on any card.
+          Pick your favorites with the heart on any card.
         </p>
       )}
     </section>
@@ -543,7 +543,7 @@ export default function Collection() {
       <SpineHeader />
 
       {items.length === 0 ? (
-        <p className="muted">Nothing here yet.</p>
+        <p className="muted">Nothing on the shelf yet.</p>
       ) : (
         <>
           {stats && (

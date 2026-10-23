@@ -33,8 +33,8 @@ npm run dev
 
 The Vite dev server proxies `/api/*` to the backend. Bio and project content
 are static modules in `frontend/src/content/`, so the site renders fully even
-when the free-tier backend is asleep. Only `/spine`, `/spine/next` and
-`/spine/:id` call the tracker's public API, and they paint the build-time snapshot first
+when the free-tier backend is asleep. Only `/shelf`, `/shelf/next` and
+`/shelf/:id` call the tracker's public API, and they paint the build-time snapshot first
 (see [Collection snapshot](#collection-snapshot)); the "waking the server"
 state shows only when there is no snapshot. Home and Projects read the static
 snapshot files and never call the API.
@@ -48,10 +48,10 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
-| `/spine` | Spine | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
-| `/spine/next` | What's next | Public: tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
-| `/spine/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
-| `/collection` | Redirect | Redirects to `/spine`; `/collection/:id` redirects to `/spine/:id`, both client-side |
+| `/shelf` | My Shelf | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
+| `/shelf/next` | What's next | Public: tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
+| `/shelf/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
+| `/spine*`, `/collection*` | Redirect | The pre-rename URLs. Each redirects client-side, in one hop, to its `/shelf` page (`/spine/next` → `/shelf/next`, `/spine/:id` and `/collection/:id` → `/shelf/:id/`, and so on). The build also writes link-preview heads at `/spine`, `/spine/next`, `/spine/how` and `/spine/<id>/` (canonical on `/shelf`), and the finishes feed at both `/shelf/feed.xml` and `/spine/feed.xml`, with item GUIDs kept on `/spine` so readers see nothing new |
 | `/admin` | Dashboard | Google sign-in gate, reached from the footer's Sign in link; once signed in, the API and nightly status, headline counts, the nightly jobs, quick actions and recent changes |
 | `/admin/analytics` | Analytics | Page views, visitors, views per day, pages, referrers and devices over 7, 30, 90 days or all time, from the first-party beacon (see [Analytics](#analytics)) |
 | `/admin/collection` | Shelf | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
@@ -322,12 +322,12 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Items | `backend/items.py`, `models.py`, `formats.py` | The `items` table and its admin CRUD. Copy fields (platform, physical format, cart ID, region, completeness) are decided in one place, `formats.py`, on every write path |
 | Metadata sources | `backend/sources/` | One adapter per API behind a common interface: IGDB (games), TMDB (films), Comic Vine (comics); BGG is stubbed until its API is usable again. Each keeps a snapshot on the item for the shelf and the pickers |
 | Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
-| Public showcase | `backend/public.py`, `/spine`, `/spine/next` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
-| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/spine/next`) as "Up next", and recent picks appear on What's next as "Tonight" |
+| Public showcase | `backend/public.py`, `/shelf`, `/shelf/next` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
+| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/shelf/next`) as "Up next", and recent picks appear on What's next as "Tonight" |
 | Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), its Switch 1 sheet (about 4,500 titles in about 10,000 editions, bulk-matched to IGDB's Switch list), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
 | Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want adds the game as a public want, and registry-dated cartridges appear on What's next |
 | Discover | `backend/discover.py`, `/admin/discover` | Released physical games on the owner's platforms, pre-scored by taste and re-ranked by one Gemini call with reasons; falls back to the deterministic ranking when the model cannot answer; its top picks appear on What's next, with reasons that name only public games |
-| What's next | `backend/next_list.py`, `next_load.py`, `/spine/next`, `/admin/store-list` | One pure sectioning authority over pending Discover and Radar rows, used by the public page (registry dates only, reasons rebuilt over public games) and the admin store list (any date, stored reasons) |
+| What's next | `backend/next_list.py`, `next_load.py`, `/shelf/next`, `/admin/store-list` | One pure sectioning authority over pending Discover and Radar rows, used by the public page (registry dates only, reasons rebuilt over public games) and the admin store list (any date, stored reasons) |
 
 Migrations `0001`–`0006` build this up: items, enrichment columns, copy
 columns, `pick_events`, the catalogue's five tables, and the shared
@@ -405,15 +405,15 @@ they are correct as written — which is also why renaming the services required
 no DNS change. Visitors never see them; the custom domains sit in front.
 
 Note: the API runs on Render's free tier, which spins down after ~15 min of
-inactivity (first request then takes ~30 s). Only `/spine`, `/spine/next`
-and `/spine/:id` call the API. They paint the build-time snapshot first and
+inactivity (first request then takes ~30 s). Only `/shelf`, `/shelf/next`
+and `/shelf/:id` call the API. They paint the build-time snapshot first and
 show a "waking the server" state only when there is no snapshot; every other
 public page never waits on it (see [Collection snapshot](#collection-snapshot)).
 Upgrade to Starter ($7/mo) to keep it warm.
 
 ## Collection snapshot
 
-`/spine` and `/spine/next` first paint a snapshot of the public API, then
+`/shelf` and `/shelf/next` first paint a snapshot of the public API, then
 refresh it from the live API, so a first-time visitor doesn't wait for the free-tier
 backend to wake. Home and Projects read the same file for their cover
 strips.
@@ -427,7 +427,7 @@ strips.
   deploy only when they differ. It never pushes, and the snapshot is never
   committed. Before it compares, it refreshes the data the snapshot is made
   of (see [Nightly job](#nightly-job)).
-- **`next.json` is optional.** `/spine/next` paints `/snapshot/next.json` when
+- **`next.json` is optional.** `/shelf/next` paints `/snapshot/next.json` when
   the file exists and shows "Waking the server" until the live call answers
   when it does not. `fetch-snapshot.mjs` writes it and leaves it out without failing the build when the API
   cannot serve it yet.
@@ -522,7 +522,10 @@ leaves the site's own API.
   signed-in admin, and `Sec-GPC` or `DNT`. Caps, in memory and reset at UTC
   midnight: one IP (an IPv6 address counts as its /64) stores at most 100
   views a day, the whole site at most 5,000, and past 10,000 distinct IPs
-  in a day a new one is not counted.
+  in a day a new one is not counted. The tracker's pages count under
+  `/shelf*`; the pre-rename `/spine*` paths are dropped, since they only
+  redirect to a `/shelf` page that is then counted. Views recorded before
+  the rename keep their `/spine` path in `page_views` and `daily_stats`.
 - **A visitor** is `HMAC(salt, ip + "\n" + user agent)`, where the salt is
   derived from `SESSION_SECRET` and the UTC date, so it changes at midnight
   and the stored hashes do not join one day to the next. The salt is
@@ -579,7 +582,7 @@ The body has these keys:
   rows with `title`, `platform`, `physical_format`, `release_date`,
   `release_precision`, `cover_url`, `igdb_url`, `reasons` (at most two),
   `top_pick`, `new` and `item_id` (set only for wanted games, which link to
-  `/spine/:id`).
+  `/shelf/:id`).
 
 The rules, held by `next_list.py` and pinned by `test_public_outputs.py`,
 which walks the whole body for banned keys:

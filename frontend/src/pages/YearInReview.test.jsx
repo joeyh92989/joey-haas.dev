@@ -50,7 +50,7 @@ function renderAt(path) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/spine/year/:year" element={<YearInReview />} />
+        <Route path="/shelf/year/:year" element={<YearInReview />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -64,7 +64,7 @@ afterEach(() => {
 describe('YearInReview', () => {
   it('shows the year’s numbers, diary and the other years', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
-    renderAt('/spine/year/2026')
+    renderAt('/shelf/year/2026')
 
     expect(
       screen.getByRole('heading', { level: 1, name: '2026 in review' }),
@@ -75,7 +75,7 @@ describe('YearInReview', () => {
     )
     expect(
       screen.getByRole('link', { name: 'Sep 2026: 1 finished' }),
-    ).toHaveAttribute('href', '/spine/journal/2026-09/')
+    ).toHaveAttribute('href', '/shelf/journal/2026-09/')
     expect(
       screen.getByRole('img', { name: 'Aug 2026: 0 finished' }),
     ).toBeInTheDocument()
@@ -83,9 +83,11 @@ describe('YearInReview', () => {
     expect(finished.nextSibling).toHaveTextContent('Sep 30Hades II10/10')
     expect(screen.getByRole('link', { name: '2025' })).toHaveAttribute(
       'href',
-      '/spine/year/2025/',
+      '/shelf/year/2025/',
     )
-    expect(screen.getByText(/I rated 1 higher and 0 lower/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/higher than the crowd on 1 and lower on 0/),
+    ).toBeInTheDocument()
   })
 
   it('shows days played and the sessions from the public diary', () => {
@@ -100,7 +102,7 @@ describe('YearInReview', () => {
       },
       { item_id: 'b', title: 'Pikmin 4', played_on: '2026-09-28', minutes: 30 },
     ]
-    renderAt('/spine/year/2026')
+    renderAt('/shelf/year/2026')
     expect(screen.getByText('Days played').nextSibling).toHaveTextContent('2')
     const section = screen.getByRole('heading', {
       name: 'Played',
@@ -115,20 +117,20 @@ describe('YearInReview', () => {
     diary.rows = [
       { item_id: 'a', title: 'Hades II', played_on: '2026-07-04', minutes: 20 },
     ]
-    renderAt('/spine/year/2026')
+    renderAt('/shelf/year/2026')
     expect(
       screen.getByRole('link', { name: 'Jul 2026: 0 finished, played' }),
-    ).toHaveAttribute('href', '/spine/journal/2026-07/')
+    ).toHaveAttribute('href', '/shelf/journal/2026-07/')
   })
 
   it('says so when a year has no finishes', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
-    renderAt('/spine/year/2023')
+    renderAt('/shelf/year/2023')
     expect(screen.getByText(/No finishes recorded in 2023/)).toBeInTheDocument()
     // The way back to a year that has some, as every January needs.
     expect(screen.getByRole('link', { name: 'See 2026' })).toHaveAttribute(
       'href',
-      '/spine/year/2026/',
+      '/shelf/year/2026/',
     )
     expect(
       screen.getByRole('navigation', { name: 'Years' }),
@@ -137,12 +139,12 @@ describe('YearInReview', () => {
 
   it('reports a failed load', () => {
     answer.value = { data: null, live: false, failed: true }
-    renderAt('/spine/year/2026')
+    renderAt('/shelf/year/2026')
     expect(screen.getByRole('alert')).toHaveTextContent('didn’t load')
   })
 
   it('treats a year that is not a year as not found', () => {
-    renderAt('/spine/year/latest')
+    renderAt('/shelf/year/latest')
     expect(screen.queryByRole('heading', { name: /in review/ })).toBeNull()
   })
 })

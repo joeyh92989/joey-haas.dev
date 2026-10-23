@@ -21,12 +21,12 @@ export const projects = [
     tagline: spine.projectsTagline,
     line: spine.projectLine,
     description:
-      'I collect games on cartridge, and nothing tracked them the way I wanted — least of all whether a box holds the full game or a download code. Spine does. It reads a shelf from a photograph, resolves every title against IGDB, picks tonight’s game from the backlog, and watches boutique publishers for the next cartridge worth owning.',
+      'I collect games on cartridge, and nothing tracked them the way I wanted, least of all whether a box holds the full game or a download code. My Shelf does. It reads a shelf from a photograph, resolves every title against IGDB, picks tonight’s game from the backlog, and watches boutique publishers for the next cartridge worth owning.',
     highlights: [
       'Photo import: a vision model reads titles off the spines; each match is scored by string distance, never by asking the model how sure it is.',
-      'A physical catalog: a community registry and twelve boutique stores, collapsed to one honest format per game — full cartridge or Game-Key Card.',
-      'Play Next scores the backlog on six weighted terms, mostly a taste profile from my own ratings, favorites and finishes, plus fit and time waiting. It says why.',
-      'Discover and Radar: the model only ever picks indices from a list the server built, with a deterministic fallback when it can’t answer.',
+      'A physical catalog: a community registry and twelve boutique stores, collapsed to one honest format per game, full cartridge or Game-Key Card.',
+      'Play Next scores the backlog on six weighted terms, mostly a taste profile built from my own ratings, favorites, and finishes, plus fit and time waiting. Every pick says why.',
+      'Discover and Radar: the model only ever picks positions in a list the server built, with a deterministic fallback when it can’t answer.',
     ],
     links: [
       { to: spine.path, label: `Open ${spine.name}` },
@@ -51,7 +51,7 @@ export const projects = [
     summary:
       'React and Vite, FastAPI behind Google sign-in, Postgres on Neon, and a pull-request pipeline to Render.',
     description:
-      'A React and Vite frontend with a markdown blog compiled at build time, a FastAPI backend behind Google sign-in, Postgres on Neon, and a pull-request pipeline that deploys to Render on merge. Built to be read, and to be read by a recruiter who clicks View source.',
+      'A React and Vite frontend with a Markdown blog compiled at build time, a FastAPI backend behind Google sign-in, Postgres on Neon, and a pull-request pipeline that deploys to Render on merge. Built to be read, including by the recruiter who clicks View source.',
     links: [
       { href: profile.repo, label: 'Source' },
       { href: `${profile.repo}/actions`, label: 'CI pipeline' },
