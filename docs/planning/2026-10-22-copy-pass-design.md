@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: none
 chosen: none
 ---
@@ -426,3 +426,108 @@ fragment "Nothing to show from this build.", and a suggestion to drop
 4. **Tests that assert on text.** `spine.test.js` checks stop code paths
    and may check copy; `meta.test.js` and `prerender-lib.test.mjs` assert
    titles. Expect to update fixtures rather than logic.
+
+## Answers to the open questions (2026-10-22, Joey)
+
+1. **Routes: in this PR.** `/shelf*` becomes the public path, every
+   `/spine*` URL keeps working. It touches `render.yaml`, so it is its own
+   milestone behind a carve-out stop.
+2. **Post slug: keep** `how-spine-works`.
+3. **`Could not` → `Couldn't`: in this PR**, one commit.
+4. **Text-asserting tests:** update fixtures to the new strings.
+
+Added scope: every **Keep** string (146 items, 18,152 characters, built
+and verified against source; groups and skipped categories recorded in
+the PR) and the untouched post paragraphs go through Grammarly via the
+Copy Desk round-trip (`~/.claude/skills/copy-polish`). Fixes Joey accepts
+there join this PR. A Keep line Grammarly changes is a new decision, so
+each accepted change is listed in the PR body as old → new.
+
+# Plan
+
+## Route rename: decisions
+
+Research map (file:line) in the PR's first comment; the load-bearing
+points:
+
+- **Source of truth is `content/spine.js`** (`path`, `how.path`,
+  `next.path`, tab and link `to:`). `spinePaths.js`, `prerender-lib.mjs`
+  (publicRoutes, item/year/month pages, canonical, `og:url`, sitemap, feed
+  links) and `projects.js` derive from it. Hardcoded and edited by hand:
+  `App.jsx:67-75`, `RootLayout.jsx:18,69`, `Now.jsx:115`, the post's two
+  links, `prerender.mjs:108` (writes `spine/feed.xml` from a literal),
+  `render.yaml:27-35`, `smoke.sh`, `backend/analytics.py:55-72`.
+- **Old URLs redirect client-side**, the `/collection` → `/spine` pattern
+  (`App.jsx:39-42,75`): `spine`, `spine/next`, `spine/how`, `spine/year`,
+  `spine/year/:year`, `spine/journal/:month`, `spine/:id`, each with
+  `replace`. `/collection*` points straight at `/shelf*` (no double hop).
+  No Render redirect rules: `:param` matched a trailing slash and looped
+  on 2026-10-19, and redirect ordering against `/*` is undocumented.
+- **Old shared links keep their previews.** The build also writes legacy
+  heads at `dist/spine/index.html`, `spine/next/`, `spine/how/` and
+  `spine/<id>/` (canonical and `og:url` → `/shelf…`), and `render.yaml`
+  keeps the three `/spine` rewrites. `prerender-lib.test.mjs`'s
+  exact-match test learns a `LEGACY_ROUTES` list instead of being
+  loosened. Tradeoff: a few extra files per build vs. every link already
+  shared to a recruiter falling back to the generic site card.
+- **The feed is written twice**, `dist/shelf/feed.xml` and
+  `dist/spine/feed.xml`, same body, `atom:link` → `/shelf`. Existing
+  subscribers keep working with no rule. **Item GUIDs stay on the
+  `/spine` prefix** (fixed string, not `itemPath`), or all 20 items repost
+  as new.
+- **Analytics allowlist moves to `/shelf*`.** `/spine*` is dropped: after
+  this PR it is only ever a redirect hop, and counting it would double
+  count. Historical rows keep their `/spine` path; noted in README.
+- **Code names stay `spine*`** (design decision stands).
+
+## Tasks
+
+| # | Task | Files | Tests / AC |
+|---|---|---|---|
+| **M1** | | | |
+| 1 | Push the Keep baseline to Copy Desk as two pages (`joey-haas.dev · keeps: public · 2026-10-22`; `… keeps: tracker, post, admin …`), one `### key` block each | Copy Desk only; no repo change | Both pages read back with 146 keys intact |
+| | **STOP: Joey's Grammarly pass, then "pull"** | | |
+| 2 | Pull, normalize quotes against source, show change table; Joey confirms which to apply | — | Integrity checks pass; Joey's yes/no per change |
+| **M2** | | | |
+| 3 | Rename: `spine.name` → My Shelf, tab `Collection`, no badge (renders nothing), aria-label, `index.html` meta, OG alt | `spine.js`, `SpineTabs.jsx`, `index.html`, `RootLayout.jsx` (label) | `grep` AC from the design; tabs/title tests |
+| 4 | Public-page strings, old → new: Home, About, Projects, Collection, status/feature strip, How it works, Now, Colophon | `profile.js`, `experience.js`, `projects.js`, `spine.js`, `Home.jsx`, `Collection.jsx`, `Now.jsx`, `Colophon.jsx` | Every New string renders verbatim (page tests); typographic ’ kept |
+| 5 | Post: title, summary, ¶1, catalog line, new "What's next" section, serial commas | `posts/how-spine-works.md` | Post test; links point at `/shelf/year`, `/shelf/how` after M3 (written as `/spine/*` here, flipped in task 9) |
+| 6 | Admin strings + the 18-string `Couldn't` sweep (own commit) | admin pages listed in the design, `ShelfCardActions.jsx` | Admin page tests updated |
+| 7 | Accepted Grammarly fixes from task 2 | wherever the baseline points | Change table matches the diff |
+| 8 | Regenerate `public/og-card.png` (Ledger palette, line 3 `My Shelf · …`) | `public/og-card.png` (+ scratch HTML, not committed) | `meta.test.js`; visual check |
+| | **STOP: carve-out review (`render.yaml`, analytics allowlist)** | | |
+| **M3** | | | |
+| 9 | `/shelf` paths in `spine.js`; client redirects for every `/spine*` and `/collection*` route; `WIDE_ROUTES`; `Now.jsx` feed link; post links | `spine.js`, `App.jsx`, `RootLayout.jsx`, `Now.jsx`, post | `App.test.jsx` redirect cases for all seven; ~20 `*.test.jsx` path fixtures |
+| 10 | Prerender: `/shelf` heads; legacy heads; feed written twice; GUIDs fixed to `/spine` | `prerender.mjs`, `prerender-lib.mjs` | `prerender-lib.test.mjs` (legacy list, GUID stability, both feeds) |
+| 11 | `render.yaml`: `/shelf` rewrites + legacy `/spine` rewrites, `/*` last | `render.yaml` | Exact-match test green |
+| 12 | Analytics allowlist → `/shelf*` | `backend/analytics.py` | `test_analytics.py`, `test_analytics_routes.py` |
+| 13 | `smoke.sh` → `/shelf`, plus legacy feed content-type check; docs | `scripts/smoke.sh`, `README.md`, `CLAUDE.md`, comments in `spinePaths.js` | `bash -n`; README/CLAUDE.md describe `/shelf` and the legacy files |
+
+Parallel-safe: none. Every task touches `spine.js` or tests that read it.
+
+## Milestones
+
+```
+Milestone 1 (auto): task 1
+STOP: Joey's Grammarly pass → "pull" → task 2 (confirm changes)
+Milestone 2 (auto): tasks 3–8
+STOP: carve-out review (render.yaml, analytics allowlist)
+Milestone 3 (auto): tasks 9–13
+Finish gate → PR
+```
+
+## Environment tests
+
+- `cd frontend && npm test && npm run build` after every task's commit.
+- `cd backend && ./.venv/bin/pytest tests/test_analytics.py
+  tests/test_analytics_routes.py` (one run at a time; shared test DB).
+- After the build: `dist/shelf/index.html`, `dist/spine/index.html`,
+  `dist/shelf/feed.xml`, `dist/spine/feed.xml` exist; both feeds are
+  byte-identical; GUIDs unchanged against `main`'s build.
+- Browser, on `vite preview`: `/spine`, `/spine/next`, `/spine/how`,
+  `/spine/year/2026`, an item `/spine/<id>/`, `/collection` all land on
+  the `/shelf` equivalent; nav reads Home · About · Projects · My Shelf;
+  `document.title` per the design's AC.
+- Post-deploy: `./scripts/smoke.sh https://joey-haas.dev
+  https://api.joey-haas.dev`, then the redirect list above in the browser
+  (smoke cannot see client redirects).
