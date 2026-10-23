@@ -26,7 +26,7 @@ export const profile = {
     { label: 'Focus', value: 'Payments & ledger systems' },
     { label: 'Stack', value: 'Node · TypeScript · Python · Postgres' },
   ],
-  bio: `I'm a senior software engineer at Guild, on the payments team. For five years I've built the backend that funds, tracks, and reconciles education benefits for enterprise employers: the APIs that record spending, the ledger behind them, the tax rules on top, and one service's side of a company-wide migration to a new eligibility platform.
+  bio: `I’m a senior software engineer at Guild, on the payments team. For five years I’ve built the backend that funds, tracks, and reconciles education benefits for enterprise employers: the APIs that record spending, the ledger behind them, the tax rules on top, and one service’s side of a company-wide migration to a new eligibility platform.
 
 Before the code, I spent eight years as a product manager across enterprise SaaS, payments, and video. I still work like one: architecture doc first, then team alignment, then the endpoint, and the data forensics when something goes wrong.`,
   location: 'Denver, Colorado',

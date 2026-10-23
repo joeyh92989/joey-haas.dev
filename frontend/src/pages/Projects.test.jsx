@@ -20,13 +20,13 @@ vi.mock('../lib/snapshot.js', () => ({
 vi.mock('../content/projects.js', () => ({
   projects: [
     {
-      name: 'Spine',
+      name: 'My Shelf',
       tagline: 'A tracker for a physical game collection',
       description: 'A tracker.',
       line: 'I built this.',
       highlights: ['Photo import.', 'Play Next.'],
       links: [
-        { to: '/shelf', label: 'Open Spine' },
+        { to: '/shelf', label: 'Open My Shelf' },
         {
           href: 'https://github.com/joeyh92989/joey-haas.dev',
           label: 'Source',
@@ -81,12 +81,14 @@ describe('Projects', () => {
 
   it('links in-site with the router and away with an anchor', () => {
     const { container } = renderProjects()
-    expect(screen.getByRole('link', { name: /Open Spine/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Open My Shelf/ })).toHaveAttribute(
       'href',
       '/shelf',
     )
     // The decorative arrow stays out of the accessible name.
-    expect(screen.getByRole('link', { name: 'Open Spine' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Open My Shelf' }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Source/ })).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989/joey-haas.dev',
@@ -97,7 +99,7 @@ describe('Projects', () => {
 
   it('still links each title', () => {
     renderProjects()
-    expect(screen.getByRole('link', { name: 'Spine' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'My Shelf' })).toHaveAttribute(
       'href',
       '/shelf',
     )

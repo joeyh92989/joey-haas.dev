@@ -191,7 +191,7 @@ describe('RootLayout nav', () => {
       .map((link) => link.textContent)
   }
 
-  it('lists Spine, and no Blog while nothing is published', () => {
+  it('lists My Shelf, and no Blog while nothing is published', () => {
     renderAt('/about')
     expect(navLabels()).toEqual(['Home', 'About', 'Projects', 'My Shelf'])
   })
@@ -211,7 +211,7 @@ describe('RootLayout nav', () => {
     ])
   })
 
-  it('keeps Spine current on an item page', () => {
+  it('keeps My Shelf current on an item page', () => {
     renderAt('/shelf/abc')
     expect(
       within(screen.getByRole('navigation')).getByRole('link', {
@@ -267,7 +267,7 @@ describe('RootLayout masthead', () => {
     },
   )
 
-  it('keeps Spine current on What’s next', () => {
+  it('keeps My Shelf current on What’s next', () => {
     renderAt('/shelf/next')
     expect(screen.getByRole('link', { name: 'My Shelf' })).toHaveClass('active')
   })

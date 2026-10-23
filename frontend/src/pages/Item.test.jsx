@@ -294,7 +294,7 @@ describe('Item title', () => {
     document.title = 'Stale'
   })
 
-  it('is Spine until the item is known', () => {
+  it('is My Shelf until the item is known', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => new Promise(() => {})),

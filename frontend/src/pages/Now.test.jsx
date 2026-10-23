@@ -68,7 +68,7 @@ describe('Now', () => {
     ).toHaveAttribute('href', '/shelf/feed.xml')
   })
 
-  it('points to Spine when the build has no snapshot', async () => {
+  it('points to My Shelf when the build has no snapshot', async () => {
     renderPage()
     expect(await screen.findByText(/Nothing to show/)).toBeInTheDocument()
   })

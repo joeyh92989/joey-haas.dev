@@ -825,7 +825,7 @@ describe('Collection and What’s next', () => {
 })
 
 describe('Collection header', () => {
-  it('names Spine, says what it is, and links the post and the source', async () => {
+  it('names My Shelf, says what it is, and links the post and the source', async () => {
     stubApi()
     await renderReady()
 

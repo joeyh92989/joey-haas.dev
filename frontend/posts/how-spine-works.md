@@ -1,7 +1,7 @@
 ---
 title: How My Shelf works
 date: 2026-10-02
-tags: [spine, engineering]
+tags: [shelf, engineering]
 summary: 'The engineering behind My Shelf, the tracker for my game collection: photo import, a physical catalog, and picks that say why. One rule runs through it: the model never grades its own work.'
 draft: false
 ---
