@@ -101,6 +101,7 @@ def test_true_client_ip_then_the_socket():
         ("/about", "/about"),
         ("/about/", "/about"),
         ("/shelf/next?utm=x", "/shelf/next"),
+        ("/shelf/how/", "/shelf/how"),
         (f"{ITEM}/", ITEM),
         ("/shelf/year/2026/", "/shelf/year/2026"),
         ("/shelf/journal/2026-10/", "/shelf/journal/2026-10"),

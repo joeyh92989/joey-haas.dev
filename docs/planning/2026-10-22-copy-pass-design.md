@@ -89,6 +89,9 @@ explicit so they stop drifting:
 
 ### Routes
 
+*Superseded by the plan's "Route rename: decisions": the routes moved to
+`/shelf` in this PR, with every `/spine*` URL still working.*
+
 Keep `/spine`, `/spine/next`, `/spine/year`, `/spine/how`, `/spine/feed.xml`
 and the item paths in this pass. The URL is read far less than the label,
 the feed URL is in subscribers' readers, and a route rename is code work
@@ -322,7 +325,7 @@ it names the public page, and a handful of lines.
 | `AdminImport.jsx` | `Reading photo {i} of {n}. Each one takes a minute or two.` | Keep |
 | `AdminItem.jsx` | `Delete "{title}"? This cannot be undone.` | `Delete "{title}"? This can't be undone.` |
 | `AdminItem.jsx` | `Linked, but the metadata could not be fetched. Try saving again.` | `Linked, but the metadata couldn't be fetched. Try saving again.` |
-| `AdminAnalytics.jsx` | `No views yet. The beacon is live; check back tomorrow.` | Keep |
+| `AdminAnalytics.jsx` | `No views yet. The beacon is live; check back tomorrow.` | Keep (Grammarly pass later changed it; see the PR's change table) |
 | `nightly.js` | `Sunday evenings only`, `No catalog run yet`, `Rebuilt nightly` | Keep |
 | `status.js` | `WAKING`, `LOAD_ERROR`, `ACTION_ERROR` | Keep |
 | `Could not …` action errors (`Could not save that.`, `Could not pin that game.`, etc.: 18 strings in `Admin.jsx`, `AdminCollection.jsx`, `AdminImport.jsx`, `AdminItem.jsx`, `PlayNext.jsx`) | `Couldn't …` for each, matching `ACTION_ERROR`'s contraction. Mechanical; one sweep. |
@@ -467,7 +470,8 @@ points:
   heads at `dist/spine/index.html`, `spine/next/`, `spine/how/` and
   `spine/<id>/` (canonical and `og:url` → `/shelf…`), and `render.yaml`
   keeps the three `/spine` rewrites. `prerender-lib.test.mjs`'s
-  exact-match test learns a `LEGACY_ROUTES` list instead of being
+  exact-match test covers them via `legacyRoutes()` (routes flagged
+  `legacy: true`) instead of being
   loosened. Tradeoff: a few extra files per build vs. every link already
   shared to a recruiter falling back to the generic site card.
 - **The feed is written twice**, `dist/shelf/feed.xml` and

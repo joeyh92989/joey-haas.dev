@@ -65,6 +65,7 @@ _EXACT_PATHS = frozenset(
         "/blog",
         "/shelf",
         "/shelf/next",
+        "/shelf/how",
         "/shelf/year",
     }
 )

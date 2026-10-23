@@ -140,7 +140,7 @@ before pushing.
   `/shelf/journal/:month` stay on the catch-all, so their prerendered heads
   are served only at the slash form (`/shelf/<id>/`). Every link, canonical,
   `og:url`, sitemap entry and feed link uses that form, built by
-  `src/lib/spinePaths.js`; never hand-write a Spine item, year or month path.
+  `src/lib/spinePaths.js`; never hand-write a shelf item, year or month path.
   Don't add a slash with a redirect rule: on Render it loops for any path
   without a file (tried on 2026-10-19).
   The tracker moved from `/spine` to `/shelf` (copy pass, 2026-10-22).
