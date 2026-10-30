@@ -216,6 +216,7 @@ async def test_invalid_requests_are_refused(sessionmaker_for_test):
         bad_size = await client.post("/api/picker/next", json=_body(size="forever"))
         # The old names went with the evening wording.
         old_size = await client.post("/api/picker/next", json=_body(size="quick"))
+        old_field = await client.post("/api/picker/next", json=_body(time="quick"))
         bad_action = await client.post(
             "/api/picker/events",
             json={"item_id": str(uuid.uuid4()), "action": "pinned"},
@@ -228,6 +229,7 @@ async def test_invalid_requests_are_refused(sessionmaker_for_test):
     assert bad_mood.status_code == 422
     assert bad_size.status_code == 422
     assert old_size.status_code == 422
+    assert old_field.status_code == 422
     assert bad_action.status_code == 422
     assert unknown.status_code == 404
 

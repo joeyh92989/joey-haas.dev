@@ -479,9 +479,14 @@ before pushing.
   day; and the day's picks are in slot order (`SLOT_ORDER`, unslotted
   last, then title). Each carries its `slot_label`, except "Pick it back
   up" (`WITHHELD_SLOTS`: it reports the owner's activity), and "Change of
-  pace" when the last finish is private. `tonight.last_finish` is the
-  "Just finished" chip: the most recent finish, only when public and
-  within `JUST_FINISHED_WINDOW` (60 days), else null. Signed in, Tonight
+  pace" when the last finish is private. A withheld label sorts as an
+  unslotted row does, or its position would name the slot.
+  `tonight.last_finish` is the "Just finished" chip: the most recent
+  *public* finish within `JUST_FINISHED_WINDOW` (60 days), else null --
+  never hidden because a later finish is private, which its absence would
+  hint at. Both finish queries count a NULL `owned_format` as owned, as
+  picker does. Hours go out unrounded, so the page's size band is
+  picker's. Signed in, Tonight
   pins with the pin route and answers "Not tonight" with
   `POST /api/picker/events`; `GET /api/picker/skipped-today` and
   `DELETE /api/picker/events/{id}/skipped` (today's skips only) exist
@@ -489,7 +494,8 @@ before pushing.
   **Deploy order:** apply `0009` to Neon, then merge. Reasons come from
   `picker.public_reasons`: rebuilt from public rows only, without the slot
   reasons, since "On the shelf since" is read from the private
-  `acquired_at`. Reasons are first person everywhere ("which I rated 9").
+  `acquired_at` -- except Change of pace's contrast, which leads when its
+  label is published (the last finish is public). Reasons are first person everywhere ("which I rated 9").
 - **The play journal** (migration `0007`, `play_sessions`) is logged on the
   admin item page (`components/PlayJournal.jsx`, `journal_routes.py`): one
   row per day played, optional minutes, a private note. The public diary,

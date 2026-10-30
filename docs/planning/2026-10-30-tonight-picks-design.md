@@ -454,17 +454,22 @@ if a new read needs it), `tests/test_public_outputs.py`,
 - Picks are ordered by slot (`best_fit`, `change_of_pace` /
   `short_and_sweet`, third), using each game's latest `shown` event that day.
   A null slot (rows from before `0009`) sorts after the others in title
-  order. The rule "events before today's midnight only" is unchanged.
+  order, as does a withheld label. The rule "events before today's
+  midnight only" is unchanged.
 - `PublicTonightCard` adds `slot_label: str | None` (withheld per D1) and
-  `time_to_beat_hours: int | None`.
+  `time_to_beat_hours: float | None` (built as `int`, then sent unrounded
+  after review: rounded, a 6.4 h game banded Short on the page and Medium
+  in picker).
 - `PublicTonight` adds `last_finish: {item_id, title, cover_url, finished_at,
   time_to_beat_hours} | null`. It's the latest public owned game finished
   within 60 days.
 - The fingerprint already covers these reads (`items` xmin, and the windowed
   shown events). A test confirms a finish date change busts the cache.
 - AC: (AC2) field pins updated, the forbidden-keys walk passes, and no score,
-  event time or rank appears. (AC9) a private last finish gives
-  `last_finish: null` and a null Change of pace label.
+  event time or rank appears. (AC9) a private last finish gives a null
+  Change of pace label; `last_finish` is still the latest public finish
+  (review: a null there would hint at the private one). A withheld label
+  sorts as an unslotted row, so its position does not name its slot.
 
 **8. Copy.** `content/spine.js`, `content/status.js` if a string is missing.
 - The new slot label, the chip, the toast, "Or instead" / "The other picks",

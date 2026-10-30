@@ -83,19 +83,23 @@ class _PickRow(BaseModel):
     slot_label: str | None
 
 
-async def last_finish(session: AsyncSession) -> Item | None:
-    """The owned game finished most recently, public or not: picker's
-    last_finish over every row, so the public side can tell when the game
-    Change of pace was measured against is one it cannot see."""
+async def last_finish(session: AsyncSession, public: bool = False) -> Item | None:
+    """The owned game finished most recently: picker's last_finish over every
+    row, so the public side can tell when the game Change of pace was
+    measured against is one it cannot see, or over public rows only, for
+    the chip. A NULL owned_format counts as owned, as picker counts it."""
+    conditions = [
+        Item.type == ItemType.GAME,
+        or_(Item.owned_format.is_(None), Item.owned_format != OwnedFormat.NONE),
+        Item.status == ItemStatus.FINISHED,
+        Item.finished_at.is_not(None),
+    ]
+    if public:
+        conditions.append(Item.is_public.is_(True))
     return (
         await session.execute(
             select(Item)
-            .where(
-                Item.type == ItemType.GAME,
-                Item.owned_format != OwnedFormat.NONE,
-                Item.status == ItemStatus.FINISHED,
-                Item.finished_at.is_not(None),
-            )
+            .where(*conditions)
             .order_by(Item.finished_at.desc(), Item.title.desc())
             .limit(1)
         )
@@ -191,18 +195,7 @@ async def public_picks_with_day(
             item_id not in slots or at >= slots[item_id][0]
         ):
             slots[item_id] = (at, slot)
-    ordered = sorted(
-        (eligible[item_id] for item_id in slots),
-        key=lambda row: (
-            SLOT_ORDER.get(slots[row.id][1], UNSLOTTED),
-            row.title,
-            row.id,
-        ),
-    )
-    picks = ordered[:PICKS_LIMIT]
-    profile = [to_picker_item(row) for row in public_rows]
     pace_public = last is not None and last.is_public
-    today = now.astimezone(UTC).date()
 
     def public_slot(row: Item) -> str | None:
         slot = slots[row.id][1]
@@ -211,6 +204,21 @@ async def public_picks_with_day(
         if slot == "change_of_pace" and not pace_public:
             return None
         return slot
+
+    # A withheld slot sorts as an unslotted row does, by title after the
+    # labelled ones: sorted by its real slot, an empty label's position
+    # alone would say which slot it was.
+    ordered = sorted(
+        (eligible[item_id] for item_id in slots),
+        key=lambda row: (
+            SLOT_ORDER.get(public_slot(row), UNSLOTTED),
+            row.title,
+            row.id,
+        ),
+    )
+    picks = ordered[:PICKS_LIMIT]
+    profile = [to_picker_item(row) for row in public_rows]
+    today = now.astimezone(UTC).date()
 
     return day, [
         _PickRow(
@@ -250,7 +258,7 @@ class PublicTonightCard(BaseModel):
     platform: str | None
     reasons: list[str]
     slot_label: str | None
-    time_to_beat_hours: int | None
+    time_to_beat_hours: float | None
 
 
 class PublicLastFinish(BaseModel):
@@ -261,7 +269,7 @@ class PublicLastFinish(BaseModel):
     title: str
     cover_url: str | None
     finished_at: date
-    time_to_beat_hours: int | None
+    time_to_beat_hours: float | None
 
 
 class PublicTonight(BaseModel):
@@ -368,13 +376,14 @@ def _next_row(entry: NextEntry, taste: PublicTaste) -> PublicNextRow:
     )
 
 
-def _hours(metadata: dict | None) -> int | None:
-    """IGDB's usual time to beat, in whole hours, or None when unknown."""
+def _hours(metadata: dict | None) -> float | None:
+    """IGDB's usual time to beat in hours, or None when unknown. Unrounded,
+    so the page's size band matches picker's (6.4 h is Medium, not Short)."""
     time_to_beat = (metadata or {}).get("time_to_beat")
     normally = time_to_beat.get("normally") if isinstance(time_to_beat, dict) else None
     if isinstance(normally, bool) or not isinstance(normally, int | float):
         return None
-    return round(normally)
+    return float(normally)
 
 
 def _tonight_card(game: Item | _PickRow, reasons: list[str]) -> PublicTonightCard:
@@ -393,13 +402,10 @@ def _tonight_card(game: Item | _PickRow, reasons: list[str]) -> PublicTonightCar
 
 
 def _last_finish(last: Item | None, today: date) -> PublicLastFinish | None:
-    """The last finish for the chip: None when it is private, as the whole
-    point is not to hint at it, or older than the window."""
-    if (
-        last is None
-        or not last.is_public
-        or today - last.finished_at > JUST_FINISHED_WINDOW
-    ):
+    """The chip: the latest public finish, or None when it is older than the
+    window. Never None because a later finish is private: the chip's absence
+    would then hint at that game."""
+    if last is None or today - last.finished_at > JUST_FINISHED_WINDOW:
         return None
     return PublicLastFinish(
         item_id=last.id,
@@ -464,7 +470,7 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
         tonight=PublicTonight(
             up_next=_tonight_card(up_next, []) if up_next else None,
             picks=[_tonight_card(pick, pick.reasons) for pick in picks],
-            last_finish=_last_finish(last, today),
+            last_finish=_last_finish(await last_finish(session, public=True), today),
         ),
         wanted=[_wanted_row(item, today) for item in wanted],
         **{

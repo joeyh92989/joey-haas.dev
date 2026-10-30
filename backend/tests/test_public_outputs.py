@@ -170,8 +170,8 @@ async def test_a_null_slot_and_pick_it_back_up_publish_no_label(
     picks = (await _next(sessionmaker_for_test))["tonight"]["picks"]
 
     assert [(p["title"], p["slot_label"]) for p in picks] == [
-        ("Stalled", None),
         ("Old Row", None),
+        ("Stalled", None),
     ]
 
 
@@ -202,22 +202,23 @@ async def test_change_of_pace_is_measured_against_a_public_last_finish(
     assert lead["title"] == "Unknown Size"
     assert lead["time_to_beat_hours"] is None
     assert pace["slot_label"] == "Change of pace"
-    assert pace["time_to_beat_hours"] == 8
+    assert pace["time_to_beat_hours"] == 7.6
     assert pace["reasons"][0] == "About 8 h to finish, after 62 h of Xenoblade"
     assert body["last_finish"] == {
         "item_id": str(xeno.id),
         "title": "Xenoblade",
         "cover_url": "https://images.igdb.com/x.jpg",
         "finished_at": finished.isoformat(),
-        "time_to_beat_hours": 62,
+        "time_to_beat_hours": 61.6,
     }
 
 
 async def test_a_private_last_finish_withholds_change_of_pace(
     sessionmaker_for_test,
 ):
-    """AC9: a later private finish is the real last finish, so neither the
-    chip nor the label may point at the older public one."""
+    """AC9: a later private finish is the real last finish, so the label
+    may not point at the older public one. The chip still shows that one:
+    hidden, its absence would hint at the private finish."""
     xeno, secret, celeste = _with_ids(
         _game(
             "Xenoblade",
@@ -238,11 +239,72 @@ async def test_a_private_last_finish_withholds_change_of_pace(
     await _add(sessionmaker_for_test, _shown(celeste, SHOWN_DAY, "change_of_pace"))
     body = (await _next(sessionmaker_for_test))["tonight"]
 
-    assert body["last_finish"] is None
+    assert body["last_finish"]["title"] == "Xenoblade"
     [pace] = body["picks"]
     assert pace["slot_label"] is None
     assert not any("after" in reason for reason in pace["reasons"])
     assert "Secret" not in str(body)
+
+
+async def test_a_withheld_label_sorts_like_an_unslotted_row(
+    sessionmaker_for_test,
+):
+    """Sorted by its real slot, an empty label's place would name it: third
+    is always Pick it back up, second before a labelled third is Change of
+    pace against a private finish. Withheld rows sort last, by title."""
+    secret, pace, fit, classic = _with_ids(
+        _game(
+            "Secret Game",
+            is_public=False,
+            status=ItemStatus.FINISHED,
+            finished_at=NOW.date() - timedelta(days=2),
+        ),
+        _game("A Pace"),
+        _game("Z Fit"),
+        _game("Z Classic"),
+    )
+    await _add(sessionmaker_for_test, secret, pace, fit, classic)
+    await _add(
+        sessionmaker_for_test,
+        _shown(pace, SHOWN_DAY, "change_of_pace"),
+        _shown(fit, SHOWN_DAY, "best_fit"),
+        _shown(classic, SHOWN_DAY, "overdue_classic"),
+    )
+    picks = (await _next(sessionmaker_for_test))["tonight"]["picks"]
+
+    assert [(p["title"], p["slot_label"]) for p in picks] == [
+        ("Z Fit", "Best fit"),
+        ("Z Classic", "Overdue classic"),
+        ("A Pace", None),
+    ]
+
+
+async def test_a_null_owned_format_counts_as_owned_for_change_of_pace(
+    sessionmaker_for_test,
+):
+    """picker counts a NULL owned_format as owned, so the public side must
+    too, or a private finish with no format would let the label through."""
+    xeno, secret, celeste = _with_ids(
+        _game(
+            "Xenoblade",
+            status=ItemStatus.FINISHED,
+            finished_at=NOW.date() - timedelta(days=9),
+            source_metadata=_hours(62),
+        ),
+        _game(
+            "Secret Game",
+            is_public=False,
+            owned_format=None,
+            status=ItemStatus.FINISHED,
+            finished_at=NOW.date() - timedelta(days=2),
+        ),
+        _game("Celeste", source_metadata=_hours(8)),
+    )
+    await _add(sessionmaker_for_test, xeno, secret, celeste)
+    await _add(sessionmaker_for_test, _shown(celeste, SHOWN_DAY, "change_of_pace"))
+    [pace] = (await _next(sessionmaker_for_test))["tonight"]["picks"]
+
+    assert pace["slot_label"] is None
 
 
 async def test_last_finish_is_a_public_owned_game_from_the_last_60_days(
@@ -273,7 +335,7 @@ async def test_up_next_carries_hours_and_no_slot(sessionmaker_for_test):
     up_next = (await _next(sessionmaker_for_test))["tonight"]["up_next"]
 
     assert up_next["slot_label"] is None
-    assert up_next["time_to_beat_hours"] == 12
+    assert up_next["time_to_beat_hours"] == 12.4
 
 
 async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(

@@ -16,7 +16,7 @@ from datetime import UTC, datetime, time, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -34,6 +34,9 @@ EVENT_WINDOW = timedelta(days=30)
 
 class PickNextIn(BaseModel):
     """What the owner asked for; `exclude` is the current reroll's picks."""
+
+    # The retired `time` field is refused, not quietly read as any size.
+    model_config = ConfigDict(extra="forbid")
 
     size: Literal["any", "short", "medium", "long"] = "any"
     moods: list[Mood] = []
