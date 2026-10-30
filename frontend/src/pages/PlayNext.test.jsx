@@ -31,7 +31,7 @@ function pick(id, title, slot, slotLabel) {
     slot,
     slot_label: slotLabel,
     score: 80,
-    reasons: [`Reason for ${title}`, 'About 8 h — fits an evening'],
+    reasons: [`Reason for ${title}`],
     item: {
       id,
       title,
@@ -126,7 +126,7 @@ describe('PlayNext', () => {
     await renderReady()
 
     expect(pickRequests(mock)[0]).toEqual({
-      time: 'any',
+      size: 'any',
       moods: [],
       platforms: [],
       exclude: [],
@@ -144,16 +144,32 @@ describe('PlayNext', () => {
     expect(
       card('Dead Cells').getByText('Reason for Dead Cells'),
     ).toBeInTheDocument()
-    expect(card('Dead Cells').getByText('≈ 8 h')).toBeInTheDocument()
     // Three genre chips at most.
     expect(card('Dead Cells').queryByText('Extra')).not.toBeInTheDocument()
   })
 
-  it('sends the chosen time, moods and platforms', async () => {
+  it("offers sizes, not evenings, and shows each pick's size", async () => {
+    stubApi()
+    await renderReady()
+
+    const sizes = within(screen.getByRole('group', { name: 'Size' }))
+    expect(
+      sizes.getAllByRole('button').map((button) => button.textContent),
+    ).toEqual(['Any', 'Short under 6 h', 'Medium 6–15 h', 'Long 15 h+'])
+    expect(
+      sizes.getByRole('button', { name: 'Medium' }),
+    ).toHaveAccessibleDescription('6–15 h')
+    expect(card('Dead Cells').getByText('Medium')).toHaveClass('size-pill')
+    expect(
+      card('Dead Cells').getByText('about 8 h to finish'),
+    ).toBeInTheDocument()
+  })
+
+  it('sends the chosen size, moods and platforms', async () => {
     const mock = stubApi()
     await renderReady()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Evening' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Medium' }))
     await userEvent.click(screen.getByRole('button', { name: 'Cozy' }))
     await userEvent.click(screen.getByRole('button', { name: 'Brainy' }))
     await userEvent.click(
@@ -162,7 +178,7 @@ describe('PlayNext', () => {
 
     await waitFor(() =>
       expect(pickRequests(mock).at(-1)).toEqual({
-        time: 'evening',
+        size: 'medium',
         moods: ['cozy', 'brainy'],
         platforms: [508],
         exclude: [],
@@ -186,11 +202,11 @@ describe('PlayNext', () => {
     await renderReady()
 
     await userEvent.click(screen.getByRole('button', { name: 'Reroll' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Quick' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Short' }))
 
     await waitFor(() =>
       expect(pickRequests(mock).at(-1)).toMatchObject({
-        time: 'quick',
+        size: 'short',
         exclude: [],
       }),
     )
