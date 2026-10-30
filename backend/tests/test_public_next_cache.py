@@ -221,6 +221,28 @@ async def test_a_title_edit_rebuilds(sessionmaker_for_test, seeded, build):
     assert _titles(body, "wanted") == ["Renamed Game"]
 
 
+async def test_a_finish_date_edit_rebuilds(sessionmaker_for_test, seeded, build):
+    """Tonight's last finish is read from items, so the xmin digest covers it."""
+    first = (NOW.date() - timedelta(days=3)).isoformat()
+    second = (NOW.date() - timedelta(days=1)).isoformat()
+    async with site_for(sessionmaker_for_test) as client:
+        finish = await client.patch(
+            f"/api/items/{seeded['owned'].id}",
+            json={"status": "finished", "finished_at": first},
+        )
+        assert finish.status_code == 200
+        before = (await _warm(client, build))["tonight"]["last_finish"]
+        edit = await client.patch(
+            f"/api/items/{seeded['owned'].id}", json={"finished_at": second}
+        )
+        assert edit.status_code == 200
+        after = (await _next(client))["tonight"]["last_finish"]
+
+    assert build.calls == 2
+    assert before["finished_at"] == first
+    assert after["finished_at"] == second
+
+
 async def test_deleting_an_item_rebuilds(sessionmaker_for_test, seeded, build):
     async with site_for(sessionmaker_for_test) as client:
         await _warm(client, build)
