@@ -16,7 +16,7 @@ from datetime import UTC, datetime, time, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -35,7 +35,10 @@ EVENT_WINDOW = timedelta(days=30)
 class PickNextIn(BaseModel):
     """What the owner asked for; `exclude` is the current reroll's picks."""
 
-    time: Literal["any", "quick", "evening", "long"] = "any"
+    # The retired `time` field is refused, not quietly read as any size.
+    model_config = ConfigDict(extra="forbid")
+
+    size: Literal["any", "short", "medium", "long"] = "any"
     moods: list[Mood] = []
     platforms: list[int] = []
     exclude: list[uuid.UUID] = Field(default=[], max_length=200)
@@ -64,6 +67,10 @@ class PickNextOut(BaseModel):
     picks: list[PickOut]
     candidate_count: int
     profile_size: int
+
+
+class SkippedTodayOut(BaseModel):
+    item_ids: list[uuid.UUID]
 
 
 class PickEventIn(BaseModel):
@@ -120,6 +127,7 @@ def to_picker_item(item: Item) -> PickerItem:
         release_date=item.release_date,
         acquired_at=item.acquired_at,
         started_at=item.started_at,
+        finished_at=item.finished_at,
     )
 
 
@@ -134,6 +142,9 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
     async def get_session() -> AsyncIterator[AsyncSession]:
         async with factory() as session:
             yield session
+
+    def _today_midnight() -> datetime:
+        return datetime.combine(datetime.now(UTC).date(), time.min, tzinfo=UTC)
 
     @router.post("/next", response_model=PickNextOut)
     async def pick_next(
@@ -168,7 +179,7 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             for event in event_rows
         ]
         request = PickRequest(
-            time=payload.time,
+            size=payload.size,
             moods=tuple(payload.moods),
             platforms=tuple(payload.platforms),
             exclude=tuple(str(item_id) for item_id in payload.exclude),
@@ -190,7 +201,11 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         for pick in result.picks:
             if pick.item.id not in shown_today:
                 session.add(
-                    PickEvent(item_id=uuid.UUID(pick.item.id), action=PickAction.SHOWN)
+                    PickEvent(
+                        item_id=uuid.UUID(pick.item.id),
+                        action=PickAction.SHOWN,
+                        slot=pick.slot,
+                    )
                 )
         await session.commit()
         logger.info(
@@ -246,6 +261,42 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         await session.execute(
             delete(PickEvent).where(
                 PickEvent.item_id == item_id, PickEvent.action == PickAction.NEVER
+            )
+        )
+        await session.commit()
+        return Response(status_code=204)
+
+    @router.get("/skipped-today", response_model=SkippedTodayOut)
+    async def skipped_today(
+        session: AsyncSession = Depends(get_session),
+    ) -> SkippedTodayOut:
+        """The games answered "not tonight" since UTC midnight, for Tonight's
+        owner view to leave out until the snapshot catches up."""
+        item_ids = (
+            await session.execute(
+                select(PickEvent.item_id)
+                .where(
+                    PickEvent.action == PickAction.SKIPPED,
+                    PickEvent.created_at >= _today_midnight(),
+                )
+                .distinct()
+                .order_by(PickEvent.item_id)
+            )
+        ).scalars()
+        return SkippedTodayOut(item_ids=list(item_ids))
+
+    @router.delete("/events/{item_id}/skipped", status_code=204)
+    async def undo_skip(
+        item_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> Response:
+        """Undoes today's "not tonight". Earlier skips stand, so an Undo never
+        reaches back past the day it was offered. Idempotent."""
+        await session.execute(
+            delete(PickEvent).where(
+                PickEvent.item_id == item_id,
+                PickEvent.action == PickAction.SKIPPED,
+                PickEvent.created_at >= _today_midnight(),
             )
         )
         await session.commit()

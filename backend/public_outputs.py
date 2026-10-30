@@ -39,7 +39,7 @@ from next_list import (
     sections,
 )
 from next_load import catalogue_times, load_next, taste_sparing_owned
-from picker import public_reasons
+from picker import JUST_FINISHED_WINDOW, SLOT_LABELS, public_reasons
 from picker_routes import to_picker_item
 from sources.igdb import IGDB_URL_PREFIX
 
@@ -49,12 +49,27 @@ from sources.igdb import IGDB_URL_PREFIX
 PICKS_WINDOW = timedelta(days=7)
 PICKS_LIMIT = 3
 PICKABLE = (ItemStatus.BACKLOG, ItemStatus.ACTIVE)
+# The order a day's picks are published in: Play Next's slots, first to
+# third. A shown event from before 0009 has no slot and sorts after them.
+SLOT_ORDER = {
+    "best_fit": 0,
+    "change_of_pace": 1,
+    "short_and_sweet": 1,
+    "overdue_classic": 2,
+    "waited_longest": 2,
+    "pick_it_back_up": 2,
+}
+UNSLOTTED = len(set(SLOT_ORDER.values()))
+# Its rule ("not touched in 30 days") reports the owner's activity, as its
+# reason line would (Tonight spec, D1).
+WITHHELD_SLOTS = {"pick_it_back_up"}
 
 
 class _PickRow(BaseModel):
-    """A recent Play Next pick on its way to a tonight card: the game, and why.
+    """A recent Play Next pick on its way to a tonight card: the game, why,
+    and its slot's label when that is public (Tonight spec, D1).
 
-    No slot, score, date or event: those describe the owner's use of the
+    No slot key, score, date or event: those describe the owner's use of the
     tool, not the game. Never a response model; PublicTonightCard is.
     """
 
@@ -63,19 +78,45 @@ class _PickRow(BaseModel):
     title: str
     cover_url: str | None
     platform: str | None
+    source_metadata: dict | None
     reasons: list[str]
+    slot_label: str | None
+
+
+async def last_finish(session: AsyncSession, public: bool = False) -> Item | None:
+    """The owned game finished most recently: picker's last_finish over every
+    row, so the public side can tell when the game Change of pace was
+    measured against is one it cannot see, or over public rows only, for
+    the chip. A NULL owned_format counts as owned, as picker counts it."""
+    conditions = [
+        Item.type == ItemType.GAME,
+        or_(Item.owned_format.is_(None), Item.owned_format != OwnedFormat.NONE),
+        Item.status == ItemStatus.FINISHED,
+        Item.finished_at.is_not(None),
+    ]
+    if public:
+        conditions.append(Item.is_public.is_(True))
+    return (
+        await session.execute(
+            select(Item)
+            .where(*conditions)
+            .order_by(Item.finished_at.desc(), Item.title.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
 
 
 async def public_picks_with_day(
-    session: AsyncSession, now: datetime
+    session: AsyncSession, now: datetime, last: Item | None = None
 ) -> tuple[date | None, list[_PickRow]]:
     """Up to three public, owned, unpinned backlog or active games shown on
     the most recent day Play Next showed a game that is still a public
-    suggestion, in title order, with reasons from public rows.
+    suggestion, in slot order, with reasons from public rows.
 
     The list changes at most once a day. Only events before today's UTC
     midnight count -- shown, skipped and never alike -- and the day's picks
-    are ordered by title, not by when they were shown. Otherwise anyone
+    are ordered by the slot each was last shown in, then title, not by when
+    they were shown. Otherwise anyone
     polling this route could watch the owner use Play Next, skip a game or
     refuse one as it happened. The one residual live change is accepted: the
     admin restore route deletes a never event outright, so a restored game
@@ -85,6 +126,10 @@ async def public_picks_with_day(
     game shown later must not move it, or the list would change with rows the
     public cannot see. A game the owner said "never" to, or skipped at or
     after the moment it was shown, is not a suggestion any more.
+
+    `last` is the owner's last finish (see last_finish). Change of pace's
+    label and reason are published only when it is public: otherwise they
+    would hint at a game the public cannot see (Tonight spec, AC9).
 
     Returns that day too, or None when there are no picks: What's next
     names it as when the picks were made.
@@ -105,7 +150,12 @@ async def public_picks_with_day(
     window_start = midnight - PICKS_WINDOW
     events = (
         await session.execute(
-            select(PickEvent.item_id, PickEvent.action, PickEvent.created_at).where(
+            select(
+                PickEvent.item_id,
+                PickEvent.action,
+                PickEvent.created_at,
+                PickEvent.slot,
+            ).where(
                 PickEvent.item_id.in_(list(eligible)),
                 PickEvent.action.in_(
                     (PickAction.SHOWN, PickAction.NEVER, PickAction.SKIPPED)
@@ -121,14 +171,14 @@ async def public_picks_with_day(
             )
         )
     ).all()
-    never = {item_id for item_id, action, _ in events if action == PickAction.NEVER}
+    never = {item_id for item_id, action, _, _ in events if action == PickAction.NEVER}
     skipped_at: dict[uuid.UUID, list[datetime]] = {}
-    for item_id, action, at in events:
+    for item_id, action, at, _ in events:
         if action == PickAction.SKIPPED:
             skipped_at.setdefault(item_id, []).append(at)
     suggestions = [
-        (item_id, at)
-        for item_id, action, at in events
+        (item_id, at, slot)
+        for item_id, action, at, slot in events
         if action == PickAction.SHOWN
         and at >= window_start
         and item_id not in never
@@ -136,13 +186,40 @@ async def public_picks_with_day(
     ]
     if not suggestions:
         return None, []
-    day = max(at.astimezone(UTC).date() for _, at in suggestions)
-    shown = {item_id for item_id, at in suggestions if at.astimezone(UTC).date() == day}
+    day = max(at.astimezone(UTC).date() for _, at, _ in suggestions)
+    # Each game's slot is the one it was last shown in that day: a reroll can
+    # show a game again in another slot.
+    slots: dict[uuid.UUID, tuple[datetime, str | None]] = {}
+    for item_id, at, slot in suggestions:
+        if at.astimezone(UTC).date() == day and (
+            item_id not in slots or at >= slots[item_id][0]
+        ):
+            slots[item_id] = (at, slot)
+    pace_public = last is not None and last.is_public
+
+    def public_slot(row: Item) -> str | None:
+        slot = slots[row.id][1]
+        if slot in WITHHELD_SLOTS or slot not in SLOT_LABELS:
+            return None
+        if slot == "change_of_pace" and not pace_public:
+            return None
+        return slot
+
+    # A withheld slot sorts as an unslotted row does, by title after the
+    # labelled ones: sorted by its real slot, an empty label's position
+    # alone would say which slot it was.
     ordered = sorted(
-        (eligible[item_id] for item_id in shown), key=lambda row: (row.title, row.id)
+        (eligible[item_id] for item_id in slots),
+        key=lambda row: (
+            SLOT_ORDER.get(public_slot(row), UNSLOTTED),
+            row.title,
+            row.id,
+        ),
     )
     picks = ordered[:PICKS_LIMIT]
     profile = [to_picker_item(row) for row in public_rows]
+    today = now.astimezone(UTC).date()
+
     return day, [
         _PickRow(
             id=row.id,
@@ -150,7 +227,13 @@ async def public_picks_with_day(
             title=row.title,
             cover_url=row.cover_url,
             platform=row.platform,
-            reasons=list(public_reasons(to_picker_item(row), profile)),
+            source_metadata=row.source_metadata,
+            reasons=list(
+                public_reasons(
+                    to_picker_item(row), profile, today, slot=public_slot(row)
+                )
+            ),
+            slot_label=SLOT_LABELS.get(public_slot(row)),
         )
         for row in picks
     ]
@@ -174,13 +257,28 @@ class PublicTonightCard(BaseModel):
     cover_url: str | None
     platform: str | None
     reasons: list[str]
+    slot_label: str | None
+    time_to_beat_hours: float | None
+
+
+class PublicLastFinish(BaseModel):
+    """The game I finished last, for Tonight's "Just finished" chip: public,
+    owned, and finished within picker's JUST_FINISHED_WINDOW."""
+
+    item_id: uuid.UUID
+    title: str
+    cover_url: str | None
+    finished_at: date
+    time_to_beat_hours: float | None
 
 
 class PublicTonight(BaseModel):
-    """Tonight: the pinned Up next game, if any, and Play Next's recent picks."""
+    """Tonight: the pinned Up next game, if any, Play Next's recent picks,
+    and the last finish they were measured against, when it is public."""
 
     up_next: PublicTonightCard | None
     picks: list[PublicTonightCard]
+    last_finish: PublicLastFinish | None
 
 
 class PublicNextRow(BaseModel):
@@ -278,8 +376,19 @@ def _next_row(entry: NextEntry, taste: PublicTaste) -> PublicNextRow:
     )
 
 
+def _hours(metadata: dict | None) -> float | None:
+    """IGDB's usual time to beat in hours, or None when unknown. Unrounded,
+    so the page's size band matches picker's (6.4 h is Medium, not Short)."""
+    time_to_beat = (metadata or {}).get("time_to_beat")
+    normally = time_to_beat.get("normally") if isinstance(time_to_beat, dict) else None
+    if isinstance(normally, bool) or not isinstance(normally, int | float):
+        return None
+    return float(normally)
+
+
 def _tonight_card(game: Item | _PickRow, reasons: list[str]) -> PublicTonightCard:
-    """A tonight card from a public item (Up next) or a public pick."""
+    """A tonight card from a public item (Up next) or a public pick. Up next
+    was pinned, not slotted, so it carries no label."""
     return PublicTonightCard(
         item_id=game.id,
         type=game.type,
@@ -287,6 +396,23 @@ def _tonight_card(game: Item | _PickRow, reasons: list[str]) -> PublicTonightCar
         cover_url=game.cover_url,
         platform=game.platform,
         reasons=reasons,
+        slot_label=game.slot_label if isinstance(game, _PickRow) else None,
+        time_to_beat_hours=_hours(game.source_metadata),
+    )
+
+
+def _last_finish(last: Item | None, today: date) -> PublicLastFinish | None:
+    """The chip: the latest public finish, or None when it is older than the
+    window. Never None because a later finish is private: the chip's absence
+    would then hint at that game."""
+    if last is None or today - last.finished_at > JUST_FINISHED_WINDOW:
+        return None
+    return PublicLastFinish(
+        item_id=last.id,
+        title=last.title,
+        cover_url=last.cover_url,
+        finished_at=last.finished_at,
+        time_to_beat_hours=_hours(last.source_metadata),
     )
 
 
@@ -314,7 +440,8 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
     list, and the store sections, built by next_list in public mode from
     the rows frozen to the latest batch (spec, S9)."""
     today = now.astimezone(UTC).date()
-    day, picks = await public_picks_with_day(session, now)
+    last = await last_finish(session)
+    day, picks = await public_picks_with_day(session, now, last)
     data = await load_next(session, public=True)
     built = sections(data.candidates, today, public=True)
     taste = taste_sparing_owned(
@@ -343,6 +470,7 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
         tonight=PublicTonight(
             up_next=_tonight_card(up_next, []) if up_next else None,
             picks=[_tonight_card(pick, pick.reasons) for pick in picks],
+            last_finish=_last_finish(await last_finish(session, public=True), today),
         ),
         wanted=[_wanted_row(item, today) for item in wanted],
         **{

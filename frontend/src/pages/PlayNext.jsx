@@ -2,17 +2,18 @@ import { useCallback, useEffect, useId, useState } from 'react'
 import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
+import SizePill from '../components/SizePill.jsx'
 import { apiFetch } from '../lib/api.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
-const TIMES = [
+const SIZES = [
   ['any', 'Any'],
-  ['quick', 'Quick'],
-  ['evening', 'Evening'],
+  ['short', 'Short'],
+  ['medium', 'Medium'],
   ['long', 'Long'],
 ]
 
-const TIME_HINTS = { quick: 'under 6 h', evening: '6–15 h', long: '15 h+' }
+const SIZE_HINTS = { short: 'under 6 h', medium: '6–15 h', long: '15 h+' }
 
 const MOODS = [
   ['cozy', 'Cozy'],
@@ -68,15 +69,8 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
         <div>
           <h2>{item.title}</h2>
           <p className="muted pick-meta">
-            {[
-              item.year,
-              item.time_to_beat_hours != null &&
-                `≈ ${Math.round(item.time_to_beat_hours)} h`,
-            ]
-              .filter(Boolean)
-              .map((part) => (
-                <span key={part}>{part}</span>
-              ))}
+            {item.year && <span>{item.year}</span>}
+            <SizePill hours={item.time_to_beat_hours} />
           </p>
           {item.genres.length > 0 && (
             <ul className="item-chips">
@@ -121,7 +115,7 @@ export default function PlayNext() {
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
   const [items, setItems] = useState([])
-  const [time, setTime] = useState('any')
+  const [size, setSize] = useState('any')
   const [moods, setMoods] = useState([])
   const [platforms, setPlatforms] = useState([])
   const [exclude, setExclude] = useState([])
@@ -159,7 +153,7 @@ export default function PlayNext() {
     apiFetch('/api/picker/next', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ time, moods, platforms, exclude }),
+      body: JSON.stringify({ size, moods, platforms, exclude }),
     })
       .then(async (response) => {
         if (cancelled) return
@@ -176,7 +170,7 @@ export default function PlayNext() {
     return () => {
       cancelled = true
     }
-  }, [status, time, moods, platforms, exclude, round])
+  }, [status, size, moods, platforms, exclude, round])
 
   /** A control changed: the reroll's exclusions no longer apply. */
   function change(setter) {
@@ -334,13 +328,13 @@ export default function PlayNext() {
       )}
 
       <div className="play-next-controls">
-        <div className="chip-row" role="group" aria-label="Time">
-          {TIMES.map(([value, label]) => (
+        <div className="chip-row" role="group" aria-label="Size">
+          {SIZES.map(([value, label]) => (
             <Chip
               key={value}
-              pressed={time === value}
-              hint={TIME_HINTS[value]}
-              onClick={() => change(setTime)(value)}
+              pressed={size === value}
+              hint={SIZE_HINTS[value]}
+              onClick={() => change(setSize)(value)}
             >
               {label}
             </Chip>

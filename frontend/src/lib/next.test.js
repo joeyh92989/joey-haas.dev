@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { bandCounts, groupByPlatform, sortBuyNow } from './next.js'
+import {
+  bandCounts,
+  groupByPlatform,
+  sortBuyNow,
+  weekdayWords,
+} from './next.js'
 
 const row = (title, platform, release_date = null) => ({
   title,
@@ -64,5 +69,15 @@ describe('bandCounts', () => {
         tonight: { up_next: { title: 'Pinned' }, picks: [] },
       }).tonight,
     ).toBe('Pinned')
+  })
+})
+
+describe('weekdayWords', () => {
+  it('reads a date-only value on its own day, whatever the timezone', () => {
+    expect(weekdayWords('2026-10-26')).toBe('Mon 26 Oct')
+  })
+
+  it('is null for anything unreadable', () => {
+    expect(weekdayWords('not a date')).toBeNull()
   })
 })

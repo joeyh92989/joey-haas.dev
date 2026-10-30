@@ -276,7 +276,7 @@ before pushing.
   `physical_format` and `format_source` untouched; `0006` adds
   `recommendations` (Radar and Discover); `0007` adds `play_sessions`
   (the play journal); `0008` adds `page_views` and `daily_stats`
-  (analytics).
+  (analytics); `0009` adds the nullable `pick_events.slot` (Tonight).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -459,8 +459,15 @@ before pushing.
   tuning points are `PICKER_WEIGHTS` and `MOOD_BUCKETS`. The buckets hold
   exact IGDB strings taken from the collection's own snapshots (genres and
   themes capitalised, keywords lower-case) — never typed from memory. Shown
-  events are written at most once per game per UTC day; the third pick is
-  "Overdue classic" until acquired dates span 90 days, then "Waited longest".
+  events are written at most once per game per UTC day, with the slot they
+  were offered in (`pick_events.slot`, migration `0009`; NULL before it).
+  The second pick is "Change of pace", a strong game that contrasts with
+  the last finish (size band or genre), and "Short and sweet" only when
+  none does; the third is "Overdue classic" until acquired dates span 90
+  days, then "Waited longest". Sizes are `SIZE_BANDS` (short up to 6 hours,
+  medium up to 15, long beyond) on IGDB's "normally", shared by the Size
+  filter and the pill; a finish counts for more while it is recent
+  (`RECENCY_BONUS`, halving every `RECENCY_HALF_LIFE` days).
   Pinning is its own route (`POST /api/items/{id}/pin`) because it clears
   the previous pin and records an event in one transaction.
   The public picks (`tonight` on `/api/public/next`; the retired
@@ -469,10 +476,26 @@ before pushing.
   their shown event; the day is the most recent of the seven UTC days
   ending yesterday on which one of those games was shown; only events
   before today's UTC midnight count, so the list changes at most once a
-  day; and the day's picks are in title order. Reasons come from
+  day; and the day's picks are in slot order (`SLOT_ORDER`, unslotted
+  last, then title). Each carries its `slot_label`, except "Pick it back
+  up" (`WITHHELD_SLOTS`: it reports the owner's activity), and "Change of
+  pace" when the last finish is private. A withheld label sorts as an
+  unslotted row does, or its position would name the slot.
+  `tonight.last_finish` is the "Just finished" chip: the most recent
+  *public* finish within `JUST_FINISHED_WINDOW` (60 days), else null --
+  never hidden because a later finish is private, which its absence would
+  hint at. Both finish queries count a NULL `owned_format` as owned, as
+  picker does. Hours go out unrounded, so the page's size band is
+  picker's. Signed in, Tonight
+  pins with the pin route and answers "Not tonight" with
+  `POST /api/picker/events`; `GET /api/picker/skipped-today` and
+  `DELETE /api/picker/events/{id}/skipped` (today's skips only) exist
+  because a skip changes the public body only at the next day's picks.
+  **Deploy order:** apply `0009` to Neon, then merge. Reasons come from
   `picker.public_reasons`: rebuilt from public rows only, without the slot
   reasons, since "On the shelf since" is read from the private
-  `acquired_at`. Reasons are first person everywhere ("which I rated 9").
+  `acquired_at` -- except Change of pace's contrast, which leads when its
+  label is published (the last finish is public). Reasons are first person everywhere ("which I rated 9").
 - **The play journal** (migration `0007`, `play_sessions`) is logged on the
   admin item page (`components/PlayJournal.jsx`, `journal_routes.py`): one
   row per day played, optional minutes, a private note. The public diary,

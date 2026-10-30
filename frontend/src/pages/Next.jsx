@@ -1,37 +1,29 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
-import CoverImage from '../components/CoverImage.jsx'
+import { useEffect, useRef, useState } from 'react'
+import { useOutletContext } from 'react-router'
+import JustFinishedChip from '../components/JustFinishedChip.jsx'
 import NextRow from '../components/NextRow.jsx'
 import SortControl from '../components/SortControl.jsx'
+import SkippedToast from '../components/SkippedToast.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
+import TonightAlt from '../components/TonightAlt.jsx'
+import TonightLead from '../components/TonightLead.jsx'
+import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
-import { groupByPlatform, sortBuyNow } from '../lib/next.js'
+import { groupByPlatform, sortBuyNow, weekdayWords } from '../lib/next.js'
+import { apiFetch } from '../lib/api.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { isValidSnapshot } from '../lib/snapshot.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
-import { itemPath } from '../lib/spinePaths.js'
 
 const copy = spine.next
 const SORTS = copy.sorts.map((sort) => ({ ...sort, direction: 'desc' }))
 const SORT_KEY = 'shelf.next.sort'
-const DAY = new Intl.DateTimeFormat('en-GB', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-})
 
 /** A stored sort the page no longer offers falls back to the best fit. */
 function storedSort() {
   const value = readShelfPref(SORT_KEY, 'best')
   return SORTS.some((sort) => sort.value === value) ? value : 'best'
-}
-
-/** A date-only value is read at noon UTC, so no timezone moves its day. */
-function dayWords(value) {
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? new Date(`${value}T12:00:00Z`)
-    : new Date(value)
-  return Number.isNaN(date.getTime()) ? null : DAY.format(date)
 }
 
 /**
@@ -66,6 +58,7 @@ function withLists(data) {
     tonight: {
       up_next: data.tonight?.up_next ?? null,
       picks: list(data.tonight?.picks),
+      last_finish: data.tonight?.last_finish ?? null,
     },
     wanted: list(data.wanted),
     buy_now: list(data.buy_now),
@@ -81,7 +74,7 @@ function Freshness({ generated }) {
     [copy.fresh.catalogue, generated?.catalogue],
     [copy.fresh.discover, generated?.discover],
   ]
-    .map(([label, value]) => [label, value && dayWords(value)])
+    .map(([label, value]) => [label, value && weekdayWords(value)])
     .filter(([, words]) => words)
     .map(([label, words]) => `${label} ${words}`)
   if (!parts.length) return null
@@ -107,54 +100,235 @@ function Rows({ rows, section }) {
   )
 }
 
-/** A tonight game: cover, slot label, title, platform and reasons. Shared
- * with the tour's Play Next stop. */
-export function TonightCard({ pick, label }) {
-  const reasons = pick.reasons ?? []
-  return (
-    <li className="next-row next-tonight-card">
-      <Link to={itemPath(pick.item_id)} className="next-row-link">
-        <span className="next-row-cover">
-          <CoverImage src={pick.cover_url} type={pick.type} alt="" />
-        </span>
-        <span className="next-tonight-name">
-          {label && <span className="pick-slot">{label}</span>}
-          <span className="next-row-title">{pick.title}</span>
-        </span>
-      </Link>
-      <div className="next-row-text">
-        {pick.platform && <span className="muted">{pick.platform}</span>}
-        {reasons.length > 0 && (
-          <ul className="next-row-reasons">
-            {reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </li>
-  )
-}
+/**
+ * Tonight (Tonight picks spec): the Just finished chip, the lead card, and
+ * the other picks under it. Signed in, each card can be pinned ("Play
+ * this") or skipped ("Not tonight"); writes are optimistic, and a pin is
+ * confirmed by a live refetch through `onRefresh`. A skip changes nothing
+ * public until the next day's picks, so games skipped earlier today come
+ * from `/api/picker/skipped-today` and are left out here.
+ */
+function Tonight({ tonight, signedIn, onRefresh }) {
+  // undefined: the body's Up next; null: unpinned here; a pick: pinned here.
+  const [pin, setPin] = useState(undefined)
+  const [hidden, setHidden] = useState(() => new Set())
+  const [skipped, setSkipped] = useState([])
+  const [error, setError] = useState(false)
+  const [announcement, setAnnouncement] = useState('')
+  const writing = useRef(null)
+  const focusNext = useRef(null)
+  const section = useRef(null)
 
-function Tonight({ tonight }) {
+  useEffect(() => {
+    if (!signedIn) return undefined
+    let cancelled = false
+    apiFetch('/api/picker/skipped-today')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (!cancelled && Array.isArray(body?.item_ids)) {
+          setHidden(new Set(body.item_ids))
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [signedIn])
+
+  // Focus follows the action (after the render it caused), never to body.
+  useEffect(() => {
+    const target = focusNext.current
+    if (!target || !section.current) return
+    focusNext.current = null
+    const root = section.current
+    const element =
+      (target.undo &&
+        root.querySelector(`[data-tonight-undo="${target.undo}"]`)) ||
+      (target.title &&
+        root.querySelector(`[data-tonight-title="${target.title}"]`)) ||
+      root.querySelector('.tonight-lead [data-tonight-title]') ||
+      root.querySelector('h2')
+    element.focus()
+  })
+
+  const upNext = pin === undefined ? tonight.up_next : pin
+  const open = tonight.picks.filter(
+    (pick) => pick.item_id !== upNext?.item_id && !hidden.has(pick.item_id),
+  )
+  const lead =
+    upNext ?? open.find((pick) => !skipped.includes(pick.item_id)) ?? null
+  const alts = open.filter((pick) => pick.item_id !== lead?.item_id)
+
+  /** One write at a time: a second press while one is out is ignored. */
+  async function write(path, method, body) {
+    const response = await apiFetch(path, {
+      method,
+      ...(body && {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    })
+    if (!response.ok) throw new Error(`${method} ${path}: ${response.status}`)
+  }
+
+  /**
+   * One write at a time: a second press while one is out is ignored, except
+   * an Undo, which focus lands on while its skip is still being saved and so
+   * waits for it instead.
+   */
+  async function act(optimistic, request, rollback, confirm, wait = false) {
+    if (writing.current && !wait) return
+    const before = writing.current
+    let done
+    const mine = new Promise((resolve) => (done = resolve))
+    writing.current = mine
+    setError(false)
+    optimistic()
+    try {
+      await before
+      await request()
+      if (confirm) await confirm()
+    } catch {
+      rollback()
+      setError(true)
+    } finally {
+      done()
+      if (writing.current === mine) writing.current = null
+    }
+  }
+
+  function play(pick) {
+    const before = pin
+    const wasSkipped = skipped
+    act(
+      () => {
+        setPin(pick)
+        setSkipped((ids) => ids.filter((id) => id !== pick.item_id))
+        focusNext.current = { title: pick.item_id }
+      },
+      () => write(`/api/items/${pick.item_id}/pin`, 'POST'),
+      () => {
+        setPin(before)
+        setSkipped(wasSkipped)
+        focusNext.current = { title: pick.item_id }
+      },
+      async () => {
+        if (await onRefresh()) setPin(undefined)
+      },
+    )
+  }
+
+  function unpin(pick) {
+    const before = pin
+    act(
+      () => {
+        setPin(null)
+        focusNext.current = { lead: true }
+      },
+      () => write(`/api/items/${pick.item_id}/pin`, 'DELETE'),
+      () => {
+        setPin(before)
+        focusNext.current = { title: pick.item_id }
+      },
+      async () => {
+        if (await onRefresh()) setPin(undefined)
+      },
+    )
+  }
+
+  function skip(pick) {
+    act(
+      () => {
+        setSkipped((ids) => [...ids, pick.item_id])
+        setAnnouncement(`${pick.title} ${copy.tonight.skipped}`)
+        focusNext.current = { undo: pick.item_id }
+      },
+      () =>
+        write('/api/picker/events', 'POST', {
+          item_id: pick.item_id,
+          action: 'skipped',
+        }),
+      () => {
+        setSkipped((ids) => ids.filter((id) => id !== pick.item_id))
+        focusNext.current = { title: pick.item_id }
+      },
+    )
+  }
+
+  function undo(pick) {
+    act(
+      () => {
+        setSkipped((ids) => ids.filter((id) => id !== pick.item_id))
+        setAnnouncement('')
+        focusNext.current = { title: pick.item_id }
+      },
+      () => write(`/api/picker/events/${pick.item_id}/skipped`, 'DELETE'),
+      () => {
+        setSkipped((ids) => [...ids, pick.item_id])
+        focusNext.current = { undo: pick.item_id }
+      },
+      undefined,
+      true,
+    )
+  }
+
+  const owner = signedIn ? { onPlay: play, onSkip: skip } : {}
   return (
-    <section className="next-section" aria-labelledby="next-tonight">
-      <h2 id="next-tonight">{copy.sections.tonight}</h2>
-      {!tonight.up_next && tonight.picks.length === 0 && (
+    <section
+      className="next-section tonight"
+      aria-labelledby="next-tonight"
+      ref={section}
+    >
+      <h2 id="next-tonight" tabIndex={-1}>
+        {copy.sections.tonight}
+      </h2>
+      {tonight.last_finish && <JustFinishedChip finish={tonight.last_finish} />}
+      {lead ? (
+        <TonightLead
+          key={lead.item_id}
+          pick={lead}
+          pinned={Boolean(upNext)}
+          signedIn={signedIn}
+          onPlay={play}
+          onSkip={skip}
+          onUnpin={unpin}
+        />
+      ) : (
         <p className="muted">{copy.empty.upNext}</p>
       )}
-      {(tonight.up_next || tonight.picks.length > 0) && (
-        <ul className="next-rows next-tonight">
-          {tonight.up_next && (
-            <TonightCard pick={tonight.up_next} label={copy.upNext} />
+      {alts.length > 0 && (
+        <>
+          {alts.some((pick) => !skipped.includes(pick.item_id)) && (
+            <p className="tonight-alts-h">
+              {upNext ? copy.tonight.otherPicks : copy.tonight.orInstead}
+            </p>
           )}
-          {tonight.picks.map((pick) => (
-            <TonightCard key={pick.item_id} pick={pick} label={null} />
-          ))}
-        </ul>
+          <ul className="tonight-alts">
+            {alts.map((pick) =>
+              skipped.includes(pick.item_id) ? (
+                <SkippedToast key={pick.item_id} pick={pick} onUndo={undo} />
+              ) : (
+                <TonightAlt key={pick.item_id} pick={pick} {...owner} />
+              ),
+            )}
+          </ul>
+        </>
       )}
       {tonight.picks.length === 0 && (
         <p className="muted">{copy.empty.picks}</p>
+      )}
+      {error && (
+        <p className="admin-error" role="alert">
+          {ACTION_ERROR}
+        </p>
+      )}
+      {signedIn && (
+        <>
+          <p className="tonight-owner-note">{copy.tonight.ownerNote}</p>
+          <p className="visually-hidden" role="status">
+            {announcement}
+          </p>
+        </>
       )}
     </section>
   )
@@ -164,11 +338,16 @@ function Tonight({ tonight }) {
  * What's next (Spine Next spec, C11): tonight's games from the shelf, the
  * want list, and what to look for in a store, from GET /api/public/next.
  * Paints the build-time snapshot first; the waking line only without
- * one. Read-only: no buttons that write, and no store, price or stock.
+ * one. Signed out it is read-only; signed in, Tonight's cards take the
+ * owner's answers. Never a store, price or stock.
  */
 export default function Next() {
   usePageTitle(`${copy.title} · ${spine.name}`)
-  const { data: body, failed } = useSnapshotThenLive('next')
+  const { signedIn = false } = useOutletContext() ?? {}
+  const { data: loaded, failed } = useSnapshotThenLive('next')
+  // A live body fetched after an owner's write outranks the page's first.
+  const [refreshed, setRefreshed] = useState(null)
+  const body = refreshed ?? loaded
   const data = body ? withLists(body) : null
   const [sort, setSort] = useState(storedSort)
   const [slow, setSlow] = useState(false)
@@ -177,6 +356,19 @@ export default function Next() {
     const timer = setTimeout(() => setSlow(true), 3000)
     return () => clearTimeout(timer)
   }, [])
+
+  /** Refetches the live body; true when it arrived. */
+  async function refresh() {
+    try {
+      const response = await apiFetch('/api/public/next')
+      const next = response.ok ? await response.json() : null
+      if (!isValidSnapshot('next', next)) return false
+      setRefreshed(next)
+      return true
+    } catch {
+      return false
+    }
+  }
 
   function changeSort({ value }) {
     setSort(value)
@@ -203,7 +395,11 @@ export default function Next() {
 
       {data && (
         <>
-          <Tonight tonight={data.tonight} />
+          <Tonight
+            tonight={data.tonight}
+            signedIn={signedIn}
+            onRefresh={refresh}
+          />
           <Section
             id="wanted"
             count={data.wanted.length}

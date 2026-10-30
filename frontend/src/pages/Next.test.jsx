@@ -1,13 +1,16 @@
 import '@testing-library/jest-dom'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { apiFetch } from '../lib/api.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import Next from './Next.jsx'
+import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
+vi.mock('../lib/api.js', () => ({ apiFetch: vi.fn() }))
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
   useSnapshotThenLive: vi.fn(),
 }))
@@ -64,10 +67,14 @@ function mockNext(state) {
   vi.mocked(useSnapshotThenLive).mockReturnValue(state)
 }
 
-function renderPage() {
+function renderPage({ signedIn } = {}) {
   return render(
     <MemoryRouter initialEntries={['/shelf/next']}>
-      <Next />
+      <Routes>
+        <Route element={<Outlet context={{ signedIn }} />}>
+          <Route path="/shelf/next" element={<Next />} />
+        </Route>
+      </Routes>
     </MemoryRouter>,
   )
 }
@@ -155,7 +162,10 @@ describe('Next', () => {
       '/shelf/u1/',
       '/shelf/p1/',
     ])
-    expect(within(links[0]).getByText('Up next')).toBeInTheDocument()
+    const lead = links[0].closest('article')
+    expect(lead).toHaveClass('tonight-lead', 'pinned')
+    expect(within(lead).getByText('Up next')).toBeInTheDocument()
+    expect(within(tonight).getByText('The other picks')).toBeInTheDocument()
     expect(within(tonight).queryByText(spine.next.empty.upNext)).toBeNull()
   })
 
@@ -341,6 +351,256 @@ describe('Next', () => {
     renderPage()
     expect(
       screen.getByRole('group', { name: spine.next.sortLabel }),
+    ).toBeInTheDocument()
+  })
+})
+
+const pick = (id, title) => ({
+  item_id: id,
+  type: 'game',
+  title,
+  cover_url: null,
+  platform: 'Nintendo Switch',
+  reasons: [`Reason for ${title}`],
+  slot_label: 'Best fit',
+})
+
+const THREE = {
+  ...NEXT,
+  tonight: {
+    up_next: null,
+    picks: [
+      pick('p1', 'Hades II'),
+      pick('p2', 'Celeste'),
+      pick('p3', 'Tetris'),
+    ],
+  },
+}
+
+/** Answers each route, or a promise of an answer; a missing one is ok. */
+function mockApi(routes = {}) {
+  vi.mocked(apiFetch).mockImplementation(async (path, options = {}) => {
+    const key = `${options.method ?? 'GET'} ${path}`
+    const answer = await (key in routes
+      ? routes[key]
+      : { ok: true, body: null })
+    if (answer instanceof Error) throw answer
+    return {
+      ok: answer.ok,
+      status: answer.ok ? 200 : 500,
+      json: async () => answer.body,
+    }
+  })
+}
+
+function calls(method, path) {
+  return vi
+    .mocked(apiFetch)
+    .mock.calls.filter(
+      ([p, options = {}]) => p === path && (options.method ?? 'GET') === method,
+    )
+}
+
+describe('Tonight', () => {
+  afterEach(() => {
+    vi.mocked(apiFetch).mockReset()
+  })
+
+  it('is read-only signed out', () => {
+    mockApi()
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage()
+    const tonight = screen.getByRole('region', { name: 'Tonight' })
+    expect(within(tonight).queryByRole('button')).toBeNull()
+    expect(within(tonight).queryByText(spine.next.tonight.ownerNote)).toBeNull()
+    expect(within(tonight).getByText('Or instead')).toBeInTheDocument()
+    expect(apiFetch).not.toHaveBeenCalled()
+  })
+
+  it('leads with the first pick and lists the rest under it', () => {
+    mockApi()
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage({ signedIn: true })
+    const tonight = screen.getByRole('region', { name: 'Tonight' })
+    const lead = tonight.querySelector('.tonight-lead')
+    expect(within(lead).getByText('Hades II')).toBeInTheDocument()
+    const alts = within(tonight)
+      .getAllByRole('listitem')
+      .filter((li) => li.classList.contains('tonight-alt'))
+    expect(alts.map((li) => within(li).getByRole('link').textContent)).toEqual([
+      'Celeste',
+      'Tetris',
+    ])
+    expect(
+      within(tonight).getByText(spine.next.tonight.ownerNote),
+    ).toBeInTheDocument()
+  })
+
+  it('shows the Just finished chip from last_finish', () => {
+    mockApi()
+    mockNext({
+      data: {
+        ...THREE,
+        tonight: {
+          ...THREE.tonight,
+          last_finish: {
+            item_id: 'f1',
+            title: 'Metroid Dread',
+            cover_url: null,
+            finished_at: '2026-10-26',
+            time_to_beat_hours: 9,
+          },
+        },
+      },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    const chip = document.querySelector('.tonight-just')
+    expect(chip).toHaveTextContent(
+      'Just finished Metroid Dread · Mon 26 Oct · 9 h',
+    )
+  })
+
+  it('pins a pick, refetches, and moves focus to its title', async () => {
+    const pinned = {
+      ...THREE,
+      tonight: { ...THREE.tonight, up_next: pick('p2', 'Celeste') },
+    }
+    mockApi({ 'GET /api/public/next': { ok: true, body: pinned } })
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage({ signedIn: true })
+    const celeste = screen.getByRole('link', { name: 'Celeste' }).closest('li')
+    await userEvent.click(
+      within(celeste).getByRole('button', {
+        name: `${spine.next.tonight.playInstead}: Celeste`,
+      }),
+    )
+    expect(calls('POST', '/api/items/p2/pin')).toHaveLength(1)
+    expect(calls('GET', '/api/public/next')).toHaveLength(1)
+    const lead = document.querySelector('.tonight-lead')
+    expect(lead).toHaveClass('pinned')
+    expect(within(lead).getByText('Celeste')).toHaveFocus()
+    expect(
+      within(lead).getByRole('button', { name: spine.next.tonight.unpin }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('The other picks')).toBeInTheDocument()
+  })
+
+  it('rolls a failed pin back and says so', async () => {
+    mockApi({ 'POST /api/items/p1/pin': { ok: false } })
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage({ signedIn: true })
+    await userEvent.click(
+      screen.getByRole('button', { name: spine.next.tonight.play }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(ACTION_ERROR)
+    expect(document.querySelector('.tonight-lead')).not.toHaveClass('pinned')
+    expect(calls('GET', '/api/public/next')).toHaveLength(0)
+  })
+
+  it('unpins Up next back to the picks', async () => {
+    mockApi({ 'GET /api/public/next': { ok: true, body: THREE } })
+    mockNext({
+      data: {
+        ...THREE,
+        tonight: { ...THREE.tonight, up_next: pick('p2', 'Celeste') },
+      },
+      live: true,
+      failed: false,
+    })
+    renderPage({ signedIn: true })
+    await userEvent.click(
+      screen.getByRole('button', { name: spine.next.tonight.unpin }),
+    )
+    expect(calls('DELETE', '/api/items/p2/pin')).toHaveLength(1)
+    const lead = document.querySelector('.tonight-lead')
+    expect(lead).not.toHaveClass('pinned')
+    expect(within(lead).getByText('Hades II')).toHaveFocus()
+  })
+
+  it('skips a pick once, offers Undo, and promotes the next pick', async () => {
+    mockApi()
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage({ signedIn: true })
+    const lead = document.querySelector('.tonight-lead')
+    await userEvent.click(
+      within(lead).getByRole('button', { name: spine.next.tonight.skip }),
+    )
+    const posts = calls('POST', '/api/picker/events')
+    expect(posts).toHaveLength(1)
+    expect(JSON.parse(posts[0][1].body)).toEqual({
+      item_id: 'p1',
+      action: 'skipped',
+    })
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Hades II is off tonight’s list.',
+    )
+    const toast = document.querySelector('.tonight-toast')
+    expect(toast).toHaveTextContent('Hades II is off tonight’s list.')
+    const undo = within(toast).getByRole('button', { name: 'Undo: Hades II' })
+    expect(undo).toHaveFocus()
+    expect(
+      within(document.querySelector('.tonight-lead')).getByText('Celeste'),
+    ).toBeInTheDocument()
+
+    await userEvent.click(undo)
+    expect(calls('DELETE', '/api/picker/events/p1/skipped')).toHaveLength(1)
+    expect(document.querySelector('.tonight-toast')).toBeNull()
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    expect(screen.getByRole('link', { name: 'Hades II' })).toHaveFocus()
+  })
+
+  it('runs an Undo pressed while its skip is still saving', async () => {
+    let answer
+    mockApi({
+      'POST /api/picker/events': new Promise((resolve) => (answer = resolve)),
+    })
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage({ signedIn: true })
+    const lead = document.querySelector('.tonight-lead')
+    await userEvent.click(
+      within(lead).getByRole('button', { name: spine.next.tonight.skip }),
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Undo: Hades II' }),
+    )
+    expect(calls('DELETE', '/api/picker/events/p1/skipped')).toHaveLength(0)
+
+    answer({ ok: true, body: null })
+    await vi.waitFor(() =>
+      expect(calls('DELETE', '/api/picker/events/p1/skipped')).toHaveLength(1),
+    )
+    expect(document.querySelector('.tonight-toast')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('drops the Or instead line when only skipped cards are left', async () => {
+    mockApi()
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage({ signedIn: true })
+    for (const title of ['Hades II', 'Celeste', 'Tetris']) {
+      const lead = document.querySelector('.tonight-lead')
+      expect(within(lead).getByText(title)).toBeInTheDocument()
+      await userEvent.click(
+        within(lead).getByRole('button', { name: spine.next.tonight.skip }),
+      )
+    }
+    expect(document.querySelectorAll('.tonight-toast')).toHaveLength(3)
+    expect(screen.queryByText(spine.next.tonight.orInstead)).toBeNull()
+  })
+
+  it('leaves out games skipped earlier today', async () => {
+    mockApi({
+      'GET /api/picker/skipped-today': { ok: true, body: { item_ids: ['p1'] } },
+    })
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage({ signedIn: true })
+    await vi.waitFor(() =>
+      expect(screen.queryByRole('link', { name: 'Hades II' })).toBeNull(),
+    )
+    expect(
+      within(document.querySelector('.tonight-lead')).getByText('Celeste'),
     ).toBeInTheDocument()
   })
 })

@@ -16,12 +16,15 @@ from picker import (
     attribute_table,
     attributes,
     candidates,
+    change_of_pace_reason,
+    last_finish,
     length_fit,
     public_reasons,
     quality,
     recommend,
     reference_weights,
     similarity,
+    size_band,
     staleness,
     waiting,
 )
@@ -57,6 +60,7 @@ def item(id: str, **fields) -> PickerItem:
         release_date=None,
         acquired_at=None,
         started_at=None,
+        finished_at=None,
     )
     return PickerItem(**{**base, **fields})
 
@@ -120,6 +124,51 @@ def test_rating_a_finished_game_never_makes_it_count_for_less_than_0_1():
         [item("hated", rating=1, status="finished"), item("loved", rating=10)]
     )
     assert weights["hated"] == pytest.approx(0.1)
+
+
+def test_a_recent_finish_counts_more_and_fades_by_a_year():
+    def weight(days_ago: int | None) -> float:
+        finished_at = None if days_ago is None else TODAY - timedelta(days=days_ago)
+        game = item("done", status="finished", finished_at=finished_at)
+        return reference_weights([game], TODAY)["done"]
+
+    assert weight(0) == pytest.approx(0.6)
+    assert weight(30) == pytest.approx(0.45)
+    assert weight(365) == pytest.approx(0.3, abs=0.001)
+    # No date, or no today, is exactly today's weight.
+    assert weight(None) == pytest.approx(0.3)
+    finished = item("done", status="finished", finished_at=TODAY)
+    assert reference_weights([finished]) == {"done": 0.3}
+
+
+def test_recency_adds_to_finishes_only():
+    weights = reference_weights(
+        [
+            item("quit", status="abandoned", finished_at=TODAY),
+            item("fav", favorite=True, status="finished", finished_at=TODAY),
+        ],
+        TODAY,
+    )
+    assert weights["quit"] == pytest.approx(-0.5)
+    assert weights["fav"] == pytest.approx(1.3)
+
+
+def test_a_fresh_finish_lifts_its_genres_but_a_favorite_still_leads():
+    def shelf_with(finished_at: date) -> list[PickerItem]:
+        return [
+            item("xeno", status="finished", genres=("RPG",), finished_at=finished_at),
+            item("hades", favorite=True, genres=("Roguelike",)),
+        ]
+
+    rpg = item("octo", genres=("RPG",))
+    rogue = item("dead", genres=("Roguelike",))
+    recent = shelf_with(TODAY - timedelta(days=3))
+    old = shelf_with(TODAY - timedelta(days=365))
+    recent_table = attribute_table(recent, reference_weights(recent, TODAY))
+    old_table = attribute_table(old, reference_weights(old, TODAY))
+
+    assert affinity(rpg, recent_table) > affinity(rpg, old_table)
+    assert affinity(rogue, recent_table) > affinity(rpg, recent_table)
 
 
 # --- attributes and affinity ------------------------------------------------
@@ -197,25 +246,50 @@ def test_quality_is_the_community_score_or_neutral():
 
 
 @pytest.mark.parametrize(
-    ("hours", "time", "expected"),
+    ("hours", "size", "expected"),
     [
-        (None, "evening", 100),
+        (None, "medium", 100),
         (40, "any", 100),
-        (3, "quick", 100),
-        (9, "quick", 50),  # halfway from 6 to 12
-        (12, "quick", 0),
-        (10, "evening", 100),
-        (4.5, "evening", 50),  # halfway from 3 to 6
-        (3, "evening", 0),
-        (22.5, "evening", 50),  # halfway from 15 to 30
+        (3, "short", 100),
+        (9, "short", 50),  # halfway from 6 to 12
+        (12, "short", 0),
+        (10, "medium", 100),
+        (4.5, "medium", 50),  # halfway from 3 to 6
+        (3, "medium", 0),
+        (22.5, "medium", 50),  # halfway from 15 to 30
         (80, "long", 100),  # no upper edge
         (11.25, "long", 50),  # halfway from 7.5 to 15
     ],
 )
-def test_length_fit(hours, time, expected):
-    assert length_fit(item("l", time_to_beat_hours=hours), time) == pytest.approx(
+def test_length_fit(hours, size, expected):
+    assert length_fit(item("l", time_to_beat_hours=hours), size) == pytest.approx(
         expected
     )
+
+
+@pytest.mark.parametrize(
+    ("hours", "band"),
+    [
+        (None, None),
+        (0.5, "short"),
+        (6, "short"),
+        (6.5, "medium"),
+        (15, "medium"),
+        (15.5, "long"),
+        (90, "long"),
+    ],
+)
+def test_size_band(hours, band):
+    assert size_band(hours) == band
+
+
+def test_no_reason_talks_about_evenings_or_length():
+    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
+    for pick in result.picks:
+        for reason in pick.reasons:
+            assert "evening" not in reason
+            assert "a short one" not in reason
+            assert "a long one" not in reason
 
 
 # --- waiting and staleness --------------------------------------------------
@@ -565,7 +639,6 @@ def test_reasons_name_the_game_they_come_from():
     best = result.picks[0]
     assert "Shares roguelike and Indie with Hades ♥" in best.reasons
     assert "IGDB lists it beside Hades ♥" in best.reasons
-    assert "About 18 h — a long one" in best.reasons
     for pick in result.picks:
         assert 1 <= len(pick.reasons) <= 3
 
@@ -622,7 +695,7 @@ def test_public_reasons_leave_out_the_slot_reasons():
 
     reasons = public_reasons(candidate, [candidate])
 
-    assert reasons == ("About 4 h — a short one",)
+    assert reasons == ()
     assert not any(
         phrase in reason
         for reason in reasons
@@ -652,3 +725,117 @@ def test_public_reasons_are_first_person_and_capped():
 
     assert "IGDB lists it beside Celeste, which I rated 9" in reasons
     assert len(reasons) <= 3
+
+
+# --- change of pace and the last finish --------------------------------------
+
+
+def pace_shelf(finished_days_ago: int | None = 3) -> list[PickerItem]:
+    finished_at = (
+        None if finished_days_ago is None else TODAY - timedelta(days=finished_days_ago)
+    )
+    return [
+        item(
+            "xeno",
+            title="Xenoblade Chronicles 3",
+            status="finished",
+            rating=9,
+            genres=("RPG", "Turn-based"),
+            time_to_beat_hours=62.0,
+            finished_at=finished_at,
+        ),
+        item("hades", title="Hades", favorite=True, genres=("Roguelike", "Indie")),
+        item("octo", title="Octopath", genres=("RPG",), time_to_beat_hours=40.0),
+        item("hike", title="Hike", genres=("Adventure",), time_to_beat_hours=3.0),
+        item(
+            "dead",
+            title="Dead Cells",
+            genres=("Roguelike", "Indie"),
+            time_to_beat_hours=18.0,
+        ),
+        item("meh", title="Meh", genres=("Sport",), time_to_beat_hours=20.0),
+        item(
+            "slay",
+            title="Slay",
+            genres=("Card & Board Game", "Indie"),
+            time_to_beat_hours=4.0,
+        ),
+    ]
+
+
+def test_the_last_finish_is_the_latest_finished_at():
+    games = pace_shelf() + [
+        item("older", status="finished", finished_at=TODAY - timedelta(days=90)),
+        item("undated", status="finished"),
+    ]
+    assert last_finish(games).id == "xeno"
+    assert last_finish([item("undated", status="finished")]) is None
+
+
+@pytest.mark.parametrize("seed", range(8))
+def test_change_of_pace_contrasts_with_the_last_finish_and_still_fits(seed):
+    result = recommend(pace_shelf(), [], PickRequest(), NOW, random.Random(seed))
+    pace = next(p for p in result.picks if p.slot == "change_of_pace")
+
+    assert pace.slot_label == "Change of pace"
+    # Hike and Meh contrast too, but sit below the median affinity.
+    assert pace.item.id not in ("hike", "meh", "octo")
+    assert change_of_pace_reason(pace.item, pace_shelf()[0]) == pace.reasons[0]
+
+
+def test_change_of_pace_falls_back_to_short_and_sweet_without_a_finish():
+    result = recommend(
+        pace_shelf(finished_days_ago=None), [], PickRequest(), NOW, random.Random(1)
+    )
+    slots = [pick.slot for pick in result.picks]
+    assert "change_of_pace" not in slots
+    assert slots[1] == "short_and_sweet"
+
+
+def test_change_of_pace_reasons_say_what_differs():
+    xeno = pace_shelf()[0]
+    by_size = item("s", genres=("RPG",), time_to_beat_hours=3.2)
+    by_genre = item("g", genres=("Puzzle",), time_to_beat_hours=70.0)
+    same = item("x", genres=("RPG",), time_to_beat_hours=50.0)
+    unknown = item("u", genres=("RPG",))
+
+    assert (
+        change_of_pace_reason(by_size, xeno)
+        == "About 3 h to finish, after 62 h of Xenoblade Chronicles 3"
+    )
+    assert (
+        change_of_pace_reason(by_genre, xeno)
+        == "Something different from Xenoblade Chronicles 3: Puzzle, not RPG"
+    )
+    assert change_of_pace_reason(same, xeno) is None
+    assert change_of_pace_reason(unknown, xeno) is None
+
+
+@pytest.mark.parametrize(
+    ("days_ago", "phrase"),
+    [
+        (1, ", which I rated 9 and finished this week"),
+        (9, ", which I rated 9 and finished last week"),
+        (40, ", which I rated 9 and finished in August"),
+        (61, ", which I rated 9"),
+    ],
+)
+def test_a_recent_finish_is_named_with_when(days_ago, phrase):
+    xeno = pace_shelf(days_ago)[0]
+    octo = item("octo", genres=("RPG",))
+
+    reasons = public_reasons(octo, [xeno, octo], TODAY)
+
+    assert reasons[0] == f"Shares RPG with Xenoblade Chronicles 3{phrase}"
+
+
+def test_public_change_of_pace_names_only_a_public_last_finish():
+    shelf = pace_shelf()
+    slay = next(game for game in shelf if game.id == "slay")
+    public = [game for game in shelf if game.id != "xeno"]
+
+    with_finish = public_reasons(slay, shelf, TODAY, slot="change_of_pace")
+    without = public_reasons(slay, public, TODAY, slot="change_of_pace")
+
+    assert with_finish[0].startswith("About 4 h to finish, after 62 h of Xenoblade")
+    assert not any("Xenoblade" in reason for reason in without)

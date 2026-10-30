@@ -102,7 +102,7 @@ async def _events(factory, action: PickAction | None = None) -> list[PickEvent]:
 
 
 def _body(**fields) -> dict:
-    return {"time": "any", "moods": [], "platforms": [], "exclude": [], **fields}
+    return {"size": "any", "moods": [], "platforms": [], "exclude": [], **fields}
 
 
 async def test_next_returns_named_picks_with_reasons(sessionmaker_for_test):
@@ -137,6 +137,9 @@ async def test_each_pick_is_recorded_as_shown_once_per_day(sessionmaker_for_test
     # Same games, same day: one event each, however many rerolls.
     assert len(shown) == len(first["picks"])
     assert len({event.item_id for event in shown}) == len(shown)
+    # Each carries the slot it was offered in, for the public Tonight.
+    slots = {str(event.item_id): event.slot for event in shown}
+    assert slots == {pick["item"]["id"]: pick["slot"] for pick in first["picks"]}
 
 
 async def test_never_skipped_and_excluded_games_are_left_out(sessionmaker_for_test):
@@ -210,7 +213,10 @@ async def test_invalid_requests_are_refused(sessionmaker_for_test):
     await _seed(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test) as client:
         bad_mood = await client.post("/api/picker/next", json=_body(moods=["sad"]))
-        bad_time = await client.post("/api/picker/next", json=_body(time="forever"))
+        bad_size = await client.post("/api/picker/next", json=_body(size="forever"))
+        # The old names went with the evening wording.
+        old_size = await client.post("/api/picker/next", json=_body(size="quick"))
+        old_field = await client.post("/api/picker/next", json=_body(time="quick"))
         bad_action = await client.post(
             "/api/picker/events",
             json={"item_id": str(uuid.uuid4()), "action": "pinned"},
@@ -221,7 +227,9 @@ async def test_invalid_requests_are_refused(sessionmaker_for_test):
         )
 
     assert bad_mood.status_code == 422
-    assert bad_time.status_code == 422
+    assert bad_size.status_code == 422
+    assert old_size.status_code == 422
+    assert old_field.status_code == 422
     assert bad_action.status_code == 422
     assert unknown.status_code == 404
 
@@ -235,9 +243,11 @@ async def test_every_route_needs_a_session(sessionmaker_for_test):
                 "/api/picker/events", json={"item_id": item_id, "action": "never"}
             ),
             await client.delete(f"/api/picker/events/{item_id}/never"),
+            await client.get("/api/picker/skipped-today"),
+            await client.delete(f"/api/picker/events/{item_id}/skipped"),
         ]
 
-    assert [response.status_code for response in responses] == [401, 401, 401]
+    assert [response.status_code for response in responses] == [401] * 5
 
 
 async def test_events_are_counted_per_item(sessionmaker_for_test):
@@ -255,3 +265,48 @@ async def test_events_are_counted_per_item(sessionmaker_for_test):
             .where(PickEvent.item_id == ids["Slay the Spire"])
         )
     assert count == 1
+
+
+async def _skip(factory, item_id: uuid.UUID, at: datetime) -> None:
+    async with factory() as session:
+        session.add(
+            PickEvent(item_id=item_id, action=PickAction.SKIPPED, created_at=at)
+        )
+        await session.commit()
+
+
+async def test_skipped_today_lists_only_todays_skips(sessionmaker_for_test):
+    ids = await _seed(sessionmaker_for_test)
+    now = datetime.now(UTC)
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    await _skip(sessionmaker_for_test, ids["Dead Cells"], now)
+    await _skip(sessionmaker_for_test, ids["Dead Cells"], now)
+    await _skip(
+        sessionmaker_for_test, ids["Slay the Spire"], midnight - timedelta(seconds=1)
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/picker/skipped-today")
+
+    assert response.status_code == 200
+    assert response.json() == {"item_ids": [str(ids["Dead Cells"])]}
+
+
+async def test_undoing_a_skip_removes_todays_and_keeps_yesterdays(
+    sessionmaker_for_test,
+):
+    ids = await _seed(sessionmaker_for_test)
+    dead_cells = ids["Dead Cells"]
+    now = datetime.now(UTC)
+    yesterday = now - timedelta(days=1)
+    await _skip(sessionmaker_for_test, dead_cells, yesterday)
+    await _skip(sessionmaker_for_test, dead_cells, now)
+    async with client_for(sessionmaker_for_test) as client:
+        undone = await client.delete(f"/api/picker/events/{dead_cells}/skipped")
+        again = await client.delete(f"/api/picker/events/{dead_cells}/skipped")
+        listed = (await client.get("/api/picker/skipped-today")).json()
+
+    assert undone.status_code == 204
+    assert again.status_code == 204
+    assert listed == {"item_ids": []}
+    left = await _events(sessionmaker_for_test, PickAction.SKIPPED)
+    assert [event.created_at.date() for event in left] == [yesterday.date()]

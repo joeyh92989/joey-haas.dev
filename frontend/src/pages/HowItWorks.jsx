@@ -9,7 +9,7 @@ import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { itemPath } from '../lib/spinePaths.js'
-import { TonightCard } from './Next.jsx'
+import TonightAlt from '../components/TonightAlt.jsx'
 
 const copy = spine.how
 const NEWEST = 4
@@ -148,9 +148,9 @@ export default function HowItWorks() {
         empty={copy.stops[2].live.empty}
         count={Number(Boolean(upNext)) + Number(Boolean(firstPick))}
       >
-        <ul className="next-rows next-tonight">
-          {upNext && <TonightCard pick={upNext} label={spine.next.upNext} />}
-          {firstPick && <TonightCard pick={firstPick} label={null} />}
+        <ul className="tonight-alts">
+          {upNext && <TonightAlt pick={upNext} label={spine.next.upNext} />}
+          {firstPick && <TonightAlt pick={firstPick} label={null} />}
         </ul>
         {otherPicks.length > 0 && (
           <NewestCovers
