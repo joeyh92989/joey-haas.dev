@@ -6,6 +6,24 @@ import { spine } from '../content/spine.js'
  * page's job (Spine Next spec, B6).
  */
 
+const WEEKDAY = new Intl.DateTimeFormat('en-GB', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+})
+
+/**
+ * "Mon 26 Oct": how What's next dates its freshness line and the Just
+ * finished chip. A date-only value is read at noon UTC, so no timezone moves
+ * its day; anything unreadable is null.
+ */
+export function weekdayWords(value) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T12:00:00Z`)
+    : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : WEEKDAY.format(date)
+}
+
 /** In stores now's console groups (`buy_now`), in a store visit's order. */
 export const NEXT_PLATFORMS = [
   'Nintendo Switch 2',
