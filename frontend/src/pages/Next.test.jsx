@@ -100,9 +100,27 @@ describe('Next', () => {
       spine.next.sections.preorders,
       spine.next.sections.later,
     ])
-    expect(screen.getByText(spine.next.empty.upNext)).toBeInTheDocument()
     expect(screen.getByText(spine.next.empty.wanted)).toBeInTheDocument()
     expect(screen.getByText(spine.next.empty.later)).toBeInTheDocument()
+  })
+
+  // Nothing pinned is the usual state; the day's picks are still tonight's
+  // games, so the empty line would contradict the cards beneath it.
+  it('says nothing is lined up only when there is no pin and no pick', () => {
+    mockNext({ data: NEXT, live: true, failed: false })
+    const { unmount } = renderPage()
+    const tonight = screen.getByRole('region', { name: 'Tonight' })
+    expect(within(tonight).getByText('Hades II')).toBeInTheDocument()
+    expect(within(tonight).queryByText(spine.next.empty.upNext)).toBeNull()
+    unmount()
+
+    mockNext({
+      data: { ...NEXT, tonight: { up_next: null, picks: [] } },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    expect(screen.getByText(spine.next.empty.upNext)).toBeInTheDocument()
   })
 
   it('sets the page title', () => {

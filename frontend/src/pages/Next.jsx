@@ -140,7 +140,9 @@ function Tonight({ tonight }) {
   return (
     <section className="next-section" aria-labelledby="next-tonight">
       <h2 id="next-tonight">{copy.sections.tonight}</h2>
-      {!tonight.up_next && <p className="muted">{copy.empty.upNext}</p>}
+      {!tonight.up_next && tonight.picks.length === 0 && (
+        <p className="muted">{copy.empty.upNext}</p>
+      )}
       {(tonight.up_next || tonight.picks.length > 0) && (
         <ul className="next-rows next-tonight">
           {tonight.up_next && (
