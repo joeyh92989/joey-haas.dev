@@ -57,6 +57,7 @@ def item(id: str, **fields) -> PickerItem:
         release_date=None,
         acquired_at=None,
         started_at=None,
+        finished_at=None,
     )
     return PickerItem(**{**base, **fields})
 
@@ -120,6 +121,51 @@ def test_rating_a_finished_game_never_makes_it_count_for_less_than_0_1():
         [item("hated", rating=1, status="finished"), item("loved", rating=10)]
     )
     assert weights["hated"] == pytest.approx(0.1)
+
+
+def test_a_recent_finish_counts_more_and_fades_by_a_year():
+    def weight(days_ago: int | None) -> float:
+        finished_at = None if days_ago is None else TODAY - timedelta(days=days_ago)
+        game = item("done", status="finished", finished_at=finished_at)
+        return reference_weights([game], TODAY)["done"]
+
+    assert weight(0) == pytest.approx(0.6)
+    assert weight(30) == pytest.approx(0.45)
+    assert weight(365) == pytest.approx(0.3, abs=0.001)
+    # No date, or no today, is exactly today's weight.
+    assert weight(None) == pytest.approx(0.3)
+    finished = item("done", status="finished", finished_at=TODAY)
+    assert reference_weights([finished]) == {"done": 0.3}
+
+
+def test_recency_adds_to_finishes_only():
+    weights = reference_weights(
+        [
+            item("quit", status="abandoned", finished_at=TODAY),
+            item("fav", favorite=True, status="finished", finished_at=TODAY),
+        ],
+        TODAY,
+    )
+    assert weights["quit"] == pytest.approx(-0.5)
+    assert weights["fav"] == pytest.approx(1.3)
+
+
+def test_a_fresh_finish_lifts_its_genres_but_a_favorite_still_leads():
+    def shelf_with(finished_at: date) -> list[PickerItem]:
+        return [
+            item("xeno", status="finished", genres=("RPG",), finished_at=finished_at),
+            item("hades", favorite=True, genres=("Roguelike",)),
+        ]
+
+    rpg = item("octo", genres=("RPG",))
+    rogue = item("dead", genres=("Roguelike",))
+    recent = shelf_with(TODAY - timedelta(days=3))
+    old = shelf_with(TODAY - timedelta(days=365))
+    recent_table = attribute_table(recent, reference_weights(recent, TODAY))
+    old_table = attribute_table(old, reference_weights(old, TODAY))
+
+    assert affinity(rpg, recent_table) > affinity(rpg, old_table)
+    assert affinity(rogue, recent_table) > affinity(rpg, recent_table)
 
 
 # --- attributes and affinity ------------------------------------------------

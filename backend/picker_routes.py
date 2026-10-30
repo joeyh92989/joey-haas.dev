@@ -120,6 +120,7 @@ def to_picker_item(item: Item) -> PickerItem:
         release_date=item.release_date,
         acquired_at=item.acquired_at,
         started_at=item.started_at,
+        finished_at=item.finished_at,
     )
 
 

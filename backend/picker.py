@@ -38,6 +38,11 @@ TIME_WINDOWS: dict[str, tuple[float, float | None]] = {
 BASE_WEIGHTS = {"favorite": 1.0, "finished": 0.3, "abandoned": -0.5}
 FINISHED_FLOOR = 0.1
 
+# A finish adds up to this much, halving every RECENCY_HALF_LIFE days: what I
+# just finished says more about my taste now than what I finished years ago.
+RECENCY_BONUS = 0.3
+RECENCY_HALF_LIFE = 30
+
 STALE_WINDOW = timedelta(days=14)
 STALE_PENALTY = 15
 STALE_CAP = 45
@@ -78,6 +83,7 @@ class PickerItem:
     release_date: date | None
     acquired_at: date | None
     started_at: date | None
+    finished_at: date | None = None
 
 
 @dataclass(frozen=True)
@@ -101,13 +107,27 @@ def _is_reference(item: PickerItem) -> bool:
     )
 
 
-def reference_weights(items: list[PickerItem]) -> dict[str, float]:
+def recency_bonus(finished_at: date | None, today: date | None) -> float:
+    """What a finish adds for being recent: RECENCY_BONUS on the day, half of
+    it RECENCY_HALF_LIFE days later, next to nothing after a year."""
+    if finished_at is None or today is None:
+        return 0.0
+    days = max(0, (today - finished_at).days)
+    return RECENCY_BONUS * 0.5 ** (days / RECENCY_HALF_LIFE)
+
+
+def reference_weights(
+    items: list[PickerItem], today: date | None = None
+) -> dict[str, float]:
     """Each reference item's weight: how much it says about the owner's taste.
 
     Favourite 1.0, finished 0.3, abandoned -0.5 (a finished favourite 1.0),
     plus a rating adjustment measured from the collection's mean rating. A
     finished game never counts for less than 0.1: rating one you finished must
     never make it count for less than leaving it unrated.
+
+    Given `today`, a finished game also gets its recency bonus (Play Next).
+    Without it the weights are the plain ones, which Radar and Discover use.
     """
     references = [item for item in items if _is_reference(item)]
     ratings = [item.rating for item in references if item.rating is not None]
@@ -128,6 +148,7 @@ def reference_weights(items: list[PickerItem]) -> dict[str, float]:
                 weight += (item.rating - average) / average
         if item.status == "finished":
             weight = max(weight, FINISHED_FLOOR)
+            weight += recency_bonus(item.finished_at, today)
         weights[item.id] = weight
     return weights
 
@@ -539,7 +560,8 @@ def recommend(
     classic"), or, once acquired dates carry information, the one that has
     waited longest.
     """
-    weights = reference_weights(items)
+    today = now.date()
+    weights = reference_weights(items, today)
     references = [item for item in items if item.id in weights]
     table = attribute_table(items, weights)
     profile_size = sum(1 for item in items if item.favorite or item.rating is not None)
@@ -550,7 +572,6 @@ def recommend(
     informative = acquired_dates_informative(
         [item for item in items if item.type == "game" and item.owned]
     )
-    today = now.date()
     total_weight = sum(PICKER_WEIGHTS.values())
     scored: dict[str, tuple[float, dict[str, float], PickerItem | None]] = {}
     for item in pool:
