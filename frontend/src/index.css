@@ -2824,7 +2824,27 @@ a.month-bar::before {
   opacity: 0.4;
 }
 
+/* Up next: one game at a time, so pressed reads as a filled pill. */
+.shelf-pin {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-3);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  padding: 0.05rem 0.45rem;
+}
+
+.shelf-pin[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
 .shelf-favourite:focus-visible,
+.shelf-pin:focus-visible,
 .shelf-actions-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
