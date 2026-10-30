@@ -16,6 +16,8 @@ from picker import (
     attribute_table,
     attributes,
     candidates,
+    change_of_pace_reason,
+    last_finish,
     length_fit,
     public_reasons,
     quality,
@@ -723,3 +725,117 @@ def test_public_reasons_are_first_person_and_capped():
 
     assert "IGDB lists it beside Celeste, which I rated 9" in reasons
     assert len(reasons) <= 3
+
+
+# --- change of pace and the last finish --------------------------------------
+
+
+def pace_shelf(finished_days_ago: int | None = 3) -> list[PickerItem]:
+    finished_at = (
+        None if finished_days_ago is None else TODAY - timedelta(days=finished_days_ago)
+    )
+    return [
+        item(
+            "xeno",
+            title="Xenoblade Chronicles 3",
+            status="finished",
+            rating=9,
+            genres=("RPG", "Turn-based"),
+            time_to_beat_hours=62.0,
+            finished_at=finished_at,
+        ),
+        item("hades", title="Hades", favorite=True, genres=("Roguelike", "Indie")),
+        item("octo", title="Octopath", genres=("RPG",), time_to_beat_hours=40.0),
+        item("hike", title="Hike", genres=("Adventure",), time_to_beat_hours=3.0),
+        item(
+            "dead",
+            title="Dead Cells",
+            genres=("Roguelike", "Indie"),
+            time_to_beat_hours=18.0,
+        ),
+        item("meh", title="Meh", genres=("Sport",), time_to_beat_hours=20.0),
+        item(
+            "slay",
+            title="Slay",
+            genres=("Card & Board Game", "Indie"),
+            time_to_beat_hours=4.0,
+        ),
+    ]
+
+
+def test_the_last_finish_is_the_latest_finished_at():
+    games = pace_shelf() + [
+        item("older", status="finished", finished_at=TODAY - timedelta(days=90)),
+        item("undated", status="finished"),
+    ]
+    assert last_finish(games).id == "xeno"
+    assert last_finish([item("undated", status="finished")]) is None
+
+
+@pytest.mark.parametrize("seed", range(8))
+def test_change_of_pace_contrasts_with_the_last_finish_and_still_fits(seed):
+    result = recommend(pace_shelf(), [], PickRequest(), NOW, random.Random(seed))
+    pace = next(p for p in result.picks if p.slot == "change_of_pace")
+
+    assert pace.slot_label == "Change of pace"
+    # Hike and Meh contrast too, but sit below the median affinity.
+    assert pace.item.id not in ("hike", "meh", "octo")
+    assert change_of_pace_reason(pace.item, pace_shelf()[0]) == pace.reasons[0]
+
+
+def test_change_of_pace_falls_back_to_short_and_sweet_without_a_finish():
+    result = recommend(
+        pace_shelf(finished_days_ago=None), [], PickRequest(), NOW, random.Random(1)
+    )
+    slots = [pick.slot for pick in result.picks]
+    assert "change_of_pace" not in slots
+    assert slots[1] == "short_and_sweet"
+
+
+def test_change_of_pace_reasons_say_what_differs():
+    xeno = pace_shelf()[0]
+    by_size = item("s", genres=("RPG",), time_to_beat_hours=3.2)
+    by_genre = item("g", genres=("Puzzle",), time_to_beat_hours=70.0)
+    same = item("x", genres=("RPG",), time_to_beat_hours=50.0)
+    unknown = item("u", genres=("RPG",))
+
+    assert (
+        change_of_pace_reason(by_size, xeno)
+        == "About 3 h to finish, after 62 h of Xenoblade Chronicles 3"
+    )
+    assert (
+        change_of_pace_reason(by_genre, xeno)
+        == "Something different from Xenoblade Chronicles 3: Puzzle, not RPG"
+    )
+    assert change_of_pace_reason(same, xeno) is None
+    assert change_of_pace_reason(unknown, xeno) is None
+
+
+@pytest.mark.parametrize(
+    ("days_ago", "phrase"),
+    [
+        (1, ", which I rated 9 and finished this week"),
+        (9, ", which I rated 9 and finished last week"),
+        (40, ", which I rated 9 and finished in August"),
+        (61, ", which I rated 9"),
+    ],
+)
+def test_a_recent_finish_is_named_with_when(days_ago, phrase):
+    xeno = pace_shelf(days_ago)[0]
+    octo = item("octo", genres=("RPG",))
+
+    reasons = public_reasons(octo, [xeno, octo], TODAY)
+
+    assert reasons[0] == f"Shares RPG with Xenoblade Chronicles 3{phrase}"
+
+
+def test_public_change_of_pace_names_only_a_public_last_finish():
+    shelf = pace_shelf()
+    slay = next(game for game in shelf if game.id == "slay")
+    public = [game for game in shelf if game.id != "xeno"]
+
+    with_finish = public_reasons(slay, shelf, TODAY, slot="change_of_pace")
+    without = public_reasons(slay, public, TODAY, slot="change_of_pace")
+
+    assert with_finish[0].startswith("About 4 h to finish, after 62 h of Xenoblade")
+    assert not any("Xenoblade" in reason for reason in without)

@@ -357,9 +357,12 @@ MOOD_BUCKETS: dict[str, frozenset[str]] = {
 SKIP_WINDOW = timedelta(days=7)
 STALLED_AFTER = timedelta(days=30)
 SHORT_HOURS = SIZE_BANDS["short"][1]
+# A reason says when its reference was finished while the finish is this fresh.
+JUST_FINISHED_WINDOW = timedelta(days=60)
 
 SLOT_LABELS = {
     "best_fit": "Best fit",
+    "change_of_pace": "Change of pace",
     "short_and_sweet": "Short and sweet",
     "overdue_classic": "Overdue classic",
     "waited_longest": "Waited longest",
@@ -449,17 +452,70 @@ def _month(value: date) -> str:
     return value.strftime("%B %Y")
 
 
-def _named(reference: PickerItem) -> str:
-    """ "Hades ♥" for a favourite, "Celeste, which I rated 9" when rated.
+def _finished_when(finished_at: date | None, today: date | None) -> str | None:
+    """ "this week", "last week" or "in August" for a finish in the window."""
+    if finished_at is None or today is None:
+        return None
+    days = (today - finished_at).days
+    if days < 0 or timedelta(days=days) > JUST_FINISHED_WINDOW:
+        return None
+    if days < 7:
+        return "this week"
+    if days < 14:
+        return "last week"
+    return f"in {finished_at.strftime('%B')}"
+
+
+def _named(reference: PickerItem, today: date | None = None) -> str:
+    """ "Hades ♥" for a favourite, "Celeste, which I rated 9" when rated, and
+    "... and finished this week" when that finish is recent.
 
     First person everywhere (showcase spec, K9): the owner reads it in admin,
     and the public reads it on What's next (/api/public/next).
     """
+    when = (
+        _finished_when(reference.finished_at, today)
+        if reference.status == "finished"
+        else None
+    )
     if reference.favorite:
-        return f"{reference.title} ♥"
+        name = f"{reference.title} ♥"
+        return f"{name}, which I finished {when}" if when else name
     if reference.rating is not None:
-        return f"{reference.title}, which I rated {reference.rating}"
-    return reference.title
+        rated = f"{reference.title}, which I rated {reference.rating}"
+        return f"{rated} and finished {when}" if when else rated
+    return f"{reference.title}, which I finished {when}" if when else reference.title
+
+
+def last_finish(items: list[PickerItem]) -> PickerItem | None:
+    """The owned game finished most recently, by its recorded finish date."""
+    finished = [
+        item
+        for item in items
+        if item.type == "game"
+        and item.owned
+        and item.status == "finished"
+        and item.finished_at is not None
+    ]
+    return max(finished, key=lambda i: (i.finished_at, i.title), default=None)
+
+
+def change_of_pace_reason(item: PickerItem, last: PickerItem) -> str | None:
+    """How a game differs from the last finish: its size band first, then its
+    genres. None when it differs in neither, or either is unknown."""
+    band = size_band(item.time_to_beat_hours)
+    last_band = size_band(last.time_to_beat_hours)
+    if band and last_band and band != last_band:
+        return (
+            f"About {round(item.time_to_beat_hours)} h to finish, "
+            f"after {round(last.time_to_beat_hours)} h of {last.title}"
+        )
+    if item.genres and last.genres and not set(item.genres) & set(last.genres):
+        return (
+            f"Something different from {last.title}: "
+            f"{item.genres[0]}, not {last.genres[0]}"
+        )
+    return None
 
 
 def _overlap_reason(
@@ -467,6 +523,7 @@ def _overlap_reason(
     references: list[PickerItem],
     weights: dict[str, float],
     table: dict[tuple[str, str], float],
+    today: date | None = None,
 ) -> str | None:
     """Names the liked game sharing the most with this one, and two of those."""
 
@@ -494,7 +551,7 @@ def _overlap_reason(
         ),
     )
     names = " and ".join(value for _, value in shared[:2])
-    return f"Shares {names} with {_named(reference)}"
+    return f"Shares {names} with {_named(reference, today)}"
 
 
 def _is_stalled(item: PickerItem, events: list[PickerEvent], now: datetime) -> bool:
@@ -517,30 +574,48 @@ def _common_reasons(
     weights: dict[str, float],
     table: dict[tuple[str, str], float],
     similar_to: PickerItem | None,
+    today: date | None = None,
 ) -> list[str | None]:
     """The reasons every pick can carry: overlap and IGDB similarity. Size is
     the card's meta, not a reason."""
     return [
-        _overlap_reason(item, references, weights, table),
-        f"IGDB lists it beside {_named(similar_to)}" if similar_to else None,
+        _overlap_reason(item, references, weights, table, today),
+        f"IGDB lists it beside {_named(similar_to, today)}" if similar_to else None,
     ]
 
 
-def public_reasons(item: PickerItem, profile: list[PickerItem]) -> tuple[str, ...]:
+def public_reasons(
+    item: PickerItem,
+    profile: list[PickerItem],
+    today: date | None = None,
+    slot: str | None = None,
+) -> tuple[str, ...]:
     """A pick's reasons for the public page (showcase spec, D).
 
     `profile` must hold public rows only: every game a reason can name is
-    drawn from it, so a private game is never named. The slot reasons are
-    left out -- "On the shelf since" is read from acquired_at, which is
-    private; "Started in ... not touched since" reports activity; "Out since"
-    means nothing without its slot.
+    drawn from it, so a private game is never named. Of the slot reasons only
+    Change of pace's is kept, and only against a public last finish -- "On the
+    shelf since" is read from acquired_at, which is private; "Started in ...
+    not touched since" reports activity; "Out since" means nothing without
+    its slot.
     """
-    weights = reference_weights(profile)
+    weights = reference_weights(profile, today)
     references = [entry for entry in profile if entry.id in weights]
     table = attribute_table(profile, weights)
     _score, similar_to = similarity(item, references, weights)
-    reasons = _common_reasons(item, references, weights, table, similar_to)
+    reasons = _common_reasons(item, references, weights, table, similar_to, today)
+    if slot == "change_of_pace":
+        last = last_finish(profile)
+        reasons.insert(0, change_of_pace_reason(item, last) if last else None)
     return tuple(reason for reason in reasons if reason)[:MAX_REASONS]
+
+
+def _median(values: list[float]) -> float:
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[middle]
+    return (ordered[middle - 1] + ordered[middle]) / 2
 
 
 def recommend(
@@ -552,8 +627,11 @@ def recommend(
 ) -> PickResult:
     """Three named picks, none repeated, each with its reasons.
 
-    Best fit is the highest total. Short and sweet is the best game of six
-    hours or less, left out when there is none. The third slot is a game in
+    Best fit is the highest total. Change of pace is the best game, among
+    those matching the profile at least as well as the median, that differs
+    from the last finish in size band or genre; without a dated finish or
+    such a game it is Short and sweet, the best game of six hours or less,
+    left out when there is none. The third slot is a game in
     progress that has stalled, if any; otherwise the oldest release among the
     games that match the profile at least as well as the median ("Overdue
     classic"), or, once acquired dates carry information, the one that has
@@ -591,19 +669,36 @@ def recommend(
     chosen: list[tuple[str, PickerItem]] = [("best_fit", ranked[0])]
     taken = {ranked[0].id}
 
-    short = next(
+    median = _median([scored[item.id][1]["affinity"] for item in pool])
+    last = last_finish(items)
+    pace = next(
         (
             item
             for item in ranked
-            if item.id not in taken
-            and item.time_to_beat_hours is not None
-            and item.time_to_beat_hours <= SHORT_HOURS
+            if last is not None
+            and item.id not in taken
+            and scored[item.id][1]["affinity"] >= median
+            and change_of_pace_reason(item, last)
         ),
         None,
     )
-    if short is not None:
-        chosen.append(("short_and_sweet", short))
-        taken.add(short.id)
+    if pace is not None:
+        chosen.append(("change_of_pace", pace))
+        taken.add(pace.id)
+    else:
+        short = next(
+            (
+                item
+                for item in ranked
+                if item.id not in taken
+                and item.time_to_beat_hours is not None
+                and item.time_to_beat_hours <= SHORT_HOURS
+            ),
+            None,
+        )
+        if short is not None:
+            chosen.append(("short_and_sweet", short))
+            taken.add(short.id)
 
     stalled = sorted(
         (i for i in pool if i.id not in taken and _is_stalled(i, events, now)),
@@ -612,13 +707,6 @@ def recommend(
     if stalled:
         chosen.append(("pick_it_back_up", stalled[0]))
     else:
-        affinities = sorted(scored[item.id][1]["affinity"] for item in pool)
-        middle = len(affinities) // 2
-        median = (
-            affinities[middle]
-            if len(affinities) % 2
-            else (affinities[middle - 1] + affinities[middle]) / 2
-        )
         gated = [
             item
             for item in pool
@@ -648,8 +736,10 @@ def recommend(
     picks = []
     for slot, item in chosen:
         total, _terms, similar_to = scored[item.id]
-        reasons = _common_reasons(item, references, weights, table, similar_to)
-        if slot == "overdue_classic":
+        reasons = _common_reasons(item, references, weights, table, similar_to, today)
+        if slot == "change_of_pace":
+            reasons.insert(0, change_of_pace_reason(item, last))
+        elif slot == "overdue_classic":
             reasons.insert(0, f"Out since {item.release_date.year}")
         elif slot == "waited_longest":
             reasons.insert(0, f"On the shelf since {_month(item.acquired_at)}")
