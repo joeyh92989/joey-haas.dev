@@ -330,7 +330,8 @@ done
 
 # The read-only outputs must carry none of the fields that describe the
 # owner's shopping or use of the tool. jq checks the shape of /next below.
-OUTPUT_FORBIDDEN='"(score|slot|slot_label|store|price|currency|availability|preorder_closes_at|url|batch_id|based_on|lane|section|hypes|listing_ids|format_source|format_note|status|acquired_at|notes|cart_id|reason|reason_source)"'
+# Tonight publishes slot_label (Tonight picks, D1); the raw slot stays out.
+OUTPUT_FORBIDDEN='"(score|slot|store|price|currency|availability|preorder_closes_at|url|batch_id|based_on|lane|section|hypes|listing_ids|format_source|format_note|status|acquired_at|notes|cart_id|reason|reason_source)"'
 if ! command -v jq > /dev/null; then
   report_fail "jq is installed" "the public next check needs it"
 fi
