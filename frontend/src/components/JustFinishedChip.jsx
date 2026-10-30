@@ -16,7 +16,7 @@ const copy = spine.next.tonight
 export default function JustFinishedChip({ finish }) {
   const parts = [weekdayWords(finish.finished_at)]
   if (finish.time_to_beat_hours != null) {
-    parts.push(`${finish.time_to_beat_hours} ${copy.hours}`)
+    parts.push(`${Math.round(finish.time_to_beat_hours)} ${copy.hours}`)
   }
   return (
     <p className="tonight-just">

@@ -377,11 +377,13 @@ const THREE = {
   },
 }
 
-/** Answers each route; a missing one is a failed write. */
+/** Answers each route, or a promise of an answer; a missing one is ok. */
 function mockApi(routes = {}) {
   vi.mocked(apiFetch).mockImplementation(async (path, options = {}) => {
     const key = `${options.method ?? 'GET'} ${path}`
-    const answer = key in routes ? routes[key] : { ok: true, body: null }
+    const answer = await (key in routes
+      ? routes[key]
+      : { ok: true, body: null })
     if (answer instanceof Error) throw answer
     return {
       ok: answer.ok,
@@ -471,7 +473,7 @@ describe('Tonight', () => {
     const celeste = screen.getByRole('link', { name: 'Celeste' }).closest('li')
     await userEvent.click(
       within(celeste).getByRole('button', {
-        name: spine.next.tonight.playInstead,
+        name: `${spine.next.tonight.playInstead}: Celeste`,
       }),
     )
     expect(calls('POST', '/api/items/p2/pin')).toHaveLength(1)
@@ -531,17 +533,61 @@ describe('Tonight', () => {
       item_id: 'p1',
       action: 'skipped',
     })
-    const toast = screen.getByRole('status')
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Hades II is off tonight’s list.',
+    )
+    const toast = document.querySelector('.tonight-toast')
     expect(toast).toHaveTextContent('Hades II is off tonight’s list.')
-    expect(within(toast).getByRole('button', { name: 'Undo' })).toHaveFocus()
+    const undo = within(toast).getByRole('button', { name: 'Undo: Hades II' })
+    expect(undo).toHaveFocus()
     expect(
       within(document.querySelector('.tonight-lead')).getByText('Celeste'),
     ).toBeInTheDocument()
 
-    await userEvent.click(within(toast).getByRole('button', { name: 'Undo' }))
+    await userEvent.click(undo)
     expect(calls('DELETE', '/api/picker/events/p1/skipped')).toHaveLength(1)
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(document.querySelector('.tonight-toast')).toBeNull()
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
     expect(screen.getByRole('link', { name: 'Hades II' })).toHaveFocus()
+  })
+
+  it('runs an Undo pressed while its skip is still saving', async () => {
+    let answer
+    mockApi({
+      'POST /api/picker/events': new Promise((resolve) => (answer = resolve)),
+    })
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage({ signedIn: true })
+    const lead = document.querySelector('.tonight-lead')
+    await userEvent.click(
+      within(lead).getByRole('button', { name: spine.next.tonight.skip }),
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Undo: Hades II' }),
+    )
+    expect(calls('DELETE', '/api/picker/events/p1/skipped')).toHaveLength(0)
+
+    answer({ ok: true, body: null })
+    await vi.waitFor(() =>
+      expect(calls('DELETE', '/api/picker/events/p1/skipped')).toHaveLength(1),
+    )
+    expect(document.querySelector('.tonight-toast')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('drops the Or instead line when only skipped cards are left', async () => {
+    mockApi()
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage({ signedIn: true })
+    for (const title of ['Hades II', 'Celeste', 'Tetris']) {
+      const lead = document.querySelector('.tonight-lead')
+      expect(within(lead).getByText(title)).toBeInTheDocument()
+      await userEvent.click(
+        within(lead).getByRole('button', { name: spine.next.tonight.skip }),
+      )
+    }
+    expect(document.querySelectorAll('.tonight-toast')).toHaveLength(3)
+    expect(screen.queryByText(spine.next.tonight.orInstead)).toBeNull()
   })
 
   it('leaves out games skipped earlier today', async () => {

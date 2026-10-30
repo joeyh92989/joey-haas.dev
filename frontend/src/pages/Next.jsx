@@ -114,7 +114,8 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   const [hidden, setHidden] = useState(() => new Set())
   const [skipped, setSkipped] = useState([])
   const [error, setError] = useState(false)
-  const writing = useRef(false)
+  const [announcement, setAnnouncement] = useState('')
+  const writing = useRef(null)
   const focusNext = useRef(null)
   const section = useRef(null)
 
@@ -170,19 +171,29 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     if (!response.ok) throw new Error(`${method} ${path}: ${response.status}`)
   }
 
-  async function act(optimistic, request, rollback, confirm) {
-    if (writing.current) return
-    writing.current = true
+  /**
+   * One write at a time: a second press while one is out is ignored, except
+   * an Undo, which focus lands on while its skip is still being saved and so
+   * waits for it instead.
+   */
+  async function act(optimistic, request, rollback, confirm, wait = false) {
+    if (writing.current && !wait) return
+    const before = writing.current
+    let done
+    const mine = new Promise((resolve) => (done = resolve))
+    writing.current = mine
     setError(false)
     optimistic()
     try {
+      await before
       await request()
       if (confirm) await confirm()
     } catch {
       rollback()
       setError(true)
     } finally {
-      writing.current = false
+      done()
+      if (writing.current === mine) writing.current = null
     }
   }
 
@@ -229,6 +240,7 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     act(
       () => {
         setSkipped((ids) => [...ids, pick.item_id])
+        setAnnouncement(`${pick.title} ${copy.tonight.skipped}`)
         focusNext.current = { undo: pick.item_id }
       },
       () =>
@@ -247,6 +259,7 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     act(
       () => {
         setSkipped((ids) => ids.filter((id) => id !== pick.item_id))
+        setAnnouncement('')
         focusNext.current = { title: pick.item_id }
       },
       () => write(`/api/picker/events/${pick.item_id}/skipped`, 'DELETE'),
@@ -254,6 +267,8 @@ function Tonight({ tonight, signedIn, onRefresh }) {
         setSkipped((ids) => [...ids, pick.item_id])
         focusNext.current = { undo: pick.item_id }
       },
+      undefined,
+      true,
     )
   }
 
@@ -283,9 +298,11 @@ function Tonight({ tonight, signedIn, onRefresh }) {
       )}
       {alts.length > 0 && (
         <>
-          <p className="tonight-alts-h">
-            {upNext ? copy.tonight.otherPicks : copy.tonight.orInstead}
-          </p>
+          {alts.some((pick) => !skipped.includes(pick.item_id)) && (
+            <p className="tonight-alts-h">
+              {upNext ? copy.tonight.otherPicks : copy.tonight.orInstead}
+            </p>
+          )}
           <ul className="tonight-alts">
             {alts.map((pick) =>
               skipped.includes(pick.item_id) ? (
@@ -306,7 +323,12 @@ function Tonight({ tonight, signedIn, onRefresh }) {
         </p>
       )}
       {signedIn && (
-        <p className="tonight-owner-note">{copy.tonight.ownerNote}</p>
+        <>
+          <p className="tonight-owner-note">{copy.tonight.ownerNote}</p>
+          <p className="visually-hidden" role="status">
+            {announcement}
+          </p>
+        </>
       )}
     </section>
   )

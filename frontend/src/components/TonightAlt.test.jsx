@@ -63,10 +63,14 @@ describe('TonightAlt', () => {
     const onSkip = vi.fn()
     renderAlt({ onPlay, onSkip })
     await userEvent.click(
-      screen.getByRole('button', { name: copy.playInstead }),
+      screen.getByRole('button', {
+        name: `${copy.playInstead}: ${PICK.title}`,
+      }),
     )
     expect(onPlay).toHaveBeenCalledWith(PICK)
-    await userEvent.click(screen.getByRole('button', { name: copy.skip }))
+    await userEvent.click(
+      screen.getByRole('button', { name: `${copy.skip}: ${PICK.title}` }),
+    )
     expect(onSkip).toHaveBeenCalledWith(PICK)
   })
 })

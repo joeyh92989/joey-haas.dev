@@ -7,17 +7,19 @@ import SkippedToast from './SkippedToast.jsx'
 const PICK = { item_id: 'p1', title: 'Hades II' }
 
 describe('SkippedToast', () => {
-  it('is a status that names the game, with an Undo button', async () => {
+  it('names the game, with an Undo button that names it too', async () => {
     const onUndo = vi.fn()
     render(
       <ul>
         <SkippedToast pick={PICK} onUndo={onUndo} />
       </ul>,
     )
-    expect(screen.getByRole('status')).toHaveTextContent(
+    expect(screen.getByRole('listitem')).toHaveTextContent(
       'Hades II is off tonight’s list.',
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Undo: Hades II' }),
+    )
     expect(onUndo).toHaveBeenCalledWith(PICK)
   })
 })

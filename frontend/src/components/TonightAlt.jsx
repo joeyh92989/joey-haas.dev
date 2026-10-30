@@ -10,7 +10,8 @@ const copy = spine.next.tonight
  * A compact Tonight card: cover, slot label, title, size and the first
  * reason. On What's next it sits under the lead as "Or instead"; the How it
  * works tour uses it on its own. The owner's buttons are siblings of the
- * title link, never inside it, and only render with `onPlay`.
+ * title link, never inside it, and only render with `onPlay`. Each names
+ * its game to a screen reader, so a list of buttons tells the cards apart.
  *
  * @param {object} props
  * @param {object} props.pick - A `PublicTonightCard`.
@@ -49,6 +50,7 @@ export default function TonightAlt({ pick, label, onPlay, onSkip }) {
         <div className="tonight-acts">
           <button type="button" className="btn" onClick={() => onPlay(pick)}>
             {copy.playInstead}
+            <span className="visually-hidden">: {pick.title}</span>
           </button>
           <button
             type="button"
@@ -56,6 +58,7 @@ export default function TonightAlt({ pick, label, onPlay, onSkip }) {
             onClick={() => onSkip(pick)}
           >
             {copy.skip}
+            <span className="visually-hidden">: {pick.title}</span>
           </button>
         </div>
       )}

@@ -8,7 +8,7 @@ const FINISH = {
   title: 'Xenoblade Chronicles 3',
   cover_url: 'https://images.igdb.com/x.jpg',
   finished_at: '2026-10-26',
-  time_to_beat_hours: 62,
+  time_to_beat_hours: 61.6,
 }
 
 describe('JustFinishedChip', () => {

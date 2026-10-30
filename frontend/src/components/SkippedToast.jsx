@@ -4,7 +4,8 @@ const copy = spine.next.tonight
 
 /**
  * Where a card stood after "Not tonight": the dashed line saying so, and an
- * Undo that puts the card back. A status region, so the skip is announced.
+ * Undo that puts the card back. Tonight announces the skip through its own
+ * status region: one inserted already holding its text is often not read.
  *
  * @param {object} props
  * @param {{item_id: string, title: string}} props.pick
@@ -12,7 +13,7 @@ const copy = spine.next.tonight
  */
 export default function SkippedToast({ pick, onUndo }) {
   return (
-    <li className="tonight-toast" role="status">
+    <li className="tonight-toast">
       <span>
         <strong>{pick.title}</strong> {copy.skipped}
       </span>
@@ -23,6 +24,7 @@ export default function SkippedToast({ pick, onUndo }) {
         onClick={() => onUndo(pick)}
       >
         {copy.undo}
+        <span className="visually-hidden">: {pick.title}</span>
       </button>
     </li>
   )
