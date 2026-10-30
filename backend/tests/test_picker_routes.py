@@ -102,7 +102,7 @@ async def _events(factory, action: PickAction | None = None) -> list[PickEvent]:
 
 
 def _body(**fields) -> dict:
-    return {"time": "any", "moods": [], "platforms": [], "exclude": [], **fields}
+    return {"size": "any", "moods": [], "platforms": [], "exclude": [], **fields}
 
 
 async def test_next_returns_named_picks_with_reasons(sessionmaker_for_test):
@@ -210,7 +210,9 @@ async def test_invalid_requests_are_refused(sessionmaker_for_test):
     await _seed(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test) as client:
         bad_mood = await client.post("/api/picker/next", json=_body(moods=["sad"]))
-        bad_time = await client.post("/api/picker/next", json=_body(time="forever"))
+        bad_size = await client.post("/api/picker/next", json=_body(size="forever"))
+        # The old names went with the evening wording.
+        old_size = await client.post("/api/picker/next", json=_body(size="quick"))
         bad_action = await client.post(
             "/api/picker/events",
             json={"item_id": str(uuid.uuid4()), "action": "pinned"},
@@ -221,7 +223,8 @@ async def test_invalid_requests_are_refused(sessionmaker_for_test):
         )
 
     assert bad_mood.status_code == 422
-    assert bad_time.status_code == 422
+    assert bad_size.status_code == 422
+    assert old_size.status_code == 422
     assert bad_action.status_code == 422
     assert unknown.status_code == 404
 

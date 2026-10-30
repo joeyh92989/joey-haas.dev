@@ -35,7 +35,7 @@ EVENT_WINDOW = timedelta(days=30)
 class PickNextIn(BaseModel):
     """What the owner asked for; `exclude` is the current reroll's picks."""
 
-    time: Literal["any", "quick", "evening", "long"] = "any"
+    size: Literal["any", "short", "medium", "long"] = "any"
     moods: list[Mood] = []
     platforms: list[int] = []
     exclude: list[uuid.UUID] = Field(default=[], max_length=200)
@@ -169,7 +169,7 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             for event in event_rows
         ]
         request = PickRequest(
-            time=payload.time,
+            size=payload.size,
             moods=tuple(payload.moods),
             platforms=tuple(payload.platforms),
             exclude=tuple(str(item_id) for item_id in payload.exclude),

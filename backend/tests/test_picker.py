@@ -22,6 +22,7 @@ from picker import (
     recommend,
     reference_weights,
     similarity,
+    size_band,
     staleness,
     waiting,
 )
@@ -243,25 +244,50 @@ def test_quality_is_the_community_score_or_neutral():
 
 
 @pytest.mark.parametrize(
-    ("hours", "time", "expected"),
+    ("hours", "size", "expected"),
     [
-        (None, "evening", 100),
+        (None, "medium", 100),
         (40, "any", 100),
-        (3, "quick", 100),
-        (9, "quick", 50),  # halfway from 6 to 12
-        (12, "quick", 0),
-        (10, "evening", 100),
-        (4.5, "evening", 50),  # halfway from 3 to 6
-        (3, "evening", 0),
-        (22.5, "evening", 50),  # halfway from 15 to 30
+        (3, "short", 100),
+        (9, "short", 50),  # halfway from 6 to 12
+        (12, "short", 0),
+        (10, "medium", 100),
+        (4.5, "medium", 50),  # halfway from 3 to 6
+        (3, "medium", 0),
+        (22.5, "medium", 50),  # halfway from 15 to 30
         (80, "long", 100),  # no upper edge
         (11.25, "long", 50),  # halfway from 7.5 to 15
     ],
 )
-def test_length_fit(hours, time, expected):
-    assert length_fit(item("l", time_to_beat_hours=hours), time) == pytest.approx(
+def test_length_fit(hours, size, expected):
+    assert length_fit(item("l", time_to_beat_hours=hours), size) == pytest.approx(
         expected
     )
+
+
+@pytest.mark.parametrize(
+    ("hours", "band"),
+    [
+        (None, None),
+        (0.5, "short"),
+        (6, "short"),
+        (6.5, "medium"),
+        (15, "medium"),
+        (15.5, "long"),
+        (90, "long"),
+    ],
+)
+def test_size_band(hours, band):
+    assert size_band(hours) == band
+
+
+def test_no_reason_talks_about_evenings_or_length():
+    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
+    for pick in result.picks:
+        for reason in pick.reasons:
+            assert "evening" not in reason
+            assert "a short one" not in reason
+            assert "a long one" not in reason
 
 
 # --- waiting and staleness --------------------------------------------------
@@ -611,7 +637,6 @@ def test_reasons_name_the_game_they_come_from():
     best = result.picks[0]
     assert "Shares roguelike and Indie with Hades ♥" in best.reasons
     assert "IGDB lists it beside Hades ♥" in best.reasons
-    assert "About 18 h — a long one" in best.reasons
     for pick in result.picks:
         assert 1 <= len(pick.reasons) <= 3
 
@@ -668,7 +693,7 @@ def test_public_reasons_leave_out_the_slot_reasons():
 
     reasons = public_reasons(candidate, [candidate])
 
-    assert reasons == ("About 4 h — a short one",)
+    assert reasons == ()
     assert not any(
         phrase in reason
         for reason in reasons

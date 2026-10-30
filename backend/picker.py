@@ -28,10 +28,11 @@ PICKER_WEIGHTS = {
     "jitter": 5,
 }
 
-# Hours, [low, high]; long has no upper edge.
-TIME_WINDOWS: dict[str, tuple[float, float | None]] = {
-    "quick": (0.0, 6.0),
-    "evening": (6.0, 15.0),
+# How big a game is: hours to finish it (IGDB's "normally"), (low, high];
+# long has no upper edge. A whole game's length, never a session's.
+SIZE_BANDS: dict[str, tuple[float, float | None]] = {
+    "short": (0.0, 6.0),
+    "medium": (6.0, 15.0),
     "long": (15.0, None),
 }
 
@@ -219,13 +220,23 @@ def quality(item: PickerItem) -> float:
     return _clamp(item.community_score)
 
 
-def length_fit(item: PickerItem, time: str) -> float:
-    """100 inside the chosen window, falling to 0 at half its low edge and at
+def size_band(hours: float | None) -> str | None:
+    """The SIZE_BANDS key a game's hours fall in, or None when unknown."""
+    if hours is None:
+        return None
+    for band, (_low, high) in SIZE_BANDS.items():
+        if high is None or hours <= high:
+            return band
+    return None
+
+
+def length_fit(item: PickerItem, size: str) -> float:
+    """100 inside the chosen band, falling to 0 at half its low edge and at
     twice its high edge. An unknown length is never held against a game."""
     hours = item.time_to_beat_hours
-    if time == "any" or hours is None or time not in TIME_WINDOWS:
+    if size == "any" or hours is None or size not in SIZE_BANDS:
         return 100.0
-    low, high = TIME_WINDOWS[time]
+    low, high = SIZE_BANDS[size]
     if high is not None and hours > high:
         return _clamp(100 * (2 * high - hours) / high)
     if low > 0 and hours < low:
@@ -345,7 +356,7 @@ MOOD_BUCKETS: dict[str, frozenset[str]] = {
 
 SKIP_WINDOW = timedelta(days=7)
 STALLED_AFTER = timedelta(days=30)
-SHORT_HOURS = 6.0
+SHORT_HOURS = SIZE_BANDS["short"][1]
 
 SLOT_LABELS = {
     "best_fit": "Best fit",
@@ -364,9 +375,9 @@ MAX_REASONS = 3
 
 @dataclass(frozen=True)
 class PickRequest:
-    """What the owner asked for: time window, moods, platforms, rerolled ids."""
+    """What the owner asked for: size band, moods, platforms, rerolled ids."""
 
-    time: str = "any"
+    size: str = "any"
     moods: tuple[str, ...] = ()
     platforms: tuple[int, ...] = ()
     exclude: tuple[str, ...] = ()
@@ -486,18 +497,6 @@ def _overlap_reason(
     return f"Shares {names} with {_named(reference)}"
 
 
-def _length_reason(item: PickerItem) -> str | None:
-    hours = item.time_to_beat_hours
-    if hours is None:
-        return None
-    rounded = max(1, round(hours))
-    if hours <= SHORT_HOURS:
-        return f"About {rounded} h — a short one"
-    if hours <= TIME_WINDOWS["evening"][1]:
-        return f"About {rounded} h — fits an evening"
-    return f"About {rounded} h — a long one"
-
-
 def _is_stalled(item: PickerItem, events: list[PickerEvent], now: datetime) -> bool:
     """In progress, started a month or more ago, and not touched since."""
     if item.status != "active" or item.started_at is None:
@@ -519,11 +518,11 @@ def _common_reasons(
     table: dict[tuple[str, str], float],
     similar_to: PickerItem | None,
 ) -> list[str | None]:
-    """The reasons every pick can carry: overlap, IGDB similarity, length."""
+    """The reasons every pick can carry: overlap and IGDB similarity. Size is
+    the card's meta, not a reason."""
     return [
         _overlap_reason(item, references, weights, table),
         f"IGDB lists it beside {_named(similar_to)}" if similar_to else None,
-        _length_reason(item),
     ]
 
 
@@ -580,7 +579,7 @@ def recommend(
             "affinity": affinity(item, table),
             "similarity": similar_score,
             "quality": quality(item),
-            "length_fit": length_fit(item, request.time),
+            "length_fit": length_fit(item, request.size),
             "waiting": waiting(item, today, informative),
             "jitter": rng.uniform(0, 100),
         }
