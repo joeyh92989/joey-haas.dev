@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: docs/planning/mockups/2026-10-30-tonight-picks/
 chosen: chosen.html
 ---
@@ -298,3 +298,217 @@ winner. Each page has a bar to switch theme, width (400 / 1280), and viewer
   else (snapshot, nightly job request) sends them.
 - **Drop-in tag.** Only if IGDB keywords or genres give a clean signal
   (roguelite, arcade, party). Otherwise drop it.
+
+---
+
+# Plan
+
+Planned 2026-10-30 on `feat/tonight-picks`. Tier: **Full**. It touches a
+public API contract and needs a DB migration.
+
+## What the code says (read before planning)
+
+- **Public picks carry no slot, and none is stored.** `public_picks_with_day`
+  (`backend/public_outputs.py`) rebuilds tonight's picks from `shown` events
+  in `pick_events`. That table has no slot column, and `_PickRow` /
+  `PublicTonightCard` leave the slot out on purpose ("those describe the
+  owner's use of the tool"). The chosen mockup shows visitors the slot labels
+  and a lead card in slot order. Both need the slot recorded, so this plan
+  adds migration `0009` (see Decisions needed, D1).
+- **Skips today don't reach `/api/public/next` until UTC midnight.** That's
+  deliberate (S9, and the docstring of `public_picks_with_day`). A live
+  refetch after Not tonight would bring the card straight back, so the
+  owner's page needs its own short list of today's skips (D2).
+- **`finished_at` is already stamped** on a first finish by
+  `statusTransition` (`frontend/src/lib/statusTransition.js`), which the
+  shelf card and the list table use. Only the edit page sets it by hand. It
+  is already a public field (`public.py`, `PublicItem.finished_at`).
+- **Only `PlayNext.jsx` sends `time`.** It's plain `useState` (not a stored
+  shelf pref), and the nightly job posts `/api/picker/next` with no body. So
+  renaming the values is safe.
+- **Pin and unpin routes already exist** (`POST`/`DELETE
+  /api/items/{id}/pin`, `items.py`). There's no route to undo a skip.
+
+## Answers to the open questions
+
+| Question | Answer |
+| --- | --- |
+| `finished_at` coverage | Already stamped on a first finish from the shelf card and list (`statusTransition`). No server-side stamping: the edit page edits the field directly, by design. **Out:** the admin-landing count. Recency with no dates is just today's behaviour. Backfill by hand on the edit page if wanted. |
+| Live replacement on Not tonight | **No.** Hide plus Undo, as the mockup shows. A live replacement would show the owner a different set of picks than the public sees, which is the problem this spec fixes. |
+| Recency curve | Additive, finished games only: `weight += RECENCY_BONUS × 0.5^(days / RECENCY_HALF_LIFE)`, with bonus 0.3 and half-life 30 days. A finish today counts 0.6 instead of 0.3. It's about 0.3 + 0.15 at 30 days and back to 0.3 within a year. It never subtracts, so a favorite (1.0) still outranks a fresh non-favorite finish (≤ 0.6 before rating). |
+| Chip window | 60 days (`JUST_FINISHED_WINDOW`), about two half-lives. |
+| Contrast test | Bands (Short / Medium / Long, the same edges as the filter), not a ratio. They match what the pill says, so the reason never reads "different size" for two games that both show "Medium". |
+| API values | Rename to `short` / `medium` / `long` (`any` stays). Nothing else sends them. |
+| Drop-in tag | Dropped. No clean signal: `roguelite` / `Arcade` / `Party` are already the `chaotic` mood bucket, which covers the use. |
+
+## Decisions needed (at the go)
+
+- **D1 — public slot labels (recommended: yes, with migration `0009`).**
+  Add a nullable `slot` to `pick_events`, written on `shown` events.
+  `PublicTonightCard` gains `slot_label` and `time_to_beat_hours`, and
+  `PublicTonight` gains `last_finish`. This reverses the showcase spec's
+  "no slot in public" for the labels only: no score, rank or event time.
+  Two labels are withheld publicly (`slot_label: null`):
+  - **Pick it back up**, because its rule ("not touched in 30 days") reports
+    my activity. That's the same reason its reason line is already withheld.
+  - **Change of pace** when the last finish is private, because the label
+    would hint at a game the public can't see.
+
+  *Alternative:* no migration. Visitors see an unlabelled lead plus
+  alternatives in title order, and only Play Next shows labels. This is
+  cheaper, but it drops half of the chosen design.
+- **D2 — owner's skip list (recommended).** Two new admin-only routes:
+  `GET /api/picker/skipped-today` (item ids skipped since today's UTC
+  midnight), which the signed-in page uses to hide those cards; and
+  `DELETE /api/picker/events/{item_id}/skipped`, which is Undo and removes
+  that game's skips since today's UTC midnight. Neither is public, and
+  neither is on `JOB_ROUTES`.
+
+## Milestones
+
+```
+Milestone 1 (auto): tasks 1–5   scorer + admin Play Next + skip routes
+STOP — carve-out review: migration 0009 + public contract change (D1)
+Milestone 2 (auto): tasks 6–8   slot recorded, public tonight body
+Milestone 3 (auto): tasks 9–11  Tonight UI on /shelf/next
+Finish gate → PR   (deploy order: apply 0009 to Neon, then merge)
+```
+
+None of the tasks are parallel-safe. Tasks 1–3 share `picker.py`, and
+tasks 9–11 share `Next.jsx` and `index.css`. They run in order.
+
+## Tasks
+
+**1. Recency in the profile.** `picker.py`, `picker_routes.py`,
+`tests/test_picker.py`.
+- `PickerItem.finished_at: date | None`, mapped in `to_picker_item`.
+- `reference_weights(items, today)` adds the recency bonus (constants
+  `RECENCY_BONUS`, `RECENCY_HALF_LIFE`) to finished games with a date. All
+  callers pass `today`.
+- AC: (AC5) with a finish this week, a candidate sharing its genres scores
+  higher than with the same finish a year ago. A favorite outranks both. A
+  finish with no date weighs exactly what it does today. Abandoned games are
+  untouched.
+
+**2. Size, not evenings.** `picker.py`, `picker_routes.py`,
+`tests/test_picker.py`, `tests/test_picker_routes.py`.
+- `TIME_WINDOWS` → `SIZE_BANDS` with keys `short` / `medium` / `long` (same
+  edges). Add `size_band(hours)`. `PickRequest.time` → `size`, and
+  `PickNextIn.size: Literal["any","short","medium","long"]`. `_length_reason`
+  is removed from `_common_reasons`.
+- AC: (AC7) no reason contains "evening", "a short one" or "a long one".
+  (AC8) unknown hours means no band and a neutral `length_fit`. The old
+  `time` values get a 422.
+
+**3. Change of pace slot and the recency phrase.** `picker.py`,
+`tests/test_picker.py`.
+- `last_finish(items)` returns the owned game with the latest `finished_at`.
+- Slot `change_of_pace` replaces `short_and_sweet` in slot 2. Among the
+  remaining candidates whose affinity is ≥ the pool median, it takes the top
+  total that contrasts with the last finish: a different `size_band` (both
+  known), or no shared genre (both have genres). Its first reason reads
+  "About 3 h to finish, after 62 h of X" (size) or "Something different from
+  X: Puzzle, not RPG" (genre). The median computation is pulled out and
+  shared with the third slot.
+- Falls back to the existing Short and sweet rule and label when there's no
+  last finish or no eligible game.
+- `_overlap_reason` appends ", which I finished this week / last week / in
+  {Month}" when the named reference is finished within `JUST_FINISHED_WINDOW`.
+- `public_reasons(item, profile, today)` gains `change_of_pace_reason` only
+  when the last finish is in the (public) profile.
+- AC: (AC6) the slot is always a band or genre contrast at ≥ median
+  affinity. With no finish it's Short and sweet. (AC9) with a private last
+  finish, no public reason names it.
+
+**4. Admin Play Next: Size filter and pill.** `components/SizePill.jsx`
+(new), `pages/PlayNext.jsx`, `index.css`, `PlayNext.test.jsx`,
+`SizePill.test.jsx`.
+- The filter reads **Size**: Any · Short (under 6 h) · Medium (6–15 h) ·
+  Long (15 h+), and sends `size`. `PickCard` meta uses `SizePill` (band text
+  plus "about N h to finish", nothing when unknown).
+- AC: (AC7, AC8) the labels and hints are as specified, and there's no pill
+  without hours.
+
+**5. Skip list and Undo routes (D2).** `picker_routes.py`,
+`tests/test_picker_routes.py`.
+- `GET /api/picker/skipped-today` → `{"item_ids": [...]}`.
+- `DELETE /api/picker/events/{item_id}/skipped` → 204, idempotent, deletes
+  only skips at or after today's UTC midnight.
+- AC: both 401 without a session. Neither is on `JOB_ROUTES`
+  (`test_job_token.py` stays unchanged and green). A skip from yesterday
+  survives the DELETE.
+
+**STOP — carve-out review** (migration plus public contract).
+
+**6. Migration `0009`: `pick_events.slot`.** `migrations/versions/0009_*.py`,
+`models.py`, `picker_routes.py`, `migrations/README.md`, CLAUDE.md (Media
+tracker migrations line).
+- Nullable `String(32)`, additive. `pick_next` writes the pick's slot on
+  each `shown` event it inserts.
+- AC: upgrade and downgrade run locally. `schema_check` passes. Old rows
+  stay null.
+
+**7. Public tonight body.** `public_outputs.py`, `public_next_cache.py` (only
+if a new read needs it), `tests/test_public_outputs.py`,
+`tests/test_public.py`.
+- Picks are ordered by slot (`best_fit`, `change_of_pace` /
+  `short_and_sweet`, third), using each game's latest `shown` event that day.
+  A null slot (rows from before `0009`) sorts after the others in title
+  order. The rule "events before today's midnight only" is unchanged.
+- `PublicTonightCard` adds `slot_label: str | None` (withheld per D1) and
+  `time_to_beat_hours: int | None`.
+- `PublicTonight` adds `last_finish: {item_id, title, cover_url, finished_at,
+  time_to_beat_hours} | null`. It's the latest public owned game finished
+  within 60 days.
+- The fingerprint already covers these reads (`items` xmin, and the windowed
+  shown events). A test confirms a finish date change busts the cache.
+- AC: (AC2) field pins updated, the forbidden-keys walk passes, and no score,
+  event time or rank appears. (AC9) a private last finish gives
+  `last_finish: null` and a null Change of pace label.
+
+**8. Copy.** `content/spine.js`, `content/status.js` if a string is missing.
+- The new slot label, the chip, the toast, "Or instead" / "The other picks",
+  the owner note, the action labels, and How it works stop 3 ("how big a
+  game it is").
+- AC: (AC7) `grep -i evening frontend/src/content/spine.js` is empty.
+
+**9. Tonight components.** `components/TonightLead.jsx`,
+`TonightAlt.jsx`, `JustFinishedChip.jsx`, `SkippedToast.jsx`, `index.css`,
+tests beside each.
+- Built to `chosen.html` with tokens only. The buttons are siblings of the
+  title link. The toast is `role="status"`. The chip thumb is
+  `aria-hidden`. Buttons are ≥ 36px tall.
+- `TonightCard` is retired: the How it works tour moves to `TonightAlt`
+  (`HowItWorks.jsx`), so there's no dead code.
+
+**10. Tonight on `/shelf/next`.** `pages/Next.jsx`, `Next.test.jsx`.
+- Reads `signedIn` from the outlet context. Signed in, it fetches
+  `skipped-today` once and hides those cards.
+- Play this / Play this instead / Unpin are optimistic pin/unpin calls,
+  followed by a live refetch of `/api/public/next`. They roll back with
+  `ACTION_ERROR` on failure.
+- Not tonight posts `skipped` and shows the toast. Undo calls the DELETE
+  and restores the card. Skipping the lead promotes the next pick.
+- Focus goes to the new lead's title link after Play this, and to Undo after
+  Not tonight.
+- AC: AC1–4 and AC10 in component tests. Signed out renders no buttons,
+  toast or note.
+
+**11. Docs.** CLAUDE.md (Play Next paragraph: slots, size, recency, the
+public slot labels, the two routes), `backend/README` / README → Tonight
+if it documents the picks.
+
+## Tests and environment
+
+- Backend: `./.venv/bin/pytest` (one run at a time; the shared test DB).
+- Frontend: `npm test` and `npm run build`.
+- Browser (preview, local backend with fixtures): `/shelf/next` at 400 and
+  1280, dark and light, signed out. Side by side with `chosen.html`.
+- **Signed-in states can't be driven locally** (Google OAuth). They're
+  covered by component tests with a stubbed outlet context. Joey checks Play
+  this, Not tonight and Undo on production after deploy.
+- Smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`
+  after deploy.
+- **Deploy order:** apply `0009` to Neon
+  (`backend/scripts/migrate_neon.py current` then `upgrade`, from the
+  worktree), then merge.
