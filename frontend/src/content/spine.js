@@ -190,7 +190,7 @@ export const spine = {
         where: '/admin/play-next',
         title: 'Picks tonight’s game',
         claim:
-          'Six weighted terms score the backlog: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, whether it fits the evening, how long it’s been waiting, and a little random jitter. Each pick comes with a reason.',
+          'Six weighted terms score the backlog: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. Each pick comes with a reason.',
         why: {
           lead: 'No model here.',
           text: 'The scoring is pure Python, tested without a database, and the public reasons are always rebuilt from public games only.',
@@ -210,7 +210,7 @@ export const spine = {
             { label: 'Affinity', weight: 35, value: 82 },
             { label: 'Similarity', weight: 20, value: 74 },
             { label: 'Quality', weight: 15, value: 68 },
-            { label: 'Length fit', weight: 15, value: 60 },
+            { label: 'Size fit', weight: 15, value: 60 },
             { label: 'Waiting', weight: 10, value: 91 },
             { label: 'Jitter', weight: 5, value: 12 },
           ],
@@ -387,6 +387,20 @@ export const spine = {
     },
     notOnCartridge: 'Digital only, or a Game-Key Card in a box. I skip these.',
     upNext: 'Up next',
+    /** Tonight's lead pick, the other picks, and the owner's buttons. */
+    tonight: {
+      justFinished: 'Just finished',
+      hours: 'h',
+      orInstead: 'Or instead',
+      otherPicks: 'The other picks',
+      ownerNote: 'Only you see these buttons.',
+      play: 'Play this tonight',
+      playInstead: 'Play this instead',
+      skip: 'Not tonight',
+      unpin: 'Unpin',
+      undo: 'Undo',
+      skipped: 'is off tonight’s list.',
+    },
     badges: { new: 'New', topPick: 'Top pick' },
     sorts: [
       { value: 'best', label: 'Best fit' },
