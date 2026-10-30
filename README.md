@@ -323,7 +323,7 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Metadata sources | `backend/sources/` | One adapter per API behind a common interface: IGDB (games), TMDB (films), Comic Vine (comics); BGG is stubbed until its API is usable again. Each keeps a snapshot on the item for the shelf and the pickers |
 | Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
 | Public showcase | `backend/public.py`, `/shelf`, `/shelf/next` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
-| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/shelf/next`) as "Up next", and recent picks appear on What's next as "Tonight" |
+| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/shelf/next`) as "Up next", and recent picks appear on What's next as "Tonight", where the owner, signed in, can pin a pick or skip it for the day |
 | Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), its Switch 1 sheet (about 4,500 titles in about 10,000 editions, bulk-matched to IGDB's Switch list), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
 | Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want adds the game as a public want, and registry-dated cartridges appear on What's next |
 | Discover | `backend/discover.py`, `/admin/discover` | Released physical games on the owner's platforms, pre-scored by taste and re-ranked by one Gemini call with reasons; falls back to the deterministic ranking when the model cannot answer; its top picks appear on What's next, with reasons that name only public games |
@@ -575,9 +575,14 @@ The body has these keys:
   from), `catalogue` (the day of the stalest store's last good run), `radar`
   and `discover` (the day of each kind's last generation, whatever the
   status of its rows). Any may be null.
-- `tonight`: `up_next` (the pinned game, if public) and `picks` (the latest
-  Play Next picks among public games), each a card with `item_id`, `type`,
-  `title`, `cover_url`, `platform` and `reasons`.
+- `tonight`: `up_next` (the pinned game, if public), `picks` (the latest
+  Play Next picks among public games, in slot order), each a card with
+  `item_id`, `type`, `title`, `cover_url`, `platform`, `reasons`,
+  `slot_label` (null for "Pick it back up", and for "Change of pace" when
+  the last finish is private) and `time_to_beat_hours`; and `last_finish`
+  (`item_id`, `title`, `cover_url`, `finished_at`, `time_to_beat_hours`),
+  the most recent finish when it is public and at most 60 days old, else
+  null.
 - `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge`: lists of
   rows with `title`, `platform`, `physical_format`, `release_date`,
   `release_precision`, `cover_url`, `igdb_url`, `reasons` (at most two),
