@@ -281,6 +281,38 @@ export default function AdminCollection() {
   }
 
   /**
+   * Pins or unpins one game as Up next, through its own route rather than a
+   * PATCH: a pin clears any other and marks the game in progress, so the
+   * reload shows both. A 422 is the server saying why, in words worth
+   * showing (a want-list game cannot be pinned).
+   */
+  async function pinItem(item, pinned) {
+    setError(null)
+    try {
+      const response = await apiFetch(`/api/items/${item.id}/pin`, {
+        method: pinned ? 'POST' : 'DELETE',
+      })
+      if (!response.ok) {
+        const detail =
+          response.status === 422
+            ? await response
+                .json()
+                .then((payload) => payload?.detail)
+                .catch(() => null)
+            : null
+        setError(
+          typeof detail === 'string' ? detail : 'Couldn’t change Up next.',
+        )
+        return
+      }
+    } catch {
+      setError(ACTION_ERROR)
+      return
+    }
+    await load()
+  }
+
+  /**
    * Changes status through statusTransition, in both views, so a finish
    * counts a completion and dates itself wherever it is made.
    */
@@ -586,6 +618,7 @@ export default function AdminCollection() {
                     onPublish={(target, isPublic) =>
                       updateVisibility(target.id, isPublic)
                     }
+                    onPin={pinItem}
                   />
                 )}
               />

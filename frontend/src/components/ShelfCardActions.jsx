@@ -4,8 +4,8 @@ import { useMediaQuery } from '../lib/useMediaQuery.js'
 import QuickRate from './QuickRate.jsx'
 
 /**
- * The admin controls on one shelf card: quick rate, favourite, status and
- * publish.
+ * The admin controls on one shelf card: quick rate, favourite, status,
+ * publish and Up next.
  *
  * Rendered through PosterCard's `actions`, so it is a sibling of the card's
  * link. On a pointer device the panel is always in the document and CSS
@@ -26,6 +26,8 @@ import QuickRate from './QuickRate.jsx'
  * @param {(item: object, favorite: boolean) => void} props.onFavorite
  * @param {(item: object, status: string) => void} props.onStatus
  * @param {(item: object, isPublic: boolean) => void} props.onPublish
+ * @param {(item: object, pinned: boolean) => void} props.onPin - Not offered
+ *   on a want-list row, which the server refuses to pin.
  */
 export default function ShelfCardActions({
   item,
@@ -34,6 +36,7 @@ export default function ShelfCardActions({
   onFavorite,
   onStatus,
   onPublish,
+  onPin,
 }) {
   const hover = useMediaQuery('(hover: hover)')
   const [open, setOpen] = useState(false)
@@ -100,6 +103,16 @@ export default function ShelfCardActions({
           />
           <span aria-hidden="true">Public</span>
         </label>
+        {item.owned_format !== 'none' && (
+          <button
+            type="button"
+            className="shelf-pin"
+            aria-pressed={Boolean(item.pinned_at)}
+            onClick={() => onPin(item, !item.pinned_at)}
+          >
+            Up next
+          </button>
+        )}
       </div>
     </>
   )

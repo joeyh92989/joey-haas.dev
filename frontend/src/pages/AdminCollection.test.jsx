@@ -470,6 +470,57 @@ describe('AdminCollection shelf', () => {
     )
   })
 
+  it('pins a game as Up next from the card', async () => {
+    const mock = stubApi()
+    await renderShelf()
+
+    await userEvent.click(
+      card('Star Fox').getByRole('button', { name: 'Up next' }),
+    )
+
+    await waitFor(() => {
+      const call = writeCalls(mock)[0]
+      expect(String(call[0])).toMatch(/\/api\/items\/a\/pin$/)
+      expect(call[1].method).toBe('POST')
+    })
+  })
+
+  it('unpins Up next from the card', async () => {
+    const mock = stubApi({
+      items: [{ ...ITEMS[0], pinned_at: '2026-10-30T20:00:00Z' }, ITEMS[1]],
+    })
+    await renderShelf()
+
+    await userEvent.click(
+      card('Star Fox').getByRole('button', { name: 'Up next' }),
+    )
+
+    await waitFor(() => {
+      const call = writeCalls(mock)[0]
+      expect(String(call[0])).toMatch(/\/api\/items\/a\/pin$/)
+      expect(call[1].method).toBe('DELETE')
+    })
+  })
+
+  it('shows the server’s message when it refuses a pin', async () => {
+    const refusal =
+      'Up next is for games you own; this one is on the want list.'
+    stubApi({
+      onWrite: () => ({
+        ok: false,
+        status: 422,
+        json: async () => ({ detail: refusal }),
+      }),
+    })
+    await renderShelf()
+
+    await userEvent.click(
+      card('Star Fox').getByRole('button', { name: 'Up next' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(refusal)
+  })
+
   it('reports a failed change and keeps showing the server’s state', async () => {
     stubApi({
       onWrite: () => ({ ok: false, status: 500, json: async () => ({}) }),

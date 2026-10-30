@@ -29,6 +29,7 @@ function renderActions(item = ITEM) {
     onFavorite: vi.fn(),
     onStatus: vi.fn(),
     onPublish: vi.fn(),
+    onPin: vi.fn(),
   }
   render(
     <div>
@@ -82,6 +83,26 @@ describe('ShelfCardActions on a pointer device', () => {
       screen.getByRole('checkbox', { name: 'Public: Star Fox' }),
     )
     expect(handlers.onPublish).toHaveBeenCalledWith(ITEM, true)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Up next' }))
+    expect(handlers.onPin).toHaveBeenCalledWith(ITEM, true)
+  })
+
+  it('shows Up next as pressed, and unpins', async () => {
+    pointer(true)
+    const pinned = { ...ITEM, pinned_at: '2026-10-30T20:00:00Z' }
+    const handlers = renderActions(pinned)
+    const pin = screen.getByRole('button', { name: 'Up next' })
+    expect(pin).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(pin)
+    expect(handlers.onPin).toHaveBeenCalledWith(pinned, false)
+  })
+
+  // The server refuses to pin a game that is only wanted.
+  it('offers no Up next for a want-list row', () => {
+    pointer(true)
+    renderActions({ ...ITEM, owned_format: 'none' })
+    expect(screen.queryByRole('button', { name: 'Up next' })).toBeNull()
   })
 
   it('shows the favourite as pressed, and unfavourites', async () => {
