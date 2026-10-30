@@ -258,7 +258,9 @@ class PickEvent(Base):
 
     `shown` feeds the staleness decay, `skipped` a seven-day exclusion,
     `never` a permanent one (undone by deleting the event), and `pinned`
-    records what was committed to. Deleted with its item.
+    records what was committed to. `slot` (migration 0009) is the slot a
+    `shown` game was offered in; null for older rows and other actions.
+    Deleted with its item.
     """
 
     __tablename__ = "pick_events"
@@ -280,6 +282,7 @@ class PickEvent(Base):
         ),
         nullable=False,
     )
+    slot: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

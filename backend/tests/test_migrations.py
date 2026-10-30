@@ -434,3 +434,25 @@ async def test_0008_adds_the_analytics_tables_and_downgrades_cleanly(clean_datab
             text("SELECT count(*) FROM pg_tables WHERE tablename = 'play_sessions'")
         )
     assert (before, after, journal) == (2, 0, 1)
+
+
+# --- Revision 0009: pick event slot. ---------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_0009_adds_a_nullable_slot_and_downgrades_cleanly(clean_database):
+    column = text(
+        "SELECT is_nullable FROM information_schema.columns "
+        "WHERE table_name = 'pick_events' AND column_name = 'slot'"
+    )
+    assert _alembic("upgrade", "0009").returncode == 0
+    async with clean_database.connect() as connection:
+        before = await connection.scalar(column)
+    result = _alembic("downgrade", "0008")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        after = await connection.scalar(column)
+        events = await connection.scalar(
+            text("SELECT count(*) FROM pg_tables WHERE tablename = 'pick_events'")
+        )
+    assert (before, after, events) == ("YES", None, 1)

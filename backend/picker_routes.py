@@ -198,7 +198,11 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         for pick in result.picks:
             if pick.item.id not in shown_today:
                 session.add(
-                    PickEvent(item_id=uuid.UUID(pick.item.id), action=PickAction.SHOWN)
+                    PickEvent(
+                        item_id=uuid.UUID(pick.item.id),
+                        action=PickAction.SHOWN,
+                        slot=pick.slot,
+                    )
                 )
         await session.commit()
         logger.info(

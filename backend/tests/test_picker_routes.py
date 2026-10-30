@@ -137,6 +137,9 @@ async def test_each_pick_is_recorded_as_shown_once_per_day(sessionmaker_for_test
     # Same games, same day: one event each, however many rerolls.
     assert len(shown) == len(first["picks"])
     assert len({event.item_id for event in shown}) == len(shown)
+    # Each carries the slot it was offered in, for the public Tonight.
+    slots = {str(event.item_id): event.slot for event in shown}
+    assert slots == {pick["item"]["id"]: pick["slot"] for pick in first["picks"]}
 
 
 async def test_never_skipped_and_excluded_games_are_left_out(sessionmaker_for_test):
