@@ -238,9 +238,11 @@ async def test_every_route_needs_a_session(sessionmaker_for_test):
                 "/api/picker/events", json={"item_id": item_id, "action": "never"}
             ),
             await client.delete(f"/api/picker/events/{item_id}/never"),
+            await client.get("/api/picker/skipped-today"),
+            await client.delete(f"/api/picker/events/{item_id}/skipped"),
         ]
 
-    assert [response.status_code for response in responses] == [401, 401, 401]
+    assert [response.status_code for response in responses] == [401] * 5
 
 
 async def test_events_are_counted_per_item(sessionmaker_for_test):
@@ -258,3 +260,48 @@ async def test_events_are_counted_per_item(sessionmaker_for_test):
             .where(PickEvent.item_id == ids["Slay the Spire"])
         )
     assert count == 1
+
+
+async def _skip(factory, item_id: uuid.UUID, at: datetime) -> None:
+    async with factory() as session:
+        session.add(
+            PickEvent(item_id=item_id, action=PickAction.SKIPPED, created_at=at)
+        )
+        await session.commit()
+
+
+async def test_skipped_today_lists_only_todays_skips(sessionmaker_for_test):
+    ids = await _seed(sessionmaker_for_test)
+    now = datetime.now(UTC)
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    await _skip(sessionmaker_for_test, ids["Dead Cells"], now)
+    await _skip(sessionmaker_for_test, ids["Dead Cells"], now)
+    await _skip(
+        sessionmaker_for_test, ids["Slay the Spire"], midnight - timedelta(seconds=1)
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/picker/skipped-today")
+
+    assert response.status_code == 200
+    assert response.json() == {"item_ids": [str(ids["Dead Cells"])]}
+
+
+async def test_undoing_a_skip_removes_todays_and_keeps_yesterdays(
+    sessionmaker_for_test,
+):
+    ids = await _seed(sessionmaker_for_test)
+    dead_cells = ids["Dead Cells"]
+    now = datetime.now(UTC)
+    yesterday = now - timedelta(days=1)
+    await _skip(sessionmaker_for_test, dead_cells, yesterday)
+    await _skip(sessionmaker_for_test, dead_cells, now)
+    async with client_for(sessionmaker_for_test) as client:
+        undone = await client.delete(f"/api/picker/events/{dead_cells}/skipped")
+        again = await client.delete(f"/api/picker/events/{dead_cells}/skipped")
+        listed = (await client.get("/api/picker/skipped-today")).json()
+
+    assert undone.status_code == 204
+    assert again.status_code == 204
+    assert listed == {"item_ids": []}
+    left = await _events(sessionmaker_for_test, PickAction.SKIPPED)
+    assert [event.created_at.date() for event in left] == [yesterday.date()]

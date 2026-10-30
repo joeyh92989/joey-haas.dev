@@ -66,6 +66,10 @@ class PickNextOut(BaseModel):
     profile_size: int
 
 
+class SkippedTodayOut(BaseModel):
+    item_ids: list[uuid.UUID]
+
+
 class PickEventIn(BaseModel):
     """The owner's answer to a card. Pins go through /api/items/{id}/pin."""
 
@@ -135,6 +139,9 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
     async def get_session() -> AsyncIterator[AsyncSession]:
         async with factory() as session:
             yield session
+
+    def _today_midnight() -> datetime:
+        return datetime.combine(datetime.now(UTC).date(), time.min, tzinfo=UTC)
 
     @router.post("/next", response_model=PickNextOut)
     async def pick_next(
@@ -247,6 +254,42 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         await session.execute(
             delete(PickEvent).where(
                 PickEvent.item_id == item_id, PickEvent.action == PickAction.NEVER
+            )
+        )
+        await session.commit()
+        return Response(status_code=204)
+
+    @router.get("/skipped-today", response_model=SkippedTodayOut)
+    async def skipped_today(
+        session: AsyncSession = Depends(get_session),
+    ) -> SkippedTodayOut:
+        """The games answered "not tonight" since UTC midnight, for Tonight's
+        owner view to leave out until the snapshot catches up."""
+        item_ids = (
+            await session.execute(
+                select(PickEvent.item_id)
+                .where(
+                    PickEvent.action == PickAction.SKIPPED,
+                    PickEvent.created_at >= _today_midnight(),
+                )
+                .distinct()
+                .order_by(PickEvent.item_id)
+            )
+        ).scalars()
+        return SkippedTodayOut(item_ids=list(item_ids))
+
+    @router.delete("/events/{item_id}/skipped", status_code=204)
+    async def undo_skip(
+        item_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> Response:
+        """Undoes today's "not tonight". Earlier skips stand, so an Undo never
+        reaches back past the day it was offered. Idempotent."""
+        await session.execute(
+            delete(PickEvent).where(
+                PickEvent.item_id == item_id,
+                PickEvent.action == PickAction.SKIPPED,
+                PickEvent.created_at >= _today_midnight(),
             )
         )
         await session.commit()
