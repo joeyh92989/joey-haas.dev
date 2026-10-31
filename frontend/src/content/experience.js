@@ -24,7 +24,7 @@ export const experience = [
     company: 'Guild',
     meta: '2021 – present · Denver, CO',
     summary:
-      'Owned the APIs that record benefit spending and the funding side of a company-wide eligibility migration: the API contract, the rollout, the alerting, and the incident forensics afterward.',
+      'Owned the APIs that record benefit spending and the funding side of a company-wide eligibility migration, cut over for every partner with no rollbacks: the API contract, the rollout, the alerting, and the incident forensics afterward.',
     short:
       'Owned the APIs that record benefit spending and the funding side of a company-wide eligibility migration.',
     current: true,
