@@ -62,12 +62,25 @@ const isStatusBody = (body) =>
   (body.refreshed_at === null || typeof body.refreshed_at === 'string') &&
   STATUS_COUNTS.every((key) => Number.isInteger(body[key]))
 
+/**
+ * The comics shelf's body (/shelf/comics). Keep in step with `isComicsBody`
+ * in scripts/fetch-snapshot.mjs: the two predicates must be identical.
+ */
+const isComicsBody = (body) =>
+  isObject(body) &&
+  Array.isArray(body.series) &&
+  isObject(body.stats) &&
+  isObject(body.this_week) &&
+  Array.isArray(body.this_week.weeks) &&
+  Array.isArray(body.this_week.later)
+
 /** Each snapshot's name and the shape its body must have to be used. */
 const SHAPES = {
   items: Array.isArray,
   stats: isStatsBody,
   next: isNextBody,
   status: isStatusBody,
+  comics: isComicsBody,
   meta: isMetaBody,
 }
 

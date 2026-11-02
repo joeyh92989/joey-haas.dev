@@ -106,4 +106,19 @@ describe('isValidSnapshot', () => {
     )
     expect(isValidSnapshot('status', [])).toBe(false)
   })
+
+  it('accepts a comics body with its series, stats and weeks', () => {
+    const comics = {
+      series: [],
+      stats: { series: 0 },
+      this_week: { weeks: [], later: [] },
+    }
+    expect(isValidSnapshot('comics', comics)).toBe(true)
+    expect(isValidSnapshot('comics', { ...comics, series: {} })).toBe(false)
+    expect(isValidSnapshot('comics', { ...comics, stats: null })).toBe(false)
+    expect(
+      isValidSnapshot('comics', { ...comics, this_week: { weeks: [] } }),
+    ).toBe(false)
+    expect(isValidSnapshot('comics', [])).toBe(false)
+  })
 })

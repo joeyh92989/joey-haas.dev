@@ -99,6 +99,7 @@ const TITLES = [
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
   ['/admin/no-such-page', 'Not found · Joey Haas'],
   ['/shelf/42', 'My Shelf · Joey Haas'],
+  ['/shelf/comics', 'Comics · My Shelf'],
   ['/shelf/next', 'What’s next · My Shelf'],
   ['/shelf/how', 'How it works · My Shelf'],
   ['/shelf/year/2025', '2025 in review · My Shelf'],

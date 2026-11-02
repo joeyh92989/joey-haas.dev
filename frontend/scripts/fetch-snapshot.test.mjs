@@ -270,6 +270,19 @@ describe('fetchSnapshot', () => {
     }
   })
 
+  it('declares comics as optional, holding the body to the page’s shape', () => {
+    const comics = {
+      series: [],
+      stats: {},
+      this_week: { weeks: [], later: [] },
+    }
+    expect(SNAPSHOTS.comics.path).toBe('/api/public/comics')
+    expect(SNAPSHOTS.comics.required).toBe(false)
+    expect(SNAPSHOTS.comics.valid(comics)).toBe(true)
+    expect(SNAPSHOTS.comics.valid({ ...comics, this_week: {} })).toBe(false)
+    expect(SNAPSHOTS.comics.valid([])).toBe(false)
+  })
+
   it('writes next verbatim when the API serves it', async () => {
     const text = JSON.stringify(NEXT)
     const fetchImpl = api({

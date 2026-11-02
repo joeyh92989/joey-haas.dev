@@ -5242,3 +5242,87 @@ main h1[tabindex='-1']:focus {
     text-align: left;
   }
 }
+
+/* Out this week: one row of issue tiles, scrolling sideways when it
+   outgrows the column. */
+.comics-strip {
+  margin: 1.5rem 0;
+}
+
+.comics-strip h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.75rem;
+}
+
+.comics-strip h2 small {
+  color: var(--text-2);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.comics-strip-issues {
+  display: grid;
+  gap: 0.75rem;
+  grid-auto-columns: 7.5rem;
+  grid-auto-flow: column;
+  list-style: none;
+  margin: 0;
+  overflow-x: auto;
+  padding: 0 0 0.5rem;
+}
+
+.comics-strip-link,
+.comics-strip-later {
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-decoration: none;
+}
+
+.comics-strip-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.comics-strip-thumb {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.comics-strip-later-box {
+  align-items: center;
+  aspect-ratio: 2 / 3;
+  background: var(--sunken);
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+  color: var(--text-2);
+  display: flex;
+  font-size: 0.8rem;
+  overflow: hidden;
+  padding: 0.5rem;
+}
+
+.comics-strip-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.comics-strip-meta {
+  color: var(--text-2);
+  font-size: 0.8rem;
+}
+
+.comics-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin: 0 0 1rem;
+}
+
+.comics-view {
+  display: flex;
+  gap: 0.4rem;
+}

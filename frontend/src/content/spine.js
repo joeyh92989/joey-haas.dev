@@ -26,15 +26,16 @@ export const spine = {
   name: 'My Shelf',
   path: '/shelf',
   tagline:
-    'A tracker for my physical game collection: what I own, what I’ve finished, and what to play next.',
-  projectsTagline: 'A tracker for my physical game collection',
+    'A tracker for my physical game and comic collection: what I own, what I’ve finished, and what to play or read next.',
+  projectsTagline: 'A tracker for my physical games and comics',
   homeLine:
-    'A tracker for my physical game collection: it reads the shelf from a photo, knows which boxes hold a real cartridge, and picks what to play next.',
+    'A tracker for my physical games and comics: it reads the shelf from a photo, knows which boxes hold a real cartridge, follows each comic run, and picks what to play next.',
   projectLine:
     'I built this myself: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
   links,
   tabs: {
     shelf: { to: '/shelf', label: 'Collection' },
+    comics: { to: '/shelf/comics', label: 'Comics' },
     next: { to: '/shelf/next', label: 'What’s next' },
     year: { to: '/shelf/year', label: 'Year in review' },
     how: { to: '/shelf/how', label: 'How it works' },

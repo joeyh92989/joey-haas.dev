@@ -57,7 +57,7 @@ const MONTH_INITIAL = new Intl.DateTimeFormat('en', {
  * The twelve months ending with the current one, oldest first, as the
  * "YYYY-MM" keys the stats endpoint returns. UTC, like the server's year.
  */
-function lastTwelveMonths(now = new Date()) {
+export function lastTwelveMonths(now = new Date()) {
   return Array.from({ length: 12 }, (_, index) => {
     const date = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (11 - index), 1),
@@ -148,24 +148,16 @@ export const isDimmable = (item) =>
   item.status === 'finished' || item.status === 'abandoned'
 
 /**
- * The shelf's headline figures: owned, finished, finished this year. Shared
- * with the admin shelf, which computes them from its own rows.
+ * A row of headline figures. The shelf passes owned, finished and finished
+ * this year; Comics passes its own (spec, S2).
  *
  * @param {object} props
- * @param {number} props.owned
- * @param {number} props.finished
- * @param {number} props.finishedThisYear
+ * @param {{label: string, value: number|string}[]} props.figures
  */
-export function HeroNumbers({ owned, finished, finishedThisYear }) {
-  const year = new Date().getUTCFullYear()
-  const figures = [
-    ['Owned', owned],
-    ['Finished', finished],
-    [`Finished in ${year}`, finishedThisYear],
-  ]
+export function HeroNumbers({ figures }) {
   return (
     <dl className="hero-numbers">
-      {figures.map(([label, value]) => (
+      {figures.map(({ label, value }) => (
         <div key={label}>
           <dt>{label}</dt>
           <dd>{value}</dd>
@@ -229,12 +221,15 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
   )
 }
 
-/** One stacked bar of the four statuses, in shelf order, with a legend. */
-function StatusBar({ byStatus }) {
+/**
+ * One stacked bar of the four statuses, in shelf order, with a legend.
+ * Comics passes its own labels and title ("Reading").
+ */
+export function StatusBar({ byStatus, labels = STATUS_LABEL, title = 'Status' }) {
   const present = STATUS_ORDER.filter((status) => byStatus[status] > 0)
   return (
     <div className="stat-card stat-status">
-      <h2>Status</h2>
+      <h2>{title}</h2>
       <div className="status-bar">
         {present.map((status) => (
           <span
@@ -242,7 +237,7 @@ function StatusBar({ byStatus }) {
             className="status-segment"
             data-status={status}
             role="img"
-            aria-label={`${STATUS_LABEL[status]}: ${byStatus[status]}`}
+            aria-label={`${labels[status]}: ${byStatus[status]}`}
             style={{ '--count': byStatus[status] }}
           />
         ))}
@@ -255,7 +250,7 @@ function StatusBar({ byStatus }) {
               data-status={status}
               aria-hidden="true"
             />
-            <span>{STATUS_LABEL[status]}</span>
+            <span>{labels[status]}</span>
             <span className="stat-count">{byStatus[status]}</span>
           </li>
         ))}
@@ -548,9 +543,14 @@ export default function Collection() {
         <>
           {stats && (
             <HeroNumbers
-              owned={stats.owned}
-              finished={stats.by_status.finished ?? 0}
-              finishedThisYear={stats.finished_this_year}
+              figures={[
+                { label: 'Owned', value: stats.owned },
+                { label: 'Finished', value: stats.by_status.finished ?? 0 },
+                {
+                  label: `Finished in ${new Date().getUTCFullYear()}`,
+                  value: stats.finished_this_year,
+                },
+              ]}
             />
           )}
 

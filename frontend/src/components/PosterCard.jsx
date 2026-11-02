@@ -71,6 +71,8 @@ function KeyGlyph() {
  * @param {boolean} [props.dimmed] - Fade the card (finished and abandoned).
  * @param {import('react').ReactNode} [props.badge] - A corner mark on the
  *   poster, such as a comic's RunBadge.
+ * @param {Record<string, string>} [props.statusLabels] - The status mark's
+ *   names; comics pass their own (Reading, Read).
  */
 export default function PosterCard({
   item,
@@ -78,6 +80,7 @@ export default function PosterCard({
   actions,
   dimmed = false,
   badge = null,
+  statusLabels = STATUS_LABEL,
 }) {
   const meta = [item.year, item.creator].filter(Boolean).join(' · ')
   const mark = formatMark(item)
@@ -90,12 +93,12 @@ export default function PosterCard({
           <CoverImage src={item.cover_url} type={item.type} alt="" />
           {badge}
           {/* Backlog gets no mark: its absence is the signal. */}
-          {item.status !== 'backlog' && STATUS_LABEL[item.status] && (
+          {item.status !== 'backlog' && statusLabels[item.status] && (
             <span
               className="status-mark"
               data-status={item.status}
               role="img"
-              aria-label={STATUS_LABEL[item.status]}
+              aria-label={statusLabels[item.status]}
             />
           )}
           {mark && (

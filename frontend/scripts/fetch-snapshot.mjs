@@ -66,6 +66,18 @@ const isStatusBody = (body) =>
   STATUS_COUNTS.every((key) => Number.isInteger(body[key]))
 
 /**
+ * The comics shelf's body (/shelf/comics). Keep in step with `isComicsBody`
+ * in src/lib/snapshot.js: the two predicates must be identical.
+ */
+const isComicsBody = (body) =>
+  isObject(body) &&
+  Array.isArray(body.series) &&
+  isObject(body.stats) &&
+  isObject(body.this_week) &&
+  Array.isArray(body.this_week.weeks) &&
+  Array.isArray(body.this_week.later)
+
+/**
  * The snapshots, the endpoint each copies, the shape it must have, and
  * whether the build can go without it. A required snapshot that fails fails
  * them all; an optional one is only left out.
@@ -91,6 +103,13 @@ export const SNAPSHOTS = {
   status: {
     path: '/api/public/status',
     valid: isStatusBody,
+    required: false,
+  },
+  // Optional like next: the comics shelf (comics spec), new in the release
+  // that ships its endpoint.
+  comics: {
+    path: '/api/public/comics',
+    valid: isComicsBody,
     required: false,
   },
 }
