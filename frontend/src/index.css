@@ -47,6 +47,11 @@
      ok 8.27, warn 8.51, accent 6.73 above; the New badge, accent text on
      --bg, is 7.15. */
   --redact: repeating-linear-gradient(135deg, #626b77 0 6px, #1b1f24 6px 12px);
+  /* Comic runs. Missing issues and the not-out-yet hatch are non-text marks
+     on --surface, built on the redaction stripe's mark colour: 3.30 (the
+     spec's --line-strong reached only 1.73). */
+  --run-missing: #626b77;
+  --hatch: repeating-linear-gradient(135deg, #626b77 0 2px, transparent 2px 6px);
   /* Code blocks get their own token because the syntax colors do not clear AA
      on every surface: measured across fifteen languages, every dark-plus
      color reaches 4.89:1 here (worst: the grey used for JSX and HTML angle
@@ -102,6 +107,9 @@
   /* Redaction stripe 3.25 on --surface (mockup #e4e4df: 1.28). Pill
      borders ok 5.32, warn 4.24, accent 6.09; the New badge on --bg 5.93. */
   --redact: repeating-linear-gradient(135deg, #8a8f98 0 6px, #f3f3f0 6px 12px);
+  /* Comic runs on --surface: 3.25 (--line-strong reached 1.66). */
+  --run-missing: #8a8f98;
+  --hatch: repeating-linear-gradient(135deg, #8a8f98 0 2px, transparent 2px 6px);
   /* Every light-plus color reaches 4.53:1 on white (worst: the red used for
      string escapes); on --bg it drops to 4.41. */
   --code-bg: #ffffff;
