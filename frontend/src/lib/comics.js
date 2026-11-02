@@ -212,7 +212,18 @@ export function parseEditions(text) {
   const lines = text.split('\n')
   for (const [index, line] of lines.entries()) {
     if (!line.trim()) continue
-    const parts = line.split(/[·|]/).map((part) => part.trim())
+    // Kind before the first separator, range after the last: a label may
+    // hold a separator itself ("Vol. 1 · Deluxe").
+    const first = line.search(/[·|]/)
+    const last = Math.max(line.lastIndexOf('·'), line.lastIndexOf('|'))
+    const parts =
+      first === last
+        ? []
+        : [
+            line.slice(0, first),
+            line.slice(first + 1, last),
+            line.slice(last + 1),
+          ].map((part) => part.trim())
     const range = parts.length === 3 && EDITION_LINE.exec(parts[2])
     if (!range || !parts[0] || !parts[1]) {
       return {

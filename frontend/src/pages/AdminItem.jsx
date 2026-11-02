@@ -391,7 +391,13 @@ export default function AdminItem() {
     // Against the form as it is now, not as it was when the request began: a
     // cold start can hold the request long enough to type into the form.
     setForm((current) => {
-      const unsaved = Object.keys(changedFields(item, current))
+      // Editions are edited as text: an unread or unreadable line is still
+      // a pending edit, so the text field is compared, not the parsed list.
+      const unsaved = Object.keys(changedFields(item, current)).filter(
+        (field) => field !== 'editions',
+      )
+      if (current.editions_text !== toForm(item).editions_text)
+        unsaved.push('editions_text')
       return {
         ...toForm(updated),
         ...Object.fromEntries(unsaved.map((field) => [field, current[field]])),

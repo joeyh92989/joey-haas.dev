@@ -66,9 +66,23 @@ describe('IssueGrid', () => {
     expect(onToggle).toHaveBeenLastCalledWith(5, true)
   })
 
-  it('disables the toggles while a save runs', () => {
-    render(<IssueGrid detail={DETAIL} onToggle={() => {}} busy />)
-    expect(screen.getByRole('button', { name: 'Issue 5' })).toBeDisabled()
+  it('ignores the toggles while a save runs, keeping them focusable', () => {
+    const onToggle = vi.fn()
+    render(<IssueGrid detail={DETAIL} onToggle={onToggle} busy />)
+    const five = screen.getByRole('button', { name: 'Issue 5' })
+    five.focus()
+    fireEvent.click(five)
+    expect(onToggle).not.toHaveBeenCalled()
+    expect(five).toHaveAttribute('aria-disabled', 'true')
+    expect(five).not.toBeDisabled()
+    expect(five).toHaveFocus()
+  })
+
+  it('names an edition cell’s state in words when signed in', () => {
+    render(<IssueGrid detail={DETAIL} onToggle={() => {}} />)
+    expect(
+      screen.getByRole('img', { name: 'Issue 3, owned, in Vol. 1' }),
+    ).toHaveTextContent('3')
   })
 
   it('falls back to the run bar past the cap', () => {

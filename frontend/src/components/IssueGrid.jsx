@@ -35,7 +35,9 @@ function nextCell(detail) {
  * @param {object} props
  * @param {object} props.detail - A PublicComicDetail.
  * @param {(issue: number, owned: boolean) => void} [props.onToggle]
- * @param {boolean} [props.busy] - Disable the toggles while a save runs.
+ * @param {boolean} [props.busy] - Ignore the toggles while a save runs. They
+ *   stay focusable (aria-disabled, not disabled), or each toggle would drop
+ *   focus to the page.
  */
 export default function IssueGrid({ detail, onToggle, busy = false }) {
   if (detail.released > ISSUE_GRID_CAP) {
@@ -70,11 +72,27 @@ export default function IssueGrid({ detail, onToggle, busy = false }) {
           data-k={kind}
           aria-pressed={isOwned}
           aria-label={`Issue ${n}`}
-          disabled={busy}
-          onClick={() => onToggle(n, !isOwned)}
+          aria-disabled={busy || undefined}
+          onClick={() => {
+            if (!busy) onToggle(n, !isOwned)
+          }}
         >
           {n}
         </button>
+      )
+    }
+    if (interactive) {
+      // Signed in, the group is read: an edition's cell says so in words.
+      return (
+        <i
+          key={n}
+          data-k={kind}
+          role="img"
+          aria-label={`Issue ${n}, ${LEGEND_LABEL[kind].toLowerCase()}, in ${edition}`}
+          title={`In ${edition}`}
+        >
+          {n}
+        </i>
       )
     }
     return (

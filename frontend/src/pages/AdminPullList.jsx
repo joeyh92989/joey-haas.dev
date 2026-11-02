@@ -236,6 +236,10 @@ export default function AdminPullList() {
   // An answered row drops its buttons, which held focus; the status line
   // that names the answer takes it instead.
   const statusRef = useRef(null)
+  // One answer in flight at a time: Got it and Skip on the same issue would
+  // otherwise both be sent. A ref, so a second click in the same tick sees it.
+  const answeringRef = useRef(false)
+  const [answering, setAnswering] = useState(false)
 
   /** Returns rather than setting state; the effect applies it. */
   const fetchList = useCallback(async () => {
@@ -268,7 +272,16 @@ export default function AdminPullList() {
     }
   }, [apply, fetchList])
 
-  const reload = useCallback(() => fetchList().then(apply), [apply, fetchList])
+  // After an action the list is already on screen: a failed re-read keeps
+  // it (and its Refresh) and says so, rather than replacing the page.
+  const reload = useCallback(
+    () =>
+      fetchList().then((result) => {
+        if (result.state === 'error') setError(LOAD_ERROR)
+        else apply(result)
+      }),
+    [apply, fetchList],
+  )
 
   async function refresh() {
     setRefreshing(true)
@@ -298,6 +311,9 @@ export default function AdminPullList() {
   async function answer(row, action) {
     const key = `${row.item_id}#${row.number}`
     const name = `${row.title} #${row.number}`
+    if (answeringRef.current) return
+    answeringRef.current = true
+    setAnswering(true)
     setError(null)
     setMessage(null)
     try {
@@ -330,6 +346,9 @@ export default function AdminPullList() {
       statusRef.current?.focus()
     } catch {
       setError(ACTION_ERROR)
+    } finally {
+      answeringRef.current = false
+      setAnswering(false)
     }
   }
 
@@ -445,6 +464,7 @@ export default function AdminPullList() {
                             <button
                               type="button"
                               aria-label={`Got it: ${name}`}
+                              aria-disabled={answering || undefined}
                               onClick={() => answer(row, 'got')}
                             >
                               Got it
@@ -452,6 +472,7 @@ export default function AdminPullList() {
                             <button
                               type="button"
                               aria-label={`Skip: ${name}`}
+                              aria-disabled={answering || undefined}
                               onClick={() => answer(row, 'skip')}
                             >
                               Skip

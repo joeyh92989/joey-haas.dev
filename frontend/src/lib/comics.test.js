@@ -158,6 +158,14 @@ describe('editions text', () => {
     ])
   })
 
+  it('reads back a label that holds a separator itself', () => {
+    const deluxe = [{ kind: 'Trade', label: 'Vol. 1 · Deluxe', from: 1, to: 6 }]
+    expect(parseEditions(editionsText(deluxe))).toEqual({
+      editions: deluxe,
+      error: null,
+    })
+  })
+
   it('is null when blank, and names the line it cannot read', () => {
     expect(parseEditions('  \n')).toEqual({ editions: null, error: null })
     expect(parseEditions('Trade · Vol. 1 · 1–6\nVol. 2 6–12')).toEqual({

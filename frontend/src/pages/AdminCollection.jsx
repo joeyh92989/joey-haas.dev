@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import ItemForm, {
@@ -110,11 +110,18 @@ export default function AdminCollection() {
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
   // The pull list's Own… arrives with the volume to prefill (spec, section 4).
-  const { state: arrival } = useLocation()
+  const { state: arrival, pathname, search } = useLocation()
+  const navigate = useNavigate()
   const [form, setForm] = useState(() => ({
     ...EMPTY_FORM,
     ...arrival?.prefill,
   }))
+  // History keeps location state across a reload, which would prefill the
+  // form again after the item was saved; once read, it is cleared.
+  useEffect(() => {
+    if (arrival?.prefill)
+      navigate({ pathname, search }, { replace: true, state: null })
+  }, [arrival, navigate, pathname, search])
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)

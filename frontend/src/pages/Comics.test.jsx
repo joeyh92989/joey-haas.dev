@@ -284,6 +284,33 @@ describe('Comics', () => {
     expect(localStorage.length).toBe(0)
   })
 
+  it('keeps a pressed publisher’s chip when live rows drop it', async () => {
+    mockComics({ data: COMICS, live: false, failed: false })
+    const { rerender } = renderPage()
+    const publishers = screen.getByRole('group', { name: copy.chips.publisher })
+    await userEvent.click(
+      within(publishers).getByRole('button', { name: /^DC/ }),
+    )
+    mockComics({
+      data: { ...COMICS, series: ROWS.filter((row) => row.publisher !== 'DC') },
+      live: true,
+      failed: false,
+    })
+    rerender(
+      <MemoryRouter initialEntries={['/shelf/comics']}>
+        <Routes>
+          <Route path="/shelf/comics" element={<Comics />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    const dc = within(
+      screen.getByRole('group', { name: copy.chips.publisher }),
+    ).getByRole('button', { name: /^DC/ })
+    expect(dc).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(dc)
+    expect(runTitles()).toEqual(['Saga', 'Monstress'])
+  })
+
   it('restores a stored chip, sort and view, and ignores a stale one', () => {
     localStorage.setItem('shelf.public.comics.chip', '"want"')
     localStorage.setItem('shelf.public.comics.sort', '"price"')

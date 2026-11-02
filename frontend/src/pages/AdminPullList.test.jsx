@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
-import { ACTION_ERROR } from '../content/status.js'
+import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 import AdminPullList from './AdminPullList.jsx'
 
 const issue = (title, number, fields = {}) => ({
@@ -204,6 +204,45 @@ describe('AdminPullList', () => {
     expect(
       screen.getByRole('button', { name: 'Skip: Saga #74' }),
     ).toBeInTheDocument()
+  })
+
+  it('sends one answer at a time', async () => {
+    let answer
+    const calls = stubApi({
+      'POST /api/comics/id-Saga/issues/73/got': () =>
+        new Promise((resolve) => {
+          answer = () =>
+            resolve(ok({ item_id: 'id-Saga', issues_owned: '1–73' }))
+        }),
+    })
+    renderPage()
+    const got = await screen.findByRole('button', { name: 'Got it: Saga #73' })
+    await userEvent.click(got)
+    await userEvent.click(got)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Skip: Saga #73' }),
+    )
+    expect(got).toHaveAttribute('aria-disabled', 'true')
+    answer()
+    expect(await screen.findByText('Got Saga #73.')).toBeVisible()
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1)
+  })
+
+  it('keeps the list and its Refresh when the re-read fails', async () => {
+    let reads = 0
+    stubApi({
+      'GET /api/comics/pull-list': () =>
+        (reads += 1) === 1 ? ok(PULL) : { ok: false, status: 503 },
+      'POST /api/comics/refresh': () =>
+        ok({ ok: true, refreshed: 2, errors: [] }),
+    })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Refresh' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(LOAD_ERROR)
+    expect(screen.getByRole('link', { name: 'Saga #73' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled()
   })
 
   it('refreshes the followed series and names any that failed', async () => {

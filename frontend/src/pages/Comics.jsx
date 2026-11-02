@@ -229,7 +229,13 @@ function Chip({ pressed, label, count, onClick }) {
 function ComicChips({ rows, chip, onChip, publisher, onPublisher }) {
   const [expanded, setExpanded] = useState(false)
   const counts = chipCounts(rows)
-  const publishers = publishersByCount(rows)
+  const counted = publishersByCount(rows)
+  // A pressed publisher the rows no longer hold (live data replaced the
+  // snapshot) keeps its chip at 0, or the filter could not be undone.
+  const publishers =
+    publisher && !counted.some((entry) => entry.publisher === publisher)
+      ? [...counted, { publisher, count: 0 }]
+      : counted
   const shown = expanded
     ? publishers
     : publishers.filter(
@@ -252,7 +258,7 @@ function ComicChips({ rows, chip, onChip, publisher, onPublisher }) {
           />
         ))}
       </div>
-      {publishers.length > 1 && (
+      {(publishers.length > 1 || publisher) && (
         <div
           className="chip-row"
           role="group"

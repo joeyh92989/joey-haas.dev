@@ -846,6 +846,30 @@ describe('AdminItem comic fields', () => {
     )
   })
 
+  it('keeps an editions line typed before the refresh lands', async () => {
+    const mock = stubApi({ item: COMIC })
+    renderPage()
+    const editions = await screen.findByLabelText('Collected editions')
+    await userEvent.type(editions, '\nTrade · Vol. 2 · 7-12')
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Refresh from Comic Vine' }),
+    )
+    await waitFor(() =>
+      expect(
+        mock.mock.calls.filter(
+          ([url, options]) =>
+            !options?.method && /\/api\/items\/abc$/.test(String(url)),
+        ),
+      ).toHaveLength(2),
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Refresh from Comic Vine' }),
+      ).toBeEnabled(),
+    )
+    expect(editions).toHaveValue('Trade · Vol. 1 · 1–6\nTrade · Vol. 2 · 7-12')
+  })
+
   it('offers no Comic Vine refresh on a game', async () => {
     stubApi()
     renderPage()
