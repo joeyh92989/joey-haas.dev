@@ -165,6 +165,11 @@ export function publicRoutes({ posts, items }) {
       ),
       legacy: true,
     },
+    page(
+      spine.comics.path,
+      `${spine.comics.title} · ${spine.name}`,
+      spine.comics.lede,
+    ),
     {
       ...page(
         '/now',

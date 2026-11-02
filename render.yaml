@@ -39,6 +39,9 @@ services:
         source: /shelf/how
         destination: /shelf/how/index.html
       - type: rewrite
+        source: /shelf/comics
+        destination: /shelf/comics/index.html
+      - type: rewrite
         source: /now
         destination: /now/index.html
       - type: rewrite
