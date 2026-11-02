@@ -21,7 +21,9 @@ const DETAIL = {
 }
 
 const kinds = (container) =>
-  [...container.querySelectorAll('.issue-grid > *')].map((cell) => cell.dataset.k)
+  [...container.querySelectorAll('.issue-grid > *')].map(
+    (cell) => cell.dataset.k,
+  )
 
 describe('IssueGrid', () => {
   it('marks each issue read, owned or missing, then the next one', () => {
@@ -37,17 +39,24 @@ describe('IssueGrid', () => {
       'unreleased',
     ])
     // Public: decoration, no toggles.
-    expect(container.querySelector('.issue-grid')).toHaveAttribute('aria-hidden', 'true')
+    expect(container.querySelector('.issue-grid')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
     expect(screen.queryByRole('button')).toBeNull()
   })
 
   it('toggles uncovered issues and names the edition on covered ones (D6)', () => {
     const onToggle = vi.fn()
-    const { container } = render(<IssueGrid detail={DETAIL} onToggle={onToggle} />)
+    const { container } = render(
+      <IssueGrid detail={DETAIL} onToggle={onToggle} />,
+    )
     const group = screen.getByRole('group', { name: 'Issues I own' })
     expect(group).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Issue 1' })).toBeNull()
-    expect(container.querySelector('[title="In Vol. 1"]')).toHaveTextContent('1')
+    expect(container.querySelector('[title="In Vol. 1"]')).toHaveTextContent(
+      '1',
+    )
 
     const four = screen.getByRole('button', { name: 'Issue 4' })
     expect(four).toHaveAttribute('aria-pressed', 'true')
@@ -70,7 +79,9 @@ describe('IssueGrid', () => {
     )
     expect(container.querySelector('.issue-grid')).toBeNull()
     expect(
-      screen.getByRole('img', { name: `10 of ${ISSUE_GRID_CAP + 1} issues owned, ongoing` }),
+      screen.getByRole('img', {
+        name: `10 of ${ISSUE_GRID_CAP + 1} issues owned, ongoing`,
+      }),
     ).toBeInTheDocument()
   })
 

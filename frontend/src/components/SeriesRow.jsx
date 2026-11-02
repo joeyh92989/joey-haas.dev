@@ -11,7 +11,8 @@ function metaParts(row) {
   const year = row.year ? `${row.year}${row.ongoing ? '–' : ''}` : null
   const format = row.shelf_format ? COPY.formats[row.shelf_format] : null
   const edition = row.edition_labels[0]
-  const binding = format && edition ? `${format} (${edition})` : (format ?? edition)
+  const binding =
+    format && edition ? `${format} (${edition})` : (format ?? edition)
   return [row.publisher, year, binding].filter(Boolean)
 }
 
@@ -19,7 +20,10 @@ function metaParts(row) {
 function runNote(row) {
   if (row.wanted) return null
   if (row.next_issue) {
-    return COPY.run.next(row.next_issue.number, shortDate(row.next_issue.store_date))
+    return COPY.run.next(
+      row.next_issue.number,
+      shortDate(row.next_issue.store_date),
+    )
   }
   if (row.run_state === 'complete') return COPY.run.complete
   if (row.run_state === 'gaps') return COPY.run.missingCount(row.missing)
@@ -67,7 +71,11 @@ export default function SeriesRow({ row, to }) {
           {metaParts(row).map((part) => (
             <span key={part}>{part} · </span>
           ))}
-          <span className="status-swatch" data-status={row.status} aria-hidden="true" />
+          <span
+            className="status-swatch"
+            data-status={row.status}
+            aria-hidden="true"
+          />
           {COPY.status[row.status]}
           {readTo}
         </p>

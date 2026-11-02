@@ -277,7 +277,9 @@ describe('Comics', () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
     const publishers = screen.getByRole('group', { name: copy.chips.publisher })
-    await userEvent.click(within(publishers).getByRole('button', { name: /^DC/ }))
+    await userEvent.click(
+      within(publishers).getByRole('button', { name: /^DC/ }),
+    )
     expect(runTitles()).toEqual(['Absolute Batman', 'Paper Girls'])
     expect(localStorage.length).toBe(0)
   })
@@ -302,7 +304,9 @@ describe('Comics', () => {
   it('shows the Covers view with run badges and comic status words', async () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
-    await userEvent.click(screen.getByRole('button', { name: copy.views.covers }))
+    await userEvent.click(
+      screen.getByRole('button', { name: copy.views.covers }),
+    )
     expect(localStorage.getItem('shelf.public.comics.view')).toBe('"covers"')
     expect(
       screen.getByRole('img', { name: '54 of 72 issues owned, ongoing' }),
@@ -362,7 +366,9 @@ describe('Comics', () => {
     mockComics({ data: COMICS, live: true, failed: false })
     const { container } = renderPage()
     expect(await axeViolations(container)).toEqual([])
-    await userEvent.click(screen.getByRole('button', { name: copy.views.covers }))
+    await userEvent.click(
+      screen.getByRole('button', { name: copy.views.covers }),
+    )
     expect(await axeViolations(container)).toEqual([])
   })
 })

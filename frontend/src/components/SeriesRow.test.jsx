@@ -58,16 +58,24 @@ function renderList(rows) {
 describe('SeriesList', () => {
   it('shows a run with its bar, count, next issue and read marker', () => {
     renderList([SAGA])
-    const row = screen.getAllByRole('listitem').find((li) => li.matches('.series-row'))
+    const row = screen
+      .getAllByRole('listitem')
+      .find((li) => li.matches('.series-row'))
     expect(within(row).getByRole('link', { name: 'Saga' })).toHaveAttribute(
       'href',
       '/shelf/a/',
     )
     expect(row).toHaveTextContent('Following')
-    expect(row).toHaveTextContent('Image · 2012– · Trades (Vol. 1–9) · Reading, read to #40')
+    expect(row).toHaveTextContent(
+      'Image · 2012– · Trades (Vol. 1–9) · Reading, read to #40',
+    )
     // AC3: the bar is the run the API sent, released plus the tail.
-    const bar = within(row).getByRole('img', { name: '54 of 72 issues owned, ongoing' })
-    const lengths = [...bar.querySelectorAll('i')].map((i) => Number(i.style.flexGrow))
+    const bar = within(row).getByRole('img', {
+      name: '54 of 72 issues owned, ongoing',
+    })
+    const lengths = [...bar.querySelectorAll('i')].map((i) =>
+      Number(i.style.flexGrow),
+    )
     expect(lengths.reduce((a, b) => a + b, 0)).toBe(72 + 7)
     expect(row).toHaveTextContent('54 / 72+')
     expect(row).toHaveTextContent('Next #73 · Nov 11')

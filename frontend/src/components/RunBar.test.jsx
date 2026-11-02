@@ -16,9 +16,15 @@ describe('RunBar', () => {
     const { container } = render(
       <RunBar segments={SEGMENTS} owned={50} released={72} ongoing />,
     )
-    const bar = screen.getByRole('img', { name: '50 of 72 issues owned, ongoing' })
+    const bar = screen.getByRole('img', {
+      name: '50 of 72 issues owned, ongoing',
+    })
     const fills = [...bar.querySelectorAll('i')]
-    expect(fills.map((i) => i.dataset.k)).toEqual(['owned', 'missing', 'upcoming'])
+    expect(fills.map((i) => i.dataset.k)).toEqual([
+      'owned',
+      'missing',
+      'upcoming',
+    ])
     expect(fills.map((i) => i.style.flexGrow)).toEqual(['50', '22', '7'])
     expect(container.firstChild).toHaveClass('run')
   })

@@ -70,9 +70,7 @@ describe('SpineHeader', () => {
     expect(screen.getByRole('link', { name: 'Collection' })).not.toHaveClass(
       'active',
     )
-    const names = screen
-      .getAllByRole('link')
-      .map((link) => link.textContent)
+    const names = screen.getAllByRole('link').map((link) => link.textContent)
     expect(names.indexOf('Comics')).toBe(names.indexOf('Collection') + 1)
   })
 })

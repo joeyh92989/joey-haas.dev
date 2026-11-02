@@ -19,7 +19,13 @@ const { run: RUN } = spine.comics
  * @param {boolean} props.ongoing
  * @param {string} [props.className]
  */
-export default function RunBar({ segments, owned, released, ongoing, className }) {
+export default function RunBar({
+  segments,
+  owned,
+  released,
+  ongoing,
+  className,
+}) {
   return (
     <span
       className={className ? `run ${className}` : 'run'}

@@ -39,7 +39,9 @@ describe('ranges', () => {
   })
 
   it('round-trips through the two', () => {
-    expect(expandRanges(compactRanges([1, 2, 4, 6, 7]))).toEqual([1, 2, 4, 6, 7])
+    expect(expandRanges(compactRanges([1, 2, 4, 6, 7]))).toEqual([
+      1, 2, 4, 6, 7,
+    ])
   })
 
   it('maps each covered issue to the first edition that collects it', () => {
@@ -85,7 +87,9 @@ describe('chips, search and sorts', () => {
       unread: 1,
       want: 1,
     })
-    expect(filterComics(rows, 'gaps', 'Image').map((r) => r.title)).toEqual(['Saga'])
+    expect(filterComics(rows, 'gaps', 'Image').map((r) => r.title)).toEqual([
+      'Saga',
+    ])
     expect(filterComics(rows, 'nonsense')).toHaveLength(4)
   })
 
@@ -103,11 +107,21 @@ describe('chips, search and sorts', () => {
 
   it('sorts as the API does', () => {
     const dated = [
-      row({ title: 'B', next_issue: { number: '2', store_date: '2026-11-18' } }),
+      row({
+        title: 'B',
+        next_issue: { number: '2', store_date: '2026-11-18' },
+      }),
       row({ title: 'A' }),
-      row({ title: 'C', next_issue: { number: '9', store_date: '2026-11-11' } }),
+      row({
+        title: 'C',
+        next_issue: { number: '9', store_date: '2026-11-11' },
+      }),
     ]
-    expect(sortComics(dated, 'next').map((r) => r.title)).toEqual(['C', 'B', 'A'])
+    expect(sortComics(dated, 'next').map((r) => r.title)).toEqual([
+      'C',
+      'B',
+      'A',
+    ])
     expect(sortComics(rows, 'publisher').map((r) => r.title)).toEqual([
       'Hellboy',
       'Monstress',

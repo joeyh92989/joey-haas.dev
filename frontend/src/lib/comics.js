@@ -52,11 +52,13 @@ export function compactRanges(numbers) {
       last = n
       continue
     }
-    if (start !== null) parts.push(start === last ? `${start}` : `${start}-${last}`)
+    if (start !== null)
+      parts.push(start === last ? `${start}` : `${start}-${last}`)
     start = n
     last = n
   }
-  if (start !== null) parts.push(start === last ? `${start}` : `${start}-${last}`)
+  if (start !== null)
+    parts.push(start === last ? `${start}` : `${start}-${last}`)
   return parts.join(', ')
 }
 
@@ -129,7 +131,8 @@ export function chipCounts(rows) {
 export function publishersByCount(rows) {
   const counts = new Map()
   for (const row of rows) {
-    if (row.publisher) counts.set(row.publisher, (counts.get(row.publisher) ?? 0) + 1)
+    if (row.publisher)
+      counts.set(row.publisher, (counts.get(row.publisher) ?? 0) + 1)
   }
   return [...counts.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))

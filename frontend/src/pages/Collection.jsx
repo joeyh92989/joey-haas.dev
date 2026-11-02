@@ -225,7 +225,11 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
  * One stacked bar of the four statuses, in shelf order, with a legend.
  * Comics passes its own labels and title ("Reading").
  */
-export function StatusBar({ byStatus, labels = STATUS_LABEL, title = 'Status' }) {
+export function StatusBar({
+  byStatus,
+  labels = STATUS_LABEL,
+  title = 'Status',
+}) {
   const present = STATUS_ORDER.filter((status) => byStatus[status] > 0)
   return (
     <div className="stat-card stat-status">
