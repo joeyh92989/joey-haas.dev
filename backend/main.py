@@ -16,6 +16,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from analytics_routes import create_analytics_router, create_track_router
 from auth import admin_identity, create_auth_router
+from comics_routes import create_comics_router
 from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
 from errors import add_json_errors
@@ -139,6 +140,8 @@ app.include_router(
         provider_factory=lambda: build_provider(config),
     )
 )
+# The comics refreshes have their own lock: they write only comic rows.
+app.include_router(create_comics_router(session_factory, registry, asyncio.Lock()))
 # The provider is built per request rather than here, so an absent model key
 # is a failure of the import route alone rather than a service that will not
 # boot -- the same reasoning as the lazy source checks.

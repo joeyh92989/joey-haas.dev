@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from auth import session_admin
-from comics import RangeError, apply_comic_fields, row_run
+from comics import ISSUE_SNAPSHOT_KEYS, RangeError, apply_comic_fields, row_run
 from formats import CopyFieldError, apply_copy_fields
 from models import (
     ComicShelfFormat,
@@ -437,7 +437,14 @@ def _apply_detail(item: Item, detail) -> None:
     item.year = detail.year if detail.year is not None else item.year
     item.creator = detail.creator
     item.cover_url = detail.cover_url
-    item.source_metadata = detail.source_metadata
+    kept = {
+        key: value
+        for key, value in (item.source_metadata or {}).items()
+        if item.type == ItemType.COMIC and key in ISSUE_SNAPSHOT_KEYS
+    }
+    item.source_metadata = (
+        {**(detail.source_metadata or {}), **kept} if kept else detail.source_metadata
+    )
     released = _release_date(detail.source_metadata or {})
     if released is not None:
         item.release_date = released

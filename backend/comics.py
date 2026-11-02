@@ -332,7 +332,7 @@ class Issue:
 class ComicSeries:
     """One comic row as the shelf and the pull list see it."""
 
-    id: int
+    id: int | str
     title: str
     publisher: str | None = None
     owned: frozenset[int] = frozenset()
@@ -425,6 +425,10 @@ def sort_series(
 # An issue store-dated this recently, or in the future, makes a run ongoing.
 ONGOING_DAYS = 120
 
+# What comic_snapshot adds to source_metadata. A volume refresh replaces the
+# rest of the metadata and must carry these over, or the pull list empties.
+ISSUE_SNAPSHOT_KEYS = ("issues", "released", "ongoing", "fetched_on")
+
 
 def _iso(text: object) -> date | None:
     try:
@@ -472,6 +476,34 @@ def comic_snapshot(issue_count: int | None, issues: list[dict], today: date) -> 
         "ongoing": ongoing,
         "fetched_on": today.isoformat(),
     }
+
+
+def series_from_row(
+    id: int | str,
+    title: str,
+    publisher: str | None,
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+    read_to: int | None,
+    metadata: dict | None,
+    on_shelf: bool,
+    following: bool,
+) -> ComicSeries:
+    """A stored row's columns as a ComicSeries."""
+    return ComicSeries(
+        id=id,
+        title=title,
+        publisher=publisher,
+        owned=frozenset(owned_set(issues_owned, editions)),
+        skipped=frozenset(expand(parse_ranges(issues_skipped))),
+        released=snapshot_released(metadata),
+        ongoing=bool((metadata or {}).get("ongoing")),
+        read_to=read_to,
+        on_shelf=on_shelf,
+        following=following,
+        issues=snapshot_issues(metadata),
+    )
 
 
 # --- Pull list --------------------------------------------------------------
