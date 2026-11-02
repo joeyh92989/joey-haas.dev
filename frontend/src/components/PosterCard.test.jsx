@@ -39,6 +39,13 @@ describe('PosterCard', () => {
     expect(screen.getByRole('button', { name: 'Rate' }).closest('a')).toBeNull()
   })
 
+  it('puts a badge inside the poster art, not outside the link', () => {
+    renderCard({ badge: <span className="run-badge">12/12</span> })
+    const badge = screen.getByText('12/12')
+    expect(badge.closest('.poster-art')).not.toBeNull()
+    expect(badge.closest('a')).toHaveAttribute('href', '/shelf/1')
+  })
+
   it('passes the item to the actions render prop', () => {
     renderCard({ actions: (item) => <span>actions for {item.title}</span> })
     expect(screen.getByText('actions for Hades')).toBeInTheDocument()

@@ -69,8 +69,16 @@ function KeyGlyph() {
  * @param {(item: object) => import('react').ReactNode} [props.actions] -
  *   Optional controls rendered beside the link.
  * @param {boolean} [props.dimmed] - Fade the card (finished and abandoned).
+ * @param {import('react').ReactNode} [props.badge] - A corner mark on the
+ *   poster, such as a comic's RunBadge.
  */
-export default function PosterCard({ item, to, actions, dimmed = false }) {
+export default function PosterCard({
+  item,
+  to,
+  actions,
+  dimmed = false,
+  badge = null,
+}) {
   const meta = [item.year, item.creator].filter(Boolean).join(' · ')
   const mark = formatMark(item)
   const coming = upcoming(item)
@@ -80,6 +88,7 @@ export default function PosterCard({ item, to, actions, dimmed = false }) {
       <Link to={to} className="poster-link">
         <span className="poster-art">
           <CoverImage src={item.cover_url} type={item.type} alt="" />
+          {badge}
           {/* Backlog gets no mark: its absence is the signal. */}
           {item.status !== 'backlog' && STATUS_LABEL[item.status] && (
             <span

@@ -429,6 +429,76 @@ export const spine = {
     waking: WAKING,
     error: LOAD_ERROR,
   },
+  /** /shelf/comics and the comic parts of the series page and What's next. */
+  comics: {
+    path: '/shelf/comics',
+    title: 'Comics',
+    lede: 'Every series on my shelf as a run: what I own, the gaps, and what’s out this week.',
+    /** Comic wording for the four statuses; the shelf's own labels are game words. */
+    status: {
+      active: 'Reading',
+      backlog: 'To read',
+      finished: 'Read',
+      abandoned: 'Dropped',
+    },
+    /** Mirrors the comic_shelf_format enum. */
+    formats: { singles: 'Singles', trades: 'Trades', omnibus: 'Omnibus' },
+    runStates: {
+      complete: 'Complete',
+      up_to_date: 'Up to date',
+      gaps: 'Gaps',
+    },
+    run: {
+      owned: 'Owned',
+      missing: 'Missing',
+      upcoming: 'Not out yet',
+      read: 'Read',
+      complete: 'Complete run',
+      missingCount: (n) => `${n} missing`,
+      next: (number, date) => `Next #${number} · ${date}`,
+      readTo: (n) => `read to #${n}`,
+    },
+    pills: { following: 'Following', want: 'Want' },
+    hero: {
+      series: 'Series',
+      issues: 'Issues owned',
+      missing: 'Missing',
+      read: 'Read',
+    },
+    chips: {
+      all: 'All',
+      following: 'Following',
+      gaps: 'Gaps',
+      unread: 'Unread on the shelf',
+      want: 'Want',
+      publisher: 'Publisher',
+      more: 'More…',
+    },
+    sorts: [
+      { value: 'next', label: 'Next issue' },
+      { value: 'title', label: 'Title' },
+      { value: 'publisher', label: 'Publisher' },
+      { value: 'missing', label: 'Missing issues' },
+    ],
+    views: { runs: 'Runs', covers: 'Covers' },
+    search: 'Search series',
+    cards: {
+      runs: 'Runs',
+      runsMissing: (n) => `${n} missing`,
+      reading: 'Reading',
+      publishers: 'Publishers',
+      added: 'Added',
+    },
+    strip: {
+      title: 'Out this week',
+      from: (n) => `from the ${n} series I follow`,
+      later: 'Later',
+      laterNote: 'Date not set yet',
+    },
+    empty: 'No comics on the shelf yet.',
+    noMatch: 'No series match those filters.',
+    attribution: { before: 'Comic data from', label: 'Comic Vine', after: '.' },
+  },
   /** /admin/store-list: What's next's sections with my answers on them. */
   storeList: {
     title: 'Store list',

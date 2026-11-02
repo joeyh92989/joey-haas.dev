@@ -5009,3 +5009,236 @@ main h1[tabindex='-1']:focus {
     grid-template-columns: 6.5rem 1fr 2rem;
   }
 }
+
+/* Comics (/shelf/comics, the series page). The run bar's fills are non-text
+   marks measured on --surface: owned is --chart, missing and the hatch's
+   stripe are --run-missing (3.30 dark, 3.25 light; see the tokens), never
+   --line-strong, which is decorative and fails 3:1. JetBrains Mono is loaded
+   at 400 and 500 only. */
+.run {
+  background: var(--sunken);
+  border-radius: 2px;
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+}
+
+.run i {
+  display: block;
+  height: 100%;
+  min-width: 1px;
+}
+
+.run i[data-k='owned'],
+.run-legend i[data-k='owned'] {
+  background: var(--chart);
+}
+
+.run i[data-k='missing'],
+.run-legend i[data-k='missing'] {
+  background: var(--run-missing);
+}
+
+.run i[data-k='upcoming'],
+.run-legend i[data-k='upcoming'],
+.run-legend i[data-k='unreleased'] {
+  background: var(--hatch);
+}
+
+.run-legend {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  gap: 0.25rem 1rem;
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+}
+
+.run-legend i {
+  border-radius: 2px;
+  display: inline-block;
+  height: 0.5rem;
+  margin-right: 0.3rem;
+  width: 0.9rem;
+}
+
+.run-badge {
+  background: var(--bg);
+  border-radius: 3px;
+  bottom: 0.4rem;
+  color: var(--text);
+  font: 500 0.6875rem var(--font-mono);
+  left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  position: absolute;
+  z-index: 1;
+}
+
+.run-badge[data-complete] {
+  color: var(--ok);
+}
+
+.run-badge[data-wanted] {
+  color: var(--warn);
+}
+
+.series-list {
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.series-row {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 0.9rem 1rem;
+  grid-template-columns: 2.75rem 1fr auto;
+  padding: 0.75rem 0;
+}
+
+.series-thumb {
+  display: block;
+}
+
+.series-thumb .cover {
+  border-radius: 3px;
+}
+
+.series-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.series-title a {
+  color: var(--text);
+  margin-right: 0.4rem;
+}
+
+.series-pill {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 0 0.5rem;
+  vertical-align: middle;
+}
+
+.series-pill[data-accent] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.series-pill[data-warn] {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.series-pill[data-ok] {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.series-meta {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  margin: 0.1rem 0 0;
+}
+
+.series-meta .status-swatch {
+  margin-right: 0.3rem;
+}
+
+.series-row .run {
+  margin-top: 0.45rem;
+  max-width: 32rem;
+}
+
+.series-count {
+  color: var(--text-3);
+  display: grid;
+  font-size: 0.75rem;
+  gap: 0.15rem;
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.series-count b {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.issue-grid {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(auto-fill, minmax(2.1rem, 1fr));
+  margin-bottom: 0.75rem;
+}
+
+.issue-grid > i,
+.issue-grid > button {
+  aspect-ratio: 1;
+  background: var(--sunken);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--text-3);
+  display: grid;
+  font: 500 0.625rem/1 var(--font-mono);
+  font-style: normal;
+  padding: 0;
+  place-items: center;
+}
+
+.issue-grid > button {
+  cursor: pointer;
+}
+
+.issue-grid > button:disabled {
+  cursor: progress;
+}
+
+.issue-grid [data-k='owned'],
+.issue-legend i[data-k='owned'] {
+  background: var(--accent-soft);
+  border-color: var(--chart-2);
+  color: var(--text);
+}
+
+.issue-grid [data-k='read'],
+.issue-legend i[data-k='read'] {
+  background: var(--chart);
+  color: var(--accent-ink);
+}
+
+.issue-grid [data-k='missing'],
+.issue-legend i[data-k='missing'] {
+  background: transparent;
+  border: 1px solid var(--run-missing);
+}
+
+.issue-grid [data-k='unreleased'] {
+  background: var(--hatch);
+}
+
+@media (max-width: 700px) {
+  .series-row {
+    grid-template-columns: 2.25rem 1fr;
+  }
+
+  .series-count {
+    display: flex;
+    gap: 0.75rem;
+    grid-column: 2;
+    text-align: left;
+  }
+}
