@@ -50,7 +50,8 @@ snapshot files and never call the API.
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
 | `/shelf` | My Shelf | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
 | `/shelf/next` | What's next | Public: tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
-| `/shelf/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf |
+| `/shelf/comics` | Comics | Public: every public comic series as a run (owned, missing, not out yet), with chip filters, sort, a Covers view and what is out this week; reads `/api/public/comics` after painting `/snapshot/comics.json` |
+| `/shelf/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf. A comic series shows its run bar, issue grid and collected editions instead |
 | `/spine*`, `/collection*` | Redirect | The pre-rename URLs. Each redirects client-side, in one hop, to its `/shelf` page (`/spine/next` → `/shelf/next`, `/spine/:id` and `/collection/:id` → `/shelf/:id/`, and so on). The build also writes link-preview heads at `/spine`, `/spine/next`, `/spine/how` and `/spine/<id>/` (canonical on `/shelf`), and the finishes feed at both `/shelf/feed.xml` and `/spine/feed.xml`, with item GUIDs kept on `/spine` so readers see nothing new |
 | `/admin` | Dashboard | Google sign-in gate, reached from the footer's Sign in link; once signed in, the API and nightly status, headline counts, the nightly jobs, quick actions and recent changes |
 | `/admin/analytics` | Analytics | Page views, visitors, views per day, pages, referrers and devices over 7, 30, 90 days or all time, from the first-party beacon (see [Analytics](#analytics)) |
@@ -62,6 +63,7 @@ snapshot files and never call the API.
 | `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Want adds the game as a public want, listed on What's next |
 | `/admin/discover` | Discover | Released physical games you would love and do not own: eight picks with reasons from one Gemini call, or the taste ranking when it cannot answer |
 | `/admin/store-list` | Store list | What to look for in a store, on a phone: the same sections as What's next (In stores now with its top picks, Coming soon, Further out, Not on cartridge), read from `GET /api/recommendations/store-list`, with prices and store lines the public page never gets. Got it marks a game owned, Want adds it to my public list, and Not interested drops it for good; the list is live, so an answered game leaves it at once |
+| `/admin/pull-list` | Pull list | Followed series' issues by week (Wednesday to Tuesday, UTC), with Got it and Skip per issue, Refresh followed, and a Comic Vine series search with Follow, Want and Own |
 | anything else | NotFound (client-side 404) | |
 
 The `/admin*` routes are absent from the site navigation deliberately. The
@@ -327,6 +329,7 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), its Switch 1 sheet (about 4,500 titles in about 10,000 editions, bulk-matched to IGDB's Switch list), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
 | Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want adds the game as a public want, and registry-dated cartridges appear on What's next |
 | Discover | `backend/discover.py`, `/admin/discover` | Released physical games on the owner's platforms, pre-scored by taste and re-ranked by one Gemini call with reasons; falls back to the deterministic ranking when the model cannot answer; its top picks appear on What's next, with reasons that name only public games |
+| Comics | `backend/comics.py`, `comics_routes.py`, `public_comics.py`, `/shelf/comics`, `/admin/pull-list` | Series rows with the issues I own as range text and collected editions; Comic Vine's issue list per followed series feeds the pull list and the public "Out this week". Only public series are ever shown publicly; following and skips stay private |
 | What's next | `backend/next_list.py`, `next_load.py`, `/shelf/next`, `/admin/store-list` | One pure sectioning authority over pending Discover and Radar rows, used by the public page (registry dates only, reasons rebuilt over public games) and the admin store list (any date, stored reasons) |
 
 Migrations `0001`–`0006` build this up: items, enrichment columns, copy
@@ -427,6 +430,8 @@ strips.
   deploy only when they differ. It never pushes, and the snapshot is never
   committed. Before it compares, it refreshes the data the snapshot is made
   of (see [Nightly job](#nightly-job)).
+- **`comics.json` is optional too**, the same way: `/shelf/comics` paints it
+  when the build wrote it.
 - **`next.json` is optional.** `/shelf/next` paints `/snapshot/next.json` when
   the file exists and shows "Waking the server" until the live call answers
   when it does not. `fetch-snapshot.mjs` writes it and leaves it out without failing the build when the API
@@ -461,8 +466,9 @@ keeps the snapshot within a day of production. It calls admin routes with
 5. Resolve, repeated while it makes progress, at most five rounds;
 6. Radar generate, then Discover generate on Sunday evenings or when the
    `discover` input is ticked on a manual run;
-7. the page-view rollup (`POST /api/analytics/rollup`);
-8. the snapshot compare and, only if a body differs, the static-site deploy
+7. the followed comics' issue lists (`POST /api/comics/refresh`);
+8. the page-view rollup (`POST /api/analytics/rollup`);
+9. the snapshot compare and, only if a body differs, the static-site deploy
    hook.
 
 "Sunday evening" is Denver time, which is Monday in UTC; the job tests
@@ -557,7 +563,8 @@ detail and next models' field sets.
 | `GET /api/public/items` | Every public item, most recently finished first |
 | `GET /api/public/items/{id}` | One public item with description and similar games; 404 for unknown and private alike |
 | `GET /api/public/stats` | Counts over public rows |
-| `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge` (see below) |
+| `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge`, `comics_this_week` (see below) |
+| `GET /api/public/comics` | `/shelf/comics`: public series with their runs, the shelf's figures, and `this_week` (the weeks ahead and the undated series under Later); never `issues_skipped`, a price or a store |
 
 `/api/public/picks` and `/api/public/radar` are retired and answer 404;
 `/api/public/next` carries both (Play Next's picks as `tonight`, Radar's
