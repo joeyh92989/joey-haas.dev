@@ -456,3 +456,34 @@ def test_snapshot_issues_tolerate_bad_dates_and_junk_entries():
     assert issues[0].store_date is None
     assert issues[1].store_date == date(2026, 11, 4)
     assert snapshot_issues(None) == ()
+
+
+# --- Review regressions -----------------------------------------------------
+
+
+def test_a_number_zero_or_fraction_out_is_not_counted_as_released():
+    # ComicVine's count includes #0 and #½; neither is a place in the run.
+    issues = [
+        _entry("3", "2026-10-07"),
+        _entry("2", "2026-09-02"),
+        _entry("1", "2026-08-05"),
+        _entry("0", "2026-07-01"),
+        _entry("½", "2026-07-15"),
+    ]
+
+    snap = comic_snapshot(5, issues, TODAY)
+
+    assert snap["released"] == 3
+
+
+def test_an_issue_owned_before_its_store_date_stretches_the_run():
+    run = run_summary({1, 2, 3, 55}, set(), 54, ongoing=True)
+
+    assert sum(length for kind, length in run.segments if kind != "upcoming") >= 55
+    assert run.segments[-2] == ("owned", 1)
+
+
+def test_non_ascii_digits_are_refused_not_crashed_on():
+    with pytest.raises(RangeError):
+        canonical("²")
+    assert issue_number("١٢") is None

@@ -930,8 +930,21 @@ def create_items_router(
         changes = _copy_fields(body, item)
         if changes.get("favorite") is True and not item.favorite:
             await _require_favorite_slots(session, 1)
+        relinked = any(
+            field in changes and changes[field] != getattr(item, field)
+            for field in ("external_source", "external_id")
+        )
         for field, value in changes.items():
             setattr(item, field, value)
+        if relinked and item.source_metadata:
+            # A comic's issue snapshot belongs to the volume it was fetched
+            # for; _apply_detail keeps it across a refresh, so a re-link has
+            # to drop it or the new volume shows the old one's issues.
+            item.source_metadata = {
+                key: value
+                for key, value in item.source_metadata.items()
+                if key not in ISSUE_SNAPSHOT_KEYS
+            }
         await session.commit()
         await session.refresh(item)
         await _mark_excluded(session, [item])

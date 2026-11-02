@@ -408,3 +408,49 @@ async def test_followed_rows_never_reach_public_wants(sessionmaker_for_test):
     async with sessionmaker_for_test() as session:
         public = (await session.scalars(select(Item).where(Item.is_public))).all()
     assert public == []
+
+
+async def test_a_relink_drops_the_old_volumes_issues(sessionmaker_for_test):
+    item_id = await _seed(
+        sessionmaker_for_test,
+        source_metadata={
+            "publisher": "Image",
+            "issues": SAGA_ISSUES,
+            "released": 67,
+            "ongoing": True,
+            "fetched_on": "2026-11-01",
+        },
+    )
+    async with client_for(sessionmaker_for_test, FakeComicVine()) as client:
+        response = await client.patch(
+            f"/api/items/{item_id}", json={"external_id": "999"}
+        )
+
+    assert response.status_code == 200, response.text
+    meta = (await _row(sessionmaker_for_test, item_id)).source_metadata
+    assert meta == {"publisher": "Image"}
+
+
+async def test_refresh_skips_a_series_deleted_meanwhile(sessionmaker_for_test):
+    gone = await _seed(sessionmaker_for_test, title="Gone", following=True)
+    kept = await _seed(
+        sessionmaker_for_test, title="Kept", external_id="88", following=True
+    )
+    factory = sessionmaker_for_test
+
+    class DeletingSource(FakeComicVine):
+        async def fetch_issues(self, external_id):
+            if external_id == VOLUME:
+                async with factory() as other:
+                    await other.delete(await other.get(Item, gone))
+                    await other.commit()
+            return await super().fetch_issues(external_id)
+
+    source = DeletingSource({VOLUME: SAGA_ISSUES, "88": SAGA_ISSUES})
+    async with client_for(factory, source) as client:
+        response = await client.post("/api/comics/refresh")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["refreshed"] == 1
+    assert await _row(factory, gone) is None
+    assert (await _row(factory, kept)).source_metadata["released"] == 67

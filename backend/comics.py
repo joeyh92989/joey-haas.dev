@@ -39,8 +39,14 @@ class RangeError(ValueError):
 # --- Ranges -----------------------------------------------------------------
 
 
+def _whole(text: str) -> bool:
+    # ASCII only: str.isdigit() also passes "²" (which int() refuses) and
+    # Arabic-Indic digits (which int() reads as numbers).
+    return text.isascii() and text.isdigit()
+
+
 def _issue(text: str, whole: str) -> int:
-    if not text.isdigit():
+    if not _whole(text):
         raise RangeError(f"{whole!r} is not an issue number or range")
     number = int(text)
     if number < 1:
@@ -114,7 +120,7 @@ def issue_number(text: str | None) -> int | None:
     if text is None:
         return None
     text = text.strip()
-    if not text.isdigit():
+    if not _whole(text):
         return None
     number = int(text)
     return number if 1 <= number <= MAX_ISSUE else None
@@ -232,9 +238,9 @@ def run_summary(
 ) -> RunSummary:
     """Owned against released. A skipped issue is still a gap here: Skip only
     takes it off the pull list. Released unknown (never fetched) falls back to
-    the highest issue owned."""
-    total = released if released is not None else max(owned, default=0)
-    total = max(total, 0)
+    the highest issue owned, and an issue owned before its store date (Got it
+    on the pull list) stretches the run to include it."""
+    total = max(released or 0, max(owned, default=0))
     segments: list[tuple[str, int]] = []
     for number in range(1, total + 1):
         kind = "owned" if number in owned else "missing"
@@ -456,9 +462,11 @@ def comic_snapshot(issue_count: int | None, issues: list[dict], today: date) -> 
     """The keys an issue fetch adds to a row's source_metadata.
 
     Released is the volume's issue count less the fetched issues store-dated
-    after today, and never below the highest whole issue already out. Ongoing
-    is an issue store-dated within ONGOING_DAYS or later. Non-integer issues
-    are kept in the list but count for neither.
+    after today and the fetched non-integer ones already out (Comic Vine
+    counts a #0 or an annual "½" among the volume's issues; ranges never
+    do), and never below the highest whole issue already out. Ongoing is an
+    issue store-dated within ONGOING_DAYS or later. Non-integer issues are
+    kept in the list but count for neither.
     """
     parsed = snapshot_issues({"issues": issues})
     future = sum(1 for i in parsed if i.store_date is not None and i.store_date > today)
@@ -467,7 +475,14 @@ def comic_snapshot(issue_count: int | None, issues: list[dict], today: date) -> 
         for i in parsed
         if i.count is not None and i.store_date is not None and i.store_date <= today
     ]
-    released = max((issue_count or 0) - future, max(out, default=0)) or None
+    uncounted = sum(
+        1
+        for i in parsed
+        if i.count is None
+        and i.number
+        and (i.store_date is None or i.store_date <= today)
+    )
+    released = max((issue_count or 0) - future - uncounted, max(out, default=0)) or None
     recent = today - timedelta(days=ONGOING_DAYS)
     ongoing = any(i.store_date is not None and i.store_date >= recent for i in parsed)
     return {

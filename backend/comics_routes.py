@@ -375,11 +375,16 @@ def create_comics_router(
         The volume record is left as it is (its count only floors released);
         "Refresh from Comic Vine" on a row re-reads it. A series that fails is
         reported and keeps its previous snapshot.
+
+        Each row is re-read under FOR UPDATE after its fetch and committed on
+        its own, so no lock is held across a Comic Vine request, a series
+        unfollowed (and deleted) meanwhile is skipped rather than failing the
+        run, and a concurrent "Refresh from Comic Vine" is not overwritten.
         """
         adapter = source()
-        rows = list(
-            await session.scalars(
-                select(Item)
+        rows = (
+            await session.execute(
+                select(Item.id, Item.external_id, Item.title)
                 .where(
                     Item.type == ItemType.COMIC,
                     Item.following.is_(True),
@@ -388,24 +393,31 @@ def create_comics_router(
                 )
                 .order_by(Item.title)
             )
-        )
+        ).all()
+        await session.commit()  # ends the read transaction before the fetches
         refreshed = 0
         errors: list[dict] = []
         today = _today()
-        for item in rows:
+        for item_id, external_id, title in rows:
             try:
-                issues = await adapter.fetch_issues(item.external_id)
+                issues = await adapter.fetch_issues(external_id)
             except SourceError as error:
-                logger.info("comics refresh failed for %s: %s", item.title, error)
+                logger.info("comics refresh failed for %s: %s", title, error)
                 errors.append(
-                    {"item_id": str(item.id), "title": item.title, "error": str(error)}
+                    {"item_id": str(item_id), "title": title, "error": str(error)}
                 )
+                continue
+            item = await session.get(
+                Item, item_id, with_for_update=True, populate_existing=True
+            )
+            if item is None or item.external_id != external_id:
+                await session.rollback()
                 continue
             metadata = dict(item.source_metadata or {})
             metadata.update(comic_snapshot(metadata.get("issue_count"), issues, today))
             item.source_metadata = metadata
+            await session.commit()
             refreshed += 1
-        await session.commit()
         return {"ok": not errors, "refreshed": refreshed, "errors": errors}
 
     @router.post("/{item_id}/refresh")
