@@ -149,6 +149,15 @@ elsewhere is not theirs — so this throttles at ~1 req/s and never fans out.
 ComicVine exposes no community rating, so `source_metadata` has no
 `community_score` key rather than a null one implying the field exists.
 
+**Issues** are read only for the pull list (`fetch_issues`): one
+`/issues/?filter=volume:{id}&sort=store_date:desc&limit=10` call per series,
+mapped onto `source_metadata.issues` with `released`, `ongoing` and
+`fetched_on` worked out in `comics.comic_snapshot`. An answer holding any
+other volume's issue is refused whole, so an ignored filter can never fill a
+row with the catalogue's newest issues. Which issues I own stays range text
+on the row; there is no issue table. `search_volumes` is the pull list's
+series search: the picker's rows plus publisher and issue count.
+
 Strictly non-commercial; a personal portfolio qualifies. **A link back to Comic
 Vine is required** where its data is shown.
 

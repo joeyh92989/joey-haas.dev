@@ -420,6 +420,60 @@ def sort_series(
     return sorted(rows, key=by_next)
 
 
+# --- The issue snapshot -----------------------------------------------------
+
+# An issue store-dated this recently, or in the future, makes a run ongoing.
+ONGOING_DAYS = 120
+
+
+def _iso(text: object) -> date | None:
+    try:
+        return date.fromisoformat(str(text)[:10]) if text else None
+    except ValueError:
+        return None
+
+
+def snapshot_issues(metadata: dict | None) -> tuple[Issue, ...]:
+    """The snapshot's issue entries as Issues; unreadable dates are None."""
+    return tuple(
+        Issue(
+            number=str(entry.get("number") or ""),
+            store_date=_iso(entry.get("store_date")),
+            cover_date=_iso(entry.get("cover_date")),
+            name=entry.get("name"),
+            cover_url=entry.get("cover_url"),
+        )
+        for entry in (metadata or {}).get("issues") or []
+        if isinstance(entry, dict)
+    )
+
+
+def comic_snapshot(issue_count: int | None, issues: list[dict], today: date) -> dict:
+    """The keys an issue fetch adds to a row's source_metadata.
+
+    Released is the volume's issue count less the fetched issues store-dated
+    after today, and never below the highest whole issue already out. Ongoing
+    is an issue store-dated within ONGOING_DAYS or later. Non-integer issues
+    are kept in the list but count for neither.
+    """
+    parsed = snapshot_issues({"issues": issues})
+    future = sum(1 for i in parsed if i.store_date is not None and i.store_date > today)
+    out = [
+        i.count
+        for i in parsed
+        if i.count is not None and i.store_date is not None and i.store_date <= today
+    ]
+    released = max((issue_count or 0) - future, max(out, default=0)) or None
+    recent = today - timedelta(days=ONGOING_DAYS)
+    ongoing = any(i.store_date is not None and i.store_date >= recent for i in parsed)
+    return {
+        "issues": issues,
+        "released": released,
+        "ongoing": ongoing,
+        "fetched_on": today.isoformat(),
+    }
+
+
 # --- Pull list --------------------------------------------------------------
 
 

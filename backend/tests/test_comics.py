@@ -10,6 +10,7 @@ from comics import (
     RangeError,
     apply_comic_fields,
     canonical,
+    comic_snapshot,
     format_ranges,
     issue_number,
     next_issue,
@@ -20,6 +21,7 @@ from comics import (
     row_run,
     run_summary,
     shelf_figures,
+    snapshot_issues,
     sort_series,
     tail_length,
     validate_editions,
@@ -375,3 +377,65 @@ def test_a_month_without_a_date_is_listed_as_undated():
     )
     pull = pull_weeks([saga, dated], TODAY)
     assert [s.title for s in pull.undated] == ["Saga"]
+
+
+# --- The issue snapshot ------------------------------------------------------
+
+
+def _entry(number: str, store_date: str | None) -> dict:
+    return {
+        "number": number,
+        "name": None,
+        "store_date": store_date,
+        "cover_date": None,
+        "cover_url": None,
+    }
+
+
+def test_released_leaves_out_issues_not_yet_in_stores():
+    issues = [
+        _entry("68", "2026-12-02"),
+        _entry("67", "2026-11-04"),
+        _entry("66", "2026-10-07"),
+    ]
+
+    snap = comic_snapshot(68, issues, TODAY)
+
+    assert snap["released"] == 67
+    assert snap["ongoing"] is True
+    assert snap["fetched_on"] == "2026-11-06"
+    assert snap["issues"] == issues
+
+
+def test_released_is_never_below_the_highest_issue_already_out():
+    # ComicVine's count can lag a numbering that skipped ahead (a #0, a gap).
+    snap = comic_snapshot(40, [_entry("50", "2026-10-07")], TODAY)
+
+    assert snap["released"] == 50
+
+
+def test_a_run_quiet_for_more_than_120_days_has_ended():
+    snap = comic_snapshot(60, [_entry("60", "2008-01-01")], TODAY)
+
+    assert snap["ongoing"] is False
+    assert snap["released"] == 60
+
+
+def test_non_integer_issues_are_listed_but_count_for_nothing():
+    issues = [_entry("1.MU", "2026-12-02"), _entry("½", "2026-11-04")]
+
+    snap = comic_snapshot(None, issues, TODAY)
+
+    assert snap["released"] is None
+    assert len(snap["issues"]) == 2
+
+
+def test_snapshot_issues_tolerate_bad_dates_and_junk_entries():
+    meta = {"issues": [_entry("3", "not a date"), "junk", _entry("4", "2026-11-04")]}
+
+    issues = snapshot_issues(meta)
+
+    assert [i.number for i in issues] == ["3", "4"]
+    assert issues[0].store_date is None
+    assert issues[1].store_date == date(2026, 11, 4)
+    assert snapshot_issues(None) == ()

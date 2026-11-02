@@ -1,8 +1,9 @@
 """ComicVine -- comics, tracked at the volume level.
 
 A volume is a series, which is the level a physical shelf is organised at: the
-row is "Saga", not "Saga #17". Issue-level tracking is deliberately out of
-scope.
+row is "Saga", not "Saga #17". Issues are read only as a series' latest few
+(fetch_issues), for the pull list and the run bar's released count; which
+issues I own is range text on the row (comics.py), never an issue record.
 
 Two things confirmed against the live API rather than the documentation:
 
@@ -21,6 +22,7 @@ Comic Vine is required wherever this data is shown.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 
 import httpx2
 
@@ -57,6 +59,19 @@ TIMEOUT = 15.0
 # in one request per series.
 ISSUE_FIELD_LIST = "id,issue_number,name,store_date,cover_date,image,volume"
 ISSUE_FETCH_LIMIT = 10
+
+
+@dataclass(frozen=True)
+class VolumeResult:
+    """A search row for the pull list's series search: more than a picker row,
+    because choosing between two "Batman"s needs the publisher and the count."""
+
+    external_id: str
+    title: str
+    year: int | None
+    publisher: str | None
+    issue_count: int | None
+    thumbnail_url: str | None
 
 
 class ComicVineSource:
@@ -155,6 +170,66 @@ class ComicVineSource:
                 "source_url": row.get("site_detail_url"),
             },
         )
+
+    def _parse_volumes(self, payload: dict) -> list[VolumeResult]:
+        """Maps a /search body onto series-search rows."""
+        return [
+            VolumeResult(
+                external_id=str(row["id"]),
+                title=row.get("name") or "",
+                year=year_from_date(row.get("start_year")),
+                publisher=(row.get("publisher") or {}).get("name"),
+                issue_count=row.get("count_of_issues"),
+                thumbnail_url=self._image_url(row, "icon_url"),
+            )
+            for row in payload.get("results") or []
+        ][:SEARCH_LIMIT]
+
+    def _parse_issues(self, payload: dict, volume_id: str) -> list[dict]:
+        """Maps an /issues body onto the snapshot's issue entries.
+
+        Refuses an answer holding another volume's issue: if ComicVine ever
+        stopped applying the volume filter, a series would otherwise fill with
+        the whole catalogue's newest issues.
+        """
+        rows = payload.get("results") or []
+        if any(str((row.get("volume") or {}).get("id")) != volume_id for row in rows):
+            raise SourceError(
+                self.source_name, "the /issues volume filter was not applied"
+            )
+        return [
+            {
+                "number": str(row.get("issue_number") or "").strip(),
+                "name": row.get("name") or None,
+                "store_date": row.get("store_date") or None,
+                "cover_date": row.get("cover_date") or None,
+                "cover_url": self._image_url(row, "medium_url"),
+            }
+            for row in rows
+        ]
+
+    async def search_volumes(self, query: str) -> list[VolumeResult]:
+        """Series for the pull list's search, with publisher and issue count."""
+        payload = await self._get(
+            "/search/",
+            {"query": query, "resources": "volume", "limit": SEARCH_LIMIT},
+        )
+        return self._parse_volumes(payload)
+
+    async def fetch_issues(self, volume_id: str) -> list[dict]:
+        """A volume's latest issues, newest store date first: one request."""
+        if not volume_id.isdigit():
+            raise SourceError(self.source_name, f"invalid volume id {volume_id!r}")
+        payload = await self._get(
+            "/issues/",
+            {
+                "filter": f"volume:{volume_id}",
+                "sort": "store_date:desc",
+                "limit": ISSUE_FETCH_LIMIT,
+                "field_list": ISSUE_FIELD_LIST,
+            },
+        )
+        return self._parse_issues(payload, volume_id)
 
     async def search(
         self,
