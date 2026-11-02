@@ -68,8 +68,9 @@ function monthDate(month) {
 function OutThisWeek({ thisWeek, following }) {
   const rows = thisWeek.weeks.flatMap((week) => week.rows)
   if (rows.length === 0) return null
-  const start = (thisWeek.weeks.find((week) => week.this_week) ??
-    thisWeek.weeks[0]).start
+  const start = (
+    thisWeek.weeks.find((week) => week.this_week) ?? thisWeek.weeks[0]
+  ).start
   return (
     <section className="comics-strip" aria-labelledby="comics-strip-title">
       <h2 id="comics-strip-title">
@@ -457,7 +458,10 @@ export default function Comics() {
               )}
             />
           ) : (
-            <SeriesList rows={visible} linkFor={(row) => itemPath(row.item_id)} />
+            <SeriesList
+              rows={visible}
+              linkFor={(row) => itemPath(row.item_id)}
+            />
           )}
         </>
       )}

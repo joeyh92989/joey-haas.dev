@@ -49,7 +49,7 @@ ISSUE_FIELDS = {
 DETAIL_FIELDS = {
     "publisher", "owned_text", "released", "ongoing", "run_state", "missing",
     "segments", "read_to", "read", "editions", "next_issue", "following",
-    "as_of",
+    "shelf_format", "as_of",
 }  # fmt: skip
 
 
@@ -283,6 +283,7 @@ async def test_the_item_page_carries_the_comic_block(sessionmaker_for_test):
     ]
     assert comic["as_of"] == "2026-11-05"
     assert comic["read_to"] == 30
+    assert comic["shelf_format"] == saga.shelf_format.value
 
 
 async def test_a_private_followed_series_appears_in_no_public_body(

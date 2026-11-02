@@ -167,6 +167,8 @@ class PublicComicDetail(BaseModel):
     editions: list[PublicEdition]
     next_issue: PublicNextIssue | None
     following: bool
+    # The same as the shelf row's: how the run sits on the shelf.
+    shelf_format: ComicShelfFormat | None
     # The day the issues were last fetched from Comic Vine.
     as_of: date | None
 
@@ -337,6 +339,7 @@ def comic_detail(item: Item, today: date) -> PublicComicDetail:
         ],
         next_issue=_next(series, today),
         following=item.following,
+        shelf_format=item.shelf_format,
         as_of=as_of,
     )
 

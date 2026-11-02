@@ -5326,3 +5326,88 @@ main h1[tabindex='-1']:focus {
   display: flex;
   gap: 0.4rem;
 }
+
+/* The series page (/shelf/:id for a comic): the kicker and facts in the
+   heading, then the Issues, Editions and About cards. */
+.item-kicker {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  margin: 0 0 0.3rem;
+  text-transform: uppercase;
+}
+
+.item-facts {
+  display: grid;
+  font-size: 0.875rem;
+  gap: 0.3rem 1rem;
+  grid-template-columns: max-content 1fr;
+  margin: 0.75rem 0 0;
+}
+
+.item-facts > div {
+  display: contents;
+}
+
+.item-facts dt {
+  color: var(--text-3);
+}
+
+.item-facts dd {
+  color: var(--text-2);
+  margin: 0;
+}
+
+.item-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.25rem;
+}
+
+.item-card h2 {
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+}
+
+.item-card h2 small {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  margin-left: 0.4rem;
+  text-transform: none;
+}
+
+.item-editions {
+  display: grid;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item-editions li {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+.item-edition-kind {
+  color: var(--text-3);
+  font: 400 0.75rem var(--font-mono);
+}
+
+.item-card-source {
+  font-size: 0.8125rem;
+  margin: 0.75rem 0 0;
+}
+
+.item-attribution {
+  font-size: 0.8125rem;
+  margin: 1.5rem 0 0;
+}

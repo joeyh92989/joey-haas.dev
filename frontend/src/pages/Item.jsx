@@ -2,16 +2,28 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
 import CoverImage from '../components/CoverImage.jsx'
+import IssueGrid from '../components/IssueGrid.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
+import { compactRanges, expandRanges, shortDate } from '../lib/comics.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { STATUS_LABEL } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 import { itemPath } from '../lib/spinePaths.js'
 import { LOAD_ERROR, WAKING } from '../content/status.js'
+
+const COMICS = spine.comics
+const SERIES = COMICS.series
+const COMIC_VINE = 'https://comicvine.gamespot.com/'
+
+const SHORT_MONTH_YEAR = new Intl.DateTimeFormat('en', {
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
 
 const MONTH_YEAR = new Intl.DateTimeFormat('en', {
   month: 'long',
@@ -45,9 +57,10 @@ function plainText(value) {
   return (document.body.textContent ?? '').trim()
 }
 
-/** "Finished · June 2026", or the status on its own. */
+/** "Finished · June 2026", or the status on its own; comics in comic words. */
 function statusInWords(item) {
-  const label = STATUS_LABEL[item.status] ?? item.status
+  const labels = item.type === 'comic' ? COMICS.status : STATUS_LABEL
+  const label = labels[item.status] ?? item.status
   if (item.status === 'finished' && item.finished_at) {
     return `${label} · ${MONTH_YEAR.format(parseDate(item.finished_at))}`
   }
@@ -180,6 +193,136 @@ function Tiles({ item, detail }) {
   )
 }
 
+/** "Comic · Image · 2012 – ongoing": the series page's line above the title. */
+function comicKicker(item) {
+  const publisher = item.comic?.publisher ?? item.creator
+  const year = item.year
+    ? `${item.year}${item.comic?.ongoing ? ` – ${SERIES.ongoing}` : ''}`
+    : null
+  return [SERIES.kicker, publisher, year].filter(Boolean).join(' · ')
+}
+
+/**
+ * The run in facts. "As of" only for an ongoing series nobody follows: a
+ * followed one is refreshed nightly, an ended one cannot drift (spec, 4).
+ * Writer is left out: Comic Vine volumes carry no people, only issues do.
+ */
+function ComicFacts({ comic }) {
+  const owned = expandRanges(comic.owned_text).length
+  const state = COMICS.runStates[comic.run_state]
+  const asOf =
+    comic.ongoing && !comic.following && comic.as_of
+      ? SHORT_MONTH_YEAR.format(parseDate(comic.as_of))
+      : null
+  const format = [
+    COMICS.formats[comic.shelf_format],
+    ...comic.editions.map((edition) => edition.label),
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const unread = comic.read_to ? owned - comic.read : 0
+  const next =
+    comic.following && comic.next_issue?.store_date ? comic.next_issue : null
+  return (
+    <dl className="item-facts">
+      <div>
+        <dt>{SERIES.facts.run}</dt>
+        <dd>
+          {SERIES.run(owned, comic.released, comic.ongoing)}
+          {state && (
+            <>
+              {' · '}
+              <span
+                className="series-pill"
+                data-ok={comic.run_state === 'gaps' ? undefined : ''}
+              >
+                {state}
+              </span>
+            </>
+          )}
+          {asOf && ` · ${SERIES.asOf(asOf)}`}
+        </dd>
+      </div>
+      {format && (
+        <div>
+          <dt>{SERIES.facts.format}</dt>
+          <dd>{format}</dd>
+        </div>
+      )}
+      <div>
+        <dt>{SERIES.facts.readTo}</dt>
+        <dd>
+          {comic.read_to ? `#${comic.read_to}` : SERIES.notStarted}
+          {unread > 0 && ` · ${SERIES.unread(unread)}`}
+        </dd>
+      </div>
+      {next && (
+        <div>
+          <dt>{SERIES.facts.next}</dt>
+          <dd>
+            #{next.number} · {shortDate(next.store_date)}
+          </dd>
+        </div>
+      )}
+    </dl>
+  )
+}
+
+/** The issue grid, the editions and About: the comic's three cards. */
+function ComicCards({ comic, description, onToggleIssue, saving, saveError }) {
+  return (
+    <>
+      <section className="item-card" aria-labelledby="item-issues">
+        <h2 id="item-issues">
+          {SERIES.issues}{' '}
+          {comic.owned_text && <small>#{comic.owned_text}</small>}
+        </h2>
+        <IssueGrid detail={comic} onToggle={onToggleIssue} busy={saving} />
+        {saveError && (
+          <p className="admin-error" role="alert">
+            {saveError}
+          </p>
+        )}
+      </section>
+
+      {comic.editions.length > 0 && (
+        <section className="item-card" aria-labelledby="item-editions">
+          <h2 id="item-editions">{SERIES.editions}</h2>
+          <ul className="item-editions">
+            {comic.editions.map((edition) => (
+              <li
+                key={`${edition.kind}-${edition.label}-${edition.from_issue}`}
+              >
+                <span className="item-edition-kind">{edition.kind}</span>
+                <b>{edition.label}</b>
+                <span className="muted">
+                  {SERIES.collects(edition.from_issue, edition.to_issue)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {description && (
+        <section className="item-card" aria-labelledby="item-about">
+          <h2 id="item-about">{SERIES.about}</h2>
+          <p className="item-description">{description}</p>
+          <p className="item-card-source muted">
+            {SERIES.from} <a href={COMIC_VINE}>{COMICS.attribution.label}</a>
+          </p>
+        </section>
+      )}
+
+      <p className="item-attribution muted">
+        {COMICS.attribution.before}{' '}
+        <a href={COMIC_VINE}>{COMICS.attribution.label}</a>
+        {COMICS.attribution.after}
+      </p>
+    </>
+  )
+}
+
 /**
  * One public item: `/shelf/:id`.
  *
@@ -206,6 +349,8 @@ function ItemPage({ id }) {
   const [preview, setPreview] = useState(null)
   const [slow, setSlow] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
 
   /**
    * Loads the item and returns what to show; the effect applies it, since
@@ -245,6 +390,42 @@ function ItemPage({ id }) {
     }
   }, [id, load])
 
+  /**
+   * Owns or unowns one issue from the grid, then reloads the public detail,
+   * which recomputes the run. The ranges sent are the owner's own
+   * `issues_owned`, read first: the public `owned_text` counts the
+   * editions' issues too, and writing it back would bake them in.
+   */
+  const toggleIssue = useCallback(
+    async (issue, owned) => {
+      setSaving(true)
+      setSaveError(null)
+      try {
+        const path = `/api/items/${encodeURIComponent(id)}`
+        const current = await apiFetch(path)
+        if (!current.ok) throw new Error(`GET ${current.status}`)
+        const numbers = new Set(
+          expandRanges((await current.json()).issues_owned),
+        )
+        if (owned) numbers.add(issue)
+        else numbers.delete(issue)
+        const response = await apiFetch(path, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ issues_owned: compactRanges(numbers) }),
+        })
+        if (!response.ok) throw new Error(`PATCH ${response.status}`)
+        const next = await load()
+        if (next.state === 'ready') setResult(next)
+      } catch {
+        setSaveError(SERIES.saveError)
+      } finally {
+        setSaving(false)
+      }
+    },
+    [id, load],
+  )
+
   const shown = result.state === 'ready' ? result.item : preview
   // Null on a 404, so NotFound's own title stands (see usePageTitle).
   usePageTitle(
@@ -265,6 +446,9 @@ function ItemPage({ id }) {
         signedIn={signedIn}
         expanded={expanded}
         onToggleDescription={() => setExpanded((current) => !current)}
+        onToggleIssue={signedIn ? toggleIssue : undefined}
+        saving={saving}
+        saveError={saveError}
       />
     )
   }
@@ -313,8 +497,16 @@ function ItemView({
   note = null,
   expanded = false,
   onToggleDescription,
+  onToggleIssue,
+  saving = false,
+  saveError = null,
 }) {
-  const meta = [item.year, item.creator].filter(Boolean).join(' · ')
+  const isComic = item.type === 'comic'
+  // The detail's comic block; the snapshot preview has none.
+  const comic = detail && isComic ? item.comic : null
+  const meta = isComic
+    ? ''
+    : [item.year, item.creator].filter(Boolean).join(' · ')
   const description =
     detail && item.description ? plainText(item.description) : ''
   const themes = item.themes ?? []
@@ -344,12 +536,14 @@ function ItemView({
           <CoverImage src={item.cover_url} type={item.type} alt="" priority />
         </div>
         <div className="item-heading">
+          {isComic && <p className="item-kicker">{comicKicker(item)}</p>}
           <h1>{item.title}</h1>
           {meta && <p className="muted">{meta}</p>}
           <p className="item-status" data-status={item.status}>
             {statusInWords(item)}
           </p>
           {copy && <p className="item-copy">{copy}</p>}
+          {comic && <ComicFacts comic={comic} />}
           {signedIn && (
             <Link to={`/admin/collection/${item.id}`} className="item-edit">
               Edit
@@ -371,7 +565,7 @@ function ItemView({
         </ul>
       )}
 
-      {description && (
+      {description && !comic && (
         <div className="item-description-wrap">
           <p
             className={
@@ -394,6 +588,16 @@ function ItemView({
       )}
 
       <Tiles item={item} detail={detail} />
+
+      {comic && (
+        <ComicCards
+          comic={comic}
+          description={description}
+          onToggleIssue={onToggleIssue}
+          saving={saving}
+          saveError={saveError}
+        />
+      )}
 
       {note && <p className="admin-error">{note}</p>}
 

@@ -496,6 +496,29 @@ export const spine = {
       later: 'Later',
       laterNote: 'Date not set yet',
     },
+    /** The comic parts of /shelf/:id. */
+    series: {
+      kicker: 'Comic',
+      ongoing: 'ongoing',
+      facts: {
+        run: 'Run',
+        format: 'Format',
+        readTo: 'Read to',
+        next: 'Next issue',
+      },
+      run: (owned, released, ongoing) =>
+        `${owned} of ${released} ${released === 1 ? 'issue' : 'issues'}${ongoing ? ' so far' : ''}`,
+      asOf: (month) => `as of ${month}`,
+      notStarted: 'Not started',
+      unread: (n) => `${n} on the shelf unread`,
+      issues: 'Issues',
+      editions: 'Editions',
+      collects: (from, to) =>
+        from === to ? `collects #${from}` : `collects #${from}–${to}`,
+      about: 'About',
+      from: 'From',
+      saveError: 'Could not save that issue. Try again.',
+    },
     empty: 'No comics on the shelf yet.',
     noMatch: 'No series match those filters.',
     attribution: { before: 'Comic data from', label: 'Comic Vine', after: '.' },
