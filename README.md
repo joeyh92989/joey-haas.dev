@@ -457,16 +457,16 @@ keeps the snapshot within a day of production. It calls admin routes with
 
 1. wake the API (up to six minutes of retries);
 2. Play Next picks (`POST /api/picker/next`);
-3. catalogue registry, then the WooCommerce stores (`refresh-registry`,
+3. the followed comics' issue lists (`POST /api/comics/refresh`);
+4. catalogue registry, then the WooCommerce stores (`refresh-registry`,
    `refresh` with `{"adapter": "woocommerce"}`), then the Shopify stores,
    walked on the runner by `backend/scripts/walk_stores.py`, which posts
    each one to `POST /api/physical/stores/{key}/ingest` (Shopify
    rate-limits Render's IP);
-4. Switch 1 registry, on Sunday evenings only (`refresh-switch1`);
-5. Resolve, repeated while it makes progress, at most five rounds;
-6. Radar generate, then Discover generate on Sunday evenings or when the
+5. Switch 1 registry, on Sunday evenings only (`refresh-switch1`);
+6. Resolve, repeated while it makes progress, at most five rounds;
+7. Radar generate, then Discover generate on Sunday evenings or when the
    `discover` input is ticked on a manual run;
-7. the followed comics' issue lists (`POST /api/comics/refresh`);
 8. the page-view rollup (`POST /api/analytics/rollup`);
 9. the snapshot compare and, only if a body differs, the static-site deploy
    hook.

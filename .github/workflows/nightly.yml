@@ -4,8 +4,9 @@ name: Nightly
 # build-time snapshot within a day of production (Spine Next spec, A3).
 # Replaces snapshot.yml, whose compare and deploy steps are kept verbatim.
 #
-# It writes: Play Next picks, the catalogue refreshes, Resolve and the Radar
-# and Discover generates, through the admin API with the JOB_TOKEN bearer
+# It writes: Play Next picks, the followed comics' issue lists, the
+# catalogue refreshes, Resolve, the Radar and Discover generates and the
+# page-view rollup, through the admin API with the JOB_TOKEN bearer
 # token, which the backend accepts only on items.JOB_ROUTES. A failed write
 # step is a warning: the steps after it run on yesterday's data, the run
 # summary lists every step that succeeded and every one that failed, and the
@@ -149,6 +150,11 @@ jobs:
           # publishes them after the next UTC midnight, so each run
           # publishes yesterday's picks and records today's.
           call picks 120 /api/picker/next
+          # Followed comics: issue lists and store dates, so the snapshot
+          # compare sees this week's issues. Early because it is cheap (one
+          # request per followed series) and the slow catalogue steps after
+          # it can run this step into its timeout.
+          call comics 600 /api/comics/refresh
           call registry 900 /api/physical/refresh-registry
           # WooCommerce on Render, then the nine Shopify stores walked on
           # this runner and posted to the API store by store. 75 minutes for
@@ -191,9 +197,6 @@ jobs:
           if [ "$weekly" = true ] || [ "$FORCE_DISCOVER" = true ]; then
             call discover 300 /api/recommendations/generate '{"kind":"discover"}'
           fi
-          # Followed comics: issue lists and store dates, so the snapshot
-          # compare below sees this week's issues.
-          call comics 600 /api/comics/refresh
           # Rolls up every finished day's page views and drops raw rows
           # past 90 days. Idempotent, so a missed night is caught up here.
           call rollup 120 /api/analytics/rollup
