@@ -33,6 +33,7 @@ from public import (
     PublicStatsOut,
     create_public_router,
 )
+from public_comics import PublicComicsOut
 from public_outputs import PublicNextOut, PublicStatusOut
 
 pytestmark = pytest.mark.asyncio
@@ -230,6 +231,7 @@ DETAIL_FIELDS = LIST_FIELDS | {
     "similar_in_collection",
     "themes",
     "time_to_beat",
+    "comic",
 }
 NEVER_PUBLIC = {
     "notes",
@@ -244,6 +246,7 @@ NEVER_PUBLIC = {
     "region",
     "acquired_at",
     "pinned_at",
+    "issues_skipped",
 }
 
 
@@ -663,6 +666,7 @@ PUBLIC_MODELS = (
     PublicNextOut,
     PublicDiaryEntry,
     PublicStatusOut,
+    PublicComicsOut,
 )
 
 

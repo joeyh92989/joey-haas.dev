@@ -35,6 +35,12 @@ from models import (
 from physical_sources import registry, registry_switch1, tracker
 from physical_sources.catalogue import status_counts
 from physical_sources.stores import STORES
+from public_comics import (
+    PublicComicDetail,
+    PublicComicsOut,
+    comic_detail,
+    load_public_comics,
+)
 from public_next_cache import PublicNextCache
 from public_outputs import PublicNextOut, PublicStatusOut, load_public_next
 
@@ -129,6 +135,8 @@ class PublicItemDetailOut(PublicItemOut):
     similar_in_collection: list[PublicItemCard]
     themes: list[str]
     time_to_beat: PublicTimeToBeat | None
+    # A comic's run, issues and editions; null for every other type.
+    comic: PublicComicDetail | None = None
 
 
 class PublicFormatCounts(BaseModel):
@@ -297,7 +305,9 @@ def similar_in_collection(item: Item, candidates: list[Item]) -> list[Item]:
     return matches[:SIMILAR_LIMIT]
 
 
-def _to_public_detail(item: Item, similar: list[Item]) -> PublicItemDetailOut:
+def _to_public_detail(
+    item: Item, similar: list[Item], today: date | None = None
+) -> PublicItemDetailOut:
     """Maps a row onto the item page's publishable fields, and only those."""
     snapshot = _allowed_snapshot(item, PUBLIC_DETAIL_METADATA_FIELDS)
     description = snapshot.get("description")
@@ -321,6 +331,11 @@ def _to_public_detail(item: Item, similar: list[Item]) -> PublicItemDetailOut:
             )
             for other in similar
         ],
+        comic=(
+            comic_detail(item, today or datetime.now(UTC).date())
+            if item.type == ItemType.COMIC
+            else None
+        ),
     )
 
 
@@ -484,6 +499,14 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         for in a store. Read-only; names only public games; no store data.
         Served from next_cache while the data it was built from is unchanged."""
         return await next_cache.get(session, datetime.now(UTC), load_public_next)
+
+    @router.get("/comics", response_model=PublicComicsOut)
+    async def public_comics(
+        session: AsyncSession = Depends(get_session),
+    ) -> PublicComicsOut:
+        """/shelf/comics: public series, their stats and the weeks ahead.
+        A series that is only followed is private and never listed (D5)."""
+        return await load_public_comics(session, datetime.now(UTC).date())
 
     @router.get("/status", response_model=PublicStatusOut)
     async def public_status(

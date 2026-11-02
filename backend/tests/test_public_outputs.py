@@ -799,6 +799,8 @@ FORBIDDEN = {
 NEXT_ROW_FIELDS = {
     "title", "platform", "physical_format", "release_date", "release_precision",
     "cover_url", "igdb_url", "reasons", "top_pick", "new", "item_id",
+    # Comics (2026-11-01): a comic want's type and how it sits on the shelf.
+    "type", "shelf_format",
 }  # fmt: skip
 
 
@@ -832,6 +834,7 @@ async def test_the_next_row_model_publishes_exactly_these_fields():
         "preorders",
         "later",
         "not_on_cartridge",
+        "comics_this_week",
     }
 
 

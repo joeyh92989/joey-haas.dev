@@ -365,6 +365,23 @@ def test_owned_skipped_unfollowed_and_uncounted_issues_stay_off():
     assert all(not w.rows for w in pull.weeks)
 
 
+def test_public_lists_owned_and_skipped_issues_so_a_private_answer_shows_nothing():
+    saga = _followed(
+        skipped=frozenset({73}),
+        issues=(
+            Issue("71", store_date=date(2026, 11, 4)),
+            Issue("73", store_date=date(2026, 11, 11)),
+        ),
+    )
+    pull = pull_weeks([saga], TODAY, public=True)
+    assert [[r.issue.number for r in w.rows] for w in pull.weeks] == [
+        ["71"],
+        ["73"],
+        [],
+        [],
+    ]
+
+
 def test_a_month_without_a_date_is_listed_as_undated():
     saga = _followed(issues=(Issue("73", cover_date=date(2026, 12, 1)),))
     dated = _followed(

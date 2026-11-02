@@ -539,11 +539,18 @@ class PullList:
 
 
 def pull_weeks(
-    series: Iterable[ComicSeries], today: date, weeks: int = PULL_WEEKS
+    series: Iterable[ComicSeries],
+    today: date,
+    weeks: int = PULL_WEEKS,
+    *,
+    public: bool = False,
 ) -> PullList:
     """Issues dated in this week and the next weeks-1, from followed series,
     neither owned nor skipped. Non-integer issues are left out: Got it could
-    not record them."""
+    not record them.
+
+    Public lists owned and skipped issues too: it reports what is out, and
+    leaving them out would let a gap in the strip tell a private Skip."""
     first = week_of(today)
     end = first + timedelta(weeks=weeks)
     buckets: dict[date, list[PullRow]] = {
@@ -557,7 +564,9 @@ def pull_weeks(
         month_only = False
         for issue in s.issues:
             number = issue.count
-            if number is None or number in s.owned or number in s.skipped:
+            if number is None:
+                continue
+            if not public and (number in s.owned or number in s.skipped):
                 continue
             if issue.store_date is None:
                 if issue.cover_date is not None and issue.cover_date >= first:

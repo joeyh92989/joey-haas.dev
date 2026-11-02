@@ -21,6 +21,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import (
+    ComicShelfFormat,
     Item,
     ItemStatus,
     ItemType,
@@ -41,6 +42,7 @@ from next_list import (
 from next_load import catalogue_times, load_next, taste_sparing_owned
 from picker import JUST_FINISHED_WINDOW, SLOT_LABELS, public_reasons
 from picker_routes import to_picker_item
+from public_comics import PublicComicIssue, comic_weeks, public_comic_items
 from sources.igdb import IGDB_URL_PREFIX
 
 # Picks from the most recent UTC day Play Next showed a public suggestion, if
@@ -297,6 +299,9 @@ class PublicNextRow(BaseModel):
     top_pick: bool
     new: bool
     item_id: uuid.UUID | None = None
+    # Comics join the wanted list only; every other section is games.
+    type: ItemType = ItemType.GAME
+    shelf_format: ComicShelfFormat | None = None
 
 
 class PublicNextGenerated(BaseModel):
@@ -340,6 +345,8 @@ class PublicNextOut(BaseModel):
     preorders: list[PublicNextRow]
     later: list[PublicNextRow]
     not_on_cartridge: list[PublicNextRow]
+    # Issues out this week from public followed comics (spec, AC6).
+    comics_this_week: list[PublicComicIssue]
 
 
 def _next_row(entry: NextEntry, taste: PublicTaste) -> PublicNextRow:
@@ -432,6 +439,8 @@ def _wanted_row(item: Item, today: date) -> PublicNextRow:
         top_pick=False,
         new=False,
         item_id=item.id,
+        type=item.type,
+        shelf_format=item.shelf_format,
     )
 
 
@@ -450,9 +459,14 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
     )
     pinned = [item for item in data.public_games if item.pinned_at is not None]
     up_next = max(pinned, key=lambda item: item.pinned_at, default=None)
+    comics = await public_comic_items(session)
     wanted = sorted(
         # Wanted is "no copy owned", as public.py derives it.
-        (item for item in data.public_games if item.owned_format == OwnedFormat.NONE),
+        (
+            item
+            for item in [*data.public_games, *comics]
+            if item.owned_format == OwnedFormat.NONE
+        ),
         key=lambda item: (
             item.release_date is None or item.release_date <= today,
             item.release_date or date.max,
@@ -473,6 +487,9 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
             last_finish=_last_finish(await last_finish(session, public=True), today),
         ),
         wanted=[_wanted_row(item, today) for item in wanted],
+        comics_this_week=next(
+            week.rows for week in comic_weeks(comics, today).weeks if week.this_week
+        ),
         **{
             key: [_next_row(entry, taste) for entry in entries]
             for key, entries in built.items()
