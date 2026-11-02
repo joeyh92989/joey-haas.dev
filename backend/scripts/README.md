@@ -58,6 +58,33 @@ credentials as the default run.
 ./.venv/bin/python scripts/record_igdb_fixtures.py --upcoming
 ```
 
+## record_comicvine_fixtures.py
+
+Records ComicVine's `/issues` answer for two series into `tests/fixtures/`,
+so the pull list's parser is tested against what the API actually returns.
+
+**Why:** ComicVine's documentation lists `volume` among the issue fields but
+doesn't clearly mark it filterable, and the pull list's one-request-per-series
+call (`filter=volume:{id}`, newest store date first, ten rows) depends on it.
+The script checks every returned issue belongs to the requested volume and
+prints `HELD` or `NOT HELD`; it exits non-zero on `NOT HELD`.
+
+**Run** from `backend/`, in the main checkout or any worktree. It searches
+for Saga (Image, 2012; ongoing) and Y: The Last Man (Vertigo, 2002; ended),
+matched on title, publisher and start year:
+
+```bash
+./.venv/bin/python scripts/record_comicvine_fixtures.py
+```
+
+**Needs** `COMICVINE_API_KEY`, read from the main checkout's `backend/.env`
+(worktrees have none) and never printed. Four requests, one a second.
+
+**Writes** `tests/fixtures/comicvine_issues_ongoing.json` and
+`comicvine_issues_ended.json`: `{recorded_on, volume, issues}`, where
+`issues` is the raw `/issues` body. Re-record when `ISSUE_FIELD_LIST` in
+`sources/comicvine.py` changes; never edit a fixture by hand.
+
 ## record_physical_fixtures.py
 
 Records the E7c physical-catalogue sources into `tests/fixtures/physical/`,

@@ -52,6 +52,12 @@ FIELD_LIST = (
 )
 TIMEOUT = 15.0
 
+# A series' latest issues, newest store date first: enough to cover the next
+# four weeks of solicitations, the most recent release and the released count
+# in one request per series.
+ISSUE_FIELD_LIST = "id,issue_number,name,store_date,cover_date,image,volume"
+ISSUE_FETCH_LIMIT = 10
+
 
 class ComicVineSource:
     """Comic series metadata from ComicVine."""
