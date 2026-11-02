@@ -191,6 +191,9 @@ jobs:
           if [ "$weekly" = true ] || [ "$FORCE_DISCOVER" = true ]; then
             call discover 300 /api/recommendations/generate '{"kind":"discover"}'
           fi
+          # Followed comics: issue lists and store dates, so the snapshot
+          # compare below sees this week's issues.
+          call comics 600 /api/comics/refresh
           # Rolls up every finished day's page views and drops raw rows
           # past 90 days. Idempotent, so a missed night is caught up here.
           call rollup 120 /api/analytics/rollup
