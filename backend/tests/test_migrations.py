@@ -456,3 +456,48 @@ async def test_0009_adds_a_nullable_slot_and_downgrades_cleanly(clean_database):
             text("SELECT count(*) FROM pg_tables WHERE tablename = 'pick_events'")
         )
     assert (before, after, events) == ("YES", None, 1)
+
+
+# --- Revision 0010: comic columns. -----------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_0010_adds_the_comic_columns_and_downgrades_cleanly(clean_database):
+    columns = text(
+        "SELECT column_name, is_nullable, column_default "
+        "FROM information_schema.columns WHERE table_name = 'items' "
+        "AND column_name IN ('issues_owned', 'issues_skipped', 'editions', "
+        "'read_to', 'shelf_format', 'following') ORDER BY column_name"
+    )
+    shelf_type = text(
+        "SELECT count(*) FROM pg_type WHERE typname = 'comic_shelf_format'"
+    )
+    assert _alembic("upgrade", "0009").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status) VALUES "
+                "(gen_random_uuid(), 'comic', 'Saga', 'backlog')"
+            )
+        )
+    assert _alembic("upgrade", "0010").returncode == 0
+    async with clean_database.connect() as connection:
+        before = (await connection.execute(columns)).all()
+        existing = await connection.scalar(text("SELECT following FROM items"))
+        type_before = await connection.scalar(shelf_type)
+    result = _alembic("downgrade", "0009")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        after = (await connection.execute(columns)).all()
+        type_after = await connection.scalar(shelf_type)
+    nullable = {name: is_nullable for name, is_nullable, _ in before}
+    assert nullable == {
+        "editions": "YES",
+        "following": "NO",
+        "issues_owned": "YES",
+        "issues_skipped": "YES",
+        "read_to": "YES",
+        "shelf_format": "YES",
+    }
+    assert existing is False
+    assert (type_before, after, type_after) == (1, [], 0)

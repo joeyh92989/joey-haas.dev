@@ -113,6 +113,14 @@ class Completeness(str, enum.Enum):
     SEALED = "sealed"
 
 
+class ComicShelfFormat(str, enum.Enum):
+    """How a comic run sits on the shelf (migration 0010)."""
+
+    SINGLES = "singles"
+    TRADES = "trades"
+    OMNIBUS = "omnibus"
+
+
 def _enum_column(enum_class: type[enum.Enum], name: str, nullable: bool = True):
     return mapped_column(
         Enum(enum_class, name=name, values_callable=lambda e: [m.value for m in e]),
@@ -229,6 +237,21 @@ class Item(Base):
     region: Mapped[str | None] = mapped_column(String(4), nullable=True)
     completeness: Mapped[Completeness | None] = _enum_column(
         Completeness, "completeness"
+    )
+    # Comics (migration 0010). Range text in comics.py's canonical form,
+    # validated there on every write; editions are [{kind, label, from, to}].
+    # Skipped issues stay gaps on the run and leave only the pull list.
+    issues_owned: Mapped[str | None] = mapped_column(Text, nullable=True)
+    issues_skipped: Mapped[str | None] = mapped_column(Text, nullable=True)
+    editions: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    read_to: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    shelf_format: Mapped[ComicShelfFormat | None] = _enum_column(
+        ComicShelfFormat, "comic_shelf_format"
+    )
+    # On the pull list. Separate from owning: a followed-only series is a
+    # private want row (owned_format none, is_public false).
+    following: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
     )
     is_public: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"

@@ -276,7 +276,9 @@ before pushing.
   `physical_format` and `format_source` untouched; `0006` adds
   `recommendations` (Radar and Discover); `0007` adds `play_sessions`
   (the play journal); `0008` adds `page_views` and `daily_stats`
-  (analytics); `0009` adds the nullable `pick_events.slot` (Tonight).
+  (analytics); `0009` adds the nullable `pick_events.slot` (Tonight);
+  `0010` adds the comic columns on `items` (`issues_owned`,
+  `issues_skipped`, `editions`, `read_to`, `shelf_format`, `following`).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
