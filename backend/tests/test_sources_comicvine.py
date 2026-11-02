@@ -178,8 +178,9 @@ async def test_a_403_explains_the_two_things_that_cause_it(monkeypatch):
 
 
 # --- The pull list's volume search and issue fetch ---------------------------
-# The /issues bodies here are hand-built in the shape ISSUE_FIELD_LIST asks
-# for; record_comicvine_fixtures.py records the live ones.
+# Most /issues bodies here are hand-built in the shape ISSUE_FIELD_LIST asks
+# for; the recorded ones (record_comicvine_fixtures.py) hold them to the live
+# answer.
 
 
 def _issue(number, store_date, volume_id=4363, **extra) -> dict:
@@ -202,6 +203,23 @@ def test_volume_search_carries_publisher_and_issue_count():
     assert rows[0].external_id == str(raw["id"])
     assert rows[0].publisher == (raw.get("publisher") or {}).get("name")
     assert rows[0].issue_count == raw.get("count_of_issues")
+
+
+@pytest.mark.parametrize(
+    "fixture", ["comicvine_issues_ongoing.json", "comicvine_issues_ended.json"]
+)
+def test_recorded_issues_parse_newest_first_on_their_volume(fixture):
+    recorded = json.loads((FIXTURES / fixture).read_text())
+    volume_id = str(recorded["volume"]["id"])
+
+    entries = ComicVineSource(_config())._parse_issues(recorded["issues"], volume_id)
+
+    raw = recorded["issues"]["results"]
+    assert len(entries) == len(raw) > 0
+    assert [e["number"] for e in entries] == [r["issue_number"] for r in raw]
+    dates = [e["store_date"] for e in entries if e["store_date"]]
+    assert dates == sorted(dates, reverse=True)
+    assert all(e["cover_url"] for e in entries)
 
 
 def test_issues_map_onto_snapshot_entries():

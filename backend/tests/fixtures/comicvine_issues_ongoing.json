@@ -1,0 +1,276 @@
+{
+  "issues": {
+    "error": "OK",
+    "limit": 10,
+    "number_of_page_results": 10,
+    "number_of_total_results": 72,
+    "offset": 0,
+    "results": [
+      {
+        "cover_date": "2025-03-21",
+        "id": 1099517,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11161/111615891/9663858-cover.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11161/111615891/9663858-cover.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11161/111615891/9663858-cover.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11161/111615891/9663858-cover.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11161/111615891/9663858-cover.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11161/111615891/9663858-cover.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11161/111615891/9663858-cover.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11161/111615891/9663858-cover.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11161/111615891/9663858-cover.jpg"
+        },
+        "issue_number": "72",
+        "name": "Chapter Seventy-Two",
+        "store_date": "2025-03-19",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2025-01-02",
+        "id": 1088619,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11161/111615891/9585183-cover.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11161/111615891/9585183-cover.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11161/111615891/9585183-cover.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11161/111615891/9585183-cover.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11161/111615891/9585183-cover.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11161/111615891/9585183-cover.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11161/111615891/9585183-cover.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11161/111615891/9585183-cover.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11161/111615891/9585183-cover.jpg"
+        },
+        "issue_number": "71",
+        "name": "Chapter Seventy-One",
+        "store_date": "2025-01-01",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2024-11-06",
+        "id": 1076624,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11161/111615891/9529358-cover.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11161/111615891/9529358-cover.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11161/111615891/9529358-cover.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11161/111615891/9529358-cover.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11161/111615891/9529358-cover.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11161/111615891/9529358-cover.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11161/111615891/9529358-cover.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11161/111615891/9529358-cover.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11161/111615891/9529358-cover.jpg"
+        },
+        "issue_number": "70",
+        "name": "Chapter Seventy",
+        "store_date": "2024-11-06",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2024-09-25",
+        "id": 1071785,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11161/111615891/9491378-cover.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11161/111615891/9491378-cover.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11161/111615891/9491378-cover.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11161/111615891/9491378-cover.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11161/111615891/9491378-cover.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11161/111615891/9491378-cover.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11161/111615891/9491378-cover.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11161/111615891/9491378-cover.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11161/111615891/9491378-cover.jpg"
+        },
+        "issue_number": "69",
+        "name": "Chapter Sixty-Nine",
+        "store_date": "2024-09-25",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2024-08-28",
+        "id": 1068039,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11161/111615891/9458461-cover.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11161/111615891/9458461-cover.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11161/111615891/9458461-cover.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11161/111615891/9458461-cover.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11161/111615891/9458461-cover.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11161/111615891/9458461-cover.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11161/111615891/9458461-cover.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11161/111615891/9458461-cover.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11161/111615891/9458461-cover.jpg"
+        },
+        "issue_number": "68",
+        "name": "Chapter Sixty-Eight",
+        "store_date": "2024-08-28",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2024-07-31",
+        "id": 1065539,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11161/111615891/9430831-cover.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11161/111615891/9430831-cover.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11161/111615891/9430831-cover.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11161/111615891/9430831-cover.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11161/111615891/9430831-cover.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11161/111615891/9430831-cover.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11161/111615891/9430831-cover.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11161/111615891/9430831-cover.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11161/111615891/9430831-cover.jpg"
+        },
+        "issue_number": "67",
+        "name": "Chapter Sixty-Seven",
+        "store_date": "2024-07-31",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2023-09-23",
+        "id": 1016910,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11144/111442876/9107059-large-2678528.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11144/111442876/9107059-large-2678528.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11144/111442876/9107059-large-2678528.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11144/111442876/9107059-large-2678528.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11144/111442876/9107059-large-2678528.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11144/111442876/9107059-large-2678528.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11144/111442876/9107059-large-2678528.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11144/111442876/9107059-large-2678528.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11144/111442876/9107059-large-2678528.jpg"
+        },
+        "issue_number": "66",
+        "name": "Chapter Sixty-Six",
+        "store_date": "2023-09-20",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2023-06-22",
+        "id": 996448,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11172/111720314/8990359-5960464446-saga-.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11172/111720314/8990359-5960464446-saga-.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11172/111720314/8990359-5960464446-saga-.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11172/111720314/8990359-5960464446-saga-.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11172/111720314/8990359-5960464446-saga-.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11172/111720314/8990359-5960464446-saga-.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11172/111720314/8990359-5960464446-saga-.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11172/111720314/8990359-5960464446-saga-.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11172/111720314/8990359-5960464446-saga-.jpg"
+        },
+        "issue_number": "65",
+        "name": "Chapter Sixty-Five",
+        "store_date": "2023-06-21",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2023-05-10",
+        "id": 988667,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11144/111442876/8938277-01%2823%29.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11144/111442876/8938277-01%2823%29.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11144/111442876/8938277-01%2823%29.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11144/111442876/8938277-01%2823%29.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11144/111442876/8938277-01%2823%29.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11144/111442876/8938277-01%2823%29.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11144/111442876/8938277-01%2823%29.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11144/111442876/8938277-01%2823%29.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11144/111442876/8938277-01%2823%29.jpg"
+        },
+        "issue_number": "64",
+        "name": "Chapter Sixty-Four",
+        "store_date": "2023-05-10",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2023-04-06",
+        "id": 981464,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11144/111442876/8894216-01%2812%29.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11144/111442876/8894216-01%2812%29.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/11144/111442876/8894216-01%2812%29.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11144/111442876/8894216-01%2812%29.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11144/111442876/8894216-01%2812%29.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11144/111442876/8894216-01%2812%29.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11144/111442876/8894216-01%2812%29.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11144/111442876/8894216-01%2812%29.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11144/111442876/8894216-01%2812%29.jpg"
+        },
+        "issue_number": "63",
+        "name": "Chapter Sixty-Three",
+        "store_date": "2023-04-05",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      }
+    ],
+    "status_code": 1,
+    "version": "1.0"
+  },
+  "recorded_on": "2026-11-02",
+  "volume": {
+    "count_of_issues": 72,
+    "id": 46568,
+    "name": "Saga",
+    "publisher": {
+      "api_detail_url": "https://comicvine.gamespot.com/api/publisher/4010-513/",
+      "id": 513,
+      "name": "Image"
+    },
+    "resource_type": "volume",
+    "start_year": "2012"
+  }
+}

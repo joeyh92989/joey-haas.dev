@@ -70,7 +70,7 @@ The script checks every returned issue belongs to the requested volume and
 prints `HELD` or `NOT HELD`; it exits non-zero on `NOT HELD`.
 
 **Run** from `backend/`, in the main checkout or any worktree. It searches
-for Saga (Image, 2012; ongoing) and Y: The Last Man (Vertigo, 2002; ended),
+for Saga (Image, 2012; ongoing) and Y: The Last Man (DC Comics, 2002; ended),
 matched on title, publisher and start year:
 
 ```bash

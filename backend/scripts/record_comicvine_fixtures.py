@@ -45,7 +45,7 @@ VARIABLE = "COMICVINE_API_KEY"
 # results, so a different series of the same name is never recorded.
 SERIES = (
     ("comicvine_issues_ongoing.json", "Saga", "Image", "2012"),
-    ("comicvine_issues_ended.json", "Y: The Last Man", "Vertigo", "2002"),
+    ("comicvine_issues_ended.json", "Y: The Last Man", "DC Comics", "2002"),
 )
 SEARCH_FIELDS = "id,name,start_year,publisher,count_of_issues"
 
