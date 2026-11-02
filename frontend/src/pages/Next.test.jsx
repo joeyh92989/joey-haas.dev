@@ -8,6 +8,8 @@ import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import Next from './Next.jsx'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
+import { axeViolations } from '../lib/axe.test-util.js'
+import { itemPath } from '../lib/spinePaths.js'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 vi.mock('../lib/api.js', () => ({ apiFetch: vi.fn() }))
@@ -352,6 +354,120 @@ describe('Next', () => {
     expect(
       screen.getByRole('group', { name: spine.next.sortLabel }),
     ).toBeInTheDocument()
+  })
+})
+
+const ISSUE = {
+  item_id: 'saga',
+  title: 'Saga',
+  publisher: 'Image',
+  number: '73',
+  store_date: '2026-11-04',
+  cover_url: null,
+  owned_text: '1–72',
+  released: 72,
+}
+
+const COMIC_WANT = row('Paper Girls', {
+  type: 'comic',
+  shelf_format: 'trades',
+  platform: null,
+  physical_format: null,
+  item_id: 'paper-girls',
+})
+
+describe('Next comics (AC6, AC11)', () => {
+  it('shows Comics this week between Tonight and On my list', () => {
+    mockNext({
+      data: { ...NEXT, comics_this_week: [ISSUE] },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    const headings = screen
+      .getAllByRole('heading', { level: 2 })
+      .map((h) => h.textContent)
+    expect(headings.slice(0, 3)).toEqual([
+      'Tonight',
+      spine.next.sections.comics,
+      spine.next.sections.wanted,
+    ])
+    const section = screen.getByRole('region', {
+      name: spine.next.sections.comics,
+    })
+    expect(
+      within(section).getByRole('link', { name: 'Saga #73' }),
+    ).toHaveAttribute('href', itemPath('saga'))
+    expect(section).toHaveTextContent('Image · Nov 4')
+    expect(section).toHaveTextContent('I own #1–72 of 72')
+    // Never a price or a store on a public comic row.
+    expect(section).not.toHaveTextContent(/\$|store/i)
+  })
+
+  it('leaves the section out when nothing is out this week', () => {
+    mockNext({
+      data: { ...NEXT, comics_this_week: [] },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    expect(
+      screen.queryByRole('heading', { name: spine.next.sections.comics }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('paints a snapshot from before comics', () => {
+    mockNext({ data: NEXT, live: false, failed: false })
+    renderPage()
+    expect(
+      screen.queryByRole('heading', { name: spine.next.sections.comics }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Comic Vine' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('gives a comic want its format, not a cartridge one', () => {
+    mockNext({
+      data: { ...NEXT, wanted: [COMIC_WANT] },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    const wanted = screen.getByRole('region', {
+      name: spine.next.sections.wanted,
+    })
+    expect(wanted).toHaveTextContent('Comic · Trades')
+    expect(wanted).not.toHaveTextContent(spine.next.formatUnknown)
+    expect(
+      within(wanted).getByRole('link', { name: 'Paper Girls' }),
+    ).toHaveAttribute('href', itemPath('paper-girls'))
+  })
+
+  it('credits Comic Vine whenever a comic row shows', () => {
+    for (const data of [
+      { ...NEXT, comics_this_week: [ISSUE] },
+      { ...NEXT, wanted: [COMIC_WANT] },
+    ]) {
+      mockNext({ data, live: true, failed: false })
+      const { unmount } = renderPage()
+      expect(screen.getByRole('link', { name: 'Comic Vine' })).toHaveAttribute(
+        'href',
+        'https://comicvine.gamespot.com/',
+      )
+      expect(screen.getByRole('link', { name: 'IGDB' })).toBeInTheDocument()
+      unmount()
+    }
+  })
+
+  it('has no axe violations with comics', async () => {
+    mockNext({
+      data: { ...NEXT, comics_this_week: [ISSUE], wanted: [COMIC_WANT] },
+      live: true,
+      failed: false,
+    })
+    const { container } = renderPage()
+    expect(await axeViolations(container)).toEqual([])
   })
 })
 

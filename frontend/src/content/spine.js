@@ -371,6 +371,7 @@ export const spine = {
     },
     sections: {
       tonight: 'Tonight',
+      comics: 'Comics this week',
       wanted: 'On my list',
       buy_now: 'In stores now',
       preorders: 'Coming soon',
@@ -420,6 +421,16 @@ export const spine = {
     formatUnknown: 'Format unknown',
     otherPlatform: 'Other',
     attribution: { before: 'Game data from', label: 'IGDB', after: '.' },
+    /** Comic rows: Comics this week and comic wants in On my list. */
+    comics: {
+      kind: 'Comic',
+      owned: (ranges, released) => `I own #${ranges} of ${released}`,
+      attribution: {
+        before: 'Comic data from',
+        label: 'Comic Vine',
+        after: '.',
+      },
+    },
     band: {
       lead: 'What’s next',
       tonight: 'Tonight:',

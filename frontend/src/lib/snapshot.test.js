@@ -81,6 +81,13 @@ describe('isValidSnapshot', () => {
       false,
     )
     expect(isValidSnapshot('next', { ...next, later: {} })).toBe(false)
+    // comics_this_week is optional: a snapshot from before comics paints.
+    expect(isValidSnapshot('next', { ...next, comics_this_week: [] })).toBe(
+      true,
+    )
+    expect(isValidSnapshot('next', { ...next, comics_this_week: {} })).toBe(
+      false,
+    )
     expect(isValidSnapshot('next', [])).toBe(false)
     expect(isValidSnapshot('nope', {})).toBe(false)
   })

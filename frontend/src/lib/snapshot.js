@@ -17,7 +17,8 @@ const isObject = (value) =>
 
 /**
  * What's next's body: Next.jsx reads `.length` on each of these lists, so a
- * body missing one would blank the page. Keep in step with `isNextBody` in
+ * body missing one would blank the page. `comics_this_week` is optional, so
+ * a snapshot written before comics still paints. Keep in step with `isNextBody` in
  * scripts/fetch-snapshot.mjs: the two predicates must be identical.
  */
 const NEXT_LISTS = [
@@ -31,7 +32,8 @@ const isNextBody = (body) =>
   isObject(body) &&
   isObject(body.tonight) &&
   Array.isArray(body.tonight.picks) &&
-  NEXT_LISTS.every((key) => Array.isArray(body[key]))
+  NEXT_LISTS.every((key) => Array.isArray(body[key])) &&
+  (body.comics_this_week === undefined || Array.isArray(body.comics_this_week))
 
 /**
  * The stats body: Collection.jsx reads keys of both maps. Keep in step with
