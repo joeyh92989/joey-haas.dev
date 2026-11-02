@@ -181,3 +181,74 @@ const COMPARE = {
 export function sortComics(rows, key) {
   return [...rows].sort(COMPARE[key] ?? COMPARE.next)
 }
+
+/** The form's shelf formats, in the order the select lists them. */
+export const SHELF_FORMATS = ['singles', 'trades', 'omnibus']
+
+const EDITION_LINE = /^(\d+)\s*(?:[–-]\s*(\d+))?$/
+
+/**
+ * Stored editions as the form's text: "Trade · Vol. 1 · 1–6", one per line.
+ *
+ * @param {{kind: string, label: string, from: number, to: number}[]|null} editions
+ */
+export function editionsText(editions) {
+  return (editions ?? [])
+    .map(({ kind, label, from, to }) =>
+      [kind, label, from === to ? `${from}` : `${from}–${to}`].join(' · '),
+    )
+    .join('\n')
+}
+
+/**
+ * The form's editions text as the API's list. Only the line's shape is
+ * checked here; the API judges the numbers and lengths (spec, D7).
+ *
+ * @param {string} text
+ * @returns {{editions: object[]|null, error: string|null}}
+ */
+export function parseEditions(text) {
+  const editions = []
+  const lines = text.split('\n')
+  for (const [index, line] of lines.entries()) {
+    if (!line.trim()) continue
+    const parts = line.split(/[·|]/).map((part) => part.trim())
+    const range = parts.length === 3 && EDITION_LINE.exec(parts[2])
+    if (!range || !parts[0] || !parts[1]) {
+      return {
+        editions: null,
+        error: `Editions, line ${index + 1}: write kind · label · first–last`,
+      }
+    }
+    const from = Number(range[1])
+    editions.push({
+      kind: parts[0],
+      label: parts[1],
+      from,
+      to: range[2] === undefined ? from : Number(range[2]),
+    })
+  }
+  return { editions: editions.length ? editions : null, error: null }
+}
+
+/**
+ * A comic form's own fields as the API takes them: blanks become null and
+ * the editions text a list. The error is the editions line it could not read.
+ *
+ * @param {object} form - Carries ComicFields' keys.
+ * @returns {{fields: object, error: string|null}}
+ */
+export function comicPayload(form) {
+  const { editions, error } = parseEditions(form.editions_text)
+  const issues = form.issues_owned.trim()
+  return {
+    fields: {
+      issues_owned: issues === '' ? null : issues,
+      editions,
+      read_to: form.read_to === '' ? null : Number(form.read_to),
+      shelf_format: form.shelf_format === '' ? null : form.shelf_format,
+      following: form.following,
+    },
+    error,
+  }
+}

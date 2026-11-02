@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   chipCounts,
+  comicPayload,
+  editionsText,
+  parseEditions,
   compactRanges,
   editionCoverage,
   expandRanges,
@@ -129,5 +132,76 @@ describe('chips, search and sorts', () => {
       'Want me',
     ])
     expect(sortComics(rows, 'missing')[0].title).toBe('Hellboy')
+  })
+})
+
+describe('editions text', () => {
+  const editions = [
+    { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 },
+    { kind: 'Single', label: 'Variant', from: 7, to: 7 },
+  ]
+
+  it('writes one line per edition, a single issue as one number', () => {
+    expect(editionsText(editions)).toBe(
+      'Trade · Vol. 1 · 1–6\nSingle · Variant · 7',
+    )
+    expect(editionsText(null)).toBe('')
+  })
+
+  it('reads its own text back, and a hand-typed pipe and hyphen', () => {
+    expect(parseEditions(editionsText(editions))).toEqual({
+      editions,
+      error: null,
+    })
+    expect(parseEditions('Trade | Vol. 1 | 1-6\n\n').editions).toEqual([
+      editions[0],
+    ])
+  })
+
+  it('is null when blank, and names the line it cannot read', () => {
+    expect(parseEditions('  \n')).toEqual({ editions: null, error: null })
+    expect(parseEditions('Trade · Vol. 1 · 1–6\nVol. 2 6–12')).toEqual({
+      editions: null,
+      error: 'Editions, line 2: write kind · label · first–last',
+    })
+  })
+})
+
+describe('comicPayload', () => {
+  it('sends blanks as null', () => {
+    expect(
+      comicPayload({
+        issues_owned: '  ',
+        editions_text: '',
+        read_to: '',
+        shelf_format: '',
+        following: false,
+      }),
+    ).toEqual({
+      fields: {
+        issues_owned: null,
+        editions: null,
+        read_to: null,
+        shelf_format: null,
+        following: false,
+      },
+      error: null,
+    })
+  })
+
+  it('trims the ranges and numbers the read marker', () => {
+    const { fields } = comicPayload({
+      issues_owned: ' 1-54, 60 ',
+      editions_text: '',
+      read_to: '40',
+      shelf_format: 'trades',
+      following: true,
+    })
+    expect(fields).toMatchObject({
+      issues_owned: '1-54, 60',
+      read_to: 40,
+      shelf_format: 'trades',
+      following: true,
+    })
   })
 })

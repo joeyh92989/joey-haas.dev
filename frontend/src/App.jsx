@@ -27,6 +27,7 @@ const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics.jsx'))
 const AdminCatalogue = lazy(() => import('./pages/AdminCatalogue.jsx'))
 const AdminDiscover = lazy(() => import('./pages/AdminDiscover.jsx'))
 const AdminRadar = lazy(() => import('./pages/AdminRadar.jsx'))
+const AdminPullList = lazy(() => import('./pages/AdminPullList.jsx'))
 const AdminStoreList = lazy(() => import('./pages/AdminStoreList.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminImport = lazy(() => import('./pages/AdminImport.jsx'))
@@ -110,6 +111,7 @@ export default function App() {
           <Route path="play-next" element={<PlayNext />} />
           <Route path="catalogue" element={<AdminCatalogue />} />
           <Route path="radar" element={<AdminRadar />} />
+          <Route path="pull-list" element={<AdminPullList />} />
           <Route path="discover" element={<AdminDiscover />} />
           <Route path="store-list" element={<AdminStoreList />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />

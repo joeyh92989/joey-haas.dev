@@ -94,6 +94,7 @@ const TITLES = [
   ['/admin/play-next', 'Play Next · Admin · Joey Haas'],
   ['/admin/catalogue', 'Sources · Admin · Joey Haas'],
   ['/admin/radar', 'Radar · Admin · Joey Haas'],
+  ['/admin/pull-list', 'Pull list · Admin · Joey Haas'],
   ['/admin/discover', 'Discover · Admin · Joey Haas'],
   ['/admin/store-list', 'Store list · Admin · Joey Haas'],
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],

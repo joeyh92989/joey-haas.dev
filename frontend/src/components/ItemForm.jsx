@@ -1,3 +1,6 @@
+import { spine } from '../content/spine.js'
+import { SHELF_FORMATS } from '../lib/comics.js'
+
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const STATUSES = ['backlog', 'active', 'finished', 'abandoned']
 const OWNED_FORMATS = [
@@ -43,6 +46,99 @@ export const COMPLETENESS_OPTIONS = [
 
 /** Platforms whose copies are collected by completeness (formats.py). */
 export const CARTRIDGE_ERA_PLATFORMS = [4]
+
+/** A comic's fields as empty form state, for a new row. */
+export const EMPTY_COMIC_FIELDS = {
+  issues_owned: '',
+  editions_text: '',
+  read_to: '',
+  shelf_format: '',
+  following: false,
+}
+
+/**
+ * A comic series' own fields (spec, section 5): the owned ranges, collected
+ * editions, how far I have read, the format on the shelf, and Follow. Shared
+ * by the add form and the edit page, so both read and write one shape.
+ *
+ * Ranges are checked by the API, which answers a malformed one with a
+ * message the page shows; the hint says what it accepts.
+ *
+ * @param {object} props
+ * @param {object} props.value - Form state carrying the EMPTY_COMIC_FIELDS keys.
+ * @param {(next: object) => void} props.onChange
+ * @param {number|null} [props.released] - Comic Vine's released count, for the hint.
+ */
+export function ComicFields({ value, onChange, released = null }) {
+  const set = (field) => (event) =>
+    onChange({
+      ...value,
+      [field]:
+        event.target.type === 'checkbox'
+          ? event.target.checked
+          : event.target.value,
+    })
+  return (
+    <>
+      <label htmlFor="comic-issues">Issues I own</label>
+      <input
+        id="comic-issues"
+        placeholder="1–54, 60, 62–64"
+        aria-describedby="comic-issues-hint"
+        value={value.issues_owned}
+        onChange={set('issues_owned')}
+      />
+      <p id="comic-issues-hint" className="muted comic-hint">
+        Numbers and ranges, separated by commas.
+        {released ? ` Comic Vine lists ${released} out.` : ''}
+      </p>
+
+      <label htmlFor="comic-editions">Collected editions</label>
+      <textarea
+        id="comic-editions"
+        rows="3"
+        placeholder="Trade · Vol. 1 · 1–6"
+        aria-describedby="comic-editions-hint"
+        value={value.editions_text}
+        onChange={set('editions_text')}
+      />
+      <p id="comic-editions-hint" className="muted comic-hint">
+        One per line: kind · label · the issues it collects.
+      </p>
+
+      <label htmlFor="comic-read-to">Read to</label>
+      <input
+        id="comic-read-to"
+        type="number"
+        min="1"
+        value={value.read_to}
+        onChange={set('read_to')}
+      />
+
+      <label htmlFor="comic-shelf-format">Format on the shelf</label>
+      <select
+        id="comic-shelf-format"
+        value={value.shelf_format}
+        onChange={set('shelf_format')}
+      >
+        <option value="">not recorded</option>
+        {SHELF_FORMATS.map((format) => (
+          <option key={format} value={format}>
+            {spine.comics.formats[format]}
+          </option>
+        ))}
+      </select>
+
+      <label htmlFor="comic-following">Follow</label>
+      <input
+        id="comic-following"
+        type="checkbox"
+        checked={value.following}
+        onChange={set('following')}
+      />
+    </>
+  )
+}
 
 /**
  * The add-an-item form.
@@ -133,31 +229,39 @@ export default function ItemForm({
         ))}
       </select>
 
-      <select
-        aria-label="Platform"
-        value={value.platform_id ?? ''}
-        onChange={setPlatform}
-      >
-        <option value="">Platform…</option>
-        {PLATFORM_OPTIONS.map(([id, name]) => (
-          <option key={id} value={id}>
-            {name}
-          </option>
-        ))}
-      </select>
+      {value.type === 'comic' ? (
+        <div className="comic-fields">
+          <ComicFields value={value} onChange={onChange} />
+        </div>
+      ) : (
+        <>
+          <select
+            aria-label="Platform"
+            value={value.platform_id ?? ''}
+            onChange={setPlatform}
+          >
+            <option value="">Platform…</option>
+            {PLATFORM_OPTIONS.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
 
-      <select
-        aria-label="Copy format"
-        value={value.physical_format ?? ''}
-        onChange={setCopyFormat}
-      >
-        <option value="">Copy format…</option>
-        {FORMAT_OPTIONS.map(([format, label]) => (
-          <option key={format} value={format}>
-            {label}
-          </option>
-        ))}
-      </select>
+          <select
+            aria-label="Copy format"
+            value={value.physical_format ?? ''}
+            onChange={setCopyFormat}
+          >
+            <option value="">Copy format…</option>
+            {FORMAT_OPTIONS.map(([format, label]) => (
+              <option key={format} value={format}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
 
       <input
         aria-label="Rating"

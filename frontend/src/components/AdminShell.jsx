@@ -28,6 +28,7 @@ const ADMIN_GROUPS = [
       { to: '/admin/play-next', label: 'Play Next' },
       { to: '/admin/discover', label: 'Discover' },
       { to: '/admin/radar', label: 'Radar' },
+      { to: '/admin/pull-list', label: 'Pull list' },
     ],
   },
   {

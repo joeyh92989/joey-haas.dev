@@ -742,3 +742,116 @@ describe('the registry line', () => {
     ).toBe(false)
   })
 })
+
+describe('AdminItem comic fields', () => {
+  const COMIC = {
+    ...ITEM,
+    type: 'comic',
+    title: 'Saga',
+    external_source: 'comicvine',
+    external_id: '49901',
+    issues_owned: '1–54',
+    editions: [{ kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 }],
+    read_to: 40,
+    shelf_format: 'singles',
+    following: true,
+    comic_run: { owned: 54, released: 72 },
+  }
+
+  it('shows the run in place of the copy fields', async () => {
+    stubApi({ item: COMIC })
+    renderPage()
+    expect(await screen.findByLabelText('Issues I own')).toHaveValue('1–54')
+    expect(screen.getByLabelText('Collected editions')).toHaveValue(
+      'Trade · Vol. 1 · 1–6',
+    )
+    expect(screen.getByText(/Comic Vine lists 72 out/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Cart ID')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Platform')).not.toBeInTheDocument()
+  })
+
+  it('sends only the comic fields that changed', async () => {
+    const mock = stubApi({ item: COMIC })
+    renderPage()
+    const issues = await screen.findByLabelText('Issues I own')
+    await userEvent.clear(issues)
+    await userEvent.type(issues, '1-54, 60')
+    await userEvent.type(
+      screen.getByLabelText('Collected editions'),
+      '\nTrade · Vol. 2 · 7-12',
+    )
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+    await waitFor(() => expect(writeCalls(mock)).toHaveLength(1))
+    expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
+      issues_owned: '1-54, 60',
+      editions: [
+        { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 },
+        { kind: 'Trade', label: 'Vol. 2', from: 7, to: 12 },
+      ],
+    })
+  })
+
+  it('stops on an editions line it cannot read, sending nothing', async () => {
+    const mock = stubApi({ item: COMIC })
+    renderPage()
+    await userEvent.type(
+      await screen.findByLabelText('Collected editions'),
+      '\nVol. 2',
+    )
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Editions, line 2: write kind · label · first–last',
+    )
+    expect(writeCalls(mock)).toHaveLength(0)
+  })
+
+  it('shows the API’s range error and keeps what was typed (AC8)', async () => {
+    stubApi({
+      item: COMIC,
+      onWrite: () => ({
+        ok: false,
+        status: 422,
+        json: async () => ({ detail: 'Issues: “5–2” runs backwards' }),
+      }),
+    })
+    renderPage()
+    const issues = await screen.findByLabelText('Issues I own')
+    await userEvent.clear(issues)
+    await userEvent.type(issues, '5-2')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Issues: “5–2” runs backwards',
+    )
+    expect(issues).toHaveValue('5-2')
+  })
+
+  it('refreshes from Comic Vine, then reads the item again', async () => {
+    const mock = stubApi({ item: COMIC })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Refresh from Comic Vine' }),
+    )
+    await waitFor(() =>
+      expect(writeCalls(mock).map(([url]) => String(url))).toEqual([
+        expect.stringMatching(/\/api\/comics\/abc\/refresh$/),
+      ]),
+    )
+    await waitFor(() =>
+      expect(
+        mock.mock.calls.filter(
+          ([url, options]) =>
+            !options?.method && /\/api\/items\/abc$/.test(String(url)),
+        ),
+      ).toHaveLength(2),
+    )
+  })
+
+  it('offers no Comic Vine refresh on a game', async () => {
+    stubApi()
+    renderPage()
+    await screen.findByDisplayValue('Star Fox')
+    expect(
+      screen.queryByRole('button', { name: 'Refresh from Comic Vine' }),
+    ).not.toBeInTheDocument()
+  })
+})
