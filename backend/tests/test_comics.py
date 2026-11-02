@@ -8,6 +8,7 @@ from comics import (
     ComicSeries,
     Issue,
     RangeError,
+    apply_comic_fields,
     canonical,
     format_ranges,
     issue_number,
@@ -16,6 +17,7 @@ from comics import (
     parse_ranges,
     pull_weeks,
     read_state,
+    row_run,
     run_summary,
     shelf_figures,
     sort_series,
@@ -103,6 +105,56 @@ def test_bad_editions_are_refused(entry):
 def test_editions_mark_the_issues_they_collect_as_owned():
     editions = [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}]
     assert owned_set("10-11", editions) == {1, 2, 3, 4, 5, 6, 10, 11}
+
+
+# --- Writes -----------------------------------------------------------------
+
+
+def test_a_write_stores_canonical_ranges_and_cleaned_editions():
+    changes = {
+        "title": "Saga",
+        "issues_owned": "1-54,60",
+        "issues_skipped": " ",
+        "editions": [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}],
+    }
+    assert apply_comic_fields(changes, is_comic=True) == {
+        "title": "Saga",
+        "issues_owned": "1–54, 60",
+        "issues_skipped": None,
+        "editions": [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}],
+    }
+    assert apply_comic_fields({"editions": []}, is_comic=True) == {"editions": None}
+
+
+def test_a_refusal_names_the_field():
+    with pytest.raises(RangeError, match="^Issues skipped: '3-1' runs backwards$"):
+        apply_comic_fields({"issues_skipped": "3-1"}, is_comic=True)
+    with pytest.raises(RangeError, match="Read to"):
+        apply_comic_fields({"read_to": 0}, is_comic=True)
+
+
+def test_comic_fields_are_refused_on_other_types_unless_empty():
+    with pytest.raises(RangeError, match="comics only"):
+        apply_comic_fields({"issues_owned": "1"}, is_comic=False)
+    with pytest.raises(RangeError, match="comics only"):
+        apply_comic_fields({"following": True}, is_comic=False)
+    quiet = {"following": False, "issues_owned": None, "title": "Hades"}
+    assert apply_comic_fields(quiet, is_comic=False) == quiet
+
+
+def test_the_admin_run_counts_editions_and_reads_the_snapshot():
+    editions = [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}]
+    run = row_run("7-10", "11", editions, 8, {"released": 12, "ongoing": True})
+    assert run["owned_text"] == "1–10"
+    assert (run["owned"], run["released"], run["missing"]) == (10, 12, 2)
+    assert run["state"] == "gaps"
+    assert run["segments"][-1] == {"kind": "upcoming", "length": 3}
+    assert (run["read"], run["unread"]) == (8, 2)
+
+
+def test_an_unfetched_run_falls_back_to_the_volume_count():
+    assert row_run("1-3", None, None, None, {"issue_count": 5})["released"] == 5
+    assert row_run("1-3", None, None, None, None)["released"] == 3
 
 
 # --- Runs and reading -------------------------------------------------------

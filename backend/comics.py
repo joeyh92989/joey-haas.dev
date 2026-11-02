@@ -161,6 +161,51 @@ def owned_set(issues_owned: str | None, editions: Sequence[dict] | None) -> set[
     return expand(parse_ranges(issues_owned)) | edition_issues(editions)
 
 
+# --- Writes ------------------------------------------------------------------
+
+# The comic columns on items. Every write path passes them through
+# apply_comic_fields, so they are stored only in canonical form.
+COMIC_FIELDS = (
+    "issues_owned",
+    "issues_skipped",
+    "editions",
+    "read_to",
+    "shelf_format",
+    "following",
+)
+RANGE_LABELS = {"issues_owned": "Issues owned", "issues_skipped": "Issues skipped"}
+
+
+def apply_comic_fields(changes: dict, is_comic: bool) -> dict:
+    """`changes` with its comic fields canonicalised; RangeError otherwise.
+
+    `changes` holds only the keys the request set. Keys this function does not
+    govern pass through untouched. A non-comic row may carry only empty comic
+    fields, so a game's create form sending `following: false` is not refused.
+    """
+    sent = {key: changes[key] for key in COMIC_FIELDS if key in changes}
+    if not sent:
+        return changes
+    empty = (None, False, "", [])
+    if not is_comic and any(value not in empty for value in sent.values()):
+        raise RangeError("Issues, editions and reading are for comics only.")
+    result = dict(changes)
+    for key, label in RANGE_LABELS.items():
+        if key in result:
+            try:
+                result[key] = canonical(result[key])
+            except RangeError as error:
+                raise RangeError(f"{label}: {error}") from error
+    if "editions" in result:
+        result["editions"] = validate_editions(result["editions"]) or None
+    read_to = result.get("read_to")
+    if read_to is not None and not (
+        isinstance(read_to, int) and 1 <= read_to <= MAX_ISSUE
+    ):
+        raise RangeError(f"Read to runs 1 to {MAX_ISSUE}")
+    return result
+
+
 # --- Runs and reading -------------------------------------------------------
 
 
@@ -226,6 +271,45 @@ def read_state(read_to: int | None, owned: set[int]) -> ReadState:
     """Read is every owned issue at or below the marker."""
     read = sum(1 for n in owned if read_to is not None and n <= read_to)
     return ReadState(read=read, unread=len(owned) - read, read_to=read_to)
+
+
+def snapshot_released(metadata: dict | None) -> int | None:
+    """Released issues from a row's snapshot: the issue fetch's count, else
+    the volume's issue count, else unknown."""
+    metadata = metadata or {}
+    released = metadata.get("released")
+    if released is None:
+        released = metadata.get("issue_count")
+    return released if isinstance(released, int) else None
+
+
+def row_run(
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+    read_to: int | None,
+    metadata: dict | None,
+) -> dict:
+    """The admin read's run summary for one stored row."""
+    owned = owned_set(issues_owned, editions)
+    run = run_summary(
+        owned,
+        expand(parse_ranges(issues_skipped)),
+        snapshot_released(metadata),
+        bool((metadata or {}).get("ongoing")),
+    )
+    reading = read_state(read_to, owned)
+    return {
+        "owned": run.owned,
+        "released": run.released,
+        "missing": run.missing,
+        "state": run.state,
+        "ongoing": run.ongoing,
+        "segments": [{"kind": kind, "length": n} for kind, n in run.segments],
+        "owned_text": format_ranges(owned),
+        "read": reading.read,
+        "unread": reading.unread,
+    }
 
 
 # --- Series, stats and sort -------------------------------------------------

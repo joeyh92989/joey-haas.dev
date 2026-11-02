@@ -17,8 +17,10 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from auth import session_admin
+from comics import RangeError, apply_comic_fields, row_run
 from formats import CopyFieldError, apply_copy_fields
 from models import (
+    ComicShelfFormat,
     Completeness,
     FormatSource,
     Item,
@@ -80,6 +82,14 @@ class ItemIn(BaseModel):
     completeness: Completeness | None = None
     acquired_at: date | None = None
     release_date: date | None = None
+    # A comic series (comics.py canonicalises the ranges and refuses them on
+    # any other type).
+    issues_owned: str | None = Field(default=None, max_length=2000)
+    issues_skipped: str | None = Field(default=None, max_length=2000)
+    editions: list[dict] | None = None
+    read_to: int | None = None
+    shelf_format: ComicShelfFormat | None = None
+    following: bool = False
 
 
 class ItemPatch(BaseModel):
@@ -112,6 +122,14 @@ class ItemPatch(BaseModel):
     acquired_at: date | None = None
     release_date: date | None = None
     source_metadata: dict | None = None
+    # A comic series (comics.py canonicalises the ranges and refuses them on
+    # any other type).
+    issues_owned: str | None = Field(default=None, max_length=2000)
+    issues_skipped: str | None = Field(default=None, max_length=2000)
+    editions: list[dict] | None = None
+    read_to: int | None = None
+    shelf_format: ComicShelfFormat | None = None
+    following: bool | None = None
     # "Use registry value" (E7c): the format of this registry edition, with
     # format_source registry. The edition's cart ID is never copied.
     edition_id: uuid.UUID | None = None
@@ -148,8 +166,16 @@ class ItemOut(BaseModel):
     cart_id: str | None
     region: str | None
     completeness: Completeness | None
+    issues_owned: str | None = None
+    issues_skipped: str | None = None
+    editions: list[dict] | None = None
+    read_to: int | None = None
+    shelf_format: ComicShelfFormat | None = None
+    following: bool = False
     # Play Next was told never to suggest it; the edit page offers Restore.
     play_next_excluded: bool = False
+    # A comic's run against its snapshot (comics.row_run); None otherwise.
+    comic_run: dict | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -361,11 +387,21 @@ async def _edition_format(
     return getattr(fmt, "value", fmt)
 
 
+def _is_comic(changes: dict, row: Item | None) -> bool:
+    item_type = changes.get("type") or (row.type if row is not None else None)
+    return item_type == ItemType.COMIC
+
+
+def _write_fields(changes: dict, row: Item | None) -> dict:
+    """The comic rules, then the copy rules; CopyFieldError or RangeError."""
+    return apply_copy_fields(apply_comic_fields(changes, _is_comic(changes, row)), row)
+
+
 def _copy_fields(changes: dict, row: Item | None) -> dict:
-    """Runs the copy-field rules, answering a refusal as a 422 in words."""
+    """Runs the write rules, answering a refusal as a 422 in words."""
     try:
-        return apply_copy_fields(changes, row)
-    except CopyFieldError as error:
+        return _write_fields(changes, row)
+    except (CopyFieldError, RangeError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
@@ -534,13 +570,26 @@ def create_items_router(
             raise HTTPException(status_code=409, detail=FAVORITES_FULL)
 
     async def _mark_excluded(session: AsyncSession, items: list[Item]) -> None:
-        """Sets play_next_excluded on each item from its "never" events.
+        """Sets play_next_excluded on each item from its "never" events, and a
+        comic's run summary.
 
-        One query for the whole list. The flag is a plain attribute on the
-        instance, not a column, so it is recomputed on every response.
+        One query for the whole list. Both are plain attributes on the
+        instance, not columns, so they are recomputed on every response.
         """
         if not items:
             return
+        for item in items:
+            item.comic_run = (
+                row_run(
+                    item.issues_owned,
+                    item.issues_skipped,
+                    item.editions,
+                    item.read_to,
+                    item.source_metadata,
+                )
+                if item.type == ItemType.COMIC
+                else None
+            )
         result = await session.execute(
             select(PickEvent.item_id)
             .where(PickEvent.action == PickAction.NEVER)
@@ -580,6 +629,7 @@ def create_items_router(
         session.add(item)
         await session.commit()
         await session.refresh(item)
+        await _mark_excluded(session, [item])
         return item
 
     @router.post("/visibility", response_model=VisibilityOut)
@@ -671,10 +721,8 @@ def create_items_router(
             # One refused row refuses the batch: this is a review-then-commit
             # step, and a half-imported shelf is harder to reason about.
             try:
-                values.update(
-                    apply_copy_fields(item.model_dump(exclude_unset=True), None)
-                )
-            except CopyFieldError as error:
+                values.update(_write_fields(item.model_dump(exclude_unset=True), None))
+            except (CopyFieldError, RangeError) as error:
                 raise HTTPException(
                     status_code=422, detail=f"{item.title}: {error}"
                 ) from error
