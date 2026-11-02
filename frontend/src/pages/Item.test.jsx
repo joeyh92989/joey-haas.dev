@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LOAD_ERROR } from '../content/status.js'
+import { spine } from '../content/spine.js'
+import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import Item from './Item.jsx'
 
@@ -512,5 +514,235 @@ describe('Item snapshot preview', () => {
       screen.getByRole('heading', { level: 1, name: 'Hades' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+const SAGA = {
+  ...DETAIL,
+  type: 'comic',
+  title: 'Saga',
+  year: 2012,
+  creator: 'Image',
+  status: 'active',
+  rating: null,
+  favorite: false,
+  finished_at: null,
+  genres: [],
+  community_score: null,
+  platforms: [],
+  description: '<p>An epic space opera.</p>',
+  community_votes: null,
+  times_completed: 0,
+  started_at: null,
+  similar_in_collection: [],
+  comic: {
+    publisher: 'Image',
+    owned_text: '1–4, 6–8',
+    released: 8,
+    ongoing: true,
+    run_state: 'gaps',
+    missing: 1,
+    segments: [
+      { kind: 'owned', length: 4 },
+      { kind: 'missing', length: 1 },
+      { kind: 'owned', length: 3 },
+    ],
+    read_to: 3,
+    read: 3,
+    editions: [{ kind: 'TPB', label: 'Vol. 2', from_issue: 6, to_issue: 8 }],
+    next_issue: { number: '9', store_date: '2026-11-12' },
+    following: true,
+    shelf_format: 'trades',
+    as_of: '2026-10-30',
+  },
+}
+
+const SERIES = spine.comics.series
+
+function stubSaga(comic = {}) {
+  return stubItem({ ...SAGA, comic: { ...SAGA.comic, ...comic } })
+}
+
+async function renderSaga(options) {
+  renderPage(options)
+  return screen.findByRole('heading', { level: 1, name: 'Saga' })
+}
+
+/** The issue grid's cells, as [number, kind] in order. */
+function cells() {
+  return [...document.querySelectorAll('.issue-grid > *')].map((cell) => [
+    cell.textContent,
+    cell.dataset.k,
+  ])
+}
+
+describe('Item series page (AC5)', () => {
+  it('names the comic, its publisher and that it is ongoing, in comic words', async () => {
+    stubSaga()
+    await renderSaga()
+    expect(
+      screen.getByText('Comic · Image · 2012 – ongoing'),
+    ).toBeInTheDocument()
+    expect(document.querySelector('.item-status')).toHaveTextContent('Reading')
+  })
+
+  it('states the run, format, read marker and next issue', async () => {
+    stubSaga()
+    await renderSaga()
+    const facts = document.querySelector('.item-facts')
+    expect(facts).toHaveTextContent('7 of 8 issues so far · Gaps')
+    // Followed, so refreshed nightly: no "as of".
+    expect(facts).not.toHaveTextContent('as of')
+    expect(facts).toHaveTextContent('Trades · Vol. 2')
+    expect(facts).toHaveTextContent('#3 · 4 on the shelf unread')
+    expect(facts).toHaveTextContent('#9 · Nov 12')
+  })
+
+  it('dates the run of an ongoing series nobody follows, and drops its next issue', async () => {
+    stubSaga({ following: false })
+    await renderSaga()
+    const facts = document.querySelector('.item-facts')
+    expect(facts).toHaveTextContent('as of Oct 2026')
+    expect(facts).not.toHaveTextContent(SERIES.facts.next)
+  })
+
+  it('says Not started before the first issue is read', async () => {
+    stubSaga({ read_to: null, read: 0 })
+    await renderSaga()
+    expect(document.querySelector('.item-facts')).toHaveTextContent(
+      `${SERIES.facts.readTo}${SERIES.notStarted}`,
+    )
+  })
+
+  it('draws one cell per released issue in its state, and the next one hatched', async () => {
+    stubSaga()
+    await renderSaga()
+    expect(cells()).toEqual([
+      ['1', 'read'],
+      ['2', 'read'],
+      ['3', 'read'],
+      ['4', 'owned'],
+      ['5', 'missing'],
+      ['6', 'owned'],
+      ['7', 'owned'],
+      ['8', 'owned'],
+      ['9', 'unreleased'],
+    ])
+    expect(screen.getByRole('heading', { name: /Issues/ })).toHaveTextContent(
+      '#1–4, 6–8',
+    )
+  })
+
+  it('lists the editions with what each collects', async () => {
+    stubSaga()
+    await renderSaga()
+    const editions = screen.getByRole('region', { name: SERIES.editions })
+    expect(editions).toHaveTextContent('TPB')
+    expect(editions).toHaveTextContent('Vol. 2')
+    expect(editions).toHaveTextContent('collects #6–8')
+  })
+
+  it('has no Editions card without editions', async () => {
+    stubSaga({ editions: [] })
+    await renderSaga()
+    expect(
+      screen.queryByRole('region', { name: SERIES.editions }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows About as text and credits Comic Vine', async () => {
+    stubSaga()
+    await renderSaga()
+    const about = screen.getByRole('region', { name: SERIES.about })
+    expect(about).toHaveTextContent('An epic space opera.')
+    expect(
+      within(about).getByRole('link', { name: 'Comic Vine' }),
+    ).toHaveAttribute('href', 'https://comicvine.gamespot.com/')
+    expect(document.querySelector('.item-attribution')).toHaveTextContent(
+      'Comic data from Comic Vine.',
+    )
+  })
+
+  it('is decoration when signed out: no toggles', async () => {
+    stubSaga()
+    await renderSaga()
+    expect(
+      screen.queryByRole('group', { name: 'Issues I own' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('toggles an issue when signed in, from the owner’s own ranges', async () => {
+    let saved = null
+    const fetch = vi.fn(async (url, options = {}) => {
+      if (options.method === 'PATCH') {
+        saved = JSON.parse(options.body)
+        return { ok: true, status: 200, json: async () => ({}) }
+      }
+      if (url.includes('/api/public/')) {
+        const comic = saved
+          ? {
+              ...SAGA.comic,
+              owned_text: '1–8',
+              missing: 0,
+              run_state: 'up_to_date',
+            }
+          : SAGA.comic
+        return { ok: true, status: 200, json: async () => ({ ...SAGA, comic }) }
+      }
+      // The admin row: singles 1–4 only, the edition's 6–8 not in it.
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues_owned: '1–4' }),
+      }
+    })
+    vi.stubGlobal('fetch', fetch)
+    await renderSaga({ signedIn: true })
+    const grid = screen.getByRole('group', { name: 'Issues I own' })
+    // Edition-covered issues are not toggles.
+    expect(within(grid).queryByRole('button', { name: 'Issue 6' })).toBeNull()
+    await userEvent.click(within(grid).getByRole('button', { name: 'Issue 5' }))
+    await waitFor(() =>
+      expect(document.querySelector('.item-facts')).toHaveTextContent(
+        'Up to date',
+      ),
+    )
+    expect(saved).toEqual({ issues_owned: '1-5' })
+    const patch = fetch.mock.calls.find(
+      ([, options]) => options?.method === 'PATCH',
+    )
+    expect(patch[0]).toContain(`/api/items/${ID}`)
+  })
+
+  it('says so when a toggle fails, and keeps the grid', async () => {
+    const fetch = vi.fn(async (url, options = {}) => {
+      if (options.method === 'PATCH') {
+        return { ok: false, status: 422, json: async () => ({}) }
+      }
+      if (url.includes('/api/public/')) {
+        return { ok: true, status: 200, json: async () => SAGA }
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues_owned: '1–4' }),
+      }
+    })
+    vi.stubGlobal('fetch', fetch)
+    await renderSaga({ signedIn: true })
+    await userEvent.click(screen.getByRole('button', { name: 'Issue 5' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(SERIES.saveError)
+    expect(screen.getByRole('button', { name: 'Issue 5' })).toBeEnabled()
+  })
+
+  it('has no axe violations, signed out or in', async () => {
+    stubSaga()
+    const { container, unmount } = renderPage()
+    await screen.findByRole('heading', { level: 1, name: 'Saga' })
+    expect(await axeViolations(container)).toEqual([])
+    unmount()
+    const signedIn = renderPage({ signedIn: true })
+    await screen.findByRole('heading', { level: 1, name: 'Saga' })
+    expect(await axeViolations(signedIn.container)).toEqual([])
   })
 })

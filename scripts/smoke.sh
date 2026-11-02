@@ -371,6 +371,17 @@ else
   report_pass "public next exposes no private fields" "no forbidden key"
 fi
 
+# Comics: the shelf page has its own head, and the public body is the series.
+check_equals "GET /shelf/comics (deep link)" "$(http_status "$SITE_URL/shelf/comics")" "200"
+check_equals "GET /shelf/comics has its own prerendered title" \
+  "$(curl -s -m 90 "$SITE_URL/shelf/comics" | grep -o '<title>[^<]*</title>')" "<title>Comics · My Shelf</title>"
+comics_body="$(curl -s -m 90 "$API_URL/api/public/comics")"
+if printf '%s' "$comics_body" | jq -e '(.series | type) == "array"' > /dev/null 2>&1; then
+  report_pass "GET /api/public/comics has its series" "series is an array"
+else
+  report_fail "GET /api/public/comics has its series" "got '${comics_body:0:80}'"
+fi
+
 # Spine tour: the field guide is a page with its own head, and the status
 # behind the landing's strip is five counts, nothing more.
 check_equals "GET /shelf/how (deep link)" "$(http_status "$SITE_URL/shelf/how")" "200"
@@ -514,6 +525,12 @@ check_equals "POST /api/recommendations/{id}/own unauthenticated" \
 check_equals "GET /admin/radar (deep link)" "$(http_status "$SITE_URL/admin/radar")" "200"
 check_equals "GET /admin/discover (deep link)" "$(http_status "$SITE_URL/admin/discover")" "200"
 check_equals "GET /admin/store-list (deep link)" "$(http_status "$SITE_URL/admin/store-list")" "200"
+check_equals "GET /admin/pull-list (deep link)" "$(http_status "$SITE_URL/admin/pull-list")" "200"
+check_equals "GET /api/comics/pull-list unauthenticated" \
+  "$(http_status "$API_URL/api/comics/pull-list")" "401"
+check_equals "POST /api/comics/refresh unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/comics/refresh")" \
+  "401"
 
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in

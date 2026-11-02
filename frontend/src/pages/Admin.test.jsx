@@ -85,7 +85,9 @@ function stubApi(routes = {}) {
     '/api/items': () => json(ITEMS),
     '/api/physical/status': () => json(status()),
     '/api/recommendations/store-list': () =>
-      json({ generated_at: { radar: ago(1), discover: ago(1) } }),
+      // Older than the catalogue run's ago(1): an equal stamp ties, and the
+      // milliseconds between the two calls would decide which row leads.
+      json({ generated_at: { radar: ago(1.5), discover: ago(1.5) } }),
     '/snapshot/meta.json': () => json({ fetched_at: ago(3) }),
   }
   const table = { ...defaults, ...routes }

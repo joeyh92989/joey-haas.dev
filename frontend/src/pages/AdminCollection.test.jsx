@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { localToday } from '../lib/statusTransition.js'
 import AdminCollection from './AdminCollection.jsx'
@@ -80,6 +80,37 @@ afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   localStorage.clear()
+})
+
+describe('AdminCollection arriving from the pull list', () => {
+  function StateProbe() {
+    const { state } = useLocation()
+    return <output data-testid="state">{JSON.stringify(state)}</output>
+  }
+
+  it('prefills the form once and drops the prefill from history', async () => {
+    stubApi()
+    render(
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/admin/collection',
+            state: { prefill: { type: 'comic', title: 'Absolute Batman' } },
+          },
+        ]}
+      >
+        <AdminCollection />
+        <StateProbe />
+      </MemoryRouter>,
+    )
+    expect(
+      await screen.findByDisplayValue('Absolute Batman'),
+    ).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByTestId('state')).toHaveTextContent('null'),
+    )
+    expect(screen.getByDisplayValue('Absolute Batman')).toBeInTheDocument()
+  })
 })
 
 // The table: the List view, kept for bulk work.

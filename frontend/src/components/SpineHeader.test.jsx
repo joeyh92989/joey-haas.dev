@@ -52,7 +52,7 @@ describe('SpineHeader', () => {
     expect(screen.getByRole('link', { name: 'Collection' })).not.toHaveClass(
       'active',
     )
-    expect(screen.getAllByRole('link', { name: /./ })).toHaveLength(5)
+    expect(screen.getAllByRole('link', { name: /./ })).toHaveLength(6)
   })
 
   it('leaves How it works inactive elsewhere under /shelf', () => {
@@ -60,5 +60,17 @@ describe('SpineHeader', () => {
     expect(screen.getByRole('link', { name: /How it works/ })).not.toHaveClass(
       'active',
     )
+  })
+
+  it('has a Comics tab after Collection, active on its page', () => {
+    renderAt('/shelf/comics', { asLink: true })
+    const comics = screen.getByRole('link', { name: 'Comics' })
+    expect(comics).toHaveAttribute('href', '/shelf/comics')
+    expect(comics).toHaveClass('active')
+    expect(screen.getByRole('link', { name: 'Collection' })).not.toHaveClass(
+      'active',
+    )
+    const names = screen.getAllByRole('link').map((link) => link.textContent)
+    expect(names.indexOf('Comics')).toBe(names.indexOf('Collection') + 1)
   })
 })

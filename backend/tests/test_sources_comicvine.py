@@ -175,3 +175,95 @@ async def test_a_403_explains_the_two_things_that_cause_it(monkeypatch):
 
     message = str(excinfo.value)
     assert "key" in message and "User-Agent" in message
+
+
+# --- The pull list's volume search and issue fetch ---------------------------
+# Most /issues bodies here are hand-built in the shape ISSUE_FIELD_LIST asks
+# for; the recorded ones (record_comicvine_fixtures.py) hold them to the live
+# answer.
+
+
+def _issue(number, store_date, volume_id=4363, **extra) -> dict:
+    return {
+        "id": 1000 + len(str(number)),
+        "issue_number": number,
+        "name": extra.get("name"),
+        "store_date": store_date,
+        "cover_date": extra.get("cover_date"),
+        "image": {"medium_url": f"https://cv.example/{number}.jpg"},
+        "volume": {"id": volume_id, "name": "Saga"},
+    }
+
+
+def test_volume_search_carries_publisher_and_issue_count():
+    rows = ComicVineSource(_config())._parse_volumes(_search_payload())
+
+    assert rows and len(rows) <= SEARCH_LIMIT
+    raw = _search_payload()["results"][0]
+    assert rows[0].external_id == str(raw["id"])
+    assert rows[0].publisher == (raw.get("publisher") or {}).get("name")
+    assert rows[0].issue_count == raw.get("count_of_issues")
+
+
+@pytest.mark.parametrize(
+    "fixture", ["comicvine_issues_ongoing.json", "comicvine_issues_ended.json"]
+)
+def test_recorded_issues_parse_newest_first_on_their_volume(fixture):
+    recorded = json.loads((FIXTURES / fixture).read_text())
+    volume_id = str(recorded["volume"]["id"])
+
+    entries = ComicVineSource(_config())._parse_issues(recorded["issues"], volume_id)
+
+    raw = recorded["issues"]["results"]
+    assert len(entries) == len(raw) > 0
+    assert [e["number"] for e in entries] == [r["issue_number"] for r in raw]
+    dates = [e["store_date"] for e in entries if e["store_date"]]
+    assert dates == sorted(dates, reverse=True)
+    assert all(e["cover_url"] for e in entries)
+
+
+def test_issues_map_onto_snapshot_entries():
+    payload = {"results": [_issue("67", "2024-11-27", name="Chapter 67")]}
+
+    (entry,) = ComicVineSource(_config())._parse_issues(payload, "4363")
+
+    assert entry == {
+        "number": "67",
+        "name": "Chapter 67",
+        "store_date": "2024-11-27",
+        "cover_date": None,
+        "cover_url": "https://cv.example/67.jpg",
+    }
+
+
+def test_an_issue_from_another_volume_refuses_the_whole_answer():
+    # If the volume filter were ever ignored, the newest issues of every
+    # series would come back; none of them may reach this row's snapshot.
+    payload = {"results": [_issue("1", "2024-01-01"), _issue("9", "2024-01-01", 99)]}
+
+    with pytest.raises(SourceError) as excinfo:
+        ComicVineSource(_config())._parse_issues(payload, "4363")
+
+    assert "volume filter" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_fetch_issues_makes_exactly_the_recorded_call(monkeypatch):
+    seen = _patch_http(monkeypatch, _FakeResponse(200, {"error": "OK", "results": []}))
+
+    assert await ComicVineSource(_config()).fetch_issues("4363") == []
+
+    params = seen[0]["params"]
+    assert seen[0]["url"].endswith("/issues/")
+    assert params["filter"] == "volume:4363"
+    assert params["sort"] == "store_date:desc"
+    assert (
+        params["field_list"]
+        == "id,issue_number,name,store_date,cover_date,image,volume"
+    )
+
+
+@pytest.mark.asyncio
+async def test_fetch_issues_refuses_a_non_numeric_volume_id():
+    with pytest.raises(SourceError):
+        await ComicVineSource(_config()).fetch_issues("4363,volume:1")

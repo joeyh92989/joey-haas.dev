@@ -833,7 +833,7 @@ describe('Collection header', () => {
       screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(/^A tracker for my physical game collection:/),
+      screen.getByText(/^A tracker for my physical game and comic collection:/),
     ).toBeInTheDocument()
     expect(screen.getByText(/^I built this myself:/)).toBeInTheDocument()
     // The tab row has its own How it works link; this is the project line's.

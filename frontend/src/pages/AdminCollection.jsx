@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import ItemForm, {
+  EMPTY_COMIC_FIELDS,
   FORMAT_OPTIONS,
   PLATFORM_OPTIONS,
 } from '../components/ItemForm.jsx'
@@ -12,7 +13,8 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfCardActions from '../components/ShelfCardActions.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
-import { apiFetch } from '../lib/api.js'
+import { apiFetch, errorMessage } from '../lib/api.js'
+import { comicPayload } from '../lib/comics.js'
 import {
   countBy,
   filterItems,
@@ -93,6 +95,7 @@ const EMPTY_FORM = {
   owned_format: '',
   external_source: null,
   external_id: null,
+  ...EMPTY_COMIC_FIELDS,
 }
 
 /**
@@ -106,7 +109,19 @@ export default function AdminCollection() {
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
-  const [form, setForm] = useState(EMPTY_FORM)
+  // The pull list's Own… arrives with the volume to prefill (spec, section 4).
+  const { state: arrival, pathname, search } = useLocation()
+  const navigate = useNavigate()
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_FORM,
+    ...arrival?.prefill,
+  }))
+  // History keeps location state across a reload, which would prefill the
+  // form again after the item was saved; once read, it is cleared.
+  useEffect(() => {
+    if (arrival?.prefill)
+      navigate({ pathname, search }, { replace: true, state: null })
+  }, [arrival, navigate, pathname, search])
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
@@ -208,8 +223,19 @@ export default function AdminCollection() {
     event.preventDefault()
     setError(null)
     setSaving(true)
+    const comic = form.type === 'comic' ? comicPayload(form) : null
+    if (comic?.error) {
+      setError(comic.error)
+      setSaving(false)
+      return
+    }
+    // The comic keys are form state; only comicPayload's version is sent.
+    const rest = Object.fromEntries(
+      Object.entries(form).filter(([key]) => !(key in EMPTY_COMIC_FIELDS)),
+    )
     const body = {
-      ...form,
+      ...rest,
+      ...comic?.fields,
       title: form.title.trim(),
       rating: form.rating === '' ? null : Number(form.rating),
       year: form.year === '' ? null : Number(form.year),
@@ -222,7 +248,12 @@ export default function AdminCollection() {
         body: JSON.stringify(body),
       })
       if (!response.ok) {
-        setError('Couldn’t save that item.')
+        // A 422 names the rule, such as a malformed range; say it.
+        setError(
+          response.status === 422
+            ? await errorMessage(response)
+            : 'Couldn’t save that item.',
+        )
         return
       }
       // Enrichment is a second call on purpose: the snapshot, cover, and
@@ -231,9 +262,13 @@ export default function AdminCollection() {
       // item that is simply not enriched yet, so it is not an error.
       if (body.external_source && body.external_id) {
         const created = await response.json()
-        await apiFetch(`/api/items/${created.id}/refresh-metadata`, {
-          method: 'POST',
-        }).catch(() => {})
+        // A Comic Vine series reads its issues too, through the comics
+        // route; refresh-metadata reads only the volume.
+        const refresh =
+          body.type === 'comic' && body.external_source === 'comicvine'
+            ? `/api/comics/${created.id}/refresh`
+            : `/api/items/${created.id}/refresh-metadata`
+        await apiFetch(refresh, { method: 'POST' }).catch(() => {})
       }
     } catch {
       setError(ACTION_ERROR)

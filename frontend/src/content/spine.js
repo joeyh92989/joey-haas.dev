@@ -26,15 +26,16 @@ export const spine = {
   name: 'My Shelf',
   path: '/shelf',
   tagline:
-    'A tracker for my physical game collection: what I own, what I’ve finished, and what to play next.',
-  projectsTagline: 'A tracker for my physical game collection',
+    'A tracker for my physical game and comic collection: what I own, what I’ve finished, and what to play or read next.',
+  projectsTagline: 'A tracker for my physical games and comics',
   homeLine:
-    'A tracker for my physical game collection: it reads the shelf from a photo, knows which boxes hold a real cartridge, and picks what to play next.',
+    'A tracker for my physical games and comics: it reads the shelf from a photo, knows which boxes hold a real cartridge, follows each comic run, and picks what to play next.',
   projectLine:
     'I built this myself: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
   links,
   tabs: {
     shelf: { to: '/shelf', label: 'Collection' },
+    comics: { to: '/shelf/comics', label: 'Comics' },
     next: { to: '/shelf/next', label: 'What’s next' },
     year: { to: '/shelf/year', label: 'Year in review' },
     how: { to: '/shelf/how', label: 'How it works' },
@@ -370,6 +371,7 @@ export const spine = {
     },
     sections: {
       tonight: 'Tonight',
+      comics: 'Comics this week',
       wanted: 'On my list',
       buy_now: 'In stores now',
       preorders: 'Coming soon',
@@ -419,6 +421,16 @@ export const spine = {
     formatUnknown: 'Format unknown',
     otherPlatform: 'Other',
     attribution: { before: 'Game data from', label: 'IGDB', after: '.' },
+    /** Comic rows: Comics this week and comic wants in On my list. */
+    comics: {
+      kind: 'Comic',
+      owned: (ranges, released) => `I own #${ranges} of ${released}`,
+      attribution: {
+        before: 'Comic data from',
+        label: 'Comic Vine',
+        after: '.',
+      },
+    },
     band: {
       lead: 'What’s next',
       tonight: 'Tonight:',
@@ -428,6 +440,99 @@ export const spine = {
     loading: 'Loading…',
     waking: WAKING,
     error: LOAD_ERROR,
+  },
+  /** /shelf/comics and the comic parts of the series page and What's next. */
+  comics: {
+    path: '/shelf/comics',
+    title: 'Comics',
+    lede: 'Every series on my shelf as a run: what I own, the gaps, and what’s out this week.',
+    /** Comic wording for the four statuses; the shelf's own labels are game words. */
+    status: {
+      active: 'Reading',
+      backlog: 'To read',
+      finished: 'Read',
+      abandoned: 'Dropped',
+    },
+    /** Mirrors the comic_shelf_format enum. */
+    formats: { singles: 'Singles', trades: 'Trades', omnibus: 'Omnibus' },
+    runStates: {
+      complete: 'Complete',
+      up_to_date: 'Up to date',
+      gaps: 'Gaps',
+    },
+    run: {
+      owned: 'Owned',
+      missing: 'Missing',
+      upcoming: 'Not out yet',
+      read: 'Read',
+      complete: 'Complete run',
+      missingCount: (n) => `${n} missing`,
+      next: (number, date) => `Next #${number} · ${date}`,
+      readTo: (n) => `read to #${n}`,
+    },
+    pills: { following: 'Following', want: 'Want' },
+    hero: {
+      series: 'Series',
+      issues: 'Issues owned',
+      missing: 'Missing',
+      read: 'Read',
+    },
+    chips: {
+      all: 'All',
+      following: 'Following',
+      gaps: 'Gaps',
+      unread: 'Unread on the shelf',
+      want: 'Want',
+      publisher: 'Publisher',
+      more: 'More…',
+    },
+    sorts: [
+      { value: 'next', label: 'Next issue' },
+      { value: 'title', label: 'Title' },
+      { value: 'publisher', label: 'Publisher' },
+      { value: 'missing', label: 'Missing issues' },
+    ],
+    views: { runs: 'Runs', covers: 'Covers' },
+    search: 'Search series',
+    cards: {
+      runs: 'Runs',
+      runsMissing: (n) => `${n} missing`,
+      reading: 'Reading',
+      publishers: 'Publishers',
+      added: 'Added',
+    },
+    strip: {
+      title: 'Out this week',
+      from: (n) => `from the ${n} series I follow`,
+      later: 'Later',
+      laterNote: 'Date not set yet',
+    },
+    /** The comic parts of /shelf/:id. */
+    series: {
+      kicker: 'Comic',
+      ongoing: 'ongoing',
+      facts: {
+        run: 'Run',
+        format: 'Format',
+        readTo: 'Read to',
+        next: 'Next issue',
+      },
+      run: (owned, released, ongoing) =>
+        `${owned} of ${released} ${released === 1 ? 'issue' : 'issues'}${ongoing ? ' so far' : ''}`,
+      asOf: (month) => `as of ${month}`,
+      notStarted: 'Not started',
+      unread: (n) => `${n} on the shelf unread`,
+      issues: 'Issues',
+      editions: 'Editions',
+      collects: (from, to) =>
+        from === to ? `collects #${from}` : `collects #${from}–${to}`,
+      about: 'About',
+      from: 'From',
+      saveError: 'Could not save that issue. Try again.',
+    },
+    empty: 'No comics on the shelf yet.',
+    noMatch: 'No series match those filters.',
+    attribution: { before: 'Comic data from', label: 'Comic Vine', after: '.' },
   },
   /** /admin/store-list: What's next's sections with my answers on them. */
   storeList: {

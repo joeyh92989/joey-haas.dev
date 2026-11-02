@@ -4,6 +4,7 @@ import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import {
   CARTRIDGE_ERA_PLATFORMS,
+  ComicFields,
   COMPLETENESS_OPTIONS,
   FORMAT_OPTIONS,
   PLATFORM_OPTIONS,
@@ -11,6 +12,7 @@ import {
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import PlayJournal from '../components/PlayJournal.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { comicPayload, editionsText } from '../lib/comics.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -44,6 +46,11 @@ const EDITABLE = [
   'completeness',
   'acquired_at',
   'release_date',
+  'issues_owned',
+  'editions',
+  'read_to',
+  'shelf_format',
+  'following',
 ]
 
 /** A form value as the API wants it: an empty string means "not set". */
@@ -71,6 +78,11 @@ function toForm(item) {
     completeness: item.completeness ?? '',
     acquired_at: item.acquired_at ?? '',
     release_date: item.release_date ?? '',
+    issues_owned: item.issues_owned ?? '',
+    editions_text: editionsText(item.editions),
+    read_to: item.read_to ?? '',
+    shelf_format: item.shelf_format ?? '',
+    following: Boolean(item.following),
   }
 }
 
@@ -96,6 +108,9 @@ function toPayload(form) {
     completeness: orNull(form.completeness),
     acquired_at: orNull(form.acquired_at),
     release_date: orNull(form.release_date),
+    // An unreadable editions line keeps the stored list here; save() stops
+    // on comicPayload's error before anything is sent.
+    ...comicPayload(form).fields,
   }
 }
 
@@ -110,10 +125,10 @@ function changedFields(original, form) {
   const before = toPayload(toForm(original))
   const after = toPayload(form)
   return Object.fromEntries(
-    EDITABLE.filter((key) => before[key] !== after[key]).map((key) => [
-      key,
-      after[key],
-    ]),
+    // Editions are a list, so they compare by value.
+    EDITABLE.filter(
+      (key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]),
+    ).map((key) => [key, after[key]]),
   )
 }
 
@@ -216,6 +231,7 @@ export default function AdminItem() {
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
   const [relinking, setRelinking] = useState(false)
+  const [refreshingComic, setRefreshingComic] = useState(false)
 
   /**
    * Returns rather than setting state, so the effect applies the result in a
@@ -258,6 +274,11 @@ export default function AdminItem() {
     setError(null)
     setSavedAt(null)
 
+    const editionsError = comicPayload(form).error
+    if (editionsError) {
+      setError(editionsError)
+      return
+    }
     const changes = changedFields(item, form)
     if (Object.keys(changes).length === 0) {
       setError('Nothing has changed.')
@@ -370,7 +391,13 @@ export default function AdminItem() {
     // Against the form as it is now, not as it was when the request began: a
     // cold start can hold the request long enough to type into the form.
     setForm((current) => {
-      const unsaved = Object.keys(changedFields(item, current))
+      // Editions are edited as text: an unread or unreadable line is still
+      // a pending edit, so the text field is compared, not the parsed list.
+      const unsaved = Object.keys(changedFields(item, current)).filter(
+        (field) => field !== 'editions',
+      )
+      if (current.editions_text !== toForm(item).editions_text)
+        unsaved.push('editions_text')
       return {
         ...toForm(updated),
         ...Object.fromEntries(unsaved.map((field) => [field, current[field]])),
@@ -415,6 +442,38 @@ export default function AdminItem() {
       applyServerItem(await reread.json())
     } catch {
       setError(ACTION_ERROR)
+    }
+  }
+
+  /** Re-reads the series and its issues from Comic Vine, then the item. */
+  async function refreshComic() {
+    setError(null)
+    setRefreshingComic(true)
+    try {
+      const response = await apiFetch(`/api/comics/${id}/refresh`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        setError(
+          (await response
+            .json()
+            .then((payload) =>
+              typeof payload?.detail === 'string' ? payload.detail : null,
+            )
+            .catch(() => null)) ?? 'Couldn’t refresh from Comic Vine.',
+        )
+        return
+      }
+      const reread = await apiFetch(`/api/items/${id}`)
+      if (!reread.ok) {
+        setError('Refreshed, but the item couldn’t be read again.')
+        return
+      }
+      applyServerItem(await reread.json())
+    } catch {
+      setError(ACTION_ERROR)
+    } finally {
+      setRefreshingComic(false)
     }
   }
 
@@ -540,6 +599,17 @@ export default function AdminItem() {
             )}
           </p>
           {item.creator && <p className="muted">{item.creator}</p>}
+          {item.type === 'comic' && item.external_source === 'comicvine' && (
+            <p>
+              <button
+                type="button"
+                disabled={refreshingComic}
+                onClick={refreshComic}
+              >
+                {refreshingComic ? 'Refreshing…' : 'Refresh from Comic Vine'}
+              </button>
+            </p>
+          )}
 
           <div className="item-relink">
             <h2>Re-link</h2>
@@ -605,71 +675,81 @@ export default function AdminItem() {
             ))}
           </select>
 
-          <label htmlFor="platform_id">Platform</label>
-          <select
-            id="platform_id"
-            value={form.platform_id}
-            onChange={set('platform_id')}
-          >
-            <option value="">unspecified</option>
-            {PLATFORM_OPTIONS.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
-
-          <label htmlFor="physical_format">Copy format</label>
-          <select
-            id="physical_format"
-            value={form.physical_format}
-            onChange={set('physical_format')}
-          >
-            <option value="">not recorded</option>
-            {FORMAT_OPTIONS.map(([format, label]) => (
-              <option key={format} value={format}>
-                {label}
-              </option>
-            ))}
-          </select>
-          {item.platform_id === SWITCH_2 && (
-            <RegistryLine item={item} onAdopted={applyServerItem} />
-          )}
-
-          {/* The code on a Switch 2 label decides the format; the server
-              refuses one that contradicts it. */}
-          <label htmlFor="cart_id">Cart ID</label>
-          <input
-            id="cart_id"
-            placeholder="LP-AAC4B-USA-0"
-            value={form.cart_id}
-            onChange={set('cart_id')}
-          />
-
-          <label htmlFor="region">Region</label>
-          <input
-            id="region"
-            placeholder="USA"
-            maxLength={4}
-            value={form.region}
-            onChange={set('region')}
-          />
-
-          {CARTRIDGE_ERA_PLATFORMS.includes(Number(form.platform_id)) && (
+          {form.type === 'comic' ? (
+            <ComicFields
+              value={form}
+              onChange={setForm}
+              released={item.comic_run?.released ?? null}
+            />
+          ) : (
             <>
-              <label htmlFor="completeness">Completeness</label>
+              <label htmlFor="platform_id">Platform</label>
               <select
-                id="completeness"
-                value={form.completeness}
-                onChange={set('completeness')}
+                id="platform_id"
+                value={form.platform_id}
+                onChange={set('platform_id')}
               >
                 <option value="">unspecified</option>
-                {COMPLETENESS_OPTIONS.map(([value, label]) => (
-                  <option key={value} value={value}>
+                {PLATFORM_OPTIONS.map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+
+              <label htmlFor="physical_format">Copy format</label>
+              <select
+                id="physical_format"
+                value={form.physical_format}
+                onChange={set('physical_format')}
+              >
+                <option value="">not recorded</option>
+                {FORMAT_OPTIONS.map(([format, label]) => (
+                  <option key={format} value={format}>
                     {label}
                   </option>
                 ))}
               </select>
+              {item.platform_id === SWITCH_2 && (
+                <RegistryLine item={item} onAdopted={applyServerItem} />
+              )}
+
+              {/* The code on a Switch 2 label decides the format; the server
+                    refuses one that contradicts it. */}
+              <label htmlFor="cart_id">Cart ID</label>
+              <input
+                id="cart_id"
+                placeholder="LP-AAC4B-USA-0"
+                value={form.cart_id}
+                onChange={set('cart_id')}
+              />
+
+              <label htmlFor="region">Region</label>
+              <input
+                id="region"
+                placeholder="USA"
+                maxLength={4}
+                value={form.region}
+                onChange={set('region')}
+              />
+
+              {CARTRIDGE_ERA_PLATFORMS.includes(Number(form.platform_id)) && (
+                <>
+                  <label htmlFor="completeness">Completeness</label>
+                  <select
+                    id="completeness"
+                    value={form.completeness}
+                    onChange={set('completeness')}
+                  >
+                    <option value="">unspecified</option>
+                    {COMPLETENESS_OPTIONS.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
             </>
           )}
 

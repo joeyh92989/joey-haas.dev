@@ -7,6 +7,11 @@ import { itemPath } from '../lib/spinePaths.js'
 const MAX_REASONS = 2
 
 function metaLine(row, section) {
+  if (row.type === 'comic') {
+    return [spine.next.comics.kind, spine.comics.formats[row.shelf_format]]
+      .filter(Boolean)
+      .join(' · ')
+  }
   const format =
     row.lane === 'digital' ||
     (section === 'not_on_cartridge' && !row.physical_format)
@@ -22,7 +27,9 @@ function metaLine(row, section) {
 
 /**
  * One game on What's next or the store list: cover, title, platform ·
- * format · date, up to two reasons, and the New and Top pick badges. The
+ * format · date, up to two reasons, and the New and Top pick badges. A
+ * comic want reads "Comic · Trades" instead: it has no platform or
+ * cartridge format. The
  * title links to the item page for a wanted game, else to IGDB.
  *
  * `actions` and `extra` (the admin's buttons and store lines) render as
@@ -38,7 +45,11 @@ export default function NextRow({ row, section, actions, extra }) {
   const body = (
     <>
       <span className="next-row-cover">
-        <CoverImage src={row.cover_url} type="game" alt="" />
+        <CoverImage
+          src={row.cover_url}
+          type={row.type === 'comic' ? 'comic' : 'game'}
+          alt=""
+        />
       </span>
       <span className="next-row-title">{row.title}</span>
     </>

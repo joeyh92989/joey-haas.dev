@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useOutletContext } from 'react-router'
+import { Link, useOutletContext } from 'react-router'
 import JustFinishedChip from '../components/JustFinishedChip.jsx'
 import NextRow from '../components/NextRow.jsx'
 import SortControl from '../components/SortControl.jsx'
@@ -7,14 +7,17 @@ import SkippedToast from '../components/SkippedToast.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import TonightAlt from '../components/TonightAlt.jsx'
 import TonightLead from '../components/TonightLead.jsx'
+import CoverImage from '../components/CoverImage.jsx'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
+import { shortDate } from '../lib/comics.js'
 import { groupByPlatform, sortBuyNow, weekdayWords } from '../lib/next.js'
 import { apiFetch } from '../lib/api.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { isValidSnapshot } from '../lib/snapshot.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
+import { itemPath } from '../lib/spinePaths.js'
 
 const copy = spine.next
 const SORTS = copy.sorts.map((sort) => ({ ...sort, direction: 'desc' }))
@@ -60,6 +63,7 @@ function withLists(data) {
       picks: list(data.tonight?.picks),
       last_finish: data.tonight?.last_finish ?? null,
     },
+    comics_this_week: list(data.comics_this_week),
     wanted: list(data.wanted),
     buy_now: list(data.buy_now),
     preorders: list(data.preorders),
@@ -97,6 +101,44 @@ function Rows({ rows, section }) {
         <NextRow key={rowKey(row, index)} row={row} section={section} />
       ))}
     </ul>
+  )
+}
+
+/**
+ * Comics this week (comics spec, AC6): issues of followed public series out
+ * this week, read-only, never with a price or a store. Shown only when
+ * there is one, since a quiet week is most weeks.
+ */
+function ComicsThisWeek({ rows }) {
+  if (!rows.length) return null
+  return (
+    <section className="next-section" aria-labelledby="next-comics">
+      <h2 id="next-comics">{copy.sections.comics}</h2>
+      <ul className="next-rows">
+        {rows.map((row) => (
+          <li key={`${row.item_id}-${row.number}`} className="next-row">
+            <Link to={itemPath(row.item_id)} className="next-row-link">
+              <span className="next-row-cover">
+                <CoverImage src={row.cover_url} type="comic" alt="" />
+              </span>
+              <span className="next-row-title">{`${row.title} #${row.number}`}</span>
+            </Link>
+            <div className="next-row-text">
+              <span className="muted">
+                {[row.publisher, shortDate(row.store_date)]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+              {row.owned_text && (
+                <span className="muted">
+                  {copy.comics.owned(row.owned_text, row.released)}
+                </span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -349,6 +391,12 @@ export default function Next() {
   const [refreshed, setRefreshed] = useState(null)
   const body = refreshed ?? loaded
   const data = body ? withLists(body) : null
+  // Comic Vine's terms ask for the credit wherever its data shows (AC11).
+  const showsComics = Boolean(
+    data &&
+    (data.comics_this_week.length ||
+      data.wanted.some((row) => row.type === 'comic')),
+  )
   const [sort, setSort] = useState(storedSort)
   const [slow, setSlow] = useState(false)
 
@@ -400,6 +448,7 @@ export default function Next() {
             signedIn={signedIn}
             onRefresh={refresh}
           />
+          <ComicsThisWeek rows={data.comics_this_week} />
           <Section
             id="wanted"
             count={data.wanted.length}
@@ -465,6 +514,15 @@ export default function Next() {
           </a>
           {copy.attribution.after}
         </p>
+        {showsComics && (
+          <p>
+            {copy.comics.attribution.before}{' '}
+            <a href="https://comicvine.gamespot.com/" rel="noreferrer noopener">
+              {copy.comics.attribution.label}
+            </a>
+            {copy.comics.attribution.after}
+          </p>
+        )}
       </footer>
     </section>
   )

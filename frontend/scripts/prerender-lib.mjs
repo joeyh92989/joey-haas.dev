@@ -46,6 +46,7 @@ export const ADMIN_ROUTES = [
   '/admin/play-next',
   '/admin/catalogue',
   '/admin/radar',
+  '/admin/pull-list',
   '/admin/discover',
   '/admin/store-list',
 ]
@@ -164,6 +165,11 @@ export function publicRoutes({ posts, items }) {
       ),
       legacy: true,
     },
+    page(
+      spine.comics.path,
+      `${spine.comics.title} · ${spine.name}`,
+      spine.comics.lede,
+    ),
     {
       ...page(
         '/now',

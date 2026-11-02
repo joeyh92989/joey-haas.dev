@@ -4,6 +4,7 @@ import RootLayout from './layouts/RootLayout.jsx'
 import About from './pages/About.jsx'
 import Blog from './pages/Blog.jsx'
 import Collection from './pages/Collection.jsx'
+import Comics from './pages/Comics.jsx'
 import Colophon from './pages/Colophon.jsx'
 import BlogPost from './pages/BlogPost.jsx'
 import Home from './pages/Home.jsx'
@@ -26,6 +27,7 @@ const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics.jsx'))
 const AdminCatalogue = lazy(() => import('./pages/AdminCatalogue.jsx'))
 const AdminDiscover = lazy(() => import('./pages/AdminDiscover.jsx'))
 const AdminRadar = lazy(() => import('./pages/AdminRadar.jsx'))
+const AdminPullList = lazy(() => import('./pages/AdminPullList.jsx'))
 const AdminStoreList = lazy(() => import('./pages/AdminStoreList.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminImport = lazy(() => import('./pages/AdminImport.jsx'))
@@ -65,6 +67,7 @@ export default function App() {
         <Route path="now" element={<Now />} />
         <Route path="colophon" element={<Colophon />} />
         <Route path="shelf" element={<Collection />} />
+        <Route path="shelf/comics" element={<Comics />} />
         <Route path="shelf/next" element={<Next />} />
         <Route path="shelf/how" element={<HowItWorks />} />
         <Route path="shelf/year" element={<CurrentYear />} />
@@ -108,6 +111,7 @@ export default function App() {
           <Route path="play-next" element={<PlayNext />} />
           <Route path="catalogue" element={<AdminCatalogue />} />
           <Route path="radar" element={<AdminRadar />} />
+          <Route path="pull-list" element={<AdminPullList />} />
           <Route path="discover" element={<AdminDiscover />} />
           <Route path="store-list" element={<AdminStoreList />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />

@@ -253,6 +253,11 @@ before pushing.
       for the site. Referrers count only a visit's first view (later views
       send `ref: null`). **Deploy order:** apply `0008` to Neon, then
       merge. Spec and plan: `docs/planning/2026-10-19-site-refresh-design.md`
+- [x] Comics — series rows with owned issues as ranges, collected
+      editions, the public `/shelf/comics` and the comic series page, Comics
+      this week on What's next, and the admin pull list at
+      `/admin/pull-list`. Migration `0010`. Spec and plan:
+      `docs/planning/2026-11-01-comics-design.md`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -276,7 +281,9 @@ before pushing.
   `physical_format` and `format_source` untouched; `0006` adds
   `recommendations` (Radar and Discover); `0007` adds `play_sessions`
   (the play journal); `0008` adds `page_views` and `daily_stats`
-  (analytics); `0009` adds the nullable `pick_events.slot` (Tonight).
+  (analytics); `0009` adds the nullable `pick_events.slot` (Tonight);
+  `0010` adds the comic columns on `items` (`issues_owned`,
+  `issues_skipped`, `editions`, `read_to`, `shelf_format`, `following`).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -496,6 +503,31 @@ before pushing.
   reasons, since "On the shelf since" is read from the private
   `acquired_at` -- except Change of pace's contrast, which leads when its
   label is published (the last finish is public). Reasons are first person everywhere ("which I rated 9").
+- **Comics** are ordinary `items` rows of type `comic`, one per series
+  (Comic Vine volume), never one per issue: there is no issue table.
+  Migration `0010` adds `issues_owned` and `issues_skipped` (range text,
+  "1–54, 60"), `editions` (JSONB, `[{kind, label, from, to}]`), `read_to`,
+  `shelf_format` (`comic_shelf_format`) and `following`.
+  **`backend/comics.py` is the one range parser** (spec, D7): every write
+  path canonicalises through it and answers a bad range with a 422 the
+  form shows as it is; `lib/comics.js` only expands the canonical text and
+  checks an editions line's shape. Comic Vine's issue list per followed
+  series lives in `source_metadata.issues` (`sources/comicvine.py`
+  `fetch_issues`, one call per series; an answer naming another volume is
+  refused whole). The pull list (`comics_routes.py`, admin only) groups
+  issues into weeks of Wednesday to Tuesday in UTC days (D4); Got it adds
+  the number to `issues_owned`, Skip to `issues_skipped`, and Skip refuses
+  an owned issue. **Only public series are shown publicly** (D5): a
+  series reaches `/api/public/comics`, Out this week and
+  `comics_this_week` on `/api/public/next` only when its row is public
+  (owned and published, or a Want). Following alone is private, and so is
+  every skip: `public_comics.py` never emits `issues_skipped`, a price or a
+  store. The run bar and issue grid draw missing issues with
+  `--run-missing` and the not-yet-out tail with `--hatch`, chosen on
+  measured contrast (3.30 dark, 3.25 light on `--surface`; `--line-strong`
+  measured 1.73 and 1.66 and was refused): changing either means measuring
+  again. **Deploy order:** apply `0010` to Neon, merge, follow series on
+  `/admin/pull-list`, then Refresh followed once (or wait for the nightly).
 - **The play journal** (migration `0007`, `play_sessions`) is logged on the
   admin item page (`components/PlayJournal.jsx`, `journal_routes.py`): one
   row per day played, optional minutes, a private note. The public diary,
@@ -523,8 +555,10 @@ before pushing.
   `items.JOB_ROUTES`, matched on the routed template, and
   `tests/test_job_token.py` is the point of it: it pins the whitelist
   exactly, so a new route cannot become reachable by the token unnoticed.
-- **Nightly order:** picks, then registry, then the WooCommerce stores on
-  Render, then the Shopify stores walked on the runner
+- **Nightly order:** picks, then the followed comics' refresh
+  (`POST /api/comics/refresh`, in `JOB_ROUTES`; early because it is cheap
+  and the catalogue steps can run the job into its timeout), then registry,
+  then the WooCommerce stores on Render, then the Shopify stores walked on the runner
   (`backend/scripts/walk_stores.py`, posting each to
   `/api/physical/stores/{key}/ingest`: Shopify rate-limits Render's IP), then Switch 1
   (Sunday evenings in Denver), then resolve (up to 5 rounds), then Radar,
