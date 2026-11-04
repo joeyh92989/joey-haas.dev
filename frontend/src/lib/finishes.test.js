@@ -33,6 +33,19 @@ describe('finishRows', () => {
     ])
   })
 
+  it('keys two finishes on one day apart, the first by its date alone', () => {
+    const rows = finishRows({
+      id: 'a',
+      finishes: ['2026-10-19', '2026-10-19'],
+      times_completed: 2,
+    })
+    expect(rows.map((row) => row.finish_tag)).toEqual([
+      '2026-10-19',
+      '2026-10-19-2',
+    ])
+    expect(new Set(rows.map((row) => row.finish_key)).size).toBe(2)
+  })
+
   it('counts dateless earlier completions in the numbers', () => {
     const [row] = finishRows({
       id: 'b',

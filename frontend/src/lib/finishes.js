@@ -26,8 +26,12 @@ export function finishDates(item) {
 
 /**
  * One row per dated finish: the item with `finished_at` set to that finish,
- * `finish_number` (1 for a first finish), `again` (a replay) and
- * `finish_key` (unique across an item's finishes, for list keys).
+ * `finish_number` (1 for a first finish), `again` (a replay), `finish_tag`
+ * and `finish_key` (both unique across an item's finishes).
+ *
+ * The tag is the date, which the feed's GUIDs were first published under;
+ * only a second finish on the same day adds its number, so no published
+ * GUID changes and two finishes in a day never share one.
  *
  * Numbers count dateless earlier completions too: `times_completed` 3 with
  * two dated finishes makes them the second and third.
@@ -40,12 +44,14 @@ export function finishRows(item) {
   const total = Math.max(item.times_completed ?? 0, dates.length)
   return dates.map((date, index) => {
     const number = total - (dates.length - 1 - index)
+    const tag = dates.indexOf(date) === index ? date : `${date}-${number}`
     return {
       ...item,
       finished_at: date,
       finish_number: number,
       again: number > 1,
-      finish_key: `${item.id}-${date}`,
+      finish_tag: tag,
+      finish_key: `${item.id}-${tag}`,
     }
   })
 }

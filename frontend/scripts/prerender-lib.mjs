@@ -381,7 +381,7 @@ export function spineFeed(items) {
       const url = `${SITE_URL}${itemPath(item.id)}`
       // Fixed to the pre-rename item URL: a reader keys entries on the GUID,
       // so moving it to /shelf would show all twenty again as new.
-      const guid = `${SITE_URL}${LEGACY_PREFIX}/${encodeURIComponent(item.id)}/#finished-${item.finished_at}`
+      const guid = `${SITE_URL}${LEGACY_PREFIX}/${encodeURIComponent(item.id)}/#finished-${item.finish_tag}`
       const details = [
         item.platform,
         item.rating != null ? `rated ${item.rating}/10` : null,
