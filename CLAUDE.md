@@ -410,9 +410,18 @@ before pushing.
   open with `paused_on`; Replay and Try again open a new run. A **misclick**
   (a run opened today, never paused, no journal day, closed back to its
   previous outcome) is deleted, not recorded. Publicly an item carries
-  `paused_on` and `finishes` (dated finishes, ascending), never the current
-  run's start. The admin row names its moves through `lib/statusMoves.js`.
-  **Deploy order:** apply `0011` to Neon, then merge.
+  `paused_on` and `finishes` (dated finishes, ascending); the item page's
+  `started_at` is run 1's start, not the column (with run 1 undated the
+  column would be a replay's), and `playing_since` is the open run's start
+  on an active or paused game only, which before playthroughs was what
+  `started_at` said. The admin row names its moves through
+  `lib/statusMoves.js`. Status moves and the pin route take the owner's
+  local `today`. The backfill counts a finish date as a finish whatever
+  `times_completed` says, and gives a backlog or abandoned game with a date
+  one abandoned run. **Deploy order:** apply `0011` to Neon, then merge, and
+  change no status between the two: the old code's status writes skip
+  `playthroughs`. A code rollback needs `migrate_neon.py downgrade 0010`
+  first, since the old code does not know the `paused` status.
 - **Favourites are capped at four**, the size of the favourites row. The
   API refuses a fifth with a 409 on PATCH, create and bulk create
   (`FAVORITES_LIMIT` in `items.py`); unfavouriting is never refused. Rows

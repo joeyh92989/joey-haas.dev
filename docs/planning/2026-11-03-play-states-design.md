@@ -421,6 +421,11 @@ pages and components that import them).
 | Item page dates "24 Oct 2026" | The page's existing `en` format ("Oct 24, 2026") | One date style per page. |
 | Relative dates ("this week") | Absolute dates | Prerendered and snapshot pages would freeze a relative phrase. |
 | Replay count on every card | Suppressed when a badge or the upcoming ribbon holds the corner | The corner holds one mark. |
+| Item page `started_at` is the item column | Run 1's start, plus `playing_since` (the open run's start, active or paused only) | The column is the earliest start of any run, so an undated run 1 would show a replay's date as the first; and after Try again the hero would date the abandoned run. `playing_since` publishes what `started_at` said before this branch. |
+| Backfill and seed read `times_completed` alone | A finish date counts as a finish whatever the counter says; a backlog game with a date gets an abandoned run | Review found rows whose counter lagged their date: the date would have been dropped. |
+| Status and pin dated by the server | Both take the owner's local `today` | A late-evening move was dated tomorrow in UTC, and the misclick rule compares that date with today. |
+| Misclick: "the previous run" by number | By when the runs were written (`created_at`), number as the tie-break | A past run added after a mistaken Replay has a higher number than the run the Replay followed. The admin hint still orders by number. |
+| Feed GUID `#finished-<date>` | Unchanged, except a second finish on one day adds `-<n>` | Two finishes in a day shared a GUID and a list key; published GUIDs keep their form. |
 
 ## Tasks
 
