@@ -9,6 +9,7 @@ import ItemForm, {
 } from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import PosterCard from '../components/PosterCard.jsx'
+import NowPlaying from '../components/NowPlaying.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfCardActions from '../components/ShelfCardActions.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
@@ -575,6 +576,11 @@ export default function AdminCollection() {
     return (
       <>
         <HeroTiles {...heroFigures(rows)} />
+
+        <NowPlaying
+          items={rows}
+          linkFor={(item) => `/admin/collection/${item.id}`}
+        />
 
         <FavoritesRow items={rows} linkFor={linkFor} placeholders />
 

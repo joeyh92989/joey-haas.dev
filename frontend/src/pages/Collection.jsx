@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import FeatureStrip from '../components/FeatureStrip.jsx'
 import NextBand from '../components/NextBand.jsx'
+import NowPlaying from '../components/NowPlaying.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
@@ -557,6 +558,8 @@ export default function Collection() {
               ]}
             />
           )}
+
+          <NowPlaying items={items} linkFor={(item) => itemPath(item.id)} />
 
           <NextBand next={next} />
 

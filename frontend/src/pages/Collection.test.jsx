@@ -172,6 +172,40 @@ describe('Collection', () => {
     expect(grid().getByText('Gloomhaven')).toBeInTheDocument()
   })
 
+  it('shows the game being played in the Now playing band', async () => {
+    stubApi({
+      items: [
+        ...ITEMS,
+        {
+          ...ITEMS[0],
+          id: 'p',
+          type: 'game',
+          title: 'Hollow',
+          status: 'active',
+          favorite: false,
+          playing_since: '2026-11-03',
+        },
+      ],
+    })
+    await renderReady()
+
+    const band = screen.getByRole('region', { name: 'Now playing' })
+    expect(within(band).getByRole('link', { name: /Hollow/ })).toHaveAttribute(
+      'href',
+      '/shelf/p/',
+    )
+    expect(band).toHaveTextContent('Playing since Nov 3, 2026')
+  })
+
+  it('has no Now playing band when nothing is being played', async () => {
+    stubApi()
+    await renderReady()
+
+    expect(
+      screen.queryByRole('region', { name: 'Now playing' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('links each card to its item page', async () => {
     stubApi()
     await renderReady()

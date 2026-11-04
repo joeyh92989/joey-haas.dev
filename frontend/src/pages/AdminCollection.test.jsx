@@ -392,6 +392,34 @@ describe('AdminCollection shelf', () => {
     ).toHaveTextContent('1')
   })
 
+  it('shows the game being played up front, linked to its edit page', async () => {
+    stubApi({
+      items: [
+        ...ITEMS,
+        {
+          ...ITEMS[0],
+          id: 'p',
+          title: 'Hollow',
+          status: 'active',
+          is_public: true,
+          started_at: '2024-01-01',
+          playthroughs: [
+            { number: 1, started_on: '2024-01-01', outcome: 'finished' },
+            { number: 2, started_on: '2026-10-20', outcome: null },
+          ],
+        },
+      ],
+    })
+    await renderShelf()
+
+    const band = screen.getByRole('region', { name: 'Now playing' })
+    expect(within(band).getByRole('link', { name: /Hollow/ })).toHaveAttribute(
+      'href',
+      '/admin/collection/p',
+    )
+    expect(band).toHaveTextContent('Playing since Oct 20, 2026')
+  })
+
   it('always shows the favourites row, with empty slots and a hint', async () => {
     stubApi()
     await renderShelf()

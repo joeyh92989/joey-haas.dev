@@ -225,6 +225,7 @@ LIST_FIELDS = {
     "completeness",
     "time_to_beat_hours",
     "pinned",
+    "playing_since",
     "paused_on",
     "finishes",
     "times_completed",
@@ -233,7 +234,6 @@ DETAIL_FIELDS = LIST_FIELDS | {
     "description",
     "community_votes",
     "started_at",
-    "playing_since",
     "similar_in_collection",
     "themes",
     "time_to_beat",
@@ -605,6 +605,27 @@ async def test_playing_since_is_null_once_the_run_closes(sessionmaker_for_test):
 
     assert detail["started_at"] == today.isoformat()
     assert detail["playing_since"] is None
+
+
+async def test_the_list_carries_playing_since_for_the_open_run(sessionmaker_for_test):
+    """The shelf's Now playing band reads the start from the list body."""
+    today = datetime.now(UTC).date()
+    async with sessionmaker_for_test() as session:
+        playing = _game("Playing")
+        done = _game("Done")
+        session.add_all([playing, done])
+        await session.flush()
+        await playthroughs.apply_status(session, playing, ItemStatus.ACTIVE, today)
+        await playthroughs.apply_status(session, done, ItemStatus.ACTIVE, today)
+        await playthroughs.apply_status(session, done, ItemStatus.FINISHED, today)
+        await session.commit()
+
+    async with client_for(sessionmaker_for_test) as client:
+        rows = (await client.get("/api/public/items")).json()
+
+    by_title = {row["title"]: row for row in rows}
+    assert by_title["Playing"]["playing_since"] == today.isoformat()
+    assert by_title["Done"]["playing_since"] is None
 
 
 # --- E7b: the copy on the shelf. -------------------------------------------
