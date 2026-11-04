@@ -268,6 +268,15 @@ describe('PlayNext', () => {
     )
   })
 
+  it('says Play this also starts the game', async () => {
+    stubApi()
+    await renderReady()
+
+    expect(
+      card('Dead Cells').getByRole('button', { name: 'Play this' }),
+    ).toHaveAccessibleDescription('Up next · starts playing')
+  })
+
   it('unpins the Up next game', async () => {
     const mock = stubApi()
     await renderReady()

@@ -3193,6 +3193,18 @@ a.month-bar::before {
   margin-top: auto;
 }
 
+/* "Play this" pins and starts the game; the line under it says so. */
+.pick-play {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pick-play-hint {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
 .play-next-empty {
   align-items: center;
   display: flex;
