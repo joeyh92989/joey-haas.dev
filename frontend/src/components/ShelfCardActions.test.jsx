@@ -290,6 +290,30 @@ describe('ShelfCardActions play button', () => {
     expect(screen.queryByRole('button', { name: /^Resume|^Replay/ })).toBeNull()
   })
 
+  it('is reachable by keyboard on a pointer device', async () => {
+    pointer(true)
+    renderActions()
+    const button = screen.getByRole('button', {
+      name: 'Start playing, dated today',
+    })
+    for (let i = 0; i < 20 && document.activeElement !== button; i += 1) {
+      await userEvent.tab()
+    }
+    expect(button).toHaveFocus()
+  })
+
+  // Deliberate: the status menu already offers Playing on a want-list row,
+  // and a wanted game can be played without an owned copy. Only Up next,
+  // which the server refuses for one, is hidden.
+  it('stays on a want-list row, where Up next is hidden', () => {
+    pointer(true)
+    renderActions({ ...ITEM, owned_format: 'none' })
+    expect(
+      screen.getByRole('button', { name: 'Start playing, dated today' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Up next' })).toBeNull()
+  })
+
   it('is in the touch sheet', async () => {
     pointer(false)
     const handlers = renderActions()

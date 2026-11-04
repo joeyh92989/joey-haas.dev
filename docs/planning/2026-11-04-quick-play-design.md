@@ -85,6 +85,7 @@ starts playing*. The second line is tied to the button with
 | Label the button with the move ("Replay"), not the target ("Playing") | Replaying is a different act from starting, and the server records it differently (a new playthrough). The dropdown already uses these verbs. | Four different labels instead of one. |
 | The button lives inside the existing panel | Keeps the poster grid clean and inherits the panel's hover, focus and touch rules without new ones. | Still one hover (desktop) or one "…" tap (phone) away. See Open questions. |
 | No button on a card that's already Playing | Nothing to start. Finishing gets no shortcut here (out of scope). | The row shifts by one control between states. |
+| Want-list rows keep the button | The status menu already offers Playing there, and a wanted game can be played without an owned copy (borrowed, digital). Only Up next is hidden, because the server refuses to pin one. | A wanted card shows Start playing without Up next beside it. |
 | Play Next keeps a single action | "Play this" already pins and starts. A second "start without pinning" button would put two near-identical buttons on every pick. | You can't start a pick without making it Up next. The card button covers that from the shelf. |
 
 ## Docs alignment
