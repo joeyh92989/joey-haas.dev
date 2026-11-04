@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: docs/planning/mockups/2026-11-03-play-states/
 chosen: chosen.html
 ---
@@ -375,3 +375,146 @@ tokens.
   changes, add `paused_on` (date, null) to playthroughs and stamp it on
   Pause, clear on Resume. Recommend the column; it is one line and the
   Pick it back up reason needs it.
+
+---
+
+# Plan
+
+Written 2026-11-04 by Code, from a survey of the readers of `status`,
+`started_at`, `finished_at` and `times_completed` (backend: `items.py`,
+`picker.py`, `picker_routes.py`, `public.py`, `public_outputs.py`,
+`discover.py`; frontend: `lib/statusTransition.js`, `lib/shelf.js`,
+`lib/nowLists.js`, `lib/dashboard.js`, `lib/monthInReview.js`,
+`lib/yearInReview.js`, `scripts/prerender-lib.mjs` (the feed), and the
+pages and components that import them).
+
+## Answers to the open questions
+
+| Question | Decision | Why |
+|---|---|---|
+| Where transitions live | Server. New `POST /api/items/{id}/status {status, today}`; one pure module, `backend/playthroughs.py`, decides every row change, as `formats.py` does for copy fields. PATCH answers 422 for `status`, `started_at`, `finished_at`, `times_completed`. Create, bulk create and the pin route go through the same module. | One transaction per move; one writer, so the cached columns cannot drift. |
+| Whose "today" | The client sends `today` (its `localToday()`); the server refuses one more than a day from its UTC date. | Keeps the local-date rule `statusTransition.js` has today, without trusting any date. |
+| Derived vs cached | Keep the three columns, maintained only by `playthroughs.sync(item, runs)` in the same transaction. A test asserts `derive(runs)` equals the columns after every route. | Every reader, the `finished_at` index and the public-next fingerprint (items `xmin`) keep working untouched. |
+| Shape | As suggested, plus `paused_on date null`. `outcome` enum `playthrough_outcome` (`finished`, `abandoned`). Partial unique index: one open run per item. | Pick it back up needs the pause date; there is no status-change event to read it from. |
+| Backfill | In the migration, as SQL: for each item with `times_completed > 0` or a date or status `active`, `n - 1` dateless finished runs, then the latest run carrying `started_at` / `finished_at`; `active` items get the open run (with `started_at`). An `abandoned` item with dates gets an abandoned run. | Additive, idempotent with the migration, no separate prod data script for Joey to run. |
+| Misclick undo | Closing an open run is a delete instead when: the target equals the previous run's outcome, the open run started today, it is not paused, and no journal day falls in it. The item returns to the previous run's values. | Exactly the "Replay by mistake, Finished again" gesture; anything else is a real run. |
+| Move to Backlog | Deletes the open run (dates only; journal rows are not linked), keeps closed runs. | The edit page's mistake-fix path; Backlog means "no current run". |
+| Pause date | `paused_on` stamped on Pause, cleared on Resume. | As recommended. |
+| Journal attribution | By date range, as specified, computed server-side for `ItemOut.playthroughs` (`journal_days`, `journal_minutes`). | No FK; spec keeps that out. |
+| Public fields | `PublicItem` gains `paused_on` and `finishes` (finished runs' dates, ascending, dateless omitted). Playthrough rows themselves are admin-only. | Feed, Year/Month in review and the Played tile need every finish date; earlier finish dates become public, which is the point of the feature. |
+| Feed GUIDs | Stay `…/#finished-<date>`, now one per finish date. | Existing entries keep their GUIDs, so nothing reposts; a replay is a new entry. |
+
+## Tasks
+
+All sequential (each builds on the API shape of the one before). Tests run
+one backend suite at a time (repo CLAUDE.md).
+
+1. **Migration `0011` and models.** `ALTER TYPE item_status ADD VALUE
+   'paused' AFTER 'active'` inside `op.get_context().autocommit_block()`;
+   create `playthrough_outcome`; `playthroughs` table (`id`, `item_id`
+   cascade, `number smallint`, `started_on`, `finished_on`, `paused_on`,
+   `outcome`, `created_at`), unique `(item_id, number)`, partial unique
+   `(item_id) where outcome is null`, index `(finished_on)`; backfill SQL.
+   Downgrade drops the table and type and documents that the enum value
+   stays (Postgres cannot drop one). `ItemStatus.PAUSED`, `Playthrough`,
+   `PlaythroughOutcome` in `models.py`.
+   *Files:* `migrations/versions/0011_add_playthroughs.py`, `models.py`,
+   `migrations/README.md` (enum-value note).
+   *Tests:* migration test on fixtures covering 0/1/3 completions, active,
+   abandoned, dateless: `derive(runs)` reproduces the three columns
+   exactly and active items have one open run (AC: backfill).
+2. **`backend/playthroughs.py` (pure core + one async apply).**
+   `derive(runs)`, `plan_transition(runs, status, target, today,
+   journal_days_in_open) -> ops`, the misclick rule, `seed(fields)` for
+   create; `apply_status(session, item, target, today)` and `sync`.
+   *Tests:* `tests/test_playthroughs.py`, pure, every edge of the state
+   diagram, Pause/Resume keeps `started_on` (AC), Replay then Finish gives
+   two rows and count 2 (AC), misclick delete, Backlog drops the open run,
+   Backlog → Finished creates a start-less run.
+3. **Routes.** `POST /{id}/status`; PATCH refuses the four fields (422,
+   detail names the status route); create and bulk create seed runs;
+   pin calls `apply_status`; edit-page routes `PATCH
+   /{id}/playthroughs/{number}` (dates only), `DELETE …/{number}` (renumbers
+   nothing; numbers are history), `POST /{id}/playthroughs` (a past
+   finished run, numbered below any open one by shifting it up). `ItemOut`
+   gains `playthroughs`. None of these joins `JOB_ROUTES`
+   (`test_job_token.py` unchanged and green).
+   *Files:* `items.py` (or a new `playthrough_routes.py` mounted beside it
+   if `items.py` grows past readable), `importer.py` if it sets status.
+   *Tests:* route tests incl. the column invariant after every route,
+   the 422s, the `today` bound, foreign-origin refusal like the other
+   writes.
+4. **Picker.** `PickerItem` gains `paused_on`, `journal_minutes`;
+   `candidates()` admits `paused`; `_is_reference` is false for paused;
+   Pick it back up takes any paused game first, most journal minutes
+   winning, reason "41 h in, paused since August" (hours omitted when
+   none); the 30-day stall check stays for `active`. `public_outputs.PICKABLE`
+   adds `PAUSED`; "Pick it back up" stays in `WITHHELD_SLOTS`.
+   `discover.py`'s finished/abandoned checks reviewed (paused is neither).
+   *Files:* `picker.py`, `picker_routes.py`, `public_outputs.py`, `discover.py`.
+   *Tests:* `test_picker.py` incl. first-finish-old / last-finish-recent
+   recency (AC), paused never a reference (AC), paused fills Pick it back
+   up with the date (AC).
+5. **Public reads.** `PublicItem.paused_on`, `.finishes`; stats: the finishes
+   strip and `finished_this_year` count finished playthroughs of public
+   items by `finished_on`; `by_status` carries `paused`. Check whether any
+   `/api/public/next` path now reads `playthroughs`; if so it joins the
+   fingerprint in `public_next_cache.py` (CLAUDE.md rule), with a test.
+   *Files:* `public.py`, `public_outputs.py`, maybe `public_next_cache.py`.
+   *Tests:* `test_public.py` field pins updated, a replayed item counts
+   twice across two years.
+6. **Frontend libs.** `STATUS_ORDER` / `STATUS_LABEL` with Paused;
+   `statusTransition.js` becomes `statusMoves(item)` (target, label —
+   Replay / Resume / Try again / Finish / Pause — and hint) plus
+   `setStatus(id, status)` calling the route with `localToday()`;
+   `nowLists.js` Paused list and the "again" flag; `dashboard.js`,
+   `monthInReview.js`, `yearInReview.js` read `finishes`;
+   `prerender-lib.mjs` feed one entry per finish.
+   *Tests:* each lib's existing test file; feed GUID test asserts the old
+   form for a first finish.
+7. **Admin surfaces (chosen.html surface 1).** Card menu, list `<select>`
+   (labels only), touch "…" sheet use `statusMoves`; accessible names
+   "Replay, starts playthrough 3". `AdminItem`: `PlaythroughTable`
+   editable (dates, delete, "Add a past playthrough"); `ItemForm` stops
+   editing the three fields on an existing item.
+   *Files:* `ShelfCardActions.jsx`, `PosterCard.jsx`, `AdminCollection.jsx`,
+   `AdminItem.jsx`, `ItemForm.jsx`, new `PlaythroughTable.jsx`, `index.css`.
+8. **Public surfaces (surfaces 2 and 3, Now).** Hollow Paused mark,
+   `ReplayMark` (×n, `role="img"`, "Finished 2 times"), Paused chip;
+   Item hero status line, Played tile, read-only `PlaythroughTable` when
+   `signedIn` (outlet context) with the read-only note; Now's Paused list
+   and "again" tag; Stats bar Paused segment; HowItWorks status stop.
+   *Files:* `PosterCard.jsx`, `FilterChips` usage in `Collection.jsx`,
+   `Item.jsx`, `Now.jsx`, the stats component, `HowItWorks.jsx`,
+   `index.css`, `content/spine.js` if the copy lives there.
+   *Tests:* component/page tests for each mark, chip, list and the table's
+   absence for visitors.
+9. **Docs.** Repo `CLAUDE.md` Media tracker bullet for playthroughs (one
+   writer, cached columns, misclick rule, deploy order) and the `0011`
+   line; `backend/README` or module docstring per standards; spec
+   deviations recorded here if any.
+10. **Browser verification.** Local backend + Vite, compare against
+    `chosen.html` at 400px and 1280px in both themes; walk Replay → Finish,
+    Pause → Resume, misclick undo on a real local row.
+
+## Milestones
+
+```
+STOP — carve-out review: Task 1's migration (enum value + new table +
+       backfill), as specified above. Joey's "go" on this plan is that review.
+Milestone 1 (auto): tasks 1–10, local DB only
+Finish gate → PR (ready for review)
+STOP — Joey applies nothing; on request I run migrate_neon.py current/upgrade
+       from the worktree. Deploy order: apply 0011 to Neon, then merge.
+```
+
+## Environment test section
+
+- Backend: `./.venv/bin/pytest` (full suite, single run) green.
+- Frontend: `npm test` and `npm run build` green (build includes prerender
+  and the feed).
+- Old-code-on-new-schema check: with `0011` applied locally, run the
+  `main` checkout's API against it and load `/api/public/items` — no row is
+  `paused` yet, so it must boot and serve (schema ahead → warning only).
+- Post-deploy: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`;
+  update `smoke.sh` if it pins status values or public item fields.
