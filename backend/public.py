@@ -31,6 +31,8 @@ from models import (
     OwnedFormat,
     PhysicalFormat,
     PlaySession,
+    Playthrough,
+    PlaythroughOutcome,
 )
 from physical_sources import registry, registry_switch1, tracker
 from physical_sources.catalogue import status_counts
@@ -105,6 +107,10 @@ class PublicItemOut(BaseModel):
     # Up next (D2): whether this is the game being played next. When it was
     # pinned stays private.
     pinned: bool
+    # Play states: when a paused game was set aside, and every dated finish
+    # (replays included), ascending. The playthrough rows stay admin-only.
+    paused_on: date | None = None
+    finishes: list[date] = []
 
 
 class PublicTimeToBeat(BaseModel):
@@ -216,8 +222,39 @@ def _time_to_beat(snapshot: dict) -> PublicTimeToBeat | None:
     )
 
 
-def _list_fields(item: Item) -> dict:
+RunDates = dict[uuid.UUID, tuple[date | None, list[date]]]
+
+
+async def _run_dates(session: AsyncSession, *where) -> RunDates:
+    """Each item's pause date and dated finishes, for the items `where` selects.
+
+    One query joined on the item, so a list read stays two round trips.
+    """
+    rows = await session.execute(
+        select(
+            Playthrough.item_id,
+            Playthrough.outcome,
+            Playthrough.finished_on,
+            Playthrough.paused_on,
+        )
+        .join(Item, Item.id == Playthrough.item_id)
+        .where(*where)
+        .order_by(Playthrough.item_id, Playthrough.finished_on)
+    )
+    dates: RunDates = {}
+    for item_id, outcome, finished_on, paused_on in rows:
+        paused, finishes = dates.get(item_id, (None, []))
+        if outcome == PlaythroughOutcome.FINISHED and finished_on is not None:
+            finishes.append(finished_on)
+        if outcome is None:
+            paused = paused_on
+        dates[item_id] = (paused, finishes)
+    return dates
+
+
+def _list_fields(item: Item, runs: RunDates | None = None) -> dict:
     """The publishable list fields, named one by one."""
+    paused_on, finishes = (runs or {}).get(item.id, (None, []))
     snapshot = _allowed_snapshot(item, PUBLIC_METADATA_FIELDS)
     return {
         "id": item.id,
@@ -242,6 +279,8 @@ def _list_fields(item: Item) -> dict:
         "completeness": item.completeness,
         "time_to_beat_hours": _hours(_time_to_beat(snapshot)),
         "pinned": item.pinned_at is not None,
+        "paused_on": paused_on if item.status == ItemStatus.PAUSED else None,
+        "finishes": finishes,
     }
 
 
@@ -251,9 +290,9 @@ def _hours(time_to_beat: PublicTimeToBeat | None) -> int | None:
     return round(time_to_beat.normally)
 
 
-def _to_public(item: Item) -> PublicItemOut:
+def _to_public(item: Item, runs: RunDates | None = None) -> PublicItemOut:
     """Maps a row onto the publishable fields, and only those."""
-    return PublicItemOut(**_list_fields(item))
+    return PublicItemOut(**_list_fields(item, runs))
 
 
 def _similar_ids(item: Item) -> set[str]:
@@ -306,14 +345,17 @@ def similar_in_collection(item: Item, candidates: list[Item]) -> list[Item]:
 
 
 def _to_public_detail(
-    item: Item, similar: list[Item], today: date | None = None
+    item: Item,
+    similar: list[Item],
+    today: date | None = None,
+    runs: RunDates | None = None,
 ) -> PublicItemDetailOut:
     """Maps a row onto the item page's publishable fields, and only those."""
     snapshot = _allowed_snapshot(item, PUBLIC_DETAIL_METADATA_FIELDS)
     description = snapshot.get("description")
     votes = snapshot.get("community_votes")
     return PublicItemDetailOut(
-        **_list_fields(item),
+        **_list_fields(item, runs),
         description=description if isinstance(description, str) else None,
         community_votes=(
             votes if isinstance(votes, int) and not isinstance(votes, bool) else None
@@ -365,7 +407,8 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             .order_by(Item.finished_at.desc().nullslast(), Item.created_at.desc())
         )
         result = await session.execute(statement)
-        return [_to_public(item) for item in result.scalars()]
+        runs = await _run_dates(session, Item.is_public.is_(True))
+        return [_to_public(item, runs) for item in result.scalars()]
 
     @router.get("/diary", response_model=list[PublicDiaryEntry])
     async def public_diary(
@@ -419,28 +462,43 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             .where(public, Item.rating.is_not(None))
             .group_by(Item.rating)
         )
-        month = func.to_char(Item.finished_at, "YYYY-MM")
+        # Finishes are counted per playthrough, so a replay counts in the
+        # month it was finished again; a dateless finish is in no month.
+        finished_run = (
+            Playthrough.outcome == PlaythroughOutcome.FINISHED,
+            Playthrough.finished_on.is_not(None),
+        )
+        month = func.to_char(Playthrough.finished_on, "YYYY-MM")
         finishes = await session.execute(
             select(month, func.count())
-            .where(public, Item.finished_at.is_not(None))
+            .join(Item, Item.id == Playthrough.item_id)
+            .where(public, *finished_run)
             .group_by(month)
             .order_by(month)
         )
 
         # The current calendar year in UTC, bounded as a date range so the
-        # index on finished_at can serve it.
+        # index on finished_on can serve it.
         year = datetime.now(UTC).year
-        this_year = Item.finished_at.between(date(year, 1, 1), date(year, 12, 31))
+        finished_this_year = await session.scalar(
+            select(func.count())
+            .select_from(Playthrough)
+            .join(Item, Item.id == Playthrough.item_id)
+            .where(
+                public,
+                *finished_run,
+                Playthrough.finished_on.between(date(year, 1, 1), date(year, 12, 31)),
+            )
+        )
         totals = await session.execute(
             select(
                 func.count().filter(
                     Item.owned_format.is_distinct_from(OwnedFormat.NONE)
                 ),
-                func.count().filter(this_year),
                 func.round(func.avg(Item.rating), 1),
             ).where(public)
         )
-        owned, finished_this_year, average = totals.one()
+        owned, average = totals.one()
 
         platforms = await session.execute(
             select(Item.platform, func.count())
@@ -537,6 +595,9 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         item = next((row for row in public_items if row.id == item_id), None)
         if item is None:
             raise HTTPException(status_code=404, detail="Not found")
-        return _to_public_detail(item, similar_in_collection(item, public_items))
+        runs = await _run_dates(session, Item.id == item.id)
+        return _to_public_detail(
+            item, similar_in_collection(item, public_items), runs=runs
+        )
 
     return router
