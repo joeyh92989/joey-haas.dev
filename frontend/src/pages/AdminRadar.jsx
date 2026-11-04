@@ -6,7 +6,7 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import RecommendationCard from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { dayWords, MONTH, releaseWords, utc } from '../lib/releaseWords.js'
-import { localToday } from '../lib/statusTransition.js'
+import { localToday } from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 
 /** "2 hours ago", or "never". */

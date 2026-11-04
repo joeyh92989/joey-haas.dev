@@ -25,6 +25,32 @@ function renderCard(props = {}) {
 }
 
 describe('PosterCard', () => {
+  it('marks a game finished more than once with its count', () => {
+    renderCard({ item: { ...ITEM, times_completed: 3 } })
+    expect(
+      screen.getByRole('img', { name: 'Finished 3 times' }),
+    ).toHaveTextContent('×3')
+  })
+
+  it('gives a single finish no replay mark', () => {
+    renderCard({ item: { ...ITEM, times_completed: 1 } })
+    expect(screen.queryByRole('img', { name: /Finished \d+ times/ })).toBeNull()
+  })
+
+  it('leaves the corner to a badge when one is given', () => {
+    renderCard({
+      item: { ...ITEM, times_completed: 2 },
+      badge: <span className="run-badge">#12</span>,
+    })
+    expect(screen.queryByRole('img', { name: 'Finished 2 times' })).toBeNull()
+  })
+
+  it('names a paused game’s mark Paused', () => {
+    renderCard({ item: { ...ITEM, status: 'paused' } })
+    const mark = screen.getByRole('img', { name: 'Paused' })
+    expect(mark).toHaveAttribute('data-status', 'paused')
+  })
+
   it('links the poster and the title together to the given page', () => {
     renderCard()
     const link = screen.getByRole('link')

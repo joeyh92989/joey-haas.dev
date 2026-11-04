@@ -314,6 +314,33 @@ describe('spineFeed', () => {
     )
   })
 
+  it('writes one entry per finish, a replay as a new one', () => {
+    const xml = spineFeed([
+      {
+        ...ITEM,
+        id: 'r',
+        title: 'Dredge',
+        finished_at: '2026-10-19',
+        finishes: ['2024-03-01', '2026-10-19'],
+        times_completed: 2,
+      },
+    ])
+    const titles = [...xml.matchAll(/<title>([^<]*)<\/title>/g)].map(
+      ([, title]) => title,
+    )
+    expect(titles.slice(1)).toEqual([
+      'Finished Dredge again',
+      'Finished Dredge',
+    ])
+    // The first finish keeps the GUID it was published under.
+    expect(xml).toContain(
+      '<guid isPermaLink="false">https://joey-haas.dev/spine/r/#finished-2024-03-01</guid>',
+    )
+    expect(xml).toContain(
+      '<guid isPermaLink="false">https://joey-haas.dev/spine/r/#finished-2026-10-19</guid>',
+    )
+  })
+
   it('is announced in the head of /shelf and /now', () => {
     const routes = publicRoutes({ posts: [], items: [] })
     const head = renderHead(SHELL, routeAt(routes, '/now'))

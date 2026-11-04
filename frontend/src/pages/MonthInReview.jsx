@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import AgainTag from '../components/AgainTag.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import { spine } from '../content/spine.js'
 import { monthInReview, monthName, parseMonth } from '../lib/monthInReview.js'
@@ -100,7 +101,10 @@ export default function MonthInReview() {
             items={review.finished}
             size="compact"
             renderCard={(item) => (
-              <PosterCard item={item} to={itemPath(item.id)} />
+              <>
+                <PosterCard item={item} to={itemPath(item.id)} />
+                {item.again && <AgainTag />}
+              </>
             )}
           />
         </section>

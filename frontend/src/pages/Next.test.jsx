@@ -10,6 +10,7 @@ import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { itemPath } from '../lib/spinePaths.js'
+import { localToday, pinPath } from '../lib/statusMoves.js'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 vi.mock('../lib/api.js', () => ({ apiFetch: vi.fn() }))
@@ -592,7 +593,8 @@ describe('Tonight', () => {
         name: `${spine.next.tonight.playInstead}: Celeste`,
       }),
     )
-    expect(calls('POST', '/api/items/p2/pin')).toHaveLength(1)
+    expect(calls('POST', pinPath('p2'))).toHaveLength(1)
+    expect(pinPath('p2')).toBe(`/api/items/p2/pin?today=${localToday()}`)
     expect(calls('GET', '/api/public/next')).toHaveLength(1)
     const lead = document.querySelector('.tonight-lead')
     expect(lead).toHaveClass('pinned')
@@ -604,7 +606,7 @@ describe('Tonight', () => {
   })
 
   it('rolls a failed pin back and says so', async () => {
-    mockApi({ 'POST /api/items/p1/pin': { ok: false } })
+    mockApi({ [`POST ${pinPath('p1')}`]: { ok: false } })
     mockNext({ data: THREE, live: true, failed: false })
     renderPage({ signedIn: true })
     await userEvent.click(

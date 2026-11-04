@@ -20,9 +20,22 @@ export function dashboardCounts(items, year) {
     ownedPublic,
     ownedHidden: owned.length - ownedPublic,
     finished: finished.length,
-    finishedThisYear: items.filter((item) =>
-      item.finished_at?.startsWith(`${year}-`),
-    ).length,
+    // Finished playthroughs, so a replay this year counts again. A row
+    // without playthroughs (an older response) counts its last finish.
+    finishedThisYear: items.reduce(
+      (sum, item) =>
+        sum +
+        (item.playthroughs
+          ? item.playthroughs.filter(
+              (run) =>
+                run.outcome === 'finished' &&
+                run.finished_on?.startsWith(`${year}-`),
+            ).length
+          : item.finished_at?.startsWith(`${year}-`)
+            ? 1
+            : 0),
+      0,
+    ),
     averageRating: ratings.length
       ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
       : null,

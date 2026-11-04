@@ -35,6 +35,44 @@ describe('Now', () => {
     )
   }
 
+  it('lists paused games under their own heading, dated by the pause', async () => {
+    snapshots.items = [
+      item('1', { title: 'Hades II', status: 'active' }),
+      item('2', {
+        title: 'Elden Ring',
+        status: 'paused',
+        paused_on: '2026-08-03',
+      }),
+    ]
+    renderPage()
+
+    const heading = await screen.findByRole('heading', { name: 'Paused' })
+    expect(heading.nextSibling).toHaveTextContent('Elden Ring · since Aug 2026')
+    // Playing is active only.
+    expect(
+      screen.getByRole('heading', { name: 'Playing' }).parentElement,
+    ).not.toHaveTextContent('Elden Ring')
+  })
+
+  it('tags a replayed finish again, saying which time', async () => {
+    snapshots.items = [
+      item('3', {
+        title: 'Pikmin 4',
+        status: 'finished',
+        finished_at: '2026-09-30',
+        times_completed: 2,
+      }),
+    ]
+    renderPage()
+
+    const heading = await screen.findByRole('heading', {
+      name: 'Recently finished',
+    })
+    expect(heading.nextSibling).toHaveTextContent(
+      'Pikmin 4 again · Sep 30, 2026 · second time',
+    )
+  })
+
   it('shows playing, up next and finished from the snapshots', async () => {
     snapshots.items = [
       item('1', { title: 'Hades II', status: 'active' }),

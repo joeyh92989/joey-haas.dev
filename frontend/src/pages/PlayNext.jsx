@@ -4,6 +4,7 @@ import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import SizePill from '../components/SizePill.jsx'
 import { apiFetch } from '../lib/api.js'
+import { pinPath } from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const SIZES = [
@@ -223,7 +224,7 @@ export default function PlayNext() {
 
   async function playThis(itemId) {
     const ok = await send(
-      `/api/items/${itemId}/pin`,
+      pinPath(itemId),
       { method: 'POST' },
       'Couldn’t pin that game.',
     )

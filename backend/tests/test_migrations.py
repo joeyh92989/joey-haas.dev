@@ -14,6 +14,7 @@ documents for one startup query.
 import os
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -501,3 +502,130 @@ async def test_0010_adds_the_comic_columns_and_downgrades_cleanly(clean_database
     }
     assert existing is False
     assert (type_before, after, type_after) == (1, [], 0)
+
+
+# --- Revision 0011: playthroughs and paused. ------------------------------
+
+BACKFILL_ROWS = [
+    # title, status, started_at, finished_at, times_completed
+    ("Never", "backlog", None, None, 0),
+    ("Once", "finished", "2024-01-02", "2024-03-04", 1),
+    ("Thrice", "finished", "2023-05-01", "2026-10-19", 3),
+    ("Uncounted", "finished", None, "2025-06-01", 0),
+    ("Playing", "active", "2026-10-24", None, 0),
+    ("Replaying", "active", "2024-02-01", "2024-03-01", 1),
+    ("Dropped", "abandoned", "2025-01-01", "2025-02-01", 0),
+    ("Shelved again", "backlog", None, "2024-08-08", 2),
+    # The two shapes no status matched at first: a start date left on a
+    # backlog game, and a finish date on a game being played again.
+    ("Put down", "backlog", "2026-05-01", None, 0),
+    ("Back again", "active", "2025-03-01", "2025-04-01", 0),
+]
+
+
+@pytest.mark.asyncio
+async def test_0011_backfills_runs_that_reproduce_the_columns(clean_database):
+    assert _alembic("upgrade", "0010").returncode == 0
+    async with clean_database.begin() as connection:
+        for title, status, started, finished, completed in BACKFILL_ROWS:
+            await connection.execute(
+                text(
+                    "INSERT INTO items (id, type, title, status, started_at, "
+                    "finished_at, times_completed) VALUES (gen_random_uuid(), "
+                    "'game', :title, :status, :started, :finished, :completed)"
+                ),
+                {
+                    "title": title,
+                    "status": status,
+                    "started": started and date.fromisoformat(started),
+                    "finished": finished and date.fromisoformat(finished),
+                    "completed": completed,
+                },
+            )
+    result = _alembic("upgrade", "0011")
+    assert result.returncode == 0, result.stderr
+
+    async with clean_database.connect() as connection:
+        runs = (
+            await connection.execute(
+                text(
+                    "SELECT i.title, p.number, p.started_on::text, "
+                    "p.finished_on::text, p.outcome::text FROM playthroughs p "
+                    "JOIN items i ON i.id = p.item_id ORDER BY i.title, p.number"
+                )
+            )
+        ).all()
+        columns = {
+            row[0]: tuple(row[1:])
+            for row in await connection.execute(
+                text(
+                    "SELECT title, started_at::text, finished_at::text, "
+                    "times_completed FROM items"
+                )
+            )
+        }
+        paused = await connection.scalar(
+            text(
+                "SELECT count(*) FROM pg_enum e JOIN pg_type t "
+                "ON t.oid = e.enumtypid WHERE t.typname = 'item_status' "
+                "AND e.enumlabel = 'paused'"
+            )
+        )
+
+    assert runs == [
+        ("Back again", 1, "2025-03-01", "2025-04-01", "finished"),
+        ("Back again", 2, None, None, None),
+        ("Dropped", 1, "2025-01-01", "2025-02-01", "abandoned"),
+        ("Once", 1, "2024-01-02", "2024-03-04", "finished"),
+        ("Playing", 1, "2026-10-24", None, None),
+        ("Put down", 1, "2026-05-01", None, "abandoned"),
+        ("Replaying", 1, "2024-02-01", "2024-03-01", "finished"),
+        ("Replaying", 2, None, None, None),
+        ("Shelved again", 1, None, None, "finished"),
+        ("Shelved again", 2, None, "2024-08-08", "finished"),
+        ("Thrice", 1, "2023-05-01", None, "finished"),
+        ("Thrice", 2, None, None, "finished"),
+        ("Thrice", 3, None, "2026-10-19", "finished"),
+        ("Uncounted", 1, None, "2025-06-01", "finished"),
+    ]
+    # Every consistent row keeps its three values exactly; the two the old
+    # counter got wrong are corrected, and nothing is lost (Dropped's close
+    # date is on its run).
+    assert columns == {
+        "Never": (None, None, 0),
+        "Once": ("2024-01-02", "2024-03-04", 1),
+        "Thrice": ("2023-05-01", "2026-10-19", 3),
+        "Uncounted": (None, "2025-06-01", 1),
+        "Playing": ("2026-10-24", None, 0),
+        "Replaying": ("2024-02-01", "2024-03-01", 1),
+        "Dropped": ("2025-01-01", None, 0),
+        "Shelved again": (None, "2024-08-08", 2),
+        "Put down": ("2026-05-01", None, 0),
+        "Back again": ("2025-03-01", "2025-04-01", 1),
+    }
+    assert paused == 1
+
+
+@pytest.mark.asyncio
+async def test_0011_downgrade_drops_the_table_and_resets_paused(clean_database):
+    assert _alembic("upgrade", "0011").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status) VALUES "
+                "(gen_random_uuid(), 'game', 'Parked', 'paused')"
+            )
+        )
+    result = _alembic("downgrade", "0010")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        status = await connection.scalar(text("SELECT status::text FROM items"))
+        tables = await connection.scalar(
+            text("SELECT count(*) FROM pg_tables WHERE tablename = 'playthroughs'")
+        )
+    assert (status, tables) == ("active", 0)
+    assert "playthrough_outcome" not in await _types(clean_database)
+    # And back up: the enum value is already there, IF NOT EXISTS keeps it
+    # from failing.
+    up = _alembic("upgrade", "0011")
+    assert up.returncode == 0, up.stderr

@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
 from pydantic import BaseModel
 
+import playthroughs
 from models import (
     CatalogueGame,
     Item,
@@ -51,46 +52,48 @@ async def client_for(factory):
 
 async def _seed(factory) -> None:
     async with factory() as session:
-        session.add_all(
-            [
-                Item(
-                    type=ItemType.MOVIE,
-                    title="Public Film",
-                    status=ItemStatus.FINISHED,
-                    rating=9,
-                    favorite=True,
-                    is_public=True,
-                    year=2021,
-                    creator="Denis Villeneuve",
-                    cover_url="https://image.tmdb.org/t/p/w342/a.jpg",
-                    finished_at=date(2026, 3, 14),
-                    notes="a private thought",
-                    owned_format=OwnedFormat.PHYSICAL,
-                    source_metadata={
-                        "genres": ["Science Fiction"],
-                        "community_score": 7.8,
-                        "description": "not published",
-                    },
-                ),
-                Item(
-                    type=ItemType.GAME,
-                    title="Public Game",
-                    status=ItemStatus.BACKLOG,
-                    is_public=True,
-                    finished_at=None,
-                    owned_format=OwnedFormat.NONE,
-                ),
-                Item(
-                    type=ItemType.COMIC,
-                    title="Private Thing",
-                    status=ItemStatus.ACTIVE,
-                    rating=4,
-                    is_public=False,
-                    notes="secret",
-                    finished_at=date(2026, 3, 20),
-                ),
-            ]
-        )
+        rows = [
+            Item(
+                type=ItemType.MOVIE,
+                title="Public Film",
+                status=ItemStatus.FINISHED,
+                rating=9,
+                favorite=True,
+                is_public=True,
+                year=2021,
+                creator="Denis Villeneuve",
+                cover_url="https://image.tmdb.org/t/p/w342/a.jpg",
+                finished_at=date(2026, 3, 14),
+                notes="a private thought",
+                owned_format=OwnedFormat.PHYSICAL,
+                source_metadata={
+                    "genres": ["Science Fiction"],
+                    "community_score": 7.8,
+                    "description": "not published",
+                },
+            ),
+            Item(
+                type=ItemType.GAME,
+                title="Public Game",
+                status=ItemStatus.BACKLOG,
+                is_public=True,
+                finished_at=None,
+                owned_format=OwnedFormat.NONE,
+            ),
+            Item(
+                type=ItemType.COMIC,
+                title="Private Thing",
+                status=ItemStatus.ACTIVE,
+                rating=4,
+                is_public=False,
+                notes="secret",
+                finished_at=date(2026, 3, 20),
+            ),
+        ]
+        session.add_all(rows)
+        await session.flush()
+        for item in rows:
+            await playthroughs.seed_rows(session, item, date(2026, 3, 20))
         await session.commit()
 
 
@@ -222,12 +225,15 @@ LIST_FIELDS = {
     "completeness",
     "time_to_beat_hours",
     "pinned",
+    "paused_on",
+    "finishes",
+    "times_completed",
 }
 DETAIL_FIELDS = LIST_FIELDS | {
     "description",
     "community_votes",
-    "times_completed",
     "started_at",
+    "playing_since",
     "similar_in_collection",
     "themes",
     "time_to_beat",
@@ -474,20 +480,26 @@ async def test_stats_add_owned_this_years_finishes_and_the_average(
     sessionmaker_for_test,
 ):
     today = datetime.now(UTC).date()
+    finished = ItemStatus.FINISHED
     async with sessionmaker_for_test() as session:
-        session.add_all(
-            [
-                _game("This Year", rating=8, finished_at=today),
-                _game(
-                    "Last Year",
-                    rating=5,
-                    finished_at=date(today.year - 1, 12, 31),
-                    owned_format=OwnedFormat.PHYSICAL,
-                ),
-                _game("Unrated Want", owned_format=OwnedFormat.NONE, rating=6),
-                _game("Private", is_public=False, rating=1, finished_at=today),
-            ]
-        )
+        rows = [
+            _game("This Year", status=finished, rating=8, finished_at=today),
+            _game(
+                "Last Year",
+                status=finished,
+                rating=5,
+                finished_at=date(today.year - 1, 12, 31),
+                owned_format=OwnedFormat.PHYSICAL,
+            ),
+            _game("Unrated Want", owned_format=OwnedFormat.NONE, rating=6),
+            _game(
+                "Private", status=finished, is_public=False, rating=1, finished_at=today
+            ),
+        ]
+        session.add_all(rows)
+        await session.flush()
+        for row in rows:
+            await playthroughs.seed_rows(session, row, today)
         await session.commit()
 
     async with client_for(sessionmaker_for_test) as client:
@@ -498,6 +510,101 @@ async def test_stats_add_owned_this_years_finishes_and_the_average(
     assert stats["finished_this_year"] == 1
     # (8 + 5 + 6) / 3, to one decimal.
     assert stats["average_rating"] == 6.3
+
+
+async def test_a_replay_counts_once_in_each_year_it_was_finished(
+    sessionmaker_for_test,
+):
+    today = datetime.now(UTC).date()
+    last_year = date(today.year - 1, 6, 1)
+    async with sessionmaker_for_test() as session:
+        item = _game("Replayed")
+        session.add(item)
+        await session.flush()
+        # Two past runs rather than Playing then Finished today: a run started
+        # and finished on one day with nothing logged is a misclick, deleted.
+        await playthroughs.add_past(session, item, None, last_year)
+        await playthroughs.add_past(session, item, None, today)
+        await session.commit()
+
+    async with client_for(sessionmaker_for_test) as client:
+        stats = (await client.get("/api/public/stats")).json()
+        [listed] = (await client.get("/api/public/items")).json()
+        detail = (await client.get(f"/api/public/items/{listed['id']}")).json()
+
+    assert stats["finished_this_year"] == 1
+    assert stats["finishes_by_month"] == {
+        f"{last_year:%Y-%m}": 1,
+        f"{today:%Y-%m}": 1,
+    }
+    assert listed["finishes"] == [last_year.isoformat(), today.isoformat()]
+    assert detail["finishes"] == listed["finishes"]
+    # The list carries the count too: the shelf's ×n mark reads it there.
+    assert listed["times_completed"] == 2
+    assert detail["times_completed"] == 2
+
+
+async def test_a_paused_game_publishes_its_pause_date(sessionmaker_for_test):
+    today = datetime.now(UTC).date()
+    async with sessionmaker_for_test() as session:
+        item = _game("Set Aside")
+        session.add(item)
+        await session.flush()
+        await playthroughs.apply_status(session, item, ItemStatus.ACTIVE, today)
+        await playthroughs.apply_status(session, item, ItemStatus.PAUSED, today)
+        await session.commit()
+
+    async with client_for(sessionmaker_for_test) as client:
+        stats = (await client.get("/api/public/stats")).json()
+        [listed] = (await client.get("/api/public/items")).json()
+
+    assert listed["status"] == "paused"
+    assert listed["paused_on"] == today.isoformat()
+    assert listed["finishes"] == []
+    assert stats["by_status"] == {"paused": 1}
+
+
+async def test_a_replay_is_not_shown_as_the_first_start(sessionmaker_for_test):
+    """Run 1 undated: the item's earliest start is the replay's, not the first."""
+    today = datetime.now(UTC).date()
+    async with sessionmaker_for_test() as session:
+        item = _game(
+            "Again",
+            status=ItemStatus.FINISHED,
+            finished_at=date(2024, 3, 1),
+            times_completed=1,
+        )
+        session.add(item)
+        await session.flush()
+        await playthroughs.seed_rows(session, item, today)
+        await playthroughs.apply_status(session, item, ItemStatus.ACTIVE, today)
+        await session.commit()
+        item_id = item.id
+        assert item.started_at == today
+
+    async with client_for(sessionmaker_for_test) as client:
+        detail = (await client.get(f"/api/public/items/{item_id}")).json()
+
+    assert detail["started_at"] is None
+    assert detail["playing_since"] == today.isoformat()
+
+
+async def test_playing_since_is_null_once_the_run_closes(sessionmaker_for_test):
+    today = datetime.now(UTC).date()
+    async with sessionmaker_for_test() as session:
+        item = _game("Done")
+        session.add(item)
+        await session.flush()
+        await playthroughs.apply_status(session, item, ItemStatus.ACTIVE, today)
+        await playthroughs.apply_status(session, item, ItemStatus.FINISHED, today)
+        await session.commit()
+        item_id = item.id
+
+    async with client_for(sessionmaker_for_test) as client:
+        detail = (await client.get(f"/api/public/items/{item_id}")).json()
+
+    assert detail["started_at"] == today.isoformat()
+    assert detail["playing_since"] is None
 
 
 # --- E7b: the copy on the shelf. -------------------------------------------

@@ -213,3 +213,38 @@ describe('ShelfCardActions on a touch device', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
+
+describe('ShelfCardActions status entries', () => {
+  it('names the move out of a finished game as Replay with its hint', () => {
+    pointer(true)
+    renderActions({
+      ...ITEM,
+      status: 'finished',
+      times_completed: 2,
+      playthroughs: [
+        { number: 1, outcome: 'finished' },
+        { number: 2, outcome: 'finished' },
+      ],
+    })
+    expect(
+      screen.getByRole('option', { name: 'Replay, starts playthrough 3' }),
+    ).toHaveValue('active')
+    expect(screen.getByRole('option', { name: 'Finished' })).toHaveValue(
+      'finished',
+    )
+  })
+
+  it('offers the same entries in the touch sheet', async () => {
+    pointer(false)
+    renderActions({ ...ITEM, status: 'active', playthroughs: [] })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Actions for Star Fox' }),
+    )
+    expect(
+      screen.getByRole('option', { name: 'Pause, keeps the date' }),
+    ).toHaveValue('paused')
+    expect(
+      screen.getByRole('option', { name: 'Finish, dated today' }),
+    ).toHaveValue('finished')
+  })
+})

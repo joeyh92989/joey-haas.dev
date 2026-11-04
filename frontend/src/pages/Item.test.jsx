@@ -103,6 +103,14 @@ describe('Item', () => {
       DETAIL.cover_url,
     )
     expect(screen.getByText('2020 · Supergiant Games')).toBeInTheDocument()
+    expect(
+      screen.getByText('Finished twice · last Jun 2026'),
+    ).toBeInTheDocument()
+  })
+
+  it('dates a single finish by its month', async () => {
+    stubItem({ times_completed: 1 })
+    await renderReady()
     expect(screen.getByText('Finished · June 2026')).toBeInTheDocument()
   })
 
@@ -118,9 +126,50 @@ describe('Item', () => {
   })
 
   it('names other statuses in words', async () => {
-    stubItem({ status: 'active', finished_at: null })
+    stubItem({ status: 'abandoned', finished_at: null, times_completed: 0 })
     await renderReady()
-    expect(screen.getByText('Playing')).toBeInTheDocument()
+    expect(screen.getByText('Abandoned')).toBeInTheDocument()
+  })
+
+  it('dates a first playthrough from its start', async () => {
+    stubItem({ status: 'active', finished_at: null, times_completed: 0 })
+    await renderReady()
+    expect(screen.getByText('Playing · since Jan 2, 2026')).toBeInTheDocument()
+  })
+
+  it('dates a retry from its own run, not the abandoned one', async () => {
+    stubItem({
+      status: 'active',
+      finished_at: null,
+      times_completed: 0,
+      playing_since: '2026-10-30',
+    })
+    await renderReady()
+    expect(screen.getByText('Playing · since Oct 30, 2026')).toBeInTheDocument()
+  })
+
+  it('says again for a replay in progress, not the first run’s start', async () => {
+    stubItem({ status: 'active', times_completed: 1 })
+    await renderReady()
+    expect(document.querySelector('.item-status')).toHaveTextContent(
+      /^Playing again$/,
+    )
+    expect(
+      within(document.querySelector('.item-tiles')).getByText(
+        'Playing again · last finished Jun 12, 2026',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('dates a paused game from its pause', async () => {
+    stubItem({
+      status: 'paused',
+      finished_at: null,
+      times_completed: 0,
+      paused_on: '2026-08-03',
+    })
+    await renderReady()
+    expect(screen.getByText('Paused · since Aug 2026')).toBeInTheDocument()
   })
 
   it('lists genres, then the other platforms muted', async () => {
@@ -187,6 +236,24 @@ describe('Item', () => {
     expect(tiles.getByText('512 votes')).toBeInTheDocument()
     expect(tiles.getByText('Finished 2 times')).toBeInTheDocument()
     expect(tiles.getByText('Jan 2, 2026 → Jun 12, 2026')).toBeInTheDocument()
+  })
+
+  it('spans the dated finishes on the Played tile', async () => {
+    stubItem({ finishes: ['2024-03-09', '2026-06-12'] })
+    await renderReady()
+    const tiles = within(document.querySelector('.item-tiles'))
+    expect(tiles.getByText('Finished 2 times')).toBeInTheDocument()
+    expect(
+      tiles.getByText('Last Jun 12, 2026 · first Mar 2024'),
+    ).toBeInTheDocument()
+  })
+
+  it('says Finished once for one finish', async () => {
+    stubItem({ times_completed: 1 })
+    await renderReady()
+    expect(
+      within(document.querySelector('.item-tiles')).getByText('Finished once'),
+    ).toBeInTheDocument()
   })
 
   it('says Not rated, hides Community, and hides Played when there is nothing to show', async () => {
@@ -744,5 +811,64 @@ describe('Item series page (AC5)', () => {
     const signedIn = renderPage({ signedIn: true })
     await screen.findByRole('heading', { level: 1, name: 'Saga' })
     expect(await axeViolations(signedIn.container)).toEqual([])
+  })
+})
+
+describe('Item playthroughs', () => {
+  const RUNS = [
+    {
+      number: 2,
+      started_on: '2026-05-01',
+      finished_on: '2026-06-12',
+      paused_on: null,
+      outcome: 'finished',
+      journal_days: 6,
+      journal_minutes: 660,
+    },
+    {
+      number: 1,
+      started_on: '2026-01-02',
+      finished_on: '2026-02-01',
+      paused_on: null,
+      outcome: 'finished',
+      journal_days: 0,
+      journal_minutes: 0,
+    },
+  ]
+
+  function stubBoth() {
+    const fetch = vi.fn(async (url) => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        String(url).includes('/api/public/')
+          ? DETAIL
+          : { ...DETAIL, playthroughs: RUNS },
+    }))
+    vi.stubGlobal('fetch', fetch)
+    return fetch
+  }
+
+  it('shows the owner a read-only table, pointing at the edit page', async () => {
+    stubBoth()
+    await renderReady({ signedIn: true })
+
+    const section = await screen.findByRole('region', { name: 'Playthroughs' })
+    const rows = within(section).getAllByRole('row').slice(1)
+    expect(rows.map((row) => row.cells[0].textContent)).toEqual(['1', '2'])
+    expect(within(rows[1]).getByText('6 days · 11 h')).toBeInTheDocument()
+    expect(within(section).queryByRole('textbox')).toBeNull()
+    expect(within(section).queryByRole('button')).toBeNull()
+    expect(
+      within(section).getByRole('link', { name: 'edit page' }),
+    ).toHaveAttribute('href', `/admin/collection/${ID}`)
+  })
+
+  it('never asks the admin API, or shows the table, for a visitor', async () => {
+    const fetch = stubBoth()
+    await renderReady()
+
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('region', { name: 'Playthroughs' })).toBeNull()
   })
 })

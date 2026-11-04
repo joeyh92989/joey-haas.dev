@@ -15,7 +15,7 @@ export default function PosterGrid({ items, size, renderCard }) {
   return (
     <ul className="poster-grid" data-size={size}>
       {items.map((item) => (
-        <li key={item.id}>{renderCard(item)}</li>
+        <li key={item.finish_key ?? item.id}>{renderCard(item)}</li>
       ))}
     </ul>
   )

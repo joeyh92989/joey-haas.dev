@@ -75,8 +75,18 @@ async def test_pinning_commits_to_the_game(sessionmaker_for_test):
 
 
 async def test_pinning_keeps_an_existing_start_date(sessionmaker_for_test):
-    [item_id] = await _seed(sessionmaker_for_test, {"started_at": date(2026, 1, 2)})
     async with client_for(sessionmaker_for_test) as client:
+        created = await client.post(
+            "/api/items",
+            json={
+                "type": "game",
+                "title": "Started",
+                "status": "active",
+                "owned_format": "physical",
+                "started_at": "2026-01-02",
+            },
+        )
+        item_id = created.json()["id"]
         body = (await client.post(f"/api/items/{item_id}/pin")).json()
 
     assert body["started_at"] == "2026-01-02"

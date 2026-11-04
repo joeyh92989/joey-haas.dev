@@ -226,14 +226,19 @@ async def test_a_finish_date_edit_rebuilds(sessionmaker_for_test, seeded, build)
     first = (NOW.date() - timedelta(days=3)).isoformat()
     second = (NOW.date() - timedelta(days=1)).isoformat()
     async with site_for(sessionmaker_for_test) as client:
-        finish = await client.patch(
-            f"/api/items/{seeded['owned'].id}",
-            json={"status": "finished", "finished_at": first},
+        item = seeded["owned"].id
+        finish = await client.post(
+            f"/api/items/{item}/status",
+            json={"status": "finished", "today": datetime.now(UTC).date().isoformat()},
         )
         assert finish.status_code == 200
+        dated = await client.patch(
+            f"/api/items/{item}/playthroughs/1", json={"finished_on": first}
+        )
+        assert dated.status_code == 200
         before = (await _warm(client, build))["tonight"]["last_finish"]
         edit = await client.patch(
-            f"/api/items/{seeded['owned'].id}", json={"finished_at": second}
+            f"/api/items/{item}/playthroughs/1", json={"finished_on": second}
         )
         assert edit.status_code == 200
         after = (await _next(client))["tonight"]["last_finish"]

@@ -8,12 +8,19 @@
  */
 
 /** Statuses in the order every shelf control and chart lists them. */
-export const STATUS_ORDER = ['backlog', 'active', 'finished', 'abandoned']
+export const STATUS_ORDER = [
+  'backlog',
+  'active',
+  'paused',
+  'finished',
+  'abandoned',
+]
 
 /** Display names for statuses; `active` reads as "Playing" on a shelf. */
 export const STATUS_LABEL = {
   backlog: 'Backlog',
   active: 'Playing',
+  paused: 'Paused',
   finished: 'Finished',
   abandoned: 'Abandoned',
 }

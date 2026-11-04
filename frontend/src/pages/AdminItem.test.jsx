@@ -879,3 +879,147 @@ describe('AdminItem comic fields', () => {
     ).not.toBeInTheDocument()
   })
 })
+
+describe('AdminItem playthroughs', () => {
+  const REPLAYED = {
+    ...ITEM,
+    status: 'finished',
+    times_completed: 2,
+    playthroughs: [
+      {
+        number: 1,
+        started_on: '2024-03-01',
+        finished_on: '2024-03-20',
+        paused_on: null,
+        outcome: 'finished',
+        journal_days: 0,
+        journal_minutes: 0,
+      },
+      {
+        number: 2,
+        started_on: '2026-10-03',
+        finished_on: '2026-10-19',
+        paused_on: null,
+        outcome: 'finished',
+        journal_days: 6,
+        journal_minutes: 660,
+      },
+    ],
+  }
+
+  it('moves the status through the status route, naming Replay', async () => {
+    const mock = stubApi({ item: REPLAYED })
+    renderPage()
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText('Status'),
+      screen.getByRole('option', { name: 'Replay, starts playthrough 3' }),
+    )
+
+    await waitFor(() => {
+      const [url, options] = writeCalls(mock)[0]
+      expect(String(url)).toMatch(/\/api\/items\/abc\/status$/)
+      expect(options.method).toBe('POST')
+      expect(JSON.parse(options.body).status).toBe('active')
+    })
+  })
+
+  it('no longer edits status, dates or completions in the form', async () => {
+    stubApi({ item: REPLAYED })
+    renderPage()
+    await screen.findByDisplayValue('Star Fox')
+
+    expect(screen.queryByLabelText('Times completed')).toBeNull()
+    expect(screen.queryByLabelText('Started')).toBeNull()
+    expect(screen.queryByLabelText('Finished')).toBeNull()
+  })
+
+  it('lists every run with its journal', async () => {
+    stubApi({ item: REPLAYED })
+    renderPage()
+
+    expect(await screen.findByText('6 days · 11 h')).toBeInTheDocument()
+    expect(screen.getByLabelText('Finished, playthrough 1')).toHaveValue(
+      '2024-03-20',
+    )
+  })
+
+  it('saves a corrected date for one run only', async () => {
+    const mock = stubApi({ item: REPLAYED })
+    renderPage()
+
+    const input = await screen.findByLabelText('Started, playthrough 1')
+    await userEvent.clear(input)
+    await userEvent.type(input, '2024-02-28')
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Save playthrough 1' }),
+    )
+
+    await waitFor(() => {
+      const [url, options] = writeCalls(mock)[0]
+      expect(String(url)).toMatch(/\/api\/items\/abc\/playthroughs\/1$/)
+      expect(options.method).toBe('PATCH')
+      expect(JSON.parse(options.body)).toEqual({ started_on: '2024-02-28' })
+    })
+  })
+
+  it('deletes a closed run', async () => {
+    const mock = stubApi({ item: REPLAYED })
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Delete playthrough 2' }),
+    )
+
+    await waitFor(() => {
+      const [url, options] = writeCalls(mock)[0]
+      expect(String(url)).toMatch(/\/api\/items\/abc\/playthroughs\/2$/)
+      expect(options.method).toBe('DELETE')
+    })
+  })
+
+  it('adds a past playthrough', async () => {
+    const mock = stubApi({ item: REPLAYED })
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Add a past playthrough' }),
+    )
+    const group = screen.getByRole('group', { name: 'Past playthrough' })
+    const [started, finished] = group.querySelectorAll('input')
+    await userEvent.type(started, '2020-01-01')
+    await userEvent.type(finished, '2020-02-01')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() => {
+      const [url, options] = writeCalls(mock)[0]
+      expect(String(url)).toMatch(/\/api\/items\/abc\/playthroughs$/)
+      expect(options.method).toBe('POST')
+      expect(JSON.parse(options.body)).toEqual({
+        started_on: '2020-01-01',
+        finished_on: '2020-02-01',
+      })
+    })
+  })
+
+  it('shows the server’s reason when a move is refused', async () => {
+    stubApi({
+      item: REPLAYED,
+      onWrite: () => ({
+        ok: false,
+        status: 422,
+        json: async () => ({ detail: 'That date is too far from today.' }),
+      }),
+    })
+    renderPage()
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText('Status'),
+      'backlog',
+    )
+
+    expect(
+      await screen.findByText('That date is too far from today.'),
+    ).toBeInTheDocument()
+  })
+})

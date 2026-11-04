@@ -13,6 +13,7 @@ import { spine } from '../content/spine.js'
 import { shortDate } from '../lib/comics.js'
 import { groupByPlatform, sortBuyNow, weekdayWords } from '../lib/next.js'
 import { apiFetch } from '../lib/api.js'
+import { pinPath } from '../lib/statusMoves.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { isValidSnapshot } from '../lib/snapshot.js'
@@ -248,7 +249,7 @@ function Tonight({ tonight, signedIn, onRefresh }) {
         setSkipped((ids) => ids.filter((id) => id !== pick.item_id))
         focusNext.current = { title: pick.item_id }
       },
-      () => write(`/api/items/${pick.item_id}/pin`, 'POST'),
+      () => write(pinPath(pick.item_id), 'POST'),
       () => {
         setPin(before)
         setSkipped(wasSkipped)

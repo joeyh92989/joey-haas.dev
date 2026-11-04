@@ -38,6 +38,7 @@ from comics import (
 )
 from items import _apply_detail, _copy_fields, _http_error_for, require_admin
 from models import Item, ItemStatus, ItemType, OwnedFormat
+from playthroughs import apply_status
 from sources.base import SourceError
 from sources.registry import adapter_for
 
@@ -341,7 +342,10 @@ def create_comics_router(
             "issues_skipped": format_ranges(skipped) or None,
         }
         if item.owned_format == OwnedFormat.NONE:
-            body.update(owned_format=OwnedFormat.PHYSICAL, status=ItemStatus.BACKLOG)
+            body.update(owned_format=OwnedFormat.PHYSICAL)
+            # Through playthroughs.py, the one writer of status (a no-op for
+            # the usual Want, already in the backlog).
+            await apply_status(session, item, ItemStatus.BACKLOG, date.today())
         for field, value in _copy_fields(body, item).items():
             setattr(item, field, value)
         await session.commit()

@@ -46,6 +46,20 @@ describe('dashboardCounts', () => {
     expect(counts.averageRating).toBe(8.5)
   })
 
+  it('counts finished playthroughs this year, so a replay counts again', () => {
+    const replayed = item({
+      id: 8,
+      status: 'finished',
+      finished_at: '2026-10-19',
+      playthroughs: [
+        { number: 1, outcome: 'finished', finished_on: '2026-01-02' },
+        { number: 2, outcome: 'finished', finished_on: '2026-10-19' },
+        { number: 3, outcome: 'abandoned', finished_on: '2026-11-01' },
+      ],
+    })
+    expect(dashboardCounts([replayed], 2026).finishedThisYear).toBe(2)
+  })
+
   it('counts finished games without a rating, for Rate a few', () => {
     expect(dashboardCounts(items, 2026).unrated).toBe(1)
   })

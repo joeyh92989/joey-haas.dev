@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { STATUS_LABEL } from '../lib/shelf.js'
-import { localToday } from '../lib/statusTransition.js'
+import { localToday } from '../lib/statusMoves.js'
 import CoverImage from './CoverImage.jsx'
 import Stars from './Stars.jsx'
 
@@ -101,6 +101,8 @@ export default function PosterCard({
               aria-label={statusLabels[item.status]}
             />
           )}
+          {/* Bottom-left, unless a badge (a comic’s run) or the ribbon holds it. */}
+          {!badge && !coming && <ReplayMark count={item.times_completed} />}
           {mark && (
             <span className="format-mark" role="img" aria-label={mark}>
               {mark === 'Format not recorded' ? '?' : <KeyGlyph />}
@@ -119,5 +121,24 @@ export default function PosterCard({
       {meta && <p className="poster-meta muted">{meta}</p>}
       {actions && <div className="poster-actions">{actions(item)}</div>}
     </div>
+  )
+}
+
+/**
+ * "×2" in the poster's bottom-left corner for a game finished more than
+ * once; nothing for one finish or none.
+ *
+ * @param {{count?: number}} props
+ */
+export function ReplayMark({ count }) {
+  if (!(count > 1)) return null
+  return (
+    <span
+      className="replay-mark"
+      role="img"
+      aria-label={`Finished ${count} times`}
+    >
+      ×{count}
+    </span>
   )
 }

@@ -22,6 +22,13 @@ column is gone. `tests/test_migrations.py` diffs the migrated schema against
 `models.py` and runs a down/up cycle, so a mismatch or a leftover type fails
 there.
 
+A new value on an existing enum (0011's `paused` on `item_status`) is
+`ALTER TYPE ... ADD VALUE IF NOT EXISTS` inside
+`op.get_context().autocommit_block()`: Postgres cannot use a value added in
+the same transaction. A downgrade cannot remove the value (there is no DROP
+VALUE), so it moves any rows using it back to a value the old code knows, and
+IF NOT EXISTS keeps the next upgrade from failing on the leftover label.
+
 ## Applying it
 
 ```bash

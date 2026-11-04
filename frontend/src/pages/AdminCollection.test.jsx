@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { localToday } from '../lib/statusTransition.js'
+import { localToday } from '../lib/statusMoves.js'
 import AdminCollection from './AdminCollection.jsx'
 
 // A pointer device on a wide screen: cards render the hover panel and the
@@ -268,9 +268,9 @@ describe('AdminCollection list view status', () => {
     localStorage.setItem('shelf.admin.view', '"list"')
   })
 
-  // The table's select goes through the same transition as the shelf, so a
-  // finish from either view counts a completion.
-  it('sends the finished transition from the table', async () => {
+  // The table's select goes through the same status route as the shelf, so
+  // the server records the playthrough from either view.
+  it('posts a finish to the status route from the table', async () => {
     const mock = stubApi()
     renderPage()
 
@@ -281,16 +281,16 @@ describe('AdminCollection list view status', () => {
 
     await waitFor(() => {
       const call = writeCalls(mock)[0]
-      expect(String(call[0])).toContain('/api/items/a')
+      expect(String(call[0])).toMatch(/\/api\/items\/a\/status$/)
+      expect(call[1].method).toBe('POST')
       expect(JSON.parse(call[1].body)).toEqual({
         status: 'finished',
-        finished_at: localToday(),
-        times_completed: 1,
+        today: localToday(),
       })
     })
   })
 
-  it('sends only the status for anything else', async () => {
+  it('posts any other status the same way', async () => {
     const mock = stubApi()
     renderPage()
 
@@ -302,6 +302,7 @@ describe('AdminCollection list view status', () => {
     await waitFor(() =>
       expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
         status: 'active',
+        today: localToday(),
       }),
     )
   })
@@ -470,7 +471,7 @@ describe('AdminCollection shelf', () => {
     )
   })
 
-  it('finishes from the card with the transition body', async () => {
+  it('finishes from the card through the status route', async () => {
     const mock = stubApi()
     await renderShelf()
 
@@ -482,8 +483,7 @@ describe('AdminCollection shelf', () => {
     await waitFor(() =>
       expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
         status: 'finished',
-        finished_at: localToday(),
-        times_completed: 1,
+        today: localToday(),
       }),
     )
   })
@@ -511,7 +511,10 @@ describe('AdminCollection shelf', () => {
 
     await waitFor(() => {
       const call = writeCalls(mock)[0]
-      expect(String(call[0])).toMatch(/\/api\/items\/a\/pin$/)
+      // Dated by the owner's day, so the run it opens is too.
+      expect(String(call[0])).toMatch(
+        /\/api\/items\/a\/pin\?today=\d{4}-\d{2}-\d{2}$/,
+      )
       expect(call[1].method).toBe('POST')
     })
   })

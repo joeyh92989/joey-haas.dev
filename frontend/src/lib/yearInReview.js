@@ -4,6 +4,8 @@
  * year in review, for Spine. Pure, so the page and its tests share it.
  */
 
+import { finishRows } from './finishes.js'
+
 const TOP_GENRES = 5
 
 /** A game on the shelf, not a want: the year is about games played. */
@@ -11,13 +13,15 @@ export function isOwnedGame(item) {
   return item.type === 'game' && !item.wanted
 }
 
-/** Whether a row was finished in `year` (a number). */
-function finishedIn(item, year) {
-  return (
-    isOwnedGame(item) &&
-    typeof item.finished_at === 'string' &&
-    item.finished_at.startsWith(`${year}-`)
-  )
+/** Every finish of every owned game, one row each (see finishes.js). */
+export function ownedFinishes(items) {
+  return items.filter(isOwnedGame).flatMap(finishRows)
+}
+
+/** One row per game: the first of each id. */
+function distinctGames(rows) {
+  const seen = new Set()
+  return rows.filter((row) => !seen.has(row.id) && seen.add(row.id))
 }
 
 /**
@@ -28,11 +32,7 @@ function finishedIn(item, year) {
  */
 export function finishYears(items) {
   const years = new Set(
-    items
-      .filter(
-        (item) => isOwnedGame(item) && /^\d{4}-/.test(item.finished_at ?? ''),
-      )
-      .map((item) => Number(item.finished_at.slice(0, 4))),
+    ownedFinishes(items).map((row) => Number(row.finished_at.slice(0, 4))),
   )
   return [...years].sort((a, b) => b - a)
 }
@@ -40,6 +40,10 @@ export function finishYears(items) {
 /**
  * Everything the year page shows.
  *
+ * `finished` is one row per finish, so a game finished twice in the year
+ * is listed twice (the second marked `again`); `count`, `byMonth`, genres
+ * and `hours` count finishes. A rating is the game's, not the run's, so
+ * the average, favourites and `versusCommunity` count each game once.
  * `hours` sums IGDB's "normally" time to beat over the finishes that have
  * one, and says how many did, since a total over some games is not a total
  * over all of them. `versusCommunity` compares a 1-10 rating with IGDB's
@@ -49,11 +53,12 @@ export function finishYears(items) {
  * @param {number} year
  */
 export function yearInReview(items, year) {
-  const finished = items
-    .filter((item) => finishedIn(item, year))
+  const finished = ownedFinishes(items)
+    .filter((row) => row.finished_at.startsWith(`${year}-`))
     .sort((a, b) => a.finished_at.localeCompare(b.finished_at))
+  const games = distinctGames(finished)
 
-  const rated = finished.filter((item) => item.rating != null)
+  const rated = games.filter((item) => item.rating != null)
   const timed = finished.filter((item) => item.time_to_beat_hours != null)
 
   const byMonth = Array.from({ length: 12 }, () => 0)
@@ -98,7 +103,7 @@ export function yearInReview(items, year) {
       : null,
     hours: timed.reduce((sum, item) => sum + item.time_to_beat_hours, 0),
     timedCount: timed.length,
-    favourites: finished.filter((item) => item.favorite),
+    favourites: games.filter((item) => item.favorite),
     byMonth,
     topGenres,
     versusCommunity: {

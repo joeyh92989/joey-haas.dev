@@ -262,10 +262,17 @@ describe('shelf preferences', () => {
 
 describe('status vocabulary', () => {
   it('labels every status in shelf order', () => {
-    expect(STATUS_ORDER).toEqual(['backlog', 'active', 'finished', 'abandoned'])
+    expect(STATUS_ORDER).toEqual([
+      'backlog',
+      'active',
+      'paused',
+      'finished',
+      'abandoned',
+    ])
     expect(STATUS_ORDER.map((status) => STATUS_LABEL[status])).toEqual([
       'Backlog',
       'Playing',
+      'Paused',
       'Finished',
       'Abandoned',
     ])

@@ -1,8 +1,8 @@
 import { spine } from '../content/spine.js'
 import { SHELF_FORMATS } from '../lib/comics.js'
+import { STATUS_LABEL, STATUS_ORDER } from '../lib/shelf.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
-const STATUSES = ['backlog', 'active', 'finished', 'abandoned']
 const OWNED_FORMATS = [
   'physical',
   'digital',
@@ -208,9 +208,9 @@ export default function ItemForm({
       />
 
       <select aria-label="Status" value={value.status} onChange={set('status')}>
-        {STATUSES.map((status) => (
+        {STATUS_ORDER.map((status) => (
           <option key={status} value={status}>
-            {status}
+            {STATUS_LABEL[status]}
           </option>
         ))}
       </select>

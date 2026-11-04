@@ -494,6 +494,37 @@ describe('Collection', () => {
     expect(localStorage.getItem('shelf.public.dim')).toBe('true')
   })
 
+  it('chips, bars and never dims a paused game', async () => {
+    const paused = {
+      ...ITEMS[1],
+      id: '3',
+      type: 'game',
+      title: 'Elden Ring',
+      status: 'paused',
+      wanted: false,
+    }
+    stubApi({
+      items: [...ITEMS, paused],
+      stats: { ...STATS, by_status: { active: 2, paused: 1, finished: 1 } },
+    })
+    await renderReady()
+
+    expect(screen.getByRole('button', { name: /Paused/ })).toHaveTextContent(
+      '1',
+    )
+    // Between Playing and Finished, as on the chips.
+    expect(
+      within(document.querySelector('.status-bar'))
+        .getAllByRole('img')
+        .map((segment) => segment.getAttribute('aria-label')),
+    ).toEqual(['Playing: 2', 'Paused: 1', 'Finished: 1'])
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dim finished' }))
+    expect(
+      grid().getByText('Elden Ring').closest('.poster-card'),
+    ).not.toHaveAttribute('data-dimmed')
+  })
+
   // Storage throws outright in some private-browsing modes.
   it('still renders and toggles when storage throws', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {

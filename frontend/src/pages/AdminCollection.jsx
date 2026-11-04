@@ -25,12 +25,14 @@ import {
   STATUS_ORDER,
   writeShelfPref,
 } from '../lib/shelf.js'
-import { localToday, statusTransition } from '../lib/statusTransition.js'
+import {
+  pinPath,
+  setStatus as postStatus,
+  statusMoves,
+} from '../lib/statusMoves.js'
 import { FavoritesRow, isDimmable, platformGroup } from './Collection.jsx'
 import { itemPath } from '../lib/spinePaths.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
-
-const STATUSES = STATUS_ORDER
 
 const TYPE_LABEL = {
   game: 'Games',
@@ -324,9 +326,8 @@ export default function AdminCollection() {
   async function pinItem(item, pinned) {
     setError(null)
     try {
-      const response = await apiFetch(`/api/items/${item.id}/pin`, {
-        method: pinned ? 'POST' : 'DELETE',
-      })
+      const method = pinned ? 'POST' : 'DELETE'
+      const response = await apiFetch(pinPath(item.id, method), { method })
       if (!response.ok) {
         const detail =
           response.status === 422
@@ -348,11 +349,32 @@ export default function AdminCollection() {
   }
 
   /**
-   * Changes status through statusTransition, in both views, so a finish
-   * counts a completion and dates itself wherever it is made.
+   * Changes status through the status route, in both views: the server
+   * opens, closes or pauses the playthrough and dates it by the owner's
+   * day. A 422 is the server saying why, in words worth showing.
    */
-  function updateStatus(item, nextStatus) {
-    return patchItem(item.id, statusTransition(item, nextStatus, localToday()))
+  async function updateStatus(item, nextStatus) {
+    setError(null)
+    try {
+      const response = await postStatus(item.id, nextStatus)
+      if (!response.ok) {
+        const detail =
+          response.status === 422
+            ? await response
+                .json()
+                .then((payload) => payload?.detail)
+                .catch(() => null)
+            : null
+        setError(
+          typeof detail === 'string' ? detail : 'Couldn’t change that status.',
+        )
+        return
+      }
+    } catch {
+      setError(ACTION_ERROR)
+      return
+    }
+    await load()
   }
 
   /**
@@ -888,9 +910,9 @@ export default function AdminCollection() {
                             updateStatus(item, event.target.value)
                           }
                         >
-                          {STATUSES.map((value) => (
-                            <option key={value} value={value}>
-                              {value}
+                          {statusMoves(item).map((entry) => (
+                            <option key={entry.status} value={entry.status}>
+                              {entry.label}
                             </option>
                           ))}
                         </select>
