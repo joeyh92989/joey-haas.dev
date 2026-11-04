@@ -1,11 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { statusMoves } from '../lib/statusMoves.js'
+import { playMove, statusMoves } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import QuickRate from './QuickRate.jsx'
 
 /**
- * The admin controls on one shelf card: quick rate, favourite, status,
- * publish and Up next.
+ * The admin controls on one shelf card: quick rate, the one-tap move to
+ * Playing, favourite, status, publish and Up next.
  *
  * Rendered through PosterCard's `actions`, so it is a sibling of the card's
  * link. On a pointer device the panel is always in the document and CSS
@@ -46,6 +46,7 @@ export default function ShelfCardActions({
   const sheetId = useId()
   const fullNoteId = useId()
   const blocked = favoritesFull && !item.favorite
+  const play = playMove(item)
   const label = `Actions for ${item.title}`
 
   // An opened sheet takes focus, at the rating's tab stop, so the keyboard
@@ -67,6 +68,19 @@ export default function ShelfCardActions({
     <>
       <QuickRate value={item.rating} onChange={(next) => onRate(item, next)} />
       <div className="shelf-actions-row">
+        {/* The same move as the status menu's Playing entry, one tap away;
+            the server decides what it records. */}
+        {play && (
+          <button
+            type="button"
+            className="shelf-play"
+            aria-label={play.name}
+            title={play.hint ?? undefined}
+            onClick={() => onStatus(item, 'active')}
+          >
+            {play.label}
+          </button>
+        )}
         <button
           type="button"
           className="shelf-favourite"

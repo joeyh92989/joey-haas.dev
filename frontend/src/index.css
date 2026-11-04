@@ -2947,6 +2947,19 @@ a.month-bar::before {
   opacity: 0.4;
 }
 
+/* The one-tap move to Playing: the panel's primary action, so filled. */
+.shelf-play {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  padding: 0.05rem 0.45rem;
+}
+
 /* Up next: one game at a time, so pressed reads as a filled pill. */
 .shelf-pin {
   background: none;
@@ -2967,6 +2980,7 @@ a.month-bar::before {
 }
 
 .shelf-favourite:focus-visible,
+.shelf-play:focus-visible,
 .shelf-pin:focus-visible,
 .shelf-actions-toggle:focus-visible {
   outline: 2px solid var(--accent);

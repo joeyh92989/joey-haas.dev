@@ -248,3 +248,57 @@ describe('ShelfCardActions status entries', () => {
     ).toHaveValue('finished')
   })
 })
+
+describe('ShelfCardActions play button', () => {
+  it('starts a backlog game in one click', async () => {
+    pointer(true)
+    const handlers = renderActions()
+    const button = screen.getByRole('button', {
+      name: 'Start playing, dated today',
+    })
+    expect(button).toHaveTextContent('Start playing')
+
+    await userEvent.click(button)
+
+    expect(handlers.onStatus).toHaveBeenCalledWith(ITEM, 'active')
+  })
+
+  it.each([
+    [
+      {
+        status: 'paused',
+        playthroughs: [{ number: 1, paused_on: '2026-08-12' }],
+      },
+      'Resume, since Aug 2026',
+    ],
+    [
+      { status: 'finished', times_completed: 2 },
+      'Replay, starts playthrough 3',
+    ],
+    [{ status: 'abandoned' }, 'Try again, starts playthrough 1'],
+    [{ status: 'backlog', type: 'comic' }, 'Start reading, dated today'],
+  ])('names the move from %o', (overrides, name) => {
+    pointer(true)
+    renderActions({ ...ITEM, ...overrides })
+    expect(screen.getByRole('button', { name })).toBeInTheDocument()
+  })
+
+  it('is absent while the game is playing', () => {
+    pointer(true)
+    renderActions({ ...ITEM, status: 'active' })
+    expect(screen.queryByRole('button', { name: /^Start playing/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Resume|^Replay/ })).toBeNull()
+  })
+
+  it('is in the touch sheet', async () => {
+    pointer(false)
+    const handlers = renderActions()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Actions for Star Fox' }),
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Start playing, dated today' }),
+    )
+    expect(handlers.onStatus).toHaveBeenCalledWith(ITEM, 'active')
+  })
+})
