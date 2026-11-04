@@ -53,6 +53,9 @@ class ItemStatus(str, enum.Enum):
 
     BACKLOG = "backlog"
     ACTIVE = "active"
+    # Set aside, intend to return (migration 0011). Not an opinion about the
+    # game: Play Next gives it no taste weight either way.
+    PAUSED = "paused"
     FINISHED = "finished"
     ABANDONED = "abandoned"
 
@@ -306,6 +309,61 @@ class PickEvent(Base):
         nullable=False,
     )
     slot: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class PlaythroughOutcome(str, enum.Enum):
+    """How a closed playthrough ended. An open one has no outcome."""
+
+    FINISHED = "finished"
+    ABANDONED = "abandoned"
+
+
+class Playthrough(Base):
+    """One run of a game, opened and closed by status changes (migration 0011).
+
+    `playthroughs.py` is the only writer: the status route, create, bulk
+    create and the pin route all go through it, and it keeps the item's
+    `started_at` (first start), `finished_at` (last finish) and
+    `times_completed` (finished runs) in step in the same transaction.
+    `outcome` is null while the run is open, and an item has at most one
+    open run. `paused_on` is set while the game is Paused. Numbers are
+    history: deleting a run never renumbers the rest. Deleted with its item.
+    """
+
+    __tablename__ = "playthroughs"
+    __table_args__ = (
+        UniqueConstraint("item_id", "number", name="uq_playthroughs_item_number"),
+        Index(
+            "ux_playthroughs_one_open",
+            "item_id",
+            unique=True,
+            postgresql_where=text("outcome IS NULL"),
+        ),
+        Index("ix_playthroughs_finished_on", "finished_on"),
+        CheckConstraint("number > 0", name="playthroughs_number_positive"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("items.id", ondelete="CASCADE"), nullable=False
+    )
+    number: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    started_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    finished_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    paused_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    outcome: Mapped[PlaythroughOutcome | None] = mapped_column(
+        Enum(
+            PlaythroughOutcome,
+            name="playthrough_outcome",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
