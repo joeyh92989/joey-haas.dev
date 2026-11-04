@@ -27,6 +27,26 @@ function openRun(item) {
 }
 
 /**
+ * Whether this move undoes a Replay or Try again made by mistake, which the
+ * server answers by deleting the open run rather than closing it
+ * (`playthroughs.is_misclick`): the run opened today, never paused, has no
+ * journal day, and the run before it ended as `target`.
+ *
+ * "Before it" is the highest closed number here. The server orders by when
+ * runs were written, so a past run added after the replay would differ; the
+ * hint can be wrong in that one case, the move never is.
+ */
+function undoesToday(item, target) {
+  const current = openRun(item)
+  if (!current || current.started_on !== localToday()) return false
+  if (current.paused_on || (current.journal_days ?? 0) > 0) return false
+  const closed = (item.playthroughs ?? []).filter((run) => run.outcome != null)
+  if (closed.length === 0) return false
+  const previous = closed.reduce((a, b) => (b.number > a.number ? b : a))
+  return previous.outcome === target
+}
+
+/**
  * The verb and hint for moving from the item's status to `target`, when
  * that is a move out of the current state the design names; null keeps the
  * plain label.
@@ -46,6 +66,12 @@ function move(item, target) {
       hint: pausedOn
         ? `since ${MONTH.format(new Date(`${pausedOn}T00:00:00Z`))}`
         : null,
+    }
+  }
+  if (from === 'active' && undoesToday(item, target)) {
+    return {
+      verb: target === 'finished' ? 'Finish' : STATUS_LABEL[target],
+      hint: `undoes today’s ${target === 'finished' ? 'Replay' : 'Try again'}`,
     }
   }
   if (from === 'active' && target === 'finished') {
@@ -110,4 +136,19 @@ export function localToday(now = new Date()) {
   const month = String(now.getMonth() + 1).padStart(2, '0')
   const day = String(now.getDate()).padStart(2, '0')
   return `${now.getFullYear()}-${month}-${day}`
+}
+
+/**
+ * The pin route for one game, carrying the owner's local today on a pin.
+ *
+ * A pin opens a playthrough, and the run is dated by the owner's day, not
+ * the server's UTC one; an unpin opens nothing and needs no date.
+ *
+ * @param {string} itemId
+ * @param {'POST'|'DELETE'} [method]
+ * @returns {string} The path.
+ */
+export function pinPath(itemId, method = 'POST') {
+  const path = `/api/items/${itemId}/pin`
+  return method === 'POST' ? `${path}?today=${localToday()}` : path
 }

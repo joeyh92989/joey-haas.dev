@@ -15,7 +15,8 @@ import { useState } from 'react'
  * @param {boolean} [props.busy] - A write is in flight; the controls wait.
  * @param {(number: number, changes: object) => void} [props.onEdit]
  * @param {(number: number) => void} [props.onDelete]
- * @param {(run: {started_on: string|null, finished_on: string|null}) => void} [props.onAdd]
+ * @param {(run: {started_on: string|null, finished_on: string|null}) => Promise<boolean>|void} [props.onAdd]
+ *   Resolves false when the run was refused; the form then stays open.
  */
 export default function PlaythroughTable({
   runs,
@@ -182,8 +183,14 @@ function AddPast({ busy, onAdd }) {
       <button
         type="button"
         disabled={busy}
-        onClick={() => {
-          onAdd({ started_on: started || null, finished_on: finished || null })
+        onClick={async () => {
+          const saved = await onAdd({
+            started_on: started || null,
+            finished_on: finished || null,
+          })
+          // A refused run (a finish before its start, say) keeps the form
+          // open with what was typed, under the page's error.
+          if (saved === false) return
           setAdding(false)
           setStarted('')
           setFinished('')

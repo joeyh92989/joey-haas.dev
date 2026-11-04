@@ -60,6 +60,49 @@ describe('statusMoves', () => {
   })
 })
 
+describe('undoing a mistaken replay', () => {
+  const replayedToday = (overrides = {}) => ({
+    status: 'active',
+    playthroughs: [
+      { number: 1, outcome: 'finished', finished_on: '2026-03-01' },
+      {
+        number: 2,
+        outcome: null,
+        started_on: localToday(),
+        paused_on: null,
+        journal_days: 0,
+        ...overrides,
+      },
+    ],
+  })
+
+  it('says Finish undoes a Replay made today', () => {
+    expect(byStatus(replayedToday()).finished.name).toBe(
+      'Finish, undoes today’s Replay',
+    )
+  })
+
+  it('says Abandoned undoes a Try again made today', () => {
+    const item = replayedToday()
+    item.playthroughs[0].outcome = 'abandoned'
+    const entries = byStatus(item)
+    expect(entries.abandoned.name).toBe('Abandoned, undoes today’s Try again')
+    expect(entries.finished.name).toBe('Finish, dated today')
+  })
+
+  it('keeps the plain finish once the run has a journal day', () => {
+    expect(byStatus(replayedToday({ journal_days: 1 })).finished.name).toBe(
+      'Finish, dated today',
+    )
+  })
+
+  it('keeps the plain finish for a run started on another day', () => {
+    expect(
+      byStatus(replayedToday({ started_on: '2026-01-01' })).finished.name,
+    ).toBe('Finish, dated today')
+  })
+})
+
 describe('setStatus', () => {
   afterEach(() => vi.unstubAllGlobals())
 

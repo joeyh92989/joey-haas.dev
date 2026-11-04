@@ -14,7 +14,11 @@ import PlayJournal from '../components/PlayJournal.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { comicPayload, editionsText } from '../lib/comics.js'
-import { setStatus as postStatus, statusMoves } from '../lib/statusMoves.js'
+import {
+  pinPath,
+  setStatus as postStatus,
+  statusMoves,
+} from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -264,6 +268,9 @@ export default function AdminItem() {
    *
    * The form is left alone: it holds none of these fields, so unsaved edits
    * to the rest survive a status change.
+   *
+   * @returns {Promise<boolean>} Whether the write was saved, so a form that
+   *   made it closes only then and keeps what was typed otherwise.
    */
   async function writeRuns(request) {
     setError(null)
@@ -286,11 +293,13 @@ export default function AdminItem() {
             ? detail
             : 'Couldn’t change that playthrough.',
         )
-        return
+        return false
       }
       setItem(await response.json())
+      return true
     } catch {
       setError(ACTION_ERROR)
+      return false
     } finally {
       setRunBusy(false)
     }
@@ -437,7 +446,7 @@ export default function AdminItem() {
   async function setPinned(method) {
     setError(null)
     try {
-      const response = await apiFetch(`/api/items/${id}/pin`, { method })
+      const response = await apiFetch(pinPath(id, method), { method })
       if (!response.ok) {
         const detail = await response
           .json()

@@ -511,7 +511,10 @@ describe('AdminCollection shelf', () => {
 
     await waitFor(() => {
       const call = writeCalls(mock)[0]
-      expect(String(call[0])).toMatch(/\/api\/items\/a\/pin$/)
+      // Dated by the owner's day, so the run it opens is too.
+      expect(String(call[0])).toMatch(
+        /\/api\/items\/a\/pin\?today=\d{4}-\d{2}-\d{2}$/,
+      )
       expect(call[1].method).toBe('POST')
     })
   })

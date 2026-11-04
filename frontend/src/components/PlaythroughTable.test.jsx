@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import PlaythroughTable, {
   formatDay,
   journalText,
@@ -57,6 +58,30 @@ describe('PlaythroughTable', () => {
 })
 
 describe('the cell text', () => {
+  it('keeps a refused past run open with what was typed', async () => {
+    const onAdd = vi.fn().mockResolvedValue(false)
+    render(<PlaythroughTable runs={RUNS} editable onAdd={onAdd} />)
+    await userEvent.click(screen.getByText('Add a past playthrough'))
+    const started = screen.getByLabelText('Started')
+    await userEvent.type(started, '2026-02-01')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onAdd).toHaveBeenCalledWith({
+      started_on: '2026-02-01',
+      finished_on: null,
+    })
+    expect(screen.getByLabelText('Started')).toHaveValue('2026-02-01')
+  })
+
+  it('closes the past-run form once it is saved', async () => {
+    const onAdd = vi.fn().mockResolvedValue(true)
+    render(<PlaythroughTable runs={RUNS} editable onAdd={onAdd} />)
+    await userEvent.click(screen.getByText('Add a past playthrough'))
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(
+      screen.queryByRole('group', { name: 'Past playthrough' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('formats a day, or a dash', () => {
     expect(formatDay('2026-10-19')).toBe('19 Oct 2026')
     expect(formatDay(null)).toBe('—')

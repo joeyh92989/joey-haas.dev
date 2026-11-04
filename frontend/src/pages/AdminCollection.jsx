@@ -25,7 +25,11 @@ import {
   STATUS_ORDER,
   writeShelfPref,
 } from '../lib/shelf.js'
-import { setStatus as postStatus, statusMoves } from '../lib/statusMoves.js'
+import {
+  pinPath,
+  setStatus as postStatus,
+  statusMoves,
+} from '../lib/statusMoves.js'
 import { FavoritesRow, isDimmable, platformGroup } from './Collection.jsx'
 import { itemPath } from '../lib/spinePaths.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
@@ -322,9 +326,8 @@ export default function AdminCollection() {
   async function pinItem(item, pinned) {
     setError(null)
     try {
-      const response = await apiFetch(`/api/items/${item.id}/pin`, {
-        method: pinned ? 'POST' : 'DELETE',
-      })
+      const method = pinned ? 'POST' : 'DELETE'
+      const response = await apiFetch(pinPath(item.id, method), { method })
       if (!response.ok) {
         const detail =
           response.status === 422
