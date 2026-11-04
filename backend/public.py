@@ -109,6 +109,10 @@ class PublicItemOut(BaseModel):
     # Up next (D2): whether this is the game being played next. When it was
     # pinned stays private.
     pinned: bool
+    # The open run's start on an active or paused game, else null: after a
+    # replay or Try again, "Started" and "Playing since" differ. On the list
+    # too, so the shelf's Now playing band needs no second request.
+    playing_since: date | None = None
     # Play states: when a paused game was set aside, and every dated finish
     # (replays included), ascending. The playthrough rows stay admin-only.
     paused_on: date | None = None
@@ -142,9 +146,6 @@ class PublicItemDetailOut(PublicItemOut):
     description: str | None
     community_votes: int | None
     started_at: date | None
-    # The open run's start on an active or paused game, else null: after a
-    # replay or Try again, "Started" and "Playing since" differ.
-    playing_since: date | None = None
     similar_in_collection: list[PublicItemCard]
     themes: list[str]
     time_to_beat: PublicTimeToBeat | None
@@ -277,7 +278,8 @@ async def _run_dates(session: AsyncSession, *where) -> RunDates:
 
 def _list_fields(item: Item, runs: RunDates | None = None) -> dict:
     """The publishable list fields, named one by one."""
-    dates = (runs or {}).get(item.id, _Runs())
+    item_runs = (runs or {}).get(item.id)
+    dates = item_runs or _Runs()
     snapshot = _allowed_snapshot(item, PUBLIC_METADATA_FIELDS)
     return {
         "id": item.id,
@@ -302,6 +304,7 @@ def _list_fields(item: Item, runs: RunDates | None = None) -> dict:
         "completeness": item.completeness,
         "time_to_beat_hours": _hours(_time_to_beat(snapshot)),
         "pinned": item.pinned_at is not None,
+        "playing_since": _start_fields(item, item_runs)["playing_since"],
         "paused_on": dates.paused_on if item.status == ItemStatus.PAUSED else None,
         "finishes": dates.finishes,
         "times_completed": item.times_completed,
@@ -401,7 +404,7 @@ def _to_public_detail(
         community_votes=(
             votes if isinstance(votes, int) and not isinstance(votes, bool) else None
         ),
-        **_start_fields(item, (runs or {}).get(item.id)),
+        started_at=_start_fields(item, (runs or {}).get(item.id))["started_at"],
         themes=_string_list(snapshot.get("themes")),
         time_to_beat=_time_to_beat(snapshot),
         similar_in_collection=[
