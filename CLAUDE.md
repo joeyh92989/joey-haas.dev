@@ -258,6 +258,11 @@ before pushing.
       this week on What's next, and the admin pull list at
       `/admin/pull-list`. Migration `0010`. Spec and plan:
       `docs/planning/2026-11-01-comics-design.md`
+- [x] Play states — the `paused` status, replays as playthroughs
+      (migration `0011`, `playthroughs`), the status route, the paused mark
+      and replay count on the shelf, and the playthrough table on the item
+      and edit pages. Spec and plan:
+      `docs/planning/2026-11-03-play-states-design.md`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -283,7 +288,9 @@ before pushing.
   (the play journal); `0008` adds `page_views` and `daily_stats`
   (analytics); `0009` adds the nullable `pick_events.slot` (Tonight);
   `0010` adds the comic columns on `items` (`issues_owned`,
-  `issues_skipped`, `editions`, `read_to`, `shelf_format`, `following`).
+  `issues_skipped`, `editions`, `read_to`, `shelf_format`, `following`);
+  `0011` adds `paused` to `item_status` and the `playthroughs` table,
+  backfilled one finished run per completion.
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -391,11 +398,21 @@ before pushing.
   from the admin collection page — per row, or with the bulk publish control.
   This was missing at first: the public API, page and filter all shipped
   without a way to set the flag, so the showcase was unreachable.
-- Status changes to finished go through `statusTransition`
-  (`lib/statusTransition.js`) in both admin views, the shelf card and the
-  list table: a first finish sets `times_completed` to 1 and dates it today,
-  a replay (any earlier `finished_at` or completion) adds one and keeps the
-  date. The edit page exposes both fields directly and does not apply it.
+- **Playthroughs** (migration `0011`) are one row per run of a game,
+  written only by `backend/playthroughs.py`. Every status change goes
+  through `POST /api/items/{id}/status` (`apply_status`; create, bulk
+  create, the pin route and the comics Got it call it too), and every hand
+  edit through the edit page's playthrough table. Each write ends in `sync`,
+  which recomputes the cached item columns in the same transaction:
+  `started_at` the earliest start, `finished_at` the last finish,
+  `times_completed` the finished runs. Readers keep using those columns, so
+  PATCH refuses status and the three columns (422). Paused keeps the run
+  open with `paused_on`; Replay and Try again open a new run. A **misclick**
+  (a run opened today, never paused, no journal day, closed back to its
+  previous outcome) is deleted, not recorded. Publicly an item carries
+  `paused_on` and `finishes` (dated finishes, ascending), never the current
+  run's start. The admin row names its moves through `lib/statusMoves.js`.
+  **Deploy order:** apply `0011` to Neon, then merge.
 - **Favourites are capped at four**, the size of the favourites row. The
   API refuses a fifth with a 409 on PATCH, create and bulk create
   (`FAVORITES_LIMIT` in `items.py`); unfavouriting is never refused. Rows

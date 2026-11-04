@@ -404,6 +404,24 @@ pages and components that import them).
 | Public fields | `PublicItem` gains `paused_on` and `finishes` (finished runs' dates, ascending, dateless omitted). Playthrough rows themselves are admin-only. | Feed, Year/Month in review and the Played tile need every finish date; earlier finish dates become public, which is the point of the feature. |
 | Feed GUIDs | Stay `…/#finished-<date>`, now one per finish date. | Existing entries keep their GUIDs, so nothing reposts; a replay is a new entry. |
 
+## Deviations from the spec (recorded during the build)
+
+| Spec said | Built | Why |
+|---|---|---|
+| Backfill: the latest run carries `started_at` and `finished_at` | Run 1 carries `started_at`, the last finished run `finished_at` | `started_at` is "the earliest start" in `derive`, so the backfill has to agree with `sync` or the first status move rewrites the column. |
+| Status writers: status route, create, bulk create, pin | The comics Got it route also goes through `apply_status` | It set `active` directly; a second writer is what the module exists to prevent. |
+| Reason "which I finished again" | Not added | Deferred to keep the picker's reasons untouched in this PR; a follow-up if wanted. |
+| Feed title unchanged | A replay's entry says "again" | Two entries with the same title read as a duplicate. |
+| Now's Finished: one row per finish | One row per game, with an "again" tag and "second time" | Keeps Now's list shape (one row per game); the tag carries the replay. |
+| Status popover with hints | Native `<select>` kept; the hint sits in the option text | Keeps keyboard and touch behaviour the platform's; the move names come from `lib/statusMoves.js` for every control. |
+| Edit page status in the form | In the Playthroughs section, posting immediately | A status move is its own transaction; saving it with the form's other fields would mix two writers. |
+| Stats-bar Paused segment solid | Hollow ring, as the poster mark | A solid segment needed a new status token with its own contrast measurement; the hollow ring reuses `--status-active`, already measured. |
+| "Playing · since <date>" on a replay | "Playing again", undated | Publicly `started_at` is the first run's start, and the current run's start is not published. |
+| Now's Paused rows with hours | No hours | The snapshot carries no journal. |
+| Item page dates "24 Oct 2026" | The page's existing `en` format ("Oct 24, 2026") | One date style per page. |
+| Relative dates ("this week") | Absolute dates | Prerendered and snapshot pages would freeze a relative phrase. |
+| Replay count on every card | Suppressed when a badge or the upcoming ribbon holds the corner | The corner holds one mark. |
+
 ## Tasks
 
 All sequential (each builds on the API shape of the one before). Tests run
