@@ -1,6 +1,7 @@
 import { Link, Navigate, useParams } from 'react-router'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import AgainTag from '../components/AgainTag.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import { spine } from '../content/spine.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -248,11 +249,12 @@ export default function YearInReview() {
             <h2 id="year-diary">Finishes</h2>
             <ol className="year-diary">
               {[...review.finished].reverse().map((item) => (
-                <li key={item.id}>
+                <li key={item.finish_key ?? item.id}>
                   <time dateTime={item.finished_at}>
                     {shortDate(item.finished_at)}
                   </time>
                   <Link to={itemPath(item.id)}>{item.title}</Link>
+                  {item.again && <AgainTag />}
                   {item.rating != null && (
                     <span className="muted">{item.rating}/10</span>
                   )}

@@ -62,6 +62,29 @@ afterEach(() => {
 })
 
 describe('YearInReview', () => {
+  it('lists a game finished twice in the year twice, the second as again', () => {
+    answer.value = {
+      data: [
+        {
+          ...ITEMS[0],
+          finishes: ['2026-02-10', '2026-09-30'],
+          times_completed: 2,
+        },
+      ],
+      live: true,
+      failed: false,
+    }
+    renderAt('/shelf/year/2026')
+
+    const rows = screen
+      .getByRole('heading', { name: 'Finishes' })
+      .nextSibling.querySelectorAll('li')
+    expect([...rows].map((row) => row.textContent)).toEqual([
+      'Sep 30Hades II again10/10',
+      'Feb 10Hades II10/10',
+    ])
+  })
+
   it('shows the year’s numbers, diary and the other years', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
     renderAt('/shelf/year/2026')

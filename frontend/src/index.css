@@ -2482,6 +2482,14 @@ footer {
   background: var(--status-active);
 }
 
+/* Hollow, as the card mark is: a solid segment in Playing's colour beside
+   Playing's would read as one. */
+.status-segment[data-status='paused'],
+.status-swatch[data-status='paused'] {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--status-active);
+}
+
 .status-segment[data-status='finished'],
 .status-swatch[data-status='finished'] {
   background: var(--status-finished);
@@ -3342,6 +3350,13 @@ a.month-bar::before {
   background: var(--status-active);
 }
 
+/* Playing, not filled in: the same colour as a stroke, inside the same
+   1px --surface halo the filled marks rely on against covers. */
+.status-mark[data-status='paused'] {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--status-active);
+}
+
 .status-mark[data-status='finished'] {
   background: var(--status-finished);
 }
@@ -3367,6 +3382,24 @@ a.month-bar::before {
   min-width: 1.1rem;
   position: absolute;
   right: 0.4rem;
+  z-index: 1;
+}
+
+/* Bottom-left of the poster: how many times a game was finished, when more
+   than once. The format mark's overlay style, with a mono numeral. */
+.replay-mark {
+  align-items: center;
+  background: var(--overlay);
+  border-radius: 3px;
+  bottom: 0.4rem;
+  color: var(--text);
+  display: flex;
+  font: 500 0.6875rem var(--font-mono);
+  height: 1.1rem;
+  left: 0.4rem;
+  line-height: 1;
+  padding: 0 0.3rem;
+  position: absolute;
   z-index: 1;
 }
 
@@ -4395,6 +4428,13 @@ main h1[tabindex='-1']:focus {
 .colophon h2 {
   font-size: 1.15rem;
   margin: 2rem 0 0.75rem;
+}
+
+/* After a replayed finish's title on Now and the review pages. */
+.again-tag {
+  color: var(--text-2);
+  font: 500 0.75rem var(--font-mono);
+  margin-left: 0.15rem;
 }
 
 .now-finished,

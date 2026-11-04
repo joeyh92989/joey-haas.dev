@@ -191,7 +191,7 @@ export const spine = {
         where: '/admin/play-next',
         title: 'Picks tonight’s game',
         claim:
-          'Six weighted terms score the backlog: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. Each pick comes with a reason.',
+          'Six weighted terms score the backlog and anything I’ve paused: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. Each pick comes with a reason, and a paused game can come back as “Pick it back up”. A replay is a new playthrough, so finishing a game twice counts twice.',
         why: {
           lead: 'No model here.',
           text: 'The scoring is pure Python, tested without a database, and the public reasons are always rebuilt from public games only.',
@@ -446,9 +446,10 @@ export const spine = {
     path: '/shelf/comics',
     title: 'Comics',
     lede: 'Every series on my shelf as a run: what I own, the gaps, and what’s out this week.',
-    /** Comic wording for the four statuses; the shelf's own labels are game words. */
+    /** Comic wording for the statuses; the shelf's own labels are game words. */
     status: {
       active: 'Reading',
+      paused: 'Paused',
       backlog: 'To read',
       finished: 'Read',
       abandoned: 'Dropped',

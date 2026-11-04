@@ -2,11 +2,24 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import AgainTag from '../components/AgainTag.jsx'
 import { spine } from '../content/spine.js'
+import { timeWord } from '../lib/finishes.js'
 import { nowLists } from '../lib/nowLists.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+
+const MONTH = new Intl.DateTimeFormat('en', {
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+
+function utc(isoDate) {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day))
+}
 
 const DAY = new Intl.DateTimeFormat('en', {
   day: 'numeric',
@@ -16,12 +29,12 @@ const DAY = new Intl.DateTimeFormat('en', {
 })
 
 function finishedOn(isoDate) {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  return DAY.format(new Date(Date.UTC(year, month - 1, day)))
+  return DAY.format(utc(isoDate))
 }
 
 /**
- * What the shelf says I am doing now: playing, up next, just finished.
+ * What the shelf says I am doing now: playing, set aside, up next, just
+ * finished.
  *
  * A /now page (nownownow.com) written by Spine instead of by hand, so it is
  * never stale by more than a night. Like Home and Projects it reads only the
@@ -46,9 +59,11 @@ export default function Now() {
     }
   }, [])
 
-  const { playing, finished } = nowLists(items ?? [])
+  const { playing, paused, finished } = nowLists(items ?? [])
   const empty =
-    items !== null && !upNext && playing.length + finished.length === 0
+    items !== null &&
+    !upNext &&
+    playing.length + paused.length + finished.length === 0
 
   return (
     <section className="now">
@@ -84,6 +99,27 @@ export default function Now() {
         </section>
       )}
 
+      {/* The snapshot carries no journal, so a paused row has its date and
+          no hours. */}
+      {paused.length > 0 && (
+        <section aria-labelledby="now-paused">
+          <h2 id="now-paused">Paused</h2>
+          <ul className="now-finished">
+            {paused.map((item) => (
+              <li key={item.id}>
+                <Link to={itemPath(item.id)}>{item.title}</Link>
+                {item.paused_on && (
+                  <span className="muted">
+                    {' '}
+                    · since {MONTH.format(utc(item.paused_on))}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {upNext && (
         <section aria-labelledby="now-up-next">
           <h2 id="now-up-next">Up next</h2>
@@ -103,9 +139,11 @@ export default function Now() {
             {finished.map((item) => (
               <li key={item.id}>
                 <Link to={itemPath(item.id)}>{item.title}</Link>
+                {item.again && <AgainTag />}
                 <span className="muted">
                   {' '}
                   · {finishedOn(item.finished_at)}
+                  {item.again && ` · ${timeWord(item.finish_number)}`}
                   {item.rating != null && ` · rated ${item.rating}`}
                 </span>
               </li>

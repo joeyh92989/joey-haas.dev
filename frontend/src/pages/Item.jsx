@@ -5,6 +5,7 @@ import CoverImage from '../components/CoverImage.jsx'
 import IssueGrid from '../components/IssueGrid.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
 import { compactRanges, expandRanges, shortDate } from '../lib/comics.js'
@@ -57,14 +58,63 @@ function plainText(value) {
   return (document.body.textContent ?? '').trim()
 }
 
-/** "Finished · June 2026", or the status on its own; comics in comic words. */
+/** "once", "twice", "3 times". */
+function timesWord(count) {
+  if (count === 1) return 'once'
+  if (count === 2) return 'twice'
+  return `${count} times`
+}
+
+/**
+ * The hero's status line; comics in comic words.
+ *
+ * "Finished · June 2026", "Finished twice · last Oct 2026", "Paused · since
+ * Aug 2026", "Playing · since Oct 24, 2026". A replay in progress says
+ * "again" instead of a date: the public `started_at` is the first run's.
+ */
 function statusInWords(item) {
   const labels = item.type === 'comic' ? COMICS.status : STATUS_LABEL
   const label = labels[item.status] ?? item.status
+  const times = item.times_completed ?? 0
   if (item.status === 'finished' && item.finished_at) {
-    return `${label} · ${MONTH_YEAR.format(parseDate(item.finished_at))}`
+    const when = parseDate(item.finished_at)
+    return times > 1
+      ? `${label} ${timesWord(times)} · last ${SHORT_MONTH_YEAR.format(when)}`
+      : `${label} · ${MONTH_YEAR.format(when)}`
+  }
+  if (item.status === 'paused' && item.paused_on) {
+    return `${label} · since ${SHORT_MONTH_YEAR.format(parseDate(item.paused_on))}`
+  }
+  if (item.status === 'active') {
+    if (times > 0) return `${label} again`
+    if (item.started_at) {
+      return `${label} · since ${DAY.format(parseDate(item.started_at))}`
+    }
   }
   return label
+}
+
+/**
+ * The Played tile's muted line: "Last Oct 19, 2026 · first Mar 2024" over
+ * the dated finishes, "Playing again" while a replay is open, or the date
+ * range when nothing was finished.
+ */
+function playedLine(item) {
+  const times = item.times_completed ?? 0
+  const finishes = item.finishes ?? []
+  if (times > 0 && (item.status === 'active' || item.status === 'paused')) {
+    const verb = item.status === 'paused' ? 'Replay paused' : 'Playing again'
+    const last = item.finished_at
+      ? ` · last finished ${DAY.format(parseDate(item.finished_at))}`
+      : ''
+    return `${verb}${last}`
+  }
+  if (finishes.length > 1) {
+    const first = SHORT_MONTH_YEAR.format(parseDate(finishes[0]))
+    const last = DAY.format(parseDate(finishes[finishes.length - 1]))
+    return `Last ${last} · first ${first}`
+  }
+  return playedRange(item)
 }
 
 /** Dates played as "Jan 2, 2026 → Jun 12, 2026", or whichever end exists. */
@@ -138,7 +188,7 @@ function timeToBeatText(timeToBeat) {
  * detail response, which the snapshot preview does not have.
  */
 function Tiles({ item, detail }) {
-  const played = playedRange(item)
+  const played = playedLine(item)
   const showPlayed = item.times_completed > 0 || played
   const timeToBeat = timeToBeatText(item.time_to_beat)
   return (
@@ -181,8 +231,10 @@ function Tiles({ item, detail }) {
           <dd>
             {item.times_completed > 0 && (
               <span className="item-tile-figure">
-                Finished {item.times_completed}{' '}
-                {item.times_completed === 1 ? 'time' : 'times'}
+                Finished{' '}
+                {item.times_completed === 1
+                  ? 'once'
+                  : `${item.times_completed} times`}
               </span>
             )}
             {played && <span className="muted">{played}</span>}
@@ -351,6 +403,7 @@ function ItemPage({ id }) {
   const [expanded, setExpanded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+  const [runs, setRuns] = useState(null)
 
   /**
    * Loads the item and returns what to show; the effect applies it, since
@@ -389,6 +442,23 @@ function ItemPage({ id }) {
       clearTimeout(timer)
     }
   }, [id, load])
+
+  // The owner's playthroughs come from the admin read, which a visitor
+  // cannot make; the public item carries only the dates. Quiet on failure:
+  // the table is an aside, and the edit page is where it matters.
+  useEffect(() => {
+    if (!signedIn) return undefined
+    let cancelled = false
+    apiFetch(`/api/items/${encodeURIComponent(id)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (!cancelled) setRuns(body?.playthroughs ?? null)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [id, signedIn])
 
   /**
    * Owns or unowns one issue from the grid, then reloads the public detail,
@@ -444,6 +514,7 @@ function ItemPage({ id }) {
         item={result.item}
         detail
         signedIn={signedIn}
+        runs={signedIn ? runs : null}
         expanded={expanded}
         onToggleDescription={() => setExpanded((current) => !current)}
         onToggleIssue={signedIn ? toggleIssue : undefined}
@@ -494,6 +565,7 @@ function ItemView({
   item,
   detail,
   signedIn,
+  runs = null,
   note = null,
   expanded = false,
   onToggleDescription,
@@ -588,6 +660,17 @@ function ItemView({
       )}
 
       <Tiles item={item} detail={detail} />
+
+      {runs && runs.length > 0 && (
+        <section className="item-playthroughs" aria-label="Playthroughs">
+          <h2>Playthroughs</h2>
+          <PlaythroughTable runs={runs} />
+          <p className="muted playthroughs-note">
+            Dates change on the{' '}
+            <Link to={`/admin/collection/${item.id}`}>edit page</Link>.
+          </p>
+        </section>
+      )}
 
       {comic && (
         <ComicCards
