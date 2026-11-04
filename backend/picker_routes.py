@@ -12,7 +12,7 @@ import logging
 import random
 import uuid
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -21,8 +21,9 @@ from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from items import require_admin
-from models import Item, OwnedFormat, PickAction, PickEvent
+from models import Item, ItemStatus, OwnedFormat, PickAction, PickEvent
 from picker import PickerEvent, PickerItem, PickRequest, recommend
+from playthroughs import runs_with_journal
 
 logger = logging.getLogger(__name__)
 
@@ -92,8 +93,14 @@ def _number(value: object) -> float | None:
     return float(value)
 
 
-def to_picker_item(item: Item) -> PickerItem:
-    """A row as picker's plain data, reading the snapshot defensively."""
+def to_picker_item(
+    item: Item, paused_on: date | None = None, journal_minutes: int = 0
+) -> PickerItem:
+    """A row as picker's plain data, reading the snapshot defensively.
+
+    `paused_on` and `journal_minutes` describe the open run; only Play Next
+    passes them (pause_details), for a paused game's Pick it back up.
+    """
     snapshot = item.source_metadata or {}
     time_to_beat = snapshot.get("time_to_beat")
     normally = (
@@ -128,7 +135,22 @@ def to_picker_item(item: Item) -> PickerItem:
         acquired_at=item.acquired_at,
         started_at=item.started_at,
         finished_at=item.finished_at,
+        paused_on=paused_on,
+        journal_minutes=journal_minutes,
     )
+
+
+async def pause_details(
+    session: AsyncSession, rows: list[Item]
+) -> dict[uuid.UUID, tuple[date | None, int]]:
+    """Each paused game's open run: its pause date and its journal minutes."""
+    paused = [row.id for row in rows if row.status == ItemStatus.PAUSED]
+    details = {}
+    for item_id, runs in (await runs_with_journal(session, paused)).items():
+        for run, _days, minutes in runs:
+            if run.outcome is None:
+                details[item_id] = (run.paused_on, minutes)
+    return details
 
 
 def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
@@ -158,6 +180,7 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         """
         now = datetime.now(UTC)
         rows = list((await session.execute(select(Item))).scalars())
+        paused = await pause_details(session, rows)
         # "never" is permanent, so it is loaded whatever its age; every other
         # rule looks back a month at most.
         event_rows = (
@@ -185,7 +208,7 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             exclude=tuple(str(item_id) for item_id in payload.exclude),
         )
         result = recommend(
-            [to_picker_item(row) for row in rows],
+            [to_picker_item(row, *paused.get(row.id, (None, 0))) for row in rows],
             events,
             request,
             now,

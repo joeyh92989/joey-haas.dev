@@ -319,3 +319,18 @@ async def test_deleting_the_item_deletes_its_runs(sessionmaker_for_test):
         await session.delete(item)
         await session.commit()
         assert (await session.execute(select(Playthrough))).first() is None
+
+
+@pytest.mark.asyncio
+async def test_pause_details_read_the_open_run(sessionmaker_for_test):
+    from picker_routes import pause_details
+
+    async with sessionmaker_for_test() as session:
+        item = await _item(session)
+        other = await _item(session)
+        await pt.apply_status(session, item, ItemStatus.ACTIVE, D1)
+        await pt.apply_status(session, item, ItemStatus.PAUSED, D2)
+        session.add(PlaySession(item_id=item.id, played_on=D1, minutes=90))
+        await session.flush()
+        details = await pause_details(session, [item, other])
+        assert details == {item.id: (D2, 90)}

@@ -50,7 +50,7 @@ from sources.igdb import IGDB_URL_PREFIX
 # and the section hides. Today never counts (see public_picks_with_day).
 PICKS_WINDOW = timedelta(days=7)
 PICKS_LIMIT = 3
-PICKABLE = (ItemStatus.BACKLOG, ItemStatus.ACTIVE)
+PICKABLE = (ItemStatus.BACKLOG, ItemStatus.ACTIVE, ItemStatus.PAUSED)
 # The order a day's picks are published in: Play Next's slots, first to
 # third. A shown event from before 0009 has no slot and sorts after them.
 SLOT_ORDER = {

@@ -85,6 +85,10 @@ class PickerItem:
     acquired_at: date | None
     started_at: date | None
     finished_at: date | None = None
+    # The open run's pause date and the journal minutes logged in that run;
+    # only a paused game carries them (picker_routes reads its playthroughs).
+    paused_on: date | None = None
+    journal_minutes: int = 0
 
 
 @dataclass(frozen=True)
@@ -101,6 +105,10 @@ def _clamp(value: float, low: float = 0.0, high: float = 100.0) -> float:
 
 
 def _is_reference(item: PickerItem) -> bool:
+    """A game that says something about taste. A paused one says nothing
+    either way: it was set aside, neither finished nor given up on."""
+    if item.status == "paused":
+        return False
     return (
         item.favorite
         or item.rating is not None
@@ -414,7 +422,8 @@ def candidates(
     request: PickRequest,
     now: datetime,
 ) -> list[PickerItem]:
-    """The owned games in the backlog or in progress that the request allows.
+    """The owned games in the backlog, in progress or paused that the request
+    allows.
 
     Out: the pinned game, anything marked never, anything skipped in the last
     week, and the reroll's earlier picks. Moods and platforms are hard filters;
@@ -434,7 +443,7 @@ def candidates(
         for item in items
         if item.type == "game"
         and item.owned
-        and item.status in ("backlog", "active")
+        and item.status in ("backlog", "active", "paused")
         and not item.pinned
         and item.id not in never
         and item.id not in skipped
@@ -568,6 +577,24 @@ def _is_stalled(item: PickerItem, events: list[PickerEvent], now: datetime) -> b
     )
 
 
+def _paused_order(item: PickerItem) -> tuple:
+    """Most journal time first (sunk cost is the honest reason), then the
+    longest paused, then by title."""
+    return (-item.journal_minutes, item.paused_on or date.max, item.title)
+
+
+def paused_reason(item: PickerItem, today: date) -> str:
+    """ "41 h in, paused since August"; hours left out when none are logged."""
+    if item.paused_on is None:
+        since = "paused"
+    elif item.paused_on.year == today.year:
+        since = f"paused since {item.paused_on:%B}"
+    else:
+        since = f"paused since {_month(item.paused_on)}"
+    hours = item.journal_minutes // 60
+    return f"{hours} h in, {since}" if hours else since[0].upper() + since[1:]
+
+
 def _common_reasons(
     item: PickerItem,
     references: list[PickerItem],
@@ -631,8 +658,9 @@ def recommend(
     those matching the profile at least as well as the median, that differs
     from the last finish in size band or genre; without a dated finish or
     such a game it is Short and sweet, the best game of six hours or less,
-    left out when there is none. The third slot is a game in
-    progress that has stalled, if any; otherwise the oldest release among the
+    left out when there is none. The third slot is a paused game, the one
+    with the most journal time, or else a game in progress that has
+    stalled, if any; otherwise the oldest release among the
     games that match the profile at least as well as the median ("Overdue
     classic"), or, once acquired dates carry information, the one that has
     waited longest.
@@ -700,12 +728,16 @@ def recommend(
             chosen.append(("short_and_sweet", short))
             taken.add(short.id)
 
+    paused = sorted(
+        (i for i in pool if i.id not in taken and i.status == "paused"),
+        key=_paused_order,
+    )
     stalled = sorted(
         (i for i in pool if i.id not in taken and _is_stalled(i, events, now)),
         key=lambda item: item.started_at,
     )
-    if stalled:
-        chosen.append(("pick_it_back_up", stalled[0]))
+    if paused or stalled:
+        chosen.append(("pick_it_back_up", (paused or stalled)[0]))
     else:
         gated = [
             item
@@ -743,6 +775,8 @@ def recommend(
             reasons.insert(0, f"Out since {item.release_date.year}")
         elif slot == "waited_longest":
             reasons.insert(0, f"On the shelf since {_month(item.acquired_at)}")
+        elif slot == "pick_it_back_up" and item.status == "paused":
+            reasons.insert(0, paused_reason(item, today))
         elif slot == "pick_it_back_up":
             reasons.insert(
                 0, f"Started in {_month(item.started_at)} and not touched since"

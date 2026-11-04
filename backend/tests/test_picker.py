@@ -634,6 +634,65 @@ def test_a_game_in_progress_recently_shown_is_not_stalled():
     assert third.picks[2].slot != "pick_it_back_up"
 
 
+def test_a_paused_game_takes_pick_it_back_up_before_a_stalled_one():
+    games = shelf() + [
+        item("stalled", status="active", started_at=TODAY - timedelta(days=90)),
+        item(
+            "light",
+            title="Light",
+            status="paused",
+            paused_on=date(2026, 8, 2),
+            journal_minutes=120,
+        ),
+        item(
+            "deep",
+            title="Deep",
+            status="paused",
+            paused_on=date(2026, 8, 10),
+            journal_minutes=41 * 60 + 20,
+        ),
+    ]
+    picks = recommend(games, [], PickRequest(), NOW, random.Random(1)).picks
+    [back] = [pick for pick in picks if pick.slot == "pick_it_back_up"]
+    assert back.item.id == "deep"
+    assert back.reasons[0] == "41 h in, paused since August"
+
+
+def test_a_paused_reason_leaves_out_hours_when_none_are_logged():
+    from picker import paused_reason
+
+    assert paused_reason(item("p", paused_on=date(2025, 12, 1)), TODAY) == (
+        "Paused since December 2025"
+    )
+    assert paused_reason(item("p", journal_minutes=59), TODAY) == "Paused"
+
+
+def test_paused_games_are_candidates_but_never_references():
+    paused = item(
+        "paused", status="paused", favorite=True, rating=10, genres=("Platform",)
+    )
+    assert paused in candidates([paused], [], PickRequest(), NOW)
+    assert "paused" not in reference_weights([paused, *shelf()], TODAY)
+
+
+def test_recency_reads_the_last_finish_not_the_first():
+    replayed = item(
+        "replayed",
+        status="finished",
+        finished_at=TODAY - timedelta(days=3),
+        genres=("Platform",),
+    )
+    once = item(
+        "once",
+        status="finished",
+        finished_at=TODAY - timedelta(days=700),
+        genres=("Platform",),
+    )
+    weights = reference_weights([replayed, once], TODAY)
+    assert weights["replayed"] > weights["once"]
+    assert last_finish([replayed, once]).id == "replayed"
+
+
 def test_reasons_name_the_game_they_come_from():
     result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
     best = result.picks[0]
