@@ -16,6 +16,7 @@ from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import playthroughs
 from auth import session_admin
 from comics import ISSUE_SNAPSHOT_KEYS, RangeError, apply_comic_fields, row_run
 from formats import CopyFieldError, apply_copy_fields
@@ -135,6 +136,50 @@ class ItemPatch(BaseModel):
     edition_id: uuid.UUID | None = None
 
 
+class PlaythroughOut(BaseModel):
+    """One run of a game, with the journal days its dates hold."""
+
+    number: int
+    started_on: date | None
+    finished_on: date | None
+    paused_on: date | None
+    outcome: str | None
+    journal_days: int
+    journal_minutes: int
+
+
+class StatusIn(BaseModel):
+    """A status move. `today` is the owner's local date (localToday())."""
+
+    status: ItemStatus
+    today: date
+
+
+class PlaythroughDatesIn(BaseModel):
+    """A hand edit of a run's dates; absent fields are left alone."""
+
+    started_on: date | None = None
+    finished_on: date | None = None
+
+
+class PastPlaythroughIn(BaseModel):
+    """A finished run from before the tracker knew about it."""
+
+    started_on: date | None = None
+    finished_on: date | None = None
+
+
+NO_RUN = "No such playthrough"
+
+# The fields the status route owns (playthroughs.py). PATCH refuses them
+# rather than ignoring them, so a caller that still sends one finds out.
+STATUS_FIELDS = ("status", "started_at", "finished_at", "times_completed")
+STATUS_FIELDS_REFUSED = (
+    "Status and play dates change through POST /api/items/{id}/status "
+    "and the playthrough routes, not PATCH."
+)
+
+
 class ItemOut(BaseModel):
     """An item as returned by the API."""
 
@@ -176,6 +221,8 @@ class ItemOut(BaseModel):
     play_next_excluded: bool = False
     # A comic's run against its snapshot (comics.row_run); None otherwise.
     comic_run: dict | None = None
+    # Every run, oldest first (playthroughs.py).
+    playthroughs: list[PlaythroughOut] = []
     created_at: datetime
     updated_at: datetime
 
@@ -604,8 +651,23 @@ def create_items_router(
             .where(PickEvent.item_id.in_([item.id for item in items]))
         )
         excluded = set(result.scalars())
+        runs = await playthroughs.runs_with_journal(
+            session, [item.id for item in items]
+        )
         for item in items:
             item.play_next_excluded = item.id in excluded
+            item.playthroughs = [
+                PlaythroughOut(
+                    number=run.number,
+                    started_on=run.started_on,
+                    finished_on=run.finished_on,
+                    paused_on=run.paused_on,
+                    outcome=run.outcome,
+                    journal_days=days,
+                    journal_minutes=minutes,
+                )
+                for run, days, minutes in runs.get(item.id, [])
+            ]
 
     @router.get("", response_model=list[ItemOut])
     async def list_items(
@@ -635,6 +697,8 @@ def create_items_router(
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
         item = Item(**values)
         session.add(item)
+        await session.flush()
+        await playthroughs.seed_rows(session, item, date.today())
         await session.commit()
         await session.refresh(item)
         await _mark_excluded(session, [item])
@@ -777,6 +841,10 @@ def create_items_router(
         )
         result = await session.execute(statement)
         created = list(result.scalars())
+        if created:
+            new_items = await session.execute(select(Item).where(Item.id.in_(created)))
+            for new_item in new_items.scalars():
+                await playthroughs.seed_rows(session, new_item, date.today())
         await session.commit()
 
         enriched = await _enrich(session, registry, created)
@@ -921,8 +989,10 @@ def create_items_router(
         session: AsyncSession = Depends(get_session),
     ) -> Item:
         """Partial update. Fields absent from the body are left alone."""
-        item = await _load(session, item_id)
         body = payload.model_dump(exclude_unset=True)
+        if any(field in body for field in STATUS_FIELDS):
+            raise HTTPException(status_code=422, detail=STATUS_FIELDS_REFUSED)
+        item = await _load(session, item_id)
         if "edition_id" in body:
             body["edition_format"] = await _edition_format(
                 session, item, body["edition_id"]
@@ -974,14 +1044,96 @@ def create_items_router(
             .values(pinned_at=None)
         )
         item.pinned_at = datetime.now(UTC)
-        item.status = ItemStatus.ACTIVE
-        item.started_at = item.started_at or date.today()
+        await playthroughs.apply_status(
+            session, item, ItemStatus.ACTIVE, datetime.now(UTC).date()
+        )
         session.add(PickEvent(item_id=item_id, action=PickAction.PINNED))
         await session.commit()
         await session.refresh(item)
         await _mark_excluded(session, [item])
         logger.info("pinned %s as up next", item_id)
         return item
+
+    async def _respond(session: AsyncSession, item: Item) -> Item:
+        await session.commit()
+        await session.refresh(item)
+        await _mark_excluded(session, [item])
+        return item
+
+    def _refused(error: playthroughs.PlaythroughError) -> HTTPException:
+        return HTTPException(status_code=422, detail=str(error))
+
+    @router.post("/{item_id}/status", response_model=ItemOut)
+    async def set_status(
+        item_id: uuid.UUID,
+        payload: StatusIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> Item:
+        """Moves the item to a status, writing its playthroughs.
+
+        The one way a status changes after creation (playthroughs.py). The
+        client's `today` dates the move, so a late-evening finish lands on
+        the owner's day, within a day of the server's.
+        """
+        try:
+            playthroughs.check_today(payload.today, datetime.now(UTC).date())
+        except playthroughs.PlaythroughError as error:
+            raise _refused(error) from error
+        item = await _load(session, item_id)
+        await playthroughs.apply_status(session, item, payload.status, payload.today)
+        return await _respond(session, item)
+
+    @router.post("/{item_id}/playthroughs", response_model=ItemOut, status_code=201)
+    async def add_playthrough(
+        item_id: uuid.UUID,
+        payload: PastPlaythroughIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> Item:
+        """Records a past finished run, numbered below any open one."""
+        item = await _load(session, item_id)
+        try:
+            await playthroughs.add_past(
+                session, item, payload.started_on, payload.finished_on
+            )
+        except playthroughs.PlaythroughError as error:
+            raise _refused(error) from error
+        return await _respond(session, item)
+
+    @router.patch("/{item_id}/playthroughs/{number}", response_model=ItemOut)
+    async def edit_playthrough(
+        item_id: uuid.UUID,
+        number: int,
+        payload: PlaythroughDatesIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> Item:
+        """Corrects a run's dates. Its outcome changes only by status."""
+        changes = payload.model_dump(exclude_unset=True)
+        if not changes:
+            raise HTTPException(status_code=422, detail="Nothing to change.")
+        item = await _load(session, item_id)
+        try:
+            await playthroughs.edit_dates(session, item, number, changes)
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=NO_RUN) from error
+        except playthroughs.PlaythroughError as error:
+            raise _refused(error) from error
+        return await _respond(session, item)
+
+    @router.delete("/{item_id}/playthroughs/{number}", response_model=ItemOut)
+    async def delete_playthrough(
+        item_id: uuid.UUID,
+        number: int,
+        session: AsyncSession = Depends(get_session),
+    ) -> Item:
+        """Deletes a closed run. Numbers are history: none is renumbered."""
+        item = await _load(session, item_id)
+        try:
+            await playthroughs.delete_run(session, item, number)
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=NO_RUN) from error
+        except playthroughs.PlaythroughError as error:
+            raise _refused(error) from error
+        return await _respond(session, item)
 
     @router.delete("/{item_id}/pin", response_model=ItemOut)
     async def unpin_item(

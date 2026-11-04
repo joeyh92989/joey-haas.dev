@@ -438,8 +438,8 @@ async def delete_run(session: AsyncSession, item: Item, number: int) -> None:
     await _apply_ops(session, item, rows, [Delete(number)])
 
 
-async def journal_by_run(
-    session: AsyncSession, item_id: uuid.UUID, runs: list[Run]
+def attribute_journal(
+    runs: list[Run], days: list[tuple[date, int | None]]
 ) -> dict[int, tuple[int, int]]:
     """(days, minutes) of journal per run number, attributed by date.
 
@@ -448,16 +448,11 @@ async def journal_by_run(
     open run, else to the latest dateless one. Journal rows are not linked
     to runs (spec, Out of scope), so this is the whole of the attribution.
     """
-    result = await session.execute(
-        select(PlaySession.played_on, PlaySession.minutes).where(
-            PlaySession.item_id == item_id
-        )
-    )
     totals = {run.number: (0, 0) for run in runs}
     current = open_run(runs)
     dateless = [run for run in runs if run.started_on is None]
     fallback = current or (max(dateless, key=lambda r: r.number) if dateless else None)
-    for played_on, minutes in result.all():
+    for played_on, minutes in days:
         owner = next(
             (
                 run
@@ -470,6 +465,35 @@ async def journal_by_run(
         )
         if owner is None:
             continue
-        days, total = totals[owner.number]
-        totals[owner.number] = (days + 1, total + (minutes or 0))
+        count, total = totals[owner.number]
+        totals[owner.number] = (count + 1, total + (minutes or 0))
     return totals
+
+
+async def runs_with_journal(
+    session: AsyncSession, item_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[tuple[Run, int, int]]]:
+    """Each item's runs with their journal (days, minutes), in two queries."""
+    if not item_ids:
+        return {}
+    rows = await session.execute(
+        select(Playthrough)
+        .where(Playthrough.item_id.in_(item_ids))
+        .order_by(Playthrough.item_id, Playthrough.number)
+    )
+    runs: dict[uuid.UUID, list[Run]] = {item_id: [] for item_id in item_ids}
+    for row in rows.scalars():
+        runs[row.item_id].append(_as_run(row))
+    journal = await session.execute(
+        select(PlaySession.item_id, PlaySession.played_on, PlaySession.minutes).where(
+            PlaySession.item_id.in_([key for key, value in runs.items() if value])
+        )
+    )
+    days: dict[uuid.UUID, list[tuple[date, int | None]]] = {}
+    for item_id, played_on, minutes in journal.all():
+        days.setdefault(item_id, []).append((played_on, minutes))
+    out = {}
+    for item_id, item_runs in runs.items():
+        totals = attribute_journal(item_runs, days.get(item_id, []))
+        out[item_id] = [(run, *totals[run.number]) for run in item_runs]
+    return out

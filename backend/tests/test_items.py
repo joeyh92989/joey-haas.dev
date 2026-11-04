@@ -117,14 +117,12 @@ async def test_patch_changes_only_the_given_field(sessionmaker_for_test):
             )
         ).json()
 
-        patched = await client.patch(
-            f"/api/items/{created['id']}", json={"status": "finished"}
-        )
+        patched = await client.patch(f"/api/items/{created['id']}", json={"rating": 9})
         assert patched.status_code == 200
         body = patched.json()
-        assert body["status"] == "finished"
+        assert body["rating"] == 9
+        assert body["status"] == "backlog"
         assert body["title"] == "Arrival"
-        assert body["rating"] == 8
 
 
 async def test_delete_then_get_is_404(sessionmaker_for_test):
