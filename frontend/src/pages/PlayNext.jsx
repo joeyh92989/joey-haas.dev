@@ -60,6 +60,8 @@ function Chip({ pressed, onClick, children, hint }) {
 /** One pick: its slot, the game, why, and what to do about it. */
 function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
   const { item } = pick
+  // The pin route also moves the game to Playing, which the bare label hid.
+  const playHintId = useId()
   return (
     <article className="pick-card">
       <p className="pick-slot">{pick.slot_label}</p>
@@ -90,9 +92,19 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
         ))}
       </ul>
       <div className="pick-actions">
-        <button type="button" disabled={busy} onClick={onPlay}>
-          Play this
-        </button>
+        <span className="pick-play">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onPlay}
+            aria-describedby={playHintId}
+          >
+            Play this
+          </button>
+          <span id={playHintId} className="pick-play-hint">
+            Up next · starts playing
+          </span>
+        </span>
         <button type="button" disabled={busy} onClick={onSkip}>
           Not tonight
         </button>

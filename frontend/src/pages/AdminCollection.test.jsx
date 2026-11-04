@@ -488,6 +488,26 @@ describe('AdminCollection shelf', () => {
     )
   })
 
+  it('starts playing from the card through the status route', async () => {
+    const mock = stubApi()
+    await renderShelf()
+
+    await userEvent.click(
+      card('Star Fox').getByRole('button', {
+        name: 'Start playing, dated today',
+      }),
+    )
+
+    await waitFor(() => {
+      const [path, options] = writeCalls(mock)[0]
+      expect(String(path)).toMatch(/\/api\/items\/a\/status$/)
+      expect(JSON.parse(options.body)).toEqual({
+        status: 'active',
+        today: localToday(),
+      })
+    })
+  })
+
   it('publishes from the card', async () => {
     const mock = stubApi()
     await renderShelf()

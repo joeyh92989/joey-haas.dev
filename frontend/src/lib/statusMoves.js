@@ -108,6 +108,26 @@ export function statusMoves(item) {
 }
 
 /**
+ * The one-tap move to Playing for a shelf card, or null when the item is
+ * already Playing.
+ *
+ * Resume, Replay and Try again are the status menu's own entries, so the
+ * button and the menu cannot disagree; only a start from Backlog gets
+ * wording of its own, since the menu calls that move plain "Playing".
+ *
+ * @param {{status: string, type?: string, playthroughs?: object[], times_completed?: number}} item
+ * @returns {{label: string, hint: string|null, name: string}|null}
+ */
+export function playMove(item) {
+  if (item.status === 'active') return null
+  const named = move(item, 'active')
+  const label =
+    named?.verb ?? (item.type === 'comic' ? 'Start reading' : 'Start playing')
+  const hint = named ? named.hint : 'dated today'
+  return { label, hint, name: hint ? `${label}, ${hint}` : label }
+}
+
+/**
  * Moves an item to `status` through the status route, dated by the owner's
  * local day.
  *
