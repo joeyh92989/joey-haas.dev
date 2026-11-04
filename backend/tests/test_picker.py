@@ -627,6 +627,20 @@ def test_a_stalled_game_in_progress_takes_the_third_slot():
     assert any(reason.startswith("Started in June 2026") for reason in third.reasons)
 
 
+def test_a_fresh_replay_of_an_old_game_is_not_stalled():
+    games = shelf() + [
+        item(
+            "replay",
+            title="Replay",
+            status="active",
+            started_at=TODAY - timedelta(days=700),
+            run_started_on=TODAY - timedelta(days=1),
+        )
+    ]
+    picks = recommend(games, [], PickRequest(), NOW, random.Random(1)).picks
+    assert all(pick.slot != "pick_it_back_up" for pick in picks)
+
+
 def test_a_game_in_progress_recently_shown_is_not_stalled():
     stalled = item("stalled", status="active", started_at=TODAY - timedelta(days=90))
     events = [PickerEvent("stalled", "shown", NOW - timedelta(days=3))]

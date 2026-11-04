@@ -23,8 +23,8 @@ docs/planning/2026-11-03-play-states-design.md.
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, replace
-from datetime import date, timedelta
+from dataclasses import dataclass, field, replace
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,6 +52,10 @@ class Run:
     finished_on: date | None = None
     paused_on: date | None = None
     outcome: str | None = None
+    # When the row was written; only apply_status reads it, so the misclick
+    # rule can tell the run that came before the open one from a past run
+    # added after it. Not part of a run's identity.
+    created_at: datetime | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True)
@@ -122,9 +126,17 @@ def is_misclick(
     if journal_in_open:
         return False
     closed = [run for run in runs if run.outcome is not None]
+    if current.created_at is not None and all(run.created_at for run in closed):
+        # The run before the open one is the latest written before it; a
+        # past run added afterwards sits below the open run by number but
+        # is not what Replay or Try again followed.
+        closed = [run for run in closed if run.created_at <= current.created_at]
+        order = lambda run: (run.created_at, run.number)  # noqa: E731
+    else:
+        order = lambda run: run.number  # noqa: E731
     if not closed:
         return False
-    previous = max(closed, key=lambda run: run.number)
+    previous = max(closed, key=order)
     return previous.outcome == target
 
 
@@ -207,12 +219,17 @@ def seed(
 ) -> list[Run]:
     """The runs a newly created item starts with, from the create body.
 
-    The same shape migration 0011 backfilled: one finished run per
-    completion (at least one for a finished item), the first carrying the
-    start date and the last the finish date; an abandoned run for an
-    abandoned item with dates; and an open run for a Playing or Paused one.
+    The same shape migration 0011 backfilled (FINISHED_RUNS there): one
+    finished run per completion, at least one for a finished item or one
+    with a finish date that is not abandoned, the first carrying the start
+    date and the last the finish date; an abandoned run for an abandoned or
+    backlog item with dates and no finish; and an open run for a Playing or
+    Paused one. No date in the body is dropped.
     """
-    finished = max(times_completed, 1) if status == "finished" else times_completed
+    counts_a_finish = status == "finished" or (
+        status != "abandoned" and finished_at is not None
+    )
+    finished = max(times_completed, 1) if counts_a_finish else times_completed
     runs = [
         Run(
             number=n,
@@ -222,7 +239,11 @@ def seed(
         )
         for n in range(1, finished + 1)
     ]
-    if status == "abandoned" and not finished and (started_at or finished_at):
+    if (
+        status in ("abandoned", "backlog")
+        and not finished
+        and (started_at or finished_at)
+    ):
         runs.append(
             Run(
                 number=1,
@@ -350,7 +371,7 @@ async def apply_status(
 ) -> None:
     """Moves `item` to `target`, writing its playthroughs. Does not commit."""
     rows = await load_rows(session, item.id)
-    runs = [_as_run(row) for row in rows]
+    runs = [replace(_as_run(row), created_at=row.created_at) for row in rows]
     current = open_run(runs)
     journal = await _journal_since(
         session, item.id, current.started_on if current else None
@@ -363,7 +384,11 @@ async def apply_status(
 
 
 async def seed_rows(session: AsyncSession, item: Item, today: date) -> None:
-    """Gives a just-created (flushed) item its runs. Does not commit."""
+    """Gives a just-created (flushed) item its runs. Does not commit.
+
+    Raises PlaythroughError for dates a run cannot have (a finish before
+    the start), as a hand edit would.
+    """
     runs = seed(
         ItemStatus(item.status).value,
         item.started_at,
@@ -371,6 +396,8 @@ async def seed_rows(session: AsyncSession, item: Item, today: date) -> None:
         item.times_completed,
         today,
     )
+    for run in runs:
+        check_dates(run)
     await _apply_ops(session, item, [], [Open(run) for run in runs])
 
 

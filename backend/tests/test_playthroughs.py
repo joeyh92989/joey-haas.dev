@@ -1,6 +1,6 @@
 """playthroughs.py: the run rules (pure) and their database side."""
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import select
@@ -86,6 +86,20 @@ def test_a_misclick_needs_the_same_outcome_today_unpaused_and_no_journal():
     assert not pt.is_misclick(first, "finished", TODAY, False)
 
 
+def test_a_past_run_added_after_a_replay_is_not_the_previous_run():
+    # Abandoned, Try again today, then a past finish added (it takes the
+    # number below the open run): finishing today is a real run, and
+    # abandoning again is the misclick.
+    at = [datetime(2026, 11, day, tzinfo=UTC) for day in (1, 2, 3)]
+    runs = [
+        Run(1, D1, D2, outcome="abandoned", created_at=at[0]),
+        Run(2, None, D1, outcome="finished", created_at=at[2]),
+        Run(3, TODAY, created_at=at[1]),
+    ]
+    assert not pt.is_misclick(runs, "finished", TODAY, False)
+    assert pt.is_misclick(runs, "abandoned", TODAY, False)
+
+
 def test_backlog_drops_the_open_run_and_keeps_history():
     runs = walk("backlog", [("active", D1), ("finished", D2), ("active", TODAY)])
     runs = walk("active", [("backlog", TODAY)], runs)
@@ -124,9 +138,14 @@ def test_an_unknown_status_is_refused():
 @pytest.mark.parametrize(
     ("status", "times", "expected"),
     [
-        ("backlog", 0, []),
-        ("active", 0, [Run(1, D1)]),
-        ("paused", 0, [Run(1, D1, paused_on=TODAY)]),
+        ("backlog", 0, [Run(1, D1, D2, outcome="finished")]),
+        ("active", 0, [Run(1, D1, D2, outcome="finished"), Run(2)]),
+        # A finish date counts as a finish whatever the counter says.
+        (
+            "paused",
+            0,
+            [Run(1, D1, D2, outcome="finished"), Run(2, paused_on=TODAY)],
+        ),
         ("finished", 0, [Run(1, D1, D2, outcome="finished")]),
         (
             "finished",
@@ -142,6 +161,21 @@ def test_an_unknown_status_is_refused():
 )
 def test_seed_matches_the_backfill(status, times, expected):
     assert pt.seed(status, D1, D2, times, TODAY) == expected
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        ("backlog", [Run(1, D1, outcome="abandoned")]),
+        ("active", [Run(1, D1)]),
+        ("abandoned", [Run(1, D1, outcome="abandoned")]),
+    ],
+)
+def test_seed_keeps_a_start_date_without_a_finish(status, expected):
+    # A start date the old flow left on a backlog game is kept on a run,
+    # never dropped by the first sync.
+    assert pt.seed(status, D1, None, 0, TODAY) == expected
+    assert pt.derive(pt.seed(status, D1, None, 0, TODAY)).started_at == D1
 
 
 def test_check_dates_refuses_an_open_finish_and_a_backwards_run():
@@ -215,6 +249,29 @@ async def test_the_misclick_deletes_the_run(sessionmaker_for_test):
         assert item.times_completed == 1
         assert item.finished_at == D2
         assert len(await _runs(session, item)) == 1
+
+
+@pytest.mark.asyncio
+async def test_a_finish_after_adding_a_past_run_is_kept(sessionmaker_for_test):
+    # Each step commits, as each request does, so the rows' created_at differ.
+    async with sessionmaker_for_test() as session:
+        item = await _item(session)
+        await pt.apply_status(session, item, ItemStatus.ACTIVE, D1)
+        await pt.apply_status(session, item, ItemStatus.ABANDONED, D2)
+        await session.commit()
+        await pt.apply_status(session, item, ItemStatus.ACTIVE, TODAY)
+        await session.commit()
+        await pt.add_past(session, item, None, D1)
+        await session.commit()
+        await pt.apply_status(session, item, ItemStatus.FINISHED, TODAY)
+        await session.commit()
+        runs = await _runs(session, item)
+        assert [(run.number, run.outcome) for run in runs] == [
+            (1, "abandoned"),
+            (2, "finished"),
+            (3, "finished"),
+        ]
+        assert item.times_completed == 2
 
 
 @pytest.mark.asyncio
@@ -322,15 +379,19 @@ async def test_deleting_the_item_deletes_its_runs(sessionmaker_for_test):
 
 
 @pytest.mark.asyncio
-async def test_pause_details_read_the_open_run(sessionmaker_for_test):
-    from picker_routes import pause_details
+async def test_open_run_details_read_the_open_run(sessionmaker_for_test):
+    from picker_routes import open_run_details
 
     async with sessionmaker_for_test() as session:
         item = await _item(session)
+        replay = await _item(session)
         other = await _item(session)
         await pt.apply_status(session, item, ItemStatus.ACTIVE, D1)
         await pt.apply_status(session, item, ItemStatus.PAUSED, D2)
+        await pt.apply_status(session, replay, ItemStatus.FINISHED, D1)
+        await pt.apply_status(session, replay, ItemStatus.ACTIVE, D2)
         session.add(PlaySession(item_id=item.id, played_on=D1, minutes=90))
         await session.flush()
-        details = await pause_details(session, [item, other])
-        assert details == {item.id: (D2, 90)}
+        details = await open_run_details(session, [item, replay, other])
+        # A replay's start is its own run's, not started_at (the first run's).
+        assert details == {item.id: (D2, 90, D1), replay.id: (None, 0, D2)}

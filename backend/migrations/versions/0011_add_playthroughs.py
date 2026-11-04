@@ -11,11 +11,11 @@ times_completed stay, now maintained from playthroughs by playthroughs.py.
 
 The backfill gives every item with history its runs: one finished run per
 completion (the first carrying started_at, the last finished_at, any between
-dateless), an abandoned run for an abandoned game with dates and no
-completion, and an open run for an active game. It then recomputes the three
-columns from the rows, which changes only rows the old counter got wrong (see
-SYNC_COLUMNS). A backlog game with a stray date and no completion gets no
-run and keeps its columns.
+dateless), an abandoned run for a game put down with dates and no completion,
+and an open run for an active game. It then recomputes the three columns from
+the rows, which changes only rows the old counter got wrong (see
+SYNC_COLUMNS). No date is dropped: every dated item gets a run that holds its
+dates, or the first status change after the migration would wipe them.
 
 The enum value is added outside the migration's transaction (Postgres
 cannot use a value added in the same transaction, and older servers refuse
@@ -40,9 +40,13 @@ playthrough_outcome = postgresql.ENUM(
 )
 
 # F, the item's finished runs: its completions, and at least one when it is
-# finished (a finished row with times_completed 0 predates the counter).
+# finished or carries a finish date outside an abandoned row (a finished row
+# with times_completed 0 predates the counter; an active one with a finish
+# date was finished once and is being played again). An abandoned row's date
+# is the day it was put down, which its abandoned run holds.
 FINISHED_RUNS = (
     "CASE WHEN status = 'finished'::item_status "
+    "OR (status <> 'abandoned'::item_status AND finished_at IS NOT NULL) "
     "THEN GREATEST(times_completed, 1) ELSE times_completed END"
 )
 
@@ -59,23 +63,26 @@ FROM items, generate_series(1, {FINISHED_RUNS}) AS n
 WHERE {FINISHED_RUNS} > 0
 """
 
-# An abandoned game with no completion and a date: one abandoned run.
-BACKFILL_ABANDONED = """
+# A game put down with dates and no finish: one abandoned run. That is an
+# abandoned game, or a backlog one with a start date (the old flow kept
+# started_at when Playing went back to Backlog).
+BACKFILL_ABANDONED = f"""
 INSERT INTO playthroughs (id, item_id, number, started_on, finished_on, outcome)
 SELECT gen_random_uuid(), id, 1, started_at, finished_at,
        'abandoned'::playthrough_outcome
 FROM items
-WHERE status = 'abandoned'::item_status AND times_completed = 0
+WHERE status IN ('abandoned'::item_status, 'backlog'::item_status)
+  AND {FINISHED_RUNS} = 0
   AND (started_at IS NOT NULL OR finished_at IS NOT NULL)
 """
 
 # An active game: its open run, after any finished ones. It carries the
 # start date only when it is the first run (on a replay, started_at is the
 # first playthrough's start and is already on run 1).
-BACKFILL_OPEN = """
+BACKFILL_OPEN = f"""
 INSERT INTO playthroughs (id, item_id, number, started_on)
-SELECT gen_random_uuid(), id, times_completed + 1,
-       CASE WHEN times_completed = 0 THEN started_at END
+SELECT gen_random_uuid(), id, {FINISHED_RUNS} + 1,
+       CASE WHEN {FINISHED_RUNS} = 0 THEN started_at END
 FROM items
 WHERE status = 'active'::item_status
 """

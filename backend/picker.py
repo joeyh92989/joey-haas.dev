@@ -89,6 +89,9 @@ class PickerItem:
     # only a paused game carries them (picker_routes reads its playthroughs).
     paused_on: date | None = None
     journal_minutes: int = 0
+    # The open run's own start: a replay's, where started_at is the first
+    # run's. None outside Play Next, or when the run has no start date.
+    run_started_on: date | None = None
 
 
 @dataclass(frozen=True)
@@ -564,10 +567,15 @@ def _overlap_reason(
 
 
 def _is_stalled(item: PickerItem, events: list[PickerEvent], now: datetime) -> bool:
-    """In progress, started a month or more ago, and not touched since."""
-    if item.status != "active" or item.started_at is None:
+    """In progress, started a month or more ago, and not touched since.
+
+    The start is the open run's when known, so a replay begun yesterday is
+    not stalled because the game was first started years ago.
+    """
+    started = item.run_started_on or item.started_at
+    if item.status != "active" or started is None:
         return False
-    if now.date() - item.started_at <= STALLED_AFTER:
+    if now.date() - started <= STALLED_AFTER:
         return False
     return not any(
         event.item_id == item.id
@@ -779,7 +787,9 @@ def recommend(
             reasons.insert(0, paused_reason(item, today))
         elif slot == "pick_it_back_up":
             reasons.insert(
-                0, f"Started in {_month(item.started_at)} and not touched since"
+                0,
+                f"Started in {_month(item.run_started_on or item.started_at)} "
+                "and not touched since",
             )
         picks.append(
             Pick(

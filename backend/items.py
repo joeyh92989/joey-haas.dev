@@ -698,7 +698,10 @@ def create_items_router(
         item = Item(**values)
         session.add(item)
         await session.flush()
-        await playthroughs.seed_rows(session, item, date.today())
+        try:
+            await playthroughs.seed_rows(session, item, date.today())
+        except playthroughs.PlaythroughError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
         await session.commit()
         await session.refresh(item)
         await _mark_excluded(session, [item])
@@ -844,7 +847,12 @@ def create_items_router(
         if created:
             new_items = await session.execute(select(Item).where(Item.id.in_(created)))
             for new_item in new_items.scalars():
-                await playthroughs.seed_rows(session, new_item, date.today())
+                try:
+                    await playthroughs.seed_rows(session, new_item, date.today())
+                except playthroughs.PlaythroughError as error:
+                    raise HTTPException(
+                        status_code=422, detail=f"{new_item.title}: {error}"
+                    ) from error
         await session.commit()
 
         enriched = await _enrich(session, registry, created)
@@ -1023,6 +1031,11 @@ def create_items_router(
     @router.post("/{item_id}/pin", response_model=ItemOut)
     async def pin_item(
         item_id: uuid.UUID,
+        today: date | None = Query(
+            None,
+            description="The owner's local date (localToday()), which dates "
+            "the run the pin opens; the server's UTC date when absent.",
+        ),
         session: AsyncSession = Depends(get_session),
     ) -> Item:
         """Commits to a game: Up next.
@@ -1032,6 +1045,14 @@ def create_items_router(
         pinned event is recorded. A route of its own rather than a PATCH field,
         because it changes another row and writes an event.
         """
+        server_today = datetime.now(UTC).date()
+        if today is not None:
+            # The status route dates its moves the same way, so the
+            # misclick rule's "started today" compares like with like.
+            try:
+                playthroughs.check_today(today, server_today)
+            except playthroughs.PlaythroughError as error:
+                raise HTTPException(status_code=422, detail=str(error)) from error
         item = await _load(session, item_id)
         if item.owned_format == OwnedFormat.NONE:
             raise HTTPException(
@@ -1045,7 +1066,7 @@ def create_items_router(
         )
         item.pinned_at = datetime.now(UTC)
         await playthroughs.apply_status(
-            session, item, ItemStatus.ACTIVE, datetime.now(UTC).date()
+            session, item, ItemStatus.ACTIVE, today or server_today
         )
         session.add(PickEvent(item_id=item_id, action=PickAction.PINNED))
         await session.commit()

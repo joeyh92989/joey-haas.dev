@@ -144,6 +144,39 @@ async def test_bulk_create_seeds_every_created_item(sessionmaker_for_test):
         assert await pt.load_rows(session, by_title["Tunic"].id) == []
 
 
+async def test_create_refuses_a_finish_before_the_start(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/items",
+            json={
+                "type": "game",
+                "title": "Backwards",
+                "status": "finished",
+                "owned_format": "physical",
+                "started_at": D2.isoformat(),
+                "finished_at": D1.isoformat(),
+            },
+        )
+    assert response.status_code == 422
+    assert "before it started" in response.text
+
+
+async def test_pin_dates_the_run_with_the_local_today(sessionmaker_for_test):
+    local = TODAY - timedelta(days=1)
+    async with client_for(sessionmaker_for_test) as client:
+        item = await _create(client)
+        response = await client.post(
+            f"/api/items/{item['id']}/pin", params={"today": local.isoformat()}
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["playthroughs"][-1]["started_on"] == local.isoformat()
+        far = await client.post(
+            f"/api/items/{item['id']}/pin",
+            params={"today": (TODAY + timedelta(days=3)).isoformat()},
+        )
+        assert far.status_code == 422
+
+
 async def test_pin_resumes_a_paused_run(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
         item = await _create(client, status="active", started_at=D1.isoformat())

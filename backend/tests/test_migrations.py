@@ -516,6 +516,10 @@ BACKFILL_ROWS = [
     ("Replaying", "active", "2024-02-01", "2024-03-01", 1),
     ("Dropped", "abandoned", "2025-01-01", "2025-02-01", 0),
     ("Shelved again", "backlog", None, "2024-08-08", 2),
+    # The two shapes no status matched at first: a start date left on a
+    # backlog game, and a finish date on a game being played again.
+    ("Put down", "backlog", "2026-05-01", None, 0),
+    ("Back again", "active", "2025-03-01", "2025-04-01", 0),
 ]
 
 
@@ -569,9 +573,12 @@ async def test_0011_backfills_runs_that_reproduce_the_columns(clean_database):
         )
 
     assert runs == [
+        ("Back again", 1, "2025-03-01", "2025-04-01", "finished"),
+        ("Back again", 2, None, None, None),
         ("Dropped", 1, "2025-01-01", "2025-02-01", "abandoned"),
         ("Once", 1, "2024-01-02", "2024-03-04", "finished"),
         ("Playing", 1, "2026-10-24", None, None),
+        ("Put down", 1, "2026-05-01", None, "abandoned"),
         ("Replaying", 1, "2024-02-01", "2024-03-01", "finished"),
         ("Replaying", 2, None, None, None),
         ("Shelved again", 1, None, None, "finished"),
@@ -593,6 +600,8 @@ async def test_0011_backfills_runs_that_reproduce_the_columns(clean_database):
         "Replaying": ("2024-02-01", "2024-03-01", 1),
         "Dropped": ("2025-01-01", None, 0),
         "Shelved again": (None, "2024-08-08", 2),
+        "Put down": ("2026-05-01", None, 0),
+        "Back again": ("2025-03-01", "2025-04-01", 1),
     }
     assert paused == 1
 

@@ -94,12 +94,16 @@ def _number(value: object) -> float | None:
 
 
 def to_picker_item(
-    item: Item, paused_on: date | None = None, journal_minutes: int = 0
+    item: Item,
+    paused_on: date | None = None,
+    journal_minutes: int = 0,
+    run_started_on: date | None = None,
 ) -> PickerItem:
     """A row as picker's plain data, reading the snapshot defensively.
 
-    `paused_on` and `journal_minutes` describe the open run; only Play Next
-    passes them (pause_details), for a paused game's Pick it back up.
+    `paused_on`, `journal_minutes` and `run_started_on` describe the open
+    run; only Play Next passes them (open_run_details), for a paused game's
+    Pick it back up and a stalled game's start.
     """
     snapshot = item.source_metadata or {}
     time_to_beat = snapshot.get("time_to_beat")
@@ -137,19 +141,31 @@ def to_picker_item(
         finished_at=item.finished_at,
         paused_on=paused_on,
         journal_minutes=journal_minutes,
+        run_started_on=run_started_on,
     )
 
 
-async def pause_details(
+async def open_run_details(
     session: AsyncSession, rows: list[Item]
-) -> dict[uuid.UUID, tuple[date | None, int]]:
-    """Each paused game's open run: its pause date and its journal minutes."""
-    paused = [row.id for row in rows if row.status == ItemStatus.PAUSED]
+) -> dict[uuid.UUID, tuple[date | None, int, date | None]]:
+    """Each in-progress game's open run: (pause date, journal minutes, start).
+
+    Pause date and minutes only for a paused game; the start for both, since
+    `started_at` is the first run's and a replay's own start is on its run.
+    """
+    status = {row.id: row.status for row in rows}
+    open_ids = [
+        row.id for row in rows if row.status in (ItemStatus.ACTIVE, ItemStatus.PAUSED)
+    ]
     details = {}
-    for item_id, runs in (await runs_with_journal(session, paused)).items():
+    for item_id, runs in (await runs_with_journal(session, open_ids)).items():
         for run, _days, minutes in runs:
-            if run.outcome is None:
-                details[item_id] = (run.paused_on, minutes)
+            if run.outcome is not None:
+                continue
+            if status[item_id] == ItemStatus.PAUSED:
+                details[item_id] = (run.paused_on, minutes, run.started_on)
+            else:
+                details[item_id] = (None, 0, run.started_on)
     return details
 
 
@@ -180,7 +196,7 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         """
         now = datetime.now(UTC)
         rows = list((await session.execute(select(Item))).scalars())
-        paused = await pause_details(session, rows)
+        open_runs = await open_run_details(session, rows)
         # "never" is permanent, so it is loaded whatever its age; every other
         # rule looks back a month at most.
         event_rows = (
@@ -208,7 +224,10 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             exclude=tuple(str(item_id) for item_id in payload.exclude),
         )
         result = recommend(
-            [to_picker_item(row, *paused.get(row.id, (None, 0))) for row in rows],
+            [
+                to_picker_item(row, *open_runs.get(row.id, (None, 0, None)))
+                for row in rows
+            ],
             events,
             request,
             now,
