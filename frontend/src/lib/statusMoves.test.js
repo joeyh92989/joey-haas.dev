@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { localToday, setStatus, statusMoves } from './statusMoves.js'
+import {
+  localToday,
+  playMove,
+  setStatus,
+  statusMoves,
+} from './statusMoves.js'
 
 const byStatus = (item) =>
   Object.fromEntries(statusMoves(item).map((entry) => [entry.status, entry]))
@@ -100,6 +105,50 @@ describe('undoing a mistaken replay', () => {
     expect(
       byStatus(replayedToday({ started_on: '2026-01-01' })).finished.name,
     ).toBe('Finish, dated today')
+  })
+})
+
+describe('playMove', () => {
+  it('starts a backlog game, dated today', () => {
+    expect(playMove({ status: 'backlog', type: 'game' })).toEqual({
+      label: 'Start playing',
+      hint: 'dated today',
+      name: 'Start playing, dated today',
+    })
+  })
+
+  it('starts a backlog comic as reading', () => {
+    expect(playMove({ status: 'backlog', type: 'comic' }).label).toBe(
+      'Start reading',
+    )
+  })
+
+  it.each([
+    [
+      'paused',
+      {
+        status: 'paused',
+        playthroughs: [{ number: 1, outcome: null, paused_on: '2026-08-12' }],
+      },
+    ],
+    ['finished', { status: 'finished', times_completed: 2 }],
+    ['abandoned', { status: 'abandoned', times_completed: 0 }],
+  ])('matches the status menu’s move from %s', (_, item) => {
+    const { label, hint, name } = byStatus(item).active
+    expect(playMove(item)).toEqual({ label, hint, name })
+  })
+
+  it('offers nothing while playing, even just after a replay', () => {
+    expect(playMove({ status: 'active' })).toBeNull()
+    expect(
+      playMove({
+        status: 'active',
+        playthroughs: [
+          { number: 1, outcome: 'finished' },
+          { number: 2, outcome: null, started_on: localToday() },
+        ],
+      }),
+    ).toBeNull()
   })
 })
 
