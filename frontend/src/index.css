@@ -2444,6 +2444,83 @@ footer {
   margin-top: 0.5rem;
 }
 
+/* Now playing: the games I am playing, ahead of everything else on the
+   shelf. The rule is --status-active, the grid's Playing dot, so the two
+   read as one mark; it already clears 3:1 on --surface in both themes. */
+.now-playing {
+  margin: 0 0 1.75rem;
+}
+
+.now-playing h2 {
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.6rem;
+  text-transform: uppercase;
+}
+
+.now-playing-list {
+  display: grid;
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.now-playing-card {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--status-active);
+  border-radius: 6px;
+  color: var(--text);
+  display: flex;
+  gap: 1rem;
+  height: 100%;
+  padding: 0.75rem;
+  text-decoration: none;
+}
+
+.now-playing-card:hover {
+  border-color: var(--line-strong);
+  border-left-color: var(--status-active);
+}
+
+.now-playing-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.now-playing-cover {
+  flex: 0 0 6rem;
+}
+
+.now-playing[data-count='1'] .now-playing-cover {
+  flex-basis: 8.5rem;
+}
+
+.now-playing-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.now-playing-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.now-playing[data-count='1'] .now-playing-title {
+  font-size: 1.375rem;
+}
+
+.now-playing-meta {
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
 .shelf-stats {
   display: grid;
   gap: 1.25rem 2rem;

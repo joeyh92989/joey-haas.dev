@@ -347,6 +347,10 @@ export const spine = {
       shelf: { to: '/shelf', label: 'Back to the shelf' },
     },
   },
+  nowPlaying: {
+    heading: 'Now playing',
+    since: 'Playing since',
+  },
   status: {
     label: 'Status',
     refreshed: 'Last refreshed',
