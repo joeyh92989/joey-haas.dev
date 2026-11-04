@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  localToday,
-  playMove,
-  setStatus,
-  statusMoves,
-} from './statusMoves.js'
+import { localToday, playMove, setStatus, statusMoves } from './statusMoves.js'
 
 const byStatus = (item) =>
   Object.fromEntries(statusMoves(item).map((entry) => [entry.status, entry]))
