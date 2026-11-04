@@ -111,6 +111,9 @@ class PublicItemOut(BaseModel):
     # (replays included), ascending. The playthrough rows stay admin-only.
     paused_on: date | None = None
     finishes: list[date] = []
+    # Finished runs, dated or not: the poster's ×n mark, and the number a
+    # finish takes when earlier ones were never dated.
+    times_completed: int = 0
 
 
 class PublicTimeToBeat(BaseModel):
@@ -136,7 +139,6 @@ class PublicItemDetailOut(PublicItemOut):
 
     description: str | None
     community_votes: int | None
-    times_completed: int
     started_at: date | None
     similar_in_collection: list[PublicItemCard]
     themes: list[str]
@@ -281,6 +283,7 @@ def _list_fields(item: Item, runs: RunDates | None = None) -> dict:
         "pinned": item.pinned_at is not None,
         "paused_on": paused_on if item.status == ItemStatus.PAUSED else None,
         "finishes": finishes,
+        "times_completed": item.times_completed,
     }
 
 
@@ -360,7 +363,6 @@ def _to_public_detail(
         community_votes=(
             votes if isinstance(votes, int) and not isinstance(votes, bool) else None
         ),
-        times_completed=item.times_completed,
         started_at=item.started_at,
         themes=_string_list(snapshot.get("themes")),
         time_to_beat=_time_to_beat(snapshot),

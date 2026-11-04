@@ -227,11 +227,11 @@ LIST_FIELDS = {
     "pinned",
     "paused_on",
     "finishes",
+    "times_completed",
 }
 DETAIL_FIELDS = LIST_FIELDS | {
     "description",
     "community_votes",
-    "times_completed",
     "started_at",
     "similar_in_collection",
     "themes",
@@ -538,6 +538,8 @@ async def test_a_replay_counts_once_in_each_year_it_was_finished(
     }
     assert listed["finishes"] == [last_year.isoformat(), today.isoformat()]
     assert detail["finishes"] == listed["finishes"]
+    # The list carries the count too: the shelf's ×n mark reads it there.
+    assert listed["times_completed"] == 2
     assert detail["times_completed"] == 2
 
 
