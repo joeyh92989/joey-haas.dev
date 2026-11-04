@@ -25,12 +25,10 @@ import {
   STATUS_ORDER,
   writeShelfPref,
 } from '../lib/shelf.js'
-import { setStatus as postStatus } from '../lib/statusMoves.js'
+import { setStatus as postStatus, statusMoves } from '../lib/statusMoves.js'
 import { FavoritesRow, isDimmable, platformGroup } from './Collection.jsx'
 import { itemPath } from '../lib/spinePaths.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
-
-const STATUSES = STATUS_ORDER
 
 const TYPE_LABEL = {
   game: 'Games',
@@ -909,9 +907,9 @@ export default function AdminCollection() {
                             updateStatus(item, event.target.value)
                           }
                         >
-                          {STATUSES.map((value) => (
-                            <option key={value} value={value}>
-                              {value}
+                          {statusMoves(item).map((entry) => (
+                            <option key={entry.status} value={entry.status}>
+                              {entry.label}
                             </option>
                           ))}
                         </select>

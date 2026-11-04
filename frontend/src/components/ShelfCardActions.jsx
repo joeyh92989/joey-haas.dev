@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { STATUS_LABEL, STATUS_ORDER } from '../lib/shelf.js'
+import { statusMoves } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import QuickRate from './QuickRate.jsx'
 
@@ -88,9 +88,9 @@ export default function ShelfCardActions({
           value={item.status}
           onChange={(event) => onStatus(item, event.target.value)}
         >
-          {STATUS_ORDER.map((status) => (
-            <option key={status} value={status}>
-              {STATUS_LABEL[status]}
+          {statusMoves(item).map((entry) => (
+            <option key={entry.status} value={entry.status}>
+              {entry.name}
             </option>
           ))}
         </select>

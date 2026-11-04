@@ -11,12 +11,13 @@ import {
 } from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import PlayJournal from '../components/PlayJournal.jsx'
+import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { comicPayload, editionsText } from '../lib/comics.js'
+import { setStatus as postStatus, statusMoves } from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
-const STATUSES = ['backlog', 'active', 'finished', 'abandoned']
 const OWNED_FORMATS = [
   'physical',
   'digital',
@@ -30,13 +31,9 @@ const EDITABLE = [
   'type',
   'title',
   'year',
-  'status',
   'rating',
   'owned_format',
   'favorite',
-  'times_completed',
-  'started_at',
-  'finished_at',
   'notes',
   'is_public',
   'platform_id',
@@ -62,13 +59,9 @@ function toForm(item) {
     type: item.type,
     title: item.title ?? '',
     year: item.year ?? '',
-    status: item.status,
     rating: item.rating ?? '',
     owned_format: item.owned_format ?? '',
     favorite: Boolean(item.favorite),
-    times_completed: item.times_completed ?? 0,
-    started_at: item.started_at ?? '',
-    finished_at: item.finished_at ?? '',
     notes: item.notes ?? '',
     is_public: Boolean(item.is_public),
     platform_id: item.platform_id ?? '',
@@ -92,13 +85,9 @@ function toPayload(form) {
     type: form.type,
     title: form.title.trim(),
     year: form.year === '' ? null : Number(form.year),
-    status: form.status,
     rating: form.rating === '' ? null : Number(form.rating),
     owned_format: form.owned_format === '' ? null : form.owned_format,
     favorite: form.favorite,
-    times_completed: Number(form.times_completed) || 0,
-    started_at: form.started_at === '' ? null : form.started_at,
-    finished_at: form.finished_at === '' ? null : form.finished_at,
     notes: form.notes === '' ? null : form.notes,
     is_public: form.is_public,
     platform_id: form.platform_id === '' ? null : Number(form.platform_id),
@@ -229,6 +218,7 @@ export default function AdminItem() {
   const [slow, setSlow] = useState(false)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [runBusy, setRunBusy] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
   const [relinking, setRelinking] = useState(false)
   const [refreshingComic, setRefreshingComic] = useState(false)
@@ -268,6 +258,43 @@ export default function AdminItem() {
       clearTimeout(timer)
     }
   }, [fetchItem])
+
+  /**
+   * Runs one status or playthrough write and shows the item it returns.
+   *
+   * The form is left alone: it holds none of these fields, so unsaved edits
+   * to the rest survive a status change.
+   */
+  async function writeRuns(request) {
+    setError(null)
+    setSavedAt(null)
+    setRunBusy(true)
+    try {
+      const response = await request()
+      if (!response.ok) {
+        const detail =
+          response.status === 404 ||
+          response.status === 409 ||
+          response.status === 422
+            ? await response
+                .json()
+                .then((payload) => payload?.detail)
+                .catch(() => null)
+            : null
+        setError(
+          typeof detail === 'string'
+            ? detail
+            : 'Couldn’t change that playthrough.',
+        )
+        return
+      }
+      setItem(await response.json())
+    } catch {
+      setError(ACTION_ERROR)
+    } finally {
+      setRunBusy(false)
+    }
+  }
 
   async function save(event) {
     event.preventDefault()
@@ -624,221 +651,243 @@ export default function AdminItem() {
           <PlayJournal itemId={item.id} />
         </div>
 
-        <form className="item-detail-form" onSubmit={save}>
-          <label htmlFor="title">Title</label>
-          <input
-            id="title"
-            value={form.title}
-            onChange={set('title')}
-            required
-          />
-
-          <label htmlFor="type">Type</label>
-          <select id="type" value={form.type} onChange={set('type')}>
-            {TYPES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-
-          <label htmlFor="year">Year</label>
-          <input
-            id="year"
-            type="number"
-            min="1880"
-            max="2100"
-            value={form.year}
-            onChange={set('year')}
-          />
-
-          <label htmlFor="status">Status</label>
-          <select id="status" value={form.status} onChange={set('status')}>
-            {STATUSES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-
-          <label htmlFor="owned_format">Format</label>
-          <select
-            id="owned_format"
-            value={form.owned_format}
-            onChange={set('owned_format')}
-          >
-            <option value="">unspecified</option>
-            {OWNED_FORMATS.map((value) => (
-              <option key={value} value={value}>
-                {value === 'none' ? 'want (not owned)' : value}
-              </option>
-            ))}
-          </select>
-
-          {form.type === 'comic' ? (
-            <ComicFields
-              value={form}
-              onChange={setForm}
-              released={item.comic_run?.released ?? null}
+        <div className="item-detail-main">
+          <form className="item-detail-form" onSubmit={save}>
+            <label htmlFor="title">Title</label>
+            <input
+              id="title"
+              value={form.title}
+              onChange={set('title')}
+              required
             />
-          ) : (
-            <>
-              <label htmlFor="platform_id">Platform</label>
-              <select
-                id="platform_id"
-                value={form.platform_id}
-                onChange={set('platform_id')}
-              >
-                <option value="">unspecified</option>
-                {PLATFORM_OPTIONS.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
 
-              <label htmlFor="physical_format">Copy format</label>
-              <select
-                id="physical_format"
-                value={form.physical_format}
-                onChange={set('physical_format')}
-              >
-                <option value="">not recorded</option>
-                {FORMAT_OPTIONS.map(([format, label]) => (
-                  <option key={format} value={format}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              {item.platform_id === SWITCH_2 && (
-                <RegistryLine item={item} onAdopted={applyServerItem} />
-              )}
+            <label htmlFor="type">Type</label>
+            <select id="type" value={form.type} onChange={set('type')}>
+              {TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
 
-              {/* The code on a Switch 2 label decides the format; the server
+            <label htmlFor="year">Year</label>
+            <input
+              id="year"
+              type="number"
+              min="1880"
+              max="2100"
+              value={form.year}
+              onChange={set('year')}
+            />
+
+            <label htmlFor="owned_format">Format</label>
+            <select
+              id="owned_format"
+              value={form.owned_format}
+              onChange={set('owned_format')}
+            >
+              <option value="">unspecified</option>
+              {OWNED_FORMATS.map((value) => (
+                <option key={value} value={value}>
+                  {value === 'none' ? 'want (not owned)' : value}
+                </option>
+              ))}
+            </select>
+
+            {form.type === 'comic' ? (
+              <ComicFields
+                value={form}
+                onChange={setForm}
+                released={item.comic_run?.released ?? null}
+              />
+            ) : (
+              <>
+                <label htmlFor="platform_id">Platform</label>
+                <select
+                  id="platform_id"
+                  value={form.platform_id}
+                  onChange={set('platform_id')}
+                >
+                  <option value="">unspecified</option>
+                  {PLATFORM_OPTIONS.map(([id, name]) => (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+
+                <label htmlFor="physical_format">Copy format</label>
+                <select
+                  id="physical_format"
+                  value={form.physical_format}
+                  onChange={set('physical_format')}
+                >
+                  <option value="">not recorded</option>
+                  {FORMAT_OPTIONS.map(([format, label]) => (
+                    <option key={format} value={format}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                {item.platform_id === SWITCH_2 && (
+                  <RegistryLine item={item} onAdopted={applyServerItem} />
+                )}
+
+                {/* The code on a Switch 2 label decides the format; the server
                     refuses one that contradicts it. */}
-              <label htmlFor="cart_id">Cart ID</label>
-              <input
-                id="cart_id"
-                placeholder="LP-AAC4B-USA-0"
-                value={form.cart_id}
-                onChange={set('cart_id')}
-              />
+                <label htmlFor="cart_id">Cart ID</label>
+                <input
+                  id="cart_id"
+                  placeholder="LP-AAC4B-USA-0"
+                  value={form.cart_id}
+                  onChange={set('cart_id')}
+                />
 
-              <label htmlFor="region">Region</label>
-              <input
-                id="region"
-                placeholder="USA"
-                maxLength={4}
-                value={form.region}
-                onChange={set('region')}
-              />
+                <label htmlFor="region">Region</label>
+                <input
+                  id="region"
+                  placeholder="USA"
+                  maxLength={4}
+                  value={form.region}
+                  onChange={set('region')}
+                />
 
-              {CARTRIDGE_ERA_PLATFORMS.includes(Number(form.platform_id)) && (
-                <>
-                  <label htmlFor="completeness">Completeness</label>
-                  <select
-                    id="completeness"
-                    value={form.completeness}
-                    onChange={set('completeness')}
-                  >
-                    <option value="">unspecified</option>
-                    {COMPLETENESS_OPTIONS.map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
-            </>
-          )}
+                {CARTRIDGE_ERA_PLATFORMS.includes(Number(form.platform_id)) && (
+                  <>
+                    <label htmlFor="completeness">Completeness</label>
+                    <select
+                      id="completeness"
+                      value={form.completeness}
+                      onChange={set('completeness')}
+                    >
+                      <option value="">unspecified</option>
+                      {COMPLETENESS_OPTIONS.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </>
+            )}
 
-          <label htmlFor="acquired_at">Acquired</label>
-          <input
-            id="acquired_at"
-            type="date"
-            value={form.acquired_at}
-            onChange={set('acquired_at')}
-          />
+            <label htmlFor="acquired_at">Acquired</label>
+            <input
+              id="acquired_at"
+              type="date"
+              value={form.acquired_at}
+              onChange={set('acquired_at')}
+            />
 
-          {/* On a linked item a metadata refresh overwrites this: the source
+            {/* On a linked item a metadata refresh overwrites this: the source
               is the truth for a release date, since announced dates move. */}
-          <label htmlFor="release_date">Release date</label>
-          <input
-            id="release_date"
-            type="date"
-            value={form.release_date}
-            onChange={set('release_date')}
-          />
+            <label htmlFor="release_date">Release date</label>
+            <input
+              id="release_date"
+              type="date"
+              value={form.release_date}
+              onChange={set('release_date')}
+            />
 
-          <label htmlFor="rating">Rating</label>
-          <input
-            id="rating"
-            type="number"
-            min="1"
-            max="10"
-            value={form.rating}
-            onChange={set('rating')}
-          />
+            <label htmlFor="rating">Rating</label>
+            <input
+              id="rating"
+              type="number"
+              min="1"
+              max="10"
+              value={form.rating}
+              onChange={set('rating')}
+            />
 
-          <label htmlFor="times_completed">Times completed</label>
-          <input
-            id="times_completed"
-            type="number"
-            min="0"
-            value={form.times_completed}
-            onChange={set('times_completed')}
-          />
+            <label htmlFor="notes">Notes</label>
+            <textarea
+              id="notes"
+              rows="3"
+              value={form.notes}
+              onChange={set('notes')}
+            />
 
-          <label htmlFor="started_at">Started</label>
-          <input
-            id="started_at"
-            type="date"
-            value={form.started_at}
-            onChange={set('started_at')}
-          />
+            <label htmlFor="favorite">Favorite</label>
+            <input
+              id="favorite"
+              type="checkbox"
+              checked={form.favorite}
+              onChange={set('favorite')}
+            />
 
-          <label htmlFor="finished_at">Finished</label>
-          <input
-            id="finished_at"
-            type="date"
-            value={form.finished_at}
-            onChange={set('finished_at')}
-          />
+            <label htmlFor="is_public">Public</label>
+            <input
+              id="is_public"
+              type="checkbox"
+              checked={form.is_public}
+              onChange={set('is_public')}
+            />
 
-          <label htmlFor="notes">Notes</label>
-          <textarea
-            id="notes"
-            rows="3"
-            value={form.notes}
-            onChange={set('notes')}
-          />
+            <div className="item-detail-actions">
+              <button type="submit" disabled={saving}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+              <button type="button" className="danger" onClick={remove}>
+                Delete
+              </button>
+            </div>
+          </form>
 
-          <label htmlFor="favorite">Favorite</label>
-          <input
-            id="favorite"
-            type="checkbox"
-            checked={form.favorite}
-            onChange={set('favorite')}
-          />
-
-          <label htmlFor="is_public">Public</label>
-          <input
-            id="is_public"
-            type="checkbox"
-            checked={form.is_public}
-            onChange={set('is_public')}
-          />
-
-          <div className="item-detail-actions">
-            <button type="submit" disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
-            </button>
-            <button type="button" className="danger" onClick={remove}>
-              Delete
-            </button>
-          </div>
-        </form>
+          <section
+            className="item-playthroughs"
+            aria-labelledby="playthroughs-heading"
+          >
+            <h2 id="playthroughs-heading">Playthroughs</h2>
+            <p className="item-status-control">
+              <label htmlFor="status">Status</label>
+              <select
+                id="status"
+                value={item.status}
+                disabled={runBusy}
+                onChange={(event) =>
+                  writeRuns(() => postStatus(item.id, event.target.value))
+                }
+              >
+                {statusMoves(item).map((entry) => (
+                  <option key={entry.status} value={entry.status}>
+                    {entry.name}
+                  </option>
+                ))}
+              </select>
+            </p>
+            <PlaythroughTable
+              runs={item.playthroughs ?? []}
+              editable
+              busy={runBusy}
+              onEdit={(number, changes) =>
+                writeRuns(() =>
+                  apiFetch(`/api/items/${item.id}/playthroughs/${number}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(changes),
+                  }),
+                )
+              }
+              onDelete={(number) =>
+                writeRuns(() =>
+                  apiFetch(`/api/items/${item.id}/playthroughs/${number}`, {
+                    method: 'DELETE',
+                  }),
+                )
+              }
+              onAdd={(run) =>
+                writeRuns(() =>
+                  apiFetch(`/api/items/${item.id}/playthroughs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(run),
+                  }),
+                )
+              }
+            />
+          </section>
+        </div>
       </div>
     </section>
   )
