@@ -134,3 +134,22 @@ describe('monthInReview neighbours across a year boundary', () => {
     expect(review.days).toEqual([])
   })
 })
+
+describe('a replay in month in review', () => {
+  const replayed = game('r', '2026-10-19', {
+    finishes: ['2026-08-02', '2026-10-19'],
+    times_completed: 2,
+  })
+
+  it('lists the replay in its month, marked again', () => {
+    const review = monthInReview([replayed], [], '2026-10')
+    expect(review.finished.map((row) => [row.id, row.again])).toEqual([
+      ['r', true],
+    ])
+    expect(review.previous).toBe('2026-08')
+  })
+
+  it('lists every month it was finished in', () => {
+    expect(finishMonths([replayed])).toEqual(['2026-10', '2026-08'])
+  })
+})

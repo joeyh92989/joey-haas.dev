@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { STATUS_LABEL } from '../lib/shelf.js'
-import { localToday } from '../lib/statusTransition.js'
+import { localToday } from '../lib/statusMoves.js'
 import CoverImage from './CoverImage.jsx'
 import Stars from './Stars.jsx'
 

@@ -25,4 +25,35 @@ describe('nowLists', () => {
     expect(playing.map((row) => row.id)).toEqual(['1'])
     expect(finished.map((row) => row.id)).toEqual(['4', '5', '6', '3'])
   })
+
+  it('lists paused games apart from playing, newest pause first', () => {
+    const { playing, paused } = nowLists([
+      item('1', { status: 'paused', paused_on: '2026-08-01' }),
+      item('2', { status: 'paused', paused_on: '2026-10-01' }),
+      item('3', { status: 'active' }),
+    ])
+    expect(playing.map((row) => row.id)).toEqual(['3'])
+    expect(paused.map((row) => row.id)).toEqual(['2', '1'])
+  })
+
+  it('marks a replayed finish again, with its number', () => {
+    const { finished } = nowLists([
+      item('1', {
+        status: 'finished',
+        finished_at: '2026-10-19',
+        times_completed: 2,
+      }),
+      item('2', {
+        status: 'finished',
+        finished_at: '2026-10-01',
+        times_completed: 1,
+      }),
+    ])
+    expect(
+      finished.map((row) => [row.id, row.again, row.finish_number]),
+    ).toEqual([
+      ['1', true, 2],
+      ['2', false, 1],
+    ])
+  })
 })

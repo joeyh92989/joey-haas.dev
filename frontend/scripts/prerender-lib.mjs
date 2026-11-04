@@ -10,6 +10,7 @@ import {
   monthInReview,
   monthName,
 } from '../src/lib/monthInReview.js'
+import { finishRows } from '../src/lib/finishes.js'
 import { itemPath } from '../src/lib/spinePaths.js'
 import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 
@@ -358,7 +359,8 @@ export function noindex(html) {
 const FEED_SIZE = 20
 
 /**
- * /shelf/feed.xml: the most recent finishes, newest first. Built from the
+ * /shelf/feed.xml: the most recent finishes, newest first, one entry per
+ * finished playthrough, so a replay is a new entry. Built from the
  * snapshot's public items, so it says nothing the shelf does not. The build
  * also writes the same body at /spine/feed.xml, the URL already in
  * subscribers' readers.
@@ -370,8 +372,8 @@ export function spineFeed(items) {
   const finished = items
     // Games only, as the channel says; the shelf also holds films and comics.
     .filter((item) => item?.type === 'game' && !item.wanted)
-    .filter((item) => item.id != null && item.title && item.finished_at)
-    .filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.finished_at))
+    .filter((item) => item.id != null && item.title)
+    .flatMap(finishRows)
     .sort((a, b) => b.finished_at.localeCompare(a.finished_at))
     .slice(0, FEED_SIZE)
   const entries = finished
@@ -387,7 +389,7 @@ export function spineFeed(items) {
         .filter(Boolean)
         .join(', ')
       return `    <item>
-      <title>${escapeHtml(`Finished ${item.title}`)}</title>
+      <title>${escapeHtml(`Finished ${item.title}${item.again ? ' again' : ''}`)}</title>
       <link>${escapeHtml(url)}</link>
       <guid isPermaLink="false">${escapeHtml(guid)}</guid>
       <pubDate>${new Date(`${item.finished_at}T00:00:00Z`).toUTCString()}</pubDate>

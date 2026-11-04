@@ -1,0 +1,113 @@
+import { apiFetch } from './api.js'
+import { STATUS_LABEL, STATUS_ORDER } from './shelf.js'
+
+/**
+ * The status control's entries for one admin row, and the call that makes
+ * a move. The server decides what a move records (`backend/playthroughs.py`
+ * opens, closes, pauses or deletes a playthrough); this file only names the
+ * moves, so the card menu, the touch sheet and the list `<select>` agree.
+ */
+
+const MONTH = new Intl.DateTimeFormat('en', {
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+
+/** The playthrough a new run would take: one past the highest. */
+function nextNumber(item) {
+  const numbers = (item.playthroughs ?? []).map((run) => run.number)
+  return numbers.length
+    ? Math.max(...numbers) + 1
+    : (item.times_completed ?? 0) + 1
+}
+
+function openRun(item) {
+  return (item.playthroughs ?? []).find((run) => run.outcome == null) ?? null
+}
+
+/**
+ * The verb and hint for moving from the item's status to `target`, when
+ * that is a move out of the current state the design names; null keeps the
+ * plain label.
+ */
+function move(item, target) {
+  const from = item.status
+  if (target === 'active' && (from === 'finished' || from === 'abandoned')) {
+    return {
+      verb: from === 'finished' ? 'Replay' : 'Try again',
+      hint: `starts playthrough ${nextNumber(item)}`,
+    }
+  }
+  if (target === 'active' && from === 'paused') {
+    const pausedOn = openRun(item)?.paused_on
+    return {
+      verb: 'Resume',
+      hint: pausedOn
+        ? `since ${MONTH.format(new Date(`${pausedOn}T00:00:00Z`))}`
+        : null,
+    }
+  }
+  if (from === 'active' && target === 'finished') {
+    return { verb: 'Finish', hint: 'dated today' }
+  }
+  if (from === 'active' && target === 'paused') {
+    return { verb: 'Pause', hint: 'keeps the date' }
+  }
+  return null
+}
+
+/**
+ * Every status as a menu entry, in the shelf's order.
+ *
+ * `label` is the verb for a named move, else the status name; `name` is the
+ * accessible name, verb and hint together ("Replay, starts playthrough 3").
+ *
+ * @param {{status: string, playthroughs?: object[], times_completed?: number}} item
+ * @returns {Array<{status: string, label: string, hint: string|null, name: string, current: boolean}>}
+ */
+export function statusMoves(item) {
+  return STATUS_ORDER.map((status) => {
+    const named = move(item, status)
+    const label = named?.verb ?? STATUS_LABEL[status]
+    const hint = named?.hint ?? null
+    return {
+      status,
+      label,
+      hint,
+      name: hint ? `${label}, ${hint}` : label,
+      current: status === item.status,
+    }
+  })
+}
+
+/**
+ * Moves an item to `status` through the status route, dated by the owner's
+ * local day.
+ *
+ * @param {string} id
+ * @param {string} status
+ * @returns {Promise<Response>}
+ */
+export function setStatus(id, status) {
+  return apiFetch(`/api/items/${id}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, today: localToday() }),
+  })
+}
+
+/**
+ * Today's local calendar date as `YYYY-MM-DD`.
+ *
+ * Local, not UTC: the owner finishing a game late in the evening finished it
+ * on their day, and toISOString would already be reporting tomorrow.
+ *
+ * @param {Date} [now] - Defaults to the current time.
+ * @returns {string} The date.
+ */
+export function localToday(now = new Date()) {
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}

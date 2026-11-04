@@ -81,3 +81,27 @@ describe('yearInReview', () => {
     expect(empty.versusCommunity.furthest).toBeNull()
   })
 })
+
+describe('a replay in year in review', () => {
+  const replayed = game('r', {
+    finishes: ['2024-03-01', '2026-02-01', '2026-10-19'],
+    finished_at: '2026-10-19',
+    times_completed: 3,
+    rating: 8,
+    favorite: true,
+  })
+
+  it('counts each finish, the game once for its rating', () => {
+    const review = yearInReview([replayed], 2026)
+    expect(review.count).toBe(2)
+    expect(review.finished.map((row) => row.again)).toEqual([true, true])
+    expect(review.byMonth[1]).toBe(1)
+    expect(review.byMonth[9]).toBe(1)
+    expect(review.averageRating).toBe(8)
+    expect(review.favourites).toHaveLength(1)
+  })
+
+  it('lists every year it was finished in', () => {
+    expect(finishYears([replayed])).toEqual([2026, 2024])
+  })
+})

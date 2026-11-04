@@ -1,4 +1,4 @@
-import { isOwnedGame } from './yearInReview.js'
+import { ownedFinishes } from './yearInReview.js'
 
 /**
  * One month of the play journal, worked out from the public items and the
@@ -54,10 +54,7 @@ export function isoMonth(value) {
  */
 export function finishMonths(items) {
   const months = new Set(
-    items
-      .filter(isOwnedGame)
-      .map((item) => isoMonth(item.finished_at))
-      .filter(Boolean),
+    ownedFinishes(items).map((row) => isoMonth(row.finished_at)),
   )
   return [...months].sort().reverse()
 }
@@ -80,9 +77,10 @@ export function monthInReview(items, sessions, month, nearby = []) {
   const parsed = parseMonth(month)
   if (!parsed) return null
 
-  const owned = items.filter(isOwnedGame)
-  const finished = owned
-    .filter((item) => isoMonth(item.finished_at) === month)
+  // One row per finish: a replay in the month is listed, marked `again`.
+  const finishes = ownedFinishes(items)
+  const finished = finishes
+    .filter((row) => isoMonth(row.finished_at) === month)
     .sort((a, b) => a.finished_at.localeCompare(b.finished_at))
 
   const inMonth = sessions.filter((row) => isoMonth(row.played_on) === month)
@@ -97,7 +95,7 @@ export function monthInReview(items, sessions, month, nearby = []) {
 
   const months = new Set(
     [
-      ...owned.map((item) => isoMonth(item.finished_at)),
+      ...finishes.map((row) => isoMonth(row.finished_at)),
       ...[...sessions, ...nearby].map((row) => isoMonth(row.played_on)),
     ].filter(Boolean),
   )
