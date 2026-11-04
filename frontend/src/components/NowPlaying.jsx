@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Link } from 'react-router'
 import CoverImage from './CoverImage.jsx'
 import { spine } from '../content/spine.js'
@@ -18,15 +19,16 @@ const copy = spine.nowPlaying
  * @param {(item: object) => string} props.linkFor - Where a game links.
  */
 export default function NowPlaying({ items, linkFor }) {
+  const headingId = useId()
   const rows = nowPlaying(items)
   if (rows.length === 0) return null
   return (
     <section
       className="now-playing"
       data-count={rows.length}
-      aria-labelledby="now-playing-heading"
+      aria-labelledby={headingId}
     >
-      <h2 id="now-playing-heading">{copy.heading}</h2>
+      <h2 id={headingId}>{copy.heading}</h2>
       <ul className="now-playing-list">
         {rows.map(({ item, since }) => (
           <li key={item.id}>

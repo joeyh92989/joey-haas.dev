@@ -42,11 +42,12 @@ flowchart LR
   AC -->|nowPlaying items| NP
 ```
 
-- **`lib/nowPlaying.js`** (pure): `nowPlaying(items, { admin })` returns
+- **`lib/nowPlaying.js`** (pure): `nowPlaying(items)` returns
   the active, owned games, at most `NOW_PLAYING_LIMIT` (3), most recently
   started first, then title. It also returns each game's start: the public
   `playing_since`, or on admin the open playthrough's `started_on` (the run
-  with no outcome), falling back to `started_at`. One place decides the
+  with no outcome); `started_at` only for a row with no runs, as the API
+  does. It reads the row's shape rather than taking an admin flag. One place decides the
   order and the start date for both shelves.
 - **`components/NowPlaying.jsx`**: `<section aria-labelledby>` with a
   "Now playing" heading and one card per game. The cover is the existing

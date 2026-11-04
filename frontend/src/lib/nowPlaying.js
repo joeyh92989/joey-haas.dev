@@ -7,15 +7,18 @@ export const NOW_PLAYING_LIMIT = 3
  * The public list carries `playing_since`. The admin list carries every
  * playthrough instead: the open one (no outcome) is the current run. The
  * `started_at` column is the earliest start of any run, so after a replay
- * it is the first run's date, and it is only the last resort.
+ * it is the first run's date: it is read only for a row with no runs.
  *
  * @param {object} item A public or admin item.
  * @returns {string|null} An ISO date, or null when none is known.
  */
 export function currentRunStart(item) {
   if (item.playing_since) return item.playing_since
-  const open = (item.playthroughs ?? []).find((run) => run.outcome == null)
-  return open?.started_on ?? item.started_at ?? null
+  const runs = item.playthroughs ?? []
+  // Only a row with no runs falls back to the column, as the public API
+  // does: with runs, an undated open run has no known start.
+  if (runs.length === 0) return item.started_at ?? null
+  return runs.find((run) => run.outcome == null)?.started_on ?? null
 }
 
 /**

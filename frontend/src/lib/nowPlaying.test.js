@@ -29,7 +29,18 @@ describe('currentRunStart', () => {
     expect(currentRunStart(replay)).toBe('2026-10-20')
   })
 
-  it('falls back to started_at, then null', () => {
+  it('never shows the earliest start for an undated open run', () => {
+    const replay = game('A', {
+      started_at: '2024-01-01',
+      playthroughs: [
+        { number: 1, started_on: '2024-01-01', outcome: 'finished' },
+        { number: 2, started_on: null, outcome: null },
+      ],
+    })
+    expect(currentRunStart(replay)).toBeNull()
+  })
+
+  it('falls back to started_at only without runs, then null', () => {
     expect(currentRunStart(game('A', { started_at: '2026-09-01' }))).toBe(
       '2026-09-01',
     )

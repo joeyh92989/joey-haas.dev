@@ -2410,6 +2410,7 @@ footer {
 }
 
 .favourites h2,
+.now-playing h2,
 .stat-card h2 {
   font-size: 0.8125rem;
   letter-spacing: 0.04em;
@@ -2449,13 +2450,6 @@ footer {
    read as one mark; it already clears 3:1 on --surface in both themes. */
 .now-playing {
   margin: 0 0 1.75rem;
-}
-
-.now-playing h2 {
-  font-size: 0.8125rem;
-  letter-spacing: 0.04em;
-  margin: 0 0 0.6rem;
-  text-transform: uppercase;
 }
 
 .now-playing-list {
