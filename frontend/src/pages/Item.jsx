@@ -87,9 +87,9 @@ function statusInWords(item) {
   }
   if (item.status === 'active') {
     if (times > 0) return `${label} again`
-    if (item.started_at) {
-      return `${label} · since ${DAY.format(parseDate(item.started_at))}`
-    }
+    // The open run's start: after Try again, not the abandoned run's.
+    const since = item.playing_since ?? item.started_at
+    if (since) return `${label} · since ${DAY.format(parseDate(since))}`
   }
   return label
 }

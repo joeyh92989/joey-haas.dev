@@ -137,6 +137,17 @@ describe('Item', () => {
     expect(screen.getByText('Playing · since Jan 2, 2026')).toBeInTheDocument()
   })
 
+  it('dates a retry from its own run, not the abandoned one', async () => {
+    stubItem({
+      status: 'active',
+      finished_at: null,
+      times_completed: 0,
+      playing_since: '2026-10-30',
+    })
+    await renderReady()
+    expect(screen.getByText('Playing · since Oct 30, 2026')).toBeInTheDocument()
+  })
+
   it('says again for a replay in progress, not the first run’s start', async () => {
     stubItem({ status: 'active', times_completed: 1 })
     await renderReady()

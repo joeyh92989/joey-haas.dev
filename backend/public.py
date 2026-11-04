@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -140,6 +142,9 @@ class PublicItemDetailOut(PublicItemOut):
     description: str | None
     community_votes: int | None
     started_at: date | None
+    # The open run's start on an active or paused game, else null: after a
+    # replay or Try again, "Started" and "Playing since" differ.
+    playing_since: date | None = None
     similar_in_collection: list[PublicItemCard]
     themes: list[str]
     time_to_beat: PublicTimeToBeat | None
@@ -224,18 +229,32 @@ def _time_to_beat(snapshot: dict) -> PublicTimeToBeat | None:
     )
 
 
-RunDates = dict[uuid.UUID, tuple[date | None, list[date]]]
+@dataclass
+class _Runs:
+    """What the public pages read from one item's playthroughs."""
+
+    paused_on: date | None = None
+    finishes: list[date] = dc_field(default_factory=list)
+    # Run 1's start: the item page's "Started", never a replay's.
+    first_started: date | None = None
+    # The open run's start: "Playing since" on an active or paused game.
+    open_started: date | None = None
+
+
+RunDates = dict[uuid.UUID, _Runs]
 
 
 async def _run_dates(session: AsyncSession, *where) -> RunDates:
-    """Each item's pause date and dated finishes, for the items `where` selects.
+    """Each item's run dates, for the items `where` selects.
 
     One query joined on the item, so a list read stays two round trips.
     """
     rows = await session.execute(
         select(
             Playthrough.item_id,
+            Playthrough.number,
             Playthrough.outcome,
+            Playthrough.started_on,
             Playthrough.finished_on,
             Playthrough.paused_on,
         )
@@ -244,19 +263,21 @@ async def _run_dates(session: AsyncSession, *where) -> RunDates:
         .order_by(Playthrough.item_id, Playthrough.finished_on)
     )
     dates: RunDates = {}
-    for item_id, outcome, finished_on, paused_on in rows:
-        paused, finishes = dates.get(item_id, (None, []))
+    for item_id, number, outcome, started_on, finished_on, paused_on in rows:
+        runs = dates.setdefault(item_id, _Runs())
         if outcome == PlaythroughOutcome.FINISHED and finished_on is not None:
-            finishes.append(finished_on)
+            runs.finishes.append(finished_on)
         if outcome is None:
-            paused = paused_on
-        dates[item_id] = (paused, finishes)
+            runs.paused_on = paused_on
+            runs.open_started = started_on
+        if number == 1:
+            runs.first_started = started_on
     return dates
 
 
 def _list_fields(item: Item, runs: RunDates | None = None) -> dict:
     """The publishable list fields, named one by one."""
-    paused_on, finishes = (runs or {}).get(item.id, (None, []))
+    dates = (runs or {}).get(item.id, _Runs())
     snapshot = _allowed_snapshot(item, PUBLIC_METADATA_FIELDS)
     return {
         "id": item.id,
@@ -281,8 +302,8 @@ def _list_fields(item: Item, runs: RunDates | None = None) -> dict:
         "completeness": item.completeness,
         "time_to_beat_hours": _hours(_time_to_beat(snapshot)),
         "pinned": item.pinned_at is not None,
-        "paused_on": paused_on if item.status == ItemStatus.PAUSED else None,
-        "finishes": finishes,
+        "paused_on": dates.paused_on if item.status == ItemStatus.PAUSED else None,
+        "finishes": dates.finishes,
         "times_completed": item.times_completed,
     }
 
@@ -347,6 +368,23 @@ def similar_in_collection(item: Item, candidates: list[Item]) -> list[Item]:
     return matches[:SIMILAR_LIMIT]
 
 
+def _start_fields(item: Item, dates: _Runs | None) -> dict:
+    """When the game was first started, and when the current run was.
+
+    `started_at` is run 1's start rather than the item column, which is the
+    earliest start of any run: with run 1 undated, that would be a replay's
+    date presented as the first. An item with no runs keeps its column.
+    """
+    in_play = item.status in (ItemStatus.ACTIVE, ItemStatus.PAUSED)
+    if dates is None:
+        started = item.started_at
+        return {"started_at": started, "playing_since": started if in_play else None}
+    return {
+        "started_at": dates.first_started,
+        "playing_since": dates.open_started if in_play else None,
+    }
+
+
 def _to_public_detail(
     item: Item,
     similar: list[Item],
@@ -363,7 +401,7 @@ def _to_public_detail(
         community_votes=(
             votes if isinstance(votes, int) and not isinstance(votes, bool) else None
         ),
-        started_at=item.started_at,
+        **_start_fields(item, (runs or {}).get(item.id)),
         themes=_string_list(snapshot.get("themes")),
         time_to_beat=_time_to_beat(snapshot),
         similar_in_collection=[

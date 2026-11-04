@@ -233,6 +233,7 @@ DETAIL_FIELDS = LIST_FIELDS | {
     "description",
     "community_votes",
     "started_at",
+    "playing_since",
     "similar_in_collection",
     "themes",
     "time_to_beat",
@@ -561,6 +562,49 @@ async def test_a_paused_game_publishes_its_pause_date(sessionmaker_for_test):
     assert listed["paused_on"] == today.isoformat()
     assert listed["finishes"] == []
     assert stats["by_status"] == {"paused": 1}
+
+
+async def test_a_replay_is_not_shown_as_the_first_start(sessionmaker_for_test):
+    """Run 1 undated: the item's earliest start is the replay's, not the first."""
+    today = datetime.now(UTC).date()
+    async with sessionmaker_for_test() as session:
+        item = _game(
+            "Again",
+            status=ItemStatus.FINISHED,
+            finished_at=date(2024, 3, 1),
+            times_completed=1,
+        )
+        session.add(item)
+        await session.flush()
+        await playthroughs.seed_rows(session, item, today)
+        await playthroughs.apply_status(session, item, ItemStatus.ACTIVE, today)
+        await session.commit()
+        item_id = item.id
+        assert item.started_at == today
+
+    async with client_for(sessionmaker_for_test) as client:
+        detail = (await client.get(f"/api/public/items/{item_id}")).json()
+
+    assert detail["started_at"] is None
+    assert detail["playing_since"] == today.isoformat()
+
+
+async def test_playing_since_is_null_once_the_run_closes(sessionmaker_for_test):
+    today = datetime.now(UTC).date()
+    async with sessionmaker_for_test() as session:
+        item = _game("Done")
+        session.add(item)
+        await session.flush()
+        await playthroughs.apply_status(session, item, ItemStatus.ACTIVE, today)
+        await playthroughs.apply_status(session, item, ItemStatus.FINISHED, today)
+        await session.commit()
+        item_id = item.id
+
+    async with client_for(sessionmaker_for_test) as client:
+        detail = (await client.get(f"/api/public/items/{item_id}")).json()
+
+    assert detail["started_at"] == today.isoformat()
+    assert detail["playing_since"] is None
 
 
 # --- E7b: the copy on the shelf. -------------------------------------------
