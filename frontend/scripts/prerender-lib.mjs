@@ -66,6 +66,12 @@ const SPINE_FEED = {
   title: `${spine.name}: finished games`,
 }
 
+/** The TIL feed, announced in the head of the notes pages. */
+const TIL_FEED = {
+  href: '/til/feed.xml',
+  title: `TIL · ${profile.name}`,
+}
+
 /** Room for a search result snippet; longer is cut at a word. */
 const DESCRIPTION_LIMIT = 160
 
@@ -115,13 +121,15 @@ export function excerpt(markdown) {
  * @param {object} input
  * @param {{slug: string, title: string, date: string, body: string}[]} input.posts
  *   Published posts.
+ * @param {{slug: string, title: string, date: string, body: string}[]} [input.notes]
+ *   Published TIL notes.
  * @param {object[]} input.items The snapshot's public items.
  * @returns {{path: string, title: string, description: string,
  *   type: string, image: object, lastmod?: string, slash?: boolean,
  *   legacy?: boolean}[]}
  *   `legacy` marks a page that also had a /spine URL; see legacyRoutes().
  */
-export function publicRoutes({ posts, items }) {
+export function publicRoutes({ posts, notes = [], items }) {
   const page = (path, title, description) => ({
     path,
     title,
@@ -190,6 +198,9 @@ export function publicRoutes({ posts, items }) {
       page('/blog', `Blog · ${profile.name}`, `Posts by ${profile.name}.`),
     )
   }
+  // The sitemap wants W3C dates; anything else is left out, not passed on.
+  const lastmod = (date) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(date) ? { lastmod: date } : {}
   for (const post of posts) {
     routes.push({
       ...page(
@@ -198,8 +209,29 @@ export function publicRoutes({ posts, items }) {
         excerpt(post.body),
       ),
       type: 'article',
-      // The sitemap wants W3C dates; anything else is left out, not passed on.
-      ...(/^\d{4}-\d{2}-\d{2}$/.test(post.date) ? { lastmod: post.date } : {}),
+      ...lastmod(post.date),
+    })
+  }
+  if (notes.length > 0) {
+    routes.push({
+      ...page(
+        '/til',
+        `TIL · ${profile.name}`,
+        `Short notes by ${profile.name}: things learned while building this site.`,
+      ),
+      feed: TIL_FEED,
+    })
+  }
+  for (const note of notes) {
+    routes.push({
+      ...page(
+        `/til/${note.slug}`,
+        `${note.title} · TIL · ${profile.name}`,
+        excerpt(note.body),
+      ),
+      type: 'article',
+      feed: TIL_FEED,
+      ...lastmod(note.date),
     })
   }
   for (const item of items) {

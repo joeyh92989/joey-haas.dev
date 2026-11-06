@@ -39,6 +39,7 @@ import { spine } from '../src/content/spine.js'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(here, '..', 'dist')
 const postsDir = path.join(here, '..', 'posts')
+const notesDir = path.join(here, '..', 'notes')
 
 /** The snapshot's items, or none when this build has no snapshot. */
 async function readItems() {
@@ -67,7 +68,11 @@ async function write(route, html) {
 
 const shell = await fs.readFile(path.join(dist, 'index.html'), 'utf8')
 const items = await readItems()
-const routes = publicRoutes({ posts: await readPublished(postsDir), items })
+const routes = publicRoutes({
+  posts: await readPublished(postsDir),
+  notes: await readPublished(notesDir),
+  items,
+})
 
 for (const route of routes) {
   // The home page's file is also the SPA fallback for every other path, so

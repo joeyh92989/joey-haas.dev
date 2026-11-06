@@ -27,6 +27,12 @@ const POST = {
   date: '2026-10-02',
   body: '## Heading\n\nSpine is the tracker behind the [shelf](/spine). It uses `code` and *emphasis*.\n\nSecond paragraph.',
 }
+const NOTE = {
+  slug: 'a-note',
+  title: 'A note',
+  date: '2026-11-06',
+  body: 'Render serves the slash form.\n\n```yaml\nroutes: []\n```',
+}
 const ITEM = {
   type: 'game',
   id: '6f1c2c1e-0000-4000-8000-000000000001',
@@ -108,6 +114,32 @@ describe('publicRoutes', () => {
     expect(wanted.description).toBe(
       'Pikmin 5, on Joey Haas’s want list on My Shelf.',
     )
+  })
+
+  it('lists TIL and its notes as articles with the TIL feed', () => {
+    const withNotes = publicRoutes({ posts: [], notes: [NOTE], items: [] })
+    const til = routeAt(withNotes, '/til')
+    const note = routeAt(withNotes, '/til/a-note')
+    expect(withNotes.map((route) => route.path).slice(-2)).toEqual([
+      '/til',
+      '/til/a-note',
+    ])
+    expect(til.title).toBe('TIL · Joey Haas')
+    expect(til.feed.href).toBe('/til/feed.xml')
+    expect(note).toMatchObject({
+      title: 'A note · TIL · Joey Haas',
+      description: 'Render serves the slash form.',
+      type: 'article',
+      lastmod: '2026-11-06',
+    })
+    expect(note.feed.href).toBe('/til/feed.xml')
+    expect(renderHead(SHELL, note)).toContain(
+      'type="application/rss+xml" title="TIL · Joey Haas" href="/til/feed.xml"',
+    )
+  })
+
+  it('leaves out TIL with no note published', () => {
+    expect(routes.map((route) => route.path)).not.toContain('/til')
   })
 
   it('leaves out Blog with nothing published, and items without an id', () => {
@@ -418,22 +450,29 @@ describe('render.yaml rewrites', () => {
   const rules = [
     ...yaml.matchAll(/- type: rewrite\s+source: (\S+)\s+destination: (\S+)/g),
   ].map(([, source, destination]) => ({ source, destination }))
-  const postsDir = path.join(here, '..', 'posts')
-  const posts = fs
-    .readdirSync(postsDir)
-    .filter((name) => name.endsWith('.md'))
-    .map((name) => ({
-      slug: name.replace(/\.md$/, ''),
-      ...matter(fs.readFileSync(path.join(postsDir, name), 'utf8')),
-    }))
-    .filter(({ data }) => data.draft !== true)
-    .map(({ slug, data, content }) => ({
-      slug,
-      title: String(data.title),
-      date: String(data.date),
-      body: content,
-    }))
-  const built = publicRoutes({ posts, items: [] })
+  const published = (folder) => {
+    const dir = path.join(here, '..', folder)
+    if (!fs.existsSync(dir)) return []
+    return fs
+      .readdirSync(dir)
+      .filter((name) => name.endsWith('.md'))
+      .map((name) => ({
+        slug: name.replace(/\.md$/, ''),
+        ...matter(fs.readFileSync(path.join(dir, name), 'utf8')),
+      }))
+      .filter(({ data }) => data.draft !== true)
+      .map(({ slug, data, content }) => ({
+        slug,
+        title: String(data.title),
+        date: String(data.date),
+        body: content,
+      }))
+  }
+  const built = publicRoutes({
+    posts: published('posts'),
+    notes: published('notes'),
+    items: [],
+  })
   const pages = [...built, ...legacyRoutes(built)]
     .map((route) => route.path)
     .filter((route) => route !== '/')
