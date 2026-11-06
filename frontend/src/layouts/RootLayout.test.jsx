@@ -20,6 +20,8 @@ import RootLayout from './RootLayout.jsx'
 // plugin, so the module is replaced. Tests push onto this array to publish.
 const content = vi.hoisted(() => ({ posts: [] }))
 vi.mock('../content/posts.js', () => content)
+const noteContent = vi.hoisted(() => ({ notes: [] }))
+vi.mock('../content/notes.js', () => noteContent)
 
 function renderAt(path = '/') {
   return render(
