@@ -88,6 +88,18 @@ else
   report_fail "feed.xml is a well-formed channel" "missing <channel> or site URL"
 fi
 
+# TIL's feed is a real file too, written whether or not a note is published.
+til_feed_type="$(curl -s -o /dev/null -m 90 -w '%{content_type}' "$SITE_URL/til/feed.xml")"
+case "$til_feed_type" in
+  *xml*) report_pass "/til/feed.xml served as XML" "$til_feed_type" ;;
+  *) report_fail "/til/feed.xml served as XML" "got '$til_feed_type' — likely the SPA fallback" ;;
+esac
+if curl -s -m 90 "$SITE_URL/til/feed.xml" | grep -q '<channel>'; then
+  report_pass "/til/feed.xml is a channel" "contains <channel>"
+else
+  report_fail "/til/feed.xml is a channel" "missing <channel>"
+fi
+
 # The shelf's feed is a real file at both its URL and the pre-rename one,
 # which is in subscribers' readers; neither may fall to the SPA.
 for shelf_feed in /shelf/feed.xml /spine/feed.xml; do
@@ -108,6 +120,8 @@ next_title="$(curl -s -m 90 "$SITE_URL/shelf/next" | grep -o '<title>[^<]*</titl
 check_equals "GET /shelf/next has its own prerendered title" "$next_title" "<title>What’s next · My Shelf</title>"
 stats_title="$(curl -s -m 90 "$SITE_URL/stats" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /stats has its own prerendered title" "$stats_title" "<title>Stats · Joey Haas</title>"
+til_title="$(curl -s -m 90 "$SITE_URL/til" | grep -o '<title>[^<]*</title>')"
+check_equals "GET /til has its own prerendered title" "$til_title" "<title>TIL · Joey Haas</title>"
 # The pre-rename URL keeps its preview, with the canonical on /shelf.
 check_equals "GET /spine/next (legacy) has a /shelf canonical" \
   "$(curl -s -m 90 "$SITE_URL/spine/next" | grep -o '<link rel="canonical"[^>]*>')" \

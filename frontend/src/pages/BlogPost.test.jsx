@@ -25,7 +25,6 @@ vi.mock('../content/posts.js', () => {
   return {
     posts,
     findPost: (slug) => posts.find((post) => post.slug === slug),
-    formatDate: (date) => date,
   }
 })
 

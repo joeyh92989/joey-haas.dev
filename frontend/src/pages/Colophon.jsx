@@ -36,7 +36,9 @@ export default function Colophon() {
         <li>
           Blog posts are Markdown, compiled at build time. Each page is
           prerendered with its own title and link preview, and there&rsquo;s an{' '}
-          <a href="/feed.xml">RSS feed</a>.
+          <a href="/feed.xml">RSS feed</a>. Short notes go to{' '}
+          <Link to="/til">TIL</Link>, which has{' '}
+          <a href="/til/feed.xml">its own feed</a>.
         </li>
       </ul>
 

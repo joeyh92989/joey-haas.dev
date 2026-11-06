@@ -9,14 +9,21 @@ import { loginUrl } from '../lib/api.js'
  *
  * @param {object} props
  * @param {boolean} props.signedIn Whether the admin session check passed.
+ * @param {boolean} [props.hasNotes] Whether a TIL note is published; the
+ *   link waits for one, as the masthead's Blog item waits for a post.
  */
-export default function SiteFooter({ signedIn }) {
+export default function SiteFooter({ signedIn, hasNotes = false }) {
   return (
     <footer className="site-footer">
       <div className="wrap site-footer-row">
         <p className="footer-credit">
           &copy; {new Date().getFullYear()} {profile.name} &middot;{' '}
           <a href={profile.repo}>Source</a> &middot; <Link to="/now">Now</Link>{' '}
+          {hasNotes && (
+            <>
+              &middot; <Link to="/til">TIL</Link>{' '}
+            </>
+          )}
           &middot; <Link to="/colophon">Colophon</Link> &middot;{' '}
           <Link to="/stats">Stats</Link>
         </p>
