@@ -77,6 +77,13 @@ before pushing.
   is an optional accessory only.
 - API routes live under `/api/`. CORS is configured for localhost and
   *.onrender.com in `backend/main.py` — update if a custom domain is added.
+- `frontend/changelog.md` is the public changelog, shown on `/stats`:
+  `## YYYY-MM-DD` headings, one bullet per shipped change, newest first,
+  markdown links where a change has a page. **A shipped feature adds its
+  entry**, written in the plan that ships it, so it is part of done.
+  `content/changelog.js` parses it at build time and throws on a heading
+  that is not a date or a date with no bullets, so a bad file fails the
+  build rather than the page.
 - Specs and plans live in `docs/planning/`, committed alongside the code they
   describe: `<date>-<topic>-design.md` for the spec, `<date>-<topic>-plan.md`
   for the plan. Mockups and the `.superpowers/` execution scratch stay out of
