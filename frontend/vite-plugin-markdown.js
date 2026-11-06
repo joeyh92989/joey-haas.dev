@@ -86,7 +86,7 @@ export default function markdown() {
 
       if (!SLUG_PATTERN.test(slug)) {
         this.error(
-          `"${slug}.md" is not a usable slug. Post filenames must be lowercase ` +
+          `"${slug}.md" is not a usable slug. Filenames must be lowercase ` +
             'letters, digits, and single hyphens — for example ' +
             '"dependency-injection.md".',
         )
