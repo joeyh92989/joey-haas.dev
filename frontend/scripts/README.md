@@ -1,9 +1,9 @@
 # Build scripts
 
-Three Node scripts run around `vite build` (`npm run build`):
+Four Node scripts run around `vite build` (`npm run build`):
 
 ```
-fetch-snapshot.mjs  →  vite build  →  prerender.mjs  →  generate-rss.mjs
+fetch-snapshot.mjs  →  build-search-index.mjs  →  vite build  →  prerender.mjs  →  generate-rss.mjs
 ```
 
 ## fetch-snapshot.mjs
