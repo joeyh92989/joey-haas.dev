@@ -58,6 +58,31 @@ describe('buildIndex', () => {
     expect(buildIndex({ posts: [], items: null, comics: null })).toEqual([])
   })
 
+  it('lists notes under /til, with the TIL page, only when one is published', () => {
+    const note = {
+      slug: 'render-rewrites',
+      title: 'Render rewrites need the slash',
+      date: '2026-11-05',
+      tags: ['render'],
+      keywords: ['catch-all'],
+    }
+    const entries = buildIndex({
+      posts: [],
+      notes: [note],
+      items: null,
+      comics: null,
+    })
+    expect(entries.map((e) => [e.g, e.href])).toEqual([
+      ['pages', '/til'],
+      ['notes', '/til/render-rewrites'],
+    ])
+    expect(entries[1].sub).toBe('November 5, 2026 · render')
+    expect(entries[1].s).toContain('catch all')
+    expect(
+      buildIndex({ posts: [], notes: [], items: null, comics: null }),
+    ).toEqual([])
+  })
+
   it('puts summary, tags and keywords in the secondary text', () => {
     const [, entry] = buildIndex({ posts: [post], items: null, comics: null })
     expect(entry.s).toContain('game key card')
@@ -139,9 +164,10 @@ describe('writeSearchIndex', () => {
     await fs.rm(dir, { recursive: true, force: true })
   })
 
-  const run = () =>
+  const run = (notesDir = path.join(dir, 'notes')) =>
     writeSearchIndex({
       postsDir: path.join(dir, 'posts'),
+      notesDir,
       snapshotDir: path.join(dir, 'snapshot'),
       outFile: path.join(dir, 'search-index.json'),
       log,
@@ -153,6 +179,26 @@ describe('writeSearchIndex', () => {
     await run()
     const { entries } = await written()
     expect(entries.map((e) => e.title)).toEqual(['Blog', 'Live post'])
+  })
+
+  it('reads published notes, drafts skipped', async () => {
+    await fs.mkdir(path.join(dir, 'notes'))
+    await fs.writeFile(
+      path.join(dir, 'notes', 'one.md'),
+      '---\ntitle: A note\ndate: 2026-11-05\n---\nBody.\n',
+    )
+    await fs.writeFile(
+      path.join(dir, 'notes', 'two.md'),
+      '---\ntitle: Draft note\ndate: 2026-11-06\ndraft: true\n---\nBody.\n',
+    )
+    await run()
+    const { entries } = await written()
+    expect(entries.map((e) => e.href)).toEqual([
+      '/blog',
+      '/blog/live',
+      '/til',
+      '/til/one',
+    ])
   })
 
   it('reads the snapshot when present', async () => {

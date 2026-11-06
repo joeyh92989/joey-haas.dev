@@ -161,8 +161,7 @@ rule, which is already in place.
 ## Site search
 
 The masthead's Search button, ⌘K / Ctrl+K anywhere, or `/` outside a text
-field opens one dialog over pages, posts, the shelf and comics (TIL notes are
-not indexed yet; their group is already there). The
+field opens one dialog over pages, posts, TIL notes, the shelf and comics. The
 admin pages have no search.
 
 - **Pages** are bundled: `STATIC_PAGES` in `frontend/src/content/pages.js` is
@@ -170,8 +169,9 @@ admin pages have no search.
   page added there is searchable and previewed at once. An empty query shows
   Pages only.
 - **Everything else** comes from `/search-index.json`, written before
-  `vite build` by `frontend/scripts/build-search-index.mjs` from the posts and
-  the build-time snapshot. It is a build output: gitignored, never
+  `vite build` by `frontend/scripts/build-search-index.mjs` from the posts,
+  the notes and the build-time snapshot. `/blog` and `/til` are listed only
+  while they have a published entry. It is a build output: gitignored, never
   committed, and fetched once, on first open. Without a snapshot it is
   written from the posts alone; if the fetch fails, the dialog still
   searches the pages and says search is unavailable.

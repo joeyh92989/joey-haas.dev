@@ -89,6 +89,14 @@ export const BLOG_PAGE = row(
   `Posts by ${profile.name}.`,
 )
 
+/** /til, listed (and prerendered) only while a note is published. */
+export const TIL_PAGE = row(
+  '/til',
+  'TIL',
+  `TIL · ${profile.name}`,
+  `Short notes by ${profile.name}: things learned while building this site.`,
+)
+
 /** The static pages to list, given whether any post is published. */
 export function staticPages(hasPosts) {
   return hasPosts ? [...STATIC_PAGES, BLOG_PAGE] : STATIC_PAGES
