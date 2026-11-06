@@ -26,12 +26,12 @@ export default function Til() {
         <div className="note-list">
           {notes.map((note) => (
             <article key={note.slug}>
-              <h2>
+              <h2 className="note-title">
                 <Link to={`/til/${note.slug}`}>{note.frontmatter.title}</Link>
-                {note.frontmatter.draft && (
-                  <span className="draft-badge">Draft</span>
-                )}
               </h2>
+              {note.frontmatter.draft && (
+                <span className="draft-badge">Draft</span>
+              )}
               <PostMeta
                 date={note.frontmatter.date}
                 tags={note.frontmatter.tags}

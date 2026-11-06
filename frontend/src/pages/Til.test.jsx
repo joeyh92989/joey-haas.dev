@@ -70,4 +70,15 @@ describe('Til', () => {
     expect(screen.getByText('No notes yet.')).toBeInTheDocument()
     expect(screen.queryByRole('article')).toBeNull()
   })
+
+  it('marks a draft beside its title, not inside the heading', () => {
+    const draft = note('draft-note', 'Draft note', '2026-11-06', '<p>Body.</p>')
+    draft.frontmatter.draft = true
+    content.notes = [draft]
+    renderTil()
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Draft note' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Draft')).toBeInTheDocument()
+  })
 })

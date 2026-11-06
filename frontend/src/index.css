@@ -925,16 +925,16 @@ section + section {
   border-top: 0;
 }
 
-.note-list h2 {
+.note-title {
   font-size: 1.125rem;
   font-weight: 500;
 }
 
-.note-list h2 a {
+.note-title a {
   color: var(--text);
 }
 
-.note-list h2 a:hover {
+.note-title a:hover {
   color: var(--accent);
   text-decoration: none;
 }

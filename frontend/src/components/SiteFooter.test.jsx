@@ -55,5 +55,10 @@ describe('SiteFooter', () => {
       'href',
       '/til',
     )
+    const names = footer
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+      .filter((name) => ['Now', 'TIL', 'Colophon'].includes(name))
+    expect(names).toEqual(['Now', 'TIL', 'Colophon'])
   })
 })
