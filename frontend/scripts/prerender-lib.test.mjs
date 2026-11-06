@@ -1,4 +1,3 @@
-import matter from 'gray-matter'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,6 +16,7 @@ import {
   robots,
   sitemap,
 } from './prerender-lib.mjs'
+import { readPublished } from './markdown-lib.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const SHELL = fs.readFileSync(path.join(here, '..', 'index.html'), 'utf8')
@@ -48,6 +48,12 @@ describe('excerpt', () => {
   it('takes the first prose paragraph as plain text', () => {
     expect(excerpt(POST.body)).toBe(
       'Spine is the tracker behind the shelf. It uses code and emphasis.',
+    )
+  })
+
+  it('keeps code span contents as written', () => {
+    expect(excerpt('The `/*` catch-all and `og_url`, with *emphasis*.')).toBe(
+      'The /* catch-all and og_url, with emphasis.',
     )
   })
 
@@ -437,6 +443,10 @@ describe('journal month routes', () => {
   })
 })
 
+// What the build publishes, read the way prerender.mjs reads it.
+const publishedPosts = await readPublished(path.join(here, '..', 'posts'))
+const publishedNotes = await readPublished(path.join(here, '..', 'notes'))
+
 describe('render.yaml rewrites', () => {
   // Render serves dist/x/index.html at /x/ but not at /x, so each prerendered
   // page needs its own rewrite ahead of the SPA catch-all. A rewrite to a
@@ -450,27 +460,9 @@ describe('render.yaml rewrites', () => {
   const rules = [
     ...yaml.matchAll(/- type: rewrite\s+source: (\S+)\s+destination: (\S+)/g),
   ].map(([, source, destination]) => ({ source, destination }))
-  const published = (folder) => {
-    const dir = path.join(here, '..', folder)
-    if (!fs.existsSync(dir)) return []
-    return fs
-      .readdirSync(dir)
-      .filter((name) => name.endsWith('.md'))
-      .map((name) => ({
-        slug: name.replace(/\.md$/, ''),
-        ...matter(fs.readFileSync(path.join(dir, name), 'utf8')),
-      }))
-      .filter(({ data }) => data.draft !== true)
-      .map(({ slug, data, content }) => ({
-        slug,
-        title: String(data.title),
-        date: String(data.date),
-        body: content,
-      }))
-  }
   const built = publicRoutes({
-    posts: published('posts'),
-    notes: published('notes'),
+    posts: publishedPosts,
+    notes: publishedNotes,
     items: [],
   })
   const pages = [...built, ...legacyRoutes(built)]

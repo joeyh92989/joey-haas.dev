@@ -93,8 +93,8 @@ export function clip(text, limit = DESCRIPTION_LIMIT) {
 }
 
 /**
- * A post's first paragraph as plain text: links keep their words, code and
- * emphasis marks go. Headings, lists and code blocks are skipped, since the
+ * A post's or note's first paragraph as plain text: links keep their words,
+ * code spans keep their contents (`/*` stays /*) and emphasis marks go. Headings, lists and code blocks are skipped, since the
  * first prose paragraph is what a reader would quote.
  *
  * @param {string} markdown The post body, frontmatter removed.
@@ -110,7 +110,12 @@ export function excerpt(markdown) {
     paragraph
       .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
       .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-      .replace(/[`*_]/g, ''),
+      // Odd pieces of the split are code spans, kept as written.
+      .split(/`([^`]*)`/)
+      .map((piece, index) =>
+        index % 2 === 1 ? piece : piece.replace(/[`*_]/g, ''),
+      )
+      .join(''),
   )
 }
 
