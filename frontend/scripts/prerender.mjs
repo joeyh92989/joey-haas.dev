@@ -9,8 +9,8 @@
  *
  * Render serves dist/blog/<slug>/index.html at /blog/<slug>/ only: without
  * the slash the SPA catch-all wins. render.yaml therefore rewrites each
- * prerendered path to its file ahead of the catch-all, and a new page or
- * post needs its rule there too (prerender-lib.test.mjs checks). Item and
+ * prerendered path to its file ahead of the catch-all, and a new page,
+ * post or note needs its rule there too (prerender-lib.test.mjs checks). Item and
  * year pages are not rewritten: a rule whose file is missing serves an
  * empty page. The pre-rename /spine pages get heads too (legacyRoutes),
  * and the feed is written at both prefixes. Shelf items come from the

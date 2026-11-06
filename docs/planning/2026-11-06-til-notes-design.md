@@ -156,6 +156,8 @@ Tier: **Full** (it touches `render.yaml`, the deploy path). Branch
 | Nothing about rewrites | Every prerendered page needs its own `render.yaml` rewrite, `prerender-lib.test.mjs` enforces it, and a rule for an unbuilt file serves an empty 200 | `/til` plus one rule per published note, in the carve-out milestone |
 | "The blog index's rule" between notes | `.row-list` puts a `--line` border between rows | `.note-list` reuses the same token and spacing; no new tokens |
 | `/blog` unchanged by adding a note | The Blog index gains its "Shorter things are in TIL" line once | The line shows only while a note is published; after that, adding a note changes nothing under `/blog` (checked with a `dist/` diff) |
+| Blog and BlogPost tests "pass unchanged" (task 1) | They mocked `formatDate` from `content/posts.js`, which moved to `lib/formatDate.js` | The mocks went and `Blog.test` asserts the real formatted date ("October 2, 2026"); no behaviour changed |
+| `rssFeed({items, urlPrefix, …})` | The channel also needs its own link and self path per feed | Shipped as `rssFeed({entries, title, description, link, itemPrefix, selfPath})`; `scripts/README.md` documents it |
 | One real first note | No such note exists yet | Drafted from a quirk the repo already documents (Render serves `dist/x/index.html` at `/x/` and not at `/x`, 2026-10-19). It lands `draft: true` and is published only after Joey approves the wording at the carve-out stop |
 
 Open questions, answered:

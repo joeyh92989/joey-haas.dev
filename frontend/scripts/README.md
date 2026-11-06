@@ -72,7 +72,8 @@ description, canonical URL and Open Graph tags, plus `sitemap.xml` and
 app renders the page as before.
 
 **Routes.** The static pages (`/`, `/about`, `/projects`, `/shelf`,
-`/shelf/next`, `/now`, `/colophon`, and `/blog` while a post is published), every published post,
+`/shelf/next`, `/now`, `/colophon`, `/blog` while a post is published, and
+`/til` while a note is), every published post and note,
 every item in `dist/snapshot/items.json`, and a Year in review page
 for each year with a finish (`/shelf/year/<year>`). An item's preview image is its
 cover; a post's description is its first paragraph. Copy comes from
@@ -98,11 +99,11 @@ rule, but it serves `shelf/next/index.html` only at `/shelf/next/`. At
 the site card (found in production on 2026-10-19, after #55). So
 `render.yaml` rewrites each prerendered path to its own `index.html` ahead of
 the catch-all, and `prerender-lib.test.mjs` fails unless the rules name
-exactly the static pages and the published posts. There are no placeholders:
+exactly the static pages, the published posts and the published notes. There are no placeholders:
 a rewrite to a file the build did not write serves an **empty 200**, not the
 SPA (a `/blog/:slug` rule did this to `/blog/example`, a draft, on
-2026-10-19). So publishing or unpublishing a post means adding or removing its
-rule. Item, year and month pages (`/shelf/:id`, `/shelf/year/:year`,
+2026-10-19). So publishing or unpublishing a post or note means adding or removing
+its rule. Item, year and month pages (`/shelf/:id`, `/shelf/year/:year`,
 `/shelf/journal/:month`) change between deploys and stay on the catch-all;
 their prerendered heads are served only at the trailing-slash URL. So those
 routes carry `slash: true`, and `routeUrl` gives them the slash form in the

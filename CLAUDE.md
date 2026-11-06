@@ -76,7 +76,8 @@ before pushing.
   as posts and listed in full at `/til`, with `/til/:slug` for each. Posts
   and notes share their published rule (`lib/markdownEntries.js` in the app,
   `scripts/markdown-lib.mjs` in the build: drafts out, newest first), the
-  date and tag row (`PostMeta`, `lib/formatDate.js`) and the feed writer;
+  date and tag row (`PostMeta`, `lib/formatDate.js`) and the feed writer.
+  A note's headings start at `###`, since its title is the `h2` on `/til`;
   `dist/til/feed.xml` is written even when empty. The footer and Blog index
   link TIL only while a note is published (`hasNotes` is a prop on
   `SiteFooter`, so its tests need no content mock). Any test that imports
