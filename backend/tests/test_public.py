@@ -11,6 +11,7 @@ from httpx2 import ASGITransport, AsyncClient
 from pydantic import BaseModel
 
 import playthroughs
+from analytics_routes import create_site_stats_router
 from models import (
     CatalogueGame,
     Item,
@@ -44,6 +45,8 @@ pytestmark = pytest.mark.asyncio
 async def client_for(factory):
     app = FastAPI()
     app.include_router(create_public_router(factory))
+    # The site-stats read is public too, mounted from analytics_routes.
+    app.include_router(create_site_stats_router(factory))
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://testserver"
     ) as client:
@@ -943,10 +946,11 @@ async def test_no_public_response_carries_a_catalogue_key(sessionmaker_for_test)
         linked = next(i for i in items.json() if i["title"] == "Linked Game")
         detail = await client.get(f"/api/public/items/{linked['id']}")
         upcoming = await client.get("/api/public/next")
+        site_stats = await client.get("/api/public/site-stats")
     # The pending row is published by What's next, so it is a positive control:
     # the walk below reads a body that really carries a Radar row.
     assert [row["title"] for row in upcoming.json()["preorders"]] == ["Coming Cart"]
-    for response in (items, stats, detail, upcoming):
+    for response in (items, stats, detail, upcoming, site_stats):
         assert response.status_code == 200
         leaked = sorted(
             key

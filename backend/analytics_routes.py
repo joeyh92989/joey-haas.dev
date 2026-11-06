@@ -8,6 +8,11 @@ hash, and neither the IP nor the user agent is stored or logged.
 
 `GET /api/analytics` and `POST /api/analytics/rollup` are admin only; the
 rollup is also on items.JOB_ROUTES for the nightly workflow.
+
+`GET /api/public/site-stats` is the /stats page's read: the same summary
+for the last thirty days and for everything, with the public reductions
+(no host under PUBLIC_REFERRER_MIN visitors, no best-day referrer), cached
+for an hour on the cache the admin read shares, so the rollup clears both.
 """
 
 from __future__ import annotations
@@ -40,8 +45,18 @@ from analytics import (
 from auth import session_admin
 from items import require_admin
 from models import DailyStat, PageView
+from public_outputs import PublicSiteStatsOut
 
 logger = logging.getLogger(__name__)
+
+# A referrer host with fewer visitors than this in the range is folded into
+# `referrers_other` on the public read: a handful of visitors can name a
+# person's own blog or a company's intranet host.
+PUBLIC_REFERRER_MIN = 5
+# The public body changes once a day (the rollup) and a little through the
+# day (today's raw rows); an hour of staleness is fine for a public page.
+PUBLIC_STATS_TTL = 3600
+SITE_STATS_KEY = "public:site-stats"
 
 Clock = Callable[[], datetime]
 
@@ -165,12 +180,80 @@ async def _raw_stats(
     return [stat for day, views in grouped.items() for stat in rollup_day(day, views)]
 
 
+async def load_summary(
+    session: AsyncSession,
+    span: str,
+    today: date,
+    *,
+    fold_referrers_below: int = 0,
+) -> dict:
+    """analytics.summarise over the range `span` ending `today`. Rolled-up
+    days come from daily_stats; any day not rolled up yet (today, or a
+    night the job missed) is counted from raw rows."""
+    start = range_start(span, today)
+    rolled = (
+        await session.scalars(
+            select(DailyStat).where(DailyStat.day >= start, DailyStat.day <= today)
+        )
+    ).all()
+    stats = [
+        Stat(row.day, row.dimension, row.value, row.views, row.visitors)
+        for row in rolled
+    ]
+    done = {stat.day for stat in stats}
+    pending = await _raw_stats(session, None, since=start, skip=done)
+    return summarise(
+        [*stats, *pending], start, today, fold_referrers_below=fold_referrers_below
+    )
+
+
+def create_site_stats_router(
+    factory: async_sessionmaker[AsyncSession],
+    now: Clock = _utc_now,
+    cache: SummaryCache | None = None,
+) -> APIRouter:
+    """The public read, `GET /api/public/site-stats`. Pass the admin
+    router's `cache` so a rollup refreshes this read too."""
+    router = APIRouter(prefix="/api/public", tags=["public"])
+    cache = cache or SummaryCache()
+
+    async def get_session() -> AsyncIterator[AsyncSession]:
+        async with factory() as session:
+            yield session
+
+    @router.get("/site-stats", response_model=PublicSiteStatsOut)
+    async def site_stats(
+        response: Response,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """The /stats page: the last thirty days and everything since the
+        beacon went live, reduced for the public (see the module doc). The
+        response model drops the best day's referrer."""
+        today = now().astimezone(UTC).date()
+
+        async def build() -> dict:
+            return {
+                "thirty": await load_summary(
+                    session, "30d", today, fold_referrers_below=PUBLIC_REFERRER_MIN
+                ),
+                "all": await load_summary(
+                    session, "all", today, fold_referrers_below=PUBLIC_REFERRER_MIN
+                ),
+            }
+
+        response.headers["Cache-Control"] = "public, max-age=300"
+        return await cache.get(SITE_STATS_KEY, build, ttl=PUBLIC_STATS_TTL)
+
+    return router
+
+
 def create_analytics_router(
     factory: async_sessionmaker[AsyncSession],
     now: Clock = _utc_now,
     cache: SummaryCache | None = None,
 ) -> APIRouter:
-    """The admin read and the rollup. `cache` is for tests."""
+    """The admin read and the rollup. `cache` is shared with
+    create_site_stats_router in main.py and injected by tests."""
     router = APIRouter(
         prefix="/api/analytics",
         tags=["analytics"],
@@ -191,28 +274,13 @@ def create_analytics_router(
         session: AsyncSession = Depends(get_session),
     ) -> dict:
         """Tiles, the day series and the three lists over a range ending
-        today. Rolled-up days come from daily_stats; any day not rolled up
-        yet (today, or a night the job missed) is counted from raw rows."""
+        today (load_summary), unreduced: this is the owner's view."""
         if span not in RANGES:
             raise HTTPException(status_code=422, detail="Unknown range")
         today = now().astimezone(UTC).date()
-        start = range_start(span, today)
 
         async def build() -> dict:
-            rolled = (
-                await session.scalars(
-                    select(DailyStat).where(
-                        DailyStat.day >= start, DailyStat.day <= today
-                    )
-                )
-            ).all()
-            stats = [
-                Stat(row.day, row.dimension, row.value, row.views, row.visitors)
-                for row in rolled
-            ]
-            done = {stat.day for stat in stats}
-            pending = await _raw_stats(session, None, since=start, skip=done)
-            return summarise([*stats, *pending], start, today)
+            return await load_summary(session, span, today)
 
         return {"range": span, **await cache.get(span, build)}
 

@@ -33,10 +33,13 @@ from models import (
 from physical_sources.stores import STORES
 from public import create_public_router
 from public_outputs import (
+    PublicBestDayOut,
     PublicLastFinish,
     PublicNextOut,
     PublicNextRow,
+    PublicSiteStatsOut,
     PublicStatusOut,
+    PublicSummaryOut,
     PublicTonightCard,
 )
 from recommendations_routes import create_recommendations_router
@@ -1355,6 +1358,13 @@ async def test_answering_a_discover_platforms_only_pick_leaves_the_body(
 
 # The /spine status strip (spine tour plan, answer 1).
 STATUS_FIELDS = {"refreshed_at", "titles", "platforms", "stores_watched", "listings"}
+SITE_STATS_FIELDS = {"thirty", "all"}
+SUMMARY_FIELDS = {
+    "start", "end", "views", "visitors", "views_per_visitor", "best_day",
+    "series", "pages", "referrers", "referrers_other", "devices", "live_since",
+}  # fmt: skip
+# No referrer: the best day's dominant host could be one the fold hid.
+BEST_DAY_FIELDS = {"day", "views"}
 
 
 def _edition(ref: str, **fields) -> PhysicalEdition:
@@ -1404,6 +1414,13 @@ async def _status(factory):
 async def test_the_status_model_publishes_exactly_these_fields():
     assert set(PublicStatusOut.model_fields) == STATUS_FIELDS
     assert not STATUS_FIELDS & FORBIDDEN
+
+
+async def test_the_site_stats_models_publish_exactly_these_fields():
+    assert set(PublicSiteStatsOut.model_fields) == SITE_STATS_FIELDS
+    assert set(PublicSummaryOut.model_fields) == SUMMARY_FIELDS
+    assert set(PublicBestDayOut.model_fields) == BEST_DAY_FIELDS
+    assert not (SITE_STATS_FIELDS | SUMMARY_FIELDS | BEST_DAY_FIELDS) & FORBIDDEN
 
 
 async def test_an_empty_catalogue_reports_zeros_and_no_refresh(sessionmaker_for_test):
