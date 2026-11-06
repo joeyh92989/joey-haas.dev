@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import FeatureStrip from '../components/FeatureStrip.jsx'
 import NextBand from '../components/NextBand.jsx'
@@ -378,7 +378,10 @@ export default function Collection() {
   const [state, setState] = useState('loading')
   const [slow, setSlow] = useState(false)
   const [filters, setFilters] = useState(NO_FILTER)
-  const [query, setQuery] = useState('')
+  // The site search's no-match link lands here as /shelf?q=…; read once,
+  // never written back, so typing does not rewrite the URL.
+  const [searchParams] = useSearchParams()
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const [sort, setSort] = useState({ value: 'added', direction: 'desc' })
   const [seed, setSeed] = useState(() => Date.now())
   const [size, setSize] = useState(() => {

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router'
 import { profile } from '../content/profile.js'
 import MobileNavSheet from './MobileNavSheet.jsx'
+import SearchButton from './SearchButton.jsx'
 
 /**
  * The site's one masthead, the same on every public route: monogram and
@@ -17,8 +18,16 @@ import MobileNavSheet from './MobileNavSheet.jsx'
  * @param {'dark' | 'light'} props.theme The current theme.
  * @param {() => void} props.onToggleTheme Flips the theme.
  * @param {{to: string, label: string, end?: boolean}[]} props.items The nav.
+ * @param {() => void} [props.onOpenSearch] Opens the site search.
+ * @param {boolean} [props.searchOpen] Whether the site search is open.
  */
-export default function SiteMast({ theme, onToggleTheme, items }) {
+export default function SiteMast({
+  theme,
+  onToggleTheme,
+  items,
+  onOpenSearch,
+  searchOpen = false,
+}) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
   const target = theme === 'dark' ? 'light' : 'dark'
@@ -44,6 +53,9 @@ export default function SiteMast({ theme, onToggleTheme, items }) {
           <a href="/resume.pdf" className="btn ghost mast-resume">
             Resume ↓
           </a>
+          {onOpenSearch && (
+            <SearchButton onOpen={onOpenSearch} open={searchOpen} />
+          )}
           <button
             type="button"
             className="btn sm"

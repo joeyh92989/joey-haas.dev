@@ -138,17 +138,17 @@ function stubApi({
   )
 }
 
-function renderPage() {
+function renderPage(path = '/shelf') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <Collection />
     </MemoryRouter>,
   )
 }
 
 /** Renders and waits for the grid, the last thing a ready page draws. */
-async function renderReady() {
-  renderPage()
+async function renderReady(path) {
+  renderPage(path)
   await waitFor(() =>
     expect(document.querySelector('.poster-grid')).not.toBeNull(),
   )
@@ -432,6 +432,17 @@ describe('Collection', () => {
     expect(
       screen.getByText('Nothing on the shelf matches “zelda”.'),
     ).toBeInTheDocument()
+  })
+
+  // The site search's no-match link: /shelf?q=… opens already searched.
+  it('starts searched when the URL carries ?q=', async () => {
+    stubApi()
+    await renderReady('/shelf?q=gloom')
+
+    expect(
+      screen.getByRole('searchbox', { name: 'Search the shelf' }),
+    ).toHaveValue('gloom')
+    expect(gridTitles()).toEqual(['Gloomhaven'])
   })
 
   it('filters to the want list', async () => {

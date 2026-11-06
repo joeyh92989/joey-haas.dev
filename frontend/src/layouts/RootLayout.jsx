@@ -1,11 +1,13 @@
 import { Suspense, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
+import SearchDialog from '../components/SearchDialog.jsx'
 import SiteFooter from '../components/SiteFooter.jsx'
 import SiteMast from '../components/SiteMast.jsx'
 import { posts } from '../content/posts.js'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
+import { isSearchShortcut } from '../lib/searchKeys.js'
 import { useAnalyticsBeacon } from '../lib/useAnalyticsBeacon.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
@@ -106,7 +108,21 @@ export default function RootLayout() {
   const [signedIn, setSignedIn] = useState(null)
   const { pathname } = useLocation()
   const mainRef = useRouteFocus()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const shell = isUnder(SHELL_ROUTES, pathname)
   useAnalyticsBeacon(pathname, signedIn)
+
+  useEffect(() => {
+    // The admin shell has no masthead, and search is out of scope there.
+    if (shell) return
+    function handleKeyDown(event) {
+      if (!isSearchShortcut(event, document.activeElement)) return
+      event.preventDefault()
+      setSearchOpen(true)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [shell])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -152,7 +168,7 @@ export default function RootLayout() {
 
   const context = { signedIn: Boolean(signedIn) }
 
-  if (isUnder(SHELL_ROUTES, pathname)) {
+  if (shell) {
     return (
       <div className="site site-admin">
         <a className="skip-link" href="#main">
@@ -193,7 +209,10 @@ export default function RootLayout() {
         theme={theme}
         onToggleTheme={toggleTheme}
         items={navItems(posts.length > 0)}
+        onOpenSearch={() => setSearchOpen(true)}
+        searchOpen={searchOpen}
       />
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <main id="main" ref={mainRef} tabIndex={-1} className={pageClass}>
         <RouteErrorBoundary key={pathname}>

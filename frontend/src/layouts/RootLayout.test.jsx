@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -410,5 +411,96 @@ describe('RootLayout analytics beacon', () => {
       await screen.findByRole('link', { name: 'Admin' }),
     ).toBeInTheDocument()
     expect(beacon).not.toHaveBeenCalled()
+  })
+})
+
+describe('RootLayout site search', () => {
+  // jsdom has no modal <dialog>; these stand in for the browser's.
+  beforeEach(() => {
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute('open', '')
+    }
+    HTMLDialogElement.prototype.close = function () {
+      this.removeAttribute('open')
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, json: () => null }),
+    )
+  })
+
+  afterEach(() => {
+    delete HTMLDialogElement.prototype.showModal
+    delete HTMLDialogElement.prototype.close
+    vi.unstubAllGlobals()
+  })
+
+  function renderWithField(path = '/') {
+    return render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route element={<RootLayout />}>
+            <Route path="*" element={<input aria-label="Field" />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  const searchBox = () => screen.queryByRole('combobox', { name: 'Search' })
+
+  it.each([
+    ['⌘K', { key: 'k', metaKey: true }],
+    ['Ctrl+K', { key: 'k', ctrlKey: true }],
+    ['/', { key: '/' }],
+  ])('opens on %s', (_, init) => {
+    renderWithField()
+    const event = new KeyboardEvent('keydown', {
+      ...init,
+      bubbles: true,
+      cancelable: true,
+    })
+    act(() => {
+      document.body.dispatchEvent(event)
+    })
+    expect(event.defaultPrevented).toBe(true)
+    expect(searchBox()).toBeInTheDocument()
+  })
+
+  it('opens from the masthead button', () => {
+    renderWithField()
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    expect(searchBox()).toHaveFocus()
+  })
+
+  it('leaves / to a text field', () => {
+    renderWithField()
+    const field = screen.getByRole('textbox', { name: 'Field' })
+    field.focus()
+    const event = new KeyboardEvent('keydown', {
+      key: '/',
+      bubbles: true,
+      cancelable: true,
+    })
+    act(() => {
+      field.dispatchEvent(event)
+    })
+    expect(event.defaultPrevented).toBe(false)
+    expect(searchBox()).not.toBeInTheDocument()
+  })
+
+  it('does nothing on the admin routes', () => {
+    renderWithField('/admin')
+    act(() => {
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'k',
+          metaKey: true,
+          bubbles: true,
+        }),
+      )
+    })
+    expect(searchBox()).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Search' })).toBeNull()
   })
 })

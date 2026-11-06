@@ -139,3 +139,26 @@ describe('SiteMast', () => {
     expect(sheet(container).querySelector('a')).toBeNull()
   })
 })
+
+describe('SiteMast search button', () => {
+  it('is offered only with a handler, before the theme toggle', () => {
+    const onOpenSearch = vi.fn()
+    const { container } = renderAt('/', { onOpenSearch })
+    const button = screen.getByRole('button', { name: 'Search' })
+    const end = container.querySelector('.mast-end')
+    expect(end.contains(button)).toBe(true)
+    expect(
+      button.compareDocumentPosition(
+        screen.getByRole('button', { name: /theme/ }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(button)
+    expect(onOpenSearch).toHaveBeenCalledOnce()
+  })
+
+  it('is absent without a handler', () => {
+    renderAt('/')
+    expect(screen.queryByRole('button', { name: 'Search' })).toBeNull()
+  })
+})
