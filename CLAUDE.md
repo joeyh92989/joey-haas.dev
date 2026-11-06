@@ -72,6 +72,16 @@ before pushing.
 - The Shiki theme pair and `--code-bg` are chosen together, on measured
   contrast: every color either theme emits has to clear 4.5:1 on the
   background it actually sits on. Changing either means measuring again.
+- TIL notes are markdown in `frontend/notes/`, compiled by the same plugin
+  as posts and listed in full at `/til`, with `/til/:slug` for each. Posts
+  and notes share their published rule (`lib/markdownEntries.js` in the app,
+  `scripts/markdown-lib.mjs` in the build: drafts out, newest first), the
+  date and tag row (`PostMeta`, `lib/formatDate.js`) and the feed writer;
+  `dist/til/feed.xml` is written even when empty. The footer and Blog index
+  link TIL only while a note is published (`hasNotes` is a prop on
+  `SiteFooter`, so its tests need no content mock). Any test that imports
+  `content/posts.js` or `content/notes.js`, directly or through a component,
+  mocks it: Vitest has no markdown plugin.
 - Keep the site a real multi-section/multi-page website (react-router when
   pages are added), not a rendered resume document. A downloadable PDF resume
   is an optional accessory only.
@@ -132,7 +142,7 @@ before pushing.
   (`prerender-lib.mjs`) or it previews as the site card, **and** a rewrite
   in `render.yaml` ahead of the `/*` catch-all: Render serves
   `dist/about/index.html` at `/about/` but not at `/about`, where the
-  catch-all wins. Every published post needs its own rule too, and
+  catch-all wins. Every published post and TIL note needs its own rule too, and
   unpublishing one means removing it: there are no placeholder rules,
   because a rewrite to a file the build did not write serves an empty 200
   rather than the SPA. `prerender-lib.test.mjs` checks the rules match the
@@ -166,6 +176,9 @@ before pushing.
       balancer (`216.24.57.1`), not an ALIAS: Porkbun's default parking record
       occupies the root and silently wins over one. `www` and `api` are CNAMEs
 - [x] Blog — markdown in `frontend/posts/`, compiled at build time
+- [x] TIL — short notes in `frontend/notes/` at `/til`, with their own feed
+      at `/til/feed.xml`. Spec and plan:
+      `docs/planning/2026-11-06-til-notes-design.md`
 - [x] Google OAuth admin — **live**. `/admin`, not linked from the nav.
       Verified end to end 2026-08-31: 12/12 smoke checks, CORS restricted to
       `joey-haas.dev`, real sign-in confirmed. See README → Admin authentication

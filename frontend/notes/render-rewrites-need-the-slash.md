@@ -2,7 +2,6 @@
 title: Render serves a prerendered page only at the slash
 date: 2026-11-06
 tags: [render, static-sites]
-draft: true
 ---
 
 On a Render static site, a build that writes `dist/about/index.html` gets it
