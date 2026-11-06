@@ -109,24 +109,28 @@ def create_track_router(
 
 
 class SummaryCache:
-    """The read's bodies for up to 60 seconds, one per range: keyed on the
-    range and the monotonic minute, with PublicNextCache's lock and double
-    check so concurrent misses build once."""
+    """The reads' bodies for up to `ttl` seconds (a minute by default),
+    one per key: keyed on the caller's key and the monotonic bucket of
+    `ttl` seconds, with PublicNextCache's lock and double check so
+    concurrent misses build once. One instance serves the admin read and
+    the public site-stats read, so the rollup's `clear` refreshes both."""
 
     def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
         self._clock = clock
         self._entries: dict[str, tuple[int, dict]] = {}
         self._lock = asyncio.Lock()
 
-    async def get(self, key: str, build: Callable[[], Awaitable[dict]]) -> dict:
-        minute = int(self._clock() // 60)
+    async def get(
+        self, key: str, build: Callable[[], Awaitable[dict]], ttl: int = 60
+    ) -> dict:
+        bucket = int(self._clock() // ttl)
         hit = self._entries.get(key)
-        if hit is not None and hit[0] == minute:
+        if hit is not None and hit[0] == bucket:
             return hit[1]
         async with self._lock:
             hit = self._entries.get(key)
-            if hit is None or hit[0] != minute:
-                hit = (minute, await build())
+            if hit is None or hit[0] != bucket:
+                hit = (bucket, await build())
                 self._entries[key] = hit
             return hit[1]
 

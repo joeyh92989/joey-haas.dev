@@ -295,6 +295,20 @@ async def test_the_read_is_cached_for_a_minute():
     assert await cache.get("7d", build) == {"n": 2}
 
 
+async def test_a_longer_ttl_buckets_by_that_many_seconds():
+    ticks = iter([0.0, 1800.0, 3601.0])
+    cache = SummaryCache(clock=lambda: next(ticks))
+    builds = []
+
+    async def build():
+        builds.append(1)
+        return {"n": len(builds)}
+
+    assert await cache.get("public", build, ttl=3600) == {"n": 1}
+    assert await cache.get("public", build, ttl=3600) == {"n": 1}
+    assert await cache.get("public", build, ttl=3600) == {"n": 2}
+
+
 async def test_a_rollup_clears_the_cached_read(sessionmaker_for_test):
     factory = sessionmaker_for_test
     yesterday = date(2026, 10, 19)
