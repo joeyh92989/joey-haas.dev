@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import BarList from '../components/BarList.jsx'
 import DayBars from '../components/DayBars.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
@@ -51,8 +51,10 @@ const referrerLabel = (value) =>
 export default function Stats() {
   usePageTitle(STATS_TITLE)
   const { data, live, failed } = useSnapshotThenLive('site-stats')
-  // When the live answer landed: the moment `live` turned true.
-  const liveAt = useMemo(() => (live ? new Date() : null), [live])
+  // When the live answer landed: stamped in the render that first sees
+  // `live`, React's pattern for state derived from a changed input.
+  const [liveAt, setLiveAt] = useState(null)
+  if (live && liveAt === null) setLiveAt(new Date())
   const [slow, setSlow] = useState(false)
 
   useEffect(() => {
@@ -149,15 +151,15 @@ export default function Stats() {
       <p className="prose">{COUNTED.join(' ')}</p>
 
       <h2>Changes</h2>
-      <ol className="changelog">
+      <ol className="changelog" role="list">
         {CHANGELOG.map((entry) => (
           <li key={entry.date}>
             <time dateTime={entry.date}>
               {CHANGE_DATE.format(new Date(`${entry.date}T00:00:00Z`))}
             </time>
             <ul>
-              {entry.lines.map((line) => (
-                <li key={line}>{renderLine(line)}</li>
+              {entry.lines.map((line, index) => (
+                <li key={index}>{renderLine(line)}</li>
               ))}
             </ul>
           </li>

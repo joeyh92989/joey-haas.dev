@@ -82,9 +82,11 @@ before pushing.
   `## YYYY-MM-DD` headings, one bullet per shipped change, newest first,
   markdown links where a change has a page. **A shipped feature adds its
   entry**, written in the plan that ships it, so it is part of done.
-  `content/changelog.js` parses it at build time and throws on a heading
-  that is not a date or a date with no bullets, so a bad file fails the
-  build rather than the page.
+  `lib/changelog.js` parses it (throwing on a heading that is not a real
+  date, a date with no bullets or used twice, a nested bullet), and
+  `scripts/prerender.mjs` runs the parser on the file during `npm run
+  build`, so a bad file fails the build rather than the page; the browser
+  parses it again at module load (`content/changelog.js`).
 - Specs and plans live in `docs/planning/`, committed alongside the code they
   describe: `<date>-<topic>-design.md` for the spec, `<date>-<topic>-plan.md`
   for the plan. Mockups and the `.superpowers/` execution scratch stay out of
@@ -402,8 +404,8 @@ before pushing.
   credentials are optional config checked lazily, so a missing key disables
   one media type rather than stopping the service; `main.py` logs which
   sources are configured at startup.
-- `/shelf*` are public and **do** call the API, unlike every other public
-  page; `/shelf/next` reads `/api/public/next`. `/api/public/picks` and
+- `/shelf*` and `/stats` are public and **do** call the API, unlike every
+  other public page; `/shelf/next` reads `/api/public/next`. `/api/public/picks` and
   `/api/public/radar` are retired (404, pinned by `smoke.sh`). `/shelf*`
   pages paint the build-time snapshot first
   (`frontend/public/snapshot/*.json`, written by

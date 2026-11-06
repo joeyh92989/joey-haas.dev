@@ -198,6 +198,12 @@ flowchart LR
 | List rows as the admin page draws them | Inside the three columns each label sits on its own row above its bar and count (`.site-stats-lists .bar-list li`) | At 45rem the admin's one-line row cut every path and host short ("/shelf/ne…", "big.exa…"); seen in the browser. |
 | — | `.site-stats-lists > section { margin-top: 0 }` | The page frame's `section + section` spacing pushed the second and third column headings 36px below the first. |
 | Changelog lines may carry code spans | Links only; the seed entry's backticks were removed | `renderLine` renders links, not code; a backtick showed as a literal. |
+| Parser in `content/changelog.js`; "a bad file fails the build" | Parser in `lib/changelog.js` (pure); `scripts/prerender.mjs` runs it on the file during `npm run build` | Review found that nothing in the build executed the module (Rollup bundles, never runs), so a bad file would have blanked every page at runtime, not failed the build. |
+| The parser accepts `\d{4}-\d{2}-\d{2}` | A heading must be a real calendar day, a date appears once, bullets are one level, CRLF files parse | Review: `2026-13-01` passed and crashed the page's date formatter; `2026-11-31` rendered as Dec 1. |
+| Views per day always draws the thirty bars | With no views in the range the page says "No views in the last 30 days." instead of thirty empty bars | Thirty zero-height bars read as a broken chart. |
+| Public referrers: hosts under 5 visitors fold | As planned, and **accepted risk, recorded by review:** the beacon takes any hostname as `ref`, and five user agents from one IP are five visitors, so a spammer can put a hostname on `/stats` for a day. It is shown as text, never a link. A second bar (visitors on two or more days) would also hide a real one-day spike, so it is left to Joey; a single-label host such as `price` would also trip smoke's private-key grep on the snapshot. | The admin page tolerated referrer spam because only the owner saw it; the public list changes the audience, not the data. |
+| Seed entries for #86–#90 | #89 (one-tap Start playing) is left out: it is an admin control, nothing a visitor sees | The changelog is written for visitors. |
+| Day-series scroll box under 600px | Under 700px, the page's one breakpoint for the lists | One breakpoint for the page. |
 | "Live as of" after the API stops | Within five minutes of a live answer a reload still says live | The browser serves the read from its own HTTP cache (`Cache-Control: max-age=300`), which is the header working; after that the page says the API is asleep, as verified. |
 
 ## Research notes
@@ -209,7 +215,7 @@ flowchart LR
 - `DayBars({series})` already renders `role="img"` per bar and the visually-hidden table. `BarList({label, rows, name})` renders the track and fill; `StatTiles({label})` / `StatTile({label, value, detail})`. All of their CSS is global and token-only (`index.css:1381-1719`); `.stat-tiles` goes to two columns under 900px.
 - `AdminAnalytics.jsx` holds `referrerName` and `DEVICE_NAMES`; both move to `lib/analytics.js` so the public page shares them.
 - A public route needs: the page and `App.jsx` route (static import, as `Colophon`), a `page('/stats', …)` row in `prerender-lib.mjs` `publicRoutes` after `/colophon` (the sitemap follows), the path in `prerender-lib.test.mjs`'s list, and a `render.yaml` rewrite before `/*`. The default `.page` class is the 45rem column; `CONTENT_ROUTES` stays as it is.
-- `feat/site-search` (moves `publicRoutes`' static rows into `content/pages.js`) and `feat/til-notes` (footer, `publicRoutes`, `render.yaml`) touch the same seams; conflicts on merge will be one-line.
+- `feat/site-search` (moves `publicRoutes`' static rows into `content/pages.js`) and `feat/til-notes` (footer, `App.jsx`, `publicRoutes`) touch the same seams; both carried full implementations by the time this branch was reviewed. Whichever merges second resolves: a `/stats` row in `content/pages.js` after `/colophon` (site-search), and the footer link, the `App.jsx` import and the `publicRoutes` row (til-notes).
 
 ## Public body
 
@@ -413,10 +419,16 @@ Milestone 1 (auto): tasks 1–7
   same one-rule pattern as /now and /colophon, and Joey's "go" on this
   plan is its carve-out review.
 Finish gate → PR (ready for review)
-No migration, no env var: merge order is free. The first nightly after the
-merge writes site-stats.json; until then the page paints from the build's
-own fetch-snapshot run (the API must be awake during the Render build, as
-for next.json, or the page waits for the live answer).
+No migration, no env var: merge order is free. On the merge push Render
+builds the static site and the API in parallel, so the build's own
+fetch-snapshot run hits the old API, which answers 404 on the new route,
+and the site ships without site-stats.json (optional, so the build is
+green). Until the API deploy is live /stats shows the waking line and then
+the load error; once it is live the page is live-only; the first nightly
+(00:17 UTC, which fires because next.json differs) writes the snapshot.
+To close that gap sooner: after the API deploy is live, trigger a static
+redeploy (Render dashboard, or the deploy hook). smoke.sh only warns on
+the missing snapshot meanwhile.
 ```
 
 ## Environment test section

@@ -32,7 +32,7 @@ export function dayLabel(iso, { weekday = false } = {}) {
 }
 
 /** A device value from the API as its label. */
-export const DEVICE_NAMES = {
+const DEVICE_NAMES = {
   desktop: 'Desktop',
   phone: 'Phone',
   tablet: 'Tablet',

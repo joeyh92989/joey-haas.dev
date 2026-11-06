@@ -7,59 +7,17 @@
  * `[text](href)` into a Link (a path) or an anchor (a URL) and leaves the
  * rest as text.
  *
- * `parseChangelog` throws on a heading that is not a date or a date with
- * no bullets, so a bad file fails the build, never a visitor's page.
+ * The parser is `lib/changelog.js`, which `scripts/prerender.mjs` also
+ * runs on the file during the build, so a bad file fails the build before
+ * this module can throw in a visitor's browser.
  */
 
 import { createElement } from 'react'
 import { Link } from 'react-router'
 import raw from '../../changelog.md?raw'
+import { parseChangelog } from '../lib/changelog.js'
 
-const DATE_HEADING = /^## (\d{4}-\d{2}-\d{2})\s*$/
-const BULLET = /^- (.*)$/
 const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g
-
-/**
- * Parses the changelog into entries, newest first whatever the file order.
- *
- * Before the first date heading only a `# ` title and prose are allowed.
- * A bullet may continue on indented lines.
- *
- * @param {string} text
- * @returns {{date: string, lines: string[]}[]}
- */
-export function parseChangelog(text) {
-  const entries = []
-  let entry = null
-  for (const line of text.split('\n')) {
-    const heading = line.match(/^#{2,} /)
-    if (heading) {
-      const date = line.match(DATE_HEADING)
-      if (!date) throw new Error(`changelog.md: not a date heading: ${line}`)
-      if (entry && entry.lines.length === 0) {
-        throw new Error(`changelog.md: no changes under ${entry.date}`)
-      }
-      entry = { date: date[1], lines: [] }
-      entries.push(entry)
-      continue
-    }
-    if (!entry) continue
-    const bullet = line.match(BULLET)
-    if (bullet) {
-      entry.lines.push(bullet[1].trim())
-    } else if (/^\s+\S/.test(line) && entry.lines.length) {
-      entry.lines[entry.lines.length - 1] += ` ${line.trim()}`
-    } else if (line.trim()) {
-      throw new Error(`changelog.md: not a bullet under ${entry.date}: ${line}`)
-    }
-  }
-  if (entry && entry.lines.length === 0) {
-    throw new Error(`changelog.md: no changes under ${entry.date}`)
-  }
-  return entries.sort((a, b) =>
-    a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
-  )
-}
 
 /**
  * One changelog line as React nodes: text, with each markdown link a

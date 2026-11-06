@@ -128,6 +128,36 @@ describe('Stats', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Live as of 3:04 PM.')
   })
 
+  it('moves from the snapshot line to the live one when the answer lands', () => {
+    mockStats({ data: BODY })
+    const { rerender } = renderPage()
+    expect(screen.getByRole('status')).toHaveTextContent(FROM_SNAPSHOT)
+    vi.setSystemTime(new Date('2026-11-06T15:09:00'))
+    mockStats({ data: { ...BODY, thirty: summary({ views: 40 }) }, live: true })
+    rerender(
+      <MemoryRouter initialEntries={['/stats']}>
+        <Stats />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('status')).toHaveTextContent('Live as of 3:09 PM.')
+    expect(tiles().getAllByRole('definition')[0]).toHaveTextContent('40')
+  })
+
+  it('renders an older snapshot without referrers_other and a short series', () => {
+    const older = summary({ series: DAYS.slice(-5) })
+    delete older.referrers_other
+    mockStats({ data: { thirty: older, all: older } })
+    renderPage()
+    expect(screen.getAllByRole('img')).toHaveLength(5)
+    const rows = within(
+      screen.getByRole('list', { name: 'Referrers by visitors' }),
+    ).getAllByRole('listitem')
+    expect(rows.map((row) => row.textContent)).toEqual([
+      'Direct / none15',
+      'news.example.com6',
+    ])
+  })
+
   it('keeps the snapshot figures and says asleep when the API did not answer', () => {
     mockStats({ data: BODY, failed: true })
     renderPage()

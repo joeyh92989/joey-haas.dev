@@ -416,7 +416,7 @@ Upgrade to Starter ($7/mo) to keep it warm.
 
 ## Collection snapshot
 
-`/shelf` and `/shelf/next` first paint a snapshot of the public API, then
+`/shelf`, `/shelf/next` and `/stats` first paint a snapshot of the public API, then
 refresh it from the live API, so a first-time visitor doesn't wait for the free-tier
 backend to wake. Home and Projects read the same file for their cover
 strips.
@@ -432,6 +432,9 @@ strips.
   of (see [Nightly job](#nightly-job)).
 - **`comics.json` is optional too**, the same way: `/shelf/comics` paints it
   when the build wrote it.
+- **`status.json` and `site-stats.json` are optional too** (the status
+  strip, and `/stats`), and neither is compared by the nightly: `next.json`
+  differs every night, so the redeploy that follows carries fresh ones.
 - **`next.json` is optional.** `/shelf/next` paints `/snapshot/next.json` when
   the file exists and shows "Waking the server" until the live call answers
   when it does not. `fetch-snapshot.mjs` writes it and leaves it out without failing the build when the API

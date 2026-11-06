@@ -47,8 +47,10 @@ npm run build      # on Render: snapshot, vite build, prerender, then the RSS fe
 picks, the catalogue and the suggestions first, then compares the live API
 bodies with the deployed files and triggers a static-site deploy through a
 Render deploy hook only when they differ. A failure on `items` or `stats`
-fails the compare; `next` is skipped with a warning
-when the API cannot serve it (a 404 until it has deployed). See the root
+fails the compare; `next` and `comics` are skipped with a warning
+when the API cannot serve them (a 404 until it has deployed); `status` and
+`site-stats` are not compared at all, since `next` differs every night and
+the redeploy that follows refreshes them. See the root
 README → Collection snapshot and Nightly job.
 
 **Gotchas.**

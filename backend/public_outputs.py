@@ -343,11 +343,16 @@ class PublicBestDayOut(BaseModel):
 
 
 class PublicCountOut(BaseModel):
+    """One row of a ranked list: a path, host or device and its count
+    (views, or visitors for referrers)."""
+
     value: str
     count: int
 
 
 class PublicDayOut(BaseModel):
+    """One day of the views series."""
+
     day: date
     views: int
 
