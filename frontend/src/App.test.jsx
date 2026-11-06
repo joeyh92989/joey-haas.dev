@@ -83,6 +83,7 @@ const TITLES = [
   ['/projects', 'Projects · Joey Haas'],
   ['/now', 'Now · Joey Haas'],
   ['/colophon', 'Colophon · Joey Haas'],
+  ['/stats', 'Stats · Joey Haas'],
   ['/blog', 'Blog · Joey Haas'],
   ['/shelf', 'My Shelf · Joey Haas'],
   ['/nonsense-path', 'Not found · Joey Haas'],
