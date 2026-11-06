@@ -15,6 +15,8 @@ import Next from './pages/Next.jsx'
 import Now from './pages/Now.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Projects from './pages/Projects.jsx'
+import Til from './pages/Til.jsx'
+import TilNote from './pages/TilNote.jsx'
 import YearInReview, { CurrentYear } from './pages/YearInReview.jsx'
 import { itemPath, monthPath, yearPath } from './lib/spinePaths.js'
 
@@ -120,6 +122,8 @@ export default function App() {
         </Route>
         <Route path="blog" element={<Blog />} />
         <Route path="blog/:slug" element={<BlogPost />} />
+        <Route path="til" element={<Til />} />
+        <Route path="til/:slug" element={<TilNote />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
