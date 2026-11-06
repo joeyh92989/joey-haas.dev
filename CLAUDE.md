@@ -7,10 +7,11 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - `frontend/` — Vite + React 19 SPA, routed with react-router v8 (declarative
   mode; import from `react-router`, not `react-router-dom`). Deployed as a free
-  Render static site. Public pages other than `/shelf*` make no API calls
-  (apart from RootLayout's one `/api/auth/me` session check, which fails
-  quietly to signed out, and the analytics beacon, a fire-and-forget
-  `sendBeacon` to `/api/track` that nothing waits on) — bio and project
+  Render static site. Public pages other than `/shelf*` and `/stats` make
+  no API calls (apart from RootLayout's one `/api/auth/me` session check,
+  which fails quietly to signed out, and the analytics beacon, a
+  fire-and-forget `sendBeacon` to `/api/track` that nothing waits on) —
+  bio and project
   content are static modules in `frontend/src/content/`, so the site
   renders fully while the free-tier backend is asleep. Home and
   Projects may read `/snapshot/items.json`, the build-time snapshot: a
@@ -88,6 +89,15 @@ before pushing.
   is an optional accessory only.
 - API routes live under `/api/`. CORS is configured for localhost and
   *.onrender.com in `backend/main.py` — update if a custom domain is added.
+- `frontend/changelog.md` is the public changelog, shown on `/stats`:
+  `## YYYY-MM-DD` headings, one bullet per shipped change, newest first,
+  markdown links where a change has a page. **A shipped feature adds its
+  entry**, written in the plan that ships it, so it is part of done.
+  `lib/changelog.js` parses it (throwing on a heading that is not a real
+  date, a date with no bullets or used twice, a nested bullet), and
+  `scripts/prerender.mjs` runs the parser on the file during `npm run
+  build`, so a bad file fails the build rather than the page; the browser
+  parses it again at module load (`content/changelog.js`).
 - Specs and plans live in `docs/planning/`, committed alongside the code they
   describe: `<date>-<topic>-design.md` for the spec, `<date>-<topic>-plan.md`
   for the plan. Mockups and the `.superpowers/` execution scratch stay out of
@@ -267,8 +277,9 @@ before pushing.
       `RootLayout`, `POST /api/track` and the admin read in
       `analytics_routes.py` (pure core in `analytics.py`), migration `0008`,
       the nightly rollup, and `/admin/analytics`. See README → Analytics.
-      `main.py` mounts two unauthenticated routers, the public reads and the
-      beacon; the beacon's own validation is its gate. Its daily cap counts
+      `main.py` mounts three unauthenticated routers, the public reads,
+      the site-stats read and the beacon; the beacon's own validation is
+      its gate. Its daily cap counts
       per IP (an IPv6 /64), not per visitor hash, because the user agent
       half of the hash is the caller's to vary, under a 5,000-a-day ceiling
       for the site. Referrers count only a visit's first view (later views
@@ -284,6 +295,16 @@ before pushing.
       and replay count on the shelf, and the playthrough table on the item
       and edit pages. Spec and plan:
       `docs/planning/2026-11-03-play-states-design.md`
+- [x] Public stats — `/stats`: the analytics figures from
+      `GET /api/public/site-stats` (`analytics_routes.py`; `summarise`'s
+      `fold_referrers_below` folds hosts under five visitors into
+      `referrers_other`, the public models drop the best day's referrer,
+      lists stay capped at ten), painted from the optional `site-stats`
+      snapshot, with the README's counting paragraph quoted verbatim and
+      the changelog from `frontend/changelog.md`. One `SummaryCache` in
+      `main.py` serves the admin and public reads (an hour's TTL for the
+      public key), so the rollup clears both. Spec and plan:
+      `docs/planning/2026-11-06-public-stats-design.md`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -404,8 +425,8 @@ before pushing.
   credentials are optional config checked lazily, so a missing key disables
   one media type rather than stopping the service; `main.py` logs which
   sources are configured at startup.
-- `/shelf*` are public and **do** call the API, unlike every other public
-  page; `/shelf/next` reads `/api/public/next`. `/api/public/picks` and
+- `/shelf*` and `/stats` are public and **do** call the API, unlike every
+  other public page; `/shelf/next` reads `/api/public/next`. `/api/public/picks` and
   `/api/public/radar` are retired (404, pinned by `smoke.sh`). `/shelf*`
   pages paint the build-time snapshot first
   (`frontend/public/snapshot/*.json`, written by

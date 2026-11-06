@@ -127,6 +127,8 @@ about_title="$(curl -s -m 90 "$SITE_URL/about" | grep -o '<title>[^<]*</title>')
 check_equals "GET /about has its own prerendered title" "$about_title" "<title>About · Joey Haas</title>"
 next_title="$(curl -s -m 90 "$SITE_URL/shelf/next" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /shelf/next has its own prerendered title" "$next_title" "<title>What’s next · My Shelf</title>"
+stats_title="$(curl -s -m 90 "$SITE_URL/stats" | grep -o '<title>[^<]*</title>')"
+check_equals "GET /stats has its own prerendered title" "$stats_title" "<title>Stats · Joey Haas</title>"
 til_title="$(curl -s -m 90 "$SITE_URL/til" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /til has its own prerendered title" "$til_title" "<title>TIL · Joey Haas</title>"
 # The pre-rename URL keeps its preview, with the canonical on /shelf.
@@ -347,7 +349,7 @@ snapshot_check() {
   fi
 }
 
-for name in items stats next; do
+for name in items stats next site-stats; do
   snapshot_check "$name"
 done
 
@@ -438,6 +440,22 @@ for status_source in "API:$status_body" "snapshot:$status_snapshot"; do
     report_pass "public status ($label) exposes no private fields" "no forbidden key"
   fi
 done
+
+# The public site stats (/stats): both ranges, the public reductions, and
+# never the best day's referrer, which could name a host the fold hid.
+check_equals "GET /api/public/site-stats" "$(http_status "$API_URL/api/public/site-stats")" "200"
+site_stats_body="$(curl -s -m 90 "$API_URL/api/public/site-stats")"
+if printf '%s' "$site_stats_body" | jq -e \
+  'keys == ["all","thirty"]
+   and (.thirty.views | type == "number")
+   and (.thirty.referrers_other | type == "number")
+   and ((.thirty.referrers | length) <= 10)
+   and ([.thirty, .all] | all(.best_day == null or (.best_day | keys == ["day","views"])))' \
+  > /dev/null 2>&1; then
+  report_pass "public site-stats has both ranges, reduced" "thirty and all, no best-day referrer"
+else
+  report_fail "public site-stats has both ranges, reduced" "got '${site_stats_body:0:80}'"
+fi
 
 # The nightly job's token: no token and a wrong one are both refused.
 check_equals "POST /api/picker/next with a wrong job token" \

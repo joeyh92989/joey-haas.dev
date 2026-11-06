@@ -14,7 +14,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from analytics_routes import create_analytics_router, create_track_router
+from analytics_routes import (
+    SummaryCache,
+    create_analytics_router,
+    create_site_stats_router,
+    create_track_router,
+)
 from auth import admin_identity, create_auth_router
 from comics_routes import create_comics_router
 from config import allowed_origins, configure_logging, load_config
@@ -107,7 +112,10 @@ app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
 app.include_router(create_picker_router(session_factory))
 app.include_router(create_journal_router(session_factory))
-app.include_router(create_analytics_router(session_factory))
+# One cache for the admin read and the public site-stats read, so the
+# nightly rollup's clear refreshes both.
+summary_cache = SummaryCache()
+app.include_router(create_analytics_router(session_factory, cache=summary_cache))
 
 
 def physical_http_client() -> httpx2.AsyncClient:
@@ -146,11 +154,14 @@ app.include_router(create_comics_router(session_factory, registry, asyncio.Lock(
 # is a failure of the import route alone rather than a service that will not
 # boot -- the same reasoning as the lazy source checks.
 app.include_router(create_import_router(registry, lambda: build_provider(config)))
-# The two unauthenticated routers. Every query in the public one filters on
-# is_public, so the gate is the data rather than the caller. The beacon only
-# writes: a validated path, referrer and device under a daily-salted visitor
-# hash, capped per IP per day, answering 204 whatever it does.
+# The three unauthenticated routers. Every query in the public one filters on
+# is_public, so the gate is the data rather than the caller. The site-stats
+# read serves the analytics summary with its public reductions, cached for an
+# hour. The beacon only writes: a validated path, referrer and device under a
+# daily-salted visitor hash, capped per IP per day, answering 204 whatever it
+# does.
 app.include_router(create_public_router(session_factory))
+app.include_router(create_site_stats_router(session_factory, cache=summary_cache))
 app.include_router(create_track_router(session_factory, config.session_secret))
 
 

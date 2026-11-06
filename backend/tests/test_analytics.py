@@ -220,6 +220,7 @@ def test_a_summary_over_an_empty_range_is_all_zeros():
     assert summary["views_per_visitor"] == 0
     assert summary["best_day"] is None
     assert summary["pages"] == summary["referrers"] == summary["devices"] == []
+    assert summary["referrers_other"] == 0
     assert [point["views"] for point in summary["series"]] == [0] * 7
     assert summary["live_since"] == ANALYTICS_LIVE_SINCE
 
@@ -277,6 +278,57 @@ def test_referrers_count_visitors_by_where_their_visits_began():
     ]
     # Four of the five visits began at x.com, though most views did not.
     assert summary["best_day"] == {"day": DAY, "views": 8, "referrer": "x.com"}
+
+
+def _referred(host: str, visitors: int, day=DAY):
+    """One visit per visitor from `host` on `day`."""
+    return views(*[("/", host, "desktop", f"{host}-{n}") for n in range(visitors)])
+
+
+def test_the_fold_drops_small_hosts_into_other_before_the_cap():
+    # Twelve hosts at or above the threshold, three below it, one direct visit.
+    rows = views(("/", "", "desktop", "direct"))
+    for n in range(12):
+        rows += _referred(f"big{n:02d}.example", 5 + n)
+    for n, visitors in enumerate((4, 2, 1)):
+        rows += _referred(f"small{n}.example", visitors)
+    stats = rollup_day(DAY, views(*rows))
+
+    folded = summarise(stats, DAY, DAY, fold_referrers_below=5)
+    names = [row["value"] for row in folded["referrers"]]
+    # Direct first with its one visitor, then the top nine big hosts.
+    assert names[0] == ""
+    assert folded["referrers"][0]["count"] == 1
+    assert len(names) == 10
+    assert not any(name.startswith("small") for name in names)
+    # "Other" is the three small hosts only: the big hosts the cap cut are
+    # not "other", they are simply not listed.
+    assert folded["referrers_other"] == 7
+    # Exactly five stays (boundary): the smallest big host is cut by the
+    # cap, not the fold, so a list of nine big hosts shows it.
+    boundary = summarise(
+        rollup_day(DAY, _referred("five.example", 5) + _referred("four.example", 4)),
+        DAY,
+        DAY,
+        fold_referrers_below=5,
+    )
+    assert [row["value"] for row in boundary["referrers"]] == ["five.example"]
+    assert boundary["referrers_other"] == 4
+
+    # Without a threshold nothing is folded. The listed ten are the same
+    # here, because the cap alone cuts the small hosts; only "other" differs.
+    plain = summarise(stats, DAY, DAY)
+    assert plain["referrers_other"] == 0
+    assert plain["referrers"] == folded["referrers"]
+
+
+def test_direct_never_folds_and_counts_as_itself():
+    stats = rollup_day(
+        DAY, views(("/", "", "desktop", "a"), ("/", "x.com", "phone", "b"))
+    )
+    folded = summarise(stats, DAY, DAY, fold_referrers_below=5)
+    assert folded["referrers"] == [{"value": "", "count": 1}]
+    assert folded["referrers_other"] == 1
 
 
 def test_ranges_end_today_and_all_starts_at_the_launch():

@@ -80,6 +80,20 @@ const isComicsBody = (body) =>
   Array.isArray(body.this_week.later)
 
 /**
+ * The /stats page's body: both ranges with the figures the tiles show and
+ * the lists the page draws. Keep in step with `isSiteStatsBody` in src/lib/snapshot.js:
+ * the two predicates must be identical.
+ */
+const SUMMARY_LISTS = ['series', 'pages', 'referrers', 'devices']
+const isSummary = (body) =>
+  isObject(body) &&
+  Number.isInteger(body.views) &&
+  Number.isInteger(body.visitors) &&
+  SUMMARY_LISTS.every((key) => Array.isArray(body[key]))
+const isSiteStatsBody = (body) =>
+  isObject(body) && isSummary(body.thirty) && isSummary(body.all)
+
+/**
  * The snapshots, the endpoint each copies, the shape it must have, and
  * whether the build can go without it. A required snapshot that fails fails
  * them all; an optional one is only left out.
@@ -112,6 +126,14 @@ export const SNAPSHOTS = {
   comics: {
     path: '/api/public/comics',
     valid: isComicsBody,
+    required: false,
+  },
+  // Optional like next: the /stats page (public stats spec). Not in the
+  // nightly compare either: next differs every night, so the redeploy that
+  // follows carries a fresh one, and the rollup runs before the compare.
+  'site-stats': {
+    path: '/api/public/site-stats',
+    valid: isSiteStatsBody,
     required: false,
   },
 }

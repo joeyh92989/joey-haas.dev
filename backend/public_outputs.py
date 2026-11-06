@@ -333,6 +333,57 @@ class PublicStatusOut(BaseModel):
     listings: int
 
 
+class PublicBestDayOut(BaseModel):
+    """The day with the most views. No `referrer`: the admin read names
+    the host that brought most of that day's visits, and it could be one
+    the public fold hid."""
+
+    day: date
+    views: int
+
+
+class PublicCountOut(BaseModel):
+    """One row of a ranked list: a path, host or device and its count
+    (views, or visitors for referrers)."""
+
+    value: str
+    count: int
+
+
+class PublicDayOut(BaseModel):
+    """One day of the views series."""
+
+    day: date
+    views: int
+
+
+class PublicSummaryOut(BaseModel):
+    """One range of GET /api/public/site-stats: analytics.summarise's body
+    with the public reductions (analytics_routes.create_site_stats_router).
+    tests/test_public_outputs.py pins the fields."""
+
+    start: date
+    end: date
+    views: int
+    visitors: int
+    views_per_visitor: float
+    best_day: PublicBestDayOut | None
+    series: list[PublicDayOut]
+    pages: list[PublicCountOut]
+    referrers: list[PublicCountOut]
+    referrers_other: int
+    devices: list[PublicCountOut]
+    live_since: date
+
+
+class PublicSiteStatsOut(BaseModel):
+    """GET /api/public/site-stats: the /stats page. The last thirty days
+    and everything since the beacon went live."""
+
+    thirty: PublicSummaryOut
+    all: PublicSummaryOut
+
+
 class PublicNextOut(BaseModel):
     """GET /api/public/next: tonight, the wanted list, and the four store
     sections. tests/test_public_outputs.py pins the fields and walks the

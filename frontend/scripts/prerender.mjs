@@ -35,9 +35,15 @@ import {
 } from './prerender-lib.mjs'
 import { readPublished } from './markdown-lib.mjs'
 import { spine } from '../src/content/spine.js'
+import { parseChangelog } from '../src/lib/changelog.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(here, '..', 'dist')
+
+// The public changelog (/stats) is parsed in the browser at module load,
+// which Rollup never runs; parsing it here makes a bad file fail the build
+// rather than every page of the site.
+parseChangelog(await fs.readFile(path.join(here, '..', 'changelog.md'), 'utf8'))
 const postsDir = path.join(here, '..', 'posts')
 const notesDir = path.join(here, '..', 'notes')
 

@@ -14,6 +14,7 @@ from analytics_routes import (
     SummaryCache,
     _read_capped,
     create_analytics_router,
+    create_site_stats_router,
     create_track_router,
 )
 from models import DailyStat, PageView
@@ -41,9 +42,12 @@ class Clock:
 @asynccontextmanager
 async def client_for(factory, clock=None, signed_in=False, cache=None):
     clock = clock or Clock(datetime(2026, 10, 20, 12, tzinfo=UTC))
+    # One cache for both reads, as main.py wires them.
+    cache = cache or SummaryCache()
     app = FastAPI()
     app.include_router(create_track_router(factory, SECRET, now=clock))
     app.include_router(create_analytics_router(factory, now=clock, cache=cache))
+    app.include_router(create_site_stats_router(factory, now=clock, cache=cache))
     if signed_in:
 
         @app.middleware("http")
@@ -295,6 +299,20 @@ async def test_the_read_is_cached_for_a_minute():
     assert await cache.get("7d", build) == {"n": 2}
 
 
+async def test_a_longer_ttl_buckets_by_that_many_seconds():
+    ticks = iter([0.0, 1800.0, 3601.0])
+    cache = SummaryCache(clock=lambda: next(ticks))
+    builds = []
+
+    async def build():
+        builds.append(1)
+        return {"n": len(builds)}
+
+    assert await cache.get("public", build, ttl=3600) == {"n": 1}
+    assert await cache.get("public", build, ttl=3600) == {"n": 1}
+    assert await cache.get("public", build, ttl=3600) == {"n": 2}
+
+
 async def test_a_rollup_clears_the_cached_read(sessionmaker_for_test):
     factory = sessionmaker_for_test
     yesterday = date(2026, 10, 19)
@@ -310,3 +328,107 @@ async def test_a_rollup_clears_the_cached_read(sessionmaker_for_test):
     # Yesterday is now rolled up with its raw rows kept: counted once.
     assert (before["views"], after["views"]) == (1, 2)
     assert after["visitors"] == 2
+
+
+# --- The public read. --------------------------------------------------------
+
+
+async def _referred(factory, day, host, visitors):
+    for n in range(visitors):
+        await _view(factory, day, ref=host, visitor=f"{host}-{n}")
+
+
+async def test_site_stats_needs_no_session_and_never_names_a_small_host(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    today = date(2026, 10, 20)
+    # Launch day is the test clock's today, so "all" and "30d" cover the
+    # same views; the figures must still agree with the admin read.
+    # Six of eleven visits began at big.example: the admin's dominant host.
+    await _referred(factory, today, "big.example", 6)
+    await _referred(factory, today, "small.example", 4)
+    await _view(factory, today, ref="", visitor="direct")
+    async with client_for(factory) as client:
+        public = await client.get("/api/public/site-stats")
+    async with client_for(factory, signed_in=True) as client:
+        thirty = (await client.get("/api/analytics?range=30d")).json()
+        everything = (await client.get("/api/analytics?range=all")).json()
+
+    assert public.status_code == 200
+    assert public.headers["cache-control"] == "public, max-age=300"
+    body = public.json()
+    assert set(body) == {"thirty", "all"}
+    for key, admin in (("thirty", thirty), ("all", everything)):
+        summary = body[key]
+        # The four figures the page can show agree with the admin read.
+        for figure in ("views", "visitors", "views_per_visitor"):
+            assert summary[figure] == admin[figure]
+        assert summary["best_day"]["day"] == admin["best_day"]["day"]
+        assert summary["best_day"]["views"] == admin["best_day"]["views"]
+        assert [row["value"] for row in summary["referrers"]] == ["", "big.example"]
+        assert summary["referrers_other"] == 4
+        assert set(summary["best_day"]) == {"day", "views"}
+        for name in ("pages", "referrers", "devices"):
+            assert len(summary[name]) <= 10
+    assert len(body["thirty"]["series"]) == 30
+    assert body["all"]["start"] == "2026-10-20"
+    # The admin read is unchanged: the small host is still named there.
+    assert "small.example" in [row["value"] for row in thirty["referrers"]]
+    assert thirty["best_day"]["referrer"] == "big.example"
+
+
+async def test_the_public_and_admin_reads_never_share_a_cache_entry(
+    sessionmaker_for_test,
+):
+    """One cache serves both reads; a shared key would hand the public
+    route the admin's unreduced body (or the admin the reduced one)."""
+    factory = sessionmaker_for_test
+    today = date(2026, 10, 20)
+    await _referred(factory, today, "small.example", 4)
+    await _view(factory, today, ref="", visitor="direct")
+    for first in ("admin", "public"):
+        # A clock that never moves: whichever read comes first fills the
+        # cache, and the other must still build its own body.
+        cache = SummaryCache(clock=lambda: 0.0)
+        async with client_for(factory, signed_in=True, cache=cache) as client:
+            reads = {
+                "admin": lambda: client.get("/api/analytics?range=30d"),
+                "public": lambda: client.get("/api/public/site-stats"),
+            }
+            second = "public" if first == "admin" else "admin"
+            bodies = {first: (await reads[first]()).json()}
+            bodies[second] = (await reads[second]()).json()
+        hosts = [row["value"] for row in bodies["admin"]["referrers"]]
+        assert "small.example" in hosts, first
+        public = bodies["public"]["thirty"]
+        assert [row["value"] for row in public["referrers"]] == [""], first
+        assert public["referrers_other"] == 4, first
+
+
+async def test_an_empty_site_stats_body_is_zeros(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/site-stats")).json()
+    for summary in body.values():
+        assert (summary["views"], summary["visitors"]) == (0, 0)
+        assert summary["best_day"] is None
+        assert summary["pages"] == summary["referrers"] == summary["devices"] == []
+        assert summary["referrers_other"] == 0
+    assert [point["views"] for point in body["thirty"]["series"]] == [0] * 30
+
+
+async def test_a_rollup_clears_the_public_read_too(sessionmaker_for_test):
+    factory = sessionmaker_for_test
+    yesterday = date(2026, 10, 19)
+    await _view(factory, yesterday, visitor="a")
+    clock = Clock(datetime(2026, 10, 20, 0, 17, tzinfo=UTC))
+    cache = SummaryCache(clock=lambda: 0.0)
+    async with client_for(factory, clock, signed_in=True, cache=cache) as client:
+        before = (await client.get("/api/public/site-stats")).json()
+        await _view(factory, yesterday, visitor="b")
+        stale = (await client.get("/api/public/site-stats")).json()
+        await client.post("/api/analytics/rollup", headers={"origin": SITE})
+        after = (await client.get("/api/public/site-stats")).json()
+    # "thirty": yesterday is before the launch date, which "all" starts at.
+    views = [body["thirty"]["views"] for body in (before, stale, after)]
+    assert views == [1, 1, 2]

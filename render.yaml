@@ -48,6 +48,9 @@ services:
         source: /colophon
         destination: /colophon/index.html
       - type: rewrite
+        source: /stats
+        destination: /stats/index.html
+      - type: rewrite
         source: /blog
         destination: /blog/index.html
       - type: rewrite

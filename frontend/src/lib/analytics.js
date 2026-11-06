@@ -1,5 +1,6 @@
 /**
- * Shared words for the Analytics page and the Dashboard's views tile.
+ * Shared words for the admin Analytics page, /stats and the Dashboard's
+ * views tile.
  *
  * The API counts by UTC day and sends each as an ISO date, so dates are
  * formatted in UTC: in the browser's own zone, a day west of Greenwich
@@ -29,6 +30,19 @@ export function dayLabel(iso, { weekday = false } = {}) {
   const date = new Date(`${iso}T00:00:00Z`)
   return (weekday ? WEEKDAY : DAY).format(date)
 }
+
+/** A device value from the API as its label. */
+const DEVICE_NAMES = {
+  desktop: 'Desktop',
+  phone: 'Phone',
+  tablet: 'Tablet',
+}
+
+/** @param {string} value */
+export const deviceName = (value) => DEVICE_NAMES[value] ?? value
+
+/** A referrer's label: the empty value is the visits that named none. */
+export const referrerName = (value) => value || 'Direct / none'
 
 /** A count with its noun, singular for one: "1 visitor", "3 visitors". */
 export function counted(count, noun) {

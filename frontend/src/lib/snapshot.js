@@ -76,6 +76,20 @@ const isComicsBody = (body) =>
   Array.isArray(body.this_week.weeks) &&
   Array.isArray(body.this_week.later)
 
+/**
+ * The /stats page's body: both ranges with the figures the tiles show and
+ * the lists the page draws. Keep in step with `isSiteStatsBody` in scripts/fetch-snapshot.mjs:
+ * the two predicates must be identical.
+ */
+const SUMMARY_LISTS = ['series', 'pages', 'referrers', 'devices']
+const isSummary = (body) =>
+  isObject(body) &&
+  Number.isInteger(body.views) &&
+  Number.isInteger(body.visitors) &&
+  SUMMARY_LISTS.every((key) => Array.isArray(body[key]))
+const isSiteStatsBody = (body) =>
+  isObject(body) && isSummary(body.thirty) && isSummary(body.all)
+
 /** Each snapshot's name and the shape its body must have to be used. */
 const SHAPES = {
   items: Array.isArray,
@@ -83,6 +97,7 @@ const SHAPES = {
   next: isNextBody,
   status: isStatusBody,
   comics: isComicsBody,
+  'site-stats': isSiteStatsBody,
   meta: isMetaBody,
 }
 

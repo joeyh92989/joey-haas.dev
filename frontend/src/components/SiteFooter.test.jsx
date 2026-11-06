@@ -27,6 +27,10 @@ describe('SiteFooter', () => {
       'href',
       '/colophon',
     )
+    expect(footer.getByRole('link', { name: 'Stats' })).toHaveAttribute(
+      'href',
+      '/stats',
+    )
     expect(footer.getByRole('link', { name: 'GitHub' })).toBeInTheDocument()
   })
 

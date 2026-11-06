@@ -270,13 +270,26 @@ def _ranked(totals: dict[str, int], first: str | None = None) -> list[dict]:
     return [{"value": value, "count": count} for value, count in rows[:LIST_SIZE]]
 
 
-def summarise(stats: Iterable[Stat], start: date, end: date) -> dict:
+def summarise(
+    stats: Iterable[Stat],
+    start: date,
+    end: date,
+    *,
+    fold_referrers_below: int = 0,
+) -> dict:
     """The Analytics page's body over `start`..`end` inclusive.
 
     Visitors over a range are the sum of each day's visitors: the salt
     changes daily, so one person on two days is two. Best day is the day
     with the most views (the latest on a tie), with the referrer that
     brought more than half of its visits, when one did.
+
+    With `fold_referrers_below`, every named host with fewer visitors than
+    that leaves the referrer list before it is cut to `LIST_SIZE`, and
+    their visitors are summed into `referrers_other`. The public read uses
+    it so a host with a handful of visitors (someone's own blog, a company
+    intranet) is never named. Direct (`''`) never folds. Hosts the cap
+    cuts are not "other": they are simply not listed.
     """
     by_day: dict[date, int] = {}
     visitors = 0
@@ -323,6 +336,15 @@ def summarise(stats: Iterable[Stat], start: date, end: date) -> dict:
         series.append({"day": day, "views": by_day.get(day, 0)})
         day += timedelta(days=1)
 
+    other = 0
+    if fold_referrers_below > 0:
+        small = [
+            host
+            for host, count in referrers.items()
+            if host and count < fold_referrers_below
+        ]
+        other = sum(referrers.pop(host) for host in small)
+
     return {
         "start": start,
         "end": end,
@@ -333,6 +355,7 @@ def summarise(stats: Iterable[Stat], start: date, end: date) -> dict:
         "series": series,
         "pages": _ranked(pages),
         "referrers": _ranked(referrers, first=""),
+        "referrers_other": other,
         "devices": _ranked(devices),
         "live_since": ANALYTICS_LIVE_SINCE,
     }

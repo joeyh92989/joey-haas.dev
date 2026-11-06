@@ -114,6 +114,33 @@ describe('isValidSnapshot', () => {
     expect(isValidSnapshot('status', [])).toBe(false)
   })
 
+  it('accepts a site-stats body with both ranges, each with its lists', () => {
+    const summary = {
+      views: 12,
+      visitors: 9,
+      series: [],
+      pages: [],
+      referrers: [],
+      devices: [],
+    }
+    const body = { thirty: summary, all: summary }
+    expect(isValidSnapshot('site-stats', body)).toBe(true)
+    expect(isValidSnapshot('site-stats', { thirty: summary })).toBe(false)
+    expect(
+      isValidSnapshot('site-stats', {
+        ...body,
+        all: { ...summary, pages: {} },
+      }),
+    ).toBe(false)
+    expect(
+      isValidSnapshot('site-stats', {
+        ...body,
+        thirty: { ...summary, views: null },
+      }),
+    ).toBe(false)
+    expect(isValidSnapshot('site-stats', [])).toBe(false)
+  })
+
   it('accepts a comics body with its series, stats and weeks', () => {
     const comics = {
       series: [],

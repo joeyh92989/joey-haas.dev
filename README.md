@@ -467,7 +467,7 @@ Upgrade to Starter ($7/mo) to keep it warm.
 
 ## Collection snapshot
 
-`/shelf` and `/shelf/next` first paint a snapshot of the public API, then
+`/shelf`, `/shelf/next` and `/stats` first paint a snapshot of the public API, then
 refresh it from the live API, so a first-time visitor doesn't wait for the free-tier
 backend to wake. Home and Projects read the same file for their cover
 strips.
@@ -483,6 +483,9 @@ strips.
   of (see [Nightly job](#nightly-job)).
 - **`comics.json` is optional too**, the same way: `/shelf/comics` paints it
   when the build wrote it.
+- **`status.json` and `site-stats.json` are optional too** (the status
+  strip, and `/stats`), and neither is compared by the nightly: `next.json`
+  differs every night, so the redeploy that follows carries fresh ones.
 - **`next.json` is optional.** `/shelf/next` paints `/snapshot/next.json` when
   the file exists and shows "Waking the server" until the live call answers
   when it does not. `fetch-snapshot.mjs` writes it and leaves it out without failing the build when the API
@@ -562,8 +565,18 @@ limit is 150 minutes.
 
 ## Analytics
 
-First-party and cookie-free; no third-party script is loaded and nothing
-leaves the site's own API.
+This site counts its own visits: no cookies, no third-party script, and
+nothing leaves the site's own API. Each page view sends the path, the
+referring site on a visit's first page, and whether the device is a
+desktop, phone or tablet. A visitor is a hash of IP address and browser
+that changes every day, so one day cannot be joined to the next, and
+neither the address nor the browser is stored. Nothing is sent under
+Global Privacy Control or Do Not Track, and the figures undercount: the
+API sleeps when idle, and a view sent while it wakes is lost.
+
+The paragraph above is quoted verbatim on `/stats` ("How this is counted",
+`frontend/src/content/stats.js`); `stats.test.js` reads both, so edit it
+here first. The details:
 
 - **The beacon** (`frontend/src/lib/useAnalyticsBeacon.js`, mounted in
   `RootLayout`) sends `{path, ref, device}` with `navigator.sendBeacon` once
@@ -616,6 +629,7 @@ detail and next models' field sets.
 | `GET /api/public/stats` | Counts over public rows |
 | `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge`, `comics_this_week` (see below) |
 | `GET /api/public/comics` | `/shelf/comics`: public series with their runs, the shelf's figures, and `this_week` (the weeks ahead and the undated series under Later); never `issues_skipped`, a price or a store |
+| `GET /api/public/site-stats` | `/stats`: the analytics summary (`backend/analytics_routes.py`) for the last thirty days (`thirty`) and since launch (`all`), reduced for the public: referrer hosts under five visitors folded into `referrers_other`, no best-day referrer, lists capped at ten; cached for an hour on the cache the admin read shares, `Cache-Control: max-age=300` |
 
 `/api/public/picks` and `/api/public/radar` are retired and answer 404;
 `/api/public/next` carries both (Play Next's picks as `tonight`, Radar's
