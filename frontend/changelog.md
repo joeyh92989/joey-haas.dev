@@ -30,4 +30,4 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-10-23
 
-- Spine is now [My Shelf](/shelf); every old `/spine` link redirects.
+- Spine is now [My Shelf](/shelf); every old /spine link redirects.

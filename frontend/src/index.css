@@ -4552,6 +4552,11 @@ main h1[tabindex='-1']:focus {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* The page frame spaces sibling sections; in the grid they are columns. */
+.site-stats-lists > section {
+  margin-top: 0;
+}
+
 .site-stats-lists h2 {
   margin-bottom: 0.25rem;
 }
@@ -4559,6 +4564,18 @@ main h1[tabindex='-1']:focus {
 .site-stats-lists .kicker {
   display: block;
   margin-bottom: 0.5rem;
+}
+
+/* Three lists share the column, so a row is the label above its bar and
+   count rather than the admin page's one line, which would cut every path
+   and host short. */
+.site-stats-lists .bar-list li {
+  grid-template-columns: minmax(0, 1fr) 3rem;
+  row-gap: 4px;
+}
+
+.site-stats-lists .bar-list-label {
+  grid-column: 1 / -1;
 }
 
 .changelog {
