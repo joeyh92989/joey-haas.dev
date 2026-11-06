@@ -361,10 +361,11 @@ async def test_site_stats_needs_no_session_and_never_names_a_small_host(
     assert set(body) == {"thirty", "all"}
     for key, admin in (("thirty", thirty), ("all", everything)):
         summary = body[key]
-        assert (summary["views"], summary["visitors"]) == (
-            admin["views"],
-            admin["visitors"],
-        )
+        # The four figures the page can show agree with the admin read.
+        for figure in ("views", "visitors", "views_per_visitor"):
+            assert summary[figure] == admin[figure]
+        assert summary["best_day"]["day"] == admin["best_day"]["day"]
+        assert summary["best_day"]["views"] == admin["best_day"]["views"]
         assert [row["value"] for row in summary["referrers"]] == ["", "big.example"]
         assert summary["referrers_other"] == 4
         assert set(summary["best_day"]) == {"day", "views"}
@@ -375,6 +376,34 @@ async def test_site_stats_needs_no_session_and_never_names_a_small_host(
     # The admin read is unchanged: the small host is still named there.
     assert "small.example" in [row["value"] for row in thirty["referrers"]]
     assert thirty["best_day"]["referrer"] == "big.example"
+
+
+async def test_the_public_and_admin_reads_never_share_a_cache_entry(
+    sessionmaker_for_test,
+):
+    """One cache serves both reads; a shared key would hand the public
+    route the admin's unreduced body (or the admin the reduced one)."""
+    factory = sessionmaker_for_test
+    today = date(2026, 10, 20)
+    await _referred(factory, today, "small.example", 4)
+    await _view(factory, today, ref="", visitor="direct")
+    for first in ("admin", "public"):
+        # A clock that never moves: whichever read comes first fills the
+        # cache, and the other must still build its own body.
+        cache = SummaryCache(clock=lambda: 0.0)
+        async with client_for(factory, signed_in=True, cache=cache) as client:
+            reads = {
+                "admin": lambda: client.get("/api/analytics?range=30d"),
+                "public": lambda: client.get("/api/public/site-stats"),
+            }
+            second = "public" if first == "admin" else "admin"
+            bodies = {first: (await reads[first]()).json()}
+            bodies[second] = (await reads[second]()).json()
+        hosts = [row["value"] for row in bodies["admin"]["referrers"]]
+        assert "small.example" in hosts, first
+        public = bodies["public"]["thirty"]
+        assert [row["value"] for row in public["referrers"]] == [""], first
+        assert public["referrers_other"] == 4, first
 
 
 async def test_an_empty_site_stats_body_is_zeros(sessionmaker_for_test):

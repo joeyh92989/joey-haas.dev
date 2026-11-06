@@ -315,11 +315,11 @@ def test_the_fold_drops_small_hosts_into_other_before_the_cap():
     assert [row["value"] for row in boundary["referrers"]] == ["five.example"]
     assert boundary["referrers_other"] == 4
 
-    # Without a threshold the lists are today's and nothing is folded.
+    # Without a threshold nothing is folded. The listed ten are the same
+    # here, because the cap alone cuts the small hosts; only "other" differs.
     plain = summarise(stats, DAY, DAY)
     assert plain["referrers_other"] == 0
-    assert any(row["value"] == "small0.example" for row in plain["referrers"]) is False
-    assert len(plain["referrers"]) == 10
+    assert plain["referrers"] == folded["referrers"]
 
 
 def test_direct_never_folds_and_counts_as_itself():
