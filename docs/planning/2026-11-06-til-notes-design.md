@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: none
 chosen: none
 ---
@@ -140,3 +140,119 @@ flowchart LR
   now or stay duplicated for one more feature; the plan decides.
 - Whether the nightly snapshot workflow needs to know about `/til` (it
   should not: notes change only on deploy).
+
+---
+
+# Plan
+
+Tier: **Full** (it touches `render.yaml`, the deploy path). Branch
+`feat/til-notes`, worktree `~/Developer/joey-haas.dev-worktrees/feat-til-notes`.
+
+## Where the code differs from the spec (decided here)
+
+| Spec says | Code says | Decision |
+|---|---|---|
+| Footer: "TIL" next to "Blog" | `SiteFooter` has no Blog link (credit line: Source · Now · Colophon) | TIL goes into the credit line after Now, shown only while a note is published |
+| Nothing about rewrites | Every prerendered page needs its own `render.yaml` rewrite, `prerender-lib.test.mjs` enforces it, and a rule for an unbuilt file serves an empty 200 | `/til` plus one rule per published note, in the carve-out milestone |
+| "The blog index's rule" between notes | `.row-list` puts a `--line` border between rows | `.note-list` reuses the same token and spacing; no new tokens |
+| `/blog` unchanged by adding a note | The Blog index gains its "Shorter things are in TIL" line once | The line shows only while a note is published; after that, adding a note changes nothing under `/blog` (checked with a `dist/` diff) |
+| One real first note | No such note exists yet | Drafted from a quirk the repo already documents (Render serves `dist/x/index.html` at `/x/` and not at `/x`, 2026-10-19). It lands `draft: true` and is published only after Joey approves the wording at the carve-out stop |
+
+Open questions, answered:
+- **Shared module now?** Yes. `formatDate` moves to `lib/formatDate.js`,
+  and the date-and-tags row becomes `components/PostMeta.jsx`. A second
+  consumer is the moment to share them, and `BlogPost` keeps the same markup
+  (its test pins that).
+- **Nightly workflow?** No change. Notes change only on deploy, and
+  `nightly.yml`'s deploy hook rebuilds them anyway.
+
+## Tasks
+
+**1. Shared helpers** (no behaviour change)
+- Files: `src/lib/formatDate.js` (+ test), `src/components/PostMeta.jsx`,
+  `src/content/posts.js`, `pages/Blog.jsx`, `pages/BlogPost.jsx`, `pages/Home.jsx`.
+- AC: every `formatDate` import points at `lib/`. `BlogPost` renders
+  through `PostMeta` with the same DOM, and the existing Blog, BlogPost and
+  Home tests pass unchanged.
+
+**2. Feed and markdown reading as one library**
+- Files: new `scripts/markdown-lib.mjs` (`readPublished(dir)`,
+  `rssFeed({items, urlPrefix, title, description, selfPath})`, `escapeXml`),
+  `scripts/generate-rss.mjs` (calls them twice: `posts/` → `dist/feed.xml`,
+  `notes/` → `dist/til/feed.xml`), `scripts/prerender.mjs` (its
+  `readPosts` becomes `readPublished`), `scripts/markdown-lib.test.mjs`,
+  `scripts/README.md`.
+- AC: `dist/feed.xml` is byte-identical before and after (diffed with a
+  build on `origin/main`). A missing or empty `notes/` writes a valid
+  empty channel. Drafts are skipped. Item links and GUIDs use the prefix
+  passed in.
+- Tests: two directories give two feeds from one function. Draft skipped.
+  Ordering. Escaping. The `selfPath` atom link.
+
+**3. Notes content module**
+- Files: `src/content/notes.js` (+ `notes.test.js`), `frontend/notes/`
+  holding the first note as `draft: true`, and `vite-plugin-markdown.js`
+  (the slug error says "Filenames", not "Post filenames").
+- AC: `notes` is newest first with nulls filtered, and `findNote(slug)`
+  works. In dev the draft note shows with the Draft badge, as posts do.
+- Tests: ordering and null filtering on a mocked glob, and `findNote`.
+
+**4. `/til` and `/til/:slug`**
+- Files: `pages/Til.jsx`, `pages/TilNote.jsx` (+ tests), `App.jsx` routes,
+  `index.css` (`.note-list`, built from tokens only).
+- AC: as in the spec's `/til` and `/til/:slug` sections. Titles are
+  `TIL · Joey Haas` and `<title> · TIL · Joey Haas`. An unknown slug renders
+  `NotFound`. Each `h2` links to its permalink. Everything sits in the 45rem
+  column (no `WIDE_ROUTES` entry).
+- Tests: list order and permalinks, the single note, the `NotFound` case
+  and the empty state.
+
+**5. Discovery links**
+- Files: `pages/Blog.jsx`, `components/SiteFooter.jsx`, `pages/Colophon.jsx`
+  (+ their tests).
+- AC: the Blog line and the footer link render only while `notes.length > 0`.
+  Colophon links both feeds.
+
+**6. Prerendered heads**
+- Files: `scripts/prerender-lib.mjs` (`publicRoutes({posts, notes, items})`,
+  a `TIL_FEED` alternate link on the `/til*` heads), `scripts/prerender.mjs`,
+  `prerender-lib.test.mjs` (its rewrite check also reads `notes/`).
+- AC: `/til` and `/til/<slug>` get `type: article` heads and sitemap
+  entries, with the description from `excerpt`, only for published notes.
+  `/til` itself is written only while at least one note is published, as
+  `/blog` is.
+
+**7. Carve-out: publish the first note** (after the STOP)
+- Files: `frontend/notes/<slug>.md` (`draft` removed), `render.yaml` (the
+  `/til` and `/til/<slug>` rewrites, ahead of the `/spine` rules and the
+  catch-all), `scripts/smoke.sh` (`/til/feed.xml` served as XML with a
+  channel), `CLAUDE.md` (notes conventions: one rewrite per published note,
+  as for posts).
+- AC: the rewrite test passes against the real `notes/`, and the full build
+  writes `dist/til/index.html`, `dist/til/<slug>/index.html` and
+  `dist/til/feed.xml`.
+
+Parallel-safe: none worth splitting. Each task is small and 4–6 depend on 3.
+
+## Milestones
+
+```
+Milestone 1 (auto): tasks 1–6, the note still a draft, so nothing new is public
+STOP: carve-out review. Joey approves the note's wording and the render.yaml rules
+Milestone 2 (auto): task 7
+Finish gate → PR (no migration, no env vars; deploy is merge)
+```
+
+## Environment tests
+
+- Local: `npm test`, `npm run lint`, `npm run build`. Then a `dist/` check:
+  `feed.xml` and `blog/**` diffed against an `origin/main` build, and
+  `til/feed.xml` read for the expected item.
+- Browser (`npm run dev`): `/til`, `/til/<slug>` and `/til/nope` in both
+  themes, with a code block in the note to check Shiki colours; the footer
+  and Blog links; a phone-width pass.
+- `npm run preview` with `/til/` and `/til/<slug>/`, to confirm the
+  prerendered head (title, description, alternate feed link).
+- Post-deploy: `./scripts/smoke.sh`, then the W3C feed validator on
+  `https://joey-haas.dev/til/feed.xml`, and `/til` and `/til/<slug>`
+  without the slash, to prove the rewrites.
