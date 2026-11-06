@@ -61,6 +61,36 @@ README → Collection snapshot and Nightly job.
   API. Change what the API publishes and you change what the snapshot
   publishes, so `test_public.py` covers both.
 
+## build-search-index.mjs
+
+**What and why.** It writes `public/search-index.json`, the site search's
+index of posts, public shelf items and comic series, which Vite copies into
+`dist/`. Search runs entirely in the browser, so it works while the API
+sleeps. The static pages (`STATIC_PAGES` in `src/content/pages.js`) are
+bundled into the app instead, so the dialog always has them; only `/blog`,
+which exists only when a post is published, is written here.
+
+**What goes in.** Each entry is `{g, t, s, title, sub, href, cover?}`: the
+group, the normalized title and secondary text (`src/lib/normalize.js`, the
+same function the dialog applies to the query), and what the row shows.
+Posts carry their summary, tags and the optional `keywords:` frontmatter
+list (terms a post is about without saying them in its title). Drafts are
+skipped. Items come from `public/snapshot/items.json`; comic series from
+`comics.json`, or from the comic items when that file is absent, never both.
+Covers are kept only when they are https. Without a snapshot the index holds
+pages and posts only, and the build carries on.
+
+**Budget.** The script fails when the index is over 100 KB gzipped
+(`BUDGET_BYTES`), because the dialog fetches it whole on first open. It
+writes to a temporary file and renames it, so a failed run never leaves a
+half-written index.
+
+**Never committed.** Like the snapshot, it holds the public rows of the day
+and is gitignored.
+
+**Run it alone:** `node scripts/build-search-index.mjs` (after
+`fetch-snapshot.mjs` for shelf rows). Tests: `build-search-index.test.mjs`.
+
 ## prerender.mjs
 
 **What and why.** Crawlers and link previewers (Slack, iMessage, LinkedIn)
