@@ -48,6 +48,8 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
+| `/til` | TIL | Short notes compiled from `frontend/notes/`, each shown in full; linked from the footer and Blog index only while a note is published. Its feed is `/til/feed.xml` |
+| `/til/:slug` | TIL note | One note; slug is the markdown filename |
 | `/shelf` | My Shelf | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
 | `/shelf/next` | What's next | Public: tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
 | `/shelf/comics` | Comics | Public: every public comic series as a run (owned, missing, not out yet), with chip filters, sort, a Covers view and what is out this week; reads `/api/public/comics` after painting `/snapshot/comics.json` |
@@ -129,6 +131,29 @@ template.
 
 Publishing is `git push` — Render rebuilds and redeploys, regenerating
 `/feed.xml` along the way.
+
+## Writing a TIL note
+
+Notes are short markdown files in `frontend/notes/`, with the same
+frontmatter as posts (`title` and `date` required, `tags` and `draft`
+optional) and the same draft rule. `render-rewrites-need-the-slash.md`
+becomes `/til/render-rewrites-need-the-slash`. `/til` shows every note in
+full, newest first, and `/til/feed.xml` carries them. A note's own headings
+start at `###`: on `/til` its title is the `h2`.
+
+Publishing a note, or turning a draft into one, also needs its rewrite in
+`render.yaml`, ahead of the `/*` catch-all:
+
+```yaml
+- type: rewrite
+  source: /til/<slug>
+  destination: /til/<slug>/index.html
+```
+
+`prerender-lib.test.mjs` fails until the rule is there, and again if a note
+is unpublished with its rule left in (a rule for a file the build did not
+write serves an empty 200). The first published note also needs the `/til`
+rule, which is already in place.
 
 ## Admin authentication
 

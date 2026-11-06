@@ -57,13 +57,13 @@ function toDateString(value, slug, ctx) {
 }
 
 /**
- * Compiles markdown posts to JS modules at build time.
+ * Compiles markdown posts and TIL notes to JS modules at build time.
  *
  * Each .md file becomes a module exporting { slug, frontmatter, html }. Parsing
  * and syntax highlighting both happen here, so the browser downloads neither a
  * markdown parser nor a highlighter.
  *
- * In a production build, a post with `draft: true` compiles to
+ * In a production build, a file with `draft: true` compiles to
  * `export default null` — its content never enters the module graph. Filtering
  * drafts in a component would leave the text sitting in the shipped bundle.
  */
@@ -86,7 +86,7 @@ export default function markdown() {
 
       if (!SLUG_PATTERN.test(slug)) {
         this.error(
-          `"${slug}.md" is not a usable slug. Post filenames must be lowercase ` +
+          `"${slug}.md" is not a usable slug. Filenames must be lowercase ` +
             'letters, digits, and single hyphens — for example ' +
             '"dependency-injection.md".',
         )

@@ -20,6 +20,8 @@ import RootLayout from './RootLayout.jsx'
 // plugin, so the module is replaced. Tests push onto this array to publish.
 const content = vi.hoisted(() => ({ posts: [] }))
 vi.mock('../content/posts.js', () => content)
+const noteContent = vi.hoisted(() => ({ notes: [] }))
+vi.mock('../content/notes.js', () => noteContent)
 
 function renderAt(path = '/') {
   return render(
@@ -42,6 +44,7 @@ beforeEach(() => {
 afterEach(() => {
   localStorage.clear()
   content.posts.length = 0
+  noteContent.notes.length = 0
   vi.restoreAllMocks()
 })
 
@@ -236,6 +239,27 @@ describe('RootLayout footer', () => {
     const footer = within(screen.getByRole('contentinfo'))
     expect(footer.getByRole('link', { name: 'GitHub' })).toBeInTheDocument()
     expect(footer.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
+  })
+})
+
+describe('RootLayout footer TIL link', () => {
+  it('links TIL only once a note is published', () => {
+    const { unmount } = renderAt()
+    const empty = within(screen.getByRole('contentinfo'))
+    expect(empty.queryByRole('link', { name: 'TIL' })).toBeNull()
+    unmount()
+
+    noteContent.notes.push({
+      slug: 'a-note',
+      frontmatter: { title: 'A note', date: '2026-11-06' },
+      html: '<p>Body.</p>',
+    })
+    renderAt()
+    const footer = within(screen.getByRole('contentinfo'))
+    expect(footer.getByRole('link', { name: 'TIL' })).toHaveAttribute(
+      'href',
+      '/til',
+    )
   })
 })
 

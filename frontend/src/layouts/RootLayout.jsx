@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router'
 import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
 import SiteFooter from '../components/SiteFooter.jsx'
 import SiteMast from '../components/SiteMast.jsx'
+import { notes } from '../content/notes.js'
 import { posts } from '../content/posts.js'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
@@ -212,7 +213,7 @@ export default function RootLayout() {
         </RouteErrorBoundary>
       </main>
 
-      <SiteFooter signedIn={Boolean(signedIn)} />
+      <SiteFooter signedIn={Boolean(signedIn)} hasNotes={notes.length > 0} />
     </div>
   )
 }
