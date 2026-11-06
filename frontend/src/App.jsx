@@ -15,6 +15,7 @@ import Next from './pages/Next.jsx'
 import Now from './pages/Now.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Projects from './pages/Projects.jsx'
+import Stats from './pages/Stats.jsx'
 import YearInReview, { CurrentYear } from './pages/YearInReview.jsx'
 import { itemPath, monthPath, yearPath } from './lib/spinePaths.js'
 
@@ -66,6 +67,7 @@ export default function App() {
         <Route path="projects" element={<Projects />} />
         <Route path="now" element={<Now />} />
         <Route path="colophon" element={<Colophon />} />
+        <Route path="stats" element={<Stats />} />
         <Route path="shelf" element={<Collection />} />
         <Route path="shelf/comics" element={<Comics />} />
         <Route path="shelf/next" element={<Next />} />

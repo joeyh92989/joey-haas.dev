@@ -17,7 +17,8 @@ export default function SiteFooter({ signedIn }) {
         <p className="footer-credit">
           &copy; {new Date().getFullYear()} {profile.name} &middot;{' '}
           <a href={profile.repo}>Source</a> &middot; <Link to="/now">Now</Link>{' '}
-          &middot; <Link to="/colophon">Colophon</Link>
+          &middot; <Link to="/colophon">Colophon</Link> &middot;{' '}
+          <Link to="/stats">Stats</Link>
         </p>
         <p className="footer-links">
           <a href={`mailto:${profile.email}`}>{profile.email}</a>

@@ -5,7 +5,7 @@ import DayBars from '../components/DayBars.jsx'
 import Panel from '../components/Panel.jsx'
 import RangeControl from '../components/RangeControl.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
-import { dayLabel } from '../lib/analytics.js'
+import { dayLabel, deviceName, referrerName } from '../lib/analytics.js'
 import { apiFetch } from '../lib/api.js'
 
 /** The range shown first. */
@@ -17,11 +17,6 @@ const SPAN_WORDS = {
   '30d': 'last 30 days',
   '90d': 'last 90 days',
 }
-
-const DEVICE_NAMES = { desktop: 'Desktop', phone: 'Phone', tablet: 'Tablet' }
-
-/** A referrer's label: the empty value is the visits that named none. */
-const referrerName = (value) => value || 'Direct / none'
 
 /** What went wrong, in words, for a read that did not answer 200. */
 function failureWords(response) {
@@ -166,7 +161,7 @@ export default function AdminAnalytics() {
               <BarList
                 label="Devices by views"
                 rows={data.devices}
-                name={(value) => DEVICE_NAMES[value] ?? value}
+                name={deviceName}
               />
             ) : (
               pending
