@@ -317,6 +317,54 @@ describe('fetchSnapshot', () => {
     expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
   })
 
+  it('declares site-stats as optional, writes it verbatim, builds without it', async () => {
+    const summary = {
+      views: 12,
+      visitors: 9,
+      series: [],
+      pages: [],
+      referrers: [],
+      devices: [],
+    }
+    const siteStats = { thirty: summary, all: summary }
+    expect(SNAPSHOTS['site-stats'].path).toBe('/api/public/site-stats')
+    expect(SNAPSHOTS['site-stats'].required).toBe(false)
+    expect(SNAPSHOTS['site-stats'].valid(siteStats)).toBe(true)
+    expect(SNAPSHOTS['site-stats'].valid({ thirty: summary })).toBe(false)
+    expect(
+      SNAPSHOTS['site-stats'].valid({
+        ...siteStats,
+        all: { ...summary, views: '12' },
+      }),
+    ).toBe(false)
+    expect(SNAPSHOTS['site-stats'].valid([])).toBe(false)
+
+    const base = {
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    }
+    const text = JSON.stringify(siteStats)
+    expect(
+      await run(
+        api({ ...base, '/api/public/site-stats': ok(JSON.parse(text), text) }),
+      ),
+    ).toBe('written')
+    expect(await written()).toEqual([
+      'items.json',
+      'meta.json',
+      'site-stats.json',
+      'stats.json',
+    ])
+    expect(
+      await fs.readFile(path.join(outDir, 'site-stats.json'), 'utf8'),
+    ).toBe(text)
+
+    // 404: the API has not deployed the endpoint yet.
+    expect(await run(api(base))).toBe('written')
+    expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
+  })
+
   it('declares status as optional and writes it when served', async () => {
     const status = {
       refreshed_at: null,

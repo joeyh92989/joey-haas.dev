@@ -9,8 +9,8 @@ fetch-snapshot.mjs  →  vite build  →  prerender.mjs  →  generate-rss.mjs
 ## fetch-snapshot.mjs
 
 **What and why.** It writes the public API's response bodies to
-`public/snapshot/items.json`, `stats.json` and `next.json`, which Vite then
-copies into `dist/`. (`picks.json` and `radar.json` are retired with their
+`public/snapshot/items.json`, `stats.json`, `next.json`, `status.json`,
+`comics.json` and `site-stats.json`, which Vite then copies into `dist/`. (`picks.json` and `radar.json` are retired with their
 routes.) The API is on Render's free tier and sleeps after about 15 idle
 minutes. Without the snapshot, `/shelf` would open with a thirty-second
 "Waking the server" notice. With it, the page paints straight away and then
@@ -25,7 +25,8 @@ strips, so they still make no API calls.
   something unexpected, the build ships without a snapshot, and the site
   behaves as it did before the snapshot existed.
 - Required snapshots (`items`, `stats`) are written together or not at all.
-- `next` is optional; if it fails, the build leaves that file out.
+- `next`, `status`, `comics` and `site-stats` are optional; if one fails,
+  the build leaves that file out.
 - Beside them it writes `meta.json`, `{"fetched_at": "<ISO time>"}`, which
   the admin Dashboard reads for the snapshot row of its jobs panel. It is
   not an API body, so the nightly compare does not read it, and it is
