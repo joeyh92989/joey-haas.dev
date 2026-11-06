@@ -127,8 +127,19 @@ already keeps crawlers away from. Keep `ADMIN_ROUTES` in step with `App.jsx`.
 
 ## generate-rss.mjs
 
-It writes `dist/feed.xml` from `frontend/posts/`, skipping drafts. Each item
-carries the post's first paragraph as plain text (`excerpt` in
+It writes two feeds: `dist/feed.xml` from `frontend/posts/` and
+`dist/til/feed.xml` from `frontend/notes/`, skipping drafts. Both are written
+by `writeFeed` in `markdown-lib.mjs`, so the two cannot drift apart in
+escaping or excerpting, and a missing `notes/` writes an empty channel.
+Each item carries the entry's first paragraph as plain text (`excerpt` in
 `prerender-lib.mjs`, the same one the prerendered description uses). It never
-renders post HTML, so it can't disagree with the site about how a post
-renders. It runs after `vite build`, because it writes into `dist/`.
+renders HTML, so it can't disagree with the site about how a post renders.
+It runs after `vite build`, because it writes into `dist/`.
+
+## markdown-lib.mjs
+
+`readPublished(dir)` is the one reader of the markdown folders for the build
+scripts: published entries (`draft: true` skipped, as the plugin's production
+build does), newest first. `prerender.mjs` and `generate-rss.mjs` both use it,
+so they agree on what is published. `rssFeed` and `writeFeed` build the feeds.
+Tested in `markdown-lib.test.mjs`.

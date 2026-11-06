@@ -19,7 +19,6 @@
  *
  * Runs after `vite build`, so dist/ already exists.
  */
-import matter from 'gray-matter'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -34,35 +33,12 @@ import {
   sitemap,
   spineFeed,
 } from './prerender-lib.mjs'
+import { readPublished } from './markdown-lib.mjs'
 import { spine } from '../src/content/spine.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(here, '..', 'dist')
 const postsDir = path.join(here, '..', 'posts')
-
-/** Published posts, by the same rule as generate-rss.mjs and the plugin. */
-async function readPosts() {
-  const names = (await fs.readdir(postsDir)).filter((name) =>
-    name.endsWith('.md'),
-  )
-  const posts = []
-  for (const name of names) {
-    const { data, content } = matter(
-      await fs.readFile(path.join(postsDir, name), 'utf8'),
-    )
-    if (data.draft === true) continue
-    posts.push({
-      slug: name.replace(/\.md$/, ''),
-      title: String(data.title),
-      date:
-        data.date instanceof Date
-          ? data.date.toISOString().slice(0, 10)
-          : String(data.date),
-      body: content,
-    })
-  }
-  return posts
-}
 
 /** The snapshot's items, or none when this build has no snapshot. */
 async function readItems() {
@@ -91,7 +67,7 @@ async function write(route, html) {
 
 const shell = await fs.readFile(path.join(dist, 'index.html'), 'utf8')
 const items = await readItems()
-const routes = publicRoutes({ posts: await readPosts(), items })
+const routes = publicRoutes({ posts: await readPublished(postsDir), items })
 
 for (const route of routes) {
   // The home page's file is also the SPA fallback for every other path, so
