@@ -1,7 +1,8 @@
 import { Link } from 'react-router'
 import Kicker from '../components/Kicker.jsx'
 import { usePageTitle } from '../lib/usePageTitle.js'
-import { formatDate, posts } from '../content/posts.js'
+import { posts } from '../content/posts.js'
+import { formatDate } from '../lib/formatDate.js'
 
 /**
  * Blog index. Posts newest first, as dated rows: the date in mono, then the

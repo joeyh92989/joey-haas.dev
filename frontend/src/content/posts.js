@@ -23,19 +23,3 @@ export const posts = Object.values(modules)
 export function findPost(slug) {
   return posts.find((post) => post.slug === slug)
 }
-
-/**
- * Formats a 'YYYY-MM-DD' string for display.
- *
- * timeZone 'UTC' is required, not cosmetic: the string parses as UTC midnight,
- * so local formatting renders the previous day anywhere west of Greenwich.
- * A 2026-09-14 post shows as "September 13" in America/Denver without it.
- */
-export function formatDate(date) {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  })
-}

@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from 'vitest'
 import Blog from './Blog.jsx'
 
 vi.mock('../content/posts.js', () => ({
-  formatDate: (date) => `on ${date}`,
   posts: [
     {
       slug: 'newer',
@@ -40,7 +39,7 @@ describe('Blog', () => {
     expect(
       within(rows[0]).getByRole('link', { name: 'Newer post' }),
     ).toHaveAttribute('href', '/blog/newer')
-    expect(within(rows[0]).getByText('on 2026-10-02')).toHaveAttribute(
+    expect(within(rows[0]).getByText('October 2, 2026')).toHaveAttribute(
       'datetime',
       '2026-10-02',
     )

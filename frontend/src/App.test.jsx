@@ -13,7 +13,6 @@ const content = vi.hoisted(() => ({ posts: [] }))
 vi.mock('./content/posts.js', () => ({
   posts: content.posts,
   findPost: (slug) => content.posts.find((post) => post.slug === slug),
-  formatDate: (date) => date,
 }))
 vi.mock('./lib/snapshot.js', () => ({ readSnapshot: vi.fn(async () => null) }))
 vi.mock('./lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
