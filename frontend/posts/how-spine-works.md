@@ -2,6 +2,7 @@
 title: How My Shelf works
 date: 2026-10-02
 tags: [shelf, engineering]
+keywords: [Game-Key Card, cartridge, Play Next, Radar, Discover, IGDB]
 summary: 'The engineering behind My Shelf, the tracker for my game collection: photo import, a physical catalog, and picks that say why. One rule runs through it: the model never grades its own work.'
 draft: false
 ---

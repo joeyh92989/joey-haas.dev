@@ -3,6 +3,7 @@
  * public routes, each route's head, the post excerpt, the sitemap and
  * robots.txt. No file or network access here, so tests drive them directly.
  */
+import { staticPages } from '../src/content/pages.js'
 import { profile } from '../src/content/profile.js'
 import { spine } from '../src/content/spine.js'
 import {
@@ -11,13 +12,11 @@ import {
   monthName,
 } from '../src/lib/monthInReview.js'
 import { finishRows } from '../src/lib/finishes.js'
+import { clip } from '../src/lib/clip.js'
 import { itemPath } from '../src/lib/spinePaths.js'
 import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 
 export const SITE_URL = 'https://joey-haas.dev'
-
-const SITE_DESCRIPTION =
-  'Joey Haas is a senior software engineer in Denver building payments and ledger systems, and My Shelf, a tracker for his physical game collection.'
 
 const DEFAULT_IMAGE = {
   url: `${SITE_URL}/og-card.png`,
@@ -72,8 +71,9 @@ const TIL_FEED = {
   title: `TIL · ${profile.name}`,
 }
 
-/** Room for a search result snippet; longer is cut at a word. */
-const DESCRIPTION_LIMIT = 160
+// Re-exported: the clip rule moved to src/lib/clip.js so the static pages'
+// descriptions (src/content/pages.js) are clipped where they are written.
+export { clip }
 
 /** Escapes text for an HTML attribute or element body. */
 export function escapeHtml(value) {
@@ -82,14 +82,6 @@ export function escapeHtml(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-}
-
-/** Cuts text at the last word that fits, with an ellipsis when cut. */
-export function clip(text, limit = DESCRIPTION_LIMIT) {
-  const flat = text.replace(/\s+/g, ' ').trim()
-  if (flat.length <= limit) return flat
-  const cut = flat.slice(0, limit - 1)
-  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:.]$/, '')}…`
 }
 
 /**
@@ -142,72 +134,17 @@ export function publicRoutes({ posts, notes = [], items }) {
     type: 'website',
     image: DEFAULT_IMAGE,
   })
-  const routes = [
-    page(
-      '/',
-      `${profile.name} · Senior software engineer, Denver`,
-      SITE_DESCRIPTION,
-    ),
-    page(
-      '/about',
-      `About · ${profile.name}`,
-      clip(profile.bio.split('\n\n')[0]),
-    ),
-    page(
-      '/projects',
-      `Projects · ${profile.name}`,
-      `What ${profile.name} builds outside work, including ${spine.name}: ${spine.projectsTagline.toLowerCase()}.`,
-    ),
-    {
-      ...page(spine.path, `${spine.name} · ${profile.name}`, spine.tagline),
-      feed: SPINE_FEED,
-      legacy: true,
-    },
-    {
-      ...page(
-        spine.next.path,
-        `${spine.next.title} · ${spine.name}`,
-        clip(spine.next.lede),
-      ),
-      legacy: true,
-    },
-    {
-      ...page(
-        spine.how.path,
-        `${spine.tabs.how.label} · ${spine.name}`,
-        spine.how.description,
-      ),
-      legacy: true,
-    },
-    page(
-      spine.comics.path,
-      `${spine.comics.title} · ${spine.name}`,
-      spine.comics.lede,
-    ),
-    {
-      ...page(
-        '/now',
-        `Now · ${profile.name}`,
-        `What ${profile.name} is playing, what is next and what was just finished, from ${spine.name}.`,
-      ),
-      feed: SPINE_FEED,
-    },
-    page(
-      '/colophon',
-      `Colophon · ${profile.name}`,
-      `How joey-haas.dev is built: React and Vite, FastAPI and Postgres, on Render's free tier.`,
-    ),
-    page(
-      '/stats',
-      `Stats · ${profile.name}`,
-      'What joey-haas.dev sees, counted by the site itself: views, visitors, pages and referrers, with no cookies or third-party scripts, and what changed recently.',
-    ),
-  ]
-  if (posts.length > 0) {
-    routes.push(
-      page('/blog', `Blog · ${profile.name}`, `Posts by ${profile.name}.`),
-    )
+  // Pages with a feed link or a pre-rename /spine head; see legacyRoutes().
+  const flags = {
+    [spine.path]: { feed: SPINE_FEED, legacy: true },
+    [spine.next.path]: { legacy: true },
+    [spine.how.path]: { legacy: true },
+    '/now': { feed: SPINE_FEED },
   }
+  const routes = staticPages(posts.length > 0).map((entry) => ({
+    ...page(entry.path, entry.headTitle, entry.description),
+    ...flags[entry.path],
+  }))
   // The sitemap wants W3C dates; anything else is left out, not passed on.
   const lastmod = (date) =>
     /^\d{4}-\d{2}-\d{2}$/.test(date) ? { lastmod: date } : {}

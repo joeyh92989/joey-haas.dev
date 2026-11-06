@@ -8,5 +8,8 @@ posts
 # Build-time snapshot: verbatim API bodies, gitignored.
 public/snapshot
 
+# Build-time search index (scripts/build-search-index.mjs), gitignored.
+public/search-index.json
+
 # Documentation is prose too.
 *.md

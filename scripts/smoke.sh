@@ -110,6 +110,15 @@ for shelf_feed in /shelf/feed.xml /spine/feed.xml; do
   esac
 done
 
+# The site search index (frontend/scripts/build-search-index.mjs) is a real
+# file in dist/ too; served as HTML it is the SPA fallback, and the dialog
+# would search pages only.
+search_type="$(curl -s -o /dev/null -m 90 -w '%{http_code} %{content_type}' "$SITE_URL/search-index.json")"
+case "$search_type" in
+  "200 "*json*) report_pass "search-index.json served as JSON" "$search_type" ;;
+  *) report_fail "search-index.json served as JSON" "got '$search_type' — likely missing from the build" ;;
+esac
+
 # Prerendered heads (frontend/scripts/prerender.mjs): each public route is a
 # real file whose <title> is its own, which the SPA fallback's never is. This
 # is also what a link preview reads. An empty title here most likely means
