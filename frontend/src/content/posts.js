@@ -5,7 +5,7 @@
  * exporting { slug, frontmatter, html }; publishedEntries drops drafts and
  * sorts newest first.
  */
-import { publishedEntries } from '../lib/markdownEntries.js'
+import { findEntry, publishedEntries } from '../lib/markdownEntries.js'
 
 const modules = import.meta.glob('../../posts/*.md', { eager: true })
 
@@ -14,5 +14,5 @@ export const posts = publishedEntries(modules)
 
 /** Returns the post with this slug, or undefined if there is none. */
 export function findPost(slug) {
-  return posts.find((post) => post.slug === slug)
+  return findEntry(posts, slug)
 }

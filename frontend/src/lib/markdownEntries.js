@@ -16,3 +16,14 @@ export function publishedEntries(modules) {
     .filter(Boolean)
     .sort((a, b) => b.frontmatter.date.localeCompare(a.frontmatter.date))
 }
+
+/**
+ * The entry with this slug, or undefined if there is none.
+ *
+ * @param {object[]} entries Entries from publishedEntries.
+ * @param {string} slug
+ * @returns {object | undefined}
+ */
+export function findEntry(entries, slug) {
+  return entries.find((entry) => entry.slug === slug)
+}
