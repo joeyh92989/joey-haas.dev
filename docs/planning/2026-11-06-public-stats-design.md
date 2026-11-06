@@ -189,6 +189,17 @@ flowchart LR
 | "How this is counted" quotes the README | The README's Analytics section gains an opening paragraph of four plain sentences (no paths or code spans), and the page quotes that paragraph verbatim; a test reads both | The README's bullets name source files and config keys, which is not visitor copy. One paragraph owned by the README keeps the rule "quote, do not paraphrase". |
 | Changelog entries for search and TIL | Entries for what has shipped on `main` (#86–#90) and this feature; search and TIL add their own when they ship | Neither branch is merged (both hold only their planning docs). |
 
+## Deviations found during the build
+
+| Plan said | Built | Why |
+|---|---|---|
+| `load_summary(factory, …)` | `load_summary(session, …)`: it takes the request's session, as the admin route's inline build did | Both routes already have a session from `Depends`; a factory would open a second one per read. |
+| The public models beside the router in `analytics_routes.py` | In `public_outputs.py`, beside `PublicStatusOut` | `test_public_outputs.py` imports every public model from there, and the module is where the field pins live. |
+| List rows as the admin page draws them | Inside the three columns each label sits on its own row above its bar and count (`.site-stats-lists .bar-list li`) | At 45rem the admin's one-line row cut every path and host short ("/shelf/ne…", "big.exa…"); seen in the browser. |
+| — | `.site-stats-lists > section { margin-top: 0 }` | The page frame's `section + section` spacing pushed the second and third column headings 36px below the first. |
+| Changelog lines may carry code spans | Links only; the seed entry's backticks were removed | `renderLine` renders links, not code; a backtick showed as a literal. |
+| "Live as of" after the API stops | Within five minutes of a live answer a reload still says live | The browser serves the read from its own HTTP cache (`Cache-Control: max-age=300`), which is the header working; after that the page says the API is asleep, as verified. |
+
 ## Research notes
 
 - `summarise(stats, start, end)` returns `start, end, views, visitors, views_per_visitor, best_day {day, views, referrer}, series [{day, views}] (one per day, uncapped), pages, referrers, devices (each [{value, count}], top 10), live_since` (`analytics.py:326-338`). `range_start("all", today)` is `ANALYTICS_LIVE_SINCE` (2026-10-20).
