@@ -75,6 +75,10 @@
   --status-abandoned: #6b737e;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
   --skeleton: var(--sunken);
+  /* The search dialog's highlighted row, under an --accent inset bar.
+     Measured in the browser, dark: row title 14.25, sub line 5.21, accent
+     bar 6.26 on it; group label 5.60 on --surface. */
+  --search-active: var(--sunken);
   --grid-gap: 1rem;
   --radius: 6px;
   --font-sans:
@@ -131,6 +135,9 @@
   --status-backlog: #5b616a;
   --status-abandoned: #8a9099;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
+  /* Measured in the browser, light: row title 16.15, sub line 4.76, accent
+     bar 5.48 on --search-active; group label 5.29 on --surface. */
+  --search-active: var(--sunken);
   --skeleton: #ecece8;
   --grid-gap: 1rem;
   color-scheme: light;
@@ -417,6 +424,198 @@ a:hover {
 
   .mast-menu {
     display: inline-flex;
+  }
+}
+
+/* ---------- Site search ---------- */
+
+/* The Search button's shortcut hint; nothing to press it on a phone. */
+.mast-search {
+  align-items: center;
+  gap: 8px;
+}
+
+.search-kbd {
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  color: var(--text-3);
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 2px 5px;
+}
+
+@media (max-width: 640px) {
+  .search-kbd {
+    display: none;
+  }
+}
+
+.search-dialog {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  margin: 12vh auto auto;
+  max-height: 76vh;
+  max-width: calc(100% - 32px);
+  overflow: hidden;
+  padding: 0;
+  width: 36rem;
+}
+
+.search-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-dialog::backdrop {
+  background: var(--overlay);
+}
+
+.search-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.search-head {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.search-input {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  flex: 1;
+  font: inherit;
+  font-size: 1rem;
+  min-height: 2.75rem;
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.search-input::placeholder {
+  color: var(--text-3);
+}
+
+/* Focus never leaves the input, so its ring is the dialog's. */
+.search-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.search-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 0 8px;
+}
+
+.search-group-label {
+  display: block;
+  padding: 12px 16px 4px;
+}
+
+.search-row {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  /* A 44px tap target. */
+  min-height: 2.75rem;
+  padding: 6px 16px;
+}
+
+.search-row[aria-selected='true'] {
+  background: var(--search-active);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.search-mark {
+  border-radius: 3px;
+  flex: none;
+  height: 32px;
+  width: 32px;
+}
+
+.search-cover {
+  object-fit: cover;
+}
+
+.search-glyph {
+  color: var(--text-3);
+  fill: none;
+  padding: 6px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.search-row-text {
+  display: grid;
+  min-width: 0;
+}
+
+.search-row-title,
+.search-row-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-row-sub {
+  font-size: 0.8125rem;
+}
+
+.search-note {
+  border-top: 1px solid var(--line);
+  margin: 0;
+  padding: 12px 16px;
+}
+
+.search-note a {
+  color: var(--accent);
+}
+
+/* A phone: full width from the top, the input fixed above a list that
+   scrolls. */
+@media (max-width: 640px) {
+  .search-dialog {
+    border-radius: 0;
+    border-width: 0 0 1px;
+    margin: 0;
+    max-height: 100dvh;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .search-dialog[open] {
+    animation: search-in 140ms ease-out;
+  }
+
+  .search-dialog[open]::backdrop {
+    animation: search-fade 140ms ease-out;
+  }
+}
+
+@keyframes search-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes search-fade {
+  from {
+    opacity: 0;
   }
 }
 

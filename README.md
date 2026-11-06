@@ -132,6 +132,9 @@ template.
 Publishing is `git push` — Render rebuilds and redeploys, regenerating
 `/feed.xml` along the way.
 
+An optional `keywords: [...]` line adds search terms that are not in the
+title or tags (see Site search).
+
 ## Writing a TIL note
 
 Notes are short markdown files in `frontend/notes/`, with the same
@@ -154,6 +157,29 @@ Publishing a note, or turning a draft into one, also needs its rewrite in
 is unpublished with its rule left in (a rule for a file the build did not
 write serves an empty 200). The first published note also needs the `/til`
 rule, which is already in place.
+
+## Site search
+
+The masthead's Search button, ⌘K / Ctrl+K anywhere, or `/` outside a text
+field opens one dialog over pages, posts, the shelf and comics (TIL notes are
+not indexed yet; their group is already there). The
+admin pages have no search.
+
+- **Pages** are bundled: `STATIC_PAGES` in `frontend/src/content/pages.js` is
+  the one list of static pages, shared with the prerender step, so a new
+  page added there is searchable and previewed at once. An empty query shows
+  Pages only.
+- **Everything else** comes from `/search-index.json`, written before
+  `vite build` by `frontend/scripts/build-search-index.mjs` from the posts and
+  the build-time snapshot. It is a build output: gitignored, never
+  committed, and fetched once, on first open. Without a snapshot it is
+  written from the posts alone; if the fetch fails, the dialog still
+  searches the pages and says search is unavailable.
+- **Ranking** (`frontend/src/lib/searchIndex.js`): title prefix 3, word
+  prefix 2, substring 1, secondary text 0.5; at most five rows a group.
+  Matching folds case and accents (`lib/normalize.js`).
+- No match offers "Search the shelf", which opens `/shelf?q=<query>` with
+  the shelf's own search filled in.
 
 ## Admin authentication
 
