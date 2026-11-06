@@ -184,6 +184,11 @@ export function publicRoutes({ posts, items }) {
       `Colophon · ${profile.name}`,
       `How joey-haas.dev is built: React and Vite, FastAPI and Postgres, on Render's free tier.`,
     ),
+    page(
+      '/stats',
+      `Stats · ${profile.name}`,
+      'What joey-haas.dev sees, counted by the site itself: views, visitors, pages and referrers, with no cookies or third-party scripts, and what changed recently.',
+    ),
   ]
   if (posts.length > 0) {
     routes.push(
