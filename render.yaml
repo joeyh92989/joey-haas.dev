@@ -54,6 +54,12 @@ services:
         source: /blog/how-spine-works
         destination: /blog/how-spine-works/index.html
       - type: rewrite
+        source: /til
+        destination: /til/index.html
+      - type: rewrite
+        source: /til/render-rewrites-need-the-slash
+        destination: /til/render-rewrites-need-the-slash/index.html
+      - type: rewrite
         source: /spine
         destination: /spine/index.html
       - type: rewrite

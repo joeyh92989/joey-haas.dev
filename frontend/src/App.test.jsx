@@ -9,11 +9,14 @@ import App from './App.jsx'
 
 // posts.js globs markdown the Vitest config cannot compile, so it is
 // replaced. Tests push onto this array to publish a post.
-const content = vi.hoisted(() => ({ posts: [] }))
+const content = vi.hoisted(() => ({ posts: [], notes: [] }))
 vi.mock('./content/posts.js', () => ({
   posts: content.posts,
   findPost: (slug) => content.posts.find((post) => post.slug === slug),
-  formatDate: (date) => date,
+}))
+vi.mock('./content/notes.js', () => ({
+  notes: content.notes,
+  findNote: (slug) => content.notes.find((note) => note.slug === slug),
 }))
 vi.mock('./lib/snapshot.js', () => ({ readSnapshot: vi.fn(async () => null) }))
 vi.mock('./lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
@@ -87,6 +90,8 @@ const TITLES = [
   ['/shelf', 'My Shelf · Joey Haas'],
   ['/nonsense-path', 'Not found · Joey Haas'],
   ['/blog/no-such-post', 'Not found · Joey Haas'],
+  ['/til', 'TIL · Joey Haas'],
+  ['/til/not-a-note', 'Not found · Joey Haas'],
   ['/admin', 'Dashboard · Admin · Joey Haas'],
   ['/admin/analytics', 'Analytics · Admin · Joey Haas'],
   ['/admin/collection', 'Shelf · Admin · Joey Haas'],

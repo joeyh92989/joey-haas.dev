@@ -1110,6 +1110,34 @@ section + section {
   text-decoration: none;
 }
 
+/* TIL: whole notes, divided by the same rule as the blog index's rows. */
+.note-list {
+  margin-top: 1.125rem;
+}
+
+.note-list > article {
+  border-top: 1px solid var(--line);
+  padding: 1.5rem 0;
+}
+
+.note-list > article:first-child {
+  border-top: 0;
+}
+
+.note-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.note-title a {
+  color: var(--text);
+}
+
+.note-title a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
 .post-meta {
   align-items: center;
   color: var(--text-3);

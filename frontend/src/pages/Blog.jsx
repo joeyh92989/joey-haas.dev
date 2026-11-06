@@ -1,7 +1,9 @@
 import { Link } from 'react-router'
 import Kicker from '../components/Kicker.jsx'
 import { usePageTitle } from '../lib/usePageTitle.js'
-import { formatDate, posts } from '../content/posts.js'
+import { notes } from '../content/notes.js'
+import { posts } from '../content/posts.js'
+import { formatDate } from '../lib/formatDate.js'
 
 /**
  * Blog index. Posts newest first, as dated rows: the date in mono, then the
@@ -15,6 +17,11 @@ export default function Blog() {
   return (
     <section>
       <h1>Writing</h1>
+      {notes.length > 0 && (
+        <p className="prose muted">
+          Shorter things are in <Link to="/til">TIL</Link>.
+        </p>
+      )}
       {posts.length === 0 ? (
         <p className="prose muted">No posts yet.</p>
       ) : (

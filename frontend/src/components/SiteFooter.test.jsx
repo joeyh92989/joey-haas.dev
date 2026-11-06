@@ -4,10 +4,10 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import SiteFooter from './SiteFooter.jsx'
 
-function renderFooter(signedIn) {
+function renderFooter(signedIn, hasNotes) {
   render(
     <MemoryRouter>
-      <SiteFooter signedIn={signedIn} />
+      <SiteFooter signedIn={signedIn} hasNotes={hasNotes} />
     </MemoryRouter>,
   )
   return within(screen.getByRole('contentinfo'))
@@ -43,5 +43,22 @@ describe('SiteFooter', () => {
       '/admin',
     )
     expect(footer.queryByRole('link', { name: 'Sign in' })).toBeNull()
+  })
+
+  it('links TIL only while a note is published', () => {
+    expect(renderFooter(false).queryByRole('link', { name: 'TIL' })).toBeNull()
+  })
+
+  it('links TIL between Now and Colophon when notes exist', () => {
+    const footer = renderFooter(false, true)
+    expect(footer.getByRole('link', { name: 'TIL' })).toHaveAttribute(
+      'href',
+      '/til',
+    )
+    const names = footer
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+      .filter((name) => ['Now', 'TIL', 'Colophon'].includes(name))
+    expect(names).toEqual(['Now', 'TIL', 'Colophon'])
   })
 })

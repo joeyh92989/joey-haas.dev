@@ -55,4 +55,20 @@ describe('Colophon', () => {
       screen.getByText(/cookie-free beacon counts page views/),
     ).toHaveTextContent(/Nothing goes to a third\s+party/)
   })
+
+  it('links both feeds', () => {
+    render(
+      <MemoryRouter>
+        <Colophon />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('link', { name: 'RSS feed' })).toHaveAttribute(
+      'href',
+      '/feed.xml',
+    )
+    expect(screen.getByRole('link', { name: 'its own feed' })).toHaveAttribute(
+      'href',
+      '/til/feed.xml',
+    )
+  })
 })

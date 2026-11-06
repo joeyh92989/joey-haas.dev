@@ -1,11 +1,17 @@
 import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import Blog from './Blog.jsx'
 
+const noteContent = vi.hoisted(() => ({ notes: [] }))
+vi.mock('../content/notes.js', () => noteContent)
+
+afterEach(() => {
+  noteContent.notes = []
+})
+
 vi.mock('../content/posts.js', () => ({
-  formatDate: (date) => `on ${date}`,
   posts: [
     {
       slug: 'newer',
@@ -40,7 +46,7 @@ describe('Blog', () => {
     expect(
       within(rows[0]).getByRole('link', { name: 'Newer post' }),
     ).toHaveAttribute('href', '/blog/newer')
-    expect(within(rows[0]).getByText('on 2026-10-02')).toHaveAttribute(
+    expect(within(rows[0]).getByText('October 2, 2026')).toHaveAttribute(
       'datetime',
       '2026-10-02',
     )
@@ -51,5 +57,17 @@ describe('Blog', () => {
     const rows = screen.getAllByRole('listitem')
     expect(within(rows[0]).getByText('What it is, in a line.')).toBeVisible()
     expect(rows[1].querySelector('p')).toBeNull()
+  })
+
+  it('points at TIL only while a note is published', () => {
+    const { unmount } = renderBlog()
+    expect(screen.queryByRole('link', { name: 'TIL' })).toBeNull()
+    unmount()
+    noteContent.notes = [{ slug: 'a-note' }]
+    renderBlog()
+    expect(screen.getByRole('link', { name: 'TIL' })).toHaveAttribute(
+      'href',
+      '/til',
+    )
   })
 })

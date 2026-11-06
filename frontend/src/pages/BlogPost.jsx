@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router'
-import { findPost, formatDate } from '../content/posts.js'
+import PostMeta from '../components/PostMeta.jsx'
+import { findPost } from '../content/posts.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 
@@ -28,18 +29,7 @@ export default function BlogPost() {
         <p className="post-summary">{post.frontmatter.summary}</p>
       )}
       {post.frontmatter.draft && <span className="draft-badge">Draft</span>}
-      <div className="post-meta">
-        <time dateTime={post.frontmatter.date}>
-          {formatDate(post.frontmatter.date)}
-        </time>
-        {post.frontmatter.tags.length > 0 && (
-          <ul className="tech-list">
-            {post.frontmatter.tags.map((tag) => (
-              <li key={tag}>{tag}</li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <PostMeta date={post.frontmatter.date} tags={post.frontmatter.tags} />
 
       <div
         className="post-body"
