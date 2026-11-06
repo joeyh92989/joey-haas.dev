@@ -12,6 +12,7 @@ import {
   Navigate,
   Route,
   Routes,
+  useNavigate,
   useOutletContext,
 } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -486,6 +487,35 @@ describe('RootLayout site search', () => {
       field.dispatchEvent(event)
     })
     expect(event.defaultPrevented).toBe(false)
+    expect(searchBox()).not.toBeInTheDocument()
+  })
+
+  // Back or forward while the dialog is open lands on a new page; the
+  // dialog must not stay over it, nor hand focus to a removed element.
+  it('closes when the route changes under it', () => {
+    function GoButton() {
+      const navigate = useNavigate()
+      return (
+        <button type="button" onClick={() => navigate('/about')}>
+          Go
+        </button>
+      )
+    }
+    const go = render(
+      <MemoryRouter initialEntries={['/']}>
+        <GoButton />
+        <Routes>
+          <Route element={<RootLayout />}>
+            <Route path="*" element={<p>page</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    expect(searchBox()).toBeInTheDocument()
+    fireEvent.click(
+      within(go.container).getByRole('button', { name: 'Go', hidden: true }),
+    )
     expect(searchBox()).not.toBeInTheDocument()
   })
 

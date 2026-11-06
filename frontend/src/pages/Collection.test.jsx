@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
@@ -438,6 +438,29 @@ describe('Collection', () => {
   it('starts searched when the URL carries ?q=', async () => {
     stubApi()
     await renderReady('/shelf?q=gloom')
+
+    expect(
+      screen.getByRole('searchbox', { name: 'Search the shelf' }),
+    ).toHaveValue('gloom')
+    expect(gridTitles()).toEqual(['Gloomhaven'])
+  })
+
+  // Already on /shelf, the no-match link only changes the query string, so
+  // the page stays mounted and has to pick the new ?q= up.
+  it('follows ?q= when it changes while the page is open', async () => {
+    stubApi()
+    render(
+      <MemoryRouter initialEntries={['/shelf']}>
+        <Link to="/shelf?q=gloom">search gloom</Link>
+        <Routes>
+          <Route path="/shelf" element={<Collection />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await waitFor(() =>
+      expect(document.querySelector('.poster-grid')).not.toBeNull(),
+    )
+    await userEvent.click(screen.getByRole('link', { name: 'search gloom' }))
 
     expect(
       screen.getByRole('searchbox', { name: 'Search the shelf' }),

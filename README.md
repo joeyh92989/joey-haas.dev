@@ -136,7 +136,8 @@ title or tags (see Site search).
 ## Site search
 
 The masthead's Search button, ⌘K / Ctrl+K anywhere, or `/` outside a text
-field opens one dialog over pages, posts, notes, the shelf and comics. The
+field opens one dialog over pages, posts, the shelf and comics (notes join
+when the TIL notes land; the group is already there). The
 admin pages have no search.
 
 - **Pages** are bundled: `STATIC_PAGES` in `frontend/src/content/pages.js` is

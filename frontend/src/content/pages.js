@@ -87,5 +87,3 @@ export const BLOG_PAGE = row(
 export function staticPages(hasPosts) {
   return hasPosts ? [...STATIC_PAGES, BLOG_PAGE] : STATIC_PAGES
 }
-
-export { SITE_DESCRIPTION }

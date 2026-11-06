@@ -45,7 +45,8 @@ export default function SearchDialog({ open, onClose }) {
     }
     if (!open && dialog.open) {
       dialog.close()
-      returnFocus.current?.focus?.()
+      // A route change can close the dialog after its opener left the page.
+      if (returnFocus.current?.isConnected) returnFocus.current.focus?.()
       returnFocus.current = null
     }
   }, [open])
@@ -94,6 +95,8 @@ export default function SearchDialog({ open, onClose }) {
   }
 
   function handleKeyDown(event) {
+    // An IME's own Enter and arrows pick its candidates, not a row.
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
       if (!rows.length) return
@@ -114,8 +117,17 @@ export default function SearchDialog({ open, onClose }) {
     if (open) close()
   }
 
+  // The backdrop closes the dialog only when the press began there too: a
+  // drag that selects the query and ends past the edge is not a dismissal.
+  const pressedBackdrop = useRef(false)
+
+  function handlePointerDown(event) {
+    pressedBackdrop.current = event.target === event.currentTarget
+  }
+
   function handleClick(event) {
-    if (event.target === event.currentTarget) close()
+    if (event.target === event.currentTarget && pressedBackdrop.current) close()
+    pressedBackdrop.current = false
   }
 
   let position = 0
@@ -128,6 +140,7 @@ export default function SearchDialog({ open, onClose }) {
       aria-label="Search the site"
       onCancel={handleCancel}
       onClose={handleClose}
+      onPointerDown={handlePointerDown}
       onClick={handleClick}
     >
       {open && (

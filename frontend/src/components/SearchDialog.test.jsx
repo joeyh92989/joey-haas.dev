@@ -167,10 +167,50 @@ describe('SearchDialog', () => {
     stubIndex(INDEX)
     const user = userEvent.setup()
     renderHarness()
+    const button = screen.getByRole('button', { name: 'Search' })
     await openWithButton(user)
     const dialog = document.querySelector('dialog.search-dialog')
     await user.click(dialog)
     expect(dialog).not.toHaveAttribute('open')
+    expect(button).toHaveFocus()
+  })
+
+  // Selecting the query and letting go past the panel's edge ends on the
+  // backdrop; only a press that started there closes.
+  it('stays open when a drag from the input ends on the backdrop', async () => {
+    stubIndex(INDEX)
+    const user = userEvent.setup()
+    renderHarness()
+    const input = await openWithButton(user)
+    const dialog = document.querySelector('dialog.search-dialog')
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: input },
+      { target: dialog },
+      { keys: '[/MouseLeft]', target: dialog },
+    ])
+    expect(dialog).toHaveAttribute('open')
+  })
+
+  // An IME's Enter confirms the composition; it must not pick a result.
+  it('ignores Enter while an IME is composing', async () => {
+    stubIndex(INDEX)
+    const user = userEvent.setup()
+    renderHarness()
+    const input = await openWithButton(user)
+    await user.type(input, 'hades')
+    await screen.findByRole('option', { name: /Hades II/ })
+    act(() => {
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          isComposing: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+    expect(screen.getByRole('combobox')).toBeInTheDocument()
   })
 
   it('keeps pages working with a note when the index is missing', async () => {

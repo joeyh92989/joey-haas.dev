@@ -1,4 +1,4 @@
-/** Room for a search result snippet; longer is cut at a word. */
+/** Room for a meta description (a search engine's snippet); longer is cut at a word. */
 export const DESCRIPTION_LIMIT = 160
 
 /** Cuts text at the last word that fits, with an ellipsis when cut. */

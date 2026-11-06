@@ -109,6 +109,13 @@ export default function RootLayout() {
   const { pathname } = useLocation()
   const mainRef = useRouteFocus()
   const [searchOpen, setSearchOpen] = useState(false)
+  // Any route change closes search (Back, a link behind the dialog), so it
+  // never stays open over a page it was not opened on, or reopens later.
+  const [searchPath, setSearchPath] = useState(pathname)
+  if (searchPath !== pathname) {
+    setSearchPath(pathname)
+    if (searchOpen) setSearchOpen(false)
+  }
   const shell = isUnder(SHELL_ROUTES, pathname)
   useAnalyticsBeacon(pathname, signedIn)
 

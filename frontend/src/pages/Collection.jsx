@@ -378,10 +378,17 @@ export default function Collection() {
   const [state, setState] = useState('loading')
   const [slow, setSlow] = useState(false)
   const [filters, setFilters] = useState(NO_FILTER)
-  // The site search's no-match link lands here as /shelf?q=…; read once,
-  // never written back, so typing does not rewrite the URL.
+  // The site search's no-match link lands here as /shelf?q=…, also from
+  // /shelf itself, where the page stays mounted: a new q replaces the
+  // query. Never written back, so typing does not rewrite the URL.
   const [searchParams] = useSearchParams()
-  const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
+  const urlQuery = searchParams.get('q')
+  const [query, setQuery] = useState(() => urlQuery ?? '')
+  const [seenUrlQuery, setSeenUrlQuery] = useState(urlQuery)
+  if (urlQuery !== seenUrlQuery) {
+    setSeenUrlQuery(urlQuery)
+    if (urlQuery !== null) setQuery(urlQuery)
+  }
   const [sort, setSort] = useState({ value: 'added', direction: 'desc' })
   const [seed, setSeed] = useState(() => Date.now())
   const [size, setSize] = useState(() => {
