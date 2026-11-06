@@ -130,6 +130,31 @@ template.
 Publishing is `git push` — Render rebuilds and redeploys, regenerating
 `/feed.xml` along the way.
 
+An optional `keywords: [...]` line adds search terms that are not in the
+title or tags (see Site search).
+
+## Site search
+
+The masthead's Search button, ⌘K / Ctrl+K anywhere, or `/` outside a text
+field opens one dialog over pages, posts, notes, the shelf and comics. The
+admin pages have no search.
+
+- **Pages** are bundled: `STATIC_PAGES` in `frontend/src/content/pages.js` is
+  the one list of static pages, shared with the prerender step, so a new
+  page added there is searchable and previewed at once. An empty query shows
+  Pages only.
+- **Everything else** comes from `/search-index.json`, written before
+  `vite build` by `frontend/scripts/build-search-index.mjs` from the posts and
+  the build-time snapshot. It is a build output: gitignored, never
+  committed, and fetched once, on first open. Without a snapshot it is
+  written from the posts alone; if the fetch fails, the dialog still
+  searches the pages and says search is unavailable.
+- **Ranking** (`frontend/src/lib/searchIndex.js`): title prefix 3, word
+  prefix 2, substring 1, secondary text 0.5; at most five rows a group.
+  Matching folds case and accents (`lib/normalize.js`).
+- No match offers "Search the shelf", which opens `/shelf?q=<query>` with
+  the shelf's own search filled in.
+
 ## Admin authentication
 
 `/admin` is gated by Google sign-in restricted to one account. The footer's

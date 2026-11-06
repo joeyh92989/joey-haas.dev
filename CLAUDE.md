@@ -152,6 +152,13 @@ before pushing.
   `dist/shelf/feed.xml` and `dist/spine/feed.xml`. Feed GUIDs stay on the
   `/spine` item URL (`LEGACY_PREFIX`): changing them reposts every entry.
   Code names (`spine.js`, `SpineHeader`, `spinePaths.js`) keep `spine`.
+- Site search (README → Site search): `STATIC_PAGES` in
+  `src/content/pages.js` is the one list of static pages, read by both the
+  search dialog and `prerender-lib.mjs`; add a page there, never to a second
+  list. `public/search-index.json` is a build output from
+  `scripts/build-search-index.mjs`, gitignored like the snapshot, and only
+  public data goes in it: it reads the snapshot and published posts, never
+  the API.
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish
