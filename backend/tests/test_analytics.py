@@ -2,6 +2,7 @@
 
 import ast
 import json
+import re
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from analytics import (
     client_ip,
     daily_salt,
     normalise,
+    normalise_path,
     range_start,
     rollup_day,
     summarise,
@@ -106,6 +108,10 @@ def test_true_client_ip_then_the_socket():
         ("/shelf/year/2026/", "/shelf/year/2026"),
         ("/shelf/journal/2026-10/", "/shelf/journal/2026-10"),
         ("/blog/how-spine-works#top", "/blog/how-spine-works"),
+        ("/stats", "/stats"),
+        ("/til/", "/til"),
+        ("/til/render-rewrites-need-the-slash", "/til/render-rewrites-need-the-slash"),
+        ("/shelf/comics/", "/shelf/comics"),
     ],
 )
 def test_a_public_path_is_kept_in_one_form(path, expected):
@@ -336,3 +342,45 @@ def test_ranges_end_today_and_all_starts_at_the_launch():
     assert range_start("90d", DAY) == DAY - timedelta(days=89)
     assert range_start("all", DAY) == ANALYTICS_LIVE_SINCE
     assert range_start("all", date(2026, 1, 1)) == date(2026, 1, 1)
+
+
+# --- The allowlist follows the router. --------------------------------------
+
+APP_JSX = Path(__file__).resolve().parents[2] / "frontend" / "src" / "App.jsx"
+# A sample value per route parameter, in the form the app links to.
+SAMPLE_PARAMS = {
+    "id": ITEM.removeprefix("/shelf/"),
+    "year": "2026",
+    "month": "2026-10",
+    "slug": "a-sample-slug",
+}
+# Not counted on purpose: the admin is the owner's own traffic, and the
+# pre-rename paths only redirect to /shelf*, which the beacon then reports.
+NOT_COUNTED = ("admin", "spine", "collection")
+
+
+def _public_routes(source: str) -> list[str]:
+    """Every public route path in App.jsx, parameters filled in. The admin
+    block's children are cut first: their paths are relative to /admin."""
+    admin = source.index('path="admin"')
+    source = source[:admin] + source[source.index("</Route>", admin) :]
+    paths = ["/"]  # the index route
+    for match in re.finditer(r'path="([^"]+)"', source):
+        route = match.group(1)
+        if route == "*" or route.split("/")[0] in NOT_COUNTED:
+            continue
+        filled = "/".join(
+            SAMPLE_PARAMS[part[1:]] if part.startswith(":") else part
+            for part in route.split("/")
+        )
+        paths.append(f"/{filled}")
+    return paths
+
+
+def test_every_public_route_in_the_app_is_counted():
+    """A page added to the router without an allowlist entry would be
+    refused by the beacon in silence (it still answers 204)."""
+    routes = _public_routes(APP_JSX.read_text())
+    assert "/stats" in routes and "/til/a-sample-slug" in routes
+    missing = [path for path in routes if normalise_path(path) != path]
+    assert missing == []

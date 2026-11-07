@@ -50,7 +50,8 @@ DEVICES = ("desktop", "phone", "tablet")
 DIMENSIONS = ("total", "path", "referrer", "device")
 RANGES: dict[str, int | None] = {"7d": 7, "30d": 30, "90d": 90, "all": None}
 
-# The public routes, as the router in frontend/src/App.jsx has them. A path
+# The public routes, as the router in frontend/src/App.jsx has them
+# (tests/test_analytics.py reads App.jsx and fails on a route missing here). A path
 # that matches none of them is not counted: a typo, a scan or a 404. The
 # pre-rename /spine* paths are not counted either: they only redirect to
 # /shelf*, which the beacon then reports, so counting both would count a
@@ -62,8 +63,11 @@ _EXACT_PATHS = frozenset(
         "/projects",
         "/now",
         "/colophon",
+        "/stats",
         "/blog",
+        "/til",
         "/shelf",
+        "/shelf/comics",
         "/shelf/next",
         "/shelf/how",
         "/shelf/year",
@@ -74,6 +78,7 @@ _PATTERNS = (
     re.compile(r"/shelf/year/\d{4}"),
     re.compile(r"/shelf/journal/\d{4}-\d{2}"),
     re.compile(r"/blog/[a-z0-9]+(?:-[a-z0-9]+)*"),
+    re.compile(r"/til/[a-z0-9]+(?:-[a-z0-9]+)*"),
 )
 _HOSTNAME = re.compile(
     r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*"
