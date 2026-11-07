@@ -7,13 +7,14 @@ import logging
 import secrets
 import uuid
 from collections import defaultdict
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import playthroughs
@@ -70,7 +71,7 @@ class ItemIn(BaseModel):
     favorite: bool = False
     started_at: date | None = None
     finished_at: date | None = None
-    times_completed: int = Field(default=0, ge=0)
+    times_completed: int = Field(default=0, ge=0, le=999)
     owned_format: OwnedFormat | None = None
     source_metadata: dict | None = None
     # The copy on the shelf (formats.py). platform, format_source and
@@ -91,6 +92,11 @@ class ItemIn(BaseModel):
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
     following: bool = False
+
+
+# ItemPatch fields whose columns are NOT NULL: absent leaves them alone,
+# null is refused.
+NOT_NULL_PATCH_FIELDS = ("type", "title", "is_public", "favorite", "following")
 
 
 class ItemPatch(BaseModel):
@@ -134,6 +140,19 @@ class ItemPatch(BaseModel):
     # "Use registry value" (E7c): the format of this registry edition, with
     # format_source registry. The edition's cart ID is never copied.
     edition_id: uuid.UUID | None = None
+
+    @model_validator(mode="after")
+    def _refuse_null_for_required(self) -> ItemPatch:
+        """An explicit null on a NOT NULL column would reach the database
+        as an IntegrityError (a 500); refuse it here as a 422 instead."""
+        nulled = [
+            field
+            for field in NOT_NULL_PATCH_FIELDS
+            if field in self.model_fields_set and getattr(self, field) is None
+        ]
+        if nulled:
+            raise ValueError(f"{', '.join(nulled)} cannot be null")
+        return self
 
 
 class PlaythroughOut(BaseModel):
@@ -345,6 +364,22 @@ def _http_error_for(error: SourceError) -> HTTPException:
 # 0002. Postgres matches a partial index by its predicate, so these three
 # have to stay in step.
 EXTERNAL_PRESENT = "external_source IS NOT NULL AND external_id IS NOT NULL"
+ALREADY_ON_SHELF = "Already on your shelf"
+
+
+async def _write_or_conflict(
+    session: AsyncSession, write: Callable[[], Awaitable[None]]
+) -> None:
+    """Run `write` (the session's flush or commit), answering a second item
+    for the same external match with a 409 rather than a 500. Any other
+    integrity error is re-raised."""
+    try:
+        await write()
+    except IntegrityError as error:
+        await session.rollback()
+        if "ux_items_external" not in str(error.orig):
+            raise
+        raise HTTPException(status_code=409, detail=ALREADY_ON_SHELF) from None
 
 
 # The only routes the nightly workflow's bearer token opens (Spine Next
@@ -697,12 +732,12 @@ def create_items_router(
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
         item = Item(**values)
         session.add(item)
-        await session.flush()
+        await _write_or_conflict(session, session.flush)
         try:
             await playthroughs.seed_rows(session, item, date.today())
         except playthroughs.PlaythroughError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
-        await session.commit()
+        await _write_or_conflict(session, session.commit)
         await session.refresh(item)
         await _mark_excluded(session, [item])
         return item
@@ -1023,7 +1058,7 @@ def create_items_router(
                 for key, value in item.source_metadata.items()
                 if key not in ISSUE_SNAPSHOT_KEYS
             }
-        await session.commit()
+        await _write_or_conflict(session, session.commit)
         await session.refresh(item)
         await _mark_excluded(session, [item])
         return item
