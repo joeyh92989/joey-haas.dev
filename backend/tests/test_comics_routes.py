@@ -454,3 +454,17 @@ async def test_refresh_skips_a_series_deleted_meanwhile(sessionmaker_for_test):
     assert response.json()["refreshed"] == 1
     assert await _row(factory, gone) is None
     assert (await _row(factory, kept)).source_metadata["released"] == 67
+
+
+async def test_state_reads_a_row_with_no_owned_format():
+    """owned_format is nullable (a want row can carry none); the redraw
+    state must not raise on it."""
+    item = Item(
+        type=ItemType.COMIC,
+        title="Saga",
+        status=ItemStatus.BACKLOG,
+        owned_format=None,
+        is_public=False,
+        following=True,
+    )
+    assert comics_routes._state(item)["owned_format"] is None

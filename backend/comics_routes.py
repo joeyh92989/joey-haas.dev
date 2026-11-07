@@ -63,7 +63,7 @@ def _state(item: Item) -> dict:
     return {
         "item_id": str(item.id),
         "title": item.title,
-        "owned_format": item.owned_format.value,
+        "owned_format": item.owned_format.value if item.owned_format else None,
         "status": item.status.value,
         "is_public": item.is_public,
         "following": item.following,
