@@ -11,6 +11,7 @@ import SpineHeader from '../components/SpineHeader.jsx'
 import StatusStrip from '../components/StatusStrip.jsx'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
+import { ownerYear } from '../lib/formatDate.js'
 import { isValidSnapshot, readSnapshot } from '../lib/snapshot.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
@@ -346,7 +347,7 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
         </div>
         <p className="stat-big">
           <span className="stat-big-label">
-            {`${finishedThisYear} in ${new Date().getUTCFullYear()}`}
+            {`${finishedThisYear} in ${ownerYear()}`}
           </span>
         </p>
       </div>
@@ -562,7 +563,7 @@ export default function Collection() {
                 { label: 'Owned', value: stats.owned },
                 { label: 'Finished', value: stats.by_status.finished ?? 0 },
                 {
-                  label: `Finished in ${new Date().getUTCFullYear()}`,
+                  label: `Finished in ${ownerYear()}`,
                   value: stats.finished_this_year,
                 },
               ]}

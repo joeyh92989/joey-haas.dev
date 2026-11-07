@@ -7,6 +7,7 @@ import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { counted } from '../lib/analytics.js'
 import { apiFetch } from '../lib/api.js'
 import { dashboardCounts, recentChanges } from '../lib/dashboard.js'
+import { ownerYear } from '../lib/formatDate.js'
 import {
   lastNightly,
   nightlyHeadline,
@@ -124,7 +125,7 @@ export default function Admin() {
     }
   }, [])
 
-  const year = new Date(now).getUTCFullYear()
+  const year = ownerYear(now)
   const counts = items ? dashboardCounts(items, year) : null
   const jobs = nightly?.status
     ? nightlyJobs(

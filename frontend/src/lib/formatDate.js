@@ -16,3 +16,20 @@ export function formatDate(date) {
     timeZone: 'UTC',
   })
 }
+
+const OWNER_YEAR = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  timeZone: 'America/Denver',
+})
+
+/**
+ * The owner's current calendar year, the one "Finished in" counts. It
+ * turns over at midnight in Denver, as `OWNER_TZ` in `backend/public.py`
+ * does, not at UTC midnight or in the visitor's own zone.
+ *
+ * @param {number | Date} [now] The moment to read, by default now.
+ * @returns {number}
+ */
+export function ownerYear(now = Date.now()) {
+  return Number(OWNER_YEAR.format(now))
+}

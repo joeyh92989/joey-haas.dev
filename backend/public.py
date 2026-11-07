@@ -18,6 +18,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from dataclasses import field as dc_field
 from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
@@ -47,6 +48,10 @@ from public_comics import (
 )
 from public_next_cache import PublicNextCache
 from public_outputs import PublicNextOut, PublicStatusOut, load_public_next
+
+# The owner's calendar. "Finished this year" turns over at midnight in
+# Denver, not at 17:00 there on 31 December, which is UTC midnight.
+OWNER_TZ = ZoneInfo("America/Denver")
 
 # The runs that date the status strip's "Last refreshed": the stores and the
 # registries, as on the Dashboard (lib/nightly.js, ANCHOR_KINDS). Resolve and
@@ -520,9 +525,9 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             .order_by(month)
         )
 
-        # The current calendar year in UTC, bounded as a date range so the
+        # The owner's current calendar year, bounded as a date range so the
         # index on finished_on can serve it.
-        year = datetime.now(UTC).year
+        year = datetime.now(OWNER_TZ).year
         finished_this_year = await session.scalar(
             select(func.count())
             .select_from(Playthrough)

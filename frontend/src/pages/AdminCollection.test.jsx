@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { localToday } from '../lib/statusMoves.js'
+import { ownerYear } from '../lib/formatDate.js'
 import AdminCollection from './AdminCollection.jsx'
 
 // A pointer device on a wide screen: cards render the hover panel and the
@@ -365,7 +366,7 @@ describe('AdminCollection shelf', () => {
   })
 
   it('computes the hero numbers from the rows', async () => {
-    const year = new Date().getUTCFullYear()
+    const year = ownerYear()
     stubApi({
       items: [
         ...ITEMS,
