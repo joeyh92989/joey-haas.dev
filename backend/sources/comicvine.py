@@ -35,6 +35,7 @@ from sources.base import (
     SourceRateLimited,
     SourceResult,
     Throttle,
+    read_json,
     year_from_date,
 )
 
@@ -125,7 +126,7 @@ class ComicVineSource:
                 self.source_name, f"HTTP {response.status_code} from ComicVine"
             )
 
-        payload = response.json()
+        payload = read_json(response, self.source_name, dict)
         # ComicVine reports its own errors inside a 200 body.
         if payload.get("error") not in (None, "OK"):
             raise SourceError(self.source_name, str(payload["error"]))

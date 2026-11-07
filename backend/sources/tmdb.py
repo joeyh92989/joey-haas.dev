@@ -27,6 +27,7 @@ from sources.base import (
     SourceRateLimited,
     SourceResult,
     Throttle,
+    read_json,
     year_from_date,
 )
 
@@ -81,7 +82,7 @@ class TmdbSource:
             raise SourceError(
                 self.source_name, f"HTTP {response.status_code} from TMDB"
             )
-        return response.json()
+        return read_json(response, self.source_name, dict)
 
     def _image_url(self, poster_path: str | None, size: str) -> str | None:
         return f"{IMAGE_ROOT}/{size}{poster_path}" if poster_path else None

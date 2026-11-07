@@ -37,6 +37,7 @@ from sources.base import (
     SourceResult,
     SourceUnavailable,
     Throttle,
+    read_json,
 )
 
 logger = logging.getLogger(__name__)
@@ -319,7 +320,7 @@ class IgdbSource:
                 f"HTTP {response.status_code} from Twitch while getting a token",
             )
 
-        token = response.json().get("access_token")
+        token = read_json(response, self.source_name, dict).get("access_token")
         if not token:
             raise SourceError(self.source_name, "Twitch returned no access token")
 
@@ -371,7 +372,7 @@ class IgdbSource:
                 raise SourceError(
                     self.source_name, f"HTTP {response.status_code} from IGDB"
                 )
-            return response.json()
+            return read_json(response, self.source_name, list)
 
         raise SourceError(self.source_name, "authentication failed twice")
 
