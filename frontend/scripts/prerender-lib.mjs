@@ -3,7 +3,7 @@
  * public routes, each route's head, the post excerpt, the sitemap and
  * robots.txt. No file or network access here, so tests drive them directly.
  */
-import { staticPages } from '../src/content/pages.js'
+import { staticPages, TIL_PAGE } from '../src/content/pages.js'
 import { profile } from '../src/content/profile.js'
 import { spine } from '../src/content/spine.js'
 import {
@@ -161,11 +161,7 @@ export function publicRoutes({ posts, notes = [], items }) {
   }
   if (notes.length > 0) {
     routes.push({
-      ...page(
-        '/til',
-        `TIL · ${profile.name}`,
-        `Short notes by ${profile.name}: things learned while building this site.`,
-      ),
+      ...page(TIL_PAGE.path, TIL_PAGE.headTitle, TIL_PAGE.description),
       feed: TIL_FEED,
     })
   }
