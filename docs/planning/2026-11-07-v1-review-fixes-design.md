@@ -40,7 +40,7 @@ see Open questions), a full Content-Security-Policy, and the
    agent to mint hashes, so no threshold on that data is safe. Recommended:
    publicly, a host is named only when it is in a short allowlist of known
    referrers (search engines, GitHub, Hacker News, Reddit, LinkedIn,
-   Bluesky, Mastodon instances are *not* enumerable so they fold) **and**
+   Bluesky; Mastodon instances cannot be listed, so they fold) **and**
    clears the existing 5-visitor fold; everything else is summed into
    `referrers_other`. `/admin/analytics` is unchanged and still names every
    host. (Alternative in Open questions.)
