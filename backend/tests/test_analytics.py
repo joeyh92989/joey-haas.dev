@@ -16,6 +16,7 @@ from analytics import (
     cap_key,
     client_ip,
     daily_salt,
+    is_public_referrer,
     normalise,
     normalise_path,
     range_start,
@@ -384,3 +385,33 @@ def test_every_public_route_in_the_app_is_counted():
     assert "/stats" in routes and "/til/a-sample-slug" in routes
     missing = [path for path in routes if normalise_path(path) != path]
     assert missing == []
+
+
+@pytest.mark.parametrize(
+    "host, named",
+    [
+        ("www.google.com", True),
+        ("google.de", True),
+        ("www.google.co.uk", True),
+        ("news.ycombinator.com", True),
+        ("old.reddit.com", True),
+        ("github.com", True),
+        ("bsky.app", True),
+        ("ycombinator.com", False),
+        ("notgoogle.com", False),
+        ("google.com.evil.example", False),
+        ("github.com.example", False),
+        ("someones-blog.example", False),
+    ],
+)
+def test_only_known_public_referrers_are_named(host, named):
+    assert is_public_referrer(host) is named
+
+
+def test_keep_path_hides_a_page_but_not_its_views():
+    stats = rollup_day(
+        DAY, views(("/a", "", "desktop", "x"), ("/b", "", "desktop", "y"))
+    )
+    summary = summarise(stats, DAY, DAY, keep_path=lambda path: path != "/b")
+    assert [row["value"] for row in summary["pages"]] == ["/a"]
+    assert summary["views"] == 2

@@ -17,7 +17,7 @@ from analytics_routes import (
     create_site_stats_router,
     create_track_router,
 )
-from models import DailyStat, PageView
+from models import DailyStat, Item, ItemStatus, ItemType, PageView
 from origin_check import add_origin_check
 
 pytestmark = pytest.mark.asyncio
@@ -345,8 +345,8 @@ async def test_site_stats_needs_no_session_and_never_names_a_small_host(
     today = date(2026, 10, 20)
     # Launch day is the test clock's today, so "all" and "30d" cover the
     # same views; the figures must still agree with the admin read.
-    # Six of eleven visits began at big.example: the admin's dominant host.
-    await _referred(factory, today, "big.example", 6)
+    # Six of eleven visits began at github.com: the admin's dominant host.
+    await _referred(factory, today, "github.com", 6)
     await _referred(factory, today, "small.example", 4)
     await _view(factory, today, ref="", visitor="direct")
     async with client_for(factory) as client:
@@ -366,7 +366,7 @@ async def test_site_stats_needs_no_session_and_never_names_a_small_host(
             assert summary[figure] == admin[figure]
         assert summary["best_day"]["day"] == admin["best_day"]["day"]
         assert summary["best_day"]["views"] == admin["best_day"]["views"]
-        assert [row["value"] for row in summary["referrers"]] == ["", "big.example"]
+        assert [row["value"] for row in summary["referrers"]] == ["", "github.com"]
         assert summary["referrers_other"] == 4
         assert set(summary["best_day"]) == {"day", "views"}
         for name in ("pages", "referrers", "devices"):
@@ -375,7 +375,47 @@ async def test_site_stats_needs_no_session_and_never_names_a_small_host(
     assert body["all"]["start"] == "2026-10-20"
     # The admin read is unchanged: the small host is still named there.
     assert "small.example" in [row["value"] for row in thirty["referrers"]]
-    assert thirty["best_day"]["referrer"] == "big.example"
+    assert thirty["best_day"]["referrer"] == "github.com"
+
+
+async def test_site_stats_names_only_allowlisted_hosts(sessionmaker_for_test):
+    """A host off the allowlist folds into "other" however many visitors it
+    brought: a big count is no proof a host is public."""
+    factory = sessionmaker_for_test
+    today = date(2026, 10, 20)
+    await _referred(factory, today, "www.google.co.uk", 5)
+    await _referred(factory, today, "intranet.example", 9)
+    async with client_for(factory) as client:
+        public = (await client.get("/api/public/site-stats")).json()["thirty"]
+    async with client_for(factory, signed_in=True) as client:
+        admin = (await client.get("/api/analytics?range=30d")).json()
+    assert [row["value"] for row in public["referrers"]] == ["www.google.co.uk"]
+    assert public["referrers_other"] == 9
+    assert "intranet.example" in [row["value"] for row in admin["referrers"]]
+
+
+async def test_site_stats_never_lists_a_private_item_page(sessionmaker_for_test):
+    factory = sessionmaker_for_test
+    today = date(2026, 10, 20)
+    async with factory() as session:
+        shown = Item(type=ItemType.GAME, title="Shown", status=ItemStatus.BACKLOG)
+        hidden = Item(type=ItemType.GAME, title="Hidden", status=ItemStatus.BACKLOG)
+        shown.is_public, hidden.is_public = True, False
+        session.add_all([shown, hidden])
+        await session.commit()
+        shown_id, hidden_id = str(shown.id), str(hidden.id)
+    for path in (f"/shelf/{shown_id}", f"/shelf/{hidden_id}", f"/spine/{hidden_id}"):
+        await _view(factory, today, path=path)
+    await _view(factory, today, path="/about")
+    async with client_for(factory) as client:
+        public = (await client.get("/api/public/site-stats")).json()["thirty"]
+    async with client_for(factory, signed_in=True) as client:
+        admin = (await client.get("/api/analytics?range=30d")).json()
+    paths = {row["value"] for row in public["pages"]}
+    assert paths == {f"/shelf/{shown_id}", "/about"}
+    # The views still count; only the private page's name is withheld.
+    assert public["views"] == 4
+    assert f"/shelf/{hidden_id}" in {row["value"] for row in admin["pages"]}
 
 
 async def test_the_public_and_admin_reads_never_share_a_cache_entry(
