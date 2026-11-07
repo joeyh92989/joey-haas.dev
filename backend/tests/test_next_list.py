@@ -352,6 +352,22 @@ def test_a_trailing_edition_word_does_not_hide_a_private_game():
     assert all("Mario Kart" not in reason for reason in reasons)
 
 
+def test_an_ampersand_or_and_does_not_hide_a_private_game():
+    for text, private in (
+        ("Like Ratchet and Clank, I'd enjoy this", "Ratchet & Clank"),
+        ("Like Ratchet & Clank, I'd enjoy this", "Ratchet and Clank"),
+    ):
+        reasons = _discover([text], ["pub"], [private])
+        assert all("Ratchet" not in reason for reason in reasons)
+
+
+def test_a_leading_the_does_not_hide_a_private_game():
+    reasons = _discover(
+        ["Like Legend of Zelda, I'd enjoy this"], ["pub"], ["The Legend of Zelda"]
+    )
+    assert all("Zelda" not in reason for reason in reasons)
+
+
 def test_a_non_latin_private_title_is_matched_literally():
     reasons = _discover(["Feels like \u5927\u795e to me"], ["pub"], ["\u5927\u795e"])
     assert all("\u5927\u795e" not in reason for reason in reasons)
