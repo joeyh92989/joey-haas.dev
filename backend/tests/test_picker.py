@@ -318,6 +318,17 @@ def test_waiting_uses_acquired_dates_when_they_mean_something():
     assert waiting(playing, TODAY, informative=True) == pytest.approx(40)
 
 
+def test_waiting_reads_a_replays_own_start():
+    replay = item(
+        "r",
+        status="active",
+        acquired_at=TODAY - timedelta(days=365),
+        started_at=TODAY - timedelta(days=730),
+        run_started_on=TODAY - timedelta(days=73),
+    )
+    assert waiting(replay, TODAY, informative=True) == pytest.approx(20)
+
+
 def test_waiting_falls_back_to_release_age():
     game = item(
         "old",
