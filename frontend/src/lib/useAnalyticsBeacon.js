@@ -33,12 +33,15 @@ function referrerHost() {
  * `navigator.sendBeacon`: a text/plain body, so no CORS preflight, and it
  * survives the page unloading.
  *
- * Nothing is sent until the session check has answered and said signed out
- * (`signedIn === false`; null is still checking), on `/admin*`, when the
- * browser sends GPC or Do Not Track, or when sendBeacon is missing. The body
- * is `{path, ref, device}` and nothing else. `ref` is where the visit came
- * from on its first view ('' for direct) and null on every later one, which
- * the server leaves out of the referrer counts.
+ * Nothing is sent while signed in, on `/admin*`, when the browser sends
+ * GPC or Do Not Track, or when sendBeacon is missing. While the session
+ * check is still out (`signedIn === null`) views are queued, not dropped:
+ * a visitor who clicks through before it answers is counted for every
+ * page, in order, once it says signed out, and the queue is thrown away if
+ * it says signed in. The body is `{path, ref, device}` and nothing else.
+ * `ref` is where the visit came from on its first view ('' for direct) and
+ * null on every later one, which the server leaves out of the referrer
+ * counts.
  *
  * @param {string} pathname The current location's pathname.
  * @param {boolean | null} signedIn The session, or null while it is checked.
@@ -48,19 +51,30 @@ export function useAnalyticsBeacon(pathname, signedIn) {
   const narrow = useMediaQuery('(max-width: 700px)')
   const device = !coarse ? 'desktop' : narrow ? 'phone' : 'tablet'
   const first = useRef(true)
-  // The path last sent: a device change (a resized window) is not a view.
-  const sent = useRef(null)
+  // The path last seen: a device change (a resized window) is not a view.
+  const seen = useRef(null)
+  // Views waiting on the session check, oldest first.
+  const pending = useRef([])
 
   useEffect(() => {
-    if (signedIn !== false || sent.current === pathname) return
-    if (pathname === EXCLUDED || pathname.startsWith(`${EXCLUDED}/`)) return
+    if (seen.current !== pathname) {
+      seen.current = pathname
+      if (pathname !== EXCLUDED && !pathname.startsWith(`${EXCLUDED}/`)) {
+        pending.current.push(pathname)
+      }
+    }
+    if (signedIn === null) return
+    const queue = pending.current
+    pending.current = []
+    if (signedIn) return
     if (optedOut() || typeof navigator.sendBeacon !== 'function') return
-    sent.current = pathname
-    const ref = first.current ? referrerHost() : null
-    first.current = false
-    navigator.sendBeacon(
-      `${API_URL}/api/track`,
-      JSON.stringify({ path: pathname, ref, device }),
-    )
+    for (const path of queue) {
+      const ref = first.current ? referrerHost() : null
+      first.current = false
+      navigator.sendBeacon(
+        `${API_URL}/api/track`,
+        JSON.stringify({ path, ref, device }),
+      )
+    }
   }, [pathname, signedIn, device])
 }
