@@ -46,6 +46,9 @@ snapshot files and never call the API.
 | `/` | Home | |
 | `/about` | About | |
 | `/projects` | Projects | |
+| `/now` | Now | What I am doing now |
+| `/colophon` | Colophon | How the site is built |
+| `/stats` | Stats | The site's own visitor figures from `/api/public/site-stats`, how they are counted, and the changelog from `frontend/changelog.md` |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
 | `/til` | TIL | Short notes compiled from `frontend/notes/`, each shown in full; linked from the footer and Blog index only while a note is published. Its feed is `/til/feed.xml` |
@@ -53,6 +56,9 @@ snapshot files and never call the API.
 | `/shelf` | My Shelf | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
 | `/shelf/next` | What's next | Public: tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
 | `/shelf/comics` | Comics | Public: every public comic series as a run (owned, missing, not out yet), with chip filters, sort, a Covers view and what is out this week; reads `/api/public/comics` after painting `/snapshot/comics.json` |
+| `/shelf/how` | How it works | How the shelf is built |
+| `/shelf/year`, `/shelf/year/:year` | Year in review | The current year, or a given one, read live from `/api/public/diary` |
+| `/shelf/journal/:month` | Month in review | One month of the play journal |
 | `/shelf/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf. A comic series shows its run bar, issue grid and collected editions instead |
 | `/spine*`, `/collection*` | Redirect | The pre-rename URLs. Each redirects client-side, in one hop, to its `/shelf` page (`/spine/next` → `/shelf/next`, `/spine/:id` and `/collection/:id` → `/shelf/:id/`, and so on). The build also writes link-preview heads at `/spine`, `/spine/next`, `/spine/how` and `/spine/<id>/` (canonical on `/shelf`), and the finishes feed at both `/shelf/feed.xml` and `/spine/feed.xml`, with item GUIDs kept on `/spine` so readers see nothing new |
 | `/admin` | Dashboard | Google sign-in gate, reached from the footer's Sign in link; once signed in, the API and nightly status, headline counts, the nightly jobs, quick actions and recent changes |
@@ -383,9 +389,10 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Comics | `backend/comics.py`, `comics_routes.py`, `public_comics.py`, `/shelf/comics`, `/admin/pull-list` | Series rows with the issues I own as range text and collected editions; Comic Vine's issue list per followed series feeds the pull list and the public "Out this week". Only public series are ever shown publicly; following and skips stay private |
 | What's next | `backend/next_list.py`, `next_load.py`, `/shelf/next`, `/admin/store-list` | One pure sectioning authority over pending Discover and Radar rows, used by the public page (registry dates only, reasons rebuilt over public games) and the admin store list (any date, stored reasons) |
 
-Migrations `0001`–`0006` build this up: items, enrichment columns, copy
-columns, `pick_events`, the catalogue's five tables, and the shared
-`recommendations` table. They are applied by hand and must be additive — see
+Migrations `0001`–`0011` build this up: items, enrichment columns, copy
+columns, `pick_events`, the catalogue's five tables, the shared
+`recommendations` table, `play_sessions`, analytics, `pick_events.slot`,
+the comic columns, and `playthroughs`. They are applied by hand and must be additive — see
 [Database](#database).
 
 ### Tracker environment variables
@@ -536,7 +543,7 @@ limit is 150 minutes.
   → Actions. The two must match. Without the secret the job says so, refreshes
   nothing and fails its summary step. When they differ, or the Render value
   is not set, every call answers 401 and the run fails, naming both causes.
-- **The token opens ten routes and nothing else.** The whitelist is
+- **The token opens eleven routes and nothing else.** The whitelist is
   `items.JOB_ROUTES` and `backend/tests/test_job_token.py` pins it exactly:
   the writes above (the ingest among them) plus `GET /api/physical/status`
   and `GET /api/physical/stores/{key}/html-skip`. The ingest makes the token
@@ -627,9 +634,11 @@ detail and next models' field sets.
 | `GET /api/public/items` | Every public item, most recently finished first |
 | `GET /api/public/items/{id}` | One public item with description and similar games; 404 for unknown and private alike |
 | `GET /api/public/stats` | Counts over public rows |
+| `GET /api/public/diary?year=` | The play journal for a year, public games only and never the note (`PublicDiaryEntry`) |
+| `GET /api/public/status` | The shelf's status strip: when the catalogue last refreshed and how big it is; `Cache-Control: max-age=300` |
 | `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge`, `comics_this_week` (see below) |
 | `GET /api/public/comics` | `/shelf/comics`: public series with their runs, the shelf's figures, and `this_week` (the weeks ahead and the undated series under Later); never `issues_skipped`, a price or a store |
-| `GET /api/public/site-stats` | `/stats`: the analytics summary (`backend/analytics_routes.py`) for the last thirty days (`thirty`) and since launch (`all`), reduced for the public: referrer hosts under five visitors folded into `referrers_other`, no best-day referrer, lists capped at ten; cached for an hour on the cache the admin read shares, `Cache-Control: max-age=300` |
+| `GET /api/public/site-stats` | `/stats`: the analytics summary (`backend/analytics_routes.py`) for the last thirty days (`thirty`) and since launch (`all`), reduced for the public: a referrer host is named only when it is on `analytics.PUBLIC_REFERRER_DOMAINS` and has five visitors, every other host folds into `referrers_other`; a private item's page is never listed; no best-day referrer, lists capped at ten; cached for an hour on the cache the admin read shares, `Cache-Control: max-age=300` |
 
 `/api/public/picks` and `/api/public/radar` are retired and answer 404;
 `/api/public/next` carries both (Play Next's picks as `tonight`, Radar's

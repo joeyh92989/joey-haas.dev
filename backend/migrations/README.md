@@ -63,3 +63,20 @@ migration once no deployed code reads it.
    from the PR's worktree).
 2. Merge; Render deploys.
 3. Smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`.
+
+## Restore
+
+A downgrade is not an undo: most `downgrade()` functions drop what their
+`upgrade()` added, and the rows with it (`0011` drops `playthroughs`). To
+get data back, use Neon's own restore instead.
+
+- Before a risky migration or a downgrade, note the time (UTC) or create a
+  branch from the production branch in the Neon console, so there is a
+  known-good point to return to.
+- To recover, restore the production branch to that point from the Neon
+  console. How far back you can go is the project's history retention
+  window, which depends on the Neon plan; check it in the project settings
+  before relying on it.
+- After a restore, check `scripts/migrate_neon.py current` matches the code
+  that is deployed: the restored database carries the revision it had at
+  that moment.

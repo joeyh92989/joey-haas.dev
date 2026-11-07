@@ -87,8 +87,10 @@ before pushing.
 - Keep the site a real multi-section/multi-page website (react-router when
   pages are added), not a rendered resume document. A downloadable PDF resume
   is an optional accessory only.
-- API routes live under `/api/`. CORS is configured for localhost and
-  *.onrender.com in `backend/main.py` — update if a custom domain is added.
+- API routes live under `/api/`. CORS allows exactly `FRONTEND_URL`
+  (`config.allowed_origins`, applied in `backend/main.py`), plus the Vite
+  dev origin only when `FRONTEND_URL` is itself localhost; the same list
+  gates foreign-origin writes (`origin_check.py`).
 - `frontend/changelog.md` is the public changelog, shown on `/stats`:
   `## YYYY-MM-DD` headings, one bullet per shipped change, newest first,
   markdown links where a change has a page. **A shipped feature adds its
@@ -462,8 +464,13 @@ before pushing.
   `times_completed` says, and gives a backlog or abandoned game with a date
   one abandoned run. **Deploy order:** apply `0011` to Neon, then merge, and
   change no status between the two: the old code's status writes skip
-  `playthroughs`. A code rollback needs `migrate_neon.py downgrade 0010`
-  first, since the old code does not know the `paused` status.
+  `playthroughs`. A code rollback needs the schema at `0010` first, since
+  the old code does not know the `paused` status. `migrate_neon.py` has no
+  downgrade command: run `alembic downgrade 0010` by hand from `backend/`
+  with `DATABASE_URL_DIRECT` set from the main checkout's `.env`. It drops
+  `playthroughs` (the replay history goes with it) and moves paused games
+  back to active, so take a Neon restore point first (see
+  `backend/migrations/README.md` → Restore).
 - **Favourites are capped at four**, the size of the favourites row. The
   API refuses a fifth with a 409 on PATCH, create and bulk create
   (`FAVORITES_LIMIT` in `items.py`); unfavouriting is never refused. Rows

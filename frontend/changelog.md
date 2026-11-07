@@ -4,8 +4,15 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-07
+
+- Site search now finds [TIL](/til) notes too.
+
 ## 2026-11-06
 
+- Site search: press ⌘K (or Ctrl K) to search pages, posts, the
+  [shelf](/shelf) and comics.
+- [TIL](/til): short notes on things I learned, with their own feed.
 - [Stats](/stats): the site's own visitor figures, how they are counted,
   and this list of changes.
 
