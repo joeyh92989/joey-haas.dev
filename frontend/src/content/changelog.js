@@ -20,8 +20,24 @@ import { parseChangelog } from '../lib/changelog.js'
 const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g
 
 /**
+ * Whether an href is a page the router owns. A file on the site
+ * (`/resume.pdf`, `/til/feed.xml`) is not: the router would match it to
+ * the 404 page instead of letting the browser fetch it. Neither is a
+ * protocol-relative URL (`//host/...`).
+ *
+ * @param {string} href
+ * @returns {boolean}
+ */
+export function isRouterPath(href) {
+  if (!href.startsWith('/') || href.startsWith('//')) return false
+  const path = href.split(/[?#]/)[0]
+  const last = path.slice(path.lastIndexOf('/') + 1)
+  return !/\.[a-z0-9]+$/i.test(last)
+}
+
+/**
  * One changelog line as React nodes: text, with each markdown link a
- * router Link (href starting with `/`) or an anchor.
+ * router Link (a page path, see `isRouterPath`) or an anchor.
  *
  * @param {string} line
  * @returns {import('react').ReactNode[]}
@@ -33,7 +49,7 @@ export function renderLine(line) {
     if (match.index > last) nodes.push(line.slice(last, match.index))
     const [, text, href] = match
     nodes.push(
-      href.startsWith('/')
+      isRouterPath(href)
         ? createElement(Link, { key: match.index, to: href }, text)
         : createElement(
             'a',
