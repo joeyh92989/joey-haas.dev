@@ -22,7 +22,7 @@ Two terminals:
 cd backend
 /usr/local/opt/python@3.12/bin/python3.12 -m venv .venv   # first time only
 source .venv/bin/activate
-pip install -r requirements-dev.txt                       # first time only
+pip install -r requirements-dev.txt -c constraints.txt   # first time only
 uvicorn main:app --reload
 
 # Terminal 2 — frontend (http://localhost:5173)
@@ -471,6 +471,27 @@ and `/shelf/:id` call the API. They paint the build-time snapshot first and
 show a "waking the server" state only when there is no snapshot; every other
 public page never waits on it (see [Collection snapshot](#collection-snapshot)).
 Upgrade to Starter ($7/mo) to keep it warm.
+
+### Dependency pins
+
+`backend/requirements*.txt` say what the API needs, as ranges;
+`backend/constraints.txt` pins every installed package, transitive ones
+included, to one tested set. Render's build, CI and the local install all
+pass it with `-c`, so a deploy installs what CI tested rather than whatever
+was newest that minute, and `pip-audit` in CI audits those exact pins.
+
+Refresh it on purpose, never as a side effect: from `backend/`, in a fresh
+Python 3.12 venv,
+
+```sh
+python3.12 -m venv /tmp/pins && /tmp/pins/bin/pip install -r requirements-dev.txt
+/tmp/pins/bin/pip freeze > constraints.txt
+```
+
+then run the tests and commit the file in its own change. Adding a
+dependency to `requirements.txt` means refreshing the pins in the same
+change: a constraints file only limits what it names, so a newcomer it
+does not list installs unpinned.
 
 ## Collection snapshot
 
