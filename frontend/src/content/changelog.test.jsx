@@ -54,12 +54,15 @@ describe('isRouterPath', () => {
 })
 
 describe('the shipped changelog', () => {
-  it('parses, and its first entry is the stats page', () => {
+  // Pins shape, not the newest entry: every shipped feature adds one.
+  it('parses newest first, and lists the stats page', () => {
     expect(CHANGELOG.length).toBeGreaterThan(0)
-    expect(CHANGELOG[0].date).toBe('2026-11-06')
-    expect(CHANGELOG[0].lines[0]).toContain('[Stats](/stats)')
     for (const entry of CHANGELOG) {
       expect(entry.lines.length).toBeGreaterThan(0)
     }
+    const dates = CHANGELOG.map((entry) => entry.date)
+    expect(dates).toEqual([...dates].sort().reverse())
+    const lines = CHANGELOG.flatMap((entry) => entry.lines)
+    expect(lines.some((line) => line.includes('[Stats](/stats)'))).toBe(true)
   })
 })
