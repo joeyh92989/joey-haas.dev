@@ -2,7 +2,7 @@
 
 import uuid
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import UTC, datetime
 
 import pytest
 from fastapi import FastAPI
@@ -69,8 +69,9 @@ async def test_pinning_commits_to_the_game(sessionmaker_for_test):
     body = response.json()
     assert body["pinned_at"] is not None
     assert body["status"] == "active"
-    # Today, in the server's own terms.
-    assert body["started_at"] == date.today().isoformat()
+    # With no `today` from the client the route falls back to the UTC day, so
+    # compare in UTC: the machine's local date differs every evening west of it.
+    assert body["started_at"] == datetime.now(UTC).date().isoformat()
     assert await _events(sessionmaker_for_test, item_id) == ["pinned"]
 
 
