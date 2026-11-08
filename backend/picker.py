@@ -269,11 +269,10 @@ def waiting(item: PickerItem, today: date, informative: bool) -> float:
     a constant while every acquired date is the import day.
     """
     if informative:
-        since = (
-            item.started_at
-            if item.status == "active" and item.started_at
-            else item.acquired_at
-        )
+        # The open run's start, as _is_stalled reads it: a replay begun last
+        # week has waited a week, not since the first run years ago.
+        started = item.run_started_on or item.started_at
+        since = started if item.status == "active" and started else item.acquired_at
         full = WAITING_FULL_DAYS
     else:
         since, full = item.release_date, RELEASE_FULL_DAYS
@@ -742,7 +741,7 @@ def recommend(
     )
     stalled = sorted(
         (i for i in pool if i.id not in taken and _is_stalled(i, events, now)),
-        key=lambda item: item.started_at,
+        key=lambda item: item.run_started_on or item.started_at,
     )
     if paused or stalled:
         chosen.append(("pick_it_back_up", (paused or stalled)[0]))

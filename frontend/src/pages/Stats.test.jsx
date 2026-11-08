@@ -220,9 +220,14 @@ describe('Stats', () => {
     const { container } = renderPage()
     const entries = container.querySelectorAll('.changelog > li')
     expect(entries).toHaveLength(CHANGELOG.length)
-    const time = entries[0].querySelector('time')
-    expect(time).toHaveAttribute('dateTime', CHANGELOG[0].date)
-    expect(time).toHaveTextContent('Nov 6, 2026')
+    expect(entries[0].querySelector('time')).toHaveAttribute(
+      'dateTime',
+      CHANGELOG[0].date,
+    )
+    // A past entry, so a new one at the top leaves this alone.
+    expect(
+      container.querySelector('time[datetime="2026-11-06"]'),
+    ).toHaveTextContent('Nov 6, 2026')
     expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute(
       'href',
       '/stats',

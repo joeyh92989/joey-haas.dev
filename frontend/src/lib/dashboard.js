@@ -1,12 +1,38 @@
 import { STATUS_LABEL } from './shelf.js'
 
 /**
+ * Finishes in a year, counted from the admin rows: finished playthroughs,
+ * so a replay that year counts again, as the public stats count them. A
+ * row without playthroughs (an older response) counts its last finish.
+ *
+ * @param {object[]} items Every row.
+ * @param {number} year
+ * @returns {number}
+ */
+export function finishedIn(items, year) {
+  const prefix = `${year}-`
+  return items.reduce(
+    (sum, item) =>
+      sum +
+      (item.playthroughs
+        ? item.playthroughs.filter(
+            (run) =>
+              run.outcome === 'finished' && run.finished_on?.startsWith(prefix),
+          ).length
+        : item.finished_at?.startsWith(prefix)
+          ? 1
+          : 0),
+    0,
+  )
+}
+
+/**
  * The Dashboard's figures, counted from `GET /api/items` (the rows the
  * admin layout already loads). Owned matches the Shelf: any row whose
  * format is not "none", so a row with no format recorded counts.
  *
  * @param {object[]} items Every row.
- * @param {number} year The current UTC year.
+ * @param {number} year The owner's current year (`ownerYear`).
  */
 export function dashboardCounts(items, year) {
   const owned = items.filter((item) => item.owned_format !== 'none')
@@ -20,22 +46,7 @@ export function dashboardCounts(items, year) {
     ownedPublic,
     ownedHidden: owned.length - ownedPublic,
     finished: finished.length,
-    // Finished playthroughs, so a replay this year counts again. A row
-    // without playthroughs (an older response) counts its last finish.
-    finishedThisYear: items.reduce(
-      (sum, item) =>
-        sum +
-        (item.playthroughs
-          ? item.playthroughs.filter(
-              (run) =>
-                run.outcome === 'finished' &&
-                run.finished_on?.startsWith(`${year}-`),
-            ).length
-          : item.finished_at?.startsWith(`${year}-`)
-            ? 1
-            : 0),
-      0,
-    ),
+    finishedThisYear: finishedIn(items, year),
     averageRating: ratings.length
       ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
       : null,

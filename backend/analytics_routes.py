@@ -11,7 +11,9 @@ rollup is also on items.JOB_ROUTES for the nightly workflow.
 
 `GET /api/public/site-stats` is the /stats page's read: the same summary
 for the last thirty days and for everything, with the public reductions
-(no host under PUBLIC_REFERRER_MIN visitors, no best-day referrer), cached
+(a host is named only when it is on analytics.PUBLIC_REFERRER_DOMAINS and
+has PUBLIC_REFERRER_MIN visitors, a private item's page is never listed,
+no best-day referrer), cached
 for an hour on the cache the admin read shares, so the rollup clears both.
 """
 
@@ -28,6 +30,7 @@ from sqlalchemy import delete, distinct, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from analytics import (
+    ITEM_PATH,
     MAX_BODY_BYTES,
     RANGES,
     RETENTION_DAYS,
@@ -36,6 +39,7 @@ from analytics import (
     cap_key,
     client_ip,
     daily_salt,
+    is_public_referrer,
     normalise,
     range_start,
     rollup_day,
@@ -44,7 +48,7 @@ from analytics import (
 )
 from auth import session_admin
 from items import require_admin
-from models import DailyStat, PageView
+from models import DailyStat, Item, PageView
 from public_outputs import PublicSiteStatsOut
 
 logger = logging.getLogger(__name__)
@@ -186,6 +190,8 @@ async def load_summary(
     today: date,
     *,
     fold_referrers_below: int = 0,
+    keep_referrer: Callable[[str], bool] | None = None,
+    keep_path: Callable[[str], bool] | None = None,
 ) -> dict:
     """analytics.summarise over the range `span` ending `today`. Rolled-up
     days come from daily_stats; any day not rolled up yet (today, or a
@@ -203,8 +209,30 @@ async def load_summary(
     done = {stat.day for stat in stats}
     pending = await _raw_stats(session, None, since=start, skip=done)
     return summarise(
-        [*stats, *pending], start, today, fold_referrers_below=fold_referrers_below
+        [*stats, *pending],
+        start,
+        today,
+        fold_referrers_below=fold_referrers_below,
+        keep_referrer=keep_referrer,
+        keep_path=keep_path,
     )
+
+
+async def public_path_filter(session: AsyncSession) -> Callable[[str], bool]:
+    """A keep_path for the public read: an item page is listed only while
+    its item is public, so a private game's page is never named."""
+    public = {
+        str(item_id)
+        for item_id in (
+            await session.scalars(select(Item.id).where(Item.is_public))
+        ).all()
+    }
+
+    def keep(path: str) -> bool:
+        match = ITEM_PATH.fullmatch(path)
+        return match is None or match.group(1) in public
+
+    return keep
 
 
 def create_site_stats_router(
@@ -232,13 +260,14 @@ def create_site_stats_router(
         today = now().astimezone(UTC).date()
 
         async def build() -> dict:
+            reductions = {
+                "fold_referrers_below": PUBLIC_REFERRER_MIN,
+                "keep_referrer": is_public_referrer,
+                "keep_path": await public_path_filter(session),
+            }
             return {
-                "thirty": await load_summary(
-                    session, "30d", today, fold_referrers_below=PUBLIC_REFERRER_MIN
-                ),
-                "all": await load_summary(
-                    session, "all", today, fold_referrers_below=PUBLIC_REFERRER_MIN
-                ),
+                "thirty": await load_summary(session, "30d", today, **reductions),
+                "all": await load_summary(session, "all", today, **reductions),
             }
 
         response.headers["Cache-Control"] = "public, max-age=300"

@@ -24,7 +24,7 @@ import hmac
 import ipaddress
 import json
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -50,7 +50,8 @@ DEVICES = ("desktop", "phone", "tablet")
 DIMENSIONS = ("total", "path", "referrer", "device")
 RANGES: dict[str, int | None] = {"7d": 7, "30d": 30, "90d": 90, "all": None}
 
-# The public routes, as the router in frontend/src/App.jsx has them. A path
+# The public routes, as the router in frontend/src/App.jsx has them
+# (tests/test_analytics.py reads App.jsx and fails on a route missing here). A path
 # that matches none of them is not counted: a typo, a scan or a 404. The
 # pre-rename /spine* paths are not counted either: they only redirect to
 # /shelf*, which the beacon then reports, so counting both would count a
@@ -62,8 +63,11 @@ _EXACT_PATHS = frozenset(
         "/projects",
         "/now",
         "/colophon",
+        "/stats",
         "/blog",
+        "/til",
         "/shelf",
+        "/shelf/comics",
         "/shelf/next",
         "/shelf/how",
         "/shelf/year",
@@ -74,6 +78,40 @@ _PATTERNS = (
     re.compile(r"/shelf/year/\d{4}"),
     re.compile(r"/shelf/journal/\d{4}-\d{2}"),
     re.compile(r"/blog/[a-z0-9]+(?:-[a-z0-9]+)*"),
+    re.compile(r"/til/[a-z0-9]+(?:-[a-z0-9]+)*"),
+)
+# Referrers the public /stats page may name: search engines and the big
+# public sites. A host is on the list when it is one of these domains or a
+# subdomain of one. Anything else (someone's blog, a company intranet, a
+# chat app's link host) is summed into "other" however many visitors it
+# brought; the admin read still names every host.
+PUBLIC_REFERRER_DOMAINS = frozenset(
+    {
+        "bing.com",
+        "duckduckgo.com",
+        "yahoo.com",
+        "ecosia.org",
+        "kagi.com",
+        "search.brave.com",
+        "startpage.com",
+        "yandex.com",
+        "baidu.com",
+        "github.com",
+        "news.ycombinator.com",
+        "reddit.com",
+        "linkedin.com",
+        "lnkd.in",
+        "bsky.app",
+    }
+)
+# Google search, on google.com and its country domains (google.de,
+# www.google.co.uk). Only the bare host and www: Google's other subdomains
+# are apps and user content (mail., docs., sites.), which say where a
+# private link was shared, so they fold into "other" like any blog.
+_GOOGLE = re.compile(r"(?:www\.)?google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})")
+# An item page's path, before and after the /spine -> /shelf rename.
+ITEM_PATH = re.compile(
+    r"/(?:shelf|spine)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
 )
 _HOSTNAME = re.compile(
     r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*"
@@ -270,12 +308,25 @@ def _ranked(totals: dict[str, int], first: str | None = None) -> list[dict]:
     return [{"value": value, "count": count} for value, count in rows[:LIST_SIZE]]
 
 
+def is_public_referrer(host: str) -> bool:
+    """True when the public /stats page may name `host`: a domain on
+    PUBLIC_REFERRER_DOMAINS, a subdomain of one, or a Google search host."""
+    if _GOOGLE.fullmatch(host):
+        return True
+    labels = host.split(".")
+    return any(
+        ".".join(labels[i:]) in PUBLIC_REFERRER_DOMAINS for i in range(len(labels))
+    )
+
+
 def summarise(
     stats: Iterable[Stat],
     start: date,
     end: date,
     *,
     fold_referrers_below: int = 0,
+    keep_referrer: Callable[[str], bool] | None = None,
+    keep_path: Callable[[str], bool] | None = None,
 ) -> dict:
     """The Analytics page's body over `start`..`end` inclusive.
 
@@ -290,6 +341,11 @@ def summarise(
     it so a host with a handful of visitors (someone's own blog, a company
     intranet) is never named. Direct (`''`) never folds. Hosts the cap
     cuts are not "other": they are simply not listed.
+
+    `keep_referrer`, when given, folds every named host it refuses the same
+    way, whatever its count. `keep_path`, when given, leaves the paths it
+    refuses out of the page list (their views still count in the totals):
+    the public read uses it to keep a private item's page unnamed.
     """
     by_day: dict[date, int] = {}
     visitors = 0
@@ -306,6 +362,8 @@ def summarise(
             by_day[stat.day] = by_day.get(stat.day, 0) + stat.views
             visitors += stat.visitors
         elif stat.dimension == "path":
+            if keep_path is not None and not keep_path(stat.value):
+                continue
             pages[stat.value] = pages.get(stat.value, 0) + stat.views
         elif stat.dimension == "referrer":
             referrers[stat.value] = referrers.get(stat.value, 0) + stat.visitors
@@ -337,11 +395,15 @@ def summarise(
         day += timedelta(days=1)
 
     other = 0
-    if fold_referrers_below > 0:
+    if fold_referrers_below > 0 or keep_referrer is not None:
         small = [
             host
             for host, count in referrers.items()
-            if host and count < fold_referrers_below
+            if host
+            and (
+                count < fold_referrers_below
+                or (keep_referrer is not None and not keep_referrer(host))
+            )
         ]
         other = sum(referrers.pop(host) for host in small)
 

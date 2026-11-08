@@ -232,9 +232,11 @@ def catalogue_item(
 
 def _normalise(text: str, apostrophe: str = "") -> str:
     """Fold text to lower-case words for title matching: no accents or marks,
-    apostrophes replaced by `apostrophe` (deleted by default), every other
+    apostrophes replaced by `apostrophe` (deleted by default), "&" and "+"
+    read as "and" ("Ratchet & Clank" is "ratchet and clank"), every other
     non-alphanumeric run a single space."""
     text = text.translate(_TITLE_MARKS).translate(_QUOTES).replace("'", apostrophe)
+    text = text.replace("&", " and ").replace("+", " and ")
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch)).casefold()
     return " ".join(re.sub(r"[^0-9a-z]+", " ", text).split())
@@ -282,12 +284,16 @@ def _numeral_variants(key: str) -> set[str]:
     return out
 
 
+_NUMERAL_WORD = re.compile(r"\d+|[ivxlcdm]+")
+
+
 def _title_keys(title: str) -> tuple[set[str], set[str]]:
     """What a model might call a private game, as (word keys, literal keys).
 
     Word keys are normalised, with apostrophes deleted and as spaces: the
     whole title, each ":" / " - " segment of two or more words, the same
-    without a trailing edition word, and roman/arabic numeral variants of
+    without a leading "the" and without a trailing edition word (each while
+    two or more words remain), and roman/arabic numeral variants of
     all of them. A title with no Latin letters or digits
     has no word key, so its NFKC-casefolded form is a literal key. A blocklist
     over-matches on purpose: a false hit only sends the row to rebuilt reasons."""
@@ -301,6 +307,24 @@ def _title_keys(title: str) -> tuple[set[str], set[str]]:
             if len(key.split()) >= 2:
                 keys.add(key)
     keys.discard("")
+    # "&" and "+" read as "and", so a title with no Latin words of its own
+    # ("龍が如く & 極") would get the key "and", which every sentence matches.
+    # A key of only "and" and numerals is no key; such a title falls back
+    # to its literal form below.
+    keys = {
+        key
+        for key in keys
+        if not (
+            "and" in key.split()
+            and all(
+                word == "and" or _NUMERAL_WORD.fullmatch(word) for word in key.split()
+            )
+        )
+    }
+    for key in list(keys):
+        words = key.split()
+        if words[0] == "the" and len(words) >= 3:
+            keys.add(" ".join(words[1:]))
     for key in list(keys):
         stripped = _strip_edition(key)
         if stripped:

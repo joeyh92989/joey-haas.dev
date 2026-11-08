@@ -2,6 +2,7 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ownerYear } from '../lib/formatDate.js'
 import AdminLayout from '../layouts/AdminLayout.jsx'
 import Admin from './Admin.jsx'
 
@@ -27,7 +28,7 @@ const json = (body, ok = true) => ({
   status: ok ? 200 : 500,
   json: async () => body,
 })
-const YEAR = new Date().getUTCFullYear()
+const YEAR = ownerYear()
 
 const ITEMS = [
   {

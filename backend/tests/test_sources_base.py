@@ -2,6 +2,7 @@
 
 import asyncio
 
+import httpx2
 import pytest
 
 from sources.base import (
@@ -9,6 +10,7 @@ from sources.base import (
     SourceNotConfigured,
     SourceRateLimited,
     Throttle,
+    read_json,
     year_from_date,
 )
 
@@ -58,3 +60,24 @@ async def test_throttle_serialises_concurrent_callers():
     await asyncio.gather(*(throttle.wait() for _ in range(3)))
 
     assert loop.time() - started >= 0.10
+
+
+def test_read_json_returns_the_body_of_the_expected_type():
+    response = httpx2.Response(200, json={"results": []})
+    assert read_json(response, "tmdb", dict) == {"results": []}
+    assert read_json(httpx2.Response(200, json=[1]), "igdb", list) == [1]
+
+
+@pytest.mark.parametrize(
+    "response, expect",
+    [
+        (httpx2.Response(200, content=b"<html>Bad gateway</html>"), dict),
+        (httpx2.Response(200, content=b""), dict),
+        (httpx2.Response(200, json=["not", "a", "dict"]), dict),
+        (httpx2.Response(200, json={"not": "a list"}), list),
+    ],
+)
+def test_read_json_turns_a_bad_body_into_a_source_error(response, expect):
+    with pytest.raises(SourceError) as raised:
+        read_json(response, "comicvine", expect)
+    assert raised.value.source == "comicvine"

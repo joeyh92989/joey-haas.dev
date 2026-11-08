@@ -71,6 +71,29 @@ describe('useAnalyticsBeacon', () => {
     expect(beacon).toHaveBeenCalledTimes(1)
   })
 
+  it('queues views made before the session check answers, in order', () => {
+    setReferrer('https://search.test/q')
+    const go = mount('/', null)
+    go('/about', null)
+    go('/admin', null)
+    go('/shelf', null)
+    expect(beacon).not.toHaveBeenCalled()
+    go('/shelf', false)
+    expect(bodies()).toEqual([
+      { path: '/', ref: 'search.test', device: 'desktop' },
+      { path: '/about', ref: null, device: 'desktop' },
+      { path: '/shelf', ref: null, device: 'desktop' },
+    ])
+  })
+
+  it('drops the queue when the check says signed in', () => {
+    const go = mount('/', null)
+    go('/about', null)
+    go('/about', true)
+    go('/shelf', true)
+    expect(beacon).not.toHaveBeenCalled()
+  })
+
   it('sends nothing while signed in', () => {
     const go = mount('/', true)
     go('/about', true)

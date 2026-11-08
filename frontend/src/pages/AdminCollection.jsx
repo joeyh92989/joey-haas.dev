@@ -16,6 +16,8 @@ import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { comicPayload } from '../lib/comics.js'
+import { finishedIn } from '../lib/dashboard.js'
+import { ownerYear } from '../lib/formatDate.js'
 import {
   countBy,
   filterItems,
@@ -57,19 +59,16 @@ const NUDGE_BELOW = 5
  * owned_format is owned, and only an explicit `none` is the want list.
  */
 function heroFigures(items) {
-  const year = new Date().getUTCFullYear()
   return {
     owned: items.filter((item) => item.owned_format !== 'none').length,
     finished: items.filter((item) => item.status === 'finished').length,
-    finishedThisYear: items.filter((item) =>
-      item.finished_at?.startsWith(`${year}-`),
-    ).length,
+    finishedThisYear: finishedIn(items, ownerYear()),
   }
 }
 
 /** The shelf's three headline figures, as the admin's stat tiles. */
 function HeroTiles({ owned, finished, finishedThisYear }) {
-  const year = new Date().getUTCFullYear()
+  const year = ownerYear()
   return (
     <StatTiles label="Shelf totals">
       <StatTile label="Owned" value={owned} />

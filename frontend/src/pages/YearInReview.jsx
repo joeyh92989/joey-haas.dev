@@ -7,6 +7,7 @@ import { spine } from '../content/spine.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { usePublicDiary } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
+import { ownerYear } from '../lib/formatDate.js'
 import { isoMonth } from '../lib/monthInReview.js'
 import { finishYears, yearInReview } from '../lib/yearInReview.js'
 import NotFound from './NotFound.jsx'
@@ -45,7 +46,7 @@ function plural(count, word) {
 
 /** /spine/year: this calendar year's page. */
 export function CurrentYear() {
-  return <Navigate to={yearPath(new Date().getFullYear())} replace />
+  return <Navigate to={yearPath(ownerYear())} replace />
 }
 
 /**

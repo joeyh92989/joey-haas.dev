@@ -47,10 +47,12 @@ jobs:
           # and cannot install this dependency set at all.
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: backend/requirements-dev.txt
+          cache-dependency-path: |
+            backend/requirements-dev.txt
+            backend/constraints.txt
 
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements-dev.txt -c constraints.txt
 
       # Lint before tests: it is faster, and a formatting failure is cheaper to
       # report than a full test run.
@@ -69,7 +71,8 @@ jobs:
         run: pytest -q
 
       - name: Audit dependencies
-        run: pip-audit --requirement requirements.txt
+        # The pinned set Render installs, not a fresh resolve of the ranges.
+        run: pip-audit --requirement constraints.txt --no-deps --disable-pip
 
   frontend:
     runs-on: ubuntu-latest

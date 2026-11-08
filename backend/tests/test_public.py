@@ -29,6 +29,7 @@ from models import (
     StoreListing,
 )
 from public import (
+    OWNER_TZ,
     PublicDiaryEntry,
     PublicItemDetailOut,
     PublicItemOut,
@@ -482,7 +483,7 @@ async def test_similar_items_are_capped_at_eight(sessionmaker_for_test):
 async def test_stats_add_owned_this_years_finishes_and_the_average(
     sessionmaker_for_test,
 ):
-    today = datetime.now(UTC).date()
+    today = datetime.now(OWNER_TZ).date()
     finished = ItemStatus.FINISHED
     async with sessionmaker_for_test() as session:
         rows = [
@@ -518,7 +519,7 @@ async def test_stats_add_owned_this_years_finishes_and_the_average(
 async def test_a_replay_counts_once_in_each_year_it_was_finished(
     sessionmaker_for_test,
 ):
-    today = datetime.now(UTC).date()
+    today = datetime.now(OWNER_TZ).date()
     last_year = date(today.year - 1, 6, 1)
     async with sessionmaker_for_test() as session:
         item = _game("Replayed")

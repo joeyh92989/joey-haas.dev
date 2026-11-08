@@ -161,3 +161,57 @@ async def test_list_filters_by_type_and_status(sessionmaker_for_test):
         assert [item["title"] for item in finished] == ["B"]
 
         assert len((await client.get("/api/items")).json()) == 2
+
+
+@pytest.mark.parametrize(
+    "field", ["type", "title", "is_public", "favorite", "following"]
+)
+async def test_patch_refuses_an_explicit_null_on_a_required_field(
+    sessionmaker_for_test, field
+):
+    async with client_for(sessionmaker_for_test, signed_in=True) as client:
+        created = await client.post(
+            "/api/items", json={"type": "game", "title": "X", "status": "backlog"}
+        )
+        item_id = created.json()["id"]
+        response = await client.patch(f"/api/items/{item_id}", json={field: None})
+        assert response.status_code == 422
+        assert (await client.get(f"/api/items/{item_id}")).status_code == 200
+
+
+async def test_create_refuses_an_absurd_completion_count(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test, signed_in=True) as client:
+        response = await client.post(
+            "/api/items",
+            json={
+                "type": "game",
+                "title": "X",
+                "status": "finished",
+                "times_completed": 1000,
+            },
+        )
+        assert response.status_code == 422
+
+
+async def test_a_second_item_for_the_same_match_is_a_409(sessionmaker_for_test):
+    match = {"external_source": "igdb", "external_id": "1942"}
+    async with client_for(sessionmaker_for_test, signed_in=True) as client:
+        first = await client.post(
+            "/api/items",
+            json={"type": "game", "title": "A", "status": "backlog", **match},
+        )
+        assert first.status_code == 201
+        again = await client.post(
+            "/api/items",
+            json={"type": "game", "title": "A", "status": "backlog", **match},
+        )
+        assert again.status_code == 409
+        assert again.json()["detail"] == "Already on your shelf"
+
+        other = await client.post(
+            "/api/items", json={"type": "game", "title": "B", "status": "backlog"}
+        )
+        relink = await client.patch(f"/api/items/{other.json()['id']}", json=match)
+        assert relink.status_code == 409
+        # The session survived the rollback: the shelf still reads.
+        assert len((await client.get("/api/items")).json()) == 2

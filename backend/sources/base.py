@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 from models import ItemType
 
@@ -27,6 +27,25 @@ class SourceError(RuntimeError):
     def __init__(self, source: str, message: str) -> None:
         super().__init__(f"{source}: {message}")
         self.source = source
+
+
+def read_json(response: Any, source: str, expect: type = object) -> Any:
+    """The response body as JSON, or a SourceError naming `source`.
+
+    A 200 with a body that is not JSON (an HTML error page from a proxy, a
+    truncated answer) would otherwise escape as a ValueError, which callers
+    do not catch and which surfaces as a 500. `expect` is the top-level type
+    the caller indexes into (dict or list); anything else is an error too.
+    """
+    try:
+        payload = response.json()
+    except ValueError as error:
+        raise SourceError(source, "the response was not JSON") from error
+    if not isinstance(payload, expect):
+        raise SourceError(
+            source, f"expected a JSON {expect.__name__}, got {type(payload).__name__}"
+        )
+    return payload
 
 
 class SourceNotConfigured(SourceError):
