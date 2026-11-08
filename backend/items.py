@@ -94,11 +94,6 @@ class ItemIn(BaseModel):
     following: bool = False
 
 
-# ItemPatch fields whose columns are NOT NULL: absent leaves them alone,
-# null is refused.
-NOT_NULL_PATCH_FIELDS = ("type", "title", "is_public", "favorite", "following")
-
-
 class ItemPatch(BaseModel):
     """Every field optional: most edits change exactly one thing."""
 
@@ -145,10 +140,13 @@ class ItemPatch(BaseModel):
     def _refuse_null_for_required(self) -> ItemPatch:
         """An explicit null on a NOT NULL column would reach the database
         as an IntegrityError (a 500); refuse it here as a 422 instead."""
+        columns = Item.__table__.columns
         nulled = [
             field
-            for field in NOT_NULL_PATCH_FIELDS
-            if field in self.model_fields_set and getattr(self, field) is None
+            for field in sorted(self.model_fields_set)
+            if getattr(self, field) is None
+            and field in columns
+            and not columns[field].nullable
         ]
         if nulled:
             raise ValueError(f"{', '.join(nulled)} cannot be null")

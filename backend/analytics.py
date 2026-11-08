@@ -87,7 +87,6 @@ _PATTERNS = (
 # brought; the admin read still names every host.
 PUBLIC_REFERRER_DOMAINS = frozenset(
     {
-        "google.com",
         "bing.com",
         "duckduckgo.com",
         "yahoo.com",
@@ -105,10 +104,11 @@ PUBLIC_REFERRER_DOMAINS = frozenset(
         "bsky.app",
     }
 )
-# Google's country domains: google.de, google.co.uk, www.google.com.au.
-_GOOGLE = re.compile(
-    r"(?:[a-z0-9-]+\.)*google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})"
-)
+# Google search, on google.com and its country domains (google.de,
+# www.google.co.uk). Only the bare host and www: Google's other subdomains
+# are apps and user content (mail., docs., sites.), which say where a
+# private link was shared, so they fold into "other" like any blog.
+_GOOGLE = re.compile(r"(?:www\.)?google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})")
 # An item page's path, before and after the /spine -> /shelf rename.
 ITEM_PATH = re.compile(
     r"/(?:shelf|spine)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
@@ -310,7 +310,7 @@ def _ranked(totals: dict[str, int], first: str | None = None) -> list[dict]:
 
 def is_public_referrer(host: str) -> bool:
     """True when the public /stats page may name `host`: a domain on
-    PUBLIC_REFERRER_DOMAINS, a subdomain of one, or a Google country site."""
+    PUBLIC_REFERRER_DOMAINS, a subdomain of one, or a Google search host."""
     if _GOOGLE.fullmatch(host):
         return True
     labels = host.split(".")

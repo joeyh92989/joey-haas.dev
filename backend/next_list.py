@@ -284,6 +284,9 @@ def _numeral_variants(key: str) -> set[str]:
     return out
 
 
+_NUMERAL_WORD = re.compile(r"\d+|[ivxlcdm]+")
+
+
 def _title_keys(title: str) -> tuple[set[str], set[str]]:
     """What a model might call a private game, as (word keys, literal keys).
 
@@ -304,6 +307,20 @@ def _title_keys(title: str) -> tuple[set[str], set[str]]:
             if len(key.split()) >= 2:
                 keys.add(key)
     keys.discard("")
+    # "&" and "+" read as "and", so a title with no Latin words of its own
+    # ("龍が如く & 極") would get the key "and", which every sentence matches.
+    # A key of only "and" and numerals is no key; such a title falls back
+    # to its literal form below.
+    keys = {
+        key
+        for key in keys
+        if not (
+            "and" in key.split()
+            and all(
+                word == "and" or _NUMERAL_WORD.fullmatch(word) for word in key.split()
+            )
+        )
+    }
     for key in list(keys):
         words = key.split()
         if words[0] == "the" and len(words) >= 3:

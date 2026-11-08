@@ -400,6 +400,8 @@ def test_every_public_route_in_the_app_is_counted():
         ("ycombinator.com", False),
         ("notgoogle.com", False),
         ("google.com.evil.example", False),
+        ("sites.google.com", False),
+        ("mail.google.com", False),
         ("github.com.example", False),
         ("someones-blog.example", False),
     ],

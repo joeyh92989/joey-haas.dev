@@ -6,6 +6,7 @@ cases moved here when the page started reading the server's sections.
 
 from datetime import date, timedelta
 
+import next_list
 from next_list import (
     LATER_CAP,
     MAX_PUBLIC_REASONS,
@@ -514,3 +515,13 @@ def test_a_month_whose_last_day_is_today_counts_as_released():
 
 def test_period_end_in_a_leap_year_february_is_the_twenty_ninth():
     assert period_end(date(2028, 2, 1), "month") == date(2028, 2, 29)
+
+
+def test_a_non_latin_title_with_an_ampersand_keeps_a_literal_key():
+    # "&" reads as "and"; a title with no Latin words must not become the
+    # key "and", which every sentence contains.
+    keys, literal = next_list._title_keys("龍が如く & 極")
+    assert keys == set()
+    assert literal == {"龍が如く & 極"}
+    keys, _ = next_list._title_keys("ゼルダ + 2")
+    assert "and 2" not in keys and "and ii" not in keys

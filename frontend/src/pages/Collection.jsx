@@ -11,7 +11,7 @@ import SpineHeader from '../components/SpineHeader.jsx'
 import StatusStrip from '../components/StatusStrip.jsx'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
-import { ownerYear } from '../lib/formatDate.js'
+import { ownerMonth, ownerYear } from '../lib/formatDate.js'
 import { isValidSnapshot, readSnapshot } from '../lib/snapshot.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
@@ -57,13 +57,13 @@ const MONTH_INITIAL = new Intl.DateTimeFormat('en', {
 
 /**
  * The twelve months ending with the current one, oldest first, as the
- * "YYYY-MM" keys the stats endpoint returns. UTC, like the server's year.
+ * "YYYY-MM" keys the stats endpoint returns. The current month is the
+ * owner's (`ownerMonth`), as the year beside it is.
  */
 export function lastTwelveMonths(now = new Date()) {
+  const { year, month } = ownerMonth(now)
   return Array.from({ length: 12 }, (_, index) => {
-    const date = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (11 - index), 1),
-    )
+    const date = new Date(Date.UTC(year, month - 1 - (11 - index), 1))
     const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
     return {
       key,

@@ -17,10 +17,25 @@ export function formatDate(date) {
   })
 }
 
-const OWNER_YEAR = new Intl.DateTimeFormat('en-US', {
+const OWNER_MONTH = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
+  month: 'numeric',
   timeZone: 'America/Denver',
 })
+
+/**
+ * The owner's current year and month (1-12), read in Denver like
+ * `ownerYear`.
+ *
+ * @param {number | Date} [now] The moment to read, by default now.
+ * @returns {{ year: number, month: number }}
+ */
+export function ownerMonth(now = Date.now()) {
+  const parts = Object.fromEntries(
+    OWNER_MONTH.formatToParts(now).map((part) => [part.type, part.value]),
+  )
+  return { year: Number(parts.year), month: Number(parts.month) }
+}
 
 /**
  * The owner's current calendar year, the one "Finished in" counts. It
@@ -31,5 +46,5 @@ const OWNER_YEAR = new Intl.DateTimeFormat('en-US', {
  * @returns {number}
  */
 export function ownerYear(now = Date.now()) {
-  return Number(OWNER_YEAR.format(now))
+  return ownerMonth(now).year
 }
