@@ -662,7 +662,7 @@ def _radar(title: str, **fields) -> Recommendation:
                 "price": "59.99",
                 "currency": "USD",
                 "availability": "preorder",
-                "preorder_closes_at": "2026-11-08T00:00:00+00:00",
+                "preorder_closes_at": "2026-10-30T00:00:00+00:00",
                 "url": "https://limitedrungames.com/products/x",
             }
         ],
@@ -1116,7 +1116,7 @@ async def test_next_publishes_no_store_price_window_or_stored_reason(
         "suggested",
         "score",
         "USD",
-        "2026-11-08",
+        "2026-10-30",
         "hypes",
         "lane",
     ):
