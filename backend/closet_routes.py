@@ -23,12 +23,16 @@
   `tag_budget` calls are spent, a model error, or the queue is empty, and
   writes `closet_settings["tag.last_run"]`. A write lands only while the
   garment is still untouched (`tag_source IS NULL`), so a hand save made
-  during the model call wins. An answer that cannot be used counts a strike
-  against each garment in the batch; a quota or overload error does not,
-  since it says nothing about the photos.
+  during the model call wins. An answer that cannot be used for a batch of
+  several strikes nobody: its photos are retried one at a time, and only a
+  single photo's unusable answer counts a strike. A quota or overload error
+  never does, since it says nothing about the photos; a missing model key
+  fails the run without a call.
 
-Admin only, at the router, so a signed-out call is a 401 before any body
-is read. Its own lock, shared with nothing: the tag job writes only
+Admin only, at the router. The check is a router dependency, which FastAPI
+solves after it has parsed a multipart body, so a signed-out upload is
+still a 401 but its photos are read (and spooled) first; nothing is
+decoded or written. Its own lock, shared with nothing: the tag job writes only
 garment rows, and one tagging run at a time (a second is a 409).
 Spec and plan: docs/planning/2026-11-09-outfit-design.md.
 """
@@ -743,38 +747,71 @@ def create_closet_router(
         )
         await session.commit()
 
-    async def tag_batch(session: AsyncSession) -> dict[str, Any]:
-        """One model call over the oldest queued garments, or none when the
-        queue is empty. Never raises: the answer says what happened.
+    async def tag_batch(
+        session: AsyncSession, only: list[uuid.UUID] | None = None
+    ) -> dict[str, Any]:
+        """One model call over the oldest queued garments (or over `only`,
+        the ones still queued), or none when there is nothing to tag. Never
+        raises: the answer says what happened.
 
         `called` is whether a model call was spent, `stop` whether the run
-        should go no further (no model, or a model error)."""
+        should go no further (no model, or a model error), and `retry` the
+        ids of a rejected batch of more than one, to be tried one at a time.
+
+        **Strikes apply only to a single-photo call.** When a batch of
+        several is rejected (an answer that does not match the photos, an
+        unreadable one, or the model's unexplained error) nobody knows which
+        photo is at fault, so none is struck: the ids come back in `retry`
+        and the run (`_run`) sends each alone, one call apiece against the
+        same budget. A single photo that fails the same way takes a strike.
+        A quota or overload error never strikes, since it says nothing about
+        the photos."""
+        query = (
+            select(Garment.id, GarmentImage.webp)
+            .join(GarmentImage, GarmentImage.garment_id == Garment.id)
+            .where(Garment.id.in_(_queued()))
+        )
+        if only is not None:
+            query = query.where(Garment.id.in_(only))
         rows = (
             await session.execute(
-                select(Garment.id, GarmentImage.webp)
-                .join(GarmentImage, GarmentImage.garment_id == Garment.id)
-                .where(Garment.id.in_(_queued()))
-                .order_by(Garment.created_at, Garment.id)
-                .limit(closet_tag.BATCH_SIZE)
+                query.order_by(Garment.created_at, Garment.id).limit(
+                    closet_tag.BATCH_SIZE
+                )
             )
         ).all()
         # Done reading: no connection is held through the model call.
         await session.commit()
+        idle = {"tagged": 0, "called": False, "stop": False, "note": None, "retry": []}
         if not rows:
-            return {"tagged": 0, "called": False, "stop": False, "note": None}
+            return idle
         if provider_factory is None:
-            return {
-                "tagged": 0,
-                "called": False,
-                "stop": True,
-                "note": "No model is configured",
-            }
+            return {**idle, "stop": True, "note": "No model is configured"}
+        # Built before any call, apart from the call's own errors: a missing
+        # key is the service's configuration, never the photos' fault.
+        try:
+            provider = provider_factory()
+        except LLMError as error:
+            logger.warning("closet tag has no model: %s", error)
+            return {**idle, "stop": True, "note": f"No model is configured: {error}"}
 
         ids = [row.id for row in rows]
         images = [Image("image/webp", row.webp) for row in rows]
         del rows
+        single = len(ids) == 1
+
+        async def rejected(note: str, stop: bool = False) -> dict[str, Any]:
+            if single:
+                await _strike(session, ids)
+                return {**idle, "called": True, "stop": stop, "note": note}
+            return {
+                **idle,
+                "called": True,
+                "note": f"{note}; trying them one at a time",
+                "retry": ids,
+            }
+
         try:
-            provider = provider_factory()
             payload = await provider.complete_json(
                 closet_tag.build_prompt(len(ids)),
                 closet_tag.TAG_SCHEMA,
@@ -787,26 +824,18 @@ def create_closet_router(
             # A quota or overload says nothing about the photos; only the
             # catch-all might be a photo the model refuses.
             if note == GENERIC_FAILURE:
-                await _strike(session, ids)
-            return {"tagged": 0, "called": True, "stop": True, "note": note}
+                return await rejected(note, stop=True)
+            return {**idle, "called": True, "stop": True, "note": note}
         except closet_tag.TagBatchError as error:
             logger.warning("closet tag answer rejected: %s", error)
-            await _strike(session, ids)
-            return {
-                "tagged": 0,
-                "called": True,
-                "stop": False,
-                "note": "The model’s answer didn’t match the photos; they stay queued",
-            }
+            return await rejected(
+                "The model’s answer didn’t match the photos; they stay queued"
+            )
         except Exception as error:  # an unreadable answer must not stop the run
             logger.exception("closet tag model call failed unexpectedly")
-            await _strike(session, ids)
-            return {
-                "tagged": 0,
-                "called": True,
-                "stop": False,
-                "note": f"The model’s answer couldn’t be read ({type(error).__name__})",
-            }
+            return await rejected(
+                f"The model’s answer couldn’t be read ({type(error).__name__})"
+            )
 
         written = 0
         for garment_id, entry in zip(ids, tagged, strict=True):
@@ -828,7 +857,41 @@ def create_closet_router(
             )
             written += result.rowcount or 0
         await session.commit()
-        return {"tagged": written, "called": True, "stop": False, "note": None}
+        return {**idle, "tagged": written, "called": True}
+
+    async def _run(
+        session: AsyncSession, budget: int, batches: int | None = None
+    ) -> dict[str, Any]:
+        """Batches until `budget` calls are spent, a model error stops it,
+        the queue is empty, or `batches` queue batches have been taken. A
+        rejected batch's singles are tried before the next batch, each one a
+        call against the same budget. `state` is the job's word for it."""
+        tagged = calls = taken = 0
+        note = None
+        state = "off" if budget == 0 else "ok"
+        pending: list[uuid.UUID] = []
+        while calls < budget:
+            if pending:
+                result = await tag_batch(session, only=[pending.pop(0)])
+            elif batches is not None and taken >= batches:
+                break
+            else:
+                result = await tag_batch(session)
+                taken += 1
+            tagged += result["tagged"]
+            calls += int(result["called"])
+            note = result["note"] or note
+            pending.extend(result["retry"])
+            if result["stop"]:
+                # No model at all is a failed night; a quota or overload
+                # after a call is a run cut short, worded by its note.
+                state = "stopped" if result["called"] else "failed"
+                break
+            if not result["called"] and not pending:
+                break
+        if state == "ok" and calls == 0:
+            state = "empty"
+        return {"state": state, "tagged": tagged, "calls": calls, "note": note}
 
     async def _write_tag_status(session: AsyncSession, summary: dict[str, Any]) -> None:
         await session.execute(
@@ -847,10 +910,11 @@ def create_closet_router(
         if run_lock.locked():
             raise HTTPException(status_code=409, detail="Tagging is already running")
         async with run_lock:
-            result = await tag_batch(session)
+            # One batch, and its photos one at a time if it is rejected.
+            result = await _run(session, 1 + closet_tag.BATCH_SIZE, batches=1)
             return {
                 "tagged": result["tagged"],
-                "calls": int(result["called"]),
+                "calls": result["calls"],
                 "note": result["note"],
                 "remaining": await _remaining(session),
             }
@@ -866,31 +930,17 @@ def create_closet_router(
             profile = await load_profile(session)
             budget = profile.tag_budget if profile is not None else DEFAULT_TAG_BUDGET
             at = datetime.now(UTC).isoformat()
-            tagged = calls = 0
-            note = None
-            state = "off" if budget == 0 else "ok"
-            while calls < budget:
-                result = await tag_batch(session)
-                tagged += result["tagged"]
-                calls += int(result["called"])
-                note = result["note"] or note
-                if result["stop"]:
-                    # No model at all is a failed night; a quota or overload
-                    # after a call is a run cut short, worded by its note.
-                    state = "stopped" if result["called"] else "failed"
-                    break
-                if not result["called"]:
-                    break
+            result = await _run(session, budget)
             remaining = await _remaining(session)
-            if state == "ok" and calls == 0:
-                state = "empty"
+            state = result["state"]
             summary = {
                 "at": at,
                 "state": state,
-                "tagged": tagged,
-                "calls": calls,
+                "ok": state not in ("failed", "stopped"),
+                "tagged": result["tagged"],
+                "calls": result["calls"],
                 "remaining": remaining,
-                "note": note,
+                "note": result["note"],
             }
             await _write_tag_status(session, summary)
             logger.info("closet tag: %s", summary)

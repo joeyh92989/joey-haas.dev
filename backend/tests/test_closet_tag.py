@@ -270,19 +270,67 @@ async def test_the_button_takes_one_batch_of_at_most_ten_oldest_first(
 
 
 @pytest.mark.asyncio
-async def test_an_index_gap_rejects_the_batch_and_counts_a_strike(
+async def test_a_rejected_batch_strikes_nobody_and_tries_each_photo_alone(
     sessionmaker_for_test,
 ):
     ids = await seed(sessionmaker_for_test, 3)
-    provider = FakeProvider(answer([0, 2]))
+    # The batch's answer has a gap; then photo 0 and 2 answer, photo 1 does not.
+    provider = FakeProvider(answer([0, 2]), full, {"items": []}, full)
     async with client_for(sessionmaker_for_test, provider) as client:
         body = (await client.post("/api/closet/tag")).json()
-    assert body["tagged"] == 0 and body["remaining"] == 3
+    assert [count for _, count in provider.calls] == [3, 1, 1, 1]
+    assert (body["tagged"], body["calls"], body["remaining"]) == (2, 4, 1)
+    got = await rows(sessionmaker_for_test, ids)
+    assert [row.status for row in got] == [
+        GarmentStatus.ACTIVE,
+        GarmentStatus.UNTAGGED,
+        GarmentStatus.ACTIVE,
+    ]
+    # Only the single photo whose own answer failed is struck.
+    assert [row.tag_attempts for row in got] == [0, 1, 0]
+
+
+@pytest.mark.asyncio
+async def test_a_rejected_batch_alone_strikes_nobody(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test, 3)
+    async with sessionmaker_for_test() as session:
+        session.add(ClosetProfile(id=1, tag_budget=1))
+        await session.commit()
+    provider = FakeProvider(answer([0, 2]))
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert (body["calls"], body["remaining"], body["state"]) == (1, 3, "ok")
+    assert "one at a time" in body["note"]
+    left = await rows(sessionmaker_for_test, ids)
+    assert all(row.tag_source is None and row.name is None for row in left)
+    assert [row.tag_attempts for row in left] == [0, 0, 0]
+
+
+@pytest.mark.asyncio
+async def test_a_single_rejected_photo_counts_a_strike(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test, 1)
+    provider = FakeProvider(answer([1]))
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/tag")).json()
+    assert (body["tagged"], body["calls"], body["remaining"]) == (0, 1, 1)
     assert "stay queued" in body["note"]
     left = await rows(sessionmaker_for_test, ids)
-    assert all(row.status == GarmentStatus.UNTAGGED for row in left)
-    assert all(row.tag_source is None and row.name is None for row in left)
-    assert [row.tag_attempts for row in left] == [1, 1, 1]
+    assert left[0].status == GarmentStatus.UNTAGGED and left[0].name is None
+    assert left[0].tag_attempts == 1
+
+
+@pytest.mark.asyncio
+async def test_the_job_retries_singles_within_its_budget(sessionmaker_for_test):
+    await seed(sessionmaker_for_test, 12)
+    async with sessionmaker_for_test() as session:
+        session.add(ClosetProfile(id=1, tag_budget=3))
+        await session.commit()
+    provider = FakeProvider(answer([0]), full, full, full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    # The batch of ten is rejected, then two of its photos alone: three calls.
+    assert [count for _, count in provider.calls] == [10, 1, 1]
+    assert (body["tagged"], body["calls"], body["remaining"]) == (2, 3, 10)
 
 
 @pytest.mark.asyncio
@@ -295,7 +343,7 @@ async def test_the_job_stops_at_the_budget(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test, provider) as client:
         body = (await client.post("/api/closet/jobs/tag")).json()
     assert len(provider.calls) == 2
-    assert body["state"] == "ok"
+    assert (body["state"], body["ok"]) == ("ok", True)
     assert (body["tagged"], body["calls"], body["remaining"]) == (20, 2, 5)
     async with sessionmaker_for_test() as session:
         stored = await session.get(ClosetSetting, "tag.last_run")
@@ -350,7 +398,7 @@ async def test_a_quota_error_stops_the_job_with_the_owners_note(sessionmaker_for
     async with client_for(sessionmaker_for_test, provider) as client:
         body = (await client.post("/api/closet/jobs/tag")).json()
     assert len(provider.calls) == 2
-    assert body["state"] == "stopped"
+    assert (body["state"], body["ok"]) == ("stopped", False)
     assert body["note"] == "Gemini's daily quota is used up"
     assert (body["tagged"], body["remaining"]) == (10, 5)
     # A quota says nothing about the photos: no strike.
@@ -363,16 +411,68 @@ async def test_a_quota_error_stops_the_job_with_the_owners_note(sessionmaker_for
 
 
 @pytest.mark.asyncio
-async def test_an_unexplained_model_error_counts_a_strike(sessionmaker_for_test):
-    ids = await seed(sessionmaker_for_test, 2)
+async def test_an_unexplained_model_error_on_one_photo_counts_a_strike(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test, 1)
     provider = FakeProvider(LLMError("Gemini refused the request"))
     async with client_for(sessionmaker_for_test, provider) as client:
         body = (await client.post("/api/closet/tag")).json()
     assert body["note"] == "The model did not answer"
+    assert [row.tag_attempts for row in await rows(sessionmaker_for_test, ids)] == [1]
+
+
+@pytest.mark.asyncio
+async def test_an_unexplained_model_error_on_a_batch_retries_singles(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test, 2)
+    provider = FakeProvider(LLMError("Gemini refused the request"), full, full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/tag")).json()
+    assert (body["tagged"], body["calls"]) == (2, 3)
     assert [row.tag_attempts for row in await rows(sessionmaker_for_test, ids)] == [
-        1,
-        1,
+        0,
+        0,
     ]
+
+
+@pytest.mark.asyncio
+async def test_a_missing_model_key_fails_the_job_without_a_strike(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test, 2)
+
+    def no_key():
+        # What llm.build_provider raises without GEMINI_API_KEY.
+        raise LLMError("LLM_PROVIDER is gemini but GEMINI_API_KEY is not set")
+
+    app = FastAPI()
+    app.include_router(
+        create_closet_router(sessionmaker_for_test, provider_factory=no_key)
+    )
+
+    @app.middleware("http")
+    async def _sign_in(request, call_next):
+        request.session["user"] = {"sub": "1", "email": "admin@example.com"}
+        return await call_next(request)
+
+    app.add_middleware(SessionMiddleware, secret_key="test-secret", https_only=False)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+        now = (await client.post("/api/closet/tag")).json()
+    assert (body["state"], body["ok"], body["calls"]) == ("failed", False, 0)
+    assert "GEMINI_API_KEY" in body["note"]
+    assert (now["calls"], now["tagged"], now["remaining"]) == (0, 0, 2)
+    assert [row.tag_attempts for row in await rows(sessionmaker_for_test, ids)] == [
+        0,
+        0,
+    ]
+    async with sessionmaker_for_test() as session:
+        stored = await session.get(ClosetSetting, "tag.last_run")
+    assert stored.value["ok"] is False
 
 
 @pytest.mark.asyncio
