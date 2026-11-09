@@ -631,9 +631,14 @@ def create_closet_router(
                     detail=f"{name}: {error}",
                 ) from error
             try:
-                thumbnails.append(make_thumbnail(data))
+                # Off the event loop, still one photo at a time.
+                thumbnails.append(await asyncio.to_thread(make_thumbnail, data))
             except ClosetImageError as error:
-                raise _unprocessable(f"{name}: {error}") from error
+                too_large = "too large" in str(error)
+                raise HTTPException(
+                    status_code=413 if too_large else 422,
+                    detail=f"{name}: {error}",
+                ) from error
             finally:
                 del data
                 await upload.close()

@@ -6,6 +6,8 @@ the suite carries no binary files and each test states its input.
 
 import ast
 import io
+import struct
+import zlib
 from pathlib import Path
 
 import pytest
@@ -126,6 +128,50 @@ def test_a_photo_at_the_cap_is_read_whole():
 def test_garbage_bytes_are_refused(data):
     with pytest.raises(ClosetImageError, match="could not be read"):
         make_thumbnail(data)
+
+
+def _png_header(width: int, height: int) -> bytes:
+    """A PNG that declares `width` x `height` and carries no pixels at all."""
+
+    def chunk(kind: bytes, body: bytes) -> bytes:
+        crc = zlib.crc32(kind + body) & 0xFFFFFFFF
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", crc)
+
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IEND", b"")
+
+
+def test_a_photo_declaring_too_many_pixels_is_refused_before_decode(monkeypatch):
+    def no_decode(*_args, **_kwargs):
+        raise AssertionError("an oversize canvas was decoded")
+
+    monkeypatch.setattr(Image.Image, "load", no_decode)
+    # 7000 x 7000 is 49 MP: under Pillow's own bomb limit, over the cap.
+    with pytest.raises(ClosetImageError, match="megapixels"):
+        make_thumbnail(_png_header(7000, 7000))
+
+
+def test_the_pixel_cap_applies_to_a_real_photo(monkeypatch):
+    monkeypatch.setattr(closet_images, "MAX_PIXELS", 100 * 100)
+    out = io.BytesIO()
+    Image.new("RGB", (101, 100), (1, 2, 3)).save(out, format="PNG")
+    with pytest.raises(ClosetImageError, match="too large"):
+        make_thumbnail(out.getvalue())
+
+
+def test_a_decompression_bomb_warning_is_an_error(monkeypatch):
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 50 * 50)
+    out = io.BytesIO()
+    Image.new("RGB", (60, 60), (1, 2, 3)).save(out, format="PNG")
+    with pytest.raises(ClosetImageError, match="could not be read"):
+        make_thumbnail(out.getvalue())
+
+
+def test_only_photo_formats_are_opened():
+    out = io.BytesIO()
+    Image.new("RGB", (20, 20), (1, 2, 3)).save(out, format="GIF")
+    with pytest.raises(ClosetImageError, match="could not be read"):
+        make_thumbnail(out.getvalue())
 
 
 def test_an_empty_upload_is_refused():
