@@ -4591,7 +4591,11 @@ a.month-bar::before {
   border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--text);
+  /* The reset zeroes every margin; a modal dialog centres by margin. */
+  margin: auto;
+  max-height: calc(100dvh - 2rem);
   max-width: 34rem;
+  overflow: auto;
   padding: 0;
   width: calc(100% - 2rem);
 }
@@ -4832,6 +4836,7 @@ a.month-bar::before {
     border-bottom: 0;
     border-radius: 14px 14px 0 0;
     margin: auto 0 0;
+    max-height: calc(100dvh - 1rem);
     max-width: none;
     width: 100%;
   }
