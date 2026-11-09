@@ -116,7 +116,9 @@ function spotsRow(run, job, age) {
     const why = run.note ? `: ${run.note}` : ''
     return { ...row, summary: `Failed${why}`, state: 'failed' }
   }
-  const summary = job.quiet[run.state] ?? job.ok
+  // An ok run with a note degraded (the finder's template fallback when
+  // the model could not rank): say so rather than the schedule line.
+  const summary = run.note || job.quiet[run.state] || job.ok
   return { ...row, summary, state: age(at, job.hours) }
 }
 

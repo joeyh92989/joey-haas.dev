@@ -293,7 +293,8 @@ check_equals "GET /api/analytics unauthenticated" \
 check_equals "GET /api/public/spots unauthenticated" \
   "$(http_status "$API_URL/api/public/spots")" "200"
 spots_body="$(curl -s -m 90 "$API_URL/api/public/spots")"
-if printf '%s' "$spots_body" | grep -qE "$PRIVATE_KEYS"'|"(id|anchor[a-z_]*|visits?|visited_on|distance[a-z_]*)":'; then
+# Keys only (a trailing colon), so a spot named "Price" never trips it.
+if printf '%s' "$spots_body" | grep -qE "$PRIVATE_KEYS"':|"(id|anchor[a-z_]*|visits?|visited_on|distance[a-z_]*)":'; then
   report_fail "public spots expose no private fields" "found a private key"
 else
   report_pass "public spots expose no private fields" "pins only"

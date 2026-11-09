@@ -232,6 +232,20 @@ describe('nightlyJobs', () => {
     expect(jobs.spots.state).toBe('ok')
   })
 
+  it('shows the note of an ok run, so a degraded finder run is visible', () => {
+    const note = 'The model could not rank; template order kept'
+    const jobs = byKey(
+      nightlyJobs(
+        summary(),
+        null,
+        NOW,
+        spots({ candidates: { at: hoursAgo(1), state: 'ok', note } }),
+      ),
+    )
+    expect(jobs.spots.summary).toBe(note)
+    expect(jobs.spots.state).toBe('ok')
+  })
+
   it('reads the Denver rows unknown with no status or no run', () => {
     for (const given of [undefined, null, spots({ weather: null })]) {
       const weather = byKey(nightlyJobs(summary(), null, NOW, given)).weather

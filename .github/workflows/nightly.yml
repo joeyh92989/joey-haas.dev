@@ -6,8 +6,8 @@ name: Nightly
 #
 # It writes: Play Next picks, the followed comics' issue lists, the
 # weekend forecast, the catalogue refreshes, Resolve, the Radar and Discover
-# generates, the weekly spot finder and the page-view rollup, through the admin API with the JOB_TOKEN bearer
-# token, which the backend accepts only on items.JOB_ROUTES. A failed write
+# generates, the weekly spot finder and the page-view rollup, through the
+# admin API with the JOB_TOKEN bearer token, which the backend accepts only on items.JOB_ROUTES. A failed write
 # step is a warning: the steps after it run on yesterday's data, the run
 # summary lists every step that succeeded and every one that failed, and the
 # /admin "Last nightly" line names the failed catalogue sources. A 401 is
