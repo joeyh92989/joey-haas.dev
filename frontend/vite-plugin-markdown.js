@@ -1,3 +1,6 @@
+import fs from 'node:fs/promises'
+import path from 'node:path'
+
 import rehypeShiki from '@shikijs/rehype'
 import matter from 'gray-matter'
 import rehypeStringify from 'rehype-stringify'
@@ -5,6 +8,11 @@ import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
+
+import {
+  parseTripDays,
+  parseTripFrontmatter,
+} from './scripts/trip-markdown.mjs'
 
 /**
  * Both palettes are compiled in one highlight pass. Shiki writes the light
@@ -39,6 +47,9 @@ const processor = unified()
  */
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+/** Which collection a file belongs to is its folder, not a frontmatter flag. */
+const TRIPS_DIR = /\/trips\/[^/]+\.md$/
+
 /**
  * Normalizes a frontmatter date to a plain 'YYYY-MM-DD' string.
  *
@@ -57,9 +68,81 @@ function toDateString(value, slug, ctx) {
 }
 
 /**
- * Compiles markdown posts and TIL notes to JS modules at build time.
+ * A trip's photo manifest, or null when the images have not been built yet.
  *
- * Each .md file becomes a module exporting { slug, frontmatter, html }. Parsing
+ * `frontend/trips/<slug>/photos/photos.json` is written by
+ * `scripts/build-travel-images.mjs`. Before a first run there is no
+ * manifest, so the grammar's manifest checks are skipped rather than
+ * failing a dev server on photos that do not exist yet; the image build
+ * refuses a kid photo without an opt-in on its own.
+ */
+async function readPhotoManifest(id) {
+  const dir = path.join(path.dirname(id), path.basename(id, '.md'), 'photos')
+  try {
+    const text = await fs.readFile(path.join(dir, 'photos.json'), 'utf8')
+    const parsed = JSON.parse(text)
+    if (!Array.isArray(parsed)) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Compiles a trip file: frontmatter, then one `##` heading per day.
+ *
+ * Trips are a third collection beside posts and TIL notes, told apart by
+ * their folder as those two are. Their body is a grammar rather than free
+ * markdown — days, places and photo lines — so it goes through
+ * `scripts/trip-markdown.mjs`, which is also what the build scripts and the
+ * grammar's tests use. Each day's prose then takes the same GFM and
+ * two-palette Shiki pass as a post, so a trip can carry a code block
+ * without a second highlighter.
+ *
+ * The module exports { slug, frontmatter, days }: `days[].html` in place of
+ * a post's single `html`.
+ */
+async function compileTrip({ data, content, slug, id }) {
+  const manifest = await readPhotoManifest(id)
+  const photos = Object.fromEntries(
+    (manifest ?? []).map((photo) => [photo.name, photo]),
+  )
+  const photoNames = manifest ? manifest.map((photo) => photo.name) : undefined
+
+  const frontmatter = parseTripFrontmatter(data, slug, photoNames)
+  const days = parseTripDays(content, {
+    slug,
+    places: frontmatter.places,
+    date: frontmatter.date,
+    end: frontmatter.end,
+    photoNames,
+    photos,
+  })
+
+  const compiled = []
+  for (const day of days) {
+    const { markdown: prose, ...rest } = day
+    compiled.push({
+      ...rest,
+      html: String(await processor.process(prose)),
+      // The built widths travel with the day so the page can reserve the
+      // photo's space without importing the manifest itself.
+      photos: day.photos.map((photo) => ({
+        ...photo,
+        width: photos[photo.name]?.width ?? null,
+        height: photos[photo.name]?.height ?? null,
+      })),
+    })
+  }
+
+  return { slug, frontmatter, days: compiled }
+}
+
+/**
+ * Compiles markdown posts, TIL notes and trips to JS modules at build time.
+ *
+ * A post or a note becomes a module exporting { slug, frontmatter, html };
+ * a trip, under frontend/trips/, exports { slug, frontmatter, days }. Parsing
  * and syntax highlighting both happen here, so the browser downloads neither a
  * markdown parser nor a highlighter.
  *
@@ -83,6 +166,26 @@ export default function markdown() {
 
       const { data, content } = matter(code)
       const slug = id.split('/').pop().replace(/\.md$/, '')
+
+      // A trip's frontmatter and body are a different grammar; the draft
+      // rule and the slug check below are shared.
+      if (TRIPS_DIR.test(id)) {
+        if (!SLUG_PATTERN.test(slug)) {
+          this.error(
+            `"${slug}.md" is not a usable slug. Filenames must be lowercase ` +
+              'letters, digits, and single hyphens.',
+          )
+        }
+        if (data.draft === true && isProduction) {
+          return { code: 'export default null', map: null }
+        }
+        try {
+          const trip = await compileTrip({ data, content, slug, id })
+          return { code: `export default ${JSON.stringify(trip)}`, map: null }
+        } catch (error) {
+          this.error(error.message)
+        }
+      }
 
       if (!SLUG_PATTERN.test(slug)) {
         this.error(

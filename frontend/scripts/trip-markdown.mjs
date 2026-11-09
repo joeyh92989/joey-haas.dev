@@ -20,9 +20,14 @@
 const PART = ' · '
 const LEG = ' → '
 
-/** `![alt](name "caption")` alone on a line. The caption is optional. */
+/**
+ * `![alt](name "caption")` alone on a line. The caption is optional, and may
+ * be single- or double-quoted: prettier rewrites a markdown link title to
+ * single quotes, so accepting only one would break every trip file the next
+ * time the repo is formatted.
+ */
 const IMAGE_LINE =
-  /^!\[([^\]]*)\]\(\s*([A-Za-z0-9][A-Za-z0-9-]*)\s*(?:"([^"]*)")?\s*\)$/
+  /^!\[([^\]]*)\]\(\s*([A-Za-z0-9][A-Za-z0-9-]*)\s*(?:"([^"]*)"|'([^']*)')?\s*\)$/
 
 /** A day label: `3`, or a range `8-9` / `8–9` (hyphen or en dash). */
 const DAY_LABEL = /^(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?$/
@@ -278,7 +283,8 @@ export function parseTripDays(content, trip) {
     const image = line.trim().match(IMAGE_LINE)
     if (image) {
       if (!day) fail(slug, `a photo before the first day: ${line}`)
-      const [, alt, name, caption] = image
+      const [, alt, name, doubleQuoted, singleQuoted] = image
+      const caption = doubleQuoted ?? singleQuoted
       if (!alt.trim()) {
         fail(slug, `the photo "${name}" has no alt text (day ${day.label})`)
       }

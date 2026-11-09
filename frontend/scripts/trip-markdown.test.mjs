@@ -206,6 +206,14 @@ describe('parseTripDays', () => {
     expect(walls.markdown).not.toMatch(/!\[/)
   })
 
+  it('takes a single-quoted caption, which is what prettier leaves behind', () => {
+    const [day] = parseTripDays(
+      "## Day 1 · Arrive · Dubrovnik\nLanded.\n![A street](walls-afternoon 'Polished to glass')\n",
+      trip(),
+    )
+    expect(day.photos[0].caption).toBe('Polished to glass')
+  })
+
   it('keeps a day with no photo, which the page draws as a postcard', () => {
     const days = parseTripDays(BODY, trip())
     expect(days[0].photos).toHaveLength(0)

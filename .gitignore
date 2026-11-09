@@ -29,3 +29,11 @@ frontend/public/search-index.json
 
 # Design mockups shared between Code and Cowork; disposable once the UI exists.
 docs/planning/mockups/
+
+# Trip photo originals as they come off a camera or a partner's phone. The
+# resized output under frontend/public/travel/ is committed instead (it is the
+# only build product in public/ that is), and so is photos.json: names, dates,
+# date confidence, dimensions and the kid flag are source of truth, not output.
+# Originals stay out because git keeps a blob forever, GPS and all.
+frontend/trips/*/photos/*
+!frontend/trips/*/photos/photos.json
