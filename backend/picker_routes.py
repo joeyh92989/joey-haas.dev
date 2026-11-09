@@ -42,6 +42,7 @@ class PickNextIn(BaseModel):
     # The retired `time` field is refused, not quietly read as any size.
     model_config = ConfigDict(extra="forbid")
 
+    type: Literal["game", "comic", "movie"] = "game"
     size: Literal["any", "short", "medium", "long"] = "any"
     moods: list[Mood] = []
     platforms: list[int] = []
@@ -60,8 +61,9 @@ class PickItemOut(BaseModel):
 
 
 class PickOut(BaseModel):
-    slot: str
-    slot_label: str
+    # None for an unlabelled pick: a diverse second or third with no slot.
+    slot: str | None
+    slot_label: str | None
     score: float
     reasons: list[str]
     item: PickItemOut
@@ -251,6 +253,7 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         now = datetime.now(UTC)
         rows = list((await session.execute(select(Item))).scalars())
         open_runs = await open_run_details(session, rows)
+        plays = await load_play_records(session, [row.id for row in rows])
         # "never" is permanent, so it is loaded whatever its age; every other
         # rule looks back a month at most.
         event_rows = (
@@ -272,6 +275,7 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             for event in event_rows
         ]
         request = PickRequest(
+            type=payload.type,
             size=payload.size,
             moods=tuple(payload.moods),
             platforms=tuple(payload.platforms),
@@ -279,7 +283,11 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         )
         result = recommend(
             [
-                to_picker_item(row, *open_runs.get(row.id, (None, 0, None)))
+                to_picker_item(
+                    row,
+                    *open_runs.get(row.id, (None, 0, None)),
+                    play=plays.get(row.id),
+                )
                 for row in rows
             ],
             events,

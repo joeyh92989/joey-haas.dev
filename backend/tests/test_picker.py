@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
+from facets import facets_of
 from picker import (
     MOOD_BUCKETS,
     PICKER_WEIGHTS,
@@ -15,6 +16,7 @@ from picker import (
     affinity,
     attribute_table,
     attributes,
+    build_taste,
     candidates,
     change_of_pace_reason,
     last_finish,
@@ -28,6 +30,7 @@ from picker import (
     staleness,
     waiting,
 )
+from taste import leading_facet
 
 NOW = datetime(2026, 9, 23, 20, 0, tzinfo=UTC)
 TODAY = NOW.date()
@@ -62,7 +65,17 @@ def item(id: str, **fields) -> PickerItem:
         started_at=None,
         finished_at=None,
     )
-    return PickerItem(**{**base, **fields})
+    merged = {**base, **fields}
+    # The engine reads facets from source tags, as to_picker_item builds them;
+    # a fixture that names genres, themes or keywords gets the matching tags.
+    if "tags" not in fields:
+        merged["tags"] = tuple(
+            (kind, value)
+            for kind in ("genres", "themes", "keywords")
+            for value in merged[kind]
+        )
+        merged.setdefault("source", "igdb")
+    return PickerItem(**merged)
 
 
 def shown(item_id: str, at: datetime) -> PickerEvent:
@@ -555,14 +568,19 @@ def test_recommend_is_deterministic_for_a_seed():
     assert [p.item.id for p in first.picks] == [p.item.id for p in again.picks]
 
 
-def test_three_named_slots_and_no_repeats():
+def test_three_picks_best_fit_first_and_no_repeats():
     result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
 
-    slots = [pick.slot for pick in result.picks]
-    assert slots == ["best_fit", "short_and_sweet", "overdue_classic"]
+    # No finish on this shelf, so the second pick has no contrast to name and
+    # stands unlabelled; Short and sweet is retired.
+    assert [pick.slot for pick in result.picks] == [
+        "best_fit",
+        None,
+        "overdue_classic",
+    ]
     assert [pick.slot_label for pick in result.picks] == [
         "Best fit",
-        "Short and sweet",
+        None,
         "Overdue classic",
     ]
     assert len({pick.item.id for pick in result.picks}) == 3
@@ -578,17 +596,11 @@ def test_best_fit_is_the_game_that_matches_the_profile():
     assert result.picks[0].item.id == "dead_cells"
 
 
-def test_short_and_sweet_is_six_hours_or_less_and_omitted_without_one():
-    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
-    short = next(p for p in result.picks if p.slot == "short_and_sweet")
-    assert short.item.time_to_beat_hours <= 6
-
-    long_only = [g for g in shelf() if g.id not in ("slay", "football")]
-    slots = [
-        p.slot
-        for p in recommend(long_only, [], PickRequest(), NOW, random.Random(1)).picks
-    ]
-    assert "short_and_sweet" not in slots
+@pytest.mark.parametrize("seed", range(8))
+def test_short_and_sweet_is_retired(seed):
+    for shelf_ in (shelf(), pace_shelf(), pace_shelf(finished_days_ago=None)):
+        result = recommend(shelf_, [], PickRequest(), NOW, random.Random(seed))
+        assert "short_and_sweet" not in {pick.slot for pick in result.picks}
 
 
 def test_overdue_classic_is_the_oldest_release_among_good_matches():
@@ -721,19 +733,24 @@ def test_recency_reads_the_last_finish_not_the_first():
 def test_reasons_name_the_game_they_come_from():
     result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
     best = result.picks[0]
-    assert "Shares roguelike and Indie with Hades ♥" in best.reasons
+    assert "Roguelike, across my shelf: Hades" in best.reasons
     assert "IGDB lists it beside Hades ♥" in best.reasons
     for pick in result.picks:
         assert 1 <= len(pick.reasons) <= 3
 
 
-def test_a_rated_reference_is_named_with_its_rating():
-    result = recommend(shelf(), [], PickRequest(), NOW, random.Random(1))
-    short = next(p for p in result.picks if p.item.id == "slay")
-    assert (
-        "Shares deck-building and Card & Board Game with Inscryption, which I rated 9"
-        in short.reasons
-    )
+def test_the_facet_sentence_names_the_strongest_carriers_first():
+    loved = item("loved", title="Loved", favorite=True, genres=("Puzzle",))
+    rated = item("rated", title="Rated", rating=9, genres=("Puzzle",))
+    disliked = item("dis", title="Disliked", status="abandoned", genres=("Puzzle",))
+    third = item("third", title="Third", rating=8, genres=("Puzzle",))
+    candidate = item("cand", genres=("Puzzle",))
+    shelf_ = [loved, rated, disliked, third, candidate]
+
+    (reason,) = public_reasons(candidate, shelf_, TODAY)
+
+    # Positive weight only, best first, at most two names; no rating, no heart.
+    assert reason == "Puzzle, across my shelf: Loved, Rated"
 
 
 def test_no_candidates_is_an_empty_result_not_an_error():
@@ -744,8 +761,8 @@ def test_no_candidates_is_an_empty_result_not_an_error():
 
 
 def test_public_reasons_draw_on_the_given_profile_only():
-    # "secret" shares more with the candidate than Hades does, so the full
-    # profile would name it; the public profile leaves it out.
+    # "secret" carries a facet Hades does not, so the full profile leads with
+    # it and names it; the public profile leaves it out.
     hades = item("hades", favorite=True, genres=("Roguelike", "Indie"))
     secret = item(
         "secret",
@@ -763,9 +780,7 @@ def test_public_reasons_draw_on_the_given_profile_only():
     public = public_reasons(candidate, [hades, candidate])
 
     assert any("Secret Game" in reason for reason in full)
-    # Equal weights and one kind, so the shared genres sort by name.
-    assert "Shares Indie and Roguelike with Hades ♥" in public
-    assert not any("Secret Game" in reason for reason in public)
+    assert public == ("Roguelike, across my shelf: Hades",)
 
 
 def test_public_reasons_leave_out_the_slot_reasons():
@@ -867,13 +882,14 @@ def test_change_of_pace_contrasts_with_the_last_finish_and_still_fits(seed):
     assert change_of_pace_reason(pace.item, pace_shelf()[0]) == pace.reasons[0]
 
 
-def test_change_of_pace_falls_back_to_short_and_sweet_without_a_finish():
+def test_without_a_finish_the_second_pick_stands_unlabelled():
     result = recommend(
         pace_shelf(finished_days_ago=None), [], PickRequest(), NOW, random.Random(1)
     )
-    slots = [pick.slot for pick in result.picks]
-    assert "change_of_pace" not in slots
-    assert slots[1] == "short_and_sweet"
+    second = result.picks[1]
+    assert second.slot is None
+    assert second.slot_label is None
+    assert second.reasons
 
 
 def test_change_of_pace_reasons_say_what_differs():
@@ -895,22 +911,15 @@ def test_change_of_pace_reasons_say_what_differs():
     assert change_of_pace_reason(unknown, xeno) is None
 
 
-@pytest.mark.parametrize(
-    ("days_ago", "phrase"),
-    [
-        (1, ", which I rated 9 and finished this week"),
-        (9, ", which I rated 9 and finished last week"),
-        (40, ", which I rated 9 and finished in August"),
-        (61, ", which I rated 9"),
-    ],
-)
-def test_a_recent_finish_is_named_with_when(days_ago, phrase):
-    xeno = pace_shelf(days_ago)[0]
+def test_a_finish_is_named_in_the_facet_sentence_without_its_date():
+    # The facet sentence names titles only: never a rating, a date or the
+    # play record behind a weight.
+    xeno = pace_shelf(1)[0]
     octo = item("octo", genres=("RPG",))
 
-    reasons = public_reasons(octo, [xeno, octo], TODAY)
-
-    assert reasons[0] == f"Shares RPG with Xenoblade Chronicles 3{phrase}"
+    assert public_reasons(octo, [xeno, octo], TODAY) == (
+        "RPG, across my shelf: Xenoblade Chronicles 3",
+    )
 
 
 def test_public_change_of_pace_names_only_a_public_last_finish():
@@ -923,3 +932,97 @@ def test_public_change_of_pace_names_only_a_public_last_finish():
 
     assert with_finish[0].startswith("About 4 h to finish, after 62 h of Xenoblade")
     assert not any("Xenoblade" in reason for reason in without)
+
+
+# --- the engine: diversity, types, staleness in admin -----------------------
+
+
+def platformer_shelf() -> list[PickerItem]:
+    """AC 5, synthetic: a platformer just finished and rated, and a backlog
+    heavy with platformers that would otherwise fill all three picks."""
+    finished = item(
+        "balan",
+        title="Balance World",
+        status="finished",
+        rating=9,
+        genres=("Platform",),
+        themes=("Fantasy",),
+        time_to_beat_hours=12.0,
+        finished_at=TODAY - timedelta(days=2),
+    )
+    loved = [
+        item("plat_fav", favorite=True, genres=("Platform",)),
+        item("puzzle_fav", favorite=True, genres=("Puzzle",)),
+        item("rpg_fav", favorite=True, genres=("Role-playing (RPG)",)),
+    ]
+    backlog = [
+        item(f"plat{n}", genres=("Platform",), community_score=90 - n) for n in range(5)
+    ] + [
+        item("puzzle", genres=("Puzzle",), community_score=70),
+        item("rpg", genres=("Role-playing (RPG)",), community_score=70),
+    ]
+    return [finished, *loved, *backlog]
+
+
+@pytest.mark.parametrize("seed", range(8))
+def test_one_pick_at_most_echoes_the_last_finish_and_none_share_a_lead(seed):
+    shelf_ = platformer_shelf()
+    result = recommend(shelf_, [], PickRequest(), NOW, random.Random(seed))
+    profile = build_taste(shelf_, TODAY).profile
+    finish_facets = facets_of(last_finish(shelf_))
+    leads = [leading_facet(pick.item, profile) for pick in result.picks]
+
+    assert len(result.picks) == 3
+    assert len(set(leads)) == 3
+    assert sum(lead in finish_facets for lead in leads) <= 1
+
+
+def test_diversity_relaxes_when_every_candidate_shares_a_lead():
+    games = [item("fav", favorite=True, genres=("Platform",))] + [
+        item(f"plat{n}", genres=("Platform",)) for n in range(4)
+    ]
+    result = recommend(games, [], PickRequest(), NOW, random.Random(1))
+    assert len(result.picks) == 3
+
+
+def comic(id_: str, **fields) -> PickerItem:
+    base = dict(
+        type="comic",
+        source="comicvine",
+        tags=(("concepts", "Time Travel"),),
+        issues_owned_count=10,
+        issues_read=2,
+        issues_span=10,
+    )
+    return item(id_, **{**base, **fields})
+
+
+def test_admin_type_comic_returns_comic_picks():
+    shelf_ = [
+        comic("loved", favorite=True, issues_read=10),
+        comic("run_a"),
+        comic("run_b", issues_read=0),
+        comic("done", issues_read=10),
+        item("game", genres=("Puzzle",)),
+    ]
+    result = recommend(shelf_, [], PickRequest(type="comic"), NOW, random.Random(1))
+
+    assert {pick.item.type for pick in result.picks} == {"comic"}
+    assert {pick.item.id for pick in result.picks} == {"run_a", "run_b"}
+
+
+def test_staleness_and_skips_still_apply_in_admin():
+    shelf_ = [
+        item("fav", favorite=True, genres=("Puzzle",)),
+        *(item(n, genres=("Puzzle",), community_score=80) for n in "abcd"),
+    ]
+    top = recommend(shelf_, [], PickRequest(), NOW, random.Random(1)).picks[0]
+
+    # Shown on four recent days: staleness costs it the top spot.
+    stale_events = [shown(top.item.id, NOW - timedelta(days=d)) for d in range(1, 5)]
+    stale = recommend(shelf_, stale_events, PickRequest(), NOW, random.Random(1))
+    assert stale.picks[0].item.id != top.item.id
+
+    skipped = [PickerEvent(top.item.id, "skipped", NOW - timedelta(days=1))]
+    after_skip = recommend(shelf_, skipped, PickRequest(), NOW, random.Random(1))
+    assert top.item.id not in {pick.item.id for pick in after_skip.picks}

@@ -535,7 +535,7 @@ def bridges(facet: str) -> bool:
     return facet_kind(facet) in ("theme", "tone")
 
 
-def _facet_for(item_type: str, source: str | None, kind: str, value: str) -> str:
+def facet_for(item_type: str, source: str | None, kind: str, value: str) -> str:
     mapped = FACET_MAP.get((source or "", kind, value))
     if mapped is None:
         return f"{item_type}:{_SINGULAR[kind]}:{value}"
@@ -548,7 +548,7 @@ def facets_of(item: Tagged) -> frozenset[str]:
     """The item's facets: mapped where the map knows the tag, type-scoped
     where it does not, and nothing for ignored or untracked kinds."""
     return frozenset(
-        _facet_for(item.type, item.source, kind, value)
+        facet_for(item.type, item.source, kind, value)
         for kind, value in item.tags
         if kind in _SINGULAR and not is_ignored(value)
     )

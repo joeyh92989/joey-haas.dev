@@ -618,7 +618,7 @@ async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(
     assert [row["title"] for row in body] == ["Alpha", "Bravo", "Charlie"]
     for row in body:
         assert set(row) == PICK_FIELDS
-        assert "Shares Indie and Roguelike with Hades ♥" in row["reasons"]
+        assert "Roguelike, across my shelf: Hades" in row["reasons"]
 
 
 async def test_picks_leave_out_what_is_not_a_public_suggestion(
