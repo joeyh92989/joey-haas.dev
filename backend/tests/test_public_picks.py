@@ -125,16 +125,20 @@ def test_change_of_pace_leads_with_its_contrast_against_a_public_last_finish():
     assert pace.reasons[0] == f"About {hours} h to finish, after 60 h of Epic"
 
 
-def test_change_of_pace_is_unlabelled_when_the_last_finish_is_private():
+def test_change_of_pace_measures_against_the_last_public_finish_only():
+    """A private finish is not in the public rows, so it cannot change the
+    labels: the set over the public rows is the set, whatever came after.
+    (Privacy review, finding 2: withholding the label leaked that a later
+    private finish exists.)"""
     rows = [
         _finished("epic", 60),
         item("short", time_to_beat_hours=5),
         item("medium", time_to_beat_hours=10),
     ]
-    picks = build_public_sets(rows, frozenset(), TODAY, pace_withheld=True)["game"]
+    picks = build_public_sets(rows, frozenset(), TODAY)["game"]
 
-    assert [pick.slot for pick in picks] == ["best_fit", None]
-    assert not any("after" in reason for pick in picks for reason in pick.reasons)
+    assert [pick.slot for pick in picks] == ["best_fit", "change_of_pace"]
+    assert "after 60 h of Epic" in picks[1].reasons[0]
 
 
 def test_with_no_last_finish_the_second_pick_stands_unlabelled():
@@ -162,7 +166,8 @@ def test_overdue_classic_is_the_oldest_release_left_and_says_so():
 
 def test_no_label_but_best_fit_stands_without_its_reason():
     """AC 4: Change of pace and Overdue classic are published only with the
-    reason that makes them true."""
+    reason that makes them true. Both labels are on the set, so the check
+    cannot pass on a set with none."""
     rows = [
         _finished("epic", 60),
         item("short", time_to_beat_hours=5, release_date=date(2003, 1, 1)),
@@ -170,11 +175,16 @@ def test_no_label_but_best_fit_stands_without_its_reason():
         item("long", time_to_beat_hours=70, release_date=date(1998, 1, 1)),
         item("unknown"),
     ]
-    for withheld in (False, True):
-        sets = build_public_sets(rows, frozenset(), TODAY, pace_withheld=withheld)
-        for pick in sets["game"]:
-            if pick.slot not in (None, "best_fit"):
-                assert pick.reasons, pick
+    picks = build_public_sets(rows, frozenset(), TODAY)["game"]
+
+    labelled = [pick for pick in picks if pick.slot not in (None, "best_fit")]
+    assert {pick.slot for pick in labelled} == {"change_of_pace", "overdue_classic"}
+    for pick in labelled:
+        assert pick.reasons, pick
+    # And the converse: past Best fit, a pick with no reason has no label.
+    for pick in picks[1:]:
+        if not pick.reasons:
+            assert pick.slot_label is None
 
 
 def test_the_set_is_a_pure_function_of_its_inputs():

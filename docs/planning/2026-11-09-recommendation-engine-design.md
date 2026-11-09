@@ -315,8 +315,10 @@ A label is published only when its premise is public and currently true:
 
 - **Best fit** — the top pick. Always.
 - **Change of pace** — the diversity rule's second pick, labelled only when
-  the last finish is public *and* `change_of_pace_reason` is non-None
+  a last public finish exists *and* `change_of_pace_reason` is non-None
   against it; the reason leads. Otherwise the pick stands unlabelled.
+  (Amended in review: it was "the last finish is public", but withholding
+  the label when a later finish is private told the page one exists.)
 - **Overdue classic** — the third game pick when its release date is the
   oldest among candidates above median affinity; "Out since 1999" leads.
 - No **Waited longest** or **Pick it back up** publicly: both read private

@@ -584,7 +584,8 @@ before pushing.
   played leads Tonight as its Continue card); a comic with nothing left
   to read is out. Best fit leads; Change of pace is labelled only when the
   last public finish exists and the contrast reason has something to say
-  (that reason leads; a private last finish leaves it unlabelled); Overdue
+  (that reason leads; a later private finish changes nothing, since
+  withholding the label would say one exists); Overdue
   classic is the oldest release at or above the median affinity ("Out
   since 1999" leads). Waited longest and Pick it back up read private data
   and are never public. A card carries `size` {unit, value} and

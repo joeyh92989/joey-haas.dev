@@ -138,7 +138,6 @@ def _lane(
     taste: Taste,
     item_type: str,
     today: date,
-    pace_withheld: bool = False,
 ) -> list[PublicPick]:
     strategy = strategy_for(item_type)
     pool = public_pool(items, never, item_type)
@@ -159,7 +158,6 @@ def _lane(
             if (
                 entry is not None
                 and "change_of_pace" in slots
-                and not pace_withheld
                 and last is not None
                 and change_of_pace_reason(entry.item, last) is not None
             ):
@@ -206,38 +204,25 @@ def build_public_sets(
     items: list[PickerItem],
     never: frozenset[str],
     today: date,
-    pace_withheld: bool = False,
 ) -> dict[str, list[PublicPick]]:
     """Every lane's picks, pure: `items` must be public rows only (they are
     the profile and the pool), `never` the ids refused before midnight.
 
-    `pace_withheld` is true when the owner's last game finish is private:
-    Change of pace would then be measured against a game the page cannot
-    name, so the second game pick stands unlabelled.
+    Change of pace is measured against the last public finish, never the
+    last finish over every row: nothing about a private finish, not even
+    that one exists, reaches the page.
     """
     taste = build_taste(items, today)
     return {
-        item_type: _lane(
-            items,
-            never,
-            taste,
-            item_type,
-            today,
-            pace_withheld=pace_withheld and item_type == "game",
-        )
+        item_type: _lane(items, never, taste, item_type, today)
         for item_type in LANE_SIZES
     }
 
 
-async def public_picks(
-    session: AsyncSession, now: datetime, pace_withheld: bool = False
-) -> PublicSets:
-    """The live public set. The caller says whether the last game finish
-    over every row is private (public_outputs.last_finish knows)."""
+async def public_picks(session: AsyncSession, now: datetime) -> PublicSets:
+    """The live public set."""
     inputs = await load_public_inputs(session, now)
-    sets = build_public_sets(
-        inputs.items, inputs.never, now.astimezone(UTC).date(), pace_withheld
-    )
+    sets = build_public_sets(inputs.items, inputs.never, now.astimezone(UTC).date())
     return PublicSets(
         game=sets["game"],
         comic=sets["comic"],

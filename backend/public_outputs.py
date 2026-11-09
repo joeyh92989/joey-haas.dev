@@ -381,19 +381,16 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
     list, and the store sections, built by next_list in public mode from
     the rows frozen to the latest batch (spec, S9)."""
     today = now.astimezone(UTC).date()
-    last = await last_finish(session)
     data = await load_next(session, public=True)
     # The games in hand, first: a Continue card leads Tonight, so its game
     # is neither a pick nor Up next (it is already the answer to "tonight").
     continuing = await build_continuing(session, data.public_games, today)
     in_hand = {card.item_id for card in continuing}
-    # The live set (public_picks). Change of pace is withheld when the last
-    # game finish over every row is private: it would be measured against a
-    # game the page cannot name. The public game pool leaves out Active, so
-    # a game in hand is never a pick.
-    sets = await public_picks(
-        session, now, pace_withheld=last is not None and not last.is_public
-    )
+    # The live set (public_picks). Change of pace is measured against the
+    # last *public* finish, so it is never withheld: withholding it when a
+    # later finish is private would tell the page that one exists. The
+    # public game pool leaves out Active, so a game in hand is never a pick.
+    sets = await public_picks(session, now)
     built = sections(data.candidates, today, public=True)
     taste = taste_sparing_owned(
         data,

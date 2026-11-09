@@ -41,7 +41,9 @@ from public_outputs import (
     PublicLastFinish,
     PublicNextOut,
     PublicNextRow,
+    PublicProgress,
     PublicSiteStatsOut,
+    PublicSize,
     PublicStatusOut,
     PublicSummaryOut,
     PublicTonight,
@@ -130,6 +132,10 @@ def _with_ids(*items: Item) -> tuple[Item, ...]:
 
 async def test_the_tonight_card_publishes_exactly_these_fields():
     assert set(PublicTonightCard.model_fields) == PICK_FIELDS
+    # A card's nested shapes are pinned too: the walk for forbidden keys
+    # would miss a new field that is not on its list.
+    assert set(PublicSize.model_fields) == {"unit", "value"}
+    assert set(PublicProgress.model_fields) == {"read", "of"}
     assert set(PublicLastFinish.model_fields) == LAST_FINISH_FIELDS
     assert set(ContinuingCard.model_fields) == CONTINUING_FIELDS
     assert set(PublicTonight.model_fields) == {
@@ -505,20 +511,27 @@ async def test_change_of_pace_names_a_public_last_finish(sessionmaker_for_test):
     assert pace["reasons"][0] == f"About {hours} h to finish, after 62 h of Xenoblade"
 
 
-async def test_a_private_last_finish_withholds_change_of_pace(
+async def test_a_later_private_finish_changes_nothing_on_the_page(
     sessionmaker_for_test,
 ):
-    """A later private finish is the real last finish, so the label may not
-    point at the older public one. The chip still shows that one: hidden,
-    its absence would hint at the private finish."""
-    await _add(
-        sessionmaker_for_test,
+    """Change of pace measures against the last *public* finish, the one the
+    chip names, so a later private finish leaves the page as it was:
+    withholding the label would tell the page that one exists (privacy
+    review, finding 2)."""
+    rows = (
         _game(
             "Xenoblade",
             status=ItemStatus.FINISHED,
             finished_at=NOW.date() - timedelta(days=9),
             source_metadata=_hours(62),
         ),
+        _game("Celeste", source_metadata=_hours(8)),
+        _game("Hollow", source_metadata=_hours(12)),
+    )
+    await _add(sessionmaker_for_test, *rows)
+    before = (await _next(sessionmaker_for_test))["tonight"]
+    await _add(
+        sessionmaker_for_test,
         _game(
             "Secret Game",
             is_public=False,
@@ -526,16 +539,18 @@ async def test_a_private_last_finish_withholds_change_of_pace(
             finished_at=NOW.date() - timedelta(days=2),
             source_metadata=_hours(30),
         ),
-        _game("Celeste", source_metadata=_hours(8)),
-        _game("Hollow", source_metadata=_hours(12)),
     )
     async with client_for(sessionmaker_for_test) as client:
         response = await client.get("/api/public/next")
     tonight = response.json()["tonight"]
 
     assert tonight["last_finish"]["title"] == "Xenoblade"
-    assert [pick["slot_label"] for pick in tonight["picks"]] == ["Best fit", None]
-    assert "after" not in json.dumps(tonight["picks"])
+    assert [pick["slot_label"] for pick in tonight["picks"]] == [
+        "Best fit",
+        "Change of pace",
+    ]
+    assert "after 62 h of Xenoblade" in tonight["picks"][1]["reasons"][0]
+    assert tonight["picks"] == before["picks"]
     assert "Secret" not in response.text
 
 
@@ -842,7 +857,10 @@ async def test_no_private_key_appears_anywhere(sessionmaker_for_test):
             release_date=TODAY - timedelta(days=100),
         ),
     )
+    await _add(sessionmaker_for_test, _comic("Saga"), _movie("Heat"))
     body = await _next(sessionmaker_for_test)
+    # Every lane is non-empty, so the walk covers each card's shape.
+    assert body["tonight"]["read_next"] and body["tonight"]["watch_next"]
     assert FORBIDDEN.isdisjoint(set(_keys(body)))
     assert body["tonight"]["up_next"]["title"] == "Pinned"
     assert [p["title"] for p in body["tonight"]["picks"]] == ["Picked"]
