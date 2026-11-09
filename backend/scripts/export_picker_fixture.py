@@ -11,22 +11,39 @@ owner's life goes in:
   nothing about the item;
 - every date becomes a whole number of days before the export day;
 - `similar_games` keeps only links to other exported items, by key;
-- tags are kept as the sources wrote them, since they are what the engine
-  reads.
+- tags from fixed vocabularies (IGDB genres, themes, game modes and
+  perspectives, TMDB genres) and free-text tags FACET_MAP maps (robots,
+  noir, time travel) are kept as the sources wrote them, since they are
+  what the engine reads;
+- every other free-text tag (keywords, characters, concepts, teams,
+  locations) is replaced by a keyed hash, "tag-3fa2c91b0d", under a key
+  drawn at random for each export and never stored. Franchise and character
+  names live there ("mario", "pikachu"), and a plain hash of one could be
+  looked up from a word list. Within one export the same tag gets the same
+  pseudonym, so two items sharing it still share a facet and the engine
+  scores the export exactly as it scores the strings. Ignored tags
+  (storefront noise) are dropped, since facets ignore them anyway.
+
+Curation needs the readable strings, so `--coverage` prints the unmapped
+tags of the live rows to the terminal and writes nothing.
 
 Reads DATABASE_URL_DIRECT from the main checkout's backend/.env (worktrees
 have none), the way migrate_neon.py does, and never prints it.
 
     ./.venv/bin/python scripts/export_picker_fixture.py --dry-run
     ./.venv/bin/python scripts/export_picker_fixture.py
+    ./.venv/bin/python scripts/export_picker_fixture.py --coverage 3
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
+import hmac
 import importlib.util
 import json
+import secrets
 import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -51,6 +68,45 @@ TAG_KEYS = (
 )
 
 
+# Free-text tag keys: anything a source can write there, names included.
+# The rest of TAG_KEYS are fixed vocabularies and are kept as written.
+FREE_TEXT_KEYS = frozenset({"keywords", "characters", "concepts", "teams", "locations"})
+PSEUDONYM_PREFIX = "tag-"
+
+
+def pseudonymise(key: bytes | None, source: str | None, kind: str, value: str):
+    """The tag as the fixture carries it, or None to leave it out.
+
+    `key` None keeps every tag readable (the coverage report, never the
+    file). Otherwise a fixed-vocabulary or mapped tag stays as written, an
+    ignored one is dropped, and any other free-text tag becomes its keyed
+    hash.
+    """
+    from facets import FACET_MAP, is_ignored
+
+    if key is None or kind not in FREE_TEXT_KEYS:
+        return value
+    if is_ignored(value):
+        return None
+    if (source or "", kind, value) in FACET_MAP:
+        return value
+    digest = hmac.new(key, f"{source}\x1f{kind}\x1f{value}".encode(), hashlib.sha256)
+    return PSEUDONYM_PREFIX + digest.hexdigest()[:10]
+
+
+def _tags(snapshot: dict, source: str | None, key: bytes | None) -> dict:
+    tags = {}
+    for kind in TAG_KEYS:
+        values = []
+        for value in _strings(snapshot.get(kind)):
+            kept = pseudonymise(key, source, kind, value)
+            if kept is not None and kept not in values:
+                values.append(kept)
+        if values:
+            tags[kind] = values
+    return tags
+
+
 def _days_before(day: date | None, today: date) -> int | None:
     return None if day is None else (today - day).days
 
@@ -71,14 +127,25 @@ def _without_nulls(entry: dict) -> dict:
     return {key: value for key, value in entry.items() if value is not None}
 
 
-def anonymise(rows: list[dict], runs: dict[str, list[dict]], today: date) -> dict:
+def anonymise(
+    rows: list[dict],
+    runs: dict[str, list[dict]],
+    today: date,
+    key: bytes | None = b"",
+) -> dict:
     """The fixture body for plain rows; pure, so it is tested without a database.
+
+    `key` is the pseudonym key: the default draws a fresh random one, a
+    given one makes the output reproducible (tests), and None keeps every
+    tag readable, for the coverage report only.
 
     `rows` carry: id, type, status, owned, rating, favorite, external_source,
     external_id, source_metadata, acquired_at, release_date, owned_issues,
     read_issues. `runs` maps an id to its runs: outcome, started_on,
     finished_on, paused_on, journal_days, journal_minutes.
     """
+    if key == b"":
+        key = secrets.token_bytes(32)
     ordered = sorted(rows, key=lambda row: (row["type"], str(row["id"])))
     counters: dict[str, int] = {}
     keys: dict[str, str] = {}
@@ -111,11 +178,7 @@ def anonymise(rows: list[dict], runs: dict[str, list[dict]], today: date) -> dic
             "favorite": bool(row.get("favorite")),
             "acquired_days_ago": _days_before(row.get("acquired_at"), today),
             "released_days_ago": _days_before(row.get("release_date"), today),
-            "tags": {
-                key: _strings(snapshot.get(key))
-                for key in TAG_KEYS
-                if _strings(snapshot.get(key))
-            },
+            "tags": _tags(snapshot, source, key),
             "similar": similar,
             "community_score": _number(snapshot.get("community_score")),
             "time_to_beat_hours": _number(time_to_beat.get("normally"))
@@ -221,7 +284,7 @@ def _database_url() -> str:
     return url
 
 
-async def run(dry_run: bool, public_only: bool) -> str:
+async def run(dry_run: bool, public_only: bool, coverage: int | None = None) -> str:
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
     from db import connect_args_for, normalize_async_url
@@ -233,6 +296,15 @@ async def run(dry_run: bool, public_only: bool) -> str:
             rows, runs = await load(session, public_only)
     finally:
         await engine.dispose()
+    if coverage is not None:
+        spec = importlib.util.spec_from_file_location(
+            "facet_coverage", BACKEND / "scripts" / "facet_coverage.py"
+        )
+        facet_coverage = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(facet_coverage)
+        clear = anonymise(rows, runs, datetime.now(UTC).date(), key=None)
+        lines = facet_coverage.report(clear, coverage, None)
+        return "\n".join(lines) if lines else "every tag is mapped"
     body = anonymise(rows, runs, datetime.now(UTC).date())
     if not dry_run:
         OUTPUT.write_text(json.dumps(body, indent=1, sort_keys=True) + "\n")
@@ -243,8 +315,14 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dry-run", action="store_true", help="print counts only")
     parser.add_argument("--public-only", action="store_true", help="public rows only")
+    parser.add_argument(
+        "--coverage",
+        type=int,
+        metavar="MIN",
+        help="print unmapped tags carried by at least MIN items; write nothing",
+    )
     args = parser.parse_args(argv)
-    print(asyncio.run(run(args.dry_run, args.public_only)))
+    print(asyncio.run(run(args.dry_run, args.public_only, args.coverage)))
     return 0
 
 

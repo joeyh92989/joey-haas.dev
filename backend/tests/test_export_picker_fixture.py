@@ -16,7 +16,17 @@ script = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(script)
 
 TODAY = date(2026, 11, 9)
-SECRET_WORDS = ("Hades", "Saga", "Dune", "secret note", "cover.jpg", "Switch")
+SECRET_WORDS = (
+    "Hades",
+    "Saga",
+    "Dune",
+    "secret note",
+    "cover.jpg",
+    "Switch",
+    "greek mythology",
+    "Space opera",
+)
+KEY = b"k" * 32
 
 
 async def _seed(session):
@@ -77,7 +87,7 @@ async def test_the_export_keeps_tags_and_play_and_drops_what_names_a_game(
     async with sessionmaker_for_test() as session:
         await _seed(session)
         rows, runs = await script.load(session)
-    body = script.anonymise(rows, runs, TODAY)
+    body = script.anonymise(rows, runs, TODAY, key=KEY)
     text = json.dumps(body)
     for word in SECRET_WORDS:
         assert word not in text
@@ -91,7 +101,8 @@ async def test_the_export_keeps_tags_and_play_and_drops_what_names_a_game(
         key for key, item in items.items() if item["tags"] == {"genres": ["Platform"]}
     )
     assert hades["similar"] == [celeste_key]  # 999 is not in the collection
-    assert hades["tags"]["keywords"] == ["greek mythology", "roguelite"]
+    pseudonym = script.pseudonymise(KEY, "igdb", "keywords", "greek mythology")
+    assert hades["tags"]["keywords"] == [pseudonym, "roguelite"]
     assert hades["acquired_days_ago"] == 40
     assert hades["time_to_beat_hours"] == 22.5
     assert hades["runs"] == [
@@ -133,3 +144,49 @@ def test_summary_counts_types_tags_and_runs():
         ]
     }
     assert script.summary(body) == "exported 1 comic, 1 game; 1 tagged, 1 runs"
+
+
+def _row(id: str, **snapshot):
+    return {
+        "id": id,
+        "type": "game",
+        "status": "backlog",
+        "owned": True,
+        "external_source": "igdb",
+        "source_metadata": snapshot,
+    }
+
+
+def test_free_text_tags_are_keyed_pseudonyms_and_the_vocabularies_stay():
+    rows = [
+        _row(
+            "a",
+            genres=["Platform"],
+            themes=["Action"],
+            keywords=["mario", "robots", "steam trading cards", "mario"],
+        ),
+        _row("b", keywords=["mario"], characters=["Luigi"]),
+    ]
+    first, second = script.anonymise(rows, {}, TODAY, key=KEY)["items"]
+    mario = script.pseudonymise(KEY, "igdb", "keywords", "mario")
+
+    assert mario.startswith(script.PSEUDONYM_PREFIX) and "mario" not in mario
+    # Fixed vocabularies and mapped tags as written; noise dropped; repeats once.
+    assert first["tags"] == {
+        "genres": ["Platform"],
+        "themes": ["Action"],
+        "keywords": [mario, "robots"],
+    }
+    # Two items sharing a tag still share it, so they still share a facet.
+    assert second["tags"]["keywords"] == [mario]
+    assert second["tags"]["characters"][0].startswith(script.PSEUDONYM_PREFIX)
+
+
+def test_each_export_draws_its_own_key_and_none_keeps_tags_readable():
+    rows = [_row("a", keywords=["mario"])]
+    one = script.anonymise(rows, {}, TODAY)["items"][0]["tags"]["keywords"]
+    two = script.anonymise(rows, {}, TODAY)["items"][0]["tags"]["keywords"]
+    clear = script.anonymise(rows, {}, TODAY, key=None)["items"][0]["tags"]
+
+    assert one != two
+    assert clear == {"keywords": ["mario"]}

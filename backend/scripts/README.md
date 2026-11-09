@@ -363,9 +363,22 @@ facets — and a synthetic set only tests the cases someone thought of.
 **Anonymised, because the repo is public:** titles, ids, covers, notes,
 platforms and the public flag are dropped; items are keyed `game-001`,
 `comic-001`, … in uuid order; every date becomes days before the export
-day; `similar_games` keeps only links to other exported items. Tags,
-ratings, favourites, statuses, time to beat, runtime, comic read counts and
-each run's journal totals are kept, since they are what the engine reads.
+day; `similar_games` keeps only links to other exported items. Ratings,
+favourites, statuses, time to beat, runtime, comic read counts and each
+run's journal totals are kept, since they are what the engine reads.
+
+**Tags:** fixed vocabularies (genres, themes, modes, perspectives) and the
+free-text tags `FACET_MAP` maps are kept as written. Every other keyword,
+character, concept, team and location becomes a keyed hash
+(`tag-3fa2c91b0d`), because that is where franchise and character names
+live and they would say which games I own. The key is random per export
+and never stored, so a word list cannot reverse it; within one export a
+tag always gets the same pseudonym, so the engine scores the file exactly
+as it scores the strings. Ignored tags are dropped.
+
+**Curating facets** needs the readable strings, which the file no longer
+has: `--coverage MIN` prints the unmapped tags of the live rows carried by
+at least MIN items, to the terminal only, and writes nothing.
 
 **Run** from `backend/`, in the main checkout or any worktree. It reads
 `DATABASE_URL_DIRECT` from the main checkout's `backend/.env`, as
@@ -374,6 +387,7 @@ each run's journal totals are kept, since they are what the engine reads.
 ```bash
 ./.venv/bin/python scripts/export_picker_fixture.py --dry-run
 ./.venv/bin/python scripts/export_picker_fixture.py
+./.venv/bin/python scripts/export_picker_fixture.py --coverage 3
 ```
 
 `--public-only` exports public rows only. The run prints one line:
@@ -399,3 +413,9 @@ A tag carried by two or more items is a candidate for a row (the curation
 rule in `facets.py`). Copy the value exactly as printed:
 `tests/test_facets.py` fails on any mapped string no fixture or export
 carries.
+
+Keywords in the export are pseudonyms (see `export_picker_fixture.py`), so
+here they show as `tag-…` counts; read them with
+`export_picker_fixture.py --coverage MIN` instead. A newly mapped keyword
+appears in the file readably only after the next export, so map, then
+re-export, then run `test_facets.py`.

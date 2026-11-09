@@ -6,6 +6,11 @@ written by export_picker_fixture.py), so it touches no database:
     ./.venv/bin/python scripts/facet_coverage.py
     ./.venv/bin/python scripts/facet_coverage.py --min 2 --limit 50
 
+The export pseudonymises unmapped free-text tags, so on the file this
+reports the fixed vocabularies readably and keywords as `tag-…` counts.
+For readable keywords, run `export_picker_fixture.py --coverage MIN`, which
+reads the live rows.
+
 Each line is `count  source  kind  value`. A tag carried by two or more items
 is a candidate for a FACET_MAP row (the curation rule in facets.py); copy the
 value exactly as printed.
