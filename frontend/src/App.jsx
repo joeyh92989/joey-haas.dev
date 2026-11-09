@@ -5,6 +5,7 @@ import About from './pages/About.jsx'
 import Blog from './pages/Blog.jsx'
 import Collection from './pages/Collection.jsx'
 import Comics from './pages/Comics.jsx'
+import Daily from './pages/Daily.jsx'
 import Colophon from './pages/Colophon.jsx'
 import BlogPost from './pages/BlogPost.jsx'
 import Home from './pages/Home.jsx'
@@ -75,6 +76,7 @@ export default function App() {
         <Route path="colophon" element={<Colophon />} />
         <Route path="stats" element={<Stats />} />
         <Route path="denver" element={<Denver />} />
+        <Route path="daily" element={<Daily />} />
         <Route path="shelf" element={<Collection />} />
         <Route path="shelf/comics" element={<Comics />} />
         <Route path="shelf/next" element={<Next />} />

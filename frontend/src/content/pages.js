@@ -11,6 +11,7 @@
  */
 import { clip } from '../lib/clip.js'
 import { denver } from './denver.js'
+import { daily } from './daily.js'
 import { profile } from './profile.js'
 import { spine } from './spine.js'
 
@@ -86,6 +87,7 @@ export const STATIC_PAGES = [
     `${denver.page.title} · ${profile.name}`,
     denver.page.description,
   ),
+  row(daily.path, daily.title, daily.headTitle, daily.description),
 ]
 
 /** The blog index's row, listed only when there are published posts. */

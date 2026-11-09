@@ -9,8 +9,10 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import StatusStrip from '../components/StatusStrip.jsx'
+import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
+import { dailyPool } from '../lib/daily.js'
 import { ownerMonth, ownerYear } from '../lib/formatDate.js'
 import { isValidSnapshot, readSnapshot } from '../lib/snapshot.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -568,6 +570,12 @@ export default function Collection() {
                 },
               ]}
             />
+          )}
+
+          {dailyPool(items).length > 0 && (
+            <p className="daily-entry">
+              <Link to={daily.path}>{daily.entry}</Link>
+            </p>
           )}
 
           <NowPlaying items={items} linkFor={(item) => itemPath(item.id)} />

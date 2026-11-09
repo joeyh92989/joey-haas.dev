@@ -103,6 +103,10 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # vite.config.js refuses a build without Shelfle's salt; CI's
+          # value only has to be non-empty.
+          VITE_DAILY_SALT: ci
 
       - name: Audit dependencies
         # High and critical only. A moderate transitive advisory with no patch

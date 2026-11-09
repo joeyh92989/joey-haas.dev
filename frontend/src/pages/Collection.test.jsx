@@ -260,6 +260,31 @@ describe('Collection', () => {
     ).toBeTruthy()
   })
 
+  it("links today's Shelfle when the shelf has a game to guess", async () => {
+    const game = {
+      ...ITEMS[0],
+      id: '77',
+      type: 'game',
+      title: 'Sea of Stars',
+      platform: 'Nintendo Switch',
+      year: 2023,
+      genres: ['Role-playing (RPG)'],
+      time_to_beat_hours: 30,
+      favorite: false,
+    }
+    stubSnapshot({ items: [...ITEMS, game] })
+    await renderReady()
+    expect(
+      screen.getByRole('link', { name: 'Today’s Shelfle →' }),
+    ).toHaveAttribute('href', '/daily')
+  })
+
+  it('has no Shelfle link when no game could be the answer', async () => {
+    stubSnapshot()
+    await renderReady()
+    expect(screen.queryByRole('link', { name: /Shelfle/ })).toBeNull()
+  })
+
   it('has no axe violations on the landing', async () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()

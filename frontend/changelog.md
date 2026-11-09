@@ -7,6 +7,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 ## 2026-11-09
 
 - [Denver, the short list](/denver): the places I keep sending people to, on a map drawn from OpenStreetMap beside the list, filterable by tag.
+- [Shelfle](/daily), a daily puzzle built from my shelf: guess the game in six, each guess graded on platform, year, genre and size. The same puzzle for everyone, new at midnight Denver time, with a streak kept on your device and a spoiler-free grid to share.
 
 ## 2026-11-08
 
