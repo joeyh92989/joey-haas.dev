@@ -365,6 +365,47 @@ describe('fetchSnapshot', () => {
     expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
   })
 
+  it('declares pick-for-me as optional, writes it verbatim, builds without it', async () => {
+    const table = {
+      generated_on: '2026-11-08',
+      weights: { affinity: 35 },
+      games: {},
+      combos: { 'any|': [], 'short|cozy': [] },
+    }
+    expect(SNAPSHOTS['pick-for-me'].path).toBe('/api/public/pick-for-me')
+    expect(SNAPSHOTS['pick-for-me'].required).toBe(false)
+    expect(SNAPSHOTS['pick-for-me'].valid(table)).toBe(true)
+    expect(SNAPSHOTS['pick-for-me'].valid({ ...table, games: [] })).toBe(false)
+    expect(
+      SNAPSHOTS['pick-for-me'].valid({ ...table, combos: { 'any|': {} } }),
+    ).toBe(false)
+    expect(SNAPSHOTS['pick-for-me'].valid([])).toBe(false)
+
+    const base = {
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    }
+    const text = JSON.stringify(table)
+    expect(
+      await run(
+        api({ ...base, '/api/public/pick-for-me': ok(JSON.parse(text), text) }),
+      ),
+    ).toBe('written')
+    expect(await written()).toEqual([
+      'items.json',
+      'meta.json',
+      'pick-for-me.json',
+      'stats.json',
+    ])
+    expect(
+      await fs.readFile(path.join(outDir, 'pick-for-me.json'), 'utf8'),
+    ).toBe(text)
+
+    expect(await run(api(base))).toBe('written')
+    expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
+  })
+
   it('declares status as optional and writes it when served', async () => {
     const status = {
       refreshed_at: null,

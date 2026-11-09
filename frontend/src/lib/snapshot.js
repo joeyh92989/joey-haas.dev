@@ -90,6 +90,17 @@ const isSummary = (body) =>
 const isSiteStatsBody = (body) =>
   isObject(body) && isSummary(body.thirty) && isSummary(body.all)
 
+/**
+ * Pick for me's table (Pick for me spec): the games it names and every
+ * combination's list. Keep in step with `isPickForMeBody` in scripts/fetch-snapshot.mjs:
+ * the two predicates must be identical.
+ */
+const isPickForMeBody = (body) =>
+  isObject(body) &&
+  isObject(body.games) &&
+  isObject(body.combos) &&
+  Object.values(body.combos).every(Array.isArray)
+
 /** Each snapshot's name and the shape its body must have to be used. */
 const SHAPES = {
   items: Array.isArray,
@@ -98,6 +109,7 @@ const SHAPES = {
   status: isStatusBody,
   comics: isComicsBody,
   'site-stats': isSiteStatsBody,
+  'pick-for-me': isPickForMeBody,
   meta: isMetaBody,
 }
 
