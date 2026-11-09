@@ -37,9 +37,9 @@ const TABLE = {
   },
 }
 
-function renderBand() {
+function renderBand(path = '/shelf/next') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <PickForMe table={TABLE} />
     </MemoryRouter>,
   )
@@ -106,5 +106,17 @@ describe('PickForMe', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Two moods at most')
     await user.click(screen.getByRole('button', { name: 'Story' }))
     expect(screen.getByRole('status')).toHaveTextContent('')
+  })
+
+  it('takes focus when it is arrived at by its anchor', () => {
+    renderBand('/shelf/next#pick-for-me')
+    expect(screen.getByRole('heading', { name: 'Pick for me' })).toHaveFocus()
+  })
+
+  it('leaves focus alone otherwise', () => {
+    renderBand()
+    expect(
+      screen.getByRole('heading', { name: 'Pick for me' }),
+    ).not.toHaveFocus()
   })
 })

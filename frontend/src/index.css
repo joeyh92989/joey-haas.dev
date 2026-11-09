@@ -6148,3 +6148,8 @@ main h1[tabindex='-1']:focus {
   font-size: 0.8125rem;
   margin-top: 0.75rem;
 }
+
+.how-try {
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
+}

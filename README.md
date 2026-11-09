@@ -658,6 +658,7 @@ detail and next models' field sets.
 | `GET /api/public/diary?year=` | The play journal for a year, public games only and never the note (`PublicDiaryEntry`) |
 | `GET /api/public/status` | The shelf's status strip: when the catalogue last refreshed and how big it is; `Cache-Control: max-age=300` |
 | `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge`, `comics_this_week` (see below) |
+| `GET /api/public/pick-for-me` | Pick for me on What's next: every size and mood combination's top three, precomputed (see below) |
 | `GET /api/public/comics` | `/shelf/comics`: public series with their runs, the shelf's figures, and `this_week` (the weeks ahead and the undated series under Later); never `issues_skipped`, a price or a store |
 | `GET /api/public/site-stats` | `/stats`: the analytics summary (`backend/analytics_routes.py`) for the last thirty days (`thirty`) and since launch (`all`), reduced for the public: a referrer host is named only when it is on `analytics.PUBLIC_REFERRER_DOMAINS` and has five visitors, every other host folds into `referrers_other`; a private item's page is never listed; no best-day referrer, lists capped at ten; cached for an hour on the cache the admin read shares, `Cache-Control: max-age=300` |
 
@@ -668,6 +669,36 @@ dated cartridges in its sections), and `scripts/smoke.sh` pins the 404.
 `/api/public/next` is cached on a data fingerprint
 (`backend/public_next_cache.py`) and rebuilt only when its inputs change;
 admin routes, the store list included, are not cached.
+
+### `GET /api/public/pick-for-me`
+
+Pick for me, the band on What's next (`frontend/src/components/PickForMe.jsx`;
+spec and plan `docs/planning/2026-11-06-pick-for-me-design.md`). The visitor
+picks a length (any, short, medium, long) and up to two of Play Next's six
+moods; that is 88 combinations, and the API answers all of them in one body,
+so a press is a lookup and the band never waits on the free-tier server. The
+ranking is `picker.public_pick_table`, pure and deterministic, with no model
+call: four of Play Next's terms (`PUBLIC_TERMS`: affinity, similarity,
+quality, length fit), weighted by `PICKER_WEIGHTS` and averaged to 0-100.
+Moods are hard filters; size is a term. The pool is public, owned, unpinned
+backlog, active or paused games, minus any the owner marked "never" before
+today's UTC midnight.
+
+- `generated_on`: the UTC day. `weights`: the four terms' weights.
+- `games`: cards keyed by `item_id` (`title`, `cover_url`, `platform`,
+  `time_to_beat_hours`, `igdb_url`, `reasons`).
+- `combos`: every key `<size>|<moods sorted, +-joined>` (`any|` for no
+  mood) to up to three `{item_id, score, terms}`, best first. A combination
+  nothing fits is an empty list, never a missing key.
+
+Unlike `/next` it publishes `score`: the card shows its working.
+`test_public_pick_for_me.py` pins the fields and walks the body for every
+other forbidden key, and `scripts/smoke.sh` checks the same live. The band's
+keys and the API's are held together by `frontend/src/lib/pick-for-me-keys.json`,
+which both test suites read; regenerate it when `combo_keys` changes. The
+body is cached like `/next` (`public_next_cache.py`, one `PublicNextCache`
+per body), on the same fingerprint, and is an optional snapshot
+(`pick-for-me`), so the band paints from the build when the API is asleep.
 
 ### `GET /api/public/next`
 

@@ -48,6 +48,7 @@ export const spine = {
    */
   how: {
     path: '/shelf/how',
+    tryPickForMe: 'Try Pick for me: choose a length and a mood',
     title: 'How My Shelf works, in eight stops',
     description:
       'A guided tour of My Shelf: photo import, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',

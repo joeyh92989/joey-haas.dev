@@ -396,6 +396,24 @@ else
   report_pass "public next exposes no private fields" "no forbidden key"
 fi
 
+# Pick for me: every one of the 88 combinations is answered, each naming
+# only games the body carries a card for. The score and its terms are the
+# card's working and are published; every other forbidden key stays out.
+pick_body="$(curl -s -m 90 "$API_URL/api/public/pick-for-me")"
+if printf '%s' "$pick_body" | jq -e \
+  '(.combos | keys | length) == 88 and ([.combos[][] .item_id] - (.games | keys) == [])' \
+  > /dev/null 2>&1; then
+  report_pass "public pick-for-me answers all 88 combinations" "every pick has its card"
+else
+  report_fail "public pick-for-me answers all 88 combinations" "got '${pick_body:0:80}'"
+fi
+PICK_FORBIDDEN="$(printf '%s' "$NEXT_FORBIDDEN" | sed 's/"(score|/"(/')"
+if printf '%s' "$pick_body" | grep -qE "$PICK_FORBIDDEN"; then
+  report_fail "public pick-for-me exposes no private fields" "found a forbidden key"
+else
+  report_pass "public pick-for-me exposes no private fields" "no forbidden key"
+fi
+
 # Comics: the shelf page has its own head, and the public body is the series.
 check_equals "GET /shelf/comics (deep link)" "$(http_status "$SITE_URL/shelf/comics")" "200"
 check_equals "GET /shelf/comics has its own prerendered title" \

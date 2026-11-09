@@ -1,4 +1,5 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { useLocation } from 'react-router'
 import TonightAlt from './TonightAlt.jsx'
 import { spine } from '../content/spine.js'
 import {
@@ -60,7 +61,9 @@ function ScoreBreakdown({ pick, weights }) {
  * games from the public backlog. Every answer is precomputed by the API, so
  * a press is a lookup in `table`, never a request. Size is a radio group;
  * moods are toggle chips, and a third mood is refused with a polite note.
- * The live line speaks only after a change, never on load.
+ * The live line speaks only after a change, never on load. The band mounts
+ * once its table has loaded, after useHashFocus would have looked, so a link
+ * to `#pick-for-me` (the How it works tour's) is honoured here.
  *
  * @param {object} props
  * @param {object} props.table - A `PublicPickForMeOut` body.
@@ -72,6 +75,16 @@ export default function PickForMe({ table }) {
   const [refused, setRefused] = useState(false)
   const [announce, setAnnounce] = useState('')
   const picks = picksFor(table, pickForMeKey(size, moods))
+  const { hash } = useLocation()
+  const heading = useRef(null)
+
+  useEffect(() => {
+    if (hash !== '#pick-for-me' || !heading.current) return
+    heading.current.scrollIntoView?.({ block: 'start' })
+    heading.current.focus({ preventScroll: true })
+    // Only on arrival: a later change of hash is useHashFocus's.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function chose(nextSize, nextMoods) {
     const count = picksFor(table, pickForMeKey(nextSize, nextMoods)).length
@@ -98,7 +111,9 @@ export default function PickForMe({ table }) {
       className="pick-for-me"
       aria-labelledby={`${name}-h`}
     >
-      <h2 id={`${name}-h`}>{copy.heading}</h2>
+      <h2 id={`${name}-h`} ref={heading} tabIndex={-1}>
+        {copy.heading}
+      </h2>
       <p className="muted">{copy.lede}</p>
       <fieldset className="pick-choices">
         <legend>{copy.sizeLegend}</legend>
