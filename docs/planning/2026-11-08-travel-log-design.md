@@ -784,3 +784,81 @@ Run in the worktree (`npm ci` in `frontend/` first; it has no
 - **Denver spots inherits a name.** Its plan must consume `DrawnMap` and
   `lib/mapFit.js` rather than add `SpotMap`. Recorded in T14's CLAUDE.md
   line so the next planning session sees it.
+
+---
+
+# Amendment · 2026-11-09 · Travel history onboarding
+
+Joey's go came with a scope addition: the travel history has to be
+*recovered*, not just written. Photos sit with his partner, and the old
+trips (Ireland 2014) are half-remembered. So the feature needs a way in,
+not only a format. Two decisions and three tasks.
+
+**D11 — Onboarding is a local CLI plus a written collection plan, not an
+admin page.** A browser surface cannot read a folder of a partner's photos,
+and the travel feature deliberately makes no API call; the photos are built
+locally and committed (D4). So the flow lives where the files are.
+
+**New** `frontend/scripts/ingest-photos.mjs`:
+
+- Scans a dump folder (`--from <dir>`, recursive) and reads each image's
+  EXIF `DateTimeOriginal`, GPS and orientation with `exifr` — a pinned,
+  pure-JS devDependency; sharp hands back EXIF only as a raw buffer.
+- **Clusters by date gap**: photos more than `--gap` days apart (default 2)
+  start a new candidate trip. This is the part that makes 2014 tractable —
+  a folder of 900 unsorted photos comes back as six dated clusters.
+- Maps GPS to a place name against a small committed gazetteer
+  (`frontend/scripts/places.json`, a few hundred cities with lat/lon), so
+  nothing leaves the machine. No GPS, no guess: the place is left blank for
+  a human.
+- **`--dry-run` is the default**: it prints a report — candidate trips,
+  their date spans, the places it could name, photo counts, and a list of
+  everything it could not date or place. Nothing is written until
+  `--write`.
+- `--write --slug <slug>` scaffolds `frontend/trips/<slug>.md` (frontmatter
+  filled in, one `##` day heading per day it found, prose left empty for
+  Joey) and `frontend/trips/<slug>/photos/photos.json` with each photo's
+  name, source file and date confidence.
+- **Date confidence is recorded, never invented**: `exif` when the camera
+  said so, `mtime` when only the filesystem did, `none` when neither is
+  trustworthy. Messaging apps strip EXIF, so partner photos will mostly be
+  `mtime` or `none`, and the report says which days rest on a guess.
+- Originals are never copied into the repo; the tool writes into the
+  gitignored `photos/` folder and leaves the dump where it is.
+
+**New** `docs/travel-onboarding.md`, the plan half of the same thing: what
+to ask the partner for (originals from the camera roll, not messages, which
+arrive stripped and resized), how to hand them over in batches, a per-trip
+worksheet (dates, places in order, what happened each day, which photos
+matter), the rule for a trip nobody can date precisely, and a table of the
+trips to recover with a status column. It is a working document that gets
+ticked off, not reference.
+
+**D12 — Old trips may be imprecise, and say so.** Ireland 2014 may be
+"June 2014" and no more. *Addition to the grammar in T1:* optional
+`precision: day | month | year` frontmatter (default `day`). `date` and
+`end` stay real dates so sorting and `lastmod` keep working, but at month
+precision the facts row and index kicker render *June 2014* rather than
+inventing the 3rd, and a day heading may carry a bare label
+(`## Day 3 · Cliffs · Doolin`) with no date at all. The parser refuses a
+heading with a date the frontmatter's precision cannot support, so an
+invented day cannot creep in through the back door.
+
+## Revised milestones
+
+Milestone 3 becomes **Onboarding**, and the content-and-deploy milestone
+becomes Milestone 4. The carve-out STOP stays where it was — the onboarding
+tooling touches no infrastructure, commits no photos, and can run before
+Joey has collected anything.
+
+- **M3 · Onboarding (autonomous)** — T15 `ingest-photos.mjs` with tests on
+  a generated fixture dump (clustering by gap, EXIF vs mtime vs none, GPS
+  to a place, `--dry-run` writing nothing, `--write` scaffolding a draft);
+  T16 `docs/travel-onboarding.md` and the recovery table; T17 the `precision`
+  support of D12 through the parser, the facts row and the index kicker,
+  with tests at each precision.
+- **STOP — carve-out review** (unchanged).
+- **M4 · Content and the deploy path** — the former T12-T14, now run
+  *through* the ingest tool rather than by hand: Joey's dumps go in, the
+  report comes back, the drafts get their prose, then `render.yaml`, the
+  changelog and the README.
