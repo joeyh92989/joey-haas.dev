@@ -25,8 +25,8 @@ describe('spine.how', () => {
     for (const name of names) expect(copy, name).not.toContain(name)
   })
 
-  it('has eight stops, numbered in order, each with its required copy', () => {
-    expect(how.stops.map((stop) => stop.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+  it('has nine stops, numbered in order, each with its required copy', () => {
+    expect(how.stops.map((stop) => stop.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
     for (const stop of how.stops) {
       expect(stop.where, `stop ${stop.n}`).toBeTruthy()
       expect(stop.title, `stop ${stop.n}`).toBeTruthy()

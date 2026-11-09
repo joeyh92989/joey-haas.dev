@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-09
+
+- [Shelfle](/daily), a daily puzzle built from my shelf: guess the game in six, each guess graded on platform, year, genre and size. The same puzzle for everyone, new at midnight Denver time, with a streak kept on your device and a spoiler-free grid to share.
+
 ## 2026-11-08
 
 - [Tonight](/shelf/next) leads with the game I'm playing while one is in progress: playing since, hours and sessions from the journal, last played, with the picks as a compact list underneath. Signed in, Wrap up finishes, pauses or abandons it in two taps, with a rating, a line and the date while they're fresh.

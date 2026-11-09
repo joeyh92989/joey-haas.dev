@@ -52,7 +52,7 @@ describe('SpineHeader', () => {
     expect(screen.getByRole('link', { name: 'Collection' })).not.toHaveClass(
       'active',
     )
-    expect(screen.getAllByRole('link', { name: /./ })).toHaveLength(6)
+    expect(screen.getAllByRole('link', { name: /./ })).toHaveLength(7)
   })
 
   it('leaves How it works inactive elsewhere under /shelf', () => {
@@ -72,5 +72,14 @@ describe('SpineHeader', () => {
     )
     const names = screen.getAllByRole('link').map((link) => link.textContent)
     expect(names.indexOf('Comics')).toBe(names.indexOf('Collection') + 1)
+  })
+
+  it('ends with a Daily tab, active only on /daily', () => {
+    renderAt('/daily', { asLink: true })
+    const names = screen.getAllByRole('link').map((link) => link.textContent)
+    expect(names.at(-1)).toBe('Daily')
+    const tab = screen.getByRole('link', { name: 'Daily' })
+    expect(tab).toHaveAttribute('href', '/daily')
+    expect(tab).toHaveClass('active')
   })
 })

@@ -48,3 +48,25 @@ export function ownerMonth(now = Date.now()) {
 export function ownerYear(now = Date.now()) {
   return ownerMonth(now).year
 }
+
+const OWNER_DAY = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: 'America/Denver',
+})
+
+/**
+ * The owner's current calendar day as 'YYYY-MM-DD', read in Denver like
+ * `ownerMonth`: the daily puzzle changes at midnight there, on both sides
+ * of a daylight-saving change, not at UTC midnight or in the visitor's zone.
+ *
+ * @param {number | Date} [now] The moment to read, by default now.
+ * @returns {string} The day, for example '2026-11-09'.
+ */
+export function ownerDay(now = Date.now()) {
+  const parts = Object.fromEntries(
+    OWNER_DAY.formatToParts(now).map((part) => [part.type, part.value]),
+  )
+  return `${parts.year}-${parts.month}-${parts.day}`
+}

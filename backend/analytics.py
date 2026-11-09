@@ -64,6 +64,7 @@ _EXACT_PATHS = frozenset(
         "/now",
         "/colophon",
         "/stats",
+        "/daily",
         "/blog",
         "/til",
         "/travel",

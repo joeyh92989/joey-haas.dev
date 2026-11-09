@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url'
 import {
   ADMIN_ROUTES,
   LEGACY_PREFIX,
+  assertDailyPool,
   legacyRoutes,
   noindex,
   publicRoutes,
@@ -77,6 +78,12 @@ async function write(route, html) {
 const shell = await fs.readFile(path.join(dist, 'index.html'), 'utf8')
 const items = await readItems()
 const trips = await readPublished(tripsDir)
+
+// No snapshot (CI, most local builds) means no pool to check: /daily then
+// shows its empty state, as it does whenever the snapshot is missing.
+if (items.length > 0) {
+  console.log(`prerender: Shelfle pool ${assertDailyPool(items)} games`)
+}
 const routes = publicRoutes({
   posts: await readPublished(postsDir),
   notes: await readPublished(notesDir),

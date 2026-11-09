@@ -10,6 +10,7 @@
  * `/blog` is only listed while there are published posts.
  */
 import { clip } from '../lib/clip.js'
+import { daily } from './daily.js'
 import { profile } from './profile.js'
 import { spine } from './spine.js'
 
@@ -79,6 +80,7 @@ export const STATIC_PAGES = [
     `Stats · ${profile.name}`,
     'What joey-haas.dev sees, counted by the site itself: views, visitors, pages and referrers, with no cookies or third-party scripts, and what changed recently.',
   ),
+  row(daily.path, daily.title, daily.headTitle, daily.description),
 ]
 
 /** The blog index's row, listed only when there are published posts. */

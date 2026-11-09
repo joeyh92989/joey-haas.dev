@@ -40,7 +40,7 @@ strips, so they still make no API calls.
 
 ```bash
 npm run snapshot   # fetch from production into public/snapshot/ for local dev
-npm run build      # on Render: snapshot, vite build, prerender, then the RSS feed
+VITE_DAILY_SALT=local npm run build   # on Render: snapshot, vite build, prerender, then the RSS feed
 ```
 
 **Refreshing.** Every deploy refreshes the snapshot. Between deploys,
@@ -107,12 +107,18 @@ description, canonical URL and Open Graph tags, plus `sitemap.xml` and
 app renders the page as before.
 
 **Routes.** The static pages (`/`, `/about`, `/projects`, `/shelf`,
-`/shelf/next`, `/now`, `/colophon`, `/blog` while a post is published, and
+`/shelf/next`, `/now`, `/colophon`, `/stats`, `/daily`, `/blog` while a post is published, and
 `/til` while a note is), every published post and note,
 every item in `dist/snapshot/items.json`, and a Year in review page
 for each year with a finish (`/shelf/year/<year>`). An item's preview image is its
 cover; a post's description is its first paragraph. Copy comes from
 `src/content/`, so a wording change there reaches the previews.
+
+**Shelfle's pool floor.** When the build has a snapshot, `assertDailyPool`
+counts the games `/daily` can pick from (`dailyPool` in `src/lib/daily.js`)
+and stops the build under `MIN_POOL` (30), logging the count otherwise. A
+build without a snapshot skips the check, since `/daily` then shows its
+empty state.
 
 **The shelf's feed.** It also writes `dist/shelf/feed.xml`, the twenty most
 recent finishes in the snapshot (`spineFeed`), announced in the heads of

@@ -108,7 +108,7 @@ function Rows({ rows }) {
 }
 
 /**
- * /spine/how, the field guide (Spine tour spec): eight stops, each with the
+ * /spine/how, the field guide (Spine tour spec): nine stops, each with the
  * public result live beside a drawing of the signed-in tool that made it.
  * The live halves read the same snapshot-then-live bodies as the shelf and
  * What's next, so the page paints while the API is asleep; the drawings
