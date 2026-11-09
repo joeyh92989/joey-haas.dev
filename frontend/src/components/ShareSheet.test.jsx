@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ShareSheet from './ShareSheet.jsx'
 import { axeViolations } from '../lib/axe.test-util.js'
@@ -77,6 +77,8 @@ describe('ShareSheet', () => {
     await click(screen.getByRole('button', { name: 'Copy' }))
     expect(writeText).toHaveBeenCalledWith(TEXT)
     expect(onStatus).toHaveBeenCalledWith('Copied.')
+    // The page behind the modal is inert, so the sheet says it itself.
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Copied.')
     expect(await axeViolations(container)).toEqual([])
   })
 
@@ -99,6 +101,8 @@ describe('ShareSheet', () => {
     renderSheet()
     await click(screen.getByRole('button', { name: 'Copy' }))
     expect(screen.getByRole('textbox')).toHaveValue(TEXT)
+    // Copy held focus and is gone: focus moves to the text to copy.
+    expect(screen.getByRole('textbox')).toHaveFocus()
   })
 
   it('closes through the owner on Close, Escape and the backdrop', async () => {
