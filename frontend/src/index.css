@@ -7252,6 +7252,293 @@ main h1[tabindex='-1']:focus,
   }
 }
 
+/* The weekend planner (/admin/weekend). Read on a phone first: everything
+   stacks, and the two days sit side by side from 700px. The bars are
+   --chart on --surface (6.73 dark, 6.09 light, in the token block); a wet
+   hour is hatched with --hatch over a --chart-2 bar, so wet differs in
+   texture, not colour alone, and the panel names the wet hours in words.
+   The verdict's colour is the status dot's, beside its text. */
+.weekend {
+  display: grid;
+  gap: 1rem;
+}
+
+.wk-pills {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+}
+
+.wk-pills ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wk-pills li {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  padding: 0.15rem 0.65rem;
+}
+
+.wk-none {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.wx-days {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wx-range {
+  color: var(--text-2);
+  font: 500 0.8125rem var(--font-mono);
+}
+
+.wx {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.wx-bars {
+  align-items: end;
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  height: 4.5rem;
+}
+
+.wx-bars i {
+  background: var(--chart);
+  border-radius: 2px 2px 0 0;
+  display: block;
+  min-height: 4px;
+}
+
+.wx-bars i.wet {
+  background: var(--hatch), var(--chart-2);
+}
+
+.wx-axis {
+  color: var(--text-3);
+  display: flex;
+  font: 0.6875rem var(--font-mono);
+  justify-content: space-between;
+}
+
+.wx-summary {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.wx-verdict {
+  margin: 0;
+}
+
+.wx-verdict .status-text {
+  color: var(--text);
+  font-size: 0.8125rem;
+}
+
+.wk-kicker {
+  color: var(--text-3);
+  font: 600 0.75rem var(--font-mono);
+  letter-spacing: 0.06em;
+  margin: 0.5rem 0 0;
+  text-transform: uppercase;
+}
+
+/* Always rendered, never `display: none` when empty: a live region added
+   or revealed later is often not announced. Empty, it takes no room. */
+.wk-toast {
+  align-items: center;
+  color: var(--text-2);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 0.5rem;
+  margin: 0;
+  min-height: 0;
+}
+
+.sug-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sug {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem 1rem;
+}
+
+.sug.lead {
+  border-color: var(--line-strong);
+}
+
+/* A saved card's border is --ok; the Saved for line says it in words. */
+.sug.saved {
+  border-color: var(--ok);
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+
+.sug-kicker {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font: 0.75rem var(--font-mono);
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+}
+
+.sug-slot {
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sug-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sug.lead .sug-name {
+  font-size: 1.25rem;
+}
+
+.sug-meta {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+}
+
+.sug-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.sug-tag {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 0.7rem;
+  padding: 0.05rem 0.5rem;
+}
+
+.sug-why {
+  color: var(--text-2);
+  display: grid;
+  font-size: 0.875rem;
+  gap: 0.2rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.savedtag,
+.sug-visited {
+  color: var(--text);
+  font: 500 0.8125rem var(--font-mono);
+}
+
+.wk-skips {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.4rem;
+}
+
+.wk-skips ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wk-foot {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wk-visits {
+  display: grid;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wk-visits li {
+  display: flex;
+  font-size: 0.875rem;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.wk-visit-date {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.wk-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.wk-check,
+.wk-field {
+  align-items: center;
+  display: flex;
+  font-size: 0.875rem;
+  gap: 0.5rem;
+}
+
+.wk-field input {
+  width: 6rem;
+}
+
+.wk-form-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (min-width: 701px) {
+  .wx-days,
+  .wk-foot {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
 /* ---------- Daily puzzle (Shelfle) ---------- */
 
 /* The board is a table; the cells are the grid. Five columns, the title

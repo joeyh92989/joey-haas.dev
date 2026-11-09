@@ -624,8 +624,9 @@ strips.
   deploy only when they differ. It never pushes, and the snapshot is never
   committed. Before it compares, it refreshes the data the snapshot is made
   of (see [Nightly job](#nightly-job)).
-- **`comics.json` is optional too**, the same way: `/shelf/comics` paints it
-  when the build wrote it.
+- **`comics.json` and `spots.json` are optional too**, the same way:
+  `/shelf/comics` and `/denver` paint them when the build wrote them, and
+  the nightly compares them with a failure there only a warning.
 - **`status.json` and `site-stats.json` are optional too** (the status
   strip, and `/stats`), and neither is compared by the nightly: `next.json`
   differs every night, so the redeploy that follows carries fresh ones.
@@ -654,7 +655,8 @@ keeps the snapshot within a day of production. It calls admin routes with
 
 1. wake the API (up to six minutes of retries);
 2. Play Next picks (`POST /api/picker/next`);
-3. the followed comics' issue lists (`POST /api/comics/refresh`);
+3. the followed comics' issue lists (`POST /api/comics/refresh`), then the
+   weekend planner's NWS forecast (`POST /api/spots/weather/refresh`);
 4. catalogue registry, then the WooCommerce stores (`refresh-registry`,
    `refresh` with `{"adapter": "woocommerce"}`), then the Shopify stores,
    walked on the runner by `backend/scripts/walk_stores.py`, which posts
@@ -664,9 +666,11 @@ keeps the snapshot within a day of production. It calls admin routes with
 6. Resolve, repeated while it makes progress, at most five rounds;
 7. Radar generate, then Discover generate on Sunday evenings or when the
    `discover` input is ticked on a manual run;
-8. the page-view rollup (`POST /api/analytics/rollup`);
-9. the snapshot compare and, only if a body differs, the static-site deploy
-   hook.
+8. the spot finder (`POST /api/spots/candidates/refresh`: one Overpass
+   query around the anchors and one model call), on Sunday evenings only;
+9. the page-view rollup (`POST /api/analytics/rollup`);
+10. the snapshot compare and, only if a body differs, the static-site deploy
+    hook.
 
 "Sunday evening" is Denver time, which is Monday in UTC; the job tests
 `date -u +%u` = `1`. The Shopify walk is the long step (up to 75 minutes, on

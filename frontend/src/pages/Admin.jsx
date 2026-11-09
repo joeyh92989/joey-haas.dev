@@ -54,7 +54,26 @@ async function generatedAt(response) {
 }
 
 /**
- * The catalogue status, the generate times and the snapshot's build time.
+ * The Denver jobs' last runs, `{weather, candidates}`, or null when they
+ * cannot be read. Never rejects: the two rows then read unknown.
+ */
+async function spotsRuns() {
+  try {
+    const response = await apiFetch('/api/spots/status')
+    if (!response.ok) return null
+    const body = await response.json()
+    return {
+      weather: body?.['weather.last_run'] ?? null,
+      candidates: body?.['candidates.last_run'] ?? null,
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The catalogue status, the generate times, the Denver jobs' runs and the
+ * snapshot's build time.
  * Never rejects. A status that cannot be read leaves `status` null, and the
  * jobs panel says so rather than reading as a stopped schedule.
  */
@@ -63,6 +82,7 @@ async function loadNightly() {
   let api = 'unreachable'
   let status = null
   let generated = { radar: null, discover: null }
+  let spots = null
   try {
     const response = await apiFetch('/api/physical/status')
     // Any answer means the server is up; only a failed request is unreachable.
@@ -72,15 +92,26 @@ async function loadNightly() {
       // Not a status document: no jobs rather than "may have stopped".
       if (Array.isArray(body?.sources)) {
         status = body
-        generated = await generatedAt(
-          await apiFetch('/api/recommendations/store-list').catch(() => null),
-        )
+        const [times, runs] = await Promise.all([
+          apiFetch('/api/recommendations/store-list')
+            .catch(() => null)
+            .then(generatedAt),
+          spotsRuns(),
+        ])
+        generated = times
+        spots = runs
       }
     }
   } catch {
     // Unreachable API: the header says so; the tiles and links still work.
   }
-  return { api, status, generated, snapshotAt: (await meta)?.fetched_at }
+  return {
+    api,
+    status,
+    generated,
+    spots,
+    snapshotAt: (await meta)?.fetched_at,
+  }
 }
 
 /**
@@ -132,6 +163,7 @@ export default function Admin() {
         lastNightly(nightly.status, nightly.generated, now),
         nightly.snapshotAt ?? null,
         now,
+        nightly.spots,
       )
     : null
   const headline = jobs ? nightlyHeadline(jobs) : null

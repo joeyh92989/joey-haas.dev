@@ -112,6 +112,7 @@ const TITLES = [
   ['/admin/discover', 'Discover · Admin · Joey Haas'],
   ['/admin/store-list', 'Store list · Admin · Joey Haas'],
   ['/admin/spots', 'Spots · Admin · Joey Haas'],
+  ['/admin/weekend', 'This weekend · Admin · Joey Haas'],
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
   ['/admin/no-such-page', 'Not found · Joey Haas'],
   ['/shelf/42', 'My Shelf · Joey Haas'],

@@ -5,9 +5,9 @@ name: Nightly
 # Replaces snapshot.yml, whose compare and deploy steps are kept verbatim.
 #
 # It writes: Play Next picks, the followed comics' issue lists, the
-# catalogue refreshes, Resolve, the Radar and Discover generates and the
-# page-view rollup, through the admin API with the JOB_TOKEN bearer
-# token, which the backend accepts only on items.JOB_ROUTES. A failed write
+# weekend forecast, the catalogue refreshes, Resolve, the Radar and Discover
+# generates, the weekly spot finder and the page-view rollup, through the
+# admin API with the JOB_TOKEN bearer token, which the backend accepts only on items.JOB_ROUTES. A failed write
 # step is a warning: the steps after it run on yesterday's data, the run
 # summary lists every step that succeeded and every one that failed, and the
 # /admin "Last nightly" line names the failed catalogue sources. A 401 is
@@ -155,6 +155,9 @@ jobs:
           # request per followed series) and the slow catalogue steps after
           # it can run this step into its timeout.
           call comics 600 /api/comics/refresh
+          # The weekend planner's forecast: one NWS gridpoint, a few seconds.
+          # A failed fetch answers 502 and the planner keeps the last one.
+          call weather 120 /api/spots/weather/refresh
           call registry 900 /api/physical/refresh-registry
           # WooCommerce on Render, then the nine Shopify stores walked on
           # this runner and posted to the API store by store. 75 minutes for
@@ -197,6 +200,11 @@ jobs:
           if [ "$weekly" = true ] || [ "$FORCE_DISCOVER" = true ]; then
             call discover 300 /api/recommendations/generate '{"kind":"discover"}'
           fi
+          # Weekly: new spot candidates near the anchors, one Overpass query
+          # and one model call. No anchors is an ok run that finds nothing.
+          if [ "$weekly" = true ]; then
+            call spots 600 /api/spots/candidates/refresh
+          fi
           # Rolls up every finished day's page views and drops raw rows
           # past 90 days. Idempotent, so a missed night is caught up here.
           call rollup 120 /api/analytics/rollup
@@ -212,7 +220,7 @@ jobs:
           # GitHub's default shell is bash -e. Every live fetch and parse is
           # checked explicitly, so a failure is reported, never read as
           # "changed": items and stats are the snapshot and fail the step;
-          # next and comics are optional, because the API can lag behind
+          # next, comics and spots are optional, because the API can lag behind
           # the static site (a 404 until it has deployed), so any failure there
           # -- a status other than 200, a curl error, a body jq cannot read --
           # is a warning and that output is skipped. next carries generated_at
@@ -226,8 +234,9 @@ jobs:
           # harmless write can reorder tied rows. An array whose elements all
           # have an id is sorted by it (items). Any other top-level array
           # would be sorted by each element's serialised text, which orders
-          # every element and so leaves no ties to reorder; stats, next and
-          # comics are objects, so they are only key-sorted.
+          # every element and so leaves no ties to reorder (spots, whose rows
+          # carry spot_id, not id). stats, next and comics are objects, so
+          # they are only key-sorted.
           # tostring follows key order in the text, so keys are sorted first.
           normalise='
             def canon:
@@ -253,7 +262,7 @@ jobs:
             echo "::warning::$name: $1, so it is skipped"
           }
           changed=""
-          for name in items stats next comics; do
+          for name in items stats next comics spots; do
             live_status=$(curl -sS -m 60 -o "live-$name.raw" -w '%{http_code}' \
               "$API_URL/api/public/$name") || live_status=000
             if [ "$live_status" != 200 ]; then
