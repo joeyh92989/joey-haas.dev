@@ -657,7 +657,7 @@ before pushing.
   `items.JOB_ROUTES`, matched on the routed template, and
   `tests/test_job_token.py` is the point of it: it pins the whitelist
   exactly, so a new route cannot become reachable by the token unnoticed.
-- **Nightly order:** picks, then the followed comics' refresh
+- **Nightly order:** the followed comics' refresh
   (`POST /api/comics/refresh`, in `JOB_ROUTES`; early because it is cheap
   and the catalogue steps can run the job into its timeout), then registry,
   then the WooCommerce stores on Render, then the Shopify stores walked on the runner
@@ -665,8 +665,9 @@ before pushing.
   `/api/physical/stores/{key}/ingest`: Shopify rate-limits Render's IP), then Switch 1
   (Sunday evenings in Denver), then resolve (up to 5 rounds), then Radar,
   then Discover (Sunday evenings), then the page-view rollup, then the
-  snapshot compare and the deploy hook. The pick lag is accepted: each run
-  publishes yesterday's picks.
+  snapshot compare and the deploy hook. There is no picks step: the
+  public picks are computed live, and `POST /api/picker/next` is out of
+  `JOB_ROUTES`.
 - **`next_list.py`** (pure, with `next_load.py` loading the rows) is the one
   sectioning authority for `/api/public/next` and
   `/api/recommendations/store-list`. In public mode only registry dates

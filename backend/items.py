@@ -400,7 +400,6 @@ async def _write_or_conflict(
 # this set; changing it means changing that test.
 JOB_ROUTES: frozenset[tuple[str, str]] = frozenset(
     {
-        ("POST", "/api/picker/next"),
         ("POST", "/api/physical/refresh-registry"),
         ("POST", "/api/physical/refresh"),
         ("POST", "/api/physical/refresh-switch1"),

@@ -56,9 +56,10 @@ export default function Colophon() {
           answering only with games from a list it&rsquo;s given.
         </li>
         <li>
-          A nightly GitHub Actions job refreshes the picks and the physical
+          A nightly GitHub Actions job refreshes comics and the physical
           release catalog, then redeploys the site when the collection has
-          changed, so its snapshot stays current.
+          changed, so its snapshot stays current. Tonight&rsquo;s picks are
+          worked out live from the shelf, not by the job.
         </li>
       </ul>
 
