@@ -169,7 +169,7 @@ export const SNAPSHOTS = {
     required: false,
   },
   // Optional like next: /denver's spots, new in the release that ships its
-  // endpoint. Not in the nightly compare: next differs every night.
+  // endpoint. In the nightly compare as an optional output, like comics.
   spots: {
     path: '/api/public/spots',
     valid: isSpotsBody,

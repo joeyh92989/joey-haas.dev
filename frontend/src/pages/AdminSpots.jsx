@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import Panel from '../components/Panel.jsx'
+import SpotFinder from '../components/SpotFinder.jsx'
 import SpotForm from '../components/SpotForm.jsx'
 import { denver, tagLabel } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -16,6 +17,22 @@ async function failureText(response) {
   return response.status === 401 || response.status === 403
     ? denver.admin.sessionEnded
     : errorMessage(response)
+}
+
+/** Every spot, returned rather than set: `{spots}` or `{error}`. */
+async function fetchSpots() {
+  try {
+    const response = await apiFetch('/api/spots')
+    if (response.ok) return { spots: await response.json() }
+    return {
+      error:
+        response.status === 401 || response.status === 403
+          ? denver.admin.sessionEnded
+          : denver.admin.readError,
+    }
+  } catch {
+    return { error: denver.admin.readError }
+  }
 }
 
 /** Whether a spot matches the search: its name, neighbourhood or a tag. */
@@ -51,24 +68,21 @@ export default function AdminSpots() {
 
   useEffect(() => {
     let live = true
-    apiFetch('/api/spots')
-      .then(async (response) => {
-        if (!response.ok) throw response
-        const body = await response.json()
-        if (live) setSpots(body)
-      })
-      .catch((failure) => {
-        if (!live) return
-        setError(
-          failure?.status === 401 || failure?.status === 403
-            ? denver.admin.sessionEnded
-            : denver.admin.readError,
-        )
-      })
+    fetchSpots().then((result) => {
+      if (!live) return
+      if (result.error) setError(result.error)
+      else setSpots(result.spots)
+    })
     return () => {
       live = false
     }
   }, [])
+
+  // After Accept: the new spot comes from the server, slug and all.
+  async function rereadSpots() {
+    const result = await fetchSpots()
+    if (result.spots) setSpots(result.spots)
+  }
 
   const shown = useMemo(
     () => (spots ?? []).filter((spot) => matches(spot, query)),
@@ -211,114 +225,128 @@ export default function AdminSpots() {
         </div>
       )}
 
-      {spots === null && !error && <p>Loading spots…</p>}
-
-      {spots !== null && (
-        <Panel
-          title={denver.admin.panelTitle}
-          action={
-            <p className="spots-counts">
-              <span className="spots-pill">Public {publicCount}</span>
-              <span className="spots-pill">
-                Private {spots.length - publicCount}
-              </span>
-            </p>
+      <div className="finder-layout">
+        <SpotFinder
+          onAccepted={rereadSpots}
+          onRestored={(id) =>
+            setSpots((current) =>
+              (current ?? []).filter((spot) => spot.id !== id),
+            )
           }
-        >
-          <div className="spots-toolbar">
-            <input
-              type="search"
-              className="spots-search"
-              aria-label={denver.admin.search}
-              placeholder={denver.admin.search}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </div>
+        />
+        <div className="finder-table">
+          {spots === null && !error && <p>Loading spots…</p>}
 
-          {spots.length === 0 && <p>{denver.admin.empty}</p>}
-          {spots.length > 0 && shown.length === 0 && (
-            <p>{denver.admin.noMatch}</p>
-          )}
-          {shown.length > 0 && (
-            <div className="item-table-wrap">
-              <table className="item-table spots-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Spot</th>
-                    <th scope="col">Tags</th>
-                    {!phone && <th scope="col">Last visit</th>}
-                    <th scope="col">Public</th>
-                    <th scope="col">
-                      <span className="visually-hidden">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shown.map((spot) => (
-                    <tr key={spot.id}>
-                      <th scope="row" className="spots-name">
-                        <span>{spot.name}</span>
-                        {spot.anchor && (
-                          <span className="spots-anchor">Anchor</span>
-                        )}
-                        {spot.neighbourhood && (
-                          <span className="spots-hood">
-                            {spot.neighbourhood}
-                          </span>
-                        )}
-                      </th>
-                      <td>
-                        <ul className="spots-tags">
-                          {spot.tags.map((tag) => (
-                            <li key={tag}>{tagLabel(tag)}</li>
-                          ))}
-                        </ul>
-                      </td>
-                      {!phone && (
-                        <td className="spots-visit">
-                          {spot.last_visit ? formatDate(spot.last_visit) : '—'}
-                          {spot.visit_count > 1 && (
-                            <span className="spots-hood">
-                              {spot.visit_count} visits
-                            </span>
+          {spots !== null && (
+            <Panel
+              title={denver.admin.panelTitle}
+              action={
+                <p className="spots-counts">
+                  <span className="spots-pill">Public {publicCount}</span>
+                  <span className="spots-pill">
+                    Private {spots.length - publicCount}
+                  </span>
+                </p>
+              }
+            >
+              <div className="spots-toolbar">
+                <input
+                  type="search"
+                  className="spots-search"
+                  aria-label={denver.admin.search}
+                  placeholder={denver.admin.search}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </div>
+
+              {spots.length === 0 && <p>{denver.admin.empty}</p>}
+              {spots.length > 0 && shown.length === 0 && (
+                <p>{denver.admin.noMatch}</p>
+              )}
+              {shown.length > 0 && (
+                <div className="item-table-wrap">
+                  <table className="item-table spots-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Spot</th>
+                        <th scope="col">Tags</th>
+                        {!phone && <th scope="col">Last visit</th>}
+                        <th scope="col">Public</th>
+                        <th scope="col">
+                          <span className="visually-hidden">Actions</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shown.map((spot) => (
+                        <tr key={spot.id}>
+                          <th scope="row" className="spots-name">
+                            <span>{spot.name}</span>
+                            {spot.anchor && (
+                              <span className="spots-anchor">Anchor</span>
+                            )}
+                            {spot.neighbourhood && (
+                              <span className="spots-hood">
+                                {spot.neighbourhood}
+                              </span>
+                            )}
+                          </th>
+                          <td>
+                            <ul className="spots-tags">
+                              {spot.tags.map((tag) => (
+                                <li key={tag}>{tagLabel(tag)}</li>
+                              ))}
+                            </ul>
+                          </td>
+                          {!phone && (
+                            <td className="spots-visit">
+                              {spot.last_visit
+                                ? formatDate(spot.last_visit)
+                                : '—'}
+                              {spot.visit_count > 1 && (
+                                <span className="spots-hood">
+                                  {spot.visit_count} visits
+                                </span>
+                              )}
+                            </td>
                           )}
-                        </td>
-                      )}
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={spot.is_public}
-                          disabled={busy.has(spot.id)}
-                          onChange={() => togglePublic(spot)}
-                          aria-label={`Public: ${spot.name}`}
-                        />
-                      </td>
-                      <td className="spots-actions">
-                        <button
-                          type="button"
-                          onClick={(event) => openForm(event, spot)}
-                          aria-label={`Edit ${spot.name}`}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => logVisit(spot)}
-                          disabled={busy.has(spot.id)}
-                          aria-label={`Log a visit to ${spot.name}`}
-                        >
-                          Log visit
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={spot.is_public}
+                              disabled={busy.has(spot.id)}
+                              onChange={() => togglePublic(spot)}
+                              aria-label={`Public: ${spot.name}`}
+                            />
+                          </td>
+                          <td className="spots-actions">
+                            <button
+                              type="button"
+                              onClick={(event) => openForm(event, spot)}
+                              aria-label={`Edit ${spot.name}`}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => logVisit(spot)}
+                              disabled={busy.has(spot.id)}
+                              aria-label={`Log a visit to ${spot.name}`}
+                            >
+                              Log visit
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Panel>
           )}
-        </Panel>
-      )}
+        </div>
+      </div>
     </div>
   )
 }

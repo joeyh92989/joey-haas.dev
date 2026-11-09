@@ -21,7 +21,23 @@ PURE_MODULES = sorted(
     path.stem
     for path in PACKAGE.glob("*.py")
     if path.stem != "__init__" and path.stem not in IMPURE
-) + ["matching", "picker", "radar", "discover", "next_list", "comics", "spots"]
+) + sorted(
+    {
+        "matching",
+        "picker",
+        "radar",
+        "discover",
+        "next_list",
+        "comics",
+        "spots",
+        "candidates",
+        "spot_sources.limits",
+        "spot_sources.overpass",
+        "spot_sources.dedupe",
+        "weather",
+        "planner",
+    }
+)
 TOP_LEVEL = {
     "matching",
     "picker",
@@ -30,6 +46,12 @@ TOP_LEVEL = {
     "next_list",
     "comics",
     "spots",
+    "candidates",
+    "spot_sources.limits",
+    "spot_sources.overpass",
+    "spot_sources.dedupe",
+    "weather",
+    "planner",
 }
 
 

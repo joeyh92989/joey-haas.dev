@@ -51,6 +51,7 @@ export const ADMIN_ROUTES = [
   '/admin/discover',
   '/admin/store-list',
   '/admin/spots',
+  '/admin/weekend',
 ]
 
 /**
