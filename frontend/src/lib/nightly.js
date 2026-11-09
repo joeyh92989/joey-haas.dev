@@ -98,8 +98,31 @@ function parsed(iso) {
 }
 
 /**
- * One row per nightly job, in the order the nightly runs them: the
- * catalogue refresh, Radar, Discover, and the public snapshot. A job with
+ * A Denver spots job's row from its `GET /api/spots/status` summary
+ * (`{at, state, note?}`, or null before its first run). The job writes its
+ * summary on a failed run too, so `state: "failed"` is a failed night.
+ *
+ * @param {{at?: string, state?: string, note?: string}|null|undefined} run
+ * @param {{key: string, label: string, runNow: string, hours: number, ok: string, quiet: Record<string, string>}} job
+ *   `quiet` words the run states that succeeded without finding anything.
+ * @param {(at: number|null, hours: number) => string} age
+ */
+function spotsRow(run, job, age) {
+  const at = parsed(run?.at)
+  const row = { key: job.key, label: job.label, at, runNow: job.runNow }
+  if (at === null)
+    return { ...row, summary: 'No run recorded', state: 'unknown' }
+  if (run.state === 'failed') {
+    const why = run.note ? `: ${run.note}` : ''
+    return { ...row, summary: `Failed${why}`, state: 'failed' }
+  }
+  const summary = job.quiet[run.state] ?? job.ok
+  return { ...row, summary, state: age(at, job.hours) }
+}
+
+/**
+ * One row per nightly job: the catalogue refresh, Radar, Discover, the
+ * weekend forecast, the spot finder, and the public snapshot. A job with
  * no time is "unknown" rather than stale, except the catalogue, whose
  * absence is the clearest sign the schedule has stopped.
  *
@@ -110,11 +133,19 @@ function parsed(iso) {
  * @param {ReturnType<typeof lastNightly>} summary
  * @param {string|null} snapshotAt `fetched_at` from `/snapshot/meta.json`.
  * @param {number} [now] Milliseconds since the epoch.
+ * @param {{weather?: object|null, candidates?: object|null}|null} [spots]
+ *   The Denver jobs' last runs from `GET /api/spots/status`; null when it
+ *   could not be read, which leaves both rows unknown.
  * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null, stopped?: boolean}>}
  *   `stopped` is on the catalogue row only: the schedule may have stopped,
  *   which a failure on its last night would otherwise hide.
  */
-export function nightlyJobs(summary, snapshotAt, now = Date.now()) {
+export function nightlyJobs(
+  summary,
+  snapshotAt,
+  now = Date.now(),
+  spots = null,
+) {
   const age = (at, hours) => {
     if (at === null) return 'unknown'
     return now - at > hours * HOUR_MS ? 'stale' : 'ok'
@@ -152,6 +183,30 @@ export function nightlyJobs(summary, snapshotAt, now = Date.now()) {
       state: age(discoverAt, DISCOVER_STALE_HOURS),
       runNow: '/admin/discover',
     },
+    spotsRow(
+      spots?.weather,
+      {
+        key: 'weather',
+        label: 'Weekend forecast',
+        runNow: '/admin/weekend',
+        hours: STALE_HOURS,
+        ok: 'NWS hourly forecast',
+        quiet: { empty: 'NWS sent no hours' },
+      },
+      age,
+    ),
+    spotsRow(
+      spots?.candidates,
+      {
+        key: 'spots',
+        label: 'Spot finder',
+        runNow: '/admin/spots',
+        hours: DISCOVER_STALE_HOURS,
+        ok: 'Sunday evenings only',
+        quiet: { no_anchors: 'No anchors to search from' },
+      },
+      age,
+    ),
     {
       key: 'snapshot',
       label: 'Public snapshot',
