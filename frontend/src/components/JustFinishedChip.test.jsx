@@ -37,3 +37,20 @@ describe('JustFinishedChip', () => {
     )
   })
 })
+
+describe('JustFinishedChip with a rating', () => {
+  it('shows the stars after the hours', () => {
+    const { container } = render(
+      <JustFinishedChip finish={{ ...FINISH, rating: 9 }} />,
+    )
+    expect(container.firstChild).toHaveTextContent(
+      'Just finished Xenoblade Chronicles 3 · Mon 26 Oct · 62 h · ★★★★½',
+    )
+    expect(screen.getByRole('img', { name: '9 out of 10' })).toBeInTheDocument()
+  })
+
+  it('shows no stars without one', () => {
+    render(<JustFinishedChip finish={{ ...FINISH, rating: null }} />)
+    expect(screen.queryByRole('img')).toBeNull()
+  })
+})

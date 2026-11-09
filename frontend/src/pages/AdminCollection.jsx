@@ -13,6 +13,7 @@ import NowPlaying from '../components/NowPlaying.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ShelfCardActions from '../components/ShelfCardActions.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
+import WrapUpSheet from '../components/WrapUpSheet.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { comicPayload } from '../lib/comics.js'
@@ -29,6 +30,7 @@ import {
   writeShelfPref,
 } from '../lib/shelf.js'
 import {
+  isWrapUp,
   pinPath,
   setStatus as postStatus,
   statusMoves,
@@ -36,6 +38,7 @@ import {
 import { FavoritesRow, isDimmable, platformGroup } from './Collection.jsx'
 import { itemPath } from '../lib/spinePaths.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
+import { spine } from '../content/spine.js'
 
 const TYPE_LABEL = {
   game: 'Games',
@@ -125,6 +128,9 @@ export default function AdminCollection() {
       navigate({ pathname, search }, { replace: true, state: null })
   }, [arrival, navigate, pathname, search])
   const [error, setError] = useState(null)
+  // The Wrap up sheet's subject and preselected outcome, or null: Finish,
+  // Pause and Abandon open it instead of writing (Tonight continue spec).
+  const [wrap, setWrap] = useState(null)
   const [saving, setSaving] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [view, setView] = useState(() => {
@@ -353,8 +359,31 @@ export default function AdminCollection() {
    * opens, closes or pauses the playthrough and dates it by the owner's
    * day. A 422 is the server saying why, in words worth showing.
    */
+  function openWrapUp(item, preselect = 'finished') {
+    setWrap({
+      item: {
+        id: item.id,
+        title: item.title,
+        cover_url: item.cover_url,
+        type: item.type,
+      },
+      preselect,
+    })
+  }
+
+  /** The sheet saved: the shelf reloads; a failed rating is said. */
+  async function wrapDone({ ratingFailed }) {
+    setWrap(null)
+    if (ratingFailed) setError(spine.next.tonight.sheet.ratingFailed)
+    await load()
+  }
+
   async function updateStatus(item, nextStatus) {
     setError(null)
+    if (isWrapUp(nextStatus) && nextStatus !== item.status) {
+      openWrapUp(item, nextStatus)
+      return
+    }
     try {
       const response = await postStatus(item.id, nextStatus)
       if (!response.ok) {
@@ -579,6 +608,7 @@ export default function AdminCollection() {
         <NowPlaying
           items={rows}
           linkFor={(item) => `/admin/collection/${item.id}`}
+          onWrapUp={openWrapUp}
         />
 
         <FavoritesRow items={rows} linkFor={linkFor} placeholders />
@@ -787,6 +817,12 @@ export default function AdminCollection() {
           {error}
         </p>
       )}
+
+      <WrapUpSheet
+        subject={wrap}
+        onClose={() => setWrap(null)}
+        onDone={wrapDone}
+      />
 
       <MetadataPicker type={form.type} onSelect={applyCandidate} />
 

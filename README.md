@@ -54,7 +54,7 @@ snapshot files and never call the API.
 | `/til` | TIL | Short notes compiled from `frontend/notes/`, each shown in full; linked from the footer and Blog index only while a note is published. Its feed is `/til/feed.xml` |
 | `/til/:slug` | TIL note | One note; slug is the markdown filename |
 | `/shelf` | My Shelf | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
-| `/shelf/next` | What's next | Public: tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
+| `/shelf/next` | What's next | Public: the game I'm playing (a Continue card, with Wrap up and Log tonight when signed in), tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
 | `/shelf/comics` | Comics | Public: every public comic series as a run (owned, missing, not out yet), with chip filters, sort, a Covers view and what is out this week; reads `/api/public/comics` after painting `/snapshot/comics.json` |
 | `/shelf/how` | How it works | How the shelf is built |
 | `/shelf/year`, `/shelf/year/:year` | Year in review | The current year, or a given one, read live from `/api/public/diary` |
@@ -382,17 +382,17 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Metadata sources | `backend/sources/` | One adapter per API behind a common interface: IGDB (games), TMDB (films), Comic Vine (comics); BGG is stubbed until its API is usable again. Each keeps a snapshot on the item for the shelf and the pickers |
 | Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
 | Public showcase | `backend/public.py`, `/shelf`, `/shelf/next` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
-| Play Next | `backend/picker.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/shelf/next`) as "Up next", and recent picks appear on What's next as "Tonight", where the owner, signed in, can pin a pick or skip it for the day |
+| Play Next | `backend/picker.py`, `continuing.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/shelf/next`) as "Up next", and recent picks appear on What's next as "Tonight", where the owner, signed in, can pin a pick or skip it for the day. While a game is being played, Tonight leads with it instead (a Continue card: playing since, journal hours and sessions, last played, stale after 21 quiet days) and the picks drop to a compact list; Wrap up finishes, pauses or abandons it with a rating, a line and the date |
 | Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), its Switch 1 sheet (about 4,500 titles in about 10,000 editions, bulk-matched to IGDB's Switch list), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
 | Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want adds the game as a public want, and registry-dated cartridges appear on What's next |
 | Discover | `backend/discover.py`, `/admin/discover` | Released physical games on the owner's platforms, pre-scored by taste and re-ranked by one Gemini call with reasons; falls back to the deterministic ranking when the model cannot answer; its top picks appear on What's next, with reasons that name only public games |
 | Comics | `backend/comics.py`, `comics_routes.py`, `public_comics.py`, `/shelf/comics`, `/admin/pull-list` | Series rows with the issues I own as range text and collected editions; Comic Vine's issue list per followed series feeds the pull list and the public "Out this week". Only public series are ever shown publicly; following and skips stay private |
 | What's next | `backend/next_list.py`, `next_load.py`, `/shelf/next`, `/admin/store-list` | One pure sectioning authority over pending Discover and Radar rows, used by the public page (registry dates only, reasons rebuilt over public games) and the admin store list (any date, stored reasons) |
 
-Migrations `0001`–`0011` build this up: items, enrichment columns, copy
+Migrations `0001`–`0012` build this up: items, enrichment columns, copy
 columns, `pick_events`, the catalogue's five tables, the shared
 `recommendations` table, `play_sessions`, analytics, `pick_events.slot`,
-the comic columns, and `playthroughs`. They are applied by hand and must be additive — see
+the comic columns, `playthroughs`, and a playthrough's `note`. They are applied by hand and must be additive — see
 [Database](#database).
 
 ### Tracker environment variables
@@ -708,12 +708,21 @@ The body has these keys:
   from), `catalogue` (the day of the stalest store's last good run), `radar`
   and `discover` (the day of each kind's last generation, whatever the
   status of its rows). Any may be null.
-- `tonight`: `up_next` (the pinned game, if public), `picks` (the latest
-  Play Next picks among public games, in slot order), each a card with
-  `item_id`, `type`, `title`, `cover_url`, `platform`, `reasons`,
-  `slot_label` (null for "Pick it back up", and for "Change of pace" when
-  the last finish is private) and `time_to_beat_hours`; and `last_finish`
-  (`item_id`, `title`, `cover_url`, `finished_at`, `time_to_beat_hours`),
+- `tonight`: `continuing` (the public games being played, most recent
+  session first), each with `item_id`, `type`, `title`, `cover_url`,
+  `platform`, `time_to_beat_hours`, `playthrough` (the open run's
+  number), `playing_since`, `last_played_on`, `journal_hours` and
+  `sessions` (the play journal inside the open run; hours are null when
+  no minutes were logged) and `stale` (no journal day in
+  `continuing.STALE_DAYS`, 21, counted from the run's start when there is
+  none). A game in hand is never also a pick or Up next: it already leads
+  the section. Then `up_next` (the pinned game, when it is public and
+  still waiting to be played), `picks` (the latest Play Next picks among
+  public games, in slot order), each a card with `item_id`, `type`,
+  `title`, `cover_url`, `platform`, `reasons`, `slot_label` (null for
+  "Pick it back up", and for "Change of pace" when the last finish is
+  private) and `time_to_beat_hours`; and `last_finish` (`item_id`,
+  `title`, `cover_url`, `finished_at`, `time_to_beat_hours`, `rating`),
   the most recent finish when it is public and at most 60 days old, else
   null.
 - `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge`: lists of

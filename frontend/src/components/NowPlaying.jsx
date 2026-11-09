@@ -17,8 +17,10 @@ const copy = spine.nowPlaying
  * @param {object} props
  * @param {object[]} props.items - Shelf rows, public or admin.
  * @param {(item: object) => string} props.linkFor - Where a game links.
+ * @param {(item: object) => void} [props.onWrapUp] - Admin only: renders a
+ *   Wrap up button beside each card, a sibling of the link (shelf rule).
  */
-export default function NowPlaying({ items, linkFor }) {
+export default function NowPlaying({ items, linkFor, onWrapUp }) {
   const headingId = useId()
   const rows = nowPlaying(items)
   if (rows.length === 0) return null
@@ -48,6 +50,16 @@ export default function NowPlaying({ items, linkFor }) {
                 )}
               </span>
             </Link>
+            {onWrapUp && (
+              <button
+                type="button"
+                className="btn sm now-playing-wrap"
+                onClick={() => onWrapUp(item)}
+              >
+                {copy.wrapUp}
+                <span className="visually-hidden">: {item.title}</span>
+              </button>
+            )}
           </li>
         ))}
       </ul>

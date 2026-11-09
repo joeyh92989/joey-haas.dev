@@ -126,6 +126,10 @@ class PublicItemOut(BaseModel):
     # Finished runs, dated or not: the poster's ×n mark, and the number a
     # finish takes when earlier ones were never dated.
     times_completed: int = 0
+    # The latest journal day, date only: the Now playing bands order by it
+    # and the Continue card says "last played". Minutes and notes stay
+    # on the diary and the owner's journal.
+    last_played_on: date | None = None
 
 
 class PublicTimeToBeat(BaseModel):
@@ -254,7 +258,8 @@ RunDates = dict[uuid.UUID, _Runs]
 async def _run_dates(session: AsyncSession, *where) -> RunDates:
     """Each item's run dates, for the items `where` selects.
 
-    One query joined on the item, so a list read stays two round trips.
+    One query joined on the item, one of the three a list read takes
+    (the rows, their run dates and their latest journal day).
     """
     rows = await session.execute(
         select(
@@ -282,7 +287,23 @@ async def _run_dates(session: AsyncSession, *where) -> RunDates:
     return dates
 
 
-def _list_fields(item: Item, runs: RunDates | None = None) -> dict:
+LastPlayed = dict[uuid.UUID, date]
+
+
+async def _last_played(session: AsyncSession, *where) -> LastPlayed:
+    """Each item's latest journal day, for the items `where` selects."""
+    rows = await session.execute(
+        select(PlaySession.item_id, func.max(PlaySession.played_on))
+        .join(Item, Item.id == PlaySession.item_id)
+        .where(*where)
+        .group_by(PlaySession.item_id)
+    )
+    return {item_id: played_on for item_id, played_on in rows}
+
+
+def _list_fields(
+    item: Item, runs: RunDates | None = None, played: LastPlayed | None = None
+) -> dict:
     """The publishable list fields, named one by one."""
     item_runs = (runs or {}).get(item.id)
     dates = item_runs or _Runs()
@@ -314,6 +335,7 @@ def _list_fields(item: Item, runs: RunDates | None = None) -> dict:
         "paused_on": dates.paused_on if item.status == ItemStatus.PAUSED else None,
         "finishes": dates.finishes,
         "times_completed": item.times_completed,
+        "last_played_on": (played or {}).get(item.id),
     }
 
 
@@ -323,9 +345,11 @@ def _hours(time_to_beat: PublicTimeToBeat | None) -> int | None:
     return round(time_to_beat.normally)
 
 
-def _to_public(item: Item, runs: RunDates | None = None) -> PublicItemOut:
+def _to_public(
+    item: Item, runs: RunDates | None = None, played: LastPlayed | None = None
+) -> PublicItemOut:
     """Maps a row onto the publishable fields, and only those."""
-    return PublicItemOut(**_list_fields(item, runs))
+    return PublicItemOut(**_list_fields(item, runs, played))
 
 
 def _similar_ids(item: Item) -> set[str]:
@@ -399,13 +423,14 @@ def _to_public_detail(
     similar: list[Item],
     today: date | None = None,
     runs: RunDates | None = None,
+    played: LastPlayed | None = None,
 ) -> PublicItemDetailOut:
     """Maps a row onto the item page's publishable fields, and only those."""
     snapshot = _allowed_snapshot(item, PUBLIC_DETAIL_METADATA_FIELDS)
     description = snapshot.get("description")
     votes = snapshot.get("community_votes")
     return PublicItemDetailOut(
-        **_list_fields(item, runs),
+        **_list_fields(item, runs, played),
         description=description if isinstance(description, str) else None,
         community_votes=(
             votes if isinstance(votes, int) and not isinstance(votes, bool) else None
@@ -458,7 +483,8 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         )
         result = await session.execute(statement)
         runs = await _run_dates(session, Item.is_public.is_(True))
-        return [_to_public(item, runs) for item in result.scalars()]
+        played = await _last_played(session, Item.is_public.is_(True))
+        return [_to_public(item, runs, played) for item in result.scalars()]
 
     @router.get("/diary", response_model=list[PublicDiaryEntry])
     async def public_diary(
@@ -655,8 +681,9 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         if item is None:
             raise HTTPException(status_code=404, detail="Not found")
         runs = await _run_dates(session, Item.id == item.id)
+        played = await _last_played(session, Item.id == item.id)
         return _to_public_detail(
-            item, similar_in_collection(item, public_items), runs=runs
+            item, similar_in_collection(item, public_items), runs=runs, played=played
         )
 
     return router

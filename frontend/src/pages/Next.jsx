@@ -9,12 +9,15 @@ import SpineHeader from '../components/SpineHeader.jsx'
 import TonightAlt from '../components/TonightAlt.jsx'
 import TonightLead from '../components/TonightLead.jsx'
 import CoverImage from '../components/CoverImage.jsx'
+import ContinueCard from '../components/ContinueCard.jsx'
+import PickList from '../components/PickList.jsx'
+import WrapUpSheet from '../components/WrapUpSheet.jsx'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { shortDate } from '../lib/comics.js'
 import { groupByPlatform, sortBuyNow, weekdayWords } from '../lib/next.js'
 import { apiFetch } from '../lib/api.js'
-import { pinPath } from '../lib/statusMoves.js'
+import { localToday, pinPath } from '../lib/statusMoves.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { isValidSnapshot } from '../lib/snapshot.js'
@@ -61,6 +64,9 @@ function withLists(data) {
   return {
     generated_at: data.generated_at,
     tonight: {
+      // Absent from a snapshot written before the Continue card: the picks
+      // lead until the live body arrives.
+      continuing: list(data.tonight?.continuing),
       up_next: data.tonight?.up_next ?? null,
       picks: list(data.tonight?.picks),
       last_finish: data.tonight?.last_finish ?? null,
@@ -157,7 +163,17 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   const [pin, setPin] = useState(undefined)
   const [hidden, setHidden] = useState(() => new Set())
   const [skipped, setSkipped] = useState([])
+  // Sessions logged here, by item id: what the card says until the live
+  // body catches up (the public body is cached on a fingerprint).
+  const [logged, setLogged] = useState({})
+  // The Wrap up sheet's subject and preselected outcome, or null; and the
+  // games wrapped up here, gone from the cards before the body catches up.
+  const [wrap, setWrap] = useState(null)
+  const [wrapped, setWrapped] = useState(() => new Set())
   const [error, setError] = useState(false)
+  // A write that landed but has something to say (a rating that did not
+  // save), in the server's own words rather than the generic failure.
+  const [note, setNote] = useState(null)
   const [announcement, setAnnouncement] = useState('')
   const writing = useRef(null)
   const focusNext = useRef(null)
@@ -195,7 +211,28 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     element.focus()
   })
 
-  const upNext = pin === undefined ? tonight.up_next : pin
+  const today = localToday()
+  // The games in hand. One answered "not tonight" today stays out (hidden)
+  // or stands as a toast (skipped); a pinned game that is being played is
+  // a Continue card, never the Up next lead.
+  const inHand = new Set(tonight.continuing.map((card) => card.item_id))
+  const cards = tonight.continuing
+    .filter((card) => !hidden.has(card.item_id) && !wrapped.has(card.item_id))
+    .map((card) => {
+      const bump = logged[card.item_id]
+      if (!bump) return card
+      return {
+        ...card,
+        sessions: Math.max(card.sessions, bump.sessions),
+        last_played_on:
+          card.last_played_on > today ? card.last_played_on : today,
+        stale: false,
+      }
+    })
+  const leading = cards.some((card) => !skipped.includes(card.item_id))
+  const pinnedGame = pin === undefined ? tonight.up_next : pin
+  const upNext =
+    pinnedGame && !inHand.has(pinnedGame.item_id) ? pinnedGame : null
   const open = tonight.picks.filter(
     (pick) => pick.item_id !== upNext?.item_id && !hidden.has(pick.item_id),
   )
@@ -227,6 +264,7 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     const mine = new Promise((resolve) => (done = resolve))
     writing.current = mine
     setError(false)
+    setNote(null)
     optimistic()
     try {
       await before
@@ -248,6 +286,14 @@ function Tonight({ tonight, signedIn, onRefresh }) {
       () => {
         setPin(pick)
         setSkipped((ids) => ids.filter((id) => id !== pick.item_id))
+        // Playing a game wrapped up here puts it back in hand, so the
+        // overlay hiding its Continue card no longer holds.
+        setWrapped((ids) => {
+          if (!ids.has(pick.item_id)) return ids
+          const next = new Set(ids)
+          next.delete(pick.item_id)
+          return next
+        })
         focusNext.current = { title: pick.item_id }
       },
       () => write(pinPath(pick.item_id), 'POST'),
@@ -316,7 +362,61 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     )
   }
 
+  function logTonight(card) {
+    const before = logged
+    act(
+      () => {
+        setLogged((current) => ({
+          ...current,
+          [card.item_id]: { sessions: card.sessions + 1 },
+        }))
+        setAnnouncement(copy.tonight.sessionLogged)
+        focusNext.current = { title: card.item_id }
+      },
+      () =>
+        write(`/api/items/${card.item_id}/sessions`, 'POST', {
+          played_on: today,
+        }),
+      () => {
+        setLogged(before)
+        focusNext.current = { title: card.item_id }
+      },
+      async () => {
+        await onRefresh()
+      },
+    )
+  }
+
+  /** The sheet saved: the card leaves, the result is announced, the body
+   *  is refetched (the chip and the picks come from it). A rating that did
+   *  not save is said in its own words: the game itself is marked. */
+  async function wrapDone({ item, status, ratingFailed }) {
+    setWrap(null)
+    setWrapped((ids) => new Set([...ids, item.id]))
+    setAnnouncement(copy.tonight.sheet.done(item.title, status))
+    setNote(ratingFailed ? copy.tonight.sheet.ratingFailed : null)
+    focusNext.current = { lead: true }
+    if (!(await onRefresh())) setError(true)
+  }
+
   const owner = signedIn ? { onPlay: play, onSkip: skip } : {}
+  const cardOwner = signedIn
+    ? {
+        signedIn: true,
+        onWrapUp: (card, preselect) =>
+          setWrap({
+            item: {
+              id: card.item_id,
+              title: card.title,
+              cover_url: card.cover_url,
+              type: card.type,
+            },
+            preselect,
+          }),
+        onLogTonight: logTonight,
+        onSkip: skip,
+      }
+    : {}
   return (
     <section
       className="next-section tonight"
@@ -326,44 +426,86 @@ function Tonight({ tonight, signedIn, onRefresh }) {
       <h2 id="next-tonight" tabIndex={-1}>
         {copy.sections.tonight}
       </h2>
-      {tonight.last_finish && <JustFinishedChip finish={tonight.last_finish} />}
-      {lead ? (
-        <TonightLead
-          key={lead.item_id}
-          pick={lead}
-          pinned={Boolean(upNext)}
-          signedIn={signedIn}
-          onPlay={play}
-          onSkip={skip}
-          onUnpin={unpin}
-        />
-      ) : (
-        <p className="muted">{copy.empty.upNext}</p>
+      {!leading && tonight.last_finish && (
+        <JustFinishedChip finish={tonight.last_finish} />
       )}
-      {alts.length > 0 && (
+      {leading ? (
         <>
-          {alts.some((pick) => !skipped.includes(pick.item_id)) && (
-            <p className="tonight-alts-h">
-              {upNext ? copy.tonight.otherPicks : copy.tonight.orInstead}
-            </p>
-          )}
-          <ul className="tonight-alts">
-            {alts.map((pick) =>
-              skipped.includes(pick.item_id) ? (
-                <SkippedToast key={pick.item_id} pick={pick} onUndo={undo} />
+          <ul className="tonight-continuing">
+            {cards.map((card) =>
+              skipped.includes(card.item_id) ? (
+                <SkippedToast key={card.item_id} pick={card} onUndo={undo} />
               ) : (
-                <TonightAlt key={pick.item_id} pick={pick} {...owner} />
+                <ContinueCard
+                  key={card.item_id}
+                  card={card}
+                  to={itemPath(card.item_id)}
+                  loggedToday={card.last_played_on === today}
+                  {...cardOwner}
+                />
               ),
             )}
           </ul>
+          <PickList
+            picks={open}
+            upNext={upNext}
+            skipped={skipped}
+            onUndo={undo}
+            {...owner}
+          />
+        </>
+      ) : (
+        <>
+          {cards.length > 0 && (
+            <ul className="tonight-continuing">
+              {cards.map((card) => (
+                <SkippedToast key={card.item_id} pick={card} onUndo={undo} />
+              ))}
+            </ul>
+          )}
+          {lead ? (
+            <TonightLead
+              key={lead.item_id}
+              pick={lead}
+              pinned={Boolean(upNext)}
+              signedIn={signedIn}
+              onPlay={play}
+              onSkip={skip}
+              onUnpin={unpin}
+            />
+          ) : (
+            <p className="muted">{copy.empty.upNext}</p>
+          )}
+          {alts.length > 0 && (
+            <>
+              {alts.some((pick) => !skipped.includes(pick.item_id)) && (
+                <p className="tonight-alts-h">
+                  {upNext ? copy.tonight.otherPicks : copy.tonight.orInstead}
+                </p>
+              )}
+              <ul className="tonight-alts">
+                {alts.map((pick) =>
+                  skipped.includes(pick.item_id) ? (
+                    <SkippedToast
+                      key={pick.item_id}
+                      pick={pick}
+                      onUndo={undo}
+                    />
+                  ) : (
+                    <TonightAlt key={pick.item_id} pick={pick} {...owner} />
+                  ),
+                )}
+              </ul>
+            </>
+          )}
         </>
       )}
-      {tonight.picks.length === 0 && (
+      {tonight.picks.length === 0 && !leading && (
         <p className="muted">{copy.empty.picks}</p>
       )}
-      {error && (
+      {(error || note) && (
         <p className="admin-error" role="alert">
-          {ACTION_ERROR}
+          {error ? ACTION_ERROR : note}
         </p>
       )}
       {signedIn && (
@@ -372,6 +514,11 @@ function Tonight({ tonight, signedIn, onRefresh }) {
           <p className="visually-hidden" role="status">
             {announcement}
           </p>
+          <WrapUpSheet
+            subject={wrap}
+            onClose={() => setWrap(null)}
+            onDone={wrapDone}
+          />
         </>
       )}
     </section>

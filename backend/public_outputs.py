@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from continuing import ContinuingCard, build_continuing, hours_to_beat
 from models import (
     ComicShelfFormat,
     Item,
@@ -109,7 +110,10 @@ async def last_finish(session: AsyncSession, public: bool = False) -> Item | Non
 
 
 async def public_picks_with_day(
-    session: AsyncSession, now: datetime, last: Item | None = None
+    session: AsyncSession,
+    now: datetime,
+    last: Item | None = None,
+    exclude: set[uuid.UUID] | None = None,
 ) -> tuple[date | None, list[_PickRow]]:
     """Up to three public, owned, unpinned backlog or active games shown on
     the most recent day Play Next showed a game that is still a public
@@ -127,7 +131,10 @@ async def public_picks_with_day(
     The day is chosen among those games only: a private, pinned or refused
     game shown later must not move it, or the list would change with rows the
     public cannot see. A game the owner said "never" to, or skipped at or
-    after the moment it was shown, is not a suggestion any more.
+    after the moment it was shown, is not a suggestion any more. `exclude`
+    is the same rule for the games in hand (Tonight continue): a Continue
+    card leads the section, so its game is not one of the picks, and it must
+    not choose the day or spend one of the three slots either.
 
     `last` is the owner's last finish (see last_finish). Change of pace's
     label and reason are published only when it is public: otherwise they
@@ -145,6 +152,7 @@ async def public_picks_with_day(
         if row.owned_format != OwnedFormat.NONE
         and row.status in PICKABLE
         and row.pinned_at is None
+        and row.id not in (exclude or set())
     }
     if not eligible:
         return None, []
@@ -272,12 +280,16 @@ class PublicLastFinish(BaseModel):
     cover_url: str | None
     finished_at: date
     time_to_beat_hours: float | None
+    # The rating is public on every item; the chip shows it as stars.
+    rating: int | None
 
 
 class PublicTonight(BaseModel):
-    """Tonight: the pinned Up next game, if any, Play Next's recent picks,
-    and the last finish they were measured against, when it is public."""
+    """Tonight: the games being played (Continue cards, most recent session
+    first), the pinned Up next game, if any, Play Next's recent picks, and
+    the last finish they were measured against, when it is public."""
 
+    continuing: list[ContinuingCard]
     up_next: PublicTonightCard | None
     picks: list[PublicTonightCard]
     last_finish: PublicLastFinish | None
@@ -434,14 +446,8 @@ def _next_row(entry: NextEntry, taste: PublicTaste) -> PublicNextRow:
     )
 
 
-def _hours(metadata: dict | None) -> float | None:
-    """IGDB's usual time to beat in hours, or None when unknown. Unrounded,
-    so the page's size band matches picker's (6.4 h is Medium, not Short)."""
-    time_to_beat = (metadata or {}).get("time_to_beat")
-    normally = time_to_beat.get("normally") if isinstance(time_to_beat, dict) else None
-    if isinstance(normally, bool) or not isinstance(normally, int | float):
-        return None
-    return float(normally)
+# IGDB's "normally" hours, shared with the Continue card (continuing.py).
+_hours = hours_to_beat
 
 
 def _tonight_card(game: Item | _PickRow, reasons: list[str]) -> PublicTonightCard:
@@ -471,6 +477,7 @@ def _last_finish(last: Item | None, today: date) -> PublicLastFinish | None:
         cover_url=last.cover_url,
         finished_at=last.finished_at,
         time_to_beat_hours=_hours(last.source_metadata),
+        rating=last.rating,
     )
 
 
@@ -501,14 +508,28 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
     the rows frozen to the latest batch (spec, S9)."""
     today = now.astimezone(UTC).date()
     last = await last_finish(session)
-    day, picks = await public_picks_with_day(session, now, last)
     data = await load_next(session, public=True)
+    # The games in hand, first: a Continue card leads Tonight, so its game
+    # is neither a pick nor Up next (it is already the answer to "tonight").
+    continuing = await build_continuing(session, data.public_games, today)
+    in_hand = {card.item_id for card in continuing}
+    day, picks = await public_picks_with_day(session, now, last, exclude=in_hand)
     built = sections(data.candidates, today, public=True)
     taste = taste_sparing_owned(
         data,
         [entry.candidate.payload for entries in built.values() for entry in entries],
     )
-    pinned = [item for item in data.public_games if item.pinned_at is not None]
+    # Up next is the pinned game still waiting to be played: pinning starts
+    # a game, so the pin outlives the playing and the finishing, and without
+    # this the game just wrapped up would lead Tonight as "Up next" directly
+    # above the Just finished chip naming it.
+    pinned = [
+        item
+        for item in data.public_games
+        if item.pinned_at is not None
+        and item.id not in in_hand
+        and item.status in PICKABLE
+    ]
     up_next = max(pinned, key=lambda item: item.pinned_at, default=None)
     comics = await public_comic_items(session)
     wanted = sorted(
@@ -533,6 +554,7 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
             discover=_utc_day(data.generated_at.get(RecommendationKind.DISCOVER.value)),
         ),
         tonight=PublicTonight(
+            continuing=continuing,
             up_next=_tonight_card(up_next, []) if up_next else None,
             picks=[_tonight_card(pick, pick.reasons) for pick in picks],
             last_finish=_last_finish(await last_finish(session, public=True), today),

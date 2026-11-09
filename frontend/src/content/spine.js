@@ -192,7 +192,7 @@ export const spine = {
         where: '/admin/play-next',
         title: 'Picks tonight’s game',
         claim:
-          'Six weighted terms score the backlog and anything I’ve paused: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. Each pick comes with a reason, and a paused game can come back as “Pick it back up”. A replay is a new playthrough, so finishing a game twice counts twice.',
+          'While I’m playing something, Tonight leads with it: the game in hand, how long I’ve been at it and when I last played, with the picks underneath as the fallback. Six weighted terms score the backlog and anything I’ve paused: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. Each pick comes with a reason, and a paused game can come back as “Pick it back up”. Rolling credits is one gesture, Wrap up: Finished, Paused or Abandoned, with a rating and a line while they’re fresh. A replay is a new playthrough, so finishing a game twice counts twice.',
         why: {
           lead: 'No model here.',
           text: 'The scoring is pure Python, tested without a database, and the public reasons are always rebuilt from public games only.',
@@ -200,7 +200,7 @@ export const spine = {
         code: ['backend/picker.py'],
         live: {
           caption:
-            'Up next, which I pin by hand, and the day’s picks, which change at most once a day.',
+            'The game I’m playing, if there is one; Up next, which I pin by hand; and the day’s picks, which change at most once a day.',
           empty: 'Nothing lined up for tonight.',
         },
         capture: {
@@ -351,6 +351,7 @@ export const spine = {
   nowPlaying: {
     heading: 'Now playing',
     since: 'Playing since',
+    wrapUp: 'Wrap up',
   },
   status: {
     label: 'Status',
@@ -449,6 +450,53 @@ export const spine = {
       unpin: 'Unpin',
       undo: 'Undo',
       skipped: 'is off tonight’s list.',
+      /** The Continue card: the game in hand leads while one is Playing. */
+      continue: 'Continue',
+      playingSince: 'Playing since',
+      over: 'over',
+      sessions: (count) => (count === 1 ? '1 session' : `${count} sessions`),
+      lastPlayed: 'last played',
+      sittingDown: 'Sitting down?',
+      stillPlaying: 'Three weeks quiet. Still playing it?',
+      wrapUp: 'Wrap up',
+      logTonight: 'Log tonight',
+      logged: 'Logged tonight',
+      finishedIt: 'Finished it',
+      pause: 'Pause',
+      rebuiltNightly: 'rebuilt nightly',
+      sessionLogged: 'Session logged for today.',
+      /** The Wrap up sheet: outcome first, the extras on the same screen. */
+      sheet: {
+        title: (title) => `Wrap up ${title}`,
+        playthrough: (number) => `Playthrough ${number}`,
+        since: 'since',
+        close: 'Close',
+        outcomeGroup: 'How did it end',
+        outcomes: {
+          finished: { label: 'Finished', hint: 'dated today' },
+          paused: { label: 'Paused', hint: 'keeps the date, I’ll be back' },
+          abandoned: { label: 'Abandoned', hint: 'closes the run' },
+        },
+        fresh: 'While it’s fresh (optional)',
+        rating: 'Rating',
+        line: 'One line',
+        placeholder: 'What stuck with you',
+        dateLabel: {
+          finished: 'Finished on',
+          paused: 'Paused on',
+          abandoned: 'Abandoned on',
+        },
+        dateHint: 'Change it if you finished earlier in the week.',
+        twoTaps: 'Two taps if you skip the extras.',
+        skipExtras: 'Skip extras',
+        primary: {
+          finished: 'Mark finished',
+          paused: 'Mark paused',
+          abandoned: 'Mark abandoned',
+        },
+        done: (title, status) => `${title} marked ${status}`,
+        ratingFailed: 'The game is marked, but the rating didn’t save.',
+      },
     },
     badges: { new: 'New', topPick: 'Top pick' },
     sorts: [

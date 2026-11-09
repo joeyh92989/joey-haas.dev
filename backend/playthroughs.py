@@ -52,6 +52,8 @@ class Run:
     finished_on: date | None = None
     paused_on: date | None = None
     outcome: str | None = None
+    # The line written as the run was closed or paused, if any.
+    note: str | None = None
     # When the row was written; only apply_status reads it, so the misclick
     # rule can tell the run that came before the open one from a past run
     # added after it. Not part of a run's identity.
@@ -140,12 +142,19 @@ def is_misclick(
     return previous.outcome == target
 
 
+# The moves the Wrap up sheet makes: the ones that take a date and a note.
+WRAP_UP = CLOSING | {"paused"}
+
+
 def plan_transition(
     runs: list[Run],
     current: str,
     target: str,
     today: date,
     journal_in_open: bool = False,
+    *,
+    on: date | None = None,
+    note: str | None = None,
 ) -> list[Open | Change | Delete]:
     """The row changes moving an item from `current` to `target` makes.
 
@@ -159,10 +168,34 @@ def plan_transition(
     - Backlog: deletes the open run; closed runs are history and stay.
 
     Choosing the current status again changes nothing.
+
+    `on` dates a pause or a close instead of today (the Wrap up sheet's
+    "finished earlier in the week"): never after today, never before the
+    run's start. `today` still decides the misclick rule, which is about
+    the day the owner is acting on. `note` is written on the run a pause or
+    a close touches; None leaves any note it has. Both are refused on the
+    other moves, which have nothing to date or annotate.
     """
-    if target == current:
-        return []
+    if (on is not None or note is not None) and target not in WRAP_UP:
+        raise PlaythroughError(
+            "Only Finished, Paused and Abandoned take a date or a note."
+        )
+    if on is not None and on > today:
+        raise PlaythroughError(f"{on.isoformat()} has not happened yet.")
+    stamp = on or today
     current_run = open_run(runs)
+    if target == current:
+        # Nothing to move, but a Wrap up that carries a line is the owner
+        # writing about a run: record it rather than answer 200 and drop it.
+        # The open run when there is one, else the last one, which is the
+        # one that ended.
+        written = current_run or (max(runs, key=lambda run: run.number, default=None))
+        if note is None or written is None:
+            return []
+        return [Change(replace(written, note=note))]
+
+    def noted(run: Run) -> Run:
+        return run if note is None else replace(run, note=note)
 
     if target == "active":
         if current_run is None:
@@ -174,24 +207,36 @@ def plan_transition(
     if target == "paused":
         if current_run is None:
             return [
-                Open(Run(number=next_number(runs), started_on=today, paused_on=today))
+                Open(
+                    noted(
+                        Run(number=next_number(runs), started_on=stamp, paused_on=stamp)
+                    )
+                )
             ]
         if current_run.paused_on is None:
-            return [Change(replace(current_run, paused_on=today))]
+            run = noted(replace(current_run, paused_on=stamp))
+            check_dates(run)
+            return [Change(run)]
         return []
 
     if target in CLOSING:
         if current_run is None:
             return [
-                Open(Run(number=next_number(runs), finished_on=today, outcome=target))
+                Open(
+                    noted(
+                        Run(number=next_number(runs), finished_on=stamp, outcome=target)
+                    )
+                )
             ]
-        if is_misclick(runs, target, today, journal_in_open):
+        # A written line is the owner saying this run happened, so it is
+        # never the undo of a mistaken Replay.
+        if note is None and is_misclick(runs, target, today, journal_in_open):
             return [Delete(current_run.number)]
-        return [
-            Change(
-                replace(current_run, finished_on=today, paused_on=None, outcome=target)
-            )
-        ]
+        run = noted(
+            replace(current_run, finished_on=stamp, paused_on=None, outcome=target)
+        )
+        check_dates(run)
+        return [Change(run)]
 
     if target == "backlog":
         return [Delete(current_run.number)] if current_run else []
@@ -276,6 +321,12 @@ def check_dates(run: Run) -> None:
         and run.started_on > run.finished_on
     ):
         raise PlaythroughError("A playthrough cannot finish before it started.")
+    if (
+        run.started_on is not None
+        and run.paused_on is not None
+        and run.started_on > run.paused_on
+    ):
+        raise PlaythroughError("A playthrough cannot pause before it started.")
 
 
 def check_today(today: date, server_today: date) -> None:
@@ -296,6 +347,7 @@ def _as_run(row: Playthrough) -> Run:
         finished_on=row.finished_on,
         paused_on=row.paused_on,
         outcome=row.outcome.value if row.outcome else None,
+        note=row.note,
     )
 
 
@@ -305,6 +357,7 @@ def _write(row: Playthrough, run: Run) -> None:
     row.finished_on = run.finished_on
     row.paused_on = run.paused_on
     row.outcome = PlaythroughOutcome(run.outcome) if run.outcome else None
+    row.note = run.note
 
 
 async def load_rows(session: AsyncSession, item_id: uuid.UUID) -> list[Playthrough]:
@@ -367,9 +420,16 @@ async def _apply_ops(
 
 
 async def apply_status(
-    session: AsyncSession, item: Item, target: ItemStatus, today: date
+    session: AsyncSession,
+    item: Item,
+    target: ItemStatus,
+    today: date,
+    *,
+    on: date | None = None,
+    note: str | None = None,
 ) -> None:
-    """Moves `item` to `target`, writing its playthroughs. Does not commit."""
+    """Moves `item` to `target`, writing its playthroughs. Does not commit.
+    `on` and `note` as plan_transition takes them."""
     rows = await load_rows(session, item.id)
     runs = [replace(_as_run(row), created_at=row.created_at) for row in rows]
     current = open_run(runs)
@@ -377,7 +437,13 @@ async def apply_status(
         session, item.id, current.started_on if current else None
     )
     ops = plan_transition(
-        runs, ItemStatus(item.status).value, target.value, today, journal
+        runs,
+        ItemStatus(item.status).value,
+        target.value,
+        today,
+        journal,
+        on=on,
+        note=note,
     )
     await _apply_ops(session, item, rows, ops)
     item.status = target
@@ -465,20 +531,50 @@ async def delete_run(session: AsyncSession, item: Item, number: int) -> None:
     await _apply_ops(session, item, rows, [Delete(number)])
 
 
+def _run_ends(runs: list[Run]) -> dict[int, date | None]:
+    """The last day each run can hold; None while it runs to today.
+
+    A run's finish date, when it has one. A closed run whose finish date was
+    never filled in (the 0011 backfill's shape for a game finished twice)
+    ends the day before the next dated run starts, rather than running on:
+    otherwise it would claim every later day, the open replay's included.
+    Only a run still in progress is open-ended.
+    """
+    dated = sorted(
+        (run for run in runs if run.started_on is not None),
+        key=lambda run: (run.started_on, run.number),
+    )
+    ends: dict[int, date | None] = {}
+    for index, run in enumerate(dated):
+        if run.finished_on is not None:
+            ends[run.number] = run.finished_on
+        elif run.outcome is None:
+            ends[run.number] = None
+        else:
+            later = dated[index + 1].started_on if index + 1 < len(dated) else None
+            ends[run.number] = later - timedelta(days=1) if later else None
+    for run in runs:
+        ends.setdefault(run.number, None)
+    return ends
+
+
 def attribute_journal(
     runs: list[Run], days: list[tuple[date, int | None]]
-) -> dict[int, tuple[int, int]]:
-    """(days, minutes) of journal per run number, attributed by date.
+) -> dict[int, tuple[int, int, date | None]]:
+    """(days, minutes, last day) of journal per run number, attributed by date.
 
     A day belongs to the dated run whose [started_on, finished_on] holds it
     (an open run's range runs to today); days no dated run claims go to the
     open run, else to the latest dateless one. Journal rows are not linked
     to runs (spec, Out of scope), so this is the whole of the attribution.
     """
-    totals = {run.number: (0, 0) for run in runs}
+    totals: dict[int, tuple[int, int, date | None]] = {
+        run.number: (0, 0, None) for run in runs
+    }
     current = open_run(runs)
     dateless = [run for run in runs if run.started_on is None]
     fallback = current or (max(dateless, key=lambda r: r.number) if dateless else None)
+    ends = _run_ends(runs)
     for played_on, minutes in days:
         owner = next(
             (
@@ -486,21 +582,26 @@ def attribute_journal(
                 for run in runs
                 if run.started_on is not None
                 and run.started_on <= played_on
-                and (run.finished_on is None or played_on <= run.finished_on)
+                and (ends[run.number] is None or played_on <= ends[run.number])
             ),
             fallback,
         )
         if owner is None:
             continue
-        count, total = totals[owner.number]
-        totals[owner.number] = (count + 1, total + (minutes or 0))
+        count, total, last = totals[owner.number]
+        totals[owner.number] = (
+            count + 1,
+            total + (minutes or 0),
+            played_on if last is None else max(last, played_on),
+        )
     return totals
 
 
 async def runs_with_journal(
     session: AsyncSession, item_ids: list[uuid.UUID]
-) -> dict[uuid.UUID, list[tuple[Run, int, int]]]:
-    """Each item's runs with their journal (days, minutes), in two queries."""
+) -> dict[uuid.UUID, list[tuple[Run, int, int, date | None]]]:
+    """Each item's runs with their journal (days, minutes, last day played),
+    in two queries."""
     if not item_ids:
         return {}
     rows = await session.execute(

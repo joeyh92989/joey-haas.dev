@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import ContinueCard from '../components/ContinueCard.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import SizePill from '../components/SizePill.jsx'
+import WrapUpSheet from '../components/WrapUpSheet.jsx'
+import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
-import { pinPath } from '../lib/statusMoves.js'
+import { localToday, pinPath } from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 
 const SIZES = [
@@ -128,6 +131,12 @@ export default function PlayNext() {
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
   const [items, setItems] = useState([])
+  // The games in hand (GET /api/picker/continuing), less today's skips: the
+  // Continue card(s) above the controls while a game is Playing.
+  const [continuing, setContinuing] = useState([])
+  const [skippedToday, setSkippedToday] = useState([])
+  // The Wrap up sheet's subject and preselected outcome, or null.
+  const [wrap, setWrap] = useState(null)
   const [size, setSize] = useState('any')
   const [moods, setMoods] = useState([])
   const [platforms, setPlatforms] = useState([])
@@ -137,6 +146,10 @@ export default function PlayNext() {
   const [busy, setBusy] = useState(false)
   // Bumped to ask again with the same controls, after a pin or a Never.
   const [round, setRound] = useState(0)
+  // Bumped to re-read the games in hand alone. Log tonight and a wrap-up
+  // change the cards, not the picks, and re-asking the picker would both
+  // reshuffle the grid under the cursor and record new games as shown.
+  const [cardRound, setCardRound] = useState(0)
 
   const fetchItems = useCallback(async () => {
     try {
@@ -159,6 +172,32 @@ export default function PlayNext() {
       .finally(() => clearTimeout(timer))
     return () => clearTimeout(timer)
   }, [fetchItems, round])
+
+  useEffect(() => {
+    if (status !== 'ready') return undefined
+    let cancelled = false
+    async function readList(path, key) {
+      try {
+        const response = await apiFetch(path)
+        if (!response.ok) return []
+        const body = await response.json()
+        return Array.isArray(body?.[key]) ? body[key] : []
+      } catch {
+        return []
+      }
+    }
+    Promise.all([
+      readList('/api/picker/continuing', 'cards'),
+      readList('/api/picker/skipped-today', 'item_ids'),
+    ]).then(([cards, skipped]) => {
+      if (cancelled) return
+      setContinuing(cards)
+      setSkippedToday(skipped)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [status, round, cardRound])
 
   useEffect(() => {
     if (status !== 'ready') return undefined
@@ -264,6 +303,35 @@ export default function PlayNext() {
     excludeMore((result?.picks ?? []).map((pick) => pick.item.id))
   }
 
+  /** "Not tonight" on a Continue card: a skip, so the card is back tomorrow. */
+  async function skipCard(card) {
+    if (await recordEvent(card.item_id, 'skipped')) {
+      setSkippedToday((current) => [...current, card.item_id])
+    }
+  }
+
+  /** The sheet saved: reload the cards and the picks. */
+  function wrapDone({ ratingFailed }) {
+    setWrap(null)
+    if (ratingFailed) setError(spine.next.tonight.sheet.ratingFailed)
+    // The game left the shelf's active list, so the picks are worth
+    // asking for again; the card read follows with them.
+    setRound((current) => current + 1)
+  }
+
+  async function logTonight(card) {
+    const ok = await send(
+      `/api/items/${card.item_id}/sessions`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ played_on: localToday() }),
+      },
+      'Couldn’t log tonight.',
+    )
+    if (ok) setCardRound((current) => current + 1)
+  }
+
   // One header for every state, so the page never re-titles as it loads.
   const header = (
     <AdminPageHeader
@@ -301,7 +369,17 @@ export default function PlayNext() {
     )
   }
 
-  const pinned = items.find((item) => item.pinned_at)
+  const cards = continuing.filter(
+    (card) => !skippedToday.includes(card.item_id),
+  )
+  // A pinned game that is being played is a Continue card, not a band --
+  // whether or not tonight's card was answered, since the game is still
+  // the one in hand.
+  const pinned = items.find(
+    (item) =>
+      item.pinned_at && !continuing.some((card) => card.item_id === item.id),
+  )
+  const today = localToday()
   const platformChoices = [
     ...new Map(
       items
@@ -320,6 +398,39 @@ export default function PlayNext() {
           {error}
         </p>
       )}
+
+      {cards.length > 0 && (
+        <ul className="tonight-continuing play-next-continuing">
+          {cards.map((card) => (
+            <ContinueCard
+              key={card.item_id}
+              card={card}
+              to={`/admin/collection/${card.item_id}`}
+              signedIn
+              loggedToday={card.last_played_on === today}
+              onWrapUp={(subject, preselect) =>
+                setWrap({
+                  item: {
+                    id: subject.item_id,
+                    title: subject.title,
+                    cover_url: subject.cover_url,
+                    type: subject.type,
+                  },
+                  preselect,
+                })
+              }
+              onLogTonight={logTonight}
+              onSkip={skipCard}
+            />
+          ))}
+        </ul>
+      )}
+
+      <WrapUpSheet
+        subject={wrap}
+        onClose={() => setWrap(null)}
+        onDone={wrapDone}
+      />
 
       {pinned && (
         <section className="up-next" aria-label="Up next">

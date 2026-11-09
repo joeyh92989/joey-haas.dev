@@ -21,9 +21,20 @@ export function currentRunStart(item) {
   return runs.find((run) => run.outcome == null)?.started_on ?? null
 }
 
+/** Later first, null last; 0 when equal. */
+function laterFirst(a, b) {
+  if (a === b) return 0
+  if (a == null) return 1
+  if (b == null) return -1
+  return a < b ? 1 : -1
+}
+
 /**
  * The games I am playing, for the shelf's Now playing band: active, owned
- * games, most recently started first, undated last, then by title.
+ * games, most recently played first (the public list's `last_played_on`;
+ * the admin list has no such field and falls through), then most
+ * recently started, undated last, then by title. The same order Tonight's
+ * Continue cards take, so the two bands and the cards agree.
  *
  * Works on both shelves' rows: a public row says `wanted`, an admin row
  * says `owned_format: 'none'` for the same thing.
@@ -41,13 +52,14 @@ export function nowPlaying(items) {
         item.owned_format !== 'none',
     )
     .map((item) => ({ item, since: currentRunStart(item) }))
-    .sort((a, b) => {
-      if (a.since !== b.since) {
-        if (a.since === null) return 1
-        if (b.since === null) return -1
-        return a.since < b.since ? 1 : -1
-      }
-      return a.item.title.localeCompare(b.item.title)
-    })
+    .sort(
+      (a, b) =>
+        laterFirst(
+          a.item.last_played_on ?? null,
+          b.item.last_played_on ?? null,
+        ) ||
+        laterFirst(a.since, b.since) ||
+        a.item.title.localeCompare(b.item.title),
+    )
     .slice(0, NOW_PLAYING_LIMIT)
 }
