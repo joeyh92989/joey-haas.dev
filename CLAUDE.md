@@ -351,11 +351,6 @@ before pushing.
       the Daily tab, stop 9 on How it works. `VITE_DAILY_SALT` must be set
       on the Render static site before merging. Spec and plan:
       `docs/planning/2026-11-08-daily-puzzle-design.md`
-- [ ] Rotate the ComicVine API key. It was written to Render's logs until
-      2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
-      ComicVine's site has no way to regenerate it: ask their support to
-      reissue it, then update `backend/.env` and Render. The Twitch/IGDB
-      secret was rotated the same day
 - [x] `ADMIN_GOOGLE_SUB` set on the Render API service, pinning the
       allowlist to Google's immutable subject ID as well as the email. A wrong
       value rejects every sign-in; clear it in Render to fall back to email-only
