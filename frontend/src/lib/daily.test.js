@@ -148,14 +148,29 @@ describe('picks', () => {
     })
   })
 
-  it('steps forward when the hash lands on a recent pick', () => {
-    // A two-item pool must alternate: every day's hash collides with one
-    // of the previous seven picks unless it is the other item.
+  it('alternates a two-game pool, stepping past the recent pick', () => {
     const two = dailyPool([game('a'), game('b')])
     const picks = picksThrough(sixtyDays[9], two, 'salt')
     picks.slice(1).forEach((pick, index) => {
       expect(pick.item.id).not.toBe(picks[index].item.id)
     })
+  })
+
+  it('keeps the answers when the pool gains a game', () => {
+    // The nightly snapshot can grow the pool mid-day: today's answer must
+    // not move unless the new game is the answer itself.
+    const big = dailyPool(Array.from({ length: 40 }, (_, n) => game(`g${n}`)))
+    const grown = dailyPool([...big, game('new')])
+    const before = picksThrough(sixtyDays.at(-1), big, 'salt')
+    const after = picksThrough(sixtyDays.at(-1), grown, 'salt')
+    const moved = after.filter(
+      (pick, index) =>
+        pick.item.id !== 'new' && pick.item.id !== before[index].item.id,
+    )
+    // Only a day the new game wins, and the week its absence from the
+    // window touches, can move: a handful of sixty, not all of them.
+    expect(moved.length).toBeLessThanOrEqual(3)
+    expect(after.at(-1).item.id).toBe(before.at(-1).item.id)
   })
 
   it('does not loop on a pool that is all recent', () => {

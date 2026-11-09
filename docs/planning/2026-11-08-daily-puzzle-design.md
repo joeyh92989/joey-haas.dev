@@ -123,10 +123,15 @@ Win: the guess is the answer (same `item_id`). Lose: six wrong guesses.
 - Epoch: day 1 is the launch date, a constant.
 - Day number `n` = days since the epoch in America/Denver local time,
   computed in the browser from the current date in that zone (not UTC).
-- Pick: `index = hash(DAILY_SALT + isoDate) mod pool.length`, over the
-  pool sorted by `item_id` so the order is stable across builds. The hash
-  is a small pure function (FNV-1a or similar) in `lib/daily.js`, unit
-  tested.
+- Pick: each game scores `hash(DAILY_SALT | isoDate | item_id)` and the
+  lowest score wins (rendezvous hashing). The hash is a small pure
+  function (FNV-1a or similar) in `lib/daily.js`, unit tested.
+  **Deviation (finish-gate review):** the first cut was
+  `hash(DAILY_SALT + isoDate) mod pool.length`, which moves nearly every
+  answer, today's included, whenever the pool's size changes, and the
+  nightly snapshot redeploys at 17:17 Denver time. A game's score does not
+  depend on the pool, so a game joining or leaving moves only the days it
+  wins and the week of repeat avoidance around them.
 - `DAILY_SALT` is injected at build time (`import.meta.env`, set in
   `render.yaml` / `.env`, not committed), so the salt is not in the repo.
   **Threat model, plainly:** the salt is in the shipped bundle, so anyone
@@ -134,8 +139,8 @@ Win: the guess is the answer (same `item_id`). Lose: six wrong guesses.
   daily puzzle, not a contest; the salt stops the casual case (a
   `?day=` URL or reading the snapshot order), nothing more. Stated on the
   How-it-works stop so no one thinks otherwise.
-- Repeat avoidance: if the pick equals any of the previous seven days'
-  picks, step the index forward until it does not.
+- Repeat avoidance: the previous seven days' picks are left out of the
+  scoring (as many as the pool can spare, so a tiny pool alternates).
 
 ### Result and share
 

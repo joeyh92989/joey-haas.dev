@@ -178,10 +178,12 @@ export function fnv1a(text) {
 }
 
 /**
- * Every day's pick from the epoch up to a day, in order. Each day hashes
- * the salt and its date into an index over the pool, then steps forward
- * past any of the previous `RECENT_DAYS` picks, so the rule is well
- * defined from day 1 and costs one hash per day.
+ * Every day's pick from the epoch up to a day, in order. Each day scores
+ * every game by hashing the salt, the date and the game's id, and picks
+ * the lowest score among games that were not one of the previous
+ * `RECENT_DAYS` picks (rendezvous hashing). A game's score does not depend
+ * on the pool's size, so a snapshot that gains or loses a game mid-day
+ * keeps the day's answer unless that game is the answer itself.
  *
  * @param {string} isoDay The last day to pick for.
  * @param {object[]} pool The answer pool, from `dailyPool`.
@@ -196,17 +198,23 @@ export function picksThrough(isoDay, pool, salt, epoch = DAILY_EPOCH) {
   const picks = []
   for (let day = 1; day <= last; day += 1) {
     const date = addDays(epoch, day - 1)
+    // A pool no larger than the window leaves out only as many recent
+    // picks as it can spare, so a two-game pool alternates.
+    const window = Math.min(RECENT_DAYS, pool.length - 1)
     const recent = new Set(
-      picks.slice(-RECENT_DAYS).map((pick) => pick.item.id),
+      picks.slice(picks.length - window).map((pick) => pick.item.id),
     )
-    let index = fnv1a(salt + date) % pool.length
-    // A pool no larger than the window could be all recent: stop after a
-    // full turn rather than loop.
-    for (let step = 0; step < pool.length && recent.has(pool[index].id);) {
-      index = (index + 1) % pool.length
-      step += 1
+    const candidates = pool.filter((item) => !recent.has(item.id))
+    let best = candidates[0]
+    let bestScore = fnv1a(`${salt}|${date}|${best.id}`)
+    for (const item of candidates.slice(1)) {
+      const score = fnv1a(`${salt}|${date}|${item.id}`)
+      if (score < bestScore) {
+        best = item
+        bestScore = score
+      }
     }
-    picks.push({ day, isoDay: date, item: pool[index] })
+    picks.push({ day, isoDay: date, item: best })
   }
   return picks
 }
