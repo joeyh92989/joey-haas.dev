@@ -30,6 +30,7 @@ import { itemPath, monthPath, yearPath } from './lib/spinePaths.js'
 const AdminLayout = lazy(() => import('./layouts/AdminLayout.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics.jsx'))
+const AdminJobs = lazy(() => import('./pages/AdminJobs.jsx'))
 const AdminCatalogue = lazy(() => import('./pages/AdminCatalogue.jsx'))
 const AdminDiscover = lazy(() => import('./pages/AdminDiscover.jsx'))
 const AdminRadar = lazy(() => import('./pages/AdminRadar.jsx'))
@@ -120,6 +121,7 @@ export default function App() {
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<Admin />} />
           <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="jobs" element={<AdminJobs />} />
           <Route path="collection" element={<AdminCollection />} />
           <Route path="import" element={<AdminImport />} />
           <Route path="play-next" element={<PlayNext />} />

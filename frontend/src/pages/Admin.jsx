@@ -1,306 +1,305 @@
 import { useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
-import JobStatusRow, { StatusText } from '../components/JobStatusRow.jsx'
-import Panel from '../components/Panel.jsx'
-import StatTile, { StatTiles } from '../components/StatTile.jsx'
+import AreaCard, { AreaLead } from '../components/AreaCard.jsx'
+import CoverImage from '../components/CoverImage.jsx'
+import JobsList, { NightlyStatus } from '../components/JobsList.jsx'
+import { StatusText } from '../components/JobStatusRow.jsx'
+import WrapUpSheet from '../components/WrapUpSheet.jsx'
+import { jobsSummary, useNightly } from '../lib/adminJobs.js'
 import { counted } from '../lib/analytics.js'
 import { apiFetch } from '../lib/api.js'
-import { dashboardCounts, recentChanges } from '../lib/dashboard.js'
+import { dashboardCounts } from '../lib/dashboard.js'
 import { ownerYear } from '../lib/formatDate.js'
-import {
-  lastNightly,
-  nightlyHeadline,
-  nightlyJobs,
-  whenWords,
-} from '../lib/nightly.js'
-import { readSnapshot } from '../lib/snapshot.js'
-
-/** The README section that says how to switch the schedule back on. */
-const REENABLE_URL = 'https://github.com/joeyh92989/joey-haas.dev#nightly-job'
-
-/** The API's state in the header, as a status and its words. */
-const API_WORDS = {
-  checking: { state: 'unknown', words: 'Checking the API' },
-  awake: { state: 'ok', words: 'API awake' },
-  'signed-out': {
-    state: 'failed',
-    words: 'Your session ended. Reload to sign in.',
-  },
-  error: { state: 'failed', words: 'API error' },
-  unreachable: { state: 'failed', words: 'API unreachable' },
-}
-
-/** What a status answer says about the API, as a key of API_WORDS. */
-function apiState(response) {
-  if (response.ok) return 'awake'
-  if (response.status === 401 || response.status === 403) return 'signed-out'
-  return 'error'
-}
-
-/** Radar's and Discover's generate times from the store list, or nulls. */
-async function generatedAt(response) {
-  const none = { radar: null, discover: null }
-  if (!response?.ok) return none
-  try {
-    const body = await response.json()
-    return {
-      radar: body?.generated_at?.radar ?? null,
-      discover: body?.generated_at?.discover ?? null,
-    }
-  } catch {
-    return none
-  }
-}
+import { localToday } from '../lib/statusMoves.js'
 
 /**
- * The Denver jobs' last runs, `{weather, candidates}`, or null when they
- * cannot be read. Never rejects: the two rows then read unknown.
+ * A JSON body, or null when it cannot be read. Never rejects: a card shows
+ * what it has rather than failing the page.
  */
-async function spotsRuns() {
+async function readJson(path) {
   try {
-    const response = await apiFetch('/api/spots/status')
+    const response = await apiFetch(path)
     if (!response.ok) return null
-    const body = await response.json()
-    return {
-      weather: body?.['weather.last_run'] ?? null,
-      candidates: body?.['candidates.last_run'] ?? null,
-    }
+    return await response.json()
   } catch {
     return null
   }
 }
 
 /**
- * The catalogue status, the generate times, the Denver jobs' runs and the
- * snapshot's build time.
- * Never rejects. A status that cannot be read leaves `status` null, and the
- * jobs panel says so rather than reading as a stopped schedule.
+ * Reads `path` once per `round`. undefined until the first read lands, null
+ * when the read failed. A later round keeps the last body until its own
+ * lands, so a card never drops the controls it was just used through.
  */
-async function loadNightly() {
-  const meta = readSnapshot('meta')
-  let api = 'unreachable'
-  let status = null
-  let generated = { radar: null, discover: null }
-  let spots = null
-  try {
-    const response = await apiFetch('/api/physical/status')
-    // Any answer means the server is up; only a failed request is unreachable.
-    api = apiState(response)
-    if (response.ok) {
-      const body = await response.json().catch(() => null)
-      // Not a status document: no jobs rather than "may have stopped".
-      if (Array.isArray(body?.sources)) {
-        status = body
-        const [times, runs] = await Promise.all([
-          apiFetch('/api/recommendations/store-list')
-            .catch(() => null)
-            .then(generatedAt),
-          spotsRuns(),
-        ])
-        generated = times
-        spots = runs
-      }
-    }
-  } catch {
-    // Unreachable API: the header says so; the tiles and links still work.
-  }
-  return {
-    api,
-    status,
-    generated,
-    spots,
-    snapshotAt: (await meta)?.fetched_at,
-  }
-}
-
-/**
- * The last seven days' views and visitors, or null when they cannot be
- * read. Never rejects: the tile shows a dash rather than failing the page.
- */
-async function loadViews() {
-  try {
-    const response = await apiFetch('/api/analytics?range=7d')
-    if (!response.ok) return null
-    const body = await response.json()
-    return typeof body?.views === 'number' ? body : null
-  } catch {
-    return null
-  }
-}
-
-/**
- * The admin landing, at /admin: the API and nightly state, four headline
- * figures, the nightly jobs, quick actions and the newest changes.
- * AdminLayout has already checked the session and loads the rows.
- */
-export default function Admin() {
-  const { items } = useOutletContext() ?? {}
-  const [nightly, setNightly] = useState(null)
-  // One clock for the visit, so ages and the year agree across renders.
-  const [now] = useState(() => Date.now())
-
-  // undefined while loading; null when the read failed.
-  const [views, setViews] = useState(undefined)
-
+function useRead(path, round = 0) {
+  const [body, setBody] = useState(undefined)
   useEffect(() => {
     let live = true
-    loadNightly().then((loaded) => {
-      if (live) setNightly(loaded)
-    })
-    loadViews().then((loaded) => {
-      if (live) setViews(loaded)
+    readJson(path).then((next) => {
+      if (live) setBody(next)
     })
     return () => {
       live = false
     }
-  }, [])
+  }, [path, round])
+  return body
+}
 
-  const year = ownerYear(now)
+const listLength = (body) => (Array.isArray(body) ? body.length : null)
+const figure = (value) => (value === null || value === undefined ? '—' : value)
+
+/** The game in hand's line of detail: platform, sessions and hours. */
+function continuingMeta(card) {
+  const parts = [card.platform]
+  if (card.sessions) parts.push(counted(card.sessions, 'session'))
+  if (card.journal_hours) parts.push(`${Math.round(card.journal_hours)}h`)
+  return parts.filter(Boolean).join(' · ')
+}
+
+/**
+ * Shelf: the game in hand with Log tonight and Wrap up, or else the next
+ * game to start; what is owned, finished this year and out this week.
+ */
+function ShelfCard({ items, year }) {
+  const [round, setRound] = useState(0)
+  const [wrap, setWrap] = useState(null)
+  const [logError, setLogError] = useState(false)
+  // The game being logged, held from the press until the refetch says the
+  // day is logged, so a second press cannot post the same day twice.
+  const [loggingId, setLoggingId] = useState(null)
+  const continuing = useRead('/api/picker/continuing', round)
+  const next = useRead('/api/public/next')
+
+  const card = continuing?.cards?.[0] ?? null
+  const pick = next?.tonight?.up_next ?? next?.tonight?.picks?.[0] ?? null
   const counts = items ? dashboardCounts(items, year) : null
-  const jobs = nightly?.status
-    ? nightlyJobs(
-        lastNightly(nightly.status, nightly.generated, now),
-        nightly.snapshotAt ?? null,
-        now,
-        nightly.spots,
-      )
+  const comics = Array.isArray(next?.comics_this_week)
+    ? next.comics_this_week.length
     : null
-  const headline = jobs ? nightlyHeadline(jobs) : null
-  const api = API_WORDS[nightly?.api ?? 'checking']
-  const pending = nightly?.status?.totals?.pending_keys
-  const changes = items ? recentChanges(items, jobs ?? []) : []
+
+  // Nothing to show at all: no game and nothing owned.
+  if (
+    counts &&
+    counts.owned === 0 &&
+    !card &&
+    !pick &&
+    continuing !== undefined
+  )
+    return null
+
+  async function logTonight() {
+    if (loggingId === card.item_id) return
+    setLoggingId(card.item_id)
+    setLogError(false)
+    try {
+      const response = await apiFetch(`/api/items/${card.item_id}/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ played_on: localToday() }),
+      })
+      if (!response.ok) throw new Error(`status ${response.status}`)
+      // Left held: the refetch brings the day back as logged.
+      setRound((current) => current + 1)
+    } catch {
+      setLogError(true)
+      setLoggingId(null)
+    }
+  }
+
+  let lead = null
+  let actions = null
+  if (card) {
+    const logged = card.last_played_on === localToday()
+    lead = (
+      <AreaLead
+        cover={<CoverImage src={card.cover_url} type={card.type} />}
+        title={`Continue: ${card.title}`}
+        meta={continuingMeta(card)}
+      />
+    )
+    actions = (
+      <>
+        <button
+          type="button"
+          className="btn primary sm"
+          disabled={logged || loggingId === card.item_id}
+          onClick={logTonight}
+        >
+          {logged ? 'Logged tonight' : 'Log tonight'}
+        </button>
+        <button
+          type="button"
+          className="btn sm"
+          onClick={() =>
+            setWrap({
+              item: {
+                id: card.item_id,
+                title: card.title,
+                cover_url: card.cover_url,
+                type: card.type,
+              },
+              preselect: 'finished',
+            })
+          }
+        >
+          Wrap up
+        </button>
+        {logError && (
+          <span className="admin-error" role="alert">
+            Couldn’t log tonight.
+          </span>
+        )}
+      </>
+    )
+  } else if (pick) {
+    lead = (
+      <AreaLead
+        cover={<CoverImage src={pick.cover_url} type={pick.type} />}
+        title={`Up next: ${pick.title}`}
+        meta={pick.platform}
+      />
+    )
+  } else if (continuing === undefined) {
+    lead = <p className="muted">Loading…</p>
+  }
+
+  return (
+    <>
+      <AreaCard
+        title="Shelf"
+        to="/admin/play-next"
+        linkLabel="Play Next"
+        lead={lead}
+        figures={[
+          { label: 'Owned', value: figure(counts?.owned) },
+          {
+            label: `Finished · ${year}`,
+            value: figure(counts?.finishedThisYear),
+          },
+          { label: 'Comics this week', value: figure(comics) },
+        ]}
+        actions={actions}
+      />
+      <WrapUpSheet
+        subject={wrap}
+        onClose={() => setWrap(null)}
+        onDone={() => {
+          setWrap(null)
+          setRound((current) => current + 1)
+        }}
+      />
+    </>
+  )
+}
+
+/** Denver: this weekend's first suggestions, and the spots and the queue. */
+function DenverCard() {
+  const plan = useRead('/api/spots/plan')
+  const spots = useRead('/api/spots')
+  const candidates = useRead('/api/spots/candidates')
+  const suggestions = Array.isArray(plan?.suggestions) ? plan.suggestions : []
+  const spotCount = listLength(spots)
+  const queued = listLength(candidates)
+
+  if (spotCount === 0 && plan !== undefined && suggestions.length === 0)
+    return null
+
+  const [first, second] = suggestions
+  const lead = first ? (
+    <AreaLead
+      title={`${first.when} · ${first.name}`}
+      meta={second && `${second.when} · ${second.name}`}
+    />
+  ) : (
+    plan === undefined && <p className="muted">Loading…</p>
+  )
+
+  return (
+    <AreaCard
+      title="Denver"
+      to="/admin/weekend"
+      linkLabel="Weekend"
+      lead={lead}
+      figures={[
+        { label: 'Spots', value: figure(spotCount) },
+        { label: 'Candidates', value: figure(queued) },
+      ]}
+      actions={
+        queued ? (
+          <Link className="btn sm" to="/admin/spots">
+            Review candidates
+          </Link>
+        ) : null
+      }
+    />
+  )
+}
+
+/** Site: the last seven days' traffic and the nightly jobs in one line. */
+function SiteCard({ nightly }) {
+  const views = useRead('/api/analytics?range=7d')
+  const read = typeof views?.views === 'number' ? views : null
+  // Ranked rows from analytics._ranked: {value, count}.
+  const top = read?.pages?.[0]?.value ?? null
+  const summary = nightly.jobs ? jobsSummary(nightly.jobs) : null
+
+  return (
+    <AreaCard
+      title="Site"
+      to="/admin/analytics"
+      linkLabel="Analytics"
+      lead={
+        summary ? (
+          <p className="area-card-meta">
+            <StatusText state={summary.state}>{summary.words}</StatusText>
+          </p>
+        ) : null
+      }
+      figures={[
+        { label: 'Views · 7 days', value: figure(read?.views) },
+        { label: 'Visitors', value: figure(read?.visitors) },
+        ...(top ? [{ label: 'Top page', value: top }] : []),
+      ]}
+      actions={
+        <Link className="btn sm" to="/admin/jobs">
+          Jobs
+        </Link>
+      }
+    />
+  )
+}
+
+/**
+ * Admin Home, at /admin: one card per area with the one thing that matters
+ * today, then the nightly jobs. AdminLayout has already checked the session
+ * and loads the rows.
+ */
+export default function Admin() {
+  const { items } = useOutletContext() ?? {}
+  const nightly = useNightly()
+  const year = ownerYear(nightly.now)
 
   return (
     <section className="dashboard">
-      <AdminPageHeader title="Dashboard">
-        <span role="status" className="admin-head-status">
-          <StatusText state={api.state}>{api.words}</StatusText>
-          {headline && (
-            <StatusText state={headline.state}>{headline.words}</StatusText>
-          )}
-        </span>
+      <AdminPageHeader title="Home">
+        <NightlyStatus nightly={nightly} />
       </AdminPageHeader>
 
-      <StatTiles label="Dashboard figures">
-        <StatTile
-          label="Owned"
-          value={counts ? counts.owned : '—'}
-          detail={
-            counts &&
-            `${counts.ownedPublic} public · ${counts.ownedHidden} hidden`
-          }
-        />
-        <StatTile
-          label={`Finished · ${year}`}
-          value={counts ? counts.finishedThisYear : '—'}
-          detail={
-            counts &&
-            `${counts.finished} all time${
-              counts.averageRating === null
-                ? ''
-                : ` · avg ${counts.averageRating.toFixed(1)}`
-            }`
-          }
-        />
-        <StatTile
-          label="Needs attention"
-          value={typeof pending === 'number' ? pending : '—'}
-          detail="catalog rows need a match"
-        />
-        <StatTile
-          label="Views · 7 days"
-          value={views ? views.views : '—'}
-          detail={
-            views
-              ? counted(views.visitors, 'visitor')
-              : views === null && 'Couldn’t be read'
-          }
-        />
-      </StatTiles>
-
-      <div className="dashboard-two">
-        <Panel title="Nightly jobs">
-          {jobs ? (
-            <ul className="job-list">
-              {jobs.map((job) => (
-                <JobStatusRow
-                  key={job.key}
-                  job={job}
-                  extra={
-                    job.stopped && (
-                      <>
-                        {' · '}
-                        <a href={REENABLE_URL}>how to re-enable it</a>
-                      </>
-                    )
-                  }
-                />
-              ))}
-            </ul>
-          ) : (
-            <p className="muted">
-              {nightly
-                ? 'The nightly status couldn’t be read.'
-                : 'Reading the nightly status…'}
-            </p>
-          )}
-        </Panel>
-
-        <Panel title="Quick actions" className="quick-actions">
-          <Link to="/admin/import">
-            Import photos<small>Read a shelf, then review</small>
-          </Link>
-          <Link to="/admin/store-list">
-            Store list<small>What to look for in person</small>
-          </Link>
-          <Link to="/admin/collection">
-            Add a game<small>Title, platform, copy format</small>
-          </Link>
-          <Link to="/admin/discover">
-            Rate a few
-            <small>
-              {counts ? `${counts.unrated} finished, unrated` : 'On Discover'}
-            </small>
-          </Link>
-        </Panel>
+      <div className="area-cards">
+        <ShelfCard items={items} year={year} />
+        <DenverCard />
+        <SiteCard nightly={nightly} />
       </div>
 
-      <Panel
-        title="Recent changes"
+      <JobsList
+        nightly={nightly}
         action={
-          <Link to="/admin/collection">
-            Shelf <span aria-hidden="true">→</span>
+          <Link to="/admin/jobs">
+            Jobs <span aria-hidden="true">→</span>
           </Link>
         }
-      >
-        {changes.length ? (
-          <div className="item-table-wrap">
-            <table className="item-table recent-table">
-              <thead>
-                <tr>
-                  <th scope="col">Item</th>
-                  <th scope="col">Change</th>
-                  <th scope="col">When</th>
-                </tr>
-              </thead>
-              <tbody>
-                {changes.map((change) => (
-                  <tr key={change.key}>
-                    <td>
-                      <Link to={change.to}>{change.title}</Link>
-                    </td>
-                    <td>{change.change}</td>
-                    <td className="job-when">{whenWords(change.at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="muted">{items ? 'Nothing yet.' : 'Loading…'}</p>
-        )}
-      </Panel>
+      />
     </section>
   )
 }

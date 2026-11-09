@@ -1,8 +1,15 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ownerYear } from '../lib/formatDate.js'
+import { localToday } from '../lib/statusMoves.js'
 import AdminLayout from '../layouts/AdminLayout.jsx'
 import Admin from './Admin.jsx'
 
@@ -53,20 +60,24 @@ const ITEMS = [
     finished_at: `${YEAR}-02-01`,
     updated_at: ago(30),
   },
-  {
-    id: 3,
-    title: 'Hades',
-    type: 'game',
-    status: 'finished',
-    owned_format: 'none',
-    is_public: true,
-    rating: null,
-    finished_at: `${YEAR - 1}-05-01`,
-    updated_at: ago(60),
-  },
 ]
 
-const status = (overrides = {}) => ({
+const CONTINUING = {
+  item_id: 'a1',
+  type: 'game',
+  title: 'Dredge',
+  cover_url: null,
+  platform: 'Switch',
+  time_to_beat_hours: 12,
+  playthrough: 1,
+  playing_since: '2026-10-01',
+  last_played_on: '2026-10-20',
+  journal_hours: 6.4,
+  sessions: 3,
+  stale: false,
+}
+
+const status = () => ({
   sources: [
     {
       source: 'lrg',
@@ -75,8 +86,7 @@ const status = (overrides = {}) => ({
       last_run: { started_at: ago(1), finished_at: ago(1), ok: true },
     },
   ],
-  totals: { pending_keys: 210 },
-  ...overrides,
+  totals: { pending_keys: 0 },
 })
 
 /** One stub per endpoint; any can be swapped for a response or a throw. */
@@ -86,8 +96,6 @@ function stubApi(routes = {}) {
     '/api/items': () => json(ITEMS),
     '/api/physical/status': () => json(status()),
     '/api/recommendations/store-list': () =>
-      // Older than the catalogue run's ago(1): an equal stamp ties, and the
-      // milliseconds between the two calls would decide which row leads.
       json({ generated_at: { radar: ago(1.5), discover: ago(1.5) } }),
     '/api/spots/status': () =>
       json({
@@ -95,336 +103,249 @@ function stubApi(routes = {}) {
         'candidates.last_run': { at: ago(30), state: 'ok', queued: 4 },
       }),
     '/snapshot/meta.json': () => json({ fetched_at: ago(3) }),
+    '/api/picker/continuing': () => json({ cards: [CONTINUING] }),
+    '/api/public/next': () =>
+      json({
+        tonight: {
+          continuing: [],
+          up_next: null,
+          picks: [],
+          last_finish: null,
+        },
+        comics_this_week: [{}, {}],
+      }),
+    '/api/spots/plan': () =>
+      json({
+        suggestions: [
+          { when: 'Saturday morning', name: 'Chautauqua' },
+          { when: 'Sunday', name: 'Red Rocks' },
+        ],
+      }),
+    '/api/spots': () => json([{}, {}, {}]),
+    '/api/spots/candidates': () => json([{}, {}]),
+    '/api/analytics?range=7d': () =>
+      json({ views: 42, visitors: 7, pages: [{ value: '/daily', count: 30 }] }),
   }
   const table = { ...defaults, ...routes }
-  const fetch = vi.fn(async (url) => {
+  const fetch = vi.fn(async (url, options) => {
     const path = String(url).replace(/^https?:\/\/[^/]+/, '')
     const handler = table[path]
     if (!handler) return json({}, false)
-    return handler()
+    return handler(options)
   })
   vi.stubGlobal('fetch', fetch)
   return fetch
 }
 
-const called = (fetch, path) =>
-  fetch.mock.calls.some(([url]) => String(url).endsWith(path))
+const card = (name) => screen.findByRole('region', { name })
+const figureOf = (region, label) => within(region).getByText(label).nextSibling
 
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
 
-describe('Admin Dashboard', () => {
-  it('titles the page and says the API is awake and the nightly ok', async () => {
+describe('Admin Home', () => {
+  it('titles the page Home and keeps the API and nightly state', async () => {
     stubApi()
     renderAt()
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Dashboard' }),
+      await screen.findByRole('heading', { level: 1, name: 'Home' }),
     ).toBeInTheDocument()
     expect(await screen.findByText('API awake')).toBeInTheDocument()
     expect(screen.getByText(/^nightly ok · /)).toBeInTheDocument()
-    expect(document.title).toBe('Dashboard · Admin · Joey Haas')
+    expect(document.title).toBe('Home · Admin · Joey Haas')
   })
 
-  it('counts the tiles from the rows and the catalog status', async () => {
+  it('leads Shelf with the game in hand, and its figures', async () => {
     stubApi()
     renderAt()
-    const tiles = await screen.findByLabelText('Dashboard figures')
-    await within(tiles).findByText('1 public · 1 hidden')
-    expect(within(tiles).getByText('Owned').nextSibling).toHaveTextContent('2')
+    const shelf = await card('Shelf')
     expect(
-      within(tiles).getByText(`Finished · ${YEAR}`).nextSibling,
-    ).toHaveTextContent('1')
-    expect(within(tiles).getByText('2 all time · avg 9.0')).toBeInTheDocument()
-    expect(
-      (await within(tiles).findByText('210')).previousSibling,
-    ).toHaveTextContent('Needs attention')
-    expect(
-      within(tiles).getByText('Views · 7 days').nextSibling,
-    ).toHaveTextContent('—')
-    expect(
-      await within(tiles).findByText('Couldn’t be read'),
+      await within(shelf).findByText('Continue: Dredge'),
     ).toBeInTheDocument()
+    expect(
+      within(shelf).getByText('Switch · 3 sessions · 6h'),
+    ).toBeInTheDocument()
+    expect(
+      within(shelf).getByRole('link', { name: 'Play Next' }),
+    ).toHaveAttribute('href', '/admin/play-next')
+    await waitFor(() => expect(figureOf(shelf, 'Owned')).toHaveTextContent('2'))
+    expect(figureOf(shelf, `Finished · ${YEAR}`)).toHaveTextContent('1')
+    expect(figureOf(shelf, 'Comics this week')).toHaveTextContent('2')
   })
 
-  it('reads the views tile from the last seven days of analytics', async () => {
+  it('logs tonight from the card, then reads it as logged', async () => {
+    let logged = false
     const fetch = stubApi({
-      '/api/analytics?range=7d': () => json({ views: 42, visitors: 1 }),
-    })
-    renderAt()
-    const tiles = await screen.findByLabelText('Dashboard figures')
-    expect(await within(tiles).findByText('1 visitor')).toBeInTheDocument()
-    expect(
-      within(tiles).getByText('Views · 7 days').nextSibling,
-    ).toHaveTextContent('42')
-    expect(called(fetch, '/api/analytics?range=7d')).toBe(true)
-  })
-
-  it('lists the six nightly jobs with their state in words', async () => {
-    stubApi()
-    renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
-    expect(rows).toHaveLength(6)
-    expect(rows[0]).toHaveTextContent('Catalog refresh')
-    expect(rows[0]).toHaveTextContent(/ok/)
-    expect(rows[3]).toHaveTextContent('Weekend forecast')
-    expect(rows[4]).toHaveTextContent('Spot finder')
-    expect(rows[5]).toHaveTextContent('Public snapshot')
-    expect(
-      within(panel).getByRole('link', { name: 'Run now: Radar' }),
-    ).toHaveAttribute('href', '/admin/radar')
-    expect(
-      within(panel).getByRole('link', { name: 'Run now: Weekend forecast' }),
-    ).toHaveAttribute('href', '/admin/weekend')
-    expect(
-      within(panel).getByRole('link', { name: 'Run now: Spot finder' }),
-    ).toHaveAttribute('href', '/admin/spots')
-    expect(
-      within(rows[5]).queryByRole('link', { name: /Run now/ }),
-    ).not.toBeInTheDocument()
-  })
-
-  it('names a failed forecast and reads failed in the header', async () => {
-    stubApi({
-      '/api/spots/status': () =>
+      '/api/items/a1/sessions': () => {
+        logged = true
+        return json({})
+      },
+      '/api/picker/continuing': () =>
         json({
-          'weather.last_run': {
-            at: ago(1),
-            state: 'failed',
-            note: 'NWS answered 503',
-          },
-          'candidates.last_run': null,
+          cards: [
+            {
+              ...CONTINUING,
+              last_played_on: logged ? localToday() : '2026-10-20',
+            },
+          ],
         }),
     })
     renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
-    expect(rows[3]).toHaveTextContent('Failed: NWS answered 503')
-    expect(rows[4]).toHaveTextContent('No run recorded')
-    expect(rows[4]).toHaveTextContent('unknown')
-    expect(await screen.findByText(/^nightly failed/)).toBeInTheDocument()
-  })
-
-  it('keeps the jobs when the spots status fails, with both rows unknown', async () => {
-    stubApi({ '/api/spots/status': () => json({}, false) })
-    renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
-    expect(rows).toHaveLength(6)
-    expect(rows[3]).toHaveTextContent('unknown')
-    expect(rows[4]).toHaveTextContent('unknown')
-    expect(rows[0]).toHaveTextContent(/ok/)
-  })
-
-  it('names a failed source and reads failed in the header', async () => {
-    stubApi({
-      '/api/physical/status': () =>
-        json(
-          status({
-            sources: [
-              {
-                source: 'lrg',
-                name: 'Limited Run',
-                kind: 'store',
-                last_run: {
-                  started_at: ago(1),
-                  finished_at: ago(1),
-                  ok: false,
-                },
-              },
-            ],
-          }),
-        ),
-    })
-    renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    expect(
-      await within(panel).findByText('Failed: Limited Run'),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/^nightly failed · /)).toBeInTheDocument()
-  })
-
-  it('links how to re-enable the schedule when nothing has run', async () => {
-    stubApi({ '/api/physical/status': () => json(status({ sources: [] })) })
-    renderAt()
-    expect(
-      await screen.findByRole('link', { name: /how to re-enable it/i }),
-    ).toHaveAttribute(
-      'href',
-      'https://github.com/joeyh92989/joey-haas.dev#nightly-job',
+    const shelf = await card('Shelf')
+    fireEvent.click(
+      await within(shelf).findByRole('button', { name: 'Log tonight' }),
     )
-    expect(screen.getByText(/^nightly stale/)).toBeInTheDocument()
-  })
-
-  it('still links how to re-enable it when the last, old night failed', async () => {
-    stubApi({
-      '/api/physical/status': () =>
-        json(
-          status({
-            sources: [
-              {
-                source: 'lrg',
-                name: 'Limited Run',
-                kind: 'store',
-                last_run: {
-                  started_at: ago(40),
-                  finished_at: ago(40),
-                  ok: false,
-                },
-              },
-            ],
-          }),
-        ),
-    })
-    renderAt()
     expect(
-      await screen.findByRole('link', { name: /how to re-enable it/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/^nightly failed/)).toBeInTheDocument()
+      await within(shelf).findByRole('button', { name: 'Logged tonight' }),
+    ).toBeDisabled()
+    const post = fetch.mock.calls.find(([url]) =>
+      String(url).endsWith('/api/items/a1/sessions'),
+    )
+    expect(JSON.parse(post[1].body)).toEqual({ played_on: localToday() })
   })
 
-  it('reads the snapshot as unknown without meta.json', async () => {
-    stubApi({ '/snapshot/meta.json': () => json({}, false) })
-    renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
-    expect(rows[5]).toHaveTextContent('No build time recorded')
-    expect(rows[5]).toHaveTextContent('unknown')
-    // An unknown job does not drag the headline down.
-    expect(screen.getByText(/^nightly ok · /)).toBeInTheDocument()
-  })
-
-  it('keeps the jobs when the store list fails, with generates unknown', async () => {
-    stubApi({
-      '/api/recommendations/store-list': () => json({}, false),
+  it('keeps the card while it refetches, and posts a double press once', async () => {
+    let release
+    let logged = false
+    const fetch = stubApi({
+      '/api/items/a1/sessions': () => {
+        logged = true
+        return json({})
+      },
+      '/api/picker/continuing': () =>
+        logged
+          ? new Promise((resolve) => {
+              release = () =>
+                resolve(
+                  json({
+                    cards: [{ ...CONTINUING, last_played_on: localToday() }],
+                  }),
+                )
+            })
+          : json({ cards: [CONTINUING] }),
     })
     renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
-    expect(rows[1]).toHaveTextContent('Not generated yet')
-    expect(rows[1]).toHaveTextContent('unknown')
-  })
-
-  it('asks for nothing else, and says so, when the status cannot be read', async () => {
-    const fetch = stubApi({ '/api/physical/status': () => json({}, false) })
-    renderAt()
-    // The server answered, so it is up: an error, not unreachable.
-    expect(await screen.findByText('API error')).toBeInTheDocument()
+    const shelf = await card('Shelf')
+    const button = await within(shelf).findByRole('button', {
+      name: 'Log tonight',
+    })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    await waitFor(() => expect(release).toBeDefined())
+    // The refetch is in flight: the game and its controls stay put.
+    expect(within(shelf).getByText('Continue: Dredge')).toBeInTheDocument()
     expect(
-      screen.getByText('The nightly status couldn’t be read.'),
-    ).toBeInTheDocument()
-    expect(called(fetch, '/api/recommendations/store-list')).toBe(false)
-    expect(called(fetch, '/api/spots/status')).toBe(false)
-    expect(screen.queryByText(/^nightly /)).not.toBeInTheDocument()
-  })
-
-  it('says the session ended when the status answers 401', async () => {
-    stubApi({
-      '/api/physical/status': () => ({
-        ok: false,
-        status: 401,
-        json: async () => ({}),
-      }),
-    })
-    renderAt()
+      within(shelf).getByRole('button', { name: 'Log tonight' }),
+    ).toBeDisabled()
+    release()
     expect(
-      await screen.findByText('Your session ended. Reload to sign in.'),
-    ).toBeInTheDocument()
+      await within(shelf).findByRole('button', { name: 'Logged tonight' }),
+    ).toBeDisabled()
+    const posts = fetch.mock.calls.filter(([url]) =>
+      String(url).endsWith('/api/items/a1/sessions'),
+    )
+    expect(posts).toHaveLength(1)
   })
 
-  it('reads the generate times from the store list', async () => {
+  it('falls back to Up next when no game is in hand', async () => {
     stubApi({
-      '/api/recommendations/store-list': () =>
-        json({ generated_at: { radar: ago(40), discover: ago(2) } }),
+      '/api/picker/continuing': () => json({ cards: [] }),
+      '/api/public/next': () =>
+        json({
+          tonight: {
+            continuing: [],
+            up_next: {
+              item_id: 'b',
+              type: 'game',
+              title: 'Hades',
+              platform: 'Switch',
+            },
+            picks: [],
+          },
+          comics_this_week: [],
+        }),
     })
     renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
-    expect(rows[1]).toHaveTextContent('Upcoming releases')
-    expect(rows[1]).toHaveTextContent('stale')
-    expect(rows[2]).toHaveTextContent('Sunday evenings only')
-    expect(rows[2]).toHaveTextContent('ok')
-  })
-
-  it('reads the snapshot build time from meta.json', async () => {
-    stubApi({ '/snapshot/meta.json': () => json({ fetched_at: ago(40) }) })
-    renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
-    expect(rows[5]).toHaveTextContent('Rebuilt nightly')
-    expect(rows[5]).toHaveTextContent('stale')
-  })
-
-  it('reads a status body with no sources as no jobs, not a stopped schedule', async () => {
-    stubApi({
-      '/api/physical/status': () => json({ detail: 'not a status document' }),
-    })
-    renderAt()
+    const shelf = await card('Shelf')
+    expect(await within(shelf).findByText('Up next: Hades')).toBeInTheDocument()
     expect(
-      await screen.findByText('The nightly status couldn’t be read.'),
-    ).toBeInTheDocument()
-    expect(screen.getByText('API awake')).toBeInTheDocument()
-    expect(screen.queryByText(/how to re-enable/)).not.toBeInTheDocument()
+      within(shelf).queryByRole('button', { name: 'Log tonight' }),
+    ).not.toBeInTheDocument()
   })
 
-  it('keeps the page when the status request throws', async () => {
+  it('leads Denver with the weekend, and links the candidates', async () => {
+    stubApi()
+    renderAt()
+    const denver = await card('Denver')
+    expect(
+      await within(denver).findByText('Saturday morning · Chautauqua'),
+    ).toBeInTheDocument()
+    expect(within(denver).getByText('Sunday · Red Rocks')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(figureOf(denver, 'Spots')).toHaveTextContent('3'),
+    )
+    expect(figureOf(denver, 'Candidates')).toHaveTextContent('2')
+    expect(
+      within(denver).getByRole('link', { name: 'Review candidates' }),
+    ).toHaveAttribute('href', '/admin/spots')
+  })
+
+  it('hides Denver with no spots and no weekend', async () => {
     stubApi({
+      '/api/spots/plan': () => json({ suggestions: [] }),
+      '/api/spots': () => json([]),
+    })
+    renderAt()
+    await card('Shelf')
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('region', { name: 'Denver' }),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
+  it("reads Site's traffic and sums up the jobs", async () => {
+    stubApi()
+    renderAt()
+    const site = await card('Site')
+    await waitFor(() =>
+      expect(figureOf(site, 'Views · 7 days')).toHaveTextContent('42'),
+    )
+    expect(figureOf(site, 'Visitors')).toHaveTextContent('7')
+    expect(figureOf(site, 'Top page')).toHaveTextContent('/daily')
+    expect(await within(site).findByText(/jobs ok/)).toBeInTheDocument()
+    expect(within(site).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
+      'href',
+      '/admin/jobs',
+    )
+  })
+
+  it('shows dashes when the reads fail, and keeps the page', async () => {
+    stubApi({
+      '/api/analytics?range=7d': () => json({}, false),
       '/api/physical/status': () => {
         throw new TypeError('Failed to fetch')
       },
     })
     renderAt()
     expect(await screen.findByText('API unreachable')).toBeInTheDocument()
-    const panel = screen.getByRole('region', { name: 'Quick actions' })
+    const site = await card('Site')
+    expect(figureOf(site, 'Views · 7 days')).toHaveTextContent('—')
     expect(
-      within(panel).getByRole('link', { name: /Import photos/ }),
-    ).toHaveAttribute('href', '/admin/import')
+      screen.getByText('The nightly status couldn’t be read.'),
+    ).toBeInTheDocument()
   })
 
-  it('offers the quick actions, with the unrated count', async () => {
+  it('lists the nightly jobs, linked to the Jobs page', async () => {
     stubApi()
     renderAt()
-    const panel = await screen.findByRole('region', { name: 'Quick actions' })
-    expect(
-      await within(panel).findByRole('link', { name: /Rate a few/ }),
-    ).toHaveTextContent('1 finished, unrated')
-    expect(
-      within(panel).getByRole('link', { name: /Store list/ }),
-    ).toHaveAttribute('href', '/admin/store-list')
-    expect(
-      within(panel).getByRole('link', { name: /Add a game/ }),
-    ).toHaveAttribute('href', '/admin/collection')
-  })
-
-  it('lists the newest edits and runs, each linked', async () => {
-    stubApi()
-    renderAt()
-    const panel = await screen.findByRole('region', { name: 'Recent changes' })
-    const table = await within(panel).findByRole('table')
-    const rows = within(table).getAllByRole('row').slice(1)
-    expect(rows[0]).toHaveTextContent('Catalog refresh')
-    expect(rows[0]).toHaveTextContent('Ran')
-    expect(within(table).getByRole('link', { name: 'Dredge' })).toHaveAttribute(
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    expect(await within(panel).findAllByRole('listitem')).toHaveLength(6)
+    expect(within(panel).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
       'href',
-      '/admin/collection/1',
+      '/admin/jobs',
     )
-    expect(within(table).getByText('Edited · Playing')).toBeInTheDocument()
-  })
-
-  it('waits on the status before calling it unreachable', async () => {
-    let release
-    stubApi({
-      '/api/physical/status': () =>
-        new Promise((resolve) => {
-          release = () => resolve(json(status()))
-        }),
-    })
-    renderAt()
-    expect(await screen.findByText('Checking the API')).toBeInTheDocument()
-    await waitFor(() => expect(release).toBeTypeOf('function'))
-    release()
-    expect(await screen.findByText('API awake')).toBeInTheDocument()
   })
 })

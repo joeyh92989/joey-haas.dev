@@ -2,82 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
+import { ADMIN_AREAS, areaFor, onPage, segmentsFor } from './adminAreas.js'
+
+/** Below this width the rail and page list give way to tabs and segments. */
+export const PHONE_QUERY = '(max-width: 900px)'
 
 /**
- * The admin navigation, in sidebar order. Routes keep their old URLs; only
- * the labels moved ("Collection" is the Shelf, "Catalog" is Sources).
- */
-const ADMIN_GROUPS = [
-  {
-    label: 'Overview',
-    items: [
-      { to: '/admin', label: 'Dashboard', end: true },
-      { to: '/admin/analytics', label: 'Analytics' },
-    ],
-  },
-  {
-    label: 'Collection',
-    items: [
-      { to: '/admin/collection', label: 'Shelf', count: true },
-      { to: '/admin/import', label: 'Import photos' },
-    ],
-  },
-  {
-    label: 'Recommend',
-    items: [
-      { to: '/admin/play-next', label: 'Play Next' },
-      { to: '/admin/discover', label: 'Discover' },
-      { to: '/admin/radar', label: 'Radar' },
-      { to: '/admin/pull-list', label: 'Pull list' },
-    ],
-  },
-  {
-    label: 'Catalog',
-    items: [
-      { to: '/admin/catalogue', label: 'Sources' },
-      { to: '/admin/store-list', label: 'Store list' },
-    ],
-  },
-  {
-    label: 'Denver',
-    items: [
-      { to: '/admin/weekend', label: 'Weekend' },
-      { to: '/admin/spots', label: 'Spots' },
-    ],
-  },
-]
-
-/** The phone tab bar's sheets: a tab that groups pages rather than being one. */
-const SHEETS = {
-  picks: {
-    label: 'Picks',
-    items: ADMIN_GROUPS[2].items,
-  },
-  stores: {
-    label: 'Stores',
-    items: ADMIN_GROUPS[3].items,
-  },
-  more: {
-    label: 'More',
-    items: [
-      { to: '/admin/analytics', label: 'Analytics' },
-      { to: '/admin/import', label: 'Import photos' },
-      ...ADMIN_GROUPS[4].items,
-    ],
-  },
-}
-
-/** Whether a pathname is one of the links or nested under one. */
-function within(items, pathname) {
-  return items.some(
-    (item) =>
-      pathname === item.to || (!item.end && pathname.startsWith(`${item.to}/`)),
-  )
-}
-
-/**
- * The Shelf link's owned count: shown beside the label, and read out as
- * part of it.
+ * The Collection link's owned count: shown beside the label, and read out
+ * as part of it.
  */
 function OwnedCount({ value }) {
   if (value === null || value === undefined) return null
@@ -92,12 +24,134 @@ function OwnedCount({ value }) {
 }
 
 /**
- * One of the tab bar's sheets: a native modal <dialog>, as the site's
- * MobileNavSheet is, so focus is trapped and the page behind is inert.
- * Escape, the Close button, a click on the backdrop and following a link
- * all close it through `onClose`, and focus goes back to the tab.
+ * An area's pending count as a warn badge, read out as part of the area's
+ * name ("Closet, 9 to review"). Nothing when there is nothing pending.
  */
-function TabSheet({ sheet, open, onClose, returnFocusRef, children }) {
+function AreaBadge({ badge }) {
+  if (!badge?.value) return null
+  return (
+    <>
+      <span className="admin-badge" aria-hidden="true">
+        {badge.value}
+      </span>
+      <span className="visually-hidden">{`, ${badge.value} ${badge.words}`}</span>
+    </>
+  )
+}
+
+/**
+ * One link per area, landing on its home. The rail (desktop) and the tab
+ * bar (phone) differ only in their class and layout.
+ */
+function AreaLinks({ current, badges, iconClass }) {
+  return ADMIN_AREAS.map((area) => {
+    const active = area.key === current.key
+    return (
+      <Link
+        key={area.key}
+        to={area.home}
+        className={active ? 'active' : undefined}
+        aria-current={active ? 'true' : undefined}
+      >
+        <span className={iconClass} aria-hidden="true">
+          {area.icon}
+        </span>
+        <span className="admin-area-label">{area.label}</span>
+        <AreaBadge badge={badges[area.key]} />
+      </Link>
+    )
+  })
+}
+
+/** The desktop's first column: the areas, and a way back to the site. */
+function AreaRail({ current, badges }) {
+  return (
+    <div className="admin-rail">
+      <span className="admin-rail-mark" aria-hidden="true">
+        jh
+      </span>
+      <nav aria-label="Areas" className="admin-rail-nav">
+        <AreaLinks
+          current={current}
+          badges={badges}
+          iconClass="admin-rail-icon"
+        />
+      </nav>
+      <Link to="/" className="admin-rail-site" title="View site">
+        <span aria-hidden="true">↗</span>
+        <span className="visually-hidden">View site</span>
+      </Link>
+    </div>
+  )
+}
+
+/** Splits a page list into runs sharing a kicker; one unnamed run if none. */
+function runs(pages) {
+  const out = []
+  for (const page of pages) {
+    const last = out[out.length - 1]
+    if (last && last.group === page.group) last.pages.push(page)
+    else out.push({ group: page.group, pages: [page] })
+  }
+  return out
+}
+
+/** The desktop's second column: the current area's pages and the account. */
+function AreaPages({ area, ownedCount, email, onSignOut }) {
+  return (
+    <aside className="admin-side">
+      <p className="admin-side-title">
+        {area.label}
+        <small>{area.description}</small>
+      </p>
+      <nav aria-label={`${area.label} pages`} className="admin-side-nav">
+        {runs(area.pages).map((run) => (
+          <div key={run.group ?? 'pages'} className="admin-side-group">
+            {run.group && (
+              <p className="kicker" id={`admin-group-${run.group}`}>
+                {run.group}
+              </p>
+            )}
+            <ul
+              aria-labelledby={
+                run.group ? `admin-group-${run.group}` : undefined
+              }
+            >
+              {run.pages.map((page) => (
+                <li key={page.to}>
+                  <NavLink to={page.to} end={page.end}>
+                    {page.label}
+                    {page.count && <OwnedCount value={ownedCount} />}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+      <div className="admin-side-foot">
+        {email && <p className="admin-side-email">{email}</p>}
+        <p>
+          <Link to="/">
+            View site <span aria-hidden="true">↗</span>
+          </Link>
+          {' · '}
+          <button type="button" className="link-button" onClick={onSignOut}>
+            Sign out
+          </button>
+        </p>
+      </div>
+    </aside>
+  )
+}
+
+/**
+ * A segment's sheet: a native modal <dialog>, as the site's MobileNavSheet
+ * is, so focus is trapped and the page behind is inert. Escape, the Close
+ * button, a click on the backdrop and following a link all close it through
+ * `onClose`, and focus goes back to the segment.
+ */
+function TabSheet({ label, pages, open, onClose, returnFocusRef }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -114,7 +168,7 @@ function TabSheet({ sheet, open, onClose, returnFocusRef, children }) {
     <dialog
       ref={ref}
       className="nav-sheet admin-sheet"
-      aria-label={sheet.label}
+      aria-label={label}
       onCancel={(event) => {
         event.preventDefault()
         onClose()
@@ -129,18 +183,17 @@ function TabSheet({ sheet, open, onClose, returnFocusRef, children }) {
       {open && (
         <div className="nav-sheet-body">
           <div className="nav-sheet-head">
-            <span className="kicker">{sheet.label}</span>
+            <span className="kicker">{label}</span>
             <button type="button" className="btn sm" onClick={onClose}>
               Close
             </button>
           </div>
-          <nav aria-label={sheet.label}>
-            {sheet.items.map((item) => (
-              <NavLink key={item.to} to={item.to} onClick={onClose}>
-                {item.label}
+          <nav aria-label={label}>
+            {pages.map((page) => (
+              <NavLink key={page.to} to={page.to} onClick={onClose}>
+                {page.label}
               </NavLink>
             ))}
-            {children}
           </nav>
         </div>
       )}
@@ -149,136 +202,140 @@ function TabSheet({ sheet, open, onClose, returnFocusRef, children }) {
 }
 
 /**
- * The admin frame: a sidebar on a desktop, a five-item tab bar on a phone,
- * and the routed page in <main> beside or above it. It replaces the public
- * masthead and footer on every /admin route once signed in.
+ * The phone's segmented control: the current area's pages, or, for Shelf,
+ * a few pages and sheets of the rest. A sheet segment is current when the
+ * page is one of its own.
+ */
+function AreaSubnav({ area, pathname, sheet, onOpen, onClose }) {
+  const segments = segmentsFor(area)
+  // One stable ref per sheet segment, so focus can go back to it.
+  const refs = useRef({})
+  const refFor = (label) => (refs.current[label] ??= { current: null })
+  return (
+    <>
+      <nav aria-label={`${area.label} pages`} className="admin-subnav">
+        {segments.map((segment) => {
+          if (!segment.sheet) {
+            return (
+              <NavLink key={segment.to} to={segment.to} end={segment.end}>
+                {segment.label}
+              </NavLink>
+            )
+          }
+          const current = segment.sheet.some((page) => onPage(page, pathname))
+          return (
+            <button
+              key={segment.label}
+              type="button"
+              ref={refFor(segment.label)}
+              className={current ? 'active' : undefined}
+              aria-current={current ? 'true' : undefined}
+              aria-haspopup="dialog"
+              aria-expanded={sheet === segment.label}
+              onClick={() => onOpen(segment.label)}
+            >
+              {segment.label}
+            </button>
+          )
+        })}
+      </nav>
+      {segments
+        .filter((segment) => segment.sheet)
+        .map((segment) => (
+          <TabSheet
+            key={segment.label}
+            label={segment.label}
+            pages={segment.sheet}
+            open={sheet === segment.label}
+            onClose={onClose}
+            returnFocusRef={refFor(segment.label)}
+          />
+        ))}
+    </>
+  )
+}
+
+/**
+ * The admin frame, organised by area (`adminAreas.js`). On a desktop: the
+ * area rail, the current area's page list, and the routed page in <main>.
+ * On a phone: the page in <main> under the area's segmented control, and a
+ * tab bar of areas fixed at the foot. It replaces the public masthead and
+ * footer on every /admin route once signed in.
  *
  * @param {object} props
  * @param {string|null} props.email The signed-in account.
- * @param {number|null} props.ownedCount Shown beside Shelf once loaded.
+ * @param {number|null} props.ownedCount Shown beside Collection once loaded.
+ * @param {Record<string, {value: number, words: string}>} [props.badges]
+ *   Pending counts per area key, e.g. `{ closet: { value: 9, words: 'to review' } }`.
  * @param {() => void} props.onSignOut Signs out; the layout owns the result.
  * @param {import('react').ReactNode} props.children The routed page.
  */
-export default function AdminShell({ email, ownedCount, onSignOut, children }) {
-  const phone = useMediaQuery('(max-width: 700px)')
+export default function AdminShell({
+  email,
+  ownedCount,
+  badges = {},
+  onSignOut,
+  children,
+}) {
+  const phone = useMediaQuery(PHONE_QUERY)
   const mainRef = useRouteFocus()
   const { pathname } = useLocation()
+  const area = areaFor(pathname)
   const [sheet, setSheet] = useState(null)
-  // A sheet belongs to the tab bar: crossing the breakpoint closes it, or it
-  // would open again by itself on the way back to a phone width.
-  const [sheetPhone, setSheetPhone] = useState(phone)
-  if (sheetPhone !== phone) {
-    setSheetPhone(phone)
+  // A sheet belongs to the phone layout and to one area: crossing the
+  // breakpoint or changing area closes it, or it would open again by itself
+  // on the way back.
+  const scope = `${phone}:${area.key}`
+  const [sheetScope, setSheetScope] = useState(scope)
+  if (sheetScope !== scope) {
+    setSheetScope(scope)
     setSheet(null)
-  }
-  const tabRefs = {
-    picks: useRef(null),
-    stores: useRef(null),
-    more: useRef(null),
   }
 
   return (
     <div className={phone ? 'admin-app admin-app-phone' : 'admin-app'}>
+      {!phone && <AreaRail current={area} badges={badges} />}
       {!phone && (
-        <aside className="admin-side">
-          <Link to="/admin" className="brand">
-            <span className="mark" aria-hidden="true">
-              JH
-            </span>
-            Admin
-          </Link>
-          <nav aria-label="Admin" className="admin-side-nav">
-            {ADMIN_GROUPS.map((group) => (
-              <div key={group.label} className="admin-side-group">
-                <p className="kicker" id={`admin-group-${group.label}`}>
-                  {group.label}
-                </p>
-                <ul aria-labelledby={`admin-group-${group.label}`}>
-                  {group.items.map((item) => (
-                    <li key={item.to}>
-                      <NavLink to={item.to} end={item.end}>
-                        {item.label}
-                        {item.count && <OwnedCount value={ownedCount} />}
-                      </NavLink>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </nav>
-          <div className="admin-side-foot">
-            {email && <p className="admin-side-email">{email}</p>}
-            <p>
-              <Link to="/">
-                View site <span aria-hidden="true">↗</span>
-              </Link>
-              {' · '}
-              <button type="button" className="link-button" onClick={onSignOut}>
-                Sign out
-              </button>
-            </p>
-          </div>
-        </aside>
+        <AreaPages
+          area={area}
+          ownedCount={ownedCount}
+          email={email}
+          onSignOut={onSignOut}
+        />
       )}
 
       <main id="main" ref={mainRef} tabIndex={-1} className="admin-main">
+        {phone && (
+          <AreaSubnav
+            area={area}
+            pathname={pathname}
+            sheet={sheet}
+            onOpen={setSheet}
+            onClose={() => setSheet(null)}
+          />
+        )}
         {children}
+        {phone && (
+          <p className="admin-phone-foot">
+            {email && <span className="admin-side-email">{email}</span>}
+            <Link to="/">
+              View site <span aria-hidden="true">↗</span>
+            </Link>
+            <button type="button" className="link-button" onClick={onSignOut}>
+              Sign out
+            </button>
+          </p>
+        )}
       </main>
 
       {phone && (
-        <>
-          <nav aria-label="Admin" className="admin-tabs">
-            <NavLink to="/admin" end>
-              Home
-            </NavLink>
-            <NavLink to="/admin/collection">Shelf</NavLink>
-            {Object.entries(SHEETS).map(([key, value]) => {
-              const current = within(value.items, pathname)
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  ref={tabRefs[key]}
-                  className={current ? 'active' : undefined}
-                  aria-current={current ? 'true' : undefined}
-                  aria-haspopup="dialog"
-                  aria-expanded={sheet === key}
-                  onClick={() => setSheet(key)}
-                >
-                  {value.label}
-                </button>
-              )
-            })}
-          </nav>
-          {Object.entries(SHEETS).map(([key, value]) => (
-            <TabSheet
-              key={key}
-              sheet={value}
-              open={sheet === key}
-              onClose={() => setSheet(null)}
-              returnFocusRef={tabRefs[key]}
-            >
-              {key === 'more' && (
-                <>
-                  <Link to="/" onClick={() => setSheet(null)}>
-                    View site <span aria-hidden="true">↗</span>
-                  </Link>
-                  <button
-                    type="button"
-                    className="link-button admin-sheet-signout"
-                    onClick={() => {
-                      setSheet(null)
-                      onSignOut()
-                    }}
-                  >
-                    Sign out
-                  </button>
-                  {email && <p className="muted admin-sheet-email">{email}</p>}
-                </>
-              )}
-            </TabSheet>
-          ))}
-        </>
+        <nav aria-label="Areas" className="admin-tabs">
+          <AreaLinks
+            current={area}
+            badges={badges}
+            iconClass="admin-tabs-icon"
+          />
+        </nav>
       )}
     </div>
   )

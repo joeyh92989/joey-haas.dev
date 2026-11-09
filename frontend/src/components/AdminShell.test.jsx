@@ -6,7 +6,7 @@ import AdminShell from './AdminShell.jsx'
 
 const media = vi.hoisted(() => ({ phone: false }))
 vi.mock('../lib/useMediaQuery.js', () => ({
-  useMediaQuery: (query) => query === '(max-width: 700px)' && media.phone,
+  useMediaQuery: (query) => query === '(max-width: 900px)' && media.phone,
 }))
 
 function renderAt(path = '/admin', props = {}) {
@@ -41,83 +41,114 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('AdminShell sidebar', () => {
-  it('lists the groups and their pages in order', () => {
+const areas = () => screen.getByRole('navigation', { name: 'Areas' })
+
+describe('AdminShell on a desktop', () => {
+  it('shows a rail of areas, each landing on its home', () => {
     renderAt()
-    const nav = screen.getByRole('navigation', { name: 'Admin' })
+    expect(
+      within(areas())
+        .getAllByRole('link')
+        .map((link) => [link.textContent, link.getAttribute('href')]),
+    ).toEqual([
+      ['⌂Home', '/admin'],
+      ['▦Shelf', '/admin/collection'],
+      ['◎Denver', '/admin/weekend'],
+      ['◇Site', '/admin/analytics'],
+    ])
+  })
+
+  it('marks the current area, nested pages included', () => {
+    renderAt('/admin/collection/42')
+    expect(
+      within(areas()).getByRole('link', { name: 'Shelf' }),
+    ).toHaveAttribute('aria-current', 'true')
+    expect(
+      within(areas()).getByRole('link', { name: 'Home' }),
+    ).not.toHaveAttribute('aria-current')
+  })
+
+  it("lists the current area's pages under their kickers", () => {
+    renderAt('/admin/radar')
+    const nav = screen.getByRole('navigation', { name: 'Shelf pages' })
     const groups = within(nav)
       .getAllByRole('list')
       .map((list) => [
-        list.getAttribute('aria-labelledby') &&
-          document.getElementById(list.getAttribute('aria-labelledby'))
-            .textContent,
+        document.getElementById(list.getAttribute('aria-labelledby'))
+          .textContent,
         within(list)
           .getAllByRole('link')
           .map((link) => link.firstChild.textContent),
       ])
     expect(groups).toEqual([
-      ['Overview', ['Dashboard', 'Analytics']],
-      ['Collection', ['Shelf', 'Import photos']],
+      ['Collection', ['Collection', 'Import photos']],
       ['Recommend', ['Play Next', 'Discover', 'Radar', 'Pull list']],
-      ['Catalog', ['Sources', 'Store list']],
-      ['Denver', ['Weekend', 'Spots']],
+      ['Catalogue', ['Sources', 'Store list']],
     ])
+    expect(within(nav).getByRole('link', { name: 'Radar' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
-  it('keeps every page on its existing URL', () => {
-    renderAt()
-    const nav = screen.getByRole('navigation', { name: 'Admin' })
+  it('titles the page list with the area and its description', () => {
+    renderAt('/admin/weekend')
+    expect(screen.getByText('spots and weekends')).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Denver pages' })
     expect(
       within(nav)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
-    ).toEqual([
-      '/admin',
-      '/admin/analytics',
-      '/admin/collection',
-      '/admin/import',
-      '/admin/play-next',
-      '/admin/discover',
-      '/admin/radar',
-      '/admin/pull-list',
-      '/admin/catalogue',
-      '/admin/store-list',
-      '/admin/weekend',
-      '/admin/spots',
-    ])
+    ).toEqual(['/admin/weekend', '/admin/spots'])
   })
 
-  it('shows the owned count beside Shelf, and reads it out', () => {
-    renderAt()
+  it('lists Jobs under Site too, without leaving Home', () => {
+    renderAt('/admin/jobs')
+    expect(within(areas()).getByRole('link', { name: 'Home' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    )
     expect(
-      screen.getByRole('link', { name: 'Shelf, 107 owned' }),
+      within(screen.getByRole('navigation', { name: 'Home pages' })).getByRole(
+        'link',
+        { name: 'Jobs' },
+      ),
+    ).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('shows the owned count beside Collection, and reads it out', () => {
+    renderAt('/admin/collection')
+    expect(
+      screen.getByRole('link', { name: 'Collection, 107 owned' }),
     ).toBeInTheDocument()
   })
 
   it('leaves the count out until it has loaded', () => {
-    renderAt('/admin', { ownedCount: null })
-    expect(screen.getByRole('link', { name: 'Shelf' })).toBeInTheDocument()
+    renderAt('/admin/collection', { ownedCount: null })
+    expect(
+      within(screen.getByRole('navigation', { name: 'Shelf pages' })).getByRole(
+        'link',
+        { name: 'Collection' },
+      ),
+    ).toBeInTheDocument()
   })
 
-  it('marks the current page, nested pages included', () => {
-    renderAt('/admin/collection/42')
-    expect(screen.getByRole('link', { name: /^Shelf/ })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-    expect(screen.getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute(
-      'aria-current',
-    )
+  it("reads an area's badge as part of its name", () => {
+    renderAt('/admin', { badges: { site: { value: 2, words: 'jobs failed' } } })
+    expect(
+      within(areas()).getByRole('link', { name: 'Site, 2 jobs failed' }),
+    ).toBeInTheDocument()
   })
 
   it('shows the account, a way back to the site and sign-out', () => {
     const onSignOut = vi.fn()
     renderAt('/admin', { onSignOut })
     expect(screen.getByText('admin@example.com')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /view site/i })).toHaveAttribute(
-      'href',
-      '/',
-    )
+    expect(
+      screen
+        .getAllByRole('link', { name: /view site/i })
+        .map((link) => link.getAttribute('href')),
+    ).toEqual(['/', '/'])
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(onSignOut).toHaveBeenCalledOnce()
   })
@@ -129,52 +160,74 @@ describe('AdminShell sidebar', () => {
   })
 })
 
-describe('AdminShell tab bar', () => {
-  function tabs() {
-    return screen.getByRole('navigation', { name: 'Admin' })
-  }
-
-  it('replaces the sidebar with five tabs on a phone', () => {
+describe('AdminShell on a phone', () => {
+  beforeEach(() => {
     media.phone = true
+  })
+
+  it('replaces the rail and page list with a tab bar of areas', () => {
     renderAt()
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
     expect(
-      [...tabs().querySelectorAll('a, button')].map((tab) => tab.textContent),
-    ).toEqual(['Home', 'Shelf', 'Picks', 'Stores', 'More'])
+      within(areas())
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual([
+      '/admin',
+      '/admin/collection',
+      '/admin/weekend',
+      '/admin/analytics',
+    ])
   })
 
-  it('marks the current tab', () => {
-    media.phone = true
-    renderAt('/admin/collection')
-    expect(within(tabs()).getByRole('link', { name: 'Shelf' })).toHaveAttribute(
+  it('marks the current area tab', () => {
+    renderAt('/admin/spots')
+    expect(
+      within(areas()).getByRole('link', { name: 'Denver' }),
+    ).toHaveAttribute('aria-current', 'true')
+  })
+
+  it("shows the area's pages as segments, the current one marked", () => {
+    renderAt('/admin/spots')
+    const sub = screen.getByRole('navigation', { name: 'Denver pages' })
+    expect(within(sub).getByRole('link', { name: 'Spots' })).toHaveAttribute(
       'aria-current',
       'page',
     )
     expect(
-      within(tabs()).getByRole('link', { name: 'Home' }),
-    ).not.toHaveAttribute('aria-current')
+      within(sub)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Weekend', 'Spots'])
   })
 
-  it('marks the tab whose sheet holds the current page', () => {
-    media.phone = true
+  it('gives Shelf two pages and two sheets', () => {
+    renderAt('/admin/collection')
+    const sub = screen.getByRole('navigation', { name: 'Shelf pages' })
+    expect(
+      [...sub.querySelectorAll('a, button')].map((el) => el.textContent),
+    ).toEqual(['Collection', 'Picks', 'Sources', 'More'])
+  })
+
+  it('marks the segment whose sheet holds the current page', () => {
     renderAt('/admin/radar')
+    const sub = screen.getByRole('navigation', { name: 'Shelf pages' })
+    expect(within(sub).getByRole('button', { name: 'Picks' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    )
     expect(
-      within(tabs()).getByRole('button', { name: 'Picks' }),
-    ).toHaveAttribute('aria-current', 'true')
-    expect(
-      within(tabs()).getByRole('button', { name: 'Stores' }),
+      within(sub).getByRole('button', { name: 'More' }),
     ).not.toHaveAttribute('aria-current')
   })
 
   it.each([
     ['Picks', ['Play Next', 'Discover', 'Radar', 'Pull list']],
-    ['Stores', ['Sources', 'Store list']],
-    ['More', ['Analytics', 'Import photos', 'Weekend', 'Spots', 'View site ↗']],
-  ])('opens %s as a sheet of its pages', (tab, links) => {
-    media.phone = true
-    renderAt()
-    fireEvent.click(within(tabs()).getByRole('button', { name: tab }))
-    const sheet = screen.getByRole('dialog', { name: tab })
+    ['More', ['Import photos', 'Store list']],
+  ])('opens %s as a sheet of its pages', (label, links) => {
+    renderAt('/admin/collection')
+    fireEvent.click(screen.getByRole('button', { name: label }))
+    const sheet = screen.getByRole('dialog', { name: label })
     expect(sheet).toHaveAttribute('open')
     expect(
       within(sheet)
@@ -183,48 +236,47 @@ describe('AdminShell tab bar', () => {
     ).toEqual(links)
   })
 
-  it('closes a sheet on Escape and returns focus to its tab', () => {
-    media.phone = true
-    renderAt()
-    const tab = within(tabs()).getByRole('button', { name: 'Picks' })
-    fireEvent.click(tab)
-    expect(tab).toHaveAttribute('aria-expanded', 'true')
+  it('closes a sheet on Escape and returns focus to its segment', () => {
+    renderAt('/admin/collection')
+    const button = screen.getByRole('button', { name: 'Picks' })
+    fireEvent.click(button)
+    expect(button).toHaveAttribute('aria-expanded', 'true')
     const sheet = screen.getByRole('dialog', { name: 'Picks' })
     fireEvent(sheet, new Event('cancel', { cancelable: true }))
     expect(sheet).not.toHaveAttribute('open')
-    expect(tab).toHaveAttribute('aria-expanded', 'false')
-    expect(tab).toHaveFocus()
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(button).toHaveFocus()
   })
 
   it('closes an open sheet when the width leaves the phone layout', () => {
-    media.phone = true
     // A new element each time: React skips a rerender of the same one.
     const tree = () => (
-      <MemoryRouter initialEntries={['/admin']}>
+      <MemoryRouter initialEntries={['/admin/collection']}>
         <AdminShell email={null} ownedCount={null} onSignOut={() => {}}>
           <p>Page body</p>
         </AdminShell>
       </MemoryRouter>
     )
     const { rerender } = render(tree())
-    fireEvent.click(within(tabs()).getByRole('button', { name: 'Picks' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Picks' }))
     media.phone = false
     rerender(tree())
     media.phone = true
     rerender(tree())
-    expect(
-      within(tabs()).getByRole('button', { name: 'Picks' }),
-    ).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Picks' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
   })
 
-  it('signs out from More', () => {
-    media.phone = true
+  it('signs out from the foot of the page', () => {
     const onSignOut = vi.fn()
     renderAt('/admin', { onSignOut })
-    fireEvent.click(within(tabs()).getByRole('button', { name: 'More' }))
-    const sheet = screen.getByRole('dialog', { name: 'More' })
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Sign out' }))
+    fireEvent.click(
+      within(screen.getByRole('main')).getByRole('button', {
+        name: 'Sign out',
+      }),
+    )
     expect(onSignOut).toHaveBeenCalledOnce()
-    expect(sheet).not.toHaveAttribute('open')
   })
 })

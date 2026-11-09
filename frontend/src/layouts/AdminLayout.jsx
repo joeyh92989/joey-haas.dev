@@ -13,7 +13,7 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
 /**
- * Loads the admin rows: the shell's owned count and the Dashboard's
+ * Loads the admin rows: the shell's owned count and Home's
  * figures. Null until loaded, and left null when the request fails, since
  * every page that needs the rows to work loads its own.
  */
@@ -28,6 +28,9 @@ async function loadItems() {
   }
 }
 
+/** The pages that reload the rows each time they open. */
+const RELOAD_PATHS = ['/admin', '/admin/jobs']
+
 /**
  * Every /admin route. It checks the session once, then renders the routed
  * page inside the admin shell; until then, and for every way that check can
@@ -40,7 +43,7 @@ async function loadItems() {
  * personal site from looking like an app with a login wall.
  *
  * Routed pages get the layout's outlet context plus `items`, the admin rows
- * (null until loaded), reloaded each time the Dashboard is opened.
+ * (null until loaded), reloaded each time Home or Jobs is opened.
  */
 export default function AdminLayout() {
   const context = useOutletContext()
@@ -57,7 +60,8 @@ export default function AdminLayout() {
   const mainRef = useRouteFocus()
   const denied = searchParams.get('error') === 'access_denied'
   const signedIn = status === 'signed-in'
-  const onDashboard = pathname.replace(/\/+$/, '') === '/admin'
+  // Home and Jobs read the rows for their figures and Recent changes.
+  const onDashboard = RELOAD_PATHS.includes(pathname.replace(/\/+$/, ''))
   // The signed-in pages title themselves through AdminPageHeader.
   usePageTitle(signedIn ? null : 'Admin · Joey Haas')
 
@@ -103,8 +107,8 @@ export default function AdminLayout() {
   }, [status, mainRef])
 
   useEffect(() => {
-    // Loaded once on sign-in, and again whenever the Dashboard opens, so its
-    // figures include what was changed on the other pages.
+    // Loaded once on sign-in, and again whenever Home or Jobs opens, so
+    // their figures include what was changed on the other pages.
     if (!signedIn || (!onDashboard && itemsLoaded.current)) return
     let live = true
     loadItems().then((rows) => {
