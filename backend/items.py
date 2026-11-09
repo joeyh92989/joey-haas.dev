@@ -163,13 +163,26 @@ class PlaythroughOut(BaseModel):
     outcome: str | None
     journal_days: int
     journal_minutes: int
+    # The Wrap up sheet's line, written as the run closed or paused.
+    note: str | None = None
+
+
+# The longest line the Wrap up sheet takes (spec, Open questions).
+NOTE_MAX = 500
 
 
 class StatusIn(BaseModel):
-    """A status move. `today` is the owner's local date (localToday())."""
+    """A status move. `today` is the owner's local date (localToday()).
+
+    `on` dates a Finished, Paused or Abandoned move instead of today, and
+    `note` is the line written on the run it touches (playthroughs.py);
+    both are refused on other moves.
+    """
 
     status: ItemStatus
     today: date
+    on: date | None = None
+    note: str | None = Field(default=None, max_length=NOTE_MAX)
 
 
 class PlaythroughDatesIn(BaseModel):
@@ -698,6 +711,7 @@ def create_items_router(
                     outcome=run.outcome,
                     journal_days=days,
                     journal_minutes=minutes,
+                    note=run.note,
                 )
                 for run, days, minutes, _last in runs.get(item.id, [])
             ]
@@ -1127,14 +1141,25 @@ def create_items_router(
 
         The one way a status changes after creation (playthroughs.py). The
         client's `today` dates the move, so a late-evening finish lands on
-        the owner's day, within a day of the server's.
+        the owner's day, within a day of the server's; `on` backdates a
+        Wrap up to earlier in the week, and `note` is its one line.
         """
         try:
             playthroughs.check_today(payload.today, datetime.now(UTC).date())
         except playthroughs.PlaythroughError as error:
             raise _refused(error) from error
         item = await _load(session, item_id)
-        await playthroughs.apply_status(session, item, payload.status, payload.today)
+        try:
+            await playthroughs.apply_status(
+                session,
+                item,
+                payload.status,
+                payload.today,
+                on=payload.on,
+                note=payload.note,
+            )
+        except playthroughs.PlaythroughError as error:
+            raise _refused(error) from error
         return await _respond(session, item)
 
     @router.post("/{item_id}/playthroughs", response_model=ItemOut, status_code=201)

@@ -52,6 +52,8 @@ class Run:
     finished_on: date | None = None
     paused_on: date | None = None
     outcome: str | None = None
+    # The line written as the run was closed or paused, if any.
+    note: str | None = None
     # When the row was written; only apply_status reads it, so the misclick
     # rule can tell the run that came before the open one from a past run
     # added after it. Not part of a run's identity.
@@ -140,12 +142,19 @@ def is_misclick(
     return previous.outcome == target
 
 
+# The moves the Wrap up sheet makes: the ones that take a date and a note.
+WRAP_UP = CLOSING | {"paused"}
+
+
 def plan_transition(
     runs: list[Run],
     current: str,
     target: str,
     today: date,
     journal_in_open: bool = False,
+    *,
+    on: date | None = None,
+    note: str | None = None,
 ) -> list[Open | Change | Delete]:
     """The row changes moving an item from `current` to `target` makes.
 
@@ -159,10 +168,27 @@ def plan_transition(
     - Backlog: deletes the open run; closed runs are history and stay.
 
     Choosing the current status again changes nothing.
+
+    `on` dates a pause or a close instead of today (the Wrap up sheet's
+    "finished earlier in the week"): never after today, never before the
+    run's start. `today` still decides the misclick rule, which is about
+    the day the owner is acting on. `note` is written on the run a pause or
+    a close touches; None leaves any note it has. Both are refused on the
+    other moves, which have nothing to date or annotate.
     """
+    if (on is not None or note is not None) and target not in WRAP_UP:
+        raise PlaythroughError(
+            "Only Finished, Paused and Abandoned take a date or a note."
+        )
+    if on is not None and on > today:
+        raise PlaythroughError(f"{on.isoformat()} has not happened yet.")
+    stamp = on or today
     if target == current:
         return []
     current_run = open_run(runs)
+
+    def noted(run: Run) -> Run:
+        return run if note is None else replace(run, note=note)
 
     if target == "active":
         if current_run is None:
@@ -174,24 +200,34 @@ def plan_transition(
     if target == "paused":
         if current_run is None:
             return [
-                Open(Run(number=next_number(runs), started_on=today, paused_on=today))
+                Open(
+                    noted(
+                        Run(number=next_number(runs), started_on=stamp, paused_on=stamp)
+                    )
+                )
             ]
         if current_run.paused_on is None:
-            return [Change(replace(current_run, paused_on=today))]
+            run = noted(replace(current_run, paused_on=stamp))
+            check_dates(run)
+            return [Change(run)]
         return []
 
     if target in CLOSING:
         if current_run is None:
             return [
-                Open(Run(number=next_number(runs), finished_on=today, outcome=target))
+                Open(
+                    noted(
+                        Run(number=next_number(runs), finished_on=stamp, outcome=target)
+                    )
+                )
             ]
         if is_misclick(runs, target, today, journal_in_open):
             return [Delete(current_run.number)]
-        return [
-            Change(
-                replace(current_run, finished_on=today, paused_on=None, outcome=target)
-            )
-        ]
+        run = noted(
+            replace(current_run, finished_on=stamp, paused_on=None, outcome=target)
+        )
+        check_dates(run)
+        return [Change(run)]
 
     if target == "backlog":
         return [Delete(current_run.number)] if current_run else []
@@ -276,6 +312,12 @@ def check_dates(run: Run) -> None:
         and run.started_on > run.finished_on
     ):
         raise PlaythroughError("A playthrough cannot finish before it started.")
+    if (
+        run.started_on is not None
+        and run.paused_on is not None
+        and run.started_on > run.paused_on
+    ):
+        raise PlaythroughError("A playthrough cannot pause before it started.")
 
 
 def check_today(today: date, server_today: date) -> None:
@@ -296,6 +338,7 @@ def _as_run(row: Playthrough) -> Run:
         finished_on=row.finished_on,
         paused_on=row.paused_on,
         outcome=row.outcome.value if row.outcome else None,
+        note=row.note,
     )
 
 
@@ -305,6 +348,7 @@ def _write(row: Playthrough, run: Run) -> None:
     row.finished_on = run.finished_on
     row.paused_on = run.paused_on
     row.outcome = PlaythroughOutcome(run.outcome) if run.outcome else None
+    row.note = run.note
 
 
 async def load_rows(session: AsyncSession, item_id: uuid.UUID) -> list[Playthrough]:
@@ -367,9 +411,16 @@ async def _apply_ops(
 
 
 async def apply_status(
-    session: AsyncSession, item: Item, target: ItemStatus, today: date
+    session: AsyncSession,
+    item: Item,
+    target: ItemStatus,
+    today: date,
+    *,
+    on: date | None = None,
+    note: str | None = None,
 ) -> None:
-    """Moves `item` to `target`, writing its playthroughs. Does not commit."""
+    """Moves `item` to `target`, writing its playthroughs. Does not commit.
+    `on` and `note` as plan_transition takes them."""
     rows = await load_rows(session, item.id)
     runs = [replace(_as_run(row), created_at=row.created_at) for row in rows]
     current = open_run(runs)
@@ -377,7 +428,13 @@ async def apply_status(
         session, item.id, current.started_on if current else None
     )
     ops = plan_transition(
-        runs, ItemStatus(item.status).value, target.value, today, journal
+        runs,
+        ItemStatus(item.status).value,
+        target.value,
+        today,
+        journal,
+        on=on,
+        note=note,
     )
     await _apply_ops(session, item, rows, ops)
     item.status = target

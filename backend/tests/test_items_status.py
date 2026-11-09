@@ -28,10 +28,10 @@ async def _create(client, **fields) -> dict:
     return response.json()
 
 
-async def _status(client, item_id, status, today=TODAY):
+async def _status(client, item_id, status, today=TODAY, **extra):
     return await client.post(
         f"/api/items/{item_id}/status",
-        json={"status": status, "today": today.isoformat()},
+        json={"status": status, "today": today.isoformat(), **extra},
     )
 
 
@@ -69,6 +69,58 @@ async def test_pause_stamps_the_run_and_resume_clears_it(sessionmaker_for_test):
         resumed = (await _status(client, item["id"], "active")).json()
         assert resumed["playthroughs"][-1]["paused_on"] is None
         assert resumed["started_at"] == D1.isoformat()
+
+
+async def test_wrap_up_writes_the_date_and_the_note_on_the_run(
+    sessionmaker_for_test,
+):
+    earlier = (TODAY - timedelta(days=3)).isoformat()
+    async with client_for(sessionmaker_for_test) as client:
+        item = await _create(client, status="active", started_at=D1.isoformat())
+        response = await _status(
+            client, item["id"], "finished", on=earlier, note="Better than the first."
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        run = body["playthroughs"][-1]
+        assert (run["finished_on"], run["note"]) == (earlier, "Better than the first.")
+        assert body["finished_at"] == earlier
+        await _assert_columns_follow_runs(sessionmaker_for_test, item["id"])
+        paused = await _status(client, item["id"], "active")  # a replay, dated today
+        assert paused.status_code == 200
+        paused = await _status(
+            client, item["id"], "paused", on=TODAY.isoformat(), note="Back soon"
+        )
+        assert paused.status_code == 200, paused.text
+        assert paused.json()["playthroughs"][-1]["note"] == "Back soon"
+
+
+@pytest.mark.parametrize(
+    ("status", "extra", "message"),
+    [
+        ("finished", {"on": (TODAY + timedelta(days=1)).isoformat()}, "not happened"),
+        ("finished", {"on": (D1 - timedelta(days=1)).isoformat()}, "before it started"),
+        ("active", {"note": "x"}, "Only Finished, Paused"),
+        ("backlog", {"on": TODAY.isoformat()}, "Only Finished, Paused"),
+    ],
+)
+async def test_a_bad_date_or_a_note_on_the_wrong_move_is_refused(
+    sessionmaker_for_test, status, extra, message
+):
+    async with client_for(sessionmaker_for_test) as client:
+        item = await _create(client, status="paused", started_at=D1.isoformat())
+        response = await _status(client, item["id"], status, **extra)
+        assert response.status_code == 422, response.text
+        assert message in response.json()["detail"]
+
+
+async def test_a_note_over_the_limit_is_refused(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        item = await _create(client, status="active")
+        response = await _status(client, item["id"], "finished", note="x" * 501)
+        assert response.status_code == 422
+        ok = await _status(client, item["id"], "finished", note="x" * 500)
+        assert ok.status_code == 200, ok.text
 
 
 @pytest.mark.parametrize("offset", [2, -2])

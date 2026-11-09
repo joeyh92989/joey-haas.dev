@@ -100,6 +100,69 @@ def test_a_past_run_added_after_a_replay_is_not_the_previous_run():
     assert pt.is_misclick(runs, "abandoned", TODAY, False)
 
 
+def test_a_close_dated_on_keeps_today_for_the_misclick_rule():
+    runs = walk("backlog", [("active", D1)])
+    dated = pt.apply_plan(
+        runs, pt.plan_transition(runs, "active", "finished", TODAY, on=D2, note="Good")
+    )
+    assert dated == [Run(1, D1, D2, outcome="finished", note="Good")]
+    # A replay opened today and finished again today is still a misclick,
+    # whatever date the sheet carries.
+    replayed = walk("finished", [("active", TODAY)], dated)
+    assert pt.plan_transition(replayed, "active", "finished", TODAY, on=D2) == [
+        pt.Delete(2)
+    ]
+
+
+def test_a_pause_dated_on_carries_the_note_and_a_resume_keeps_it():
+    runs = walk("backlog", [("active", D1)])
+    paused = pt.apply_plan(
+        runs, pt.plan_transition(runs, "active", "paused", TODAY, on=D2, note="Later")
+    )
+    assert paused == [Run(1, D1, paused_on=D2, note="Later")]
+    resumed = pt.apply_plan(
+        paused, pt.plan_transition(paused, "paused", "active", TODAY)
+    )
+    assert resumed == [Run(1, D1, note="Later")]
+    # Closing without a note leaves the one it has.
+    closed = pt.apply_plan(
+        resumed, pt.plan_transition(resumed, "active", "finished", TODAY)
+    )
+    assert closed == [Run(1, D1, TODAY, outcome="finished", note="Later")]
+
+
+def test_a_startless_close_and_pause_take_the_date_and_note():
+    assert pt.plan_transition([], "backlog", "finished", TODAY, on=D2, note="x") == [
+        pt.Open(Run(1, finished_on=D2, outcome="finished", note="x"))
+    ]
+    assert pt.plan_transition([], "backlog", "paused", TODAY, on=D2) == [
+        pt.Open(Run(1, started_on=D2, paused_on=D2))
+    ]
+
+
+@pytest.mark.parametrize(
+    ("target", "on", "message"),
+    [
+        ("finished", TODAY + timedelta(days=1), "has not happened yet"),
+        ("finished", D1 - timedelta(days=1), "cannot finish before it started"),
+        ("paused", D1 - timedelta(days=1), "cannot pause before it started"),
+    ],
+)
+def test_a_date_after_today_or_before_the_start_is_refused(target, on, message):
+    runs = walk("backlog", [("active", D1)])
+    with pytest.raises(pt.PlaythroughError, match=message):
+        pt.plan_transition(runs, "active", target, TODAY, on=on)
+
+
+@pytest.mark.parametrize("target", ["active", "backlog"])
+def test_a_date_or_note_on_another_move_is_refused(target):
+    runs = walk("backlog", [("active", D1), ("paused", D2)])
+    with pytest.raises(pt.PlaythroughError, match="Only Finished, Paused"):
+        pt.plan_transition(runs, "paused", target, TODAY, note="x")
+    with pytest.raises(pt.PlaythroughError, match="Only Finished, Paused"):
+        pt.plan_transition(runs, "paused", target, TODAY, on=TODAY)
+
+
 def test_backlog_drops_the_open_run_and_keeps_history():
     runs = walk("backlog", [("active", D1), ("finished", D2), ("active", TODAY)])
     runs = walk("active", [("backlog", TODAY)], runs)
@@ -372,6 +435,22 @@ async def test_journal_is_attributed_to_the_run_that_holds_the_day(
 def test_attribute_journal_last_day_is_none_without_journal():
     runs = [Run(number=1, started_on=D1)]
     assert pt.attribute_journal(runs, []) == {1: (0, 0, None)}
+
+
+@pytest.mark.asyncio
+async def test_apply_status_writes_the_dated_close_and_its_note(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        item = await _item(session)
+        await pt.apply_status(session, item, ItemStatus.ACTIVE, D1)
+        await pt.apply_status(
+            session, item, ItemStatus.FINISHED, TODAY, on=D2, note="One line"
+        )
+        await session.commit()
+        row = (await session.execute(select(Playthrough))).scalar_one()
+        assert (row.finished_on, row.note) == (D2, "One line")
+        assert (item.finished_at, item.times_completed) == (D2, 1)
 
 
 @pytest.mark.asyncio
