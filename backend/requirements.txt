@@ -10,3 +10,7 @@ asyncpg>=0.31.0
 python-multipart>=0.0.20
 defusedxml>=0.7.1
 anthropic>=1.0.0
+# Garment thumbnails (closet_images.py): decode, orient, downscale, WebP.
+# pillow-heif opens the iPhone's HEIC.
+pillow>=13.0.0
+pillow-heif>=1.8.1
