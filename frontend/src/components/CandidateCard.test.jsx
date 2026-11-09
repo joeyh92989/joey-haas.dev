@@ -80,6 +80,15 @@ describe('CandidateCard', () => {
       expect(button).toBeDisabled()
   })
 
+  it('reads a place with no category or distance', () => {
+    renderCard({
+      candidate: { ...CANDIDATE, category: null, distance: null },
+    })
+    expect(
+      screen.getByRole('heading', { name: 'Kaffe Landscap' }),
+    ).toBeVisible()
+  })
+
   it('says an unscored place was not scored', () => {
     renderCard({ candidate: { ...CANDIDATE, fit: null } })
     expect(

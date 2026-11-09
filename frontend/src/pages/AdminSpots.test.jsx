@@ -444,6 +444,12 @@ describe('AdminSpots', () => {
       expect(
         screen.queryByRole('button', { name: 'Undo: Bruto' }),
       ).not.toBeInTheDocument()
+      // The last card left, so focus goes to the one before it.
+      expect(
+        screen.getByRole('button', {
+          name: 'Accept into spots: Kaffe Landscap',
+        }),
+      ).toHaveFocus()
     })
 
     it('runs now, then reads the queue again', async () => {

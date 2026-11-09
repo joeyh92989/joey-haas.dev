@@ -153,7 +153,21 @@ export default function SpotFinder({ onAccepted, onRestored }) {
           : { method: 'POST' },
       )
       if (response.status === 409) {
-        // Answered elsewhere: the card goes, with nothing to undo.
+        // Answered elsewhere: the card goes, with nothing to undo, and
+        // focus moves to the next card's Accept (or the previous, or the
+        // heading) rather than falling to the page.
+        const others = entries.filter(
+          (entry) => entry.candidate && entry.candidate.id !== candidate.id,
+        )
+        const at = entries.findIndex(
+          (entry) => entry.candidate?.id === candidate.id,
+        )
+        const next =
+          entries.slice(at + 1).find((entry) => entry.candidate) ??
+          others.at(-1)
+        focusNext.current = next
+          ? `[data-candidate-accept="${next.candidate.id}"]`
+          : '#finder-title'
         setError(`${candidate.name}: ${await refusal(response)}`)
         setEntries((current) =>
           current.filter((entry) => entry.candidate?.id !== candidate.id),
@@ -203,7 +217,7 @@ export default function SpotFinder({ onAccepted, onRestored }) {
 
   return (
     <section className="finder" aria-labelledby="finder-title">
-      <h2 className="finder-title" id="finder-title">
+      <h2 className="finder-title" id="finder-title" tabIndex={-1}>
         {copy.title}
       </h2>
       <div className="runline">

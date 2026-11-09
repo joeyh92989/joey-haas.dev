@@ -10,7 +10,8 @@ model call, and the pending rows replaced. Its summary goes to
 Accept and Dismiss each claim the row with `DELETE ... RETURNING`, so a
 second answer to one candidate is a 409, never a second spot. Both return
 what they removed, and `POST /api/spots/candidates/restore` puts it back
-for the page's ten-second Undo.
+for the page's Undo. A refresh keeps a place's id while it stays queued, so
+a page read before the refresh still answers the same rows.
 
 Admin only, at the router. Its own lock, shared with nothing: it writes only
 spot rows (the comics precedent). Spec and plan:
@@ -42,7 +43,7 @@ from recommendations_routes import _failure_note
 from spot_sources.dedupe import dedupe
 from spot_sources.limits import RADIUS_M
 from spot_sources.overpass import Anchor, OverpassError, build_query, fetch, parse
-from spots_routes import _tags
+from spots_routes import _tags, commit_spot, slug_for
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +54,9 @@ METRES_PER_MILE = 1609.344
 class CandidateOut(BaseModel):
     id: uuid.UUID
     source: CandidateSource
-    source_id: str
-    name: str
-    category: str | None
+    source_id: str = Field(max_length=60)
+    name: str = Field(min_length=1, max_length=200)
+    category: str | None = Field(default=None, max_length=60)
     lat: float
     lng: float
     distance_m: int | None
@@ -249,9 +250,18 @@ def create_candidates_router(
                     note = "The model’s answer had no usable scores"
         scored = candidates.merge(listed, scores)
 
-        # Replace the queue in one transaction. An answer given while the
-        # model was thinking still wins: a place dismissed or accepted since
-        # the read is left out, and an anchor deleted since links nothing.
+        # Replace the queue in one transaction, keeping the id of every place
+        # still queued. The delete comes first: it waits on an answer's row
+        # lock, so the answers read after it include one committed meanwhile,
+        # and a place dismissed or accepted since the first read is left out.
+        # An anchor deleted since links nothing.
+        before = dict(
+            (
+                await session.execute(
+                    delete(Candidate).returning(Candidate.source_id, Candidate.id)
+                )
+            ).all()
+        )
         answered = await _dismissed(session) | set(
             (
                 await session.scalars(
@@ -266,11 +276,6 @@ def create_candidates_router(
                 )
             ).all()
         )
-        before = set(
-            (
-                await session.scalars(delete(Candidate).returning(Candidate.source_id))
-            ).all()
-        )
         written = 0
         new = 0
         for entry in scored:
@@ -282,6 +287,7 @@ def create_candidates_router(
             miles = entry.queued.miles
             session.add(
                 Candidate(
+                    id=before.get(row.source_id) or uuid.uuid4(),
                     source=CandidateSource.OSM,
                     source_id=row.source_id,
                     name=row.name[:200],
@@ -375,13 +381,9 @@ def create_candidates_router(
         """A private spot with the pressed tags at the candidate's position."""
         tags = _tags(payload.tags)
         row = await _claim(session, candidate_id)
-        stem = spots.slugify(row.name)[: spots.SLUG_MAX - spots.SLUG_SUFFIX_ROOM]
-        taken = (
-            await session.scalars(select(Spot.slug).where(Spot.slug.startswith(stem)))
-        ).all()
         try:
-            slug = spots.unique_slug(row.name, taken)
-        except ValueError as exc:
+            slug = await slug_for(session, row.name)
+        except ValueError as exc:  # a name with no ASCII letter or digit
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         spot = Spot(
             name=row.name,
@@ -396,7 +398,7 @@ def create_candidates_router(
         session.add(spot)
         await session.flush()
         answered = await _answered(session, row, spot.id)
-        await session.commit()
+        await commit_spot(session)
         return answered
 
     @router.post("/{candidate_id}/dismiss", response_model=AnsweredOut)
@@ -419,8 +421,8 @@ def create_candidates_router(
         payload: RestoreIn, session: AsyncSession = Depends(get_session)
     ) -> CandidateOut:
         """Takes an answer back: removes the spot Accept made (only that one,
-        and only while it has no visits), forgets the dismissal, and puts
-        the candidate back in the queue."""
+        and only while it is as Accept left it: never edited, no visits),
+        forgets the dismissal, and puts the candidate back in the queue."""
         item = payload.candidate
         if payload.spot_id is not None:
             spot = await session.get(Spot, payload.spot_id)
@@ -428,6 +430,14 @@ def create_candidates_router(
                 if (spot.source, spot.source_id) != (item.source, item.source_id):
                     raise HTTPException(
                         status_code=409, detail="That spot did not come from this place"
+                    )
+                # Accept writes created_at and updated_at in one transaction;
+                # any edit since (a rename, publishing, marking an anchor)
+                # moves updated_at, and the spot is the owner's now.
+                if spot.updated_at != spot.created_at:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="That spot has been edited; delete it from the table",
                     )
                 has_visits = await session.scalar(
                     select(func.count(Visit.id)).where(Visit.spot_id == spot.id)

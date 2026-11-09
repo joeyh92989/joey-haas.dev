@@ -41,8 +41,9 @@ export default function CandidateCard({
             {candidate.name}
           </h3>
           <p className="cand-area">
-            {candidate.category.replace('_', ' ')}
-            {candidate.distance && ` · ${candidate.distance}`}
+            {[candidate.category?.replaceAll('_', ' '), candidate.distance]
+              .filter(Boolean)
+              .join(' · ')}
           </p>
         </div>
         <span className="cand-src" title={copy.sourceName}>

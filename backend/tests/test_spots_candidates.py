@@ -166,9 +166,13 @@ async def test_a_second_refresh_replaces_the_queue_and_counts_nothing_new(
     await _anchor(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test) as client:
         await client.post("/api/spots/candidates/refresh")
+        first = {row.source_id: row.id for row in await _queue(sessionmaker_for_test)}
         again = (await client.post("/api/spots/candidates/refresh")).json()
     assert again["new"] == 0
-    assert len(await _queue(sessionmaker_for_test)) == candidates.MAX_QUEUE
+    rows = await _queue(sessionmaker_for_test)
+    assert len(rows) == candidates.MAX_QUEUE
+    # A page read before the refresh still answers the same rows.
+    assert {row.source_id: row.id for row in rows} == first
 
 
 @pytest.mark.parametrize(
@@ -273,18 +277,20 @@ async def _queued_one(factory, **extra):
     anchor = await _anchor(factory)
     async with factory() as session:
         row = Candidate(
-            source=CandidateSource.OSM,
-            source_id="node/1",
-            name="Kaffe Landscap",
-            category="cafe",
-            lat=39.75,
-            lng=-105.0,
-            distance_m=900,
-            nearest_anchor_id=anchor.id,
-            fit=80,
-            reason="Coffee near the station.",
-            suggested_tags=["coffee", "rainy-day"],
-            **extra,
+            **{
+                "source": CandidateSource.OSM,
+                "source_id": "node/1",
+                "name": "Kaffe Landscap",
+                "category": "cafe",
+                "lat": 39.75,
+                "lng": -105.0,
+                "distance_m": 900,
+                "nearest_anchor_id": anchor.id,
+                "fit": 80,
+                "reason": "Coffee near the station.",
+                "suggested_tags": ["coffee", "rainy-day"],
+                **extra,
+            }
         )
         session.add(row)
         await session.commit()
@@ -312,6 +318,24 @@ async def test_accept_makes_a_private_spot_with_the_pressed_tags(sessionmaker_fo
     assert (spot.source, spot.source_id) == (CandidateSource.OSM, "node/1")
     assert await _queue(sessionmaker_for_test) == []
     assert again.status_code == 409
+
+
+async def test_accept_refuses_a_name_with_no_ascii_letter(sessionmaker_for_test):
+    _, row = await _queued_one(sessionmaker_for_test, name="珈琲")
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            f"/api/spots/candidates/{row.id}/accept", json={"tags": []}
+        )
+    assert response.status_code == 422
+    assert len(await _queue(sessionmaker_for_test)) == 1
+
+
+async def test_a_second_dismiss_is_409(sessionmaker_for_test):
+    _, row = await _queued_one(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        first = await client.post(f"/api/spots/candidates/{row.id}/dismiss")
+        again = await client.post(f"/api/spots/candidates/{row.id}/dismiss")
+    assert (first.status_code, again.status_code) == (200, 409)
 
 
 async def test_accept_refuses_a_tag_outside_the_vocabulary(sessionmaker_for_test):
@@ -367,6 +391,28 @@ async def test_restore_refuses_a_spot_with_a_visit(sessionmaker_for_test):
             await session.commit()
         restored = await client.post("/api/spots/candidates/restore", json=accepted)
     assert restored.status_code == 409
+    assert await _queue(sessionmaker_for_test) == []
+
+
+@pytest.mark.parametrize(
+    "edit", [{"name": "Kaffe L"}, {"is_public": True}, {"anchor": True}]
+)
+async def test_restore_refuses_a_spot_edited_since_accept(sessionmaker_for_test, edit):
+    _, row = await _queued_one(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        accepted = (
+            await client.post(f"/api/spots/candidates/{row.id}/accept", json={})
+        ).json()
+        async with sessionmaker_for_test() as session:
+            spot = await session.get(Spot, accepted["spot_id"])
+            for field, value in edit.items():
+                setattr(spot, field, value)
+            await session.commit()
+        restored = await client.post("/api/spots/candidates/restore", json=accepted)
+    assert restored.status_code == 409
+    assert "edited" in restored.json()["detail"]
+    async with sessionmaker_for_test() as session:
+        assert await session.get(Spot, accepted["spot_id"]) is not None
     assert await _queue(sessionmaker_for_test) == []
 
 
