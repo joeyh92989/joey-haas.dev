@@ -6,6 +6,8 @@ import {
   countsLine,
   filterGarments,
   garmentTitle,
+  MAX_PHOTO_BYTES,
+  oversizePhoto,
   profileBody,
   profileForm,
   seasonLabel,
@@ -200,10 +202,34 @@ describe('profile form', () => {
     expect(back.weekly_bike).toEqual(body.weekly_bike)
   })
 
+  it('sends a blank number as null, never 0', () => {
+    const form = profileForm(body)
+    const back = profileBody({
+      ...form,
+      repeat_top_days: '',
+      repeat_outfit_weeks: '  ',
+      tag_budget: '0',
+    })
+    expect(back.repeat_top_days).toBeNull()
+    expect(back.repeat_outfit_weeks).toBeNull()
+    expect(back.tag_budget).toBe(0)
+  })
+
   it('splits a word line and drops blanks', () => {
     expect(splitWords(' logos, , skinny fits ,')).toEqual([
       'logos',
       'skinny fits',
     ])
+  })
+})
+
+describe('oversizePhoto', () => {
+  it('names the first photo over the cap, and nothing at the cap', () => {
+    const at = { name: 'a.jpg', size: MAX_PHOTO_BYTES }
+    const over = { name: 'b.heic', size: MAX_PHOTO_BYTES + 1 }
+    expect(oversizePhoto([at])).toBeNull()
+    expect(oversizePhoto([at, over])).toBe(
+      'b.heic is too large: at most 14 MB a photo.',
+    )
   })
 })

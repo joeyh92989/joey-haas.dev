@@ -11,11 +11,13 @@ import {
   CATEGORIES,
   DEFAULT_FILTER,
   MAX_UPLOAD_PHOTOS,
+  PHOTO_ACCEPT,
   STATUSES,
   VIEW_PREF,
   chipCounts,
   countsLine,
   filterGarments,
+  oversizePhoto,
   tagResult,
 } from '../lib/closet.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
@@ -111,6 +113,13 @@ export default function AdminCloset() {
       )
       return
     }
+    // The server would refuse it with a 413 after the whole upload; say so
+    // first, naming the photo.
+    const oversize = oversizePhoto(files)
+    if (oversize) {
+      setError(oversize)
+      return
+    }
     const body = new FormData()
     for (const file of files) body.append('photos', file)
     setUploading(true)
@@ -127,8 +136,9 @@ export default function AdminCloset() {
       }
       const result = await response.json()
       setToast({ added: result.added, state: 'idle', result: null })
-      // Newest first, as the list route orders them.
-      setFilter((current) => ({ ...current, status: 'untagged' }))
+      // Newest first, as the list route orders them; every other chip off,
+      // or a Slot or Warm left on would hide the new photos.
+      setFilter({ ...DEFAULT_FILTER, status: 'untagged' })
       await reread()
     } catch {
       setError('The photos did not upload. Check your connection.')
@@ -148,7 +158,8 @@ export default function AdminCloset() {
     } catch {
       result = 'tagging did not start. Check your connection'
     }
-    setToast((current) => ({ ...current, state: 'done', result }))
+    // A toast dismissed during the call stays dismissed.
+    setToast((current) => current && { ...current, state: 'done', result })
     await reread()
   }
 
@@ -224,7 +235,7 @@ export default function AdminCloset() {
           <label className="btn primary closet-camera" data-busy={uploading}>
             <input
               type="file"
-              accept="image/*"
+              accept={PHOTO_ACCEPT}
               multiple
               aria-label="Add garment photos"
               className="visually-hidden"

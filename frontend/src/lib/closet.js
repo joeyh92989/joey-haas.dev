@@ -10,6 +10,24 @@ export const VIEW_PREF = 'shelf.admin.closet.view'
 /** A rack from the phone, one request: `MAX_UPLOAD_PHOTOS` in closet_routes. */
 export const MAX_UPLOAD_PHOTOS = 24
 
+/**
+ * One photo's byte cap, checked before uploading: `MAX_PHOTO_BYTES` in
+ * backend/closet_images.py is the authority (a 413 past it).
+ */
+export const MAX_PHOTO_BYTES = 14 * 1024 * 1024
+
+/** What ＋ Camera offers: the formats the upload route accepts. */
+export const PHOTO_ACCEPT =
+  'image/jpeg,image/png,image/webp,image/heic,image/heif'
+
+/** The first file over the byte cap, as the owner's sentence, or null. */
+export function oversizePhoto(files) {
+  const big = files.find((file) => file.size > MAX_PHOTO_BYTES)
+  if (!big) return null
+  const cap = MAX_PHOTO_BYTES / (1024 * 1024)
+  return `${big.name} is too large: at most ${cap} MB a photo.`
+}
+
 /** The garment slots, in the order the form and the chips show them. */
 export const CATEGORIES = [
   { value: 'top', label: 'Top', plural: 'Tops' },
@@ -223,6 +241,11 @@ export function profileForm(body) {
   }
 }
 
+/** A number field's value: blank is null (the route refuses it), never 0. */
+function numberOrNull(value) {
+  return String(value ?? '').trim() === '' ? null : Number(value)
+}
+
 /** The whole profile as one PATCH body; the route drops blank sizes. */
 export function profileBody(form) {
   return {
@@ -230,8 +253,8 @@ export function profileBody(form) {
     build_fit: form.build_fit.trim() || null,
     style_words: splitWords(form.style_words),
     dislikes: splitWords(form.dislikes),
-    repeat_top_days: Number(form.repeat_top_days),
-    repeat_outfit_weeks: Number(form.repeat_outfit_weeks),
-    tag_budget: Number(form.tag_budget),
+    repeat_top_days: numberOrNull(form.repeat_top_days),
+    repeat_outfit_weeks: numberOrNull(form.repeat_outfit_weeks),
+    tag_budget: numberOrNull(form.tag_budget),
   }
 }
