@@ -31,7 +31,9 @@ from models import (
     Recommendation,
     RecommendationKind,
     RecommendationStatus,
+    Spot,
     StoreListing,
+    Visit,
 )
 from physical_sources.stores import STORES
 from playthroughs import add_past, apply_status
@@ -42,6 +44,7 @@ from public_outputs import (
     PublicNextOut,
     PublicNextRow,
     PublicSiteStatsOut,
+    PublicSpot,
     PublicStatusOut,
     PublicSummaryOut,
     PublicTonight,
@@ -1732,3 +1735,79 @@ async def test_refreshed_is_the_newest_good_store_or_registry_run(
 
     expected = good.replace(second=0, microsecond=0)
     assert datetime.fromisoformat(body["refreshed_at"]) == expected
+
+
+# --- Denver spots ------------------------------------------------------------
+
+# What /denver publishes about a spot (spec, task 9). No anchor flag, no
+# visit, no distance, and `spot_id`, never `id`.
+SPOT_FIELDS = {
+    "spot_id", "name", "slug", "neighbourhood", "tags", "blurb", "lat", "lng",
+}  # fmt: skip
+
+
+def _spot(name: str, **fields) -> Spot:
+    base = dict(
+        name=name,
+        slug=name.lower().replace(" ", "-"),
+        lat=39.7527,
+        lng=-105.0002,
+        tags=["coffee"],
+        is_public=True,
+    )
+    return Spot(**{**base, **fields})
+
+
+async def _spots(factory) -> list:
+    async with client_for(factory) as client:
+        response = await client.get("/api/public/spots")
+    assert response.status_code == 200
+    return response.json()
+
+
+async def test_the_spot_model_publishes_exactly_these_fields():
+    assert set(PublicSpot.model_fields) == SPOT_FIELDS
+    assert not SPOT_FIELDS & FORBIDDEN
+
+
+async def test_public_spots_are_published_rows_only_never_an_anchor(
+    sessionmaker_for_test,
+):
+    shown = _spot("Huckleberry", neighbourhood="Sunnyside", blurb="Good cortado.")
+    private = _spot("Secret Garden", is_public=False)
+    home = _spot("Home", anchor=True, neighbourhood="Highland")
+    await _add(sessionmaker_for_test, shown, private, home)
+    await _add(
+        sessionmaker_for_test,
+        Visit(spot_id=shown.id, visited_on=date(2026, 9, 1), note="With the kids"),
+    )
+
+    body = await _spots(sessionmaker_for_test)
+
+    assert [row["name"] for row in body] == ["Huckleberry"]
+    assert set(body[0]) == SPOT_FIELDS
+    assert body[0]["spot_id"] == str(shown.id)
+    assert body[0]["blurb"] == "Good cortado."
+    assert FORBIDDEN.isdisjoint(set(_keys(body)))
+    assert "anchor" not in set(_keys(body))
+    assert "With the kids" not in json.dumps(body)
+
+
+async def test_public_spots_sort_by_neighbourhood_then_name(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _spot("Zuni Park", neighbourhood="Highland"),
+        _spot("Avanti", neighbourhood="Highland"),
+        _spot("Commons Park", neighbourhood="Downtown"),
+        _spot("Somewhere", neighbourhood=None),
+    )
+
+    body = await _spots(sessionmaker_for_test)
+
+    assert [row["name"] for row in body] == [
+        "Commons Park", "Avanti", "Zuni Park", "Somewhere",
+    ]  # fmt: skip
+
+
+async def test_no_spots_is_an_empty_list(sessionmaker_for_test):
+    assert await _spots(sessionmaker_for_test) == []

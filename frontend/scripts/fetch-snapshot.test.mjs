@@ -406,6 +406,50 @@ describe('fetchSnapshot', () => {
     expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
   })
 
+  it('declares spots as optional, writes it verbatim, builds without it', async () => {
+    const spots = [
+      {
+        spot_id: 'a1',
+        name: 'Huckleberry',
+        slug: 'huckleberry',
+        neighbourhood: 'Sunnyside',
+        tags: ['coffee'],
+        blurb: null,
+        lat: 39.77,
+        lng: -105.01,
+      },
+    ]
+    expect(SNAPSHOTS.spots.path).toBe('/api/public/spots')
+    expect(SNAPSHOTS.spots.required).toBe(false)
+    expect(SNAPSHOTS.spots.valid(spots)).toBe(true)
+    expect(SNAPSHOTS.spots.valid([{ ...spots[0], lng: null }])).toBe(false)
+    expect(SNAPSHOTS.spots.valid({})).toBe(false)
+
+    const base = {
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    }
+    const text = JSON.stringify(spots)
+    expect(
+      await run(
+        api({ ...base, '/api/public/spots': ok(JSON.parse(text), text) }),
+      ),
+    ).toBe('written')
+    expect(await written()).toEqual([
+      'items.json',
+      'meta.json',
+      'spots.json',
+      'stats.json',
+    ])
+    expect(await fs.readFile(path.join(outDir, 'spots.json'), 'utf8')).toBe(
+      text,
+    )
+
+    expect(await run(api(base))).toBe('written')
+    expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
+  })
+
   it('declares status as optional and writes it when served', async () => {
     const status = {
       refreshed_at: null,

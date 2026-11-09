@@ -101,6 +101,20 @@ const isPickForMeBody = (body) =>
   isObject(body.combos) &&
   Object.values(body.combos).every(Array.isArray)
 
+/**
+ * /denver's spots (Denver spots spec): each row with the fields the map and
+ * the list need. Keep in step with `isSpotsBody` in scripts/fetch-snapshot.mjs:
+ * the two predicates must be identical.
+ */
+const isSpot = (row) =>
+  isObject(row) &&
+  typeof row.spot_id === 'string' &&
+  typeof row.name === 'string' &&
+  Number.isFinite(row.lat) &&
+  Number.isFinite(row.lng) &&
+  Array.isArray(row.tags)
+const isSpotsBody = (body) => Array.isArray(body) && body.every(isSpot)
+
 /** Each snapshot's name and the shape its body must have to be used. */
 const SHAPES = {
   items: Array.isArray,
@@ -110,6 +124,7 @@ const SHAPES = {
   comics: isComicsBody,
   'site-stats': isSiteStatsBody,
   'pick-for-me': isPickForMeBody,
+  spots: isSpotsBody,
   meta: isMetaBody,
 }
 
