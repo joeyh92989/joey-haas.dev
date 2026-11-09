@@ -1,93 +1,175 @@
 /**
- * Projection for the drawn maps (`SpotMap`): latitude and longitude to a
- * point in the drawing's viewBox, from two reference points measured on the
- * drawing. Pure, so the page, the generator and the tests share it.
+ * The projection behind `DrawnMap`: places a `{lat, lon}` on a hand-drawn
+ * SVG.
  *
- * The map is a north-up equirectangular poster: x is linear in longitude,
- * y linear in latitude (inverted), no rotation. That only reads right when
- * a degree of longitude is drawn cos(latitude) as wide as a degree of
- * latitude, so `makeFit` refuses reference points whose two scales are
- * more than `SCALE_TOLERANCE` off that ratio: the drawing's proportions
- * would be wrong, and the pins with them.
+ * A drawing is calibrated by two reference points, each a real place with
+ * the `{x, y}` it sits at on the drawing. From those two the fit is an
+ * axis-aligned affine map, `x` linear in longitude and `y` linear in
+ * latitude (inverted, since SVG's y grows downward). There is no rotation:
+ * the drawings are north-up, and two points cannot pin down one honestly.
  *
- * Spec: docs/planning/2026-11-08-denver-spots-design.md, SpotMap.
+ * Over the few hundred kilometres a route map covers this is an
+ * equirectangular projection, which is accurate enough at poster scale,
+ * provided the drawing itself was drawn that way. `scaleRatio` is the check
+ * that it was: a drawing stretched in one direction implies two scales whose
+ * ratio is far from `cos(latitude)`, and a stop on it would land wherever
+ * the stretch put it.
+ *
+ * Pure, so the accuracy criteria are unit tests rather than eyeballing.
  */
 
-/** How far the implied x/y scale ratio may stray from cos(latitude). */
-export const SCALE_TOLERANCE = 0.05
+/** Distance from the viewBox edge inside which a pin is not drawn. */
+export const EDGE_MARGIN = 12
 
-/** The margin, in viewBox units, inside which a point counts as off the map. */
-export const OFF_MAP_MARGIN = 12
+/** How far `scaleRatio` may stray from 1 before a drawing is squashed. */
+export const SCALE_TOLERANCE = 0.15
 
 /**
- * The affine map from two reference points.
+ * Builds a fit from two reference points.
  *
- * @param {{points: {lat: number, lng: number, x: number, y: number}[]}} fit
- *   Two reference points at opposite corners of the drawn area.
- * @returns {(point: {lat: number, lng: number}) => {x: number, y: number}}
- * @throws {Error} When the points share a latitude or longitude, or their
- *   implied scales are not in the cos(latitude) ratio.
+ * @param {{lat: number, lon: number, x: number, y: number}[]} refs Exactly
+ *   two, differing in both latitude and longitude.
+ * @returns {{ax: number, bx: number, ay: number, by: number, midLat: number}}
  */
-export function makeFit(fit) {
-  const [a, b] = fit?.points ?? []
-  if (!a || !b || a.lng === b.lng || a.lat === b.lat) {
+export function fitFromPoints(refs) {
+  if (!Array.isArray(refs) || refs.length !== 2) {
+    throw new Error('a map fit needs exactly two reference points')
+  }
+  const [a, b] = refs
+  for (const ref of refs) {
+    for (const key of ['lat', 'lon', 'x', 'y']) {
+      if (!Number.isFinite(ref?.[key])) {
+        throw new Error(`a reference point has no usable ${key}`)
+      }
+    }
+  }
+  if (a.lon === b.lon || a.lat === b.lat) {
+    // One shared coordinate leaves that axis's scale undefined.
     throw new Error(
-      'A map fit needs two points apart in latitude and longitude',
+      'the two reference points must differ in both latitude and longitude',
     )
   }
-  const sx = (b.x - a.x) / (b.lng - a.lng)
-  const sy = (b.y - a.y) / (b.lat - a.lat)
-  if (!(sx > 0) || !(sy < 0)) {
-    throw new Error('A map fit must be north-up: x grows east, y grows south')
+  const ax = (b.x - a.x) / (b.lon - a.lon)
+  const ay = (b.y - a.y) / (b.lat - a.lat)
+  return {
+    ax,
+    bx: a.x - ax * a.lon,
+    ay,
+    by: a.y - ay * a.lat,
+    midLat: (a.lat + b.lat) / 2,
   }
-  const meanLat = ((a.lat + b.lat) / 2) * (Math.PI / 180)
-  const ratio = sx / -sy / Math.cos(meanLat)
-  if (Math.abs(ratio - 1) > SCALE_TOLERANCE) {
-    throw new Error(
-      `A map fit's scales are off by ${Math.round(Math.abs(ratio - 1) * 100)}%: the drawing's proportions are wrong`,
-    )
-  }
-  return ({ lat, lng }) => ({
-    x: a.x + (lng - a.lng) * sx,
-    y: a.y + (lat - a.lat) * sy,
-  })
+}
+
+/** Where a place falls on the drawing. */
+export function project(fit, { lat, lon }) {
+  return { x: fit.ax * lon + fit.bx, y: fit.ay * lat + fit.by }
 }
 
 /**
- * Whether a projected point falls outside the drawing or within its margin.
+ * Whether a place can be drawn: inside the viewBox and clear of its edge by
+ * `margin`, so a pin is never clipped. A stop that fails this is left off
+ * the drawing and kept in the caption's stop list.
  *
- * @param {{x: number, y: number}} point A projected point.
- * @param {number[]} viewBox `[minX, minY, width, height]`.
- * @param {number} [margin] The edge band that also counts as off the map.
- * @returns {boolean}
+ * @param {object} fit
+ * @param {{lat: number, lon: number}} point
+ * @param {{width: number, height: number}} viewBox
+ * @param {number} [margin]
  */
-export function isOffMap(point, viewBox, margin = OFF_MAP_MARGIN) {
-  const [minX, minY, width, height] = viewBox
+export function isOnMap(fit, point, viewBox, margin = EDGE_MARGIN) {
+  const { x, y } = project(fit, point)
   return (
-    !Number.isFinite(point.x) ||
-    !Number.isFinite(point.y) ||
-    point.x < minX + margin ||
-    point.y < minY + margin ||
-    point.x > minX + width - margin ||
-    point.y > minY + height - margin
+    x >= margin &&
+    y >= margin &&
+    x <= viewBox.width - margin &&
+    y <= viewBox.height - margin
   )
 }
 
 /**
- * Where each spot lands on a drawing, and whether it is off the map.
+ * The drawing's east-west scale against its north-south scale, divided by
+ * what an equirectangular drawing would have (`cos` of the middle
+ * latitude). 1 is a true drawing; below 1 it is squashed east-west, above 1
+ * stretched. A y axis that grows northward (a drawing upside down) comes
+ * out negative.
+ */
+export function scaleRatio(fit) {
+  const expected = Math.cos((fit.midLat * Math.PI) / 180)
+  return fit.ax / -fit.ay / expected
+}
+
+/** Whether `scaleRatio` is within `SCALE_TOLERANCE` of a true drawing. */
+export function isTrueToScale(fit, tolerance = SCALE_TOLERANCE) {
+  return Math.abs(scaleRatio(fit) - 1) <= tolerance
+}
+
+/*
+ * Generated drawings and spots (Denver, `SpotMap`). The Denver map is
+ * generated from OpenStreetMap (`scripts/draw-denver-map.mjs`) rather than
+ * drawn by hand, and its module, like the spots API, names longitude `lng`.
+ * These are the same projection in that shape, with a tighter scale check:
+ * a generated drawing has no authoring error to allow for.
+ */
+
+/** `SCALE_TOLERANCE` for a generated drawing. */
+export const GENERATED_SCALE_TOLERANCE = 0.05
+
+/**
+ * The fit of a generated drawing's `fit: {points}`, refusing one that is not
+ * north-up or not true to scale.
  *
- * @param {{fit: object, viewBox: number[]}} drawing A drawn map module.
+ * @param {{points: {lat: number, lng: number, x: number, y: number}[]}} spec
+ *   Two reference points at opposite corners of the drawn area.
+ * @throws {Error} When the points share a latitude or longitude, are not
+ *   north-up, or their scales are not in the cos(latitude) ratio.
+ */
+function generatedFit(spec) {
+  const points = spec?.points ?? []
+  if (points.length !== 2) {
+    throw new Error('a map fit needs exactly two reference points')
+  }
+  const fit = fitFromPoints(
+    points.map(({ lng, ...rest }) => ({ ...rest, lon: lng })),
+  )
+  if (!(fit.ax > 0) || !(fit.ay < 0)) {
+    throw new Error('a map fit must be north-up: x grows east, y grows south')
+  }
+  if (!isTrueToScale(fit, GENERATED_SCALE_TOLERANCE)) {
+    const off = Math.round(Math.abs(scaleRatio(fit) - 1) * 100)
+    throw new Error(
+      `a map fit's scales are off by ${off}%: the drawing's proportions are wrong`,
+    )
+  }
+  return fit
+}
+
+/**
+ * A projector for a generated drawing (`generatedFit`'s checks apply).
+ *
+ * @returns {(point: {lat: number, lng: number}) => {x: number, y: number}}
+ */
+export function makeFit(spec) {
+  const fit = generatedFit(spec)
+  return ({ lat, lng }) => project(fit, { lat, lon: lng })
+}
+
+/**
+ * Where each spot lands on a generated drawing, and whether it is off the
+ * map (`isOnMap`: outside it, or within `EDGE_MARGIN` of its edge).
+ *
+ * @param {{fit: object, viewBox: number[]}} drawing A drawing module, with
+ *   `viewBox` as `[0, 0, width, height]`.
  * @param {{key: string, lat: number, lng: number}[]} spots
  * @returns {Map<string, {x: number, y: number, offMap: boolean}>} By key.
  */
 export function placeSpots(drawing, spots) {
-  const project = makeFit(drawing.fit)
+  const fit = generatedFit(drawing.fit)
+  const [, , width, height] = drawing.viewBox
   const placed = new Map()
   for (const spot of spots) {
-    const point = project({ lat: spot.lat, lng: spot.lng })
+    const point = { lat: spot.lat, lon: spot.lng }
     placed.set(spot.key, {
-      ...point,
-      offMap: isOffMap(point, drawing.viewBox),
+      ...project(fit, point),
+      offMap: !isOnMap(fit, point, { width, height }),
     })
   }
   return placed

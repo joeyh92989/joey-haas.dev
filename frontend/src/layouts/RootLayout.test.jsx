@@ -24,6 +24,21 @@ const content = vi.hoisted(() => ({ posts: [] }))
 vi.mock('../content/posts.js', () => content)
 const noteContent = vi.hoisted(() => ({ notes: [] }))
 vi.mock('../content/notes.js', () => noteContent)
+const tripContent = vi.hoisted(() => ({ trips: [] }))
+vi.mock('../content/trips.js', () => tripContent)
+const TRIP = {
+  slug: 'croatia-greece-2026',
+  frontmatter: {
+    title: 'Croatia & Greece',
+    date: '2026-09-12',
+    end: '2026-09-23',
+    precision: 'day',
+    summary: 'Twelve days, three places.',
+    places: [],
+  },
+  days: [],
+  cover: null,
+}
 
 function renderAt(path = '/') {
   return render(
@@ -47,6 +62,7 @@ afterEach(() => {
   localStorage.clear()
   content.posts.length = 0
   noteContent.notes.length = 0
+  tripContent.trips.length = 0
   vi.restoreAllMocks()
 })
 
@@ -216,6 +232,23 @@ describe('RootLayout nav', () => {
     ])
   })
 
+  it('adds Travel after My Shelf once a trip is published', () => {
+    tripContent.trips.push(TRIP)
+    content.posts.push({
+      slug: 'first',
+      frontmatter: { title: 'First', date: '2026-10-01' },
+    })
+    renderAt('/about')
+    expect(navLabels()).toEqual([
+      'Home',
+      'About',
+      'Projects',
+      'My Shelf',
+      'Travel',
+      'Blog',
+    ])
+  })
+
   it('keeps My Shelf current on an item page', () => {
     renderAt('/shelf/abc')
     expect(
@@ -261,6 +294,23 @@ describe('RootLayout footer TIL link', () => {
     expect(footer.getByRole('link', { name: 'TIL' })).toHaveAttribute(
       'href',
       '/til',
+    )
+  })
+})
+
+describe('RootLayout footer Travel link', () => {
+  it('links Travel only once a trip is published', () => {
+    const { unmount } = renderAt()
+    const empty = within(screen.getByRole('contentinfo'))
+    expect(empty.queryByRole('link', { name: 'Travel' })).toBeNull()
+    unmount()
+
+    tripContent.trips.push(TRIP)
+    renderAt()
+    const footer = within(screen.getByRole('contentinfo'))
+    expect(footer.getByRole('link', { name: 'Travel' })).toHaveAttribute(
+      'href',
+      '/travel',
     )
   })
 })
