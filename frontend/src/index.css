@@ -7102,6 +7102,156 @@ main h1[tabindex='-1']:focus,
   }
 }
 
+/* The spot finder: its queue left of the table, first on a phone. */
+.finder-layout {
+  align-items: start;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.finder-title {
+  font-size: 1.125rem;
+  margin: 0 0 0.4rem;
+}
+
+.runline {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.4rem 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.cand-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cand {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.85rem 1rem;
+}
+
+.cand-h {
+  align-items: start;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.cand-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cand-area {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  margin: 0.1rem 0 0;
+}
+
+.cand-area::first-letter {
+  text-transform: uppercase;
+}
+
+/* The word carries the source; the colour is decoration. */
+.cand-src {
+  border: 1px solid var(--chart-2);
+  border-radius: 4px;
+  color: var(--chart);
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  text-transform: uppercase;
+}
+
+.cand-why {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.cand-score {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.cand-score strong {
+  color: var(--text);
+}
+
+.cand-acts {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cand-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  list-style: none;
+  margin: 0 0 0 auto;
+  padding: 0;
+}
+
+.minitag {
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-3);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.5rem;
+}
+
+.minitag[aria-pressed='true'] {
+  border: 1px solid var(--text);
+  color: var(--text);
+}
+
+.minitag:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.finder-empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: var(--text-2);
+  margin: 0;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .finder-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cand-tags {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
 /* ---------- Daily puzzle (Shelfle) ---------- */
 
 /* The board is a table; the cells are the grid. Five columns, the title
