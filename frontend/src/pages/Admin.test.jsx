@@ -89,6 +89,11 @@ function stubApi(routes = {}) {
       // Older than the catalogue run's ago(1): an equal stamp ties, and the
       // milliseconds between the two calls would decide which row leads.
       json({ generated_at: { radar: ago(1.5), discover: ago(1.5) } }),
+    '/api/spots/status': () =>
+      json({
+        'weather.last_run': { at: ago(1.5), state: 'ok', hours: 156 },
+        'candidates.last_run': { at: ago(30), state: 'ok', queued: 4 },
+      }),
     '/snapshot/meta.json': () => json({ fetched_at: ago(3) }),
   }
   const table = { ...defaults, ...routes }
@@ -156,21 +161,61 @@ describe('Admin Dashboard', () => {
     expect(called(fetch, '/api/analytics?range=7d')).toBe(true)
   })
 
-  it('lists the four nightly jobs with their state in words', async () => {
+  it('lists the six nightly jobs with their state in words', async () => {
     stubApi()
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
-    expect(rows).toHaveLength(4)
+    expect(rows).toHaveLength(6)
     expect(rows[0]).toHaveTextContent('Catalog refresh')
     expect(rows[0]).toHaveTextContent(/ok/)
-    expect(rows[3]).toHaveTextContent('Public snapshot')
+    expect(rows[3]).toHaveTextContent('Weekend forecast')
+    expect(rows[4]).toHaveTextContent('Spot finder')
+    expect(rows[5]).toHaveTextContent('Public snapshot')
     expect(
       within(panel).getByRole('link', { name: 'Run now: Radar' }),
     ).toHaveAttribute('href', '/admin/radar')
     expect(
-      within(rows[3]).queryByRole('link', { name: /Run now/ }),
+      within(panel).getByRole('link', { name: 'Run now: Weekend forecast' }),
+    ).toHaveAttribute('href', '/admin/weekend')
+    expect(
+      within(panel).getByRole('link', { name: 'Run now: Spot finder' }),
+    ).toHaveAttribute('href', '/admin/spots')
+    expect(
+      within(rows[5]).queryByRole('link', { name: /Run now/ }),
     ).not.toBeInTheDocument()
+  })
+
+  it('names a failed forecast and reads failed in the header', async () => {
+    stubApi({
+      '/api/spots/status': () =>
+        json({
+          'weather.last_run': {
+            at: ago(1),
+            state: 'failed',
+            note: 'NWS answered 503',
+          },
+          'candidates.last_run': null,
+        }),
+    })
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const rows = await within(panel).findAllByRole('listitem')
+    expect(rows[3]).toHaveTextContent('Failed: NWS answered 503')
+    expect(rows[4]).toHaveTextContent('No run recorded')
+    expect(rows[4]).toHaveTextContent('unknown')
+    expect(await screen.findByText(/^nightly failed/)).toBeInTheDocument()
+  })
+
+  it('keeps the jobs when the spots status fails, with both rows unknown', async () => {
+    stubApi({ '/api/spots/status': () => json({}, false) })
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const rows = await within(panel).findAllByRole('listitem')
+    expect(rows).toHaveLength(6)
+    expect(rows[3]).toHaveTextContent('unknown')
+    expect(rows[4]).toHaveTextContent('unknown')
+    expect(rows[0]).toHaveTextContent(/ok/)
   })
 
   it('names a failed source and reads failed in the header', async () => {
@@ -245,8 +290,8 @@ describe('Admin Dashboard', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
-    expect(rows[3]).toHaveTextContent('No build time recorded')
-    expect(rows[3]).toHaveTextContent('unknown')
+    expect(rows[5]).toHaveTextContent('No build time recorded')
+    expect(rows[5]).toHaveTextContent('unknown')
     // An unknown job does not drag the headline down.
     expect(screen.getByText(/^nightly ok · /)).toBeInTheDocument()
   })
@@ -271,6 +316,7 @@ describe('Admin Dashboard', () => {
       screen.getByText('The nightly status couldn’t be read.'),
     ).toBeInTheDocument()
     expect(called(fetch, '/api/recommendations/store-list')).toBe(false)
+    expect(called(fetch, '/api/spots/status')).toBe(false)
     expect(screen.queryByText(/^nightly /)).not.toBeInTheDocument()
   })
 
@@ -307,8 +353,8 @@ describe('Admin Dashboard', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
-    expect(rows[3]).toHaveTextContent('Rebuilt nightly')
-    expect(rows[3]).toHaveTextContent('stale')
+    expect(rows[5]).toHaveTextContent('Rebuilt nightly')
+    expect(rows[5]).toHaveTextContent('stale')
   })
 
   it('reads a status body with no sources as no jobs, not a stopped schedule', async () => {
