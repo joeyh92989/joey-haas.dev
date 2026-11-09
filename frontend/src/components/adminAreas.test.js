@@ -19,6 +19,7 @@ describe('ADMIN_AREAS', () => {
     expect(ADMIN_AREAS.map((area) => area.label)).toEqual([
       'Home',
       'Shelf',
+      'Closet',
       'Denver',
       'Site',
     ])

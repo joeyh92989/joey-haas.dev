@@ -66,6 +66,17 @@ export const ADMIN_AREAS = [
     ],
   },
   {
+    key: 'closet',
+    label: 'Closet',
+    icon: '◫',
+    home: '/admin/closet',
+    description: 'what to wear, what to keep',
+    pages: [
+      { to: '/admin/closet', label: 'Closet' },
+      { to: '/admin/closet/profile', label: 'Profile' },
+    ],
+  },
+  {
     key: 'denver',
     label: 'Denver',
     icon: '◎',

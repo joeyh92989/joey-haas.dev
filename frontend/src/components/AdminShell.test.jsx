@@ -53,6 +53,7 @@ describe('AdminShell on a desktop', () => {
     ).toEqual([
       ['⌂Home', '/admin'],
       ['▦Shelf', '/admin/collection'],
+      ['◫Closet', '/admin/closet'],
       ['◎Denver', '/admin/weekend'],
       ['◇Site', '/admin/analytics'],
     ])
@@ -175,6 +176,7 @@ describe('AdminShell on a phone', () => {
     ).toEqual([
       '/admin',
       '/admin/collection',
+      '/admin/closet',
       '/admin/weekend',
       '/admin/analytics',
     ])

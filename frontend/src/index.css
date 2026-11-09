@@ -8560,3 +8560,359 @@ main h1[tabindex='-1']:focus,
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+/* The Closet (/admin/closet), its garment page and the closet profile.
+   Tokens only; a garment's own colour (primary_hex) is data, set inline
+   as the photo's ground until the photo loads. */
+.closet-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.closet-toolbar-end {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+/* The file input is visually hidden inside its label, so the label shows
+   the focus ring the input would. */
+.closet-camera {
+  cursor: pointer;
+}
+
+.closet-camera:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.closet-camera[data-busy='true'] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.closet-toast {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.closet-toast strong {
+  font-weight: 600;
+}
+
+.closet-toast-acts {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.garment-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--grid-gap);
+}
+
+.garment-tile {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.garment-photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.garment-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* The slot, in a pill of its own so it reads over any photo:
+   --text-2 on --surface is the site's body pair (dark 8.53:1, light 8.24:1). */
+.garment-slot {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  font: 0.6875rem var(--font-mono);
+  background: var(--surface);
+  color: var(--text-2);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+}
+
+/* Untagged: a dashed --warn outline inside the photo's edge. A non-text
+   mark, measured against the photo's fallback ground and the page:
+   --warn on --sunken 7.92:1 dark, 3.81:1 light; on --bg 9.04 and 4.13.
+   The stat line says "In the tag queue" too, so the mark is never alone. */
+.garment-tile[data-status='untagged'] .garment-photo {
+  outline: 2px dashed var(--warn);
+  outline-offset: -2px;
+}
+
+/* Packed: the photo dimmed; the stat line names the return month. */
+.garment-tile[data-status='packed'] .garment-photo img {
+  opacity: 0.45;
+}
+
+.garment-tile:hover .garment-name,
+.garment-tile:focus-visible .garment-name {
+  text-decoration: underline;
+}
+
+.garment-name {
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+.garment-stat,
+.garment-mono {
+  font: 0.75rem var(--font-mono);
+  color: var(--text-3);
+}
+
+.garment-table-wrap {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.25rem 0.75rem;
+}
+
+.garment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.garment-table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--text-3);
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.garment-table td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.garment-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.garment-row-name {
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  color: var(--text);
+}
+
+.garment-thumb {
+  flex: none;
+  width: 2rem;
+  aspect-ratio: 4 / 5;
+  background: var(--sunken);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.garment-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.garment-wears {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* The wear meter: --accent on a --sunken track, 6.26:1 dark and 5.48:1
+   light (a non-text mark; the number beside it carries the value). */
+.garment-meter {
+  display: block;
+  width: 4rem;
+  height: 4px;
+  background: var(--sunken);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.garment-meter i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.garment-trail-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.garment-trail {
+  font: 0.75rem var(--font-mono);
+  color: var(--text-3);
+}
+
+/* The garment form and the profile share one layout. */
+.garment-form {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 36rem;
+}
+
+.garment-form label,
+.garment-form fieldset {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.garment-form fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin: 0;
+}
+
+.garment-form legend {
+  padding: 0 0.25rem;
+}
+
+.garment-field-label {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+}
+
+.garment-form-photo {
+  width: 10rem;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.garment-form fieldset.garment-segments,
+.garment-form fieldset.garment-months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  border: 0;
+  padding: 0;
+}
+
+.garment-segments legend,
+.garment-months legend {
+  width: 100%;
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+/* The radio is hidden inside its chip; the chip shows its state and focus
+   with the pressed chip's own colours. */
+.garment-segments .chip:has(input:checked) {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.garment-segments .chip:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.garment-colour {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.garment-colour input[type='color'] {
+  width: 2.5rem;
+  height: 2.25rem;
+  padding: 0.15rem;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+/* An unset swatch shows the picker's grey but says it is unset. */
+.garment-colour input[type='color'][data-unset='true'] {
+  border-style: dashed;
+}
+
+.garment-stepper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.garment-stepper .garment-field-label {
+  min-width: 5.5rem;
+}
+
+.garment-stepper output {
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.garment-form-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Distinguished by border and text, never colour alone (as the item page). */
+.garment-form-acts .danger {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.closet-week-day {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .closet-hide-phone {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .garment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+}

@@ -1,0 +1,237 @@
+/**
+ * The Closet's pure helpers: labels, the season window, the tile's stat line
+ * and the page's filter. No fetches and no React, so each is tested alone.
+ */
+import { API_URL } from './api.js'
+
+/** The grid/list choice, under the admin namespace like the shelf's own. */
+export const VIEW_PREF = 'shelf.admin.closet.view'
+
+/** A rack from the phone, one request: `MAX_UPLOAD_PHOTOS` in closet_routes. */
+export const MAX_UPLOAD_PHOTOS = 24
+
+/** The garment slots, in the order the form and the chips show them. */
+export const CATEGORIES = [
+  { value: 'top', label: 'Top', plural: 'Tops' },
+  { value: 'mid', label: 'Mid', plural: 'Mids' },
+  { value: 'outer', label: 'Outer', plural: 'Outer' },
+  { value: 'bottom', label: 'Bottom', plural: 'Bottoms' },
+  { value: 'shoes', label: 'Shoes', plural: 'Shoes' },
+  { value: 'accessory', label: 'Accessory', plural: 'Accessories' },
+]
+
+/** The statuses, in chip order. `untagged` is the upload's, never chosen. */
+export const STATUSES = [
+  { value: 'active', label: 'Active' },
+  { value: 'packed', label: 'Packed' },
+  { value: 'untagged', label: 'Untagged' },
+  { value: 'listed', label: 'Listed' },
+  { value: 'gone', label: 'Gone' },
+]
+
+/** What a hand save may set (`HAND_STATUSES` in closet_routes). */
+export const HAND_STATUSES = STATUSES.filter((s) => s.value !== 'untagged')
+
+/** Warm and Smart: the attribute chips, 4 or 5 on their 1–5 scale. */
+export const HIGH = 4
+
+/** The tag queue gives a garment up after this many unusable answers. */
+export const MAX_ATTEMPTS = 3
+
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+/** A month number, 1 to 12, as its short name. */
+export function monthName(month) {
+  return MONTHS[month - 1]
+}
+
+/**
+ * A garment's months as a window: "Oct–Mar" across the new year, runs
+ * joined with commas, "all year" for every month, null for none.
+ *
+ * @param {number[]} seasons Months, 1 to 12.
+ */
+export function seasonLabel(seasons) {
+  const months = new Set((seasons ?? []).filter((m) => m >= 1 && m <= 12))
+  if (months.size === 0) return null
+  if (months.size === 12) return 'all year'
+  const next = (m) => (m % 12) + 1
+  const prev = (m) => ((m + 10) % 12) + 1
+  const runs = []
+  for (let m = 1; m <= 12; m += 1) {
+    if (!months.has(m) || months.has(prev(m))) continue
+    let end = m
+    while (months.has(next(end))) end = next(end)
+    runs.push(end === m ? monthName(m) : `${monthName(m)}–${monthName(end)}`)
+  }
+  return runs.join(', ')
+}
+
+/** A 'YYYY-MM-DD' day as "Nov 6", read in UTC like formatDate. */
+export function shortDate(day) {
+  return new Date(day).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
+/** The month a packed garment comes back, from `back_on` ("2027-05-01"). */
+export function backMonth(backOn) {
+  if (!backOn) return null
+  const month = Number(backOn.slice(5, 7))
+  return month >= 1 && month <= 12 ? monthName(month) : null
+}
+
+/** The slot's label, or null for a garment not yet given one. */
+export function categoryLabel(category) {
+  return CATEGORIES.find((c) => c.value === category)?.label ?? null
+}
+
+/** The garment's name, or what stands in for one before it has details. */
+export function garmentTitle(garment) {
+  if (garment.name) return garment.name
+  return garment.status === 'untagged' ? 'Untagged · add details' : 'Unnamed'
+}
+
+/**
+ * The tile's one stat line: the queue position story for an untagged
+ * garment, the return month for a packed one, else wears and the season.
+ */
+export function statLine(garment) {
+  if (garment.status === 'untagged') {
+    if (garment.tag_source === 'manual') return 'Add details by hand'
+    if (garment.tag_attempts >= MAX_ATTEMPTS)
+      return 'Tagging gave up · add by hand'
+    return 'In the tag queue'
+  }
+  if (garment.status === 'packed') {
+    const month = backMonth(garment.back_on)
+    return month ? `Packed · back in ${month}` : 'Packed'
+  }
+  if (garment.status === 'listed') return 'Listed for sale'
+  if (garment.status === 'gone') return 'Gone'
+  const worn = `Worn ${garment.wears_12mo}×`
+  const window = seasonLabel(garment.seasons)
+  return window && window !== 'all year' ? `${worn} · ${window}` : worn
+}
+
+/** The photo's URL on the API, or null for a garment without one. */
+export function imageUrl(garment) {
+  return garment.image ? `${API_URL}${garment.image}` : null
+}
+
+/** The default filter: Active pressed, nothing else. */
+export const DEFAULT_FILTER = {
+  status: 'active',
+  category: null,
+  warm: false,
+  smart: false,
+}
+
+/** The garments the filter keeps, in the order given. */
+export function filterGarments(garments, filter) {
+  return garments.filter(
+    (g) =>
+      (!filter.status || g.status === filter.status) &&
+      (!filter.category || g.category === filter.category) &&
+      (!filter.warm || (g.warmth ?? 0) >= HIGH) &&
+      (!filter.smart || (g.formality ?? 0) >= HIGH),
+  )
+}
+
+/** The chips' counts, each from the whole closet as the shelf's are. */
+export function chipCounts(garments) {
+  const count = (test) => garments.filter(test).length
+  return {
+    status: Object.fromEntries(
+      STATUSES.map((s) => [s.value, count((g) => g.status === s.value)]),
+    ),
+    category: Object.fromEntries(
+      CATEGORIES.map((c) => [c.value, count((g) => g.category === c.value)]),
+    ),
+    warm: count((g) => (g.warmth ?? 0) >= HIGH),
+    smart: count((g) => (g.formality ?? 0) >= HIGH),
+  }
+}
+
+/** The header's subline: "143 pieces · 86 active · 41 packed · 16 untagged". */
+export function countsLine(counts) {
+  if (!counts) return null
+  const parts = [`${counts.total} ${counts.total === 1 ? 'piece' : 'pieces'}`]
+  for (const key of ['active', 'packed', 'untagged']) {
+    if (counts[key]) parts.push(`${counts[key]} ${key}`)
+  }
+  return parts.join(' · ')
+}
+
+/**
+ * `POST /api/closet/tag`'s answer in words: how many were tagged, what is
+ * still queued, and the route's note when the model could not answer.
+ *
+ * @param {{tagged: number, calls: number, note: string|null, remaining: number}} body
+ */
+export function tagResult(body) {
+  if (body.note) return body.note
+  if (body.calls === 0) return 'nothing was waiting to be tagged'
+  const queued =
+    body.remaining > 0 ? `, ${body.remaining} still queued` : ', queue empty'
+  return `${body.tagged} tagged${queued}`
+}
+
+/** A comma-separated line as its words, blanks dropped. */
+export function splitWords(text) {
+  return text
+    .split(',')
+    .map((word) => word.trim())
+    .filter(Boolean)
+}
+
+/** The profile form's state from `GET /api/closet/profile`. */
+export function profileForm(body) {
+  const keyed = (values, keys) =>
+    Object.fromEntries(keys.map((key) => [key, values?.[key] ?? '']))
+  return {
+    sizes: keyed(
+      body.sizes,
+      CATEGORIES.map((c) => c.value),
+    ),
+    coloring: keyed(body.coloring, ['hair', 'skin', 'undertone']),
+    build_fit: body.build_fit ?? '',
+    style_words: (body.style_words ?? []).join(', '),
+    dislikes: (body.dislikes ?? []).join(', '),
+    weekly_occasions: [...body.weekly_occasions],
+    weekly_bike: [...body.weekly_bike],
+    spring_turn: body.spring_turn,
+    autumn_turn: body.autumn_turn,
+    repeat_top_days: String(body.repeat_top_days),
+    repeat_outfit_weeks: String(body.repeat_outfit_weeks),
+    tag_budget: String(body.tag_budget),
+  }
+}
+
+/** The whole profile as one PATCH body; the route drops blank sizes. */
+export function profileBody(form) {
+  return {
+    ...form,
+    build_fit: form.build_fit.trim() || null,
+    style_words: splitWords(form.style_words),
+    dislikes: splitWords(form.dislikes),
+    repeat_top_days: Number(form.repeat_top_days),
+    repeat_outfit_weeks: Number(form.repeat_outfit_weeks),
+    tag_budget: Number(form.tag_budget),
+  }
+}

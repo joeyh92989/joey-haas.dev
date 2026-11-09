@@ -28,6 +28,23 @@ async function loadItems() {
   }
 }
 
+/**
+ * The closet's untagged count, for the Closet area's badge. Null when the
+ * request fails: a missing badge is better than a page that breaks.
+ */
+async function loadUntagged() {
+  try {
+    const response = await apiFetch('/api/closet/garments')
+    if (!response.ok) return null
+    const body = await response.json()
+    return typeof body?.counts?.untagged === 'number'
+      ? body.counts.untagged
+      : null
+  } catch {
+    return null
+  }
+}
+
 /** The pages that reload the rows each time they open. */
 const RELOAD_PATHS = ['/admin', '/admin/jobs']
 
@@ -43,7 +60,9 @@ const RELOAD_PATHS = ['/admin', '/admin/jobs']
  * personal site from looking like an app with a login wall.
  *
  * Routed pages get the layout's outlet context plus `items`, the admin rows
- * (null until loaded), reloaded each time Home or Jobs is opened.
+ * (null until loaded), reloaded each time Home or Jobs is opened, and
+ * `setClosetUntagged`, which the Closet page calls with the count it last
+ * read, so the area's badge follows an upload or a tagging run.
  */
 export default function AdminLayout() {
   const context = useOutletContext()
@@ -51,6 +70,7 @@ export default function AdminLayout() {
   const [email, setEmail] = useState(null)
   const [slow, setSlow] = useState(false)
   const [items, setItems] = useState(null)
+  const [closetUntagged, setClosetUntagged] = useState(null)
   const [signOutFailed, setSignOutFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const itemsLoaded = useRef(false)
@@ -121,6 +141,18 @@ export default function AdminLayout() {
     }
   }, [signedIn, onDashboard])
 
+  useEffect(() => {
+    // Once per sign-in; the Closet page keeps it current after that.
+    if (!signedIn) return
+    let live = true
+    loadUntagged().then((count) => {
+      if (live && count !== null) setClosetUntagged(count)
+    })
+    return () => {
+      live = false
+    }
+  }, [signedIn])
+
   async function signOut() {
     // Only claim to be signed out if the server actually cleared the session.
     // Flipping the UI on a failed request would leave a valid 30-day cookie
@@ -140,6 +172,7 @@ export default function AdminLayout() {
 
     setEmail(null)
     setItems(null)
+    setClosetUntagged(null)
     itemsLoaded.current = false
     signedOutHere.current = true
     setStatus('signed-out')
@@ -156,7 +189,16 @@ export default function AdminLayout() {
       ? items.filter((item) => item.owned_format !== 'none').length
       : null
     return (
-      <AdminShell email={email} ownedCount={owned} onSignOut={signOut}>
+      <AdminShell
+        email={email}
+        ownedCount={owned}
+        onSignOut={signOut}
+        badges={
+          closetUntagged
+            ? { closet: { value: closetUntagged, words: 'untagged' } }
+            : {}
+        }
+      >
         {signOutFailed && (
           <p className="admin-error" role="alert">
             Sign out failed — you are still signed in. Try again.
@@ -172,7 +214,7 @@ export default function AdminLayout() {
               </p>
             }
           >
-            <Outlet context={{ ...context, items }} />
+            <Outlet context={{ ...context, items, setClosetUntagged }} />
           </Suspense>
         </RouteErrorBoundary>
       </AdminShell>

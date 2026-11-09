@@ -562,6 +562,14 @@ the tagging prompt and its checks `closet_tag.py`.
   (`{at, state, tagged, calls, remaining, note}`), which `GET
   /api/closet/status` reads. **Tag now** on the Closet page
   (`POST /api/closet/tag`) tags one batch whatever the budget says.
+- **The pages.** `/admin/closet` is every garment as 4:5 tiles or a table
+  with wear meters (the choice kept under `shelf.admin.closet.view`),
+  filtered by status (Active by default), slot, Warm and Smart. ＋ Camera
+  uploads a rack of photos and moves the view to Untagged, with the toast's
+  Tag now. `/admin/closet/:id` edits every field by hand and deletes;
+  `/admin/closet/profile` is the Profile, saved whole as one `PATCH`. The
+  Closet area's badge counts untagged garments, read once per sign-in by
+  `AdminLayout` and updated by the Closet page.
 
 ## Smoke test
 

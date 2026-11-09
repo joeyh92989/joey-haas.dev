@@ -41,6 +41,9 @@ const AdminWeekend = lazy(() => import('./pages/AdminWeekend.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminImport = lazy(() => import('./pages/AdminImport.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
+const AdminCloset = lazy(() => import('./pages/AdminCloset.jsx'))
+const AdminClosetProfile = lazy(() => import('./pages/AdminClosetProfile.jsx'))
+const AdminGarment = lazy(() => import('./pages/AdminGarment.jsx'))
 const PlayNext = lazy(() => import('./pages/PlayNext.jsx'))
 // /denver carries the drawn map (~100 kB of path data), which only that page
 // needs.
@@ -63,6 +66,12 @@ function ParamRedirect({ to }) {
 function KeyedAdminItem() {
   const { id } = useParams()
   return <AdminItem key={id} />
+}
+
+/** The garment page, remounted per id for the same reason as the item's. */
+function KeyedAdminGarment() {
+  const { id } = useParams()
+  return <AdminGarment key={id} />
 }
 
 /**
@@ -132,7 +141,10 @@ export default function App() {
           <Route path="store-list" element={<AdminStoreList />} />
           <Route path="spots" element={<AdminSpots />} />
           <Route path="weekend" element={<AdminWeekend />} />
+          <Route path="closet" element={<AdminCloset />} />
+          <Route path="closet/profile" element={<AdminClosetProfile />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />
+          <Route path="closet/:id" element={<KeyedAdminGarment />} />
           {/* Inside the shell, so a mistyped admin URL keeps the sidebar. */}
           <Route path="*" element={<NotFound />} />
         </Route>

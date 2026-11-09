@@ -622,6 +622,26 @@ check_equals "POST /api/comics/refresh unauthenticated" \
   "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/comics/refresh")" \
   "401"
 
+# The Closet is admin-only end to end: 401 rather than 404 proves each route
+# exists and is gated, the photo included (it is never public).
+check_equals "GET /api/closet/garments/{id}/image unauthenticated" \
+  "$(http_status "$API_URL/api/closet/garments/1/image")" "401"
+check_equals "POST /api/closet/jobs/tag unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/closet/jobs/tag")" \
+  "401"
+check_equals "GET /admin/closet (deep link)" "$(http_status "$SITE_URL/admin/closet")" "200"
+check_equals "GET /admin/closet/profile (deep link)" \
+  "$(http_status "$SITE_URL/admin/closet/profile")" "200"
+# The prerendered admin heads sit at the slash form (no rewrite rule), each
+# a noindex copy of the shell.
+for closet_path in /admin/closet/ /admin/closet/profile/; do
+  if curl -s -m 90 "$SITE_URL$closet_path" | grep -q 'name="robots" content="noindex"'; then
+    report_pass "GET $closet_path is noindex" "prerendered admin head"
+  else
+    report_fail "GET $closet_path is noindex" "no robots noindex meta"
+  fi
+done
+
 login_location="$(curl -s -o /dev/null -m 90 -w '%{redirect_url}' "$API_URL/api/auth/login")"
 case "$login_location" in
   *accounts.google.com*) report_pass "auth/login redirects to Google" "accounts.google.com" ;;
