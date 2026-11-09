@@ -225,6 +225,43 @@ describe('AdminSpots', () => {
     expect(within(form).getByLabelText('Name')).toHaveValue('Corvus Coffee')
   })
 
+  it('gives focus to the form, and back to its opener when it closes', async () => {
+    stubApi()
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    const edit = screen.getByRole('button', { name: 'Edit Corvus Coffee' })
+    await user.click(edit)
+    expect(screen.getByRole('heading', { name: 'Edit spot' })).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(edit).toHaveFocus()
+
+    const add = screen.getByRole('button', { name: 'Add by hand' })
+    await user.click(add)
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(add).toHaveFocus()
+  })
+
+  it('lists the spots in a panel titled All spots', async () => {
+    stubApi()
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const panel = screen.getByRole('region', { name: 'All spots' })
+    expect(within(panel).getByRole('table')).toBeInTheDocument()
+    expect(within(panel).getByText('Public 1')).toBeInTheDocument()
+  })
+
+  it('says the session ended when a write is refused with a 401', async () => {
+    stubApi({ 'PATCH /api/spots/c': () => json({ detail: 'x' }, 401) })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    await userEvent.setup().click(screen.getByLabelText("Public: Sloan's Lake"))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your session ended. Reload to sign in.',
+    )
+    expect(screen.getByLabelText("Public: Sloan's Lake")).not.toBeChecked()
+  })
+
   it('says the session ended on a 401', async () => {
     stubApi({ 'GET /api/spots': () => json({ detail: 'x' }, 401) })
     render(<AdminSpots />)

@@ -6526,8 +6526,14 @@ main h1[tabindex='-1']:focus {
   padding: 0.15rem 0.6rem;
 }
 
+/* The row header is the spot's name, not a column label: undo
+   .item-table th's small caps, as the catalogue table does. */
 .spots-table th[scope='row'] {
+  color: var(--text);
+  font-size: 0.875rem;
   font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .spots-name > span:first-child {
@@ -6563,6 +6569,12 @@ main h1[tabindex='-1']:focus {
   font-size: 0.8125rem;
 }
 
+.spots-visit {
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
 .spots-actions {
   white-space: nowrap;
 }
@@ -6575,6 +6587,11 @@ main h1[tabindex='-1']:focus {
 @media (max-width: 700px) {
   .spots-table {
     min-width: 0;
+  }
+
+  .spots-table th,
+  .spots-table td {
+    padding-inline: 0.4rem;
   }
 
   .spots-actions {

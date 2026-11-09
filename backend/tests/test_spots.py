@@ -84,6 +84,14 @@ def test_parse_coords_accepts_what_maps_apps_paste(pasted):
     assert spots.parse_coords(pasted) == (39.75, -104.99)
 
 
+def test_a_place_url_gives_the_pin_not_the_map_centre():
+    pasted = (
+        "https://www.google.com/maps/place/Corvus+Coffee/@39.7101,-104.9902,17z"
+        "/data=!3m1!4b1!4m6!3m5!1s0x0:0x0!8m2!3d39.70984!4d-104.98761!16s%2Fg"
+    )
+    assert spots.parse_coords(pasted) == (39.70984, -104.98761)
+
+
 def test_reversed_pair_is_named():
     with pytest.raises(ValueError, match="reversed"):
         spots.parse_coords("-104.99, 39.75")

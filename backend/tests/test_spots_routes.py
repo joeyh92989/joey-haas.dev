@@ -1,7 +1,7 @@
 """Denver spots' admin routes (spots_routes.py)."""
 
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 import pytest
 from fastapi import FastAPI
@@ -10,6 +10,7 @@ from sqlalchemy import select
 from starlette.middleware.sessions import SessionMiddleware
 
 from models import Candidate, CandidateSource, Spot, SpotSetting, Visit
+from public import OWNER_TZ
 from spots_routes import create_spots_router
 
 pytestmark = pytest.mark.asyncio
@@ -118,6 +119,19 @@ async def test_patch_edits_only_what_it_names(sessionmaker_for_test):
     assert null_flag.status_code == 422
 
 
+async def test_long_names_sharing_a_prefix_get_distinct_slugs(sessionmaker_for_test):
+    # Each slugifies past the column, so a suffix cuts into the base: the
+    # third must still find the second's slug and go on to -3.
+    long = {**SLOANS, "name": "Lake " * 40}
+    async with client_for(sessionmaker_for_test) as client:
+        made = [await client.post("/api/spots", json=long) for _ in range(3)]
+    assert [r.status_code for r in made] == [201, 201, 201]
+    slugs = [r.json()["slug"] for r in made]
+    assert len(set(slugs)) == 3
+    assert slugs[1].endswith("-2") and slugs[2].endswith("-3")
+    assert all(len(slug) <= 200 for slug in slugs)
+
+
 async def test_renaming_to_its_own_name_keeps_the_slug(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
         made = (await client.post("/api/spots", json=SLOANS)).json()
@@ -136,16 +150,18 @@ async def test_visits_are_logged_and_summarised_on_the_list(sessionmaker_for_tes
         future = await client.post(
             url,
             json={
-                "visited_on": (datetime.now(UTC).date() + timedelta(days=2)).isoformat()
+                "visited_on": (
+                    datetime.now(OWNER_TZ).date() + timedelta(days=2)
+                ).isoformat()
             },
         )
         listed = (await client.get("/api/spots")).json()
     assert early.status_code == 201
     assert early.json()["note"] is None
-    assert today.json()["visited_on"] == datetime.now(UTC).date().isoformat()
+    assert today.json()["visited_on"] == datetime.now(OWNER_TZ).date().isoformat()
     assert future.status_code == 422
     assert listed[0]["visit_count"] == 2
-    assert listed[0]["last_visit"] == datetime.now(UTC).date().isoformat()
+    assert listed[0]["last_visit"] == datetime.now(OWNER_TZ).date().isoformat()
 
 
 async def test_deleting_a_spot_takes_its_visits(sessionmaker_for_test):

@@ -1,6 +1,28 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { TAGS, denver, tagLabel } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
+
+/** The form's fields for a spot, or blank ones for a new spot. */
+function startingFields(spot) {
+  return {
+    name: spot?.name ?? '',
+    coords: spot ? `${spot.lat}, ${spot.lng}` : '',
+    neighbourhood: spot?.neighbourhood ?? '',
+    blurb: spot?.blurb ?? '',
+    tags: spot?.tags ?? [],
+    anchor: spot?.anchor ?? false,
+    is_public: spot?.is_public ?? false,
+  }
+}
+
+/** The fields whose value differs from where the form started. */
+function changedFields(initial, fields) {
+  return Object.fromEntries(
+    Object.entries(fields).filter(
+      ([key, value]) => JSON.stringify(value) !== JSON.stringify(initial[key]),
+    ),
+  )
+}
 
 /**
  * A refused save in words. The spots API's 409 is a slug race, not the
@@ -8,6 +30,9 @@ import { apiFetch, errorMessage } from '../lib/api.js'
  * is read here.
  */
 async function saveError(response) {
+  if (response.status === 401 || response.status === 403) {
+    return denver.admin.sessionEnded
+  }
   if (response.status === 409) {
     try {
       const body = await response.json()
@@ -31,15 +56,23 @@ async function saveError(response) {
  */
 export default function SpotForm({ spot, onSaved, onCancel }) {
   const id = useId()
-  const [name, setName] = useState(spot?.name ?? '')
-  const [coords, setCoords] = useState(spot ? `${spot.lat}, ${spot.lng}` : '')
-  const [neighbourhood, setNeighbourhood] = useState(spot?.neighbourhood ?? '')
-  const [blurb, setBlurb] = useState(spot?.blurb ?? '')
-  const [tags, setTags] = useState(spot?.tags ?? [])
-  const [anchor, setAnchor] = useState(spot?.anchor ?? false)
-  const [isPublic, setIsPublic] = useState(spot?.is_public ?? false)
+  const [initial] = useState(() => startingFields(spot))
+  const [name, setName] = useState(initial.name)
+  const [coords, setCoords] = useState(initial.coords)
+  const [neighbourhood, setNeighbourhood] = useState(initial.neighbourhood)
+  const [blurb, setBlurb] = useState(initial.blurb)
+  const [tags, setTags] = useState(initial.tags)
+  const [anchor, setAnchor] = useState(initial.anchor)
+  const [isPublic, setIsPublic] = useState(initial.is_public)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const heading = useRef(null)
+
+  // Opening the form moves focus to it, so a keyboard user lands on what
+  // just appeared above the table rather than staying on the button.
+  useEffect(() => {
+    heading.current?.focus()
+  }, [])
 
   function toggleTag(tag) {
     setTags((current) =>
@@ -53,7 +86,7 @@ export default function SpotForm({ spot, onSaved, onCancel }) {
     event.preventDefault()
     setSaving(true)
     setError(null)
-    const body = {
+    const fields = {
       name,
       coords,
       neighbourhood,
@@ -62,6 +95,9 @@ export default function SpotForm({ spot, onSaved, onCancel }) {
       anchor,
       is_public: isPublic,
     }
+    // An edit sends only what changed, so a switch flipped in the table
+    // while the form was open is not written back to its old value.
+    const body = spot ? changedFields(initial, fields) : fields
     try {
       const response = await apiFetch(
         spot ? `/api/spots/${spot.id}` : '/api/spots',
@@ -90,7 +126,9 @@ export default function SpotForm({ spot, onSaved, onCancel }) {
       onSubmit={save}
       aria-label={title}
     >
-      <h2 className="spot-form-title">{title}</h2>
+      <h2 className="spot-form-title" ref={heading} tabIndex={-1}>
+        {title}
+      </h2>
       {error && (
         <p className="admin-error spot-form-error" role="alert">
           {error}

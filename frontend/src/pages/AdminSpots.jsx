@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import Panel from '../components/Panel.jsx'
 import SpotForm from '../components/SpotForm.jsx'
 import { denver, tagLabel } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -9,6 +10,13 @@ import { useMediaQuery } from '../lib/useMediaQuery.js'
 
 /** The admin shell's phone breakpoint; the Last visit column drops below it. */
 const PHONE = '(max-width: 700px)'
+
+/** A refused read or write in words: a 401 or 403 means sign in again. */
+async function failureText(response) {
+  return response.status === 401 || response.status === 403
+    ? denver.admin.sessionEnded
+    : errorMessage(response)
+}
 
 /** Whether a spot matches the search: its name, neighbourhood or a tag. */
 function matches(spot, query) {
@@ -36,7 +44,10 @@ export default function AdminSpots() {
   const [query, setQuery] = useState('')
   // null: no form; 'new': adding; a spot: editing it.
   const [editing, setEditing] = useState(null)
-  const [busy, setBusy] = useState(null)
+  // The ids of the rows with a write in flight; each row waits on its own.
+  const [busy, setBusy] = useState(() => new Set())
+  // The button that opened the form, given focus back when it closes.
+  const opener = useRef(null)
 
   useEffect(() => {
     let live = true
@@ -72,27 +83,50 @@ export default function AdminSpots() {
     })
   }
 
+  useEffect(() => {
+    if (editing !== null || !opener.current) return
+    // After the render that closed the form, so Add by hand is enabled
+    // again; a row filtered out since has nothing to return to.
+    if (opener.current.isConnected) opener.current.focus()
+    opener.current = null
+  }, [editing])
+
+  function openForm(event, target) {
+    opener.current = event.currentTarget
+    setNotice(null)
+    setEditing(target)
+  }
+
   function saved(spot) {
     replace(spot)
     setEditing(null)
     setNotice(`Saved ${spot.name}.`)
   }
 
+  function markBusy(id, on) {
+    setBusy((current) => {
+      const next = new Set(current)
+      if (on) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
   async function act(spot, request, onOk) {
-    setBusy(spot.id)
+    markBusy(spot.id, true)
     setError(null)
     setNotice(null)
     try {
       const response = await request()
       if (!response.ok) {
-        setError(await errorMessage(response))
+        setError(await failureText(response))
         return
       }
       await onOk(response)
     } catch {
       setError('That didn’t go through. Check your connection.')
     } finally {
-      setBusy(null)
+      markBusy(spot.id, false)
     }
   }
 
@@ -120,14 +154,22 @@ export default function AdminSpots() {
           body: JSON.stringify({ visited_on: today }),
         }),
       async () => {
-        replace({
-          ...spot,
-          last_visit:
-            spot.last_visit && spot.last_visit > today
-              ? spot.last_visit
-              : today,
-          visit_count: spot.visit_count + 1,
-        })
+        // From the row as it is now, not as it was when clicked: a publish
+        // that landed meanwhile stays.
+        setSpots((current) =>
+          (current ?? []).map((row) =>
+            row.id === spot.id
+              ? {
+                  ...row,
+                  last_visit:
+                    row.last_visit && row.last_visit > today
+                      ? row.last_visit
+                      : today,
+                  visit_count: row.visit_count + 1,
+                }
+              : row,
+          ),
+        )
         setNotice(`Logged a visit to ${spot.name} today.`)
       },
     )
@@ -142,10 +184,7 @@ export default function AdminSpots() {
         <button
           type="button"
           className="btn primary"
-          onClick={() => {
-            setNotice(null)
-            setEditing('new')
-          }}
+          onClick={(event) => openForm(event, 'new')}
           disabled={editing === 'new'}
         >
           {denver.admin.add}
@@ -175,7 +214,17 @@ export default function AdminSpots() {
       {spots === null && !error && <p>Loading spots…</p>}
 
       {spots !== null && (
-        <>
+        <Panel
+          title={denver.admin.panelTitle}
+          action={
+            <p className="spots-counts">
+              <span className="spots-pill">Public {publicCount}</span>
+              <span className="spots-pill">
+                Private {spots.length - publicCount}
+              </span>
+            </p>
+          }
+        >
           <div className="spots-toolbar">
             <input
               type="search"
@@ -185,12 +234,6 @@ export default function AdminSpots() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-            <p className="spots-counts">
-              <span className="spots-pill">Public {publicCount}</span>
-              <span className="spots-pill">
-                Private {spots.length - publicCount}
-              </span>
-            </p>
           </div>
 
           {spots.length === 0 && <p>{denver.admin.empty}</p>}
@@ -246,7 +289,7 @@ export default function AdminSpots() {
                         <input
                           type="checkbox"
                           checked={spot.is_public}
-                          disabled={busy === spot.id}
+                          disabled={busy.has(spot.id)}
                           onChange={() => togglePublic(spot)}
                           aria-label={`Public: ${spot.name}`}
                         />
@@ -254,10 +297,7 @@ export default function AdminSpots() {
                       <td className="spots-actions">
                         <button
                           type="button"
-                          onClick={() => {
-                            setNotice(null)
-                            setEditing(spot)
-                          }}
+                          onClick={(event) => openForm(event, spot)}
                           aria-label={`Edit ${spot.name}`}
                         >
                           Edit
@@ -265,7 +305,7 @@ export default function AdminSpots() {
                         <button
                           type="button"
                           onClick={() => logVisit(spot)}
-                          disabled={busy === spot.id}
+                          disabled={busy.has(spot.id)}
                           aria-label={`Log a visit to ${spot.name}`}
                         >
                           Log visit
@@ -277,7 +317,7 @@ export default function AdminSpots() {
               </table>
             </div>
           )}
-        </>
+        </Panel>
       )}
     </div>
   )

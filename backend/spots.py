@@ -40,6 +40,9 @@ _MODE_PHRASES = {"walk": "on foot", "bike": "by bike", "drive or bus": "drive or
 
 EARTH_RADIUS_MILES = 3958.8
 SLUG_MAX = 200
+# The most a "-<n>" suffix (and the one hyphen rstrip may drop) shortens a
+# base by: room for n up to nine digits.
+SLUG_SUFFIX_ROOM = 12
 
 
 def canonical_tags(values: Iterable[str]) -> list[str]:
@@ -90,7 +93,10 @@ def unique_slug(name: str, taken: Iterable[str]) -> str:
 
 _NUMBER = r"[-+]?\d{1,3}(?:\.\d+)?"
 # "39.75, -104.99", "39.75,-104.99", "39.75 -104.99", with or without degree
-# signs; or the "@39.75,-104.99,15z" part of a maps URL.
+# signs; or a maps URL. A Google place URL carries the pin itself as
+# "!3d39.75!4d-104.99" in its data part, and its "@39.7,-104.9,15z" is only
+# where the map was centred, so the pin is read first.
+_PLACE_PAIR = re.compile(rf"!3d({_NUMBER})!4d({_NUMBER})")
 _AT_PAIR = re.compile(rf"@({_NUMBER}),({_NUMBER})")
 _PAIR = re.compile(rf"^\s*({_NUMBER})°?\s*[, ]\s*({_NUMBER})°?\s*$")
 
@@ -102,7 +108,7 @@ def parse_coords(value: str) -> tuple[float, float]:
     can act on, including the common slip of pasting longitude first.
     """
     text = value.strip()
-    match = _AT_PAIR.search(text) or _PAIR.match(text)
+    match = _PLACE_PAIR.search(text) or _AT_PAIR.search(text) or _PAIR.match(text)
     if not match:
         raise ValueError(
             'Paste coordinates as "latitude, longitude", e.g. "39.75, -104.99"'

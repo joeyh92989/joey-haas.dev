@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 import spots
 from items import require_admin
 from models import CandidateSource, Spot, SpotSetting, Visit
+from public import OWNER_TZ
 
 MAX_NAME = 200
 MAX_NEIGHBOURHOOD = 100
@@ -80,7 +81,7 @@ class SpotOut(BaseModel):
 
 
 class VisitIn(BaseModel):
-    """A visit to log. The date defaults to today (UTC) when omitted."""
+    """A visit to log. The date defaults to the owner's Denver day."""
 
     visited_on: date | None = None
     note: str | None = Field(default=None, max_length=MAX_VISIT_NOTE)
@@ -167,8 +168,11 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
     async def _slug_for(
         session: AsyncSession, name: str, exclude: uuid.UUID | None = None
     ) -> str:
-        base = spots.slugify(name)
-        query = select(Spot.slug).where(Spot.slug.startswith(base))
+        # A suffix shortens a long base to stay within the column, so the
+        # lookup takes every slug sharing the part a suffix can never cut
+        # (slugify leaves no run of hyphens for rstrip to eat into it).
+        stem = spots.slugify(name)[: spots.SLUG_MAX - spots.SLUG_SUFFIX_ROOM]
+        query = select(Spot.slug).where(Spot.slug.startswith(stem))
         if exclude is not None:
             query = query.where(Spot.id != exclude)
         return spots.unique_slug(name, (await session.scalars(query)).all())
@@ -279,11 +283,11 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         payload: VisitIn,
         session: AsyncSession = Depends(get_session),
     ) -> VisitOut:
-        """Logs a day at a spot. As in the play journal, a date more than a
-        day past UTC's today is refused: the page sends the owner's local
-        day, which runs ahead of UTC in the evening."""
+        """Logs a day at a spot, on the owner's Denver day when no date is
+        sent. A date more than a day past it is refused; the day's grace is
+        for the owner logging from a time zone east of Denver."""
         await _spot(session, spot_id)
-        today = datetime.now(UTC).date()
+        today = datetime.now(OWNER_TZ).date()
         visited_on = payload.visited_on or today
         if visited_on > today + timedelta(days=1):
             raise HTTPException(

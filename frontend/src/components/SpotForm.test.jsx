@@ -83,11 +83,44 @@ describe('SpotForm', () => {
     const [url, options] = fetch.mock.calls[0]
     expect(url).toMatch(/\/api\/spots\/s1$/)
     expect(options.method).toBe('PATCH')
-    expect(JSON.parse(options.body)).toMatchObject({
-      anchor: true,
-      tags: ['park'],
-    })
+    expect(JSON.parse(options.body)).toEqual({ anchor: true })
     expect(onSaved).toHaveBeenCalled()
+  })
+
+  it('sends an edit’s changed fields only, coordinates included', async () => {
+    const fetch = vi.fn(async () => json(SPOT))
+    vi.stubGlobal('fetch', fetch)
+    render(<SpotForm spot={SPOT} onSaved={() => {}} onCancel={() => {}} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({})
+
+    const coords = screen.getByLabelText('Coordinates')
+    await user.clear(coords)
+    await user.type(coords, '39.75, -105.05')
+    await user.click(screen.getByRole('button', { name: 'Coffee' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      coords: '39.75, -105.05',
+      tags: ['coffee', 'park'],
+    })
+  })
+
+  it('moves focus to its heading when it opens', () => {
+    render(<SpotForm spot={null} onSaved={() => {}} onCancel={() => {}} />)
+    expect(screen.getByRole('heading', { name: 'Add a spot' })).toHaveFocus()
+  })
+
+  it('says the session ended when a save is a 401', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json({ detail: 'Not signed in' }, 401)),
+    )
+    render(<SpotForm spot={SPOT} onSaved={() => {}} onCancel={() => {}} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your session ended. Reload to sign in.',
+    )
   })
 
   it('shows the API’s sentence when it refuses the coordinates', async () => {

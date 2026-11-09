@@ -897,8 +897,8 @@ class Visit(Base):
 
 class Candidate(Base):
     """A place the weekly finder turned up and the owner has not answered
-    (migration 0013). Replaced by each candidates run; Accept and Dismiss
-    delete the row."""
+    (migration 0013). Written by the candidates job (`candidates.py`, PR 3),
+    which replaces the rows each run; Accept and Dismiss delete one."""
 
     __tablename__ = "candidates"
     __table_args__ = (
@@ -934,7 +934,8 @@ class Candidate(Base):
 
 class Dismissal(Base):
     """A candidate turned down for good (migration 0013): the finder never
-    offers this `(source, source_id)` again."""
+    offers this `(source, source_id)` again. Written by Dismiss and read by
+    the candidates job (`candidates.py`, PR 3)."""
 
     __tablename__ = "dismissals"
 
@@ -952,8 +953,9 @@ class Dismissal(Base):
 
 class WeatherHour(Base):
     """One forecast hour for a gridpoint (migration 0013), written only by
-    the weather job; the weekend planner reads nothing else for weather.
-    `precip_pct` is NULL when the forecast gives no probability."""
+    the weather job (`weather.py`, PR 4); the weekend planner reads nothing
+    else for weather. `precip_pct` is NULL when the forecast gives no
+    probability."""
 
     __tablename__ = "weather_hours"
     __table_args__ = (
@@ -973,9 +975,10 @@ class WeatherHour(Base):
 
 
 class SpotSetting(Base):
-    """One key/value blob for Denver spots (migration 0013), read and written
-    whole by `spots_routes.py`: run summaries (`run:candidates`,
-    `run:weather`), the planner's `constraints`, and `plan:<iso-week>`."""
+    """One key/value blob for Denver spots (migration 0013), written whole:
+    the jobs' run summaries (`candidates.last_run` by the candidates job,
+    PR 3; `weather.last_run` by the weather job, PR 4), which
+    `GET /api/spots/status` reads, and later the planner's settings."""
 
     __tablename__ = "spot_settings"
 

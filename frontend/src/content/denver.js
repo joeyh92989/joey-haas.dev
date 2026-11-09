@@ -37,6 +37,7 @@ export const denver = {
     noMatch: 'No spot matches that search.',
     readError: 'The spots couldn’t be read.',
     sessionEnded: 'Your session ended. Reload to sign in.',
+    panelTitle: 'All spots',
   },
   form: {
     addTitle: 'Add a spot',
