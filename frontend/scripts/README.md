@@ -18,6 +18,7 @@ refreshes from the API. Home and Projects read the same file for their cover
 strips, so they still make no API calls.
 
 **When it runs.**
+
 - Only when `VITE_API_URL` is set, which is the Render static site. CI and
   local builds skip it, so they stay offline and deterministic.
 - It never fails the build. Each data request is retried once. If the API
@@ -54,6 +55,7 @@ the redeploy that follows refreshes them. See the root
 README → Collection snapshot and Nightly job.
 
 **Gotchas.**
+
 - `public/snapshot/` is gitignored and must never be committed.
 - Files fetched by `npm run snapshot` stay in `public/snapshot/` and are copied
   into later local builds until you delete them. An offline build (no
@@ -153,6 +155,7 @@ local) prerenders no item pages. Each admin page in `ADMIN_ROUTES` gets a
 already keeps crawlers away from. Keep `ADMIN_ROUTES` in step with `App.jsx`.
 
 **Gotchas.**
+
 - `dist/index.html` is both the home page and the SPA fallback for every
   other path, so it keeps no canonical or `og:url`: an unknown path must not
   claim to be the home page.
@@ -177,3 +180,88 @@ scripts: published entries (`draft: true` skipped, as the plugin's production
 build does), newest first. `prerender.mjs` and `generate-rss.mjs` both use it,
 so they agree on what is published. `rssFeed` and `writeFeed` build the feeds.
 Tested in `markdown-lib.test.mjs`.
+
+## Travel scripts (run by hand)
+
+Unlike the four above, nothing here runs in `npm run build`. The travel
+photos are built on the owner's machine and the WebPs committed, because
+the originals carry GPS and must never enter git (design D4). The order for
+a new trip is ingest → write → build:
+
+```
+ingest-photos.mjs  →  (write the draft)  →  build-travel-images.mjs  →  commit
+```
+
+`docs/travel-onboarding.md` is the working plan around these: what to
+collect, from whom, and which trips are still to recover.
+
+### trip-markdown.mjs
+
+The trip grammar, pure: frontmatter (`parseTripFrontmatter`), day headings,
+photo lines and prose (`parseTripDays`), the date of each day (`dayDates`,
+null below `precision: day`), the photo names a trip shows
+(`referencedPhotoNames`), and the guard that refuses a `TODO` in a trip that
+is not a draft (`assertNoPlaceholders`). The Vite plugin, the image build
+and the ingest tool all parse through it, so they cannot disagree on what a
+trip is. Tested in `trip-markdown.test.mjs`.
+
+### build-travel-images.mjs
+
+```
+node scripts/build-travel-images.mjs <slug>
+```
+
+Reads `trips/<slug>/photos/photos.json` and `trips/<slug>.md`, and writes
+`public/travel/<slug>/<name>-800.webp` and `-1600.webp` for **only the
+photos the trip file shows** (the cover included); the rest of the manifest
+stays unbuilt and is reported as "not in the trip file". It bakes EXIF
+orientation into the pixels (`.rotate()`) and strips every scrap of
+metadata, GPS above all, then writes each built photo's dimensions back into
+the manifest so the page reserves their space. A `kid: true` photo is
+refused unless it also carries `publish: true`. A trip file that does not
+parse fails this script too. Tested in `build-travel-images.test.mjs`.
+
+### ingest-photos.mjs
+
+```
+node scripts/ingest-photos.mjs --from <folder>                    # dry run: report only
+node scripts/ingest-photos.mjs --from <folder> --write --slug <slug> [--trip <n>]
+```
+
+Turns a dump of photos (a camera-roll export, a partner's folder, an old
+backup) into candidate trips:
+
+- **Reads** every image under `--from` (jpg, jpeg, png, heic, heif, webp,
+  tif, tiff; anything else is counted and ignored) for its camera time and
+  GPS, with `exifr`.
+- **Dates with a confidence, never invents one**: `exif` from the camera;
+  `mtime` from the file's modified time when the file is older than
+  `--fresh-days` (30); otherwise `none`. A file touched recently was
+  probably just copied, so its mtime says nothing about the trip.
+- **Groups** dated photos into trips: more than `--gap` (2) empty days
+  between two photos starts a new one. Undated photos join no trip and are
+  listed by path.
+- **Places** a photo only when its GPS is within `--radius-km` (40) of an
+  entry in `places.json`. No GPS, no guess: an unplaced day is written as
+  the place `TODO`.
+- **`--write`** copies the chosen trip's photos into the gitignored
+  `trips/<slug>/photos/`, named by capture time (`2014-06-03-1422`),
+  converting HEIC to JPEG with macOS `sips` (elsewhere it reports and skips
+  them). It then writes `photos.json` (name, file, date, confidence; **no
+  GPS**) and scaffolds `trips/<slug>.md` as `draft: true`, with one day
+  heading per day that has photos, each day's photos listed in a comment to
+  pick from, and `TODO` wherever a person has to write. A draft with `TODO`
+  renders in the dev server; the site build refuses one that is not a
+  draft. It never overwrites an existing trip. The dump folder is never
+  modified.
+
+Tested in `ingest-photos.test.mjs` on generated photos with real EXIF.
+
+### places.json
+
+The gazetteer for `ingest-photos.mjs`: a few hundred cities and towns,
+`{name, country, lat, lon}`, weighted to where trips have been and might
+go. Coordinates are approximate (town centres, about two decimals) because
+they only have to land a photo within 40 km. Names become place names in a
+trip file, so none may contain `·` or `→`. Add a place by hand when a trip
+needs one; the tool reads nothing from the network.
