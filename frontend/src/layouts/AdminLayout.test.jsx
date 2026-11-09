@@ -1,6 +1,18 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useOutletContext } from 'react-router'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
+import {
+  Link,
+  MemoryRouter,
+  Route,
+  Routes,
+  useOutletContext,
+} from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminLayout from './AdminLayout.jsx'
 
@@ -176,5 +188,28 @@ describe('AdminLayout rows', () => {
     renderAt()
     expect(await screen.findByTestId('page')).toHaveTextContent('no rows')
     expect(screen.getByRole('link', { name: 'Shelf' })).toBeInTheDocument()
+  })
+
+  it('reloads the rows when Jobs opens, so Recent changes is current', async () => {
+    const fetch = stubApi({ items: [{ id: 1, owned_format: 'cartridge' }] })
+    render(
+      <MemoryRouter initialEntries={['/admin/collection']}>
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route
+              path="collection"
+              element={<Link to="/admin/jobs">to jobs</Link>}
+            />
+            <Route path="jobs" element={<Page />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    const itemCalls = () =>
+      fetch.mock.calls.filter(([url]) => String(url).endsWith('/api/items'))
+        .length
+    fireEvent.click(await screen.findByRole('link', { name: 'to jobs' }))
+    expect(await screen.findByTestId('page')).toHaveTextContent('1 rows')
+    await waitFor(() => expect(itemCalls()).toBe(2))
   })
 })

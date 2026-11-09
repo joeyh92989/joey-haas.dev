@@ -28,21 +28,22 @@ async function readJson(path) {
 }
 
 /**
- * Reads `path` once per `round`. undefined while loading, null when the
- * read failed.
+ * Reads `path` once per `round`. undefined until the first read lands, null
+ * when the read failed. A later round keeps the last body until its own
+ * lands, so a card never drops the controls it was just used through.
  */
 function useRead(path, round = 0) {
-  const [state, setState] = useState({ round: -1, body: undefined })
+  const [body, setBody] = useState(undefined)
   useEffect(() => {
     let live = true
-    readJson(path).then((body) => {
-      if (live) setState({ round, body })
+    readJson(path).then((next) => {
+      if (live) setBody(next)
     })
     return () => {
       live = false
     }
   }, [path, round])
-  return state.round === round ? state.body : undefined
+  return body
 }
 
 const listLength = (body) => (Array.isArray(body) ? body.length : null)
@@ -64,6 +65,9 @@ function ShelfCard({ items, year }) {
   const [round, setRound] = useState(0)
   const [wrap, setWrap] = useState(null)
   const [logError, setLogError] = useState(false)
+  // The game being logged, held from the press until the refetch says the
+  // day is logged, so a second press cannot post the same day twice.
+  const [loggingId, setLoggingId] = useState(null)
   const continuing = useRead('/api/picker/continuing', round)
   const next = useRead('/api/public/next')
 
@@ -79,6 +83,8 @@ function ShelfCard({ items, year }) {
     return null
 
   async function logTonight() {
+    if (loggingId === card.item_id) return
+    setLoggingId(card.item_id)
     setLogError(false)
     try {
       const response = await apiFetch(`/api/items/${card.item_id}/sessions`, {
@@ -87,9 +93,11 @@ function ShelfCard({ items, year }) {
         body: JSON.stringify({ played_on: localToday() }),
       })
       if (!response.ok) throw new Error(`status ${response.status}`)
+      // Left held: the refetch brings the day back as logged.
       setRound((current) => current + 1)
     } catch {
       setLogError(true)
+      setLoggingId(null)
     }
   }
 
@@ -109,7 +117,7 @@ function ShelfCard({ items, year }) {
         <button
           type="button"
           className="btn primary sm"
-          disabled={logged}
+          disabled={logged || loggingId === card.item_id}
           onClick={logTonight}
         >
           {logged ? 'Logged tonight' : 'Log tonight'}
@@ -226,7 +234,8 @@ function DenverCard() {
 function SiteCard({ nightly }) {
   const views = useRead('/api/analytics?range=7d')
   const read = typeof views?.views === 'number' ? views : null
-  const top = read?.pages?.[0]?.path ?? null
+  // Ranked rows from analytics._ranked: {value, count}.
+  const top = read?.pages?.[0]?.value ?? null
   const summary = nightly.jobs ? jobsSummary(nightly.jobs) : null
 
   return (

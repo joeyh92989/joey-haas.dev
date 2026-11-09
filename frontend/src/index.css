@@ -1561,8 +1561,7 @@ footer {
 .admin-side-nav a:focus-visible,
 .admin-side-foot a:focus-visible,
 .admin-side-foot button:focus-visible,
-.admin-tabs a:focus-visible,
-.admin-tabs button:focus-visible {
+.admin-tabs a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -1591,12 +1590,8 @@ footer {
   z-index: 30;
 }
 
-.admin-tabs a,
-.admin-tabs button {
-  background: none;
-  border: 0;
+.admin-tabs a {
   color: var(--text-3);
-  cursor: pointer;
   display: grid;
   font: 500 0.6875rem var(--font-sans);
   gap: 2px;
@@ -1611,30 +1606,13 @@ footer {
   text-decoration: none;
 }
 
-.admin-tabs a.active,
-.admin-tabs button.active {
+.admin-tabs a.active {
   color: var(--accent);
-}
-
-.admin-sheet .link-button {
-  border-bottom: 1px solid var(--line);
-  color: var(--text-2);
-  font-size: 1rem;
-  min-height: 2.75rem;
-  padding: 0.625rem 0;
-  text-align: left;
-  text-decoration: none;
-}
-
-.admin-sheet-email {
-  font-size: 0.8125rem;
-  overflow-wrap: anywhere;
-  padding-top: 0.625rem;
 }
 
 /* The phone's segmented control: the area's pages. The current segment
    is --text on --surface (15.32 dark, 17.96 light); the rest --text-2 on
-   --sunken (at least 7.30 dark, 7.18 light, the token block). */
+   --sunken (7.94 dark, 7.42 light). */
 .admin-subnav {
   background: var(--sunken);
   border: 1px solid var(--line);

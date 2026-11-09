@@ -113,7 +113,7 @@ function stubApi(routes = {}) {
     '/api/spots': () => json([{}, {}, {}]),
     '/api/spots/candidates': () => json([{}, {}]),
     '/api/analytics?range=7d': () =>
-      json({ views: 42, visitors: 7, pages: [{ path: '/daily' }] }),
+      json({ views: 42, visitors: 7, pages: [{ value: '/daily', count: 30 }] }),
   }
   const table = { ...defaults, ...routes }
   const fetch = vi.fn(async (url, options) => {
@@ -194,6 +194,49 @@ describe('Admin Home', () => {
       String(url).endsWith('/api/items/a1/sessions'),
     )
     expect(JSON.parse(post[1].body)).toEqual({ played_on: localToday() })
+  })
+
+  it('keeps the card while it refetches, and posts a double press once', async () => {
+    let release
+    let logged = false
+    const fetch = stubApi({
+      '/api/items/a1/sessions': () => {
+        logged = true
+        return json({})
+      },
+      '/api/picker/continuing': () =>
+        logged
+          ? new Promise((resolve) => {
+              release = () =>
+                resolve(
+                  json({
+                    cards: [{ ...CONTINUING, last_played_on: localToday() }],
+                  }),
+                )
+            })
+          : json({ cards: [CONTINUING] }),
+    })
+    renderAt()
+    const shelf = await card('Shelf')
+    const button = await within(shelf).findByRole('button', {
+      name: 'Log tonight',
+    })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    await waitFor(() => expect(release).toBeDefined())
+    // The refetch is in flight: the game and its controls stay put.
+    expect(within(shelf).getByText('Continue: Dredge')).toBeInTheDocument()
+    expect(
+      within(shelf).getByRole('button', { name: 'Log tonight' }),
+    ).toBeDisabled()
+    release()
+    expect(
+      await within(shelf).findByRole('button', { name: 'Logged tonight' }),
+    ).toBeDisabled()
+    const posts = fetch.mock.calls.filter(([url]) =>
+      String(url).endsWith('/api/items/a1/sessions'),
+    )
+    expect(posts).toHaveLength(1)
   })
 
   it('falls back to Up next when no game is in hand', async () => {
