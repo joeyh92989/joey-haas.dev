@@ -116,6 +116,29 @@ describe('WrapUpSheet', () => {
     )
   })
 
+  it('rounds a short run’s hours to one decimal in the header', async () => {
+    mockApi({
+      'GET /api/items/h2': {
+        ok: true,
+        body: {
+          ...DETAIL,
+          playthroughs: [
+            {
+              number: 1,
+              started_on: '2026-11-08',
+              outcome: null,
+              journal_minutes: 95,
+            },
+          ],
+        },
+      },
+    })
+    renderSheet()
+    expect(
+      await screen.findByText('Playthrough 1 · since Nov 8, 2026 · 1.6 h'),
+    ).toBeInTheDocument()
+  })
+
   it('follows the chosen outcome in the primary label and the date label', async () => {
     mockApi()
     renderSheet()

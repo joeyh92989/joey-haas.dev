@@ -17,7 +17,11 @@ function headerLine(detail) {
   const parts = [copy.playthrough(detail.playthrough)]
   if (detail.since) parts.push(`${copy.since} ${dayWords(detail.since)}`)
   if (detail.hours) {
-    const hours = detail.hours >= 10 ? Math.round(detail.hours) : detail.hours
+    // Whole hours from ten up, one decimal below, as the Continue card says.
+    const hours =
+      detail.hours >= 10
+        ? Math.round(detail.hours)
+        : Math.round(detail.hours * 10) / 10
     parts.push(`${hours} ${spine.next.tonight.hours}`)
   }
   return parts.join(' · ')
