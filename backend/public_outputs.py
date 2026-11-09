@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from continuing import ContinuingCard, build_continuing, hours_to_beat
 from models import (
     ComicShelfFormat,
     Item,
@@ -272,12 +273,16 @@ class PublicLastFinish(BaseModel):
     cover_url: str | None
     finished_at: date
     time_to_beat_hours: float | None
+    # The rating is public on every item; the chip shows it as stars.
+    rating: int | None
 
 
 class PublicTonight(BaseModel):
-    """Tonight: the pinned Up next game, if any, Play Next's recent picks,
-    and the last finish they were measured against, when it is public."""
+    """Tonight: the games being played (Continue cards, most recent session
+    first), the pinned Up next game, if any, Play Next's recent picks, and
+    the last finish they were measured against, when it is public."""
 
+    continuing: list[ContinuingCard]
     up_next: PublicTonightCard | None
     picks: list[PublicTonightCard]
     last_finish: PublicLastFinish | None
@@ -434,14 +439,8 @@ def _next_row(entry: NextEntry, taste: PublicTaste) -> PublicNextRow:
     )
 
 
-def _hours(metadata: dict | None) -> float | None:
-    """IGDB's usual time to beat in hours, or None when unknown. Unrounded,
-    so the page's size band matches picker's (6.4 h is Medium, not Short)."""
-    time_to_beat = (metadata or {}).get("time_to_beat")
-    normally = time_to_beat.get("normally") if isinstance(time_to_beat, dict) else None
-    if isinstance(normally, bool) or not isinstance(normally, int | float):
-        return None
-    return float(normally)
+# IGDB's "normally" hours, shared with the Continue card (continuing.py).
+_hours = hours_to_beat
 
 
 def _tonight_card(game: Item | _PickRow, reasons: list[str]) -> PublicTonightCard:
@@ -471,6 +470,7 @@ def _last_finish(last: Item | None, today: date) -> PublicLastFinish | None:
         cover_url=last.cover_url,
         finished_at=last.finished_at,
         time_to_beat_hours=_hours(last.source_metadata),
+        rating=last.rating,
     )
 
 
@@ -510,6 +510,11 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
     )
     pinned = [item for item in data.public_games if item.pinned_at is not None]
     up_next = max(pinned, key=lambda item: item.pinned_at, default=None)
+    # The game in hand leads Tonight; a pick naming it would say the same
+    # thing twice (and a stalled "Pick it back up" is exactly that game).
+    continuing = await build_continuing(session, data.public_games, today)
+    in_hand = {card.item_id for card in continuing}
+    picks = [pick for pick in picks if pick.id not in in_hand]
     comics = await public_comic_items(session)
     wanted = sorted(
         # Wanted is "no copy owned", as public.py derives it.
@@ -533,6 +538,7 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
             discover=_utc_day(data.generated_at.get(RecommendationKind.DISCOVER.value)),
         ),
         tonight=PublicTonight(
+            continuing=continuing,
             up_next=_tonight_card(up_next, []) if up_next else None,
             picks=[_tonight_card(pick, pick.reasons) for pick in picks],
             last_finish=_last_finish(await last_finish(session, public=True), today),

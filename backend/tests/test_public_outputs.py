@@ -1,6 +1,7 @@
 """Public picks and radar (showcase spec, D). The leak tests are the point."""
 
 import asyncio
+import json
 import re
 import uuid
 from contextlib import asynccontextmanager
@@ -13,6 +14,7 @@ from sqlalchemy import select, update
 from starlette.middleware.sessions import SessionMiddleware
 
 import public
+from continuing import STALE_DAYS, ContinuingCard
 from models import (
     CatalogueGame,
     CatalogueRun,
@@ -24,6 +26,7 @@ from models import (
     PhysicalFormat,
     PickAction,
     PickEvent,
+    PlaySession,
     ReasonSource,
     Recommendation,
     RecommendationKind,
@@ -31,6 +34,7 @@ from models import (
     StoreListing,
 )
 from physical_sources.stores import STORES
+from playthroughs import add_past, apply_status
 from public import create_public_router
 from public_outputs import (
     PublicBestDayOut,
@@ -40,6 +44,7 @@ from public_outputs import (
     PublicSiteStatsOut,
     PublicStatusOut,
     PublicSummaryOut,
+    PublicTonight,
     PublicTonightCard,
 )
 from recommendations_routes import create_recommendations_router
@@ -61,7 +66,14 @@ PICK_FIELDS = {
     "slot_label", "time_to_beat_hours",
 }  # fmt: skip
 LAST_FINISH_FIELDS = {
-    "item_id", "title", "cover_url", "finished_at", "time_to_beat_hours",
+    "item_id", "title", "cover_url", "finished_at", "time_to_beat_hours", "rating",
+}  # fmt: skip
+# The Continue card (Tonight continue spec): the game in hand and its open
+# run's journal. No status key, no note, no minutes per day.
+CONTINUING_FIELDS = {
+    "item_id", "type", "title", "cover_url", "platform", "time_to_beat_hours",
+    "playthrough", "playing_since", "last_played_on", "journal_hours",
+    "sessions", "stale",
 }  # fmt: skip
 
 
@@ -124,6 +136,168 @@ def _with_ids(*items: Item) -> tuple[Item, ...]:
 async def test_the_tonight_card_publishes_exactly_these_fields():
     assert set(PublicTonightCard.model_fields) == PICK_FIELDS
     assert set(PublicLastFinish.model_fields) == LAST_FINISH_FIELDS
+    assert set(ContinuingCard.model_fields) == CONTINUING_FIELDS
+    assert set(PublicTonight.model_fields) == {
+        "continuing",
+        "up_next",
+        "picks",
+        "last_finish",
+    }
+
+
+def _session(item: Item, day: date, minutes: int | None = None) -> PlaySession:
+    return PlaySession(item_id=item.id, played_on=day, minutes=minutes, note="mine")
+
+
+async def _start(factory, item: Item, on: date) -> None:
+    """Opens the item's run on `on` through the rules, as the status route does."""
+    async with factory() as session:
+        row = await session.get(Item, item.id)
+        await apply_status(session, row, ItemStatus.ACTIVE, on)
+        await session.commit()
+
+
+async def test_the_continue_card_carries_the_open_runs_journal_and_nothing_private(
+    sessionmaker_for_test,
+):
+    today = NOW.date()
+    (playing,) = _with_ids(
+        _game(
+            "Hades II",
+            status=ItemStatus.BACKLOG,
+            platform="Nintendo Switch 2",
+            source_metadata=_hours(30),
+        )
+    )
+    await _add(sessionmaker_for_test, playing)
+    await _start(sessionmaker_for_test, playing, today - timedelta(days=15))
+    await _add(
+        sessionmaker_for_test,
+        _session(playing, today - timedelta(days=10), 90),
+        _session(playing, today - timedelta(days=1), 45),
+        _session(playing, today - timedelta(days=3)),
+    )
+    body = await _next(sessionmaker_for_test)
+
+    cards = body["tonight"]["continuing"]
+    assert [set(card) for card in cards] == [CONTINUING_FIELDS]
+    card = cards[0]
+    assert card["title"] == "Hades II"
+    assert card["playthrough"] == 1
+    assert card["playing_since"] == (today - timedelta(days=15)).isoformat()
+    assert card["last_played_on"] == (today - timedelta(days=1)).isoformat()
+    assert card["sessions"] == 3
+    assert card["journal_hours"] == 2.2
+    assert card["stale"] is False
+    assert card["time_to_beat_hours"] == 30.0
+    assert "mine" not in json.dumps(body)
+
+
+async def test_the_continue_card_is_not_also_a_pick(sessionmaker_for_test):
+    today = NOW.date()
+    playing, other = _with_ids(_game("In hand"), _game("Fresh"))
+    await _add(sessionmaker_for_test, playing, other)
+    await _start(sessionmaker_for_test, playing, today - timedelta(days=40))
+    await _add(
+        sessionmaker_for_test,
+        _shown(playing, SHOWN_DAY, "pick_it_back_up"),
+        _shown(other, SHOWN_DAY, "best_fit"),
+    )
+    tonight = (await _next(sessionmaker_for_test))["tonight"]
+
+    assert [card["title"] for card in tonight["continuing"]] == ["In hand"]
+    assert [pick["title"] for pick in tonight["picks"]] == ["Fresh"]
+
+
+async def test_the_continue_card_is_public_owned_active_games_only(
+    sessionmaker_for_test,
+):
+    today = NOW.date()
+    private, wanted, paused, playing = _with_ids(
+        _game("Private", is_public=False),
+        _game("Wanted", owned_format=OwnedFormat.NONE),
+        _game("Paused"),
+        _game("Playing"),
+    )
+    await _add(sessionmaker_for_test, private, wanted, paused, playing)
+    for item in (private, wanted, playing):
+        await _start(sessionmaker_for_test, item, today)
+    async with sessionmaker_for_test() as session:
+        row = await session.get(Item, paused.id)
+        await apply_status(session, row, ItemStatus.ACTIVE, today)
+        await apply_status(session, row, ItemStatus.PAUSED, today)
+        await session.commit()
+    tonight = (await _next(sessionmaker_for_test))["tonight"]
+
+    assert [card["title"] for card in tonight["continuing"]] == ["Playing"]
+
+
+async def test_stale_is_three_weeks_without_a_session_or_since_the_start(
+    sessionmaker_for_test,
+):
+    today = NOW.date()
+    quiet, recent, started_long_ago, fresh = _with_ids(
+        _game("Quiet"), _game("Recent"), _game("Long ago"), _game("Fresh")
+    )
+    await _add(sessionmaker_for_test, quiet, recent, started_long_ago, fresh)
+    for item in (quiet, recent):
+        await _start(sessionmaker_for_test, item, today - timedelta(days=60))
+    await _start(sessionmaker_for_test, started_long_ago, today - timedelta(days=21))
+    await _start(sessionmaker_for_test, fresh, today - timedelta(days=20))
+    await _add(
+        sessionmaker_for_test,
+        _session(quiet, today - timedelta(days=STALE_DAYS)),
+        _session(recent, today - timedelta(days=STALE_DAYS - 1)),
+    )
+    cards = (await _next(sessionmaker_for_test))["tonight"]["continuing"]
+
+    assert {card["title"]: card["stale"] for card in cards} == {
+        "Quiet": True,
+        "Recent": False,
+        "Long ago": True,
+        "Fresh": False,
+    }
+    # Most recent session first, then the newest start among the journal-less.
+    assert [card["title"] for card in cards] == ["Recent", "Quiet", "Fresh", "Long ago"]
+
+
+async def test_the_continue_card_counts_only_the_open_runs_journal(
+    sessionmaker_for_test,
+):
+    today = NOW.date()
+    (replay,) = _with_ids(_game("Replay"))
+    await _add(sessionmaker_for_test, replay)
+    async with sessionmaker_for_test() as session:
+        row = await session.get(Item, replay.id)
+        await add_past(
+            session, row, today - timedelta(days=200), today - timedelta(days=100)
+        )
+        await apply_status(session, row, ItemStatus.ACTIVE, today - timedelta(days=5))
+        await session.commit()
+    await _add(
+        sessionmaker_for_test,
+        _session(replay, today - timedelta(days=150), 600),
+        _session(replay, today - timedelta(days=2), 30),
+    )
+    (card,) = (await _next(sessionmaker_for_test))["tonight"]["continuing"]
+
+    assert card["playthrough"] == 2
+    assert (card["sessions"], card["journal_hours"]) == (1, 0.5)
+    assert card["last_played_on"] == (today - timedelta(days=2)).isoformat()
+
+
+async def test_the_just_finished_chip_carries_the_rating(sessionmaker_for_test):
+    (done,) = _with_ids(
+        _game(
+            "Done",
+            status=ItemStatus.FINISHED,
+            finished_at=NOW.date() - timedelta(days=2),
+            rating=9,
+        )
+    )
+    await _add(sessionmaker_for_test, done)
+    chip = (await _next(sessionmaker_for_test))["tonight"]["last_finish"]
+    assert (chip["title"], chip["rating"]) == ("Done", 9)
 
 
 def _hours(hours: float) -> dict:
@@ -162,7 +336,7 @@ async def test_a_null_slot_and_pick_it_back_up_publish_no_label(
 ):
     """Pick it back up reports activity (D1), so its label is withheld."""
     stalled, old = _with_ids(
-        _game("Stalled", status=ItemStatus.ACTIVE), _game("Old Row")
+        _game("Stalled", status=ItemStatus.PAUSED), _game("Old Row")
     )
     await _add(sessionmaker_for_test, stalled, old)
     await _add(
@@ -213,6 +387,7 @@ async def test_change_of_pace_is_measured_against_a_public_last_finish(
         "cover_url": "https://images.igdb.com/x.jpg",
         "finished_at": finished.isoformat(),
         "time_to_beat_hours": 61.6,
+        "rating": None,
     }
 
 
@@ -347,7 +522,7 @@ async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(
     hades, pick_a, pick_b, pick_c, pick_d, older = _with_ids(
         _game("Hades", favorite=True, status=ItemStatus.FINISHED),
         _game("Alpha"),
-        _game("Bravo", status=ItemStatus.ACTIVE),
+        _game("Bravo", status=ItemStatus.PAUSED),
         _game("Charlie"),
         _game("Delta"),
         _game("Older"),
@@ -507,7 +682,7 @@ async def test_a_pick_never_names_a_private_game_or_a_private_date(
             "Public Candidate",
             acquired_at=date(2019, 4, 1),
             started_at=date(2026, 1, 5),
-            status=ItemStatus.ACTIVE,
+            status=ItemStatus.PAUSED,
         ),
     )
     await _add(sessionmaker_for_test, secret, candidate)
@@ -798,6 +973,9 @@ FORBIDDEN = {
     "model_note", "ranked_by", "based_on", "based_on_titles", "listing_ids",
     "preorder_closes_at", "price", "store", "url", "status", "batch_id",
     "slot", "created_at",
+    # A playthrough's or a journal day's note is the owner's (play-states,
+    # Tonight continue).
+    "note", "minutes",
 }  # fmt: skip
 NEXT_ROW_FIELDS = {
     "title", "platform", "physical_format", "release_date", "release_precision",

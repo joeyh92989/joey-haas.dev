@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 import playthroughs
 from analytics_routes import create_site_stats_router
+from continuing import ContinuingCard
 from models import (
     CatalogueGame,
     Item,
@@ -233,6 +234,7 @@ LIST_FIELDS = {
     "paused_on",
     "finishes",
     "times_completed",
+    "last_played_on",
 }
 DETAIL_FIELDS = LIST_FIELDS | {
     "description",
@@ -796,6 +798,7 @@ PUBLIC_MODELS = (
     PublicItemDetailOut,
     PublicStatsOut,
     PublicNextOut,
+    ContinuingCard,
     PublicDiaryEntry,
     PublicStatusOut,
     PublicComicsOut,
@@ -1123,6 +1126,39 @@ DIARY_FIELDS = {"item_id", "title", "cover_url", "platform", "played_on", "minut
 
 async def test_the_diary_model_publishes_exactly_these_fields():
     assert set(PublicDiaryEntry.model_fields) == DIARY_FIELDS
+
+
+async def test_the_list_carries_the_latest_journal_day_only(
+    sessionmaker_for_test,
+):
+    from models import PlaySession
+
+    async with sessionmaker_for_test() as session:
+        played = Item(
+            type=ItemType.GAME, title="Played", status="active", is_public=True
+        )
+        quiet = Item(
+            type=ItemType.GAME, title="Quiet", status="backlog", is_public=True
+        )
+        session.add_all([played, quiet])
+        await session.flush()
+        session.add_all(
+            [
+                PlaySession(item_id=played.id, played_on=date(2026, 10, 1), minutes=45),
+                PlaySession(item_id=played.id, played_on=date(2026, 10, 3), note="x"),
+                PlaySession(item_id=played.id, played_on=date(2025, 12, 31)),
+            ]
+        )
+        await session.commit()
+
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/items")
+
+    assert response.status_code == 200
+    by_title = {row["title"]: row for row in response.json()}
+    assert by_title["Played"]["last_played_on"] == "2026-10-03"
+    assert by_title["Quiet"]["last_played_on"] is None
+    assert "minutes" not in response.text and '"note"' not in response.text
 
 
 async def test_the_diary_is_public_games_only_and_never_the_note(
