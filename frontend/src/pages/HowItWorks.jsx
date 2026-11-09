@@ -143,21 +143,28 @@ export default function HowItWorks() {
       </Live>
     ),
     3: (
-      <Live
-        state={next}
-        empty={copy.stops[2].live.empty}
-        count={Number(Boolean(upNext)) + Number(Boolean(firstPick))}
-      >
-        <ul className="tonight-alts">
-          {upNext && <TonightAlt pick={upNext} label={spine.next.upNext} />}
-          {firstPick && <TonightAlt pick={firstPick} label={null} />}
-        </ul>
-        {otherPicks.length > 0 && (
-          <NewestCovers
-            games={otherPicks.map((pick) => ({ ...pick, id: pick.item_id }))}
-          />
-        )}
-      </Live>
+      <>
+        <Live
+          state={next}
+          empty={copy.stops[2].live.empty}
+          count={Number(Boolean(upNext)) + Number(Boolean(firstPick))}
+        >
+          <ul className="tonight-alts">
+            {upNext && <TonightAlt pick={upNext} label={spine.next.upNext} />}
+            {firstPick && <TonightAlt pick={firstPick} label={null} />}
+          </ul>
+          {otherPicks.length > 0 && (
+            <NewestCovers
+              games={otherPicks.map((pick) => ({ ...pick, id: pick.item_id }))}
+            />
+          )}
+        </Live>
+        <p className="how-try">
+          <Link to={`${spine.tabs.next.to}#pick-for-me`}>
+            {copy.tryPickForMe}
+          </Link>
+        </p>
+      </>
     ),
     4: (
       <Live state={next} empty={copy.stops[3].live.empty} count={radar.length}>

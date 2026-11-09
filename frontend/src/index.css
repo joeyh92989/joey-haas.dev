@@ -6041,3 +6041,115 @@ main h1[tabindex='-1']:focus {
   font-size: 0.875rem;
   margin: 0 0 0.5rem;
 }
+
+/* Pick for me (Pick for me spec): the band on What's next. */
+.pick-for-me {
+  margin-block: 2rem;
+}
+
+.pick-choices {
+  border: 0;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.pick-choices legend {
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  margin-bottom: 0.375rem;
+}
+
+/* A radio drawn as a chip: the input stays focusable, only visually hidden. */
+.pick-radio {
+  cursor: pointer;
+  position: relative;
+}
+
+.pick-radio input {
+  clip-path: inset(50%);
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+.pick-radio[data-checked='true'] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.pick-radio:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pick-hint {
+  opacity: 0.75;
+}
+
+.pick-note {
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  min-height: 1.25rem;
+}
+
+.pick-score {
+  font-size: 0.8125rem;
+  grid-column: 2;
+}
+
+.pick-score-total {
+  margin: 0.375rem 0 0.25rem;
+}
+
+.pick-terms {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+}
+
+.pick-term {
+  align-items: center;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.pick-term dt {
+  color: var(--text-2);
+}
+
+.pick-term dd {
+  align-items: center;
+  display: flex;
+  font-variant-numeric: tabular-nums;
+  gap: 0.375rem;
+  margin: 0;
+}
+
+.pick-term-bar {
+  background: var(--line);
+  border-radius: 2px;
+  display: inline-block;
+  height: 4px;
+  overflow: hidden;
+  width: 3rem;
+}
+
+.pick-term-bar > span {
+  background: var(--accent);
+  display: block;
+  height: 100%;
+}
+
+.pick-how {
+  font-size: 0.8125rem;
+  margin-top: 0.75rem;
+}
+
+.how-try {
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
+}

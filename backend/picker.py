@@ -16,6 +16,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from itertools import combinations
 from statistics import mean
 
 # Each term scores 0-100; the total is their weighted mean.
@@ -802,3 +803,108 @@ def recommend(
     return PickResult(
         picks=tuple(picks), candidate_count=len(pool), profile_size=profile_size
     )
+
+
+# Pick for me (spec 2026-11-06-pick-for-me): the public spinner ranks on the
+# terms that read only public data. waiting reads acquired_at, jitter would
+# give each visitor a different list, and staleness reads the owner's events.
+PUBLIC_TERMS = ("affinity", "similarity", "quality", "length_fit")
+PUBLIC_PICKS = 3
+MAX_PUBLIC_MOODS = 2
+
+
+@dataclass(frozen=True)
+class PublicScore:
+    """One game's place in one combination: its total and the terms behind it."""
+
+    item_id: str
+    score: float
+    terms: dict[str, float]
+
+
+@dataclass(frozen=True)
+class PublicPickTable:
+    """Every size and mood combination's top picks, and each picked game's
+    public reasons, listed once."""
+
+    combos: dict[str, tuple[PublicScore, ...]]
+    reasons: dict[str, tuple[str, ...]]
+
+
+def combo_key(size: str, moods: tuple[str, ...] | list[str]) -> str:
+    """`<size>|<moods sorted, joined with +>`; `any|` is no filter at all.
+
+    frontend/src/lib/pickForMe.js builds the same key; keep them in step.
+    """
+    return f"{size}|{'+'.join(sorted(moods))}"
+
+
+def combo_keys() -> list[tuple[str, tuple[str, ...]]]:
+    """Every (size, moods) the band offers: four sizes by up to two moods."""
+    moods = sorted(MOOD_BUCKETS)
+    mood_sets: list[tuple[str, ...]] = [()]
+    for count in range(1, MAX_PUBLIC_MOODS + 1):
+        mood_sets.extend(combinations(moods, count))
+    return [(size, mood_set) for size in ("any", *SIZE_BANDS) for mood_set in mood_sets]
+
+
+def public_pick_table(
+    profile: list[PickerItem], pool: list[PickerItem], today: date
+) -> PublicPickTable:
+    """Pick for me's whole answer, deterministic for a given input.
+
+    `profile` must hold public rows only, as for public_reasons; `pool` is the
+    public candidates (the caller drops refused games). Moods are hard filters
+    and size is the length-fit term, as in Play Next. Ties break on title,
+    then id, so every visitor and every reload sees the same list.
+    """
+    weights = reference_weights(profile, today)
+    references = [entry for entry in profile if entry.id in weights]
+    table = attribute_table(profile, weights)
+    now = datetime.combine(today, datetime.min.time(), tzinfo=UTC)
+    base = candidates(pool, [], PickRequest(), now)
+    fixed: dict[str, tuple[dict[str, float], PickerItem | None]] = {}
+    for item in base:
+        similar_score, similar_to = similarity(item, references, weights)
+        fixed[item.id] = (
+            {
+                "affinity": affinity(item, table),
+                "similarity": similar_score,
+                "quality": quality(item),
+            },
+            similar_to,
+        )
+    total_weight = sum(PICKER_WEIGHTS[name] for name in PUBLIC_TERMS)
+    combos: dict[str, tuple[PublicScore, ...]] = {}
+    picked: dict[str, PickerItem] = {}
+    for size, moods in combo_keys():
+        wanted = set().union(*(MOOD_BUCKETS[mood] for mood in moods))
+        scored = []
+        for item in base:
+            if moods and not _mood_strings(item) & wanted:
+                continue
+            terms = {**fixed[item.id][0], "length_fit": length_fit(item, size)}
+            total = sum(PICKER_WEIGHTS[name] * terms[name] for name in PUBLIC_TERMS)
+            scored.append((round(total / total_weight, 1), item, terms))
+        scored.sort(key=lambda entry: (-entry[0], entry[1].title, entry[1].id))
+        top = scored[:PUBLIC_PICKS]
+        combos[combo_key(size, moods)] = tuple(
+            PublicScore(
+                item_id=item.id,
+                score=score,
+                terms={name: round(value, 1) for name, value in terms.items()},
+            )
+            for score, item, terms in top
+        )
+        picked.update((item.id, item) for _score, item, _terms in top)
+    reasons = {
+        item_id: tuple(
+            reason
+            for reason in _common_reasons(
+                item, references, weights, table, fixed[item_id][1], today
+            )
+            if reason
+        )[:MAX_REASONS]
+        for item_id, item in picked.items()
+    }
+    return PublicPickTable(combos=combos, reasons=reasons)

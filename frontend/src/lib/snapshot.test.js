@@ -114,6 +114,15 @@ describe('isValidSnapshot', () => {
     expect(isValidSnapshot('status', [])).toBe(false)
   })
 
+  it('accepts a pick-for-me body with its games and combination lists', () => {
+    const body = { games: {}, combos: { 'any|': [] } }
+    expect(isValidSnapshot('pick-for-me', body)).toBe(true)
+    expect(isValidSnapshot('pick-for-me', { games: {} })).toBe(false)
+    expect(
+      isValidSnapshot('pick-for-me', { ...body, combos: { 'any|': null } }),
+    ).toBe(false)
+  })
+
   it('accepts a site-stats body with both ranges, each with its lists', () => {
     const summary = {
       views: 12,

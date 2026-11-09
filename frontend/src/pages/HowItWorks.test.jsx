@@ -134,6 +134,14 @@ describe('HowItWorks', () => {
     expect(titles).toEqual(['Newest', 'Third', 'Fourth', 'Second'])
   })
 
+  it('links stop 3 to Pick for me, also before Play Next has picks', () => {
+    mockData({ items: empty, next: empty })
+    renderAt()
+    expect(
+      within(stop(3)).getByRole('link', { name: /Try Pick for me/ }),
+    ).toHaveAttribute('href', '/shelf/next#pick-for-me')
+  })
+
   it('shows a top-pick cartridge and a skipped row on stop 2', () => {
     mockData({ items: ready(ITEMS), next: ready(NEXT) })
     renderAt()

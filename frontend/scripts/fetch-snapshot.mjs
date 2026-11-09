@@ -94,6 +94,17 @@ const isSiteStatsBody = (body) =>
   isObject(body) && isSummary(body.thirty) && isSummary(body.all)
 
 /**
+ * Pick for me's table (Pick for me spec): the games it names and every
+ * combination's list. Keep in step with `isPickForMeBody` in src/lib/snapshot.js:
+ * the two predicates must be identical.
+ */
+const isPickForMeBody = (body) =>
+  isObject(body) &&
+  isObject(body.games) &&
+  isObject(body.combos) &&
+  Object.values(body.combos).every(Array.isArray)
+
+/**
  * The snapshots, the endpoint each copies, the shape it must have, and
  * whether the build can go without it. A required snapshot that fails fails
  * them all; an optional one is only left out.
@@ -134,6 +145,13 @@ export const SNAPSHOTS = {
   'site-stats': {
     path: '/api/public/site-stats',
     valid: isSiteStatsBody,
+    required: false,
+  },
+  // Optional like next: Pick for me's table, new in the release that ships
+  // its endpoint. Not in the nightly compare: next differs every night.
+  'pick-for-me': {
+    path: '/api/public/pick-for-me',
+    valid: isPickForMeBody,
     required: false,
   },
 }

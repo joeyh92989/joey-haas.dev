@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-08
+
+- [Pick for me](/shelf/next#pick-for-me) on What's next: choose a length and up to two moods, and Play Next's own scoring picks three games from my backlog, with its working shown.
+
 ## 2026-11-07
 
 - Site search now finds [TIL](/til) notes too.

@@ -578,6 +578,14 @@ before pushing.
   reasons, since "On the shelf since" is read from the private
   `acquired_at` -- except Change of pace's contrast, which leads when its
   label is published (the last finish is public). Reasons are first person everywhere ("which I rated 9").
+- **Pick for me** (`/shelf/next#pick-for-me`, README → `GET
+  /api/public/pick-for-me`) is `picker.public_pick_table` (pure, no model)
+  served by `public_pick_for_me.py` through a second `PublicNextCache` on
+  `/next`'s fingerprint, so anything new it reads must join that
+  fingerprint too. All 88 size and mood combinations are precomputed; the
+  band only looks one up. It publishes `score` and `terms` and nothing else
+  `/next` forbids. `frontend/src/lib/pick-for-me-keys.json` is the key
+  contract both test suites read: regenerate it when `combo_keys` changes.
 - **Comics** are ordinary `items` rows of type `comic`, one per series
   (Comic Vine volume), never one per issue: there is no issue table.
   Migration `0010` adds `issues_owned` and `issues_skipped` (range text,

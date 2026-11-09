@@ -48,6 +48,7 @@ from public_comics import (
 )
 from public_next_cache import PublicNextCache
 from public_outputs import PublicNextOut, PublicStatusOut, load_public_next
+from public_pick_for_me import PublicPickForMeOut, load_pick_for_me
 
 # The owner's calendar. "Finished this year" turns over at midnight in
 # Denver, not at 17:00 there on 31 December, which is UTC midnight.
@@ -438,7 +439,8 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
     router = APIRouter(prefix="/api/public", tags=["public"])
     # One per router, so one per app: /next's body, rebuilt only when its
     # inputs change (public_next_cache.py).
-    next_cache = PublicNextCache()
+    next_cache: PublicNextCache[PublicNextOut] = PublicNextCache()
+    pick_cache: PublicNextCache[PublicPickForMeOut] = PublicNextCache()
 
     async def get_session() -> AsyncIterator[AsyncSession]:
         async with factory() as session:
@@ -605,6 +607,15 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         for in a store. Read-only; names only public games; no store data.
         Served from next_cache while the data it was built from is unchanged."""
         return await next_cache.get(session, datetime.now(UTC), load_public_next)
+
+    @router.get("/pick-for-me", response_model=PublicPickForMeOut)
+    async def public_pick_for_me(
+        session: AsyncSession = Depends(get_session),
+    ) -> PublicPickForMeOut:
+        """Pick for me: every size and mood combination's top three, over
+        public games only (public_pick_for_me.py). Read-only. Served from
+        pick_cache on the same fingerprint as /next."""
+        return await pick_cache.get(session, datetime.now(UTC), load_pick_for_me)
 
     @router.get("/comics", response_model=PublicComicsOut)
     async def public_comics(

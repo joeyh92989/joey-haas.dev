@@ -66,8 +66,38 @@ const NEXT = {
   not_on_cartridge: [row('Digital', { physical_format: null })],
 }
 
-function mockNext(state) {
-  vi.mocked(useSnapshotThenLive).mockReturnValue(state)
+const NO_PICKS = { data: null, live: false, failed: false }
+
+const PICKS = {
+  generated_on: '2026-11-08',
+  weights: { affinity: 30, similarity: 25, quality: 20, length_fit: 15 },
+  games: {
+    p1: {
+      item_id: 'p1',
+      title: 'Picked',
+      cover_url: null,
+      platform: 'Nintendo Switch',
+      time_to_beat_hours: 5,
+      igdb_url: null,
+      reasons: ['Short'],
+    },
+  },
+  combos: {
+    'any|': [
+      {
+        item_id: 'p1',
+        score: 80,
+        terms: { affinity: 80, similarity: 70, quality: 90, length_fit: 100 },
+      },
+    ],
+  },
+}
+
+/** What's next's state for 'next'; Pick for me's (none by default) for its own. */
+function mockNext(state, picks = NO_PICKS) {
+  vi.mocked(useSnapshotThenLive).mockImplementation((name) =>
+    name === 'next' ? state : picks,
+  )
 }
 
 function renderPage({ signedIn } = {}) {
@@ -89,6 +119,28 @@ afterEach(() => {
 })
 
 describe('Next', () => {
+  it('shows Pick for me after Tonight once its table is valid', () => {
+    mockNext(
+      { data: NEXT, live: true, failed: false },
+      { data: PICKS, live: true, failed: false },
+    )
+    renderPage()
+    const band = screen.getByRole('heading', { name: 'Pick for me' })
+    expect(band.closest('section')).toHaveAttribute('id', 'pick-for-me')
+    expect(screen.getByRole('link', { name: 'Picked' })).toBeInTheDocument()
+  })
+
+  it('leaves Pick for me out without a valid table', () => {
+    mockNext(
+      { data: NEXT, live: true, failed: false },
+      { data: { games: {} }, live: true, failed: false },
+    )
+    renderPage()
+    expect(
+      screen.queryByRole('heading', { name: 'Pick for me' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('has one h1, the freshness line and every section in order', () => {
     mockNext({ data: NEXT, live: true, failed: false })
     renderPage()

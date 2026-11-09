@@ -48,6 +48,7 @@ export const spine = {
    */
   how: {
     path: '/shelf/how',
+    tryPickForMe: 'Try Pick for me: choose a length and a mood',
     title: 'How My Shelf works, in eight stops',
     description:
       'A guided tour of My Shelf: photo import, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
@@ -394,6 +395,48 @@ export const spine = {
     notOnCartridge: 'Digital only, or a Game-Key Card in a box. I skip these.',
     upNext: 'Up next',
     /** Tonight's lead pick, the other picks, and the owner's buttons. */
+    pickForMe: {
+      heading: 'Pick for me',
+      lede: 'Choose a length and up to two moods (either one will do), and the same scoring Play Next uses picks three games from my backlog.',
+      sizeLegend: 'How long',
+      moodLegend: 'Mood',
+      sizes: {
+        any: 'Any length',
+        short: 'Short',
+        medium: 'Medium',
+        long: 'Long',
+      },
+      sizeHints: {
+        short: 'up to 6 h',
+        medium: 'over 6, up to 15 h',
+        long: 'over 15 h',
+      },
+      moods: {
+        cozy: 'Cozy',
+        story: 'Story',
+        action: 'Action',
+        creepy: 'Creepy',
+        brainy: 'Brainy',
+        chaotic: 'Chaotic',
+      },
+      moodLimit: 'Two moods at most: unpress one first.',
+      score: 'Score',
+      outOf: 'out of 100',
+      terms: {
+        affinity: 'Taste',
+        similarity: 'Like my favourites',
+        quality: 'Quality',
+        length_fit: 'Fits the length',
+      },
+      weight: 'weight',
+      howScored:
+        'Deterministic, no model call: the weighted average of the four terms.',
+      empty: 'Nothing on my backlog fits that. Try another mood.',
+      announce: (count, words) =>
+        count === 0
+          ? `No picks for ${words}`
+          : `${['', 'One pick', 'Two picks', 'Three picks'][count]} for ${words}`,
+    },
     tonight: {
       justFinished: 'Just finished',
       hours: 'h',
