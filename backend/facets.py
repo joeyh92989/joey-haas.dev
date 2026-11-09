@@ -81,6 +81,7 @@ THEME_FACETS = frozenset(
         "feudal japan",
         "anime",
         "survival",
+        "aviation",
     }
 )
 
@@ -112,6 +113,7 @@ FORM_FACETS = frozenset(
         "party",
         "open world",
         "licensed",
+        "stealth",
     }
 )
 
@@ -155,7 +157,14 @@ FACET_MAP: dict[tuple[str, str, str], str] = {
     ),
     **_rows("igdb", "themes", "war", "Warfare"),
     **_rows(
-        "igdb", "keywords", "war", "war", "korean war", "civil war", "modern warfare"
+        "igdb",
+        "keywords",
+        "war",
+        "war",
+        "korean war",
+        "civil war",
+        "modern warfare",
+        "tank",
     ),
     **_rows("tmdb", "keywords", "war", "army"),
     **_rows(
@@ -180,7 +189,15 @@ FACET_MAP: dict[tuple[str, str, str], str] = {
         "supernatural mystery",
     ),
     **_rows("igdb", "keywords", "dinosaurs", "dinosaurs", "prehistoric"),
-    **_rows("igdb", "keywords", "robots", "androids", "mech"),
+    **_rows(
+        "igdb",
+        "keywords",
+        "robots",
+        "robots",
+        "androids",
+        "mech",
+        "artificial intelligence",
+    ),
     **_rows("comicvine", "locations", "robots", "Robot Kingdom"),
     **_rows("igdb", "keywords", "aliens", "aliens", "alien", "ufo"),
     **_rows(
@@ -269,6 +286,7 @@ FACET_MAP: dict[tuple[str, str, str], str] = {
         "igdb", "keywords", "anime", "anime", "based on - anime", "based on - manga"
     ),
     **_rows("igdb", "themes", "survival", "Survival"),
+    **_rows("igdb", "keywords", "aviation", "flight", "helicopter"),
     # --- tones ---
     **_rows("igdb", "themes", "comedy", "Comedy"),
     **_rows(
@@ -281,6 +299,7 @@ FACET_MAP: dict[tuple[str, str, str], str] = {
         "goofy",
         "satire",
         "surreal comedy",
+        "dark humor",
     ),
     **_rows(
         "igdb",
@@ -379,7 +398,7 @@ FACET_MAP: dict[tuple[str, str, str], str] = {
     **_rows("igdb", "genres", "puzzle", "Puzzle"),
     **_rows("igdb", "keywords", "puzzle", "sokoban", "sokoban-like"),
     **_rows("igdb", "genres", "racing", "Racing"),
-    **_rows("igdb", "keywords", "racing", "kart racing"),
+    **_rows("igdb", "keywords", "racing", "kart racing", "anti-gravity racing"),
     **_rows("igdb", "genres", "fighting", "Fighting"),
     **_rows("igdb", "keywords", "fighting", "2d fighter", "arena fighter"),
     **_rows("igdb", "genres", "beat 'em up", "Hack and slash/Beat 'em up"),
@@ -399,7 +418,8 @@ FACET_MAP: dict[tuple[str, str, str], str] = {
     **_rows("igdb", "keywords", "rhythm", "rhythm", "music and rhythm"),
     **_rows("igdb", "genres", "sports", "Sport"),
     **_rows("igdb", "themes", "party", "Party"),
-    **_rows("igdb", "themes", "open world", "Open world"),
+    **_rows("igdb", "themes", "open world", "Open world", "Sandbox"),
+    **_rows("igdb", "themes", "stealth", "Stealth"),
     **_rows(
         "igdb",
         "keywords",
@@ -464,6 +484,7 @@ IGNORED_TAGS = frozenset(
         "gog preservation program",
         "fan translation - english",
         "60 fps on consoles",
+        "retroachievements",
         "upcoming",
         "canceled games",
         "Variant Cover",
