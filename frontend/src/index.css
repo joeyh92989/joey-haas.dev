@@ -3411,6 +3411,11 @@ a.month-bar::before {
   flex: 0 0 4rem;
 }
 
+/* Admin Play Next: the Continue card(s) above the controls. */
+.play-next-continuing {
+  margin: 1.25rem 0;
+}
+
 .up-next h2 {
   margin: 0 0 0.4rem;
 }

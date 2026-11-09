@@ -59,7 +59,13 @@ const PICKS = {
  * Routes fetch by URL and method. `picks` may be a function of the request
  * body, so a test can answer differently to different controls.
  */
-function stubApi({ items = ITEMS, picks = PICKS, itemsStatus = 200 } = {}) {
+function stubApi({
+  items = ITEMS,
+  picks = PICKS,
+  itemsStatus = 200,
+  continuing = [],
+  skippedToday = [],
+} = {}) {
   const mock = vi.fn(async (url, options = {}) => {
     const method = options.method ?? 'GET'
     const path = String(url)
@@ -68,6 +74,20 @@ function stubApi({ items = ITEMS, picks = PICKS, itemsStatus = 200 } = {}) {
         ok: itemsStatus === 200,
         status: itemsStatus,
         json: async () => items,
+      }
+    }
+    if (method === 'GET' && path.endsWith('/api/picker/continuing')) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ cards: continuing }),
+      }
+    }
+    if (method === 'GET' && path.endsWith('/api/picker/skipped-today')) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ item_ids: skippedToday }),
       }
     }
     if (path.endsWith('/api/picker/next')) {
@@ -353,5 +373,101 @@ describe('PlayNext exclusions', () => {
     await waitFor(() =>
       expect(pickRequests(mock).at(-1).exclude).toEqual(['a', 'b', 'c']),
     )
+  })
+})
+
+const CARD = {
+  item_id: 'p1',
+  type: 'game',
+  title: 'Pinned Game',
+  cover_url: null,
+  platform: 'Nintendo Switch 2',
+  time_to_beat_hours: 30,
+  playthrough: 1,
+  playing_since: '2026-10-24',
+  last_played_on: '2026-11-07',
+  journal_hours: 31,
+  sessions: 9,
+  stale: false,
+}
+
+describe('PlayNext with a game in hand', () => {
+  it('leads with the Continue card above the controls and keeps the grid', async () => {
+    stubApi({ continuing: [CARD] })
+    await renderReady()
+    const article = await screen.findByRole('article', { name: 'Pinned Game' })
+    expect(article).toHaveClass('continue')
+    expect(
+      article.compareDocumentPosition(
+        screen.getByRole('group', { name: 'Size' }),
+      ),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(
+      within(article).getByRole('link', { name: 'Pinned Game' }),
+    ).toHaveAttribute('href', '/admin/collection/p1')
+    expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThan(
+      2,
+    )
+    // The pinned game being played is the card, not the Up next band.
+    expect(screen.queryByRole('region', { name: 'Up next' })).toBeNull()
+  })
+
+  it('shows a private game in hand too', async () => {
+    stubApi({ continuing: [{ ...CARD, item_id: 'x', title: 'Private Game' }] })
+    await renderReady()
+    expect(
+      await screen.findByRole('article', { name: 'Private Game' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Up next' })).toBeInTheDocument()
+  })
+
+  it('logs tonight with the local date and reloads', async () => {
+    const mock = stubApi({ continuing: [CARD] })
+    await renderReady()
+    await screen.findByRole('article', { name: 'Pinned Game' })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Log tonight: Pinned Game' }),
+    )
+    await waitFor(() =>
+      expect(calls(mock, 'POST', '/api/items/p1/sessions')).toHaveLength(1),
+    )
+    const [, options] = calls(mock, 'POST', '/api/items/p1/sessions')[0]
+    const [year, month, day] = [
+      new Date().getFullYear(),
+      String(new Date().getMonth() + 1).padStart(2, '0'),
+      String(new Date().getDate()).padStart(2, '0'),
+    ]
+    expect(JSON.parse(options.body)).toEqual({
+      played_on: `${year}-${month}-${day}`,
+    })
+    await waitFor(() =>
+      expect(
+        calls(mock, 'GET', '/api/picker/continuing').length,
+      ).toBeGreaterThan(1),
+    )
+  })
+
+  it('answers Not tonight with a skip and drops the card for the day', async () => {
+    const mock = stubApi({ continuing: [CARD] })
+    await renderReady()
+    await screen.findByRole('article', { name: 'Pinned Game' })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Not tonight: Pinned Game' }),
+    )
+    await waitFor(() =>
+      expect(calls(mock, 'POST', '/api/picker/events')).toHaveLength(1),
+    )
+    await waitFor(() =>
+      expect(screen.queryByRole('article', { name: 'Pinned Game' })).toBeNull(),
+    )
+    // Without the card the pinned game is the Up next band again.
+    expect(screen.getByRole('region', { name: 'Up next' })).toBeInTheDocument()
+  })
+
+  it('leaves out a card skipped earlier today', async () => {
+    stubApi({ continuing: [CARD], skippedToday: ['p1'] })
+    await renderReady()
+    await screen.findByRole('region', { name: 'Up next' })
+    expect(screen.queryByRole('article', { name: 'Pinned Game' })).toBeNull()
   })
 })
