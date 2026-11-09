@@ -66,6 +66,17 @@ export const ADMIN_AREAS = [
     ],
   },
   {
+    key: 'closet',
+    label: 'Closet',
+    icon: '◫',
+    home: '/admin/closet',
+    description: 'what to wear, what to keep',
+    pages: [
+      { to: '/admin/closet', label: 'Closet' },
+      { to: '/admin/closet/profile', label: 'Profile' },
+    ],
+  },
+  {
     key: 'denver',
     label: 'Denver',
     icon: '◎',
@@ -93,6 +104,21 @@ export const ADMIN_AREAS = [
 export function onPage(page, pathname) {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
   return path === page.to || (!page.end && path.startsWith(`${page.to}/`))
+}
+
+/**
+ * The one page of `pages` that `pathname` is on: the longest match, so
+ * /admin/closet/profile is Profile, not Closet as well, while
+ * /admin/closet/12 (a garment, under no page of its own) stays Closet.
+ */
+export function currentPage(pages, pathname) {
+  let best = null
+  for (const page of pages) {
+    if (page?.to && onPage(page, pathname)) {
+      if (!best || page.to.length > best.to.length) best = page
+    }
+  }
+  return best
 }
 
 /** The page `pathname` is on within `area`, its own pages first. */

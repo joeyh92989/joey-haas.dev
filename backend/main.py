@@ -21,6 +21,7 @@ from analytics_routes import (
     create_track_router,
 )
 from auth import admin_identity, create_auth_router
+from closet_routes import create_closet_router
 from comics_routes import create_comics_router
 from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
@@ -168,6 +169,15 @@ app.include_router(
 # client (NWS asks for an identifying User-Agent); its own lock.
 app.include_router(
     create_weekend_router(session_factory, physical_http_client, lock=asyncio.Lock())
+)
+# The Closet: garments, photos, profile and the tag queue. Its own lock: the
+# tag job writes only garment rows. The model is built per run.
+app.include_router(
+    create_closet_router(
+        session_factory,
+        provider_factory=lambda: build_provider(config),
+        lock=asyncio.Lock(),
+    )
 )
 # The provider is built per request rather than here, so an absent model key
 # is a failure of the import route alone rather than a service that will not

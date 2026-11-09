@@ -53,6 +53,8 @@ export const ADMIN_ROUTES = [
   '/admin/store-list',
   '/admin/spots',
   '/admin/weekend',
+  '/admin/closet',
+  '/admin/closet/profile',
 ]
 
 /**

@@ -5,7 +5,7 @@ name: Nightly
 # Replaces snapshot.yml, whose compare and deploy steps are kept verbatim.
 #
 # It writes: the followed comics' issue lists, the weekend forecast, the
-# catalogue refreshes, Resolve, the Radar and Discover generates, the weekly
+# Closet's garment tags, the catalogue refreshes, Resolve, the Radar and Discover generates, the weekly
 # spot finder and the page-view rollup, through the admin API with the
 # JOB_TOKEN bearer token, which the backend accepts only on items.JOB_ROUTES. A failed write
 # step is a warning: the steps after it run on yesterday's data, the run
@@ -156,6 +156,12 @@ jobs:
           # The weekend planner's forecast: one NWS gridpoint, a few seconds.
           # A failed fetch answers 502 and the planner keeps the last one.
           call weather 120 /api/spots/weather/refresh
+          # The Closet's tag queue: up to the Profile's tag_budget model calls
+          # (default 5, at most 50), ten photos each, stopping early at a
+          # quota error or an empty queue. Before the catalogue so a long
+          # catalogue night cannot crowd it out; the timeout covers the
+          # largest budget at about fifteen seconds a call.
+          call closet-tag 900 /api/closet/jobs/tag
           call registry 900 /api/physical/refresh-registry
           # WooCommerce on Render, then the nine Shopify stores walked on
           # this runner and posted to the API store by store. 75 minutes for

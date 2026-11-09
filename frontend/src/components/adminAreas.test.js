@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ADMIN_AREAS, areaFor, pageFor, segmentsFor } from './adminAreas.js'
+import {
+  ADMIN_AREAS,
+  areaFor,
+  currentPage,
+  pageFor,
+  segmentsFor,
+} from './adminAreas.js'
 import appSource from '../App.jsx?raw'
 
 /** The fixed admin paths in App.jsx, read the way prerender-lib's test does. */
@@ -19,6 +25,7 @@ describe('ADMIN_AREAS', () => {
     expect(ADMIN_AREAS.map((area) => area.label)).toEqual([
       'Home',
       'Shelf',
+      'Closet',
       'Denver',
       'Site',
     ])
@@ -105,5 +112,22 @@ describe('areaFor', () => {
 
   it('does not take /admin/collectionx for the collection', () => {
     expect(areaFor('/admin/collectionx').key).toBe('home')
+  })
+})
+
+describe('currentPage', () => {
+  const closet = ADMIN_AREAS.find((area) => area.key === 'closet')
+
+  it('is the longest matching page', () => {
+    expect(currentPage(closet.pages, '/admin/closet/profile').label).toBe(
+      'Profile',
+    )
+    expect(currentPage(closet.pages, '/admin/closet/12').label).toBe('Closet')
+    expect(currentPage(closet.pages, '/admin/closet/').label).toBe('Closet')
+    expect(areaFor('/admin/closet/profile').key).toBe('closet')
+  })
+
+  it('is null off every page', () => {
+    expect(currentPage(closet.pages, '/admin/spots')).toBeNull()
   })
 })

@@ -503,11 +503,11 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Comics | `backend/comics.py`, `comics_routes.py`, `public_comics.py`, `/shelf/comics`, `/admin/pull-list` | Series rows with the issues I own as range text and collected editions; Comic Vine's issue list per followed series feeds the pull list and the public "Out this week". Only public series are ever shown publicly; following and skips stay private |
 | What's next | `backend/next_list.py`, `next_load.py`, `/shelf/next`, `/admin/store-list` | One pure sectioning authority over pending Discover and Radar rows, used by the public page (registry dates only, reasons rebuilt over public games) and the admin store list (any date, stored reasons) |
 
-Migrations `0001`–`0013` build this up: items, enrichment columns, copy
+Migrations `0001`–`0014` build this up: items, enrichment columns, copy
 columns, `pick_events`, the catalogue's five tables, the shared
 `recommendations` table, `play_sessions`, analytics, `pick_events.slot`,
-the comic columns, `playthroughs`, a playthrough's `note`, and the
-Denver spots tables. They are applied by hand and must be additive — see
+the comic columns, `playthroughs`, a playthrough's `note`, the
+Denver spots tables, and the Closet tables. They are applied by hand and must be additive — see
 [Database](#database).
 
 ### Tracker environment variables
@@ -522,13 +522,54 @@ sources are configured at startup. Set them on the API service in Render and in
 | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` | Games (Twitch developer app) |
 | `TMDB_API_TOKEN` | Films |
 | `COMICVINE_API_KEY` | Comics |
-| `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, with `LLM_PROVIDER` | Photo import and Discover's ranking |
+| `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, with `LLM_PROVIDER` | Photo import, Discover's ranking and Closet tagging |
 | `GOOGLE_SHEETS_API_KEY` | The catalogue's registry refresh (the stores run without it) |
 | `BGG_TOKEN` | Reserved for board games; not usable yet |
 
 `render.yaml` declares the IGDB, TMDB, Comic Vine, `LLM_PROVIDER` and
 `GEMINI_API_KEY` variables; `GOOGLE_SHEETS_API_KEY` and any other is set
 directly on the service in the Render dashboard.
+
+## Closet
+
+The Closet (`/admin/closet`, admin only) is the wardrobe behind the outfit
+planner. Spec and plan: `docs/planning/2026-11-09-outfit-design.md`.
+Routes are `backend/closet_routes.py`; thumbnails `closet_images.py`;
+the tagging prompt and its checks `closet_tag.py`.
+
+- **Photos first, details later.** `POST /api/closet/garments/photos`
+  takes up to 24 photos (JPEG, PNG, WebP or HEIC, 14 MB each), makes each a
+  400px WebP stored in `garment_images`, and creates one `untagged` garment
+  per photo. No model is called on upload; one unreadable photo refuses the
+  upload whole. The photo is served by `GET
+  /api/closet/garments/{id}/image`, private and cached a day.
+- **The tag queue** is every garment that is `untagged`, has never been
+  saved by hand (`tag_source IS NULL`), has fewer than three failed answers
+  (`tag_attempts`) and has a photo, oldest first. One model call tags up
+  to ten photos; an answer whose indices are not exactly `0..n-1` is
+  rejected whole and counts a strike against each garment in it, so a photo
+  the model cannot read drops out after three. A quota or overload error
+  counts no strike. A hand save (`PATCH`) sets `tag_source = manual`, which
+  takes a garment out of the queue for good, and wins over a tag answer
+  that arrives after it.
+- **The tag budget** is the Profile's `tag_budget`: the most model calls
+  the nightly step (`POST /api/closet/jobs/tag`) spends, default 5, at most
+  50, and 0 turns the step off. The free tier's ~20 requests a day per model
+  are shared with Discover and the photo importer, so the budget is a
+  setting rather than a constant. The step stops early at a model error
+  (its note, such as "Gemini's daily quota is used up", is the run's
+  summary) or an empty queue, and writes `closet_settings["tag.last_run"]`
+  (`{at, state, tagged, calls, remaining, note}`), which `GET
+  /api/closet/status` reads. **Tag now** on the Closet page
+  (`POST /api/closet/tag`) tags one batch whatever the budget says.
+- **The pages.** `/admin/closet` is every garment as 4:5 tiles or a table
+  with wear meters (the choice kept under `shelf.admin.closet.view`),
+  filtered by status (Active by default), slot, Warm and Smart. ＋ Camera
+  uploads a rack of photos and moves the view to Untagged, with the toast's
+  Tag now. `/admin/closet/:id` edits every field by hand and deletes;
+  `/admin/closet/profile` is the Profile, saved whole as one `PATCH`. The
+  Closet area's badge counts untagged garments, read once per sign-in by
+  `AdminLayout` and updated by the Closet page.
 
 ## Smoke test
 
@@ -656,7 +697,9 @@ keeps the snapshot within a day of production. It calls admin routes with
 1. wake the API (up to six minutes of retries);
 2. Play Next picks (`POST /api/picker/next`);
 3. the followed comics' issue lists (`POST /api/comics/refresh`), then the
-   weekend planner's NWS forecast (`POST /api/spots/weather/refresh`);
+   weekend planner's NWS forecast (`POST /api/spots/weather/refresh`), then
+   the Closet's tag queue, up to the Profile's tag budget
+   (`POST /api/closet/jobs/tag`; see [Closet](#closet));
 4. catalogue registry, then the WooCommerce stores (`refresh-registry`,
    `refresh` with `{"adapter": "woocommerce"}`), then the Shopify stores,
    walked on the runner by `backend/scripts/walk_stores.py`, which posts
@@ -683,7 +726,7 @@ limit is 150 minutes.
   → Actions. The two must match. Without the secret the job says so, refreshes
   nothing and fails its summary step. When they differ, or the Render value
   is not set, every call answers 401 and the run fails, naming both causes.
-- **The token opens eleven routes and nothing else.** The whitelist is
+- **The token opens thirteen routes and nothing else.** The whitelist is
   `items.JOB_ROUTES` and `backend/tests/test_job_token.py` pins it exactly:
   the writes above (the ingest among them) plus `GET /api/physical/status`
   and `GET /api/physical/stores/{key}/html-skip`. The ingest makes the token
