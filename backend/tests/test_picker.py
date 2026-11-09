@@ -7,11 +7,13 @@ import pytest
 
 from facets import facets_of
 from picker import (
+    MAX_REASONS,
     MOOD_BUCKETS,
     PICKER_WEIGHTS,
     PickerEvent,
     PickerItem,
     PickRequest,
+    _common_reasons,
     acquired_dates_informative,
     affinity,
     attribute_table,
@@ -19,9 +21,9 @@ from picker import (
     build_taste,
     candidates,
     change_of_pace_reason,
+    facet_reason,
     last_finish,
     length_fit,
-    public_reasons,
     quality,
     recommend,
     reference_weights,
@@ -31,6 +33,25 @@ from picker import (
     waiting,
 )
 from taste import leading_facet
+
+
+def public_reasons(item, profile, today=None, slot=None):
+    """A pick's reasons over `profile` alone, composed as public_picks does:
+    the common reasons, and Change of pace's against the profile's own last
+    finish. It holds the wording of the sentences public_picks publishes."""
+    taste = build_taste(profile, today)
+    similar_to = (
+        similarity(item, taste.references, taste.weights)[1]
+        if item.type == "game"
+        else None
+    )
+    leading = leading_facet(item, taste.profile)
+    reasons = _common_reasons(item, leading, similar_to, taste, today)
+    if slot == "change_of_pace":
+        last = last_finish(profile, item.type)
+        reasons.insert(0, change_of_pace_reason(item, last) if last else None)
+    return tuple(reason for reason in reasons if reason)[:MAX_REASONS]
+
 
 NOW = datetime(2026, 9, 23, 20, 0, tzinfo=UTC)
 TODAY = NOW.date()
@@ -248,6 +269,49 @@ def test_similarity_to_a_disliked_game_scores_nothing():
     candidate = item("c", external_id="2")
     score, _ = similarity(candidate, [disliked], reference_weights([disliked]))
     assert score == 0.0
+
+
+def test_similarity_names_the_heaviest_reference_whatever_the_row_order():
+    """Two favourites both clamp to 100; the heavier still names itself, and
+    an exact tie goes to the lower id, in either order."""
+    light = item("b-light", favorite=True, external_id="1", similar_games=("9",))
+    heavy = item(
+        "z-heavy", favorite=True, rating=10, external_id="2", similar_games=("9",)
+    )
+    twin = item("a-twin", favorite=True, external_id="3", similar_games=("9",))
+    # An unlinked low rating pulls the mean down, so the 10 weighs more.
+    low = item("low", status="finished", rating=2, external_id="4")
+    candidate = item("c", external_id="9")
+    refs = [light, heavy, twin]
+    weights = reference_weights([*refs, low])
+    assert weights[heavy.id] > weights[light.id] == weights[twin.id] >= 1
+
+    assert similarity(candidate, refs, weights) == (100.0, heavy)
+    assert similarity(candidate, refs[::-1], weights) == (100.0, heavy)
+    without = [light, twin]
+    assert similarity(candidate, without, weights)[1] == twin
+    assert similarity(candidate, without[::-1], weights)[1] == twin
+
+
+def test_the_old_affinity_reads_the_first_ten_keywords_only():
+    words = tuple(f"k{n}" for n in range(30))
+    pairs = attributes(item("many", keywords=words))
+    assert {value for kind, value in pairs if kind == "keyword"} == set(words[:10])
+
+
+def test_a_facet_i_mostly_dislike_names_no_favourite():
+    """Engine review, finding 5: a negatively weighted leading facet never
+    reads as a recommendation by naming a liked game that carries it."""
+    fav = item("fav", favorite=True, rating=10, genres=("Fighting",))
+    bad = [
+        item(f"bad{n}", status="abandoned", rating=1, genres=("Fighting",))
+        for n in range(3)
+    ]
+    candidate = item("cand", genres=("Fighting",))
+    taste = build_taste([fav, *bad], TODAY)
+    (leading,) = facets_of(candidate)
+    assert taste.profile.weights[leading] < 0
+    assert facet_reason(candidate, leading, taste) is None
 
 
 def test_quality_is_the_community_score_or_neutral():

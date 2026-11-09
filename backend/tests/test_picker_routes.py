@@ -448,3 +448,19 @@ async def test_a_paused_run_after_one_day_is_a_bounce_and_two_days_is_not():
     assert not play_record([(paused, 2, 30, None)]).bounced
     finished = Run(number=1, outcome="finished")
     assert not play_record([(finished, 1, 30, None)]).bounced
+
+
+async def test_a_tmdb_score_is_read_on_the_0_to_100_scale():
+    """Engine review, finding 1: TMDB's vote_average is 0-10, and a film with
+    no votes has no score at all. IGDB's is already 0-100."""
+    from picker_routes import _community_score
+
+    assert _community_score(
+        "tmdb", {"community_score": 8.1, "community_votes": 900}
+    ) == pytest.approx(81)
+    assert (
+        _community_score("tmdb", {"community_score": 0, "community_votes": 0}) is None
+    )
+    assert _community_score("tmdb", {"community_score": 7.0}) is None
+    assert _community_score("igdb", {"community_score": 76.4}) == 76.4
+    assert _community_score("igdb", {}) is None

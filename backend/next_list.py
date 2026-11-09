@@ -191,7 +191,7 @@ _TITLE_MARKS = str.maketrans("", "", "\u2122\u00ae\u2665")
 class PublicTaste:
     """Play Next's profile built from public games only, plus what a public
     reason must not name. Every game a rebuilt reason can name is drawn from
-    `references`, so a private game is never named (as picker.public_reasons)."""
+    `references`, so a private game is never named (as public_picks does)."""
 
     weights: dict[str, float]
     references: list[PickerItem]

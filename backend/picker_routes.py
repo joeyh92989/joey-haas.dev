@@ -105,6 +105,18 @@ def _number(value: object) -> float | None:
     return float(value)
 
 
+def _community_score(source: str | None, snapshot: dict) -> float | None:
+    """The snapshot's community score on picker.quality's 0-100 scale.
+
+    IGDB's is already 0-100. TMDB's vote_average is 0-10, and a film nobody
+    has voted on reads 0.0, which is no score at all, not the worst one.
+    """
+    score = _number(snapshot.get("community_score"))
+    if source != "tmdb" or score is None:
+        return score
+    return score * 10 if _number(snapshot.get("community_votes")) else None
+
+
 def to_picker_item(
     item: Item,
     paused_on: date | None = None,
@@ -154,7 +166,7 @@ def to_picker_item(
         game_modes=_strings(snapshot.get("game_modes")),
         player_perspectives=_strings(snapshot.get("player_perspectives")),
         similar_games=_strings(snapshot.get("similar_games")),
-        community_score=_number(snapshot.get("community_score")),
+        community_score=_community_score(item.external_source, snapshot),
         time_to_beat_hours=normally,
         release_date=item.release_date,
         acquired_at=item.acquired_at,

@@ -130,12 +130,18 @@ def reference_weights(
     return weights
 
 
+# The old affinity (Radar, Discover, the change of pace contrast) read the
+# first ten keywords, all the snapshot held before the engine kept every one;
+# averaged over the long tail, an unseen keyword dilutes it toward neutral.
+ATTRIBUTE_KEYWORDS = 10
+
+
 def attributes(item: PickerItem) -> set[tuple[str, str]]:
     """Everything a taste can attach to, as (kind, value) pairs."""
     pairs = {
         *(("genre", value) for value in item.genres),
         *(("theme", value) for value in item.themes),
-        *(("keyword", value) for value in item.keywords),
+        *(("keyword", value) for value in item.keywords[:ATTRIBUTE_KEYWORDS]),
         *(("mode", value) for value in item.game_modes),
         *(("perspective", value) for value in item.player_perspectives),
     }
@@ -171,11 +177,13 @@ def similarity(
     """The best-weighted reference IGDB lists beside this one, either way.
 
     Returns the score and that reference, or (0, None). IGDB ids are compared
-    as strings: the snapshot holds ints, external_id a string.
+    as strings: the snapshot holds ints, external_id a string. The reference
+    is the heaviest by its unclamped weight, ties to the lowest id, so the
+    one named never depends on the order the rows arrived in.
     """
     if not item.external_id:
         return 0.0, None
-    best: tuple[float, PickerItem | None] = (0.0, None)
+    best: PickerItem | None = None
     for reference in references:
         if reference.id == item.id or not reference.external_id:
             continue
@@ -184,9 +192,13 @@ def similarity(
             or reference.external_id in item.similar_games
         )
         weight = weights.get(reference.id, 0.0)
-        if linked and weight > 0 and 100 * weight > best[0]:
-            best = (_clamp(100 * weight), reference)
-    return best
+        if not linked or weight <= 0:
+            continue
+        if best is None or (-weight, reference.id) < (-weights[best.id], best.id):
+            best = reference
+    if best is None:
+        return 0.0, None
+    return _clamp(100 * weights[best.id]), best
 
 
 def quality(item: PickerItem) -> float:
@@ -744,7 +756,9 @@ def facet_reason(item: PickerItem, leading: str | None, taste: Taste) -> str | N
     The caller's taste decides who can be named, so a public caller passes a
     public-only one.
     """
-    if leading is None:
+    # A facet I mostly dislike can still lead a low score; naming my
+    # favourite beside it would read as a recommendation.
+    if leading is None or taste.profile.weights.get(leading, 0.0) <= 0:
         return None
     carriers = sorted(
         (
@@ -818,35 +832,6 @@ def paused_reason(item: PickerItem, today: date) -> str:
         since = f"paused since {_month(item.paused_on)}"
     hours = item.journal_minutes // 60
     return f"{hours} h in, {since}" if hours else since[0].upper() + since[1:]
-
-
-def public_reasons(
-    item: PickerItem,
-    profile: list[PickerItem],
-    today: date | None = None,
-    slot: str | None = None,
-) -> tuple[str, ...]:
-    """A pick's reasons for the public page (showcase spec, D).
-
-    `profile` must hold public rows only: every item a reason can name is
-    drawn from it, so a private one is never named. Of the slot reasons only
-    Change of pace's is kept, and only against a public last finish -- "On the
-    shelf since" is read from acquired_at, which is private; "Started in ...
-    not touched since" reports activity; "Out since" means nothing without
-    its slot.
-    """
-    taste = build_taste(profile, today)
-    similar_to = (
-        similarity(item, taste.references, taste.weights)[1]
-        if item.type == "game"
-        else None
-    )
-    leading = leading_facet(item, taste.profile)
-    reasons = _common_reasons(item, leading, similar_to, taste, today)
-    if slot == "change_of_pace":
-        last = last_finish(profile, item.type)
-        reasons.insert(0, change_of_pace_reason(item, last) if last else None)
-    return tuple(reason for reason in reasons if reason)[:MAX_REASONS]
 
 
 def _median(values: list[float]) -> float:
@@ -1065,7 +1050,7 @@ def public_pick_table(
 ) -> PublicPickTable:
     """Pick for me's whole answer, deterministic for a given input.
 
-    `profile` must hold public rows only, as for public_reasons; `pool` is the
+    `profile` must hold public rows only, as for public_picks; `pool` is the
     public candidates (the caller drops refused games). Moods are hard filters
     and size is the length-fit term, as in Play Next. Ties break on title,
     then id, so every visitor and every reload sees the same list.
