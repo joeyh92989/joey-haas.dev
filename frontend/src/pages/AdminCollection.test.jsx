@@ -77,7 +77,19 @@ function writeCalls(mock) {
   )
 }
 
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open')
+    this.dispatchEvent(new Event('close'))
+  }
+})
+
 afterEach(() => {
+  delete HTMLDialogElement.prototype.showModal
+  delete HTMLDialogElement.prototype.close
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   localStorage.clear()
@@ -269,15 +281,23 @@ describe('AdminCollection list view status', () => {
     localStorage.setItem('shelf.admin.view', '"list"')
   })
 
-  // The table's select goes through the same status route as the shelf, so
-  // the server records the playthrough from either view.
-  it('posts a finish to the status route from the table', async () => {
+  // Finish opens the Wrap up sheet; the status route is written only when
+  // the sheet saves, from either view.
+  it('opens Wrap up from the table and posts the finish when the sheet saves', async () => {
     const mock = stubApi()
     renderPage()
 
     await userEvent.selectOptions(
       await screen.findByLabelText('Status for Star Fox'),
       'finished',
+    )
+
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Wrap up Star Fox',
+    })
+    expect(writeCalls(mock)).toHaveLength(0)
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Skip extras' }),
     )
 
     await waitFor(() => {
@@ -500,21 +520,46 @@ describe('AdminCollection shelf', () => {
     )
   })
 
-  it('finishes from the card through the status route', async () => {
+  it('opens Wrap up from the card’s menu with the chosen outcome preselected', async () => {
     const mock = stubApi()
     await renderShelf()
 
     await userEvent.selectOptions(
       card('Star Fox').getByRole('combobox', { name: 'Status for Star Fox' }),
-      'finished',
+      'paused',
     )
 
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Wrap up Star Fox',
+    })
+    expect(
+      within(dialog).getByRole('button', {
+        name: 'Paused, keeps the date, I’ll be back',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(writeCalls(mock)).toHaveLength(0)
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Mark paused' }),
+    )
     await waitFor(() =>
       expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
-        status: 'finished',
+        status: 'paused',
         today: localToday(),
       }),
     )
+  })
+
+  it('opens Wrap up from the Now playing band', async () => {
+    stubApi({
+      items: [{ ...ITEMS[0], status: 'active', playthroughs: [] }, ITEMS[1]],
+    })
+    await renderShelf()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Wrap up: Star Fox' }),
+    )
+    expect(
+      await screen.findByRole('dialog', { name: 'Wrap up Star Fox' }),
+    ).toBeInTheDocument()
   })
 
   it('starts playing from the card through the status route', async () => {

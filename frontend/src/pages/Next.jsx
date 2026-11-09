@@ -11,6 +11,7 @@ import TonightLead from '../components/TonightLead.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import ContinueCard from '../components/ContinueCard.jsx'
 import PickList from '../components/PickList.jsx'
+import WrapUpSheet from '../components/WrapUpSheet.jsx'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { shortDate } from '../lib/comics.js'
@@ -165,8 +166,10 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   // Sessions logged here, by item id: what the card says until the live
   // body catches up (the public body is cached on a fingerprint).
   const [logged, setLogged] = useState({})
-  // The Wrap up sheet's subject and preselected outcome, or null.
+  // The Wrap up sheet's subject and preselected outcome, or null; and the
+  // games wrapped up here, gone from the cards before the body catches up.
   const [wrap, setWrap] = useState(null)
+  const [wrapped, setWrapped] = useState(() => new Set())
   const [error, setError] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const writing = useRef(null)
@@ -211,7 +214,7 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   // a Continue card, never the Up next lead.
   const inHand = new Set(tonight.continuing.map((card) => card.item_id))
   const cards = tonight.continuing
-    .filter((card) => !hidden.has(card.item_id))
+    .filter((card) => !hidden.has(card.item_id) && !wrapped.has(card.item_id))
     .map((card) => {
       const bump = logged[card.item_id]
       if (!bump) return card
@@ -372,18 +375,35 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     )
   }
 
+  /** The sheet saved: the card leaves, the result is announced, the body
+   *  is refetched (the chip and the picks come from it). */
+  function wrapDone({ item, status, ratingFailed }) {
+    setWrap(null)
+    setWrapped((ids) => new Set([...ids, item.id]))
+    setAnnouncement(copy.tonight.sheet.done(item.title, status))
+    setError(ratingFailed)
+    focusNext.current = { lead: true }
+    onRefresh()
+  }
+
   const owner = signedIn ? { onPlay: play, onSkip: skip } : {}
   const cardOwner = signedIn
     ? {
         signedIn: true,
-        onWrapUp: (card, preselect) => setWrap({ card, preselect }),
+        onWrapUp: (card, preselect) =>
+          setWrap({
+            item: {
+              id: card.item_id,
+              title: card.title,
+              cover_url: card.cover_url,
+              type: card.type,
+            },
+            preselect,
+          }),
         onLogTonight: logTonight,
         onSkip: skip,
       }
     : {}
-  // The sheet itself arrives with the write side (WrapUpSheet); until then
-  // `wrap` only records the request.
-  void wrap
   return (
     <section
       className="next-section tonight"
@@ -481,6 +501,11 @@ function Tonight({ tonight, signedIn, onRefresh }) {
           <p className="visually-hidden" role="status">
             {announcement}
           </p>
+          <WrapUpSheet
+            subject={wrap}
+            onClose={() => setWrap(null)}
+            onDone={wrapDone}
+          />
         </>
       )}
     </section>

@@ -1,4 +1,5 @@
 import CoverImage from './CoverImage.jsx'
+import Stars from './Stars.jsx'
 import { spine } from '../content/spine.js'
 import { weekdayWords } from '../lib/next.js'
 
@@ -11,7 +12,8 @@ const copy = spine.next.tonight
  *
  * @param {object} props
  * @param {{title: string, cover_url: string|null, finished_at: string,
- *   time_to_beat_hours: number|null}} props.finish
+ *   time_to_beat_hours: number|null, rating?: number|null}} props.finish -
+ *   With a rating, the stars follow the hours (Tonight continue spec).
  */
 export default function JustFinishedChip({ finish }) {
   const parts = [weekdayWords(finish.finished_at)]
@@ -29,6 +31,12 @@ export default function JustFinishedChip({ finish }) {
           .filter(Boolean)
           .map((part) => ` · ${part}`)
           .join('')}
+        {finish.rating ? (
+          <>
+            {' · '}
+            <Stars rating={finish.rating} />
+          </>
+        ) : null}
       </span>
     </p>
   )

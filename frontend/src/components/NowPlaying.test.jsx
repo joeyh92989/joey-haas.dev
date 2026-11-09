@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import NowPlaying from './NowPlaying.jsx'
 
 const game = (title, fields = {}) => ({
@@ -47,5 +48,32 @@ describe('NowPlaying', () => {
     expect(screen.getByRole('link', { name: /Undated/ })).not.toHaveTextContent(
       'Playing since',
     )
+  })
+})
+
+describe('NowPlaying with Wrap up', () => {
+  it('renders the button only when asked, as a sibling of the link', async () => {
+    const onWrapUp = vi.fn()
+    render(
+      <MemoryRouter>
+        <NowPlaying
+          items={[game('Hollow')]}
+          linkFor={(item) => `/admin/collection/${item.id}`}
+          onWrapUp={onWrapUp}
+        />
+      </MemoryRouter>,
+    )
+    const link = screen.getByRole('link', { name: /Hollow/ })
+    const button = screen.getByRole('button', { name: 'Wrap up: Hollow' })
+    expect(link.contains(button)).toBe(false)
+    await userEvent.click(button)
+    expect(onWrapUp).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'Hollow' }),
+    )
+  })
+
+  it('has no button on the public band', () => {
+    renderBand([game('Hollow')])
+    expect(screen.queryByRole('button')).toBeNull()
   })
 })

@@ -4,6 +4,8 @@ import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import ContinueCard from '../components/ContinueCard.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import SizePill from '../components/SizePill.jsx'
+import WrapUpSheet from '../components/WrapUpSheet.jsx'
+import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { localToday, pinPath } from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
@@ -304,6 +306,13 @@ export default function PlayNext() {
     }
   }
 
+  /** The sheet saved: reload the cards and the picks. */
+  function wrapDone({ ratingFailed }) {
+    setWrap(null)
+    if (ratingFailed) setError(spine.next.tonight.sheet.ratingFailed)
+    setRound((current) => current + 1)
+  }
+
   async function logTonight(card) {
     const ok = await send(
       `/api/items/${card.item_id}/sessions`,
@@ -361,9 +370,6 @@ export default function PlayNext() {
   const pinned = items.find(
     (item) => item.pinned_at && !cards.some((card) => card.item_id === item.id),
   )
-  // The sheet arrives with the write side (WrapUpSheet); until then `wrap`
-  // only records the request.
-  void wrap
   const today = localToday()
   const platformChoices = [
     ...new Map(
@@ -394,7 +400,15 @@ export default function PlayNext() {
               signedIn
               loggedToday={card.last_played_on === today}
               onWrapUp={(subject, preselect) =>
-                setWrap({ card: subject, preselect })
+                setWrap({
+                  item: {
+                    id: subject.item_id,
+                    title: subject.title,
+                    cover_url: subject.cover_url,
+                    type: subject.type,
+                  },
+                  preselect,
+                })
               }
               onLogTonight={logTonight}
               onSkip={skipCard}
@@ -402,6 +416,12 @@ export default function PlayNext() {
           ))}
         </ul>
       )}
+
+      <WrapUpSheet
+        subject={wrap}
+        onClose={() => setWrap(null)}
+        onDone={wrapDone}
+      />
 
       {pinned && (
         <section className="up-next" aria-label="Up next">

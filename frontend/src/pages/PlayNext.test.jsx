@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PlayNext from './PlayNext.jsx'
 
 const ITEMS = [
@@ -135,7 +135,19 @@ function card(title) {
   )
 }
 
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open')
+    this.dispatchEvent(new Event('close'))
+  }
+})
+
 afterEach(() => {
+  delete HTMLDialogElement.prototype.showModal
+  delete HTMLDialogElement.prototype.close
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -462,6 +474,29 @@ describe('PlayNext with a game in hand', () => {
     )
     // Without the card the pinned game is the Up next band again.
     expect(screen.getByRole('region', { name: 'Up next' })).toBeInTheDocument()
+  })
+
+  it('opens Wrap up from the card and reloads once it saves', async () => {
+    const mock = stubApi({ continuing: [CARD] })
+    await renderReady()
+    await screen.findByRole('article', { name: 'Pinned Game' })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Wrap up: Pinned Game' }),
+    )
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Wrap up Pinned Game',
+    })
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Skip extras' }),
+    )
+    await waitFor(() =>
+      expect(calls(mock, 'POST', '/api/items/p1/status')).toHaveLength(1),
+    )
+    await waitFor(() =>
+      expect(
+        calls(mock, 'GET', '/api/picker/continuing').length,
+      ).toBeGreaterThan(1),
+    )
   })
 
   it('leaves out a card skipped earlier today', async () => {

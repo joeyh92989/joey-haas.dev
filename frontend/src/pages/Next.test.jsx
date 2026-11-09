@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiFetch } from '../lib/api.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import Next from './Next.jsx'
@@ -112,7 +112,19 @@ function renderPage({ signedIn } = {}) {
   )
 }
 
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open')
+    this.dispatchEvent(new Event('close'))
+  }
+})
+
 afterEach(() => {
+  delete HTMLDialogElement.prototype.showModal
+  delete HTMLDialogElement.prototype.close
   localStorage.clear()
   vi.useRealTimers()
   vi.restoreAllMocks()
@@ -978,6 +990,74 @@ describe('Tonight with a game in hand', () => {
       expect(region().querySelector('.tonight-just')).not.toBeNull(),
     )
     expect(region().querySelector('.continue')).toBeNull()
+  })
+
+  it('wraps up from the card: the card leaves, the chip returns with stars, the picks lead', async () => {
+    const after = {
+      ...THREE,
+      tonight: {
+        ...THREE.tonight,
+        continuing: [],
+        last_finish: {
+          item_id: 'c1',
+          title: 'Sea of Stars',
+          cover_url: null,
+          finished_at: localToday(),
+          time_to_beat_hours: 30,
+          rating: 9,
+        },
+      },
+    }
+    mockApi({
+      'GET /api/public/next': { ok: true, body: after },
+      'GET /api/items/c1': {
+        ok: true,
+        body: {
+          id: 'c1',
+          rating: null,
+          playthroughs: [{ number: 1, outcome: null }],
+        },
+      },
+    })
+    mockNext({ data: CONTINUING, live: true, failed: false })
+    renderPage({ signedIn: true })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Wrap up: Sea of Stars' }),
+    )
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Wrap up Sea of Stars',
+    })
+    await userEvent.click(
+      within(dialog).getByRole('radio', { name: 'Rate 9 out of 10' }),
+    )
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Mark finished' }),
+    )
+
+    await vi.waitFor(() =>
+      expect(region().querySelector('.continue')).toBeNull(),
+    )
+    expect(
+      JSON.parse(calls('POST', '/api/items/c1/status')[0][1].body),
+    ).toEqual({
+      status: 'finished',
+      today: localToday(),
+    })
+    expect(JSON.parse(calls('PATCH', '/api/items/c1')[0][1].body)).toEqual({
+      rating: 9,
+    })
+    const tonight = region()
+    await vi.waitFor(() =>
+      expect(tonight.querySelector('.tonight-just')).not.toBeNull(),
+    )
+    expect(
+      within(tonight).getByRole('img', { name: '9 out of 10' }),
+    ).toBeInTheDocument()
+    expect(tonight.querySelector('.tonight-lead:not(.continue)')).not.toBeNull()
+    expect(tonight.querySelector('.picklist')).toBeNull()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Sea of Stars marked finished',
+    )
   })
 
   it('has no axe violations with a game in hand', async () => {
