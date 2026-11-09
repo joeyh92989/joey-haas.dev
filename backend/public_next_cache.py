@@ -39,14 +39,16 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, time
+from typing import Generic, TypeVar
 
 from sqlalchemy import Text, cast, func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import CatalogueRun, Item, PickAction, PickEvent, Recommendation
-from public_outputs import PICKS_WINDOW, PublicNextOut
+from public_outputs import PICKS_WINDOW
 
-Build = Callable[[AsyncSession, datetime], Awaitable[PublicNextOut]]
+Body = TypeVar("Body")
+Build = Callable[[AsyncSession, datetime], Awaitable[Body]]
 
 
 def _rows(model) -> tuple:
@@ -92,17 +94,22 @@ async def next_fingerprint(session: AsyncSession, now: datetime) -> tuple:
     return (now.astimezone(UTC).date(), *row)
 
 
-class PublicNextCache:
-    """Holds one built body and the fingerprint it was built at."""
+class PublicNextCache(Generic[Body]):
+    """Holds one built body and the fingerprint it was built at.
+
+    Any body built only from what next_fingerprint covers may use one: Pick
+    for me (public_pick_for_me.py) has its own instance, since its "never"
+    events count only before today's UTC midnight and the day is in the key.
+    """
 
     def __init__(self) -> None:
         self._key: tuple | None = None
-        self._body: PublicNextOut | None = None
+        self._body: Body | None = None
         self._lock = asyncio.Lock()
 
     async def get(
-        self, session: AsyncSession, now: datetime, build: Build
-    ) -> PublicNextOut:
+        self, session: AsyncSession, now: datetime, build: Build[Body]
+    ) -> Body:
         """The cached body when the fingerprint is unchanged, else a fresh
         build. The fingerprint is read outside the lock, so a hit never
         waits on a rebuild; concurrent misses build once.
