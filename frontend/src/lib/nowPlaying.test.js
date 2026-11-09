@@ -80,3 +80,24 @@ describe('nowPlaying', () => {
     expect(nowPlaying(many)).toHaveLength(NOW_PLAYING_LIMIT)
   })
 })
+
+describe('nowPlaying order with last_played_on', () => {
+  it('puts the most recently played first, then the newest start', () => {
+    const rows = nowPlaying([
+      game('Started later', { playing_since: '2026-11-01' }),
+      game('Played yesterday', {
+        playing_since: '2026-09-01',
+        last_played_on: '2026-11-07',
+      }),
+      game('Played last week', {
+        playing_since: '2026-10-01',
+        last_played_on: '2026-11-01',
+      }),
+    ])
+    expect(rows.map(({ item }) => item.title)).toEqual([
+      'Played yesterday',
+      'Played last week',
+      'Started later',
+    ])
+  })
+})
