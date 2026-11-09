@@ -8,8 +8,10 @@ import { posts } from '../content/posts.js'
 import { profile } from '../content/profile.js'
 import { projects } from '../content/projects.js'
 import { spine } from '../content/spine.js'
+import { trips } from '../content/trips.js'
 import { nowLists } from '../lib/nowLists.js'
 import { readSnapshot } from '../lib/snapshot.js'
+import { tripMonth } from '../lib/tripDates.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
 const SHORT_DAY = new Intl.DateTimeFormat('en', {
@@ -34,11 +36,13 @@ function lastShipped(post) {
  *
  * Makes no API call. Playing comes from the build-time snapshot and is
  * left out until it arrives, or when nothing is being played; Last shipped
- * is the newest post and is left out while there is none.
+ * is the newest post and is left out while there is none, as Latest trip
+ * and the Travel card are while no trip is published.
  */
 export default function Home() {
   usePageTitle('Joey Haas · Senior software engineer, Denver')
   const [latest] = posts
+  const [latestTrip] = trips
   const [playing, setPlaying] = useState([])
 
   useEffect(() => {
@@ -55,6 +59,14 @@ export default function Home() {
   const facts = [
     ...profile.facts,
     ...(shipped ? [{ label: 'Last shipped', value: shipped }] : []),
+    ...(latestTrip
+      ? [
+          {
+            label: 'Latest trip',
+            value: `${latestTrip.frontmatter.title} · ${tripMonth(latestTrip.frontmatter)}`,
+          },
+        ]
+      : []),
     ...(playing.length > 0
       ? [
           {
@@ -120,6 +132,15 @@ export default function Home() {
               <h3>{latest.frontmatter.title}</h3>
               {latest.frontmatter.summary && (
                 <p>{latest.frontmatter.summary}</p>
+              )}
+            </Link>
+          )}
+          {latestTrip && (
+            <Link to={`/travel/${latestTrip.slug}`} className="card">
+              <Kicker as="span">Travel</Kicker>
+              <h3>{latestTrip.frontmatter.title}</h3>
+              {latestTrip.frontmatter.summary && (
+                <p>{latestTrip.frontmatter.summary}</p>
               )}
             </Link>
           )}

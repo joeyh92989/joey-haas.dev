@@ -18,6 +18,10 @@ vi.mock('./content/notes.js', () => ({
   notes: content.notes,
   findNote: (slug) => content.notes.find((note) => note.slug === slug),
 }))
+vi.mock('./content/trips.js', () => ({
+  trips: [],
+  findTrip: () => undefined,
+}))
 vi.mock('./lib/snapshot.js', () => ({ readSnapshot: vi.fn(async () => null) }))
 vi.mock('./lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 
@@ -87,12 +91,15 @@ const TITLES = [
   ['/now', 'Now · Joey Haas'],
   ['/colophon', 'Colophon · Joey Haas'],
   ['/stats', 'Stats · Joey Haas'],
+  ['/daily', 'Daily · My Shelf'],
   ['/blog', 'Blog · Joey Haas'],
   ['/shelf', 'My Shelf · Joey Haas'],
   ['/nonsense-path', 'Not found · Joey Haas'],
   ['/blog/no-such-post', 'Not found · Joey Haas'],
   ['/til', 'TIL · Joey Haas'],
   ['/til/not-a-note', 'Not found · Joey Haas'],
+  ['/travel', 'Travel · Joey Haas'],
+  ['/travel/not-a-trip', 'Not found · Joey Haas'],
   ['/admin', 'Dashboard · Admin · Joey Haas'],
   ['/admin/analytics', 'Analytics · Admin · Joey Haas'],
   ['/admin/collection', 'Shelf · Admin · Joey Haas'],

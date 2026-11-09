@@ -129,6 +129,8 @@ next_title="$(curl -s -m 90 "$SITE_URL/shelf/next" | grep -o '<title>[^<]*</titl
 check_equals "GET /shelf/next has its own prerendered title" "$next_title" "<title>What’s next · My Shelf</title>"
 stats_title="$(curl -s -m 90 "$SITE_URL/stats" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /stats has its own prerendered title" "$stats_title" "<title>Stats · Joey Haas</title>"
+daily_title="$(curl -s -m 90 "$SITE_URL/daily" | grep -o '<title>[^<]*</title>')"
+check_equals "GET /daily has its own prerendered title" "$daily_title" "<title>Daily · My Shelf</title>"
 til_title="$(curl -s -m 90 "$SITE_URL/til" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /til has its own prerendered title" "$til_title" "<title>TIL · Joey Haas</title>"
 # The pre-rename URL keeps its preview, with the canonical on /shelf.

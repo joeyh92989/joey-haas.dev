@@ -3,7 +3,7 @@
  * public routes, each route's head, the post excerpt, the sitemap and
  * robots.txt. No file or network access here, so tests drive them directly.
  */
-import { staticPages, TIL_PAGE } from '../src/content/pages.js'
+import { staticPages, TIL_PAGE, TRAVEL_PAGE } from '../src/content/pages.js'
 import { profile } from '../src/content/profile.js'
 import { spine } from '../src/content/spine.js'
 import {
@@ -11,6 +11,7 @@ import {
   monthInReview,
   monthName,
 } from '../src/lib/monthInReview.js'
+import { MIN_POOL, dailyPool } from '../src/lib/daily.js'
 import { finishRows } from '../src/lib/finishes.js'
 import { clip } from '../src/lib/clip.js'
 import { itemPath } from '../src/lib/spinePaths.js'
@@ -76,6 +77,22 @@ const TIL_FEED = {
 export { clip }
 
 /** Escapes text for an HTML attribute or element body. */
+/**
+ * Shelfle's pool floor (daily puzzle spec): with fewer than MIN_POOL
+ * eligible games the answers repeat too often to be a puzzle, so a build
+ * from such a snapshot stops rather than shipping one. Returns the pool's
+ * size for the build log. Only called when the build has a snapshot.
+ */
+export function assertDailyPool(items) {
+  const size = dailyPool(items).length
+  if (size < MIN_POOL) {
+    throw new Error(
+      `prerender: Shelfle's pool has ${size} eligible games, under the floor of ${MIN_POOL}. Publish more games with a platform, year, genre and time to beat, or lower MIN_POOL in src/lib/daily.js.`,
+    )
+  }
+  return size
+}
+
 export function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -112,6 +129,23 @@ export function excerpt(markdown) {
 }
 
 /**
+ * A trip's link-preview image: its cover, built at 1600 wide, with the alt
+ * the cover has where the trip's markdown places it. The default card when
+ * the trip names no cover.
+ */
+function tripImage(trip) {
+  const cover = trip.frontmatter?.cover
+  if (!cover) return DEFAULT_IMAGE
+  const placed = [...trip.body.matchAll(/!\[([^\]]*)\]\(\s*([^\s)'"]+)/g)].find(
+    ([, , name]) => name === cover,
+  )
+  return {
+    url: `${SITE_URL}/travel/${trip.slug}/${cover}-1600.webp`,
+    alt: placed?.[1] || `A photo from ${trip.title}`,
+  }
+}
+
+/**
  * Every public route and its head. Items come from the build-time snapshot,
  * which holds public items only, so nothing private can be prerendered.
  *
@@ -120,13 +154,15 @@ export function excerpt(markdown) {
  *   Published posts.
  * @param {{slug: string, title: string, date: string, body: string}[]} [input.notes]
  *   Published TIL notes.
+ * @param {{slug: string, title: string, date: string, body: string,
+ *   frontmatter: object}[]} [input.trips] Published trips.
  * @param {object[]} input.items The snapshot's public items.
  * @returns {{path: string, title: string, description: string,
  *   type: string, image: object, lastmod?: string, slash?: boolean,
  *   legacy?: boolean}[]}
  *   `legacy` marks a page that also had a /spine URL; see legacyRoutes().
  */
-export function publicRoutes({ posts, notes = [], items }) {
+export function publicRoutes({ posts, notes = [], trips = [], items }) {
   const page = (path, title, description) => ({
     path,
     title,
@@ -175,6 +211,26 @@ export function publicRoutes({ posts, notes = [], items }) {
       type: 'article',
       feed: TIL_FEED,
       ...lastmod(note.date),
+    })
+  }
+  // /travel and its trips exist only while one is published (D10). A trip's
+  // description is its summary: its body starts with a day's prose.
+  if (trips.length > 0) {
+    routes.push(
+      page(TRAVEL_PAGE.path, TRAVEL_PAGE.headTitle, TRAVEL_PAGE.description),
+    )
+  }
+  for (const trip of trips) {
+    const summary = trip.frontmatter?.summary
+    routes.push({
+      ...page(
+        `/travel/${trip.slug}`,
+        `${trip.title} · Travel · ${profile.name}`,
+        summary ? clip(String(summary)) : excerpt(trip.body),
+      ),
+      type: 'article',
+      image: tripImage(trip),
+      ...lastmod(trip.date),
     })
   }
   for (const item of items) {
@@ -229,6 +285,20 @@ export function publicRoutes({ posts, notes = [], items }) {
     })
   }
   return routes
+}
+
+/**
+ * The folders under `dist/travel/` to delete: every one that is not a
+ * published trip's. Vite copies all of `public/` into `dist/`, so a draft
+ * trip's built photos would otherwise deploy at guessable URLs while its
+ * page does not.
+ *
+ * @param {string[]} dirs The folder names in `dist/travel/`.
+ * @param {{slug: string}[]} trips The published trips.
+ */
+export function strayTripDirs(dirs, trips) {
+  const published = new Set(trips.map((trip) => trip.slug))
+  return dirs.filter((dir) => !published.has(dir)).sort()
 }
 
 /**

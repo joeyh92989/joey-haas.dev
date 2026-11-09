@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ADMIN_ROUTES,
   LEGACY_PREFIX,
+  assertDailyPool,
   clip,
   excerpt,
   legacyRoutes,
@@ -15,6 +16,7 @@ import {
   renderHead,
   robots,
   sitemap,
+  strayTripDirs,
 } from './prerender-lib.mjs'
 import { readPublished } from './markdown-lib.mjs'
 
@@ -80,6 +82,7 @@ describe('publicRoutes', () => {
       '/now',
       '/colophon',
       '/stats',
+      '/daily',
       '/blog',
       '/blog/how-spine-works',
       `/shelf/${ITEM.id}`,
@@ -123,6 +126,39 @@ describe('publicRoutes', () => {
     )
   })
 
+  it('lists Travel and its trips only while one is published', () => {
+    const none = publicRoutes({ posts: [], notes: [], trips: [], items: [] })
+    expect(none.some((route) => route.path.startsWith('/travel'))).toBe(false)
+    const trip = {
+      slug: 'croatia-greece-2026',
+      title: 'Croatia & Greece',
+      date: '2026-09-12',
+      body: "## Day 1 · Arrive · Dubrovnik\n\nLanded late.\n\n![City walls](walls 'On the wall')\n",
+      frontmatter: { summary: 'Twelve days, three places.', cover: 'walls' },
+    }
+    const routes = publicRoutes({ posts: [], trips: [trip], items: [] })
+    expect(routes.length).toBe(none.length + 2)
+    expect(routeAt(routes, '/travel').title).toBe('Travel · Joey Haas')
+    expect(routeAt(routes, '/travel/croatia-greece-2026')).toMatchObject({
+      title: 'Croatia & Greece · Travel · Joey Haas',
+      description: 'Twelve days, three places.',
+      type: 'article',
+      lastmod: '2026-09-12',
+      image: {
+        url: 'https://joey-haas.dev/travel/croatia-greece-2026/walls-1600.webp',
+        alt: 'City walls',
+      },
+    })
+    const bare = publicRoutes({
+      posts: [],
+      trips: [{ ...trip, frontmatter: {} }],
+      items: [],
+    })
+    const plain = routeAt(bare, '/travel/croatia-greece-2026')
+    expect(plain.description).toBe('Landed late.')
+    expect(plain.image.url).toBe('https://joey-haas.dev/og-card.png')
+  })
+
   it('lists TIL and its notes as articles with the TIL feed', () => {
     const withNotes = publicRoutes({ posts: [], notes: [NOTE], items: [] })
     const til = routeAt(withNotes, '/til')
@@ -152,7 +188,7 @@ describe('publicRoutes', () => {
   it('leaves out Blog with nothing published, and items without an id', () => {
     const bare = publicRoutes({ posts: [], items: [{ title: 'No id' }] })
     expect(bare.map((route) => route.path)).not.toContain('/blog')
-    expect(bare).toHaveLength(10)
+    expect(bare).toHaveLength(11)
   })
 })
 
@@ -244,6 +280,25 @@ describe('renderHead', () => {
   })
 })
 
+describe('strayTripDirs', () => {
+  it('names every travel folder that is not a published trip', () => {
+    // A draft's built photos are copied from public/ like any other file;
+    // only a published trip's folder may stay in dist.
+    expect(
+      strayTripDirs(
+        ['lisbon-2019', 'croatia-greece-2026', 'ireland-2014'],
+        [{ slug: 'lisbon-2019' }],
+      ),
+    ).toEqual(['croatia-greece-2026', 'ireland-2014'])
+  })
+
+  it('keeps everything when every folder is published', () => {
+    expect(strayTripDirs(['lisbon-2019'], [{ slug: 'lisbon-2019' }])).toEqual(
+      [],
+    )
+  })
+})
+
 describe('legacyRoutes', () => {
   const routes = publicRoutes({
     posts: [],
@@ -305,7 +360,7 @@ describe('noindex, sitemap and robots', () => {
 
   it('lists every route, with a post’s date', () => {
     const xml = sitemap(publicRoutes({ posts: [POST], items: [ITEM] }))
-    expect(xml.match(/<url>/g)).toHaveLength(13)
+    expect(xml.match(/<url>/g)).toHaveLength(14)
     expect(xml).toContain(
       '<loc>https://joey-haas.dev/blog/how-spine-works</loc><lastmod>2026-10-02</lastmod>',
     )
@@ -447,6 +502,7 @@ describe('journal month routes', () => {
 // What the build publishes, read the way prerender.mjs reads it.
 const publishedPosts = await readPublished(path.join(here, '..', 'posts'))
 const publishedNotes = await readPublished(path.join(here, '..', 'notes'))
+const publishedTrips = await readPublished(path.join(here, '..', 'trips'))
 
 describe('render.yaml rewrites', () => {
   // Render serves dist/x/index.html at /x/ but not at /x, so each prerendered
@@ -464,6 +520,7 @@ describe('render.yaml rewrites', () => {
   const built = publicRoutes({
     posts: publishedPosts,
     notes: publishedNotes,
+    trips: publishedTrips,
     items: [],
   })
   const pages = [...built, ...legacyRoutes(built)]
@@ -482,5 +539,31 @@ describe('render.yaml rewrites', () => {
 
   it('keeps the SPA catch-all last', () => {
     expect(rules.at(-1)).toEqual({ source: '/*', destination: '/index.html' })
+  })
+})
+
+describe('assertDailyPool', () => {
+  const game = (id) => ({
+    id,
+    type: 'game',
+    title: `Game ${id}`,
+    platform: 'Nintendo Switch',
+    year: 2020,
+    genres: ['Platform'],
+    time_to_beat_hours: 10,
+  })
+  const games = (count) => Array.from({ length: count }, (_, i) => game(i + 1))
+
+  it('passes at the floor and reports the pool size', () => {
+    expect(assertDailyPool(games(30))).toBe(30)
+  })
+
+  it('stops the build one game under the floor', () => {
+    expect(() => assertDailyPool(games(29))).toThrow(/29 eligible games/)
+  })
+
+  it('counts only eligible games', () => {
+    const items = [...games(29), { ...game(99), time_to_beat_hours: null }]
+    expect(() => assertDailyPool(items)).toThrow(/29 eligible/)
   })
 })

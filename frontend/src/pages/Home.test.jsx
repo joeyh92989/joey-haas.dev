@@ -6,6 +6,8 @@ import Home from './Home.jsx'
 
 const content = vi.hoisted(() => ({ posts: [] }))
 vi.mock('../content/posts.js', () => content)
+const tripContent = vi.hoisted(() => ({ trips: [] }))
+vi.mock('../content/trips.js', () => tripContent)
 const snapshots = vi.hoisted(() => ({ items: null }))
 vi.mock('../lib/snapshot.js', () => ({
   readSnapshot: vi.fn(async (name) => snapshots[name]),
@@ -43,6 +45,7 @@ function facts() {
 
 afterEach(() => {
   content.posts.length = 0
+  tripContent.trips.length = 0
   snapshots.items = null
 })
 
@@ -114,6 +117,27 @@ describe('Home', () => {
     expect(
       screen.getByText('What it is, and the one rule.'),
     ).toBeInTheDocument()
+  })
+
+  it('adds the newest trip as Latest trip, with a Travel card', () => {
+    tripContent.trips.push({
+      slug: 'croatia-greece-2026',
+      frontmatter: {
+        title: 'Croatia & Greece',
+        date: '2026-09-12',
+        end: '2026-09-23',
+        precision: 'day',
+        summary: 'Twelve days, three places.',
+        places: [],
+      },
+      days: [],
+      cover: null,
+    })
+    renderHome()
+    expect(facts()['Latest trip']).toBe('Croatia & Greece · Sept 2026')
+    const card = screen.getByRole('link', { name: /Croatia & Greece/ })
+    expect(card).toHaveAttribute('href', '/travel/croatia-greece-2026')
+    expect(within(card).getByText('Twelve days, three places.')).toBeVisible()
   })
 
   it('has no writing card while nothing is published', () => {

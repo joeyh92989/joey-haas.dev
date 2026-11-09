@@ -48,11 +48,14 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/now` | Now | What I am doing now |
 | `/colophon` | Colophon | How the site is built |
+| `/daily` | Shelfle | The daily puzzle: guess the game on the shelf in six, built in the browser from the build-time snapshot with no API call (see [Daily puzzle](#daily-puzzle)) |
 | `/stats` | Stats | The site's own visitor figures from `/api/public/site-stats`, how they are counted, and the changelog from `frontend/changelog.md` |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
 | `/til` | TIL | Short notes compiled from `frontend/notes/`, each shown in full; linked from the footer and Blog index only while a note is published. Its feed is `/til/feed.xml` |
 | `/til/:slug` | TIL note | One note; slug is the markdown filename |
+| `/travel` | Travel | Trips compiled from `frontend/trips/`, newest first; in the nav, and linked from the footer, only while a trip is published |
+| `/travel/:slug` | Trip | One trip: facts, the drawn route map, place chips, the days with their photos, and a lightbox. Slug is the markdown filename |
 | `/shelf` | My Shelf | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
 | `/shelf/next` | What's next | Public: the game I'm playing (a Continue card, with Wrap up and Log tonight when signed in), tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
 | `/shelf/comics` | Comics | Public: every public comic series as a run (owned, missing, not out yet), with chip filters, sort, a Covers view and what is out this week; reads `/api/public/comics` after painting `/snapshot/comics.json` |
@@ -164,10 +167,89 @@ is unpublished with its rule left in (a rule for a file the build did not
 write serves an empty 200). The first published note also needs the `/til`
 rule, which is already in place.
 
+## Travel log
+
+A trip is one markdown file in `frontend/trips/`, compiled by the same
+plugin as posts and notes: `ireland-2014.md` becomes `/travel/ireland-2014`.
+Getting the photos and the dates together for an old trip is its own job;
+`docs/travel-onboarding.md` is the flow, from asking for originals to a
+published page, with the list of trips still to recover.
+
+**The grammar** (parsed by `frontend/scripts/trip-markdown.mjs`, pure):
+
+```markdown
+---
+title: Croatia & Greece
+date: 2026-09-12        # first day
+end: 2026-09-23         # last day
+precision: day          # day | month | year: how well the dates are known
+summary: One line for the index card and link previews.
+cover: walls-afternoon  # a photo name
+places:                 # in route order; numbered on the map
+  - { name: Dubrovnik, lat: 42.6507, lon: 18.0944 }
+draft: true
+---
+
+## Day 2 · The walls · Dubrovnik
+
+Prose. A day with no photos renders as a postcard.
+
+![Alt text, required](walls-afternoon 'An optional caption')
+```
+
+A day heading never carries a date: day 1 is `date`, `Day 8–9` spans two,
+and a travel day names its legs (`Dubrovnik → Athens → Naxos`). At month or
+year precision the page prints *June 2014* and the day kickers drop their
+dates rather than inventing them. A published trip may not contain `TODO`,
+which is what the ingest scaffold writes.
+
+**Photos.** Originals go in `frontend/trips/<slug>/photos/` and are
+gitignored, because git keeps a blob forever, GPS and all. Two commands, run
+by hand from `frontend/` (details in `frontend/scripts/README.md`):
+
+- `node scripts/ingest-photos.mjs --from <dump>` reports a dump as
+  candidate trips, grouped by date gaps and placed from GPS (`places.json`).
+  `--write --slug <slug>` copies one trip's photos in and scaffolds a draft
+  with `photos.json`, the committed manifest of names, dates and date
+  confidence (no GPS). The dump is never modified.
+- `node scripts/build-travel-images.mjs <slug>` writes the 800 and 1600px
+  WebPs of the photos the trip shows to `frontend/public/travel/<slug>/`,
+  rotated and with all metadata stripped, and removes sizes the trip no
+  longer shows. A published trip's `photos.json` is trimmed to the photos
+  it shows. A draft's built photos are left out of `dist/` by the
+  prerender, but the draft file and manifest are public once pushed: the
+  onboarding doc says what to check first. That output **is** committed:
+  Render builds no images. When `public/travel/` passes about 50 MB, or at
+  the third trip with a full photo set, move it to an object store.
+
+**The map.** A trip with an entry in `frontend/src/content/maps/` gets a
+drawn route map (`DrawnMap`, a hand-drawn SVG coastline placed by two
+measured points in `lib/mapFit.js`); a trip without one has no map, which
+suits a trip known only to the month. Live map tiles were considered and
+rejected in the design. Denver spots is to reuse `DrawnMap`, not add a
+second map component.
+
+**Publishing** a trip (removing `draft: true`) also needs its rewrite in
+`render.yaml`, ahead of the `/*` catch-all, and the first published trip
+needs `/travel`'s:
+
+```yaml
+- type: rewrite
+  source: /travel
+  destination: /travel/index.html
+- type: rewrite
+  source: /travel/<slug>
+  destination: /travel/<slug>/index.html
+```
+
+`prerender-lib.test.mjs` fails until they are there, and again if a trip is
+unpublished with its rule left in. The first published trip also adds the
+Travel entry to `frontend/changelog.md`.
+
 ## Site search
 
 The masthead's Search button, ⌘K / Ctrl+K anywhere, or `/` outside a text
-field opens one dialog over pages, posts, TIL notes, the shelf and comics. The
+field opens one dialog over pages, posts, TIL notes, trips, the shelf and comics. The
 admin pages have no search.
 
 - **Pages** are bundled: `STATIC_PAGES` in `frontend/src/content/pages.js` is
@@ -176,8 +258,9 @@ admin pages have no search.
   Pages only.
 - **Everything else** comes from `/search-index.json`, written before
   `vite build` by `frontend/scripts/build-search-index.mjs` from the posts,
-  the notes and the build-time snapshot. `/blog` and `/til` are listed only
-  while they have a published entry. It is a build output: gitignored, never
+  the notes, the trips (title, places and day titles) and the build-time
+  snapshot. `/blog`, `/til` and `/travel` are listed only while they have a
+  published entry. It is a build output: gitignored, never
   committed, and fetched once, on first open. Without a snapshot it is
   written from the posts alone; if the fetch fails, the dialog still
   searches the pages and says search is unavailable.
@@ -186,6 +269,37 @@ admin pages have no search.
   Matching folds case and accents (`lib/normalize.js`).
 - No match offers "Search the shelf", which opens `/shelf?q=<query>` with
   the shelf's own search filled in.
+
+## Daily puzzle
+
+`/daily` is Shelfle: one game a day, the same for everyone, guessed in six
+and graded on platform, year, genre and size. It is built entirely in the
+browser from `/snapshot/items.json`. It makes no API call, so it plays while
+the free-tier backend sleeps. The rules live in `frontend/src/lib/daily.js`,
+which is pure and tested without a DOM.
+
+- **Pool:** public, owned games (no wants) with a platform, a release year,
+  at least one genre and a time to beat that falls in a size band
+  (`lib/sizeBand.js`, shared with Play Next's pill). A build whose snapshot
+  leaves fewer than `MIN_POOL` (30) eligible games fails.
+- **Day:** Denver's calendar day (`ownerDay` in `lib/formatDate.js`), so the
+  puzzle turns over at midnight there. Day 1 is `DAILY_EPOCH`, and the day
+  number is counted in whole UTC days, so daylight saving never shifts it.
+- **Pick:** FNV-1a of the salt plus the date, modulo the pool, stepping past
+  the previous seven days' answers. A snapshot change can change later
+  answers, never past ones already played on that build.
+- **Salt:** `VITE_DAILY_SALT`, set on the Render static site and injected at
+  build. It only stops an answer being worked out from the snapshot's ids;
+  anyone who reads the bundle can still find it. Every answer is already
+  public, so nothing more is protected. `vite build` refuses to run without
+  it. Dev and tests fall back to a fixed word.
+- **Grading:** platform matches exactly or is close within a family (Switch
+  and Switch 2, PS4 and PS5, Xbox One and Series X|S). Year is close within
+  two years, with an arrow. Genre matches when the sets are equal and is
+  close when they share one. Size is close one band away, with an arrow.
+- **Storage:** one `localStorage` key, `daily:v1`, holding today's guesses,
+  the streak, games played and total guesses. The page renders and plays
+  without it; a blocked store just forgets.
 
 ## Admin authentication
 

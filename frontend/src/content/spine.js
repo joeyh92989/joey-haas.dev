@@ -39,6 +39,7 @@ export const spine = {
     next: { to: '/shelf/next', label: 'What’s next' },
     year: { to: '/shelf/year', label: 'Year in review' },
     how: { to: '/shelf/how', label: 'How it works' },
+    daily: { to: '/daily', label: 'Daily' },
   },
   /**
    * /spine/how, the field guide (Spine tour spec). Each stop's `code` paths
@@ -49,7 +50,7 @@ export const spine = {
   how: {
     path: '/shelf/how',
     tryPickForMe: 'Try Pick for me: choose a length and a mood',
-    title: 'How My Shelf works, in eight stops',
+    title: 'How My Shelf works, in nine stops',
     description:
       'A guided tour of My Shelf: photo import, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
     lede: 'Everything on the Collection and What’s next pages comes out of a pipeline I run for myself. Each stop pairs the public result with a drawing of the signed-in tool that made it and links to the code it runs.',
@@ -339,6 +340,18 @@ export const spine = {
             '}',
           ].join('\n'),
         },
+      },
+      {
+        n: 9,
+        where: '/daily',
+        title: 'Turns the shelf into a puzzle',
+        claim:
+          'Shelfle picks one game a day from the public shelf: owned games with a platform, a year, a genre and a size. The day is Denver’s calendar day, so it turns over at midnight here, and the browser does all of it from the build’s snapshot, so it plays while the server sleeps.',
+        why: {
+          lead: 'Why a salt:',
+          text: 'it keeps tomorrow’s answer from being worked out from the snapshot alone. Anyone who reads the bundle can still find it. That’s fine: it’s a game, and every answer it can pick is already public.',
+        },
+        code: ['frontend/src/lib/daily.js'],
       },
     ],
     closing: {

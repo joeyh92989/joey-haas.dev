@@ -7,6 +7,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 ## 2026-11-09
 
 - [Tonight](/shelf/next) picks live from what I've liked, read through shared genres, settings and moods and how much I actually played them, so they change the moment I finish something. Read next and Watch next sit under the games: what to read from my comics and what to watch from my movies.
+- [Shelfle](/daily), a daily puzzle built from my shelf: guess the game in six, each guess graded on platform, year, genre and size. The same puzzle for everyone, new at midnight Denver time, with a streak kept on your device and a spoiler-free grid to share.
 
 ## 2026-11-08
 

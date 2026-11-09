@@ -64,8 +64,10 @@ _EXACT_PATHS = frozenset(
         "/now",
         "/colophon",
         "/stats",
+        "/daily",
         "/blog",
         "/til",
+        "/travel",
         "/shelf",
         "/shelf/comics",
         "/shelf/next",
@@ -79,6 +81,7 @@ _PATTERNS = (
     re.compile(r"/shelf/journal/\d{4}-\d{2}"),
     re.compile(r"/blog/[a-z0-9]+(?:-[a-z0-9]+)*"),
     re.compile(r"/til/[a-z0-9]+(?:-[a-z0-9]+)*"),
+    re.compile(r"/travel/[a-z0-9]+(?:-[a-z0-9]+)*"),
 )
 # Referrers the public /stats page may name: search engines and the big
 # public sites. A host is on the list when it is one of these domains or a

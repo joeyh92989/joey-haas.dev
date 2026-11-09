@@ -1,33 +1,6 @@
-/**
- * Upper bounds per unit, mirroring the strategies' bands in
- * backend/strategies.py (SIZE_BANDS for hours, COMIC_BANDS for issues left,
- * MOVIE_BANDS for minutes): a value on a bound is the smaller band, so a
- * game of exactly six hours is Short. Keep them in step.
- */
-const SIZE_BANDS = {
-  hours: [
-    [6, 'Short'],
-    [15, 'Medium'],
-    [Infinity, 'Long'],
-  ],
-  issues: [
-    [4, 'Short'],
-    [12, 'Medium'],
-    [Infinity, 'Long'],
-  ],
-  minutes: [
-    [100, 'Short'],
-    [140, 'Medium'],
-    [Infinity, 'Long'],
-  ],
-}
+import { sizeLabel } from '../lib/sizeBand.js'
 
-/** The band for a value in a unit (hours when none is given), or null. */
-export function sizeLabel(value, unit = 'hours') {
-  const bands = SIZE_BANDS[unit]
-  if (value == null || !bands) return null
-  return bands.find(([high]) => value <= high)[1]
-}
+export { sizeLabel }
 
 /** The words after the band: how much is left, in the unit's own terms. */
 function sizeWords(value, unit) {

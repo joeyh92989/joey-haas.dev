@@ -5,6 +5,7 @@ import About from './pages/About.jsx'
 import Blog from './pages/Blog.jsx'
 import Collection from './pages/Collection.jsx'
 import Comics from './pages/Comics.jsx'
+import Daily from './pages/Daily.jsx'
 import Colophon from './pages/Colophon.jsx'
 import BlogPost from './pages/BlogPost.jsx'
 import Home from './pages/Home.jsx'
@@ -18,6 +19,8 @@ import Projects from './pages/Projects.jsx'
 import Stats from './pages/Stats.jsx'
 import Til from './pages/Til.jsx'
 import TilNote from './pages/TilNote.jsx'
+import Travel from './pages/Travel.jsx'
+import Trip from './pages/Trip.jsx'
 import YearInReview, { CurrentYear } from './pages/YearInReview.jsx'
 import { itemPath, monthPath, yearPath } from './lib/spinePaths.js'
 
@@ -70,6 +73,7 @@ export default function App() {
         <Route path="now" element={<Now />} />
         <Route path="colophon" element={<Colophon />} />
         <Route path="stats" element={<Stats />} />
+        <Route path="daily" element={<Daily />} />
         <Route path="shelf" element={<Collection />} />
         <Route path="shelf/comics" element={<Comics />} />
         <Route path="shelf/next" element={<Next />} />
@@ -126,6 +130,8 @@ export default function App() {
         <Route path="blog/:slug" element={<BlogPost />} />
         <Route path="til" element={<Til />} />
         <Route path="til/:slug" element={<TilNote />} />
+        <Route path="travel" element={<Travel />} />
+        <Route path="travel/:slug" element={<Trip />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

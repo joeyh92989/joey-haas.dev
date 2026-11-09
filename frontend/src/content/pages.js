@@ -10,6 +10,7 @@
  * `/blog` is only listed while there are published posts.
  */
 import { clip } from '../lib/clip.js'
+import { daily } from './daily.js'
 import { profile } from './profile.js'
 import { spine } from './spine.js'
 
@@ -79,6 +80,7 @@ export const STATIC_PAGES = [
     `Stats · ${profile.name}`,
     'What joey-haas.dev sees, counted by the site itself: views, visitors, pages and referrers, with no cookies or third-party scripts, and what changed recently.',
   ),
+  row(daily.path, daily.title, daily.headTitle, daily.description),
 ]
 
 /** The blog index's row, listed only when there are published posts. */
@@ -95,6 +97,14 @@ export const TIL_PAGE = row(
   'TIL',
   `TIL · ${profile.name}`,
   `Short notes by ${profile.name}: things learned while building this site.`,
+)
+
+/** /travel, listed (and prerendered) only while a trip is published (D10). */
+export const TRAVEL_PAGE = row(
+  '/travel',
+  'Travel',
+  `Travel · ${profile.name}`,
+  `Trips by ${profile.name}, a day at a time: where we went, what happened and a few photos.`,
 )
 
 /** The static pages to list, given whether any post is published. */

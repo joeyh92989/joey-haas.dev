@@ -72,6 +72,9 @@ export async function readPublished(dir) {
       title: String(data.title),
       date: toDateString(data.date),
       body: content,
+      // The rest of the frontmatter, for a reader that needs more than the
+      // four fields every kind of entry has (a trip's summary and cover).
+      frontmatter: data,
     })
   }
   return entries.sort((a, b) => b.date.localeCompare(a.date))

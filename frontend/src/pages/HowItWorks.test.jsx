@@ -107,7 +107,7 @@ afterEach(() => {
 })
 
 describe('HowItWorks', () => {
-  it('has one h1, the contents and eight stops with headings', () => {
+  it('has one h1, the contents and nine stops with headings', () => {
     mockData({ items: ready(ITEMS), next: ready(NEXT) })
     renderAt()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
@@ -115,12 +115,12 @@ describe('HowItWorks', () => {
       screen.getByRole('heading', { level: 1, name: spine.how.title }),
     ).toBeInTheDocument()
     const toc = screen.getByRole('navigation', { name: spine.how.tocLabel })
-    expect(within(toc).getAllByRole('link')).toHaveLength(8)
+    expect(within(toc).getAllByRole('link')).toHaveLength(9)
     expect(within(toc).getAllByRole('link')[2]).toHaveAttribute(
       'href',
       '/shelf/how#stop-3',
     )
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(8)
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(9)
     expect(document.title).toBe('How it works · My Shelf')
   })
 

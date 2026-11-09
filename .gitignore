@@ -33,3 +33,25 @@ docs/planning/mockups/
 # The collection export (backend/scripts/export_picker_fixture.py): anonymised,
 # but matchable back to real games, so it stays local. Its tests skip without it.
 backend/tests/fixtures/picker_collection.json
+# Trip photo originals as they come off a camera or a partner's phone. The
+# resized output under frontend/public/travel/ is committed instead (it is the
+# only build product in public/ that is), and so is photos.json: names, dates,
+# date confidence, dimensions and the kid flag are source of truth, not output.
+# Originals stay out because git keeps a blob forever, GPS and all.
+frontend/trips/*/photos/*
+!frontend/trips/*/photos/photos.json
+# And any image or video anywhere else under trips/, in either case, for an
+# original dropped beside the markdown by mistake. Linux git matches case
+# exactly, so the classes spell out what macOS's core.ignorecase hides.
+frontend/trips/**/*.[jJ][pP][gG]
+frontend/trips/**/*.[jJ][pP][eE][gG]
+frontend/trips/**/*.[pP][nN][gG]
+frontend/trips/**/*.[hH][eE][iI][cC]
+frontend/trips/**/*.[hH][eE][iI][fF]
+frontend/trips/**/*.[wW][eE][bB][pP]
+frontend/trips/**/*.[tT][iI][fF]
+frontend/trips/**/*.[tT][iI][fF][fF]
+frontend/trips/**/*.[gG][iI][fF]
+frontend/trips/**/*.[dD][nN][gG]
+frontend/trips/**/*.[mM][oO][vV]
+frontend/trips/**/*.[mM][pP]4
