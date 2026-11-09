@@ -15,6 +15,7 @@ export const GROUPS = [
   { key: 'pages', label: 'Pages' },
   { key: 'posts', label: 'Posts' },
   { key: 'notes', label: 'Notes' },
+  { key: 'trips', label: 'Trips' },
   { key: 'shelf', label: 'Shelf' },
   { key: 'comics', label: 'Comics' },
 ]

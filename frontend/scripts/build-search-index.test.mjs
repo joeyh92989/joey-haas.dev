@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   BUDGET_BYTES,
   buildIndex,
+  tripDayTitles,
   writeSearchIndex,
 } from './build-search-index.mjs'
 
@@ -81,6 +82,42 @@ describe('buildIndex', () => {
     expect(
       buildIndex({ posts: [], notes: [], items: null, comics: null }),
     ).toEqual([])
+  })
+
+  it('lists trips under /travel, with the Travel page, only when one is published', () => {
+    const trip = {
+      slug: 'ireland-2014',
+      title: 'Ireland',
+      date: '2014-06-01',
+      precision: 'month',
+      summary: 'Two weeks, mostly rain.',
+      places: [{ name: 'Dublin' }, { name: 'Galway' }],
+      dayTitles: ['The Burren'],
+    }
+    const entries = buildIndex({
+      posts: [],
+      trips: [trip],
+      items: null,
+      comics: null,
+    })
+    expect(entries.map((e) => [e.g, e.href])).toEqual([
+      ['pages', '/travel'],
+      ['trips', '/travel/ireland-2014'],
+    ])
+    expect(entries[1].sub).toBe('June 2014 · Dublin, Galway')
+    expect(entries[1].s).toContain('galway')
+    expect(entries[1].s).toContain('burren')
+    expect(
+      buildIndex({ posts: [], trips: [], items: null, comics: null }),
+    ).toEqual([])
+  })
+
+  it('reads the title of each day heading', () => {
+    expect(
+      tripDayTitles(
+        '## Day 1 · Arrive · Dubrovnik\n\nText.\n\n## Day 4–5 · Travel day · Dubrovnik → Naxos\n',
+      ),
+    ).toEqual(['Arrive', 'Travel day'])
   })
 
   it('puts summary, tags and keywords in the secondary text', () => {

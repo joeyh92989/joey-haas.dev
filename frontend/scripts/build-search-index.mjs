@@ -3,14 +3,16 @@
  * then copies to dist/. Runs after fetch-snapshot.mjs and before
  * `vite build`.
  *
- * Inputs: the posts' and TIL notes' frontmatter (drafts skipped, as
+ * Inputs: the posts', TIL notes' and trips' frontmatter (drafts skipped, as
  * generate-rss.mjs does),
  * and public/snapshot/items.json and comics.json when the snapshot step
  * wrote them. The snapshot holds public rows only, so nothing private can
  * reach the index. The static pages are not written: the palette has them
  * in its bundle (src/content/pages.js), so it can list them while the index
  * is still loading or missing. The exceptions are /blog and /til, each
- * listed only while it has a published entry.
+ * listed only while it has a published entry, and /travel likewise.
+ *
+ * Trips are indexed over their title, summary, places and day titles.
  *
  * A missing or malformed optional input leaves its groups out and never
  * fails the build. The one failure is an index over BUDGET_BYTES gzipped,
@@ -22,11 +24,12 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
-import { BLOG_PAGE, TIL_PAGE } from '../src/content/pages.js'
+import { BLOG_PAGE, TIL_PAGE, TRAVEL_PAGE } from '../src/content/pages.js'
 import { formatDate } from '../src/lib/formatDate.js'
 import { normalize } from '../src/lib/normalize.js'
 import { pageEntry } from '../src/lib/searchIndex.js'
 import { itemPath } from '../src/lib/spinePaths.js'
+import { tripMonth } from '../src/lib/tripDates.js'
 
 /** The palette's size budget, gzipped (search spec). */
 export const BUDGET_BYTES = 100 * 1024
@@ -61,6 +64,26 @@ function entryOf(group, prefix) {
       sub: [displayDate(entry.date), tags[0]].filter(Boolean).join(' · '),
       href: `${prefix}/${entry.slug}`,
     }
+  }
+}
+
+/**
+ * A trip: found by its title, summary, places or any day's title. The sub
+ * line is its month, at the trip's own precision, so an old trip known
+ * only to the year is never given a month.
+ */
+function tripEntry(trip) {
+  const places = Array.isArray(trip.places)
+    ? trip.places.map((place) => place?.name).filter(Boolean)
+    : []
+  const days = Array.isArray(trip.dayTitles) ? trip.dayTitles : []
+  return {
+    g: 'trips',
+    t: normalize(trip.title),
+    s: joined(trip.summary, places, days),
+    title: trip.title,
+    sub: [tripMonth(trip), places.join(', ')].filter(Boolean).join(' · '),
+    href: `/travel/${trip.slug}`,
   }
 }
 
@@ -101,11 +124,13 @@ const hasTitle = (row) =>
  * @param {object} input
  * @param {object[]} input.posts Published posts' frontmatter plus `slug`.
  * @param {object[]} [input.notes] Published TIL notes, the same shape.
+ * @param {object[]} [input.trips] Published trips' frontmatter plus `slug`
+ *   and `dayTitles`.
  * @param {object[] | null} input.items The items snapshot, or null.
  * @param {{series: object[]} | null} input.comics The comics snapshot, or null.
  * @returns {object[]}
  */
-export function buildIndex({ posts, notes = [], items, comics }) {
+export function buildIndex({ posts, notes = [], trips = [], items, comics }) {
   const entries = []
   const published = posts.filter(hasTitle)
   if (published.length > 0) entries.push(pageEntry(BLOG_PAGE))
@@ -113,6 +138,9 @@ export function buildIndex({ posts, notes = [], items, comics }) {
   const tils = notes.filter(hasTitle)
   if (tils.length > 0) entries.push(pageEntry(TIL_PAGE))
   entries.push(...tils.map(entryOf('notes', '/til')))
+  const journeys = trips.filter(hasTitle)
+  if (journeys.length > 0) entries.push(pageEntry(TRAVEL_PAGE))
+  entries.push(...journeys.map(tripEntry))
   const rows = Array.isArray(items)
     ? items.filter((item) => hasTitle(item) && item.id != null)
     : []
@@ -139,7 +167,7 @@ export function buildIndex({ posts, notes = [], items, comics }) {
  * missing directory reads as empty, as markdown-lib's readPublished does, so
  * a site with no notes still builds.
  */
-export async function readPosts(postsDir) {
+export async function readPosts(postsDir, { dayTitles = false } = {}) {
   let files
   try {
     files = await fs.readdir(postsDir)
@@ -150,12 +178,13 @@ export async function readPosts(postsDir) {
   const names = files.filter((name) => name.endsWith('.md'))
   const posts = []
   for (const name of names) {
-    const { data } = matter(
+    const { data, content } = matter(
       await fs.readFile(path.join(postsDir, name), 'utf8'),
     )
     if (data.draft === true) continue
     posts.push({
       ...data,
+      ...(dayTitles ? { dayTitles: tripDayTitles(content) } : {}),
       slug: name.replace(/\.md$/, ''),
       title: String(data.title ?? ''),
       date:
@@ -165,6 +194,17 @@ export async function readPosts(postsDir) {
     })
   }
   return posts
+}
+
+/**
+ * The title part of each `## Day <n> · <title> · <place>` heading. A loose
+ * read, not the grammar: the build's markdown plugin (trip-markdown.mjs)
+ * has already refused a trip file whose headings do not parse.
+ */
+export function tripDayTitles(content) {
+  return [...content.matchAll(/^## Day [^·\n]+·([^·\n]+)·/gm)].map((match) =>
+    match[1].trim(),
+  )
 }
 
 /** A snapshot file's body, or null when it is missing or unreadable. */
@@ -188,6 +228,7 @@ async function readOptionalJson(file, log) {
 export async function writeSearchIndex({
   postsDir,
   notesDir,
+  tripsDir,
   snapshotDir,
   outFile,
   log = console.log,
@@ -203,6 +244,7 @@ export async function writeSearchIndex({
   const entries = buildIndex({
     posts: await readPosts(postsDir),
     notes: notesDir ? await readPosts(notesDir) : [],
+    trips: tripsDir ? await readPosts(tripsDir, { dayTitles: true }) : [],
     items: Array.isArray(items) ? items : null,
     comics: comics && typeof comics === 'object' ? comics : null,
   })
@@ -240,6 +282,7 @@ if (isEntryPoint()) {
   await writeSearchIndex({
     postsDir: path.join(root, 'posts'),
     notesDir: path.join(root, 'notes'),
+    tripsDir: path.join(root, 'trips'),
     snapshotDir: path.join(root, 'public', 'snapshot'),
     outFile: path.join(root, 'public', 'search-index.json'),
   })

@@ -99,6 +99,14 @@ export const TIL_PAGE = row(
   `Short notes by ${profile.name}: things learned while building this site.`,
 )
 
+/** /travel, listed (and prerendered) only while a trip is published (D10). */
+export const TRAVEL_PAGE = row(
+  '/travel',
+  'Travel',
+  `Travel · ${profile.name}`,
+  `Trips by ${profile.name}, a day at a time: where we went, what happened and a few photos.`,
+)
+
 /** The static pages to list, given whether any post is published. */
 export function staticPages(hasPosts) {
   return hasPosts ? [...STATIC_PAGES, BLOG_PAGE] : STATIC_PAGES

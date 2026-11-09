@@ -6439,6 +6439,497 @@ main h1[tabindex='-1']:focus,
   margin-top: 0.75rem;
 }
 
+/* ---------------------------------------------------------------------
+ * Travel: /travel and /travel/:slug.
+ *
+ * The trip page stays in the 45rem prose column (a trip is a post with
+ * photos, not a gallery); only the index's cards go two across. Tokens
+ * only, and no new ones: the drawn map reuses --sunken for land and
+ * --surface for sea rather than the mockup's --map-* tokens.
+ * ------------------------------------------------------------------- */
+
+.trip-list {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+}
+
+.trip-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.trip-card:hover {
+  border-color: var(--line-strong);
+}
+
+.trip-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.trip-card__cover {
+  aspect-ratio: 16 / 9;
+  background: var(--sunken);
+  display: block;
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
+.trip-card__body {
+  align-content: start;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.trip-card__title {
+  font: 600 1.375rem/1.2 var(--font-display);
+  margin: 0;
+}
+
+.trip-card__places,
+.trip-card__count {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.trip__title {
+  font: 600 2.25rem/1.1 var(--font-display);
+  letter-spacing: -0.01em;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.trip .lede {
+  color: var(--text-2);
+  font-size: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.trip .kicker a {
+  color: inherit;
+}
+
+/* The drawn route. The SVG fills the frame; the pins are HTML over it
+   (see DrawnMap.jsx for why), placed by percentage. */
+.drawn-map {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 1.5rem 0;
+  overflow: hidden;
+}
+
+.drawn-map__frame {
+  position: relative;
+}
+
+.drawn-map__svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.drawn-map__sea {
+  fill: var(--surface);
+}
+
+.drawn-map__land {
+  fill: var(--sunken);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.drawn-map__route {
+  fill: none;
+  stroke: var(--accent);
+  stroke-dasharray: 6 5;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.drawn-map__sea-label {
+  fill: var(--text-3);
+  font: italic 400 11px var(--font-display);
+  letter-spacing: 0.08em;
+}
+
+.drawn-map__pin {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  gap: 0.35rem;
+  min-height: 24px;
+  position: absolute;
+  text-decoration: none;
+  /* The number's centre sits on the projected point. */
+  transform: translate(-12px, -50%);
+}
+
+.drawn-map__pin--label-left {
+  flex-direction: row-reverse;
+  transform: translate(calc(-100% + 12px), -50%);
+}
+
+.drawn-map__number {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 50%;
+  /* The halo keeps the pin legible over land, sea or the route line. */
+  box-shadow: 0 0 0 1.5px var(--surface);
+  color: var(--accent-ink);
+  display: inline-flex;
+  flex: none;
+  font: 600 0.75rem/1 var(--font-sans);
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.drawn-map__name {
+  background: var(--surface);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0 0.3rem;
+  white-space: nowrap;
+}
+
+.drawn-map__pin:focus-visible {
+  outline: none;
+}
+
+.drawn-map__pin:focus-visible .drawn-map__number {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .drawn-map__number {
+    transition: transform 120ms ease-out;
+  }
+
+  .drawn-map__pin:hover .drawn-map__number,
+  .drawn-map__pin:focus-visible .drawn-map__number {
+    transform: scale(1.15);
+  }
+}
+
+.drawn-map__caption {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  gap: 0.25rem 1rem;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+}
+
+.drawn-map__stops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.drawn-map__stops a {
+  color: var(--text-2);
+}
+
+/* Place chips: jump links, one row that scrolls sideways on a phone
+   rather than wrapping into a block above the first day. */
+.trip-places ul {
+  display: flex;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0 0 1rem;
+  overflow-x: auto;
+  padding: 2px;
+}
+
+.trip-places .chip {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.chip[aria-current] {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+/* Days */
+.trip-day {
+  border-top: 1px solid var(--line);
+  padding: 1.25rem 0;
+  scroll-margin-top: 1rem;
+}
+
+.trip-day .kicker {
+  margin: 0 0 0.15rem;
+}
+
+.trip-day__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.trip-day__place {
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.trip-day .post-body {
+  margin-top: 0.5rem;
+}
+
+/* Photos pair in order within a day. */
+.photo-group {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.photo-group--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.trip-photo {
+  border-radius: var(--radius);
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.trip-photo__img {
+  aspect-ratio: 3 / 2;
+  background: var(--sunken);
+  display: block;
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
+.trip-photo__open {
+  background: none;
+  border: 0;
+  cursor: zoom-in;
+  display: block;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+
+/* Two tones over the photo: an accent ring alone can vanish into a photo
+   of the same hue, so a --bg ring sits inside it. Drawn on ::after, above
+   the image; an inset shadow on the button would paint beneath it. */
+.trip-photo__open:focus-visible {
+  outline: none;
+}
+
+.trip-photo__open:focus-visible::after {
+  border: 2px solid var(--accent);
+  box-shadow: inset 0 0 0 2px var(--bg);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* D3: the caption is an opaque strip, never a scrim. --overlay is 60% --bg
+   and was measured over posters, whose corners are predictable; over an
+   arbitrary photo a bright sky behind a 40%-transparent scrim guarantees
+   no ratio. --text on --bg is the pair both theme blocks already measure,
+   so the strip is legible over any photo in either theme. The mockup's
+   gradient with white text used raw colours the token rule forbids. */
+.trip-photo__caption {
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  padding: 0.35rem 0.6rem;
+}
+
+/* A photo-less day: the prose on a card with its place as a stamp. */
+.postcard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-top: 0.75rem;
+  padding: 1rem 1.1rem;
+  position: relative;
+}
+
+.postcard__stamp {
+  border: 1px dashed var(--line-strong);
+  border-radius: 4px;
+  color: var(--text-3);
+  float: right;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.5rem 0.75rem;
+  padding: 0.2rem 0.45rem;
+  text-transform: uppercase;
+}
+
+.postcard .post-body {
+  margin-top: 0;
+}
+
+.postcard .post-body > :last-child {
+  margin-bottom: 0;
+}
+
+.trip-nav {
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 0.5rem 1rem;
+  justify-content: space-between;
+  padding-top: 1.25rem;
+}
+
+.trip-nav a[rel='next'] {
+  margin-left: auto;
+}
+
+/* Lightbox. The backdrop stays --overlay: nothing is read through it. */
+.lightbox {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  height: 100dvh;
+  margin: 0;
+  max-height: none;
+  max-width: none;
+  padding: 3.5rem 1rem 1rem;
+  width: 100vw;
+}
+
+.lightbox[open] {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.lightbox::backdrop {
+  background: var(--overlay);
+}
+
+.lightbox__figure {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  max-width: 60rem;
+  width: 100%;
+}
+
+.lightbox__img {
+  border-radius: 8px;
+  display: block;
+  height: auto;
+  margin: 0 auto;
+  max-height: calc(100dvh - 9rem);
+  object-fit: contain;
+  width: auto;
+  max-width: 100%;
+}
+
+.lightbox__caption {
+  background: var(--bg);
+  border-radius: var(--radius);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 0.25rem 1rem;
+  justify-content: space-between;
+  padding: 0.4rem 0.7rem;
+}
+
+.lightbox__count {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.lightbox__prev,
+.lightbox__next,
+.lightbox__close {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: 1.1rem/1 var(--font-sans);
+  height: 44px;
+  justify-content: center;
+  position: absolute;
+  width: 44px;
+}
+
+.lightbox__prev:focus-visible,
+.lightbox__next:focus-visible,
+.lightbox__close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lightbox__prev {
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lightbox__next {
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lightbox__close {
+  right: 1rem;
+  top: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .trip-list,
+  .photo-group--two {
+    grid-template-columns: 1fr;
+  }
+
+  .trip__title {
+    font-size: 1.75rem;
+  }
+
+  .trip-photo__img {
+    aspect-ratio: 4 / 3;
+  }
+
+  /* On a phone the step buttons sit under the photo, not over it. */
+  .lightbox__prev,
+  .lightbox__next {
+    bottom: 1rem;
+    top: auto;
+    transform: none;
+  }
+}
+
 /* Denver spots (/admin/spots): the spots table and the spot form. The
    table reuses .item-table and the form .item-detail-form; only what
    differs is here. */

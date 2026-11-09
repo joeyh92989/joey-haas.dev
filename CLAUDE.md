@@ -85,6 +85,17 @@ before pushing.
   `SiteFooter`, so its tests need no content mock). Any test that imports
   `content/posts.js` or `content/notes.js`, directly or through a component,
   mocks it: Vitest has no markdown plugin.
+- Trips are the third markdown collection: `frontend/trips/<slug>.md` in
+  the grammar parsed by `scripts/trip-markdown.mjs` (README → Travel log),
+  at `/travel` and `/travel/:slug`, under the same published rule. Day
+  headings carry no dates (they derive from `date` and `precision`), and a
+  published trip may not contain `TODO`. Photo originals stay in the
+  gitignored `trips/<slug>/photos/` (GPS never reaches git); the WebPs
+  `build-travel-images.mjs` writes to `public/travel/<slug>/` and
+  `photos.json` are committed. Nav and footer show Travel only while a trip
+  is published (`hasTrips`), and tests mock `content/trips.js` like posts.
+  `DrawnMap` (`components/`, placed by `lib/mapFit.js`, drawings in
+  `content/maps/`) is the one map component: Denver spots reuses it.
 - Keep the site a real multi-section/multi-page website (react-router when
   pages are added), not a rendered resume document. A downloadable PDF resume
   is an optional accessory only.
@@ -156,7 +167,7 @@ before pushing.
   (`prerender-lib.mjs`) or it previews as the site card, **and** a rewrite
   in `render.yaml` ahead of the `/*` catch-all: Render serves
   `dist/about/index.html` at `/about/` but not at `/about`, where the
-  catch-all wins. Every published post and TIL note needs its own rule too, and
+  catch-all wins. Every published post, TIL note and trip needs its own rule too, and
   unpublishing one means removing it: there are no placeholder rules,
   because a rewrite to a file the build did not write serves an empty 200
   rather than the SPA. `prerender-lib.test.mjs` checks the rules match the
@@ -211,6 +222,13 @@ before pushing.
 - [x] TIL — short notes in `frontend/notes/` at `/til`, with their own feed
       at `/til/feed.xml`. Spec and plan:
       `docs/planning/2026-11-06-til-notes-design.md`
+- [ ] Travel log — built and shipped dark: `/travel`, trip pages, the drawn
+      map, lightbox, search and Home's Latest trip, the ingest CLI and
+      `docs/travel-onboarding.md`. No trip is published yet (Croatia &
+      Greece is a draft with placeholder photos), so `render.yaml` has no
+      travel rules and the changelog no entry; both come with the first
+      published trip. Spec and plan:
+      `docs/planning/2026-11-08-travel-log-design.md`
 - [x] Google OAuth admin — **live**. `/admin`, not linked from the nav.
       Verified end to end 2026-08-31: 12/12 smoke checks, CORS restricted to
       `joey-haas.dev`, real sign-in confirmed. See README → Admin authentication
@@ -333,11 +351,6 @@ before pushing.
       the Daily tab, stop 9 on How it works. `VITE_DAILY_SALT` must be set
       on the Render static site before merging. Spec and plan:
       `docs/planning/2026-11-08-daily-puzzle-design.md`
-- [ ] Rotate the ComicVine API key. It was written to Render's logs until
-      2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
-      ComicVine's site has no way to regenerate it: ask their support to
-      reissue it, then update `backend/.env` and Render. The Twitch/IGDB
-      secret was rotated the same day
 - [x] `ADMIN_GOOGLE_SUB` set on the Render API service, pinning the
       allowlist to Google's immutable subject ID as well as the email. A wrong
       value rejects every sign-in; clear it in Render to fall back to email-only
