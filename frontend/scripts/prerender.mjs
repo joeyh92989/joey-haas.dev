@@ -46,6 +46,7 @@ const dist = path.join(here, '..', 'dist')
 parseChangelog(await fs.readFile(path.join(here, '..', 'changelog.md'), 'utf8'))
 const postsDir = path.join(here, '..', 'posts')
 const notesDir = path.join(here, '..', 'notes')
+const tripsDir = path.join(here, '..', 'trips')
 
 /** The snapshot's items, or none when this build has no snapshot. */
 async function readItems() {
@@ -77,6 +78,7 @@ const items = await readItems()
 const routes = publicRoutes({
   posts: await readPublished(postsDir),
   notes: await readPublished(notesDir),
+  trips: await readPublished(tripsDir),
   items,
 })
 

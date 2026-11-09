@@ -11,8 +11,13 @@ import { loginUrl } from '../lib/api.js'
  * @param {boolean} props.signedIn Whether the admin session check passed.
  * @param {boolean} [props.hasNotes] Whether a TIL note is published; the
  *   link waits for one, as the masthead's Blog item waits for a post.
+ * @param {boolean} [props.hasTrips] Whether a trip is published, likewise.
  */
-export default function SiteFooter({ signedIn, hasNotes = false }) {
+export default function SiteFooter({
+  signedIn,
+  hasNotes = false,
+  hasTrips = false,
+}) {
   return (
     <footer className="site-footer">
       <div className="wrap site-footer-row">
@@ -22,6 +27,11 @@ export default function SiteFooter({ signedIn, hasNotes = false }) {
           {hasNotes && (
             <>
               &middot; <Link to="/til">TIL</Link>{' '}
+            </>
+          )}
+          {hasTrips && (
+            <>
+              &middot; <Link to="/travel">Travel</Link>{' '}
             </>
           )}
           &middot; <Link to="/colophon">Colophon</Link> &middot;{' '}

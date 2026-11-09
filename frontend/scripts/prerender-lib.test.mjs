@@ -123,6 +123,39 @@ describe('publicRoutes', () => {
     )
   })
 
+  it('lists Travel and its trips only while one is published', () => {
+    const none = publicRoutes({ posts: [], notes: [], trips: [], items: [] })
+    expect(none.some((route) => route.path.startsWith('/travel'))).toBe(false)
+    const trip = {
+      slug: 'croatia-greece-2026',
+      title: 'Croatia & Greece',
+      date: '2026-09-12',
+      body: "## Day 1 · Arrive · Dubrovnik\n\nLanded late.\n\n![City walls](walls 'On the wall')\n",
+      frontmatter: { summary: 'Twelve days, three places.', cover: 'walls' },
+    }
+    const routes = publicRoutes({ posts: [], trips: [trip], items: [] })
+    expect(routes.length).toBe(none.length + 2)
+    expect(routeAt(routes, '/travel').title).toBe('Travel · Joey Haas')
+    expect(routeAt(routes, '/travel/croatia-greece-2026')).toMatchObject({
+      title: 'Croatia & Greece · Travel · Joey Haas',
+      description: 'Twelve days, three places.',
+      type: 'article',
+      lastmod: '2026-09-12',
+      image: {
+        url: 'https://joey-haas.dev/travel/croatia-greece-2026/walls-1600.webp',
+        alt: 'City walls',
+      },
+    })
+    const bare = publicRoutes({
+      posts: [],
+      trips: [{ ...trip, frontmatter: {} }],
+      items: [],
+    })
+    const plain = routeAt(bare, '/travel/croatia-greece-2026')
+    expect(plain.description).toBe('Landed late.')
+    expect(plain.image.url).toBe('https://joey-haas.dev/og-card.png')
+  })
+
   it('lists TIL and its notes as articles with the TIL feed', () => {
     const withNotes = publicRoutes({ posts: [], notes: [NOTE], items: [] })
     const til = routeAt(withNotes, '/til')
@@ -447,6 +480,7 @@ describe('journal month routes', () => {
 // What the build publishes, read the way prerender.mjs reads it.
 const publishedPosts = await readPublished(path.join(here, '..', 'posts'))
 const publishedNotes = await readPublished(path.join(here, '..', 'notes'))
+const publishedTrips = await readPublished(path.join(here, '..', 'trips'))
 
 describe('render.yaml rewrites', () => {
   // Render serves dist/x/index.html at /x/ but not at /x, so each prerendered
@@ -464,6 +498,7 @@ describe('render.yaml rewrites', () => {
   const built = publicRoutes({
     posts: publishedPosts,
     notes: publishedNotes,
+    trips: publishedTrips,
     items: [],
   })
   const pages = [...built, ...legacyRoutes(built)]
