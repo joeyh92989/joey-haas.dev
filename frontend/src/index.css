@@ -4480,6 +4480,104 @@ a.month-bar::before {
   width: 6px;
 }
 
+/* The Continue card (Tonight continue spec): the lead card's chrome with the
+   Now playing band's rule, so the two read as one thing. */
+.tonight-continuing {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tonight-lead.continue {
+  border-left: 4px solid var(--status-active);
+}
+.tonight-sessions {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0;
+}
+.tonight-sessions b {
+  color: var(--text);
+  font-weight: 600;
+}
+/* Amber and in words ("23 days ago"): never colour alone. */
+.tonight-sessions .late {
+  color: var(--warn);
+}
+.tonight-acts.ask {
+  align-items: center;
+}
+.tonight-ask {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin-right: auto;
+}
+/* "Or instead" as a compact list while a Continue card leads. */
+.picks-h {
+  align-items: baseline;
+  color: var(--text-3);
+  display: flex;
+  font-size: 0.8125rem;
+  justify-content: space-between;
+  letter-spacing: 0.04em;
+  margin: 1.1rem 0 0.5rem;
+  text-transform: uppercase;
+}
+.picks-h .muted {
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.picklist {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.picklist > li {
+  align-items: start;
+  column-gap: 0.75rem;
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr) auto;
+  padding: 0.75rem 1rem;
+}
+.picklist > li + li {
+  border-top: 1px solid var(--line);
+}
+.picklist > li.tonight-toast {
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  display: flex;
+}
+.picklist > li:first-child.tonight-toast {
+  border-top: 0;
+}
+.picklist-cover {
+  grid-column: 1;
+}
+.picklist-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.picklist .tonight-title {
+  font-size: 1rem;
+}
+.picklist .tonight-reasons {
+  margin: 0;
+}
+.picklist > li > .tonight-acts {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .tonight-alts-h {
   color: var(--text-3);
   font-size: 0.8125rem;
@@ -4578,6 +4676,20 @@ a.month-bar::before {
 
   .tonight-alts {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tonight-ask {
+    flex-basis: 100%;
+  }
+
+  .picklist > li {
+    grid-template-columns: 2.6rem minmax(0, 1fr);
+    row-gap: 0.5rem;
+  }
+
+  .picklist > li > .tonight-acts {
+    flex-direction: row;
+    grid-column: 2;
   }
 }
 

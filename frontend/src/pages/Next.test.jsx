@@ -774,3 +774,216 @@ describe('Tonight', () => {
     ).toBeInTheDocument()
   })
 })
+
+const card = (id, title, fields = {}) => ({
+  item_id: id,
+  type: 'game',
+  title,
+  cover_url: null,
+  platform: 'Nintendo Switch 2',
+  time_to_beat_hours: 30,
+  playthrough: 1,
+  playing_since: '2026-10-24',
+  last_played_on: '2026-11-07',
+  journal_hours: 31,
+  sessions: 9,
+  stale: false,
+  ...fields,
+})
+
+const CONTINUING = {
+  ...THREE,
+  tonight: {
+    ...THREE.tonight,
+    continuing: [card('c1', 'Sea of Stars')],
+    last_finish: {
+      item_id: 'f1',
+      title: 'Dredge',
+      cover_url: null,
+      finished_at: '2026-10-20',
+      time_to_beat_hours: 12,
+      rating: 8,
+    },
+  },
+}
+
+describe('Tonight with a game in hand', () => {
+  afterEach(() => {
+    vi.mocked(apiFetch).mockReset()
+  })
+
+  function region() {
+    return screen.getByRole('region', { name: 'Tonight' })
+  }
+
+  it('leads with the Continue card, lists the picks compactly and hides the chip', () => {
+    mockApi()
+    mockNext({ data: CONTINUING, live: true, failed: false })
+    renderPage()
+    const tonight = region()
+    expect(
+      within(tonight).getByRole('article', { name: 'Sea of Stars' }),
+    ).toHaveClass('continue')
+    expect(tonight.querySelector('.tonight-lead:not(.continue)')).toBeNull()
+    expect(tonight.querySelector('.picklist')).not.toBeNull()
+    expect(
+      within(tonight.querySelector('.picklist'))
+        .getAllByRole('link')
+        .map((a) => a.textContent),
+    ).toEqual(['Hades II', 'Celeste', 'Tetris'])
+    expect(tonight.querySelector('.tonight-just')).toBeNull()
+    expect(within(tonight).queryByRole('button')).toBeNull()
+  })
+
+  it('renders two cards in the body’s order', () => {
+    mockApi()
+    mockNext({
+      data: {
+        ...CONTINUING,
+        tonight: {
+          ...CONTINUING.tonight,
+          continuing: [card('c1', 'Sea of Stars'), card('c2', 'Tunic')],
+        },
+      },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    expect(
+      within(region())
+        .getAllByRole('article')
+        .map((a) => a.getAttribute('aria-labelledby')),
+    ).toEqual(['continue-c1', 'continue-c2'])
+  })
+
+  it('is unchanged without a game in hand, including an old snapshot without the key', () => {
+    mockApi()
+    mockNext({ data: THREE, live: false, failed: false })
+    renderPage()
+    const tonight = region()
+    expect(tonight.querySelector('.tonight-lead:not(.continue)')).not.toBeNull()
+    expect(tonight.querySelector('.picklist')).toBeNull()
+  })
+
+  it('treats a pinned game being played as the Continue card, not Up next', () => {
+    mockApi()
+    mockNext({
+      data: {
+        ...CONTINUING,
+        tonight: { ...CONTINUING.tonight, up_next: pick('c1', 'Sea of Stars') },
+      },
+      live: true,
+      failed: false,
+    })
+    renderPage({ signedIn: true })
+    const tonight = region()
+    expect(within(tonight).queryByText('Up next')).toBeNull()
+    expect(within(tonight).getAllByRole('article')).toHaveLength(1)
+  })
+
+  it('puts a pinned backlog game first in the list as Up next', () => {
+    mockApi()
+    mockNext({
+      data: {
+        ...CONTINUING,
+        tonight: {
+          ...CONTINUING.tonight,
+          up_next: pick('u1', 'Chained Echoes'),
+        },
+      },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    const [first] = within(region().querySelector('.picklist')).getAllByRole(
+      'listitem',
+    )
+    expect(within(first).getByText('Up next')).toBeInTheDocument()
+    expect(
+      within(first).getByRole('link', { name: 'Chained Echoes' }),
+    ).toBeInTheDocument()
+  })
+
+  it('logs tonight once with the local date, then disables the button', async () => {
+    mockApi({ 'GET /api/public/next': { ok: true, body: CONTINUING } })
+    mockNext({ data: CONTINUING, live: true, failed: false })
+    renderPage({ signedIn: true })
+    const button = screen.getByRole('button', {
+      name: 'Log tonight: Sea of Stars',
+    })
+    await userEvent.click(button)
+    expect(calls('POST', '/api/items/c1/sessions')).toHaveLength(1)
+    expect(
+      JSON.parse(calls('POST', '/api/items/c1/sessions')[0][1].body),
+    ).toEqual({
+      played_on: localToday(),
+    })
+    expect(
+      await screen.findByRole('button', {
+        name: 'Logged tonight: Sea of Stars',
+      }),
+    ).toBeDisabled()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Session logged for today.',
+    )
+    expect(
+      screen.getByRole('article').querySelector('.tonight-sessions'),
+    ).toHaveTextContent('10 sessions · last played today')
+  })
+
+  it('rolls a failed Log tonight back', async () => {
+    mockApi({ 'POST /api/items/c1/sessions': { ok: false } })
+    mockNext({ data: CONTINUING, live: true, failed: false })
+    renderPage({ signedIn: true })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Log tonight: Sea of Stars' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(ACTION_ERROR)
+    expect(
+      screen.getByRole('button', { name: 'Log tonight: Sea of Stars' }),
+    ).toBeEnabled()
+  })
+
+  it('answers Not tonight on the card with a toast and lets the picks lead', async () => {
+    mockApi()
+    mockNext({ data: CONTINUING, live: true, failed: false })
+    renderPage({ signedIn: true })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Not tonight: Sea of Stars' }),
+    )
+    const tonight = region()
+    expect(calls('POST', '/api/picker/events')).toHaveLength(1)
+    expect(
+      within(tonight).getByText('is off tonight’s list.'),
+    ).toBeInTheDocument()
+    expect(tonight.querySelector('.tonight-lead:not(.continue)')).not.toBeNull()
+    expect(tonight.querySelector('.picklist')).toBeNull()
+    expect(tonight.querySelector('.tonight-just')).not.toBeNull()
+    await userEvent.click(
+      within(tonight).getByRole('button', { name: 'Undo: Sea of Stars' }),
+    )
+    expect(calls('DELETE', '/api/picker/events/c1/skipped')).toHaveLength(1)
+    expect(
+      within(tonight).getByRole('article', { name: 'Sea of Stars' }),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps a card skipped earlier today out, as the server says', async () => {
+    mockApi({
+      'GET /api/picker/skipped-today': { ok: true, body: { item_ids: ['c1'] } },
+    })
+    mockNext({ data: CONTINUING, live: true, failed: false })
+    renderPage({ signedIn: true })
+    await vi.waitFor(() =>
+      expect(region().querySelector('.tonight-just')).not.toBeNull(),
+    )
+    expect(region().querySelector('.continue')).toBeNull()
+  })
+
+  it('has no axe violations with a game in hand', async () => {
+    mockApi()
+    mockNext({ data: CONTINUING, live: true, failed: false })
+    const { container } = renderPage({ signedIn: true })
+    expect(await axeViolations(container)).toEqual([])
+  })
+})
