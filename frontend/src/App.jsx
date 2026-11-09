@@ -36,10 +36,14 @@ const AdminRadar = lazy(() => import('./pages/AdminRadar.jsx'))
 const AdminPullList = lazy(() => import('./pages/AdminPullList.jsx'))
 const AdminStoreList = lazy(() => import('./pages/AdminStoreList.jsx'))
 const AdminSpots = lazy(() => import('./pages/AdminSpots.jsx'))
+const AdminWeekend = lazy(() => import('./pages/AdminWeekend.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminImport = lazy(() => import('./pages/AdminImport.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
 const PlayNext = lazy(() => import('./pages/PlayNext.jsx'))
+// /denver carries the drawn map (~100 kB of path data), which only that page
+// needs.
+const Denver = lazy(() => import('./pages/Denver.jsx'))
 
 /**
  * A pre-rename URL with a param. `Navigate` does not interpolate route
@@ -74,6 +78,7 @@ export default function App() {
         <Route path="now" element={<Now />} />
         <Route path="colophon" element={<Colophon />} />
         <Route path="stats" element={<Stats />} />
+        <Route path="denver" element={<Denver />} />
         <Route path="daily" element={<Daily />} />
         <Route path="shelf" element={<Collection />} />
         <Route path="shelf/comics" element={<Comics />} />
@@ -124,6 +129,7 @@ export default function App() {
           <Route path="discover" element={<AdminDiscover />} />
           <Route path="store-list" element={<AdminStoreList />} />
           <Route path="spots" element={<AdminSpots />} />
+          <Route path="weekend" element={<AdminWeekend />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />
           {/* Inside the shell, so a mistyped admin URL keeps the sidebar. */}
           <Route path="*" element={<NotFound />} />

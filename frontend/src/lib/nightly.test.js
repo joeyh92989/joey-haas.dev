@@ -132,24 +132,127 @@ const summary = (overrides = {}) => ({
   discoverAt: hoursAgo(1),
   ...overrides,
 })
+const spots = (overrides = {}) => ({
+  weather: { at: hoursAgo(1), state: 'ok' },
+  candidates: { at: hoursAgo(1), state: 'ok' },
+  ...overrides,
+})
 const byKey = (jobs) => Object.fromEntries(jobs.map((job) => [job.key, job]))
 
 describe('nightlyJobs', () => {
-  it('lists the four jobs in nightly order, all ok', () => {
-    const jobs = nightlyJobs(summary(), hoursAgo(1), NOW)
+  it('lists the six jobs, all ok', () => {
+    const jobs = nightlyJobs(summary(), hoursAgo(1), NOW, spots())
     expect(jobs.map((job) => job.key)).toEqual([
       'catalog',
       'radar',
       'discover',
+      'weather',
+      'spots',
       'snapshot',
     ])
-    expect(jobs.map((job) => job.state)).toEqual(['ok', 'ok', 'ok', 'ok'])
+    expect(jobs.map((job) => job.state)).toEqual([
+      'ok',
+      'ok',
+      'ok',
+      'ok',
+      'ok',
+      'ok',
+    ])
     expect(jobs.map((job) => job.runNow)).toEqual([
       '/admin/catalogue',
       '/admin/radar',
       '/admin/discover',
+      '/admin/weekend',
+      '/admin/spots',
       null,
     ])
+  })
+
+  it(`reads the forecast stale after ${STALE_HOURS} hours`, () => {
+    const at = (hours) =>
+      byKey(
+        nightlyJobs(
+          summary(),
+          null,
+          NOW,
+          spots({ weather: { at: hoursAgo(hours), state: 'ok' } }),
+        ),
+      ).weather.state
+    expect(at(STALE_HOURS - 1)).toBe('ok')
+    expect(at(STALE_HOURS + 1)).toBe('stale')
+  })
+
+  it(`gives the spot finder ${DISCOVER_STALE_HOURS} hours, a week and a day`, () => {
+    const at = (hours) =>
+      byKey(
+        nightlyJobs(
+          summary(),
+          null,
+          NOW,
+          spots({ candidates: { at: hoursAgo(hours), state: 'ok' } }),
+        ),
+      ).spots.state
+    expect(at(STALE_HOURS + 1)).toBe('ok')
+    expect(at(DISCOVER_STALE_HOURS + 1)).toBe('stale')
+  })
+
+  it('reads a failed Denver run as failed, with its note', () => {
+    const jobs = byKey(
+      nightlyJobs(
+        summary(),
+        null,
+        NOW,
+        spots({
+          weather: { at: hoursAgo(1), state: 'failed', note: 'NWS timed out' },
+          candidates: { at: hoursAgo(1), state: 'failed' },
+        }),
+      ),
+    )
+    expect(jobs.weather.state).toBe('failed')
+    expect(jobs.weather.summary).toBe('Failed: NWS timed out')
+    expect(jobs.spots.state).toBe('failed')
+    expect(jobs.spots.summary).toBe('Failed')
+  })
+
+  it('words a run that found nothing, and keeps it ok', () => {
+    const jobs = byKey(
+      nightlyJobs(
+        summary(),
+        null,
+        NOW,
+        spots({
+          weather: { at: hoursAgo(1), state: 'empty' },
+          candidates: { at: hoursAgo(1), state: 'no_anchors' },
+        }),
+      ),
+    )
+    expect(jobs.weather.summary).toBe('NWS sent no hours')
+    expect(jobs.weather.state).toBe('ok')
+    expect(jobs.spots.summary).toBe('No anchors to search from')
+    expect(jobs.spots.state).toBe('ok')
+  })
+
+  it('shows the note of an ok run, so a degraded finder run is visible', () => {
+    const note = 'The model could not rank; template order kept'
+    const jobs = byKey(
+      nightlyJobs(
+        summary(),
+        null,
+        NOW,
+        spots({ candidates: { at: hoursAgo(1), state: 'ok', note } }),
+      ),
+    )
+    expect(jobs.spots.summary).toBe(note)
+    expect(jobs.spots.state).toBe('ok')
+  })
+
+  it('reads the Denver rows unknown with no status or no run', () => {
+    for (const given of [undefined, null, spots({ weather: null })]) {
+      const weather = byKey(nightlyJobs(summary(), null, NOW, given)).weather
+      expect(weather.state).toBe('unknown')
+      expect(weather.at).toBeNull()
+      expect(weather.summary).toBe('No run recorded')
+    }
   })
 
   it(`reads Radar stale after ${STALE_HOURS} hours`, () => {

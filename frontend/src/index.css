@@ -7102,6 +7102,443 @@ main h1[tabindex='-1']:focus,
   }
 }
 
+/* The spot finder: its queue left of the table, first on a phone. */
+.finder-layout {
+  align-items: start;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.finder-title {
+  font-size: 1.125rem;
+  margin: 0 0 0.4rem;
+}
+
+.runline {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.4rem 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.cand-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cand {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.85rem 1rem;
+}
+
+.cand-h {
+  align-items: start;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.cand-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cand-area {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  margin: 0.1rem 0 0;
+}
+
+.cand-area::first-letter {
+  text-transform: uppercase;
+}
+
+/* The word carries the source; the colour is decoration. */
+.cand-src {
+  border: 1px solid var(--chart-2);
+  border-radius: 4px;
+  color: var(--chart);
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  text-transform: uppercase;
+}
+
+.cand-why {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.cand-score {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.cand-score strong {
+  color: var(--text);
+}
+
+.cand-acts {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cand-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  list-style: none;
+  margin: 0 0 0 auto;
+  padding: 0;
+}
+
+.minitag {
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-3);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.5rem;
+}
+
+.minitag[aria-pressed='true'] {
+  border: 1px solid var(--text);
+  color: var(--text);
+}
+
+.minitag:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.finder-empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: var(--text-2);
+  margin: 0;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .finder-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cand-tags {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* The weekend planner (/admin/weekend). Read on a phone first: everything
+   stacks, and the two days sit side by side from 700px. The bars are
+   --chart on --surface (6.73 dark, 6.09 light, in the token block); a wet
+   hour is hatched with --hatch over a --chart-2 bar, so wet differs in
+   texture, not colour alone, and the panel names the wet hours in words.
+   The verdict's colour is the status dot's, beside its text. */
+.weekend {
+  display: grid;
+  gap: 1rem;
+}
+
+.wk-pills {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+}
+
+.wk-pills ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wk-pills li {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  padding: 0.15rem 0.65rem;
+}
+
+.wk-none {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.wx-days {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wx-range {
+  color: var(--text-2);
+  font: 500 0.8125rem var(--font-mono);
+}
+
+.wx {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.wx-bars {
+  align-items: end;
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  height: 4.5rem;
+}
+
+.wx-bars i {
+  background: var(--chart);
+  border-radius: 2px 2px 0 0;
+  display: block;
+  min-height: 4px;
+}
+
+.wx-bars i.wet {
+  background: var(--hatch), var(--chart-2);
+}
+
+.wx-axis {
+  color: var(--text-3);
+  display: flex;
+  font: 0.6875rem var(--font-mono);
+  justify-content: space-between;
+}
+
+.wx-summary {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.wx-verdict {
+  margin: 0;
+}
+
+.wx-verdict .status-text {
+  color: var(--text);
+  font-size: 0.8125rem;
+}
+
+.wk-kicker {
+  color: var(--text-3);
+  font: 600 0.75rem var(--font-mono);
+  letter-spacing: 0.06em;
+  margin: 0.5rem 0 0;
+  text-transform: uppercase;
+}
+
+/* Always rendered, never `display: none` when empty: a live region added
+   or revealed later is often not announced. Empty, it takes no room. */
+.wk-toast {
+  align-items: center;
+  color: var(--text-2);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 0.5rem;
+  margin: 0;
+  min-height: 0;
+}
+
+.sug-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sug {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem 1rem;
+}
+
+.sug.lead {
+  border-color: var(--line-strong);
+}
+
+/* A saved card's border is --ok; the Saved for line says it in words. */
+.sug.saved {
+  border-color: var(--ok);
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+
+.sug-kicker {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font: 0.75rem var(--font-mono);
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+}
+
+.sug-slot {
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sug-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sug.lead .sug-name {
+  font-size: 1.25rem;
+}
+
+.sug-meta {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+}
+
+.sug-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.sug-tag {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 0.7rem;
+  padding: 0.05rem 0.5rem;
+}
+
+.sug-why {
+  color: var(--text-2);
+  display: grid;
+  font-size: 0.875rem;
+  gap: 0.2rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.savedtag,
+.sug-visited {
+  color: var(--text);
+  font: 500 0.8125rem var(--font-mono);
+}
+
+.wk-skips {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.4rem;
+}
+
+.wk-skips ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wk-foot {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wk-visits {
+  display: grid;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wk-visits li {
+  display: flex;
+  font-size: 0.875rem;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.wk-visit-date {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.wk-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.wk-check,
+.wk-field {
+  align-items: center;
+  display: flex;
+  font-size: 0.875rem;
+  gap: 0.5rem;
+}
+
+.wk-field input {
+  width: 6rem;
+}
+
+.wk-form-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (min-width: 701px) {
+  .wx-days,
+  .wk-foot {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
 /* ---------- Daily puzzle (Shelfle) ---------- */
 
 /* The board is a table; the cells are the grid. Five columns, the title
@@ -7438,4 +7875,351 @@ main h1[tabindex='-1']:focus,
 }
 .daily-entry {
   margin: 0;
+}
+
+/* ---------- SpotMap: the drawn poster map (/denver) ---------- */
+/* Every colour is a token, so one drawing is right in both themes. The
+   pins are HTML buttons over the SVG; their --surface halo is the contrast
+   guarantee, so a pin never depends on the ground under it. */
+.spot-map {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.spot-map-ground {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.spot-map-ground path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.spot-map-ground .spot-map-park {
+  fill: color-mix(in srgb, var(--ok) 18%, var(--surface));
+  stroke: none;
+}
+
+.spot-map-ground .spot-map-water-edge {
+  stroke: var(--chart-2);
+  stroke-width: 7;
+}
+
+.spot-map-ground .spot-map-water {
+  stroke: var(--accent-soft);
+  stroke-width: 4;
+}
+
+.spot-map-ground .spot-map-street {
+  stroke: var(--line-strong);
+  stroke-width: 0.75;
+}
+
+.spot-map-ground .spot-map-arterial {
+  stroke: var(--text-3);
+  stroke-width: 1.75;
+}
+
+.spot-map-label,
+.spot-map-title,
+.spot-map-north text {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.spot-map-label {
+  font: 500 11px var(--font-mono);
+  fill: var(--text-2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-anchor: middle;
+}
+
+.spot-map-label.water {
+  font-weight: 400;
+  fill: var(--text-3);
+  text-transform: none;
+}
+
+.spot-map-title {
+  font: 500 20px var(--font-display);
+  fill: var(--text);
+}
+
+.spot-map-north path {
+  fill: var(--text-3);
+}
+
+.spot-map-north text {
+  font: 500 10px var(--font-mono);
+  fill: var(--text-3);
+  text-anchor: middle;
+}
+
+.spot-map-pins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.spot-map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: transparent;
+  border: 0;
+  /* 14px mark + 2 × 5px = a 24px target (WCAG 2.5.8). */
+  padding: 5px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.spot-map-pin span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.spot-map-pin[aria-pressed='true'] {
+  z-index: 1;
+}
+
+.spot-map-pin[aria-pressed='true'] span {
+  width: 20px;
+  height: 20px;
+  background: var(--text);
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
+.spot-map-pin:focus-visible {
+  outline: none;
+}
+
+.spot-map-pin:focus-visible span {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spot-map-pin span {
+    transition:
+      width 120ms ease,
+      height 120ms ease;
+  }
+}
+
+.spot-map-popover {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, calc(-100% - 30px));
+  min-width: 11rem;
+  max-width: 15rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px var(--overlay);
+  font-size: 0.8125rem;
+}
+
+.spot-map-popover.below {
+  transform: translate(-50%, 12px);
+}
+
+.spot-map-popover.start {
+  transform: translate(-1.25rem, calc(-100% - 30px));
+}
+
+.spot-map-popover.end {
+  transform: translate(calc(-100% + 1.25rem), calc(-100% - 30px));
+}
+
+.spot-map-popover.below.start {
+  transform: translate(-1.25rem, 12px);
+}
+
+.spot-map-popover.below.end {
+  transform: translate(calc(-100% + 1.25rem), 12px);
+}
+
+.spot-map-attribution {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 1px 6px;
+  border-top-left-radius: 4px;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  color: var(--text-3);
+  font-size: 0.65rem;
+}
+
+.spot-map-attribution a {
+  color: var(--text-2);
+}
+
+/* /denver: the lede, tag chips, then the map beside the list (spec:
+   Denver spots, Surface 1). On a phone the two stack under a Map / List
+   toggle and only the chosen one renders. */
+.denver-lede {
+  color: var(--text-2);
+  font-size: 1.0625rem;
+  margin: 0.375rem 0 1.25rem;
+  max-width: 45rem;
+}
+
+.denver-chips {
+  margin-bottom: 1.25rem;
+}
+
+.denver-view {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.denver-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  gap: var(--grid-gap);
+  align-items: start;
+}
+
+/* The map stays in view while a long list scrolls beside it. */
+.denver-map {
+  position: sticky;
+  top: 1rem;
+}
+
+.denver-list-head {
+  margin: 0 0 0.6rem;
+  font-size: 0.8125rem;
+}
+
+.denver-list-count {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.denver-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+@media (max-width: 760px) {
+  .denver-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .denver-map {
+    position: static;
+  }
+}
+
+.spot-card {
+  padding: 0.75rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  scroll-margin: 1rem;
+}
+
+.spot-card.selected {
+  border-color: var(--accent);
+}
+
+.spot-card-kicker {
+  margin: 0 0 0.25rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.spot-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.spot-card-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.spot-card-name button {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+}
+
+.spot-card-name button:hover {
+  color: var(--accent);
+}
+
+.spot-card-name button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spot-card-area {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.spot-card-blurb {
+  margin: 0.4rem 0 0;
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.spot-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spot-tags li {
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 0.75rem;
+}
+
+.spot-popover-name {
+  display: block;
+}
+
+.spot-popover-area {
+  color: var(--text-3);
 }

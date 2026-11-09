@@ -62,6 +62,8 @@ function stubApi(handlers = {}) {
       const handler = handlers[`${method} ${path}`]
       if (handler) return handler(options)
       if (method === 'GET' && path === '/api/spots') return json(SPOTS)
+      if (method === 'GET' && path === '/api/spots/candidates') return json([])
+      if (method === 'GET' && path === '/api/spots/status') return json({})
       return json({}, 404)
     }),
   )
@@ -268,5 +270,225 @@ describe('AdminSpots', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Your session ended. Reload to sign in.',
     )
+  })
+
+  describe('the spot finder', () => {
+    function candidate(id, name, fields = {}) {
+      return {
+        id,
+        source: 'osm',
+        source_id: `node/${id}`,
+        name,
+        category: 'cafe',
+        lat: 39.75,
+        lng: -105,
+        distance_m: 900,
+        nearest_anchor_id: 'b',
+        distance: '0.6 mi from Home · on foot',
+        fit: 82,
+        reason: 'Close to home, and you go to coffee places most.',
+        suggested_tags: ['coffee', 'rainy-day'],
+        ...fields,
+      }
+    }
+
+    const QUEUE = [
+      candidate('k1', 'Kaffe Landscap'),
+      candidate('k2', 'Bruto', { category: 'restaurant', fit: null }),
+    ]
+    const LAST_RUN = {
+      'candidates.last_run': {
+        at: '2026-11-08T23:00:00Z',
+        state: 'ok',
+        found: 136,
+        after_dedupe: 120,
+        queued: 40,
+        new: 12,
+        ranked_by: 'model',
+        note: null,
+      },
+    }
+
+    function finderApi(handlers = {}) {
+      return stubApi({
+        'GET /api/spots/candidates': () => json(QUEUE),
+        'GET /api/spots/status': () => json(LAST_RUN),
+        ...handlers,
+      })
+    }
+
+    function finder() {
+      return screen.getByRole('region', { name: 'Spot finder' })
+    }
+
+    function cardNames() {
+      return within(finder())
+        .getAllByRole('listitem')
+        .filter((item) => item.classList.contains('cand'))
+        .map((item) => within(item).getByRole('heading').textContent)
+    }
+
+    it('shows the last run and the queue in order', async () => {
+      finderApi()
+      render(<AdminSpots />)
+      await screen.findByRole('heading', { name: 'Kaffe Landscap' })
+      expect(cardNames()).toEqual(['Kaffe Landscap', 'Bruto'])
+      expect(within(finder()).getByText(/136 found, 12 new\./)).toBeVisible()
+      expect(
+        within(finder()).getByText('cafe · 0.6 mi from Home · on foot'),
+      ).toBeInTheDocument()
+      expect(within(finder()).getByText('82')).toBeInTheDocument()
+      expect(
+        within(finder()).getByText(
+          'Not scored: the model didn’t answer this run.',
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it('says so when the queue is empty and the finder never ran', async () => {
+      stubApi()
+      render(<AdminSpots />)
+      expect(
+        await within(finder()).findByText(
+          'Nothing new this week. Next run Sunday.',
+        ),
+      ).toBeInTheDocument()
+      expect(
+        within(finder()).getByText('Not run yet. It runs Sunday evenings.'),
+      ).toBeInTheDocument()
+    })
+
+    it('accepts with the pressed tags, adds the spot, and undoes it', async () => {
+      let spots = SPOTS
+      const answered = {
+        candidate: QUEUE[0],
+        spot_id: 'new',
+      }
+      const calls = finderApi({
+        'GET /api/spots': () => json(spots),
+        'POST /api/spots/candidates/k1/accept': () => {
+          spots = [...SPOTS, spot('new', 'Kaffe Landscap')]
+          return json(answered)
+        },
+        'POST /api/spots/candidates/restore': () => json(QUEUE[0]),
+      })
+      render(<AdminSpots />)
+      await screen.findByRole('heading', { name: 'Kaffe Landscap' })
+      const user = userEvent.setup()
+      const card = screen
+        .getByRole('heading', { name: 'Kaffe Landscap' })
+        .closest('li')
+      await user.click(within(card).getByRole('button', { name: 'Rainy day' }))
+      await user.click(within(card).getByRole('button', { name: 'Kid-OK' }))
+      await user.click(
+        within(card).getByRole('button', {
+          name: 'Accept into spots: Kaffe Landscap',
+        }),
+      )
+
+      expect(calls.find((call) => call.path.endsWith('/accept')).body).toEqual({
+        tags: ['coffee', 'kid-ok'],
+      })
+      const undo = await screen.findByRole('button', {
+        name: 'Undo: Kaffe Landscap',
+      })
+      expect(undo).toHaveFocus()
+      expect(cardNames()).toEqual(['Bruto'])
+      await screen.findByRole('rowheader', { name: /Kaffe Landscap/ })
+
+      await user.click(undo)
+      expect(calls.at(-1)).toEqual({
+        method: 'POST',
+        path: '/api/spots/candidates/restore',
+        body: answered,
+      })
+      expect(
+        await screen.findByRole('button', {
+          name: 'Accept into spots: Kaffe Landscap',
+        }),
+      ).toHaveFocus()
+      expect(cardNames()).toEqual(['Kaffe Landscap', 'Bruto'])
+      expect(rowNames()).not.toContain('Kaffe Landscap')
+    })
+
+    it('dismisses in place, with an Undo', async () => {
+      finderApi({
+        'POST /api/spots/candidates/k2/dismiss': () =>
+          json({ candidate: QUEUE[1], spot_id: null }),
+      })
+      render(<AdminSpots />)
+      await screen.findByRole('heading', { name: 'Bruto' })
+      await userEvent
+        .setup()
+        .click(screen.getByRole('button', { name: 'Dismiss: Bruto' }))
+      expect(
+        await within(finder()).findByText('dismissed for good.'),
+      ).toBeInTheDocument()
+      expect(cardNames()).toEqual(['Kaffe Landscap'])
+    })
+
+    it('drops a card answered elsewhere and says so', async () => {
+      finderApi({
+        'POST /api/spots/candidates/k2/dismiss': () =>
+          json({ detail: 'That place has already been answered' }, 409),
+      })
+      render(<AdminSpots />)
+      await screen.findByRole('heading', { name: 'Bruto' })
+      await userEvent
+        .setup()
+        .click(screen.getByRole('button', { name: 'Dismiss: Bruto' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Bruto: That place has already been answered',
+      )
+      expect(cardNames()).toEqual(['Kaffe Landscap'])
+      expect(
+        screen.queryByRole('button', { name: 'Undo: Bruto' }),
+      ).not.toBeInTheDocument()
+      // The last card left, so focus goes to the one before it.
+      expect(
+        screen.getByRole('button', {
+          name: 'Accept into spots: Kaffe Landscap',
+        }),
+      ).toHaveFocus()
+    })
+
+    it('runs now, then reads the queue again', async () => {
+      let queue = []
+      const calls = finderApi({
+        'GET /api/spots/candidates': () => json(queue),
+        'POST /api/spots/candidates/refresh': () => {
+          queue = QUEUE
+          return json(LAST_RUN['candidates.last_run'])
+        },
+      })
+      render(<AdminSpots />)
+      const user = userEvent.setup()
+      await within(finder()).findByText(
+        'Nothing new this week. Next run Sunday.',
+      )
+      await user.click(screen.getByRole('button', { name: 'Run now' }))
+      await screen.findByRole('heading', { name: 'Kaffe Landscap' })
+      expect(calls.map((call) => `${call.method} ${call.path}`)).toContain(
+        'POST /api/spots/candidates/refresh',
+      )
+      expect(screen.getByRole('button', { name: 'Run now' })).toBeEnabled()
+    })
+
+    it('words a failed run', async () => {
+      finderApi({
+        'GET /api/spots/status': () =>
+          json({
+            'candidates.last_run': {
+              at: '2026-11-08T23:00:00Z',
+              state: 'failed',
+              note: 'Overpass refused twice',
+            },
+          }),
+      })
+      render(<AdminSpots />)
+      expect(
+        await within(finder()).findByText(/failed: Overpass refused twice\./),
+      ).toBeInTheDocument()
+    })
   })
 })

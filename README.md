@@ -624,8 +624,9 @@ strips.
   deploy only when they differ. It never pushes, and the snapshot is never
   committed. Before it compares, it refreshes the data the snapshot is made
   of (see [Nightly job](#nightly-job)).
-- **`comics.json` is optional too**, the same way: `/shelf/comics` paints it
-  when the build wrote it.
+- **`comics.json` and `spots.json` are optional too**, the same way:
+  `/shelf/comics` and `/denver` paint them when the build wrote them, and
+  the nightly compares them with a failure there only a warning.
 - **`status.json` and `site-stats.json` are optional too** (the status
   strip, and `/stats`), and neither is compared by the nightly: `next.json`
   differs every night, so the redeploy that follows carries fresh ones.
@@ -654,7 +655,8 @@ keeps the snapshot within a day of production. It calls admin routes with
 
 1. wake the API (up to six minutes of retries);
 2. Play Next picks (`POST /api/picker/next`);
-3. the followed comics' issue lists (`POST /api/comics/refresh`);
+3. the followed comics' issue lists (`POST /api/comics/refresh`), then the
+   weekend planner's NWS forecast (`POST /api/spots/weather/refresh`);
 4. catalogue registry, then the WooCommerce stores (`refresh-registry`,
    `refresh` with `{"adapter": "woocommerce"}`), then the Shopify stores,
    walked on the runner by `backend/scripts/walk_stores.py`, which posts
@@ -664,9 +666,11 @@ keeps the snapshot within a day of production. It calls admin routes with
 6. Resolve, repeated while it makes progress, at most five rounds;
 7. Radar generate, then Discover generate on Sunday evenings or when the
    `discover` input is ticked on a manual run;
-8. the page-view rollup (`POST /api/analytics/rollup`);
-9. the snapshot compare and, only if a body differs, the static-site deploy
-   hook.
+8. the spot finder (`POST /api/spots/candidates/refresh`: one Overpass
+   query around the anchors and one model call), on Sunday evenings only;
+9. the page-view rollup (`POST /api/analytics/rollup`);
+10. the snapshot compare and, only if a body differs, the static-site deploy
+    hook.
 
 "Sunday evening" is Denver time, which is Monday in UTC; the job tests
 `date -u +%u` = `1`. The Shopify walk is the long step (up to 75 minutes, on
@@ -775,6 +779,7 @@ detail and next models' field sets.
 | `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge`, `comics_this_week` (see below) |
 | `GET /api/public/pick-for-me` | Pick for me on What's next: every size and mood combination's top three, precomputed (see below) |
 | `GET /api/public/comics` | `/shelf/comics`: public series with their runs, the shelf's figures, and `this_week` (the weeks ahead and the undated series under Later); never `issues_skipped`, a price or a store |
+| `GET /api/public/spots` | `/denver`: published spots (`PublicSpot`: `spot_id`, name, slug, neighbourhood, tags, blurb, lat, lng), by neighbourhood then name; never an anchor, a visit or a distance; uncached |
 | `GET /api/public/site-stats` | `/stats`: the analytics summary (`backend/analytics_routes.py`) for the last thirty days (`thirty`) and since launch (`all`), reduced for the public: a referrer host is named only when it is on `analytics.PUBLIC_REFERRER_DOMAINS` and has five visitors, every other host folds into `referrers_other`; a private item's page is never listed; no best-day referrer, lists capped at ten; cached for an hour on the cache the admin read shares, `Cache-Control: max-age=300` |
 
 `/api/public/picks` and `/api/public/radar` are retired and answer 404;

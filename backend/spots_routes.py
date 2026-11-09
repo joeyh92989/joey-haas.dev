@@ -132,6 +132,31 @@ def _out(row: Spot, last_visit: date | None, visit_count: int) -> SpotOut:
     )
 
 
+async def slug_for(
+    session: AsyncSession, name: str, exclude: uuid.UUID | None = None
+) -> str:
+    # A suffix shortens a long base to stay within the column, so the
+    # lookup takes every slug sharing the part a suffix can never cut
+    # (slugify leaves no run of hyphens for rstrip to eat into it).
+    stem = spots.slugify(name)[: spots.SLUG_MAX - spots.SLUG_SUFFIX_ROOM]
+    query = select(Spot.slug).where(Spot.slug.startswith(stem))
+    if exclude is not None:
+        query = query.where(Spot.id != exclude)
+    return spots.unique_slug(name, (await session.scalars(query)).all())
+
+
+async def commit_spot(session: AsyncSession) -> None:
+    # Two writes racing for one slug: the unique index decides, and the
+    # loser is told to try again rather than given a 500.
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=409, detail="Another spot took that name; try again"
+        ) from exc
+
+
 def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
     """Builds the spots routes; admin only."""
     router = APIRouter(
@@ -165,29 +190,6 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         last, count = (await _visit_summary(session, [row.id])).get(row.id, (None, 0))
         return _out(row, last, count)
 
-    async def _slug_for(
-        session: AsyncSession, name: str, exclude: uuid.UUID | None = None
-    ) -> str:
-        # A suffix shortens a long base to stay within the column, so the
-        # lookup takes every slug sharing the part a suffix can never cut
-        # (slugify leaves no run of hyphens for rstrip to eat into it).
-        stem = spots.slugify(name)[: spots.SLUG_MAX - spots.SLUG_SUFFIX_ROOM]
-        query = select(Spot.slug).where(Spot.slug.startswith(stem))
-        if exclude is not None:
-            query = query.where(Spot.id != exclude)
-        return spots.unique_slug(name, (await session.scalars(query)).all())
-
-    async def _commit(session: AsyncSession) -> None:
-        # Two writes racing for one slug: the unique index decides, and the
-        # loser is told to try again rather than given a 500.
-        try:
-            await session.commit()
-        except IntegrityError as exc:
-            await session.rollback()
-            raise HTTPException(
-                status_code=409, detail="Another spot took that name; try again"
-            ) from exc
-
     @router.get("", response_model=list[SpotOut])
     async def list_spots(session: AsyncSession = Depends(get_session)) -> list[SpotOut]:
         """Every spot, anchors and private ones included, by name."""
@@ -206,7 +208,7 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         lat, lng = _parse_coords(payload.coords)
         tags = _tags(payload.tags)
         try:
-            slug = await _slug_for(session, name)
+            slug = await slug_for(session, name)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         row = Spot(
@@ -221,7 +223,7 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
             is_public=payload.is_public,
         )
         session.add(row)
-        await _commit(session)
+        await commit_spot(session)
         await session.refresh(row)
         return _out(row, None, 0)
 
@@ -241,7 +243,7 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
                 raise HTTPException(status_code=422, detail="A spot needs a name")
             if name != row.name:
                 try:
-                    row.slug = await _slug_for(session, name, exclude=row.id)
+                    row.slug = await slug_for(session, name, exclude=row.id)
                 except ValueError as exc:
                     raise HTTPException(status_code=422, detail=str(exc)) from exc
                 row.name = name
@@ -263,7 +265,7 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
                         status_code=422, detail=f"{flag} must be true or false"
                     )
                 setattr(row, flag, value)
-        await _commit(session)
+        await commit_spot(session)
         await session.refresh(row)
         return await _read(session, row)
 

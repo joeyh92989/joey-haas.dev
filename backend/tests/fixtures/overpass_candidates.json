@@ -1,0 +1,2682 @@
+{
+ "version": 0.6,
+ "generator": "Overpass API 0.7.62.11 87bfad18",
+ "osm3s": {
+  "timestamp_osm_base": "2026-11-09T20:04:07Z",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+ },
+ "elements": [
+  {
+   "type": "node",
+   "id": 366394521,
+   "lat": 39.7509862,
+   "lon": -104.9989812,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1621",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "building": "commercial",
+    "ele": "1583",
+    "gnis:feature_id": "2113020",
+    "name": "Cactus Club"
+   }
+  },
+  {
+   "type": "node",
+   "id": 415817076,
+   "lat": 39.7484537,
+   "lon": -104.9961103,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1201",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "name": "Burnt Barrel, Colorado Spirits & Sports"
+   }
+  },
+  {
+   "type": "node",
+   "id": 442621199,
+   "lat": 39.7532149,
+   "lon": -104.9989276,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1730",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "cuisine": "mexican",
+    "name": "Machete Tequila + Tacos",
+    "phone": "+1-720-612-7698",
+    "website": "https://machetedenver.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 442621201,
+   "lat": 39.7528552,
+   "lon": -104.9994126,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1700",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "cuisine": "italian",
+    "name": "Venice Ristorante",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 442621203,
+   "lat": 39.75399,
+   "lon": -104.998483,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1801",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "contact:website": "https://www.rodiziogrill.com/denver/",
+    "name": "Rodizio Grill",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 442621216,
+   "lat": 39.7520882,
+   "lon": -104.999143,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1659",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-16",
+    "name": "Urban Farmer",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 442621219,
+   "lat": 39.7521887,
+   "lon": -104.9985371,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1539",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "17th Street",
+    "amenity": "restaurant",
+    "check_date": "2026-11-01",
+    "cuisine": "seafood",
+    "name": "Jax Fish House & Oyster Bar",
+    "phone": "+1-303-292-5767"
+   }
+  },
+  {
+   "type": "node",
+   "id": 442621222,
+   "lat": 39.7549799,
+   "lon": -104.9973592,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1735",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "19th Street",
+    "addr:unit": "100",
+    "air_conditioning": "yes",
+    "amenity": "restaurant",
+    "bar": "yes",
+    "changing_table": "yes",
+    "check_date": "2025-05-24",
+    "cuisine": "steak_house",
+    "email": "82001@chophouse.com",
+    "indoor_seating": "yes",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "internet_access:ssid": "Chophouse Guest",
+    "microbrewery": "yes",
+    "name": "Denver Chop House & Brewery",
+    "opening_hours": "Mo-Sa 11:00-22:00; Su 11:00-21:00",
+    "outdoor_seating": "no",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "phone": "+1-303-296-0800",
+    "reservation": "yes",
+    "smoking": "no",
+    "source": "survey",
+    "toilets": "yes",
+    "toilets:wheelchair": "yes",
+    "website": "https://www.denverchophouse.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 442771785,
+   "lat": 39.7511865,
+   "lon": -105.0021177,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1513",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "brand": "Fogo de Chão",
+    "brand:wikidata": "Q5464133",
+    "cuisine": "brazilian;steak_house",
+    "name": "Fogo de Chão",
+    "opening_hours": "Mo-Th 11:30-21:30; Fr 11:30-22:00; Sa 11:30-22:00; Su 11:30-21:00",
+    "phone": "+1-303-623-9600",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 571656533,
+   "lat": 39.754368,
+   "lon": -104.998116,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1801",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "contact:website": "http://www.icehouselodo.com/",
+    "name": "Ice House Tavern",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 637895618,
+   "lat": 39.749357,
+   "lon": -104.999601,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1415",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "alt_name": "PF Chang's China Bistro",
+    "amenity": "restaurant",
+    "brand": "P.F. Chang's",
+    "brand:wikidata": "Q5360181",
+    "cuisine": "asian",
+    "description": "Asian Cuisine",
+    "name": "P.F. Chang's",
+    "official_name": "P.F. Chang's China Bistro",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 835947530,
+   "lat": 39.7503292,
+   "lon": -104.9991457,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1490",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "check_date:opening_hours": "2026-11-08",
+    "cuisine": "american",
+    "name": "Little Finch",
+    "opening_hours": "Mo-Su 06:00-19:00",
+    "website": "https://www.oliveandfinch.com/location/olive-finch-little-finch/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1030169106,
+   "lat": 39.7501456,
+   "lon": -104.9999468,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1525",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "cuisine": "mexican",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "name": "Rio Grande",
+    "toilets:wheelchair": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1081260662,
+   "lat": 39.7481157,
+   "lon": -104.9990652,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1453",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-25",
+    "cuisine": "italian",
+    "description": "Osteria Marco, named for the youngest Bonanno son, opened its doors just in time to celebrate Marco’s fourth birthday in October, 2007.",
+    "name": "Osteria Marco",
+    "opening_hours": "Su-Th 11:00-22:00, Fr,Sa 11:00-23:00",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1197010167,
+   "lat": 39.7527039,
+   "lon": -104.9961434,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1822",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "name": "Vesta Dipping Grill",
+    "phone": "+1-303-296-1970"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1265213454,
+   "lat": 39.7520835,
+   "lon": -105.001431,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1750",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "cafe",
+    "name": "My Favorite Muffin",
+    "opening_hours": "Mo-Fr 06:00-14:00; Sa 08:00-14:00; Su off",
+    "outdoor_seating": "yes",
+    "payment:bitcoincash": "yes",
+    "phone": "+1-303-623-0060",
+    "website": "http://www.babcorp.com/Denver16thStreet/default.asp",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1271250713,
+   "lat": 39.7503736,
+   "lon": -104.9974156,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1642",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "cuisine": "american",
+    "name": "Delectable Egg",
+    "opening_hours": "Mo-Su 07:00-14:00"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1271259067,
+   "lat": 39.7493343,
+   "lon": -104.9992551,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1515",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "name": "1515 Restaurant",
+    "website": "https://www.1515restaurant.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1303790442,
+   "lat": 39.7475178,
+   "lon": -104.9998405,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:floor": "G",
+    "addr:housenumber": "1401",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-25",
+    "cuisine": "italian;japanese",
+    "level": "0",
+    "name": "Romyo",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1303790445,
+   "lat": 39.7473359,
+   "lon": -104.9995858,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1400",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "cuisine": "mexican",
+    "description": "Upscale Mexican cuisine",
+    "name": "Tamayo",
+    "website": "https://www.eattamayo.com",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1303797963,
+   "lat": 39.7474391,
+   "lon": -104.9994527,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1406",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "cafe",
+    "cuisine": "coffee_shop",
+    "drive_through": "no",
+    "email": "info@huckleberryroasters.com",
+    "highchair": "no",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "name": "Huckleberry Roasters",
+    "opening_hours": "Mo-Su 07:00-16:00",
+    "outdoor_seating": "yes",
+    "toilets": "yes",
+    "website": "https://www.huckleberryroasters.com/locations/larimer-square",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1333952029,
+   "lat": 39.7500386,
+   "lon": -104.9995262,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1530",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "addr:unit": "C",
+    "amenity": "restaurant",
+    "cuisine": "mexican",
+    "name": "D'Corazon",
+    "opening_hours": "Mo-Th 11:00-21:00; Fr 11:00-22:00; Sa 11:00-22:00; Su off",
+    "outdoor_seating": "no",
+    "phone": "+1-720-904-8226",
+    "toilets:wheelchair": "yes",
+    "website": "https://www.dcorazonrestaurant.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1334018841,
+   "lat": 39.7479225,
+   "lon": -104.9988289,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:floor": "G",
+    "addr:housenumber": "1450",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-25",
+    "cuisine": "steak_house",
+    "level": "0",
+    "name": "The Capital Grille",
+    "website": "https://thecapitalgrille.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1334056354,
+   "lat": 39.7474933,
+   "lon": -104.998963,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1420",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "contact:phone": "+1 303 8253232",
+    "contact:website": "https://bistrovendome.com",
+    "cuisine": "french",
+    "diet:vegan": "limited",
+    "diet:vegetarian": "yes",
+    "name": "Bistro Vendôme"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1358661932,
+   "lat": 39.7484268,
+   "lon": -104.9959397,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1201",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "name": "Green Fine Salad Company"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1393657198,
+   "lat": 39.7494311,
+   "lon": -104.9962463,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1200",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "17th Street",
+    "amenity": "cafe",
+    "cuisine": "coffee_shop",
+    "name": "Ink Coffee",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1393667105,
+   "lat": 39.7484577,
+   "lon": -104.9980239,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:floor": "G",
+    "addr:housenumber": "1512",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-25",
+    "cuisine": "italian",
+    "level": "0",
+    "name": "Illegal Burger",
+    "opening_hours": "Mo-Th,Su 11:00-21:00; Fr-Sa 11:00-22:00",
+    "outdoor_seating": "yes",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1393667106,
+   "lat": 39.7482988,
+   "lon": -104.9975454,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:floor": "G",
+    "addr:housenumber": "1512",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-25",
+    "level": "0",
+    "name": "Red Square Euro Bistro",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "phone": "+1 303-595-8600",
+    "website": "https://redsquarebistro.com",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1393672685,
+   "lat": 39.7482335,
+   "lon": -104.9989036,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1465",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "cuisine": "seafood",
+    "description": "OCEAN PRIME is a modern American restaurant and lounge from renowned restaurateur Cameron Mitchell.",
+    "diet:pescetarian": "yes",
+    "diet:vegan": "no",
+    "diet:vegetarian": "limited",
+    "name": "Ocean Prime",
+    "opening_hours": "Su 16:00-21:00",
+    "phone": "+1-303-825-3663",
+    "website": "https://www.ocean-prime.com",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1605501210,
+   "lat": 39.7489287,
+   "lon": -104.999766,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1445",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "name": "Chloe"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1684184179,
+   "lat": 39.7506813,
+   "lon": -105.0038375,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1400",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "amenity": "restaurant",
+    "cuisine": "french",
+    "name": "Coohills"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2500839110,
+   "lat": 39.7503633,
+   "lon": -104.9996662,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1555",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "addr:unit": "150",
+    "amenity": "cafe",
+    "cuisine": "coffee_shop;pastry",
+    "drink:coffee": "yes",
+    "drink:tea": "yes",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "name": "Little Owl",
+    "opening_hours": "Mo-Fr 07:00-17:00; Sa 08:00-16:00; Su 08:00-15:00",
+    "outdoor_seating": "yes",
+    "takeaway": "yes",
+    "website": "https://littleowlcoffee.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 2838836938,
+   "lat": 39.7522965,
+   "lon": -105.0008695,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:floor": "G",
+    "addr:housenumber": "1605",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-16",
+    "cuisine": "gastropub",
+    "indoor_seating": "yes",
+    "level": "0",
+    "name": "Thirsty Lion Gastropub & Grill",
+    "opening_hours": "Mo-Th 11:00-23:00; Fr 11:00-23:59; Sa 10:00-23:59; Su 10:00-23:00",
+    "outdoor_seating": "yes",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "phone": "+1-303-623-0316",
+    "website": "https://www.thirstyliongastropub.com/colorado"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3015901808,
+   "lat": 39.7530254,
+   "lon": -105.0000755,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "level": "1",
+    "level:ref": "2",
+    "name": "The Cooper Lounge",
+    "website": "https://cooperlounge.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3075789907,
+   "lat": 39.7522544,
+   "lon": -104.997279,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1765",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "name": "Choppers Custom Salads"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3084966081,
+   "lat": 39.7492201,
+   "lon": -104.9971339,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1201",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "alt_name": "Cheesecake Factory",
+    "amenity": "restaurant",
+    "brand": "The Cheesecake Factory",
+    "brand:wikidata": "Q1045842",
+    "check_date": "2026-10-25",
+    "cuisine": "american",
+    "name": "The Cheesecake Factory",
+    "opening_hours": "Mo-Th 11:00-22:00; Fr-Sa 11:00-23:00; Su 10:00-22:00",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "phone": "+1-303-595-0333",
+    "toilets:wheelchair": "yes",
+    "website": "https://locations.thecheesecakefactory.com/co/denver-19.html",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3106445187,
+   "lat": 39.7515783,
+   "lon": -104.9997955,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1617",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "cuisine": "sandwich",
+    "name": "Backcountry Delicatessen"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3106451922,
+   "lat": 39.7511721,
+   "lon": -105.0003513,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1610",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "name": "Illegal Pete's"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3106452081,
+   "lat": 39.7513783,
+   "lon": -105.0005203,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1616",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "check_date": "2025-06-16",
+    "name": "Blue Sushi Sake Grill",
+    "opening_hours": "Mo-Th 11:00-21:00; Fr 11:00-22:00; Sa 12:00-22:00; Su 12:00-21:00",
+    "toilets:wheelchair": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3114543378,
+   "lat": 39.7495355,
+   "lon": -104.9982027,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1350",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "name": "Garbanzo Mediterranean Grill",
+    "toilets:wheelchair": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3218322437,
+   "lat": 39.7478719,
+   "lon": -104.999377,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1431",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "contact:phone": "+1 303 8202282",
+    "contact:website": "https://www.riojadenver.com",
+    "cuisine": "mediterranean",
+    "description": "Featuring a menu inspired by Mediterranean ingredients and influenced by local and seasonal products.",
+    "diet:vegan": "limited",
+    "diet:vegetarian": "yes",
+    "drink:wine": "served",
+    "name": "Rioja",
+    "opening_hours": "Su-Th 17:00-22:00, Fr,Sa 17:00-23:00, We-Fr 11:30-14:30, Sa,Su 10:00-14:30",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3218329786,
+   "lat": 39.7509583,
+   "lon": -104.9999677,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1530",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "addr:unit": "101",
+    "amenity": "restaurant",
+    "branch": "LoDo",
+    "brand": "Illegal Pete's",
+    "cocktails": "yes",
+    "craft": "caterer",
+    "cuisine": "mexican",
+    "diet:vegetarian": "yes",
+    "drink:beer": "yes",
+    "drink:liquor": "yes",
+    "drink:wine": "yes",
+    "happy_hours": "Mo-Su 15:00-20:00",
+    "name": "Illegal Pete's",
+    "opening_hours": "Mo-We 07:00-00:00; Th, Fr 07:00-02:30; Sa 09:00-02:30; Su 09:00-00:00",
+    "outdoor_seating": "yes",
+    "phone": "+1-303-623-2169",
+    "takeaway": "yes",
+    "toilets": "yes",
+    "toilets:wheelchair": "yes",
+    "website": "https://www.illegalpetes.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3225345961,
+   "lat": 39.751013,
+   "lon": -105.0000508,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1560",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "check_date": "2025-06-16",
+    "craft": "caterer",
+    "cuisine": "american",
+    "diet:vegetarian": "yes",
+    "drink:beer": "yes",
+    "drink:coffee": "yes",
+    "drink:liquor": "yes",
+    "drink:tea": "yes",
+    "drink:wine": "yes",
+    "happy_hours": "Mo-Su 15:00-18:00",
+    "name": "The Kitchen Denver",
+    "opening_hours": "Mo, Tu 11:00-21:30; We-Fr 11:00-22:30; Sa 10:00-22:30; Su 10:00-21:30",
+    "organic": "yes",
+    "outdoor_seating": "yes",
+    "payment:cheque": "yes",
+    "payment:debit_cards": "all",
+    "phone": "+1-303-623-3127",
+    "reservation": "recommended",
+    "takeaway": "yes",
+    "toilets": "yes",
+    "toilets:wheelchair": "yes",
+    "website": "https://www.thekitchenbistros.com/location/the-kitchen-denver/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3787902338,
+   "lat": 39.7522724,
+   "lon": -104.9992233,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1612",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "17th Street",
+    "amenity": "cafe",
+    "check_date": "2026-06-28",
+    "cuisine": "coffee_shop",
+    "internet_access": "wlan",
+    "internet_access:fee": "customers",
+    "name": "Amante Coffee at the Oxford",
+    "opening_hours": "Mo-Fr 06:30-18:00; Sa 07:00-17:00; Su 08:00-15:00",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "smoking": "no",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4044618809,
+   "lat": 39.7519268,
+   "lon": -104.9988479,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1550",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "17th Street",
+    "amenity": "cafe",
+    "internet_access": "yes",
+    "internet_access:fee": "no",
+    "name": "Common Grounds",
+    "smoking": "no"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4280560870,
+   "lat": 39.7536333,
+   "lon": -105.004226,
+   "tags": {
+    "access": "private",
+    "addr:city": "Denver",
+    "addr:housenumber": "2000",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "description": "No public access. Membership only.",
+    "name": "Rooftop Terrace at Davita"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4317727013,
+   "lat": 39.7566897,
+   "lon": -104.9996277,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1900",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Chestnut Place",
+    "amenity": "restaurant",
+    "contact:instagram": "pigandsprout",
+    "contact:twitter": "pigandsprout",
+    "cuisine": "american",
+    "diet:vegan": "yes",
+    "diet:vegetarian": "yes",
+    "email": "info@pigandsprout.com",
+    "name": "Pig & the Sprout",
+    "name:en": "The Pig & The Sprout",
+    "opening_hours": "Mo-Th 11:00-22:00; Fr 11:00-23:00; Sa 09:00-23:00; Su 09:00-22:00",
+    "outdoor_seating": "yes",
+    "phone": "+1 720-535-9719",
+    "website": "https://www.pigandsprout.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4317734215,
+   "lat": 39.7573485,
+   "lon": -104.9985441,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1950",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Chestnut Place",
+    "amenity": "cafe",
+    "branch": "King Soopers Denver 115",
+    "brand": "Starbucks",
+    "brand:wikidata": "Q37158",
+    "cuisine": "coffee_shop",
+    "name": "Starbucks",
+    "official_name": "Starbucks Coffee",
+    "opening_hours": "Mo-Su 07:00-18:00",
+    "phone": "+1 303-678-2433",
+    "ref": "1010325",
+    "takeaway": "yes",
+    "website": "https://www.starbucks.com/store-locator/store/1010325/king-soopers-denver-115-1950-chestnut-pl-denver-co-80202-us",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4461109490,
+   "lat": 39.7483352,
+   "lon": -105.0005519,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1415",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "addr:unit": "1706",
+    "amenity": "restaurant",
+    "cuisine": "sausage;pretzel;bavarian;pub;schnitzel",
+    "name": "Rhein Haus Denver",
+    "name:en": "Rhein Haus Denver",
+    "opening_hours": "Mo-Th 15:00-23:00; Fr 15:00-00:00; Sa 10:00-00:00; Su 10:00-23:00",
+    "phone": "+1-303-800-2652",
+    "website": "https://www.rheinhausdenver.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4510192391,
+   "lat": 39.7553496,
+   "lon": -104.999964,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1801",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "amenity": "restaurant",
+    "cuisine": "mediterranean",
+    "name": "Ambler",
+    "phone": "+1-720-544-6105",
+    "website": "https://www.amblerdenver.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4518386868,
+   "lat": 39.7531496,
+   "lon": -105.0030109,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1900",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "addr:unit": "100",
+    "amenity": "cafe",
+    "branch": "1900 Sixteenth St.",
+    "brand": "Starbucks",
+    "brand:wikidata": "Q37158",
+    "cuisine": "coffee_shop",
+    "name": "Starbucks",
+    "official_name": "Starbucks Coffee",
+    "opening_hours": "Mo-Th 05:00-21:00; Fr 06:00-18:30; Sa-Su 06:30-18:30",
+    "phone": "+1 303-623-3414",
+    "takeaway": "yes",
+    "website": "https://www.starbucks.com/store-locator/store/1007338/1900-sixteenth-st-1900-sixteenth-st-100-denver-co-802025120-us"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4685104852,
+   "lat": 39.7480161,
+   "lon": -105.0004224,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1400",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "name": "Celtic on Market",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4694463555,
+   "lat": 39.7480181,
+   "lon": -104.99919,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1441",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "cuisine": "seafood",
+    "description": "TAG represents a culmination of Chef Troy Guard‘s travel experiences from Singapore to Japan, New York to Hawaii — he showcases it all here.",
+    "diet:pescetarian": "yes",
+    "diet:vegan": "limited",
+    "diet:vegetarian": "limited",
+    "name": "Tag Restaurant",
+    "opening_hours": "Mo-Th 11:30-22:00, Fr 11:30-23:00, Sa 17:00-23:00, Su 17:00-21:00",
+    "phone": "+1-303-996-9985",
+    "website": "https://tag-restaurant.com/",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4713243693,
+   "lat": 39.7537199,
+   "lon": -104.99651,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1890",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "name": "Kachina Cantina"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4733209291,
+   "lat": 39.7530596,
+   "lon": -105.0016537,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1889",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "check_date": "2023-09-03",
+    "name": "Tavernetta",
+    "toilets:wheelchair": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4733212322,
+   "lat": 39.7538714,
+   "lon": -105.0014823,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1650",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "amenity": "restaurant",
+    "bar": "yes",
+    "brewery": "yes",
+    "check_date": "2023-12-06",
+    "cuisine": "southern",
+    "name": "Tupelo Honey Southern Kitchen & Bar",
+    "opening_hours": "Mo-Th 11:00-21:00; Fr 11:00-22:00; Sa 09:00-22:00; Su 09:00-21:00",
+    "outdoor_seating": "patio",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "phone": "+1-720-274-0650",
+    "website": "https://tupelohoneycafe.com/location/denver/",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4739318142,
+   "lat": 39.7532657,
+   "lon": -105.0022788,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1899",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "cuisine": "american",
+    "name": "Ajax Downtown",
+    "phone": "+1-303-323-0017",
+    "website": "https://www.ajaxrestaurant.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4783942921,
+   "lat": 39.7481068,
+   "lon": -105.0003307,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1410",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "cuisine": "pizza",
+    "name": "Mario’s Speakeasy Pizza",
+    "website": "https://mariosspeakeasypizzeria.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4870647084,
+   "lat": 39.7546723,
+   "lon": -105.0048369,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1590",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Little Raven Street",
+    "amenity": "restaurant",
+    "name": "Menya Ramen & Poke",
+    "outdoor_seating": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4995157822,
+   "lat": 39.7529124,
+   "lon": -105.0025219,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1550",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "amenity": "cafe",
+    "cuisine": "coffee_shop;tea",
+    "internet_access": "yes",
+    "name": "Capital One Café",
+    "opening_hours": "Mo-Fr 07:00-18:00; Sa 09:00-17:00; Su 09:00-17:00",
+    "outdoor_seating": "yes",
+    "phone": "+1-720-808-5241",
+    "toilets:wheelchair": "yes",
+    "website": "https://www.capitalone.com/local/denver-unionstationlodo/",
+    "wheelchair": "yes",
+    "wikidata": "Q139860979"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5063222324,
+   "lat": 39.7483947,
+   "lon": -105.0004658,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1417",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "name": "Wally's Wisconsin Tavern",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5063224587,
+   "lat": 39.7537514,
+   "lon": -105.0023035,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1607",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "amenity": "restaurant",
+    "name": "Daily Grill"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5173949162,
+   "lat": 39.7546872,
+   "lon": -105.0015488,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "amenity": "restaurant",
+    "name": "Tel Aviv Street Food"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5173949163,
+   "lat": 39.7547625,
+   "lon": -105.0016615,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "amenity": "restaurant",
+    "name": "Birdcall"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5206392992,
+   "lat": 39.7501927,
+   "lon": -104.9976683,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1624",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "name": "Oskar Blues Grill & Brew"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5206424622,
+   "lat": 39.7547968,
+   "lon": -105.0015758,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "amenity": "restaurant",
+    "name": "Comal"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5325386265,
+   "lat": 39.7514831,
+   "lon": -104.997729,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1433",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "17th Street",
+    "amenity": "restaurant",
+    "cuisine": "pizza",
+    "name": "SliceWorks"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5336796186,
+   "lat": 39.749018,
+   "lon": -104.9968872,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1201",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "addr:unit": "104",
+    "amenity": "restaurant",
+    "name": "Blue Agave Grill",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5336810048,
+   "lat": 39.7497472,
+   "lon": -104.9999233,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1514",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "name": "Hapa Sushi Grill & Sake Bar - Lodo",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5336829800,
+   "lat": 39.7499044,
+   "lon": -104.9997273,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1526",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "name": "Brass Tacks",
+    "wheelchair": "no"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5336839005,
+   "lat": 39.7502866,
+   "lon": -105.001482,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1600",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "15th Street",
+    "amenity": "restaurant",
+    "cuisine": "steak_house",
+    "name": "A5 Steakhouse"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5336845448,
+   "lat": 39.7479171,
+   "lon": -104.9993204,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:floor": "G",
+    "addr:housenumber": "1433",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-25",
+    "level": "0",
+    "name": "Corridor 44",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5336848121,
+   "lat": 39.7495414,
+   "lon": -104.9984109,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1550",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "name": "STK Denver",
+    "toilets:wheelchair": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5387108277,
+   "lat": 39.7535365,
+   "lon": -104.9968144,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "cafe",
+    "name": "Huckleberry Roasters"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5430955075,
+   "lat": 39.7512584,
+   "lon": -105.0013989,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1536",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "cafe",
+    "name": "Serendipity Coffee Bar"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657571729,
+   "lat": 39.7531758,
+   "lon": -104.9970591,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Albina by the Sea"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657571736,
+   "lat": 39.7532555,
+   "lon": -104.997002,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Ruth’s Butchery"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657572858,
+   "lat": 39.7530132,
+   "lon": -104.9970652,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Lou’s Hot Naked"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657572859,
+   "lat": 39.7531475,
+   "lon": -104.9971082,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Mano Pastaria"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657577751,
+   "lat": 39.7530921,
+   "lon": -104.9971644,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Bonano Brothers Pizzeria"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657577752,
+   "lat": 39.7533194,
+   "lon": -104.9970614,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Green Huntsman"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657577753,
+   "lat": 39.7532544,
+   "lon": -104.9971468,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Fem Crepes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657579723,
+   "lat": 39.75347,
+   "lon": -104.9964028,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "check_date": "2026-09-01",
+    "name": "LoDough Bakery",
+    "website": "https://www.lodoughbakery.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657579724,
+   "lat": 39.753056,
+   "lon": -104.9968928,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Bao Chica Bao"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657579725,
+   "lat": 39.7532238,
+   "lon": -104.9969655,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Mopoke"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657579726,
+   "lat": 39.7529012,
+   "lon": -104.9970965,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Morning Jones"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5657579727,
+   "lat": 39.7532338,
+   "lon": -104.9971772,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "S&G Salumeria"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5664762221,
+   "lat": 39.7538665,
+   "lon": -104.994635,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1940",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "name": "National Ballpark Museum",
+    "opening_hours": "Tu-Sa 11:00-17:00",
+    "tourism": "museum",
+    "website": "https://ballparkmuseum.com/",
+    "wikidata": "Q123370448"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5686406114,
+   "lat": 39.7550104,
+   "lon": -105.0044474,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1610",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Little Raven Street",
+    "amenity": "cafe",
+    "check_date": "2026-10-16",
+    "contact:facebook": "100086933995139",
+    "contact:instagram": "hellodarlinglittleraven",
+    "cuisine": "coffee_shop;tea",
+    "email": "management@hellodarling.cafe",
+    "internet_access": "wlan",
+    "name": "Hello Darling",
+    "opening_hours": "Mo-Th 07:00-22:00; Fr-Sa 07:00-23:00; Su 07:00-21:00",
+    "outdoor_seating": "yes",
+    "phone": "+1-720-541-8023",
+    "website": "https://www.hellodarling.cafe",
+    "website:menu": "https://hellodarling.cafe/menus"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5726841721,
+   "lat": 39.747574,
+   "lon": -104.9991275,
+   "tags": {
+    "amenity": "restaurant",
+    "cuisine": "barbecue",
+    "name": "Russel’s Smoke House"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5936899449,
+   "lat": 39.7552878,
+   "lon": -104.9943022,
+   "tags": {
+    "amenity": "restaurant",
+    "level": "2",
+    "name": "Clocktower Bar",
+    "ref": "331"
+   }
+  },
+  {
+   "type": "node",
+   "id": 5951912593,
+   "lat": 39.7562147,
+   "lon": -104.9951357,
+   "tags": {
+    "amenity": "cafe",
+    "level": "0",
+    "name": "Coffee",
+    "ref": "147"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6013606924,
+   "lat": 39.7498603,
+   "lon": -104.999791,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1520",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "contact:email": "info@jovanina.com",
+    "contact:phone": "+1-720-541-7721",
+    "contact:website": "https://jovanina.com",
+    "cuisine": "italian",
+    "diet:vegan": "limited",
+    "diet:vegetarian": "yes",
+    "name": "Jovanina’s Broken Italian",
+    "opening_hours": "Tu-Sa 17:00-22:00",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6146455547,
+   "lat": 39.7509782,
+   "lon": -105.0018543,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1500",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "addr:unit": "101",
+    "amenity": "restaurant",
+    "cuisine": "new_american",
+    "description": "Chef driven menu featuring seasonal and scratch dishes plus a full bar focused on wine and cocktails.",
+    "diet:gluten_free": "yes",
+    "diet:vegan": "yes",
+    "diet:vegetarian": "yes",
+    "email": "contact@thevelvetcellar.com",
+    "name": "The Velvet Cellar",
+    "opening_hours": "Tu-Th 16:00-21:00; Fr-Sa 16:00-22:00; Su-Mo closed",
+    "phone": "+1 720 676 9116",
+    "website": "https://www.thevelvetcellar.com",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6150664643,
+   "lat": 39.7563762,
+   "lon": -104.9952389,
+   "tags": {
+    "amenity": "restaurant",
+    "brand": "Famous Dave's",
+    "brand:wikidata": "Q5433448",
+    "cuisine": "barbecue",
+    "level": "20",
+    "name": "Famous Dave's",
+    "ref": "149"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6414022813,
+   "lat": 39.755519,
+   "lon": -105.001129,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1998",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "18th Street",
+    "amenity": "restaurant",
+    "brand": "Gyu-Kaku",
+    "brand:wikidata": "Q11349387",
+    "contact:website": "https://www.gyu-kaku.com/denver",
+    "cuisine": "japanese;barbecue",
+    "name": "Gyu-Kaku"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6563751017,
+   "lat": 39.7576894,
+   "lon": -104.9989904,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1999",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Chestnut Place",
+    "amenity": "restaurant",
+    "name": "Woodie Fisher Kitchen & Bar"
+   }
+  },
+  {
+   "type": "node",
+   "id": 7083765167,
+   "lat": 39.7530534,
+   "lon": -105.00148,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1803",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "check_date": "2023-12-06",
+    "level": "0",
+    "name": "Sunday Vinyl",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "phone": "+1 720-738-1803",
+    "website": "https://www.sundayvinyl.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 7277831866,
+   "lat": 39.7532814,
+   "lon": -104.9971054,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1800",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "level": "0",
+    "name": "Ghost Tortilla"
+   }
+  },
+  {
+   "type": "node",
+   "id": 7277831872,
+   "lat": 39.7543425,
+   "lon": -104.997318,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1890",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "addr:unit": "110",
+    "amenity": "cafe",
+    "name": "Invita Cafe"
+   }
+  },
+  {
+   "type": "node",
+   "id": 7277831873,
+   "lat": 39.7529739,
+   "lon": -104.9962766,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1825",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "name": "Foraged"
+   }
+  },
+  {
+   "type": "node",
+   "id": 7456014244,
+   "lat": 39.7521713,
+   "lon": -104.9932466,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1255",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "19th Street",
+    "amenity": "restaurant",
+    "name": "JJ's Bistro",
+    "opening_hours": "Mo-Sa 11:00-20:30; Su 16:00-20:30"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9770278769,
+   "lat": 39.7560498,
+   "lon": -104.9987674,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1919",
+    "addr:state": "CO",
+    "addr:street": "19th Street",
+    "amenity": "restaurant",
+    "cuisine": "breakfast",
+    "indoor_seating": "yes",
+    "name": "onefold",
+    "opening_hours": "Mo-Fr 07:00-15:00; Sa,Su 08:00-15:00",
+    "outdoor_seating": "no",
+    "website": "https://www.onefolddenver.com/location/union-station"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9950079117,
+   "lat": 39.7531423,
+   "lon": -104.9990397,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1710",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "brand": "JINYA Ramen Bar",
+    "brand:wikidata": "Q16997755",
+    "cuisine": "ramen",
+    "diet:vegan": "yes",
+    "diet:vegetarian": "yes",
+    "name": "JINYA Ramen Bar",
+    "phone": "+1-720-826-8262",
+    "short_name": "JINYA",
+    "website": "https://www.jinyaramenbar.com/menu/tx/denver/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 10214105952,
+   "lat": 39.7532141,
+   "lon": -104.993649,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1946",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "email": "thomasjames@riothg.com",
+    "name": "Dierks Bentley's Whiskey Row Denver",
+    "opening_hours": "Mo,Tu off; We 15:00-22:00; Th 15:00-02:00, Fr 11:00-02:00; Sa 10:00-02:00, Su 10:00-01:00",
+    "phone": "+1-303-515-7082",
+    "website": "https://dierkswhiskeyrow.com/denver-co/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 12195817897,
+   "lat": 39.7507664,
+   "lon": -104.9996755,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1520",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "cuisine": "asian",
+    "name": "YumCha",
+    "source": "esri/USA_NAD_Addresses",
+    "website": "https://www.cholonconcepts.com/locations/yumcha/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 12195817899,
+   "lat": 39.7505339,
+   "lon": -104.9995011,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1555",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Blake Street",
+    "addr:unit": "101",
+    "amenity": "restaurant",
+    "cuisine": "asian",
+    "name": "ChoLon",
+    "source": "esri/USA_NAD_Addresses",
+    "website": "https://www.cholonconcepts.com/locations/cholon-downtown/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 12337498109,
+   "lat": 39.7494749,
+   "lon": -104.9950951,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1125",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "17th Street",
+    "amenity": "cafe",
+    "brand": "Starbucks",
+    "brand:wikidata": "Q37158",
+    "cuisine": "coffee_shop",
+    "internet_access": "wlan",
+    "name": "Starbucks",
+    "official_name": "Starbucks Coffee",
+    "outdoor_seating": "no",
+    "takeaway": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 12442378167,
+   "lat": 39.7494099,
+   "lon": -104.9974728,
+   "tags": {
+    "amenity": "cafe",
+    "check_date": "2026-10-25",
+    "contact:instagram": "ichigomatchadenver",
+    "cuisine": "bubble_tea;ice_cream;japanese",
+    "level": "0",
+    "name": "Ichigo Matcha",
+    "outdoor_seating": "yes",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13396077604,
+   "lat": 39.7499194,
+   "lon": -104.9979443,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1616",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "amenity": "restaurant",
+    "cuisine": "french",
+    "name": "Chez Maggy",
+    "phone": "+17207949544",
+    "website": "https://www.chezmaggydenver.com"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13500656331,
+   "lat": 39.7501108,
+   "lon": -104.9965486,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1675",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Larimer Street",
+    "addr:unit": "Unit D",
+    "amenity": "cafe",
+    "contact:facebook": "https://www.facebook.com/queencitycollectivecoffee/",
+    "contact:instagram": "https://www.instagram.com/queencitycoffee/",
+    "contact:linkedin": "https://www.linkedin.com/company/queen-city-collective-coffee",
+    "cuisine": "coffee_shop",
+    "name": "Queen City Collective Coffee",
+    "opening_hours": "Mo-Fr 06:30-16:00; Sa,Su 08:00-14:00",
+    "website": "https://queencitycollectivecoffee.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13517679477,
+   "lat": 39.754682,
+   "lon": -104.9977246,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1899",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "cafe",
+    "contact:facebook": "https://www.facebook.com/queencitycollectivecoffee/",
+    "contact:instagram": "https://www.instagram.com/queencitycoffee/",
+    "contact:linkedin": "https://www.facebook.com/queencitycollectivecoffee/",
+    "cuisine": "coffee_shop",
+    "email": "info@queencityroasting.com",
+    "name": "Queen City Collective Coffee",
+    "opening_hours": "Mo-Fr 07:00-17:00; Sa,Su 08:00-14:00",
+    "outdoor_seating": "no",
+    "website": "https://queencitycollectivecoffee.com/"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13610640001,
+   "lat": 39.7526651,
+   "lon": -104.9968015,
+   "tags": {
+    "addr:housenumber": "1801",
+    "addr:postcode": "80202",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "cuisine": "fine_dining",
+    "email": "info@brutodenver.com",
+    "name": "Bruto",
+    "opening_hours": "Tu-Su 17:00-20:30",
+    "outdoor_seating": "no",
+    "phone": "+1-720-325-2195",
+    "self_service": "no",
+    "website": "http://brutodenver.com"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13673306356,
+   "lat": 39.7534656,
+   "lon": -104.9998805,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "brand:wikidata": "Q111304345",
+    "check_date": "2026-10-16",
+    "indoor": "room",
+    "level": "0",
+    "name": "Olive & Finch",
+    "room": "retail",
+    "toilets:wheelchair": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13673320211,
+   "lat": 39.7529779,
+   "lon": -105.0002619,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "cafe",
+    "check_date": "2026-10-16",
+    "cuisine": "coffee_shop;pizza;sandwich;american;breakfast",
+    "indoor": "room",
+    "level": "0",
+    "level:ref": "1",
+    "name": "Pigtrain Coffee",
+    "opening_hours": "07:00-18:00",
+    "outdoor_seating": "yes",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "room": "retail",
+    "smoking": "no",
+    "website": "https://www.pigtraincoffee.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13673320217,
+   "lat": 39.7529295,
+   "lon": -105.0005819,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "cuisine": "seafood",
+    "indoor": "room",
+    "level": "0",
+    "name": "Stoic & Genuine",
+    "outdoor_seating": "yes",
+    "room": "retail",
+    "website": "https://stoicandgenuine.com/",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13673320254,
+   "lat": 39.7532133,
+   "lon": -104.9998586,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "brewery": "various",
+    "capacity": "104",
+    "check_date": "2026-10-16",
+    "delivery": "no",
+    "indoor": "room",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "level": "0",
+    "level:ref": "1",
+    "name": "Ultreia",
+    "outdoor_seating": "yes",
+    "reservation": "recommended",
+    "room": "retail",
+    "smoking": "no",
+    "takeaway": "yes",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13673320300,
+   "lat": 39.7536531,
+   "lon": -104.9997183,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "air_conditioning": "yes",
+    "amenity": "restaurant",
+    "bar": "yes",
+    "brewery": "yes",
+    "check_date": "2026-10-16",
+    "email": "info@mercantiledenver.com",
+    "indoor": "room",
+    "level": "0",
+    "name": "Mercantile Dining & Provision",
+    "opening_hours": "Mo-Th 11:00-21:00,Fr-Sa 11:00-22:00,Su closed",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "phone": "+1-720-460-3733",
+    "room": "retail",
+    "toilets:wheelchair": "yes",
+    "website": "https://www.mercantiledenver.com",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13673320309,
+   "lat": 39.7528047,
+   "lon": -105.0008331,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701 Suite 100",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "amenity": "restaurant",
+    "brand": "Snooze",
+    "brand:wikidata": "Q111304345",
+    "check_date": "2026-10-16",
+    "cocktails": "yes",
+    "cuisine": "breakfast",
+    "drink:beer": "yes",
+    "drink:coffee": "yes",
+    "drink:wine": "yes",
+    "happy_hours": "Mo-Fr 15:00-18:00",
+    "internet_access": "wlan",
+    "level": "0",
+    "name": "Snooze",
+    "official_name": "Snooze, an A.M. Eatery",
+    "opening_hours": "Mo-Fr 06:00-15:00; Sa-Su 06:00-15:30",
+    "organic": "yes",
+    "outdoor_seating": "yes",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "phone": "+1-303-825-3536",
+    "room": "retail",
+    "toilets": "yes",
+    "toilets:handwashing": "yes",
+    "toilets:unisex": "yes",
+    "toilets:wheelchair": "yes",
+    "website": "https://www.snoozeeatery.com/restaurant/colorado/union-station",
+    "website:menu": "https://www.snoozeeatery.com/restaurant/colorado/union-station#location-menu",
+    "wheelchair": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13673320355,
+   "lat": 39.7541011,
+   "lon": -105.0007604,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1750",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "addr:unit": "170",
+    "amenity": "cafe",
+    "indoor": "room",
+    "internet_access": "yes",
+    "level": "0",
+    "name": "Kaffe Landscap",
+    "outdoor_seating": "yes",
+    "ref": "170",
+    "room": "retail"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13765562965,
+   "lat": 39.7507174,
+   "lon": -104.9979358,
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1641",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Market Street",
+    "addr:unit": "133",
+    "amenity": "cafe",
+    "cuisine": "tea;matcha",
+    "name": "Milk Tea People",
+    "opening_hours": "Su 11:00-19:00; Mo-Th 11:00-21:00; Fr-Sa 11:00-22:00",
+    "outdoor_seating": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 13813848803,
+   "lat": 39.7543875,
+   "lon": -104.9962745,
+   "tags": {
+    "addr:housenumber": "1601",
+    "addr:postcode": "80202",
+    "addr:street": "19th Street",
+    "amenity": "restaurant",
+    "cuisine": "mexican",
+    "name": "La Loma McGregor Square",
+    "opening_hours": "Su-Mo 15:00-21:00; Tu-Th 11:00-21:00; Fr-Sa 15:00-22:00",
+    "phone": "+13036562080",
+    "self_service": "no",
+    "website": "https://www.lalomarestaurants.com/la-loma-downtown"
+   }
+  },
+  {
+   "type": "node",
+   "id": 14291315948,
+   "lat": 39.7527621,
+   "lon": -104.9969488,
+   "tags": {
+    "addr:floor": "G",
+    "addr:housenumber": "1801",
+    "addr:street": "Blake Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-16",
+    "level": "0",
+    "name": "Bruto"
+   }
+  },
+  {
+   "type": "node",
+   "id": 14291315949,
+   "lat": 39.7545195,
+   "lon": -105.0046294,
+   "tags": {
+    "addr:floor": "G",
+    "addr:housenumber": "2100",
+    "addr:street": "16th Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-16",
+    "cuisine": "korean;barbecue",
+    "level": "0",
+    "name": "Kkoki Korean BBQ",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 14291315953,
+   "lat": 39.7530961,
+   "lon": -104.9979577,
+   "tags": {
+    "addr:floor": "G",
+    "addr:housenumber": "1745",
+    "addr:street": "Wazee Street",
+    "amenity": "restaurant",
+    "check_date": "2026-10-16",
+    "level": "0",
+    "name": "Rio on Wazee",
+    "name:en": "Rio on Wazee",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes"
+   }
+  },
+  {
+   "type": "node",
+   "id": 14291315954,
+   "lat": 39.7544838,
+   "lon": -105.0023869,
+   "tags": {
+    "addr:floor": "G",
+    "amenity": "restaurant",
+    "check_date": "2026-10-16",
+    "cuisine": "chicken",
+    "level": "0",
+    "name": "Blazing Bird"
+   }
+  },
+  {
+   "type": "way",
+   "id": 25650822,
+   "center": {
+    "lat": 39.7532308,
+    "lon": -105.0002773
+   },
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wynkoop Street",
+    "building": "train_station",
+    "building:colour": "#F5DEB3",
+    "building:levels": "4",
+    "building:material": "brick",
+    "building:parts": "yes",
+    "height": "24",
+    "name": "Union Station",
+    "operator": "Regional Transportation District",
+    "roof:colour": "#808080",
+    "toilets:wheelchair": "yes",
+    "tourism": "attraction",
+    "website": "https://www.amtrak.com/stations/den.html",
+    "wheelchair": "yes",
+    "wikidata": "Q3550021",
+    "wikimedia_commons": "Category:Union Station (Denver)",
+    "wikipedia": "en:Denver Union Station",
+    "year_of_construction": "1881"
+   }
+  },
+  {
+   "type": "way",
+   "id": 25676795,
+   "center": {
+    "lat": 39.750065,
+    "lon": -105.0040364
+   },
+   "tags": {
+    "leisure": "park",
+    "name": "LoDo Children's Playground"
+   }
+  },
+  {
+   "type": "way",
+   "id": 37738747,
+   "center": {
+    "lat": 39.7572401,
+    "lon": -105.0052245
+   },
+   "tags": {
+    "leisure": "park",
+    "name": "Commons Park"
+   }
+  },
+  {
+   "type": "way",
+   "id": 236355623,
+   "center": {
+    "lat": 39.7581198,
+    "lon": -105.0013448
+   },
+   "tags": {
+    "leisure": "park",
+    "name": "Railyard Dog Park"
+   }
+  },
+  {
+   "type": "way",
+   "id": 296377121,
+   "center": {
+    "lat": 39.7539179,
+    "lon": -105.0056289
+   },
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "2101",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "15th Street",
+    "building": "commercial",
+    "building:levels": "2",
+    "height": "8",
+    "name": "Historic Moffat Station",
+    "roof:colour": "#4c4c4c",
+    "tourism": "attraction"
+   }
+  },
+  {
+   "type": "way",
+   "id": 308559136,
+   "center": {
+    "lat": 39.7500337,
+    "lon": -104.9955031
+   },
+   "tags": {
+    "leisure": "park",
+    "name": "17th Street Plaza"
+   }
+  },
+  {
+   "type": "way",
+   "id": 633496452,
+   "center": {
+    "lat": 39.7523274,
+    "lon": -105.0043035
+   },
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1485",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Delgany Street",
+    "building:part": "yes",
+    "check_date": "2025-05-24",
+    "fee": "yes",
+    "fee:conditional": "no @ (age < 19); no @ healthcare workers; no @ members",
+    "height": "12",
+    "museum": "art",
+    "name": "Museum of Contemporary Art Denver",
+    "opening_hours": "Tu-Fr 12:00-19:00; Sa,Su 10:00-17:00",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "payment:debit_cards": "yes",
+    "toilets": "yes",
+    "tourism": "museum",
+    "website": "https://mcadenver.org/",
+    "wheelchair": "yes",
+    "wikidata": "Q16895577"
+   }
+  },
+  {
+   "type": "way",
+   "id": 812551276,
+   "center": {
+    "lat": 39.7541011,
+    "lon": -105.0007604
+   },
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1750",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Wewatta Street",
+    "addr:unit": "170",
+    "amenity": "cafe",
+    "indoor": "room",
+    "internet_access": "yes",
+    "level": "0",
+    "name": "Kaffe Landscap",
+    "outdoor_seating": "yes",
+    "ref": "170",
+    "room": "retail"
+   }
+  },
+  {
+   "type": "relation",
+   "id": 19522826,
+   "center": {
+    "lat": 39.7484998,
+    "lon": -104.9952591
+   },
+   "tags": {
+    "addr:city": "Denver",
+    "addr:housenumber": "1701",
+    "addr:postcode": "80202",
+    "addr:state": "CO",
+    "addr:street": "Arapahoe Street",
+    "leisure": "park",
+    "name": "Skyline Park",
+    "operator": "Denver Parks and Recreation",
+    "operator:type": "government",
+    "type": "multipolygon",
+    "website": "https://www.denvergov.org/Community/Parks-and-Public-Spaces/Parks-Directory/Skyline-Park"
+   }
+  },
+  {
+   "type": "relation",
+   "id": 20273831,
+   "center": {
+    "lat": 39.7518281,
+    "lon": -105.0061075
+   },
+   "tags": {
+    "leisure": "park",
+    "name": "Speer Boulevard Park",
+    "type": "multipolygon"
+   }
+  }
+ ]
+}
