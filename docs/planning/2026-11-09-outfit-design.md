@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: docs/planning/mockups/2026-11-09-outfit/
 chosen: chosen.html
 shell: d-admin-areas.html
@@ -621,3 +621,275 @@ from the shared weather module (Denver spec's `weather.py`). Migration:
   `items.JOB_ROUTES` for the nightly pattern.
 - Site refresh spec (`2026-10-19-site-refresh-design.md`) for the shell's
   original IA and the contrast measurements it must keep.
+
+---
+
+# Plan (Code, 2026-11-09)
+
+Tier: **Full** (migration, new dependencies, job-token whitelist, nightly
+workflow, admin shell rewrite). Built from `origin/main` at `a6df75e`
+(Denver spots and Travel log merged).
+
+## Corrections to the spec, found in the code
+
+- **Denver has two admin pages, Weekend and Spots** (`/admin/weekend`,
+  `/admin/spots`); candidates live inside Spots (`SpotFinder`). There is no
+  Candidates page. The Denver area is Weekend · Spots, and its Home card's
+  action **Review candidates** links to `/admin/spots`.
+- **Breakpoint.** The current shell switches at 700px
+  (`AdminShell.jsx:163`). The area layout needs 256px of nav, so it moves to
+  **900px** as the spec says; tests that stub the query change with it.
+- **The header status lives in the Dashboard page** (`pages/Admin.jsx`
+  :176-183), not the shell. It moves with the jobs list into `JobsList`'s
+  owner (Home keeps it), unchanged in wording.
+- **No image library in the backend.** `importer.py` sends raw bytes and
+  keeps nothing; nothing in Python decodes images. Thumbnails need one
+  (decided below).
+- **No shared weather read.** `weather.py` fetches one point (`DOWNTOWN`)
+  into `weather_hours` (keyed by gridpoint); the planner reads it through a
+  private closure (`spots_weekend_routes.py:214-236`). There is no home
+  point.
+- **Free-tier quota is per model**, ~20 requests a day
+  (`llm.FREE_TIER_DAILY_REQUESTS`), and `GeminiProvider` falls through three
+  models, so a day holds roughly 60 calls across the chain, shared with
+  Discover and the importer. AI Studio's docs no longer publish free-tier
+  figures; the live limits are per project in AI Studio
+  (<https://aistudio.google.com/docs/rate-limits>, read 2026-11-09). The
+  budget is a Profile field, never a constant.
+
+## Open questions, resolved
+
+| Question | Decision | Why |
+|---|---|---|
+| Weather sharing | Factor `_hours` into `weather.hours_for_day(session, day)` (reads `weather_hours`, latest gridpoint, Denver day); the planner and Closet both call it. **Home reuses the downtown gridpoint**; no second fetch. | 80205 is ~3 km from `DOWNTOWN`; NWS grid cells are 2.5 km, so the series differs by a cell at most, well inside forecast error. One NWS client, one table, one nightly step. |
+| Thumbnail pipeline | **Server-side Pillow** (Joey, 2026-11-09). `Pillow==13.0.0` and `pillow-heif==1.8.1` pinned (both ship cp312 manylinux wheels; released 2026-10-16 / 10-11). `closet_images.py` (pure): `register_heif_opener()`, `ImageOps.exif_transpose`, `draft()` for JPEG, long edge 400px, WebP q80, refuse > `MAX_PHOTO_BYTES` before reading and anything Pillow cannot open (422). Photos are processed one at a time so a 12 MP HEIC never sits beside eleven others in Render's 512 MB. | Joey's call over browser-side canvas: robust for any input, verifiable on the server. `exif_transpose` is the footgun: iPhone JPEGs are stored sideways with an orientation tag. |
+| Image storage | `garment_images` table (`garment_id` PK/FK, `webp bytea`, `width`, `height`), served by `GET /api/closet/garments/{id}/image` with `Cache-Control: private, max-age=86400` and an ETag from `updated_at`. | Keeps bytes out of every list query (the ORM never loads them by accident); the first `bytea` in `models.py`. |
+| Tag schema | `{ items: [{ index, attributes }] }`; a batch whose indices do not cover exactly `0..n-1` is rejected whole, and those garments stay queued. | A dropped image is detectable instead of shifting every later answer by one. |
+| Tag state | `status = untagged` plus `tag_source` (`model`/`manual`, NULL until either) and `tag_attempts`. The queue takes `untagged AND tag_source IS NULL AND tag_attempts < 3`, oldest first. A hand save sets `manual` and `active`; tagging sets `model` and `active`. | "Edited by hand is never retagged" becomes a query, not a convention; a poison image stops after three tries. |
+| Plan storage | `outfit_plans` keyed `(day, occasion, bike)`, JSON body (lead, alternatives, reasons, `ranked_by`, `model_note`, `planned_at`); a re-plan overwrites its key. Locks, swaps and Match this are **not** stored: they are computed on request and only reach the database through Wore this. | One shape for Home and Today; transient choices stay transient, as the spec asks of Match this. |
+| Plan day | The nightly job runs at ~17:17 Denver time and plans **tomorrow's** Denver day. Today with no stored plan for its key plans on open (one call) and says "planned just now". | "Planned last night" is literally true; a failed nightly costs one call, not a broken page. |
+| Ranking prompt budget | Last 30 days of wears as counts per garment plus last-worn date; the profile verbatim (it is a few hundred characters); the five most recent Not-this reasons. Candidates are capped at 12 per slot after the filter. | Keeps a call well under a few thousand tokens; the cap is a constant beside the weights. |
+| Repeat rules | Profile fields `repeat_top_days` (5) and `repeat_outfit_weeks` (3). | Spec's defaults. |
+| `ADMIN_AREAS` vs `ADMIN_ROUTES` | Parallel lists. `prerender-lib.test.mjs` already pins `ADMIN_ROUTES` to App.jsx's admin block; a new Vitest test pins every `ADMIN_AREAS` page to a route in App.jsx and every fixed App.jsx admin route to exactly one area (`/admin/collection/:id` belongs to Shelf by prefix). | `ADMIN_AREAS` lives in a JSX module that the Node prerender script cannot import; two pinned lists are the pattern `publicRoutes` already uses. |
+| `/admin/jobs` | Ships in the shell PR: the full jobs list, recent changes, and the existing re-enable link. Run now per job is **out** (no route runs a job from the browser today except each page's own button). | Home loses the room for recent changes; Run now is new auth surface for little gain. |
+| Shelf sub-nav on a phone | Decided at 400px with real labels in PR A; start from Collection · Picks · Sources · More. | Spec leaves it to Code. |
+| Job status | A `closet_settings` key/value table (the `spot_settings` shape: `{at, state, note?}`) under keys `tag.last_run`, `plan.last_run`, `opinion.last_run`, read by `GET /api/closet/status`; `lib/nightly.js` gains the rows. | Same contract the Denver rows use; no new pattern. |
+| Packed garments coming back | On the first of a `back_on` month, Review shows "N pieces due back" with **Unpack all** (undo toast). Nothing unpacks without a press. | The spec sets `back_on` but never says what happens on it; the owner's press keeps the closet honest. |
+| Changelog | Shell reorganisation: no entry (admin is private and unseen). Closet: one unlinked entry when Today ships (PR C), describing the tool, never the contents. | `changelog.md` has no admin entries so far; Closet is a feature worth a line. |
+
+## Conflicts with open PR #113 (recommendation engine)
+
+#113 changes `items.py` `JOB_ROUTES` (drops `/api/picker/next`),
+`tests/test_job_token.py`, `nightly.yml` (drops the picks step),
+`PlayNext.jsx` and `index.css`. Whichever lands second rebases. PR A's
+Home Shelf card reads `/api/picker/continuing` and reuses `ContinueCard` /
+`WrapUpSheet` as components; it does **not** pull logic out of
+`PlayNext.jsx`, so the overlap stays in the job list and the workflow.
+
+## Delivery: a four-PR stack
+
+Each PR is independently valid (builds, tests green) and reviewable on its
+own, as Denver spots was. Branches: `feat/closet` (PR A, this worktree,
+where this doc is committed), then `feat/closet-intake`,
+`feat/closet-today`, `feat/closet-review`, each in its own worktree and
+based on the previous.
+
+```mermaid
+flowchart LR
+  A[PR A · admin shell, Home, /admin/jobs] --> B[PR B · schema, intake, tagging, Closet, Profile]
+  B --> C[PR C · weather read, filter, ranking, Today, nightly plan]
+  C --> D[PR D · cull, Review, season turn, Sell]
+```
+
+### PR A — Admin shell by area (frontend only)
+
+1. **`ADMIN_AREAS`** (`components/adminAreas.js`, data only): five areas,
+   Shelf's three kickers, `home` per area, `count` keys. Closet's pages are
+   absent until PR B adds them; Site holds Analytics and Jobs.
+   *Tests:* `adminAreas.test.js` — the area/route pinning above; every area
+   has a home in its pages.
+2. **Shell components**: `AreaRail`, `AreaPages`, `AreaTabs`, `AreaSubnav`
+   (segmented `nav` with `aria-current="page"`), rewritten `AdminShell` at
+   900px; Shelf's Picks and More keep `TabSheet` (built on `<dialog>`, so the
+   focus trap is the browser's). Area resolution is a pure
+   `areaFor(pathname)` (prefix match, `/admin` exact for Home).
+   *Tests:* `AdminShell.test.jsx` rewritten — area order, page order with
+   kickers, active area and page for every route including
+   `/admin/collection/:id`, badge in the accessible name, rail labels as
+   text, phone tabs land on each area's home, sub-nav current page, sheet
+   Escape returns focus, breakpoint change closes the sheet, sign-out.
+3. **Home and Jobs**: `pages/Admin.jsx` becomes Home (`AreaCard` ×
+   Shelf, Denver, Site, each hiding when empty; Closet joins in PR C) with
+   the header status and `JobsList` below; `pages/AdminJobs.jsx` at
+   `/admin/jobs` with `JobsList`, the re-enable link and recent changes.
+   Tiles become card figures; quick actions become card actions (Shelf: Log
+   tonight / Wrap up via `ContinueCard` props and `WrapUpSheet`, else the
+   lead pick; Denver: the weekend lead from `/api/spots/plan`, Review
+   candidates → `/admin/spots`; Site: 7-day views and visitors, top path,
+   jobs summary, **Jobs**). App.jsx and `ADMIN_ROUTES` gain `jobs`.
+   *Tests:* `Admin.test.jsx` cases carried over to the cards and
+   `AdminJobs.test.jsx` (header words, job rows and failure paths, recent
+   changes, card hiding, each card's actions); `App.test.jsx` title for
+   `/admin/jobs`; `prerender-lib.test.mjs` passes unchanged in shape.
+4. **CSS** in the admin block of `index.css` (:1323-1720): rail, page list,
+   tabs, segmented control, area cards. Tokens only. Measure the new pairs
+   (rail label `--text-3` on `--sunken`, badge on `--sunken`, segmented thumb
+   text on `--surface`) in both themes and record them beside the rules.
+   *Verification:* browser at 1280 and 400, both themes, against
+   `d-admin-areas.html`; every existing admin route renders in the right
+   area.
+
+### PR B — Schema, intake, tagging, Closet and Profile
+
+5. **Migration `0014`** (all Closet tables at once, additive): enums
+   `garment_category`, `garment_status` (`untagged`, `active`, `packed`,
+   `listed`, `gone`), `outfit_source`, `garment_tag_source`,
+   `garment_outcome` (`kept`, `packed`, `listed`, `sold`, `donated`);
+   tables `garments`, `garment_images`, `outfits`, `outfit_garments`,
+   `wears`, `outfit_plans`, `closet_profile` (single row, `id = 1` check),
+   `garment_decisions`, `closet_settings`. Enum pattern from `0013`
+   (`create_type=False`, `checkfirst=True`). `models.py` mirrors it.
+   *Tests:* `test_migrations` round-trip if present, `schema_check` at head,
+   model CRUD smoke.
+6. **`closet_images.py`** (pure, Pillow) and the deps.
+   *Tests:* JPEG with EXIF orientation 6 comes out upright (generated in
+   the test with Pillow), HEIC generated with pillow-heif decodes, PNG with
+   alpha flattens, oversize refused before decode, garbage bytes → 422,
+   output long edge ≤ 400 and WebP.
+7. **`closet_routes.py`** (admin router, own lock): garments CRUD (PATCH
+   sets `tag_source = manual`, `status` derives `active` from `untagged`),
+   multi-photo upload → untagged garments, image route, profile GET/PUT
+   with validation (sizes, coloring, style words, weekly occasion and bike
+   defaults, turn dates, N, M, tag budget), status route.
+   *Tests:* upload of 12 creates 12 untagged with images and no model
+   call; image route headers and 304; PATCH by hand marks manual; profile
+   round-trip and 422s; every route 401 signed out.
+8. **`closet_tag.py`** (pure prompt + schema + validation) and the tag job:
+   `POST /api/closet/tag` (button: one batch) and
+   `POST /api/closet/jobs/tag` (nightly: batches of ≤ 10 until the budget,
+   a 429 or the queue ends; writes `tag.last_run`). Added to `JOB_ROUTES`
+   and `test_job_token.py` `EXPECTED`.
+   *Tests:* `FakeProvider` batch fills attributes in order; index gap
+   rejects the batch and increments attempts; budget stops at N calls; a
+   quota `LLMError` stops with the owner-worded note (`_failure_note`
+   reused, moved to a shared spot if it must be); manual and three-strike
+   garments never taken.
+9. **Nightly step** `closet-tag` after `weather`, in `nightly.yml`.
+10. **Frontend**: `AdminCloset` (grid/list, status and category chips,
+    `closet.view` pref under the admin namespace, untagged and packed tile
+    states), `GarmentTile`, `GarmentTable`, `GarmentForm` at
+    `/admin/closet/:id`, the camera input (`accept="image/*"`, `multiple`)
+    with `UploadToast` (Tag now), `AdminClosetProfile`; Closet joins
+    `ADMIN_AREAS` with Closet and Profile, its badge the untagged count for
+    now. *Tests:* page tests for grid/list persistence, chips, upload toast,
+    form save, profile save; the area pinning test picks up the routes.
+
+### PR C — Today
+
+11. **`weather.hours_for_day`** factored out; the planner switches to it
+    with no behaviour change. *Tests:* existing planner tests unchanged;
+    new unit test for the day window in Denver time.
+12. **`closet.py`** (pure): slots, season windows (month sets), warmth
+    target from the morning low and afternoon high plus the swing, the Bike
+    rules, formality per occasion, repeat rules (N, M), candidate ranking
+    without a model, and the deterministic outfit (`ranked_by =
+    "template"`). *Tests:* table-driven, no database.
+13. **`closet_rank.py`** (pure prompt + schema + validation, Discover
+    style: indices into the candidate list, never free titles; lock and
+    transient garment as constraints; Not-this reasons summarised).
+    *Tests:* validation drops foreign indices, a lock is honoured, partial
+    answers top up from the template.
+14. **Routes**: `GET /api/closet/today?occasion=&bike=` (stored plan or
+    plan-on-open), `POST /api/closet/plan` (re-plan with
+    `lock`/`not_this`), `GET /api/closet/candidates?slot=` (Swap), `POST
+    /api/closet/match` (photo → tag one image → plan around it; nothing
+    persisted), `POST /api/closet/garments/from-match` (Save as owned),
+    `POST /api/closet/wore` (outfit + wears, today in Denver), `POST
+    /api/closet/jobs/plan` (nightly: one plan per occasion chip in the
+    profile's default week for tomorrow; `plan.last_run`), added to
+    `JOB_ROUTES`. Model failure follows Discover's `rank()` contract and
+    stores `model_note`. *Tests:* each route with `FakeProvider` and with
+    `raises=LLMError(...)`; Wore this excludes the top tomorrow; match
+    leaves row counts unchanged.
+15. **Nightly step** `closet-plan` after `closet-tag`.
+16. **Frontend**: `AdminClosetToday` (`WeatherStrip`, occasion chips via
+    `FilterChips` with Bike as a toggle, `OutfitCard`, `OutfitAlt` ×2,
+    footnote), lock pill (hover and `:focus-within`, opacity),
+    `SwapSheet`, `MatchSheet` (closet picker mode, camera), Not this reason
+    row, Wore this → "Worn ✓ · Change". Closet's home becomes Today; the
+    Home **Closet card** (lead swatches, Wore this, Swap) and the Closet
+    rows in `lib/nightly.js`. *Tests:* page tests for each interaction with
+    fetch stubs; "picked without the model"; card hides with no plan.
+17. **Changelog** entry (unlinked).
+
+### PR D — Review and the cull
+
+18. **`closet.py` cull** (pure): the five data flags with their sentences,
+    duplicate clusters, the suggested outcome, season-turn membership and
+    count, due-back set. *Tests:* table-driven per flag, both turn dates,
+    a garment added mid-season is not "never worn".
+19. **Model opinion**: `POST /api/closet/jobs/opinion` (Sundays, one call
+    over the closet summary and flags; stored per garment with the batch
+    date; any failure stores no opinions and a note), in `JOB_ROUTES` and
+    the nightly Sunday block. *Tests:* opinions only for flagged pieces,
+    never alone as a flag, failure leaves the deck intact.
+20. **Routes**: `GET /api/closet/review` (deck, tiles, banner state),
+    `POST /api/closet/garments/{id}/decision` (four outcomes, `garment_decisions`
+    row, status changes, `back_on`), `POST /api/closet/pack-all` and
+    `/unpack-all` (return the ids for undo), `POST .../undo`, Mark sold,
+    banner dismiss in `closet_settings`. *Tests:* each outcome's writes;
+    packed never in Today's candidates or the Active grid; Pack all + undo
+    restores exactly the prior states.
+21. **Frontend**: `AdminClosetReview` (`SeasonTurnBanner`, `StatTiles`,
+    `ReviewDeck` with `EvidenceList` and `OutcomeRow`, Skip, empty state),
+    `SellChecklistSheet` (copy to clipboard), the due-back banner, Closet's
+    badge becomes the review count. *Tests:* deck order and advance,
+    opinion last with the word "Opinion:", outcomes, undo toast.
+22. **Docs**: README sections (Closet, the tag budget and the provider
+    escape hatch, the deploy order), `backend/` README notes for the new
+    modules, repo `CLAUDE.md` (Closet conventions, `0014`, the shell
+    areas), close the spec's acceptance checklist.
+
+## Milestones
+
+```
+Milestone 1 (auto): PR A — tasks 1–4 (frontend only), opened as PR A
+STOP — carve-out review: migration 0014 (table and enum list above),
+       Pillow + pillow-heif, three new JOB_ROUTES entries, the nightly.yml
+       steps (closet-tag, closet-plan, Sunday opinion)
+Milestone 2 (auto): PR B — tasks 5–10
+Milestone 3 (auto): PR C — tasks 11–17
+Milestone 4 (auto): PR D — tasks 18–22
+Finish gate per PR → PRs B, C, D opened as a stack
+```
+
+The carve-out stop happens once, before any of it is written; the
+reviewed list is then built across B–D without stopping again unless it
+grows. **Deploy order:** apply `0014` to Neon (`migrate_neon.py current`,
+then `upgrade`, from the PR B worktree), then merge B; C and D need no
+further migration. Merging A alone is safe at any time.
+
+## Environment testing
+
+- Backend: `./.venv/bin/pytest` from the main checkout's venv, one run at
+  a time (shared local test database). `pip install` the two new pins into
+  that venv first.
+- Frontend: `npm test`, `VITE_DAILY_SALT=local npm run build` per PR.
+- Browser, per PR: local API on `stats_dev` with dummy env vars (worktree
+  local verification note), Vite dev server, signed-in session; 1280 and
+  400px, both themes, against the mockups. PR B uploads real iPhone photos
+  (JPEG and HEIC) and checks orientation. One real tagging batch of ~5
+  garments through Gemini on the dev key is the only model spend before
+  merge.
+- Contrast: every new text/background pair and mark measured in both
+  themes, recorded beside the rules.
+
+## Smoke test strategy
+
+`smoke.sh` gains signed-out checks only (admin is private): `GET
+/api/closet/today`, `GET /api/closet/garments/1/image` and `POST
+/api/closet/jobs/tag` without the token all answer 401, and the new admin
+paths serve the shell (200, noindex). After PR B deploys, Joey uploads a
+first rack's worth on the phone and presses Tag now once; after PR C, the
+next morning's Today paints from the stored plan with no model call (the
+nightly row shows `closet-plan` ok).
