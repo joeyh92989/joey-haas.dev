@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: docs/planning/mockups/2026-11-08-travel-log/
 chosen: a-journal.html
 ---
@@ -314,6 +314,110 @@ Tokens used: `--font-display`, `--sunken`, `--accent-soft`, `--accent`,
       index, trip page and lightbox states.
 - [ ] `frontend/changelog.md` entry.
 
+## Plan-time decisions (2026-11-09)
+
+Answers to the open questions below, and the places this plan deviates
+from the spec. Each is settled; the list is the record of why.
+
+**D1 — Travel owns the shared drawn map.** Denver spots is not built (its
+worktree holds only its design doc), so the component this page needs does
+not exist. Rather than wait or ship the trip page without its route map,
+travel builds it: `components/DrawnMap.jsx` plus `lib/mapFit.js` (the pure
+affine fit), to the contract in `2026-11-08-denver-spots-design.md` →
+"`SpotMap`: the drawn poster component" — drawing as a prop, `{lat, lon}`
+stops, a two-reference-point `fit`, the out-of-area rule (a stop projecting
+outside the viewBox or within a 12px margin is not drawn but stays in the
+caption's stop list), token-only colour, and the `--surface` pin halo so a
+pin never depends on what is under it. *Deviation:* the component is named
+`DrawnMap`, not `SpotMap` — travel is the first consumer and a route map has
+no spots. Denver spots must consume `DrawnMap` and not add a second
+component; its plan inherits this name and the `lib/mapFit.js` tests.
+
+**D2 — The coastline is hand-authored, not derived.** The spec's open
+question recommends simplifying a Natural Earth or OSM coastline offline and
+committing the path. *Deviation:* this plan hand-authors the drawing,
+starting from the mockup's existing path for Croatia & Greece, and gets
+accuracy from the fit rather than the outline. At 560×320, stated in the
+caption as *Drawn route, not a live map*, a derived coastline buys no visual
+fidelity and costs a geodata chore per trip. Accuracy lives where it is
+checked: two reference points project within 1px of their measured
+positions and a third known point within 6px, as Denver's criteria require.
+Deriving an outline later changes one path string, nothing else.
+
+**D3 — Photo captions sit on an opaque bar, not `--overlay`.**
+`--overlay` is `color-mix(in srgb, var(--bg) 60%, transparent)`
+(`index.css:76`) — semi-transparent by design, which is why the shelf's
+format and replay marks sit on it over *posters*, whose corners are
+predictable. That measurement does not transfer to an arbitrary 1600px
+photo: a bright sky behind a 40%-transparent scrim guarantees no ratio.
+*Deviation from the spec* (which reuses the format-mark measurement) *and
+from the mockup* (which uses `linear-gradient(transparent, rgba(0,0,0,.55))`
+with white text and a text-shadow — raw colours the repo's token rule
+forbids). The caption is a strip across the image's bottom edge with
+`background: var(--bg)`, fully opaque, carrying `--text` at 0.8125rem: the
+pair the theme blocks already measure, correct in both themes over any
+photo. The lightbox backdrop stays `--overlay`; nothing has to be read
+through it.
+
+**D4 — Images are built locally and the output is committed.** Joey's call,
+and the spec's recommendation. `frontend/scripts/build-travel-images.mjs`
+runs on the owner's machine and writes `frontend/public/travel/<slug>/`,
+which is **committed** — the one exception to `public/` holding build output
+(`public/snapshot/` and `public/search-index.json` are gitignored,
+`.gitignore:24-28`). `npm run build` on Render only compiles markdown, so
+sharp's native binary and the resize minutes never touch the free tier.
+`sharp` goes in as a pinned devDependency (0.35.x; the repo pins
+`axe-core` and the fontsource packages exactly, so a tool this
+load-bearing is pinned too). Two facts from sharp's output docs that the
+script depends on: metadata is **stripped by default** — `keepMetadata()`
+or `withMetadata()` must be called to retain any, and neither is — and
+stripping EXIF also drops EXIF orientation, so the script calls `.rotate()`
+with no argument first to bake the orientation into the pixels. Without it,
+phone photos ship sideways.
+
+**D5 — The day grammar is a pure parser that fails the build.**
+`frontend/scripts/trip-markdown.mjs`, pure, imported by the Vite plugin and
+tested directly — the shape `src/lib/changelog.js` uses, and for the same
+reason: a bad trip file should fail `npm run build`, not the page. It throws
+on a `##` heading that is not `Day <label> · <title> · <place>`, a place not
+listed in `places`, an image line with no alt text, an image name absent
+from the trip's photo manifest, and a `kid: true` photo without
+`publish: true`.
+
+**D6 — Scope confirmations.** In: trips in the ⌘K search index; a "Latest
+trip" line on Home. Out: a travel RSS feed (sitemap entries are still
+required, and `/travel` plus one rule per published trip go into
+`render.yaml`).
+
+**D7 — Content.** Joey is handing over notes and photos for Croatia &
+Greece and Tokyo; the plan stops to collect them (Milestone 3). Until then a
+`draft: true` fixture trip carries the tests, so the pipeline is provable
+without waiting on content.
+
+**D8 — Drafts are `draft: true`, not `published: true`.** The spec's sample
+frontmatter uses `published: true`. *Deviation:* trips use the same
+`draft:` flag posts and notes use. The plugin already compiles a draft to
+`export default null` in a production build
+(`vite-plugin-markdown.js:102-105`), which is what keeps unpublished prose
+out of the shipped bundle rather than merely off the page; `readPublished`
+and `publishedEntries` both key on it. A second word for the same idea
+would mean a second code path for no gain.
+
+**D9 — A trip's start date is `date:`.** The plugin requires `title` and
+`date` and `publishedEntries` sorts on `frontmatter.date`
+(`markdownEntries.js:13-19`). *Deviation from the spec's `start:`/`end:`
+pair:* the start day is `date:` and the last day is `end:`, so trips sort
+newest-first through the shared helper and read through `readPublished`
+with no change to either. The facts row and the index kicker render the
+span from the two.
+
+**D10 — `/travel` is a gated page, not a `STATIC_PAGES` row.** It follows
+`TIL_PAGE` exactly: a `TRAVEL_PAGE` export in `content/pages.js`, pushed by
+`publicRoutes` only when a trip is published, so `staticPages(hasPosts)`
+is untouched and `prerender-lib.test.mjs`'s hard-coded count of ten static
+pages stays true. This is also what makes "hides until a trip is
+published" fall out of the existing machinery.
+
 ## Open questions for Code
 
 - **Image pipeline input.** Either commit the resized WebP output (simple,
@@ -342,3 +446,341 @@ Tokens used: `--font-display`, `--sunken`, `--accent-soft`, `--accent`,
   already shipped or in flight.
 - **Home line.** Whether Home gets a "Latest trip" line next to the
   facts table; cheap, but adds a third content module to Home's reads.
+
+---
+
+# Plan
+
+Written 2026-11-09 against the facts surveyed in the worktree; every path
+below is one that exists today unless marked **new**. Full tier.
+
+## Shape of the work
+
+```mermaid
+flowchart TD
+  P["M1 · Pipeline<br/>parser · plugin branch · content module · image build"] --> U["M2 · Surfaces<br/>mapFit · DrawnMap · index · trip page · lightbox · wiring"]
+  U --> S{"STOP<br/>carve-out review"}
+  S --> C["M3 · Content + deploy path<br/>trip markdown · images · render.yaml · changelog"]
+  C --> F["Finish gate → PR"]
+```
+
+The pipeline comes first because the page's shape is decided by what the
+parser emits, and the fixture trip it unlocks is what every page test
+renders. `render.yaml` is held to the end on purpose: with the fixture trip
+a draft, `publicRoutes` emits no `/travel`, and
+`prerender-lib.test.mjs`'s rewrite assertion is an **exact set equality**
+against the file — so the rewrite rules and the first published trip have
+to land in the same change or the suite is red either way.
+
+## Milestone 1 — Pipeline (autonomous)
+
+### T1 · The trip grammar, as a pure parser
+
+**New** `frontend/scripts/trip-markdown.mjs`, the one authority on a trip
+file's body and frontmatter, imported by the Vite plugin and tested
+directly — the shape `src/lib/changelog.js` uses, for the same reason: a bad
+trip file should fail `npm run build`, not the page.
+
+- `parseTripFrontmatter(data, slug)` → `{title, date, end, summary, cover,
+  places: [{name, lat, lon}]}`. Throws on a missing field, an `end` before
+  `date`, a `places` entry without a numeric `lat`/`lon`, a duplicate place
+  name, and a `cover` that is not a manifest name.
+- `parseTripDays(content, {places, photos})` → `[{id, label, title, place,
+  markdown, photos: [{name, alt, caption}]}]`. The `##` heading is split on
+  ` · ` into day label, title and place; the place must appear in `places`.
+  `id` is the anchor (`day-1`, `day-8-9`), derived from the label, and a
+  repeated id throws. Image lines (`![alt](name "caption")`) are lifted out
+  of the prose **before** markdown runs — there is no `rehype-raw` in the
+  processor, so an image left in the body would reach the page as a bare
+  `<img src="name">`. Two consecutive image lines are one two-up group; a
+  day with none is a postcard.
+- Throws, each with the file and heading in the message: a heading that
+  does not parse, an unknown place, an image with empty alt, an image name
+  absent from the manifest, and a `kid: true` photo without `publish: true`
+  (defence in depth — the image build refuses to emit it as well).
+
+**Tests** — **new** `frontend/scripts/trip-markdown.test.mjs`: one valid
+file parsed end to end (days, ids, places, one-up and two-up groups, a
+postcard day, a `Day 8–9` range), and one case per throw above.
+
+### T2 · A trips branch in the markdown plugin
+
+`frontend/vite-plugin-markdown.js`. The plugin is folder-agnostic
+(`transform` keys only on `.md`, line 82) and emits a fixed frontmatter
+whitelist (lines 108-115), so an unknown key is dropped silently — which is
+exactly the trap here. Add a branch for an id under `/trips/`:
+
+- validate through `parseTripFrontmatter`, then `parseTripDays`;
+- run each day's prose through the existing module-level `processor`, so
+  trips get the same GFM and the same two-palette Shiki pass as posts;
+- emit `{slug, frontmatter, days}` — `days[].html` replaces the single
+  `html` key. The draft rule (`export default null` in production) and the
+  `SLUG_PATTERN` check are shared, untouched.
+
+**Tests** — the grammar's tests carry the logic; the branch is covered by
+the first real build in T4's environment check and by `npm run build`.
+
+### T3 · The trips content module
+
+**New** `frontend/src/content/trips.js` — a verbatim copy of
+`content/notes.js` with `import.meta.glob('../../trips/*.md', {eager:
+true})`, exporting `trips` and `findTrip(slug)` through the existing
+`publishedEntries` / `findEntry` (no change to
+`src/lib/markdownEntries.js`: trips sort on `frontmatter.date`, which D9
+makes the start day).
+
+**New** `frontend/trips/` with the fixture trip
+`croatia-greece-2026.md`, `draft: true`, carrying every grammar feature the
+parser knows, and `frontend/trips/croatia-greece-2026/photos/` holding a
+handful of generated placeholder JPEGs plus `photos.json`.
+
+### T4 · The local image build
+
+**New** `frontend/scripts/build-travel-images.mjs`, run by hand
+(`node scripts/build-travel-images.mjs <slug>`), never by `npm run build`.
+Reads `frontend/trips/<slug>/photos/` and its `photos.json`
+(`[{name, file, kid?, publish?}]`); writes
+`frontend/public/travel/<slug>/<name>-800.webp` and `-1600.webp`; rewrites
+`photos.json` with each image's emitted `width`/`height` so the page can
+reserve space.
+
+- `sharp` as a **pinned devDependency** (0.35.x), matching how `axe-core`
+  and the fontsource packages are pinned. It never runs on Render.
+- `.rotate()` with no argument before resize. sharp strips all metadata by
+  default (`keepMetadata()` / `withMetadata()` are the opt-ins, and neither
+  is called), and that strip takes EXIF **orientation** with it — without
+  the rotate, phone photos ship sideways.
+- `webp({quality: 82})`; `fit: 'inside'`, no enlargement.
+- Refuses to emit a `kid: true` photo that lacks `publish: true`, and
+  refuses a `photos.json` name that is not a manifest-safe slug.
+- `frontend/trips/*/photos/` goes in `.gitignore` (originals stay out of
+  git); `frontend/public/travel/` is **committed** — the one exception to
+  `public/` being build output, called out in a `.gitignore` comment beside
+  the `public/snapshot/` and `public/search-index.json` lines it is
+  deliberately unlike.
+
+**Tests** — **new** `frontend/scripts/build-travel-images.test.mjs`: builds
+from a generated source image with EXIF orientation 6 and a GPS tag, then
+asserts both widths exist, the 1600 output's dimensions are landscape (the
+rotate ran), the bytes contain no `Exif` or GPS marker (the posture
+`src/meta.test.js:37-43` already uses for `og-card.png`), the manifest
+carries width and height, and the two refusals throw.
+
+*Parallel-safe:* T4 is independent of T1-T3 and of T5-T6.
+
+## Milestone 2 — Surfaces (autonomous)
+
+### T5 · `lib/mapFit.js` — the projection
+
+**New** `frontend/src/lib/mapFit.js`, pure. `fitFromPoints(refs)` takes two
+reference points (`{lat, lon, x, y}`) measured on the drawing and returns a
+projector: `x` linear in `lon`, `y` linear in inverted `lat`, no rotation.
+`project(fit, {lat, lon})` → `{x, y}`; `isOnMap(fit, point, viewBox,
+margin = 12)` → boolean. Also exports `scaleRatio(fit)` so a drawing whose
+two implied scales are far from `cos(latitude)` can be caught rather than
+shipped squashed.
+
+**Tests** — **new** `mapFit.test.js`: the two reference points project
+within 1px of their measured positions, a third known point within 6px, a
+point outside the viewBox and a point inside the 12px margin are both off
+the map, and `scaleRatio` flags a deliberately squashed fit. (These are
+Denver's acceptance criteria, met here.)
+
+### T6 · `DrawnMap` — the shared component
+
+**New** `frontend/src/components/DrawnMap.jsx` and **new**
+`frontend/src/content/maps/croatia-greece-2026.jsx` (the drawing: sea
+`--accent-soft`, land `--sunken`, an outline in `--line-strong`, the route
+as a dashed `--text-3` path, a mono sea label). Props: `drawing`, `fit`,
+`stops`, `viewBox`, `label`.
+
+- `role="img"` with an `aria-label` naming the stops in order; the stop
+  list in the caption below is the real text alternative, so the drawing
+  carries nothing on its own.
+- Numbered pins in `--accent` with a 1.5px `--surface` halo (the contrast
+  guarantee, from Denver's spec) and `--accent-ink` numerals; each pin is a
+  link to that place's first day.
+- A stop off the map is not drawn but keeps its number in the caption list.
+- Fonts come from CSS, not SVG attributes; the only motion is a 120 ms
+  hover/focus transform, inside
+  `@media (prefers-reduced-motion: no-preference)`.
+- No new tokens. *Deviation from the mockup,* which invents
+  `--map-land` / `--map-sea` / `--map-road`.
+
+**Tests** — **new** `DrawnMap.test.jsx`: the accessible name lists the
+stops in order, each pin links to its day anchor, a stop outside the
+viewBox renders no pin but still appears in the caption list, and axe is
+clean.
+
+### T7 · `/travel` index
+
+**New** `frontend/src/pages/Travel.jsx` and **new**
+`frontend/src/components/TripCard.jsx`. Cover at 16:9 from the trip's
+`cover` manifest entry (srcset 800/1600, width and height set), the
+`h1` in the Blog index's style, a one-line lede, cards newest first with
+kicker (*Sept 2026 · 12 days*), serif title, the places as a muted line and
+a photo count; the whole card one link. Place chips above the list through
+the existing `FilterChips` (`groups` single-select, `onChange` taking the
+whole next selection), the pressed place kept in the URL hash so a shared
+link lands filtered; `FilterChips` already hides a group with one option
+and nothing pressed, which is the "hidden when only one trip exists"
+requirement for free. Empty state: the page renders its lede and nothing
+else, and is unlinked (T11).
+
+**Tests** — **new** `Travel.test.jsx`, mocking `../content/trips.js` in the
+getter form `Til.test.jsx:7-24` uses: cards in order, a draft absent, chips
+filter, the hash restores a filter, empty state, axe.
+
+### T8 · `/travel/:slug` trip page
+
+**New** `frontend/src/pages/Trip.jsx`, in the 45rem prose column (**not**
+`WIDE_ROUTES`), plus **new** `components/DaySection.jsx`,
+`PhotoGroup.jsx`, `PostcardCard.jsx` and `TripPhoto.jsx`.
+
+Order is the spec's: kicker linking back to `/travel`, serif title, lede,
+facts row through the existing `FactsTable` (`rows: {label, value}[]`,
+labels unique), `DrawnMap` with its caption, place chips as jump links with
+`aria-current` on the place in view, then the days, then prev/next trip.
+`TripPhoto` is **new** rather than `CoverImage`, which exists for hotlinked
+covers with no intrinsic size: travel photos need `srcset`, `width`,
+`height` and `loading="lazy"` from the second group on. The caption is an
+opaque `--bg` strip on the image's bottom edge carrying `--text` (D3).
+`usePageTitle` on both pages; `findTrip` miss → `<NotFound />`, as
+`TilNote.jsx:18` does.
+
+**Tests** — **new** `Trip.test.jsx`: every section present and in order, a
+two-up group and a one-up group, a postcard day for a photo-less day, chips
+and pins pointing at the right anchors, the first group eager and the rest
+lazy, every photo carrying width and height, prev/next, a draft slug 404s,
+axe.
+
+### T9 · Lightbox
+
+**New** `frontend/src/components/Lightbox.jsx`, a native `<dialog>` opened
+with `showModal()` — the pattern `SearchDialog.jsx:38-54` and
+`WrapUpSheet.jsx:64-70` already use, including the backdrop-press guard
+(close only when the press began on the backdrop) and focus returning to
+the opener. The browser traps focus and inerts the page; Escape is routed
+through `onClose`; arrow keys move; prev/next are named *Next photo, 3 of
+12*. The backdrop stays `--overlay`.
+
+**Tests** — **new** `Lightbox.test.jsx`: opens from a photo, focus lands
+inside, Escape closes and focus returns to the opener, arrows move and wrap,
+the counter reads correctly, axe clean.
+
+### T10 · Styles
+
+`frontend/src/index.css`: one commented travel block — trip cards, the
+serif trip title, the route frame and caption, day sections, photo groups
+(two-up stacking at 400px), the postcard card with its stamp-corner kicker,
+the opaque caption strip, the lightbox. Tokens only; the block records D3's
+reasoning beside the caption rule, as the file records its other measured
+choices.
+
+### T11 · Wiring
+
+- `frontend/src/App.jsx`: `travel` and `travel/:slug` rows before the `*`
+  catch-all (lines 127-129), statically imported like the other public
+  pages.
+- `frontend/src/layouts/RootLayout.jsx`: `navItems(hasPosts, hasTrips)`
+  with a Travel item between Blog and the shelf, called inline as
+  `navItems(posts.length > 0, trips.length > 0)` (line 219); `hasTrips`
+  passed to `SiteFooter` beside `hasNotes` (line 242).
+- `frontend/src/components/SiteFooter.jsx`: `hasTrips = false` prop and a
+  Travel link, mirroring the TIL link at lines 22-26 — so the footer still
+  needs no content mock.
+- `frontend/src/content/pages.js`: a `TRAVEL_PAGE` export beside
+  `TIL_PAGE` (D10); `staticPages()` untouched.
+- `frontend/src/pages/Home.jsx`: a *Latest trip* fact through the existing
+  conditional spread (lines 55-66) and a Travel card in the Work grid
+  beside the Writing card (lines 117-125), both absent until a trip
+  publishes.
+- `frontend/src/lib/searchIndex.js`: a `trips` group in `GROUPS`;
+  `frontend/scripts/build-search-index.mjs`: a `tripsDir`, a `trips = []`
+  argument on `buildIndex`, the gated `TRAVEL_PAGE` push and
+  `entryOf('trips', '/travel')` over title, summary and day titles. The
+  100 KB gzipped budget is asserted by the existing test.
+- `frontend/scripts/prerender-lib.mjs`: a `trips = []` argument on
+  `publicRoutes`, a `TRAVEL_PAGE` row gated on `trips.length > 0` and a
+  `/travel/<slug>` row per trip (`type: 'article'`, `lastmod`, the cover as
+  the preview image when there is one) — the `notes` block at lines 162-179
+  is the template. `prerender.mjs`: a `tripsDir` and `trips: await
+  readPublished(tripsDir)` at lines 77-81.
+
+**Tests** — update the content mocks in `App.test.jsx`,
+`RootLayout.test.jsx`, `Home.test.jsx` and `SearchDialog.test.jsx` to
+include `content/trips.js`; add cases to `prerender-lib.test.mjs` (no
+`/travel` with nothing published; one route per published trip; the static
+count of ten unchanged) and to `build-search-index.test.mjs`.
+
+**STOP — carve-out review.** Everything past here touches the deploy path
+(`render.yaml`) and commits binary photo output. Nothing in M1-M2 changes
+infrastructure.
+
+## Milestone 3 — Content and the deploy path
+
+### T12 · The two trips
+
+Joey hands over notes and photos for Croatia & Greece (Sept 2026) and Tokyo
+(Oct 2026). I write `frontend/trips/croatia-greece-2026.md` and
+`tokyo-2026.md` from them in the grammar above, author each trip's
+coastline path and its two measured fit points (D2; the mockup's path is
+the starting point for the first), run `build-travel-images.mjs` per trip
+and commit `frontend/public/travel/`. The fixture trip becomes the real
+one or is deleted.
+
+### T13 · `render.yaml` and the sitemap
+
+A rewrite for `/travel` and one per published trip, placed after the `/til`
+rules and before the `/spine` ones, catch-all last. No placeholder rules: a
+rewrite to a file the build did not write serves an empty 200. The sitemap
+entries come free from `publicRoutes`. `prerender-lib.test.mjs`'s exact set
+equality is the check that the file and the build agree.
+
+### T14 · Documentation
+
+`frontend/changelog.md` gets its `## 2026-11-09` entry (a shipped feature
+adds one; it is part of done). README gains a **Travel log** section: the
+authoring grammar, the image build command, what is committed and what is
+not, and the ~50 MB / third-trip threshold at which hosting moves to an
+object store. A line in the repo `CLAUDE.md` conventions for the trips
+collection and for `DrawnMap` being the shared map component Denver spots
+is to consume.
+
+## Environment and verification
+
+Run in the worktree (`npm ci` in `frontend/` first; it has no
+`node_modules` yet):
+
+- `cd frontend && npm test` — the whole suite, including the new parser,
+  mapFit, component and page tests.
+- `cd frontend && npm run build` — proves the plugin branch, the gated
+  prerender and the search budget on the real content.
+- `npm run preview` and a pass over `/travel`, a trip page and the lightbox
+  at 400px and 1280px in **both** themes against
+  `docs/planning/mockups/2026-11-08-travel-log/a-journal.html`.
+- Lighthouse on the trip page for CLS 0 (the width/height and lazy-load
+  criterion).
+- Backend asleep: the trip page renders fully; the only request leaving the
+  origin is the analytics beacon (checked in the network panel).
+- After deploy: `./scripts/smoke.sh https://joey-haas.dev
+  https://api.joey-haas.dev`, then `/travel` and `/travel/<slug>/` by hand —
+  a new rewrite can serve a cached empty 200 for about five minutes after a
+  deploy, so re-check before calling it broken.
+
+## Risks
+
+- **The map is the long pole.** Hand-authoring a coastline and measuring
+  two fit points is fiddly handwork, and it is the one task with no
+  precedent in the repo. If T6 runs long, the honest fallback is to ship
+  the trip page with the caption's stop list and no drawing (the page is
+  still complete prose) and finish the map in a follow-up — the component
+  boundary makes that a one-line change.
+- **Committed photos are forever.** Git keeps a deleted blob, so a photo
+  committed by mistake (a kid photo, a GPS-tagged original) does not leave
+  the history. The two refusals in T4 and the parser's check are the
+  guard; the originals folder is gitignored so the unprocessed files cannot
+  be added by accident.
+- **Denver spots inherits a name.** Its plan must consume `DrawnMap` and
+  `lib/mapFit.js` rather than add `SpotMap`. Recorded in T14's CLAUDE.md
+  line so the next planning session sees it.
