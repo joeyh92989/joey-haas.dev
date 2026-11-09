@@ -485,10 +485,10 @@ else
 fi
 
 # The nightly job's token: no token and a wrong one are both refused.
-check_equals "POST /api/picker/next with a wrong job token" \
+check_equals "POST /api/comics/refresh with a wrong job token" \
   "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
     -H 'Authorization: Bearer wrong' -H 'Content-Type: application/json' \
-    -d '{}' "$API_URL/api/picker/next")" \
+    -d '{}' "$API_URL/api/comics/refresh")" \
   "401"
 
 # 401 rather than 404 or 405 proves both routes exist, are declared ahead of

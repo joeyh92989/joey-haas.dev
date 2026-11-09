@@ -382,7 +382,7 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Metadata sources | `backend/sources/` | One adapter per API behind a common interface: IGDB (games), TMDB (films), Comic Vine (comics); BGG is stubbed until its API is usable again. Each keeps a snapshot on the item for the shelf and the pickers |
 | Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
 | Public showcase | `backend/public.py`, `/shelf`, `/shelf/next` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
-| Play Next | `backend/picker.py`, `continuing.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/shelf/next`) as "Up next", and What's next's "Tonight" picks live from the same engine over public rows (games, plus Read next for comics and Watch next for movies), where the owner, signed in, can pin a pick, skip it, or start a comic or movie. While a game is being played, Tonight leads with it instead (a Continue card: playing since, journal hours and sessions, last played, stale after 21 quiet days) and the picks drop to a compact list; Wrap up finishes, pauses or abandons it with a rating, a line and the date |
+| Play Next | `backend/picker.py`, `taste.py`, `facets.py`, `picker_items.py`, `strategies.py`, `public_picks.py`, `continuing.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/shelf/next`) as "Up next", and What's next's "Tonight" picks live from the same engine over public rows (games, plus Read next for comics and Watch next for movies), where the owner, signed in, can pin a pick, skip it, or start a comic or movie. While a game is being played, Tonight leads with it instead (a Continue card: playing since, journal hours and sessions, last played, stale after 21 quiet days) and the picks drop to a compact list; Wrap up finishes, pauses or abandons it with a rating, a line and the date |
 | Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), its Switch 1 sheet (about 4,500 titles in about 10,000 editions, bulk-matched to IGDB's Switch list), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
 | Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want adds the game as a public want, and registry-dated cartridges appear on What's next |
 | Discover | `backend/discover.py`, `/admin/discover` | Released physical games on the owner's platforms, pre-scored by taste and re-ranked by one Gemini call with reasons; falls back to the deterministic ranking when the model cannot answer; its top picks appear on What's next, with reasons that name only public games |
@@ -571,9 +571,9 @@ limit is 150 minutes.
   a write credential for store listings, bounded by its validation (that
   store's own rows on its own host, real enums, store tiers only). A signed-in session is
   checked as before; the token never reaches any other admin route.
-- **Picks are live.** What's next's `tonight` picks no longer come from
-  this step: `public_picks.py` builds them from the live rows. The step
-  still records Play Next's own picks until the nightly drops it.
+- **Picks are live.** There is no picks step: `public_picks.py` builds
+  What's next's `tonight` picks from the live rows on each request, and
+  `POST /api/picker/next` is out of `JOB_ROUTES`.
 - **A failed step is a warning**, not a failure. Only a 200 or 201 is a
   success, and a 200 whose body reports `ok: false` (a catalogue source
   failed) is a failure. A 409 (the catalogue was busy), a 5xx, a timeout or
@@ -721,8 +721,9 @@ The body has these keys:
   `public_picks.py` (no shown or skipped event is read, so they change
   when something is finished, not when Play Next is used), each a card
   with `item_id`, `type`, `title`, `cover_url`, `platform`, `reasons`,
-  `slot_label` (Best fit, Change of pace or Overdue classic, null
-  otherwise and for "Change of pace" when the last finish is private),
+  `slot_label` (Best fit, Change of pace or Overdue classic, else null;
+  Change of pace is measured against the last *public* finish, so a later
+  private one changes nothing on the page),
   `time_to_beat_hours`, `size` (`{unit, value}`: hours, issues left or
   minutes; null when unknown) and `progress` (`{read, of}`, comics only);
   and `last_finish` (`item_id`,

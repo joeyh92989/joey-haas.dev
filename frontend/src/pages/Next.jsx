@@ -159,9 +159,9 @@ function ComicsThisWeek({ rows }) {
  * Tonight (Tonight picks spec): the Just finished chip, the lead card, and
  * the other picks under it. Signed in, each card can be pinned ("Play
  * this") or skipped ("Not tonight"); writes are optimistic, and a pin is
- * confirmed by a live refetch through `onRefresh`. A skip changes nothing
- * public until the next day's picks, so games skipped earlier today come
- * from `/api/picker/skipped-today` and are left out here.
+ * confirmed by a live refetch through `onRefresh`. The public picks never
+ * read a skip, so games skipped earlier today come from
+ * `/api/picker/skipped-today` and are left out here.
  *
  * Read next and Watch next follow the game picks (recommendation engine
  * spec). Their start button moves the comic or movie to Active through the
@@ -381,7 +381,8 @@ function Tonight({ tonight, signedIn, onRefresh }) {
         focusNext.current = { title: pick.item_id }
       },
       async () => {
-        await onRefresh()
+        // The move is saved; only the refetch failed, as after Wrap up.
+        if (!(await onRefresh())) setError(true)
       },
     )
   }

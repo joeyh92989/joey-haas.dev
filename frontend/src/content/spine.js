@@ -389,7 +389,7 @@ export const spine = {
       /** The dashed box when the game pool is empty; the lanes still stand. */
       games: {
         before:
-          'Nothing on the game shelf to pick from tonight. Picks come from games I own and haven’t started, paused or set aside, so this clears as soon as one is added — or',
+          'Nothing on the game shelf to pick from tonight. Picks come from games I own that are still in the backlog or paused, so this clears as soon as one is added — or',
         link: 'try Pick for me',
         after: '.',
       },
