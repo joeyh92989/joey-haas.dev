@@ -14,6 +14,7 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
+    Double,
     Enum,
     ForeignKey,
     Index,
@@ -812,4 +813,177 @@ class Recommendation(Base):
     # Radar: lane, section, release precision, hype, store lines (admin only).
     source_metadata: Mapped[dict] = mapped_column(
         JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+
+
+# --- Denver spots (migration 0013) -------------------------------------------
+#
+# docs/planning/2026-11-08-denver-spots-design.md. Tags, slugs and coordinates
+# are decided in `spots.py`; every write goes through `spots_routes.py`.
+
+
+class CandidateSource(str, enum.Enum):
+    OSM = "osm"
+    # Kept in the type although nothing writes it (the plan dropped Foursquare).
+    FOURSQUARE = "foursquare"
+
+
+class Spot(Base):
+    """A place the owner keeps (migration 0013), written by `spots_routes.py`.
+
+    Private until published, as items are. An `anchor` (home, work) is never
+    public even when `is_public` is set: the public read filters it out.
+    `blurb` is the public line; it is not called `note` because that key is
+    banned from every public body (tests/test_public_outputs.py, FORBIDDEN).
+    """
+
+    __tablename__ = "spots"
+    __table_args__ = (UniqueConstraint("slug", name="ux_spots_slug"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    slug: Mapped[str] = mapped_column(String(200), nullable=False)
+    lat: Mapped[float] = mapped_column(Double, nullable=False)
+    lng: Mapped[float] = mapped_column(Double, nullable=False)
+    neighbourhood: Mapped[str | None] = mapped_column(String(100))
+    blurb: Mapped[str | None] = mapped_column(Text)
+    # Canonical tags from spots.TAGS, in vocabulary order.
+    tags: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    is_public: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    anchor: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    city: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="denver", server_default="denver"
+    )
+    # Set when the spot was accepted from a candidate; NULL when added by hand.
+    source: Mapped[CandidateSource | None] = _enum_column(
+        CandidateSource, "candidate_source"
+    )
+    source_id: Mapped[str | None] = mapped_column(String(60))
+    created_at: Mapped[datetime] = _now_column()
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class Visit(Base):
+    """One day a spot was visited (migration 0013), written by
+    `spots_routes.py` (Log a visit, and the planner's Been). Private: no
+    public body carries a visit. Deleted with its spot."""
+
+    __tablename__ = "visits"
+    __table_args__ = (Index("ix_visits_spot_visited", "spot_id", "visited_on"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    spot_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("spots.id", ondelete="CASCADE"), nullable=False
+    )
+    visited_on: Mapped[date] = mapped_column(Date, nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _now_column()
+
+
+class Candidate(Base):
+    """A place the weekly finder turned up and the owner has not answered
+    (migration 0013). Replaced by each candidates run; Accept and Dismiss
+    delete the row."""
+
+    __tablename__ = "candidates"
+    __table_args__ = (
+        UniqueConstraint("source", "source_id", name="ux_candidates_source"),
+        CheckConstraint(
+            "fit IS NULL OR fit BETWEEN 0 AND 100", name="candidates_fit_range"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    source: Mapped[CandidateSource] = _enum_column(
+        CandidateSource, "candidate_source", nullable=False
+    )
+    source_id: Mapped[str] = mapped_column(String(60), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str | None] = mapped_column(String(60))
+    lat: Mapped[float] = mapped_column(Double, nullable=False)
+    lng: Mapped[float] = mapped_column(Double, nullable=False)
+    distance_m: Mapped[int | None] = mapped_column(Integer)
+    nearest_anchor_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("spots.id", ondelete="SET NULL")
+    )
+    # NULL with reason "not scored" when the model could not answer.
+    fit: Mapped[int | None] = mapped_column(SmallInteger)
+    reason: Mapped[str | None] = mapped_column(Text)
+    suggested_tags: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    fetched_at: Mapped[datetime] = _now_column()
+
+
+class Dismissal(Base):
+    """A candidate turned down for good (migration 0013): the finder never
+    offers this `(source, source_id)` again."""
+
+    __tablename__ = "dismissals"
+
+    source: Mapped[CandidateSource] = mapped_column(
+        Enum(
+            CandidateSource,
+            name="candidate_source",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        primary_key=True,
+    )
+    source_id: Mapped[str] = mapped_column(String(60), primary_key=True)
+    dismissed_at: Mapped[datetime] = _now_column()
+
+
+class WeatherHour(Base):
+    """One forecast hour for a gridpoint (migration 0013), written only by
+    the weather job; the weekend planner reads nothing else for weather.
+    `precip_pct` is NULL when the forecast gives no probability."""
+
+    __tablename__ = "weather_hours"
+    __table_args__ = (
+        UniqueConstraint("gridpoint", "starts_at", name="ux_weather_hours_slot"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    gridpoint: Mapped[str] = mapped_column(String(40), nullable=False)
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    temp_f: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    precip_pct: Mapped[int | None] = mapped_column(SmallInteger)
+    wind_mph: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    short: Mapped[str] = mapped_column(String(120), nullable=False)
+    fetched_at: Mapped[datetime] = _now_column()
+
+
+class SpotSetting(Base):
+    """One key/value blob for Denver spots (migration 0013), read and written
+    whole by `spots_routes.py`: run summaries (`run:candidates`,
+    `run:weather`), the planner's `constraints`, and `plan:<iso-week>`."""
+
+    __tablename__ = "spot_settings"
+
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )

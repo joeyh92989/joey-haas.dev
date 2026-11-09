@@ -389,10 +389,11 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Comics | `backend/comics.py`, `comics_routes.py`, `public_comics.py`, `/shelf/comics`, `/admin/pull-list` | Series rows with the issues I own as range text and collected editions; Comic Vine's issue list per followed series feeds the pull list and the public "Out this week". Only public series are ever shown publicly; following and skips stay private |
 | What's next | `backend/next_list.py`, `next_load.py`, `/shelf/next`, `/admin/store-list` | One pure sectioning authority over pending Discover and Radar rows, used by the public page (registry dates only, reasons rebuilt over public games) and the admin store list (any date, stored reasons) |
 
-Migrations `0001`–`0012` build this up: items, enrichment columns, copy
+Migrations `0001`–`0013` build this up: items, enrichment columns, copy
 columns, `pick_events`, the catalogue's five tables, the shared
 `recommendations` table, `play_sessions`, analytics, `pick_events.slot`,
-the comic columns, `playthroughs`, and a playthrough's `note`. They are applied by hand and must be additive — see
+the comic columns, `playthroughs`, a playthrough's `note`, and the
+Denver spots tables. They are applied by hand and must be additive — see
 [Database](#database).
 
 ### Tracker environment variables
