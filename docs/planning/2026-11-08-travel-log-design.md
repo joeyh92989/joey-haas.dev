@@ -848,6 +848,13 @@ both — so a heading cannot disagree with the frontmatter. `dayDates()`
 returns null at month or year precision, which leaves the kicker a bare
 *Day 3*. An invented day has nowhere to enter.
 
+*Settled while writing the ingest tool (T15):* D11 said the scaffold's day
+prose would be empty. It is `TODO` instead, like the title and summary: the
+grammar requires prose under every day heading, so an empty scaffold would
+not parse in `npm run dev`, and a draft has to render while it is written.
+The non-draft `TODO` guard (`assertNoPlaceholders`) is what keeps a
+scaffold from being published unfinished.
+
 ## Revised milestones
 
 Milestone 3 becomes **Onboarding**, and the content-and-deploy milestone
