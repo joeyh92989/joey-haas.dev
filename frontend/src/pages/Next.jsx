@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import JustFinishedChip from '../components/JustFinishedChip.jsx'
 import NextRow from '../components/NextRow.jsx'
+import PickForMe from '../components/PickForMe.jsx'
 import SortControl from '../components/SortControl.jsx'
 import SkippedToast from '../components/SkippedToast.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
@@ -388,6 +389,7 @@ export default function Next() {
   usePageTitle(`${copy.title} · ${spine.name}`)
   const { signedIn = false } = useOutletContext() ?? {}
   const { data: loaded, failed } = useSnapshotThenLive('next')
+  const { data: pickTable } = useSnapshotThenLive('pick-for-me')
   // A live body fetched after an owner's write outranks the page's first.
   const [refreshed, setRefreshed] = useState(null)
   const body = refreshed ?? loaded
@@ -449,6 +451,9 @@ export default function Next() {
             signedIn={signedIn}
             onRefresh={refresh}
           />
+          {isValidSnapshot('pick-for-me', pickTable) && (
+            <PickForMe table={pickTable} />
+          )}
           <ComicsThisWeek rows={data.comics_this_week} />
           <Section
             id="wanted"

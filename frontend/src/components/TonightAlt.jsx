@@ -19,8 +19,10 @@ const copy = spine.next.tonight
  *   (the tour's "Up next").
  * @param {(pick: object) => void} [props.onPlay]
  * @param {(pick: object) => void} [props.onSkip]
+ * @param {import('react').ReactNode} [props.children] - Drawn last, under
+ *   the reason (Pick for me's score breakdown).
  */
-export default function TonightAlt({ pick, label, onPlay, onSkip }) {
+export default function TonightAlt({ pick, label, onPlay, onSkip, children }) {
   const slot = label === undefined ? pick.slot_label : label
   const reason = pick.reasons?.[0]
   return (
@@ -62,6 +64,7 @@ export default function TonightAlt({ pick, label, onPlay, onSkip }) {
           </button>
         </div>
       )}
+      {children}
     </li>
   )
 }

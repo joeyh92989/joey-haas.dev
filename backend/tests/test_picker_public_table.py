@@ -75,3 +75,14 @@ def test_the_pool_keeps_candidates_rules():
     ]
     table = public_pick_table([], pool, TODAY)
     assert [p.item_id for p in table.combos["any|"]] == ["ok"]
+
+
+def test_the_band_reads_the_same_keys():
+    """frontend/src/lib/pick-for-me-keys.json is what pickForMe.test.js checks
+    the band's own keys against; regenerate it when combo_keys changes."""
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).parents[2] / "frontend/src/lib/pick-for-me-keys.json"
+    expected = [combo_key(size, moods) for size, moods in combo_keys()]
+    assert json.loads(path.read_text()) == expected
