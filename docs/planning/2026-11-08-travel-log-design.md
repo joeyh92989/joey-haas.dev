@@ -839,10 +839,14 @@ ticked off, not reference.
 `precision: day | month | year` frontmatter (default `day`). `date` and
 `end` stay real dates so sorting and `lastmod` keep working, but at month
 precision the facts row and index kicker render *June 2014* rather than
-inventing the 3rd, and a day heading may carry a bare label
-(`## Day 3 · Cliffs · Doolin`) with no date at all. The parser refuses a
-heading with a date the frontmatter's precision cannot support, so an
-invented day cannot creep in through the back door.
+inventing the 3rd.
+
+*Settled while writing the parser (T1):* a day heading never carries a
+date. It is `## Day <n> · <title> · <place>`, and the date is derived — day
+1 is the trip's `date`, day N is N-1 days later, a `Day 8–9` range spans
+both — so a heading cannot disagree with the frontmatter. `dayDates()`
+returns null at month or year precision, which leaves the kicker a bare
+*Day 3*. An invented day has nowhere to enter.
 
 ## Revised milestones
 
