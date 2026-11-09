@@ -322,7 +322,8 @@ class PlaythroughOutcome(str, enum.Enum):
 
 
 class Playthrough(Base):
-    """One run of a game, opened and closed by status changes (migration 0011).
+    """One run of a game, opened and closed by status changes (migration 0011,
+    `note` from 0012).
 
     `playthroughs.py` is the only writer: the status route, create, bulk
     create and the pin route all go through it, and it keeps the item's
@@ -364,6 +365,9 @@ class Playthrough(Base):
         ),
         nullable=True,
     )
+    # One line written as the run was closed or paused (migration 0012).
+    # The owner's, like a journal day's note: never published.
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
