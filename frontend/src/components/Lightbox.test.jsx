@@ -31,7 +31,7 @@ const PHOTOS = ['walls', 'lokrum', 'portara'].map((name) => ({
   caption: name === 'walls' ? 'On the wall' : null,
   width: 1600,
   height: 1067,
-  dayId: 'day-2',
+  day: 'Day 2 · The walls',
 }))
 
 /** A page with one opener per photo, holding the lightbox's state. */
@@ -79,8 +79,35 @@ describe('Lightbox', () => {
       'src',
       '/travel/croatia-greece-2026/lokrum-1600.webp',
     )
-    expect(dialog()).toHaveTextContent('2 of 3')
-    expect(dialog()).toContainElement(document.activeElement)
+    expect(dialog()).toHaveTextContent('Day 2 · The walls · 2 of 3')
+    expect(
+      within(dialog()).getByRole('button', { name: 'Next photo, 3 of 3' }),
+    ).toHaveFocus()
+  })
+
+  it('announces each step through its caption', async () => {
+    const user = userEvent.setup()
+    render(<Page />)
+    await user.click(screen.getByRole('button', { name: 'Open walls' }))
+    const caption = dialog().querySelector('figcaption')
+    expect(caption).toHaveAttribute('aria-live', 'polite')
+    await user.keyboard('{ArrowRight}')
+    expect(caption).toHaveTextContent('lokrum alt')
+  })
+
+  it('closes on a backdrop press only when the press began there', async () => {
+    const user = userEvent.setup()
+    render(<Page />)
+    await user.click(screen.getByRole('button', { name: 'Open walls' }))
+    // A drag from the image that ends on the backdrop is not a dismissal.
+    await user.pointer([
+      { keys: '[MouseLeft>]', target: shown() },
+      { target: dialog() },
+      { keys: '[/MouseLeft]', target: dialog() },
+    ])
+    expect(dialog()).toHaveAttribute('open')
+    await user.click(dialog())
+    expect(dialog()).not.toHaveAttribute('open')
   })
 
   it('names the buttons by where they go, and wraps at both ends', async () => {

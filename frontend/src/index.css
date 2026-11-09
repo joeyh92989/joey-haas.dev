@@ -6725,12 +6725,24 @@ main h1[tabindex='-1']:focus {
   cursor: zoom-in;
   display: block;
   padding: 0;
+  position: relative;
   width: 100%;
 }
 
+/* Two tones over the photo: an accent ring alone can vanish into a photo
+   of the same hue, so a --bg ring sits inside it. Drawn on ::after, above
+   the image; an inset shadow on the button would paint beneath it. */
 .trip-photo__open:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+  outline: none;
+}
+
+.trip-photo__open:focus-visible::after {
+  border: 2px solid var(--accent);
+  box-shadow: inset 0 0 0 2px var(--bg);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
 }
 
 /* D3: the caption is an opaque strip, never a scrim. --overlay is 60% --bg

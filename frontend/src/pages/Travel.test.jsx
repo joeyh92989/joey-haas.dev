@@ -72,15 +72,15 @@ afterEach(() => {
   content.trips = []
 })
 
-function ShowHash() {
-  return <output data-testid="hash">{useLocation().hash}</output>
+function ShowSearch() {
+  return <output data-testid="search">{useLocation().search}</output>
 }
 
 function renderTravel(entry = '/travel') {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Travel />
-      <ShowHash />
+      <ShowSearch />
     </MemoryRouter>,
   )
 }
@@ -127,29 +127,37 @@ describe('Travel', () => {
     expect(second).toHaveAttribute('loading', 'lazy')
   })
 
-  it('filters by place and keeps the choice in the hash', async () => {
+  it('filters by place and keeps the choice in the query', async () => {
     const user = userEvent.setup()
     content.trips = [CROATIA, LISBON, IRELAND]
     renderTravel()
     await user.click(screen.getByRole('button', { name: /Athens/ }))
     expect(titles()).toEqual(['Croatia & Greece', 'Lisbon'])
-    expect(screen.getByTestId('hash')).toHaveTextContent('#athens')
+    expect(screen.getByTestId('search')).toHaveTextContent('?place=athens')
     await user.click(screen.getByRole('button', { name: /Athens/ }))
     expect(titles()).toHaveLength(3)
-    expect(screen.getByTestId('hash')).toBeEmptyDOMElement()
+    expect(screen.getByTestId('search')).toBeEmptyDOMElement()
   })
 
-  it('restores a filter from the hash, and ignores one naming no place', () => {
+  it('restores a filter from the query, and ignores one naming no place', () => {
     content.trips = [CROATIA, LISBON, IRELAND]
-    const { unmount } = renderTravel('/travel#galway')
+    const { unmount } = renderTravel('/travel?place=galway')
     expect(titles()).toEqual(['Ireland'])
     expect(screen.getByRole('button', { name: /Galway/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
     unmount()
-    renderTravel('/travel#atlantis')
+    renderTravel('/travel?place=atlantis')
     expect(titles()).toHaveLength(3)
+  })
+
+  it('keeps the filter when the hash changes, and survives a malformed one', () => {
+    // The skip link's #main, or a hand-typed #%, which decodeURIComponent
+    // throws on, are not filters.
+    content.trips = [CROATIA, LISBON, IRELAND]
+    renderTravel('/travel?place=galway#%')
+    expect(titles()).toEqual(['Ireland'])
   })
 
   it('hides the chips when there is only one trip', () => {

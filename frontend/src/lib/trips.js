@@ -33,16 +33,16 @@ export function tripPhotos(trip) {
     for (const photo of day.photos) {
       if (seen.has(photo.name)) continue
       seen.add(photo.name)
-      photos.push({ ...photo, dayId: day.id })
+      photos.push({ ...photo, day: `Day ${day.label} · ${day.title}` })
     }
   }
   return photos
 }
 
 /**
- * A place name as a URL fragment: *Dubrovnik* → `dubrovnik`, *Hvar Town* →
+ * A place name as a URL value: *Dubrovnik* → `dubrovnik`, *Hvar Town* →
  * `hvar-town`, accents folded (*Korčula* → `korcula`), so a
- * shared `/travel#korcula` link survives being typed by hand.
+ * shared `/travel?place=korcula` link survives being typed by hand.
  */
 export function placeSlug(name) {
   return name

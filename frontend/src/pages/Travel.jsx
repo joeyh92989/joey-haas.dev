@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router'
+import { useSearchParams } from 'react-router'
 
 import FilterChips from '../components/FilterChips.jsx'
 import TripCard from '../components/TripCard.jsx'
@@ -33,10 +33,12 @@ function visits(trip, place) {
  * The travel index: every published trip, newest first, as cover cards.
  *
  * Place chips above the list filter the cards. The pressed place lives in
- * the URL hash (`/travel#naxos`), not in state, so a shared link lands
- * filtered and Back undoes nothing it should not: the hash is replaced,
- * not pushed. A hash that names no place is ignored rather than showing an
- * empty list. With one trip there are no chips: its two or three places
+ * the query (`/travel?place=naxos`), not in state, so a shared link lands
+ * filtered and Back undoes nothing it should not: the entry is replaced,
+ * not pushed. Not the hash, as the spec first had it: the skip link's
+ * `#main` would have cleared the filter, and a hand-typed `#%` threw in
+ * `decodeURIComponent`. A place that names no chip is ignored rather than
+ * showing an empty list. With one trip there are no chips: its two or three places
  * would pass `FilterChips`' one-chip rule, yet every chip would show the
  * same single card.
  *
@@ -45,17 +47,16 @@ function visits(trip, place) {
  */
 export default function Travel() {
   usePageTitle('Travel · Joey Haas')
-  const { hash } = useLocation()
-  const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
   const group = placeGroup(trips)
-  const wanted = decodeURIComponent(hash.replace(/^#/, ''))
+  const wanted = params.get('place')
   const place = group.options.some((option) => option.value === wanted)
     ? wanted
     : null
   const shown = place ? trips.filter((trip) => visits(trip, place)) : trips
 
   function select(next) {
-    navigate({ hash: next.place ? `#${next.place}` : '' }, { replace: true })
+    setParams(next.place ? { place: next.place } : {}, { replace: true })
   }
 
   return (

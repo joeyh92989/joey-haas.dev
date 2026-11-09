@@ -113,9 +113,9 @@ afterEach(() => {
   delete HTMLDialogElement.prototype.close
 })
 
-function renderTrip(slug) {
+function renderTrip(slug, hash = '') {
   return render(
-    <MemoryRouter initialEntries={[`/travel/${slug}`]}>
+    <MemoryRouter initialEntries={[`/travel/${slug}${hash}`]}>
       <Routes>
         <Route path="/travel/:slug" element={<Trip />} />
       </Routes>
@@ -175,8 +175,12 @@ describe('Trip', () => {
     const pair = walls.querySelector('.photo-group--two')
     expect(within(pair).getAllByRole('img')).toHaveLength(2)
     expect(within(pair).getByText('On the wall')).toBeInTheDocument()
-    // No caption: the alt is shown instead.
-    expect(within(pair).getByText('lokrum alt')).toBeInTheDocument()
+    // No caption: the alt is shown instead, hidden from screen readers,
+    // which have just read it as the image's name.
+    expect(within(pair).getByText('lokrum alt')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
 
     const chora = document.getElementById('day-5')
     const single = chora.querySelector('.photo-group')
@@ -209,6 +213,31 @@ describe('Trip', () => {
     for (const [, href] of chips) {
       expect(document.getElementById(href.slice(1))).not.toBeNull()
     }
+  })
+
+  it('focuses the day heading a #day link names', () => {
+    content.trips = [CROATIA]
+    renderTrip('croatia-greece-2026', '#day-4')
+    expect(document.querySelector('#day-4 h2')).toHaveFocus()
+  })
+
+  it('starts the next trip fresh, with no photo left open', async () => {
+    const user = userEvent.setup()
+    const withPhoto = {
+      ...LISBON,
+      days: [day('day-1', 1, 1, 'Trams', ['Lisbon'], [photo('tram')])],
+    }
+    content.trips = [CROATIA, withPhoto]
+    renderTrip('croatia-greece-2026')
+    await user.click(screen.getAllByRole('button', { name: 'walls alt' })[0])
+    expect(document.querySelector('dialog')).toHaveAttribute('open')
+    // The lightbox's own buttons are inert behind showModal in a browser;
+    // jsdom has no inertness, so leave through the trip nav directly.
+    await user.click(screen.getByRole('link', { name: /Lisbon/ }))
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'Lisbon',
+    )
+    expect(document.querySelector('dialog')).not.toHaveAttribute('open')
   })
 
   it('loads the first photo group eagerly and every later one lazily', () => {

@@ -17,6 +17,9 @@ import { photoSrc, photoSrcSet } from '../lib/trips.js'
  *
  * ← and → move, wrapping at both ends; the buttons name where they go
  * (*Next photo, 3 of 12*), so the counter is not the only way to know.
+ * The caption strip is a polite live region: a step changes only the image
+ * and the strip, so without it a screen reader hears nothing after ←/→.
+ * Beneath the caption, the day the photo was taken on, as the spec has it.
  *
  * @param {object} props
  * @param {string} props.slug
@@ -112,9 +115,10 @@ export default function Lightbox({
               height={photo.height ?? undefined}
               alt={photo.alt}
             />
-            <figcaption className="lightbox__caption">
-              {photo.caption ?? photo.alt}
+            <figcaption className="lightbox__caption" aria-live="polite">
+              <span>{photo.caption ?? photo.alt}</span>
               <span className="lightbox__count">
+                {photo.day && `${photo.day} · `}
                 {index + 1} of {count}
               </span>
             </figcaption>

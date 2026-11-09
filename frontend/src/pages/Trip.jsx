@@ -9,6 +9,7 @@ import { findMap } from '../content/maps/index.js'
 import { findTrip, trips } from '../content/trips.js'
 import { tripDateRange, tripDays, tripMonth } from '../lib/tripDates.js'
 import { placeSlug, tripPhotos } from '../lib/trips.js'
+import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 
@@ -69,6 +70,20 @@ function facts(trip, photos) {
 }
 
 /**
+ * The route's element. Keyed on the slug, so moving to the older or newer
+ * trip starts a fresh page: the lightbox's index and opener and the current
+ * chip belong to one trip and must not carry into the next.
+ *
+ * Chips and pins are plain `#day-N` links; useHashFocus moves focus to the
+ * day's heading when one is followed, so a keyboard user lands there too.
+ */
+export default function Trip() {
+  const { slug } = useParams()
+  useHashFocus()
+  return <TripPage key={slug} slug={slug} />
+}
+
+/**
  * One trip: kicker, title, lede, facts, the drawn route, place chips, the
  * days, then the older and newer trips — the spec's order (T8).
  *
@@ -76,8 +91,7 @@ function facts(trip, photos) {
  * not a gallery. Only the first photo group loads eagerly; the rest wait
  * until they are near.
  */
-export default function Trip() {
-  const { slug } = useParams()
+function TripPage({ slug }) {
   const trip = findTrip(slug)
 
   // Null when missing, so NotFound's own title stands (see usePageTitle).

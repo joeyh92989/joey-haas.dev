@@ -9,7 +9,8 @@ import { photoSrc, photoSrcSet } from '../lib/trips.js'
  *
  * The caption is an opaque `--bg` strip across the bottom edge (design D3):
  * a scrim over an arbitrary photo guarantees no contrast. It is the
- * markdown's quoted caption, or the alt text when there is none.
+ * markdown's quoted caption, or the alt text when there is none. That
+ * fallback is hidden from screen readers, which have just read the alt.
  *
  * With `onOpen`, the image is a button that opens the lightbox; the button
  * is named by the image's alt, so it reads as the photo it opens.
@@ -54,7 +55,7 @@ export default function TripPhoto({
         image
       )}
       <figcaption className="trip-photo__caption">
-        {photo.caption ?? photo.alt}
+        {photo.caption ?? <span aria-hidden="true">{photo.alt}</span>}
       </figcaption>
     </figure>
   )
