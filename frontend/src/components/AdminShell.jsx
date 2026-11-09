@@ -40,7 +40,10 @@ const ADMIN_GROUPS = [
   },
   {
     label: 'Denver',
-    items: [{ to: '/admin/spots', label: 'Spots' }],
+    items: [
+      { to: '/admin/weekend', label: 'Weekend' },
+      { to: '/admin/spots', label: 'Spots' },
+    ],
   },
 ]
 
