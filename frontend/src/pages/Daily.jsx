@@ -51,6 +51,14 @@ export default function Daily() {
   // True once this visit ends the game, so the result takes focus from the
   // input it replaces; a day restored finished leaves focus alone.
   const [endedHere, setEndedHere] = useState(false)
+  // The status line and the focus move belong to one day: a tab that rolls
+  // over at Denver midnight starts the new day without the old one's line.
+  const [shownDay, setShownDay] = useState(today)
+  if (shownDay !== today) {
+    setShownDay(today)
+    setStatus('')
+    setEndedHere(false)
+  }
 
   useEffect(() => {
     let cancelled = false

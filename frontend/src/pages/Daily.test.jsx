@@ -242,6 +242,21 @@ describe('Daily', () => {
     expect(await screen.findByText('Day 4 · 13 Nov')).toBeInTheDocument()
   })
 
+  it("clears the last day's status line when it rolls over", async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Day 3 · 12 Nov')
+    await guess(user, answer().title)
+    expect(screen.getByRole('status')).toHaveTextContent('Solved in 1.')
+
+    vi.setSystemTime(new Date('2026-11-13T19:00:00Z'))
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await screen.findByText('Day 4 · 13 Nov')
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
+
   it('shows the empty line when there is no snapshot', async () => {
     vi.mocked(readSnapshot).mockResolvedValue(null)
     renderPage()
