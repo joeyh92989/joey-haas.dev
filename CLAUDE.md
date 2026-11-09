@@ -569,7 +569,9 @@ before pushing.
   the previous pin and records an event in one transaction.
   The public picks (`tonight` on `/api/public/next`; the retired
   `/api/public/picks` rules carried over) are up to three games that are public, owned,
-  backlog or active, unpinned, with no never event and no skip at or after
+  backlog, active or paused, unpinned, and not in hand (a game being
+  played leads Tonight as its Continue card, so it is out of the pool
+  and never chooses the day), with no never event and no skip at or after
   their shown event; the day is the most recent of the seven UTC days
   ending yesterday on which one of those games was shown; only events
   before today's UTC midnight count, so the list changes at most once a
@@ -674,7 +676,10 @@ before pushing.
 - **`/api/public/next` is cached on a data fingerprint**
   (`backend/public_next_cache.py`, one entry per app); admin routes are not,
   and the store list stays live. The fingerprint is the UTC day, a count and
-  an `(id, xmin)` digest of every `items` and `recommendations` row, the
+  an `(id, xmin)` digest of every `items`, `recommendations`,
+  `playthroughs` and `play_sessions` row (the Continue card reads the open
+  run and its journal, which touch neither the item's xmin nor its
+  updated_at), the
   catalogue's finished runs, and the windowed shown and skipped pick events
   dated before midnight, for a Play Next commit that spans it. xmin, not `max(updated_at)`: SQL written by hand
   skips the ORM's `onupdate`, and an earlier transaction can commit after a
