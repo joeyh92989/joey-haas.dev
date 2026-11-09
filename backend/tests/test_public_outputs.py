@@ -55,15 +55,14 @@ pytestmark = pytest.mark.asyncio
 # so no test can straddle a UTC midnight.
 NOW = datetime(2026, 9, 28, 15, 0, tzinfo=UTC)
 MIDNIGHT = datetime.combine(NOW.date(), time.min, tzinfo=UTC)
-# Noon yesterday, UTC: every pick event sits on one whole day, before today's
-# midnight and within the seven-day window.
+# Noon yesterday, UTC: an event from before today's midnight.
 SHOWN_DAY = MIDNIGHT - timedelta(hours=12)
 
 # What a tonight card publishes. `item_id`, not `id`: What's next carries no key
 # named id (spec, S1).
 PICK_FIELDS = {
     "item_id", "type", "title", "cover_url", "platform", "reasons",
-    "slot_label", "time_to_beat_hours",
+    "slot_label", "size", "progress",
 }  # fmt: skip
 LAST_FINISH_FIELDS = {
     "item_id", "title", "cover_url", "finished_at", "time_to_beat_hours", "rating",
@@ -123,10 +122,6 @@ async def _add(factory, *rows):
         await session.commit()
 
 
-def _shown(item: Item, at: datetime, slot: str | None = None) -> PickEvent:
-    return PickEvent(item_id=item.id, action=PickAction.SHOWN, created_at=at, slot=slot)
-
-
 def _with_ids(*items: Item) -> tuple[Item, ...]:
     for entry in items:
         entry.id = uuid.uuid4()
@@ -141,6 +136,8 @@ async def test_the_tonight_card_publishes_exactly_these_fields():
         "continuing",
         "up_next",
         "picks",
+        "read_next",
+        "watch_next",
         "last_finish",
     }
 
@@ -215,11 +212,6 @@ async def test_the_continue_card_is_not_also_a_pick(sessionmaker_for_test):
     playing, other = _with_ids(_game("In hand"), _game("Fresh"))
     await _add(sessionmaker_for_test, playing, other)
     await _start(sessionmaker_for_test, playing, today - timedelta(days=40))
-    await _add(
-        sessionmaker_for_test,
-        _shown(playing, SHOWN_DAY, "pick_it_back_up"),
-        _shown(other, SHOWN_DAY, "best_fit"),
-    )
     tonight = (await _next(sessionmaker_for_test))["tonight"]
 
     assert [card["title"] for card in tonight["continuing"]] == ["In hand"]
@@ -321,187 +313,6 @@ def _hours(hours: float) -> dict:
     return {"genres": ["Roguelike", "Indie"], "time_to_beat": {"normally": hours}}
 
 
-async def test_picks_are_ordered_by_slot_from_each_games_latest_showing(
-    sessionmaker_for_test,
-):
-    """Best fit, then the second slot, then the third; a row from before
-    0009 has no slot and sorts last. A game shown twice takes its later slot."""
-    zulu, mike, alpha, bravo = _with_ids(
-        _game("Zulu"), _game("Mike"), _game("Alpha"), _game("Bravo")
-    )
-    await _add(sessionmaker_for_test, zulu, mike, alpha, bravo)
-    await _add(
-        sessionmaker_for_test,
-        _shown(bravo, SHOWN_DAY - timedelta(hours=2)),
-        _shown(mike, SHOWN_DAY - timedelta(hours=1), "waited_longest"),
-        _shown(alpha, SHOWN_DAY, "waited_longest"),
-        _shown(mike, SHOWN_DAY, "short_and_sweet"),
-        _shown(zulu, SHOWN_DAY, "best_fit"),
-    )
-    body = (await _next(sessionmaker_for_test))["tonight"]
-
-    assert [p["title"] for p in body["picks"]] == ["Zulu", "Mike", "Alpha"]
-    assert [p["slot_label"] for p in body["picks"]] == [
-        "Best fit",
-        "Short and sweet",
-        "Waited longest",
-    ]
-
-
-async def test_a_null_slot_and_pick_it_back_up_publish_no_label(
-    sessionmaker_for_test,
-):
-    """Pick it back up reports activity (D1), so its label is withheld."""
-    stalled, old = _with_ids(
-        _game("Stalled", status=ItemStatus.PAUSED), _game("Old Row")
-    )
-    await _add(sessionmaker_for_test, stalled, old)
-    await _add(
-        sessionmaker_for_test,
-        _shown(stalled, SHOWN_DAY, "pick_it_back_up"),
-        _shown(old, SHOWN_DAY),
-    )
-    picks = (await _next(sessionmaker_for_test))["tonight"]["picks"]
-
-    assert [(p["title"], p["slot_label"]) for p in picks] == [
-        ("Old Row", None),
-        ("Stalled", None),
-    ]
-
-
-async def test_change_of_pace_is_measured_against_a_public_last_finish(
-    sessionmaker_for_test,
-):
-    finished = NOW.date() - timedelta(days=5)
-    xeno, celeste, unknown = _with_ids(
-        _game(
-            "Xenoblade",
-            status=ItemStatus.FINISHED,
-            finished_at=finished,
-            cover_url="https://images.igdb.com/x.jpg",
-            source_metadata=_hours(61.6),
-        ),
-        _game("Celeste", source_metadata=_hours(7.6)),
-        _game("Unknown Size"),
-    )
-    await _add(sessionmaker_for_test, xeno, celeste, unknown)
-    await _add(
-        sessionmaker_for_test,
-        _shown(celeste, SHOWN_DAY, "change_of_pace"),
-        _shown(unknown, SHOWN_DAY, "best_fit"),
-    )
-    body = (await _next(sessionmaker_for_test))["tonight"]
-
-    lead, pace = body["picks"]
-    assert lead["title"] == "Unknown Size"
-    assert lead["time_to_beat_hours"] is None
-    assert pace["slot_label"] == "Change of pace"
-    assert pace["time_to_beat_hours"] == 7.6
-    assert pace["reasons"][0] == "About 8 h to finish, after 62 h of Xenoblade"
-    assert body["last_finish"] == {
-        "item_id": str(xeno.id),
-        "title": "Xenoblade",
-        "cover_url": "https://images.igdb.com/x.jpg",
-        "finished_at": finished.isoformat(),
-        "time_to_beat_hours": 61.6,
-        "rating": None,
-    }
-
-
-async def test_a_private_last_finish_withholds_change_of_pace(
-    sessionmaker_for_test,
-):
-    """AC9: a later private finish is the real last finish, so the label
-    may not point at the older public one. The chip still shows that one:
-    hidden, its absence would hint at the private finish."""
-    xeno, secret, celeste = _with_ids(
-        _game(
-            "Xenoblade",
-            status=ItemStatus.FINISHED,
-            finished_at=NOW.date() - timedelta(days=9),
-            source_metadata=_hours(62),
-        ),
-        _game(
-            "Secret Game",
-            is_public=False,
-            status=ItemStatus.FINISHED,
-            finished_at=NOW.date() - timedelta(days=2),
-            source_metadata=_hours(30),
-        ),
-        _game("Celeste", source_metadata=_hours(8)),
-    )
-    await _add(sessionmaker_for_test, xeno, secret, celeste)
-    await _add(sessionmaker_for_test, _shown(celeste, SHOWN_DAY, "change_of_pace"))
-    body = (await _next(sessionmaker_for_test))["tonight"]
-
-    assert body["last_finish"]["title"] == "Xenoblade"
-    [pace] = body["picks"]
-    assert pace["slot_label"] is None
-    assert not any("after" in reason for reason in pace["reasons"])
-    assert "Secret" not in str(body)
-
-
-async def test_a_withheld_label_sorts_like_an_unslotted_row(
-    sessionmaker_for_test,
-):
-    """Sorted by its real slot, an empty label's place would name it: third
-    is always Pick it back up, second before a labelled third is Change of
-    pace against a private finish. Withheld rows sort last, by title."""
-    secret, pace, fit, classic = _with_ids(
-        _game(
-            "Secret Game",
-            is_public=False,
-            status=ItemStatus.FINISHED,
-            finished_at=NOW.date() - timedelta(days=2),
-        ),
-        _game("A Pace"),
-        _game("Z Fit"),
-        _game("Z Classic"),
-    )
-    await _add(sessionmaker_for_test, secret, pace, fit, classic)
-    await _add(
-        sessionmaker_for_test,
-        _shown(pace, SHOWN_DAY, "change_of_pace"),
-        _shown(fit, SHOWN_DAY, "best_fit"),
-        _shown(classic, SHOWN_DAY, "overdue_classic"),
-    )
-    picks = (await _next(sessionmaker_for_test))["tonight"]["picks"]
-
-    assert [(p["title"], p["slot_label"]) for p in picks] == [
-        ("Z Fit", "Best fit"),
-        ("Z Classic", "Overdue classic"),
-        ("A Pace", None),
-    ]
-
-
-async def test_a_null_owned_format_counts_as_owned_for_change_of_pace(
-    sessionmaker_for_test,
-):
-    """picker counts a NULL owned_format as owned, so the public side must
-    too, or a private finish with no format would let the label through."""
-    xeno, secret, celeste = _with_ids(
-        _game(
-            "Xenoblade",
-            status=ItemStatus.FINISHED,
-            finished_at=NOW.date() - timedelta(days=9),
-            source_metadata=_hours(62),
-        ),
-        _game(
-            "Secret Game",
-            is_public=False,
-            owned_format=None,
-            status=ItemStatus.FINISHED,
-            finished_at=NOW.date() - timedelta(days=2),
-        ),
-        _game("Celeste", source_metadata=_hours(8)),
-    )
-    await _add(sessionmaker_for_test, xeno, secret, celeste)
-    await _add(sessionmaker_for_test, _shown(celeste, SHOWN_DAY, "change_of_pace"))
-    [pace] = (await _next(sessionmaker_for_test))["tonight"]["picks"]
-
-    assert pace["slot_label"] is None
-
-
 async def test_last_finish_is_a_public_owned_game_from_the_last_60_days(
     sessionmaker_for_test,
 ):
@@ -530,7 +341,8 @@ async def test_up_next_carries_hours_and_no_slot(sessionmaker_for_test):
     up_next = (await _next(sessionmaker_for_test))["tonight"]["up_next"]
 
     assert up_next["slot_label"] is None
-    assert up_next["time_to_beat_hours"] == 12.4
+    assert up_next["size"] == {"unit": "hours", "value": 12.4}
+    assert up_next["progress"] is None
 
 
 async def test_a_pinned_game_being_played_is_the_card_not_up_next(
@@ -568,180 +380,186 @@ async def test_a_pinned_game_that_was_finished_is_no_longer_up_next(
     assert tonight["last_finish"]["title"] == "Pinned"
 
 
-async def test_the_game_in_hand_neither_chooses_the_pick_day_nor_takes_a_slot(
-    sessionmaker_for_test,
-):
-    """The in-hand game is out of the pool, not cut from the answer: shown
-    today it must not move the day off yesterday's showable picks."""
-    playing, older = _with_ids(_game("In hand"), _game("Older Pick"))
-    await _add(sessionmaker_for_test, playing, older)
-    await _start(sessionmaker_for_test, playing, NOW.date() - timedelta(days=2))
+# --- The live set (recommendation engine spec, "The public set is live") ---
+
+
+def _comic(title: str, **fields) -> Item:
+    base = dict(
+        type=ItemType.COMIC,
+        title=title,
+        status=ItemStatus.BACKLOG,
+        is_public=True,
+        owned_format=OwnedFormat.PHYSICAL,
+        issues_owned="1–10",
+        read_to=3,
+        source_metadata={"publisher": "Image"},
+    )
+    return Item(**{**base, **fields})
+
+
+def _movie(title: str, **fields) -> Item:
+    base = dict(
+        type=ItemType.MOVIE,
+        title=title,
+        status=ItemStatus.BACKLOG,
+        is_public=True,
+        owned_format=OwnedFormat.PHYSICAL,
+        source_metadata={"runtime_minutes": 118, "genres": ["Drama"]},
+    )
+    return Item(**{**base, **fields})
+
+
+async def test_picks_are_live_with_no_pick_event_at_all(sessionmaker_for_test):
     await _add(
         sessionmaker_for_test,
-        _shown(playing, SHOWN_DAY, "best_fit"),
-        _shown(older, SHOWN_DAY - timedelta(days=1), "best_fit"),
-    )
-    tonight = (await _next(sessionmaker_for_test))["tonight"]
-
-    assert [card["title"] for card in tonight["continuing"]] == ["In hand"]
-    assert [pick["title"] for pick in tonight["picks"]] == ["Older Pick"]
-
-
-async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(
-    sessionmaker_for_test,
-):
-    hades, pick_a, pick_b, pick_c, pick_d, older = _with_ids(
-        _game("Hades", favorite=True, status=ItemStatus.FINISHED),
-        _game("Alpha"),
-        _game("Bravo", status=ItemStatus.PAUSED),
+        _game("Alpha", source_metadata=_hours(6)),
+        _game("Bravo", source_metadata=_hours(20)),
         _game("Charlie"),
         _game("Delta"),
-        _game("Older"),
     )
-    latest = SHOWN_DAY
-    await _add(sessionmaker_for_test, hades, pick_a, pick_b, pick_c, pick_d, older)
+    picks = (await _next(sessionmaker_for_test))["tonight"]["picks"]
+
+    assert len(picks) == 3
+    assert [set(pick) for pick in picks] == [PICK_FIELDS] * 3
+    assert picks[0]["slot_label"] == "Best fit"
+    assert all(pick["type"] == "game" for pick in picks)
+
+
+async def test_an_event_written_today_changes_nothing(sessionmaker_for_test):
+    """AC 2: browsing Play Next writes events; the public set reads none
+    but the nevers from before midnight."""
+    games = _with_ids(*(_game(f"Game {n}") for n in range(5)))
+    await _add(sessionmaker_for_test, *games)
+    before = await _next(sessionmaker_for_test)
     await _add(
         sessionmaker_for_test,
-        _shown(pick_a, latest - timedelta(minutes=3)),
-        _shown(pick_b, latest - timedelta(minutes=2)),
-        _shown(pick_c, latest - timedelta(minutes=1)),
-        _shown(pick_d, latest),
-        _shown(older, latest - timedelta(days=1)),
-    )
-    async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/next")
-
-    assert response.status_code == 200
-    body = response.json()["tonight"]["picks"]
-    # One day, three picks, by title: shown times ascend with the title, so
-    # latest-first would be Delta, Charlie, Bravo.
-    assert [row["title"] for row in body] == ["Alpha", "Bravo", "Charlie"]
-    for row in body:
-        assert set(row) == PICK_FIELDS
-        assert "Roguelike, across my shelf: Hades" in row["reasons"]
-
-
-async def test_picks_leave_out_what_is_not_a_public_suggestion(
-    sessionmaker_for_test,
-):
-    (
-        keep,
-        private,
-        wanted,
-        finished,
-        pinned,
-        never,
-        skipped_after,
-        skipped_before,
-    ) = _with_ids(
-        _game("Keep"),
-        _game("Private", is_public=False),
-        _game("Wanted", owned_format=OwnedFormat.NONE),
-        _game("Finished", status=ItemStatus.FINISHED),
-        _game("Pinned", pinned_at=NOW, status=ItemStatus.ACTIVE),
-        _game("Never"),
-        _game("Skipped After"),
-        _game("Skipped Before"),
-    )
-    shown_at = SHOWN_DAY
-    rows = (
-        keep,
-        private,
-        wanted,
-        finished,
-        pinned,
-        never,
-        skipped_after,
-        skipped_before,
-    )
-    await _add(sessionmaker_for_test, *rows)
-    await _add(
-        sessionmaker_for_test,
-        *(_shown(row, shown_at) for row in rows),
-        PickEvent(
-            item_id=never.id,
-            action=PickAction.NEVER,
-            created_at=shown_at - timedelta(days=40),
-        ),
-        PickEvent(
-            item_id=skipped_after.id,
-            action=PickAction.SKIPPED,
-            created_at=shown_at + timedelta(minutes=1),
-        ),
-        PickEvent(
-            item_id=skipped_before.id,
-            action=PickAction.SKIPPED,
-            created_at=shown_at - timedelta(days=3),
+        *(
+            PickEvent(item_id=game.id, action=action, created_at=NOW, slot="best_fit")
+            for game in games
+            for action in (PickAction.SHOWN, PickAction.SKIPPED, PickAction.NEVER)
         ),
     )
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
+    after = await _next(sessionmaker_for_test)
 
-    assert sorted(row["title"] for row in body) == ["Keep", "Skipped Before"]
+    assert after["tonight"] == before["tonight"]
 
 
-async def test_a_never_from_a_month_ago_still_excludes_a_game_shown_yesterday(
-    sessionmaker_for_test,
-):
-    # The event query is bounded to the window for shown and skipped events,
-    # but a never is permanent: it must stay outside that bound.
+async def test_a_never_from_before_midnight_leaves_the_set(sessionmaker_for_test):
     kept, refused = _with_ids(_game("Kept"), _game("Refused"))
-    await _add(sessionmaker_for_test, kept, refused)
     await _add(
         sessionmaker_for_test,
-        _shown(kept, SHOWN_DAY),
-        _shown(refused, SHOWN_DAY),
-        PickEvent(
-            item_id=refused.id,
-            action=PickAction.NEVER,
-            created_at=SHOWN_DAY - timedelta(days=30),
+        kept,
+        refused,
+        PickEvent(item_id=refused.id, action=PickAction.NEVER, created_at=SHOWN_DAY),
+        # A skip is a "not tonight" for the owner, never a public refusal.
+        PickEvent(item_id=kept.id, action=PickAction.SKIPPED, created_at=SHOWN_DAY),
+    )
+    picks = (await _next(sessionmaker_for_test))["tonight"]["picks"]
+    assert [pick["title"] for pick in picks] == ["Kept"]
+
+
+async def test_finishing_a_game_changes_the_picks_and_the_chip_together(
+    sessionmaker_for_test,
+):
+    """AC 1: the finish that changes Just finished changes the picks in the
+    same read, with no pick event written."""
+    today = NOW.date()
+    playing, waiting = _with_ids(_game("Playing"), _game("Waiting"))
+    await _add(sessionmaker_for_test, playing, waiting)
+    async with sessionmaker_for_test() as session:
+        row = await session.get(Item, playing.id)
+        await apply_status(session, row, ItemStatus.PAUSED, today)
+        await session.commit()
+    before = (await _next(sessionmaker_for_test))["tonight"]
+    assert {pick["title"] for pick in before["picks"]} == {"Playing", "Waiting"}
+
+    async with sessionmaker_for_test() as session:
+        row = await session.get(Item, playing.id)
+        await apply_status(session, row, ItemStatus.FINISHED, today)
+        await session.commit()
+    after = (await _next(sessionmaker_for_test))["tonight"]
+
+    assert [pick["title"] for pick in after["picks"]] == ["Waiting"]
+    assert after["last_finish"]["title"] == "Playing"
+    async with sessionmaker_for_test() as session:
+        events = (await session.execute(select(PickEvent))).scalars().all()
+    assert events == []
+
+
+async def test_change_of_pace_names_a_public_last_finish(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _game(
+            "Xenoblade",
+            status=ItemStatus.FINISHED,
+            finished_at=NOW.date() - timedelta(days=5),
+            source_metadata=_hours(61.6),
+        ),
+        _game("Celeste", source_metadata=_hours(7.6)),
+        _game("Hollow", source_metadata=_hours(12)),
+    )
+    _lead, pace = (await _next(sessionmaker_for_test))["tonight"]["picks"]
+
+    assert pace["slot_label"] == "Change of pace"
+    hours = round(pace["size"]["value"])
+    assert pace["reasons"][0] == f"About {hours} h to finish, after 62 h of Xenoblade"
+
+
+async def test_a_private_last_finish_withholds_change_of_pace(
+    sessionmaker_for_test,
+):
+    """A later private finish is the real last finish, so the label may not
+    point at the older public one. The chip still shows that one: hidden,
+    its absence would hint at the private finish."""
+    await _add(
+        sessionmaker_for_test,
+        _game(
+            "Xenoblade",
+            status=ItemStatus.FINISHED,
+            finished_at=NOW.date() - timedelta(days=9),
+            source_metadata=_hours(62),
+        ),
+        _game(
+            "Secret Game",
+            is_public=False,
+            status=ItemStatus.FINISHED,
+            finished_at=NOW.date() - timedelta(days=2),
+            source_metadata=_hours(30),
+        ),
+        _game("Celeste", source_metadata=_hours(8)),
+        _game("Hollow", source_metadata=_hours(12)),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/next")
+    tonight = response.json()["tonight"]
+
+    assert tonight["last_finish"]["title"] == "Xenoblade"
+    assert [pick["slot_label"] for pick in tonight["picks"]] == ["Best fit", None]
+    assert "after" not in json.dumps(tonight["picks"])
+    assert "Secret" not in response.text
+
+
+async def test_overdue_classic_leads_with_its_release_year(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        *(
+            _game(f"Game {year}", release_date=date(year, 6, 1))
+            for year in (1999, 2004, 2012, 2020)
         ),
     )
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
+    picks = (await _next(sessionmaker_for_test))["tonight"]["picks"]
+    third = picks[2]
+    year = int(third["title"].split()[-1])
 
-    assert [row["title"] for row in body] == ["Kept"]
-
-
-async def test_a_shown_event_from_ten_days_ago_does_not_count(
-    sessionmaker_for_test,
-):
-    old, recent = _with_ids(_game("Old"), _game("Recent"))
-    await _add(sessionmaker_for_test, old, recent)
-    await _add(
-        sessionmaker_for_test,
-        _shown(old, SHOWN_DAY - timedelta(days=10)),
-        _shown(recent, SHOWN_DAY),
-    )
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
-
-    assert [row["title"] for row in body] == ["Recent"]
-
-
-async def test_picks_are_empty_once_the_latest_shown_day_is_a_week_old(
-    sessionmaker_for_test,
-):
-    # Eight days before today: the window is the seven days ending yesterday.
-    (stale,) = _with_ids(_game("Stale"))
-    await _add(sessionmaker_for_test, stale)
-    await _add(sessionmaker_for_test, _shown(stale, SHOWN_DAY - timedelta(days=7)))
-    async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/next")
-    assert response.status_code == 200
-    assert response.json()["tonight"]["picks"] == []
-
-
-async def test_picks_are_empty_before_play_next_has_run(sessionmaker_for_test):
-    async with client_for(sessionmaker_for_test) as client:
-        response = await client.get("/api/public/next")
-    assert response.json()["tonight"]["picks"] == []
+    assert third["slot_label"] == "Overdue classic"
+    assert third["reasons"][0] == f"Out since {year}"
 
 
 async def test_a_pick_never_names_a_private_game_or_a_private_date(
     sessionmaker_for_test,
 ):
-    secret, candidate = _with_ids(
+    await _add(
+        sessionmaker_for_test,
         _game(
             "Secret Favourite",
             is_public=False,
@@ -756,14 +574,11 @@ async def test_a_pick_never_names_a_private_game_or_a_private_date(
             status=ItemStatus.PAUSED,
         ),
     )
-    await _add(sessionmaker_for_test, secret, candidate)
-    await _add(sessionmaker_for_test, _shown(candidate, SHOWN_DAY))
     async with client_for(sessionmaker_for_test) as client:
         response = await client.get("/api/public/next")
 
-    assert [row["title"] for row in response.json()["tonight"]["picks"]] == [
-        "Public Candidate"
-    ]
+    picks = response.json()["tonight"]["picks"]
+    assert [row["title"] for row in picks] == ["Public Candidate"]
     for leaked in (
         "Secret Favourite",
         "On the shelf since",
@@ -773,123 +588,39 @@ async def test_a_pick_never_names_a_private_game_or_a_private_date(
         assert leaked not in response.text
 
 
-async def test_the_pick_day_ignores_shown_games_the_public_cannot_see(
-    sessionmaker_for_test,
-):
-    # Yesterday's only shown games are private or were skipped after being
-    # shown: the day before's public pick must still be returned, not [].
-    earlier_pick, private, skipped = _with_ids(
-        _game("Earlier Pick"),
-        _game("Private Yesterday", is_public=False),
-        _game("Skipped Yesterday"),
-    )
-    await _add(sessionmaker_for_test, earlier_pick, private, skipped)
+async def test_read_next_and_watch_next_carry_the_same_card(sessionmaker_for_test):
     await _add(
         sessionmaker_for_test,
-        _shown(earlier_pick, SHOWN_DAY - timedelta(days=1)),
-        _shown(private, SHOWN_DAY),
-        _shown(skipped, SHOWN_DAY),
-        PickEvent(
-            item_id=skipped.id,
-            action=PickAction.SKIPPED,
-            created_at=SHOWN_DAY + timedelta(minutes=1),
-        ),
+        _comic("Saga"),
+        _comic("Paper Girls", issues_owned="1–5", read_to=5),  # nothing left
+        _comic("Private Run", is_public=False),
+        _movie("Heat"),
     )
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
+    tonight = (await _next(sessionmaker_for_test))["tonight"]
 
-    assert [row["title"] for row in body] == ["Earlier Pick"]
-
-
-async def test_picks_from_seven_days_ago_are_still_inside_the_window(
-    sessionmaker_for_test,
-):
-    (recent,) = _with_ids(_game("Seven Days Ago"))
-    await _add(sessionmaker_for_test, recent)
-    await _add(sessionmaker_for_test, _shown(recent, SHOWN_DAY - timedelta(days=6)))
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
-
-    assert [row["title"] for row in body] == ["Seven Days Ago"]
-
-
-async def test_a_game_shown_today_waits_until_tomorrow(sessionmaker_for_test, clock):
-    # Play Next's use today is not public until the day is over: yesterday's
-    # pick shows, and today's appears only once the clock passes midnight.
-    yesterday, today_only = _with_ids(_game("Yesterday"), _game("Today Only"))
-    await _add(sessionmaker_for_test, yesterday, today_only)
-    await _add(
-        sessionmaker_for_test,
-        _shown(yesterday, SHOWN_DAY),
-        _shown(today_only, MIDNIGHT + timedelta(minutes=1)),
+    (comic,) = tonight["read_next"]
+    assert set(comic) == PICK_FIELDS
+    assert (comic["title"], comic["type"], comic["platform"]) == (
+        "Saga",
+        "comic",
+        "Image",
     )
-    async with client_for(sessionmaker_for_test) as client:
-        before = (await client.get("/api/public/next")).json()["tonight"]["picks"]
-        clock(NOW + timedelta(days=1))
-        after = (await client.get("/api/public/next")).json()["tonight"]["picks"]
+    assert comic["size"] == {"unit": "issues", "value": 7.0}
+    assert comic["progress"] == {"read": 3, "of": 10}
+    (movie,) = tonight["watch_next"]
+    assert set(movie) == PICK_FIELDS
+    assert movie["size"] == {"unit": "minutes", "value": 118.0}
+    assert movie["progress"] is None
+    assert tonight["picks"] == []
 
-    assert [row["title"] for row in before] == ["Yesterday"]
-    assert [row["title"] for row in after] == ["Today Only"]
 
-
-async def test_a_skip_or_never_today_keeps_yesterdays_pick(sessionmaker_for_test):
-    skipped, nevered = _with_ids(_game("Skipped Today"), _game("Nevered Today"))
-    await _add(sessionmaker_for_test, skipped, nevered)
-    await _add(
-        sessionmaker_for_test,
-        _shown(skipped, SHOWN_DAY),
-        _shown(nevered, SHOWN_DAY),
-        PickEvent(
-            item_id=skipped.id,
-            action=PickAction.SKIPPED,
-            created_at=MIDNIGHT + timedelta(hours=1),
-        ),
-        PickEvent(
-            item_id=nevered.id,
-            action=PickAction.NEVER,
-            created_at=MIDNIGHT + timedelta(hours=1),
-        ),
+async def test_empty_lanes_are_empty_lists(sessionmaker_for_test):
+    tonight = (await _next(sessionmaker_for_test))["tonight"]
+    assert (tonight["picks"], tonight["read_next"], tonight["watch_next"]) == (
+        [],
+        [],
+        [],
     )
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
-
-    assert [row["title"] for row in body] == ["Nevered Today", "Skipped Today"]
-
-
-async def test_picks_within_the_day_are_in_title_order(sessionmaker_for_test):
-    # Time order (Echo, Zulu, Mike, Alpha latest first) differs from title
-    # order, and the limit keeps the first three titles, not the latest three.
-    alpha, echo, mike, zulu = _with_ids(
-        _game("Alpha"), _game("Echo"), _game("Mike"), _game("Zulu")
-    )
-    day = MIDNIGHT - timedelta(days=1)
-    await _add(sessionmaker_for_test, alpha, echo, mike, zulu)
-    await _add(
-        sessionmaker_for_test,
-        _shown(alpha, day + timedelta(hours=1)),
-        _shown(mike, day + timedelta(hours=9)),
-        _shown(zulu, day + timedelta(hours=12)),
-        _shown(echo, day + timedelta(hours=23)),
-    )
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
-
-    assert [row["title"] for row in body] == ["Alpha", "Echo", "Mike"]
-
-
-async def test_a_skip_at_the_shown_instant_removes_the_pick(sessionmaker_for_test):
-    kept, skipped = _with_ids(_game("Kept"), _game("Skipped At Once"))
-    await _add(sessionmaker_for_test, kept, skipped)
-    await _add(
-        sessionmaker_for_test,
-        _shown(kept, SHOWN_DAY),
-        _shown(skipped, SHOWN_DAY),
-        PickEvent(item_id=skipped.id, action=PickAction.SKIPPED, created_at=SHOWN_DAY),
-    )
-    async with client_for(sessionmaker_for_test) as client:
-        body = (await client.get("/api/public/next")).json()["tonight"]["picks"]
-
-    assert [row["title"] for row in body] == ["Kept"]
 
 
 TODAY = NOW.date()
@@ -1102,7 +833,6 @@ async def test_no_private_key_appears_anywhere(sessionmaker_for_test):
         pinned,
         picked,
         wanted,
-        _shown(picked, SHOWN_DAY),
         _radar("Soon"),
         _radar("Out", release_date=TODAY - timedelta(days=3)),
         _radar("Digital", physical_format=None, source_metadata={"lane": "digital"}),
@@ -1372,15 +1102,6 @@ async def test_next_publishes_no_store_price_window_or_stored_reason(
         assert leaked not in response.text
 
 
-async def test_generated_at_names_the_pick_day(sessionmaker_for_test):
-    picked = _game("Picked")
-    _with_ids(picked)
-    await _add(sessionmaker_for_test, picked, _shown(picked, SHOWN_DAY))
-    body = await _next(sessionmaker_for_test)
-    assert body["generated_at"]["picks"] == SHOWN_DAY.date().isoformat()
-    assert body["tonight"]["up_next"] is None
-
-
 async def test_generated_at_publishes_utc_days_only(sessionmaker_for_test):
     """The owner's generate and store-run times are published to the day,
     as the pick day is: a timestamp would say when the owner was working."""
@@ -1406,7 +1127,6 @@ async def test_generated_at_publishes_utc_days_only(sessionmaker_for_test):
     )
     body = await _next(sessionmaker_for_test)
     assert body["generated_at"] == {
-        "picks": None,
         "catalogue": "2026-09-27",
         "radar": "2026-09-27",
         "discover": "2026-09-27",
@@ -1420,7 +1140,13 @@ NOT_FIRST_PERSON = re.compile(
 
 
 def _reasons(body: dict) -> list[str]:
-    cards = [body["tonight"]["up_next"] or {"reasons": []}, *body["tonight"]["picks"]]
+    tonight = body["tonight"]
+    cards = [
+        tonight["up_next"] or {"reasons": []},
+        *tonight["picks"],
+        *tonight["read_next"],
+        *tonight["watch_next"],
+    ]
     rows = [row for key in ("wanted", *STORE_SECTIONS) for row in body[key]]
     return [reason for row in cards + rows for reason in row["reasons"]]
 
@@ -1473,7 +1199,6 @@ async def test_every_reason_in_the_body_is_first_person(sessionmaker_for_test):
         sessionmaker_for_test,
         liked,
         picked,
-        _shown(picked, SHOWN_DAY),
         _radar("Soon", reason="which you rated 10"),
         _radar(
             "Pick",
