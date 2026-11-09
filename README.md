@@ -689,7 +689,9 @@ keeps the snapshot within a day of production. It calls admin routes with
 1. wake the API (up to six minutes of retries);
 2. Play Next picks (`POST /api/picker/next`);
 3. the followed comics' issue lists (`POST /api/comics/refresh`), then the
-   weekend planner's NWS forecast (`POST /api/spots/weather/refresh`);
+   weekend planner's NWS forecast (`POST /api/spots/weather/refresh`), then
+   the Closet's tag queue, up to the Profile's tag budget
+   (`POST /api/closet/jobs/tag`; see [Closet](#closet));
 4. catalogue registry, then the WooCommerce stores (`refresh-registry`,
    `refresh` with `{"adapter": "woocommerce"}`), then the Shopify stores,
    walked on the runner by `backend/scripts/walk_stores.py`, which posts
