@@ -33,6 +33,7 @@ import {
   robots,
   sitemap,
   spineFeed,
+  strayTripDirs,
 } from './prerender-lib.mjs'
 import { readPublished } from './markdown-lib.mjs'
 import { spine } from '../src/content/spine.js'
@@ -47,6 +48,7 @@ const dist = path.join(here, '..', 'dist')
 parseChangelog(await fs.readFile(path.join(here, '..', 'changelog.md'), 'utf8'))
 const postsDir = path.join(here, '..', 'posts')
 const notesDir = path.join(here, '..', 'notes')
+const tripsDir = path.join(here, '..', 'trips')
 
 /** The snapshot's items, or none when this build has no snapshot. */
 async function readItems() {
@@ -75,6 +77,8 @@ async function write(route, html) {
 
 const shell = await fs.readFile(path.join(dist, 'index.html'), 'utf8')
 const items = await readItems()
+const trips = await readPublished(tripsDir)
+
 // No snapshot (CI, most local builds) means no pool to check: /daily then
 // shows its empty state, as it does whenever the snapshot is missing.
 if (items.length > 0) {
@@ -83,8 +87,23 @@ if (items.length > 0) {
 const routes = publicRoutes({
   posts: await readPublished(postsDir),
   notes: await readPublished(notesDir),
+  trips,
   items,
 })
+
+// Before any head is written: a draft trip's photos leave dist/ here.
+const travelDist = path.join(dist, 'travel')
+const travelDirs = await fs
+  .readdir(travelDist, { withFileTypes: true })
+  .then((entries) => entries.filter((e) => e.isDirectory()).map((e) => e.name))
+  .catch((error) => {
+    if (error.code === 'ENOENT') return []
+    throw error
+  })
+for (const dir of strayTripDirs(travelDirs, trips)) {
+  await fs.rm(path.join(travelDist, dir), { recursive: true })
+  console.log(`prerender: left out dist/travel/${dir} (no published trip)`)
+}
 
 for (const route of routes) {
   // The home page's file is also the SPA fallback for every other path, so

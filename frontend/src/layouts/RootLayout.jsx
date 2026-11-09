@@ -6,6 +6,7 @@ import SiteFooter from '../components/SiteFooter.jsx'
 import SiteMast from '../components/SiteMast.jsx'
 import { notes } from '../content/notes.js'
 import { posts } from '../content/posts.js'
+import { trips } from '../content/trips.js'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { isSearchShortcut } from '../lib/searchKeys.js'
@@ -58,19 +59,22 @@ function isWideRoute(pathname) {
 }
 
 /**
- * The nav, in order. Blog is listed only while a published post exists:
- * production builds compile drafts to null, so a repo of drafts would
- * otherwise put a nav item in front of an empty page.
+ * The nav, in order. Blog is listed only while a published post exists,
+ * and Travel only while a published trip does: production builds compile
+ * drafts to null, so a repo of drafts would otherwise put a nav item in
+ * front of an empty page.
  *
  * @param {boolean} hasPosts Whether any post is published.
+ * @param {boolean} [hasTrips] Whether any trip is published.
  * @returns {{to: string, label: string, end?: boolean}[]}
  */
-function navItems(hasPosts) {
+function navItems(hasPosts, hasTrips = false) {
   return [
     { to: '/', label: 'Home', end: true },
     { to: '/about', label: 'About' },
     { to: '/projects', label: 'Projects' },
     { to: spine.path, label: spine.name },
+    ...(hasTrips ? [{ to: '/travel', label: 'Travel' }] : []),
     ...(hasPosts ? [{ to: '/blog', label: 'Blog' }] : []),
   ]
 }
@@ -216,7 +220,7 @@ export default function RootLayout() {
       <SiteMast
         theme={theme}
         onToggleTheme={toggleTheme}
-        items={navItems(posts.length > 0)}
+        items={navItems(posts.length > 0, trips.length > 0)}
         onOpenSearch={() => setSearchOpen(true)}
         searchOpen={searchOpen}
       />
@@ -239,7 +243,11 @@ export default function RootLayout() {
         </RouteErrorBoundary>
       </main>
 
-      <SiteFooter signedIn={Boolean(signedIn)} hasNotes={notes.length > 0} />
+      <SiteFooter
+        signedIn={Boolean(signedIn)}
+        hasNotes={notes.length > 0}
+        hasTrips={trips.length > 0}
+      />
     </div>
   )
 }
