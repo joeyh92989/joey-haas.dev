@@ -379,3 +379,23 @@ each run's journal totals are kept, since they are what the engine reads.
 `--public-only` exports public rows only. The run prints one line:
 `exported N comic, N game, N movie; N tagged, N runs`. Commit the file;
 re-export when the engine needs newer data, never edit it by hand.
+
+## facet_coverage.py
+
+Lists the tags `facets.FACET_MAP` does not map yet, with how many items
+carry each, most common first. It reads the anonymised export
+(`tests/fixtures/picker_collection.json`), never a database, so it is safe to
+run anywhere.
+
+**Why:** an unmapped tag still counts (it becomes a type-scoped facet such as
+`game:keyword:luigi`), but it never bridges media and never joins a mood. The
+map is tended from what the collection actually carries, not from memory.
+
+```bash
+./.venv/bin/python scripts/facet_coverage.py --min 2 --limit 50
+```
+
+A tag carried by two or more items is a candidate for a row (the curation
+rule in `facets.py`). Copy the value exactly as printed:
+`tests/test_facets.py` fails on any mapped string no fixture or export
+carries.
