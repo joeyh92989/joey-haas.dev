@@ -11,6 +11,7 @@ import {
   monthInReview,
   monthName,
 } from '../src/lib/monthInReview.js'
+import { MIN_POOL, dailyPool } from '../src/lib/daily.js'
 import { finishRows } from '../src/lib/finishes.js'
 import { clip } from '../src/lib/clip.js'
 import { itemPath } from '../src/lib/spinePaths.js'
@@ -77,6 +78,22 @@ const TIL_FEED = {
 export { clip }
 
 /** Escapes text for an HTML attribute or element body. */
+/**
+ * Shelfle's pool floor (daily puzzle spec): with fewer than MIN_POOL
+ * eligible games the answers repeat too often to be a puzzle, so a build
+ * from such a snapshot stops rather than shipping one. Returns the pool's
+ * size for the build log. Only called when the build has a snapshot.
+ */
+export function assertDailyPool(items) {
+  const size = dailyPool(items).length
+  if (size < MIN_POOL) {
+    throw new Error(
+      `prerender: Shelfle's pool has ${size} eligible games, under the floor of ${MIN_POOL}. Publish more games with a platform, year, genre and time to beat, or lower MIN_POOL in src/lib/daily.js.`,
+    )
+  }
+  return size
+}
+
 export function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')

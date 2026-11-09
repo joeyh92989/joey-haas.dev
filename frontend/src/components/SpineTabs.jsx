@@ -2,8 +2,9 @@ import { NavLink } from 'react-router'
 import { spine } from '../content/spine.js'
 
 /**
- * Collection · Comics · What's next · Year in review · How it works, under the My Shelf name
- * on each page (Spine Next spec, C13). Links, not ARIA tabs: each is its own
+ * Collection · Comics · What's next · Year in review · How it works · Daily,
+ * under the My Shelf name on each page (Spine Next spec, C13; Daily from the
+ * daily puzzle spec, the one tab outside /shelf). Links, not ARIA tabs: each is its own
  * page with its own URL. Year in review stays current on every year's page.
  * A tab's optional `badge` is read as part of its name; none carries one now.
  */
@@ -21,6 +22,7 @@ export default function SpineTabs() {
         {how.label}
         {how.badge && <span className="spine-tab-badge"> {how.badge}</span>}
       </NavLink>
+      <NavLink to={spine.tabs.daily.to}>{spine.tabs.daily.label}</NavLink>
     </nav>
   )
 }

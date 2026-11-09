@@ -33,7 +33,8 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - Frontend dev: `cd frontend && npm run dev` (http://localhost:5173)
 - Backend dev: `cd backend && source .venv/bin/activate && uvicorn main:app --reload` (http://localhost:8000)
-- Frontend build check: `cd frontend && npm run build`
+- Frontend build check: `cd frontend && VITE_DAILY_SALT=local npm run build`
+  (`vite.config.js` refuses a build without Shelfle's salt)
 - Frontend tests: `cd frontend && npm test`
 - Backend tests: `cd backend && ./.venv/bin/pytest`. One run at a time: every
   run drops and recreates the schema in the one local test database, so two
@@ -182,6 +183,17 @@ before pushing.
   `scripts/build-search-index.mjs`, gitignored like the snapshot, and only
   public data goes in it: it reads the snapshot and published posts, never
   the API.
+- Shelfle, the daily puzzle at `/daily` (README → Daily puzzle), is
+  client-only: `src/lib/daily.js` (pure: pool, Denver day, pick, grade,
+  share) over the items snapshot, never the API. The salt reaches it as a
+  parameter from `lib/dailyConfig.js`, the one reader of
+  `VITE_DAILY_SALT`, so the module stays free of `import.meta`.
+  `DAILY_EPOCH` is day 1 and never moves once shipped: moving it renumbers
+  every day and changes every past answer. Streak and guesses go through
+  `lib/dailyStorage.js` (`daily:v1`), which survives a throwing
+  `localStorage`. The match cell (`--accent-ink` on `--status-active`) and
+  the close ring (`--warn` on `--surface`) were chosen on measured
+  contrast, recorded beside the rules in `index.css`.
 - The resume PDF lives at `frontend/public/resume.pdf` and is served unhashed at
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish
@@ -315,6 +327,12 @@ before pushing.
       Log tonight, and the Wrap up sheet from the card, the Now playing
       band and the card menu. Migration `0012`. Spec and plan:
       `docs/planning/2026-11-08-tonight-continue-design.md`
+- [x] Shelfle — the daily puzzle at `/daily`: six guesses graded on
+      platform, year, genre and size, one answer per Denver day from the
+      public snapshot, streak in `localStorage`, a spoiler-free share grid,
+      the Daily tab, stop 9 on How it works. `VITE_DAILY_SALT` must be set
+      on the Render static site before merging. Spec and plan:
+      `docs/planning/2026-11-08-daily-puzzle-design.md`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
