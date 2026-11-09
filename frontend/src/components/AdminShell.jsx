@@ -38,6 +38,13 @@ const ADMIN_GROUPS = [
       { to: '/admin/store-list', label: 'Store list' },
     ],
   },
+  {
+    label: 'Denver',
+    items: [
+      { to: '/admin/weekend', label: 'Weekend' },
+      { to: '/admin/spots', label: 'Spots' },
+    ],
+  },
 ]
 
 /** The phone tab bar's sheets: a tab that groups pages rather than being one. */
@@ -55,6 +62,7 @@ const SHEETS = {
     items: [
       { to: '/admin/analytics', label: 'Analytics' },
       { to: '/admin/import', label: 'Import photos' },
+      ...ADMIN_GROUPS[4].items,
     ],
   },
 }

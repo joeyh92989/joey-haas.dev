@@ -17,10 +17,10 @@ const STORAGE_KEY = 'theme'
 
 /**
  * Routes that break out of the 45rem reading column: the tracker's shelves
- * and item pages are grids of covers, not prose. Each entry matches itself
- * and anything nested under it.
+ * and item pages are grids of covers, not prose, and /denver sets its map
+ * beside the list. Each entry matches itself and anything nested under it.
  */
-const WIDE_ROUTES = ['/shelf']
+const WIDE_ROUTES = ['/shelf', '/denver']
 
 /**
  * Routes that bring their own frame: the admin shell replaces the masthead

@@ -410,6 +410,8 @@ JOB_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/physical/stores/{key}/ingest"),
         ("POST", "/api/analytics/rollup"),
         ("POST", "/api/comics/refresh"),
+        ("POST", "/api/spots/candidates/refresh"),
+        ("POST", "/api/spots/weather/refresh"),
     }
 )
 

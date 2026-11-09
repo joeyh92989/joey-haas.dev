@@ -96,6 +96,21 @@ before pushing.
   is published (`hasTrips`), and tests mock `content/trips.js` like posts.
   `DrawnMap` (`components/`, placed by `lib/mapFit.js`, drawings in
   `content/maps/`) is the one map component: Denver spots reuses it.
+- Denver spots: the public `/denver` map and list,
+  `/admin/spots` (finder and spot list) and `/admin/weekend` (planner),
+  backed by `spots_routes.py`, `spots_candidates_routes.py` and
+  `spots_weekend_routes.py`, with the sources in `backend/spot_sources/`
+  (read its README first). The map drawing in `content/maps/denver.js` is
+  generated from OpenStreetMap by `frontend/scripts/draw-denver-map.mjs`
+  and is ODbL: keep its header, and keep the visible attribution `SpotMap`
+  draws from it, linking https://www.openstreetmap.org/copyright. Settings, last-run summaries
+  (`weather.last_run`, `candidates.last_run`) and each week's plan
+  (`plan:<iso-week>`) are rows in `spot_settings` (one JSONB value per
+  key), never new columns. The public field for a spot's line is `blurb`,
+  because `test_public_outputs.py` forbids `note` at any depth, and
+  `PublicSpot` carries `spot_id` and no anchor, visit or distance. The
+  Dashboard's Weekend forecast and Spot finder rows read
+  `GET /api/spots/status`.
 - Keep the site a real multi-section/multi-page website (react-router when
   pages are added), not a rendered resume document. A downloadable PDF resume
   is an optional accessory only.
@@ -354,6 +369,12 @@ before pushing.
 - [x] `ADMIN_GOOGLE_SUB` set on the Render API service, pinning the
       allowlist to Google's immutable subject ID as well as the email. A wrong
       value rejects every sign-in; clear it in Render to fall back to email-only
+- [x] Denver spots — the public `/denver` drawn map (OSM extract,
+      committed), `/admin/spots` (anchors, the Overpass and Gemini finder,
+      triage), `/admin/weekend` (NWS forecast, three slots), the nightly
+      forecast refresh and the Sunday spot finder, and their Dashboard
+      rows. Migration `0013`. Spec and plan:
+      `docs/planning/2026-11-08-denver-spots-design.md`
 
 ## Media tracker
 
@@ -374,7 +395,9 @@ before pushing.
   `issues_skipped`, `editions`, `read_to`, `shelf_format`, `following`);
   `0011` adds `paused` to `item_status` and the `playthroughs` table,
   backfilled one finished run per completion; `0012` adds the nullable
-  `playthroughs.note` (the Wrap up sheet's line).
+  `playthroughs.note` (the Wrap up sheet's line); `0013` adds Denver
+  spots' `spots`, `candidates`, `dismissals`, `visits`, `weather_hours`
+  and `spot_settings`.
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -696,10 +719,11 @@ before pushing.
   (`backend/scripts/walk_stores.py`, posting each to
   `/api/physical/stores/{key}/ingest`: Shopify rate-limits Render's IP), then Switch 1
   (Sunday evenings in Denver), then resolve (up to 5 rounds), then Radar,
-  then Discover (Sunday evenings), then the page-view rollup, then the
-  snapshot compare and the deploy hook. There is no picks step: the
-  public picks are computed live, and `POST /api/picker/next` is out of
-  `JOB_ROUTES`.
+  then Discover (Sunday evenings), then the spot finder (Sunday evenings),
+  then the page-view rollup, then the snapshot compare and the deploy hook.
+  The weekend forecast (`POST /api/spots/weather/refresh`) runs right after
+  the comics, every night. There is no picks step: the public picks are
+  computed live, and `POST /api/picker/next` is out of `JOB_ROUTES`.
 - **`next_list.py`** (pure, with `next_load.py` loading the rows) is the one
   sectioning authority for `/api/public/next` and
   `/api/recommendations/store-list`. In public mode only registry dates

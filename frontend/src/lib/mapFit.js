@@ -101,3 +101,76 @@ export function scaleRatio(fit) {
 export function isTrueToScale(fit, tolerance = SCALE_TOLERANCE) {
   return Math.abs(scaleRatio(fit) - 1) <= tolerance
 }
+
+/*
+ * Generated drawings and spots (Denver, `SpotMap`). The Denver map is
+ * generated from OpenStreetMap (`scripts/draw-denver-map.mjs`) rather than
+ * drawn by hand, and its module, like the spots API, names longitude `lng`.
+ * These are the same projection in that shape, with a tighter scale check:
+ * a generated drawing has no authoring error to allow for.
+ */
+
+/** `SCALE_TOLERANCE` for a generated drawing. */
+export const GENERATED_SCALE_TOLERANCE = 0.05
+
+/**
+ * The fit of a generated drawing's `fit: {points}`, refusing one that is not
+ * north-up or not true to scale.
+ *
+ * @param {{points: {lat: number, lng: number, x: number, y: number}[]}} spec
+ *   Two reference points at opposite corners of the drawn area.
+ * @throws {Error} When the points share a latitude or longitude, are not
+ *   north-up, or their scales are not in the cos(latitude) ratio.
+ */
+function generatedFit(spec) {
+  const points = spec?.points ?? []
+  if (points.length !== 2) {
+    throw new Error('a map fit needs exactly two reference points')
+  }
+  const fit = fitFromPoints(
+    points.map(({ lng, ...rest }) => ({ ...rest, lon: lng })),
+  )
+  if (!(fit.ax > 0) || !(fit.ay < 0)) {
+    throw new Error('a map fit must be north-up: x grows east, y grows south')
+  }
+  if (!isTrueToScale(fit, GENERATED_SCALE_TOLERANCE)) {
+    const off = Math.round(Math.abs(scaleRatio(fit) - 1) * 100)
+    throw new Error(
+      `a map fit's scales are off by ${off}%: the drawing's proportions are wrong`,
+    )
+  }
+  return fit
+}
+
+/**
+ * A projector for a generated drawing (`generatedFit`'s checks apply).
+ *
+ * @returns {(point: {lat: number, lng: number}) => {x: number, y: number}}
+ */
+export function makeFit(spec) {
+  const fit = generatedFit(spec)
+  return ({ lat, lng }) => project(fit, { lat, lon: lng })
+}
+
+/**
+ * Where each spot lands on a generated drawing, and whether it is off the
+ * map (`isOnMap`: outside it, or within `EDGE_MARGIN` of its edge).
+ *
+ * @param {{fit: object, viewBox: number[]}} drawing A drawing module, with
+ *   `viewBox` as `[0, 0, width, height]`.
+ * @param {{key: string, lat: number, lng: number}[]} spots
+ * @returns {Map<string, {x: number, y: number, offMap: boolean}>} By key.
+ */
+export function placeSpots(drawing, spots) {
+  const fit = generatedFit(drawing.fit)
+  const [, , width, height] = drawing.viewBox
+  const placed = new Map()
+  for (const spot of spots) {
+    const point = { lat: spot.lat, lon: spot.lng }
+    placed.set(spot.key, {
+      ...project(fit, point),
+      offMap: !isOnMap(fit, point, { width, height }),
+    })
+  }
+  return placed
+}

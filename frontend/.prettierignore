@@ -13,3 +13,8 @@ public/search-index.json
 
 # Documentation is prose too.
 *.md
+
+# Drawn maps (scripts/draw-denver-map.mjs) and its recorded Overpass answer:
+# generated, and only ever rewritten by the script.
+src/content/maps
+scripts/fixtures/overpass-*.json

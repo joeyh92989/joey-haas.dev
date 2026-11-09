@@ -58,6 +58,30 @@ credentials as the default run.
 ./.venv/bin/python scripts/record_igdb_fixtures.py --upcoming
 ```
 
+## record_spot_fixtures.py
+
+Records one live Overpass answer into
+`tests/fixtures/overpass_candidates.json`, so the spot finder's parser and
+dedupe are tested against real OpenStreetMap data (see
+`spot_sources/README.md`).
+
+**Why:** OSM tagging varies more than any documentation suggests. Ways and
+relations carry a `center` rather than a point, places are mapped twice,
+and cuisines are `;`-lists. A recorded answer catches all of that.
+
+**Run** from `backend/`, in any checkout or worktree:
+
+```bash
+./.venv/bin/python scripts/record_spot_fixtures.py
+```
+
+**Needs** nothing: Overpass is keyless. One request around Union Station
+at a 600 m radius, sending the catalogue's User-Agent.
+
+**Writes** the raw answer, unedited. Re-record when `TAG_SET` or the query
+changes, and update the ids `test_spot_dedupe.py` expects in the same
+commit.
+
 ## record_comicvine_fixtures.py
 
 Records ComicVine's `/issues` answer for two series into `tests/fixtures/`,

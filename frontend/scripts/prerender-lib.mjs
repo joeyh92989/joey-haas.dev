@@ -50,6 +50,8 @@ export const ADMIN_ROUTES = [
   '/admin/pull-list',
   '/admin/discover',
   '/admin/store-list',
+  '/admin/spots',
+  '/admin/weekend',
 ]
 
 /**

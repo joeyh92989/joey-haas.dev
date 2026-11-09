@@ -5,6 +5,8 @@ import {
   fitFromPoints,
   isOnMap,
   isTrueToScale,
+  makeFit,
+  placeSpots,
   project,
   scaleRatio,
 } from './mapFit.js'
@@ -111,5 +113,92 @@ describe('scaleRatio', () => {
       { ...ATHENS, x: 400, y: 170 },
     ])
     expect(isTrueToScale(mockup)).toBe(false)
+  })
+})
+
+// A north-up fit at Denver's latitude: 1000 px per degree of latitude and
+// cos(39.75°) of that per degree of longitude.
+const LAT_SCALE = 1000
+const LNG_SCALE = LAT_SCALE * Math.cos((39.75 * Math.PI) / 180)
+const A = { lat: 39.78, lng: -105.03, x: 0, y: 0 }
+const B = {
+  lat: 39.72,
+  lng: -104.95,
+  x: 0.08 * LNG_SCALE,
+  y: 0.06 * LAT_SCALE,
+}
+
+describe('makeFit', () => {
+  it('maps both reference points onto themselves', () => {
+    const project = makeFit({ points: [A, B] })
+    for (const point of [A, B]) {
+      const { x, y } = project(point)
+      expect(x).toBeCloseTo(point.x, 6)
+      expect(y).toBeCloseTo(point.y, 6)
+    }
+  })
+
+  it('is linear between them, east to the right and north up', () => {
+    const project = makeFit({ points: [A, B] })
+    const middle = project({ lat: 39.75, lng: -104.99 })
+    expect(middle.x).toBeCloseTo(B.x / 2, 6)
+    expect(middle.y).toBeCloseTo(B.y / 2, 6)
+    const north = project({ lat: 39.76, lng: -104.99 })
+    expect(north.y).toBeLessThan(middle.y)
+  })
+
+  it('refuses scales out of the cos(latitude) ratio', () => {
+    const squashed = { ...B, x: 0.08 * LAT_SCALE }
+    expect(() => makeFit({ points: [A, squashed] })).toThrow(/proportions/)
+  })
+
+  it('accepts a small authoring error', () => {
+    const nearly = { ...B, x: B.x * 1.03 }
+    expect(() => makeFit({ points: [A, nearly] })).not.toThrow()
+  })
+
+  it('refuses a south-up or mirrored fit', () => {
+    expect(() => makeFit({ points: [A, { ...B, y: -B.y }] })).toThrow(
+      /north-up/,
+    )
+    expect(() => makeFit({ points: [A, { ...B, x: -B.x }] })).toThrow(
+      /north-up/,
+    )
+  })
+
+  it('refuses points sharing a latitude or longitude', () => {
+    expect(() => makeFit({ points: [A, { ...B, lat: A.lat }] })).toThrow()
+    expect(() => makeFit({ points: [A, { ...B, lng: A.lng }] })).toThrow()
+    expect(() => makeFit({ points: [A] })).toThrow()
+    expect(() => makeFit(undefined)).toThrow()
+  })
+})
+
+describe('placeSpots', () => {
+  const drawing = { fit: { points: [A, B] }, viewBox: [0, 0, B.x, B.y] }
+
+  it('places each spot by key and flags the ones off the drawing', () => {
+    const placed = placeSpots(drawing, [
+      { key: 'inside', lat: 39.75, lng: -104.99 },
+      { key: 'outside', lat: 39.9, lng: -104.99 },
+    ])
+    expect(placed.get('inside')).toEqual({
+      x: expect.closeTo(B.x / 2, 6),
+      y: expect.closeTo(B.y / 2, 6),
+      offMap: false,
+    })
+    expect(placed.get('outside').offMap).toBe(true)
+  })
+
+  it('flags a spot inside the edge margin or with no coordinates', () => {
+    const lngAt = (x) => A.lng + x / LNG_SCALE
+    const placed = placeSpots(drawing, [
+      { key: 'edge', lat: 39.75, lng: lngAt(EDGE_MARGIN - 1) },
+      { key: 'clear', lat: 39.75, lng: lngAt(EDGE_MARGIN + 1) },
+      { key: 'blank', lat: NaN, lng: -104.99 },
+    ])
+    expect(placed.get('edge').offMap).toBe(true)
+    expect(placed.get('clear').offMap).toBe(false)
+    expect(placed.get('blank').offMap).toBe(true)
   })
 })

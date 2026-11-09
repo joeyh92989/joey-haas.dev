@@ -60,6 +60,7 @@ describe('AdminShell sidebar', () => {
       ['Collection', ['Shelf', 'Import photos']],
       ['Recommend', ['Play Next', 'Discover', 'Radar', 'Pull list']],
       ['Catalog', ['Sources', 'Store list']],
+      ['Denver', ['Weekend', 'Spots']],
     ])
   })
 
@@ -81,6 +82,8 @@ describe('AdminShell sidebar', () => {
       '/admin/pull-list',
       '/admin/catalogue',
       '/admin/store-list',
+      '/admin/weekend',
+      '/admin/spots',
     ])
   })
 
@@ -166,7 +169,7 @@ describe('AdminShell tab bar', () => {
   it.each([
     ['Picks', ['Play Next', 'Discover', 'Radar', 'Pull list']],
     ['Stores', ['Sources', 'Store list']],
-    ['More', ['Analytics', 'Import photos', 'View site ↗']],
+    ['More', ['Analytics', 'Import photos', 'Weekend', 'Spots', 'View site ↗']],
   ])('opens %s as a sheet of its pages', (tab, links) => {
     media.phone = true
     renderAt()
