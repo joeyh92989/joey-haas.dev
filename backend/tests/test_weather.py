@@ -8,7 +8,7 @@ rarely both dry and snowy.
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import httpx2
@@ -375,3 +375,80 @@ def test_a_day_past_the_forecast_has_no_bars():
     view = day_view([], SATURDAY)
     assert view["hours"] == [] and view["high"] is None
     assert view["verdict"]["state"] == "warn"
+
+
+# --- The cached hours' day window -------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("first", "last", "start_utc", "hours"),
+    [
+        # An ordinary November day: Denver midnight is 07:00 UTC, 24 hours.
+        (date(2026, 11, 14), None, datetime(2026, 11, 14, 7, tzinfo=UTC), 24),
+        # A summer day under MDT: midnight is 06:00 UTC.
+        (date(2026, 7, 4), None, datetime(2026, 7, 4, 6, tzinfo=UTC), 24),
+        # The spring-forward day is 23 hours, the fall-back day 25.
+        (date(2026, 3, 8), None, datetime(2026, 3, 8, 7, tzinfo=UTC), 23),
+        (date(2026, 11, 1), None, datetime(2026, 11, 1, 6, tzinfo=UTC), 25),
+        # A weekend: Saturday's midnight to Monday's.
+        (
+            date(2026, 11, 14),
+            date(2026, 11, 15),
+            datetime(2026, 11, 14, 7, tzinfo=UTC),
+            48,
+        ),
+    ],
+)
+def test_the_day_window_is_the_denver_day(first, last, start_utc, hours):
+    start, end = weather.day_window(first, last)
+    assert start == start_utc
+    assert end.astimezone(UTC) - start.astimezone(UTC) == timedelta(hours=hours)
+    assert start.astimezone(DENVER_TZ).hour == 0
+    assert end.astimezone(DENVER_TZ).hour == 0
+
+
+@pytest.mark.asyncio
+async def test_hours_for_day_reads_the_latest_gridpoint_s_denver_day(
+    sessionmaker_for_test,
+):
+    from models import WeatherHour
+
+    friday_late = datetime(2026, 11, 13, 23, tzinfo=DENVER_TZ)
+    saturday = [datetime(2026, 11, 14, h, tzinfo=DENVER_TZ) for h in (0, 8, 23)]
+    sunday_early = datetime(2026, 11, 15, 0, tzinfo=DENVER_TZ)
+    older = datetime(2026, 11, 10, tzinfo=UTC)
+    newer = datetime(2026, 11, 11, tzinfo=UTC)
+    async with sessionmaker_for_test() as session:
+        for at in [friday_late, *saturday, sunday_early]:
+            session.add(
+                WeatherHour(
+                    gridpoint="NEW",
+                    starts_at=at,
+                    temp_f=40,
+                    precip_pct=None,
+                    wind_mph=3,
+                    short="Clear",
+                    fetched_at=newer,
+                )
+            )
+        session.add(
+            WeatherHour(
+                gridpoint="OLD",
+                starts_at=saturday[1],
+                temp_f=99,
+                precip_pct=0,
+                wind_mph=0,
+                short="Hot",
+                fetched_at=older,
+            )
+        )
+        await session.commit()
+        hours = await weather.hours_for_day(session, SATURDAY)
+    assert [h.starts_at for h in hours] == saturday
+    assert {h.temp_f for h in hours} == {40}
+
+
+@pytest.mark.asyncio
+async def test_hours_for_day_is_empty_before_any_fetch(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        assert await weather.hours_for_day(session, SATURDAY) == []
