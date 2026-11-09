@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import WrapUpSheet from './WrapUpSheet.jsx'
@@ -7,7 +13,12 @@ import { apiFetch } from '../lib/api.js'
 import { ACTION_ERROR } from '../content/status.js'
 import { localToday } from '../lib/statusMoves.js'
 
-vi.mock('../lib/api.js', () => ({ apiFetch: vi.fn() }))
+// The sheet reads a refusal through the real errorMessage; only the fetch
+// is stubbed.
+vi.mock('../lib/api.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  apiFetch: vi.fn(),
+}))
 
 const ITEM = { id: 'h2', title: 'Hades II', cover_url: null, type: 'game' }
 const DETAIL = {
@@ -33,7 +44,8 @@ const DETAIL = {
 function mockApi(routes = {}) {
   vi.mocked(apiFetch).mockImplementation(async (path, options = {}) => {
     const key = `${options.method ?? 'GET'} ${path}`
-    const answer = key in routes ? routes[key] : { ok: true, body: {} }
+    // A route may answer with a promise, so a test can hold a request open.
+    const answer = await (key in routes ? routes[key] : { ok: true, body: {} })
     if (answer instanceof Error) throw answer
     return {
       ok: answer.ok,
@@ -245,6 +257,69 @@ describe('WrapUpSheet', () => {
         expect.objectContaining({ rating: 8, ratingFailed: true }),
       ),
     )
+  })
+
+  it('keeps a rating given before the item fetch lands', async () => {
+    let settle
+    mockApi({
+      'GET /api/items/h2': new Promise((resolve) => {
+        settle = () => resolve({ ok: true, body: DETAIL })
+      }),
+    })
+    const { onDone } = renderSheet()
+    await userEvent.click(
+      screen.getByRole('radio', { name: 'Rate 9 out of 10' }),
+    )
+    settle()
+    await screen.findByText(/Playthrough 2/)
+    expect(
+      screen.getByRole('radio', { name: 'Clear rating' }),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Mark finished' }))
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
+    expect(body(calls('PATCH', '/api/items/h2')[0])).toEqual({ rating: 9 })
+  })
+
+  it('does not close on a drag that starts inside and ends on the backdrop', async () => {
+    mockApi({ 'GET /api/items/h2': { ok: true, body: DETAIL } })
+    const { onClose } = renderSheet()
+    const dialog = screen.getByRole('dialog')
+    const note = screen.getByLabelText('One line')
+    fireEvent.pointerDown(note)
+    fireEvent.click(dialog)
+    expect(onClose).not.toHaveBeenCalled()
+    // A press that began on the backdrop still dismisses.
+    fireEvent.pointerDown(dialog)
+    fireEvent.click(dialog)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses to close while a save is in flight', async () => {
+    let settle
+    mockApi({
+      'POST /api/items/h2/status': new Promise((resolve) => {
+        settle = () => resolve({ ok: true, body: {} })
+      }),
+    })
+    const { onClose, onDone } = renderSheet()
+    await userEvent.click(screen.getByRole('button', { name: 'Skip extras' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onClose).not.toHaveBeenCalled()
+    settle()
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
+  })
+
+  it('shows the server’s words for a validation error', async () => {
+    mockApi({
+      'POST /api/items/h2/status': {
+        ok: false,
+        status: 422,
+        body: { detail: [{ msg: 'Value error, that is not today' }] },
+      },
+    })
+    renderSheet()
+    await userEvent.click(screen.getByRole('button', { name: 'Skip extras' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('not today')
   })
 
   it('shows a generic error when the network fails', async () => {

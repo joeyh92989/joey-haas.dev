@@ -1060,6 +1060,88 @@ describe('Tonight with a game in hand', () => {
     )
   })
 
+  it('brings a wrapped-up game back when it is played again', async () => {
+    const paused = {
+      ...CONTINUING,
+      tonight: {
+        ...CONTINUING.tonight,
+        continuing: [],
+        picks: [...THREE.tonight.picks, pick('c1', 'Sea of Stars')],
+      },
+    }
+    mockApi({
+      'GET /api/public/next': { ok: true, body: paused },
+      'GET /api/items/c1': {
+        ok: true,
+        body: {
+          id: 'c1',
+          rating: null,
+          playthroughs: [{ number: 1, outcome: null }],
+        },
+      },
+    })
+    mockNext({ data: CONTINUING, live: true, failed: false })
+    renderPage({ signedIn: true })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Wrap up: Sea of Stars' }),
+    )
+    const dialog = await screen.findByRole('dialog')
+    await userEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Paused, keeps the date, I’ll be back',
+      }),
+    )
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Skip extras' }),
+    )
+    await vi.waitFor(() =>
+      expect(region().querySelector('.continue')).toBeNull(),
+    )
+
+    // The game is a pick again; playing it puts it back in hand.
+    mockApi({ 'GET /api/public/next': { ok: true, body: CONTINUING } })
+    mockNext({ data: paused, live: true, failed: false })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Play this instead: Sea of Stars' }),
+    )
+    await vi.waitFor(() =>
+      expect(
+        within(region()).queryByRole('article', { name: 'Sea of Stars' }),
+      ).not.toBeNull(),
+    )
+  })
+
+  it('says a failed rating in its own words, not as a failed write', async () => {
+    mockApi({
+      'GET /api/public/next': { ok: true, body: CONTINUING },
+      'GET /api/items/c1': {
+        ok: true,
+        body: {
+          id: 'c1',
+          rating: null,
+          playthroughs: [{ number: 1, outcome: null }],
+        },
+      },
+      'PATCH /api/items/c1': { ok: false },
+    })
+    mockNext({ data: CONTINUING, live: true, failed: false })
+    renderPage({ signedIn: true })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Wrap up: Sea of Stars' }),
+    )
+    const dialog = await screen.findByRole('dialog')
+    await userEvent.click(
+      within(dialog).getByRole('radio', { name: 'Rate 9 out of 10' }),
+    )
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Mark finished' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      spine.next.tonight.sheet.ratingFailed,
+    )
+    expect(screen.getByRole('alert')).not.toHaveTextContent(ACTION_ERROR)
+  })
+
   it('has no axe violations with a game in hand', async () => {
     mockApi()
     mockNext({ data: CONTINUING, live: true, failed: false })

@@ -472,8 +472,6 @@ describe('PlayNext with a game in hand', () => {
     await waitFor(() =>
       expect(screen.queryByRole('article', { name: 'Pinned Game' })).toBeNull(),
     )
-    // Without the card the pinned game is the Up next band again.
-    expect(screen.getByRole('region', { name: 'Up next' })).toBeInTheDocument()
   })
 
   it('opens Wrap up from the card and reloads once it saves', async () => {
@@ -499,10 +497,43 @@ describe('PlayNext with a game in hand', () => {
     )
   })
 
+  it('keeps the pinned game as a card after Not tonight, not a band', async () => {
+    stubApi({ continuing: [CARD] })
+    await renderReady()
+    await screen.findByRole('article', { name: 'Pinned Game' })
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Not tonight: Pinned Game' }),
+    )
+    await waitFor(() =>
+      expect(screen.queryByRole('article', { name: 'Pinned Game' })).toBeNull(),
+    )
+    // The game is still the one in hand, so the Up next band stays away.
+    expect(screen.queryByRole('region', { name: 'Up next' })).toBeNull()
+  })
+
+  it('does not re-ask the picker when a session is logged', async () => {
+    const mock = stubApi({ continuing: [CARD] })
+    await renderReady()
+    await screen.findByRole('article', { name: 'Pinned Game' })
+    const before = pickRequests(mock).length
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Log tonight: Pinned Game' }),
+    )
+    await waitFor(() =>
+      expect(
+        calls(mock, 'GET', '/api/picker/continuing').length,
+      ).toBeGreaterThan(1),
+    )
+    expect(pickRequests(mock)).toHaveLength(before)
+  })
+
   it('leaves out a card skipped earlier today', async () => {
     stubApi({ continuing: [CARD], skippedToday: ['p1'] })
     await renderReady()
-    await screen.findByRole('region', { name: 'Up next' })
-    expect(screen.queryByRole('article', { name: 'Pinned Game' })).toBeNull()
+    await waitFor(() =>
+      expect(screen.queryByRole('article', { name: 'Pinned Game' })).toBeNull(),
+    )
+    // Still the game in hand, so still no band for it.
+    expect(screen.queryByRole('region', { name: 'Up next' })).toBeNull()
   })
 })

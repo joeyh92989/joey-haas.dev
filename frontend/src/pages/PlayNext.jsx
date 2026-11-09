@@ -146,6 +146,10 @@ export default function PlayNext() {
   const [busy, setBusy] = useState(false)
   // Bumped to ask again with the same controls, after a pin or a Never.
   const [round, setRound] = useState(0)
+  // Bumped to re-read the games in hand alone. Log tonight and a wrap-up
+  // change the cards, not the picks, and re-asking the picker would both
+  // reshuffle the grid under the cursor and record new games as shown.
+  const [cardRound, setCardRound] = useState(0)
 
   const fetchItems = useCallback(async () => {
     try {
@@ -193,7 +197,7 @@ export default function PlayNext() {
     return () => {
       cancelled = true
     }
-  }, [status, round])
+  }, [status, round, cardRound])
 
   useEffect(() => {
     if (status !== 'ready') return undefined
@@ -310,6 +314,8 @@ export default function PlayNext() {
   function wrapDone({ ratingFailed }) {
     setWrap(null)
     if (ratingFailed) setError(spine.next.tonight.sheet.ratingFailed)
+    // The game left the shelf's active list, so the picks are worth
+    // asking for again; the card read follows with them.
     setRound((current) => current + 1)
   }
 
@@ -323,7 +329,7 @@ export default function PlayNext() {
       },
       'Couldn’t log tonight.',
     )
-    if (ok) setRound((current) => current + 1)
+    if (ok) setCardRound((current) => current + 1)
   }
 
   // One header for every state, so the page never re-titles as it loads.
@@ -366,9 +372,12 @@ export default function PlayNext() {
   const cards = continuing.filter(
     (card) => !skippedToday.includes(card.item_id),
   )
-  // A pinned game that is being played is a Continue card, not a band.
+  // A pinned game that is being played is a Continue card, not a band --
+  // whether or not tonight's card was answered, since the game is still
+  // the one in hand.
   const pinned = items.find(
-    (item) => item.pinned_at && !cards.some((card) => card.item_id === item.id),
+    (item) =>
+      item.pinned_at && !continuing.some((card) => card.item_id === item.id),
   )
   const today = localToday()
   const platformChoices = [

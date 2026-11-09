@@ -171,6 +171,9 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   const [wrap, setWrap] = useState(null)
   const [wrapped, setWrapped] = useState(() => new Set())
   const [error, setError] = useState(false)
+  // A write that landed but has something to say (a rating that did not
+  // save), in the server's own words rather than the generic failure.
+  const [note, setNote] = useState(null)
   const [announcement, setAnnouncement] = useState('')
   const writing = useRef(null)
   const focusNext = useRef(null)
@@ -261,6 +264,7 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     const mine = new Promise((resolve) => (done = resolve))
     writing.current = mine
     setError(false)
+    setNote(null)
     optimistic()
     try {
       await before
@@ -282,6 +286,14 @@ function Tonight({ tonight, signedIn, onRefresh }) {
       () => {
         setPin(pick)
         setSkipped((ids) => ids.filter((id) => id !== pick.item_id))
+        // Playing a game wrapped up here puts it back in hand, so the
+        // overlay hiding its Continue card no longer holds.
+        setWrapped((ids) => {
+          if (!ids.has(pick.item_id)) return ids
+          const next = new Set(ids)
+          next.delete(pick.item_id)
+          return next
+        })
         focusNext.current = { title: pick.item_id }
       },
       () => write(pinPath(pick.item_id), 'POST'),
@@ -376,14 +388,15 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   }
 
   /** The sheet saved: the card leaves, the result is announced, the body
-   *  is refetched (the chip and the picks come from it). */
-  function wrapDone({ item, status, ratingFailed }) {
+   *  is refetched (the chip and the picks come from it). A rating that did
+   *  not save is said in its own words: the game itself is marked. */
+  async function wrapDone({ item, status, ratingFailed }) {
     setWrap(null)
     setWrapped((ids) => new Set([...ids, item.id]))
     setAnnouncement(copy.tonight.sheet.done(item.title, status))
-    setError(ratingFailed)
+    setNote(ratingFailed ? copy.tonight.sheet.ratingFailed : null)
     focusNext.current = { lead: true }
-    onRefresh()
+    if (!(await onRefresh())) setError(true)
   }
 
   const owner = signedIn ? { onPlay: play, onSkip: skip } : {}
@@ -490,9 +503,9 @@ function Tonight({ tonight, signedIn, onRefresh }) {
       {tonight.picks.length === 0 && !leading && (
         <p className="muted">{copy.empty.picks}</p>
       )}
-      {error && (
+      {(error || note) && (
         <p className="admin-error" role="alert">
-          {ACTION_ERROR}
+          {error ? ACTION_ERROR : note}
         </p>
       )}
       {signedIn && (

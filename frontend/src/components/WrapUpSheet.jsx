@@ -3,12 +3,13 @@ import CoverImage from './CoverImage.jsx'
 import QuickRate from './QuickRate.jsx'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
-import { apiFetch } from '../lib/api.js'
+import { apiFetch, errorMessage } from '../lib/api.js'
 import { dayWords } from '../lib/releaseWords.js'
-import { localToday, setStatus } from '../lib/statusMoves.js'
+import { WRAP_UP_STATUSES, localToday, setStatus } from '../lib/statusMoves.js'
 
 const copy = spine.next.tonight.sheet
-const OUTCOMES = ['finished', 'paused', 'abandoned']
+// The moves the sheet makes are the ones the card menu routes to it.
+const OUTCOMES = WRAP_UP_STATUSES
 const NOTE_MAX = 500
 
 /** The open run's header line: "Playthrough 2 · since Oct 24, 2026 · 31 h". */
@@ -55,6 +56,9 @@ function headerLine(detail) {
 export default function WrapUpSheet({ subject, onClose, onDone }) {
   const ref = useRef(null)
   const open = subject != null
+  // A save is out: closing now would unmount the form, swallowing its error
+  // or letting its result land on whatever the owner opens next.
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     const dialog = ref.current
@@ -66,17 +70,31 @@ export default function WrapUpSheet({ subject, onClose, onDone }) {
     if (!open && dialog.open) dialog.close()
   }, [open])
 
+  function close() {
+    if (!busy) onClose()
+  }
+
   function handleCancel(event) {
     event.preventDefault()
-    onClose()
+    close()
   }
 
   function handleClose() {
-    if (open) onClose()
+    if (open) close()
+  }
+
+  // The backdrop closes the sheet only when the press began there too: a
+  // drag that selects the note and ends past the edge is not a dismissal
+  // (the same guard the search dialog uses).
+  const pressedBackdrop = useRef(false)
+
+  function handlePointerDown(event) {
+    pressedBackdrop.current = event.target === event.currentTarget
   }
 
   function handleClick(event) {
-    if (event.target === event.currentTarget) onClose()
+    if (event.target === event.currentTarget && pressedBackdrop.current) close()
+    pressedBackdrop.current = false
   }
 
   return (
@@ -86,13 +104,15 @@ export default function WrapUpSheet({ subject, onClose, onDone }) {
       aria-labelledby={TITLE_ID}
       onCancel={handleCancel}
       onClose={handleClose}
+      onPointerDown={handlePointerDown}
       onClick={handleClick}
     >
       {open && (
         <WrapUpForm
           key={subject.item.id}
           subject={subject}
-          onClose={onClose}
+          onClose={close}
+          onBusy={setBusy}
           onDone={onDone}
         />
       )}
@@ -108,16 +128,22 @@ const HINT_ID = 'wrap-up-date-hint'
  * field starts from the subject. Fetches the item for the header and the
  * current rating.
  */
-function WrapUpForm({ subject, onClose, onDone }) {
+function WrapUpForm({ subject, onClose, onBusy, onDone }) {
   const { item } = subject
   const [outcome, setOutcome] = useState(subject.preselect ?? 'finished')
-  const [rating, setRating] = useState(null)
+  // `picked` is the owner's choice, undefined until they touch the stars,
+  // so a slow item fetch can seed the rating without overwriting one they
+  // have already given.
+  const [picked, setPicked] = useState(undefined)
   const [initialRating, setInitialRating] = useState(null)
   const [note, setNote] = useState('')
   const [on, setOn] = useState(localToday)
   const [detail, setDetail] = useState(null)
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
+
+  // The owner's choice once they have made one, else what the item says.
+  const rating = picked === undefined ? initialRating : picked
 
   useEffect(() => {
     let cancelled = false
@@ -132,7 +158,6 @@ function WrapUpForm({ subject, onClose, onDone }) {
           since: run?.started_on ?? null,
           hours: run ? (run.journal_minutes ?? 0) / 60 : null,
         })
-        setRating(loaded.rating ?? null)
         setInitialRating(loaded.rating ?? null)
       })
       .catch(() => {})
@@ -143,6 +168,7 @@ function WrapUpForm({ subject, onClose, onDone }) {
 
   async function save(withExtras) {
     setBusy(true)
+    onBusy(true)
     setError(null)
     try {
       const extras = {}
@@ -152,14 +178,7 @@ function WrapUpForm({ subject, onClose, onDone }) {
       }
       const response = await setStatus(item.id, outcome, extras)
       if (!response.ok) {
-        const detailText =
-          response.status === 422
-            ? await response
-                .json()
-                .then((body) => body?.detail)
-                .catch(() => null)
-            : null
-        setError(typeof detailText === 'string' ? detailText : ACTION_ERROR)
+        setError(await errorMessage(response))
         return
       }
       let ratingFailed = false
@@ -185,6 +204,7 @@ function WrapUpForm({ subject, onClose, onDone }) {
       setError(ACTION_ERROR)
     } finally {
       setBusy(false)
+      onBusy(false)
     }
   }
 
@@ -237,7 +257,7 @@ function WrapUpForm({ subject, onClose, onDone }) {
           <span className="wrap-label" id="wrap-up-rating">
             {copy.rating}
           </span>
-          <QuickRate value={rating} onChange={setRating} />
+          <QuickRate value={rating} onChange={setPicked} />
         </div>
         <div className="wrap-field">
           <label className="wrap-label" htmlFor="wrap-up-note">
