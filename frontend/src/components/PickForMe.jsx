@@ -13,12 +13,14 @@ import {
 const copy = spine.next.pickForMe
 const TERMS = ['affinity', 'similarity', 'quality', 'length_fit']
 
-/** The words a choice is announced with: "short, cozy and story". */
+/**
+ * The words a choice is announced with: "short, cozy or story". Two moods
+ * widen the pool (a game in either bucket), so they join with "or".
+ */
 function choiceWords(size, moods) {
-  const parts = [copy.sizes[size].toLowerCase()]
-  moods.forEach((mood) => parts.push(copy.moods[mood].toLowerCase()))
-  if (parts.length === 1) return parts[0]
-  return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
+  const words = copy.sizes[size].toLowerCase()
+  if (!moods.length) return words
+  return `${words}, ${moods.map((mood) => copy.moods[mood].toLowerCase()).join(' or ')}`
 }
 
 /** One pick's working: its total, then each term with its weight. */

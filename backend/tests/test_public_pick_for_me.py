@@ -12,7 +12,12 @@ import pytest
 
 from models import ItemStatus, OwnedFormat, PickAction, PickEvent
 from picker import combo_keys
-from public_pick_for_me import PublicPickCard, PublicPickForMeOut, PublicPickScore
+from public_pick_for_me import (
+    PublicPickCard,
+    PublicPickForMeOut,
+    PublicPickScore,
+    load_pick_for_me,
+)
 from tests.test_public_outputs import (
     FORBIDDEN,
     MIDNIGHT,
@@ -132,3 +137,34 @@ async def test_an_empty_shelf_still_answers_every_combination(sessionmaker_for_t
     assert body["games"] == {}
     assert all(picks == [] for picks in body["combos"].values())
     assert len(body["combos"]) == 88
+
+
+async def test_the_table_is_cached_until_an_item_changes(
+    sessionmaker_for_test, monkeypatch
+):
+    """One build serves repeat reads; an items write rebuilds. The route
+    reads the module global at call time, so patching it counts the builds."""
+    import public
+    from models import Item
+
+    calls = 0
+
+    async def counting(session, now):
+        nonlocal calls
+        calls += 1
+        return await load_pick_for_me(session, now)
+
+    monkeypatch.setattr(public, "load_pick_for_me", counting)
+    game = _game("Celeste")
+    await _add(sessionmaker_for_test, game)
+    async with client_for(sessionmaker_for_test) as client:
+        assert (await client.get("/api/public/pick-for-me")).status_code == 200
+        assert (await client.get("/api/public/pick-for-me")).status_code == 200
+        assert calls == 1
+        async with sessionmaker_for_test() as session:
+            row = await session.get(Item, game.id)
+            row.title = "Celeste Classic"
+            await session.commit()
+        body = (await client.get("/api/public/pick-for-me")).json()
+    assert calls == 2
+    assert [card["title"] for card in body["games"].values()] == ["Celeste Classic"]

@@ -397,7 +397,7 @@ export const spine = {
     /** Tonight's lead pick, the other picks, and the owner's buttons. */
     pickForMe: {
       heading: 'Pick for me',
-      lede: 'Choose a length and up to two moods, and the same scoring Play Next uses picks three games from my backlog.',
+      lede: 'Choose a length and up to two moods (either one will do), and the same scoring Play Next uses picks three games from my backlog.',
       sizeLegend: 'How long',
       moodLegend: 'Mood',
       sizes: {
@@ -406,7 +406,11 @@ export const spine = {
         medium: 'Medium',
         long: 'Long',
       },
-      sizeHints: { short: 'under 6 h', medium: '6–15 h', long: '15 h+' },
+      sizeHints: {
+        short: 'up to 6 h',
+        medium: 'over 6, up to 15 h',
+        long: 'over 15 h',
+      },
       moods: {
         cozy: 'Cozy',
         story: 'Story',

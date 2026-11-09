@@ -78,7 +78,7 @@ describe('PickForMe', () => {
       'true',
     )
     expect(titles()).toEqual(['Gamma'])
-    expect(live).toHaveTextContent('One pick for short and cozy')
+    expect(live).toHaveTextContent('One pick for short, cozy')
   })
 
   it('says so when nothing fits', async () => {
@@ -89,7 +89,7 @@ describe('PickForMe', () => {
     await user.click(screen.getByRole('button', { name: 'Cozy' }))
     expect(screen.getByText(/Nothing on my backlog fits/)).toBeInTheDocument()
     expect(document.querySelector('[aria-live="polite"]')).toHaveTextContent(
-      'No picks for short, story and cozy',
+      'No picks for short, story or cozy',
     )
   })
 

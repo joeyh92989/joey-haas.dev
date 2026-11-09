@@ -68,7 +68,13 @@ def _rows(model) -> tuple:
 
 
 async def next_fingerprint(session: AsyncSession, now: datetime) -> tuple:
-    """Everything /api/public/next's body depends on, as one comparable tuple."""
+    """Everything /api/public/next's body depends on, as one comparable tuple.
+
+    Pick for me's body is built from the same inputs and shares it. Neither
+    reads a "never" dated today, so the day alone carries the nevers: a
+    transaction that began before midnight and commits after the day's first
+    rebuild waits for the next day, on both pages.
+    """
     midnight = datetime.combine(now.astimezone(UTC).date(), time.min, tzinfo=UTC)
     late_picks = (
         select(func.count())
