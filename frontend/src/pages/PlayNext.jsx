@@ -17,7 +17,27 @@ const SIZES = [
   ['long', 'Long'],
 ]
 
-const SIZE_HINTS = { short: 'under 6 h', medium: '6–15 h', long: '15 h+' }
+/** What the engine picks from (recommendation engine spec): each type has
+ *  its own size bands, and moods and platforms are games' alone. */
+const TYPES = [
+  ['game', 'Game'],
+  ['comic', 'Comic'],
+  ['movie', 'Movie'],
+]
+
+const SIZE_HINTS = {
+  game: { short: 'under 6 h', medium: '6–15 h', long: '15 h+' },
+  comic: {
+    short: '4 issues left or fewer',
+    medium: '5–12 left',
+    long: '13+ left',
+  },
+  movie: {
+    short: '100 min or less',
+    medium: 'up to 140 min',
+    long: 'over 140 min',
+  },
+}
 
 const MOODS = [
   ['cozy', 'Cozy'],
@@ -137,6 +157,7 @@ export default function PlayNext() {
   const [skippedToday, setSkippedToday] = useState([])
   // The Wrap up sheet's subject and preselected outcome, or null.
   const [wrap, setWrap] = useState(null)
+  const [type, setType] = useState('game')
   const [size, setSize] = useState('any')
   const [moods, setMoods] = useState([])
   const [platforms, setPlatforms] = useState([])
@@ -205,7 +226,11 @@ export default function PlayNext() {
     apiFetch('/api/picker/next', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ size, moods, platforms, exclude }),
+      body: JSON.stringify(
+        type === 'game'
+          ? { type, size, moods, platforms, exclude }
+          : { type, size, moods: [], platforms: [], exclude },
+      ),
     })
       .then(async (response) => {
         if (cancelled) return
@@ -222,7 +247,7 @@ export default function PlayNext() {
     return () => {
       cancelled = true
     }
-  }, [status, size, moods, platforms, exclude, round])
+  }, [status, type, size, moods, platforms, exclude, round])
 
   /** A control changed: the reroll's exclusions no longer apply. */
   function change(setter) {
@@ -452,30 +477,43 @@ export default function PlayNext() {
       )}
 
       <div className="play-next-controls">
+        <div className="chip-row" role="group" aria-label="Type">
+          {TYPES.map(([value, label]) => (
+            <Chip
+              key={value}
+              pressed={type === value}
+              onClick={() => change(setType)(value)}
+            >
+              {label}
+            </Chip>
+          ))}
+        </div>
         <div className="chip-row" role="group" aria-label="Size">
           {SIZES.map(([value, label]) => (
             <Chip
               key={value}
               pressed={size === value}
-              hint={SIZE_HINTS[value]}
+              hint={SIZE_HINTS[type][value]}
               onClick={() => change(setSize)(value)}
             >
               {label}
             </Chip>
           ))}
         </div>
-        <div className="chip-row" role="group" aria-label="Mood">
-          {MOODS.map(([value, label]) => (
-            <Chip
-              key={value}
-              pressed={moods.includes(value)}
-              onClick={() => change(setMoods)(toggle(moods, value))}
-            >
-              {label}
-            </Chip>
-          ))}
-        </div>
-        {platformChoices.length > 1 && (
+        {type === 'game' && (
+          <div className="chip-row" role="group" aria-label="Mood">
+            {MOODS.map(([value, label]) => (
+              <Chip
+                key={value}
+                pressed={moods.includes(value)}
+                onClick={() => change(setMoods)(toggle(moods, value))}
+              >
+                {label}
+              </Chip>
+            ))}
+          </div>
+        )}
+        {type === 'game' && platformChoices.length > 1 && (
           <div className="chip-row" role="group" aria-label="Platform">
             {platformChoices.map(([id, name]) => (
               <Chip

@@ -17,14 +17,14 @@ const TIME = new Intl.DateTimeFormat('en-GB', {
 
 /**
  * The landing's proof row: when the catalogue last refreshed, how big it
- * is, and how old the picks and Discover are.
+ * is, how old Discover is, and that the picks are live.
  *
  * Renders nothing without a status, with no skeleton, so a landing with
  * neither the snapshot nor the API shows no empty strip.
  *
  * @param {{
  *   status: {refreshed_at: string|null, titles: number, platforms: number, stores_watched: number, listings: number}|null,
- *   next: {generated_at?: {picks: string|null, discover: string|null}}|null,
+ *   next: {generated_at?: {discover: string|null}}|null,
  *   now?: number,
  * }} props
  */
@@ -38,7 +38,6 @@ export default function StatusStrip({ status, next, now }) {
     : null
   const fresh =
     refreshedAt !== null && at - refreshedAt <= STALE_HOURS * 3600 * 1000
-  const picks = next?.generated_at?.picks
   const discover = next?.generated_at?.discover
   return (
     <dl className="tour-status" aria-label={copy.label}>
@@ -75,7 +74,7 @@ export default function StatusStrip({ status, next, now }) {
       </div>
       <div>
         <dt>{copy.picks}</dt>
-        <dd>{picks ? dayWords(picks) : '—'}</dd>
+        <dd>{copy.picksLive}</dd>
       </div>
       <div>
         <dt>{copy.discover}</dt>

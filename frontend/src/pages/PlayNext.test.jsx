@@ -158,6 +158,7 @@ describe('PlayNext', () => {
     await renderReady()
 
     expect(pickRequests(mock)[0]).toEqual({
+      type: 'game',
       size: 'any',
       moods: [],
       platforms: [],
@@ -210,6 +211,7 @@ describe('PlayNext', () => {
 
     await waitFor(() =>
       expect(pickRequests(mock).at(-1)).toEqual({
+        type: 'game',
         size: 'medium',
         moods: ['cozy', 'brainy'],
         platforms: [508],
@@ -226,6 +228,31 @@ describe('PlayNext', () => {
 
     await waitFor(() =>
       expect(pickRequests(mock).at(-1).exclude).toEqual(['a', 'b', 'c']),
+    )
+  })
+
+  it('asks for comics or movies, without the games-only controls', async () => {
+    const mock = stubApi()
+    await renderReady()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cozy' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Reroll' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Comic' }))
+
+    await waitFor(() =>
+      expect(pickRequests(mock).at(-1)).toEqual({
+        type: 'comic',
+        size: 'any',
+        moods: [],
+        platforms: [],
+        exclude: [],
+      }),
+    )
+    expect(screen.queryByRole('group', { name: 'Mood' })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Platform' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Comic' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     )
   })
 

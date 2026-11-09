@@ -45,7 +45,7 @@ export default function TonightLead({
         </Link>
         <span className="tonight-meta">
           {pick.platform && <span>{pick.platform}</span>}
-          <SizePill hours={pick.time_to_beat_hours} />
+          <SizePill size={pick.size} hours={pick.time_to_beat_hours} />
         </span>
         {reasons.length > 0 && (
           <ul className="tonight-reasons">

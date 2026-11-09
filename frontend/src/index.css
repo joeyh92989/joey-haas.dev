@@ -4729,11 +4729,77 @@ a.month-bar::before {
 }
 
 .tonight-alts-h {
+  align-items: baseline;
   color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
   font-size: 0.8125rem;
+  gap: 0.25rem 0.75rem;
+  justify-content: space-between;
   letter-spacing: 0.04em;
   margin: 1.1rem 0 0.5rem;
   text-transform: uppercase;
+}
+.tonight-alts-h .muted {
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Read next and Watch next under the game picks (recommendation engine
+   spec): the compact pick list under a lane heading. */
+.lane {
+  margin-top: 1.6rem;
+}
+.lane-h {
+  align-items: baseline;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin: 0 0 0.5rem;
+}
+.lane-h h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+.live-cap {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+/* A comic's read-through: a short bar filled to --p. */
+.progress {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+}
+.progress i {
+  background: var(--line-strong);
+  border-radius: 2px;
+  display: inline-block;
+  height: 4px;
+  overflow: hidden;
+  position: relative;
+  width: 3.2rem;
+}
+.progress i::after {
+  background: var(--status-active);
+  content: '';
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: var(--p, 0%);
+}
+/* No game to pick: says why, and where else to look. */
+.empty-box {
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0;
+  padding: 0.9rem 1rem;
+}
+.empty-box a {
+  white-space: nowrap;
 }
 
 .tonight-alts {

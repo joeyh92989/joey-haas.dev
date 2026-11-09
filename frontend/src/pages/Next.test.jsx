@@ -161,8 +161,9 @@ describe('Next', () => {
       'What’s next',
     )
     // The API publishes UTC days only, read at noon so no timezone moves them.
+    // The picks are live, so they carry a word, not a date.
     expect(screen.getByText(/^Picks /)).toHaveTextContent(
-      'Picks Sat 3 Oct · Releases checked Sun 4 Oct · Suggestions Sun 4 Oct',
+      'Picks live · Releases checked Sun 4 Oct · Suggestions Sun 4 Oct',
     )
     const headings = screen
       .getAllByRole('heading', { level: 2 })
@@ -194,7 +195,13 @@ describe('Next', () => {
       failed: false,
     })
     renderPage()
-    expect(screen.getByText(spine.next.empty.upNext)).toBeInTheDocument()
+    // No game to pick: the dashed box says why and points at Pick for me.
+    expect(screen.queryByText(spine.next.empty.upNext)).toBeNull()
+    const box = document.querySelector('.empty-box')
+    expect(box).toHaveTextContent(spine.next.empty.games.before)
+    expect(
+      within(box).getByRole('link', { name: spine.next.empty.games.link }),
+    ).toHaveAttribute('href', '#pick-for-me')
   })
 
   it('sets the page title', () => {
@@ -385,7 +392,9 @@ describe('Next', () => {
   it('renders a body whose tonight is missing', () => {
     mockNext({ data: { buy_now: [] }, live: true, failed: false })
     renderPage()
-    expect(screen.getByText(spine.next.empty.upNext)).toBeInTheDocument()
+    expect(document.querySelector('.empty-box')).toHaveTextContent(
+      spine.next.empty.games.before,
+    )
   })
 
   it('keys rows apart by IGDB link and position', () => {
@@ -1147,5 +1156,84 @@ describe('Tonight with a game in hand', () => {
     mockNext({ data: CONTINUING, live: true, failed: false })
     const { container } = renderPage({ signedIn: true })
     expect(await axeViolations(container)).toEqual([])
+  })
+})
+
+describe('Read next and Watch next', () => {
+  afterEach(() => {
+    vi.mocked(apiFetch).mockReset()
+  })
+
+  const LANES = {
+    ...THREE,
+    tonight: {
+      ...THREE.tonight,
+      read_next: [
+        {
+          ...pick('c1', 'Saga'),
+          type: 'comic',
+          platform: 'Image',
+          size: { unit: 'issues', value: 3 },
+          progress: { read: 1, of: 4 },
+        },
+      ],
+      watch_next: [],
+    },
+  }
+
+  it('lists a lane under its heading and leaves an empty lane out', () => {
+    mockApi()
+    mockNext({ data: LANES, live: true, failed: false })
+    renderPage()
+    const lane = screen.getByRole('region', { name: 'Read next' })
+    expect(within(lane).getByText('from my comics')).toBeInTheDocument()
+    expect(within(lane).getByRole('link', { name: 'Saga' })).toHaveAttribute(
+      'href',
+      itemPath('c1'),
+    )
+    expect(within(lane).getByText('3 issues left')).toBeInTheDocument()
+    expect(
+      within(lane).getByRole('img', { name: '1 of 4 issues read' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Watch next' })).toBeNull()
+    expect(within(lane).queryByRole('button')).toBeNull()
+  })
+
+  it('reads a body written before the lanes', () => {
+    mockApi()
+    mockNext({ data: THREE, live: true, failed: false })
+    renderPage()
+    expect(screen.queryByRole('region', { name: 'Read next' })).toBeNull()
+  })
+
+  it('starts a comic from its lane through the status route', async () => {
+    const user = userEvent.setup()
+    mockApi({ 'POST /api/items/c1/status': { ok: true, body: {} } })
+    mockNext({ data: LANES, live: true, failed: false })
+    renderPage({ signedIn: true })
+    const lane = screen.getByRole('region', { name: 'Read next' })
+    await user.click(
+      within(lane).getByRole('button', { name: 'Read this tonight: Saga' }),
+    )
+    const [[, options]] = calls('POST', '/api/items/c1/status')
+    expect(JSON.parse(options.body)).toEqual({
+      status: 'active',
+      today: localToday(),
+    })
+    expect(screen.queryByRole('region', { name: 'Read next' })).toBeNull()
+  })
+
+  it('puts the comic back when the move fails', async () => {
+    const user = userEvent.setup()
+    mockApi({ 'POST /api/items/c1/status': { ok: false, body: null } })
+    mockNext({ data: LANES, live: true, failed: false })
+    renderPage({ signedIn: true })
+    await user.click(
+      screen.getByRole('button', { name: 'Read this tonight: Saga' }),
+    )
+    expect(await screen.findByText(ACTION_ERROR)).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'Read next' }),
+    ).toBeInTheDocument()
   })
 })
