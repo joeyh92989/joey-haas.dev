@@ -72,3 +72,23 @@ export function isOffMap(point, viewBox, margin = OFF_MAP_MARGIN) {
     point.y > minY + height - margin
   )
 }
+
+/**
+ * Where each spot lands on a drawing, and whether it is off the map.
+ *
+ * @param {{fit: object, viewBox: number[]}} drawing A drawn map module.
+ * @param {{key: string, lat: number, lng: number}[]} spots
+ * @returns {Map<string, {x: number, y: number, offMap: boolean}>} By key.
+ */
+export function placeSpots(drawing, spots) {
+  const project = makeFit(drawing.fit)
+  const placed = new Map()
+  for (const spot of spots) {
+    const point = project({ lat: spot.lat, lng: spot.lng })
+    placed.set(spot.key, {
+      ...point,
+      offMap: isOffMap(point, drawing.viewBox),
+    })
+  }
+  return placed
+}

@@ -6606,3 +6606,197 @@ main h1[tabindex='-1']:focus {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- SpotMap: the drawn poster map (/denver) ---------- */
+/* Every colour is a token, so one drawing is right in both themes. The
+   pins are HTML buttons over the SVG; their --surface halo is the contrast
+   guarantee, so a pin never depends on the ground under it. */
+.spot-map {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.spot-map-ground {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.spot-map-ground path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.spot-map-ground .spot-map-park {
+  fill: color-mix(in srgb, var(--ok) 18%, var(--surface));
+  stroke: none;
+}
+
+.spot-map-ground .spot-map-water-edge {
+  stroke: var(--chart-2);
+  stroke-width: 7;
+}
+
+.spot-map-ground .spot-map-water {
+  stroke: var(--accent-soft);
+  stroke-width: 4;
+}
+
+.spot-map-ground .spot-map-street {
+  stroke: var(--line-strong);
+  stroke-width: 0.75;
+}
+
+.spot-map-ground .spot-map-arterial {
+  stroke: var(--text-3);
+  stroke-width: 1.75;
+}
+
+.spot-map-label,
+.spot-map-title,
+.spot-map-north text {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.spot-map-label {
+  font: 500 11px var(--font-mono);
+  fill: var(--text-2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-anchor: middle;
+}
+
+.spot-map-label.water {
+  font-weight: 400;
+  fill: var(--text-3);
+  text-transform: none;
+}
+
+.spot-map-title {
+  font: 500 20px var(--font-display);
+  fill: var(--text);
+}
+
+.spot-map-north path {
+  fill: var(--text-3);
+}
+
+.spot-map-north text {
+  font: 500 10px var(--font-mono);
+  fill: var(--text-3);
+  text-anchor: middle;
+}
+
+.spot-map-pins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.spot-map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.spot-map-pin span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.spot-map-pin[aria-pressed='true'] {
+  z-index: 1;
+}
+
+.spot-map-pin[aria-pressed='true'] span {
+  width: 20px;
+  height: 20px;
+  background: var(--text);
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
+.spot-map-pin:focus-visible {
+  outline: none;
+}
+
+.spot-map-pin:focus-visible span {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spot-map-pin span {
+    transition:
+      width 120ms ease,
+      height 120ms ease;
+  }
+}
+
+.spot-map-popover {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, calc(-100% - 30px));
+  min-width: 11rem;
+  max-width: 15rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px var(--overlay);
+  font-size: 0.8125rem;
+}
+
+.spot-map-popover.below {
+  transform: translate(-50%, 12px);
+}
+
+.spot-map-popover.start {
+  transform: translate(-1.25rem, calc(-100% - 30px));
+}
+
+.spot-map-popover.end {
+  transform: translate(calc(-100% + 1.25rem), calc(-100% - 30px));
+}
+
+.spot-map-popover.below.start {
+  transform: translate(-1.25rem, 12px);
+}
+
+.spot-map-popover.below.end {
+  transform: translate(calc(-100% + 1.25rem), 12px);
+}
+
+.spot-map-attribution {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 1px 6px;
+  border-top-left-radius: 4px;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  color: var(--text-3);
+  font-size: 0.65rem;
+}
+
+.spot-map-attribution a {
+  color: var(--text-2);
+}

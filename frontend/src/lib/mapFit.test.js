@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { OFF_MAP_MARGIN, isOffMap, makeFit } from './mapFit.js'
+import { OFF_MAP_MARGIN, isOffMap, makeFit, placeSpots } from './mapFit.js'
 
 // A north-up fit at Denver's latitude: 1000 px per degree of latitude and
 // cos(39.75°) of that per degree of longitude.
@@ -85,5 +85,22 @@ describe('isOffMap', () => {
 
   it('treats a non-finite point as off the map', () => {
     expect(isOffMap({ x: NaN, y: 10 }, viewBox)).toBe(true)
+  })
+})
+
+describe('placeSpots', () => {
+  const drawing = { fit: { points: [A, B] }, viewBox: [0, 0, B.x, B.y] }
+
+  it('places each spot by key and flags the ones off the drawing', () => {
+    const placed = placeSpots(drawing, [
+      { key: 'inside', lat: 39.75, lng: -104.99 },
+      { key: 'outside', lat: 39.9, lng: -104.99 },
+    ])
+    expect(placed.get('inside')).toEqual({
+      x: expect.closeTo(B.x / 2, 6),
+      y: expect.closeTo(B.y / 2, 6),
+      offMap: false,
+    })
+    expect(placed.get('outside').offMap).toBe(true)
   })
 })
