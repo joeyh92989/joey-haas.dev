@@ -6747,6 +6747,16 @@ main h1[tabindex='-1']:focus,
 }
 
 @media (max-width: 34rem) {
+  /* At phone width the graded cells, not the title, need the room: "Medium"
+     inside a close ring had under a pixel to spare at 400px. */
+  .shelfle {
+    border-spacing: 0.25rem;
+    margin: 0 -0.25rem;
+    width: calc(100% + 0.5rem);
+  }
+  .shelfle th.shelfle-title {
+    width: 28%;
+  }
   .shelfle td {
     font-size: 0.75rem;
     padding: 0.4rem 0.25rem;
