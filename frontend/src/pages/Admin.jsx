@@ -79,7 +79,13 @@ function ShelfCard({ items, year }) {
     : null
 
   // Nothing to show at all: no game and nothing owned.
-  if (counts && counts.owned === 0 && !card && !pick && continuing !== undefined)
+  if (
+    counts &&
+    counts.owned === 0 &&
+    !card &&
+    !pick &&
+    continuing !== undefined
+  )
     return null
 
   async function logTonight() {

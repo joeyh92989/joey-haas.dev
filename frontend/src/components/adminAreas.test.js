@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  ADMIN_AREAS,
-  areaFor,
-  pageFor,
-  segmentsFor,
-} from './adminAreas.js'
+import { ADMIN_AREAS, areaFor, pageFor, segmentsFor } from './adminAreas.js'
 import appSource from '../App.jsx?raw'
 
 /** The fixed admin paths in App.jsx, read the way prerender-lib's test does. */
@@ -35,7 +30,10 @@ describe('ADMIN_AREAS', () => {
       const homes = ADMIN_AREAS.filter((area) =>
         owned(area).some((page) => page.to === path),
       )
-      expect(homes.map((area) => area.key), path).toHaveLength(1)
+      expect(
+        homes.map((area) => area.key),
+        path,
+      ).toHaveLength(1)
     }
   })
 
@@ -48,7 +46,10 @@ describe('ADMIN_AREAS', () => {
 
   it('lands each area on one of its own pages', () => {
     for (const area of ADMIN_AREAS) {
-      expect(owned(area).map((page) => page.to), area.key).toContain(area.home)
+      expect(
+        owned(area).map((page) => page.to),
+        area.key,
+      ).toContain(area.home)
     }
   })
 

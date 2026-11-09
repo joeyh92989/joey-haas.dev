@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ownerYear } from '../lib/formatDate.js'
@@ -100,7 +106,12 @@ function stubApi(routes = {}) {
     '/api/picker/continuing': () => json({ cards: [CONTINUING] }),
     '/api/public/next': () =>
       json({
-        tonight: { continuing: [], up_next: null, picks: [], last_finish: null },
+        tonight: {
+          continuing: [],
+          up_next: null,
+          picks: [],
+          last_finish: null,
+        },
         comics_this_week: [{}, {}],
       }),
     '/api/spots/plan': () =>
@@ -127,8 +138,7 @@ function stubApi(routes = {}) {
 }
 
 const card = (name) => screen.findByRole('region', { name })
-const figureOf = (region, label) =>
-  within(region).getByText(label).nextSibling
+const figureOf = (region, label) => within(region).getByText(label).nextSibling
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -154,13 +164,13 @@ describe('Admin Home', () => {
     expect(
       await within(shelf).findByText('Continue: Dredge'),
     ).toBeInTheDocument()
-    expect(within(shelf).getByText('Switch · 3 sessions · 6h')).toBeInTheDocument()
+    expect(
+      within(shelf).getByText('Switch · 3 sessions · 6h'),
+    ).toBeInTheDocument()
     expect(
       within(shelf).getByRole('link', { name: 'Play Next' }),
     ).toHaveAttribute('href', '/admin/play-next')
-    await waitFor(() =>
-      expect(figureOf(shelf, 'Owned')).toHaveTextContent('2'),
-    )
+    await waitFor(() => expect(figureOf(shelf, 'Owned')).toHaveTextContent('2'))
     expect(figureOf(shelf, `Finished · ${YEAR}`)).toHaveTextContent('1')
     expect(figureOf(shelf, 'Comics this week')).toHaveTextContent('2')
   })
@@ -246,7 +256,12 @@ describe('Admin Home', () => {
         json({
           tonight: {
             continuing: [],
-            up_next: { item_id: 'b', type: 'game', title: 'Hades', platform: 'Switch' },
+            up_next: {
+              item_id: 'b',
+              type: 'game',
+              title: 'Hades',
+              platform: 'Switch',
+            },
             picks: [],
           },
           comics_this_week: [],
@@ -328,8 +343,9 @@ describe('Admin Home', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     expect(await within(panel).findAllByRole('listitem')).toHaveLength(6)
-    expect(
-      within(panel).getByRole('link', { name: 'Jobs' }),
-    ).toHaveAttribute('href', '/admin/jobs')
+    expect(within(panel).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
+      'href',
+      '/admin/jobs',
+    )
   })
 })

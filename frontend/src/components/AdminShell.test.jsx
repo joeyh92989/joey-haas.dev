@@ -60,10 +60,9 @@ describe('AdminShell on a desktop', () => {
 
   it('marks the current area, nested pages included', () => {
     renderAt('/admin/collection/42')
-    expect(within(areas()).getByRole('link', { name: 'Shelf' })).toHaveAttribute(
-      'aria-current',
-      'true',
-    )
+    expect(
+      within(areas()).getByRole('link', { name: 'Shelf' }),
+    ).toHaveAttribute('aria-current', 'true')
     expect(
       within(areas()).getByRole('link', { name: 'Home' }),
     ).not.toHaveAttribute('aria-current')
@@ -127,9 +126,10 @@ describe('AdminShell on a desktop', () => {
   it('leaves the count out until it has loaded', () => {
     renderAt('/admin/collection', { ownedCount: null })
     expect(
-      within(
-        screen.getByRole('navigation', { name: 'Shelf pages' }),
-      ).getByRole('link', { name: 'Collection' }),
+      within(screen.getByRole('navigation', { name: 'Shelf pages' })).getByRole(
+        'link',
+        { name: 'Collection' },
+      ),
     ).toBeInTheDocument()
   })
 
@@ -172,7 +172,12 @@ describe('AdminShell on a phone', () => {
       within(areas())
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
-    ).toEqual(['/admin', '/admin/collection', '/admin/weekend', '/admin/analytics'])
+    ).toEqual([
+      '/admin',
+      '/admin/collection',
+      '/admin/weekend',
+      '/admin/analytics',
+    ])
   })
 
   it('marks the current area tab', () => {
