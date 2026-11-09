@@ -37,6 +37,7 @@ from public import create_public_router
 from recommendations_routes import create_recommendations_router
 from schema_check import verify_schema_is_current
 from sources.registry import build_registry, configured_sources
+from spots_routes import create_spots_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -112,6 +113,7 @@ app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
 app.include_router(create_picker_router(session_factory))
 app.include_router(create_journal_router(session_factory))
+app.include_router(create_spots_router(session_factory))
 # One cache for the admin read and the public site-stats read, so the
 # nightly rollup's clear refreshes both.
 summary_cache = SummaryCache()
