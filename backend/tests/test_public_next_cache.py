@@ -248,6 +248,56 @@ async def test_a_finish_date_edit_rebuilds(sessionmaker_for_test, seeded, build)
     assert after["finished_at"] == second
 
 
+async def test_a_journal_day_rebuilds(sessionmaker_for_test, seeded, build):
+    """The Continue card's hours, sessions and "last played" are journal rows,
+    which touch no item: play_sessions is in the digest on its own."""
+    from models import PlaySession
+
+    async with site_for(sessionmaker_for_test) as client:
+        item = seeded["owned"].id
+        start = await client.post(
+            f"/api/items/{item}/status",
+            json={"status": "active", "today": datetime.now(UTC).date().isoformat()},
+        )
+        assert start.status_code == 200
+        before = (await _warm(client, build))["tonight"]["continuing"]
+        async with sessionmaker_for_test() as session:
+            session.add(
+                PlaySession(item_id=item, played_on=NOW.date() - timedelta(days=1))
+            )
+            await session.commit()
+        after = (await _next(client))["tonight"]["continuing"]
+
+    assert build.calls == 2
+    assert before[0]["sessions"] == 0
+    assert after[0]["sessions"] == 1
+    assert after[0]["last_played_on"] == (NOW.date() - timedelta(days=1)).isoformat()
+
+
+async def test_a_start_date_edit_rebuilds(sessionmaker_for_test, seeded, build):
+    """`playing_since` is the open run's row, not an item column."""
+    earlier = (NOW.date() - timedelta(days=30)).isoformat()
+    async with site_for(sessionmaker_for_test) as client:
+        item = seeded["owned"].id
+        start = await client.post(
+            f"/api/items/{item}/status",
+            json={"status": "active", "today": datetime.now(UTC).date().isoformat()},
+        )
+        assert start.status_code == 200
+        before = (await _warm(client, build))["tonight"]["continuing"][0]
+        edit = await client.patch(
+            f"/api/items/{item}/playthroughs/1", json={"started_on": earlier}
+        )
+        assert edit.status_code == 200
+        after = (await _next(client))["tonight"]["continuing"][0]
+
+    assert build.calls == 2
+    # The status route dates the start with the real server day (the frozen
+    # clock is the public router's); the stale flag is read against NOW.
+    assert before["playing_since"] == datetime.now(UTC).date().isoformat()
+    assert (after["playing_since"], after["stale"]) == (earlier, True)
+
+
 async def test_deleting_an_item_rebuilds(sessionmaker_for_test, seeded, build):
     async with site_for(sessionmaker_for_test) as client:
         await _warm(client, build)

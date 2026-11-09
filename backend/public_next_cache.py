@@ -8,8 +8,10 @@ aggregate query:
 - the UTC day. Picks count only events before today's UTC midnight, so an
   event written today changes nothing until tomorrow; the day also decides
   which dates are still to come;
-- every row of `items` and `recommendations`, as a count and a digest of
-  each row's id and xmin. Postgres gives a row a new xmin on every UPDATE,
+- every row of `items`, `recommendations`, `playthroughs` and
+  `play_sessions`, as a count and a digest of each row's id and xmin (the
+  Continue card reads the open run and its journal, which touch neither
+  the item's xmin nor its updated_at). Postgres gives a row a new xmin on every UPDATE,
   whoever writes it, so no write path can slip past: not a bulk UPDATE, not
   SQL written by hand (which skips updated_at's SQLAlchemy-side onupdate),
   and not a transaction that started earlier committing later (updated_at
@@ -44,7 +46,15 @@ from typing import Generic, TypeVar
 from sqlalchemy import Text, cast, func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import CatalogueRun, Item, PickAction, PickEvent, Recommendation
+from models import (
+    CatalogueRun,
+    Item,
+    PickAction,
+    PickEvent,
+    PlaySession,
+    Playthrough,
+    Recommendation,
+)
 from public_outputs import PICKS_WINDOW
 
 Body = TypeVar("Body")
@@ -91,6 +101,8 @@ async def next_fingerprint(session: AsyncSession, now: datetime) -> tuple:
             select(
                 *_rows(Item),
                 *_rows(Recommendation),
+                *_rows(Playthrough),
+                *_rows(PlaySession),
                 select(func.count(CatalogueRun.finished_at)).scalar_subquery(),
                 select(func.max(CatalogueRun.finished_at)).scalar_subquery(),
                 late_picks,
