@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import JustFinishedChip from '../components/JustFinishedChip.jsx'
+import Lane from '../components/Lane.jsx'
 import NextRow from '../components/NextRow.jsx'
 import PickForMe from '../components/PickForMe.jsx'
 import SortControl from '../components/SortControl.jsx'
@@ -17,7 +18,7 @@ import { spine } from '../content/spine.js'
 import { shortDate } from '../lib/comics.js'
 import { groupByPlatform, sortBuyNow, weekdayWords } from '../lib/next.js'
 import { apiFetch } from '../lib/api.js'
-import { localToday, pinPath } from '../lib/statusMoves.js'
+import { localToday, pinPath, setStatus } from '../lib/statusMoves.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { isValidSnapshot } from '../lib/snapshot.js'
@@ -70,6 +71,9 @@ function withLists(data) {
       up_next: data.tonight?.up_next ?? null,
       picks: list(data.tonight?.picks),
       last_finish: data.tonight?.last_finish ?? null,
+      // Absent from a body written before the lanes.
+      read_next: list(data.tonight?.read_next),
+      watch_next: list(data.tonight?.watch_next),
     },
     comics_this_week: list(data.comics_this_week),
     wanted: list(data.wanted),
@@ -81,15 +85,16 @@ function withLists(data) {
 }
 
 function Freshness({ generated }) {
-  const parts = [
-    [copy.fresh.picks, generated?.picks],
+  // The picks are live (recommendation engine spec), so they carry a word
+  // rather than a date; the nightly jobs keep theirs.
+  const dated = [
     [copy.fresh.catalogue, generated?.catalogue],
     [copy.fresh.discover, generated?.discover],
   ]
     .map(([label, value]) => [label, value && weekdayWords(value)])
     .filter(([, words]) => words)
     .map(([label, words]) => `${label} ${words}`)
-  if (!parts.length) return null
+  const parts = [copy.fresh.picksLive, ...dated]
   return <p className="muted next-fresh">{parts.join(' · ')}</p>
 }
 
@@ -154,9 +159,13 @@ function ComicsThisWeek({ rows }) {
  * Tonight (Tonight picks spec): the Just finished chip, the lead card, and
  * the other picks under it. Signed in, each card can be pinned ("Play
  * this") or skipped ("Not tonight"); writes are optimistic, and a pin is
- * confirmed by a live refetch through `onRefresh`. A skip changes nothing
- * public until the next day's picks, so games skipped earlier today come
- * from `/api/picker/skipped-today` and are left out here.
+ * confirmed by a live refetch through `onRefresh`. The public picks never
+ * read a skip, so games skipped earlier today come from
+ * `/api/picker/skipped-today` and are left out here.
+ *
+ * Read next and Watch next follow the game picks (recommendation engine
+ * spec). Their start button moves the comic or movie to Active through the
+ * status route; it leaves the lane at once and the refetch confirms it.
  */
 function Tonight({ tonight, signedIn, onRefresh }) {
   // undefined: the body's Up next; null: unpinned here; a pick: pinned here.
@@ -170,6 +179,8 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   // games wrapped up here, gone from the cards before the body catches up.
   const [wrap, setWrap] = useState(null)
   const [wrapped, setWrapped] = useState(() => new Set())
+  // Comics and movies started from a lane here, gone before the refetch.
+  const [started, setStarted] = useState(() => new Set())
   const [error, setError] = useState(false)
   // A write that landed but has something to say (a rating that did not
   // save), in the server's own words rather than the generic failure.
@@ -239,6 +250,10 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   const lead =
     upNext ?? open.find((pick) => !skipped.includes(pick.item_id)) ?? null
   const alts = open.filter((pick) => pick.item_id !== lead?.item_id)
+  const laneOpen = (picks) =>
+    picks.filter(
+      (pick) => !hidden.has(pick.item_id) && !started.has(pick.item_id),
+    )
 
   /** One write at a time: a second press while one is out is ignored. */
   async function write(path, method, body) {
@@ -345,6 +360,33 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     )
   }
 
+  /** A lane's "Read this tonight" / "Watch this tonight": the item moves to
+   *  Active, as the shelf's status control would move it. */
+  function start(pick) {
+    act(
+      () => {
+        setStarted((ids) => new Set([...ids, pick.item_id]))
+        focusNext.current = { lead: true }
+      },
+      async () => {
+        const response = await setStatus(pick.item_id, 'active')
+        if (!response.ok) throw new Error(`status: ${response.status}`)
+      },
+      () => {
+        setStarted((ids) => {
+          const next = new Set(ids)
+          next.delete(pick.item_id)
+          return next
+        })
+        focusNext.current = { title: pick.item_id }
+      },
+      async () => {
+        // The move is saved; only the refetch failed, as after Wrap up.
+        if (!(await onRefresh())) setError(true)
+      },
+    )
+  }
+
   function undo(pick) {
     act(
       () => {
@@ -400,6 +442,9 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   }
 
   const owner = signedIn ? { onPlay: play, onSkip: skip } : {}
+  const laneOwner = signedIn
+    ? { onPlay: start, onSkip: skip, onUndo: undo, skipped }
+    : {}
   const cardOwner = signedIn
     ? {
         signedIn: true,
@@ -473,6 +518,12 @@ function Tonight({ tonight, signedIn, onRefresh }) {
               onSkip={skip}
               onUnpin={unpin}
             />
+          ) : tonight.picks.length === 0 ? (
+            <p className="empty-box">
+              {copy.empty.games.before}{' '}
+              <a href="#pick-for-me">{copy.empty.games.link}</a>
+              {copy.empty.games.after}
+            </p>
           ) : (
             <p className="muted">{copy.empty.upNext}</p>
           )}
@@ -480,7 +531,10 @@ function Tonight({ tonight, signedIn, onRefresh }) {
             <>
               {alts.some((pick) => !skipped.includes(pick.item_id)) && (
                 <p className="tonight-alts-h">
-                  {upNext ? copy.tonight.otherPicks : copy.tonight.orInstead}
+                  <span>
+                    {upNext ? copy.tonight.otherPicks : copy.tonight.orInstead}
+                  </span>
+                  <span className="muted">{copy.tonight.pickedLive}</span>
                 </p>
               )}
               <ul className="tonight-alts">
@@ -500,9 +554,20 @@ function Tonight({ tonight, signedIn, onRefresh }) {
           )}
         </>
       )}
-      {tonight.picks.length === 0 && !leading && (
-        <p className="muted">{copy.empty.picks}</p>
-      )}
+      <Lane
+        title={copy.tonight.readNext}
+        caption={copy.tonight.readNextCaption}
+        verb={copy.tonight.readTonight}
+        picks={laneOpen(tonight.read_next)}
+        {...laneOwner}
+      />
+      <Lane
+        title={copy.tonight.watchNext}
+        caption={copy.tonight.watchNextCaption}
+        verb={copy.tonight.watchTonight}
+        picks={laneOpen(tonight.watch_next)}
+        {...laneOwner}
+      />
       {(error || note) && (
         <p className="admin-error" role="alert">
           {error ? ACTION_ERROR : note}

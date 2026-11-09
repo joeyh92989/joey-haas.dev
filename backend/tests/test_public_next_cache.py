@@ -9,7 +9,7 @@ fingerprint, bulk statements included.
 import asyncio
 import uuid
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -441,30 +441,26 @@ async def test_creating_a_public_wanted_game_rebuilds(
     assert sorted(_titles(body, "wanted")) == ["Newly Wanted", "Wanted Game"]
 
 
-async def test_a_pick_committed_after_midnight_rebuilds(
-    sessionmaker_for_test, seeded, build, clock
+async def test_a_pick_event_written_today_neither_rebuilds_nor_changes_the_body(
+    sessionmaker_for_test, seeded, build
 ):
-    """A Play Next transaction that began before UTC midnight and commits
-    after it writes shown events dated yesterday. A build in between cannot
-    see them, and they count on the day it was built for."""
+    """The picks are live and read no shown or skipped event, and a never
+    only from before midnight: browsing Play Next today changes nothing."""
     owned = seeded["owned"]
-    midnight = datetime.combine(NOW.date() + timedelta(days=1), time.min, UTC)
     async with site_for(sessionmaker_for_test) as client:
-        clock(midnight + timedelta(minutes=1))
         before = await _warm(client, build)
         await _add(
             sessionmaker_for_test,
-            PickEvent(
-                item_id=owned.id,
-                action=PickAction.SHOWN,
-                created_at=midnight - timedelta(seconds=5),
+            *(
+                PickEvent(item_id=owned.id, action=action, created_at=NOW)
+                for action in (PickAction.SHOWN, PickAction.SKIPPED, PickAction.NEVER)
             ),
         )
         after = await _next(client)
 
-    assert build.calls == 2
-    assert before["tonight"]["picks"] == []
-    assert [pick["title"] for pick in after["tonight"]["picks"]] == ["Owned Game"]
+    assert build.calls == 1
+    assert after == before
+    assert "Owned Game" in [pick["title"] for pick in after["tonight"]["picks"]]
 
 
 async def test_a_write_that_bypasses_updated_at_still_rebuilds(

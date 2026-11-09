@@ -1,0 +1,12 @@
+{
+  "note": "Mapped strings the recorded source fixtures do not carry, copied from the local collection export (tests/fixtures/picker_collection.json, gitignored). Only strings FACET_MAP already holds belong here; test_facets checks them against the export wherever it exists.",
+  "strings": [
+    ["igdb", "keywords", "anti-gravity racing"],
+    ["igdb", "keywords", "artificial intelligence"],
+    ["igdb", "keywords", "dark humor"],
+    ["igdb", "keywords", "flight"],
+    ["igdb", "keywords", "helicopter"],
+    ["igdb", "keywords", "robots"],
+    ["igdb", "keywords", "tank"]
+  ]
+}

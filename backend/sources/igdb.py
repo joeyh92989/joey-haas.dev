@@ -141,7 +141,8 @@ TIME_TO_BEAT_FIELDS = "fields game_id,hastily,normally,completely,count;"
 BATCH = 100
 
 # Keywords run to dozens on a popular game, and the query language cannot
-# trim an expanded array.
+# trim an expanded array. Only Radar's upcoming lane (parse_upcoming) trims
+# them; the detail snapshot keeps every one for the recommendation engine.
 KEYWORD_LIMIT = 10
 
 
@@ -452,7 +453,9 @@ class IgdbSource:
             # reason this field is requested at all.
             "similar_games": row.get("similar_games") or [],
             "themes": _names(row, "themes"),
-            "keywords": _names(row, "keywords")[:KEYWORD_LIMIT],
+            # Every keyword: the recommendation engine weighs each by how few
+            # of the collection's items carry it, so the long tail is the point.
+            "keywords": _names(row, "keywords"),
             "game_modes": _names(row, "game_modes"),
             "player_perspectives": _names(row, "player_perspectives"),
             "genre_ids": _ids(row, "genres"),

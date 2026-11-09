@@ -8,24 +8,24 @@ the API; cached on next_fingerprint like /next, so a burst of visitors is one
 computation.
 
 What it may not carry: anything private. The profile and the pool are public
-rows; the score leaves out waiting (acquired_at), jitter and staleness (the
-owner's pick events). A "never" counts only once it is dated before today's
+rows, read through public_picks.load_public_inputs, so Tonight's lanes and
+this table rank from the same inputs and the same game pool; the score
+leaves out waiting (acquired_at), jitter and staleness (the owner's pick
+events). A "never" counts only once it is dated before today's
 UTC midnight, as on Tonight, so a refusal shows here no sooner than there.
 """
 
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime
 
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Item, OwnedFormat, PickAction, PickEvent
 from picker import PICKER_WEIGHTS, PUBLIC_TERMS, public_pick_table
-from picker_routes import to_picker_item
-from public_outputs import PICKABLE, _hours, _igdb_url
+from public_outputs import _hours, _igdb_url
+from public_picks import load_public_inputs, public_pool
 
 
 class PublicPickCard(BaseModel):
@@ -61,38 +61,14 @@ class PublicPickForMeOut(BaseModel):
 
 
 async def load_pick_for_me(session: AsyncSession, now: datetime) -> PublicPickForMeOut:
-    """Builds the body from public rows and the nevers dated before midnight."""
+    """Builds the body from the public set's inputs (public_picks): the
+    public rows with their play records as the profile, and the game lane's
+    public pool, less the nevers dated before midnight, as the pool."""
     today = now.astimezone(UTC).date()
-    public_rows = list(
-        (await session.execute(select(Item).where(Item.is_public.is_(True)))).scalars()
-    )
-    eligible = [
-        row
-        for row in public_rows
-        if row.owned_format != OwnedFormat.NONE
-        and row.status in PICKABLE
-        and row.pinned_at is None
-    ]
-    refused: set[uuid.UUID] = set()
-    if eligible:
-        midnight = datetime.combine(today, time.min, tzinfo=UTC)
-        refused = set(
-            (
-                await session.execute(
-                    select(PickEvent.item_id).where(
-                        PickEvent.item_id.in_([row.id for row in eligible]),
-                        PickEvent.action == PickAction.NEVER,
-                        PickEvent.created_at < midnight,
-                    )
-                )
-            ).scalars()
-        )
-    rows = {str(row.id): row for row in eligible if row.id not in refused}
-    table = public_pick_table(
-        [to_picker_item(row) for row in public_rows],
-        [to_picker_item(row) for row in rows.values()],
-        today,
-    )
+    inputs = await load_public_inputs(session, now)
+    pool = public_pool(inputs.items, inputs.never, "game")
+    rows = {item.id: inputs.rows[item.id] for item in pool}
+    table = public_pick_table(inputs.items, pool, today)
     return PublicPickForMeOut(
         generated_on=today,
         weights={name: PICKER_WEIGHTS[name] for name in PUBLIC_TERMS},

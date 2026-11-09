@@ -39,7 +39,7 @@ describe('StatusStrip', () => {
     expect(values.slice(1)).toEqual([
       '5,724 titles2 platforms',
       '121,958 listings',
-      'Oct 21, 2026',
+      'live',
       'Oct 18, 2026',
     ])
   })
@@ -70,6 +70,7 @@ describe('StatusStrip', () => {
     expect(
       screen.getByRole('img', { name: 'not refreshed in over 36 hours' }),
     ).toBeInTheDocument()
-    expect(screen.getAllByText('—')).toHaveLength(3)
+    expect(screen.getAllByText('—')).toHaveLength(2)
+    expect(screen.getByText('live')).toBeInTheDocument()
   })
 })

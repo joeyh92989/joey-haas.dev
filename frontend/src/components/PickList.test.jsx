@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import PickList from './PickList.jsx'
 import { itemPath } from '../lib/spinePaths.js'
+import { spine } from '../content/spine.js'
 
 const pick = (id, title, fields = {}) => ({
   item_id: id,
@@ -33,7 +34,7 @@ describe('PickList', () => {
   it('lists the picks with kicker, title link, size and the first reason only', () => {
     renderList()
     expect(screen.getByText('Or instead')).toBeInTheDocument()
-    expect(screen.getByText('rebuilt nightly')).toBeInTheDocument()
+    expect(screen.getByText(spine.next.tonight.pickedLive)).toBeInTheDocument()
     const rows = [...document.querySelectorAll('.picklist > li')]
     expect(rows).toHaveLength(2)
     expect(within(rows[0]).getByText('Best fit')).toBeInTheDocument()

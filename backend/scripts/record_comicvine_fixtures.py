@@ -1,4 +1,4 @@
-"""Records live ComicVine /issues responses as test fixtures for the pull list.
+"""Records live ComicVine responses as test fixtures: issues and one volume.
 
 Run once, from backend/ in any checkout or worktree, by the owner:
 
@@ -15,6 +15,10 @@ fields but does not clearly mark it filterable. The pull list depends on
 `filter=volume:{id}` narrowing the answer to one series, so this checks that
 against the live API before any parser is written, and says so in its
 printout.
+
+It also records Saga's /volume detail with the adapter's VOLUME_FIELD_LIST
+(characters, concepts, teams, locations) into comicvine_volume.json, which
+the detail tests and the recommendation engine's comic facets are read from.
 """
 
 from __future__ import annotations
@@ -35,6 +39,8 @@ from migrate_neon import main_checkout_env, read_variable  # noqa: E402
 from sources.comicvine import (  # noqa: E402
     ISSUE_FETCH_LIMIT,
     ISSUE_FIELD_LIST,
+    VOLUME_FIELD_LIST,
+    VOLUME_PREFIX,
     ComicVineSource,
 )
 
@@ -48,6 +54,10 @@ SERIES = (
     ("comicvine_issues_ended.json", "Y: The Last Man", "DC Comics", "2002"),
 )
 SEARCH_FIELDS = "id,name,start_year,publisher,count_of_issues"
+# The detail fixture: the adapter's own /volume call for Saga, tag lists
+# included, written as the bare response body the detail tests read.
+VOLUME_FIXTURE = "comicvine_volume.json"
+VOLUME_ID = 46568
 
 
 def pick_volume(results: list[dict], title: str, publisher: str, year: str):
@@ -114,6 +124,20 @@ async def record(source: ComicVineSource, today: date) -> int:
         print(f"wrote {path.relative_to(BACKEND)}")
         if not held:
             failures += 1
+    payload = await source._get(
+        f"/volume/{VOLUME_PREFIX}-{VOLUME_ID}/", {"field_list": VOLUME_FIELD_LIST}
+    )
+    (FIXTURES / VOLUME_FIXTURE).write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    )
+    row = payload.get("results") or {}
+    counts = ", ".join(
+        f"{len(row.get(key) or [])} {key}"
+        for key in ("characters", "concepts", "teams", "locations")
+    )
+    print(
+        f"{row.get('name')!r} volume: {counts}; wrote tests/fixtures/{VOLUME_FIXTURE}"
+    )
     return failures
 
 

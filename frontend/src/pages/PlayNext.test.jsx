@@ -158,6 +158,7 @@ describe('PlayNext', () => {
     await renderReady()
 
     expect(pickRequests(mock)[0]).toEqual({
+      type: 'game',
       size: 'any',
       moods: [],
       platforms: [],
@@ -210,6 +211,7 @@ describe('PlayNext', () => {
 
     await waitFor(() =>
       expect(pickRequests(mock).at(-1)).toEqual({
+        type: 'game',
         size: 'medium',
         moods: ['cozy', 'brainy'],
         platforms: [508],
@@ -227,6 +229,55 @@ describe('PlayNext', () => {
     await waitFor(() =>
       expect(pickRequests(mock).at(-1).exclude).toEqual(['a', 'b', 'c']),
     )
+  })
+
+  it('asks for comics or movies, without the games-only controls', async () => {
+    const mock = stubApi()
+    await renderReady()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cozy' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Reroll' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Comic' }))
+
+    await waitFor(() =>
+      expect(pickRequests(mock).at(-1)).toEqual({
+        type: 'comic',
+        size: 'any',
+        moods: [],
+        platforms: [],
+        exclude: [],
+      }),
+    )
+    expect(screen.queryByRole('group', { name: 'Mood' })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Platform' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Comic' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('starts a comic by its status, leaving the pinned game alone', async () => {
+    const comic = pick('k', 'Saga', 'best_fit', 'Best fit')
+    comic.item = { ...comic.item, type: 'comic', genres: [] }
+    const mock = stubApi({
+      picks: (body) =>
+        body.type === 'comic' ? { ...PICKS, picks: [comic] } : PICKS,
+    })
+    await renderReady()
+    await userEvent.click(screen.getByRole('button', { name: 'Comic' }))
+    await screen.findByText('Saga', { selector: '.pick-card h2' })
+
+    expect(card('Saga').queryByRole('button', { name: 'Play this' })).toBeNull()
+    await userEvent.click(
+      card('Saga').getByRole('button', { name: 'Start reading' }),
+    )
+
+    await waitFor(() =>
+      expect(calls(mock, 'POST', '/api/items/k/status')).toHaveLength(1),
+    )
+    const [, options] = calls(mock, 'POST', '/api/items/k/status')[0]
+    expect(JSON.parse(options.body)).toMatchObject({ status: 'active' })
+    expect(calls(mock, 'POST', '/pin')).toHaveLength(0)
   })
 
   it('starts the exclusions over when a control changes', async () => {

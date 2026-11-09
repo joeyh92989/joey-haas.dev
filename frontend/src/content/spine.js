@@ -193,7 +193,7 @@ export const spine = {
         where: '/admin/play-next',
         title: 'Picks tonight’s game',
         claim:
-          'While I’m playing something, Tonight leads with it: the game in hand, how long I’ve been at it and when I last played, with the picks underneath as the fallback. Six weighted terms score the backlog and anything I’ve paused: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. Each pick comes with a reason, and a paused game can come back as “Pick it back up”. Rolling credits is one gesture, Wrap up: Finished, Paused or Abandoned, with a rating and a line while they’re fresh. A replay is a new playthrough, so finishing a game twice counts twice.',
+          'While I’m playing something, Tonight leads with it: the game in hand, how long I’ve been at it and when I last played, with the picks underneath as the fallback. Six weighted terms score the backlog and anything I’ve paused: how much I’ve liked games like it, read through shared facets (genre, setting, mood) and how much I actually played them, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. The same engine picks what to read and watch next. Each pick comes with a reason, and a paused game can come back as “Pick it back up”. Rolling credits is one gesture, Wrap up: Finished, Paused or Abandoned, with a rating and a line while they’re fresh. A replay is a new playthrough, so finishing a game twice counts twice.',
         why: {
           lead: 'No model here.',
           text: 'The scoring is pure Python, tested without a database, and the public reasons are always rebuilt from public games only.',
@@ -201,7 +201,7 @@ export const spine = {
         code: ['backend/picker.py'],
         live: {
           caption:
-            'The game I’m playing, if there is one; Up next, which I pin by hand; and the day’s picks, which change at most once a day.',
+            'The game I’m playing, if there is one; Up next, which I pin by hand; and the picks, which change the moment I finish something.',
           empty: 'Nothing lined up for tonight.',
         },
         capture: {
@@ -290,7 +290,7 @@ export const spine = {
         where: 'nightly.yml',
         title: 'Rebuilds itself every night',
         claim:
-          'At 00:17 UTC, a GitHub Actions job records the day’s picks, refreshes the registry and the stores, regenerates Radar (and Discover once a week), and redeploys the static site only when the snapshot has changed.',
+          'At 00:17 UTC, a GitHub Actions job refreshes the registry and the stores, regenerates Radar (and Discover once a week), and redeploys the static site only when the snapshot has changed.',
         why: {
           lead: 'Why a job token:',
           text: 'it works only on a pinned list of routes, and a test fails if that list grows unnoticed.',
@@ -302,7 +302,6 @@ export const spine = {
           note: 'Part of one run, in the job’s order. Timings are illustrative.',
           columns: ['Step', 'Result', 'Took'],
           rows: [
-            ['picks', { pill: 'ok', tone: 'ok' }, '2 s'],
             ['registry', { pill: 'ok', tone: 'ok' }, '41 s'],
             ['stores', { pill: 'ok', tone: 'ok' }, '3 m 10 s'],
             ['resolve', { pill: 'ok', tone: 'ok' }, '12 s'],
@@ -377,14 +376,15 @@ export const spine = {
     stores: 'Stores watched',
     listings: 'listings',
     picks: 'Picks',
+    picksLive: 'live',
     discover: 'Discover',
   },
   next: {
     path: '/shelf/next',
     title: 'What’s next',
-    lede: 'What I could play tonight, and what I’m watching for in stores. Full cartridges only, ranked by what I’ve liked, rebuilt every night.',
+    lede: 'What I could play, read or watch tonight, and what I’m watching for in stores. Picked live from what I’ve liked; full cartridges only in stores.',
     fresh: {
-      picks: 'Picks',
+      picksLive: 'Picks live',
       catalogue: 'Releases checked',
       discover: 'Suggestions',
     },
@@ -399,7 +399,13 @@ export const spine = {
     },
     empty: {
       upNext: 'Nothing lined up for tonight.',
-      picks: 'No picks yet — they’re rebuilt every night.',
+      /** The dashed box when the game pool is empty; the lanes still stand. */
+      games: {
+        before:
+          'Nothing on the game shelf to pick from tonight. Picks come from games I own that are still in the backlog or paused, so this clears as soon as one is added — or',
+        link: 'try Pick for me',
+        after: '.',
+      },
       wanted: 'The list is empty, for now.',
       buy_now: 'Nothing in stores right now.',
       preorders: 'No cartridges due in the next 90 days.',
@@ -476,7 +482,16 @@ export const spine = {
       logged: 'Logged tonight',
       finishedIt: 'Finished it',
       pause: 'Pause',
-      rebuiltNightly: 'rebuilt nightly',
+      pickedLive: 'picked live · changes when I finish something',
+      /** The lanes under the game picks, one per other medium. */
+      readNext: 'Read next',
+      readNextCaption: 'from my comics',
+      readTonight: 'Read this tonight',
+      watchNext: 'Watch next',
+      watchNextCaption: 'from my movies',
+      watchTonight: 'Watch this tonight',
+      progress: (read, of) => `${read} of ${of} read`,
+      progressLabel: (read, of) => `${read} of ${of} issues read`,
       sessionLogged: 'Session logged for today.',
       /** The Wrap up sheet: outcome first, the extras on the same screen. */
       sheet: {

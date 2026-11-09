@@ -21,6 +21,11 @@ const copy = spine.next.tonight
  * @param {(pick: object) => void} [props.onPlay]
  * @param {(pick: object) => void} [props.onSkip]
  * @param {(pick: object) => void} [props.onUndo]
+ * @param {string|null} [props.heading] - The line above the list; null
+ *   when a lane titles it instead.
+ * @param {string} [props.caption] - Muted beside the heading.
+ * @param {string} [props.verb] - The owner's first button ("Play this
+ *   instead", "Read this tonight").
  */
 export default function PickList({
   picks,
@@ -29,6 +34,9 @@ export default function PickList({
   onPlay,
   onSkip,
   onUndo,
+  heading = copy.orInstead,
+  caption = copy.pickedLive,
+  verb = copy.playInstead,
 }) {
   const rows = [
     ...(upNext ? [{ pick: upNext, label: spine.next.upNext }] : []),
@@ -37,10 +45,12 @@ export default function PickList({
   if (rows.length === 0) return null
   return (
     <>
-      <p className="picks-h">
-        <span>{copy.orInstead}</span>
-        <span className="muted">{copy.rebuiltNightly}</span>
-      </p>
+      {heading && (
+        <p className="picks-h">
+          <span>{heading}</span>
+          <span className="muted">{caption}</span>
+        </p>
+      )}
       <ul className="picklist">
         {rows.map(({ pick, label }) =>
           skipped.includes(pick.item_id) ? (
@@ -61,7 +71,8 @@ export default function PickList({
                 </Link>
                 <span className="tonight-meta">
                   {pick.platform && <span>{pick.platform}</span>}
-                  <SizePill hours={pick.time_to_beat_hours} />
+                  <SizePill size={pick.size} hours={pick.time_to_beat_hours} />
+                  {pick.progress && <Progress {...pick.progress} />}
                 </span>
                 {pick.reasons?.[0] && (
                   <ul className="tonight-reasons">
@@ -76,7 +87,7 @@ export default function PickList({
                     className="btn sm"
                     onClick={() => onPlay(pick)}
                   >
-                    {copy.playInstead}
+                    {verb}
                     <span className="visually-hidden">: {pick.title}</span>
                   </button>
                   <button
@@ -94,5 +105,21 @@ export default function PickList({
         )}
       </ul>
     </>
+  )
+}
+
+/** A comic's read-through as a short bar and words; the bar is a non-text
+ * mark, so it carries the count as its accessible name. */
+function Progress({ read, of }) {
+  const share = of > 0 ? Math.min(100, Math.round((read / of) * 100)) : 0
+  return (
+    <span className="progress">
+      <i
+        role="img"
+        aria-label={copy.progressLabel(read, of)}
+        style={{ '--p': `${share}%` }}
+      />
+      <span aria-hidden="true">{copy.progress(read, of)}</span>
+    </span>
   )
 }

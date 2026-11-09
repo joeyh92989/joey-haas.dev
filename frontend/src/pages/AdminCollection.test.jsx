@@ -1013,6 +1013,35 @@ describe('AdminCollection metadata refresh', () => {
     expect(String(url)).toContain('/api/items/refresh-metadata/bulk?type=game')
     expect(options.method).toBe('POST')
   })
+
+  it.each(['comic', 'movie'])('refreshes %s metadata too', async (type) => {
+    const mock = stubApi({
+      onWrite: (url) =>
+        url.includes('refresh-metadata/bulk')
+          ? {
+              ok: true,
+              status: 200,
+              json: async () => ({ updated: 4, skipped: 0, failed: 1 }),
+            }
+          : null,
+    })
+    renderShelf()
+    await waitFor(() =>
+      expect(document.querySelector('.poster-grid')).not.toBeNull(),
+    )
+
+    await userEvent.click(
+      screen.getByRole('button', { name: `Refresh ${type} metadata` }),
+    )
+
+    expect(
+      await screen.findByText('Updated 4 · skipped 0 · failed 1'),
+    ).toBeInTheDocument()
+    const [url] = writeCalls(mock)[0]
+    expect(String(url)).toContain(
+      `/api/items/refresh-metadata/bulk?type=${type}`,
+    )
+  })
 })
 
 describe('AdminCollection shelf platforms', () => {

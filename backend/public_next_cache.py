@@ -5,9 +5,11 @@ blocks the event loop while it runs. The body is rebuilt only when something
 it is built from changes, which next_fingerprint reads in one small
 aggregate query:
 
-- the UTC day. Picks count only events before today's UTC midnight, so an
-  event written today changes nothing until tomorrow; the day also decides
-  which dates are still to come;
+- the UTC day. The picks are live (public_picks) and read no shown,
+  skipped or pinned event, only "never" events dated before today's UTC
+  midnight, so an event written today changes nothing until tomorrow; the
+  day also seeds the picks' jitter and decides which dates are still to
+  come;
 - every row of `items`, `recommendations`, `playthroughs` and
   `play_sessions`, as a count and a digest of each row's id and xmin (the
   Continue card reads the open run and its journal, which touch neither
@@ -20,12 +22,6 @@ aggregate query:
 - the catalogue's runs: how many have finished, and the latest finish.
   Runs are never deleted and finish once, so a finished run always moves
   the count, in whatever order runs commit.
-- the shown and skipped pick events dated inside the picks window and
-  before today's midnight. The day covers events written today, but a Play
-  Next transaction that began before midnight and commits after it writes
-  events dated yesterday, which a build in between could not see. Those
-  actions are deleted only with their item, so the count moves only on such
-  a late commit; NEVER is left out, which keeps the restore delay below.
 
 A spurious change only costs a rebuild; a missed one would publish stale
 data, so the fingerprint errs wide. Admin routes never use this: the store
@@ -40,7 +36,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime
 from typing import Generic, TypeVar
 
 from sqlalchemy import Text, cast, func, literal_column, select
@@ -49,13 +45,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import (
     CatalogueRun,
     Item,
-    PickAction,
-    PickEvent,
     PlaySession,
     Playthrough,
     Recommendation,
 )
-from public_outputs import PICKS_WINDOW
 
 Body = TypeVar("Body")
 Build = Callable[[AsyncSession, datetime], Awaitable[Body]]
@@ -85,17 +78,6 @@ async def next_fingerprint(session: AsyncSession, now: datetime) -> tuple:
     transaction that began before midnight and commits after the day's first
     rebuild waits for the next day, on both pages.
     """
-    midnight = datetime.combine(now.astimezone(UTC).date(), time.min, tzinfo=UTC)
-    late_picks = (
-        select(func.count())
-        .select_from(PickEvent)
-        .where(
-            PickEvent.action.in_((PickAction.SHOWN, PickAction.SKIPPED)),
-            PickEvent.created_at >= midnight - PICKS_WINDOW,
-            PickEvent.created_at < midnight,
-        )
-        .scalar_subquery()
-    )
     row = (
         await session.execute(
             select(
@@ -105,7 +87,6 @@ async def next_fingerprint(session: AsyncSession, now: datetime) -> tuple:
                 *_rows(PlaySession),
                 select(func.count(CatalogueRun.finished_at)).scalar_subquery(),
                 select(func.max(CatalogueRun.finished_at)).scalar_subquery(),
-                late_picks,
             )
         )
     ).one()

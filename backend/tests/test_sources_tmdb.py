@@ -123,3 +123,28 @@ def test_multiple_directors_are_joined_rather_than_dropped():
         }
     )
     assert detail.creator == "Joel Coen, Ethan Coen"
+
+
+def test_detail_keeps_every_keyword_by_name():
+    payload = _detail_payload()
+    names = [entry["name"] for entry in payload["keywords"]["keywords"]]
+    assert len(names) > 10
+    detail = TmdbSource(_config())._parse_detail(payload)
+    assert detail.source_metadata["keywords"] == names
+
+
+def test_a_film_without_keywords_has_no_keywords_key():
+    payload = {**_detail_payload(), "keywords": {"keywords": []}}
+    assert (
+        "keywords" not in TmdbSource(_config())._parse_detail(payload).source_metadata
+    )
+    del payload["keywords"]
+    assert (
+        "keywords" not in TmdbSource(_config())._parse_detail(payload).source_metadata
+    )
+
+
+def test_the_detail_call_appends_credits_and_keywords():
+    from sources.tmdb import DETAIL_PARAMS
+
+    assert DETAIL_PARAMS == {"append_to_response": "credits,keywords"}

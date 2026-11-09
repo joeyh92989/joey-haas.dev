@@ -621,34 +621,37 @@ before pushing.
   (`RECENCY_BONUS`, halving every `RECENCY_HALF_LIFE` days).
   Pinning is its own route (`POST /api/items/{id}/pin`) because it clears
   the previous pin and records an event in one transaction.
-  The public picks (`tonight` on `/api/public/next`; the retired
-  `/api/public/picks` rules carried over) are up to three games that are public, owned,
-  backlog, active or paused, unpinned, and not in hand (a game being
-  played leads Tonight as its Continue card, so it is out of the pool
-  and never chooses the day), with no never event and no skip at or after
-  their shown event; the day is the most recent of the seven UTC days
-  ending yesterday on which one of those games was shown; only events
-  before today's UTC midnight count, so the list changes at most once a
-  day; and the day's picks are in slot order (`SLOT_ORDER`, unslotted
-  last, then title). Each carries its `slot_label`, except "Pick it back
-  up" (`WITHHELD_SLOTS`: it reports the owner's activity), and "Change of
-  pace" when the last finish is private. A withheld label sorts as an
-  unslotted row does, or its position would name the slot.
-  `tonight.last_finish` is the "Just finished" chip: the most recent
+  **The public picks are live** (recommendation engine spec,
+  `docs/planning/2026-11-09-recommendation-engine-design.md`):
+  `backend/public_picks.py` builds `tonight.picks` (three games),
+  `tonight.read_next` (two comics) and `tonight.watch_next` (two movies),
+  `LANE_SIZES`, as a pure function of public rows of every type with their
+  play records, the "never" events dated before today's UTC midnight, and
+  the UTC day. The profile is public rows only, so a reason can name
+  nothing private; each type's pool comes from its strategy
+  (`strategies.py`, facets from `facets.py`) and is scored on
+  `LANE_TERMS` (no waiting, which reads the private `acquired_at`; jitter
+  seeded by the day). No shown, skipped or pinned event is read, so using
+  Play Next changes nothing public and finishing something does, at the
+  next refetch; `generated_at` no longer dates the picks. The pool is
+  public, owned, backlog or paused, unpinned and not in hand (a game being
+  played leads Tonight as its Continue card); a comic with nothing left
+  to read is out. Best fit leads; Change of pace is labelled only when the
+  last public finish exists and the contrast reason has something to say
+  (that reason leads; a later private finish changes nothing, since
+  withholding the label would say one exists); Overdue
+  classic is the oldest release at or above the median affinity ("Out
+  since 1999" leads). Waited longest and Pick it back up read private data
+  and are never public. A card carries `size` {unit, value} and
+  `progress` {read, of} (comics). Signed in, Tonight pins with the pin
+  route and answers "Not tonight" with `POST /api/picker/events` (Play
+  Next's own record); Read and Watch this tonight is a status move to
+  Active. `tonight.last_finish` is the "Just finished" chip: the most recent
   *public* finish within `JUST_FINISHED_WINDOW` (60 days), else null --
   never hidden because a later finish is private, which its absence would
   hint at. Both finish queries count a NULL `owned_format` as owned, as
   picker does. Hours go out unrounded, so the page's size band is
-  picker's. Signed in, Tonight
-  pins with the pin route and answers "Not tonight" with
-  `POST /api/picker/events`; `GET /api/picker/skipped-today` and
-  `DELETE /api/picker/events/{id}/skipped` (today's skips only) exist
-  because a skip changes the public body only at the next day's picks.
-  **Deploy order:** apply `0009` to Neon, then merge. Reasons come from
-  `picker.public_reasons`: rebuilt from public rows only, without the slot
-  reasons, since "On the shelf since" is read from the private
-  `acquired_at` -- except Change of pace's contrast, which leads when its
-  label is published (the last finish is public). Reasons are first person everywhere ("which I rated 9").
+  picker's. Reasons are first person everywhere ("which I rated 9").
 - **Pick for me** (`/shelf/next#pick-for-me`, README → `GET
   /api/public/pick-for-me`) is `picker.public_pick_table` (pure, no model)
   served by `public_pick_for_me.py` through a second `PublicNextCache` on
@@ -709,7 +712,7 @@ before pushing.
   `items.JOB_ROUTES`, matched on the routed template, and
   `tests/test_job_token.py` is the point of it: it pins the whitelist
   exactly, so a new route cannot become reachable by the token unnoticed.
-- **Nightly order:** picks, then the followed comics' refresh
+- **Nightly order:** the followed comics' refresh
   (`POST /api/comics/refresh`, in `JOB_ROUTES`; early because it is cheap
   and the catalogue steps can run the job into its timeout), then registry,
   then the WooCommerce stores on Render, then the Shopify stores walked on the runner
@@ -719,8 +722,8 @@ before pushing.
   then Discover (Sunday evenings), then the spot finder (Sunday evenings),
   then the page-view rollup, then the snapshot compare and the deploy hook.
   The weekend forecast (`POST /api/spots/weather/refresh`) runs right after
-  the comics, every night. The pick lag is accepted: each run
-  publishes yesterday's picks.
+  the comics, every night. There is no picks step: the public picks are
+  computed live, and `POST /api/picker/next` is out of `JOB_ROUTES`.
 - **`next_list.py`** (pure, with `next_load.py` loading the rows) is the one
   sectioning authority for `/api/public/next` and
   `/api/recommendations/store-list`. In public mode only registry dates

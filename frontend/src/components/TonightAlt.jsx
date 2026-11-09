@@ -38,9 +38,9 @@ export default function TonightAlt({ pick, label, onPlay, onSkip, children }) {
       >
         {pick.title}
       </Link>
-      {pick.time_to_beat_hours != null && (
+      {(pick.size ?? pick.time_to_beat_hours) != null && (
         <span className="tonight-meta">
-          <SizePill hours={pick.time_to_beat_hours} />
+          <SizePill size={pick.size} hours={pick.time_to_beat_hours} />
         </span>
       )}
       {reason && (

@@ -1,4 +1,4 @@
-"""The batched metadata refresh for games.
+"""The bulk metadata refresh: games in batches, comics and movies one by one.
 
 The adapter is stubbed at the SourceAdapter contract, as in
 test_items_metadata.py; the IGDB side of fetch_many is tested against
@@ -202,11 +202,116 @@ async def test_a_game_igdb_does_not_return_is_skipped(sessionmaker_for_test):
     assert response.json() == {"updated": 1, "skipped": 1, "failed": 0}
 
 
-async def test_only_games_can_be_bulk_refreshed(sessionmaker_for_test):
+@pytest.mark.parametrize("kind", ["boardgame", "book"])
+async def test_only_games_comics_and_movies_can_be_bulk_refreshed(
+    sessionmaker_for_test, kind
+):
     async with client_for(sessionmaker_for_test, {}) as client:
-        response = await client.post("/api/items/refresh-metadata/bulk?type=movie")
+        response = await client.post(f"/api/items/refresh-metadata/bulk?type={kind}")
 
     assert response.status_code == 422
+
+
+class StubOneByOne:
+    """A source with no fetch_many (Comic Vine, TMDB): fetch per id."""
+
+    def __init__(self, source_name, item_type, details, fail_on=None):
+        self.source_name = source_name
+        self.item_type = item_type
+        self._details = details
+        self._fail_on = fail_on
+        self.fetched: list[str] = []
+
+    def configured(self) -> bool:
+        return True
+
+    async def search(self, query, year=None, platform=None):
+        return []
+
+    async def fetch(self, external_id):
+        self.fetched.append(external_id)
+        if external_id == self._fail_on:
+            raise SourceError(self.source_name, "HTTP 500")
+        return self._details[external_id]
+
+
+def _tagged(external_id: str, snapshot: dict) -> SourceDetail:
+    return SourceDetail(
+        external_id=external_id,
+        title="ignored",
+        year=2012,
+        creator="Image",
+        cover_url=None,
+        source_metadata=snapshot,
+    )
+
+
+async def test_comics_refresh_one_by_one_and_keep_their_issue_snapshot(
+    sessionmaker_for_test,
+):
+    issues = {
+        "issues": [{"number": "66", "store_date": "2026-11-04"}],
+        "released": 66,
+        "ongoing": True,
+        "fetched_on": "2026-11-08",
+    }
+    await _seed(
+        sessionmaker_for_test,
+        {
+            "type": ItemType.COMIC,
+            "title": "Saga",
+            "external_source": "comicvine",
+            "external_id": "46568",
+            "source_metadata": {"genres": [], **issues},
+        },
+        {"type": ItemType.COMIC, "title": "Unlinked"},
+    )
+    adapter = StubOneByOne(
+        "comicvine",
+        ItemType.COMIC,
+        {"46568": _tagged("46568", {"genres": [], "concepts": ["Space opera"]})},
+    )
+
+    async with client_for(sessionmaker_for_test, {ItemType.COMIC: adapter}) as client:
+        response = await client.post("/api/items/refresh-metadata/bulk?type=comic")
+
+    assert response.json() == {"updated": 1, "skipped": 0, "failed": 0}
+    assert adapter.fetched == ["46568"]
+    saga = (await _rows(sessionmaker_for_test))["Saga"]
+    assert saga.source_metadata["concepts"] == ["Space opera"]
+    for key, value in issues.items():
+        assert saga.source_metadata[key] == value, key
+
+
+async def test_a_failed_movie_fetch_is_counted_and_the_rest_still_update(
+    sessionmaker_for_test,
+):
+    await _seed(
+        sessionmaker_for_test,
+        *[
+            {
+                "type": ItemType.MOVIE,
+                "title": f"Film {n}",
+                "external_source": "tmdb",
+                "external_id": str(n),
+            }
+            for n in range(1, 4)
+        ],
+    )
+    adapter = StubOneByOne(
+        "tmdb",
+        ItemType.MOVIE,
+        {str(n): _tagged(str(n), {"keywords": ["desert"]}) for n in range(1, 4)},
+        fail_on="2",
+    )
+
+    async with client_for(sessionmaker_for_test, {ItemType.MOVIE: adapter}) as client:
+        response = await client.post("/api/items/refresh-metadata/bulk?type=movie")
+
+    assert response.json() == {"updated": 2, "skipped": 0, "failed": 1}
+    rows = await _rows(sessionmaker_for_test)
+    assert rows["Film 1"].source_metadata == {"keywords": ["desert"]}
+    assert rows["Film 2"].source_metadata is None
 
 
 async def test_the_bulk_refresh_needs_a_session(sessionmaker_for_test):

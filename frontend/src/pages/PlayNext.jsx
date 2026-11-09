@@ -17,7 +17,27 @@ const SIZES = [
   ['long', 'Long'],
 ]
 
-const SIZE_HINTS = { short: 'under 6 h', medium: '6–15 h', long: '15 h+' }
+/** What the engine picks from (recommendation engine spec): each type has
+ *  its own size bands, and moods and platforms are games' alone. */
+const TYPES = [
+  ['game', 'Game'],
+  ['comic', 'Comic'],
+  ['movie', 'Movie'],
+]
+
+const SIZE_HINTS = {
+  game: { short: 'under 6 h', medium: '6–15 h', long: '15 h+' },
+  comic: {
+    short: '4 issues left or fewer',
+    medium: '5–12 left',
+    long: '13+ left',
+  },
+  movie: {
+    short: '100 min or less',
+    medium: 'up to 140 min',
+    long: 'over 140 min',
+  },
+}
 
 const MOODS = [
   ['cozy', 'Cozy'],
@@ -60,9 +80,13 @@ function Chip({ pressed, onClick, children, hint }) {
   )
 }
 
-/** One pick: its slot, the game, why, and what to do about it. */
+/** A comic or movie starts by its status, never the pin (spec, decisions). */
+const START_LABELS = { comic: 'Start reading', movie: 'Start watching' }
+
+/** One pick: its slot, the item, why, and what to do about it. */
 function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
   const { item } = pick
+  const startLabel = START_LABELS[item.type]
   // The pin route also moves the game to Playing, which the bare label hid.
   const playHintId = useId()
   return (
@@ -95,19 +119,25 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
         ))}
       </ul>
       <div className="pick-actions">
-        <span className="pick-play">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onPlay}
-            aria-describedby={playHintId}
-          >
-            Play this
+        {startLabel ? (
+          <button type="button" disabled={busy} onClick={onPlay}>
+            {startLabel}
           </button>
-          <span id={playHintId} className="pick-play-hint">
-            Up next · starts playing
+        ) : (
+          <span className="pick-play">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onPlay}
+              aria-describedby={playHintId}
+            >
+              Play this
+            </button>
+            <span id={playHintId} className="pick-play-hint">
+              Up next · starts playing
+            </span>
           </span>
-        </span>
+        )}
         <button type="button" disabled={busy} onClick={onSkip}>
           Not tonight
         </button>
@@ -137,6 +167,7 @@ export default function PlayNext() {
   const [skippedToday, setSkippedToday] = useState([])
   // The Wrap up sheet's subject and preselected outcome, or null.
   const [wrap, setWrap] = useState(null)
+  const [type, setType] = useState('game')
   const [size, setSize] = useState('any')
   const [moods, setMoods] = useState([])
   const [platforms, setPlatforms] = useState([])
@@ -205,7 +236,11 @@ export default function PlayNext() {
     apiFetch('/api/picker/next', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ size, moods, platforms, exclude }),
+      body: JSON.stringify(
+        type === 'game'
+          ? { type, size, moods, platforms, exclude }
+          : { type, size, moods: [], platforms: [], exclude },
+      ),
     })
       .then(async (response) => {
         if (cancelled) return
@@ -222,7 +257,7 @@ export default function PlayNext() {
     return () => {
       cancelled = true
     }
-  }, [status, size, moods, platforms, exclude, round])
+  }, [status, type, size, moods, platforms, exclude, round])
 
   /** A control changed: the reroll's exclusions no longer apply. */
   function change(setter) {
@@ -273,12 +308,25 @@ export default function PlayNext() {
     )
   }
 
-  async function playThis(itemId) {
-    const ok = await send(
-      pinPath(itemId),
-      { method: 'POST' },
-      'Couldn’t pin that game.',
-    )
+  async function playThis(item) {
+    // Only a game is pinned: the pin is Up next, and a comic or movie would
+    // take it from the pinned game. Those move to Active instead.
+    const ok =
+      item.type === 'game'
+        ? await send(
+            pinPath(item.id),
+            { method: 'POST' },
+            'Couldn’t pin that game.',
+          )
+        : await send(
+            `/api/items/${item.id}/status`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'active', today: localToday() }),
+            },
+            'Couldn’t start that.',
+          )
     if (ok) setRound((current) => current + 1)
   }
 
@@ -452,30 +500,43 @@ export default function PlayNext() {
       )}
 
       <div className="play-next-controls">
+        <div className="chip-row" role="group" aria-label="Type">
+          {TYPES.map(([value, label]) => (
+            <Chip
+              key={value}
+              pressed={type === value}
+              onClick={() => change(setType)(value)}
+            >
+              {label}
+            </Chip>
+          ))}
+        </div>
         <div className="chip-row" role="group" aria-label="Size">
           {SIZES.map(([value, label]) => (
             <Chip
               key={value}
               pressed={size === value}
-              hint={SIZE_HINTS[value]}
+              hint={SIZE_HINTS[type][value]}
               onClick={() => change(setSize)(value)}
             >
               {label}
             </Chip>
           ))}
         </div>
-        <div className="chip-row" role="group" aria-label="Mood">
-          {MOODS.map(([value, label]) => (
-            <Chip
-              key={value}
-              pressed={moods.includes(value)}
-              onClick={() => change(setMoods)(toggle(moods, value))}
-            >
-              {label}
-            </Chip>
-          ))}
-        </div>
-        {platformChoices.length > 1 && (
+        {type === 'game' && (
+          <div className="chip-row" role="group" aria-label="Mood">
+            {MOODS.map(([value, label]) => (
+              <Chip
+                key={value}
+                pressed={moods.includes(value)}
+                onClick={() => change(setMoods)(toggle(moods, value))}
+              >
+                {label}
+              </Chip>
+            ))}
+          </div>
+        )}
+        {type === 'game' && platformChoices.length > 1 && (
           <div className="chip-row" role="group" aria-label="Platform">
             {platformChoices.map(([id, name]) => (
               <Chip
@@ -517,7 +578,7 @@ export default function PlayNext() {
                 key={pick.item.id}
                 pick={pick}
                 busy={busy}
-                onPlay={() => playThis(pick.item.id)}
+                onPlay={() => playThis(pick.item)}
                 onSkip={() => notTonight(pick.item.id)}
                 onNever={() => never(pick.item.id)}
               />

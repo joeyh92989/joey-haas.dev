@@ -4,10 +4,10 @@ name: Nightly
 # build-time snapshot within a day of production (Spine Next spec, A3).
 # Replaces snapshot.yml, whose compare and deploy steps are kept verbatim.
 #
-# It writes: Play Next picks, the followed comics' issue lists, the
-# weekend forecast, the catalogue refreshes, Resolve, the Radar and Discover
-# generates, the weekly spot finder and the page-view rollup, through the
-# admin API with the JOB_TOKEN bearer token, which the backend accepts only on items.JOB_ROUTES. A failed write
+# It writes: the followed comics' issue lists, the weekend forecast, the
+# catalogue refreshes, Resolve, the Radar and Discover generates, the weekly
+# spot finder and the page-view rollup, through the admin API with the
+# JOB_TOKEN bearer token, which the backend accepts only on items.JOB_ROUTES. A failed write
 # step is a warning: the steps after it run on yesterday's data, the run
 # summary lists every step that succeeded and every one that failed, and the
 # /admin "Last nightly" line names the failed catalogue sources. A 401 is
@@ -81,7 +81,7 @@ jobs:
           requirement=$(grep -m1 -E '^httpx2([[<>=!~ ]|$)' backend/requirements.txt | sed 's/[[:space:]]*#.*//')
           pip install "$requirement"
 
-      - name: Refresh the picks, the catalogue and the suggestions
+      - name: Refresh the comics, the catalogue and the suggestions
         id: refresh
         # Capped below the job's 150 minutes, and never fatal, so a slow or
         # failed refresh still leaves the compare and deploy their turn. The
@@ -146,10 +146,8 @@ jobs:
           }
           if [ "$(date -u +%u)" = 1 ]; then weekly=true; else weekly=false; fi
 
-          # Three picks recorded as shown today (UTC). /api/public/next
-          # publishes them after the next UTC midnight, so each run
-          # publishes yesterday's picks and records today's.
-          call picks 120 /api/picker/next
+          # No picks step: /api/public/next computes Tonight's picks live
+          # (recommendation engine spec), so nothing is recorded here.
           # Followed comics: issue lists and store dates, so the snapshot
           # compare sees this week's issues. Early because it is cheap (one
           # request per followed series) and the slow catalogue steps after

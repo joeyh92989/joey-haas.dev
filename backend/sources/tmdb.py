@@ -41,6 +41,11 @@ SEARCH_LIMIT = 10
 TIMEOUT = 10.0
 
 
+# The detail call: credits for the director, keywords for the recommendation
+# engine's facets. One request either way (append_to_response).
+DETAIL_PARAMS = {"append_to_response": "credits,keywords"}
+
+
 class TmdbSource:
     """Film metadata from TMDB."""
 
@@ -111,21 +116,30 @@ class TmdbSource:
             for member in crew
             if member.get("job") == "Director" and member.get("name")
         ]
+        keywords = [
+            entry["name"]
+            for entry in (payload.get("keywords") or {}).get("keywords") or []
+            if entry.get("name")
+        ]
+        metadata = {
+            "genres": [g["name"] for g in payload.get("genres") or []],
+            "description": payload.get("overview") or None,
+            "community_score": payload.get("vote_average"),
+            "community_votes": payload.get("vote_count"),
+            "runtime_minutes": payload.get("runtime"),
+            "original_language": payload.get("original_language"),
+            "release_date": payload.get("release_date") or None,
+        }
+        # Absent rather than empty when TMDB lists none (sources/README.md).
+        if keywords:
+            metadata["keywords"] = keywords
         return SourceDetail(
             external_id=str(payload["id"]),
             title=payload.get("title") or payload.get("original_title") or "",
             year=year_from_date(payload.get("release_date")),
             creator=", ".join(directors) or None,
             cover_url=self._image_url(payload.get("poster_path"), POSTER_SIZE),
-            source_metadata={
-                "genres": [g["name"] for g in payload.get("genres") or []],
-                "description": payload.get("overview") or None,
-                "community_score": payload.get("vote_average"),
-                "community_votes": payload.get("vote_count"),
-                "runtime_minutes": payload.get("runtime"),
-                "original_language": payload.get("original_language"),
-                "release_date": payload.get("release_date") or None,
-            },
+            source_metadata=metadata,
         )
 
     async def search(
@@ -145,8 +159,7 @@ class TmdbSource:
         return self._parse_search(await self._get("/search/movie", params))
 
     async def fetch(self, external_id: str) -> SourceDetail:
-        """Full detail for one TMDB film id, including the directing credit."""
-        payload = await self._get(
-            f"/movie/{external_id}", {"append_to_response": "credits"}
-        )
+        """Full detail for one TMDB film id, with the directing credit and the
+        keywords."""
+        payload = await self._get(f"/movie/{external_id}", DETAIL_PARAMS)
         return self._parse_detail(payload)

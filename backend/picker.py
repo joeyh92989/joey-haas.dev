@@ -1,14 +1,19 @@
-"""Play Next: three named picks from the owned backlog.
+"""The recommendation engine: Play Next's picks and the public picks.
 
 Pure. Items and events arrive as plain dataclasses and scored picks leave the
 same way; nothing here touches a request or a database, so every rule is tested
-on fixtures (the matching.py pattern). The only randomness is the jitter term,
-drawn from a `random.Random` the caller passes in.
+on fixtures (the matching.py pattern). Admin jitter is drawn from a
+`random.Random` the caller passes in; public jitter is seeded by the day.
 
-The profile is built from the owner's own games: favourites, ratings, finishes
-and abandonments give each attribute (genre, theme, keyword, mode, perspective,
-developer) a weight, and a candidate scores by how well its attributes match.
-PICKER_WEIGHTS and MOOD_BUCKETS are the tuning points.
+One scorer (score_pool) runs over a strategy's pool (strategies.py, one per
+media type) and the taste profile (taste.py: facets weighted by favourites,
+ratings, finishes and the play record). Picks are kept diverse over their
+leading facets (next_diverse). PICKER_WEIGHTS and MOOD_BUCKETS are the tuning
+points.
+
+The first half of this module (reference_weights, attribute_table, affinity,
+_overlap_reason) is the older attribute profile, which Radar and Discover
+still read; it moves to taste.py in a later change.
 """
 
 from __future__ import annotations
@@ -16,8 +21,23 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from functools import cache
 from itertools import combinations
 from statistics import mean
+
+from facets import FACET_MAP, facet_for, facet_label, facets_of
+
+# The item dataclasses and size bands live in picker_items, a leaf module, so
+# taste.py and strategies.py can import them while picker imports those two.
+from picker_items import (  # noqa: F401 -- re-exported
+    SIZE_BANDS,
+    PickerEvent,
+    PickerItem,
+    PlayRecord,
+)
+from strategies import ADMIN, PUBLIC, Strategy, strategy_for
+from taste import Profile, facet_profile, leading_facet, taste_weights
+from taste import affinity as taste_affinity
 
 # Each term scores 0-100; the total is their weighted mean.
 PICKER_WEIGHTS = {
@@ -27,14 +47,6 @@ PICKER_WEIGHTS = {
     "length_fit": 15,
     "waiting": 10,
     "jitter": 5,
-}
-
-# How big a game is: hours to finish it (IGDB's "normally"), (low, high];
-# long has no upper edge. A whole game's length, never a session's.
-SIZE_BANDS: dict[str, tuple[float, float | None]] = {
-    "short": (0.0, 6.0),
-    "medium": (6.0, 15.0),
-    "long": (15.0, None),
 }
 
 BASE_WEIGHTS = {"favorite": 1.0, "finished": 0.3, "abandoned": -0.5}
@@ -54,54 +66,6 @@ STALE_CAP = 45
 INFORMATIVE_SPREAD = timedelta(days=90)
 WAITING_FULL_DAYS = 365
 RELEASE_FULL_DAYS = 3650
-
-
-@dataclass(frozen=True)
-class PickerItem:
-    """One item as Play Next sees it; the route builds these from rows."""
-
-    id: str
-    title: str
-    type: str
-    status: str
-    owned: bool
-    rating: int | None
-    favorite: bool
-    pinned: bool
-    external_id: str | None
-    year: int | None
-    cover_url: str | None
-    platform_id: int | None
-    platform: str | None
-    creator: str | None
-    genres: tuple[str, ...]
-    themes: tuple[str, ...]
-    keywords: tuple[str, ...]
-    game_modes: tuple[str, ...]
-    player_perspectives: tuple[str, ...]
-    similar_games: tuple[str, ...]
-    community_score: float | None
-    time_to_beat_hours: float | None
-    release_date: date | None
-    acquired_at: date | None
-    started_at: date | None
-    finished_at: date | None = None
-    # The open run's pause date and the journal minutes logged in that run;
-    # only a paused game carries them (picker_routes reads its playthroughs).
-    paused_on: date | None = None
-    journal_minutes: int = 0
-    # The open run's own start: a replay's, where started_at is the first
-    # run's. None outside Play Next, or when the run has no start date.
-    run_started_on: date | None = None
-
-
-@dataclass(frozen=True)
-class PickerEvent:
-    """A pick event: shown, skipped, never or pinned, with an aware time."""
-
-    item_id: str
-    action: str
-    created_at: datetime
 
 
 def _clamp(value: float, low: float = 0.0, high: float = 100.0) -> float:
@@ -166,12 +130,18 @@ def reference_weights(
     return weights
 
 
+# The old affinity (Radar, Discover, the change of pace contrast) read the
+# first ten keywords, all the snapshot held before the engine kept every one;
+# averaged over the long tail, an unseen keyword dilutes it toward neutral.
+ATTRIBUTE_KEYWORDS = 10
+
+
 def attributes(item: PickerItem) -> set[tuple[str, str]]:
     """Everything a taste can attach to, as (kind, value) pairs."""
     pairs = {
         *(("genre", value) for value in item.genres),
         *(("theme", value) for value in item.themes),
-        *(("keyword", value) for value in item.keywords),
+        *(("keyword", value) for value in item.keywords[:ATTRIBUTE_KEYWORDS]),
         *(("mode", value) for value in item.game_modes),
         *(("perspective", value) for value in item.player_perspectives),
     }
@@ -207,11 +177,13 @@ def similarity(
     """The best-weighted reference IGDB lists beside this one, either way.
 
     Returns the score and that reference, or (0, None). IGDB ids are compared
-    as strings: the snapshot holds ints, external_id a string.
+    as strings: the snapshot holds ints, external_id a string. The reference
+    is the heaviest by its unclamped weight, ties to the lowest id, so the
+    one named never depends on the order the rows arrived in.
     """
     if not item.external_id:
         return 0.0, None
-    best: tuple[float, PickerItem | None] = (0.0, None)
+    best: PickerItem | None = None
     for reference in references:
         if reference.id == item.id or not reference.external_id:
             continue
@@ -220,9 +192,13 @@ def similarity(
             or reference.external_id in item.similar_games
         )
         weight = weights.get(reference.id, 0.0)
-        if linked and weight > 0 and 100 * weight > best[0]:
-            best = (_clamp(100 * weight), reference)
-    return best
+        if not linked or weight <= 0:
+            continue
+        if best is None or (-weight, reference.id) < (-weights[best.id], best.id):
+            best = reference
+    if best is None:
+        return 0.0, None
+    return _clamp(100 * weights[best.id]), best
 
 
 def quality(item: PickerItem) -> float:
@@ -297,11 +273,16 @@ def staleness(item_id: str, events: list[PickerEvent], now: datetime) -> float:
     return -float(min(STALE_PENALTY * len(days), STALE_CAP))
 
 
-# --- choosing the three picks ----------------------------------------------
+# --- the engine: one scorer, diversity, slots ---------------------------------
+#
+# Play Next (admin) and the public picks run the same scorer over a strategy's
+# pool (strategies.py) and the taste profile (taste.py). What differs between
+# them is which terms count and where the jitter comes from (score_pool).
 
-# Exact IGDB strings, from the collection's own snapshots (spec §4): genres and
-# themes as IGDB capitalises them, keywords lower-case. A game matches a mood
-# when any of its genres, themes or keywords is in the bucket.
+# The IGDB strings each mood was first written in, from the collection's own
+# snapshots (spec §4): genres and themes as IGDB capitalises them, keywords
+# lower-case. mood_facets maps them through facets.FACET_MAP, so a mood is a
+# set of facets and reaches every medium the map bridges.
 MOOD_BUCKETS: dict[str, frozenset[str]] = {
     "cozy": frozenset({"Simulator", "Kids", "Sandbox", "cute", "animal protagonist"}),
     "story": frozenset(
@@ -365,12 +346,34 @@ MOOD_BUCKETS: dict[str, frozenset[str]] = {
     ),
 }
 
+MOOD_KINDS = ("genres", "themes", "keywords")
+_MAP_SOURCES = tuple(sorted({source for source, _kind, _value in FACET_MAP}))
+
+
+@cache
+def mood_facets(mood: str, item_type: str = "game") -> frozenset[str]:
+    """The facets a mood stands for on one item type: every bucket string
+    taken through the facet map as each source and kind would carry it. A
+    string the map does not know stays type-scoped, as facets_of scopes it."""
+    return frozenset(
+        facet_for(item_type, source, kind, value)
+        for value in MOOD_BUCKETS.get(mood, ())
+        for source in _MAP_SOURCES
+        for kind in MOOD_KINDS
+    )
+
+
+def _wanted_facets(moods: tuple[str, ...], item_type: str) -> frozenset[str]:
+    return frozenset().union(*(mood_facets(mood, item_type) for mood in moods))
+
+
 SKIP_WINDOW = timedelta(days=7)
 STALLED_AFTER = timedelta(days=30)
-SHORT_HOURS = SIZE_BANDS["short"][1]
 # A reason says when its reference was finished while the finish is this fresh.
 JUST_FINISHED_WINDOW = timedelta(days=60)
 
+# short_and_sweet is retired (diversity replaced it) but kept for the shown
+# events written before it was.
 SLOT_LABELS = {
     "best_fit": "Best fit",
     "change_of_pace": "Change of pace",
@@ -378,31 +381,43 @@ SLOT_LABELS = {
     "overdue_classic": "Overdue classic",
     "waited_longest": "Waited longest",
     "pick_it_back_up": "Pick it back up",
+    "back_to_it": "Back to it",
 }
 
-# Which shared attributes a reason names first: the most specific kind wins a
-# tie. Modes and perspectives are left out -- nearly every game is single
-# player, which explains nothing.
+# Which shared attributes the old overlap reason names first (Radar and
+# Discover still use it): the most specific kind wins a tie.
 REASON_KINDS = ("keyword", "theme", "genre", "creator")
 MAX_REASONS = 3
+# How many references a facet sentence names.
+FACET_NAMES = 2
+# What a reference of another type is called beside its title.
+TYPE_SUFFIX = {
+    "game": "the game",
+    "comic": "the comic",
+    "movie": "the film",
+    "boardgame": "the board game",
+}
 
 
 @dataclass(frozen=True)
 class PickRequest:
-    """What the owner asked for: size band, moods, platforms, rerolled ids."""
+    """What the owner asked for: item type, size band, moods, platforms,
+    rerolled ids."""
 
     size: str = "any"
     moods: tuple[str, ...] = ()
     platforms: tuple[int, ...] = ()
     exclude: tuple[str, ...] = ()
+    type: str = "game"
 
 
 @dataclass(frozen=True)
 class Pick:
-    """One card: its slot, the game, its score and why."""
+    """One card: its slot (None when no slot applies), the item, its score
+    and why."""
 
-    slot: str
-    slot_label: str
+    slot: str | None
+    slot_label: str | None
     item: PickerItem
     score: float
     reasons: tuple[str, ...]
@@ -415,49 +430,213 @@ class PickResult:
     profile_size: int
 
 
-def _mood_strings(item: PickerItem) -> set[str]:
-    return {*item.genres, *item.themes, *item.keywords}
-
-
 def candidates(
     items: list[PickerItem],
     events: list[PickerEvent],
     request: PickRequest,
     now: datetime,
+    mode: str = ADMIN,
 ) -> list[PickerItem]:
-    """The owned games in the backlog, in progress or paused that the request
-    allows.
+    """The items of the request's type that its strategy's pool holds in this
+    mode and the request allows.
 
-    Out: the pinned game, anything marked never, anything skipped in the last
-    week, and the reroll's earlier picks. Moods and platforms are hard filters;
-    a game with no platform recorded passes any platform filter.
+    Out: anything marked never, anything skipped in the last week, and the
+    reroll's earlier picks. Moods and platforms are hard filters; an item
+    with no platform recorded passes any platform filter.
     """
+    strategy = strategy_for(request.type)
     never = {event.item_id for event in events if event.action == "never"}
     skipped = {
         event.item_id
         for event in events
         if event.action == "skipped" and now - event.created_at <= SKIP_WINDOW
     }
-    wanted_strings = set().union(
-        *(MOOD_BUCKETS[mood] for mood in request.moods if mood in MOOD_BUCKETS)
-    )
+    wanted = _wanted_facets(request.moods, request.type)
     return [
         item
         for item in items
-        if item.type == "game"
-        and item.owned
-        and item.status in ("backlog", "active", "paused")
-        and not item.pinned
+        if item.type == strategy.type
+        and strategy.pool(item, mode)
         and item.id not in never
         and item.id not in skipped
         and item.id not in request.exclude
-        and (not request.moods or _mood_strings(item) & wanted_strings)
+        and (not request.moods or facets_of(item) & wanted)
         and (
             not request.platforms
             or item.platform_id is None
             or item.platform_id in request.platforms
         )
     ]
+
+
+def fit(item: PickerItem, size: str, strategy: Strategy) -> float:
+    """length_fit over any strategy's size and bands."""
+    measured = strategy.size(item)
+    if size == "any" or measured is None or size not in strategy.bands:
+        return 100.0
+    value = measured[1]
+    low, high = strategy.bands[size]
+    if high is not None and value > high:
+        return _clamp(100 * (2 * high - value) / high)
+    if low > 0 and value < low:
+        return _clamp(100 * (value - low / 2) / (low / 2))
+    return 100.0
+
+
+# Which terms each caller counts. Public lanes leave out waiting (it reads
+# the private acquired_at) and draw jitter from the day, so every visitor
+# sees one list; Pick for me leaves jitter out too, so its table is stable.
+ADMIN_TERMS = tuple(PICKER_WEIGHTS)
+PUBLIC_TERMS = ("affinity", "similarity", "quality", "length_fit")
+LANE_TERMS = (*PUBLIC_TERMS, "jitter")
+
+
+@dataclass(frozen=True)
+class Scored:
+    item: PickerItem
+    total: float
+    terms: dict[str, float]
+    similar_to: PickerItem | None
+    leading: str | None
+
+
+@dataclass(frozen=True)
+class Taste:
+    """Everything the scorer reads from the profile, built once."""
+
+    weights: dict[str, float]
+    profile: Profile
+    references: list[PickerItem]
+
+
+def build_taste(items: list[PickerItem], today: date | None) -> Taste:
+    weights = taste_weights(items, today)
+    return Taste(
+        weights=weights,
+        profile=facet_profile(items, weights),
+        references=[item for item in items if item.id in weights],
+    )
+
+
+def day_jitter(today: date, item_id: str) -> float:
+    """The public jitter: fixed for a day and an item, new the next day."""
+    return random.Random(f"{today.isoformat()}:{item_id}").uniform(0, 100)
+
+
+def score_pool(
+    pool: list[PickerItem],
+    taste: Taste,
+    strategy: Strategy,
+    size: str,
+    today: date,
+    *,
+    terms: tuple[str, ...] = ADMIN_TERMS,
+    rng: random.Random | None = None,
+    informative: bool = False,
+    events: list[PickerEvent] | None = None,
+    now: datetime | None = None,
+) -> list[Scored]:
+    """Every pool item scored and ranked, best first (ties on title, id).
+
+    The total is the weighted mean of `terms` (PICKER_WEIGHTS). Similarity is
+    IGDB's list, so it counts for games only; quality is scaled by the
+    strategy's extra terms (a comic run's completeness). Jitter comes from
+    `rng` when given (admin), else from the day. Given `events` and `now`,
+    staleness is added (admin only: it reads the owner's events).
+    """
+    total_weight = sum(PICKER_WEIGHTS[name] for name in terms)
+    scored = []
+    for item in pool:
+        if item.type == "game" and "similarity" in terms:
+            similar_score, similar_to = similarity(
+                item, taste.references, taste.weights
+            )
+        else:
+            similar_score, similar_to = 0.0, None
+        values: dict[str, float] = {}
+        for name in terms:
+            if name == "affinity":
+                values[name] = taste_affinity(item, taste.profile)
+            elif name == "similarity":
+                values[name] = similar_score
+            elif name == "quality":
+                factor = 1.0
+                for term in strategy.extra_terms.values():
+                    factor *= term(item)
+                values[name] = quality(item) * factor
+            elif name == "length_fit":
+                values[name] = fit(item, size, strategy)
+            elif name == "waiting":
+                values[name] = waiting(item, today, informative)
+            elif name == "jitter":
+                values[name] = (
+                    rng.uniform(0, 100)
+                    if rng is not None
+                    else day_jitter(today, item.id)
+                )
+        total = sum(PICKER_WEIGHTS[name] * values[name] for name in terms)
+        total /= total_weight
+        if events is not None and now is not None:
+            total += staleness(item.id, events, now)
+        scored.append(
+            Scored(
+                item=item,
+                total=total,
+                terms=values,
+                similar_to=similar_to,
+                leading=leading_facet(item, taste.profile),
+            )
+        )
+    scored.sort(key=lambda entry: (-entry.total, entry.item.title, entry.item.id))
+    return scored
+
+
+def next_diverse(
+    ordered: list[Scored],
+    chosen: list[Scored],
+    last_facets: frozenset[str],
+) -> Scored | None:
+    """The first entry of `ordered` that keeps the picks diverse.
+
+    Rule 1: its leading facet is not already a pick's, and at most one pick
+    leads with a facet the last finish carries. Rule 2 drops the last-finish
+    limit, rule 3 the distinct-facet rule. An item with no leading facet is
+    distinct from everything.
+    """
+    taken = {entry.item.id for entry in chosen}
+    leads = {entry.leading for entry in chosen if entry.leading}
+    echoes = sum(1 for entry in chosen if entry.leading in last_facets)
+
+    def distinct(entry: Scored) -> bool:
+        return entry.leading is None or entry.leading not in leads
+
+    def fresh(entry: Scored) -> bool:
+        return echoes < 1 or entry.leading not in last_facets
+
+    rules = (
+        lambda entry: distinct(entry) and fresh(entry),
+        distinct,
+        lambda entry: True,
+    )
+    for rule in rules:
+        for entry in ordered:
+            if entry.item.id not in taken and rule(entry):
+                return entry
+    return None
+
+
+def diversify(
+    ranked: list[Scored], count: int, last_facets: frozenset[str]
+) -> list[Scored]:
+    """Up to `count` picks: the best, then each next best that keeps them
+    diverse (next_diverse)."""
+    chosen: list[Scored] = []
+    while len(chosen) < count:
+        entry = next_diverse(ranked, chosen, last_facets)
+        if entry is None:
+            break
+        chosen.append(entry)
+    return chosen
 
 
 def _month(value: date) -> str:
@@ -499,12 +678,13 @@ def _named(reference: PickerItem, today: date | None = None) -> str:
     return f"{reference.title}, which I finished {when}" if when else reference.title
 
 
-def last_finish(items: list[PickerItem]) -> PickerItem | None:
-    """The owned game finished most recently, by its recorded finish date."""
+def last_finish(items: list[PickerItem], item_type: str = "game") -> PickerItem | None:
+    """The owned item of this type finished most recently, by its recorded
+    finish date."""
     finished = [
         item
         for item in items
-        if item.type == "game"
+        if item.type == item_type
         and item.owned
         and item.status == "finished"
         and item.finished_at is not None
@@ -537,7 +717,8 @@ def _overlap_reason(
     table: dict[tuple[str, str], float],
     today: date | None = None,
 ) -> str | None:
-    """Names the liked game sharing the most with this one, and two of those."""
+    """Names the liked game sharing the most with this one, and two of those.
+    Radar's and Discover's reason; Play Next uses facet_reason."""
 
     def shown_pairs(game: PickerItem) -> set[tuple[str, str]]:
         return {pair for pair in attributes(game) if pair[0] in REASON_KINDS}
@@ -564,6 +745,56 @@ def _overlap_reason(
     )
     names = " and ".join(value for _, value in shared[:2])
     return f"Shares {names} with {_named(reference, today)}"
+
+
+def facet_reason(item: PickerItem, leading: str | None, taste: Taste) -> str | None:
+    """ "Post-apocalyptic, across my shelf: Dredge, Waterworld (the film)".
+
+    Names up to FACET_NAMES references liked enough to count (positive
+    weight) that carry the item's leading facet, best first; one of another
+    type says which. Only titles: never the play record behind a weight.
+    The caller's taste decides who can be named, so a public caller passes a
+    public-only one.
+    """
+    # A facet I mostly dislike can still lead a low score; naming my
+    # favourite beside it would read as a recommendation.
+    if leading is None or taste.profile.weights.get(leading, 0.0) <= 0:
+        return None
+    carriers = sorted(
+        (
+            reference
+            for reference in taste.references
+            if reference.id != item.id
+            and taste.weights.get(reference.id, 0.0) > 0
+            and leading in facets_of(reference)
+        ),
+        key=lambda ref: (-taste.weights[ref.id], ref.title, ref.id),
+    )[:FACET_NAMES]
+    if not carriers:
+        return None
+    names = ", ".join(
+        reference.title
+        if reference.type == item.type
+        else f"{reference.title} ({TYPE_SUFFIX.get(reference.type, reference.type)})"
+        for reference in carriers
+    )
+    label = facet_label(leading)
+    return f"{label[:1].upper()}{label[1:]}, across my shelf: {names}"
+
+
+def _common_reasons(
+    item: PickerItem,
+    leading: str | None,
+    similar_to: PickerItem | None,
+    taste: Taste,
+    today: date | None = None,
+) -> list[str | None]:
+    """The reasons every pick can carry: the facet sentence and IGDB's
+    similarity. Size is the card's meta, not a reason."""
+    return [
+        facet_reason(item, leading, taste),
+        f"IGDB lists it beside {_named(similar_to, today)}" if similar_to else None,
+    ]
 
 
 def _is_stalled(item: PickerItem, events: list[PickerEvent], now: datetime) -> bool:
@@ -603,54 +834,88 @@ def paused_reason(item: PickerItem, today: date) -> str:
     return f"{hours} h in, {since}" if hours else since[0].upper() + since[1:]
 
 
-def _common_reasons(
-    item: PickerItem,
-    references: list[PickerItem],
-    weights: dict[str, float],
-    table: dict[tuple[str, str], float],
-    similar_to: PickerItem | None,
-    today: date | None = None,
-) -> list[str | None]:
-    """The reasons every pick can carry: overlap and IGDB similarity. Size is
-    the card's meta, not a reason."""
-    return [
-        _overlap_reason(item, references, weights, table, today),
-        f"IGDB lists it beside {_named(similar_to, today)}" if similar_to else None,
-    ]
-
-
-def public_reasons(
-    item: PickerItem,
-    profile: list[PickerItem],
-    today: date | None = None,
-    slot: str | None = None,
-) -> tuple[str, ...]:
-    """A pick's reasons for the public page (showcase spec, D).
-
-    `profile` must hold public rows only: every game a reason can name is
-    drawn from it, so a private game is never named. Of the slot reasons only
-    Change of pace's is kept, and only against a public last finish -- "On the
-    shelf since" is read from acquired_at, which is private; "Started in ...
-    not touched since" reports activity; "Out since" means nothing without
-    its slot.
-    """
-    weights = reference_weights(profile, today)
-    references = [entry for entry in profile if entry.id in weights]
-    table = attribute_table(profile, weights)
-    _score, similar_to = similarity(item, references, weights)
-    reasons = _common_reasons(item, references, weights, table, similar_to, today)
-    if slot == "change_of_pace":
-        last = last_finish(profile)
-        reasons.insert(0, change_of_pace_reason(item, last) if last else None)
-    return tuple(reason for reason in reasons if reason)[:MAX_REASONS]
-
-
 def _median(values: list[float]) -> float:
     ordered = sorted(values)
     middle = len(ordered) // 2
     if len(ordered) % 2:
         return ordered[middle]
     return (ordered[middle - 1] + ordered[middle]) / 2
+
+
+ADMIN_PICKS = 3
+
+
+def _third_slot(
+    ranked: list[Scored],
+    chosen: list[Scored],
+    last_facets: frozenset[str],
+    strategy: Strategy,
+    events: list[PickerEvent],
+    now: datetime,
+    informative: bool,
+) -> tuple[str | None, Scored | None]:
+    """The admin third pick: a slot's own candidates in the slot's own order,
+    kept diverse where they can be; else the next diverse pick, unlabelled."""
+    slots = strategy.slots(ADMIN)
+    taken = {entry.item.id for entry in chosen}
+    open_ = [entry for entry in ranked if entry.item.id not in taken]
+
+    def take(slot: str, ordered: list[Scored]) -> tuple[str, Scored] | None:
+        entry = next_diverse(ordered, chosen, last_facets) if ordered else None
+        return (slot, entry) if entry else None
+
+    found = None
+    if "pick_it_back_up" in slots:
+        paused = sorted(
+            (e for e in open_ if e.item.status == "paused"),
+            key=lambda e: _paused_order(e.item),
+        )
+        stalled = sorted(
+            (e for e in open_ if _is_stalled(e.item, events, now)),
+            key=lambda e: e.item.run_started_on or e.item.started_at,
+        )
+        found = take("pick_it_back_up", paused or stalled)
+    if found is None and "back_to_it" in slots:
+        found = take("back_to_it", [e for e in open_ if (e.item.issues_read or 0) > 0])
+    if found is None and ("waited_longest" in slots or "overdue_classic" in slots):
+        median = _median([entry.terms["affinity"] for entry in ranked])
+        gated = [e for e in open_ if e.terms["affinity"] >= median]
+        if informative and "waited_longest" in slots:
+            waited = sorted(
+                (e for e in gated if e.item.acquired_at),
+                key=lambda e: (-e.terms["waiting"], e.item.title),
+            )
+            found = take("waited_longest", waited)
+        elif not informative and "overdue_classic" in slots:
+            released = sorted(
+                (e for e in gated if e.item.release_date),
+                key=lambda e: (e.item.release_date, e.item.title),
+            )
+            found = take("overdue_classic", released)
+    if found is not None:
+        return found
+    return None, next_diverse(ranked, chosen, last_facets)
+
+
+def _slot_reason(
+    slot: str | None, item: PickerItem, last: PickerItem | None, today: date
+) -> str | None:
+    if slot == "change_of_pace" and last is not None:
+        return change_of_pace_reason(item, last)
+    if slot == "overdue_classic":
+        return f"Out since {item.release_date.year}"
+    if slot == "waited_longest":
+        return f"On the shelf since {_month(item.acquired_at)}"
+    if slot == "pick_it_back_up" and item.status == "paused":
+        return paused_reason(item, today)
+    if slot == "pick_it_back_up":
+        return (
+            f"Started in {_month(item.run_started_on or item.started_at)} "
+            "and not touched since"
+        )
+    if slot == "back_to_it":
+        return f"Read to issue {item.issues_read}"
+    return None
 
 
 def recommend(
@@ -660,143 +925,76 @@ def recommend(
     now: datetime,
     rng: random.Random,
 ) -> PickResult:
-    """Three named picks, none repeated, each with its reasons.
+    """Play Next: up to three picks of the request's type, each with reasons.
 
-    Best fit is the highest total. Change of pace is the best game, among
-    those matching the profile at least as well as the median, that differs
-    from the last finish in size band or genre; without a dated finish or
-    such a game it is Short and sweet, the best game of six hours or less,
-    left out when there is none. The third slot is a paused game, the one
-    with the most journal time, or else a game in progress that has
-    stalled, if any; otherwise the oldest release among the
-    games that match the profile at least as well as the median ("Overdue
-    classic"), or, once acquired dates carry information, the one that has
-    waited longest.
+    One scorer (score_pool, every term, staleness on). The first pick is Best
+    fit. The second is the next diverse pick (next_diverse), labelled Change
+    of pace when it differs from the last finish in size band or genre, and
+    unlabelled otherwise. The third is a slot's: a paused game (most journal
+    time first) or a stalled one, Pick it back up; a comic run already
+    started, Back to it; else, among items matching the profile at least as
+    well as the median, the one waiting longest once acquired dates carry
+    information, or the oldest release (Overdue classic). With none, the
+    next diverse pick, unlabelled.
     """
     today = now.date()
-    weights = reference_weights(items, today)
-    references = [item for item in items if item.id in weights]
-    table = attribute_table(items, weights)
+    strategy = strategy_for(request.type)
+    taste = build_taste(items, today)
     profile_size = sum(1 for item in items if item.favorite or item.rating is not None)
     pool = candidates(items, events, request, now)
     if not pool:
         return PickResult(picks=(), candidate_count=0, profile_size=profile_size)
 
     informative = acquired_dates_informative(
-        [item for item in items if item.type == "game" and item.owned]
+        [item for item in items if item.type == strategy.type and item.owned]
     )
-    total_weight = sum(PICKER_WEIGHTS.values())
-    scored: dict[str, tuple[float, dict[str, float], PickerItem | None]] = {}
-    for item in pool:
-        similar_score, similar_to = similarity(item, references, weights)
-        terms = {
-            "affinity": affinity(item, table),
-            "similarity": similar_score,
-            "quality": quality(item),
-            "length_fit": length_fit(item, request.size),
-            "waiting": waiting(item, today, informative),
-            "jitter": rng.uniform(0, 100),
-        }
-        total = sum(PICKER_WEIGHTS[name] * value for name, value in terms.items())
-        total = total / total_weight + staleness(item.id, events, now)
-        scored[item.id] = (total, terms, similar_to)
-
-    ranked = sorted(pool, key=lambda item: (-scored[item.id][0], item.title))
-    chosen: list[tuple[str, PickerItem]] = [("best_fit", ranked[0])]
-    taken = {ranked[0].id}
-
-    median = _median([scored[item.id][1]["affinity"] for item in pool])
-    last = last_finish(items)
-    pace = next(
-        (
-            item
-            for item in ranked
-            if last is not None
-            and item.id not in taken
-            and scored[item.id][1]["affinity"] >= median
-            and change_of_pace_reason(item, last)
-        ),
-        None,
+    ranked = score_pool(
+        pool,
+        taste,
+        strategy,
+        request.size,
+        today,
+        rng=rng,
+        informative=informative,
+        events=events,
+        now=now,
     )
-    if pace is not None:
-        chosen.append(("change_of_pace", pace))
-        taken.add(pace.id)
-    else:
-        short = next(
-            (
-                item
-                for item in ranked
-                if item.id not in taken
-                and item.time_to_beat_hours is not None
-                and item.time_to_beat_hours <= SHORT_HOURS
-            ),
-            None,
+    last = last_finish(items, strategy.type)
+    last_facets = facets_of(last) if last else frozenset()
+    slots = strategy.slots(ADMIN)
+
+    chosen: list[tuple[str | None, Scored]] = [("best_fit", ranked[0])]
+    second = next_diverse(ranked, [ranked[0]], last_facets)
+    if second is not None:
+        pace = (
+            "change_of_pace" in slots
+            and last is not None
+            and change_of_pace_reason(second.item, last) is not None
         )
-        if short is not None:
-            chosen.append(("short_and_sweet", short))
-            taken.add(short.id)
-
-    paused = sorted(
-        (i for i in pool if i.id not in taken and i.status == "paused"),
-        key=_paused_order,
-    )
-    stalled = sorted(
-        (i for i in pool if i.id not in taken and _is_stalled(i, events, now)),
-        key=lambda item: item.run_started_on or item.started_at,
-    )
-    if paused or stalled:
-        chosen.append(("pick_it_back_up", (paused or stalled)[0]))
-    else:
-        gated = [
-            item
-            for item in pool
-            if item.id not in taken and scored[item.id][1]["affinity"] >= median
-        ]
-        if informative:
-            waited = [item for item in gated if item.acquired_at]
-            if waited:
-                chosen.append(
-                    (
-                        "waited_longest",
-                        max(
-                            waited, key=lambda i: (scored[i.id][1]["waiting"], i.title)
-                        ),
-                    )
-                )
-        else:
-            released = [item for item in gated if item.release_date]
-            if released:
-                chosen.append(
-                    (
-                        "overdue_classic",
-                        min(released, key=lambda i: (i.release_date, i.title)),
-                    )
-                )
+        chosen.append(("change_of_pace" if pace else None, second))
+        slot, third = _third_slot(
+            ranked,
+            [entry for _slot, entry in chosen],
+            last_facets,
+            strategy,
+            events,
+            now,
+            informative,
+        )
+        if third is not None:
+            chosen.append((slot, third))
 
     picks = []
-    for slot, item in chosen:
-        total, _terms, similar_to = scored[item.id]
-        reasons = _common_reasons(item, references, weights, table, similar_to, today)
-        if slot == "change_of_pace":
-            reasons.insert(0, change_of_pace_reason(item, last))
-        elif slot == "overdue_classic":
-            reasons.insert(0, f"Out since {item.release_date.year}")
-        elif slot == "waited_longest":
-            reasons.insert(0, f"On the shelf since {_month(item.acquired_at)}")
-        elif slot == "pick_it_back_up" and item.status == "paused":
-            reasons.insert(0, paused_reason(item, today))
-        elif slot == "pick_it_back_up":
-            reasons.insert(
-                0,
-                f"Started in {_month(item.run_started_on or item.started_at)} "
-                "and not touched since",
-            )
+    for slot, entry in chosen[:ADMIN_PICKS]:
+        item = entry.item
+        reasons = _common_reasons(item, entry.leading, entry.similar_to, taste, today)
+        reasons.insert(0, _slot_reason(slot, item, last, today))
         picks.append(
             Pick(
                 slot=slot,
-                slot_label=SLOT_LABELS[slot],
+                slot_label=SLOT_LABELS[slot] if slot else None,
                 item=item,
-                score=round(total, 1),
+                score=round(entry.total, 1),
                 reasons=tuple(reason for reason in reasons if reason)[:MAX_REASONS],
             )
         )
@@ -806,9 +1004,8 @@ def recommend(
 
 
 # Pick for me (spec 2026-11-06-pick-for-me): the public spinner ranks on the
-# terms that read only public data. waiting reads acquired_at, jitter would
-# give each visitor a different list, and staleness reads the owner's events.
-PUBLIC_TERMS = ("affinity", "similarity", "quality", "length_fit")
+# terms that read only public data (PUBLIC_TERMS): waiting reads acquired_at,
+# jitter would move the table, and staleness reads the owner's events.
 PUBLIC_PICKS = 3
 MAX_PUBLIC_MOODS = 2
 
@@ -853,37 +1050,29 @@ def public_pick_table(
 ) -> PublicPickTable:
     """Pick for me's whole answer, deterministic for a given input.
 
-    `profile` must hold public rows only, as for public_reasons; `pool` is the
+    `profile` must hold public rows only, as for public_picks; `pool` is the
     public candidates (the caller drops refused games). Moods are hard filters
     and size is the length-fit term, as in Play Next. Ties break on title,
     then id, so every visitor and every reload sees the same list.
     """
-    weights = reference_weights(profile, today)
-    references = [entry for entry in profile if entry.id in weights]
-    table = attribute_table(profile, weights)
+    strategy = strategy_for("game")
+    taste = build_taste(profile, today)
     now = datetime.combine(today, datetime.min.time(), tzinfo=UTC)
-    base = candidates(pool, [], PickRequest(), now)
-    fixed: dict[str, tuple[dict[str, float], PickerItem | None]] = {}
-    for item in base:
-        similar_score, similar_to = similarity(item, references, weights)
-        fixed[item.id] = (
-            {
-                "affinity": affinity(item, table),
-                "similarity": similar_score,
-                "quality": quality(item),
-            },
-            similar_to,
-        )
+    base = candidates(pool, [], PickRequest(), now, mode=PUBLIC)
+    fixed = {
+        entry.item.id: entry
+        for entry in score_pool(base, taste, strategy, "any", today, terms=PUBLIC_TERMS)
+    }
     total_weight = sum(PICKER_WEIGHTS[name] for name in PUBLIC_TERMS)
     combos: dict[str, tuple[PublicScore, ...]] = {}
-    picked: dict[str, PickerItem] = {}
+    picked: dict[str, Scored] = {}
     for size, moods in combo_keys():
-        wanted = set().union(*(MOOD_BUCKETS[mood] for mood in moods))
+        wanted = _wanted_facets(moods, "game")
         scored = []
         for item in base:
-            if moods and not _mood_strings(item) & wanted:
+            if moods and not facets_of(item) & wanted:
                 continue
-            terms = {**fixed[item.id][0], "length_fit": length_fit(item, size)}
+            terms = {**fixed[item.id].terms, "length_fit": fit(item, size, strategy)}
             total = sum(PICKER_WEIGHTS[name] * terms[name] for name in PUBLIC_TERMS)
             scored.append((round(total / total_weight, 1), item, terms))
         scored.sort(key=lambda entry: (-entry[0], entry[1].title, entry[1].id))
@@ -896,15 +1085,15 @@ def public_pick_table(
             )
             for score, item, terms in top
         )
-        picked.update((item.id, item) for _score, item, _terms in top)
+        picked.update((item.id, fixed[item.id]) for _score, item, _terms in top)
     reasons = {
         item_id: tuple(
             reason
             for reason in _common_reasons(
-                item, references, weights, table, fixed[item_id][1], today
+                entry.item, entry.leading, entry.similar_to, taste, today
             )
             if reason
         )[:MAX_REASONS]
-        for item_id, item in picked.items()
+        for item_id, entry in picked.items()
     }
     return PublicPickTable(combos=combos, reasons=reasons)

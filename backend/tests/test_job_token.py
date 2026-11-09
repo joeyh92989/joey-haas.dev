@@ -32,7 +32,6 @@ pytestmark = pytest.mark.asyncio
 
 TOKEN = "test-job-token"
 EXPECTED = {
-    ("POST", "/api/picker/next"),
     ("POST", "/api/physical/refresh-registry"),
     ("POST", "/api/physical/refresh"),
     ("POST", "/api/physical/refresh-switch1"),
@@ -158,6 +157,8 @@ async def test_the_token_passes_the_gate_on_each_real_route(method, path):
     ("method", "path"),
     [
         ("POST", "/api/items"),
+        # Retired from the nightly when the public picks went live.
+        ("POST", "/api/picker/next"),
         ("POST", "/api/physical/refresh-platform"),
         ("GET", "/api/recommendations?kind=radar"),
         ("GET", "/api/analytics"),
@@ -173,7 +174,7 @@ async def test_the_token_opens_no_other_real_route(method, path):
 async def test_a_trailing_slash_is_redirected_before_the_gate():
     async with real_client() as http:
         response = await http.post(
-            "/api/picker/next/", headers=bearer(), json={}, follow_redirects=False
+            "/api/comics/refresh/", headers=bearer(), json={}, follow_redirects=False
         )
     # FastAPI's redirect_slashes answers 307 before routing, so the gate (and
     # the exact-template match behind it) never sees the slashed path.
@@ -197,16 +198,16 @@ def _routed(template: str, token: str = TOKEN) -> Request:
 async def test_a_valid_token_never_authorises_a_slashed_template():
     # Were a route ever registered at the slashed template, the match is
     # still exact: only the whitelisted spelling passes.
-    assert _job_token_route(_routed("/api/picker/next")) == "/api/picker/next"
-    assert _job_token_route(_routed("/api/picker/next/")) is None
+    assert _job_token_route(_routed("/api/comics/refresh")) == "/api/comics/refresh"
+    assert _job_token_route(_routed("/api/comics/refresh/")) is None
 
 
 async def test_an_accepted_token_is_logged_without_the_token(caplog):
     caplog.set_level(logging.INFO, logger="items")
     async with client() as http:
-        response = await http.post("/api/picker/next", headers=bearer(), json={})
+        response = await http.post("/api/comics/refresh", headers=bearer(), json={})
     assert response.status_code == 200
-    assert "job token accepted: POST /api/picker/next" in caplog.text
+    assert "job token accepted: POST /api/comics/refresh" in caplog.text
     assert TOKEN not in caplog.text
 
 
@@ -225,21 +226,23 @@ async def test_the_token_opens_nothing_else(method, path):
 
 async def test_a_wrong_token_is_refused():
     async with client() as http:
-        response = await http.post("/api/picker/next", headers=bearer("nope"), json={})
+        response = await http.post(
+            "/api/comics/refresh", headers=bearer("nope"), json={}
+        )
     assert response.status_code == 401
 
 
 async def test_another_scheme_is_refused():
     async with client() as http:
         response = await http.post(
-            "/api/picker/next", headers={"Authorization": f"Basic {TOKEN}"}, json={}
+            "/api/comics/refresh", headers={"Authorization": f"Basic {TOKEN}"}, json={}
         )
     assert response.status_code == 401
 
 
 async def test_no_configured_token_refuses_every_bearer():
     async with client(token=None) as http:
-        response = await http.post("/api/picker/next", headers=bearer(), json={})
+        response = await http.post("/api/comics/refresh", headers=bearer(), json={})
     assert response.status_code == 401
 
 
@@ -255,5 +258,7 @@ async def test_a_session_is_unchanged_with_or_without_a_header():
 
 async def test_a_session_wins_on_a_job_route_with_a_wrong_token():
     async with client(signed_in=True) as http:
-        response = await http.post("/api/picker/next", headers=bearer("nope"), json={})
+        response = await http.post(
+            "/api/comics/refresh", headers=bearer("nope"), json={}
+        )
     assert response.status_code == 200

@@ -102,12 +102,32 @@ matched on title, publisher and start year:
 ```
 
 **Needs** `COMICVINE_API_KEY`, read from the main checkout's `backend/.env`
-(worktrees have none) and never printed. Four requests, one a second.
+(worktrees have none) and never printed. One request a second.
 
 **Writes** `tests/fixtures/comicvine_issues_ongoing.json` and
 `comicvine_issues_ended.json`: `{recorded_on, volume, issues}`, where
 `issues` is the raw `/issues` body. Re-record when `ISSUE_FIELD_LIST` in
 `sources/comicvine.py` changes; never edit a fixture by hand.
+
+It also records Saga's `/volume/4050-46568/` detail with `VOLUME_FIELD_LIST`
+(the tag lists the recommendation engine reads) into
+`tests/fixtures/comicvine_volume.json`, the bare response body. Re-record
+when `VOLUME_FIELD_LIST` changes. Five requests in all.
+
+## record_tmdb_fixtures.py
+
+Records TMDB's detail answer for Dune (2021, `/movie/438631`) into
+`tests/fixtures/tmdb_movie.json`, with the adapter's own `DETAIL_PARAMS`
+(`append_to_response=credits,keywords`), so the director and keyword
+parsing is tested against the live shape.
+
+```bash
+./.venv/bin/python scripts/record_tmdb_fixtures.py
+```
+
+**Needs** `TMDB_API_TOKEN`, read from the main checkout's `backend/.env` and
+never printed. One request. Re-record when `DETAIL_PARAMS` changes; never
+edit the fixture by hand.
 
 ## record_physical_fixtures.py
 
@@ -353,3 +373,80 @@ is recorded as failed rather than missing; a store never posted (the step's
 timeout, a failed install) gets no run that night, and only the nightly's
 summary shows it. The admin "Refresh stores" button still walks every store
 from Render, and Shopify still answers it 429.
+
+## export_picker_fixture.py
+
+Exports the collection as `tests/fixtures/picker_collection.json`, the
+anonymised fixture the recommendation engine's regression tests run on
+(recommendation engine spec, AC 5 and AC 6).
+
+**Why:** the engine's failures showed up on the real collection — a game
+with two tags and no keywords outranking games that shared several of my
+facets — and a synthetic set only tests the cases someone thought of.
+
+**Anonymised, because the repo is public:** titles, ids, covers, notes,
+platforms and the public flag are dropped; items are keyed `game-001`,
+`comic-001`, … in uuid order; every date becomes days before the export
+day; `similar_games` keeps only links to other exported items. Ratings,
+favourites, statuses, time to beat, runtime, comic read counts and each
+run's journal totals are kept, since they are what the engine reads.
+
+**Tags:** fixed vocabularies (genres, themes, modes, perspectives) and the
+free-text tags `FACET_MAP` maps are kept as written. Every other keyword,
+character, concept, team and location becomes a keyed hash
+(`tag-3fa2c91b0d`), because that is where franchise and character names
+live and they would say which games I own. The key is random per export
+and never stored, so a word list cannot reverse it; within one export a
+tag always gets the same pseudonym, so the engine scores the file exactly
+as it scores the strings. Ignored tags are dropped.
+
+**Curating facets** needs the readable strings, which the file no longer
+has: `--coverage MIN` prints the unmapped tags of the live rows carried by
+at least MIN items, to the terminal only, and writes nothing.
+
+**Run** from `backend/`, in the main checkout or any worktree. It reads
+`DATABASE_URL_DIRECT` from the main checkout's `backend/.env`, as
+`migrate_neon.py` does, and never prints it. It only reads.
+
+```bash
+./.venv/bin/python scripts/export_picker_fixture.py --dry-run
+./.venv/bin/python scripts/export_picker_fixture.py
+./.venv/bin/python scripts/export_picker_fixture.py --coverage 3
+```
+
+`--public-only` exports public rows only. The run prints one line:
+`exported N comic, N game, N movie; N tagged, N runs`. The file is
+gitignored and stays on the machine that exported it: anonymised or not,
+ratings, run dates and the shape of the collection could be matched back to
+real games in a public repo. `test_taste_collection.py` and the export half
+of `test_facets.py` skip where it is missing, so CI runs without it. A
+`FACET_MAP` string that only the export carries goes in
+`tests/fixtures/facet_attested.json`, which is checked against the export
+wherever it exists.
+Re-export when the engine needs newer data, never edit it by hand.
+
+## facet_coverage.py
+
+Lists the tags `facets.FACET_MAP` does not map yet, with how many items
+carry each, most common first. It reads the anonymised export
+(`tests/fixtures/picker_collection.json`, local only), never a database, so it is safe to
+run anywhere.
+
+**Why:** an unmapped tag still counts (it becomes a type-scoped facet such as
+`game:keyword:luigi`), but it never bridges media and never joins a mood. The
+map is tended from what the collection actually carries, not from memory.
+
+```bash
+./.venv/bin/python scripts/facet_coverage.py --min 2 --limit 50
+```
+
+A tag carried by two or more items is a candidate for a row (the curation
+rule in `facets.py`). Copy the value exactly as printed:
+`tests/test_facets.py` fails on any mapped string no fixture or export
+carries.
+
+Keywords in the export are pseudonyms (see `export_picker_fixture.py`), so
+here they show as `tag-…` counts; read them with
+`export_picker_fixture.py --coverage MIN` instead. A newly mapped keyword
+appears in the file readably only after the next export, so map, then
+re-export, then run `test_facets.py`.

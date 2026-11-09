@@ -409,6 +409,15 @@ if printf '%s' "$next_body" | jq -e \
 else
   report_fail "public next has its sections" "got '${next_body:0:80}'"
 fi
+# Recommendation engine: the picks are live, so generated_at no longer
+# dates them, and Tonight carries the Read next and Watch next lanes.
+if printf '%s' "$next_body" | jq -e \
+  '(.generated_at | has("picks") | not) and (.tonight.read_next | type == "array") and (.tonight.watch_next | type == "array")' \
+  > /dev/null 2>&1; then
+  report_pass "public next has live picks and both lanes" "no picks date, two arrays"
+else
+  report_fail "public next has live picks and both lanes" "got '${next_body:0:80}'"
+fi
 # What's next also carries no id, rank or Discover note (spec, S1): its
 # games are keyed by item_id. Exact-quoted, so "id" never matches "item_id".
 NEXT_FORBIDDEN="${OUTPUT_FORBIDDEN%)\"}|id|rank|model_note|ranked_by)\""
@@ -498,10 +507,10 @@ else
 fi
 
 # The nightly job's token: no token and a wrong one are both refused.
-check_equals "POST /api/picker/next with a wrong job token" \
+check_equals "POST /api/comics/refresh with a wrong job token" \
   "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST \
     -H 'Authorization: Bearer wrong' -H 'Content-Type: application/json' \
-    -d '{}' "$API_URL/api/picker/next")" \
+    -d '{}' "$API_URL/api/comics/refresh")" \
   "401"
 
 # 401 rather than 404 or 405 proves both routes exist, are declared ahead of

@@ -57,6 +57,9 @@ const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favorites. Remove on
 /** Below this many rated or favourited items, the shelf asks for ratings. */
 const NUDGE_BELOW = 5
 
+// The types the bulk metadata refresh covers (items.BULK_REFRESH_SOURCES).
+const REFRESH_TYPES = ['game', 'comic', 'movie']
+
 /**
  * The shelf's headline figures, computed from the admin rows: NULL
  * owned_format is owned, and only an explicit `none` is the want list.
@@ -152,7 +155,8 @@ export default function AdminCollection() {
   const [selected, setSelected] = useState(() => new Set())
   const [bulkPlatform, setBulkPlatform] = useState('')
   const [bulkFormat, setBulkFormat] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
+  // The type being refreshed ('game', 'comic', 'movie'), or null.
+  const [refreshing, setRefreshing] = useState(null)
   const [refreshResult, setRefreshResult] = useState(null)
 
   /**
@@ -531,20 +535,22 @@ export default function AdminCollection() {
   }
 
   /**
-   * Re-fetches every IGDB-linked game. Synchronous on the server and a few
-   * requests long, so the counts come back in the same response.
+   * Re-fetches every linked item of one type: games in batches, comics and
+   * movies one request each (Comic Vine at one a second, so comics take the
+   * longest). Synchronous on the server, so the counts come back in the
+   * same response.
    */
-  async function refreshGames() {
+  async function refreshMetadata(type) {
     setError(null)
     setRefreshResult(null)
-    setRefreshing(true)
+    setRefreshing(type)
     try {
       const response = await apiFetch(
-        '/api/items/refresh-metadata/bulk?type=game',
+        `/api/items/refresh-metadata/bulk?type=${type}`,
         { method: 'POST' },
       )
       if (!response.ok) {
-        setError('Couldn’t refresh game metadata.')
+        setError(`Couldn’t refresh ${type} metadata.`)
         return
       }
       setRefreshResult(await response.json())
@@ -552,7 +558,7 @@ export default function AdminCollection() {
       setError(ACTION_ERROR)
       return
     } finally {
-      setRefreshing(false)
+      setRefreshing(null)
     }
     await load()
   }
@@ -750,14 +756,17 @@ export default function AdminCollection() {
           >
             Hide all
           </button>
-          <button
-            type="button"
-            className="btn sm"
-            disabled={refreshing}
-            onClick={refreshGames}
-          >
-            {refreshing ? 'Refreshing…' : 'Refresh game metadata'}
-          </button>
+          {REFRESH_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              className="btn sm"
+              disabled={refreshing !== null}
+              onClick={() => refreshMetadata(type)}
+            >
+              {refreshing === type ? 'Refreshing…' : `Refresh ${type} metadata`}
+            </button>
+          ))}
           <div className="chip-row" role="group" aria-label="View">
             {[
               ['shelf', 'Shelf'],
