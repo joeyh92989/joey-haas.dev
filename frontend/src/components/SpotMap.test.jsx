@@ -122,7 +122,8 @@ describe('SpotMap', () => {
 })
 
 describe('popoverClass', () => {
-  const at = (x, rendered) => popoverClass({ x, y: 300 }, 800, 600, rendered)
+  // Low on the map, so only the side tests apply.
+  const at = (x, rendered) => popoverClass({ x, y: 500 }, 800, 600, rendered)
 
   it('leans in from a side the popover would overflow on a narrow map', () => {
     // A quarter of the way in is 92px on a 368px map: under half a popover.
@@ -144,6 +145,19 @@ describe('popoverClass', () => {
   it('opens below a pin near the top', () => {
     expect(popoverClass({ x: 400, y: 100 }, 800, 600, 900)).toBe(
       'spot-map-popover below',
+    )
+    expect(popoverClass({ x: 400, y: 100 }, 800, 600, null)).toBe(
+      'spot-map-popover below',
+    )
+  })
+
+  it('opens below a pin halfway up a narrow map, above on a wide one', () => {
+    // 250 of 600 on a 368px map is 115px from the top: under a popover.
+    expect(popoverClass({ x: 400, y: 250 }, 800, 600, 368)).toBe(
+      'spot-map-popover below',
+    )
+    expect(popoverClass({ x: 400, y: 250 }, 800, 600, 900)).toBe(
+      'spot-map-popover',
     )
   })
 })

@@ -153,13 +153,27 @@ export default function Denver() {
   const placed = useMemo(() => placeSpots(denverMap, spots), [spots])
   const visible = useMemo(() => filterSpots(spots, pressed), [spots, pressed])
   // A selection filtered out of view is no selection, and does not come back
-  // when the filter is lifted (changeTags drops it).
+  // when the filter is lifted: whenever ?tag= changes (a chip, a link, Back),
+  // a selection the new filter hides is dropped.
+  const [seenTags, setSeenTags] = useState(tagParam)
+  if (seenTags !== tagParam) {
+    setSeenTags(tagParam)
+    if (!visible.some((spot) => spot.key === chosen)) setChosen(null)
+  }
   const selected = visible.some((spot) => spot.key === chosen) ? chosen : null
 
-  function changeTags(next) {
-    if (!filterSpots(spots, next).some((spot) => spot.key === chosen)) {
-      setChosen(null)
+  // Escape clears from anywhere on the page: Safari and Firefox on macOS do
+  // not focus a clicked button, so the key may arrive at the body.
+  useEffect(() => {
+    if (selected == null) return undefined
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setChosen(null)
     }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [selected])
+
+  function changeTags(next) {
     const params = new URLSearchParams(searchParams)
     if (next.length) params.set('tag', next.join(','))
     else params.delete('tag')
@@ -172,10 +186,6 @@ export default function Denver() {
     cards.current
       .get(key)
       ?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
-  }
-
-  function onKeyDown(event) {
-    if (event.key === 'Escape' && selected != null) setChosen(null)
   }
 
   if (!data) {
@@ -200,7 +210,7 @@ export default function Denver() {
   const showList = !phone || view === 'list'
 
   return (
-    <section className="denver-page" onKeyDown={onKeyDown}>
+    <section className="denver-page">
       <h1>{copy.title}</h1>
       <p className="denver-lede">{copy.lede}</p>
       <TagChips

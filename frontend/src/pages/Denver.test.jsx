@@ -1,7 +1,13 @@
 import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
@@ -54,7 +60,17 @@ function LocationProbe() {
 }
 const search = () => screen.getByTestId('search').textContent
 
-function renderPage(path = '/denver', data = SPOTS) {
+/** A link elsewhere on the page (the footer's) that drops the filter. */
+function PlainLink() {
+  const navigate = useNavigate()
+  return (
+    <button type="button" onClick={() => navigate('/denver')}>
+      Plain Denver
+    </button>
+  )
+}
+
+function renderPage(path = '/denver', data = SPOTS, { link = false } = {}) {
   useSnapshotThenLive.mockReturnValue({ data, live: true, failed: false })
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -65,6 +81,7 @@ function renderPage(path = '/denver', data = SPOTS) {
             <>
               <Denver />
               <LocationProbe />
+              {link ? <PlainLink /> : null}
             </>
           }
         />
@@ -213,6 +230,44 @@ describe('Denver', () => {
     )
     await user.click(within(chips()).getByRole('button', { name: 'Park 2' }))
     await user.click(within(chips()).getByRole('button', { name: 'All 3' }))
+    expect(screen.getAllByRole('article')[0]).not.toHaveClass('selected')
+  })
+
+  it('drops a hidden selection when a link, not a chip, lifts the filter', async () => {
+    const user = userEvent.setup()
+    renderPage('/denver', SPOTS, { link: true })
+    const union = screen.getAllByRole('article')[0]
+    await user.click(
+      within(union).getByRole('button', { name: 'Union Station' }),
+    )
+    await user.click(within(chips()).getByRole('button', { name: 'Park 2' }))
+    await user.click(screen.getByRole('button', { name: 'Plain Denver' }))
+    expect(search()).toBe('')
+    expect(cardNames()).toHaveLength(3)
+    expect(screen.getAllByRole('article')[0]).not.toHaveClass('selected')
+  })
+
+  it('keeps a selection the new filter still shows', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const commons = screen.getAllByRole('article')[1]
+    await user.click(
+      within(commons).getByRole('button', { name: 'Commons Park' }),
+    )
+    await user.click(within(chips()).getByRole('button', { name: 'Park 2' }))
+    expect(screen.getAllByRole('article')[0]).toHaveClass('selected')
+  })
+
+  it('clears a selection on Escape with focus on the page body', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(
+      screen.getByRole('button', { name: 'Union Station, Kid-OK, Rainy day' }),
+    )
+    expect(screen.getAllByRole('article')[0]).toHaveClass('selected')
+    // Safari does not focus a clicked button, so the key lands on the body.
+    document.activeElement.blur()
+    await user.keyboard('{Escape}')
     expect(screen.getAllByRole('article')[0]).not.toHaveClass('selected')
   })
 

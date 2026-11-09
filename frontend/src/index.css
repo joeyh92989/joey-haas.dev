@@ -6706,7 +6706,8 @@ main h1[tabindex='-1']:focus {
   transform: translate(-50%, -100%);
   background: transparent;
   border: 0;
-  padding: 4px;
+  /* 14px mark + 2 × 5px = a 24px target (WCAG 2.5.8). */
+  padding: 5px;
   cursor: pointer;
   pointer-events: auto;
 }

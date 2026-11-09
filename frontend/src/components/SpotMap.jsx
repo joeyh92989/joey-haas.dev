@@ -146,21 +146,29 @@ export default function SpotMap({
 /** Half the popover's widest (15rem), plus a little room, in CSS pixels. */
 export const POPOVER_EDGE = 128
 
+/** The popover's tallest (name, area, a wrapped tag row) and the pin gap. */
+export const POPOVER_RISE = 150
+
 /**
  * Opens below a pin near the top edge, and leans in from the side edges.
  * A centred popover overflows the side when the pin is nearer to it than
- * half the popover's width, which on a phone-width map is a quarter of the
- * way in, so the side test runs on the rendered width when it is known;
- * before the first measurement it falls back to a fifth of the drawing.
+ * half the popover's width, and the top when it is nearer than the
+ * popover's height; on a phone-width map both are a large share of the
+ * drawing, so the tests run on the rendered size when it is known. Before
+ * the first measurement they fall back to fractions of the drawing.
  *
  * @param {{x: number, y: number}} point The pin, in viewBox units.
  * @param {number} width The viewBox width.
  * @param {number} height The viewBox height.
- * @param {number|null} [rendered] The map's rendered width in pixels.
+ * @param {number|null} [rendered] The map's rendered width in pixels; the
+ *   height follows from the drawing's proportions.
  */
 export function popoverClass({ x, y }, width, height, rendered = null) {
   const classes = ['spot-map-popover']
-  if (y < height * 0.3) classes.push('below')
+  const fromTop = rendered ? (y / width) * rendered : null
+  if (rendered ? fromTop < POPOVER_RISE : y < height * 0.3) {
+    classes.push('below')
+  }
   const fromLeft = rendered ? (x / width) * rendered : null
   if (rendered ? fromLeft < POPOVER_EDGE : x < width * 0.2) {
     classes.push('start')

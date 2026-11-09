@@ -92,6 +92,7 @@ describe('buildDrawing', () => {
     expect(drawing.viewBox).toEqual([0, 0, 400, 300])
     expect(drawing.streets.length).toBeGreaterThan(0)
     expect(drawing.arterials.length).toBeGreaterThan(0)
+    expect(drawing.water).toMatch(/^M/)
   })
 
   it('puts real intersections on the drawn lines', () => {
@@ -203,14 +204,21 @@ describe('the committed Denver map', () => {
     })
   })
 
-  it('has a fit the page can use, its references inside the drawing', () => {
+  it('has a fit that agrees with the projection the streets were drawn in', () => {
+    // The pins go through `fit`, the streets through the area's corners; if
+    // the two disagree, every pin sits off its street.
     const project = makeFit(denverMap.fit)
+    const nw = project({ lat: DENVER_AREA.north, lng: DENVER_AREA.west })
+    const se = project({ lat: DENVER_AREA.south, lng: eastEdge(DENVER_AREA) })
+    expect(Math.abs(nw.x)).toBeLessThan(1)
+    expect(Math.abs(nw.y)).toBeLessThan(1)
+    expect(Math.abs(se.x - 800)).toBeLessThan(1)
+    expect(Math.abs(se.y - 600)).toBeLessThan(1)
     for (const ref of denverMap.fit.points) {
-      const { x, y } = project(ref)
-      expect(Math.abs(x - ref.x)).toBeLessThan(1)
-      expect(Math.abs(y - ref.y)).toBeLessThan(1)
-      expect(x).toBeGreaterThan(0)
-      expect(x).toBeLessThan(800)
+      expect(ref.x).toBeGreaterThan(0)
+      expect(ref.x).toBeLessThan(800)
+      expect(ref.y).toBeGreaterThan(0)
+      expect(ref.y).toBeLessThan(600)
     }
   })
 
