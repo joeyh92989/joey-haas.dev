@@ -62,7 +62,7 @@ describe('SiteFooter', () => {
     const names = footer
       .getAllByRole('link')
       .map((link) => link.textContent)
-      .filter((name) => ['Now', 'TIL', 'Colophon'].includes(name))
-    expect(names).toEqual(['Now', 'TIL', 'Colophon'])
+      .filter((name) => ['Now', 'Daily', 'TIL', 'Colophon'].includes(name))
+    expect(names).toEqual(['Now', 'Daily', 'TIL', 'Colophon'])
   })
 })

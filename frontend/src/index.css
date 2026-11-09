@@ -6754,3 +6754,6 @@ main h1[tabindex='-1']:focus {
     grid-template-columns: 4.5rem minmax(0, 1fr);
   }
 }
+.daily-entry {
+  margin: 0;
+}

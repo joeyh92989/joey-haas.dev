@@ -48,6 +48,7 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/now` | Now | What I am doing now |
 | `/colophon` | Colophon | How the site is built |
+| `/daily` | Shelfle | The daily puzzle: guess the game on the shelf in six, built in the browser from the build-time snapshot with no API call (see [Daily puzzle](#daily-puzzle)) |
 | `/stats` | Stats | The site's own visitor figures from `/api/public/site-stats`, how they are counted, and the changelog from `frontend/changelog.md` |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
@@ -186,6 +187,37 @@ admin pages have no search.
   Matching folds case and accents (`lib/normalize.js`).
 - No match offers "Search the shelf", which opens `/shelf?q=<query>` with
   the shelf's own search filled in.
+
+## Daily puzzle
+
+`/daily` is Shelfle: one game a day, the same for everyone, guessed in six
+and graded on platform, year, genre and size. It is built entirely in the
+browser from `/snapshot/items.json`. It makes no API call, so it plays while
+the free-tier backend sleeps. The rules live in `frontend/src/lib/daily.js`,
+which is pure and tested without a DOM.
+
+- **Pool:** public, owned games (no wants) with a platform, a release year,
+  at least one genre and a time to beat that falls in a size band
+  (`lib/sizeBand.js`, shared with Play Next's pill). A build whose snapshot
+  leaves fewer than `MIN_POOL` (30) eligible games fails.
+- **Day:** Denver's calendar day (`ownerDay` in `lib/formatDate.js`), so the
+  puzzle turns over at midnight there. Day 1 is `DAILY_EPOCH`, and the day
+  number is counted in whole UTC days, so daylight saving never shifts it.
+- **Pick:** FNV-1a of the salt plus the date, modulo the pool, stepping past
+  the previous seven days' answers. A snapshot change can change later
+  answers, never past ones already played on that build.
+- **Salt:** `VITE_DAILY_SALT`, set on the Render static site and injected at
+  build. It only stops an answer being worked out from the snapshot's ids;
+  anyone who reads the bundle can still find it. Every answer is already
+  public, so nothing more is protected. `vite build` refuses to run without
+  it. Dev and tests fall back to a fixed word.
+- **Grading:** platform matches exactly or is close within a family (Switch
+  and Switch 2, PS4 and PS5, Xbox One and Series X|S). Year is close within
+  two years, with an arrow. Genre matches when the sets are equal and is
+  close when they share one. Size is close one band away, with an arrow.
+- **Storage:** one `localStorage` key, `daily:v1`, holding today's guesses,
+  the streak, games played and total guesses. The page renders and plays
+  without it; a blocked store just forgets.
 
 ## Admin authentication
 

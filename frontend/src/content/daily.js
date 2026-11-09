@@ -8,6 +8,8 @@ export const daily = {
   path: '/daily',
   name: 'Shelfle',
   title: 'Daily',
+  /** The one line under the shelf's hero numbers. */
+  entry: 'Today’s Shelfle →',
   headTitle: `Daily · ${spine.name}`,
   description:
     'One small game a day, built from what is on my shelf: guess the game in six, each guess graded on platform, year, genre and size. The same puzzle for everyone, new at midnight Denver time, no account.',
