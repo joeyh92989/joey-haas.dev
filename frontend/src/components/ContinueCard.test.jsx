@@ -100,7 +100,7 @@ describe('ContinueCard', () => {
     ).toBeDisabled()
   })
 
-  it('turns stale: amber date in words, a different question, Pause first', async () => {
+  it('turns stale: amber date in words, a different question, Finished it first', async () => {
     const onWrapUp = vi.fn()
     renderCard({
       card: card({ last_played_on: daysBack(23), stale: true }),
@@ -116,11 +116,12 @@ describe('ContinueCard', () => {
     const buttons = screen.getAllByRole('button')
     expect(
       buttons.map((b) => b.textContent.replace(/: Hades II$/, '')),
-    ).toEqual(['Pause', 'Finished it', 'Not tonight'])
+    ).toEqual(['Finished it', 'Pause', 'Not tonight'])
     expect(buttons[0]).toHaveClass('primary')
+    expect(buttons[1]).not.toHaveClass('primary')
     await userEvent.click(buttons[0])
-    expect(onWrapUp).toHaveBeenLastCalledWith(expect.anything(), 'paused')
-    await userEvent.click(buttons[1])
     expect(onWrapUp).toHaveBeenLastCalledWith(expect.anything(), 'finished')
+    await userEvent.click(buttons[1])
+    expect(onWrapUp).toHaveBeenLastCalledWith(expect.anything(), 'paused')
   })
 })

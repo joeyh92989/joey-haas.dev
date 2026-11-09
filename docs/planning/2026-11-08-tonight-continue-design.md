@@ -157,7 +157,8 @@ each a status mark + label + hint, in the play-states order:
 | Abandoned | filled `--status-abandoned` square | closes the run |
 
 Three columns on desktop, stacked at 400px (52px tall rows). The entry
-point may preselect one (the stale row's Pause, the card menu's Finish).
+point may preselect one (the stale row's Finished it, the card menu's
+Finish).
 The primary button's label follows the selection: **Mark finished** /
 **Mark paused** / **Mark abandoned**.
 
@@ -250,7 +251,12 @@ list, never the Continue card.
   outcome) without its denser control.
 - **The stale nudge is the action row, not a box.** B's wording made the
   dashed nudge redundant: the row already asks a question, so it asks the
-  right one and leads with Pause.
+  right one.
+  **Reversed after shipping (2026-11-09):** the row led with Pause, on the
+  reasoning that a game quiet for three weeks has drifted rather than
+  ended. In use the first stale card was one the owner had just finished,
+  and the filled button offered to pause it. "Finished it" now takes the
+  primary button and Pause sits beside it. The question is unchanged.
 - **Compact list for Or instead, cards when the picks lead.** Three alt
   cards spend a lot of height on a fallback; the list keeps the picks
   visible without competing with the card. The card layout stays for the
@@ -633,7 +639,7 @@ Props: `card`, `signedIn`, `linkTo` (item page or edit page), `onWrapUp
 `.late` class on the date when `stale`; hours and sessions omitted when
 `sessions === 0`), owner action row `.tonight-acts.ask`: normal question
 and Wrap up (primary) · Log tonight · Not tonight (ghost); stale question
-and Pause (primary, preselect paused) · Finished it (preselect finished) ·
+and Finished it (primary, preselect finished) · Pause (preselect paused) ·
 Not tonight. Log tonight disabled with the "logged" label when
 `loggedToday`. CSS in `index.css` beside `.tonight-lead`: the 4px
 `--status-active` left rule, `.sessions .late { color: var(--warn) }`,

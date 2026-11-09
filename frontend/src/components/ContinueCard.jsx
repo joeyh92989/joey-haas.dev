@@ -18,7 +18,10 @@ function hoursWords(hours) {
  * with the Now Playing band's left rule, the playing-since line, and, for
  * the owner, the night's question with its buttons. Stale (no session in
  * three weeks) turns "last played" amber and asks a different question,
- * leading with Pause. Visitors see the card and the line, nothing else.
+ * leading with "Finished it": the spec led with Pause, on the reasoning that
+ * a quiet game has drifted rather than ended, but the owner reached a stale
+ * card wanting to finish it and the filled button said Pause (2026-11-09).
+ * Visitors see the card and the line, nothing else.
  *
  * Rendered as a list item so a skipped card's toast can stand in its place.
  *
@@ -115,17 +118,17 @@ export default function ContinueCard({
                 <button
                   type="button"
                   className="btn primary"
-                  onClick={() => onWrapUp(card, 'paused')}
+                  onClick={() => onWrapUp(card, 'finished')}
                 >
-                  {copy.pause}
+                  {copy.finishedIt}
                   <span className="visually-hidden">: {card.title}</span>
                 </button>
                 <button
                   type="button"
                   className="btn"
-                  onClick={() => onWrapUp(card, 'finished')}
+                  onClick={() => onWrapUp(card, 'paused')}
                 >
-                  {copy.finishedIt}
+                  {copy.pause}
                   <span className="visually-hidden">: {card.title}</span>
                 </button>
               </>
