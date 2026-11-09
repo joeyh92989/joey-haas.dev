@@ -145,11 +145,12 @@ before pushing.
   under one. Add a new public tracker route there, not in a page's own CSS.
   `/admin*` is not in it: `SHELL_ROUTES` drops the public masthead, footer
   and page frame, and `AdminLayout` (`layouts/`) checks the session once and
-  renders every admin page inside `AdminShell` (sidebar, phone tab bar). A
-  new admin page is a child route of `AdminLayout` in `App.jsx`, a row in
-  `ADMIN_GROUPS` and in `ADMIN_ROUTES` (`prerender-lib.mjs`), and titles
-  itself through `AdminPageHeader`. Admin pages build from `StatTile`,
-  `Panel` and `JobStatusRow`.
+  renders every admin page inside `AdminShell` (area rail, the area's page
+  list, phone tab bar). A new admin page is a child route of `AdminLayout`
+  in `App.jsx`, a page in its area in `ADMIN_AREAS`
+  (`components/adminAreas.js`) and in `ADMIN_ROUTES` (`prerender-lib.mjs`),
+  and titles itself through `AdminPageHeader`. Admin pages build from
+  `StatTile`, `Panel` and `JobStatusRow`; Home is one `AreaCard` per area.
   Home, About and Projects take the 1040px `page-content` measure through
   `CONTENT_ROUTES` (exact paths, a trailing slash ignored); every other page keeps the 45rem
   column unless it is in `WIDE_ROUTES` (72rem).

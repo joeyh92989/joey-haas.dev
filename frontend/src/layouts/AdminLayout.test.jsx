@@ -60,7 +60,7 @@ describe('AdminLayout session states', () => {
     stubApi({ me: null })
     renderAt()
     expect(await screen.findByText(/sign in with google/i)).toBeInTheDocument()
-    expect(screen.queryByRole('navigation', { name: 'Admin' })).toBeNull()
+    expect(screen.queryByRole('navigation', { name: 'Areas' })).toBeNull()
     expect(screen.queryByTestId('page')).toBeNull()
     expect(document.title).toBe('Admin · Joey Haas')
   })
@@ -74,11 +74,11 @@ describe('AdminLayout session states', () => {
     )
     expect(screen.getByText('admin@example.com')).toBeInTheDocument()
     expect(
-      within(screen.getByRole('navigation', { name: 'Admin' })).getByRole(
+      within(screen.getByRole('navigation', { name: 'Areas' })).getByRole(
         'link',
-        { name: 'Sources' },
+        { name: 'Shelf' },
       ),
-    ).toHaveAttribute('href', '/admin/catalogue')
+    ).toHaveAttribute('href', '/admin/collection')
   })
 
   it('gates every admin URL, not just the landing', async () => {
@@ -116,7 +116,7 @@ describe('AdminLayout session states', () => {
     // The shell and the page stay, so nothing unsaved on it is lost.
     expect(screen.getByTestId('page')).toBeInTheDocument()
     expect(
-      screen.getByRole('navigation', { name: 'Admin' }),
+      screen.getByRole('navigation', { name: 'Areas' }),
     ).toBeInTheDocument()
   })
 
@@ -125,7 +125,7 @@ describe('AdminLayout session states', () => {
     renderAt()
     ;(await screen.findByRole('button', { name: /sign out/i })).click()
     expect(await screen.findByText(/sign in with google/i)).toBeInTheDocument()
-    expect(screen.queryByRole('navigation', { name: 'Admin' })).toBeNull()
+    expect(screen.queryByRole('navigation', { name: 'Areas' })).toBeNull()
     expect(document.activeElement).toBe(screen.getByRole('main'))
   })
 
@@ -151,7 +151,7 @@ describe('AdminLayout session states', () => {
 })
 
 describe('AdminLayout rows', () => {
-  it('counts owned rows beside Shelf, leaving out the want list', async () => {
+  it('counts owned rows beside Collection, leaving out the want list', async () => {
     stubApi({
       items: [
         { id: 1, owned_format: 'cartridge' },
@@ -159,9 +159,9 @@ describe('AdminLayout rows', () => {
         { id: 3, owned_format: 'none' },
       ],
     })
-    renderAt()
+    renderAt('/admin/collection')
     expect(
-      await screen.findByRole('link', { name: 'Shelf, 2 owned' }),
+      await screen.findByRole('link', { name: 'Collection, 2 owned' }),
     ).toBeInTheDocument()
     expect(screen.getByTestId('page')).toHaveTextContent('3 rows')
   })

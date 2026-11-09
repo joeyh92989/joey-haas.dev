@@ -42,6 +42,7 @@ const ITEM_KINDS = {
 export const ADMIN_ROUTES = [
   '/admin',
   '/admin/analytics',
+  '/admin/jobs',
   '/admin/collection',
   '/admin/import',
   '/admin/play-next',

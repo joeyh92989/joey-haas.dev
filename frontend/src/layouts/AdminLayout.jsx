@@ -13,7 +13,7 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
 /**
- * Loads the admin rows: the shell's owned count and the Dashboard's
+ * Loads the admin rows: the shell's owned count and Home's
  * figures. Null until loaded, and left null when the request fails, since
  * every page that needs the rows to work loads its own.
  */
@@ -40,7 +40,7 @@ async function loadItems() {
  * personal site from looking like an app with a login wall.
  *
  * Routed pages get the layout's outlet context plus `items`, the admin rows
- * (null until loaded), reloaded each time the Dashboard is opened.
+ * (null until loaded), reloaded each time Home is opened.
  */
 export default function AdminLayout() {
   const context = useOutletContext()
@@ -103,7 +103,7 @@ export default function AdminLayout() {
   }, [status, mainRef])
 
   useEffect(() => {
-    // Loaded once on sign-in, and again whenever the Dashboard opens, so its
+    // Loaded once on sign-in, and again whenever Home opens, so its
     // figures include what was changed on the other pages.
     if (!signedIn || (!onDashboard && itemsLoaded.current)) return
     let live = true
