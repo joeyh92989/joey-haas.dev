@@ -133,6 +133,8 @@ daily_title="$(curl -s -m 90 "$SITE_URL/daily" | grep -o '<title>[^<]*</title>')
 check_equals "GET /daily has its own prerendered title" "$daily_title" "<title>Daily · My Shelf</title>"
 til_title="$(curl -s -m 90 "$SITE_URL/til" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /til has its own prerendered title" "$til_title" "<title>TIL · Joey Haas</title>"
+denver_title="$(curl -s -m 90 "$SITE_URL/denver" | grep -o '<title>[^<]*</title>')"
+check_equals "GET /denver has its own prerendered title" "$denver_title" "<title>Denver, the short list · Joey Haas</title>"
 # The pre-rename URL keeps its preview, with the canonical on /shelf.
 check_equals "GET /spine/next (legacy) has a /shelf canonical" \
   "$(curl -s -m 90 "$SITE_URL/spine/next" | grep -o '<link rel="canonical"[^>]*>')" \
@@ -284,6 +286,23 @@ check_equals "POST /api/track answers 204 (text/plain, dropped)" \
   "$(curl -s -o /dev/null -w '%{http_code}' -m 90 -X POST -H 'Content-Type: text/plain;charset=UTF-8' -d '{"path":"/smoke-check","ref":"","device":"desktop"}' "$API_URL/api/track")" "204"
 check_equals "GET /api/analytics unauthenticated" \
   "$(http_status "$API_URL/api/analytics")" "401"
+
+# Denver spots (migration 0013). The public list is the map's pins only: no
+# anchor, no visit, no distance, and spot_id rather than a row id. The
+# status read and the nightly's refreshes are admin (or job token) only.
+check_equals "GET /api/public/spots unauthenticated" \
+  "$(http_status "$API_URL/api/public/spots")" "200"
+spots_body="$(curl -s -m 90 "$API_URL/api/public/spots")"
+if printf '%s' "$spots_body" | grep -qE "$PRIVATE_KEYS"'|"(id|anchor[a-z_]*|visits?|visited_on|distance[a-z_]*)":'; then
+  report_fail "public spots expose no private fields" "found a private key"
+else
+  report_pass "public spots expose no private fields" "pins only"
+fi
+check_equals "GET /api/spots/status unauthenticated" \
+  "$(http_status "$API_URL/api/spots/status")" "401"
+check_equals "POST /api/spots/weather/refresh unauthenticated" \
+  "$(curl -s -o /dev/null -w '%{http_code}' -m 90 -X POST "$API_URL/api/spots/weather/refresh")" "401"
+check_equals "GET /denver (deep link)" "$(http_status "$SITE_URL/denver")" "200"
 
 check_equals "GET /shelf (deep link)" "$(http_status "$SITE_URL/shelf")" "200"
 check_equals "GET /spine (legacy redirect path)" "$(http_status "$SITE_URL/spine")" "200"
