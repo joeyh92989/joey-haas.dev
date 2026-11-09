@@ -64,6 +64,32 @@ async function writeManifest(photos) {
   )
 }
 
+/**
+ * Writes the trip file the build reads its photo list from: one day, each
+ * named photo on its own image line.
+ */
+async function writeTrip(names, { cover } = {}) {
+  const lines = [
+    '---',
+    'title: Test trip',
+    'date: 2026-09-12',
+    'end: 2026-09-12',
+    'summary: A trip for the tests.',
+    ...(cover ? [`cover: ${cover}`] : []),
+    'places:',
+    '  - { name: Dubrovnik, lat: 42.65, lon: 18.09 }',
+    '---',
+    '',
+    '## Day 1 · Arrive · Dubrovnik',
+    '',
+    'Walked the walls.',
+    '',
+    ...names.map((name) => `![${name}](${name})`),
+    '',
+  ]
+  await fs.writeFile(path.join(tripsDir, `${SLUG}.md`), lines.join('\n'))
+}
+
 const build = () => buildTripImages({ slug: SLUG, tripsDir, outDir })
 
 const readManifest = async () =>
@@ -72,6 +98,7 @@ const readManifest = async () =>
 describe('buildTripImages', () => {
   it('writes both widths and records the large one in the manifest', async () => {
     await writeSource('walls.jpg')
+    await writeTrip(['walls-afternoon'])
     await writeManifest([{ name: 'walls-afternoon', file: 'walls.jpg' }])
 
     const { built } = await build()
@@ -95,6 +122,7 @@ describe('buildTripImages', () => {
 
   it('does not enlarge a photo smaller than the large width', async () => {
     await writeSource('small.jpg', { width: 1000, height: 667 })
+    await writeTrip(['small'])
     await writeManifest([{ name: 'small', file: 'small.jpg' }])
 
     await build()
@@ -110,6 +138,7 @@ describe('buildTripImages', () => {
   it('bakes in the EXIF orientation before stripping it', async () => {
     // Orientation 6 on a 2400×1600 file means it should display portrait.
     await writeSource('portrait.jpg', { orientation: 6 })
+    await writeTrip(['portrait'])
     await writeManifest([{ name: 'portrait', file: 'portrait.jpg' }])
 
     await build()
@@ -124,6 +153,7 @@ describe('buildTripImages', () => {
 
   it('strips every scrap of metadata, GPS above all', async () => {
     await writeSource('tagged.jpg', { orientation: 6 })
+    await writeTrip(['tagged'])
     await writeManifest([{ name: 'tagged', file: 'tagged.jpg' }])
     const sourceMeta = await sharp(
       path.join(photosDir(), 'tagged.jpg'),
@@ -144,7 +174,7 @@ describe('buildTripImages', () => {
     }
   })
 
-  it('skips a kid photo without an explicit opt-in, and builds one with it', async () => {
+  it('builds a kid photo only with an explicit opt-in', async () => {
     await writeSource('one.jpg')
     await writeSource('two.jpg')
     await writeManifest([
@@ -152,12 +182,48 @@ describe('buildTripImages', () => {
       { name: 'on-the-ferry', file: 'two.jpg', kid: true, publish: true },
     ])
 
-    const { built, skipped } = await build()
+    // Named in the trip without publish: true, it is refused outright.
+    await writeTrip(['at-the-gate', 'on-the-ferry'])
+    await expect(build()).rejects.toThrow(/at-the-gate/)
+
+    await writeTrip(['on-the-ferry'])
+    const { built } = await build()
 
     expect(built.map((photo) => photo.name)).toEqual(['on-the-ferry'])
-    expect(skipped.map((photo) => photo.name)).toEqual(['at-the-gate'])
     const written = await fs.readdir(path.join(outDir, SLUG))
     expect(written.some((file) => file.startsWith('at-the-gate'))).toBe(false)
+  })
+
+  it('builds only the photos the trip file shows, cover included', async () => {
+    await writeSource('a.jpg')
+    await writeSource('b.jpg')
+    await writeSource('c.jpg')
+    await writeManifest([
+      { name: 'the-cover', file: 'a.jpg' },
+      { name: 'in-a-day', file: 'b.jpg' },
+      { name: 'never-chosen', file: 'c.jpg' },
+    ])
+    await writeTrip(['in-a-day'], { cover: 'the-cover' })
+
+    const { built, unused } = await build()
+
+    expect(built.map((photo) => photo.name)).toEqual(['the-cover', 'in-a-day'])
+    expect(unused.map((photo) => photo.name)).toEqual(['never-chosen'])
+    const written = await fs.readdir(path.join(outDir, SLUG))
+    expect(written.some((file) => file.startsWith('never-chosen'))).toBe(false)
+    const manifest = await readManifest()
+    expect(
+      manifest.find((photo) => photo.name === 'never-chosen').width,
+    ).toBeUndefined()
+  })
+
+  it('refuses to build for a trip file that is missing or does not parse', async () => {
+    await writeSource('a.jpg')
+    await writeManifest([{ name: 'walls', file: 'a.jpg' }])
+    await expect(build()).rejects.toThrow(/no trip file at/)
+
+    await writeTrip(['not-in-the-manifest'])
+    await expect(build()).rejects.toThrow(/not-in-the-manifest/)
   })
 
   it('refuses a manifest that is missing, malformed or self-contradictory', async () => {
@@ -182,6 +248,7 @@ describe('buildTripImages', () => {
   })
 
   it('refuses a manifest entry with no source file', async () => {
+    await writeTrip(['walls'])
     await writeManifest([{ name: 'walls', file: 'missing.jpg' }])
     await expect(build()).rejects.toThrow(/has no source file at/)
   })

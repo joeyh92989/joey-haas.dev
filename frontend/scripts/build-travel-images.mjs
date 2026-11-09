@@ -33,7 +33,14 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
+import matter from 'gray-matter'
 import sharp from 'sharp'
+
+import {
+  parseTripDays,
+  parseTripFrontmatter,
+  referencedPhotoNames,
+} from './trip-markdown.mjs'
 
 /** The two widths the page's srcset offers. */
 export const WIDTHS = [800, 1600]
@@ -123,14 +130,56 @@ async function buildPhoto({ source, outDir, name }) {
 }
 
 /**
- * Builds every publishable photo in a trip and rewrites its manifest.
+ * The manifest names the trip file shows, after parsing it in full.
+ *
+ * A trip file that does not parse fails the image build too: building for
+ * a file the site build is about to refuse would only hide the error.
+ */
+async function readReferencedNames({ slug, tripsDir, manifest }) {
+  const file = path.join(tripsDir, `${slug}.md`)
+  let source
+  try {
+    source = await fs.readFile(file, 'utf8')
+  } catch (error) {
+    if (error.code === 'ENOENT') fail(`no trip file at ${file}`)
+    throw error
+  }
+  const { data, content } = matter(source)
+  const photoNames = manifest.map((photo) => photo.name)
+  const photos = Object.fromEntries(
+    manifest.map((photo) => [photo.name, photo]),
+  )
+  try {
+    const frontmatter = parseTripFrontmatter(data, slug, photoNames)
+    const days = parseTripDays(content, {
+      slug,
+      places: frontmatter.places,
+      date: frontmatter.date,
+      end: frontmatter.end,
+      photoNames,
+      photos,
+    })
+    return new Set(referencedPhotoNames(frontmatter, days))
+  } catch (error) {
+    fail(error.message)
+  }
+}
+
+/**
+ * Builds every publishable photo the trip file shows, and rewrites the
+ * manifest with their dimensions.
+ *
+ * Only photos the trip names are built. The manifest may list a whole camera
+ * roll (the ingest tool copies one in); the rest stay unbuilt and are
+ * counted as `unused`, so the only way a photo reaches public/ is by being
+ * written into the trip.
  *
  * @param {object} input
  * @param {string} input.slug
  * @param {string} input.tripsDir Holding `<slug>/photos/`.
  * @param {string} input.outDir Holding `<slug>/` (public/travel).
  * @param {(line: string) => void} [input.log]
- * @returns {Promise<{built: object[], skipped: object[]}>}
+ * @returns {Promise<{built: object[], skipped: object[], unused: object[]}>}
  */
 export async function buildTripImages({
   slug,
@@ -142,12 +191,18 @@ export async function buildTripImages({
   const photosDir = path.join(tripsDir, slug, 'photos')
   const manifestFile = path.join(photosDir, 'photos.json')
   const manifest = await readManifest(manifestFile)
+  const referenced = await readReferencedNames({ slug, tripsDir, manifest })
   const destination = path.join(outDir, slug)
   await fs.mkdir(destination, { recursive: true })
 
   const built = []
   const skipped = []
+  const unused = []
   for (const photo of manifest) {
+    if (!referenced.has(photo.name)) {
+      unused.push(photo)
+      continue
+    }
     if (!isPublishable(photo)) {
       // Not an error: a kid photo may sit in the manifest unpublished for
       // as long as the owner likes. It just never leaves the folder.
@@ -176,9 +231,10 @@ export async function buildTripImages({
   log(
     `${built.length} photo${built.length === 1 ? '' : 's'} built into ` +
       `${path.relative(process.cwd(), destination)}` +
-      (skipped.length ? `, ${skipped.length} skipped` : ''),
+      (skipped.length ? `, ${skipped.length} skipped` : '') +
+      (unused.length ? `, ${unused.length} not in the trip file` : ''),
   )
-  return { built, skipped }
+  return { built, skipped, unused }
 }
 
 /** Whether this module was run directly rather than imported. */

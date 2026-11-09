@@ -343,3 +343,54 @@ export function dayDates(day, trip) {
     to: addDays(trip.date, day.last - 1),
   }
 }
+
+/**
+ * Every manifest name a trip actually shows: its cover and each day's photo
+ * lines, in that order, without repeats.
+ *
+ * The image build reads this rather than the whole manifest. The ingest
+ * tool copies every photo from a dump into `photos/`, hundreds of which are
+ * never meant to be published; building only what the trip file names means
+ * a photo leaves the owner's machine because someone chose it, never
+ * because it was in the folder.
+ *
+ * @param {{cover: string|null}} frontmatter
+ * @param {{photos: {name: string}[]}[]} days
+ * @returns {string[]}
+ */
+export function referencedPhotoNames(frontmatter, days) {
+  const names = new Set()
+  if (frontmatter.cover) names.add(frontmatter.cover)
+  for (const day of days) {
+    for (const photo of day.photos) names.add(photo.name)
+  }
+  return [...names]
+}
+
+/** The scaffold's placeholder, as a whole word, anywhere in the file. */
+const TODO = /\bTODO\b/
+
+/**
+ * Refuses a published trip that still carries a scaffold placeholder.
+ *
+ * `scripts/ingest-photos.mjs` writes every day's prose as `TODO` and the
+ * file as `draft: true`. A draft may hold as many as it likes; the moment
+ * the draft flag comes off, a leftover `TODO` would be public copy, so the
+ * build fails on it instead.
+ *
+ * @param {string} source The whole file, frontmatter included.
+ * @param {string} slug
+ * @param {boolean} draft
+ */
+export function assertNoPlaceholders(source, slug, draft) {
+  if (draft) return
+  const lines = source.split(/\r?\n/)
+  const index = lines.findIndex((line) => TODO.test(line))
+  if (index !== -1) {
+    fail(
+      slug,
+      `line ${index + 1} still has a TODO, and the trip is not a draft: ` +
+        lines[index].trim(),
+    )
+  }
+}

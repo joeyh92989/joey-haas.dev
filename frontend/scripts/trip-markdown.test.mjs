@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   addDays,
+  assertNoPlaceholders,
   dayDates,
   daySpan,
   parseTripDays,
   parseTripFrontmatter,
+  referencedPhotoNames,
 } from './trip-markdown.mjs'
 
 const PLACES = [
@@ -377,5 +379,44 @@ describe('dates', () => {
     expect(
       dayDates(days[0], { date: '2014-01-01', precision: 'year' }),
     ).toBeNull()
+  })
+})
+
+describe('referencedPhotoNames', () => {
+  it('lists the cover then each day photo once, in order', () => {
+    const days = [
+      { photos: [{ name: 'walls' }, { name: 'lokrum' }] },
+      { photos: [] },
+      { photos: [{ name: 'portara' }, { name: 'walls' }] },
+    ]
+    expect(referencedPhotoNames({ cover: 'portara' }, days)).toEqual([
+      'portara',
+      'walls',
+      'lokrum',
+    ])
+    expect(referencedPhotoNames({ cover: null }, [])).toEqual([])
+  })
+})
+
+describe('assertNoPlaceholders', () => {
+  const scaffold =
+    '---\ntitle: Ireland\n---\n\n## Day 1 · TODO · Dublin\n\nTODO\n'
+
+  it('lets a draft keep its placeholders', () => {
+    expect(() =>
+      assertNoPlaceholders(scaffold, 'ireland-2014', true),
+    ).not.toThrow()
+  })
+
+  it('refuses a published trip with a TODO, naming the line', () => {
+    expect(() => assertNoPlaceholders(scaffold, 'ireland-2014', false)).toThrow(
+      /trips\/ireland-2014\.md: line 5 still has a TODO/,
+    )
+  })
+
+  it('matches the whole word only', () => {
+    expect(() =>
+      assertNoPlaceholders('Ate at TODOS Tacos.\n', 'x', false),
+    ).not.toThrow()
   })
 })

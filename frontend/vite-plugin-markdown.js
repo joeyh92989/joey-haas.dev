@@ -10,6 +10,7 @@ import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 
 import {
+  assertNoPlaceholders,
   parseTripDays,
   parseTripFrontmatter,
 } from './scripts/trip-markdown.mjs'
@@ -180,6 +181,7 @@ export default function markdown() {
           return { code: 'export default null', map: null }
         }
         try {
+          assertNoPlaceholders(code, slug, data.draft === true)
           const trip = await compileTrip({ data, content, slug, id })
           return { code: `export default ${JSON.stringify(trip)}`, map: null }
         } catch (error) {
