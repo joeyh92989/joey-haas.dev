@@ -10,6 +10,7 @@
  * `/blog` is only listed while there are published posts.
  */
 import { clip } from '../lib/clip.js'
+import { denver } from './denver.js'
 import { daily } from './daily.js'
 import { profile } from './profile.js'
 import { spine } from './spine.js'
@@ -79,6 +80,12 @@ export const STATIC_PAGES = [
     'Stats',
     `Stats · ${profile.name}`,
     'What joey-haas.dev sees, counted by the site itself: views, visitors, pages and referrers, with no cookies or third-party scripts, and what changed recently.',
+  ),
+  row(
+    denver.page.path,
+    'Denver',
+    `${denver.page.title} · ${profile.name}`,
+    denver.page.description,
   ),
   row(daily.path, daily.title, daily.headTitle, daily.description),
 ]

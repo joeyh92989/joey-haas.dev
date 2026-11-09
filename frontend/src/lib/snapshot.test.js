@@ -123,6 +123,21 @@ describe('isValidSnapshot', () => {
     ).toBe(false)
   })
 
+  it('accepts a spots body of rows with an id, a name, a point and tags', () => {
+    const row = {
+      spot_id: 'a1',
+      name: 'Huckleberry',
+      lat: 39.77,
+      lng: -105.01,
+      tags: ['coffee'],
+    }
+    expect(isValidSnapshot('spots', [])).toBe(true)
+    expect(isValidSnapshot('spots', [row])).toBe(true)
+    expect(isValidSnapshot('spots', [{ ...row, lat: '39.77' }])).toBe(false)
+    expect(isValidSnapshot('spots', [{ ...row, tags: null }])).toBe(false)
+    expect(isValidSnapshot('spots', { spots: [row] })).toBe(false)
+  })
+
   it('accepts a site-stats body with both ranges, each with its lists', () => {
     const summary = {
       views: 12,

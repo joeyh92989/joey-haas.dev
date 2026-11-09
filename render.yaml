@@ -51,6 +51,9 @@ services:
         source: /stats
         destination: /stats/index.html
       - type: rewrite
+        source: /denver
+        destination: /denver/index.html
+      - type: rewrite
         source: /daily
         destination: /daily/index.html
       - type: rewrite

@@ -629,3 +629,89 @@ async def test_0011_downgrade_drops_the_table_and_resets_paused(clean_database):
     # from failing.
     up = _alembic("upgrade", "0011")
     assert up.returncode == 0, up.stderr
+
+
+# --- Revision 0013: Denver spots. -------------------------------------------
+
+SPOT_TABLES = {
+    "spots",
+    "visits",
+    "candidates",
+    "dismissals",
+    "weather_hours",
+    "spot_settings",
+}
+
+
+@pytest.mark.asyncio
+async def test_0013_adds_the_spot_tables_and_type(clean_database):
+    result = _alembic("upgrade", "0013")
+    assert result.returncode == 0, result.stderr
+    assert SPOT_TABLES <= await _tables(clean_database)
+    assert "candidate_source" in await _types(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_0013_downgrade_removes_them_and_keeps_the_rest(clean_database):
+    assert _alembic("upgrade", "0013").returncode == 0
+    result = _alembic("downgrade", "0012")
+    assert result.returncode == 0, result.stderr
+
+    tables = await _tables(clean_database)
+    assert not SPOT_TABLES & tables
+    assert {"items", "playthroughs", "recommendations"} <= tables
+    assert "candidate_source" not in await _types(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_spot_deletes_its_visits_and_unlinks_candidates(
+    clean_database,
+):
+    assert _alembic("upgrade", "0013").returncode == 0
+    async with clean_database.begin() as connection:
+        spot_id = await connection.scalar(
+            text(
+                "INSERT INTO spots (id, name, slug, lat, lng, anchor) VALUES "
+                "(gen_random_uuid(), 'Home', 'home', 39.74, -104.99, true) "
+                "RETURNING id"
+            )
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO visits (id, spot_id, visited_on) VALUES "
+                "(gen_random_uuid(), :spot, '2026-11-08')"
+            ),
+            {"spot": spot_id},
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO candidates (id, source, source_id, name, lat, lng, "
+                "nearest_anchor_id) VALUES (gen_random_uuid(), 'osm', 'node/1', "
+                "'Cafe', 39.75, -104.98, :spot)"
+            ),
+            {"spot": spot_id},
+        )
+        await connection.execute(
+            text("DELETE FROM spots WHERE id = :spot"), {"spot": spot_id}
+        )
+        visits = await connection.scalar(text("SELECT count(*) FROM visits"))
+        anchor = await connection.scalar(
+            text("SELECT nearest_anchor_id FROM candidates")
+        )
+    assert (visits, anchor) == (0, None)
+
+
+@pytest.mark.asyncio
+async def test_0013_spot_defaults_are_private_and_denver(clean_database):
+    assert _alembic("upgrade", "0013").returncode == 0
+    async with clean_database.begin() as connection:
+        row = (
+            await connection.execute(
+                text(
+                    "INSERT INTO spots (id, name, slug, lat, lng) VALUES "
+                    "(gen_random_uuid(), 'Park', 'park', 39.7, -105.0) "
+                    "RETURNING is_public, anchor, city, tags"
+                )
+            )
+        ).one()
+    assert tuple(row) == (False, False, "denver", [])

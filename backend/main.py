@@ -37,6 +37,9 @@ from public import create_public_router
 from recommendations_routes import create_recommendations_router
 from schema_check import verify_schema_is_current
 from sources.registry import build_registry, configured_sources
+from spots_candidates_routes import create_candidates_router
+from spots_routes import create_spots_router
+from spots_weekend_routes import create_weekend_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -112,6 +115,7 @@ app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
 app.include_router(create_picker_router(session_factory))
 app.include_router(create_journal_router(session_factory))
+app.include_router(create_spots_router(session_factory))
 # One cache for the admin read and the public site-stats read, so the
 # nightly rollup's clear refreshes both.
 summary_cache = SummaryCache()
@@ -150,6 +154,21 @@ app.include_router(
 )
 # The comics refreshes have their own lock: they write only comic rows.
 app.include_router(create_comics_router(session_factory, registry, asyncio.Lock()))
+# So does the spot finder: it writes only spot rows. Overpass is read with
+# the catalogue's client, for its identifying User-Agent.
+app.include_router(
+    create_candidates_router(
+        session_factory,
+        physical_http_client,
+        provider_factory=lambda: build_provider(config),
+        lock=asyncio.Lock(),
+    )
+)
+# The weekend planner: NWS is read by its job route alone, with the same
+# client (NWS asks for an identifying User-Agent); its own lock.
+app.include_router(
+    create_weekend_router(session_factory, physical_http_client, lock=asyncio.Lock())
+)
 # The provider is built per request rather than here, so an absent model key
 # is a failure of the import route alone rather than a service that will not
 # boot -- the same reasoning as the lazy source checks.

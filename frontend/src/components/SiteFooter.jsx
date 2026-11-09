@@ -35,7 +35,8 @@ export default function SiteFooter({
               &middot; <Link to="/travel">Travel</Link>{' '}
             </>
           )}
-          &middot; <Link to="/colophon">Colophon</Link> &middot;{' '}
+          &middot; <Link to="/denver">Denver</Link> &middot;{' '}
+          <Link to="/colophon">Colophon</Link> &middot;{' '}
           <Link to="/stats">Stats</Link>
         </p>
         <p className="footer-links">

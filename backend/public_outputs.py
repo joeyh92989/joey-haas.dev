@@ -32,6 +32,7 @@ from models import (
     PickEvent,
     ReasonSource,
     RecommendationKind,
+    Spot,
 )
 from next_list import (
     NextEntry,
@@ -568,3 +569,46 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
             for key, entries in built.items()
         },
     )
+
+
+# --- Denver spots (docs/planning/2026-11-08-denver-spots-design.md) ---------
+
+
+class PublicSpot(BaseModel):
+    """GET /api/public/spots: one published spot on /denver. `spot_id`, not
+    `id` (no public body carries a key named id), and `blurb`, never the
+    visit notes. No anchor flag, no visit, no distance: where the owner
+    lives and how often they go are private. tests/test_public_outputs.py
+    pins the fields."""
+
+    spot_id: uuid.UUID
+    name: str
+    slug: str
+    neighbourhood: str | None
+    tags: list[str]
+    blurb: str | None
+    lat: float
+    lng: float
+
+
+async def load_public_spots(session: AsyncSession) -> list[PublicSpot]:
+    """Published spots, anchors never, by neighbourhood then name. Uncached:
+    a select over a few dozen rows (spec, decision 9)."""
+    rows = await session.execute(
+        select(Spot)
+        .where(Spot.is_public.is_(True), Spot.anchor.is_(False))
+        .order_by(Spot.neighbourhood.asc().nullslast(), Spot.name.asc())
+    )
+    return [
+        PublicSpot(
+            spot_id=row.id,
+            name=row.name,
+            slug=row.slug,
+            neighbourhood=row.neighbourhood,
+            tags=list(row.tags or []),
+            blurb=row.blurb,
+            lat=row.lat,
+            lng=row.lng,
+        )
+        for row in rows.scalars()
+    ]
