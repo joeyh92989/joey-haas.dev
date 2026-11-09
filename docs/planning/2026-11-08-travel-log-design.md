@@ -873,3 +873,37 @@ Joey has collected anything.
   *through* the ingest tool rather than by hand: Joey's dumps go in, the
   report comes back, the drafts get their prose, then `render.yaml`, the
   changelog and the README.
+
+## Deviations from the spec (recorded at the end of M2)
+
+What was built differs from the design above in these places, each for the
+reason given. None changes a public URL or adds a token.
+
+- **Map pins are HTML, not SVG.** `DrawnMap` draws the coastline and route
+  in SVG but places the numbered pins as absolutely positioned links over
+  it, so a pin is a real focusable link with a readable label at any width;
+  SVG text scaled with the viewBox and went unreadable at 400px. The
+  coastline is projected through the same `mapFit` as the pins.
+- **Map colors are `--sunken` and `--surface`**, land on sea, rather than
+  new map tokens: both already clear the contrast the route and pins need
+  in both themes, and the rule is no new tokens without measuring.
+- **A maps registry** (`content/maps/index.js`, `findMap(slug)`) holds each
+  trip's drawing, fit and viewBox. A trip without an entry simply has no
+  map, which is what a month-precision trip like Ireland wants.
+- **The trip module carries `cover` and each day's `dates`**, so the index
+  card, Home and the prerendered `og:image` read one value instead of each
+  finding the first photo again.
+- **Place chips show only when a trip has more than one place.** One chip
+  pointing at the only place is noise.
+- **A place's anchor prefers the day that ends there**, and only falls back
+  to a travel day that passes through, so Athens on a Dubrovnik → Athens →
+  Naxos day links to the day actually spent in Athens.
+- **Day headings are `h2`, not `h3`.** The trip page's `h1` is the title and
+  nothing sits between; an `h3` would skip a level (axe flags it).
+- **Photos pair in order**: two consecutive photos in a day share a row,
+  an odd one out stands alone. No layout hints in the markdown.
+- **Nav order** is Home, About, Projects, My Shelf, Travel, Blog: Travel
+  sits beside the other personal project, ahead of the writing.
+- **Prerendered trip heads** use the trip's `summary` as the description
+  (falling back to an excerpt of the prose) and its cover at 1600px as the
+  link-preview image, with the cover's alt text.
