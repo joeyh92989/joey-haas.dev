@@ -106,6 +106,21 @@ export function onPage(page, pathname) {
   return path === page.to || (!page.end && path.startsWith(`${page.to}/`))
 }
 
+/**
+ * The one page of `pages` that `pathname` is on: the longest match, so
+ * /admin/closet/profile is Profile, not Closet as well, while
+ * /admin/closet/12 (a garment, under no page of its own) stays Closet.
+ */
+export function currentPage(pages, pathname) {
+  let best = null
+  for (const page of pages) {
+    if (page?.to && onPage(page, pathname)) {
+      if (!best || page.to.length > best.to.length) best = page
+    }
+  }
+  return best
+}
+
 /** The page `pathname` is on within `area`, its own pages first. */
 export function pageFor(area, pathname) {
   const owned = area.pages.filter((page) => !page.alias)

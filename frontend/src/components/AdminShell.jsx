@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
-import { ADMIN_AREAS, areaFor, onPage, segmentsFor } from './adminAreas.js'
+import { ADMIN_AREAS, areaFor, currentPage, segmentsFor } from './adminAreas.js'
 
 /** Below this width the rail and page list give way to tabs and segments. */
 export const PHONE_QUERY = '(max-width: 900px)'
@@ -36,6 +36,24 @@ function AreaBadge({ badge }) {
       </span>
       <span className="visually-hidden">{`, ${badge.value} ${badge.words}`}</span>
     </>
+  )
+}
+
+/**
+ * A page link marked current by the shell, not by NavLink's own matching:
+ * NavLink without `end` would also mark a parent page (Closet) on its
+ * child's path (/admin/closet/profile). Only the longest match is current.
+ */
+function PageLink({ page, current, children, onClick }) {
+  return (
+    <Link
+      to={page.to}
+      className={current ? 'active' : undefined}
+      aria-current={current ? 'page' : undefined}
+      onClick={onClick}
+    >
+      {children}
+    </Link>
   )
 }
 
@@ -97,7 +115,8 @@ function runs(pages) {
 }
 
 /** The desktop's second column: the current area's pages and the account. */
-function AreaPages({ area, ownedCount, email, onSignOut }) {
+function AreaPages({ area, pathname, ownedCount, email, onSignOut }) {
+  const here = currentPage(area.pages, pathname)
   return (
     <aside className="admin-side">
       <p className="admin-side-title">
@@ -119,10 +138,10 @@ function AreaPages({ area, ownedCount, email, onSignOut }) {
             >
               {run.pages.map((page) => (
                 <li key={page.to}>
-                  <NavLink to={page.to} end={page.end}>
+                  <PageLink page={page} current={page === here}>
                     {page.label}
                     {page.count && <OwnedCount value={ownedCount} />}
-                  </NavLink>
+                  </PageLink>
                 </li>
               ))}
             </ul>
@@ -208,6 +227,10 @@ function TabSheet({ label, pages, open, onClose, returnFocusRef }) {
  */
 function AreaSubnav({ area, pathname, sheet, onOpen, onClose }) {
   const segments = segmentsFor(area)
+  const here = currentPage(
+    segments.flatMap((segment) => segment.sheet ?? [segment]),
+    pathname,
+  )
   // One stable ref per sheet segment, so focus can go back to it.
   const refs = useRef({})
   const refFor = (label) => (refs.current[label] ??= { current: null })
@@ -217,12 +240,16 @@ function AreaSubnav({ area, pathname, sheet, onOpen, onClose }) {
         {segments.map((segment) => {
           if (!segment.sheet) {
             return (
-              <NavLink key={segment.to} to={segment.to} end={segment.end}>
+              <PageLink
+                key={segment.to}
+                page={segment}
+                current={here?.to === segment.to}
+              >
                 {segment.label}
-              </NavLink>
+              </PageLink>
             )
           }
-          const current = segment.sheet.some((page) => onPage(page, pathname))
+          const current = segment.sheet.some((page) => page.to === here?.to)
           return (
             <button
               key={segment.label}
@@ -298,6 +325,7 @@ export default function AdminShell({
       {!phone && (
         <AreaPages
           area={area}
+          pathname={pathname}
           ownedCount={ownedCount}
           email={email}
           onSignOut={onSignOut}

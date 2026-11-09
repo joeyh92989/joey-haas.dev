@@ -69,6 +69,33 @@ describe('AdminShell on a desktop', () => {
     ).not.toHaveAttribute('aria-current')
   })
 
+  it('marks only the longest matching page current', () => {
+    renderAt('/admin/closet/profile')
+    const list = screen.getByRole('navigation', { name: 'Closet pages' })
+    expect(within(list).getByRole('link', { name: 'Profile' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(
+      within(list).getByRole('link', { name: 'Closet' }),
+    ).not.toHaveAttribute('aria-current')
+  })
+
+  it("marks Closet current on a garment's page", () => {
+    renderAt('/admin/closet/12')
+    expect(
+      within(areas()).getByRole('link', { name: 'Closet' }),
+    ).toHaveAttribute('aria-current', 'true')
+    const list = screen.getByRole('navigation', { name: 'Closet pages' })
+    expect(within(list).getByRole('link', { name: 'Closet' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(
+      within(list).getByRole('link', { name: 'Profile' }),
+    ).not.toHaveAttribute('aria-current')
+  })
+
   it("lists the current area's pages under their kickers", () => {
     renderAt('/admin/radar')
     const nav = screen.getByRole('navigation', { name: 'Shelf pages' })
@@ -201,6 +228,27 @@ describe('AdminShell on a phone', () => {
         .getAllByRole('link')
         .map((link) => link.textContent),
     ).toEqual(['Weekend', 'Spots'])
+  })
+
+  it('marks only Profile among the segments on the profile page', () => {
+    renderAt('/admin/closet/profile')
+    const sub = screen.getByRole('navigation', { name: 'Closet pages' })
+    expect(within(sub).getByRole('link', { name: 'Profile' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(
+      within(sub).getByRole('link', { name: 'Closet' }),
+    ).not.toHaveAttribute('aria-current')
+  })
+
+  it("marks the Closet segment on a garment's page", () => {
+    renderAt('/admin/closet/12')
+    const sub = screen.getByRole('navigation', { name: 'Closet pages' })
+    expect(within(sub).getByRole('link', { name: 'Closet' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
   it('gives Shelf two pages and two sheets', () => {
