@@ -1,7 +1,8 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: docs/planning/mockups/2026-11-08-denver-spots/
 chosen: a-public-map.html
+plan: 2026-11-09, five-PR stack
 ---
 
 # Denver spots: a curated map, a spot finder and a weekend planner (design)
@@ -440,3 +441,444 @@ Tokens used: `--surface`, `--line`, `--line-strong`, `--accent`,
   land in this phase in a shape the travel log can use with a different
   drawing and numbered pins; coordinate with
   `2026-11-08-travel-log-design.md`.
+
+---
+
+# Plan
+
+Written 2026-11-09 on `feat/denver-spots`. Every open question above is
+answered below, either in **Decisions taken at plan time** or in the task
+that settles it. Five PRs off this one branch, in order; each is
+independently valid (builds, tests green) and leaves the site working.
+
+## Docs alignment
+
+Conventions this plan relies on, with the path or URL that fixes each.
+
+| Claim | Source |
+|---|---|
+| Migration head is `0012`; a new revision is `0013`, `down_revision = "0012"` | `backend/migrations/versions/0012_add_playthrough_note.py` |
+| Migrations are additive; deploy order is apply-then-merge | `backend/migrations/README.md` (The rule: migrations are additive) |
+| Enum types are created and dropped explicitly, never by `create_table` | `backend/migrations/versions/0006_add_recommendations.py:25-53` |
+| No `ARRAY`/`text[]` column exists anywhere; list data is JSONB | `backend/models.py` (`Item.editions`, `Recommendation.based_on`) |
+| `test_migrations.py` asserts `compare_metadata(...) == []`, and upgrade→downgrade→upgrade is clean | `backend/tests/test_migrations.py` |
+| Admin gating is a router-level `dependencies=[Depends(require_admin)]` | `backend/journal_routes.py:55-65` |
+| Job routes are an exact whitelist matched on the routed template, duplicated in the test | `backend/items.py:401-435`, `backend/tests/test_job_token.py` |
+| Public bodies are Pydantic allowlists; a forbidden-key walk bans `id`, `note`, `status`, `url`, `score`, `created_at` at every depth | `backend/tests/test_public_outputs.py` (`FORBIDDEN`, `_keys`) |
+| Every new snapshot is `required: false`, with the same predicate in two files | `frontend/scripts/fetch-snapshot.mjs:107-157`, `frontend/src/lib/snapshot.js:105-124` |
+| A new public page needs a `STATIC_PAGES` row **and** a `render.yaml` rewrite before the `/*` catch-all; a test asserts the two match exactly | `frontend/src/content/pages.js:8-9`, `frontend/scripts/prerender-lib.test.mjs:451-495` |
+| `ADMIN_ROUTES` must equal App.jsx's admin children exactly | `frontend/scripts/prerender-lib.test.mjs:278-296` |
+| `AdminShell`'s phone `SHEETS` references `ADMIN_GROUPS` **by index** (`[2]`, `[3]`) | `frontend/src/components/AdminShell.jsx:44-60` |
+| `FilterChips` hides a group with at most one chip and none pressed, via `offersChoice` | `frontend/src/components/FilterChips.jsx:21-24` |
+| Pure modules are listed literally in the purity test and must be added to it | `backend/tests/test_physical_imports.py` (`PURE_MODULES`, `TOP_LEVEL`) |
+| Optional credentials are absent from `_REQUIRED` and checked lazily | `backend/config.py:47-63` |
+| HTTP client loggers are held at WARNING because keys travel as query parameters | `backend/config.py:73-85` |
+| Overpass fair use: ~10,000 queries/day on the main instance, "for regular use divide by 100"; identifying User-Agent required; 30 s backoff on 429/406; defaults 180 s / 512 MiB; 429 after a 15 s slot wait | https://dev.overpass-api.de/overpass-doc/en/preface/commons.html, https://wiki.openstreetmap.org/wiki/Overpass_API |
+| ODbL attribution is required for a stored derived list of names and coordinates, visible without interaction, linking the licence | https://www.openstreetmap.org/copyright, https://osmfoundation.org/wiki/Licence/Attribution_Guidelines |
+| NWS needs no key but requires a contact User-Agent; `/points/{lat},{lon}` → `properties.forecastHourly`; hourly body ships `cache-control: max-age=2676` and refreshes about hourly | https://www.weather.gov/documentation/services-web-api |
+| NWS hourly field shapes: `temperature` a bare number with `temperatureUnit`, `windSpeed` a **string** (`"5 mph"`), `probabilityOfPrecipitation.value` nullable per the OpenAPI schema | https://api.weather.gov/openapi.json (`QuantitativeValue`), live `/gridpoints/BOU/63,62/forecast/hourly` |
+| Foursquare's free tier is 500 Pro calls/month from 2026-06-01; place data may not be kept past 30 days unrefreshed; derivative works and third-party exposure are excluded; "Powered by Foursquare" badge required | https://docs.foursquare.com/developer/reference/upcoming-changes, https://foursquare.com/legal/terms/apilicenseagreement/ |
+
+**Deviations from the spec**, all deliberate, each with its reason:
+
+1. **No Foursquare.** Decided with Joey 2026-11-09 on the terms above: a
+   500-call monthly ceiling, a 30-day refresh clock on rows in *our* spots
+   table, a derivative-works exclusion, and a vendor badge on `/denver`
+   are a poor trade for café coverage. OpenStreetMap only. The
+   `candidate_source` enum still ships the `foursquare` value, so adding
+   it later is a data change, and `sources` stays plural in the copy.
+2. **Tags are JSONB, not `text[]`.** The repo has no ARRAY column; JSONB is
+   the established list type.
+3. **Six tables become five plus a settings table.** `candidates`,
+   `dismissals`, `spots`, `visits`, `weather_hours`, and one
+   `spot_settings(key, value jsonb, updated_at)` row-per-key table
+   carrying the constraints blob, the last run summaries and the saved
+   weekend plan. A table per blob would be five more migrations' worth of
+   schema for data that is read whole and written whole.
+4. **Pins are HTML buttons in an overlay, not `<g role="button">` inside the
+   SVG** — which is what the chosen mockup does. Focus rings, the popover
+   anchor and the font stacks all behave without SVG workarounds, and
+   `role="button"` on a `<g>` is the shakier screen-reader path. The
+   projection, out-of-area rule and drawing prop are unchanged, so the
+   travel log's contract is unaffected.
+5. **The public note field is `blurb`, not `note`.** `test_public_outputs.py`'s
+   forbidden-key walk bans `note` at every depth (a playthrough's note is
+   the owner's). Renaming the public field is cheaper and safer than
+   carving an exception into that list. The column stays `blurb` end to end
+   so nothing has to translate.
+6. **Undo has no ten-second timer.** No timed toast exists in the codebase;
+   what exists is `SkippedToast`, rendered in place of the removed row with
+   no timer, driven by `Next.jsx`'s `act(optimistic, request, rollback,
+   confirm, wait)`. Reusing it means Undo stays available until the list is
+   reloaded, which is strictly more forgiving than ten seconds.
+7. **Two admin pages, two sidebar rows.** The mockups' sidebar lists
+   Weekend, Spot finder and Spots; the spec's Surface 2 puts the finder and
+   the table on one page. The spec wins: `/admin/spots` (finder left, table
+   right) and `/admin/weekend`.
+8. **The map's geometry is generated, not drawn by hand.** Decided with Joey
+   2026-11-09: a committed script pulls downtown Denver's streets, rivers
+   and parks from Overpass once, projects them, and emits a committed JS
+   module. Real streets and the Colfax grid join come for free, the
+   projection is exact rather than measured, and the drawn area can be
+   extended by re-running the script with a wider bbox. The file is
+   OSM-derived, so it carries an ODbL header and `/denver` carries the
+   attribution.
+9. **No response cache on `/api/public/spots`.** `PublicNextCache` exists for
+   bodies that are expensive to build; this is a fifteen-row select, and
+   `/api/public/items` is uncached for the same reason. Noted because the
+   backend review will ask.
+
+## Decisions taken at plan time
+
+- **Tag vocabulary** is closed and lives in `backend/spots.py` as
+  `TAGS = ("coffee", "park", "food", "kid-ok", "rainy-day", "bike-friendly")`,
+  the authority (the `PLATFORM_NAMES` precedent). Labels for display live in
+  `frontend/src/content/denver.js`; a test asserts the two sets match.
+- **Anchors** are spots with `anchor = true`, never public even when the
+  spot is. Nothing is hardcoded: Joey adds his anchors through
+  `/admin/spots`, and the candidates job records `no_anchors` and does
+  nothing if there are none.
+- **Distance bands** (`spots.DISTANCE_MODES`): under 1.0 mi → `walk`, under
+  3.0 mi → `bike`, else `drive or bus`. Straight-line haversine from the
+  nearest anchor, with the mode word; never a routed time.
+- **Weather verdict rules** (`weather.VERDICT`): over the hours 08:00–20:00
+  local, an hour is *rideable* when temp ≥ 45 °F, precipitation probability
+  < 40 % (a null probability counts as 0), and wind < 20 mph. The longest
+  run of rideable hours is the window; ≥ 2 hours gives an `ok` verdict
+  naming it, otherwise a `warn` verdict naming the blocker (precipitation,
+  cold or wind, in that order). Rule-written, never the model.
+- **The gridpoint is resolved every run.** The job calls `/points/39.7392,-104.9903`
+  then the `forecastHourly` URL it returns — two calls a day, and the docs
+  ask callers to re-check `/points` periodically rather than pin a
+  gridpoint.
+- **One migration, not three.** `0013` creates all six tables and their
+  enums in PR 1, the `0005` precedent. Tables sit unused until PR 3 and
+  PR 4, which is additive and harmless, and buys one Neon apply and one
+  carve-out stop instead of three.
+- **The Overpass client is the existing `physical_http_client`** from
+  `main.py`: its `USER_AGENT` (`physical_sources/limits.py`) is already the
+  identifying contact string Overpass asks for. Queries go out
+  **sequentially** with an explicit `[timeout:60]`, and a 429 or 406 waits
+  30 s before one retry.
+- **Nightly workflow edits are one carve-out in PR 5**, not two in PR 3 and
+  PR 4. Until then both jobs are reachable by their Run now button.
+- **`/denver` is a `WIDE_ROUTES` page** (72rem), not `CONTENT_ROUTES`.
+- **The Denver group goes last in `ADMIN_GROUPS`**, after Catalog, because
+  the phone `SHEETS` map indexes `ADMIN_GROUPS[2]` and `[3]`; its two rows
+  join the hand-written `more` list.
+
+## Tasks
+
+### PR 1 — Schema, spots API, the admin table
+
+1. **Migration `0013_add_spots.py`** — `spots`, `visits`, `candidates`,
+   `dismissals`, `weather_hours`, `spot_settings`; enums `candidate_source`
+   (`osm`, `foursquare`) and `spot_city` is **not** an enum (plain text,
+   default `'denver'`). Columns per the spec's schema sketch with the
+   plan-time changes: `spots.tags` JSONB not `text[]`, `spots.blurb` not
+   `note`, `spots.anchor` bool, `spots.slug` unique; `visits(spot_id →
+   spots.id ON DELETE CASCADE, visited_on date, note text)`;
+   `candidates` unique `(source, source_id)`; `dismissals(source,
+   source_id)` composite PK; `weather_hours(gridpoint, starts_at)`
+   composite unique; `spot_settings(key text primary key, value jsonb not
+   null, updated_at)`. Enums created and dropped explicitly. Docstring
+   follows `0012`'s shape and cites this file, with the "Additive:"
+   paragraph.
+   - **AC:** `alembic upgrade head` then `compare_metadata` is empty;
+     upgrade → `downgrade base` → upgrade is clean.
+   - **Tests:** `backend/tests/test_migrations.py` (existing, must pass).
+2. **Models** in `backend/models.py`: `Spot`, `Visit`, `Candidate`,
+   `Dismissal`, `WeatherHour`, `SpotSetting`, following `PlaySession`'s
+   shape (UUID PKs with `default=uuid.uuid4`, `DateTime(timezone=True)` +
+   `server_default=func.now()`, `__table_args__` tuple of constraints and
+   indexes). Each docstring names migration `0013` and its single writer
+   module, as `Playthrough`'s does.
+   - **Tests:** covered by task 1's `compare_metadata`.
+3. **`backend/spots.py`** (pure): `TAGS`, `canonical_tags(values)`,
+   `slugify(name)`, `parse_coords("39.75, -104.99")` → `(lat, lng)` or a
+   `ValueError` the route turns into a 422, `haversine_miles`,
+   `DISTANCE_MODES` + `distance_line(miles)`, `nearest_anchor(point,
+   anchors)`.
+   - **AC:** no FastAPI or SQLAlchemy in its import graph.
+   - **Tests:** `backend/tests/test_spots.py` (pure, no database, the
+     `test_picker.py` fixture style); add `spots` to `PURE_MODULES` and
+     `TOP_LEVEL` in `backend/tests/test_physical_imports.py`.
+4. **`backend/spots_routes.py`** — admin only, router-level
+   `dependencies=[Depends(require_admin)]`: `GET /api/spots` (every spot
+   with its last visit), `POST /api/spots`, `PATCH /api/spots/{id}`,
+   `DELETE /api/spots/{id}`, `POST /api/spots/{id}/visits`, `GET
+   /api/spots/status` (last run summaries read from `spot_settings`, for
+   the admin jobs panel). Every write passes through `spots.py` for tags,
+   slug and coordinates. Mounted in `main.py` beside the other admin
+   routers.
+   - **AC:** an unauthenticated call is 401, never 422; a bad coordinate
+     string is a 422 whose message the form can show; `is_public` defaults
+     to **false** on create, as items do.
+   - **Tests:** `backend/tests/test_spots_routes.py`.
+5. **`/admin/spots`, table half** — `frontend/src/pages/AdminSpots.jsx`
+   built from `AdminPageHeader`, `Panel` and a real `<table>`: Name and
+   neighbourhood, Tags, Last visit, Public toggle, Edit; a search box
+   filtering name and tag; **Add by hand** and **Edit** opening
+   `components/SpotForm.jsx` (name, paste-from-maps coordinates,
+   neighbourhood, tags, blurb, anchor, public); Log a visit. Phone drops
+   the Last visit column. Lazy-loaded in `App.jsx`, a row in the new
+   Denver group of `ADMIN_GROUPS`, a path in `ADMIN_ROUTES`.
+   - **AC:** `prerender-lib.test.mjs`'s ADMIN_ROUTES ↔ App.jsx assertion
+     passes; the page works at 400px and 1280px; `npm run build` passes.
+   - **Tests:** `frontend/src/pages/AdminSpots.test.jsx`,
+     `frontend/src/components/SpotForm.test.jsx`, and the existing
+     `AdminShell.test.jsx` for the new group.
+
+### PR 2 — `SpotMap`, `/denver`, the snapshot
+
+6. **`frontend/scripts/draw-denver-map.mjs`** — the one-off generator. Takes
+   a bbox (default: the spec's extent, Civic Center to the Sunnyside edge,
+   sized so `Δlng · cos(39.74°) : Δlat` is 4:3), queries Overpass once for
+   arterial and grid streets, the South Platte, Cherry Creek and parks,
+   projects each node with the same affine transform `lib/mapFit.js` uses,
+   and writes `frontend/src/content/maps/denver.js`: a `viewBox`, a `fit`
+   (the two reference points and the derived transform constants), and
+   path/polygon data grouped as `arterials`, `streets`, `water`, `parks`,
+   plus hand-written `labels`. The file header records the ODbL provenance.
+   Run by hand, not in the build; the script is committed so the area can
+   be extended.
+   - **AC:** the emitted module is deterministic for a given bbox; the
+     generated `fit` round-trips both reference points to within 1px and a
+     third known intersection to within 6px; the file states its OSM
+     origin and licence.
+   - **Tests:** `frontend/scripts/draw-denver-map.test.mjs` runs the pure
+     projection and emitter over a recorded Overpass fixture (no network).
+7. **`frontend/src/lib/mapFit.js`** (pure): `makeFit(fit)` → `project({lat,
+   lng})` → `{x, y}` in viewBox units, plus `isOffMap(point, viewBox,
+   margin = 12)`. Asserts at construction that the two implied scales are
+   within a few percent of `cos(latitude)`, so a bad drawing fails loudly.
+   - **Tests:** `frontend/src/lib/mapFit.test.js` — both reference points
+     to 1px, a third intersection to 6px, an out-of-area point, and a
+     drawing whose scales disagree.
+8. **`frontend/src/components/SpotMap.jsx`** — props `{drawing, spots,
+   selected, onSelect, label}`. An inline `<svg>` with the drawing's
+   `viewBox` inside a `role="group"` wrapper labelled by `label`, every
+   colour a token, plus an absolutely-positioned overlay of one
+   `<button className="pin">` per on-map spot (percentage left/top from
+   `mapFit`), each with the spot's name and tags as its accessible name.
+   Selected pin is larger and filled `--text` with a `--surface` halo; the
+   grow is a 120 ms transform disabled under `prefers-reduced-motion`.
+   A `role="status"` line announces the selection.
+   - **AC:** keyboard reaches every pin; Escape clears; an off-map spot
+     renders no pin; correct in both themes with tokens only.
+   - **Tests:** `frontend/src/components/SpotMap.test.jsx`, the
+     `DayBars.test.jsx` convention (accessible names and classes, not
+     markup).
+9. **`GET /api/public/spots`** in `backend/public_outputs.py`, registered on
+   the existing public router: a `PublicSpot` allowlist model —
+   `spot_id`, `name`, `slug`, `neighbourhood`, `tags`, `blurb`, `lat`,
+   `lng` — and nothing else. Only `is_public` rows; anchors and private
+   spots never appear, and no row carries a visit, a distance or an
+   `anchor` flag.
+   - **AC:** `set(PublicSpot.model_fields)` equals the literal in the test;
+     the forbidden-key walk over the whole body is clean; a private spot
+     and an anchor are absent.
+   - **Tests:** `backend/tests/test_public_outputs.py` — a `SPOT_FIELDS`
+     literal and a walk, matching the existing shape.
+10. **The `spots` snapshot**: a `spots` entry in `fetch-snapshot.mjs`'s
+    `SNAPSHOTS` with `required: false` and an `isSpotsBody` predicate,
+    duplicated verbatim into `frontend/src/lib/snapshot.js`'s `SHAPES`.
+    - **Tests:** `frontend/src/lib/snapshot.test.js`, and the existing
+      fetch-snapshot test for the new entry.
+11. **`frontend/src/pages/Denver.jsx` and `content/denver.js`** — `h1`, the
+    two-line lede, `FilterChips` over the tag vocabulary with counts from
+    the unfiltered list and the pressed set mirrored into `?tag=`, the map
+    and list two-column layout (stacked under a Map/List `tablist` at
+    phone width, List the default), `components/SpotCard.jsx` for the
+    rows, the selected-pin popover, and the ODbL attribution line. Reads
+    the snapshot first, then `/api/public/spots`, via
+    `useSnapshotThenLive('spots')`. The list alone is the no-JS state.
+    Route in `App.jsx`, `/denver` in `WIDE_ROUTES`, a row in
+    `STATIC_PAGES`, the matching `render.yaml` rewrite before the
+    catch-all, and a footer link.
+    - **AC:** every acceptance criterion in the spec's list that names
+      `/denver`; `prerender-lib.test.mjs`'s render.yaml ↔ publicRoutes
+      assertion passes; no API call is made when the snapshot is present
+      beyond the one live refresh; axe reports no violations.
+    - **Tests:** `frontend/src/pages/Denver.test.jsx` (the `Stats.test.jsx`
+      mocked-hook shape plus `Collection.test.jsx`'s axe helper),
+      `frontend/src/content/pages.test.js`, `SpotCard.test.jsx`.
+
+### PR 3 — The candidates job and the finder
+
+12. **`backend/spot_sources/`** — `overpass.py` (pure: `build_query(anchors,
+    radius_m)` producing one `[out:json][timeout:60]` query with an
+    `around:` block per anchor, and `parse(payload)` → frozen
+    `CandidateRow` dataclasses of plain strings), `dedupe.py` (pure: name
+    similarity plus a 75 m proximity rule, the `matching.py` precedent),
+    `limits.py` (radius, the 30 s backoff, the retry count). A package
+    README, as `sources/` and `physical_sources/` have.
+    - **AC:** no FastAPI or SQLAlchemy in the import graph; a 429 or 406
+      waits 30 s and retries once; queries are sequential.
+    - **Tests:** `backend/tests/test_overpass.py` and
+      `test_spot_dedupe.py` over a fixture recorded by
+      `backend/scripts/record_spot_fixtures.py`; the new modules added to
+      `test_physical_imports.py`.
+13. **`backend/candidates.py`** — the LLM scoring layer, the `discover.py`
+    pattern exactly: a `SCORES_SCHEMA` the model answers with **indices**
+    into a server-built list (so it can never introduce a place), an
+    `INSTRUCTIONS` constant, `build_prompt(candidates, profile)`,
+    `validate(payload, candidates)` dropping bad or repeated indices and
+    tags outside the vocabulary, and a deterministic `fallback` that
+    leaves `fit` null with the reason `"not scored"`. Pure.
+    - **AC:** a model failure of any kind (quota, timeout, unreadable
+      answer, no provider) still fills the queue; the reason is stored as
+      the run's note, worded from `llm.py`'s own messages.
+    - **Tests:** `backend/tests/test_candidates.py`.
+14. **`POST /api/spots/candidates/refresh`** on `spots_routes.py`: walks
+    Overpass per anchor, dedupes, drops dismissed `(source, source_id)`
+    pairs, scores the remainder in one model call, replaces the pending
+    candidate rows, and writes the run summary to `spot_settings`. Shares
+    one `asyncio.Lock` with nothing else (it writes only spot rows, the
+    comics precedent). Added to `items.JOB_ROUTES` **and** to
+    `test_job_token.EXPECTED`.
+    - **AC:** `test_job_token.py` passes with the route in the whitelist and
+      no other route reachable by the token; a second concurrent call is
+      409; no anchors records `no_anchors` and writes nothing.
+15. **`POST /api/spots/candidates/{id}/accept|dismiss`** — Accept creates a
+    private spot with the pressed tags and the candidate's coordinates;
+    Dismiss writes the `(source, source_id)` pair permanently. Both remove
+    the candidate row. A second answer to the same candidate is 409.
+16. **The finder column on `/admin/spots`** —
+    `frontend/src/components/CandidateCard.jsx` (OSM source badge, name,
+    category, distance line, the reason with matched tags muted and the
+    fit as a small mono figure, toggleable suggested tags, Accept into
+    spots / Dismiss) and a `JobStatusRow`-style run line with Run now,
+    following `AdminDiscover.jsx`: a module-level `fetchCandidates()` that
+    returns rather than sets state, one `state` string, a `busy` flag, the
+    re-read-before-re-enable ordering, and optimistic `drop(row)` with
+    `SkippedToast`-style in-place Undo driven by an `act(...)` helper.
+    Empty state: *Nothing new this week. Next run Sunday.*
+    - **AC:** the badge carries its word, so colour is decoration; actions
+      are buttons that are siblings of any link; focus lands sensibly
+      after a card leaves; 400px and 1280px match `c-spot-finder.html`.
+    - **Tests:** `CandidateCard.test.jsx`, and the finder cases added to
+      `AdminSpots.test.jsx`.
+
+### PR 4 — The weather job and the planner
+
+17. **`backend/weather.py`** — `fetch_hourly(client, lat, lng)` resolving
+    `/points` then `forecastHourly`, and the pure half: `parse_periods`
+    (handling `temperature` + `temperatureUnit`, `windSpeed` as a string
+    like `"5 mph"`, and a nullable `probabilityOfPrecipitation.value`),
+    `VERDICT` constants and `verdict(hours)` → `{state: 'ok'|'warn', text,
+    window}`. The NWS contact User-Agent is the tracker's.
+    - **AC:** the parser survives a null precipitation probability and a
+      non-numeric wind string; the verdict matches the rules for the three
+      mockup states; nothing here touches a request path.
+    - **Tests:** `backend/tests/test_weather.py` over a fixture recorded by
+      `record_spot_fixtures.py`; added to the purity test.
+18. **`backend/planner.py`** (pure) — `plan(spots, visits, hours,
+    constraints, today)` → three `Suggestion`s with slot, when-line, tag
+    pills, distance line and rule-written reasons. Slots **Best fit**,
+    **Somewhere new**, **Haven't been in a while**, with the outdoor slot
+    swapping to **Snow day** over the rainy-day pool when a day has no
+    window. Tuning in one dict, the `picker.py` shape; `today` passed in,
+    never read.
+    - **Tests:** `backend/tests/test_planner.py` — the dry weekend, the
+      snowy Sunday, and no-candidates and no-visits edges.
+19. **`POST /api/spots/weather/refresh`** (a job route, whitelist + test
+    literal) storing the hourly periods for the downtown gridpoint; and
+    `GET /api/spots/plan`, `POST /api/spots/plan/save`,
+    `POST /api/spots/plan/skip`, `POST /api/spots/{id}/visits` (Been,
+    reusing PR 1's route) on `spots_routes.py`. The saved plan and the
+    weekend's skips live in `spot_settings` under a `plan:<iso-week>` key;
+    the constraints blob under `constraints`.
+    - **AC:** the page makes no external call; one saved card per day;
+      Been writes a visit dated that day; Skip is scoped to the weekend.
+20. **`/admin/weekend`** — `frontend/src/pages/AdminWeekend.jsx` with
+    `components/WeatherPanel.jsx` (the 13-bar 8am–8pm sparkline, bars in
+    `--chart`, precipitation hours hatched with `--hatch`, high/low, the
+    verdict in `--ok` or `--warn`, and a text equivalent),
+    `components/SuggestionCard.jsx` (the Play Next card shape with Save /
+    Been / Skip), the read-only constraints pills with an Edit form in the
+    page footer, a Reroll text button for the unsaved slots, and a Recent
+    visits `Panel`. Phone layout is the primary one. Lazy route,
+    `ADMIN_GROUPS` row, `ADMIN_ROUTES` path.
+    - **AC:** the sparkline is never colour-only; 400px and 1280px match
+      `b-weekend-planner.html` in its dry, snowy and saved states; axe
+      clean.
+    - **Tests:** `AdminWeekend.test.jsx`, `WeatherPanel.test.jsx`,
+      `SuggestionCard.test.jsx`.
+
+### PR 5 — Wiring, docs, verification
+
+21. **`.github/workflows/nightly.yml`** — a `call weather 120
+    /api/spots/weather/refresh` step every run, and `call spots 600
+    /api/spots/candidates/refresh` inside the existing `if [ "$weekly" =
+    true ]` block; `spots` added to the snapshot-compare `for` list as a
+    non-fatal name. Two rows added to `frontend/src/lib/nightly.js` with
+    `runNow` pointing at `/admin/spots` and `/admin/weekend`.
+    - **AC:** a dry-run of the workflow's shell classifies both calls; the
+      compare step treats `spots` as a warning, not a failure.
+22. **Docs and copy** — `frontend/changelog.md` entry; `CLAUDE.md` gains the
+    Denver admin group, the `spot_settings` convention, the `blurb`
+    rename, the ODbL obligation and the migration `0013` line; the
+    `spot_sources/` README; `backend/env.example` unchanged (no new
+    credential).
+23. **Verification** — `cd frontend && npm run build && npm test`; `cd
+    backend && ./.venv/bin/pytest`; the contrast measurements for the pin
+    halo, the OSM badge and the sparkline recorded beside the tokens in
+    `index.css`; screenshots of all five mockup states at 400px and
+    1280px in both themes; `./scripts/smoke.sh` extended with `/denver`
+    and a check that `/api/public/spots` carries no private row.
+
+## Milestones
+
+```
+STOP — carve-out review: migration 0013 (six new tables, two enums)
+Milestone 1 (auto): PR 1, tasks 1–5           → migrate Neon, then PR
+Milestone 2 (auto): PR 2, tasks 6–11          → PR
+Milestone 3 (auto): PR 3, tasks 12–16         → PR
+Milestone 4 (auto): PR 4, tasks 17–20         → PR
+STOP — carve-out review: nightly.yml (CI workflow)
+Milestone 5 (auto): PR 5, tasks 21–23         → PR
+```
+
+The two stops are the only ones: the first before writing `0013`, the
+second before touching the workflow. Everything else runs through to an
+opened PR per `sdlc-execution`'s finish gate. Migration `0013` is applied
+to Neon from this worktree with `backend/scripts/migrate_neon.py current`
+then `upgrade`, **before** PR 1 merges, and no spot data is written
+between the apply and the merge.
+
+## Issues
+
+One per PR, created at the start of execution with `gh issue create`:
+
+1. Denver spots: schema, spots API and the admin table
+2. Denver spots: the drawn map and the public `/denver` page
+3. Denver spots: the weekly candidates job and the spot finder
+4. Denver spots: the weather job and the weekend planner
+5. Denver spots: nightly wiring, changelog and verification
+
+## Smoke test strategy
+
+Local, before each PR: `npm run build`, `npm test`, `pytest`, and the page
+driven in the browser at 400px and 1280px in both themes against a
+worktree API on the local test database (the pattern recorded in memory:
+dummy env vars, the main venv, `npm ci`).
+
+Post-deploy, after each merge: `./scripts/smoke.sh https://joey-haas.dev
+https://api.joey-haas.dev`, extended in PR 5 with `/denver` (200, and the
+prerendered head present at `/denver` as well as `/denver/`) and
+`/api/public/spots` (200, no `anchor`, no `visits`, no key named `id`).
+Expect the "new rewrite serves an empty 200" window of about five minutes
+after the PR 2 deploy before re-smoking.
+
+## Environment test
+
+- Neon: `0013` applied from this worktree, verified with `migrate_neon.py
+  current`, with a restore point taken first.
+- Render: no new environment variable. Both new jobs are keyless; the
+  existing `JOB_TOKEN` opens them.
+- GitHub Actions: `nightly.yml` gains two steps in PR 5; the weekly one
+  rides the existing Monday-UTC flag.
+- Overpass is called once a week from Render, sequentially, with the
+  tracker's User-Agent — three orders of magnitude inside the main
+  instance's fair-use figures.
