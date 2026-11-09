@@ -16,10 +16,21 @@
   defaults before it is first saved; PATCH validates every field it is
   given and writes the row. PATCH rather than PUT because the API's CORS
   policy (`main.py`) allows GET, POST, PATCH and DELETE only.
+- **Tagging is a queue.** `untagged`, `tag_source IS NULL`, fewer than
+  `closet_tag.MAX_ATTEMPTS` failed answers, with a photo, oldest first.
+  `POST /api/closet/tag` (the page's button) tags one batch;
+  `POST /api/closet/jobs/tag` (nightly) tags batches until the profile's
+  `tag_budget` calls are spent, a model error, or the queue is empty, and
+  writes `closet_settings["tag.last_run"]`. A write lands only while the
+  garment is still untouched (`tag_source IS NULL`), so a hand save made
+  during the model call wins. An answer that cannot be used counts a strike
+  against each garment in the batch; a quota or overload error does not,
+  since it says nothing about the photos.
 
 Admin only, at the router, so a signed-out call is a 401 before any body
 is read. Its own lock, shared with nothing: the tag job writes only
-garment rows. Spec and plan: docs/planning/2026-11-09-outfit-design.md.
+garment rows, and one tagging run at a time (a second is a 409).
+Spec and plan: docs/planning/2026-11-09-outfit-design.md.
 """
 
 from __future__ import annotations
@@ -42,13 +53,15 @@ from fastapi import (
     UploadFile,
 )
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import closet_tag
 from closet_images import ClosetImageError, make_thumbnail, read_capped
 from importer import ACCEPTED_MEDIA_TYPES
 from items import require_admin
-from llm import LLMProvider
+from llm import Image, LLMError, LLMProvider
 from models import (
     ClosetProfile,
     ClosetSetting,
@@ -60,12 +73,17 @@ from models import (
     Wear,
 )
 from public import OWNER_TZ
+from recommendations_routes import _failure_note
 
 logger = logging.getLogger(__name__)
 
 # The run summaries the closet's jobs write into closet_settings; the admin
 # page reads them through GET /api/closet/status. Unwritten is null.
 STATUS_KEYS = ("tag.last_run", "plan.last_run", "opinion.last_run")
+
+TAG_STATUS_KEY = "tag.last_run"
+# _failure_note's catch-all: the one model error that may be the photos' fault.
+GENERIC_FAILURE = "The model did not answer"
 
 # A rack's worth from the phone, one request. Each is decoded and dropped
 # before the next, so the cap bounds the request, not the memory.
@@ -81,6 +99,7 @@ MAX_SIZE = 40
 MAX_NOTES = 2000
 MAX_BUILD_FIT = 500
 TAG_BUDGET_MAX = 50
+DEFAULT_TAG_BUDGET = 5  # the column's default (migration 0014)
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 TURN = re.compile(r"^\d{2}-\d{2}$")
 
@@ -403,7 +422,7 @@ def profile_out(row: ClosetProfile | None) -> dict[str, Any]:
         autumn_turn="10-25",
         repeat_top_days=5,
         repeat_outfit_weeks=3,
-        tag_budget=5,
+        tag_budget=DEFAULT_TAG_BUDGET,
     )
     return {
         "sizes": dict(row.sizes or {}),
@@ -436,6 +455,7 @@ def create_closet_router(
 ) -> APIRouter:
     """`provider_factory` builds the model per tag run, so a missing key
     fails the tagging, never the boot."""
+    run_lock = lock or asyncio.Lock()
     router = APIRouter(
         prefix="/api/closet",
         tags=["closet"],
@@ -695,5 +715,185 @@ def create_closet_router(
         )
         found = {row.key: row.value for row in rows}
         return {key: found.get(key) for key in STATUS_KEYS}
+
+    # --- tagging ------------------------------------------------------------
+
+    def _queued():
+        return (
+            select(Garment.id)
+            .join(GarmentImage, GarmentImage.garment_id == Garment.id)
+            .where(
+                Garment.status == GarmentStatus.UNTAGGED,
+                Garment.tag_source.is_(None),
+                Garment.tag_attempts < closet_tag.MAX_ATTEMPTS,
+            )
+        )
+
+    async def _remaining(session: AsyncSession) -> int:
+        count = await session.scalar(
+            select(func.count()).select_from(_queued().subquery())
+        )
+        return count or 0
+
+    async def _strike(session: AsyncSession, ids: list[uuid.UUID]) -> None:
+        await session.execute(
+            update(Garment)
+            .where(Garment.id.in_(ids), Garment.tag_source.is_(None))
+            .values(tag_attempts=Garment.tag_attempts + 1)
+        )
+        await session.commit()
+
+    async def tag_batch(session: AsyncSession) -> dict[str, Any]:
+        """One model call over the oldest queued garments, or none when the
+        queue is empty. Never raises: the answer says what happened.
+
+        `called` is whether a model call was spent, `stop` whether the run
+        should go no further (no model, or a model error)."""
+        rows = (
+            await session.execute(
+                select(Garment.id, GarmentImage.webp)
+                .join(GarmentImage, GarmentImage.garment_id == Garment.id)
+                .where(Garment.id.in_(_queued()))
+                .order_by(Garment.created_at, Garment.id)
+                .limit(closet_tag.BATCH_SIZE)
+            )
+        ).all()
+        # Done reading: no connection is held through the model call.
+        await session.commit()
+        if not rows:
+            return {"tagged": 0, "called": False, "stop": False, "note": None}
+        if provider_factory is None:
+            return {
+                "tagged": 0,
+                "called": False,
+                "stop": True,
+                "note": "No model is configured",
+            }
+
+        ids = [row.id for row in rows]
+        images = [Image("image/webp", row.webp) for row in rows]
+        del rows
+        try:
+            provider = provider_factory()
+            payload = await provider.complete_json(
+                closet_tag.build_prompt(len(ids)),
+                closet_tag.TAG_SCHEMA,
+                images=images,
+            )
+            tagged = closet_tag.validate(payload, len(ids))
+        except LLMError as error:
+            logger.warning("closet tag model call failed: %s", error)
+            note = _failure_note(str(error))
+            # A quota or overload says nothing about the photos; only the
+            # catch-all might be a photo the model refuses.
+            if note == GENERIC_FAILURE:
+                await _strike(session, ids)
+            return {"tagged": 0, "called": True, "stop": True, "note": note}
+        except closet_tag.TagBatchError as error:
+            logger.warning("closet tag answer rejected: %s", error)
+            await _strike(session, ids)
+            return {
+                "tagged": 0,
+                "called": True,
+                "stop": False,
+                "note": "The model’s answer didn’t match the photos; they stay queued",
+            }
+        except Exception as error:  # an unreadable answer must not stop the run
+            logger.exception("closet tag model call failed unexpectedly")
+            await _strike(session, ids)
+            return {
+                "tagged": 0,
+                "called": True,
+                "stop": False,
+                "note": f"The model’s answer couldn’t be read ({type(error).__name__})",
+            }
+
+        written = 0
+        for garment_id, entry in zip(ids, tagged, strict=True):
+            values = dict(entry.attributes)
+            values["category"] = GarmentCategory(values["category"])
+            result = await session.execute(
+                update(Garment)
+                .where(
+                    Garment.id == garment_id,
+                    Garment.tag_source.is_(None),
+                    Garment.status == GarmentStatus.UNTAGGED,
+                )
+                .values(
+                    **values,
+                    tag_source=GarmentTagSource.MODEL,
+                    status=GarmentStatus.ACTIVE,
+                    updated_at=func.now(),
+                )
+            )
+            written += result.rowcount or 0
+        await session.commit()
+        return {"tagged": written, "called": True, "stop": False, "note": None}
+
+    async def _write_tag_status(session: AsyncSession, summary: dict[str, Any]) -> None:
+        await session.execute(
+            insert(ClosetSetting)
+            .values(key=TAG_STATUS_KEY, value=summary)
+            .on_conflict_do_update(
+                index_elements=[ClosetSetting.key],
+                set_={"value": summary, "updated_at": func.now()},
+            )
+        )
+        await session.commit()
+
+    @router.post("/tag")
+    async def tag_now(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+        """The page's Tag now: one batch, whatever the nightly budget says."""
+        if run_lock.locked():
+            raise HTTPException(status_code=409, detail="Tagging is already running")
+        async with run_lock:
+            result = await tag_batch(session)
+            return {
+                "tagged": result["tagged"],
+                "calls": int(result["called"]),
+                "note": result["note"],
+                "remaining": await _remaining(session),
+            }
+
+    @router.post("/jobs/tag")
+    async def tag_job(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+        """The nightly step: batches until the profile's budget of calls is
+        spent, a model error stops it, or the queue is empty. Writes its
+        summary to `tag.last_run` whatever happened."""
+        if run_lock.locked():
+            raise HTTPException(status_code=409, detail="Tagging is already running")
+        async with run_lock:
+            profile = await load_profile(session)
+            budget = profile.tag_budget if profile is not None else DEFAULT_TAG_BUDGET
+            at = datetime.now(UTC).isoformat()
+            tagged = calls = 0
+            note = None
+            state = "off" if budget == 0 else "ok"
+            while calls < budget:
+                result = await tag_batch(session)
+                tagged += result["tagged"]
+                calls += int(result["called"])
+                note = result["note"] or note
+                if result["stop"]:
+                    # No model at all is a failed night; a quota or overload
+                    # after a call is a run cut short, worded by its note.
+                    state = "stopped" if result["called"] else "failed"
+                    break
+                if not result["called"]:
+                    break
+            remaining = await _remaining(session)
+            if state == "ok" and calls == 0:
+                state = "empty"
+            summary = {
+                "at": at,
+                "state": state,
+                "tagged": tagged,
+                "calls": calls,
+                "remaining": remaining,
+                "note": note,
+            }
+            await _write_tag_status(session, summary)
+            logger.info("closet tag: %s", summary)
+            return summary
 
     return router

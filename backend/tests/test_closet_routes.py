@@ -96,6 +96,8 @@ async def test_every_route_is_401_signed_out(sessionmaker_for_test):
             await client.get("/api/closet/profile"),
             await client.patch("/api/closet/profile", json={}),
             await client.get("/api/closet/status"),
+            await client.post("/api/closet/tag"),
+            await client.post("/api/closet/jobs/tag"),
         ]
     assert [answer.status_code for answer in answers] == [401] * len(answers)
 
