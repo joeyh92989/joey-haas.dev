@@ -131,6 +131,14 @@ no `time_to_beat` key; zeros are never stored. `game_status` replaced the
 deprecated `status`: the snapshot's `release_status` stores it as returned,
 and 0 means released, so it is never tested for truthiness.
 
+**Comics and movies refresh too.** The same route takes `type=comic` and
+`type=movie` ("Refresh comic metadata" and "Refresh movie metadata" on
+`/admin/collection`). Neither Comic Vine nor TMDB has a batched detail call,
+so those go one `fetch` per linked item; a failed fetch counts as `failed`
+and the rest still land. A comic keeps its pull-list issue snapshot
+(`issues`, `released`, `ongoing`, `fetched_on`). Other types answer 422. The
+route is admin-session only and not in `JOB_ROUTES`.
+
 These shapes are pinned by fixtures recorded from the live API with
 `scripts/record_igdb_fixtures.py` (see `scripts/README.md`). Re-record when
 `FIELDS` changes.

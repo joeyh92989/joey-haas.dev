@@ -503,6 +503,15 @@ def _copy_fields(changes: dict, row: Item | None) -> dict:
 # one failed request from costing more than a hundred refreshes.
 REFRESH_BATCH = 100
 
+# The types a bulk refresh covers, and the source each one's links point at.
+# Games go in batches (IGDB's fetch_many); comics and movies one fetch per
+# item, since neither Comic Vine nor TMDB has a batched detail call.
+BULK_REFRESH_SOURCES = {
+    ItemType.GAME: "igdb",
+    ItemType.COMIC: "comicvine",
+    ItemType.MOVIE: "tmdb",
+}
+
 # The snapshot keys a source's release date arrives under.
 RELEASE_DATE_KEYS = ("first_release_date", "release_date")
 
@@ -516,6 +525,44 @@ def _release_date(snapshot: dict) -> date | None:
             except ValueError:
                 continue
     return None
+
+
+async def _refresh_in_batches(adapter, linked: list[Item]) -> tuple[int, int, int]:
+    """Games: fetch_many per REFRESH_BATCH; (updated, skipped, failed)."""
+    updated = skipped = failed = 0
+    for start in range(0, len(linked), REFRESH_BATCH):
+        batch = linked[start : start + REFRESH_BATCH]
+        try:
+            details = await adapter.fetch_many([row.external_id for row in batch])
+        except SourceError as error:
+            logger.warning("bulk refresh batch failed: %s", error)
+            failed += len(batch)
+            continue
+        by_id = {detail.external_id: detail for detail in details}
+        for row in batch:
+            detail = by_id.get(row.external_id)
+            if detail is None:
+                skipped += 1
+                continue
+            _apply_detail(row, detail)
+            _backfill_platform(row)
+            updated += 1
+    return updated, skipped, failed
+
+
+async def _refresh_one_by_one(adapter, linked: list[Item]) -> tuple[int, int, int]:
+    """Comics and movies: one fetch each; a failed fetch is one failure."""
+    updated = failed = 0
+    for row in linked:
+        try:
+            detail = await adapter.fetch(row.external_id)
+        except SourceError as error:
+            logger.warning("bulk refresh of %s failed: %s", row.id, error)
+            failed += 1
+            continue
+        _apply_detail(row, detail)
+        updated += 1
+    return updated, 0, failed
 
 
 def _apply_detail(item: Item, detail) -> None:
@@ -918,48 +965,38 @@ def create_items_router(
         type: ItemType = Query(),
         session: AsyncSession = Depends(get_session),
     ) -> RefreshBulkOut:
-        """Re-fetches every IGDB-linked game in batches.
+        """Re-fetches every linked game, comic or movie.
 
-        Games only: IGDB is the one source with a batched fetch, and the shelf
-        is almost all games. A failed batch is counted and the others still
-        land, so one bad request never costs the whole refresh. Synchronous:
-        a shelf of games is a handful of requests.
+        Games go in batches through IGDB's fetch_many; comics and movies one
+        fetch per item, since their sources have no batched call. A failed
+        request is counted and the rest still land, so one bad answer never
+        costs the whole refresh. A comic keeps its pull-list issue snapshot
+        (`_apply_detail`). Synchronous: a shelf is a handful of requests, and
+        Comic Vine's one-a-second throttle makes comics the slow part.
         """
-        if type is not ItemType.GAME:
+        source_name = BULK_REFRESH_SOURCES.get(type)
+        if source_name is None:
             raise HTTPException(
-                status_code=422, detail="Only games can be refreshed in bulk."
+                status_code=422,
+                detail="Only games, comics and movies can be refreshed in bulk.",
             )
         try:
-            adapter = adapter_for(registry, ItemType.GAME)
+            adapter = adapter_for(registry, type)
         except SourceError as error:
             raise _http_error_for(error) from error
 
         result = await session.execute(
             select(Item)
-            .where(Item.type == ItemType.GAME, Item.external_source == "igdb")
+            .where(Item.type == type, Item.external_source == source_name)
             .where(Item.external_id.is_not(None))
             .order_by(Item.created_at)
         )
         linked = list(result.scalars())
 
-        updated = skipped = failed = 0
-        for start in range(0, len(linked), REFRESH_BATCH):
-            batch = linked[start : start + REFRESH_BATCH]
-            try:
-                details = await adapter.fetch_many([row.external_id for row in batch])
-            except SourceError as error:
-                logger.warning("bulk refresh batch failed: %s", error)
-                failed += len(batch)
-                continue
-            by_id = {detail.external_id: detail for detail in details}
-            for row in batch:
-                detail = by_id.get(row.external_id)
-                if detail is None:
-                    skipped += 1
-                    continue
-                _apply_detail(row, detail)
-                _backfill_platform(row)
-                updated += 1
+        if type is ItemType.GAME:
+            updated, skipped, failed = await _refresh_in_batches(adapter, linked)
+        else:
+            updated, skipped, failed = await _refresh_one_by_one(adapter, linked)
 
         await session.commit()
         logger.info(
