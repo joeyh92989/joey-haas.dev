@@ -39,6 +39,7 @@ export const spine = {
     next: { to: '/shelf/next', label: 'What’s next' },
     year: { to: '/shelf/year', label: 'Year in review' },
     how: { to: '/shelf/how', label: 'How it works' },
+    daily: { to: '/daily', label: 'Daily' },
   },
   /**
    * /spine/how, the field guide (Spine tour spec). Each stop's `code` paths

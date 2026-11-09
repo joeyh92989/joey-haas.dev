@@ -29,7 +29,7 @@ function renderResult(props) {
 describe('DailyResult', () => {
   it('says the win, the facts and links the item page', async () => {
     const { container, onShare } = renderResult({ won: true, guesses: 3 })
-    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(
       'Got it in 3.',
     )
     expect(
@@ -47,7 +47,7 @@ describe('DailyResult', () => {
 
   it('names the answer on a loss', () => {
     renderResult({ won: false, guesses: 6 })
-    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(
       'Not today. It was Sea of Stars.',
     )
   })

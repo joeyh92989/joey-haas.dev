@@ -31,9 +31,9 @@ export default function DailyResult({ answer, won, guesses, onShare }) {
         <CoverImage src={answer.cover_url} type="game" />
       </div>
       <div className="daily-result-body">
-        <h3 id="daily-result-title">
+        <h2 id="daily-result-title">
           {won ? copy.gotIt(guesses) : copy.notToday(answer.title)}
-        </h3>
+        </h2>
         <p className="daily-result-name">
           <Link to={itemPath(answer.id)}>{answer.title}</Link>
         </p>

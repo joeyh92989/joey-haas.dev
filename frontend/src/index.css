@@ -6453,8 +6453,13 @@ main h1[tabindex='-1']:focus {
   justify-content: space-between;
   margin: 0;
 }
-.daily-head h2 {
+.daily-head h1 {
   margin: 0;
+}
+.daily-lede {
+  color: var(--text-2);
+  margin: 0;
+  max-width: 62ch;
 }
 .daily-head .kicker {
   letter-spacing: 0.04em;
@@ -6670,7 +6675,7 @@ main h1[tabindex='-1']:focus {
   display: grid;
   gap: 0.35rem;
 }
-.daily-result h3 {
+.daily-result h2 {
   font-size: 1.125rem;
   margin: 0;
 }
