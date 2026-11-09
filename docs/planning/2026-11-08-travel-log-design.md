@@ -915,3 +915,20 @@ reason given. None changes a public URL or adds a token.
   the build did not write serves an empty 200, and the prerender test
   refuses one), and T14's changelog entry would link a 404, so both wait
   for the first published trip; the README's Travel log section says so.
+- **The index filter is `?place=`, not the hash** (finish-gate review).
+  The skip link's `#main` replaced `/travel#naxos` and cleared the filter,
+  and a hand-typed `#%` threw in `decodeURIComponent`. The query keeps the
+  spec's intent: a shared link lands filtered and the entry is replaced,
+  not pushed.
+- **The lightbox shows the day beneath the caption** as *Day 2 · The
+  walls · 2 of 12*, and the caption strip is a polite live region, so a
+  step is announced.
+- **Review hardening.** The parser keeps fenced code as prose and refuses
+  an image that is not on its own line; a kid photo cannot be the cover
+  without `publish: true`. The image build trims a published trip's
+  manifest to the photos it shows and deletes built sizes nothing uses.
+  The prerender drops `dist/travel/<slug>/` for every unpublished trip,
+  since Vite copies all of `public/`. The ingest refuses a non-empty
+  `photos/` folder, and the gitignore covers images anywhere under
+  `trips/` in either case. The trip page is keyed on its slug, and its
+  chips and pins move focus to the day's heading.

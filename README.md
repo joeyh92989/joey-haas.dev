@@ -213,7 +213,11 @@ by hand from `frontend/` (details in `frontend/scripts/README.md`):
   confidence (no GPS). The dump is never modified.
 - `node scripts/build-travel-images.mjs <slug>` writes the 800 and 1600px
   WebPs of the photos the trip shows to `frontend/public/travel/<slug>/`,
-  rotated and with all metadata stripped. That output **is** committed:
+  rotated and with all metadata stripped, and removes sizes the trip no
+  longer shows. A published trip's `photos.json` is trimmed to the photos
+  it shows. A draft's built photos are left out of `dist/` by the
+  prerender, but the draft file and manifest are public once pushed: the
+  onboarding doc says what to check first. That output **is** committed:
   Render builds no images. When `public/travel/` passes about 50 MB, or at
   the third trip with a full photo set, move it to an object store.
 

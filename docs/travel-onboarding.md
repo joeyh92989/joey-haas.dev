@@ -98,11 +98,13 @@ node scripts/ingest-photos.mjs --from <folder> --write --slug ireland-2014 --tri
 
 That writes `frontend/trips/ireland-2014.md` as a draft and copies the
 photos into its gitignored `photos/` folder. It refuses to overwrite a trip
-that already exists. To start again, move the old file aside.
+that already exists, or to copy into a `photos/` folder that already holds
+anything, since those originals may be the only copies. To start again, move
+the old file and folder aside.
 
 Several people's photos of one trip: ingest the best-dated batch with
-`--write`, then copy the others' chosen photos into the same `photos/`
-folder by hand and add a manifest row for each (`name`, `file`, `date`,
+`--write` first (it wants an empty folder), then copy the others' chosen
+photos into the same `photos/` folder by hand and add a manifest row for each (`name`, `file`, `date`,
 `confidence`).
 
 ## 3 · The per-trip worksheet
@@ -163,11 +165,22 @@ node scripts/build-travel-images.mjs ireland-2014
 ```
 
 It builds only the photos the trip file shows, strips their metadata, and
-records their sizes in the manifest. Then remove `draft: true`, run
+records their sizes in the manifest. On a published trip it also trims
+`photos.json` to the photos the page shows and deletes built sizes the page
+no longer uses; a draft keeps the whole roll in its manifest, so you can
+still choose. Then remove `draft: true`, run
 `npm run build`, and look at the page. A published trip also needs its
 rewrite rule in `render.yaml` (the README's Travel section says where).
 Commit the trip file, the manifest and `public/travel/<slug>/`, then open a
 PR.
+
+**Before committing a draft,** read it as a stranger would: the repo is
+public, so a draft is published the moment it is pushed, page or no page.
+Its manifest lists every photo's name and time, and its `photos from …`
+comments carry times and the places the gazetteer matched. Commit a draft
+only when that is fine, or keep it local until it is published. A draft's
+built photos never deploy: the build leaves `dist/travel/<slug>/` out for
+every trip that is not published.
 
 ## Trips to recover
 
