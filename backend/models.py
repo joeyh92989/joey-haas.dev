@@ -19,6 +19,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     SmallInteger,
     String,
@@ -990,3 +991,313 @@ class SpotSetting(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+
+# --- Closet (migration 0014, docs/planning/2026-11-09-outfit-design.md). ---
+
+
+class GarmentCategory(str, enum.Enum):
+    """The slot a garment fills in an outfit. Fixed in code, as the spec says."""
+
+    OUTER = "outer"
+    MID = "mid"
+    TOP = "top"
+    BOTTOM = "bottom"
+    SHOES = "shoes"
+    ACCESSORY = "accessory"
+
+
+class GarmentStatus(str, enum.Enum):
+    """Where a garment is. `untagged` until its details are set, by the model
+    or by hand; `packed` is out of season with a `back_on` month."""
+
+    UNTAGGED = "untagged"
+    ACTIVE = "active"
+    PACKED = "packed"
+    LISTED = "listed"
+    GONE = "gone"
+
+
+class OutfitSource(str, enum.Enum):
+    """How a worn outfit was chosen: the plan's lead, a swap, an alternative,
+    or the owner's own."""
+
+    PLANNED = "planned"
+    SWAPPED = "swapped"
+    ALTERNATIVE = "alternative"
+    OWN = "own"
+
+
+class GarmentTagSource(str, enum.Enum):
+    """Who set a garment's details. NULL until either has: the tag queue takes
+    only NULL, so a garment edited by hand is never retagged."""
+
+    MODEL = "model"
+    MANUAL = "manual"
+
+
+class GarmentOutcome(str, enum.Enum):
+    """A Review decision (PR D)."""
+
+    KEPT = "kept"
+    PACKED = "packed"
+    LISTED = "listed"
+    SOLD = "sold"
+    DONATED = "donated"
+
+
+def _garment_fk(**kwargs):
+    return mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("garments.id", ondelete="CASCADE"),
+        nullable=False,
+        **kwargs,
+    )
+
+
+def _updated_column():
+    return mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class Garment(Base):
+    """One piece of clothing (migration 0014), written by `closet_routes.py`
+    and the tag job (`closet_tag.py`).
+
+    Every attribute is nullable because an upload creates the row before
+    anything is known about it; `status` stays `untagged` until a hand save
+    or the model fills the details. `seasons` is a list of month numbers
+    (1-12) the garment is in season. The photo lives in `garment_images`, so
+    no query here ever loads its bytes.
+    """
+
+    __tablename__ = "garments"
+    __table_args__ = (
+        CheckConstraint(
+            "warmth IS NULL OR warmth BETWEEN 1 AND 5", name="garments_warmth_range"
+        ),
+        CheckConstraint(
+            "formality IS NULL OR formality BETWEEN 1 AND 5",
+            name="garments_formality_range",
+        ),
+        Index("ix_garments_status_created", "status", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str | None] = mapped_column(String(120))
+    category: Mapped[GarmentCategory | None] = _enum_column(
+        GarmentCategory, "garment_category"
+    )
+    subtype: Mapped[str | None] = mapped_column(String(60))
+    brand: Mapped[str | None] = mapped_column(String(80))
+    primary_color: Mapped[str | None] = mapped_column(String(40))
+    primary_hex: Mapped[str | None] = mapped_column(String(7))
+    secondary_color: Mapped[str | None] = mapped_column(String(40))
+    secondary_hex: Mapped[str | None] = mapped_column(String(7))
+    pattern: Mapped[str | None] = mapped_column(String(40))
+    material: Mapped[str | None] = mapped_column(String(60))
+    warmth: Mapped[int | None] = mapped_column(SmallInteger)
+    formality: Mapped[int | None] = mapped_column(SmallInteger)
+    seasons: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    notes: Mapped[str | None] = mapped_column(Text)
+    acquired_on: Mapped[date | None] = mapped_column(Date)
+    status: Mapped[GarmentStatus] = mapped_column(
+        Enum(
+            GarmentStatus,
+            name="garment_status",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+        default=GarmentStatus.UNTAGGED,
+        server_default=text("'untagged'"),
+    )
+    # The first of the month a packed garment comes back.
+    back_on: Mapped[date | None] = mapped_column(Date)
+    tag_source: Mapped[GarmentTagSource | None] = _enum_column(
+        GarmentTagSource, "garment_tag_source"
+    )
+    # Failed tag batches this garment was in; the queue stops at three.
+    tag_attempts: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=0, server_default="0"
+    )
+    created_at: Mapped[datetime] = _now_column()
+    updated_at: Mapped[datetime] = _updated_column()
+
+
+class GarmentImage(Base):
+    """A garment's photo as a WebP, long edge at most 400px (migration 0014,
+    `closet_images.py`). The original is never kept."""
+
+    __tablename__ = "garment_images"
+
+    garment_id: Mapped[uuid.UUID] = _garment_fk(primary_key=True)
+    webp: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    width: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    height: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    created_at: Mapped[datetime] = _now_column()
+
+
+class Outfit(Base):
+    """One outfit worn on a day (migration 0014; written from PR C's Wore
+    this). `occasion` is a slug from the closet's occasion list; `not_this`
+    is the reason a plan was turned down, kept as feedback."""
+
+    __tablename__ = "outfits"
+    __table_args__ = (Index("ix_outfits_worn_on", "worn_on"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    worn_on: Mapped[date] = mapped_column(Date, nullable=False)
+    occasion: Mapped[str] = mapped_column(String(20), nullable=False)
+    bike: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    source: Mapped[OutfitSource] = _enum_column(
+        OutfitSource, "outfit_source", nullable=False
+    )
+    not_this: Mapped[str | None] = mapped_column(String(40))
+    created_at: Mapped[datetime] = _now_column()
+
+
+class OutfitGarment(Base):
+    """A garment in an outfit, in the slot it filled (migration 0014)."""
+
+    __tablename__ = "outfit_garments"
+
+    outfit_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("outfits.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    garment_id: Mapped[uuid.UUID] = _garment_fk(primary_key=True)
+    slot: Mapped[GarmentCategory] = _enum_column(
+        GarmentCategory, "garment_category", nullable=False
+    )
+
+
+class Wear(Base):
+    """A garment worn on a day (migration 0014): one row per garment per
+    day, whatever the outfit. The repeat rules and the cull read these."""
+
+    __tablename__ = "wears"
+    __table_args__ = (
+        UniqueConstraint("garment_id", "worn_on", name="ux_wears_garment_day"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    garment_id: Mapped[uuid.UUID] = _garment_fk()
+    worn_on: Mapped[date] = mapped_column(Date, nullable=False)
+    outfit_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("outfits.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = _now_column()
+
+
+class OutfitPlan(Base):
+    """A stored day plan (migration 0014; written from PR C), one per day x
+    occasion x bike, overwritten by a re-plan. `body` holds the lead, the
+    alternatives, the reasons, `ranked_by`, `model_note` and `planned_at`."""
+
+    __tablename__ = "outfit_plans"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    occasion: Mapped[str] = mapped_column(String(20), primary_key=True)
+    bike: Mapped[bool] = mapped_column(Boolean, primary_key=True)
+    body: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    planned_at: Mapped[datetime] = _now_column()
+
+
+class ClosetProfile(Base):
+    """The owner's closet profile (migration 0014): one row, `id = 1`.
+
+    Nothing here is dated. `weekly_occasions` and `weekly_bike` are seven
+    entries, Monday first; the turn dates are `MM-DD`. `tag_budget` is the
+    tag job's model calls per night.
+    """
+
+    __tablename__ = "closet_profile"
+    __table_args__ = (CheckConstraint("id = 1", name="closet_profile_single_row"),)
+
+    id: Mapped[int] = mapped_column(
+        SmallInteger, primary_key=True, autoincrement=False, default=1
+    )
+    sizes: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
+    )
+    coloring: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
+    )
+    build_fit: Mapped[str | None] = mapped_column(Text)
+    style_words: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    dislikes: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    weekly_occasions: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    weekly_bike: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    spring_turn: Mapped[str] = mapped_column(
+        String(5), nullable=False, default="04-25", server_default=text("'04-25'")
+    )
+    autumn_turn: Mapped[str] = mapped_column(
+        String(5), nullable=False, default="10-25", server_default=text("'10-25'")
+    )
+    repeat_top_days: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=5, server_default="5"
+    )
+    repeat_outfit_weeks: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=3, server_default="3"
+    )
+    tag_budget: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=5, server_default="5"
+    )
+    updated_at: Mapped[datetime] = _updated_column()
+
+
+class GarmentDecision(Base):
+    """A Review outcome for a garment (migration 0014; written from PR D)."""
+
+    __tablename__ = "garment_decisions"
+    __table_args__ = (
+        Index("ix_garment_decisions_garment", "garment_id", "decided_on"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    garment_id: Mapped[uuid.UUID] = _garment_fk()
+    outcome: Mapped[GarmentOutcome] = _enum_column(
+        GarmentOutcome, "garment_outcome", nullable=False
+    )
+    decided_on: Mapped[date] = mapped_column(Date, nullable=False)
+    back_on: Mapped[date | None] = mapped_column(Date)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _now_column()
+
+
+class ClosetSetting(Base):
+    """One key/value blob for the closet's jobs (migration 0014), the
+    `spot_settings` shape: `tag.last_run`, `plan.last_run` and
+    `opinion.last_run`, each `{at, state, note?}`, read by
+    `GET /api/closet/status`."""
+
+    __tablename__ = "closet_settings"
+
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[datetime] = _updated_column()

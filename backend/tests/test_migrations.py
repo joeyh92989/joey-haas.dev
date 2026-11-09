@@ -715,3 +715,102 @@ async def test_0013_spot_defaults_are_private_and_denver(clean_database):
             )
         ).one()
     assert tuple(row) == (False, False, "denver", [])
+
+
+# --- Revision 0014: Closet. ---------------------------------------------------
+
+CLOSET_TABLES = {
+    "garments",
+    "garment_images",
+    "outfits",
+    "outfit_garments",
+    "wears",
+    "outfit_plans",
+    "closet_profile",
+    "garment_decisions",
+    "closet_settings",
+}
+CLOSET_TYPES = {
+    "garment_category",
+    "garment_status",
+    "outfit_source",
+    "garment_tag_source",
+    "garment_outcome",
+}
+
+
+@pytest.mark.asyncio
+async def test_0014_adds_the_closet_tables_and_types(clean_database):
+    result = _alembic("upgrade", "0014")
+    assert result.returncode == 0, result.stderr
+    assert CLOSET_TABLES <= await _tables(clean_database)
+    assert CLOSET_TYPES <= await _types(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_0014_downgrade_removes_them_and_keeps_the_rest(clean_database):
+    assert _alembic("upgrade", "0014").returncode == 0
+    result = _alembic("downgrade", "0013")
+    assert result.returncode == 0, result.stderr
+
+    tables = await _tables(clean_database)
+    assert not CLOSET_TABLES & tables
+    assert {"items", "spots", "spot_settings"} <= tables
+    types = await _types(clean_database)
+    assert not CLOSET_TYPES & types
+    assert "candidate_source" in types
+
+
+@pytest.mark.asyncio
+async def test_0014_garment_defaults_and_cascade(clean_database):
+    assert _alembic("upgrade", "0014").returncode == 0
+    async with clean_database.begin() as connection:
+        row = (
+            await connection.execute(
+                text(
+                    "INSERT INTO garments (id) VALUES (gen_random_uuid()) "
+                    "RETURNING id, status, tag_source, tag_attempts, seasons"
+                )
+            )
+        ).one()
+        garment_id = row[0]
+        assert tuple(row[1:]) == ("untagged", None, 0, [])
+        await connection.execute(
+            text(
+                "INSERT INTO garment_images (garment_id, webp, width, height) "
+                "VALUES (:g, '\\x00'::bytea, 1, 1)"
+            ),
+            {"g": garment_id},
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO wears (id, garment_id, worn_on) VALUES "
+                "(gen_random_uuid(), :g, '2026-11-09')"
+            ),
+            {"g": garment_id},
+        )
+        await connection.execute(
+            text("DELETE FROM garments WHERE id = :g"), {"g": garment_id}
+        )
+        images = await connection.scalar(text("SELECT count(*) FROM garment_images"))
+        wears = await connection.scalar(text("SELECT count(*) FROM wears"))
+    assert (images, wears) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_0014_closet_profile_is_one_row(clean_database):
+    assert _alembic("upgrade", "0014").returncode == 0
+    async with clean_database.begin() as connection:
+        row = (
+            await connection.execute(
+                text(
+                    "INSERT INTO closet_profile (id) VALUES (1) RETURNING "
+                    "repeat_top_days, repeat_outfit_weeks, tag_budget, "
+                    "spring_turn, autumn_turn"
+                )
+            )
+        ).one()
+    assert tuple(row) == (5, 3, 5, "04-25", "10-25")
+    with pytest.raises(Exception, match="closet_profile_single_row"):
+        async with clean_database.begin() as connection:
+            await connection.execute(text("INSERT INTO closet_profile (id) VALUES (2)"))
