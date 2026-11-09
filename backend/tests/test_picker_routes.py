@@ -10,8 +10,18 @@ from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
-from models import Item, ItemStatus, ItemType, OwnedFormat, PickAction, PickEvent
+from continuing import ContinuingCard
+from models import (
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+    PickAction,
+    PickEvent,
+    PlaySession,
+)
 from picker_routes import create_picker_router
+from playthroughs import apply_status
 
 pytestmark = pytest.mark.asyncio
 
@@ -245,9 +255,42 @@ async def test_every_route_needs_a_session(sessionmaker_for_test):
             await client.delete(f"/api/picker/events/{item_id}/never"),
             await client.get("/api/picker/skipped-today"),
             await client.delete(f"/api/picker/events/{item_id}/skipped"),
+            await client.get("/api/picker/continuing"),
         ]
 
-    assert [response.status_code for response in responses] == [401] * 5
+    assert [response.status_code for response in responses] == [401] * 6
+
+
+async def test_continuing_lists_every_owned_game_in_play_private_too(
+    sessionmaker_for_test,
+):
+    """The admin card is the public card's shape over the owner's whole
+    shelf, so Play Next can lead with a game the public cannot see."""
+    today = datetime.now(UTC).date()
+    async with sessionmaker_for_test() as session:
+        private = _game("Private", is_public=False)
+        public = _game("Public", is_public=True)
+        wanted = _game("Wanted", owned_format=OwnedFormat.NONE)
+        backlog = _game("Backlog")
+        session.add_all([private, public, wanted, backlog])
+        await session.flush()
+        for item in (private, public, wanted):
+            await apply_status(session, item, ItemStatus.ACTIVE, today)
+        session.add(
+            PlaySession(item_id=private.id, played_on=today - timedelta(days=1))
+        )
+        await session.commit()
+        ids = {"private": str(private.id), "public": str(public.id)}
+
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/picker/continuing")
+
+    assert response.status_code == 200
+    cards = response.json()["cards"]
+    assert [card["item_id"] for card in cards] == [ids["private"], ids["public"]]
+    assert set(cards[0]) == set(ContinuingCard.model_fields)
+    assert cards[0]["sessions"] == 1
+    assert cards[0]["stale"] is False
 
 
 async def test_events_are_counted_per_item(sessionmaker_for_test):

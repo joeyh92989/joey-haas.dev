@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from continuing import ContinuingCard, build_continuing
 from items import require_admin
 from models import Item, ItemStatus, OwnedFormat, PickAction, PickEvent
 from picker import PickerEvent, PickerItem, PickRequest, recommend
@@ -68,6 +69,13 @@ class PickNextOut(BaseModel):
     picks: list[PickOut]
     candidate_count: int
     profile_size: int
+
+
+class ContinuingOut(BaseModel):
+    """The owner's games in progress, private ones included, in the public
+    card's shape (continuing.py), for admin Play Next's Continue cards."""
+
+    cards: list[ContinuingCard]
 
 
 class SkippedTodayOut(BaseModel):
@@ -307,6 +315,22 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         )
         await session.commit()
         return Response(status_code=204)
+
+    @router.get("/continuing", response_model=ContinuingOut)
+    async def continuing(
+        session: AsyncSession = Depends(get_session),
+    ) -> ContinuingOut:
+        """Every owned game being played, most recent session first: the
+        same builder as the public body, over private games too."""
+        rows = list(
+            (
+                await session.execute(
+                    select(Item).where(Item.status == ItemStatus.ACTIVE)
+                )
+            ).scalars()
+        )
+        cards = await build_continuing(session, rows, datetime.now(UTC).date())
+        return ContinuingOut(cards=cards)
 
     @router.get("/skipped-today", response_model=SkippedTodayOut)
     async def skipped_today(
