@@ -1160,6 +1160,12 @@ async def test_the_list_carries_the_latest_journal_day_only(
     assert by_title["Quiet"]["last_played_on"] is None
     assert "minutes" not in response.text and '"note"' not in response.text
 
+    # The item page says the same as the list, not a silent null.
+    async with client_for(sessionmaker_for_test) as client:
+        detail = await client.get(f"/api/public/items/{by_title['Played']['id']}")
+    assert detail.status_code == 200
+    assert detail.json()["last_played_on"] == "2026-10-03"
+
 
 async def test_the_diary_is_public_games_only_and_never_the_note(
     sessionmaker_for_test,

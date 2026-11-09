@@ -432,6 +432,50 @@ async def test_journal_is_attributed_to_the_run_that_holds_the_day(
         ]
 
 
+def test_a_closed_run_without_a_finish_date_does_not_claim_later_days():
+    """The 0011 backfill's shape for a game finished twice: run 1 carries the
+    start, the finish date sits on the last run. Those days are run 1's;
+    everything after belongs to the replay."""
+    runs = [
+        Run(1, D1, None, outcome="finished"),
+        Run(2, None, D2, outcome="finished"),
+        Run(3, TODAY - timedelta(days=5)),
+    ]
+    days = [(D1 + timedelta(1), 60), (TODAY - timedelta(1), 30), (TODAY, None)]
+    totals = pt.attribute_journal(runs, days)
+    assert totals[1] == (1, 60, D1 + timedelta(1))
+    assert totals[3] == (2, 30, TODAY)
+
+
+def test_a_wrap_up_note_on_the_status_it_already_has_lands_on_the_open_run():
+    runs = walk("backlog", [("active", D1), ("paused", D2)])
+    noted = pt.apply_plan(
+        runs, pt.plan_transition(runs, "paused", "paused", TODAY, note="Waiting")
+    )
+    assert noted == [Run(1, D1, paused_on=D2, note="Waiting")]
+    # Without a line there is still nothing to do.
+    assert pt.plan_transition(noted, "paused", "paused", TODAY) == []
+
+
+def test_a_note_on_a_closed_game_lands_on_the_run_that_ended():
+    runs = [Run(1, D1, D2, outcome="finished")]
+    assert pt.plan_transition(
+        runs, "finished", "finished", TODAY, note="Still think so"
+    ) == [pt.Change(Run(1, D1, D2, outcome="finished", note="Still think so"))]
+    # With no runs at all there is nothing to write on.
+    assert pt.plan_transition([], "finished", "finished", TODAY, note="x") == []
+
+
+def test_a_note_means_the_close_is_a_real_run_not_a_misclick():
+    """A line written about the run is the owner saying it happened."""
+    runs = walk("finished", [("active", TODAY)], [Run(1, D1, D2, outcome="finished")])
+    assert pt.plan_transition(runs, "active", "finished", TODAY) == [pt.Delete(2)]
+    planned = pt.plan_transition(runs, "active", "finished", TODAY, note="Loved it")
+    assert planned == [
+        pt.Change(Run(2, TODAY, TODAY, outcome="finished", note="Loved it"))
+    ]
+
+
 def test_attribute_journal_last_day_is_none_without_journal():
     runs = [Run(number=1, started_on=D1)]
     assert pt.attribute_journal(runs, []) == {1: (0, 0, None)}

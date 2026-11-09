@@ -335,7 +335,12 @@ async def test_unpublishing_and_publishing_in_bulk_rebuild(
 async def test_pinning_moving_the_pin_and_unpinning_rebuild(
     sessionmaker_for_test, seeded, build
 ):
-    """Moving the pin clears the old one with a bulk UPDATE."""
+    """Moving the pin clears the old one with a bulk UPDATE.
+
+    Pinning starts the game, so the pinned game shows as the Continue card
+    rather than Up next (Tonight continue); the point here is that each of
+    the three writes rebuilds the body.
+    """
     owned, other = seeded["owned"].id, seeded["other"].id
     async with site_for(sessionmaker_for_test) as client:
         before = await _warm(client, build)
@@ -346,11 +351,18 @@ async def test_pinning_moving_the_pin_and_unpinning_rebuild(
         assert (await client.delete(f"/api/items/{other}/pin")).status_code == 200
         unpinned = await _next(client)
 
+    def in_hand(body: dict) -> list[str]:
+        return [card["title"] for card in body["tonight"]["continuing"]]
+
     assert build.calls == 4
-    assert before["tonight"]["up_next"] is None
-    assert pinned["tonight"]["up_next"]["title"] == "Owned Game"
-    assert moved["tonight"]["up_next"]["title"] == "Other Game"
-    assert unpinned["tonight"]["up_next"] is None
+    assert in_hand(before) == []
+    assert in_hand(pinned) == ["Owned Game"]
+    # The second pin starts that game too; both are in hand, newest first.
+    assert in_hand(moved) == ["Other Game", "Owned Game"]
+    # Unpinning does not stop a game being played, so the cards stay.
+    assert in_hand(unpinned) == ["Other Game", "Owned Game"]
+    for body in (before, pinned, moved, unpinned):
+        assert body["tonight"]["up_next"] is None
 
 
 async def test_answering_a_suggestion_rebuilds(sessionmaker_for_test, seeded, build):

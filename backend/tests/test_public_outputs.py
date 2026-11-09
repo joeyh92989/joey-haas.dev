@@ -193,6 +193,23 @@ async def test_the_continue_card_carries_the_open_runs_journal_and_nothing_priva
     assert "mine" not in json.dumps(body)
 
 
+async def test_sessions_without_minutes_publish_no_hours(sessionmaker_for_test):
+    """Log tonight writes a day with no minutes; "0 h over 3 sessions" would
+    read as a bug."""
+    today = NOW.date()
+    (playing,) = _with_ids(_game("Hades II"))
+    await _add(sessionmaker_for_test, playing)
+    await _start(sessionmaker_for_test, playing, today - timedelta(days=3))
+    await _add(
+        sessionmaker_for_test,
+        _session(playing, today - timedelta(days=2)),
+        _session(playing, today),
+    )
+    (card,) = (await _next(sessionmaker_for_test))["tonight"]["continuing"]
+
+    assert (card["sessions"], card["journal_hours"]) == (2, None)
+
+
 async def test_the_continue_card_is_not_also_a_pick(sessionmaker_for_test):
     today = NOW.date()
     playing, other = _with_ids(_game("In hand"), _game("Fresh"))
@@ -504,7 +521,7 @@ async def test_up_next_carries_hours_and_no_slot(sessionmaker_for_test):
     (pinned,) = _with_ids(
         _game(
             "Pinned",
-            status=ItemStatus.ACTIVE,
+            status=ItemStatus.BACKLOG,
             pinned_at=NOW,
             source_metadata=_hours(12.4),
         )
@@ -514,6 +531,60 @@ async def test_up_next_carries_hours_and_no_slot(sessionmaker_for_test):
 
     assert up_next["slot_label"] is None
     assert up_next["time_to_beat_hours"] == 12.4
+
+
+async def test_a_pinned_game_being_played_is_the_card_not_up_next(
+    sessionmaker_for_test,
+):
+    """Pinning starts a game, so the pin outlives the playing: the Continue
+    card is the answer to "tonight", not a second lead saying the same."""
+    today = NOW.date()
+    (pinned,) = _with_ids(_game("Pinned", pinned_at=NOW))
+    await _add(sessionmaker_for_test, pinned)
+    await _start(sessionmaker_for_test, pinned, today)
+    tonight = (await _next(sessionmaker_for_test))["tonight"]
+
+    assert [card["title"] for card in tonight["continuing"]] == ["Pinned"]
+    assert tonight["up_next"] is None
+
+
+async def test_a_pinned_game_that_was_finished_is_no_longer_up_next(
+    sessionmaker_for_test,
+):
+    """Wrap up leaves the pin in place; the game just finished must not lead
+    Tonight above the chip naming it."""
+    today = NOW.date()
+    (pinned,) = _with_ids(_game("Pinned", pinned_at=NOW))
+    await _add(sessionmaker_for_test, pinned)
+    await _start(sessionmaker_for_test, pinned, today)
+    async with sessionmaker_for_test() as session:
+        row = await session.get(Item, pinned.id)
+        await apply_status(session, row, ItemStatus.FINISHED, today)
+        await session.commit()
+    tonight = (await _next(sessionmaker_for_test))["tonight"]
+
+    assert tonight["continuing"] == []
+    assert tonight["up_next"] is None
+    assert tonight["last_finish"]["title"] == "Pinned"
+
+
+async def test_the_game_in_hand_neither_chooses_the_pick_day_nor_takes_a_slot(
+    sessionmaker_for_test,
+):
+    """The in-hand game is out of the pool, not cut from the answer: shown
+    today it must not move the day off yesterday's showable picks."""
+    playing, older = _with_ids(_game("In hand"), _game("Older Pick"))
+    await _add(sessionmaker_for_test, playing, older)
+    await _start(sessionmaker_for_test, playing, NOW.date() - timedelta(days=2))
+    await _add(
+        sessionmaker_for_test,
+        _shown(playing, SHOWN_DAY, "best_fit"),
+        _shown(older, SHOWN_DAY - timedelta(days=1), "best_fit"),
+    )
+    tonight = (await _next(sessionmaker_for_test))["tonight"]
+
+    assert [card["title"] for card in tonight["continuing"]] == ["In hand"]
+    assert [pick["title"] for pick in tonight["picks"]] == ["Older Pick"]
 
 
 async def test_recent_picks_are_the_latest_shown_day_of_public_owned_games(

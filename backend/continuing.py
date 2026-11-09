@@ -118,7 +118,9 @@ async def build_continuing(
                 playthrough=run.number if run else 1,
                 playing_since=since,
                 last_played_on=last,
-                journal_hours=round(minutes / 60, 1) if days else None,
+                # None, not 0.0: Log tonight writes days without minutes,
+                # and "0 h over 3 sessions" reads as a bug.
+                journal_hours=round(minutes / 60, 1) if minutes else None,
                 sessions=days,
                 stale=is_stale(since, last, today),
             )

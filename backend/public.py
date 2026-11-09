@@ -258,7 +258,8 @@ RunDates = dict[uuid.UUID, _Runs]
 async def _run_dates(session: AsyncSession, *where) -> RunDates:
     """Each item's run dates, for the items `where` selects.
 
-    One query joined on the item, so a list read stays two round trips.
+    One query joined on the item, one of the three a list read takes
+    (the rows, their run dates and their latest journal day).
     """
     rows = await session.execute(
         select(
@@ -422,13 +423,14 @@ def _to_public_detail(
     similar: list[Item],
     today: date | None = None,
     runs: RunDates | None = None,
+    played: LastPlayed | None = None,
 ) -> PublicItemDetailOut:
     """Maps a row onto the item page's publishable fields, and only those."""
     snapshot = _allowed_snapshot(item, PUBLIC_DETAIL_METADATA_FIELDS)
     description = snapshot.get("description")
     votes = snapshot.get("community_votes")
     return PublicItemDetailOut(
-        **_list_fields(item, runs),
+        **_list_fields(item, runs, played),
         description=description if isinstance(description, str) else None,
         community_votes=(
             votes if isinstance(votes, int) and not isinstance(votes, bool) else None
@@ -679,8 +681,9 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         if item is None:
             raise HTTPException(status_code=404, detail="Not found")
         runs = await _run_dates(session, Item.id == item.id)
+        played = await _last_played(session, Item.id == item.id)
         return _to_public_detail(
-            item, similar_in_collection(item, public_items), runs=runs
+            item, similar_in_collection(item, public_items), runs=runs, played=played
         )
 
     return router

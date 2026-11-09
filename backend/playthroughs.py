@@ -183,9 +183,16 @@ def plan_transition(
     if on is not None and on > today:
         raise PlaythroughError(f"{on.isoformat()} has not happened yet.")
     stamp = on or today
-    if target == current:
-        return []
     current_run = open_run(runs)
+    if target == current:
+        # Nothing to move, but a Wrap up that carries a line is the owner
+        # writing about a run: record it rather than answer 200 and drop it.
+        # The open run when there is one, else the last one, which is the
+        # one that ended.
+        written = current_run or (max(runs, key=lambda run: run.number, default=None))
+        if note is None or written is None:
+            return []
+        return [Change(replace(written, note=note))]
 
     def noted(run: Run) -> Run:
         return run if note is None else replace(run, note=note)
@@ -221,7 +228,9 @@ def plan_transition(
                     )
                 )
             ]
-        if is_misclick(runs, target, today, journal_in_open):
+        # A written line is the owner saying this run happened, so it is
+        # never the undo of a mistaken Replay.
+        if note is None and is_misclick(runs, target, today, journal_in_open):
             return [Delete(current_run.number)]
         run = noted(
             replace(current_run, finished_on=stamp, paused_on=None, outcome=target)
@@ -522,6 +531,33 @@ async def delete_run(session: AsyncSession, item: Item, number: int) -> None:
     await _apply_ops(session, item, rows, [Delete(number)])
 
 
+def _run_ends(runs: list[Run]) -> dict[int, date | None]:
+    """The last day each run can hold; None while it runs to today.
+
+    A run's finish date, when it has one. A closed run whose finish date was
+    never filled in (the 0011 backfill's shape for a game finished twice)
+    ends the day before the next dated run starts, rather than running on:
+    otherwise it would claim every later day, the open replay's included.
+    Only a run still in progress is open-ended.
+    """
+    dated = sorted(
+        (run for run in runs if run.started_on is not None),
+        key=lambda run: (run.started_on, run.number),
+    )
+    ends: dict[int, date | None] = {}
+    for index, run in enumerate(dated):
+        if run.finished_on is not None:
+            ends[run.number] = run.finished_on
+        elif run.outcome is None:
+            ends[run.number] = None
+        else:
+            later = dated[index + 1].started_on if index + 1 < len(dated) else None
+            ends[run.number] = later - timedelta(days=1) if later else None
+    for run in runs:
+        ends.setdefault(run.number, None)
+    return ends
+
+
 def attribute_journal(
     runs: list[Run], days: list[tuple[date, int | None]]
 ) -> dict[int, tuple[int, int, date | None]]:
@@ -538,6 +574,7 @@ def attribute_journal(
     current = open_run(runs)
     dateless = [run for run in runs if run.started_on is None]
     fallback = current or (max(dateless, key=lambda r: r.number) if dateless else None)
+    ends = _run_ends(runs)
     for played_on, minutes in days:
         owner = next(
             (
@@ -545,7 +582,7 @@ def attribute_journal(
                 for run in runs
                 if run.started_on is not None
                 and run.started_on <= played_on
-                and (run.finished_on is None or played_on <= run.finished_on)
+                and (ends[run.number] is None or played_on <= ends[run.number])
             ),
             fallback,
         )
