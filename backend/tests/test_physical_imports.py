@@ -34,6 +34,7 @@ PURE_MODULES = sorted(
         "spot_sources.limits",
         "spot_sources.overpass",
         "spot_sources.dedupe",
+        "weather",
     }
 )
 TOP_LEVEL = {
@@ -48,6 +49,7 @@ TOP_LEVEL = {
     "spot_sources.limits",
     "spot_sources.overpass",
     "spot_sources.dedupe",
+    "weather",
 }
 
 
