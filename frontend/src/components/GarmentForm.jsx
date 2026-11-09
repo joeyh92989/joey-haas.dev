@@ -7,7 +7,6 @@ import {
 } from '../lib/closet.js'
 
 const TEXT = [
-  ['name', 'Name'],
   ['subtype', 'Type', 'oxford shirt, chinos, chelsea boot'],
   ['brand', 'Brand'],
   ['pattern', 'Pattern', 'solid, stripe, check'],
@@ -199,7 +198,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         ))}
       </fieldset>
 
-      {TEXT.slice(1).map(([key, label, hint]) => (
+      {TEXT.map(([key, label, hint]) => (
         <label key={key}>
           <span className="garment-field-label">{label}</span>
           <input
@@ -287,6 +286,8 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
           <span className="garment-field-label">Back in</span>
           <input
             type="month"
+            pattern="\d{4}-\d{2}"
+            placeholder="2027-05"
             value={form.back_on}
             onChange={(e) => set('back_on')(e.target.value)}
           />

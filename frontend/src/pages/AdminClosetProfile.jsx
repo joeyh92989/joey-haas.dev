@@ -207,6 +207,7 @@ export default function AdminClosetProfile() {
               <label>
                 <input
                   type="checkbox"
+                  aria-label={`${day} bike`}
                   checked={form.weekly_bike[i]}
                   onChange={(e) => setDay('weekly_bike', i)(e.target.checked)}
                 />{' '}

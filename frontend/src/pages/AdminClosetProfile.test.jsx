@@ -58,7 +58,11 @@ describe('AdminClosetProfile', () => {
     const dislikes = await screen.findByLabelText(/^Dislikes/)
     await userEvent.type(dislikes, 'logos, skinny fits')
     await userEvent.selectOptions(screen.getByLabelText('Fri occasion'), 'date')
-    await userEvent.click(screen.getAllByLabelText('Bike')[0])
+    expect(screen.getByLabelText('Sun bike')).toHaveAttribute(
+      'type',
+      'checkbox',
+    )
+    await userEvent.click(screen.getByLabelText('Mon bike'))
     const budget = screen.getByLabelText(/^Photos tagged a night/)
     await userEvent.clear(budget)
     await userEvent.type(budget, '0')

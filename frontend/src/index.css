@@ -8844,7 +8844,7 @@ main h1[tabindex='-1']:focus,
   color: var(--bg);
 }
 
-.garment-segments .chip:focus-within {
+.garment-segments .chip:has(input:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -8901,6 +8901,14 @@ main h1[tabindex='-1']:focus,
   display: grid;
   grid-template-columns: 3rem minmax(0, 1fr) auto;
   gap: 0.5rem;
+  align-items: center;
+}
+
+/* The Bike checkbox sits beside its word, not over it (the form's labels
+   are grids). */
+.closet-week-day label {
+  display: inline-flex;
+  gap: 0.25rem;
   align-items: center;
 }
 

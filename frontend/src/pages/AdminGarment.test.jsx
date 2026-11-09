@@ -103,6 +103,18 @@ describe('AdminGarment', () => {
     })
   })
 
+  it('gives a packed garment a Back in month a browser without the picker can take', async () => {
+    stubApi({
+      'GET /api/closet/garments/g1': () =>
+        json({ ...GARMENT, status: 'packed', back_on: '2027-05-01' }),
+    })
+    renderAt('/admin/closet/g1')
+    const back = await screen.findByLabelText('Back in')
+    expect(back).toHaveAttribute('pattern', '\\d{4}-\\d{2}')
+    expect(back).toHaveAttribute('placeholder', '2027-05')
+    expect(back).toHaveValue('2027-05')
+  })
+
   it('deletes after a second press and returns to the closet', async () => {
     const calls = stubApi({
       'GET /api/closet/garments/g1': () => json(GARMENT),
