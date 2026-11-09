@@ -128,18 +128,32 @@ export function playMove(item) {
 }
 
 /**
+ * The moves the Wrap up sheet makes: the ones that close or set aside a
+ * run, and so take a date and a note (`playthroughs.WRAP_UP`). The card
+ * menu and the list `<select>` open the sheet for these instead of writing.
+ */
+export const WRAP_UP_STATUSES = ['finished', 'paused', 'abandoned']
+
+/** Whether choosing `status` is a Wrap up rather than a plain write. */
+export function isWrapUp(status) {
+  return WRAP_UP_STATUSES.includes(status)
+}
+
+/**
  * Moves an item to `status` through the status route, dated by the owner's
- * local day.
+ * local day. `extras` ride in the body: the sheet's `on` (the date a
+ * finish or pause is stamped with instead of today) and `note`.
  *
  * @param {string} id
  * @param {string} status
+ * @param {{on?: string, note?: string}} [extras]
  * @returns {Promise<Response>}
  */
-export function setStatus(id, status) {
+export function setStatus(id, status, extras = {}) {
   return apiFetch(`/api/items/${id}/status`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status, today: localToday() }),
+    body: JSON.stringify({ status, today: localToday(), ...extras }),
   })
 }
 

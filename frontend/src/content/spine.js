@@ -351,6 +351,7 @@ export const spine = {
   nowPlaying: {
     heading: 'Now playing',
     since: 'Playing since',
+    wrapUp: 'Wrap up',
   },
   status: {
     label: 'Status',
@@ -464,6 +465,38 @@ export const spine = {
       pause: 'Pause',
       rebuiltNightly: 'rebuilt nightly',
       sessionLogged: 'Session logged for today.',
+      /** The Wrap up sheet: outcome first, the extras on the same screen. */
+      sheet: {
+        title: (title) => `Wrap up ${title}`,
+        playthrough: (number) => `Playthrough ${number}`,
+        since: 'since',
+        close: 'Close',
+        outcomeGroup: 'How did it end',
+        outcomes: {
+          finished: { label: 'Finished', hint: 'dated today' },
+          paused: { label: 'Paused', hint: 'keeps the date, I’ll be back' },
+          abandoned: { label: 'Abandoned', hint: 'closes the run' },
+        },
+        fresh: 'While it’s fresh (optional)',
+        rating: 'Rating',
+        line: 'One line',
+        placeholder: 'What stuck with you',
+        dateLabel: {
+          finished: 'Finished on',
+          paused: 'Paused on',
+          abandoned: 'Abandoned on',
+        },
+        dateHint: 'Change it if you finished earlier in the week.',
+        twoTaps: 'Two taps if you skip the extras.',
+        skipExtras: 'Skip extras',
+        primary: {
+          finished: 'Mark finished',
+          paused: 'Mark paused',
+          abandoned: 'Mark abandoned',
+        },
+        done: (title, status) => `${title} marked ${status}`,
+        ratingFailed: 'The game is marked, but the rating didn’t save.',
+      },
     },
     badges: { new: 'New', topPick: 'Top pick' },
     sorts: [

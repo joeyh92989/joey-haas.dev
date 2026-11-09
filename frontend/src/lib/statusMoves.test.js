@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { localToday, playMove, setStatus, statusMoves } from './statusMoves.js'
+import {
+  isWrapUp,
+  localToday,
+  playMove,
+  setStatus,
+  statusMoves,
+} from './statusMoves.js'
 
 const byStatus = (item) =>
   Object.fromEntries(statusMoves(item).map((entry) => [entry.status, entry]))
@@ -161,6 +167,25 @@ describe('setStatus', () => {
       status: 'paused',
       today: localToday(),
     })
+  })
+
+  it('carries the sheet’s date and note when given', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}'))
+    vi.stubGlobal('fetch', fetchMock)
+    await setStatus('abc', 'finished', { on: '2026-11-05', note: 'Loved it' })
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      status: 'finished',
+      today: localToday(),
+      on: '2026-11-05',
+      note: 'Loved it',
+    })
+  })
+})
+
+describe('isWrapUp', () => {
+  it('is the closing and pausing moves only', () => {
+    expect(['finished', 'paused', 'abandoned'].every(isWrapUp)).toBe(true)
+    expect(['active', 'backlog'].some(isWrapUp)).toBe(false)
   })
 })
 
