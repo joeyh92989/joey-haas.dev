@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 date: 2026-11-09
 topic: recommendation-engine
 mockups: docs/planning/mockups/2026-11-09-recommendation-engine/
@@ -535,3 +535,221 @@ same strategy. Nothing else moves.
 - **Migration.** Nothing new in the schema is required for the engine
   itself; richer snapshots arrive through refresh-metadata. A one-off bulk
   refresh of Comic Vine and TMDB rows is part of done.
+
+---
+
+# Plan
+
+Status `planned` (2026-11-09). Worktree
+`~/Developer/joey-haas.dev-worktrees/feat-recommendation-engine`, branch
+`feat/recommendation-engine`. One PR. No migration.
+
+## Answers to the open questions (Code, 2026-11-09)
+
+| Question | Decision | Why |
+|---|---|---|
+| Radar / Discover share `reference_weights`, `attribute_table`, `affinity` | **Siblings now.** Those three keep their behaviour exactly as it is today: the same signatures, and the same output when called without `today`. The new engine lives in `taste.py` beside them. A note in `picker.py` and in this doc points Radar and Discover at a later move. | They are frozen to a batch and pinned by their own tests. Changing them here would widen the PR into two more features. `RECENCY_BONUS` is read only when `today` is passed, and only Play Next passes it, so the old constants stay for the plain path. |
+| Specificity denominator | **The whole collection** (every item of every type that has facets). The number is normalised to 0–1 within each facet kind. | This is the spec's own recommendation. It stops a facet that is common on the backlog but rare among finishes from being over-rewarded. |
+| "Read this tonight" write | **A status move to Active** ("Reading"), through the existing `POST /api/items/{id}/status`. **Watch this tonight** does the same for movies. | Comics already go through `apply_status`, which gives them playthroughs. No new write and no new table are needed. The **public** comic and movie pools leave Active rows out ("Back to it" reports activity, so it is admin only), so pressing the button takes the row off the lane, the same way Play this does for games. |
+| Day seed vs the snapshot | The seed is `(fingerprint UTC date, item_id)`, computed from the same `now` that `next_fingerprint` uses. A test pins that both use one date. | The snapshot and the live body then agree on the day. |
+| Comic Vine volume size | **Cap each field at 25** (`characters`, `concepts`, `teams`, `locations`), in Comic Vine's order, at the snapshot. | This bounds the snapshot and keeps the facet table to tags the collection actually shares. |
+| Public `size` shape | **`{unit: "hours" \| "issues" \| "minutes", value}`.** | One key. "minutes" appears as a *value* here, not a key, so the `FORBIDDEN` walk is unaffected. |
+| Performance | Facets and specificity are built **once per body build**, shared by every strategy and by Pick for me. The result is cached on the fingerprint, as today. | |
+| Migration / bulk refresh | None in the schema. `POST /api/items/refresh-metadata/bulk?type=` is widened to `comic` and `movie`, and the admin collection page gets the matching buttons. | AC 9 needs a way to refresh rows in bulk. Today only games have one. |
+
+## Deviations from the spec (flagged for "go")
+
+1. **The card gets two new keys, not one.** It gains `size` and `progress`. `progress` is `{read, of}` for comics and absent for everything else. It is needed for the `1 of 4 read` mark, which cannot be drawn without it. `read_to` is already public on `/api/public/comics`, so this exposes nothing new. AC 3 is read as "`size` and `progress` are the only new keys". On a comic card, `platform` carries the publisher.
+2. **No year on lane rows.** The card has no year field, and adding one would make a third key. Rows show `publisher · n of m read`.
+3. **Facet reasons are plain text.** The mockup shows bold facets (`.facet b`), but reasons stay strings. Adding markup to a public string field is a sanitisation surface this feature does not need.
+4. **The empty-pool box uses the mockup's longer copy.** That text is "…clears as soon as one is added — or try Pick for me". It replaces the spec's one-line version, because `chosen.html` wins.
+5. **The public profile includes the play record of public items.** `/api/public/diary` already publishes days and minutes for public games, so this leaks nothing. The *reasons* never mention it (AC 8). Private items' records count only in admin mode.
+6. **`/api/picker/next` leaves `JOB_ROUTES`** once the nightly call is gone. This is least privilege: the job token should not reach a route that writes shown events.
+7. **Movie size bands are my own numbers**, since the spec gives none: short up to 100 minutes, medium up to 140, long beyond. They live in the movie strategy and are tunable.
+
+## Question that needs Joey before Task 12
+
+**The real-collection fixture (AC 5, AC 6) would be committed to a public repo.** My default is to export every game, titles and ids replaced with `Game 001…`, keeping only the facet-bearing tags (genres, themes, keywords, similar-game *indices*), the rating, favorite, status, time to beat and *relative* finish ages in days. Covers, notes, dates, platforms and private flags are dropped. Tag sets can still fingerprint a well-known game. The alternative is **public rows only**, which carries no risk but may not include the cases the audit found. Answer with the "go"; Tasks 1–11 do not depend on it.
+
+## Milestones
+
+```
+Milestone 1 (auto): Tasks 0–11
+   Task 0 hands Joey the export command early; nothing waits on it until Task 12
+STOP — data carve-out: Joey has run the export (default: all games, anonymised)
+Milestone 2 (auto): Task 12 (real-collection regression, facet curation pass)
+STOP — CI / auth carve-out review
+Milestone 3 (auto): Task 13 (nightly.yml drops picks; JOB_ROUTES; test_job_token)
+Finish gate → PR
+```
+
+Every task follows TDD: write the failing test, implement, then bring the suite back to green. Backend tests run one at a time (`./.venv/bin/pytest`), because they share the single test database. Each task ends in its own conventional commit. All tasks run sequentially; none is flagged parallel-safe, because Tasks 4–8 thread through `picker.py` and the public body.
+
+## Tasks
+
+### Task 0 — Collection export script (no prod access by Code)
+- **Files:** `backend/scripts/export_picker_fixture.py`, `backend/scripts/README.md`, `backend/tests/test_export_picker_fixture.py`.
+- **Does:** reads `items`, `playthroughs` and `play_sessions` and writes `tests/fixtures/picker_collection.json` with the anonymisation above. `--public-only` restricts the export to public rows. `--dry-run` prints counts only.
+- **AC:**
+  - the output contains no title, uuid, cover, note, absolute date or private flag (asserted by a walk over the output);
+  - the export is deterministic, so two runs produce byte-identical files.
+- **Tests:** run against the test DB with seeded rows.
+- **Then:** give Joey the `!` command to run from the worktree. Do not wait for it.
+
+### Task 1 — Richer adapter snapshots (AC 9)
+- **Files:** `sources/igdb.py`, `sources/tmdb.py`, `sources/comicvine.py`, `scripts/record_tmdb_fixtures.py` (new), `scripts/record_comicvine_fixtures.py` (add the volume), the re-recorded fixtures `tests/fixtures/tmdb_movie.json` and `tests/fixtures/comicvine_volume.json`, `tests/test_sources_{igdb,tmdb,comicvine}.py`, `sources/README.md`, `scripts/README.md`.
+- **IGDB:**
+  - remove `KEYWORD_LIMIT` from `_parse_detail`;
+  - keep it in `parse_upcoming`, because Radar's lane 3 is frozen (sibling rule);
+  - invert `test_keywords_are_trimmed_to_ten` so that all 62 Mario Kart World keywords survive.
+  - `FIELDS` does not change, so the IGDB fixtures need no re-recording.
+- **TMDB:**
+  - fetch with `append_to_response=credits,keywords`;
+  - store `keywords` as a list of names, absent when there are none;
+  - record the fixture fresh, never by hand-editing it.
+- **Comic Vine:**
+  - a separate `VOLUME_FIELD_LIST`, passed only from `fetch`, so `/search` requests do not widen;
+  - store `characters`, `concepts`, `teams` and `locations` as name lists capped at `CV_TAG_LIMIT = 25`, each absent when empty;
+  - `genres` stays `[]`;
+  - the issue snapshot keys still survive a volume refresh (existing `ISSUE_SNAPSHOT_KEYS` test).
+- **AC:** AC 9.
+
+### Task 2 — Bulk refresh for comics and movies
+- **Files:** `items.py` (`refresh_metadata_bulk`), `tests/test_items_refresh*.py`, `frontend/src/pages/Collection admin` (the "Refresh game metadata" control gains Comics and Movies), its test, `sources/README.md`.
+- **Does:** for `type=comic|movie`, calls `adapter.fetch` per item (neither source has a `fetch_many`) and keeps per-item failures as errors, as games do. It stays admin-session only and stays out of `JOB_ROUTES`.
+- **AC:**
+  - a comic refresh keeps `issues`, `released`, `ongoing` and `fetched_on`;
+  - `type=book` and other types still return 422.
+
+### Task 3 — `facets.py` (AC 10)
+- **Files:** `backend/facets.py`, `backend/tests/test_facets.py`, `backend/scripts/facet_coverage.py` (test-time helper, documented in `scripts/README.md`).
+- **Defines:**
+  - `FACET_MAP: dict[(source, kind, exact string), facet]`;
+  - `FORM_FACETS`, `THEME_FACETS` and `TONE_FACETS`;
+  - `facets_of(item) -> frozenset[str]`, where an unmapped tag becomes `"{type}:{kind}:{value}"` and a form facet is stored type-scoped (`"game:form:platformer"`);
+  - `is_form(facet)`;
+  - `specificity(items) -> dict[facet, float]`, which is `log(N/carriers)` normalised 0–1 within each kind over the whole collection;
+  - `coverage(items) -> list[(source, kind, value, count)]` for unmapped tags.
+- **Curation:** strings are taken from the fixtures and from the public shelf's own data (`/api/public/items`, public data only). The two-carrier rule for adding a facet is applied. Task 12 runs a second pass on the real export.
+- **AC:**
+  - AC 10: every mapped string occurs in a fixture or in the committed collection export, checked by a test;
+  - form facets never bridge types;
+  - mode and perspective tags are not facets.
+
+### Task 4 — The picker item carries what the engine needs
+- **Files:** `picker.py` (`PickerItem` gains defaulted fields), `picker_routes.py` (`to_picker_item`, a new `load_play_records(session, item_ids)` built on `playthroughs.runs_with_journal`), `tests/test_picker_routes.py`, `tests/test_picker.py` (helper).
+- **New `PickerItem` fields, all defaulted so `radar._picker_item` still builds:**
+  - `source: str | None`;
+  - `tags: tuple[(kind, value)]`, holding every source tag (IGDB genre, theme and keyword; TMDB genre and keyword; Comic Vine concept, character, team and location);
+  - `issues_owned_count`, `issues_read`, `runtime_minutes`;
+  - `play: PlayRecord | None`, with `hours`, `sessions`, `finished_runs`, `runs` and `bounced`.
+- **Bounce:** exactly one journal day in a run that ended paused or abandoned.
+- **Comics:** read from `comics.owned_set` and `read_state`.
+- **AC:**
+  - existing callers are unchanged;
+  - a movie row carries its runtime;
+  - a comic row carries its owned count and its read count.
+
+### Task 5 — `taste.py`: weights, profile, affinity (AC 6 synthetic, AC 7, AC 8)
+- **Files:** `backend/taste.py`, `backend/tests/test_taste.py`.
+- **`taste_weights(items, today) -> dict[id, float]`:**
+  - `BASE_WEIGHTS` as today;
+  - `RECENCY_CAP = 0.15`, halving every `RECENCY_HALF_LIFE_DAYS = 14`;
+  - the rating mean is taken **per type**;
+  - `min(weight, 1.0)` unless the item is a favorite;
+  - engagement = hours ÷ time to beat, clamped 0–1.5 (unknown length → sessions ÷ 8). It adds up to +0.3 to a finished item;
+  - an in-progress item with engagement ≥ 0.5 becomes a reference at +0.3;
+  - a bounce costs −0.2;
+  - a comic's engagement is read ÷ owned; a run read to its end counts as a finish. A movie counts as finished when watched.
+- **`facet_profile(items, weights) -> Profile`:** facet → (mean weight, specificity), with specificity computed over every item.
+- **`affinity(item, profile)`:**
+  - `50 + 50 × Σ(w × (0.25 + 0.75 × spec)) / Σ(0.25 + 0.75 × spec)` over the facets the profile has **seen**;
+  - multiplied by the coverage factor `min(1, seen / 3)`, applied as a shrink toward 50;
+  - unseen facets do not vote.
+- **AC:**
+  - AC 7, both halves;
+  - AC 8's weight effects;
+  - AC 6 on a synthetic pair: a two-tag game with no keywords scores below a game sharing three or more seen, specific facets.
+
+### Task 6 — Strategies
+- **Files:** `backend/strategies.py`, `backend/tests/test_strategies.py`.
+- **Shape:** a frozen dataclass `Strategy(type, verb, pool(item, mode) -> bool, size(item) -> (unit, value) | None, bands, extra_terms, slots(mode))`, one per type:
+  - **`GAME`:** the pool as `candidates()` today (the event filters stay in the engine). Bands come from `SIZE_BANDS`.
+  - **`COMIC`:** an owned run with issues left. The admin pool includes Active rows; the public pool leaves them out. Bands: short ≤ 4 issues, medium ≤ 12, long beyond. The extra term is run completeness: owned ÷ span, which lowers quality for a gappy run.
+  - **`MOVIE`:** owned and unwatched (backlog or paused). The public pool leaves out Active rows. Bands are 100 / 140 minutes.
+  - **`BOARD_GAME`:** a stub with an empty pool.
+- **Slots:** as in the spec table.
+- **AC:** the pool rules hold per type and per mode; a new type means a new strategy entry and nothing else, which a test asserts against the registry.
+
+### Task 7 — One scorer, diversity, admin Play Next on the new engine (AC 5 synthetic)
+- **Files:** `picker.py` (`score_pool`, `diversify`, `recommend` rewritten over strategy and taste; `MOOD_BUCKETS` becomes mood → facets with `mood_facets`; `public_reasons` gains the facet sentence, cross-media and public-only), `picker_routes.py` (`PickNextIn.type`, default `game`), `tests/test_picker.py` (rewritten where it encoded the old affinity, recency or Change of pace mechanism; the weight pin kept), `frontend/src/lib/pick-for-me-keys.json` (regenerated only if `combo_keys` changes; the moods themselves stay).
+- **Diversity:** picks take distinct leading facets, and at most one shares its leading facet with the last finish. When no candidate qualifies, the rules relax in that order.
+- **Slots:**
+  - Change of pace is a label on the second pick, given only when `change_of_pace_reason` is not None;
+  - "Short and sweet" is retired as a mechanism, since diversity replaces it;
+  - Waited longest and Pick it back up stay for admin.
+- **Unchanged:** shown events are still written for admin picks.
+- **AC:**
+  - AC 5 on a synthetic platformer-finish set;
+  - admin `type=comic` returns comic picks;
+  - staleness and skips still apply in admin mode.
+
+### Task 8 — The public set is live (AC 1–4, 12, 15)
+- **Files:** `backend/public_picks.py` (new: `public_picks(session, now) -> PublicSets(game, comic, movie, profile)`), `public_outputs.py` (deletes `public_picks_with_day`, `PICKS_WINDOW`, `SLOT_ORDER`, `UNSLOTTED`, `WITHHELD_SLOTS` and `generated_at.picks`; `PublicTonight` gains `read_next` and `watch_next`; the card gains `size` and `progress`, drops `time_to_beat_hours`, and `PublicLastFinish` keeps it), `public_pick_for_me.py` (fed from the same scored game pool), `public_next_cache.py` (drops `late_picks` and the `PICKS_WINDOW` import), `public.py`, and the tests `test_public_outputs.py` (event-day tests replaced with live-set tests; `PICK_FIELDS`, the `PublicTonight` fields and `FORBIDDEN` updated), `test_public_pick_for_me.py`, `test_public_next_cache.py` (the late-pick test replaced by "an event written today changes nothing") and `test_picker_public_table.py`.
+- **Public set rules:**
+  - it reads public rows of every type, plus nevers created before UTC midnight, plus the play record of public items;
+  - jitter is seeded per day; there is no staleness or waiting term;
+  - up to three game picks and up to two each for comics and movies;
+  - an empty lane comes back as `[]`, and the frontend renders it as absent.
+- **AC:**
+  - AC 2 as a pure-function test: an event written today changes nothing;
+  - AC 1 at the API level: finish via the status route, then a refetch shows a new body;
+  - AC 3 and AC 4;
+  - AC 12: Pick for me's `any|` output on a games-only fixture, reviewed once by hand and pinned;
+  - AC 15: no private title in any lane's reasons, using the existing leak walk.
+
+### Task 9 — Frontend: Tonight lanes, copy, freshness, Play Next type switch (AC 11, 13, 14)
+- **Files:** `SizePill.jsx` (takes `size`, falling back to `time_to_beat_hours` during the deploy window), `PickList.jsx` (`heading`, `caption`, `verb`, a progress mark with `role="img"` and `aria-label`), `Lane.jsx` (new: a region labelled by its `h3`), `pages/Next.jsx` (lanes; the "Or instead" caption in both branches; the empty dashed box with a `#pick-for-me` link; the owner note after the lanes), `Freshness` and `StatusStrip.jsx` ("Picks live"), `content/spine.js` (the spec's copy keys, lede, empty copy, and How it works stops 3 and 7 including the capture row and tour summary), `lib/snapshot.js` (`isNextBody` tolerates the lanes and a missing `generated_at.picks`), `index.css` (`.lane`, `.progress` and `.empty-box` with tokens only, plus the phone layout), `pages/PlayNext.jsx` (a Game / Comic / Movie chip row; `type` joins the request body and the effect deps; changing type clears `exclude`).
+- **Owner actions:**
+  - Read / Watch this tonight → `POST /api/items/{id}/status` with Active, then a refresh;
+  - Not tonight → the existing skip;
+  - focus follows the existing `data-tonight-title` / `data-tonight-undo` contract.
+- **Tests:** `Next.test.jsx` (lanes present and absent, freshness, empty box, actions, focus), `PickList`, `SizePill`, `StatusStrip`, `HowItWorks`, `PlayNext` and `snapshot` tests updated; `npm test` and `npm run build` green.
+
+### Task 10 — Docs and changelog
+- **Files:** repo `CLAUDE.md` (the Play Next, public picks and Pick for me paragraphs; the nightly order; the fingerprint list loses late picks; the Shelf components list), `backend/README.md` or picker docs where they describe picks, `sources/README.md`, `frontend/changelog.md` (`## 2026-11-09`, one bullet linking `/shelf/next`), and `scripts/smoke.sh` (the picks expectations: no `generated_at.picks`, and the lanes are present as arrays).
+- **AC:** no doc claims the picks are nightly; the changelog parses (`npm run build`).
+
+### Task 11 — Local end-to-end check
+- **Setup:** run the worktree API on local `stats_dev` (memory: worktree local verification) and Vite.
+- **Checks in the browser pane:**
+  - `/shelf/next` at 400px and 1280px, in both themes;
+  - the states "right after a finish" (finish via Wrap up and watch the picks change in the same refetch), "no slots apply" and "empty game pool";
+  - the comic lane present and absent;
+  - admin Play Next with the type switch.
+- **AC:** AC 1, 13 and 14 seen. Screenshots go to Joey.
+
+### Task 12 — Real-collection regression and facet pass (after STOP)
+- **Files:** `tests/fixtures/picker_collection.json` (from Joey's run), `tests/test_taste_collection.py`, and `facets.py` (a curation pass driven by `facet_coverage.py` on the export).
+- **AC:**
+  - AC 6 on the real data: the audit's two-tag, no-keyword game no longer outranks games sharing three or more seen facets;
+  - AC 5 on a Balan-style set: one finished platformer, at most one pick sharing its leading facet, no two picks sharing one;
+  - AC 10 still holds;
+  - the coverage report is attached to the PR body.
+
+### Task 13 — Retire the nightly picks step (after STOP: CI / auth carve-out)
+- **Files:** `.github/workflows/nightly.yml` (drop `call picks`, and fix the header comment and the step numbering), `items.py` (`JOB_ROUTES` loses `POST /api/picker/next`), `tests/test_job_token.py` (`EXPECTED`), and `CLAUDE.md` (the nightly order).
+- **AC:**
+  - AC 13;
+  - `test_job_token` is green with the smaller whitelist;
+  - `actionlint` passes on the workflow, if it is installed.
+
+## Smoke and environment tests
+
+- **Local:** Task 11 (browser pane). The suites run with `./.venv/bin/pytest`, `npm test` and `npm run build`.
+- **Post-deploy:**
+  - run `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`;
+  - check `/api/public/next` for `read_next` and `watch_next` arrays, no `generated_at.picks`, and `size` on the picks;
+  - in the browser, check `/shelf/next` for "Picks live";
+  - finish nothing in prod as a test. Joey presses Refresh comic metadata and Refresh movie metadata once on `/admin/collection` (AC 9's one-off). After that, the comic lane shows reasons with facets.
+- **Deploy order:** no migration. Merge, then let Render deploy both services. The nightly change takes effect from `main` on the next run.
