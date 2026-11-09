@@ -39,6 +39,7 @@ from schema_check import verify_schema_is_current
 from sources.registry import build_registry, configured_sources
 from spots_candidates_routes import create_candidates_router
 from spots_routes import create_spots_router
+from spots_weekend_routes import create_weekend_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -162,6 +163,11 @@ app.include_router(
         provider_factory=lambda: build_provider(config),
         lock=asyncio.Lock(),
     )
+)
+# The weekend planner: NWS is read by its job route alone, with the same
+# client (NWS asks for an identifying User-Agent); its own lock.
+app.include_router(
+    create_weekend_router(session_factory, physical_http_client, lock=asyncio.Lock())
 )
 # The provider is built per request rather than here, so an absent model key
 # is a failure of the import route alone rather than a service that will not
