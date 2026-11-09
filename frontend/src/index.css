@@ -4583,6 +4583,147 @@ a.month-bar::before {
   gap: 0.35rem;
 }
 
+/* The Wrap up sheet: a native dialog, centred on desktop and anchored to
+   the bottom on a phone (Tonight continue spec). Backdrop in --overlay as
+   the other sheets. */
+.wrap-sheet {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  max-width: 34rem;
+  padding: 0;
+  width: calc(100% - 2rem);
+}
+.wrap-sheet::backdrop {
+  background: var(--overlay);
+}
+.wrap-sheet-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1.1rem 1.1rem;
+}
+.wrap-sheet-head {
+  align-items: center;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 2.6rem minmax(0, 1fr) auto;
+}
+.wrap-sheet-heading h3 {
+  font-size: 1.125rem;
+  margin: 0;
+}
+.wrap-sheet-heading p {
+  font-size: 0.8125rem;
+  margin: 0.15rem 0 0;
+}
+.wrap-outcome {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.wrap-outcome button {
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 0.2rem;
+  padding: 0.7rem 0.75rem;
+  text-align: left;
+}
+.wrap-outcome button:hover {
+  border-color: var(--line-strong);
+}
+.wrap-outcome button[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.wrap-outcome button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.wrap-outcome b {
+  align-items: center;
+  display: flex;
+  font-weight: 600;
+  gap: 0.45rem;
+}
+.wrap-outcome .status-swatch {
+  height: 0.75rem;
+  width: 0.75rem;
+}
+.wrap-outcome small {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+.wrap-fresh {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.9rem;
+}
+.wrap-fresh h4 {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+}
+.wrap-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.wrap-label {
+  color: var(--text-2);
+  font-size: 0.8125rem;
+}
+.wrap-field textarea,
+.wrap-field input[type='date'] {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+}
+.wrap-field textarea {
+  resize: vertical;
+}
+.wrap-field input[type='date'] {
+  width: max-content;
+}
+.wrap-hint {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+.wrap-sheet-foot {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+.wrap-sheet-foot .muted {
+  font-size: 0.75rem;
+}
+.wrap-sheet-acts {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+/* The band's Wrap up button, a sibling of the card link. */
+.now-playing-list > li {
+  display: grid;
+  gap: 0.4rem;
+}
+.now-playing-wrap {
+  justify-self: start;
+}
+
 .tonight-alts-h {
   color: var(--text-3);
   font-size: 0.8125rem;
@@ -4685,6 +4826,24 @@ a.month-bar::before {
 
   .tonight-ask {
     flex-basis: 100%;
+  }
+
+  .wrap-sheet {
+    border-bottom: 0;
+    border-radius: 14px 14px 0 0;
+    margin: auto 0 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .wrap-outcome {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wrap-outcome button {
+    align-items: center;
+    grid-template-columns: auto 1fr;
+    min-height: 52px;
   }
 
   .picklist > li {
