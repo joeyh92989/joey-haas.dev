@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { placeSpots } from '../lib/mapFit.js'
 
 /**
@@ -45,6 +45,20 @@ export default function SpotMap({
     return { left: `${(x / width) * 100}%`, top: `${(y / height) * 100}%` }
   }
 
+  // The rendered width, for the popover's side test. jsdom has no
+  // ResizeObserver, so tests keep the viewBox fallback.
+  const frame = useRef(null)
+  const [rendered, setRendered] = useState(null)
+  useEffect(() => {
+    const node = frame.current
+    if (!node || typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(([entry]) =>
+      setRendered(entry.contentRect.width),
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
   const onKeyDown = (event) => {
     if (event.key === 'Escape' && selected != null) {
       event.stopPropagation()
@@ -54,6 +68,7 @@ export default function SpotMap({
 
   return (
     <div
+      ref={frame}
       className="spot-map"
       style={{ aspectRatio: `${width} / ${height}` }}
       onKeyDown={onKeyDown}
@@ -108,7 +123,12 @@ export default function SpotMap({
       </div>
       {chosen && renderPopover ? (
         <div
-          className={popoverClass(placed.get(chosen.key), width, height)}
+          className={popoverClass(
+            placed.get(chosen.key),
+            width,
+            height,
+            rendered,
+          )}
           style={at(chosen.key)}
         >
           {renderPopover(chosen)}
@@ -123,11 +143,29 @@ export default function SpotMap({
   )
 }
 
-/** Opens below a pin near the top edge, and leans in from the side edges. */
-function popoverClass({ x, y }, width, height) {
+/** Half the popover's widest (15rem), plus a little room, in CSS pixels. */
+export const POPOVER_EDGE = 128
+
+/**
+ * Opens below a pin near the top edge, and leans in from the side edges.
+ * A centred popover overflows the side when the pin is nearer to it than
+ * half the popover's width, which on a phone-width map is a quarter of the
+ * way in, so the side test runs on the rendered width when it is known;
+ * before the first measurement it falls back to a fifth of the drawing.
+ *
+ * @param {{x: number, y: number}} point The pin, in viewBox units.
+ * @param {number} width The viewBox width.
+ * @param {number} height The viewBox height.
+ * @param {number|null} [rendered] The map's rendered width in pixels.
+ */
+export function popoverClass({ x, y }, width, height, rendered = null) {
   const classes = ['spot-map-popover']
   if (y < height * 0.3) classes.push('below')
-  if (x < width * 0.2) classes.push('start')
-  else if (x > width * 0.8) classes.push('end')
+  const fromLeft = rendered ? (x / width) * rendered : null
+  if (rendered ? fromLeft < POPOVER_EDGE : x < width * 0.2) {
+    classes.push('start')
+  } else if (rendered ? rendered - fromLeft < POPOVER_EDGE : x > width * 0.8) {
+    classes.push('end')
+  }
   return classes.join(' ')
 }

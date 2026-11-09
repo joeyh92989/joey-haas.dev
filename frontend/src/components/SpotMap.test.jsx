@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import SpotMap from './SpotMap.jsx'
+import SpotMap, { popoverClass } from './SpotMap.jsx'
 
 // A 400 × 300 drawing whose fit puts 0.01° of latitude at 100 units.
 const LNG_SCALE = 10000 * Math.cos((39.75 * Math.PI) / 180)
@@ -118,5 +118,32 @@ describe('SpotMap', () => {
       renderPopover: (spot) => <b>{spot.name}</b>,
     })
     expect(screen.queryByText('Red Rocks')).not.toBeInTheDocument()
+  })
+})
+
+describe('popoverClass', () => {
+  const at = (x, rendered) => popoverClass({ x, y: 300 }, 800, 600, rendered)
+
+  it('leans in from a side the popover would overflow on a narrow map', () => {
+    // A quarter of the way in is 92px on a 368px map: under half a popover.
+    expect(at(206, 368)).toBe('spot-map-popover start')
+    expect(at(594, 368)).toBe('spot-map-popover end')
+    expect(at(400, 368)).toBe('spot-map-popover')
+  })
+
+  it('centres the same pin on a wide map', () => {
+    expect(at(206, 900)).toBe('spot-map-popover')
+  })
+
+  it('falls back to a fifth of the drawing before the map is measured', () => {
+    expect(at(150, null)).toBe('spot-map-popover start')
+    expect(at(206, null)).toBe('spot-map-popover')
+    expect(at(700, null)).toBe('spot-map-popover end')
+  })
+
+  it('opens below a pin near the top', () => {
+    expect(popoverClass({ x: 400, y: 100 }, 800, 600, 900)).toBe(
+      'spot-map-popover below',
+    )
   })
 })
