@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { axeViolations } from '../lib/axe.test-util.js'
 import Trip from './Trip.jsx'
@@ -96,8 +97,20 @@ const IRELAND = {
   days: [day('day-1', 1, 3, 'Dublin', ['Dublin'])],
 }
 
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open')
+    this.dispatchEvent(new Event('close'))
+  }
+})
+
 afterEach(() => {
   content.trips = []
+  delete HTMLDialogElement.prototype.showModal
+  delete HTMLDialogElement.prototype.close
 })
 
 function renderTrip(slug) {
@@ -213,6 +226,18 @@ describe('Trip', () => {
       expect(img).toHaveAttribute('height', '1067')
       expect(img.getAttribute('srcset')).toMatch(/-800\.webp 800w, .*1600w$/)
     }
+  })
+
+  it('opens a photo in the lightbox, counting a repeated photo once', async () => {
+    const user = userEvent.setup()
+    content.trips = [CROATIA]
+    renderTrip('croatia-greece-2026')
+    // The repeat of walls on day 8–9 opens the first, not a fourth photo.
+    const opens = screen.getAllByRole('button', { name: 'walls alt' })
+    await user.click(opens[1])
+    const dialog = document.querySelector('dialog')
+    expect(dialog).toHaveAttribute('open')
+    expect(dialog).toHaveTextContent('1 of 3')
   })
 
   it('links the older and newer trips', () => {

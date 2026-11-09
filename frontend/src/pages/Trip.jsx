@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 
 import DaySection from '../components/DaySection.jsx'
 import DrawnMap from '../components/DrawnMap.jsx'
 import FactsTable from '../components/FactsTable.jsx'
+import Lightbox from '../components/Lightbox.jsx'
 import { findMap } from '../content/maps/index.js'
 import { findTrip, trips } from '../content/trips.js'
 import { tripDateRange, tripDays, tripMonth } from '../lib/tripDates.js'
@@ -82,13 +83,21 @@ export default function Trip() {
   // Null when missing, so NotFound's own title stands (see usePageTitle).
   usePageTitle(trip ? `${trip.frontmatter.title} · Travel · Joey Haas` : null)
   const current = useCurrentPlace(trip ? trip.days : [])
+  const gallery = useMemo(() => (trip ? tripPhotos(trip) : []), [trip])
+  const [viewing, setViewing] = useState(null)
+  const [opener, setOpener] = useState(null)
 
   if (!trip) return <NotFound />
+
+  function openPhoto(name, button) {
+    setOpener(button)
+    setViewing(gallery.findIndex((photo) => photo.name === name))
+  }
 
   const { frontmatter, days } = trip
   const map = findMap(slug)
   const anchors = placeAnchors(trip)
-  const photos = tripPhotos(trip).length
+  const photos = gallery.length
   const firstWithPhotos = days.find((day) => day.photos.length > 0)?.id
   const index = trips.findIndex((t) => t.slug === slug)
   const newer = index > 0 ? trips[index - 1] : null
@@ -138,6 +147,7 @@ export default function Trip() {
           slug={slug}
           day={day}
           eager={day.id === firstWithPhotos}
+          onOpen={openPhoto}
         />
       ))}
       {(older || newer) && (
@@ -154,6 +164,14 @@ export default function Trip() {
           )}
         </nav>
       )}
+      <Lightbox
+        slug={slug}
+        photos={gallery}
+        index={viewing}
+        onIndex={setViewing}
+        onClose={() => setViewing(null)}
+        opener={opener}
+      />
     </article>
   )
 }
