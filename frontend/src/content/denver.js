@@ -27,6 +27,25 @@ export function tagLabel(tag) {
 }
 
 export const denver = {
+  page: {
+    path: '/denver',
+    title: 'Denver, the short list',
+    lede: 'Places I keep sending people to. Coffee, parks, somewhere dry for a kid on a snow day, and the ones you can ride to. Downtown and the near north side; no reservations, no sponsorships.',
+    description:
+      'Places in downtown Denver and the near north side that Joey Haas keeps sending people to: coffee, parks, somewhere dry for a kid on a snow day, and the ones you can ride to.',
+    mapLabel: (count) =>
+      `Map of downtown Denver with ${count} pinned ${count === 1 ? 'spot' : 'spots'}`,
+    mapTitle: 'Downtown Denver',
+    tagsLabel: 'Filter by tag',
+    all: 'All',
+    viewLabel: 'View',
+    views: { list: 'List', map: 'Map' },
+    count: (count) => `${count} ${count === 1 ? 'spot' : 'spots'}`,
+    sorted: 'sorted by neighbourhood',
+    offMap: 'Off the map',
+    noMatch: 'No spot has all of those tags.',
+    empty: 'No spots yet.',
+  },
   admin: {
     title: 'Spots',
     description:

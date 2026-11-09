@@ -24,7 +24,8 @@ export default function SiteFooter({ signedIn, hasNotes = false }) {
               &middot; <Link to="/til">TIL</Link>{' '}
             </>
           )}
-          &middot; <Link to="/colophon">Colophon</Link> &middot;{' '}
+          &middot; <Link to="/denver">Denver</Link> &middot;{' '}
+          <Link to="/colophon">Colophon</Link> &middot;{' '}
           <Link to="/stats">Stats</Link>
         </p>
         <p className="footer-links">

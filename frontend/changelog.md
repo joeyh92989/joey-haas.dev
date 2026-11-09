@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-09
+
+- [Denver, the short list](/denver): the places I keep sending people to, on a map drawn from OpenStreetMap beside the list, filterable by tag.
+
 ## 2026-11-08
 
 - [Tonight](/shelf/next) leads with the game I'm playing while one is in progress: playing since, hours and sessions from the journal, last played, with the picks as a compact list underneath. Signed in, Wrap up finishes, pauses or abandons it in two taps, with a rating, a line and the date while they're fresh.

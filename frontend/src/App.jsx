@@ -37,6 +37,9 @@ const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminImport = lazy(() => import('./pages/AdminImport.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
 const PlayNext = lazy(() => import('./pages/PlayNext.jsx'))
+// /denver carries the drawn map (~100 kB of path data), which only that page
+// needs.
+const Denver = lazy(() => import('./pages/Denver.jsx'))
 
 /**
  * A pre-rename URL with a param. `Navigate` does not interpolate route
@@ -71,6 +74,7 @@ export default function App() {
         <Route path="now" element={<Now />} />
         <Route path="colophon" element={<Colophon />} />
         <Route path="stats" element={<Stats />} />
+        <Route path="denver" element={<Denver />} />
         <Route path="shelf" element={<Collection />} />
         <Route path="shelf/comics" element={<Comics />} />
         <Route path="shelf/next" element={<Next />} />

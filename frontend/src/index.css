@@ -6800,3 +6800,155 @@ main h1[tabindex='-1']:focus {
 .spot-map-attribution a {
   color: var(--text-2);
 }
+
+/* /denver: the lede, tag chips, then the map beside the list (spec:
+   Denver spots, Surface 1). On a phone the two stack under a Map / List
+   toggle and only the chosen one renders. */
+.denver-lede {
+  color: var(--text-2);
+  font-size: 1.0625rem;
+  margin: 0.375rem 0 1.25rem;
+  max-width: 45rem;
+}
+
+.denver-chips {
+  margin-bottom: 1.25rem;
+}
+
+.denver-view {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.denver-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  gap: var(--grid-gap);
+  align-items: start;
+}
+
+/* The map stays in view while a long list scrolls beside it. */
+.denver-map {
+  position: sticky;
+  top: 1rem;
+}
+
+.denver-list-head {
+  margin: 0 0 0.6rem;
+  font-size: 0.8125rem;
+}
+
+.denver-list-count {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.denver-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+@media (max-width: 760px) {
+  .denver-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .denver-map {
+    position: static;
+  }
+}
+
+.spot-card {
+  padding: 0.75rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  scroll-margin: 1rem;
+}
+
+.spot-card.selected {
+  border-color: var(--accent);
+}
+
+.spot-card-kicker {
+  margin: 0 0 0.25rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.spot-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.spot-card-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.spot-card-name button {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+}
+
+.spot-card-name button:hover {
+  color: var(--accent);
+}
+
+.spot-card-name button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spot-card-area {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.spot-card-blurb {
+  margin: 0.4rem 0 0;
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.spot-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spot-tags li {
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 0.75rem;
+}
+
+.spot-popover-name {
+  display: block;
+}
+
+.spot-popover-area {
+  color: var(--text-3);
+}
