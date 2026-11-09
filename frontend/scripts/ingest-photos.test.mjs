@@ -336,6 +336,22 @@ describe('writeTrip', () => {
       /not a usable slug/,
     )
   })
+
+  it('refuses a photos folder that already holds originals, writing nothing', async () => {
+    // A partner's batch dropped in by hand before the draft was scaffolded:
+    // a copy over it would destroy the only original.
+    await writePhoto('a.jpg', { taken: '2014:06:03 14:22:01' })
+    const photosDir = path.join(tripsDir, 'ireland-2014', 'photos')
+    await fs.mkdir(photosDir, { recursive: true })
+    await fs.writeFile(path.join(photosDir, '2014-06-03-1422.jpg'), 'original')
+    await expect(scanAndWrite()).rejects.toThrow(/already holds files/)
+    expect(
+      await fs.readFile(path.join(photosDir, '2014-06-03-1422.jpg'), 'utf8'),
+    ).toBe('original')
+    await expect(
+      fs.access(path.join(tripsDir, 'ireland-2014.md')),
+    ).rejects.toThrow()
+  })
 })
 
 describe('formatReport', () => {

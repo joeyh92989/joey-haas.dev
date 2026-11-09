@@ -456,7 +456,9 @@ export async function convertHeic(source, destination) {
 /**
  * Writes one candidate trip: copies (or converts) its photos into the
  * gitignored photos folder, writes the manifest and the draft. Refuses to
- * touch a trip that already exists, so a second run cannot overwrite prose.
+ * touch a trip that already exists, so a second run cannot overwrite prose,
+ * and a photos folder that already holds anything, so it cannot overwrite
+ * an original (the only copy, once the phone's is deleted) either.
  *
  * @returns {Promise<{copied: object[], unconverted: object[], tripFile: string}>}
  */
@@ -482,6 +484,13 @@ export async function writeTrip({
       if (error instanceof IngestError) throw error
     }
   }
+  const already = await fs.readdir(photosDir).catch((error) => {
+    if (error.code === 'ENOENT') return []
+    throw error
+  })
+  if (already.some((name) => !name.startsWith('.'))) {
+    fail(`${photosDir} already holds files; move them aside to scaffold again`)
+  }
 
   await fs.mkdir(photosDir, { recursive: true })
   assignNames(cluster.photos)
@@ -498,9 +507,12 @@ export async function writeTrip({
       }
       continue
     }
+    // EXCL as well: two sources can never share a name (assignNames), but
+    // an original is not the place to find out.
     await fs.copyFile(
       photo.source,
       path.join(photosDir, `${photo.name}${photo.ext}`),
+      fs.constants.COPYFILE_EXCL,
     )
     copied.push(photo)
   }
