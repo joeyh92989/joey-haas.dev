@@ -80,9 +80,13 @@ function Chip({ pressed, onClick, children, hint }) {
   )
 }
 
-/** One pick: its slot, the game, why, and what to do about it. */
+/** A comic or movie starts by its status, never the pin (spec, decisions). */
+const START_LABELS = { comic: 'Start reading', movie: 'Start watching' }
+
+/** One pick: its slot, the item, why, and what to do about it. */
 function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
   const { item } = pick
+  const startLabel = START_LABELS[item.type]
   // The pin route also moves the game to Playing, which the bare label hid.
   const playHintId = useId()
   return (
@@ -115,19 +119,25 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
         ))}
       </ul>
       <div className="pick-actions">
-        <span className="pick-play">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onPlay}
-            aria-describedby={playHintId}
-          >
-            Play this
+        {startLabel ? (
+          <button type="button" disabled={busy} onClick={onPlay}>
+            {startLabel}
           </button>
-          <span id={playHintId} className="pick-play-hint">
-            Up next · starts playing
+        ) : (
+          <span className="pick-play">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onPlay}
+              aria-describedby={playHintId}
+            >
+              Play this
+            </button>
+            <span id={playHintId} className="pick-play-hint">
+              Up next · starts playing
+            </span>
           </span>
-        </span>
+        )}
         <button type="button" disabled={busy} onClick={onSkip}>
           Not tonight
         </button>
@@ -298,12 +308,25 @@ export default function PlayNext() {
     )
   }
 
-  async function playThis(itemId) {
-    const ok = await send(
-      pinPath(itemId),
-      { method: 'POST' },
-      'Couldn’t pin that game.',
-    )
+  async function playThis(item) {
+    // Only a game is pinned: the pin is Up next, and a comic or movie would
+    // take it from the pinned game. Those move to Active instead.
+    const ok =
+      item.type === 'game'
+        ? await send(
+            pinPath(item.id),
+            { method: 'POST' },
+            'Couldn’t pin that game.',
+          )
+        : await send(
+            `/api/items/${item.id}/status`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'active', today: localToday() }),
+            },
+            'Couldn’t start that.',
+          )
     if (ok) setRound((current) => current + 1)
   }
 
@@ -555,7 +578,7 @@ export default function PlayNext() {
                 key={pick.item.id}
                 pick={pick}
                 busy={busy}
-                onPlay={() => playThis(pick.item.id)}
+                onPlay={() => playThis(pick.item)}
                 onSkip={() => notTonight(pick.item.id)}
                 onNever={() => never(pick.item.id)}
               />
