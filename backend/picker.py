@@ -57,6 +57,21 @@ RELEASE_FULL_DAYS = 3650
 
 
 @dataclass(frozen=True)
+class PlayRecord:
+    """How much an item was actually played, from its runs and journal.
+
+    `bounced` is a run that ended paused or abandoned after exactly one
+    journal day. Weight only: no reason ever mentions any of it.
+    """
+
+    hours: float = 0.0
+    sessions: int = 0
+    finished_runs: int = 0
+    runs: int = 0
+    bounced: bool = False
+
+
+@dataclass(frozen=True)
 class PickerItem:
     """One item as Play Next sees it; the route builds these from rows."""
 
@@ -93,6 +108,15 @@ class PickerItem:
     # The open run's own start: a replay's, where started_at is the first
     # run's. None outside Play Next, or when the run has no start date.
     run_started_on: date | None = None
+    # The recommendation engine's inputs (taste.py, strategies.py). Defaulted
+    # so Radar's catalogue items, which have none of them, still build.
+    source: str | None = None
+    # Every source tag as (snapshot key, string): facets.facets_of reads them.
+    tags: tuple[tuple[str, str], ...] = ()
+    issues_owned_count: int | None = None
+    issues_read: int | None = None
+    runtime_minutes: float | None = None
+    play: PlayRecord | None = None
 
 
 @dataclass(frozen=True)

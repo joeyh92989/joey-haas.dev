@@ -353,3 +353,97 @@ async def test_undoing_a_skip_removes_todays_and_keeps_yesterdays(
     assert listed == {"item_ids": []}
     left = await _events(sessionmaker_for_test, PickAction.SKIPPED)
     assert [event.created_at.date() for event in left] == [yesterday.date()]
+
+
+# --- The engine's inputs (recommendation engine, Task 4) ---------------------
+
+
+async def test_picker_items_carry_source_tags_and_each_types_size(
+    sessionmaker_for_test,
+):
+    from picker_routes import to_picker_item
+
+    game = _game(
+        "Tagged",
+        external_source="igdb",
+        source_metadata={
+            "genres": ["Platform"],
+            "keywords": ["space"],
+            "game_modes": ["Single player"],
+        },
+    )
+    movie = Item(
+        type=ItemType.MOVIE,
+        title="Film",
+        status=ItemStatus.BACKLOG,
+        owned_format=OwnedFormat.PHYSICAL,
+        external_source="tmdb",
+        source_metadata={"runtime_minutes": 155, "keywords": ["space opera"]},
+    )
+    comic = Item(
+        type=ItemType.COMIC,
+        title="Run",
+        status=ItemStatus.ACTIVE,
+        owned_format=OwnedFormat.PHYSICAL,
+        external_source="comicvine",
+        issues_owned="1-6",
+        read_to=4,
+        source_metadata={"locations": ["Space"]},
+    )
+    as_game, as_movie, as_comic = (to_picker_item(row) for row in (game, movie, comic))
+    assert as_game.source == "igdb"
+    assert as_game.tags == (("genres", "Platform"), ("keywords", "space"))
+    assert as_game.runtime_minutes is None and as_game.issues_owned_count is None
+    assert as_movie.runtime_minutes == 155.0
+    assert as_movie.tags == (("keywords", "space opera"),)
+    assert (as_comic.issues_owned_count, as_comic.issues_read) == (6, 4)
+    assert as_comic.play is None
+
+
+async def test_play_records_count_hours_sessions_finishes_and_a_bounce(
+    sessionmaker_for_test,
+):
+    from picker_routes import load_play_records
+
+    today = date(2026, 11, 9)
+    async with sessionmaker_for_test() as session:
+        played, bounced, untouched = (_game(t) for t in ("Played", "Bounced", "None"))
+        session.add_all([played, bounced, untouched])
+        await session.flush()
+        await apply_status(session, played, ItemStatus.ACTIVE, today - timedelta(20))
+        session.add_all(
+            [
+                PlaySession(
+                    item_id=played.id, played_on=today - timedelta(d), minutes=90
+                )
+                for d in (19, 18, 17)
+            ]
+        )
+        await session.flush()
+        await apply_status(session, played, ItemStatus.FINISHED, today - timedelta(16))
+        await apply_status(session, bounced, ItemStatus.ACTIVE, today - timedelta(10))
+        session.add(PlaySession(item_id=bounced.id, played_on=today - timedelta(9)))
+        await session.flush()
+        await apply_status(session, bounced, ItemStatus.ABANDONED, today - timedelta(8))
+        await session.commit()
+        records = await load_play_records(
+            session, [played.id, bounced.id, untouched.id]
+        )
+    assert records[played.id].hours == 4.5
+    assert records[played.id].sessions == 3
+    assert (records[played.id].finished_runs, records[played.id].runs) == (1, 1)
+    assert not records[played.id].bounced
+    assert records[bounced.id].bounced
+    assert records[untouched.id].runs == 0
+    assert await load_play_records(None, []) == {}
+
+
+async def test_a_paused_run_after_one_day_is_a_bounce_and_two_days_is_not():
+    from picker_routes import play_record
+    from playthroughs import Run
+
+    paused = Run(number=1, started_on=date(2026, 1, 1), paused_on=date(2026, 1, 3))
+    assert play_record([(paused, 1, 30, None)]).bounced
+    assert not play_record([(paused, 2, 30, None)]).bounced
+    finished = Run(number=1, outcome="finished")
+    assert not play_record([(finished, 1, 30, None)]).bounced

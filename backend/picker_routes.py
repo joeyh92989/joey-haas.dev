@@ -20,11 +20,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from comics import owned_set, read_state
 from continuing import ContinuingCard, build_continuing
+from facets import snapshot_tags
 from items import require_admin
-from models import Item, ItemStatus, OwnedFormat, PickAction, PickEvent
-from picker import PickerEvent, PickerItem, PickRequest, recommend
-from playthroughs import runs_with_journal
+from models import Item, ItemStatus, ItemType, OwnedFormat, PickAction, PickEvent
+from picker import PickerEvent, PickerItem, PickRequest, PlayRecord, recommend
+from playthroughs import Run, runs_with_journal
 
 logger = logging.getLogger(__name__)
 
@@ -106,14 +108,21 @@ def to_picker_item(
     paused_on: date | None = None,
     journal_minutes: int = 0,
     run_started_on: date | None = None,
+    play: PlayRecord | None = None,
 ) -> PickerItem:
     """A row as picker's plain data, reading the snapshot defensively.
 
     `paused_on`, `journal_minutes` and `run_started_on` describe the open
     run; only Play Next passes them (open_run_details), for a paused game's
-    Pick it back up and a stalled game's start.
+    Pick it back up and a stalled game's start. `play` is the item's whole
+    record (load_play_records), for the engine's weights.
     """
     snapshot = item.source_metadata or {}
+    issues_owned_count = issues_read = None
+    if item.type == ItemType.COMIC:
+        owned_issues = owned_set(item.issues_owned, item.editions)
+        issues_owned_count = len(owned_issues)
+        issues_read = read_state(item.read_to, owned_issues).read
     time_to_beat = snapshot.get("time_to_beat")
     normally = (
         _number(time_to_beat.get("normally"))
@@ -150,7 +159,41 @@ def to_picker_item(
         paused_on=paused_on,
         journal_minutes=journal_minutes,
         run_started_on=run_started_on,
+        source=item.external_source,
+        tags=snapshot_tags(snapshot),
+        issues_owned_count=issues_owned_count,
+        issues_read=issues_read,
+        runtime_minutes=_number(snapshot.get("runtime_minutes")),
+        play=play,
     )
+
+
+def play_record(runs: list[tuple[Run, int, int, date | None]]) -> PlayRecord:
+    """One item's record from its runs and their journal totals."""
+    return PlayRecord(
+        hours=sum(minutes for _run, _days, minutes, _last in runs) / 60,
+        sessions=sum(days for _run, days, _minutes, _last in runs),
+        finished_runs=sum(1 for run, *_ in runs if run.outcome == "finished"),
+        runs=len(runs),
+        bounced=any(
+            days == 1
+            and (
+                run.outcome == "abandoned"
+                or (run.outcome is None and run.paused_on is not None)
+            )
+            for run, days, _minutes, _last in runs
+        ),
+    )
+
+
+async def load_play_records(
+    session: AsyncSession, item_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, PlayRecord]:
+    """Every listed item's play record, in two queries (runs_with_journal)."""
+    return {
+        item_id: play_record(runs)
+        for item_id, runs in (await runs_with_journal(session, item_ids)).items()
+    }
 
 
 async def open_run_details(
