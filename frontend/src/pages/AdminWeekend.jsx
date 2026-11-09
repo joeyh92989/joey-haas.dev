@@ -183,7 +183,11 @@ export default function AdminWeekend() {
   const [seed, setSeed] = useState(0)
   const [reload, setReload] = useState(0)
   const [plan, setPlan] = useState(null)
-  const [error, setError] = useState(null)
+  // Kept apart so a re-read cannot clear a refused write's message: a
+  // failed forecast refresh reads the plan again and still says why.
+  const [readError, setReadError] = useState(null)
+  const [writeError, setWriteError] = useState(null)
+  const error = writeError ?? readError
   const [busy, setBusy] = useState(false)
   const [skipped, setSkipped] = useState(null)
   const [visited, setVisited] = useState(() => new Set())
@@ -198,9 +202,9 @@ export default function AdminWeekend() {
       if (!live) return
       if (result.plan) {
         setPlan(result.plan)
-        setError(null)
+        setReadError(null)
       } else {
-        setError(result.error)
+        setReadError(result.error)
       }
     })
     return () => {
@@ -229,13 +233,13 @@ export default function AdminWeekend() {
         body: body === undefined ? undefined : JSON.stringify(body),
       })
       if (!response.ok) {
-        setError(await failureText(response))
+        setWriteError(await failureText(response))
         return null
       }
-      setError(null)
+      setWriteError(null)
       return response
     } catch {
-      setError(ACTION_ERROR)
+      setWriteError(ACTION_ERROR)
       return null
     } finally {
       setBusy(false)
@@ -290,8 +294,11 @@ export default function AdminWeekend() {
     }
   }
 
+  /** Read the plan again either way: a refresh refused part-way may still
+   * have stored some of the forecast. */
   async function refresh() {
-    if (await send('/api/spots/weather/refresh')) again()
+    await send('/api/spots/weather/refresh')
+    again()
   }
 
   async function saveConstraints(value) {

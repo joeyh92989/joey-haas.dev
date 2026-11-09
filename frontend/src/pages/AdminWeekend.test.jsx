@@ -451,4 +451,26 @@ describe('AdminWeekend', () => {
       screen.getByRole('heading', { name: 'Corvus Coffee' }),
     ).toBeInTheDocument()
   })
+
+  it('reads the plan again after a failed refresh and keeps the failure shown', async () => {
+    const user = userEvent.setup()
+    const calls = stubApi({
+      'POST /api/spots/weather/refresh': () =>
+        json({ detail: 'NWS did not answer.' }, 502),
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Corvus Coffee' })
+    await user.click(screen.getByRole('button', { name: 'Refresh forecast' }))
+    await vi.waitFor(() => expect(reads(calls)).toHaveLength(2))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'NWS did not answer.',
+    )
+  })
+
+  it('keeps the skip toast in the page while it is empty', async () => {
+    stubApi()
+    renderPage()
+    await screen.findByRole('heading', { name: 'Corvus Coffee' })
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
 })

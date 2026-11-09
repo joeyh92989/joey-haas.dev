@@ -138,7 +138,7 @@ def gridpoint_of(points: dict) -> tuple[str, str]:
     url = props.get("forecastHourly")
     grid = props.get("gridId")
     x, y = props.get("gridX"), props.get("gridY")
-    if not isinstance(url, str) or not url.startswith(NWS_BASE):
+    if not isinstance(url, str) or not url.startswith(NWS_BASE + "/"):
         raise WeatherError("NWS's /points answer had no hourly forecast URL")
     if not isinstance(grid, str) or not isinstance(x, int) or not isinstance(y, int):
         raise WeatherError("NWS's /points answer had no gridpoint")
@@ -250,7 +250,9 @@ def _blocker(hours: list[Hour]) -> str:
     if all(h.temp_f < VERDICT["min_temp_f"] for h in hours):
         return f"too cold, {max(h.temp_f for h in hours)}° at best"
     if any(h.temp_f < VERDICT["min_temp_f"] for h in hours):
-        return "too cold most of the day"
+        return "too cold some of the day"
+    # Nothing wet and nothing cold leaves wind as the only thing `_rideable`
+    # refuses, so it is the blocker by elimination.
     return f"wind {VERDICT['max_wind_mph']} mph or more"
 
 

@@ -73,7 +73,9 @@ class PlanSpot:
 @dataclass(frozen=True)
 class Constraints:
     """The owner's standing pills. `max_miles` drops what is farther from
-    the nearest anchor; `home_by` is a local hour the when-line respects."""
+    the nearest anchor; `home_by` is a local hour the
+    weather reason names ("go at 10 am, home by 3 pm"); it is advice, not a
+    filter, and the when-line does not move for it."""
 
     kid_along: bool = True
     bike_if_dry: bool = True
@@ -383,7 +385,7 @@ def plan(
                 second,
                 when,
                 spot,
-                ["Never logged.", _weather_reason(second, spot, ctx)],
+                [ctx.visit_reason(spot), _weather_reason(second, spot, ctx)],
             )
     else:
         spot = pick("new", indoor_ranked())

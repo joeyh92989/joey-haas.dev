@@ -173,6 +173,17 @@ def test_a_points_answer_without_a_forecast_is_refused(props):
         gridpoint_of({"properties": props})
 
 
+def test_a_lookalike_host_is_refused():
+    props = {
+        "forecastHourly": "https://api.weather.gov.evil.test/x",
+        "gridId": "BOU",
+        "gridX": 1,
+        "gridY": 2,
+    }
+    with pytest.raises(WeatherError):
+        gridpoint_of({"properties": props})
+
+
 def _client(responses, seen):
     answers = iter(responses)
 
@@ -299,7 +310,12 @@ def test_cold_is_named_before_wind():
     hours = _day(
         temps={h: 40 for h in range(8, 15)}, wind={h: 25 for h in range(15, 21)}
     )
-    assert verdict(hours)["text"] == "No ride window: too cold most of the day"
+    assert verdict(hours)["text"] == "No ride window: too cold some of the day"
+
+
+def test_one_cold_hour_is_only_some_of_the_day():
+    hours = _day(temps={8: 40}, wind={h: 25 for h in range(9, 21)})
+    assert verdict(hours)["text"] == "No ride window: too cold some of the day"
 
 
 def test_wind_alone():

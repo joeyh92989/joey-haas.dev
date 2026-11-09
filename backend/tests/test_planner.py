@@ -130,6 +130,15 @@ def test_somewhere_new_is_never_visited():
     assert new.day == "2026-11-15"
 
 
+def test_a_saved_new_card_logged_since_says_when():
+    # Saved as somewhere new, then logged as Been: the card stays in its slot
+    # but no longer claims the spot was never visited.
+    visits = [("museum", WEDNESDAY - timedelta(days=2))]
+    new = _slots(_plan(visits, pinned={"new": "museum"}))["new"]
+    assert new.spot_id == "museum"
+    assert new.reasons[0].startswith("Last there ")
+
+
 def test_a_while_is_the_stalest_visited_spot():
     visits = [
         ("library", WEDNESDAY - timedelta(days=90)),
