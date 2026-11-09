@@ -25,6 +25,7 @@ from items import JOB_ROUTES, _job_token_route, create_items_router, require_adm
 from physical_routes import create_physical_router
 from picker_routes import create_picker_router
 from recommendations_routes import create_recommendations_router
+from spots_candidates_routes import create_candidates_router
 
 pytestmark = pytest.mark.asyncio
 
@@ -41,6 +42,7 @@ EXPECTED = {
     ("POST", "/api/physical/stores/{key}/ingest"),
     ("POST", "/api/analytics/rollup"),
     ("POST", "/api/comics/refresh"),
+    ("POST", "/api/spots/candidates/refresh"),
 }
 
 
@@ -93,6 +95,7 @@ def _real_app() -> FastAPI:
     app.include_router(create_recommendations_router(None, {}, lock))
     app.include_router(create_analytics_router(None))
     app.include_router(create_comics_router(None, {}, lock))
+    app.include_router(create_candidates_router(None, lock=lock))
     app.add_middleware(SessionMiddleware, secret_key="test", https_only=False)
     return app
 
@@ -121,6 +124,7 @@ async def test_every_whitelisted_route_exists_on_the_real_routers():
     app.include_router(create_recommendations_router(None, {}, lock))
     app.include_router(create_analytics_router(None))
     app.include_router(create_comics_router(None, {}, lock))
+    app.include_router(create_candidates_router(None, lock=lock))
     # FastAPI 0.141 includes routers lazily, so app.routes holds one opaque
     # entry per router; the OpenAPI schema lists the flattened templates.
     real = {

@@ -2,8 +2,8 @@
 
 Where the spot finder's places come from. It has one source, OpenStreetMap
 through the public Overpass API. The finder is admin only:
-`POST /api/spots/candidates/refresh` in `spots_routes.py`, which the
-nightly job also calls. Spec: `docs/planning/2026-11-08-denver-spots-design.md`.
+`POST /api/spots/candidates/refresh` in `spots_candidates_routes.py`,
+which the nightly job also calls. Scoring is `candidates.py` (pure). Spec: `docs/planning/2026-11-08-denver-spots-design.md`.
 
 | Module | What it does | Pure? |
 |---|---|---|
