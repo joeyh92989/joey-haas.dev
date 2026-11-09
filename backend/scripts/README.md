@@ -78,12 +78,32 @@ matched on title, publisher and start year:
 ```
 
 **Needs** `COMICVINE_API_KEY`, read from the main checkout's `backend/.env`
-(worktrees have none) and never printed. Four requests, one a second.
+(worktrees have none) and never printed. One request a second.
 
 **Writes** `tests/fixtures/comicvine_issues_ongoing.json` and
 `comicvine_issues_ended.json`: `{recorded_on, volume, issues}`, where
 `issues` is the raw `/issues` body. Re-record when `ISSUE_FIELD_LIST` in
 `sources/comicvine.py` changes; never edit a fixture by hand.
+
+It also records Saga's `/volume/4050-46568/` detail with `VOLUME_FIELD_LIST`
+(the tag lists the recommendation engine reads) into
+`tests/fixtures/comicvine_volume.json`, the bare response body. Re-record
+when `VOLUME_FIELD_LIST` changes. Five requests in all.
+
+## record_tmdb_fixtures.py
+
+Records TMDB's detail answer for Dune (2021, `/movie/438631`) into
+`tests/fixtures/tmdb_movie.json`, with the adapter's own `DETAIL_PARAMS`
+(`append_to_response=credits,keywords`), so the director and keyword
+parsing is tested against the live shape.
+
+```bash
+./.venv/bin/python scripts/record_tmdb_fixtures.py
+```
+
+**Needs** `TMDB_API_TOKEN`, read from the main checkout's `backend/.env` and
+never printed. One request. Re-record when `DETAIL_PARAMS` changes; never
+edit the fixture by hand.
 
 ## record_physical_fixtures.py
 

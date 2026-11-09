@@ -401,10 +401,12 @@ def test_the_snapshot_url_is_none_unless_it_is_on_igdb():
     assert IgdbSource(_config())._parse_detail(foreign).source_metadata["url"] is None
 
 
-def test_keywords_are_trimmed_to_ten():
-    # Mario Kart World carries 62; IGDB's query language cannot trim them.
-    assert len(_e7b_games()[MARIO_KART_WORLD]["keywords"]) > 10
-    assert len(_parse(MARIO_KART_WORLD).source_metadata["keywords"]) == 10
+def test_the_detail_snapshot_keeps_every_keyword():
+    # Mario Kart World carries 62. The engine weighs rare keywords most, so
+    # trimming to the first few would drop the ones that tell games apart.
+    keywords = [entry["name"] for entry in _e7b_games()[MARIO_KART_WORLD]["keywords"]]
+    assert len(keywords) > 10
+    assert _parse(MARIO_KART_WORLD).source_metadata["keywords"] == keywords
 
 
 def test_the_release_date_is_an_iso_date():

@@ -94,6 +94,12 @@ is handled rather than designed around.
 TMDB API but is not endorsed or certified by TMDB", plus a link to
 themoviedb.org. It is on the collection page.
 
+The detail call is `/movie/{id}` with `append_to_response=credits,keywords`
+(`DETAIL_PARAMS`), still one request. Keywords land in
+`source_metadata.keywords` by name, every one of them, and the key is absent
+when the film has none; the recommendation engine reads them as facets.
+`scripts/record_tmdb_fixtures.py` records the fixture.
+
 ### IGDB — `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`
 
 A Twitch account with 2FA → dev.twitch.tv/console → register an application.
@@ -148,6 +154,12 @@ elsewhere is not theirs — so this throttles at ~1 req/s and never fans out.
 
 ComicVine exposes no community rating, so `source_metadata` has no
 `community_score` key rather than a null one implying the field exists.
+
+The detail call (`fetch`) asks for `VOLUME_FIELD_LIST`: the search fields
+plus `characters`, `concepts`, `teams` and `locations`. Each is stored as a
+list of names, the first `CV_TAG_LIMIT` (25) of them, and left out when the
+volume lists none (Saga lists no teams). Search keeps the short
+`FIELD_LIST`. The recommendation engine reads these as a comic's facets.
 
 **Issues** are read only for the pull list (`fetch_issues`): one
 `/issues/?filter=volume:{id}&sort=store_date:desc&limit=10` call per series,

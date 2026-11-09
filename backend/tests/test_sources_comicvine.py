@@ -7,7 +7,14 @@ import pytest
 
 from config import Config
 from sources.base import SourceError, SourceNotConfigured, SourceRateLimited
-from sources.comicvine import SEARCH_LIMIT, USER_AGENT, ComicVineSource
+from sources.comicvine import (
+    CV_TAG_LIMIT,
+    FIELD_LIST,
+    SEARCH_LIMIT,
+    USER_AGENT,
+    VOLUME_FIELD_LIST,
+    ComicVineSource,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -267,3 +274,35 @@ async def test_fetch_issues_makes_exactly_the_recorded_call(monkeypatch):
 async def test_fetch_issues_refuses_a_non_numeric_volume_id():
     with pytest.raises(SourceError):
         await ComicVineSource(_config()).fetch_issues("4363,volume:1")
+
+
+# --- The volume's tag lists (recommendation engine facets) --------------------
+
+
+def test_detail_keeps_the_volume_tag_lists_by_name():
+    payload = _detail_payload()
+    row = payload["results"]
+    detail = ComicVineSource(_config())._parse_detail(payload)
+    metadata = detail.source_metadata
+    assert metadata["concepts"] == [entry["name"] for entry in row["concepts"]]
+    assert metadata["locations"] == [entry["name"] for entry in row["locations"]]
+    assert len(row["characters"]) > CV_TAG_LIMIT
+    assert metadata["characters"] == [
+        entry["name"] for entry in row["characters"][:CV_TAG_LIMIT]
+    ]
+    # Saga lists no teams: an empty list leaves no key rather than [].
+    assert not row.get("teams")
+    assert "teams" not in metadata
+    assert metadata["genres"] == []
+
+
+@pytest.mark.asyncio
+async def test_only_the_detail_call_asks_for_the_tag_lists(monkeypatch):
+    seen = _patch_http(monkeypatch, _FakeResponse(200, _detail_payload()))
+    await ComicVineSource(_config()).fetch("46568")
+    assert seen[0]["params"]["field_list"] == VOLUME_FIELD_LIST
+
+    seen = _patch_http(monkeypatch, _FakeResponse(200))
+    await ComicVineSource(_config()).search("Saga")
+    assert seen[0]["params"]["field_list"] == FIELD_LIST
+    assert "characters" not in FIELD_LIST

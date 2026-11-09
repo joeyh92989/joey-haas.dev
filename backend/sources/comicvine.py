@@ -53,6 +53,12 @@ VOLUME_PREFIX = "4050"
 FIELD_LIST = (
     "id,name,start_year,publisher,count_of_issues,image,description,site_detail_url"
 )
+# The detail call adds the volume's tag lists, which the recommendation
+# engine reads as facets. Only fetch asks for them: search rows stay small.
+VOLUME_TAG_KEYS = ("characters", "concepts", "teams", "locations")
+VOLUME_FIELD_LIST = FIELD_LIST + "," + ",".join(VOLUME_TAG_KEYS)
+# A long run lists hundreds of characters; the first ones are its regulars.
+CV_TAG_LIMIT = 25
 TIMEOUT = 15.0
 
 # A series' latest issues, newest store date first: enough to cover the next
@@ -151,6 +157,25 @@ class ComicVineSource:
         """Maps a /volume body onto Item's columns plus the snapshot."""
         row = payload.get("results") or {}
         publisher = (row.get("publisher") or {}).get("name")
+        metadata = {
+            # ComicVine exposes no community rating at all, so there is
+            # deliberately no community_score key here rather than a null
+            # one pretending the field exists.
+            "genres": [],
+            "description": row.get("description") or None,
+            "publisher": publisher,
+            "issue_count": row.get("count_of_issues"),
+            "start_year": row.get("start_year"),
+            "source_url": row.get("site_detail_url"),
+        }
+        for key in VOLUME_TAG_KEYS:
+            names = [
+                entry["name"]
+                for entry in row.get(key) or []
+                if isinstance(entry, dict) and entry.get("name")
+            ][:CV_TAG_LIMIT]
+            if names:
+                metadata[key] = names
         return SourceDetail(
             external_id=str(row["id"]),
             title=row.get("name") or "",
@@ -159,17 +184,7 @@ class ComicVineSource:
             # writers and artists belong to issues, which are out of scope.
             creator=publisher,
             cover_url=self._image_url(row, "medium_url"),
-            source_metadata={
-                # ComicVine exposes no community rating at all, so there is
-                # deliberately no community_score key here rather than a null
-                # one pretending the field exists.
-                "genres": [],
-                "description": row.get("description") or None,
-                "publisher": publisher,
-                "issue_count": row.get("count_of_issues"),
-                "start_year": row.get("start_year"),
-                "source_url": row.get("site_detail_url"),
-            },
+            source_metadata=metadata,
         )
 
     def _parse_volumes(self, payload: dict) -> list[VolumeResult]:
@@ -254,7 +269,10 @@ class ComicVineSource:
         """Full detail for one ComicVine volume id."""
         if not external_id.isdigit():
             raise SourceError(self.source_name, f"invalid volume id {external_id!r}")
-        payload = await self._get(f"/volume/{VOLUME_PREFIX}-{external_id}/", {})
+        payload = await self._get(
+            f"/volume/{VOLUME_PREFIX}-{external_id}/",
+            {"field_list": VOLUME_FIELD_LIST},
+        )
         if not payload.get("results"):
             raise SourceError(self.source_name, f"no volume with id {external_id}")
         return self._parse_detail(payload)

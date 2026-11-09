@@ -1,26 +1,598 @@
 {
   "error": "OK",
   "limit": 1,
-  "offset": 0,
   "number_of_page_results": 1,
   "number_of_total_results": 1,
-  "status_code": 1,
+  "offset": 0,
   "results": {
+    "characters": [
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-83013/",
+        "count": 66,
+        "id": 83013,
+        "name": "Hazel",
+        "site_detail_url": "https://comicvine.gamespot.com/hazel/4005-83013/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-83012/",
+        "count": 65,
+        "id": 83012,
+        "name": "Alana",
+        "site_detail_url": "https://comicvine.gamespot.com/alana/4005-83012/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-83011/",
+        "count": 50,
+        "id": 83011,
+        "name": "Marko",
+        "site_detail_url": "https://comicvine.gamespot.com/marko/4005-83011/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-83014/",
+        "count": 45,
+        "id": 83014,
+        "name": "Prince Robot IV",
+        "site_detail_url": "https://comicvine.gamespot.com/prince-robot-iv/4005-83014/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-83016/",
+        "count": 41,
+        "id": 83016,
+        "name": "The Will",
+        "site_detail_url": "https://comicvine.gamespot.com/the-will/4005-83016/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-178075/",
+        "count": 36,
+        "id": 178075,
+        "name": "Squire",
+        "site_detail_url": "https://comicvine.gamespot.com/squire/4005-178075/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-84338/",
+        "count": 34,
+        "id": 84338,
+        "name": "Lying Cat",
+        "site_detail_url": "https://comicvine.gamespot.com/lying-cat/4005-84338/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-86810/",
+        "count": 32,
+        "id": 86810,
+        "name": "Gwendolyn",
+        "site_detail_url": "https://comicvine.gamespot.com/gwendolyn/4005-86810/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-87198/",
+        "count": 28,
+        "id": 87198,
+        "name": "Slave Girl",
+        "site_detail_url": "https://comicvine.gamespot.com/slave-girl/4005-87198/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-168695/",
+        "count": 28,
+        "id": 168695,
+        "name": "Petrichor ",
+        "site_detail_url": "https://comicvine.gamespot.com/petrichor/4005-168695/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-86428/",
+        "count": 27,
+        "id": 86428,
+        "name": "Klara",
+        "site_detail_url": "https://comicvine.gamespot.com/klara/4005-86428/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-99923/",
+        "count": 24,
+        "id": 99923,
+        "name": "Gh\u00fcs",
+        "site_detail_url": "https://comicvine.gamespot.com/ghus/4005-99923/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-83883/",
+        "count": 23,
+        "id": 83883,
+        "name": "Izabel",
+        "site_detail_url": "https://comicvine.gamespot.com/izabel/4005-83883/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-126783/",
+        "count": 18,
+        "id": 126783,
+        "name": "Friendo",
+        "site_detail_url": "https://comicvine.gamespot.com/friendo/4005-126783/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-92534/",
+        "count": 18,
+        "id": 92534,
+        "name": "Upsher",
+        "site_detail_url": "https://comicvine.gamespot.com/upsher/4005-92534/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-83441/",
+        "count": 17,
+        "id": 83441,
+        "name": "The Stalk",
+        "site_detail_url": "https://comicvine.gamespot.com/the-stalk/4005-83441/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-92533/",
+        "count": 16,
+        "id": 92533,
+        "name": "Doff",
+        "site_detail_url": "https://comicvine.gamespot.com/doff/4005-92533/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-95712/",
+        "count": 16,
+        "id": 95712,
+        "name": "Sweet Boy",
+        "site_detail_url": "https://comicvine.gamespot.com/sweet-boy/4005-95712/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-83015/",
+        "count": 14,
+        "id": 83015,
+        "name": "Special Agent Gale",
+        "site_detail_url": "https://comicvine.gamespot.com/special-agent-gale/4005-83015/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-95713/",
+        "count": 11,
+        "id": 95713,
+        "name": "The Brand",
+        "site_detail_url": "https://comicvine.gamespot.com/the-brand/4005-95713/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-107164/",
+        "count": 10,
+        "id": 107164,
+        "name": "Dengo",
+        "site_detail_url": "https://comicvine.gamespot.com/dengo/4005-107164/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-105651/",
+        "count": 10,
+        "id": 105651,
+        "name": "Yuma",
+        "site_detail_url": "https://comicvine.gamespot.com/yuma/4005-105651/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-142741/",
+        "count": 9,
+        "id": 142741,
+        "name": "Ianthe",
+        "site_detail_url": "https://comicvine.gamespot.com/ianthe/4005-142741/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-125874/",
+        "count": 7,
+        "id": 125874,
+        "name": "Princess Robot",
+        "site_detail_url": "https://comicvine.gamespot.com/princess-robot/4005-125874/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-126780/",
+        "count": 7,
+        "id": 126780,
+        "name": "Lexis",
+        "site_detail_url": "https://comicvine.gamespot.com/lexis/4005-126780/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-125876/",
+        "count": 7,
+        "id": 125876,
+        "name": "Trix",
+        "site_detail_url": "https://comicvine.gamespot.com/trix/4005-125876/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-88458/",
+        "count": 7,
+        "id": 88458,
+        "name": "D. Oswald Heist",
+        "site_detail_url": "https://comicvine.gamespot.com/d-oswald-heist/4005-88458/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-105650/",
+        "count": 6,
+        "id": 105650,
+        "name": "Ginny",
+        "site_detail_url": "https://comicvine.gamespot.com/ginny/4005-105650/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-86429/",
+        "count": 6,
+        "id": 86429,
+        "name": "Barr",
+        "site_detail_url": "https://comicvine.gamespot.com/barr/4005-86429/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-139244/",
+        "count": 6,
+        "id": 139244,
+        "name": "Kurti",
+        "site_detail_url": "https://comicvine.gamespot.com/kurti/4005-139244/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-126784/",
+        "count": 6,
+        "id": 126784,
+        "name": "Noreen",
+        "site_detail_url": "https://comicvine.gamespot.com/noreen/4005-126784/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-126779/",
+        "count": 6,
+        "id": 126779,
+        "name": "Quain",
+        "site_detail_url": "https://comicvine.gamespot.com/quain/4005-126779/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-126777/",
+        "count": 6,
+        "id": 126777,
+        "name": "Zizz",
+        "site_detail_url": "https://comicvine.gamespot.com/zizz/4005-126777/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-93747/",
+        "count": 6,
+        "id": 93747,
+        "name": "Countess Robot X",
+        "site_detail_url": "https://comicvine.gamespot.com/countess-robot-x/4005-93747/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-125705/",
+        "count": 6,
+        "id": 125705,
+        "name": "Erving",
+        "site_detail_url": "https://comicvine.gamespot.com/erving/4005-125705/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-191163/",
+        "count": 5,
+        "id": 191163,
+        "name": "Sploot",
+        "site_detail_url": "https://comicvine.gamespot.com/sploot/4005-191163/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-191166/",
+        "count": 5,
+        "id": 191166,
+        "name": "Emesis",
+        "site_detail_url": "https://comicvine.gamespot.com/emesis/4005-191166/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-191165/",
+        "count": 5,
+        "id": 191165,
+        "name": "Feld",
+        "site_detail_url": "https://comicvine.gamespot.com/feld/4005-191165/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-178073/",
+        "count": 5,
+        "id": 178073,
+        "name": "Bombazine",
+        "site_detail_url": "https://comicvine.gamespot.com/bombazine/4005-178073/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-191792/",
+        "count": 5,
+        "id": 191792,
+        "name": "Whist",
+        "site_detail_url": "https://comicvine.gamespot.com/whist/4005-191792/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-126778/",
+        "count": 5,
+        "id": 126778,
+        "name": "Sirge",
+        "site_detail_url": "https://comicvine.gamespot.com/sirge/4005-126778/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-126781/",
+        "count": 5,
+        "id": 126781,
+        "name": "Julep",
+        "site_detail_url": "https://comicvine.gamespot.com/julep/4005-126781/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-181378/",
+        "count": 4,
+        "id": 181378,
+        "name": "Velour",
+        "site_detail_url": "https://comicvine.gamespot.com/velour/4005-181378/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-181380/",
+        "count": 4,
+        "id": 181380,
+        "name": "The March",
+        "site_detail_url": "https://comicvine.gamespot.com/the-march/4005-181380/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-87200/",
+        "count": 4,
+        "id": 87200,
+        "name": "Mama Sun",
+        "site_detail_url": "https://comicvine.gamespot.com/mama-sun/4005-87200/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-178077/",
+        "count": 4,
+        "id": 178077,
+        "name": "Skip",
+        "site_detail_url": "https://comicvine.gamespot.com/skip/4005-178077/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-181379/",
+        "count": 3,
+        "id": 181379,
+        "name": "Ecca",
+        "site_detail_url": "https://comicvine.gamespot.com/ecca/4005-181379/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-107163/",
+        "count": 3,
+        "id": 107163,
+        "name": "King Robot",
+        "site_detail_url": "https://comicvine.gamespot.com/king-robot/4005-107163/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-181381/",
+        "count": 3,
+        "id": 181381,
+        "name": "Jabarah",
+        "site_detail_url": "https://comicvine.gamespot.com/jabarah/4005-181381/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-181382/",
+        "count": 3,
+        "id": 181382,
+        "name": "Endwife",
+        "site_detail_url": "https://comicvine.gamespot.com/endwife/4005-181382/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-181385/",
+        "count": 3,
+        "id": 181385,
+        "name": "Vitch",
+        "site_detail_url": "https://comicvine.gamespot.com/vitch/4005-181385/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-126782/",
+        "count": 3,
+        "id": 126782,
+        "name": "Halvor",
+        "site_detail_url": "https://comicvine.gamespot.com/halvor/4005-126782/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-83017/",
+        "count": 2,
+        "id": 83017,
+        "name": "Vez",
+        "site_detail_url": "https://comicvine.gamespot.com/vez/4005-83017/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-125702/",
+        "count": 2,
+        "id": 125702,
+        "name": "Baron Robot XXIII",
+        "site_detail_url": "https://comicvine.gamespot.com/baron-robot-xxiii/4005-125702/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-87199/",
+        "count": 2,
+        "id": 87199,
+        "name": "Fard",
+        "site_detail_url": "https://comicvine.gamespot.com/fard/4005-87199/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-181383/",
+        "count": 2,
+        "id": 181383,
+        "name": "Director Croze",
+        "site_detail_url": "https://comicvine.gamespot.com/director-croze/4005-181383/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-181384/",
+        "count": 2,
+        "id": 181384,
+        "name": "Dranken",
+        "site_detail_url": "https://comicvine.gamespot.com/dranken/4005-181384/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-183896/",
+        "count": 2,
+        "id": 183896,
+        "name": "Hectare",
+        "site_detail_url": "https://comicvine.gamespot.com/hectare/4005-183896/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-192991/",
+        "count": 1,
+        "id": 192991,
+        "name": "Golly",
+        "site_detail_url": "https://comicvine.gamespot.com/golly/4005-192991/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-191164/",
+        "count": 1,
+        "id": 191164,
+        "name": "Ritzy",
+        "site_detail_url": "https://comicvine.gamespot.com/ritzy/4005-191164/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-181377/",
+        "count": 1,
+        "id": 181377,
+        "name": "Doctor Xo",
+        "site_detail_url": "https://comicvine.gamespot.com/doctor-xo/4005-181377/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-92721/",
+        "count": 1,
+        "id": 92721,
+        "name": "Even",
+        "site_detail_url": "https://comicvine.gamespot.com/even/4005-92721/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-100202/",
+        "count": 1,
+        "id": 100202,
+        "name": "Rumfer",
+        "site_detail_url": "https://comicvine.gamespot.com/rumfer/4005-100202/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/character/4005-103943/",
+        "count": 1,
+        "id": 103943,
+        "name": "Bel Hundo",
+        "site_detail_url": "https://comicvine.gamespot.com/bel-hundo/4005-103943/"
+      }
+    ],
+    "concepts": [
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/concept/4015-57349/",
+        "count": 5,
+        "id": 57349,
+        "name": "Variant Cover",
+        "site_detail_url": "https://comicvine.gamespot.com/variant-cover/4015-57349/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/concept/4015-56775/",
+        "count": 2,
+        "id": 56775,
+        "name": "Variant Exclusive: Diamond Retailer Summit",
+        "site_detail_url": "https://comicvine.gamespot.com/variant-exclusive-diamond-retailer-summit/4015-56775/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/concept/4015-57350/",
+        "count": 2,
+        "id": 57350,
+        "name": "Variant Cover: Wraparound",
+        "site_detail_url": "https://comicvine.gamespot.com/variant-cover-wraparound/4015-57350/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/concept/4015-56686/",
+        "count": 1,
+        "id": 56686,
+        "name": "Variant Exclusive: Ghost",
+        "site_detail_url": "https://comicvine.gamespot.com/variant-exclusive-ghost/4015-56686/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/concept/4015-56714/",
+        "count": 1,
+        "id": 56714,
+        "name": "Variant Exclusive: The Nerd Store",
+        "site_detail_url": "https://comicvine.gamespot.com/variant-exclusive-the-nerd-store/4015-56714/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/concept/4015-56929/",
+        "count": 1,
+        "id": 56929,
+        "name": "Variant Exclusive: C2E2",
+        "site_detail_url": "https://comicvine.gamespot.com/variant-exclusive-c2e2/4015-56929/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/concept/4015-57322/",
+        "count": 1,
+        "id": 57322,
+        "name": "Variant Theme: We Believe in Comics Virgin Wraparound",
+        "site_detail_url": "https://comicvine.gamespot.com/variant-theme-we-believe-in-comics-virgin-wraparou/4015-57322/"
+      }
+    ],
     "count_of_issues": 72,
     "description": "<p>Saga is an ongoing series and space opera from <a href=\"/brian-k-vaughan/4040-40448/\" data-ref-id=\"4040-40448\">Brian K. Vaughan</a> and <a href=\"/fiona-staples/4040-52884/\" data-ref-id=\"4040-52884\">Fiona Staples</a> described as <i>Romeo and Juliet</i> meets <i>Star Wars</i> meets <i>Game of Thrones</i>.</p><p><em>\"This is an original fantasy book with no superheroes, two non-white leads and an opening chapter featuring graphic robot sex. I thought we might be cancelled by our third issue.\" -</em>- Brian K. Vaughan</p><p><strong>Awards</strong></p><p>In 2013, Saga won three Eisner Awards for Best Writer, Best New Series, and Best Continuing Series. In 2014, it again won three Eisner Awards for Best Writer, Best Continuing Series and Best Painter/Multimedia Artist. In 2015, it won two Eisners for Best Continuing Series and Best Penciller/Inker, becoming only the second series (the first being Sandman) to win the Best Continuing Series award thrice (one could also count Swamp Thing, which won three Kirby awards for Best Continuing Series).</p><p><strong>Hiatus</strong></p><p>In August 2018, Vaughan announced the series would go on an indefinite hiatus - saying it would be for at least one year - and <em>\"will look and feel entirely different when it returns.\" </em></p><h4>Collected Editions</h4><p><strong>Trade Paperbacks</strong></p><ul><li><a href=\"/saga-tpb/4000-360829/\" data-ref-id=\"4000-360829\">Volume 1</a> (#1-6)</li><li><a href=\"https://comicvine.gamespot.com/saga-compendium/4050-120778/\">Saga Compendium</a> (#1-54)</li><li><a href=\"https://www.comicvine.com/saga-2-volume-two/4000-411844/\" data-ref-id=\"4000-411844\">Volume 2</a> (#7-12)</li><li><a href=\"https://www.comicvine.com/saga-3-volume-three/4000-448043/\" data-ref-id=\"4000-448043\">Volume 3</a> (#13-18)</li><li><a href=\"https://www.comicvine.com/saga-4-volume-four/4000-473696/\" data-ref-id=\"4000-473696\">Volume 4</a> (#19-24)</li><li><a href=\"/saga-5-volume-five/4000-499800/\" data-ref-id=\"4000-499800\">Volume 5</a> (#25-30)</li><li><a href=\"https://comicvine.gamespot.com/saga-6-volume-six/4000-537968/\" data-ref-id=\"4000-537968\">Volume 6</a> (#31-36)</li><li><a href=\"https://comicvine.gamespot.com/saga-7-volume-seven/4000-589859/\" data-ref-id=\"4000-589859\">Volume 7</a> (#37-42)</li><li><a href=\"https://comicvine.gamespot.com/saga-8-volume-eight/4000-649769/\" data-ref-id=\"4000-649769\">Volume 8</a> (#43-48)</li><li><a href=\"/saga-9-volume-nine/4000-686203/\" data-ref-id=\"4000-686203\">Volume 9</a> (#49-54)</li><li><a href=\"/saga-10-volume-ten/4000-949796/\" data-ref-id=\"4000-949796\">Volume 10</a> (#55-60)</li><li><a href=\"/saga-11-volume-eleven/4000-1036608/\" data-ref-id=\"4000-1036608\">Volume 11</a> (#60-66)</li><li><a href=\"https://comicvine.gamespot.com/saga-12-volume-twelve/4000-1110082/\" data-ref-id=\"4000-1110082\">Volume 12</a> (#67-72)</li></ul><p><strong>Deluxe Edition Hardcovers</strong></p><ul><li><a href=\"https://comicvine.gamespot.com/saga-deluxe-edition-1-book-one/4000-470475/\" data-ref-id=\"4000-470475\">Saga Deluxe Edition Book One</a> (#1-18)</li><li><a href=\"https://comicvine.gamespot.com/saga-deluxe-edition-2-book-two/4000-593295/\" data-ref-id=\"4000-593295\">Saga Deluxe Edition Book Two</a> (#19-36)</li><li><a href=\"/saga-deluxe-edition-3-book-three/4000-710009/\" data-ref-id=\"4000-710009\">Saga Deluxe Edition Book Three</a> (#37-54)</li></ul><h4>Non-U.S. Collected Editions</h4><ul><li><a href=\"https://comicvine.gamespot.com/saga-1-capitulo-uno/4000-626129/\">Saga - Cap\u00edtulo Uno</a> (#1-6) (Spanish)</li><li><a href=\"https://comicvine.gamespot.com/saga-2-capitulo-dos/4000-626130/\">Saga - Cap\u00edtulo Dos</a> (#7-12) (Spanish)</li><li><a href=\"https://comicvine.gamespot.com/saga-3-capitulo-tres/4000-626131/\">Saga - Cap\u00edtulo Tres</a> (#13-18) (Spanish)</li><li><a href=\"https://comicvine.gamespot.com/saga-4-capitulo-cuatro/4000-626156/\">Saga - Cap\u00edtulo Cuatro</a> (#19-24) (Spanish)</li><li><a href=\"https://comicvine.gamespot.com/saga-5-capitulo-cinco/4000-626157/\">Saga - Cap\u00edtulo Cinco</a> (#25-30) (Spanish)</li><li><a href=\"https://comicvine.gamespot.com/saga-6-capitulo-seis/4000-626158/\">Saga - Cap\u00edtulo Seis</a> (#31-36) (Spanish)</li><li><a href=\"https://comicvine.gamespot.com/saga-7-capitulo-siete/4000-626159/\" data-ref-id=\"4000-626159\">Saga - Cap\u00edtulo Siete</a> (#37-42) (Spanish)</li><li><a href=\"https://comicvine.gamespot.com/saga-8-capitulo-ocho/4000-939622/\" data-ref-id=\"4000-939622\">Saga - Cap\u00edtulo Ocho</a> (#43-48) (Spanish)</li></ul>",
     "id": 46568,
     "image": {
       "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/10/108980/2260155-saga__1__2012_.jpg",
+      "image_tags": "All Images",
       "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/10/108980/2260155-saga__1__2012_.jpg",
-      "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/10/108980/2260155-saga__1__2012_.jpg",
+      "original_url": "https://comicvine.gamespot.com/a/uploads/original/10/108980/2260155-saga__1__2012_.jpg",
       "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/10/108980/2260155-saga__1__2012_.jpg",
+      "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/10/108980/2260155-saga__1__2012_.jpg",
       "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/10/108980/2260155-saga__1__2012_.jpg",
       "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/10/108980/2260155-saga__1__2012_.jpg",
       "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/10/108980/2260155-saga__1__2012_.jpg",
-      "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/10/108980/2260155-saga__1__2012_.jpg",
-      "original_url": "https://comicvine.gamespot.com/a/uploads/original/10/108980/2260155-saga__1__2012_.jpg",
-      "image_tags": "All Images"
+      "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/10/108980/2260155-saga__1__2012_.jpg"
     },
+    "locations": [
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-56254/",
+        "count": 18,
+        "id": 56254,
+        "name": "Space",
+        "site_detail_url": "https://comicvine.gamespot.com/space/4020-56254/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-57816/",
+        "count": 11,
+        "id": 57816,
+        "name": "Landfall",
+        "site_detail_url": "https://comicvine.gamespot.com/landfall/4020-57816/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-61362/",
+        "count": 10,
+        "id": 61362,
+        "name": "Quietus",
+        "site_detail_url": "https://comicvine.gamespot.com/quietus/4020-61362/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-57819/",
+        "count": 8,
+        "id": 57819,
+        "name": "Cleave",
+        "site_detail_url": "https://comicvine.gamespot.com/cleave/4020-57819/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-61379/",
+        "count": 8,
+        "id": 61379,
+        "name": "Robot Kingdom",
+        "site_detail_url": "https://comicvine.gamespot.com/robot-kingdom/4020-61379/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-57928/",
+        "count": 6,
+        "id": 57928,
+        "name": "Sextillion",
+        "site_detail_url": "https://comicvine.gamespot.com/sextillion/4020-57928/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-61380/",
+        "count": 6,
+        "id": 61380,
+        "name": "Gardenia",
+        "site_detail_url": "https://comicvine.gamespot.com/gardenia/4020-61380/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-61457/",
+        "count": 6,
+        "id": 61457,
+        "name": "Demimonde",
+        "site_detail_url": "https://comicvine.gamespot.com/demimonde/4020-61457/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-57817/",
+        "count": 2,
+        "id": 57817,
+        "name": "Wreath",
+        "site_detail_url": "https://comicvine.gamespot.com/wreath/4020-57817/"
+      },
+      {
+        "api_detail_url": "https://comicvine.gamespot.com/api/location/4020-63037/",
+        "count": 2,
+        "id": 63037,
+        "name": "Phang",
+        "site_detail_url": "https://comicvine.gamespot.com/phang/4020-63037/"
+      }
+    ],
     "name": "Saga",
     "publisher": {
       "api_detail_url": "https://comicvine.gamespot.com/api/publisher/4010-513/",
@@ -30,5 +602,6 @@
     "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/",
     "start_year": "2012"
   },
+  "status_code": 1,
   "version": "1.0"
 }
