@@ -105,6 +105,13 @@ describe('GuessCombobox', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1)
   })
 
+  it('hands back the game when its title was already guessed', async () => {
+    const { user, onSubmit, onReject } = setup({ excludedIds: ['3'] })
+    await user.type(screen.getByRole('combobox'), 'Seasons After Fall{Enter}')
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(onReject).toHaveBeenCalledWith(POOL[2])
+  })
+
   it('closes on Escape and reopens on an arrow', async () => {
     const { user } = setup()
     const input = screen.getByRole('combobox')

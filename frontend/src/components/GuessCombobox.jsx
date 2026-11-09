@@ -24,7 +24,8 @@ const copy = daily.input
  * @param {number} props.guessNumber The guess about to be made, from 1.
  * @param {boolean} props.disabled After a win or the sixth guess.
  * @param {(item: object) => void} props.onSubmit A pool item was chosen.
- * @param {() => void} props.onReject The text matched no title.
+ * @param {(already: object | null) => void} props.onReject The text matched
+ *   no title (null), or the title of a game already guessed (that game).
  */
 export default function GuessCombobox({
   pool,
@@ -76,8 +77,10 @@ export default function GuessCombobox({
       const exact = matchTitle(query, pool)
       if (exact && !excludedIds.includes(exact.id)) {
         choose(exact)
+      } else if (exact) {
+        onReject(exact)
       } else if (query.trim() !== '') {
-        onReject()
+        onReject(null)
       }
     }
   }

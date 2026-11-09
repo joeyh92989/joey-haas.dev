@@ -214,6 +214,45 @@ describe('Daily', () => {
     )
   })
 
+  it('says so when a title was already guessed', async () => {
+    const user = userEvent.setup()
+    const [miss] = wrong(1)
+    renderPage()
+    await screen.findByText('Day 3 · 12 Nov')
+    await guess(user, miss.title)
+    await guess(user, miss.title)
+    expect(screen.getByRole('status')).toHaveTextContent(
+      `Already guessed ${miss.title}.`,
+    )
+    expect(screen.getByRole('table')).toHaveAccessibleName(
+      `1 of ${MAX_GUESSES} guesses`,
+    )
+  })
+
+  it('keeps a lost day closed when a guessed game has left the pool', async () => {
+    // Six guesses recorded, one of them a game no longer in the pool: the
+    // board shows five rows, but the day is over.
+    const guesses = [92, ...wrong(5).map((item) => item.id)]
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        lastDay: 3,
+        streak: 0,
+        played: 1,
+        guessesTotal: 0,
+        days: { 3: { guesses, won: false } },
+      }),
+    )
+    renderPage()
+    await screen.findByText('Day 3 · 12 Nov')
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(
+      screen.getByRole('heading', {
+        name: `Not today. It was ${answer().title}.`,
+      }),
+    ).toBeInTheDocument()
+  })
+
   it("links yesterday's answer", async () => {
     renderPage()
     await screen.findByText('Day 3 · 12 Nov')
@@ -242,6 +281,32 @@ describe('Daily', () => {
     expect(await screen.findByText('Day 4 · 13 Nov')).toBeInTheDocument()
   })
 
+  it('re-reads storage on rollover, so another tab’s day is not undone', async () => {
+    renderPage()
+    await screen.findByText('Day 3 · 12 Nov')
+    // Another tab plays day 4 to a win while this one sits in the background.
+    vi.setSystemTime(new Date('2026-11-13T19:00:00Z'))
+    const dayFour = answer()
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        lastDay: 4,
+        streak: 1,
+        played: 1,
+        guessesTotal: 1,
+        days: { 4: { guesses: [dayFour.id], won: true } },
+      }),
+    )
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await screen.findByText('Day 4 · 13 Nov')
+    expect(
+      screen.getByRole('heading', { name: 'Got it in 1.' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).toBeNull()
+  })
+
   it("clears the last day's status line when it rolls over", async () => {
     const user = userEvent.setup()
     renderPage()
@@ -255,6 +320,16 @@ describe('Daily', () => {
     })
     await screen.findByText('Day 4 · 13 Nov')
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
+
+  it('says when the first puzzle opens, before the epoch', async () => {
+    vi.setSystemTime(new Date('2026-11-09T19:00:00Z'))
+    renderPage()
+    expect(
+      await screen.findByText(/The first Shelfle opens on November 10, 2026/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/No puzzle today/)).toBeNull()
+    expect(screen.queryByRole('table')).toBeNull()
   })
 
   it('shows the empty line when there is no snapshot', async () => {

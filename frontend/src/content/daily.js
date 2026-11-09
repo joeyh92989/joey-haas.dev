@@ -39,6 +39,7 @@ export const daily = {
     placeholder: 'Type a game',
     suggestions: 'Titles on the shelf',
     notOnShelf: 'Not on the shelf.',
+    alreadyGuessed: (title) => `Already guessed ${title}.`,
     count: (next, max) => `Guess ${next} of ${max}`,
   },
   stats: { streak: 'Streak', played: 'Played', average: 'Avg guesses' },
@@ -58,6 +59,8 @@ export const daily = {
     words: 'As words, one line per guess:',
   },
   yesterday: 'Yesterday’s answer:',
+  soon: (date) =>
+    `The first Shelfle opens on ${date}, at midnight Denver time.`,
   empty:
     'No puzzle today. The shelf snapshot is missing, so there is nothing to guess from.',
   announce: {

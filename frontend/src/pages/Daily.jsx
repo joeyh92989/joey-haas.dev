@@ -7,8 +7,10 @@ import ShelfleBoard from '../components/ShelfleBoard.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import { daily } from '../content/daily.js'
 import {
+  DAILY_EPOCH,
   MAX_GUESSES,
   dailyPool,
+  dayNumber,
   dayKicker,
   grade,
   picksThrough,
@@ -24,7 +26,7 @@ import {
   statsFor,
   writeDaily,
 } from '../lib/dailyStorage.js'
-import { ownerDay } from '../lib/formatDate.js'
+import { formatDate, ownerDay } from '../lib/formatDate.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -70,9 +72,14 @@ export default function Daily() {
     }
   }, [])
 
-  // A tab left open past Denver midnight rolls over when it is looked at.
+  // A tab left open past Denver midnight rolls over when it is looked at,
+  // and re-reads storage, which another tab may have played meanwhile:
+  // writing this tab's copy back would undo that tab's day.
   useEffect(() => {
-    const refresh = () => setToday(ownerDay())
+    const refresh = () => {
+      setToday(ownerDay())
+      setStored(readDaily())
+    }
     document.addEventListener('visibilitychange', refresh)
     window.addEventListener('focus', refresh)
     return () => {
@@ -106,7 +113,9 @@ export default function Daily() {
   const won =
     record.won === true ||
     (pick !== null && guessed.some((item) => item.id === pick.item.id))
-  const over = won || rows.length >= MAX_GUESSES
+  // A recorded outcome ends the day even if a guessed game has since left
+  // the pool and its row with it.
+  const over = won || record.won !== null || rows.length >= MAX_GUESSES
   const stats = statsFor(stored)
 
   function submit(item) {
@@ -139,7 +148,9 @@ export default function Daily() {
       </div>
       <p className="daily-lede">{copy.lede}</p>
 
-      {items === undefined ? null : pick === null ? (
+      {items === undefined ? null : dayNumber(today) < 1 ? (
+        <p className="muted">{copy.soon(formatDate(DAILY_EPOCH))}</p>
+      ) : pick === null ? (
         <p className="muted">{copy.empty}</p>
       ) : (
         <>
@@ -177,7 +188,13 @@ export default function Daily() {
                 guessNumber={rows.length + 1}
                 disabled={over}
                 onSubmit={submit}
-                onReject={() => setStatus(copy.input.notOnShelf)}
+                onReject={(already) =>
+                  setStatus(
+                    already
+                      ? copy.input.alreadyGuessed(already.title)
+                      : copy.input.notOnShelf,
+                  )
+                }
               />
             )}
             <p className="daily-status muted" role="status" aria-live="polite">
