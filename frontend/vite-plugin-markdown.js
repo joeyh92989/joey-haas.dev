@@ -11,6 +11,7 @@ import { unified } from 'unified'
 
 import {
   assertNoPlaceholders,
+  dayDates,
   parseTripDays,
   parseTripFrontmatter,
 } from './scripts/trip-markdown.mjs'
@@ -100,8 +101,9 @@ async function readPhotoManifest(id) {
  * two-palette Shiki pass as a post, so a trip can carry a code block
  * without a second highlighter.
  *
- * The module exports { slug, frontmatter, days }: `days[].html` in place of
- * a post's single `html`.
+ * The module exports { slug, frontmatter, days, cover }: `days[].html` in
+ * place of a post's single `html`, `days[].dates` ({from, to} or null), and
+ * `cover` as {name, width, height} or null.
  */
 async function compileTrip({ data, content, slug, id }) {
   const manifest = await readPhotoManifest(id)
@@ -126,6 +128,9 @@ async function compileTrip({ data, content, slug, id }) {
     compiled.push({
       ...rest,
       html: String(await processor.process(prose)),
+      // Derived here, not in the browser, so the page never re-implements
+      // the date arithmetic; null below day precision (D12).
+      dates: dayDates(day, frontmatter),
       // The built widths travel with the day so the page can reserve the
       // photo's space without importing the manifest itself.
       photos: day.photos.map((photo) => ({
@@ -136,7 +141,17 @@ async function compileTrip({ data, content, slug, id }) {
     })
   }
 
-  return { slug, frontmatter, days: compiled }
+  // The cover need not appear in any day, so its size is looked up here
+  // rather than found among the days' photos.
+  const cover = frontmatter.cover
+    ? {
+        name: frontmatter.cover,
+        width: photos[frontmatter.cover]?.width ?? null,
+        height: photos[frontmatter.cover]?.height ?? null,
+      }
+    : null
+
+  return { slug, frontmatter, days: compiled, cover }
 }
 
 /**

@@ -4,8 +4,8 @@
  *
  * Trips live in frontend/trips/, apart from frontend/posts/ and
  * frontend/notes/, so which kind a file is depends on its folder, not a
- * frontmatter flag. A trip's module is { slug, frontmatter, days } — days
- * in place of a post's single html, since a trip's body is a grammar
+ * frontmatter flag. A trip's module is { slug, frontmatter, days, cover }
+ * — days in place of a post's single html, since a trip's body is a grammar
  * (see frontend/scripts/trip-markdown.mjs).
  *
  * `frontmatter.date` is the trip's first day, which is what sorts them.
