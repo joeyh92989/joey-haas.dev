@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ADMIN_ROUTES,
   LEGACY_PREFIX,
+  assertDailyPool,
   clip,
   excerpt,
   legacyRoutes,
@@ -80,6 +81,7 @@ describe('publicRoutes', () => {
       '/now',
       '/colophon',
       '/stats',
+      '/daily',
       '/blog',
       '/blog/how-spine-works',
       `/shelf/${ITEM.id}`,
@@ -152,7 +154,7 @@ describe('publicRoutes', () => {
   it('leaves out Blog with nothing published, and items without an id', () => {
     const bare = publicRoutes({ posts: [], items: [{ title: 'No id' }] })
     expect(bare.map((route) => route.path)).not.toContain('/blog')
-    expect(bare).toHaveLength(10)
+    expect(bare).toHaveLength(11)
   })
 })
 
@@ -305,7 +307,7 @@ describe('noindex, sitemap and robots', () => {
 
   it('lists every route, with a post’s date', () => {
     const xml = sitemap(publicRoutes({ posts: [POST], items: [ITEM] }))
-    expect(xml.match(/<url>/g)).toHaveLength(13)
+    expect(xml.match(/<url>/g)).toHaveLength(14)
     expect(xml).toContain(
       '<loc>https://joey-haas.dev/blog/how-spine-works</loc><lastmod>2026-10-02</lastmod>',
     )
@@ -482,5 +484,31 @@ describe('render.yaml rewrites', () => {
 
   it('keeps the SPA catch-all last', () => {
     expect(rules.at(-1)).toEqual({ source: '/*', destination: '/index.html' })
+  })
+})
+
+describe('assertDailyPool', () => {
+  const game = (id) => ({
+    id,
+    type: 'game',
+    title: `Game ${id}`,
+    platform: 'Nintendo Switch',
+    year: 2020,
+    genres: ['Platform'],
+    time_to_beat_hours: 10,
+  })
+  const games = (count) => Array.from({ length: count }, (_, i) => game(i + 1))
+
+  it('passes at the floor and reports the pool size', () => {
+    expect(assertDailyPool(games(30))).toBe(30)
+  })
+
+  it('stops the build one game under the floor', () => {
+    expect(() => assertDailyPool(games(29))).toThrow(/29 eligible games/)
+  })
+
+  it('counts only eligible games', () => {
+    const items = [...games(29), { ...game(99), time_to_beat_hours: null }]
+    expect(() => assertDailyPool(items)).toThrow(/29 eligible/)
   })
 })

@@ -1,17 +1,6 @@
-/**
- * Upper bounds in hours, mirroring SIZE_BANDS in backend/picker.py (a game
- * of exactly six hours is Short). Keep the two in step.
- */
-const SIZE_BANDS = [
-  [6, 'Short'],
-  [15, 'Medium'],
-  [Infinity, 'Long'],
-]
+import { sizeLabel } from '../lib/sizeBand.js'
 
-export function sizeLabel(hours) {
-  if (hours == null) return null
-  return SIZE_BANDS.find(([high]) => hours <= high)[1]
-}
+export { sizeLabel }
 
 /**
  * How big a game is: the band as text, never colour alone, then the hours.

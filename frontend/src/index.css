@@ -4583,9 +4583,10 @@ a.month-bar::before {
   gap: 0.35rem;
 }
 
-/* The Wrap up sheet: a native dialog, centred on desktop and anchored to
-   the bottom on a phone (Tonight continue spec). Backdrop in --overlay as
-   the other sheets. */
+/* The Wrap up sheet and the generic Sheet (components/Sheet.jsx): a native
+   dialog, centred on desktop and anchored to the bottom on a phone (Tonight
+   continue spec). Backdrop in --overlay as the other sheets. */
+.sheet,
 .wrap-sheet {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -4599,6 +4600,7 @@ a.month-bar::before {
   padding: 0;
   width: calc(100% - 2rem);
 }
+.sheet::backdrop,
 .wrap-sheet::backdrop {
   background: var(--overlay);
 }
@@ -4832,6 +4834,7 @@ a.month-bar::before {
     flex-basis: 100%;
   }
 
+  .sheet,
   .wrap-sheet {
     border-bottom: 0;
     border-radius: 14px 14px 0 0;
@@ -4981,7 +4984,8 @@ a.month-bar::before {
 /* Route changes move focus here or to the page's h1 (useRouteFocus); the
    focus is for screen readers and the next Tab, not a visible ring. */
 main:focus,
-main h1[tabindex='-1']:focus {
+main h1[tabindex='-1']:focus,
+.daily-result h2[tabindex='-1']:focus {
   outline: none;
 }
 
@@ -6433,4 +6437,342 @@ main h1[tabindex='-1']:focus {
 .how-try {
   font-size: 0.875rem;
   margin-top: 0.75rem;
+}
+
+/* ---------- Daily puzzle (Shelfle) ---------- */
+
+/* The board is a table; the cells are the grid. Five columns, the title
+   wider, every attribute cell the same width. */
+.daily {
+  display: grid;
+  gap: 1rem;
+}
+.daily-head {
+  align-items: baseline;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin: 0;
+}
+.daily-head h1 {
+  margin: 0;
+}
+.daily-lede {
+  color: var(--text-2);
+  margin: 0;
+  max-width: 62ch;
+}
+.daily-head .kicker {
+  letter-spacing: 0.04em;
+}
+.daily-stats {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.9rem;
+  margin: -0.5rem 0 0;
+}
+.daily-stats b {
+  color: var(--text);
+  font-weight: 600;
+}
+.daily-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+.daily-hint {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.shelfle {
+  border-collapse: separate;
+  border-spacing: 0.35rem 0.35rem;
+  margin: 0 -0.35rem;
+  table-layout: fixed;
+  width: calc(100% + 0.7rem);
+}
+.shelfle th {
+  font-weight: 400;
+  padding: 0 0 0.1rem;
+  text-align: center;
+}
+.shelfle th .kicker {
+  font-size: 0.6875rem;
+}
+.shelfle th.shelfle-title {
+  text-align: left;
+  width: 32%;
+}
+.shelfle td {
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.8125rem;
+  height: 2.6rem;
+  line-height: 1.2;
+  padding: 0.4rem 0.4rem;
+  text-align: center;
+  vertical-align: middle;
+}
+.shelfle td.shelfle-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.shelfle-cell .shelfle-hint {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  opacity: 0.85;
+}
+/* Match: filled. --accent-ink on --status-active measured 8.78 dark (the
+   --bg ink on --ok) and 4.58 light (white on #2a8556); both clear 4.5:1 for
+   text. Close: a 2px --warn ring on the surface, a non-text mark (8.51 dark,
+   4.24 light on --surface). No: the plain cell. The hidden state word in
+   each cell carries the same information for a screen reader. */
+.shelfle-cell[data-state='match'] {
+  background: var(--status-active);
+  border-color: var(--status-active);
+  color: var(--accent-ink);
+}
+.shelfle-cell[data-state='close'] {
+  background: var(--surface);
+  border-color: var(--warn);
+  box-shadow: inset 0 0 0 1px var(--warn);
+}
+.shelfle-cell[data-state='no'] {
+  background: var(--surface);
+  color: var(--text-2);
+}
+.shelfle-empty td {
+  background: transparent;
+  border: 0;
+  height: auto;
+  padding: 0;
+}
+.shelfle-empty-cells {
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: 32% repeat(4, minmax(0, 1fr));
+}
+.shelfle-empty-cells span {
+  background: var(--sunken);
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  display: block;
+  height: 2.6rem;
+}
+
+.daily-legend {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  gap: 0.75rem;
+  margin: 0;
+}
+.daily-legend i {
+  background: var(--sunken);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  display: inline-block;
+  height: 0.8rem;
+  margin-right: 0.3rem;
+  vertical-align: -2px;
+  width: 0.8rem;
+}
+.daily-legend i[data-state='match'] {
+  background: var(--status-active);
+  border-color: var(--status-active);
+}
+.daily-legend i[data-state='close'] {
+  border-color: var(--warn);
+  box-shadow: inset 0 0 0 1px var(--warn);
+}
+
+/* The guess combobox. */
+.guess-box {
+  display: grid;
+  gap: 0.35rem;
+  position: relative;
+}
+.guess-input {
+  background: var(--sunken);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.6rem 0.75rem;
+  width: 100%;
+}
+.guess-input::placeholder {
+  color: var(--text-3);
+}
+.guess-input:disabled {
+  opacity: 0.55;
+}
+.guess-count {
+  font-size: 0.75rem;
+}
+.guess-list {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px var(--overlay);
+  left: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% - 1.1rem);
+  z-index: 3;
+}
+.guess-list li {
+  align-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  padding: 0.4rem 0.5rem;
+}
+.guess-list li[aria-selected='true'] {
+  background: var(--sunken);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.guess-thumb {
+  width: 2rem;
+}
+.guess-thumb .cover {
+  border-radius: 3px;
+}
+.guess-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.guess-sub {
+  font-size: 0.75rem;
+}
+
+/* The result card. */
+.daily-result {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  padding-top: 0.9rem;
+}
+.daily-result-body {
+  display: grid;
+  gap: 0.35rem;
+}
+.daily-result h2 {
+  font-size: 1.125rem;
+  margin: 0;
+}
+.daily-result-name,
+.daily-result-facts {
+  font-size: 0.9375rem;
+  margin: 0;
+}
+.daily-result-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.daily-yesterday {
+  border-top: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0;
+  padding-top: 0.9rem;
+}
+.daily-yesterday b {
+  color: var(--text);
+}
+
+/* The share sheet. */
+.share-sheet {
+  max-width: 26rem;
+}
+.share-sheet-body {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem 1rem 1.25rem;
+}
+.share-sheet-body h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+.share-grid,
+.share-text {
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: 0.9375rem/1.4 var(--font-mono);
+  margin: 0;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  width: 100%;
+}
+.share-text {
+  resize: none;
+}
+.share-words-lead,
+.share-words {
+  font-size: 0.75rem;
+  margin: 0;
+}
+.share-words {
+  padding-left: 1.1rem;
+}
+.share-status {
+  margin: 0;
+  min-height: 1.5em;
+}
+.share-sheet-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 34rem) {
+  /* At phone width the graded cells, not the title, need the room: "Medium"
+     inside a close ring had under a pixel to spare at 400px. */
+  .shelfle {
+    border-spacing: 0.25rem;
+    margin: 0 -0.25rem;
+    width: calc(100% + 0.5rem);
+  }
+  .shelfle th.shelfle-title {
+    width: 28%;
+  }
+  .shelfle-empty-cells {
+    gap: 0.25rem;
+    grid-template-columns: 28% repeat(4, minmax(0, 1fr));
+  }
+  .shelfle td {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.25rem;
+  }
+  .daily-result {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+}
+.daily-entry {
+  margin: 0;
 }
