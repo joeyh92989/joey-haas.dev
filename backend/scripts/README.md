@@ -329,3 +329,33 @@ is recorded as failed rather than missing; a store never posted (the step's
 timeout, a failed install) gets no run that night, and only the nightly's
 summary shows it. The admin "Refresh stores" button still walks every store
 from Render, and Shopify still answers it 429.
+
+## export_picker_fixture.py
+
+Exports the collection as `tests/fixtures/picker_collection.json`, the
+anonymised fixture the recommendation engine's regression tests run on
+(recommendation engine spec, AC 5 and AC 6).
+
+**Why:** the engine's failures showed up on the real collection — a game
+with two tags and no keywords outranking games that shared several of my
+facets — and a synthetic set only tests the cases someone thought of.
+
+**Anonymised, because the repo is public:** titles, ids, covers, notes,
+platforms and the public flag are dropped; items are keyed `game-001`,
+`comic-001`, … in uuid order; every date becomes days before the export
+day; `similar_games` keeps only links to other exported items. Tags,
+ratings, favourites, statuses, time to beat, runtime, comic read counts and
+each run's journal totals are kept, since they are what the engine reads.
+
+**Run** from `backend/`, in the main checkout or any worktree. It reads
+`DATABASE_URL_DIRECT` from the main checkout's `backend/.env`, as
+`migrate_neon.py` does, and never prints it. It only reads.
+
+```bash
+./.venv/bin/python scripts/export_picker_fixture.py --dry-run
+./.venv/bin/python scripts/export_picker_fixture.py
+```
+
+`--public-only` exports public rows only. The run prints one line:
+`exported N comic, N game, N movie; N tagged, N runs`. Commit the file;
+re-export when the engine needs newer data, never edit it by hand.
