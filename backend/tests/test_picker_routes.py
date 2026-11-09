@@ -397,6 +397,7 @@ async def test_picker_items_carry_source_tags_and_each_types_size(
     assert as_movie.runtime_minutes == 155.0
     assert as_movie.tags == (("keywords", "space opera"),)
     assert (as_comic.issues_owned_count, as_comic.issues_read) == (6, 4)
+    assert as_comic.issues_span == 6
     assert as_comic.play is None
 
 

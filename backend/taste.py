@@ -31,7 +31,7 @@ from datetime import date
 from statistics import mean
 
 from facets import facets_of, specificity
-from picker import PickerItem
+from picker_items import PickerItem
 
 BASE_WEIGHTS = {"favorite": 1.0, "finished": 0.3, "abandoned": -0.5}
 FINISHED_FLOOR = 0.1
