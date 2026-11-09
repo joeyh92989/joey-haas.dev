@@ -699,7 +699,7 @@ def create_items_router(
                     journal_days=days,
                     journal_minutes=minutes,
                 )
-                for run, days, minutes in runs.get(item.id, [])
+                for run, days, minutes, _last in runs.get(item.id, [])
             ]
 
     @router.get("", response_model=list[ItemOut])

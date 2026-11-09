@@ -159,7 +159,7 @@ async def open_run_details(
     ]
     details = {}
     for item_id, runs in (await runs_with_journal(session, open_ids)).items():
-        for run, _days, minutes in runs:
+        for run, _days, minutes, _last in runs:
             if run.outcome is not None:
                 continue
             if status[item_id] == ItemStatus.PAUSED:

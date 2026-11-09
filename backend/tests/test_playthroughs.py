@@ -361,10 +361,17 @@ async def test_journal_is_attributed_to_the_run_that_holds_the_day(
             session.add(PlaySession(item_id=item.id, played_on=day, minutes=minutes))
         await session.flush()
         got = (await pt.runs_with_journal(session, [item.id]))[item.id]
-        assert [(run.number, days, minutes) for run, days, minutes in got] == [
-            (1, 2, 90),
-            (2, 2, 15),
+        assert [
+            (run.number, days, minutes, last) for run, days, minutes, last in got
+        ] == [
+            (1, 2, 90, D2),
+            (2, 2, 15, TODAY),
         ]
+
+
+def test_attribute_journal_last_day_is_none_without_journal():
+    runs = [Run(number=1, started_on=D1)]
+    assert pt.attribute_journal(runs, []) == {1: (0, 0, None)}
 
 
 @pytest.mark.asyncio

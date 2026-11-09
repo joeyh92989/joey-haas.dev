@@ -467,15 +467,17 @@ async def delete_run(session: AsyncSession, item: Item, number: int) -> None:
 
 def attribute_journal(
     runs: list[Run], days: list[tuple[date, int | None]]
-) -> dict[int, tuple[int, int]]:
-    """(days, minutes) of journal per run number, attributed by date.
+) -> dict[int, tuple[int, int, date | None]]:
+    """(days, minutes, last day) of journal per run number, attributed by date.
 
     A day belongs to the dated run whose [started_on, finished_on] holds it
     (an open run's range runs to today); days no dated run claims go to the
     open run, else to the latest dateless one. Journal rows are not linked
     to runs (spec, Out of scope), so this is the whole of the attribution.
     """
-    totals = {run.number: (0, 0) for run in runs}
+    totals: dict[int, tuple[int, int, date | None]] = {
+        run.number: (0, 0, None) for run in runs
+    }
     current = open_run(runs)
     dateless = [run for run in runs if run.started_on is None]
     fallback = current or (max(dateless, key=lambda r: r.number) if dateless else None)
@@ -492,15 +494,20 @@ def attribute_journal(
         )
         if owner is None:
             continue
-        count, total = totals[owner.number]
-        totals[owner.number] = (count + 1, total + (minutes or 0))
+        count, total, last = totals[owner.number]
+        totals[owner.number] = (
+            count + 1,
+            total + (minutes or 0),
+            played_on if last is None else max(last, played_on),
+        )
     return totals
 
 
 async def runs_with_journal(
     session: AsyncSession, item_ids: list[uuid.UUID]
-) -> dict[uuid.UUID, list[tuple[Run, int, int]]]:
-    """Each item's runs with their journal (days, minutes), in two queries."""
+) -> dict[uuid.UUID, list[tuple[Run, int, int, date | None]]]:
+    """Each item's runs with their journal (days, minutes, last day played),
+    in two queries."""
     if not item_ids:
         return {}
     rows = await session.execute(
