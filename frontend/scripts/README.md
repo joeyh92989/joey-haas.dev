@@ -177,3 +177,42 @@ scripts: published entries (`draft: true` skipped, as the plugin's production
 build does), newest first. `prerender.mjs` and `generate-rss.mjs` both use it,
 so they agree on what is published. `rssFeed` and `writeFeed` build the feeds.
 Tested in `markdown-lib.test.mjs`.
+
+## draw-denver-map.mjs
+
+Draws the `/denver` poster map from OpenStreetMap and writes it to
+`src/content/maps/denver.js`, which is committed. It is an authoring step,
+not part of the build: the page never calls Overpass or a tile server. Run it
+again only to redraw or extend the map, then commit the result.
+
+```bash
+node scripts/draw-denver-map.mjs                  # fetch the area, write the module
+node scripts/draw-denver-map.mjs --record-fixture # re-record the test fixture
+```
+
+**What it does.** One Overpass query (`out geom`) for the streets, the South
+Platte and Cherry Creek, and the parks inside `DENVER_AREA`. It projects them
+north-up with `src/lib/mapFit.js`, the same projection the page uses for
+pins. Only the west edge and the latitudes are chosen; the east edge follows
+from the 800×600 viewBox, so the drawing keeps the cos(latitude) proportions
+`makeFit` insists on. Each layer (arterials, streets, water, parks) becomes
+one path. Coordinates are rounded to 0.1, simplified with Douglas–Peucker
+and clipped to a padded frame. Elements are sorted by id first, so the same
+answer always writes the same file. Neighbourhood and water labels and the
+two reference intersections in the module's `fit` are placed by hand in the
+script.
+
+**Attribution.** The data is ODbL. The module's header says so, and its
+`attribution` field is the line the page shows beside the map.
+
+**Overpass.** The main instance often answers 502 or 504 under load. Set
+`OVERPASS_URL` to a mirror, for example
+`https://overpass.private.coffee/api/interpreter`. The script sends a generic
+user agent, with no personal contact details.
+
+**Tests.** `draw-denver-map.test.mjs` runs `buildDrawing` on a recorded
+answer for a small area around Union Station
+(`fixtures/overpass-union-station.json`), with no network. It checks that
+the output is deterministic, that real intersections fall on the drawn
+lines, and that the committed module's fit, labels and attribution are
+valid. The fixture and the module are generated, so Prettier ignores them.
