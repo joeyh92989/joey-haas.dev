@@ -15,6 +15,7 @@ import {
   renderHead,
   robots,
   sitemap,
+  strayTripDirs,
 } from './prerender-lib.mjs'
 import { readPublished } from './markdown-lib.mjs'
 
@@ -274,6 +275,25 @@ describe('renderHead', () => {
     expect(head).toContain(`<link rel="canonical" href="${url}" />`)
     expect(head).toContain(`<meta property="og:url" content="${url}" />`)
     expect(sitemap(routes)).toContain(`<loc>${url}</loc>`)
+  })
+})
+
+describe('strayTripDirs', () => {
+  it('names every travel folder that is not a published trip', () => {
+    // A draft's built photos are copied from public/ like any other file;
+    // only a published trip's folder may stay in dist.
+    expect(
+      strayTripDirs(
+        ['lisbon-2019', 'croatia-greece-2026', 'ireland-2014'],
+        [{ slug: 'lisbon-2019' }],
+      ),
+    ).toEqual(['croatia-greece-2026', 'ireland-2014'])
+  })
+
+  it('keeps everything when every folder is published', () => {
+    expect(strayTripDirs(['lisbon-2019'], [{ slug: 'lisbon-2019' }])).toEqual(
+      [],
+    )
   })
 })
 

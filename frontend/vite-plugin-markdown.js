@@ -112,7 +112,7 @@ async function compileTrip({ data, content, slug, id }) {
   )
   const photoNames = manifest ? manifest.map((photo) => photo.name) : undefined
 
-  const frontmatter = parseTripFrontmatter(data, slug, photoNames)
+  const frontmatter = parseTripFrontmatter(data, slug, photoNames, photos)
   const days = parseTripDays(content, {
     slug,
     places: frontmatter.places,

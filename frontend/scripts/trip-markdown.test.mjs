@@ -154,6 +154,20 @@ describe('parseTripFrontmatter', () => {
     ).toThrow(/cover "missing" is not in the photo manifest/)
   })
 
+  it('refuses a kid photo as the cover unless it opts in', () => {
+    const names = ['walls-afternoon']
+    expect(() =>
+      parseTripFrontmatter(FRONTMATTER, 'croatia-greece-2026', names, {
+        'walls-afternoon': { kid: true },
+      }),
+    ).toThrow(/cover "walls-afternoon" is marked kid: true without publish/)
+    expect(
+      parseTripFrontmatter(FRONTMATTER, 'croatia-greece-2026', names, {
+        'walls-afternoon': { kid: true, publish: true },
+      }).cover,
+    ).toBe('walls-afternoon')
+  })
+
   it('allows a trip with no cover', () => {
     const data = { ...FRONTMATTER }
     delete data.cover
@@ -310,7 +324,50 @@ describe('parseTripDays', () => {
         '## Day 1 · Arrive · Dubrovnik\nLanded.\n![A street](photos/walls.jpg)\n',
         trip(),
       ),
-    ).toThrow(/a photo line must be/)
+    ).toThrow(/a photo goes on a line of its own/)
+  })
+
+  it('refuses an image in the middle of a line, but not one in inline code', () => {
+    expect(() =>
+      parseTripDays(
+        '## Day 1 · Arrive · Dubrovnik\nLanded late. ![Walls](walls-afternoon)\n',
+        trip(),
+      ),
+    ).toThrow(/a photo goes on a line of its own/)
+    const [day] = parseTripDays(
+      '## Day 1 · Arrive · Dubrovnik\nThe syntax is `![alt](name)`.\n',
+      trip(),
+    )
+    expect(day.markdown).toBe('The syntax is `![alt](name)`.')
+  })
+
+  it('keeps a fenced block as prose: no headings, no photos inside it', () => {
+    const body = [
+      '## Day 1 · Arrive · Dubrovnik',
+      'Set up the hotspot.',
+      '```bash',
+      '# install',
+      '## Day 9 · not a day · Nowhere',
+      '![alt](walls-afternoon)',
+      '```',
+      '~~~~md',
+      '```',
+      '![still](code)',
+      '~~~~',
+      '## Day 2 · The walls · Dubrovnik',
+      'Up top.',
+    ].join('\n')
+    const days = parseTripDays(body, trip())
+    expect(days.map((day) => day.id)).toEqual(['day-1', 'day-2'])
+    expect(days[0].photos).toEqual([])
+    expect(days[0].markdown).toContain('# install\n## Day 9')
+    expect(days[0].markdown).toContain('![still](code)\n~~~~')
+  })
+
+  it('refuses a fence that is never closed', () => {
+    expect(() =>
+      parseTripDays('## Day 1 · Arrive · Dubrovnik\nHi.\n```\ncode\n', trip()),
+    ).toThrow(/a code fence \(```\) is never closed/)
   })
 
   it('refuses the same photo twice in one day', () => {

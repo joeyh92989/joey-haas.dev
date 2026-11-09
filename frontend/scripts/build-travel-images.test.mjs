@@ -68,10 +68,11 @@ async function writeManifest(photos) {
  * Writes the trip file the build reads its photo list from: one day, each
  * named photo on its own image line.
  */
-async function writeTrip(names, { cover } = {}) {
+async function writeTrip(names, { cover, draft = false } = {}) {
   const lines = [
     '---',
     'title: Test trip',
+    ...(draft ? ['draft: true'] : []),
     'date: 2026-09-12',
     'end: 2026-09-12',
     'summary: A trip for the tests.',
@@ -211,10 +212,58 @@ describe('buildTripImages', () => {
     expect(unused.map((photo) => photo.name)).toEqual(['never-chosen'])
     const written = await fs.readdir(path.join(outDir, SLUG))
     expect(written.some((file) => file.startsWith('never-chosen'))).toBe(false)
+    // Published: the manifest keeps only what the trip shows.
+    expect((await readManifest()).map((photo) => photo.name)).toEqual([
+      'the-cover',
+      'in-a-day',
+    ])
+  })
+
+  it('keeps the whole roll in a draft manifest, unbuilt', async () => {
+    await writeSource('a.jpg')
+    await writeSource('b.jpg')
+    await writeManifest([
+      { name: 'in-a-day', file: 'a.jpg' },
+      { name: 'never-chosen', file: 'b.jpg' },
+    ])
+    await writeTrip(['in-a-day'], { draft: true })
+
+    await build()
+
     const manifest = await readManifest()
-    expect(
-      manifest.find((photo) => photo.name === 'never-chosen').width,
-    ).toBeUndefined()
+    expect(manifest.map((photo) => photo.name)).toEqual([
+      'in-a-day',
+      'never-chosen',
+    ])
+    expect(manifest[1].width).toBeUndefined()
+  })
+
+  it('removes the built sizes of a photo no longer in the trip', async () => {
+    await writeSource('a.jpg')
+    await writeSource('b.jpg')
+    await writeManifest([
+      { name: 'stays', file: 'a.jpg' },
+      { name: 'goes', file: 'b.jpg', kid: true, publish: true },
+    ])
+    await writeTrip(['stays', 'goes'], { draft: true })
+    await build()
+    const folder = path.join(outDir, SLUG)
+    await fs.writeFile(path.join(folder, 'notes.txt'), 'not ours')
+
+    // Unpublished after it was built: it must leave public/.
+    await writeManifest([
+      { name: 'stays', file: 'a.jpg' },
+      { name: 'goes', file: 'b.jpg', kid: true },
+    ])
+    await writeTrip(['stays'], { draft: true })
+    const { removed } = await build()
+
+    expect(removed).toEqual(['goes-1600.webp', 'goes-800.webp'])
+    expect((await fs.readdir(folder)).sort()).toEqual([
+      'notes.txt',
+      'stays-1600.webp',
+      'stays-800.webp',
+    ])
   })
 
   it('refuses to build for a trip file that is missing or does not parse', async () => {

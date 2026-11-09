@@ -271,6 +271,20 @@ export function publicRoutes({ posts, notes = [], trips = [], items }) {
 }
 
 /**
+ * The folders under `dist/travel/` to delete: every one that is not a
+ * published trip's. Vite copies all of `public/` into `dist/`, so a draft
+ * trip's built photos would otherwise deploy at guessable URLs while its
+ * page does not.
+ *
+ * @param {string[]} dirs The folder names in `dist/travel/`.
+ * @param {{slug: string}[]} trips The published trips.
+ */
+export function strayTripDirs(dirs, trips) {
+  const published = new Set(trips.map((trip) => trip.slug))
+  return dirs.filter((dir) => !published.has(dir)).sort()
+}
+
+/**
  * The heads written at the pre-rename /spine URLs: the shelf, What's next,
  * How it works and every item page. Each is its /shelf route under the old
  * path, with the canonical URL and og:url still on /shelf, so a link shared

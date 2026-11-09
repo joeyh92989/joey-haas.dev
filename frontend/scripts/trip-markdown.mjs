@@ -30,6 +30,9 @@ const IMAGE_LINE =
   /^!\[([^\]]*)\]\(\s*([A-Za-z0-9][A-Za-z0-9-]*)\s*(?:"([^"]*)"|'([^']*)')?\s*\)$/
 
 /** A day label: `3`, or a range `8-9` / `8–9` (hyphen or en dash). */
+/** A fenced code block's opening or closing line (CommonMark's two kinds). */
+const FENCE = /^ {0,3}(`{3,}|~{3,})/
+
 const DAY_LABEL = /^(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?$/
 
 /** Manifest names and slugs share one safe shape; both reach a URL. */
@@ -91,12 +94,14 @@ export function addDays(date, offset) {
  * @param {object} data gray-matter's parsed frontmatter.
  * @param {string} slug The file's slug, for error messages.
  * @param {string[]} [photoNames] Manifest names, to check `cover` against.
+ * @param {Record<string, {kid?: boolean, publish?: boolean}>} [photos]
+ *   The manifest by name, for the cover's kid check.
  *   Omitted when no manifest has been written yet.
  * @returns {{title: string, date: string, end: string, precision: string,
  *   summary: string, cover: string|null, places: {name: string, lat: number,
  *   lon: number}[], draft: boolean}}
  */
-export function parseTripFrontmatter(data, slug, photoNames) {
+export function parseTripFrontmatter(data, slug, photoNames, photos) {
   if (!NAME.test(slug)) {
     fail(
       slug,
@@ -155,6 +160,12 @@ export function parseTripFrontmatter(data, slug, photoNames) {
     if (photoNames && !photoNames.includes(cover)) {
       fail(slug, `cover "${cover}" is not in the photo manifest`)
     }
+    // The image build skips a kid photo without publish: true, so as a
+    // cover it would be a broken card and a 404 og:image.
+    const entry = photos?.[cover]
+    if (entry?.kid === true && entry.publish !== true) {
+      fail(slug, `cover "${cover}" is marked kid: true without publish: true`)
+    }
   }
 
   return {
@@ -211,8 +222,28 @@ export function parseTripDays(content, trip) {
     if (day) day.markdown = day.markdown.trim()
   }
 
+  // The open fence's marker (``` or ~~~, at its length), or null. Inside a
+  // fenced block every line is prose: a `# comment` in a shell snippet is
+  // not a heading, and an image line in a markdown snippet is not a photo.
+  let fence = null
+
   for (const raw of content.split(/\r?\n/)) {
     const line = raw.trimEnd()
+
+    const marker = line.match(FENCE)?.[1]
+    if (fence) {
+      if (marker && marker[0] === fence[0] && marker.length >= fence.length) {
+        fence = null
+      }
+      day.markdown += `${line}\n`
+      continue
+    }
+    if (marker) {
+      if (!day) fail(slug, `prose before the first day: ${line}`)
+      fence = marker
+      day.markdown += `${line}\n`
+      continue
+    }
 
     if (/^#{1,6}\s/.test(line)) {
       const heading = line.match(/^(#{1,6})\s+(.*)$/)
@@ -309,8 +340,13 @@ export function parseTripDays(content, trip) {
       continue
     }
 
-    if (line.trim().startsWith('![')) {
-      fail(slug, `a photo line must be \`![alt](name "caption")\`: ${line}`)
+    // Anywhere else, outside inline code, an image would reach the page as
+    // a bare <img> with a manifest name for a src.
+    if (line.replace(/`[^`]*`/g, '').includes('![')) {
+      fail(
+        slug,
+        `a photo goes on a line of its own, as \`![alt](name "caption")\`: ${line}`,
+      )
     }
 
     if (!day) {
@@ -320,6 +356,7 @@ export function parseTripDays(content, trip) {
     day.markdown += `${line}\n`
   }
 
+  if (fence) fail(slug, `a code fence (${fence}) is never closed`)
   flushProse()
   if (days.length === 0)
     fail(slug, 'no days: a trip needs at least one "## Day" heading')

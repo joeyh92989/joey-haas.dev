@@ -150,7 +150,7 @@ async function readReferencedNames({ slug, tripsDir, manifest }) {
     manifest.map((photo) => [photo.name, photo]),
   )
   try {
-    const frontmatter = parseTripFrontmatter(data, slug, photoNames)
+    const frontmatter = parseTripFrontmatter(data, slug, photoNames, photos)
     const days = parseTripDays(content, {
       slug,
       places: frontmatter.places,
@@ -159,7 +159,10 @@ async function readReferencedNames({ slug, tripsDir, manifest }) {
       photoNames,
       photos,
     })
-    return new Set(referencedPhotoNames(frontmatter, days))
+    return {
+      referenced: new Set(referencedPhotoNames(frontmatter, days)),
+      draft: frontmatter.draft,
+    }
   } catch (error) {
     fail(error.message)
   }
@@ -179,7 +182,8 @@ async function readReferencedNames({ slug, tripsDir, manifest }) {
  * @param {string} input.tripsDir Holding `<slug>/photos/`.
  * @param {string} input.outDir Holding `<slug>/` (public/travel).
  * @param {(line: string) => void} [input.log]
- * @returns {Promise<{built: object[], skipped: object[], unused: object[]}>}
+ * @returns {Promise<{built: object[], skipped: object[], unused: object[],
+ *   removed: string[]}>}
  */
 export async function buildTripImages({
   slug,
@@ -191,7 +195,11 @@ export async function buildTripImages({
   const photosDir = path.join(tripsDir, slug, 'photos')
   const manifestFile = path.join(photosDir, 'photos.json')
   const manifest = await readManifest(manifestFile)
-  const referenced = await readReferencedNames({ slug, tripsDir, manifest })
+  const { referenced, draft } = await readReferencedNames({
+    slug,
+    tripsDir,
+    manifest,
+  })
   const destination = path.join(outDir, slug)
   await fs.mkdir(destination, { recursive: true })
 
@@ -227,14 +235,53 @@ export async function buildTripImages({
     log(`${photo.name} → ${files.join(', ')} (${width}×${height})`)
   }
 
-  await fs.writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`)
+  const removed = await pruneOutput(destination, built)
+  for (const file of removed) log(`removed ${file} (no longer in the trip)`)
+
+  // The manifest is committed, so on a published trip it keeps only the
+  // photos the trip shows: an unchosen photo's capture minute and original
+  // filename are nobody's business. A draft keeps the whole roll to choose
+  // from.
+  const kept = draft
+    ? manifest
+    : manifest.filter((photo) => referenced.has(photo.name))
+  if (!draft && unused.length) {
+    log(`dropped ${unused.length} unused photo(s) from photos.json`)
+  }
+  await fs.writeFile(manifestFile, `${JSON.stringify(kept, null, 2)}\n`)
   log(
     `${built.length} photo${built.length === 1 ? '' : 's'} built into ` +
       `${path.relative(process.cwd(), destination)}` +
       (skipped.length ? `, ${skipped.length} skipped` : '') +
       (unused.length ? `, ${unused.length} not in the trip file` : ''),
   )
-  return { built, skipped, unused }
+  return { built, skipped, unused, removed }
+}
+
+/** A file this script writes: `<name>-<width>.webp`. */
+const OUTPUT = /^([a-z0-9]+(?:-[a-z0-9]+)*)-(\d+)\.webp$/
+
+/**
+ * Deletes every built size in the trip's output folder that this run did
+ * not write: a photo taken out of the trip, or marked kid since it was
+ * built, must leave public/ rather than stay deployed at a guessable URL.
+ * Only files of this script's own shape are touched.
+ *
+ * @returns {Promise<string[]>} The file names removed.
+ */
+async function pruneOutput(destination, built) {
+  const keep = new Set(
+    built.flatMap((photo) =>
+      WIDTHS.map((width) => `${photo.name}-${width}.webp`),
+    ),
+  )
+  const removed = []
+  for (const file of await fs.readdir(destination)) {
+    if (!OUTPUT.test(file) || keep.has(file)) continue
+    await fs.rm(path.join(destination, file))
+    removed.push(file)
+  }
+  return removed.sort()
 }
 
 /** Whether this module was run directly rather than imported. */
