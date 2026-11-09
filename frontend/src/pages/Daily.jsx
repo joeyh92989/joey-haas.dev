@@ -48,6 +48,9 @@ export default function Daily() {
   const [stored, setStored] = useState(() => readDaily())
   const [status, setStatus] = useState('')
   const [sharing, setSharing] = useState(false)
+  // True once this visit ends the game, so the result takes focus from the
+  // input it replaces; a day restored finished leaves focus alone.
+  const [endedHere, setEndedHere] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -104,6 +107,7 @@ export default function Daily() {
     const solved = item.id === pick.item.id
     if (solved || made >= MAX_GUESSES) {
       next = recordOutcome(next, pick.day, solved)
+      setEndedHere(true)
       setStatus(
         solved ? copy.announce.won(made) : copy.announce.lost(pick.item.title),
       )
@@ -177,6 +181,7 @@ export default function Daily() {
                 won={won}
                 guesses={rows.length}
                 onShare={() => setSharing(true)}
+                focusOnMount={endedHere}
               />
             )}
             {yesterday && (

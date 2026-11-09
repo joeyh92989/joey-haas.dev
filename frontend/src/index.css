@@ -4984,7 +4984,8 @@ a.month-bar::before {
 /* Route changes move focus here or to the page's h1 (useRouteFocus); the
    focus is for screen readers and the next Tab, not a visible ring. */
 main:focus,
-main h1[tabindex='-1']:focus {
+main h1[tabindex='-1']:focus,
+.daily-result h2[tabindex='-1']:focus {
   outline: none;
 }
 

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import CoverImage from './CoverImage.jsx'
 import { daily } from '../content/daily.js'
@@ -16,8 +17,22 @@ const copy = daily.result
  * @param {boolean} props.won Whether the last guess was the answer.
  * @param {number} props.guesses Guesses made.
  * @param {() => void} props.onShare Opens the share sheet.
+ * @param {boolean} [props.focusOnMount] Move focus to the outcome line, for a
+ *   game that ended in this visit: the guess input it replaces unmounts, which
+ *   would otherwise drop a keyboard user's focus to the page. Not set for a day
+ *   restored from storage, so a visit never has its focus taken.
  */
-export default function DailyResult({ answer, won, guesses, onShare }) {
+export default function DailyResult({
+  answer,
+  won,
+  guesses,
+  onShare,
+  focusOnMount = false,
+}) {
+  const titleRef = useRef(null)
+  useEffect(() => {
+    if (focusOnMount) titleRef.current?.focus()
+  }, [focusOnMount])
   const facts = [
     shortPlatform(answer.platform),
     yearOf(answer),
@@ -31,7 +46,7 @@ export default function DailyResult({ answer, won, guesses, onShare }) {
         <CoverImage src={answer.cover_url} type="game" />
       </div>
       <div className="daily-result-body">
-        <h2 id="daily-result-title">
+        <h2 id="daily-result-title" ref={titleRef} tabIndex={-1}>
           {won ? copy.gotIt(guesses) : copy.notToday(answer.title)}
         </h2>
         <p className="daily-result-name">

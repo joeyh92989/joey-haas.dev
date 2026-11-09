@@ -170,6 +170,19 @@ describe('Daily', () => {
     expect(await axeViolations(container)).toEqual([])
   })
 
+  it('moves focus to the outcome when the game ends, not on a restored day', async () => {
+    const user = userEvent.setup()
+    const { unmount } = renderPage()
+    await screen.findByText('Day 3 · 12 Nov')
+    await guess(user, answer().title)
+    expect(screen.getByRole('heading', { name: 'Got it in 1.' })).toHaveFocus()
+
+    unmount()
+    renderPage()
+    const heading = await screen.findByRole('heading', { name: 'Got it in 1.' })
+    expect(heading).not.toHaveFocus()
+  })
+
   it('loses after six misses and names the answer', async () => {
     const user = userEvent.setup()
     renderPage()
