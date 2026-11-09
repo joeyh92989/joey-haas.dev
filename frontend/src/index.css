@@ -6434,3 +6434,158 @@ main h1[tabindex='-1']:focus {
   font-size: 0.875rem;
   margin-top: 0.75rem;
 }
+
+/* Denver spots (/admin/spots): the spots table and the spot form. The
+   table reuses .item-table and the form .item-detail-form; only what
+   differs is here. */
+.spots-notice:empty {
+  display: none;
+}
+
+.spots-notice {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0 0 1rem;
+}
+
+.spot-form-wrap {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+}
+
+.spot-form-title,
+.spot-form-error {
+  grid-column: 1 / -1;
+}
+
+.spot-form-title {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.spot-form-label {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.spot-form-hint {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  margin: 0.25rem 0 0;
+}
+
+.spot-form-check {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.spot-form-check .spot-form-hint {
+  margin: 0;
+}
+
+.spots-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.spots-search {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  flex: 1 1 14rem;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.spots-search:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spots-counts {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.spots-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-2);
+  font: 500 0.75rem var(--font-mono);
+  padding: 0.15rem 0.6rem;
+}
+
+.spots-table th[scope='row'] {
+  font-weight: 500;
+}
+
+.spots-name > span:first-child {
+  margin-right: 0.4rem;
+}
+
+.spots-hood {
+  color: var(--text-3);
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+.spots-anchor {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font: 500 0.6875rem var(--font-mono);
+  padding: 0 0.4rem;
+}
+
+.spots-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.spots-tags li {
+  color: var(--text-2);
+  font-size: 0.8125rem;
+}
+
+.spots-actions {
+  white-space: nowrap;
+}
+
+.spots-actions button + button {
+  margin-left: 0.4rem;
+}
+
+/* The phone drops Last visit; the rest fits 400px without scrolling. */
+@media (max-width: 700px) {
+  .spots-table {
+    min-width: 0;
+  }
+
+  .spots-actions {
+    white-space: normal;
+  }
+
+  .spots-actions button {
+    margin: 0.2rem 0;
+  }
+
+  .spot-form-wrap .item-detail-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

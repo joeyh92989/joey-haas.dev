@@ -32,6 +32,7 @@ const AdminDiscover = lazy(() => import('./pages/AdminDiscover.jsx'))
 const AdminRadar = lazy(() => import('./pages/AdminRadar.jsx'))
 const AdminPullList = lazy(() => import('./pages/AdminPullList.jsx'))
 const AdminStoreList = lazy(() => import('./pages/AdminStoreList.jsx'))
+const AdminSpots = lazy(() => import('./pages/AdminSpots.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminImport = lazy(() => import('./pages/AdminImport.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
@@ -118,6 +119,7 @@ export default function App() {
           <Route path="pull-list" element={<AdminPullList />} />
           <Route path="discover" element={<AdminDiscover />} />
           <Route path="store-list" element={<AdminStoreList />} />
+          <Route path="spots" element={<AdminSpots />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />
           {/* Inside the shell, so a mistyped admin URL keeps the sidebar. */}
           <Route path="*" element={<NotFound />} />
