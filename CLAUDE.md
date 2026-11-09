@@ -33,7 +33,8 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 - Frontend dev: `cd frontend && npm run dev` (http://localhost:5173)
 - Backend dev: `cd backend && source .venv/bin/activate && uvicorn main:app --reload` (http://localhost:8000)
-- Frontend build check: `cd frontend && npm run build`
+- Frontend build check: `cd frontend && VITE_DAILY_SALT=local npm run build`
+  (`vite.config.js` refuses a build without Shelfle's salt)
 - Frontend tests: `cd frontend && npm test`
 - Backend tests: `cd backend && ./.venv/bin/pytest`. One run at a time: every
   run drops and recreates the schema in the one local test database, so two
