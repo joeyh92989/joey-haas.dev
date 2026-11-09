@@ -176,6 +176,38 @@ describe('HowItWorks', () => {
     expect(pick).toHaveTextContent('Waited longest on the shelf')
   })
 
+  it('leads stop 3 with the game in hand and drops its pin from Up next', () => {
+    const card = {
+      item_id: 'u1',
+      type: 'game',
+      title: 'Pinned Game',
+      cover_url: null,
+      platform: 'Nintendo Switch',
+      time_to_beat_hours: 30,
+      playthrough: 1,
+      playing_since: '2026-10-24',
+      last_played_on: '2026-11-07',
+      journal_hours: 31,
+      sessions: 9,
+      stale: false,
+    }
+    mockData({
+      items: ready(ITEMS),
+      next: ready({
+        ...NEXT,
+        tonight: { ...NEXT.tonight, continuing: [card] },
+      }),
+    })
+    renderAt()
+    const three = within(stop(3))
+    expect(three.getByRole('article', { name: 'Pinned Game' })).toHaveClass(
+      'continue',
+    )
+    expect(three.queryByText(spine.next.upNext)).toBeNull()
+    expect(three.queryByRole('button')).toBeNull()
+    expect(three.getByText('First Pick')).toBeInTheDocument()
+  })
+
   it('shows the day’s other picks as covers on stop 3', () => {
     const second = {
       ...NEXT.tonight.picks[0],

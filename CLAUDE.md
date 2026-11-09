@@ -307,6 +307,14 @@ before pushing.
       `main.py` serves the admin and public reads (an hour's TTL for the
       public key), so the rollup clears both. Spec and plan:
       `docs/planning/2026-11-06-public-stats-design.md`
+- [x] Tonight continue — the Continue card leading Tonight on `/shelf/next`
+      and `/admin/play-next` while a game is `active` (`continuing.py`:
+      one builder for `tonight.continuing` and `GET /api/picker/continuing`,
+      journal hours and sessions inside the open run, `last_played_on`,
+      `STALE_DAYS = 21` shipped as `stale`), the picks as a compact list,
+      Log tonight, and the Wrap up sheet from the card, the Now playing
+      band and the card menu. Migration `0012`. Spec and plan:
+      `docs/planning/2026-11-08-tonight-continue-design.md`
 - [ ] Rotate the ComicVine API key. It was written to Render's logs until
       2026-09-25 (request URLs logged at INFO; fixed by PR #26), and
       ComicVine's site has no way to regenerate it: ask their support to
@@ -334,7 +342,8 @@ before pushing.
   `0010` adds the comic columns on `items` (`issues_owned`,
   `issues_skipped`, `editions`, `read_to`, `shelf_format`, `following`);
   `0011` adds `paused` to `item_status` and the `playthroughs` table,
-  backfilled one finished run per completion.
+  backfilled one finished run per completion; `0012` adds the nullable
+  `playthroughs.note` (the Wrap up sheet's line).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -442,11 +451,17 @@ before pushing.
   from the admin collection page — per row, or with the bulk publish control.
   This was missing at first: the public API, page and filter all shipped
   without a way to set the flag, so the showcase was unreachable.
-- **Playthroughs** (migration `0011`) are one row per run of a game,
-  written only by `backend/playthroughs.py`. Every status change goes
-  through `POST /api/items/{id}/status` (`apply_status`; create, bulk
-  create, the pin route and the comics Got it call it too), and every hand
-  edit through the edit page's playthrough table. Each write ends in `sync`,
+- **Playthroughs** (migration `0011`, `note` from `0012`) are one row per
+  run of a game, written only by `backend/playthroughs.py`. Every status
+  change goes through `POST /api/items/{id}/status` (`apply_status`;
+  create, bulk create, the pin route and the comics Got it call it too),
+  and every hand edit through the edit page's playthrough table. The
+  route's `today` is the owner's local day (tolerance and the misclick
+  rule); the optional `on` backdates a Finished, Paused or Abandoned move
+  (never after today, never before the run's start) and `note` (≤ 500) is
+  the one line written on the run it touches, both refused on other
+  moves. On the shelf those three moves open the Wrap up sheet
+  (`WrapUpSheet`, `statusMoves.isWrapUp`) instead of writing at once. Each write ends in `sync`,
   which recomputes the cached item columns in the same transaction:
   `started_at` the earliest start, `finished_at` the last finish,
   `times_completed` the finished runs. Readers keep using those columns, so

@@ -9,6 +9,7 @@ import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { itemPath } from '../lib/spinePaths.js'
+import ContinueCard from '../components/ContinueCard.jsx'
 import TonightAlt from '../components/TonightAlt.jsx'
 
 const copy = spine.how
@@ -124,7 +125,11 @@ export default function HowItWorks() {
   const formats = formatRows(next.data)
   const radar = radarRows(next.data)
   const tonight = next.data?.tonight
-  const upNext = tonight?.up_next ?? null
+  const continuing = list(tonight?.continuing)
+  const inHand = new Set(continuing.map((card) => card.item_id))
+  const pinned = tonight?.up_next ?? null
+  // A pinned game being played is the Continue card, as on What's next.
+  const upNext = pinned && !inHand.has(pinned.item_id) ? pinned : null
   const [firstPick, ...otherPicks] = list(tonight?.picks)
 
   const live = {
@@ -147,8 +152,23 @@ export default function HowItWorks() {
         <Live
           state={next}
           empty={copy.stops[2].live.empty}
-          count={Number(Boolean(upNext)) + Number(Boolean(firstPick))}
+          count={
+            continuing.length +
+            Number(Boolean(upNext)) +
+            Number(Boolean(firstPick))
+          }
         >
+          {continuing.length > 0 && (
+            <ul className="tonight-continuing">
+              {continuing.map((card) => (
+                <ContinueCard
+                  key={card.item_id}
+                  card={card}
+                  to={itemPath(card.item_id)}
+                />
+              ))}
+            </ul>
+          )}
           <ul className="tonight-alts">
             {upNext && <TonightAlt pick={upNext} label={spine.next.upNext} />}
             {firstPick && <TonightAlt pick={firstPick} label={null} />}

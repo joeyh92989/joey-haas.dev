@@ -192,7 +192,7 @@ export const spine = {
         where: '/admin/play-next',
         title: 'Picks tonight’s game',
         claim:
-          'Six weighted terms score the backlog and anything I’ve paused: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. Each pick comes with a reason, and a paused game can come back as “Pick it back up”. A replay is a new playthrough, so finishing a game twice counts twice.',
+          'While I’m playing something, Tonight leads with it: the game in hand, how long I’ve been at it and when I last played, with the picks underneath as the fallback. Six weighted terms score the backlog and anything I’ve paused: how much I’ve liked games like it, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. Each pick comes with a reason, and a paused game can come back as “Pick it back up”. Rolling credits is one gesture, Wrap up: Finished, Paused or Abandoned, with a rating and a line while they’re fresh. A replay is a new playthrough, so finishing a game twice counts twice.',
         why: {
           lead: 'No model here.',
           text: 'The scoring is pure Python, tested without a database, and the public reasons are always rebuilt from public games only.',
@@ -200,7 +200,7 @@ export const spine = {
         code: ['backend/picker.py'],
         live: {
           caption:
-            'Up next, which I pin by hand, and the day’s picks, which change at most once a day.',
+            'The game I’m playing, if there is one; Up next, which I pin by hand; and the day’s picks, which change at most once a day.',
           empty: 'Nothing lined up for tonight.',
         },
         capture: {

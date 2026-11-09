@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-08
 
+- [Tonight](/shelf/next) leads with the game I'm playing while one is in progress: playing since, hours and sessions from the journal, last played, with the picks as a compact list underneath. Signed in, Wrap up finishes, pauses or abandons it in two taps, with a rating, a line and the date while they're fresh.
 - [Pick for me](/shelf/next#pick-for-me) on What's next: choose a length and up to two moods, and Play Next's own scoring picks three games from my backlog, with its working shown.
 
 ## 2026-11-07
