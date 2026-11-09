@@ -908,3 +908,10 @@ reason given. None changes a public URL or adds a token.
 - **Prerendered trip heads** use the trip's `summary` as the description
   (falling back to an excerpt of the prose) and its cover at 1600px as the
   link-preview image, with the cover's alt text.
+- **Shipped dark (M4).** T12's photos and notes were not ready at merge
+  time, so Croatia & Greece stays `draft: true` with placeholder photos and
+  Tokyo is not started (see `docs/travel-onboarding.md` → Trips to recover).
+  With nothing published, T13 adds no `render.yaml` rules (a rule for a page
+  the build did not write serves an empty 200, and the prerender test
+  refuses one), and T14's changelog entry would link a 404, so both wait
+  for the first published trip; the README's Travel log section says so.
