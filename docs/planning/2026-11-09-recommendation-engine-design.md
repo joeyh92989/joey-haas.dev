@@ -732,7 +732,7 @@ Every task follows TDD: write the failing test, implement, then bring the suite 
 - **AC:** AC 1, 13 and 14 seen. Screenshots go to Joey.
 
 ### Task 12 — Real-collection regression and facet pass (after STOP)
-- **Files:** `tests/fixtures/picker_collection.json` (from Joey's run), `tests/test_taste_collection.py`, and `facets.py` (a curation pass driven by `facet_coverage.py` on the export).
+- **Files:** `tests/fixtures/picker_collection.json` (from Joey's run; gitignored in review, since it could be matched back to real games, and the tests skip without it), `tests/test_taste_collection.py`, and `facets.py` (a curation pass driven by `facet_coverage.py` on the export).
 - **AC:**
   - AC 6 on the real data: the audit's two-tag, no-keyword game no longer outranks games sharing three or more seen facets;
   - AC 5 on a Balan-style set: one finished platformer, at most one pick sharing its leading facet, no two picks sharing one;

@@ -29,3 +29,7 @@ frontend/public/search-index.json
 
 # Design mockups shared between Code and Cowork; disposable once the UI exists.
 docs/planning/mockups/
+
+# The collection export (backend/scripts/export_picker_fixture.py): anonymised,
+# but matchable back to real games, so it stays local. Its tests skip without it.
+backend/tests/fixtures/picker_collection.json

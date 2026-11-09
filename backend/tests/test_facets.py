@@ -46,11 +46,29 @@ def source_strings() -> set[tuple[str, str, str]]:
     volume = json.loads((FIXTURES / "comicvine_volume.json").read_text())["results"]
     for kind in COMICVINE_KINDS:
         found |= {("comicvine", kind, v) for v in _names(volume.get(kind))}
-    export = FIXTURES / "picker_collection.json"
-    if export.exists():
-        for item in json.loads(export.read_text())["items"]:
-            for kind, values in item.get("tags", {}).items():
-                found |= {(item.get("source") or "", kind, v) for v in values}
+    found |= _attested()
+    found |= _export_strings()
+    return found
+
+
+EXPORT = FIXTURES / "picker_collection.json"
+
+
+def _attested() -> set[tuple[str, str, str]]:
+    """The few mapped strings only the collection export carries. The export
+    is gitignored (it could be matched back to real games), so they are kept
+    here, checked against it wherever it exists."""
+    body = json.loads((FIXTURES / "facet_attested.json").read_text())
+    return {tuple(entry) for entry in body["strings"]}
+
+
+def _export_strings() -> set[tuple[str, str, str]]:
+    if not EXPORT.exists():
+        return set()
+    found: set[tuple[str, str, str]] = set()
+    for item in json.loads(EXPORT.read_text())["items"]:
+        for kind, values in item.get("tags", {}).items():
+            found |= {(item.get("source") or "", kind, v) for v in values}
     return found
 
 
@@ -66,6 +84,15 @@ def test_every_mapped_string_is_one_a_source_actually_wrote():
     """AC 10: the map is copied from snapshots, never typed from memory."""
     missing = sorted(key for key in FACET_MAP if key not in source_strings())
     assert missing == []
+
+
+@pytest.mark.skipif(not EXPORT.exists(), reason="no collection export")
+def test_the_attested_strings_are_mapped_and_in_the_export():
+    """The committed list stands in for the export, so it holds only mapped
+    strings the export really carries."""
+    attested = _attested()
+    assert attested <= set(FACET_MAP)
+    assert attested <= _export_strings()
 
 
 def test_every_mapped_facet_has_a_kind():

@@ -391,14 +391,21 @@ at least MIN items, to the terminal only, and writes nothing.
 ```
 
 `--public-only` exports public rows only. The run prints one line:
-`exported N comic, N game, N movie; N tagged, N runs`. Commit the file;
-re-export when the engine needs newer data, never edit it by hand.
+`exported N comic, N game, N movie; N tagged, N runs`. The file is
+gitignored and stays on the machine that exported it: anonymised or not,
+ratings, run dates and the shape of the collection could be matched back to
+real games in a public repo. `test_taste_collection.py` and the export half
+of `test_facets.py` skip where it is missing, so CI runs without it. A
+`FACET_MAP` string that only the export carries goes in
+`tests/fixtures/facet_attested.json`, which is checked against the export
+wherever it exists.
+Re-export when the engine needs newer data, never edit it by hand.
 
 ## facet_coverage.py
 
 Lists the tags `facets.FACET_MAP` does not map yet, with how many items
 carry each, most common first. It reads the anonymised export
-(`tests/fixtures/picker_collection.json`), never a database, so it is safe to
+(`tests/fixtures/picker_collection.json`, local only), never a database, so it is safe to
 run anywhere.
 
 **Why:** an unmapped tag still counts (it becomes a type-scoped facet such as
