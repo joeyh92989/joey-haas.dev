@@ -881,9 +881,10 @@ reason given. None changes a public URL or adds a token.
 
 - **Map pins are HTML, not SVG.** `DrawnMap` draws the coastline and route
   in SVG but places the numbered pins as absolutely positioned links over
-  it, so a pin is a real focusable link with a readable label at any width;
-  SVG text scaled with the viewBox and went unreadable at 400px. The
-  coastline is projected through the same `mapFit` as the pins.
+  it: inside an `<svg role="img">` a link is focusable but unnamed to a
+  screen reader, and an HTML pin keeps one tap-sized footprint at every
+  width where an SVG circle shrinks with the drawing. The coastline is
+  projected through the same `mapFit` as the pins.
 - **Map colors are `--sunken` and `--surface`**, land on sea, rather than
   new map tokens: both already clear the contrast the route and pins need
   in both themes, and the rule is no new tokens without measuring.
