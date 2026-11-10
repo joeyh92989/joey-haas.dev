@@ -10,6 +10,7 @@ from sqlalchemy import select
 from models import CatalogueGame, CatalogueRun, PhysicalEdition, StoreListing
 from physical_sources.base import EditionRow, StoreProduct
 from physical_sources.catalogue import (
+    archive_retired_stores,
     consecutive_failures,
     count_live,
     failure_streaks,
@@ -22,7 +23,6 @@ from physical_sources.catalogue import (
     upsert_editions,
     upsert_listings,
 )
-from physical_sources.catalogue import archive_retired_stores
 
 
 def edition(ref="a|USA|pub|game card", fmt="game_card", **extra):
