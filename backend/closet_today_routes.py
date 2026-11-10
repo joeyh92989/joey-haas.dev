@@ -20,8 +20,10 @@
 - **Wore this** (`POST /wore`) writes one `outfits` row and a `wears` row
   per garment for today in Denver. A second Wore this the same day (the
   "Change" path) replaces the first, wears and all.
-- **The nightly step** (`POST /jobs/plan`, a job route) plans tomorrow for
-  the profile's default occasion and bike, and writes `plan.last_run`.
+- **The nightly step** (`POST /jobs/plan`, a job route) plans tomorrow once
+  per occasion chip in the profile's default week, with tomorrow's default
+  bike, so Today paints from a stored row whichever chip is pressed; it
+  writes `plan.last_run`.
 
 Admin only, at the router. A separate module from `closet_routes.py`, which
 owns garments, the profile and tagging; this one reads those and writes
@@ -743,20 +745,35 @@ def create_closet_today_router(
 
     @router.post("/jobs/plan")
     async def plan_job(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
-        """The nightly step: tomorrow's plan for the profile's default
-        occasion and bike, one model call. Writes `plan.last_run`."""
+        """The nightly step: tomorrow's plans, one per occasion chip in the
+        profile's default week (tomorrow's default first), each with
+        tomorrow's default bike and one model call. Writes `plan.last_run`."""
         if job_lock.locked():
             raise HTTPException(status_code=409, detail="Planning is already running")
         async with job_lock:
             at = datetime.now(UTC).isoformat()
             day = today() + timedelta(days=1)
-            occasion, bike = defaults_for(profile_out(await load_profile(session)), day)
-            plan = await make_plan(session, day, occasion, bike)
-            if plan["lead"] is None:
+            profile = profile_out(await load_profile(session))
+            occasion, bike = defaults_for(profile, day)
+            week = [o for o in profile.get("weekly_occasions") or [] if o in OCCASIONS]
+            plans = []
+            for chip in dict.fromkeys([occasion, *week]):
+                plan = await make_plan(session, day, chip, bike)
+                if plan["lead"] is not None:
+                    await store(session, plan)
+                plans.append(
+                    {
+                        "occasion": chip,
+                        "ranked_by": plan["ranked_by"] if plan["lead"] else None,
+                        "note": plan["model_note"],
+                    }
+                )
+            if all(p["ranked_by"] is None for p in plans):
                 state = "empty"
+            elif all(p["ranked_by"] in ("model", None) for p in plans):
+                state = "ok"
             else:
-                await store(session, plan)
-                state = "ok" if plan["ranked_by"] == "model" else "template"
+                state = "template"
             summary = {
                 "at": at,
                 "state": state,
@@ -764,8 +781,9 @@ def create_closet_today_router(
                 "day": day.isoformat(),
                 "occasion": occasion,
                 "bike": bike,
-                "ranked_by": plan["ranked_by"],
-                "note": plan["model_note"],
+                "ranked_by": plans[0]["ranked_by"],
+                "note": next((p["note"] for p in plans if p["note"]), None),
+                "plans": plans,
             }
             await _write_status(session, summary)
             logger.info("closet plan: %s", summary)

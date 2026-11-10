@@ -476,44 +476,39 @@ async def test_save_as_owned_creates_an_active_garment(sessionmaker_for_test):
     assert bad.status_code == 422
 
 
-async def test_the_plan_job_writes_its_status(sessionmaker_for_test):
+async def test_the_plan_job_plans_each_chip_of_the_week(sessionmaker_for_test):
     await seed(sessionmaker_for_test)
-    provider = FakeProvider(
-        choose(
-            (
-                ["wool coat", "grey sweater", "navy oxford", "chinos", "brown boots"],
-                "A.",
-            ),
-            (
-                [
-                    "rain shell",
-                    "navy cardigan",
-                    "white shirt",
-                    "grey trousers",
-                    "sneakers",
-                ],
-                "B.",
-            ),
-            (
-                [
-                    "wool coat",
-                    "navy cardigan",
-                    "blue shirt",
-                    "grey trousers",
-                    "brown boots",
-                ],
-                "C.",
-            ),
-        )
+    full = choose(
+        (["wool coat", "grey sweater", "navy oxford", "chinos", "brown boots"], "A."),
+        (
+            ["rain shell", "navy cardigan", "white shirt", "grey trousers", "sneakers"],
+            "B.",
+        ),
+        (
+            [
+                "wool coat",
+                "navy cardigan",
+                "blue shirt",
+                "grey trousers",
+                "brown boots",
+            ],
+            "C.",
+        ),
     )
+    provider = FakeProvider(full, daily_quota())
     async with client_for(sessionmaker_for_test, provider) as client:
         summary = (await client.post("/api/closet/jobs/plan")).json()
-    assert summary["state"] == "ok" and summary["ranked_by"] == "model"
-    assert summary["occasion"] == "office" and summary["note"] is None
+    # The default week is office x5, weekend x2: two chips, tomorrow's first.
+    assert [p["occasion"] for p in summary["plans"]] == ["office", "weekend"]
+    assert [p["ranked_by"] for p in summary["plans"]] == ["model", "template"]
+    assert summary["state"] == "template" and summary["ranked_by"] == "model"
+    assert summary["note"] == "Gemini's daily quota is used up"
+    assert len(provider.calls) == 2
     async with sessionmaker_for_test() as session:
         status = await session.get(ClosetSetting, "plan.last_run")
-    assert status.value["state"] == "ok"
-    assert len(provider.calls) == 1
+        stored = (await session.scalars(select(OutfitPlan.occasion))).all()
+    assert status.value["state"] == "template"
+    assert sorted(stored) == ["office", "weekend"]
 
 
 async def test_the_plan_job_on_an_empty_closet(sessionmaker_for_test):
