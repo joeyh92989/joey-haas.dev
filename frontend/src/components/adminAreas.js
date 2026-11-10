@@ -74,6 +74,7 @@ export const ADMIN_AREAS = [
     pages: [
       { to: '/admin/closet/today', label: 'Today' },
       { to: '/admin/closet', label: 'Closet' },
+      { to: '/admin/closet/review', label: 'Review' },
       { to: '/admin/closet/profile', label: 'Profile' },
     ],
   },

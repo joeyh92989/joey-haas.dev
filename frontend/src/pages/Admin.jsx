@@ -79,8 +79,10 @@ const SESSION_ENDED = 'Your session ended. Sign in again to record it.'
  * Closet: the day's stored lead outfit as swatches, with Wore this and
  * Swap. Only a stored plan is read (`stored_only`), so Home never spends a
  * model call; the card hides until the nightly job (or Today) has planned.
+ * Its figures are the layout's: what Review has flagged, and what is still
+ * untagged.
  */
-function ClosetCard({ untagged }) {
+function ClosetCard({ review, untagged }) {
   const today = useRead('/api/closet/today?stored_only=true')
   const [outfit, setOutfit] = useState(null)
   const [swapped, setSwapped] = useState(false)
@@ -150,8 +152,8 @@ function ClosetCard({ untagged }) {
           )
         }
         figures={[
+          { label: 'To review', value: figure(review) },
           { label: 'Untagged', value: figure(untagged) },
-          { label: 'Fit today', value: figure(plan?.footnote?.fit) },
         ]}
         actions={
           lead &&
@@ -430,7 +432,7 @@ function SiteCard({ nightly }) {
  * and loads the rows.
  */
 export default function Admin() {
-  const { items, closetUntagged } = useOutletContext() ?? {}
+  const { items, closetUntagged, closetReview } = useOutletContext() ?? {}
   const nightly = useNightly()
   const year = ownerYear(nightly.now)
 
@@ -441,7 +443,7 @@ export default function Admin() {
       </AdminPageHeader>
 
       <div className="area-cards">
-        <ClosetCard untagged={closetUntagged} />
+        <ClosetCard review={closetReview} untagged={closetUntagged} />
         <ShelfCard items={items} year={year} />
         <DenverCard />
         <SiteCard nightly={nightly} />

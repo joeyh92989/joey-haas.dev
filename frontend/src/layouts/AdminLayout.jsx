@@ -45,6 +45,21 @@ async function loadUntagged() {
   }
 }
 
+/**
+ * How many pieces Review has flagged, for the Closet area's badge. Null
+ * when the request fails, like the untagged count.
+ */
+async function loadReview() {
+  try {
+    const response = await apiFetch('/api/closet/review')
+    if (!response.ok) return null
+    const body = await response.json()
+    return typeof body?.tiles?.flagged === 'number' ? body.tiles.flagged : null
+  } catch {
+    return null
+  }
+}
+
 /** The pages that reload the rows each time they open. */
 const RELOAD_PATHS = ['/admin', '/admin/jobs']
 
@@ -62,7 +77,9 @@ const RELOAD_PATHS = ['/admin', '/admin/jobs']
  * Routed pages get the layout's outlet context plus `items`, the admin rows
  * (null until loaded), reloaded each time Home or Jobs is opened, and
  * `setClosetUntagged`, which the Closet page calls with the count it last
- * read, so the area's badge follows an upload or a tagging run.
+ * read, so Home's figure follows an upload or a tagging run, and
+ * `closetReview` / `setClosetReview`, the flagged count Review calls with
+ * after every read, so the area's badge follows each decision.
  */
 export default function AdminLayout() {
   const context = useOutletContext()
@@ -71,6 +88,7 @@ export default function AdminLayout() {
   const [slow, setSlow] = useState(false)
   const [items, setItems] = useState(null)
   const [closetUntagged, setClosetUntagged] = useState(null)
+  const [closetReview, setClosetReview] = useState(null)
   const [signOutFailed, setSignOutFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const itemsLoaded = useRef(false)
@@ -142,11 +160,14 @@ export default function AdminLayout() {
   }, [signedIn, onDashboard])
 
   useEffect(() => {
-    // Once per sign-in; the Closet page keeps it current after that.
+    // Once per sign-in; the Closet and Review pages keep them current.
     if (!signedIn) return
     let live = true
     loadUntagged().then((count) => {
       if (live && count !== null) setClosetUntagged(count)
+    })
+    loadReview().then((count) => {
+      if (live && count !== null) setClosetReview(count)
     })
     return () => {
       live = false
@@ -173,6 +194,7 @@ export default function AdminLayout() {
     setEmail(null)
     setItems(null)
     setClosetUntagged(null)
+    setClosetReview(null)
     itemsLoaded.current = false
     signedOutHere.current = true
     setStatus('signed-out')
@@ -194,8 +216,8 @@ export default function AdminLayout() {
         ownedCount={owned}
         onSignOut={signOut}
         badges={
-          closetUntagged
-            ? { closet: { value: closetUntagged, words: 'untagged' } }
+          closetReview
+            ? { closet: { value: closetReview, words: 'to review' } }
             : {}
         }
       >
@@ -215,7 +237,14 @@ export default function AdminLayout() {
             }
           >
             <Outlet
-              context={{ ...context, items, closetUntagged, setClosetUntagged }}
+              context={{
+                ...context,
+                items,
+                closetUntagged,
+                setClosetUntagged,
+                closetReview,
+                setClosetReview,
+              }}
             />
           </Suspense>
         </RouteErrorBoundary>

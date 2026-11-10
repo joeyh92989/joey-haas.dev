@@ -342,7 +342,7 @@ describe('Admin Home', () => {
     stubApi()
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    expect(await within(panel).findAllByRole('listitem')).toHaveLength(8)
+    expect(await within(panel).findAllByRole('listitem')).toHaveLength(9)
     expect(within(panel).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
       'href',
       '/admin/jobs',
@@ -386,6 +386,7 @@ describe('Admin Home', () => {
         json({ worn: { id: 5, garments: JSON.parse(options.body).garments } }),
       '/api/closet/garments': () =>
         json({ garments: [], counts: { untagged: 3 } }),
+      '/api/closet/review': () => json({ tiles: { flagged: 4 } }),
     })
     renderAt()
     const closet = await card('Closet')
@@ -393,10 +394,10 @@ describe('Admin Home', () => {
       await within(closet).findByText('navy oxford · grey chinos · sneakers'),
     ).toBeInTheDocument()
     expect(within(closet).getByText('Office · bike · 34° → 58°'))
-    expect(figureOf(closet, 'Fit today')).toHaveTextContent('22')
     await waitFor(() =>
       expect(figureOf(closet, 'Untagged')).toHaveTextContent('3'),
     )
+    expect(figureOf(closet, 'To review')).toHaveTextContent('4')
     expect(within(closet).getByRole('link', { name: 'Today' })).toHaveAttribute(
       'href',
       '/admin/closet/today',
