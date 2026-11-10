@@ -529,7 +529,9 @@ def create_closet_today_router(
             not_this=[body.not_this] if body.not_this and declined is None else None,
             declined=declined,
         )
-        if plan["lead"] is not None:
+        # A locked plan is the moment's, not the day's: unlocking reads the
+        # stored plan again, so it must not be overwritten.
+        if plan["lead"] is not None and plan["lock"] is None:
             await store(session, plan)
         return await answer(session, day, plan, True)
 

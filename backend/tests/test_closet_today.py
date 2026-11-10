@@ -268,18 +268,23 @@ async def test_an_occasion_chip_replans_and_a_bad_one_is_422(sessionmaker_for_te
 async def test_build_around_locks_the_garment(sessionmaker_for_test):
     ids = await seed(sessionmaker_for_test)
     provider = FakeProvider(
-        choose((["rain shell", "navy cardigan", "grey trousers", "sneakers"], "Ok."))
+        None,  # the day's stored plan, from the template
+        choose((["rain shell", "navy cardigan", "grey trousers", "sneakers"], "Ok.")),
     )
     async with client_for(sessionmaker_for_test, provider) as client:
+        before = (await client.get("/api/closet/today")).json()["plan"]
         response = await client.post(
             "/api/closet/plan", json={"lock": ids["blue shirt"]}
         )
         unknown = await client.post(
             "/api/closet/plan", json={"lock": "00000000-0000-0000-0000-000000000000"}
         )
+        # Unlocking reads the stored plan, which the lock left alone.
+        after = (await client.get("/api/closet/today")).json()
+    assert after["plan"] == before and after["planned_just_now"] is False
     plan = response.json()["plan"]
     assert plan["lock"] == ids["blue shirt"]
-    assert "navy oxford" not in numbers(provider.calls[0][0])  # top is fixed
+    assert "navy oxford" not in numbers(provider.calls[1][0])  # top is fixed
     for outfit in [plan["lead"], *plan["alternatives"]]:
         assert "blue shirt" in names(outfit)
     assert plan["lead"]["reason"] == "You locked the blue shirt. Ok."
