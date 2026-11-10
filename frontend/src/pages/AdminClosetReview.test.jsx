@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { LOAD_ERROR } from '../content/status.js'
 import AdminClosetReview from './AdminClosetReview.jsx'
 
 function garment(id, name, extra = {}) {
@@ -193,7 +194,7 @@ describe('AdminClosetReview', () => {
     expect(outcome('Keep')).not.toHaveAttribute('data-suggested')
   })
 
-  it('advances the deck in order after Keep, then Skip, to the empty state', async () => {
+  it('advances the deck in order after Keep, then Skip, to the skipped end', async () => {
     const user = userEvent.setup()
     const calls = stub({
       'GET /api/closet/review': reads(
@@ -209,20 +210,28 @@ describe('AdminClosetReview', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'never worn' })
     await user.click(outcome('Keep'))
-    expect(
-      await screen.findByRole('heading', { name: 'linen shirt' }),
-    ).toHaveFocus()
+    const linen = await screen.findByRole('heading', { name: 'linen shirt' })
+    await waitFor(() => expect(linen).toHaveFocus())
     expect(within(deck()).getByText('2 of 3 flagged')).toBeInTheDocument()
     expect(calls.find((c) => c.method === 'POST').body).toEqual({
       outcome: 'keep',
     })
     await user.click(within(deck()).getByRole('button', { name: 'Skip' }))
-    expect(screen.getByRole('heading', { name: 'shorts' })).toHaveFocus()
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'shorts' })).toHaveFocus(),
+    )
     expect(within(deck()).getByText('3 of 3 flagged')).toBeInTheDocument()
     await user.click(within(deck()).getByRole('button', { name: 'Skip' }))
-    expect(
-      screen.getByText('Nothing to decide. Next season turn: late April.'),
-    ).toBeInTheDocument()
+    const end = screen.getByText('2 pieces skipped for next time.')
+    await waitFor(() => expect(end).toHaveFocus())
+    expect(screen.queryByText(/Nothing to decide/)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Show skipped' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: 'linen shirt' }),
+      ).toHaveFocus(),
+    )
+    expect(within(deck()).getByText('2 of 3 flagged')).toBeInTheDocument()
   })
 
   it('packs away with the month prefilled from the season window', async () => {
@@ -244,15 +253,31 @@ describe('AdminClosetReview', () => {
     const month = screen.getByLabelText('Back in')
     expect(month).toHaveValue('2027-05')
     expect(month).toHaveAttribute('min', '2026-12')
+    expect(month).toHaveAttribute('pattern', '\\d{4}-\\d{2}')
+    expect(month).toHaveFocus()
     await user.click(screen.getByRole('button', { name: 'Pack away' }))
-    await screen.findByText('Nothing to decide. Next season turn: late April.')
+    const end = await screen.findByText(
+      'Nothing to decide. Next season turn: late April.',
+    )
+    await waitFor(() => expect(end).toHaveFocus())
     expect(calls.find((c) => c.method === 'POST').body).toEqual({
       outcome: 'pack',
       back_on: '2027-05-01',
     })
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Packed away: linen shirt',
+      /^Packed away: linen shirt$/,
     )
+  })
+
+  it('puts focus back on Pack away when the month is cancelled', async () => {
+    const user = userEvent.setup()
+    stub({ 'GET /api/closet/review': review({ deck: [LINEN] }) })
+    renderPage()
+    await screen.findByRole('heading', { name: 'linen shirt' })
+    await user.click(outcome('Pack away'))
+    expect(screen.getByLabelText('Back in')).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(outcome('Pack away')).toHaveFocus())
   })
 
   it('donates in one press', async () => {
@@ -360,12 +385,17 @@ describe('AdminClosetReview', () => {
     })
     renderPage()
     await user.click(await screen.findByRole('button', { name: 'Pack all 2' }))
+    // Only the words are announced, not the toast's buttons.
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Packed 2 pieces',
+      /^Packed 2 pieces$/,
     )
     expect(
       screen.queryByRole('region', { name: 'Season turn' }),
     ).not.toBeInTheDocument()
+    // The banner held focus; it moves to the card.
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'never worn' })).toHaveFocus(),
+    )
     await user.click(screen.getByRole('button', { name: 'Undo' }))
     await screen.findByRole('region', { name: 'Season turn' })
     expect(calls.find((c) => c.path === '/api/closet/undo').body).toEqual({
@@ -394,7 +424,8 @@ describe('AdminClosetReview', () => {
     await user.click(outcome('Keep'))
     await screen.findByRole('heading', { name: 'linen shirt' })
     await user.click(screen.getByRole('button', { name: 'Undo' }))
-    await screen.findByRole('heading', { name: 'never worn' })
+    const never = await screen.findByRole('heading', { name: 'never worn' })
+    await waitFor(() => expect(never).toHaveFocus())
     expect(within(deck()).getByText('1 of 3 flagged')).toBeInTheDocument()
   })
 
@@ -466,5 +497,172 @@ describe('AdminClosetReview', () => {
     renderPage()
     await screen.findByText('Nothing to decide. Next season turn: late April.')
     expect(screen.queryByText(/autumn turn/)).not.toBeInTheDocument()
+  })
+
+  it('reads the review again after a refused outcome, and does not count it', async () => {
+    const user = userEvent.setup()
+    const calls = stub({
+      'GET /api/closet/review': reads(review(), review({ deck: [LINEN] })),
+      'POST /api/closet/garments/g1/decision': json(
+        { detail: 'That garment is not active' },
+        409,
+      ),
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'never worn' })
+    await user.click(outcome('Keep'))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'That garment is not active',
+    )
+    await screen.findByRole('heading', { name: 'linen shirt' })
+    expect(within(deck()).getByText('1 of 1 flagged')).toBeInTheDocument()
+    expect(calls.filter((c) => c.method === 'GET')).toHaveLength(2)
+  })
+
+  it('says so when a write landed but the list could not refresh, with a retry', async () => {
+    const user = userEvent.setup()
+    stub({
+      'GET /api/closet/review': reads(
+        review(),
+        json({}, 500),
+        review({ deck: [LINEN, SHORTS] }),
+      ),
+      'POST /api/closet/garments/g1/decision': {
+        undo: 'u1',
+        id: 'g1',
+        status: 'active',
+      },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'never worn' })
+    await user.click(outcome('Keep'))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Saved, but the list couldn’t refresh.',
+    )
+    // The card has not left the deck, so it is not counted as decided.
+    expect(within(deck()).getByText('1 of 3 flagged')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    const linen = await screen.findByRole('heading', { name: 'linen shirt' })
+    expect(within(deck()).getByText('2 of 3 flagged')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    await waitFor(() => expect(linen).toHaveFocus())
+  })
+
+  it('shows a refused List it inside the sheet, and sells the garment it opened with', async () => {
+    const user = userEvent.setup()
+    let tries = 0
+    const calls = stub({
+      'GET /api/closet/review': reads(review(), review({ deck: [LINEN] })),
+      'POST /api/closet/garments/g1/decision': () =>
+        tries++ === 0
+          ? json({ detail: 'Try that again' }, 409)
+          : { undo: 'u1', id: 'g1', status: 'listed' },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'never worn' })
+    await user.click(outcome('Sell'))
+    const sheet = screen.getByRole('dialog', { name: 'Sell the never worn' })
+    await user.click(within(sheet).getByRole('button', { name: 'List it' }))
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent(
+      'Try that again',
+    )
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    // The re-read moved the deck on to the linen shirt; the sheet still
+    // sells the piece it was opened with.
+    await screen.findByRole('heading', { name: 'linen shirt' })
+    await user.click(within(sheet).getByRole('button', { name: 'List it' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Listed: never worn',
+      ),
+    )
+    const posts = calls.filter((c) => c.method === 'POST')
+    expect(posts.map((c) => c.path)).toEqual([
+      '/api/closet/garments/g1/decision',
+      '/api/closet/garments/g1/decision',
+    ])
+  })
+
+  it('says when the listing could not be copied', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: vi.fn(async () => {
+          throw new Error('denied')
+        }),
+      },
+      configurable: true,
+    })
+    stub({ 'GET /api/closet/review': review() })
+    renderPage()
+    await screen.findByRole('heading', { name: 'never worn' })
+    await user.click(outcome('Sell'))
+    const sheet = screen.getByRole('dialog', { name: 'Sell the never worn' })
+    await user.click(
+      within(sheet).getByRole('button', { name: 'Copy listing' }),
+    )
+    expect(
+      within(sheet).getByText('Couldn’t copy. Select the lines instead.'),
+    ).toBeInTheDocument()
+  })
+
+  it('drops the toast when its undo is gone, keeping the route’s words', async () => {
+    const user = userEvent.setup()
+    stub({
+      'GET /api/closet/review': reads(review(), review({ deck: [LINEN] })),
+      'POST /api/closet/garments/g1/decision': {
+        undo: 'u1',
+        id: 'g1',
+        status: 'active',
+      },
+      'POST /api/closet/undo': json(
+        { detail: 'Nothing to undo: that change was replaced' },
+        409,
+      ),
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'never worn' })
+    await user.click(outcome('Keep'))
+    await screen.findByRole('heading', { name: 'linen shirt' })
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Nothing to undo: that change was replaced',
+    )
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Undo' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('says the session ended when the review is refused at load', async () => {
+    stub({ 'GET /api/closet/review': json({}, 401) })
+    renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your session ended. Sign in again to review.',
+    )
+  })
+
+  it('says the review did not load on a server error', async () => {
+    stub({ 'GET /api/closet/review': json({}, 500) })
+    renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent(LOAD_ERROR)
+    expect(
+      screen.queryByRole('region', { name: 'Flagged pieces' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('says the session ended when a write is refused for it', async () => {
+    const user = userEvent.setup()
+    stub({
+      'GET /api/closet/review': review(),
+      'POST /api/closet/garments/g1/decision': json({}, 401),
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'never worn' })
+    await user.click(outcome('Donate'))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your session ended. Sign in again to review.',
+    )
+    expect(screen.getByRole('heading', { name: 'never worn' })).toBeVisible()
   })
 })

@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { garmentTitle, shortDate } from '../lib/closet.js'
 import { Swatch } from './OutfitSwatches.jsx'
 
@@ -47,7 +47,7 @@ export function EvidenceList({ flags, opinion }) {
  * border and fill, and by ", suggested" in its name, since a reader gets
  * neither.
  */
-export function OutcomeRow({ suggested, busy, onChoose }) {
+export function OutcomeRow({ suggested, busy, onChoose, packRef }) {
   return (
     <div className="outcomes" role="group" aria-label="Decide">
       {OUTCOMES.map((outcome) => {
@@ -55,6 +55,7 @@ export function OutcomeRow({ suggested, busy, onChoose }) {
         return (
           <button
             key={outcome.value}
+            ref={outcome.value === 'pack' ? packRef : undefined}
             type="button"
             className="outcome"
             data-suggested={pick ? 'true' : undefined}
@@ -71,18 +72,32 @@ export function OutcomeRow({ suggested, busy, onChoose }) {
   )
 }
 
-/** Pack away's month: prefilled from the season window, next month at least. */
+/**
+ * Pack away's month: prefilled from the season window, next month at least.
+ * It takes focus as it opens, since the button that opened it is gone.
+ */
 function PackMonth({ card, day, busy, onPack, onCancel }) {
   const id = useId()
+  const hintId = useId()
+  const inputRef = useRef(null)
   const [month, setMonth] = useState(card.back_on.slice(0, 7))
+  // Where `type="month"` is not supported the field is plain text, so the
+  // shape is checked here as well as by `pattern`.
+  const [invalid, setInvalid] = useState(false)
   const year = Number(day.slice(0, 4))
   const next = Number(day.slice(5, 7)) + 1
   const min =
     next > 12 ? `${year + 1}-01` : `${year}-${String(next).padStart(2, '0')}`
 
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
   function submit(event) {
     event.preventDefault()
-    if (/^\d{4}-\d{2}$/.test(month)) onPack(`${month}-01`)
+    const ok = /^\d{4}-\d{2}$/.test(month)
+    setInvalid(!ok)
+    if (ok) onPack(`${month}-01`)
   }
 
   return (
@@ -90,10 +105,15 @@ function PackMonth({ card, day, busy, onPack, onCancel }) {
       <label htmlFor={id}>Back in</label>
       <input
         id={id}
+        ref={inputRef}
         type="month"
         min={min}
         value={month}
         required
+        pattern="\d{4}-\d{2}"
+        title="A month, as YYYY-MM"
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? hintId : undefined}
         onChange={(event) => setMonth(event.target.value)}
       />
       <button type="submit" className="btn primary sm" disabled={busy}>
@@ -102,6 +122,11 @@ function PackMonth({ card, day, busy, onPack, onCancel }) {
       <button type="button" className="btn ghost sm" onClick={onCancel}>
         Cancel
       </button>
+      {invalid && (
+        <p id={hintId} className="admin-error" role="alert">
+          Pick a month, as YYYY-MM.
+        </p>
+      )}
     </form>
   )
 }
@@ -134,7 +159,21 @@ export default function ReviewDeck({
   headingRef,
 }) {
   const [packing, setPacking] = useState(false)
+  const packRef = useRef(null)
+  // Cancel puts focus back on Pack away, which is drawn again only then.
+  const backToPack = useRef(false)
   const done = position - 1
+
+  useEffect(() => {
+    if (packing || !backToPack.current) return
+    backToPack.current = false
+    packRef.current?.focus()
+  }, [packing])
+
+  function cancelPack() {
+    backToPack.current = true
+    setPacking(false)
+  }
   const percent = total ? Math.round((done / total) * 100) : 0
 
   function choose(outcome) {
@@ -167,10 +206,15 @@ export default function ReviewDeck({
           day={day}
           busy={busy}
           onPack={(backOn) => onDecide('pack', backOn)}
-          onCancel={() => setPacking(false)}
+          onCancel={cancelPack}
         />
       ) : (
-        <OutcomeRow suggested={card.suggested} busy={busy} onChoose={choose} />
+        <OutcomeRow
+          suggested={card.suggested}
+          busy={busy}
+          onChoose={choose}
+          packRef={packRef}
+        />
       )}
       <button
         type="button"

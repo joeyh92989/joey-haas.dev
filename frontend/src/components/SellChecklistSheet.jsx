@@ -31,10 +31,18 @@ export function listingLines(garment, size) {
  * @param {{garment: object, size: string|null}|null} props.card The deck
  *   card being sold; the sheet is open while it is set.
  * @param {boolean} props.busy
+ * @param {string|null} [props.error] A refused List it, shown in the sheet:
+ *   the page behind it is inert while it is open.
  * @param {() => void} props.onClose
  * @param {() => void} props.onList
  */
-export default function SellChecklistSheet({ card, busy, onClose, onList }) {
+export default function SellChecklistSheet({
+  card,
+  busy,
+  error = null,
+  onClose,
+  onList,
+}) {
   const titleId = useId()
   return (
     <Sheet
@@ -48,6 +56,7 @@ export default function SellChecklistSheet({ card, busy, onClose, onList }) {
           titleId={titleId}
           card={card}
           busy={busy}
+          error={error}
           onClose={onClose}
           onList={onList}
         />
@@ -56,7 +65,7 @@ export default function SellChecklistSheet({ card, busy, onClose, onList }) {
   )
 }
 
-function SellBody({ titleId, card, busy, onClose, onList }) {
+function SellBody({ titleId, card, busy, error, onClose, onList }) {
   const [copied, setCopied] = useState(null)
   const lines = listingLines(card.garment, card.size)
 
@@ -87,6 +96,11 @@ function SellBody({ titleId, card, busy, onClose, onList }) {
       <p className="muted sell-copied" role="status">
         {copied}
       </p>
+      {error && (
+        <p className="admin-error" role="alert">
+          {error}
+        </p>
+      )}
       <div className="sheet-actions">
         <button type="button" className="btn" onClick={copy}>
           Copy listing

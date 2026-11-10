@@ -91,9 +91,11 @@ function Listed({ garments, busy, onSold }) {
 
 /** The undo toast after an outcome, Pack all, Unpack all or Mark sold. */
 function UndoToast({ toast, busy, onUndo, onDismiss }) {
+  // Only the words are announced: a status region around the buttons would
+  // read "Undo Dismiss" out with every change.
   return (
-    <div className="closet-toast" role="status">
-      <span>{toast.words}</span>
+    <div className="closet-toast">
+      <span role="status">{toast.words}</span>
       <span className="closet-toast-acts">
         <button
           type="button"
@@ -111,6 +113,26 @@ function UndoToast({ toast, busy, onUndo, onDismiss }) {
   )
 }
 
+/** The deck's end: nothing left, or only what was skipped this visit. */
+function DeckEmpty({ skipped, nextTurn, emptyRef, onShowSkipped }) {
+  if (skipped === 0)
+    return (
+      <p className="panel review-empty" tabIndex={-1} ref={emptyRef}>
+        Nothing to decide. Next season turn: {nextTurn}.
+      </p>
+    )
+  return (
+    <div className="panel review-empty">
+      <p tabIndex={-1} ref={emptyRef}>
+        {pieces(skipped)} skipped for next time.
+      </p>
+      <button type="button" className="btn sm" onClick={onShowSkipped}>
+        Show skipped
+      </button>
+    </div>
+  )
+}
+
 /**
  * `/admin/closet/review`: the season-turn banner, four tiles, and the deck
  * of flagged pieces one at a time from `GET /api/closet/review`. Every
@@ -124,18 +146,24 @@ export default function AdminClosetReview() {
   const setClosetReview = context.setClosetReview
   const [review, setReview] = useState(null)
   const [error, setError] = useState(null)
+  // A write that landed but whose fresh read failed: the page is behind.
+  const [stale, setStale] = useState(false)
   const [slow, setSlow] = useState(false)
   const [busy, setBusy] = useState(false)
-  // Ids skipped this visit, and how many cards were decided: the deck's
-  // place is decided + skipped + 1 of that plus what is left.
+  // Ids skipped and decided this visit. Each counts toward the deck's
+  // place only while the review agrees: a skipped piece while it is still
+  // in the deck, a decided one once it has left it (an undo brings it back).
   const [skipped, setSkipped] = useState([])
-  const [decided, setDecided] = useState(0)
+  const [decided, setDecided] = useState([])
   const [toast, setToast] = useState(null)
   const [selling, setSelling] = useState(null)
   const [bannerHidden, setBannerHidden] = useState(false)
+  // Where focus goes after the next render: bumped, never set back, so the
+  // effect runs after the render that carries the new review.
+  const [focusAsk, setFocusAsk] = useState(0)
   const busyRef = useRef(false)
   const headingRef = useRef(null)
-  const focusDeck = useRef(false)
+  const emptyRef = useRef(null)
 
   function take(body) {
     setReview(body)
@@ -168,26 +196,47 @@ export default function AdminClosetReview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const inDeck = new Set((review?.deck ?? []).map((c) => c.garment.id))
+  const skippedHere = skipped.filter((id) => inDeck.has(id)).length
+  const decidedHere = new Set(decided.filter((id) => !inDeck.has(id))).size
   const deck = (review?.deck ?? []).filter(
     (card) => !skipped.includes(card.garment.id),
   )
   const card = deck[0] ?? null
 
   useEffect(() => {
-    if (!focusDeck.current) return
-    focusDeck.current = false
-    headingRef.current?.focus()
-  }, [card?.garment.id])
+    if (!focusAsk) return
+    ;(headingRef.current ?? emptyRef.current)?.focus()
+  }, [focusAsk])
+
+  /** Moves focus to the deck's card, or its end, once this render lands. */
+  function focusDeck() {
+    setFocusAsk((count) => count + 1)
+  }
+
+  /** A fresh read of the review; true when it landed. */
+  async function refresh() {
+    try {
+      const fresh = await apiFetch('/api/closet/review')
+      if (!fresh.ok) return false
+      take(await fresh.json())
+      return true
+    } catch {
+      return false
+    }
+  }
 
   /**
-   * One write, then a fresh read of the review; the write's body, or null
-   * with the error set.
+   * One write, then a fresh read of the review: `{ok: true, answer}`, or
+   * `{ok: false, status}` with the error set. A 409 reads the review again
+   * too, since it means the page is behind what the server holds.
    */
   async function write(path, body) {
-    if (busyRef.current) return null
+    if (busyRef.current) return { ok: false, status: null }
     busyRef.current = true
     setBusy(true)
     setError(null)
+    setStale(false)
     try {
       const response = await apiFetch(path, {
         method: 'POST',
@@ -196,82 +245,120 @@ export default function AdminClosetReview() {
       })
       if (response.status === 401 || response.status === 403) {
         setError(SESSION_ENDED)
-        return null
+        return { ok: false, status: response.status }
       }
       if (!response.ok) {
         setError(await refusal(response))
-        return null
+        if (response.status === 409) await refresh()
+        return { ok: false, status: response.status }
       }
       const answer = await response.json()
-      const fresh = await apiFetch('/api/closet/review')
-      if (fresh.ok) take(await fresh.json())
-      return answer
+      if (!(await refresh())) setStale(true)
+      return { ok: true, answer }
     } catch {
       setError(ACTION_ERROR)
-      return null
+      return { ok: false, status: null }
     } finally {
       busyRef.current = false
       setBusy(false)
     }
   }
 
-  async function decide(outcome, backOn) {
-    const id = card.garment.id
-    const name = garmentTitle(card.garment)
-    const body = await write(`/api/closet/garments/${id}/decision`, {
+  async function retryRefresh() {
+    if (busyRef.current) return
+    busyRef.current = true
+    setBusy(true)
+    try {
+      if (await refresh()) {
+        setStale(false)
+        focusDeck()
+      }
+    } finally {
+      busyRef.current = false
+      setBusy(false)
+    }
+  }
+
+  /** An outcome for `target`, the deck's card unless the sheet names one. */
+  async function decide(outcome, backOn, target = card) {
+    const id = target.garment.id
+    const name = garmentTitle(target.garment)
+    const result = await write(`/api/closet/garments/${id}/decision`, {
       outcome,
       ...(backOn ? { back_on: backOn } : {}),
     })
-    if (!body) return
+    if (!result.ok) return
     setSelling(null)
-    setDecided((count) => count + 1)
-    focusDeck.current = true
+    setDecided((ids) => [...ids, id])
     setToast({
       words: `${DONE_WORDS[outcome]}: ${name}`,
-      token: body.undo,
-      deck: true,
+      token: result.answer.undo,
     })
+    focusDeck()
   }
 
   async function packAll() {
-    const body = await write('/api/closet/pack-all')
-    if (!body) return
-    setToast({ words: `Packed ${pieces(body.ids.length)}`, token: body.undo })
+    const result = await write('/api/closet/pack-all')
+    if (!result.ok) return
+    if (result.answer.undo)
+      setToast({
+        words: `Packed ${pieces(result.answer.ids.length)}`,
+        token: result.answer.undo,
+      })
+    // The banner that held focus has gone.
+    focusDeck()
   }
 
   async function unpackAll() {
-    const body = await write('/api/closet/unpack-all')
-    if (!body) return
-    setToast({ words: `Unpacked ${pieces(body.ids.length)}`, token: body.undo })
+    const result = await write('/api/closet/unpack-all')
+    if (!result.ok) return
+    if (result.answer.undo)
+      setToast({
+        words: `Unpacked ${pieces(result.answer.ids.length)}`,
+        token: result.answer.undo,
+      })
+    focusDeck()
   }
 
   async function sold(garment) {
-    const body = await write(`/api/closet/garments/${garment.id}/sold`)
-    if (!body) return
-    setToast({ words: `Sold: ${garmentTitle(garment)}`, token: body.undo })
+    const result = await write(`/api/closet/garments/${garment.id}/sold`)
+    if (!result.ok) return
+    setToast({
+      words: `Sold: ${garmentTitle(garment)}`,
+      token: result.answer.undo,
+    })
   }
 
   async function dismissBanner() {
-    await write('/api/closet/review/dismiss')
+    const result = await write('/api/closet/review/dismiss')
+    if (result.ok) focusDeck()
   }
 
   async function undo() {
-    const body = await write('/api/closet/undo', { token: toast.token })
-    if (!body) return
-    if (toast.deck) setDecided((count) => Math.max(0, count - 1))
+    const result = await write('/api/closet/undo', { token: toast.token })
+    // A 409 means the undo is gone (spent, replaced or stale): the toast
+    // offering it goes too, and the route's words stay in the error.
+    if (!result.ok) {
+      if (result.status === 409) setToast(null)
+      return
+    }
     setToast(null)
+    focusDeck()
   }
 
   function skip() {
-    focusDeck.current = true
     setSkipped((ids) => [...ids, card.garment.id])
+    focusDeck()
+  }
+
+  function showSkipped() {
+    setSkipped([])
+    focusDeck()
   }
 
   function oneByOne() {
     setBannerHidden(true)
-    focusDeck.current = true
-    // Already on the card: move there now.
-    headingRef.current?.focus()
+    focusDeck()
   }
 
   const turnOpen = review?.turn.open
@@ -279,17 +366,32 @@ export default function AdminClosetReview() {
     review && turnOpen
       ? `${review.tiles.flagged} flagged · ${review.turn.name} turn`
       : null
-  const position = decided + skipped.length + 1
-  const total = decided + skipped.length + deck.length
+  const position = decidedHere + skippedHere + 1
+  const total = decidedHere + skippedHere + deck.length
   const tiles = review?.tiles
 
   return (
     <section className="review">
       <AdminPageHeader title="Review" description={description} />
 
-      {error && (
+      {/* While the sheet is open the page behind it is inert; the sheet
+          shows the error itself. */}
+      {error && !selling && (
         <p className="admin-error" role="alert">
           {error}
+        </p>
+      )}
+      {stale && (
+        <p className="admin-error" role="alert">
+          Saved, but the list couldn’t refresh.{' '}
+          <button
+            type="button"
+            className="link-button"
+            disabled={busy}
+            onClick={retryRefresh}
+          >
+            Try again
+          </button>
         </p>
       )}
       {toast && (
@@ -348,9 +450,12 @@ export default function AdminClosetReview() {
               onSkip={skip}
             />
           ) : (
-            <p className="panel review-empty">
-              Nothing to decide. Next season turn: {review.next_turn}.
-            </p>
+            <DeckEmpty
+              skipped={skippedHere}
+              nextTurn={review.next_turn}
+              emptyRef={emptyRef}
+              onShowSkipped={showSkipped}
+            />
           )}
 
           {review.listed.length > 0 && (
@@ -362,8 +467,12 @@ export default function AdminClosetReview() {
       <SellChecklistSheet
         card={selling}
         busy={busy}
-        onClose={() => setSelling(null)}
-        onList={() => decide('sell')}
+        error={selling ? error : null}
+        onClose={() => {
+          setSelling(null)
+          setError(null)
+        }}
+        onList={() => decide('sell', undefined, selling)}
       />
     </section>
   )
