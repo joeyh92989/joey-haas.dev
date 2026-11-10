@@ -824,7 +824,9 @@ desktop, phone or tablet. A visitor is a hash of IP address and browser
 that changes every day, so one day cannot be joined to the next, and
 neither the address nor the browser is stored. Nothing is sent under
 Global Privacy Control or Do Not Track, and the figures undercount: the
-API sleeps when idle, and a view sent while it wakes is lost.
+API sleeps when idle, and a view sent while it wakes is lost. Obvious bots
+are left out: anything that says it is a crawler, a headless browser or a
+script is not counted.
 
 The paragraph above is quoted verbatim on `/stats` ("How this is counted",
 `frontend/src/content/stats.js`); `stats.test.js` reads both, so edit it
@@ -841,7 +843,10 @@ here first. The details:
   and answers 204 to anything `origin_check` lets through (a foreign
   `Origin` is refused with 403 first). It drops anything that is not a
   public route, a hostname and a known device, a body over 1 KB, a
-  signed-in admin, and `Sec-GPC` or `DNT`. Caps, in memory and reset at UTC
+  signed-in admin, `Sec-GPC` or `DNT`, and a user agent that is empty or
+  names itself automated (`analytics.AUTOMATED_AGENTS`: crawlers, link
+  unfurlers, headless and driven browsers, monitors, HTTP libraries; #126),
+  which is checked before the cap. Caps, in memory and reset at UTC
   midnight: one IP (an IPv6 address counts as its /64) stores at most 100
   views a day, the whole site at most 5,000, and past 10,000 distinct IPs
   in a day a new one is not counted. The tracker's pages count under
