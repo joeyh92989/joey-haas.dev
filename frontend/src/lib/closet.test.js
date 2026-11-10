@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_FILTER,
   backMonth,
+  footnoteLine,
+  longDate,
+  plannedWords,
+  swapTile,
+  woreGarments,
   chipCounts,
   countsLine,
   filterGarments,
@@ -231,5 +236,63 @@ describe('oversizePhoto', () => {
     expect(oversizePhoto([at, over])).toBe(
       'b.heic is too large: at most 14 MB a photo.',
     )
+  })
+})
+
+describe('Today helpers', () => {
+  const plan = (planned_at, footnote = {}) => ({
+    day: '2026-11-09',
+    planned_at,
+    footnote,
+  })
+
+  it('reads the day in UTC', () => {
+    expect(longDate('2026-11-09')).toBe('Monday, Nov 9')
+  })
+
+  it('words when the plan was made, in Denver', () => {
+    // 23:30 on the 8th in Denver: the nightly job's.
+    expect(plannedWords(plan('2026-11-09T06:30:00Z'))).toBe(
+      'planned last night',
+    )
+    expect(plannedWords(plan('2026-11-09T14:05:00Z'))).toBe(
+      'planned at 7:05 AM',
+    )
+    expect(plannedWords(plan('2026-11-09T14:05:00Z'), true)).toBe(
+      'planned just now',
+    )
+    expect(plannedWords(plan(null))).toBeNull()
+  })
+
+  it('leaves the skipped count out when none was skipped', () => {
+    expect(
+      footnoteLine(plan('2026-11-09T06:30:00Z', { active: 40, fit: 22 })),
+    ).toBe('40 active · 22 fit today · planned last night')
+    expect(
+      footnoteLine(
+        plan('2026-11-09T06:30:00Z', { active: 4, fit: 2, skipped_recent: 1 }),
+        true,
+      ),
+    ).toBe(
+      '4 active · 2 fit today · 1 skipped as worn this week · planned just now',
+    )
+  })
+
+  it('swaps one slot and says so once', () => {
+    const outfit = {
+      reason: 'Calm.',
+      garments: [
+        { slot: 'top', id: 't1' },
+        { slot: 'shoes', id: 's1' },
+      ],
+    }
+    const once = swapTile(outfit, { slot: 'shoes', id: 's2' })
+    const twice = swapTile(once, { slot: 'shoes', id: 's3' })
+    expect(twice.reason).toBe('Calm. (you swapped the shoes)')
+    expect(woreGarments(twice)).toEqual([
+      { slot: 'top', id: 't1' },
+      { slot: 'shoes', id: 's3' },
+    ])
+    expect(outfit.garments[1].id).toBe('s1')
   })
 })
