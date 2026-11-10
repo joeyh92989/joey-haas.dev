@@ -2138,6 +2138,11 @@ footer {
   padding: 0.4rem 0.6rem;
 }
 
+/* Wide enough for "Rating" and the spinner beside it. */
+.item-form input[type='number'] {
+  width: 6.5rem;
+}
+
 .item-form input::placeholder {
   color: var(--text-3);
 }
@@ -4424,11 +4429,23 @@ a.month-bar::before {
   margin-top: 2rem;
 }
 
-/* The signed-in store list's sections read at the public page's size. */
+/* The signed-in store list's sections read at the public page's size, and
+   the other admin recommendation pages (Radar, Discover, the pull list's
+   weeks) take the same heading, so the area reads as one. */
 .next-section h2,
-.store-list-section h2 {
+.store-list-section h2,
+.radar > h2,
+.pull-list-week h2 {
   font-size: 1.375rem;
   margin: 0 0 0.5rem;
+}
+
+/* Radar's and Discover's headings sit in the page's own flow, not in a
+   section, so they and the pull list's weeks carry the store list
+   section's space above. */
+.radar > h2,
+.pull-list-week {
+  margin-top: 1.5rem;
 }
 
 .next-section > p {
@@ -4543,6 +4560,13 @@ a.month-bar::before {
 .tonight-just b {
   color: var(--text);
   font-weight: 600;
+}
+
+/* Stars are a block elsewhere; in the pill they follow the hours on the
+   same line. */
+.tonight-just .stars {
+  display: inline-block;
+  white-space: nowrap;
 }
 
 .tonight-lead {
@@ -6565,6 +6589,20 @@ main h1[tabindex='-1']:focus,
 .pick-choices {
   border: 0;
   margin: 0 0 0.75rem;
+  /* A fieldset's default min-inline-size is min-content, which lets the
+     chips push the page sideways at phone width. */
+  min-width: 0;
+  padding: 0;
+}
+
+/* Pick for me's chips wrap at every width: two short rows, unlike the shelf
+   filters, which scroll sideways on narrow screens (below). */
+.pick-choices .chip-row {
+  flex-wrap: wrap;
+  margin-top: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+  overflow-x: visible;
   padding: 0;
 }
 
@@ -7776,6 +7814,12 @@ main h1[tabindex='-1']:focus,
 .daily {
   display: grid;
   gap: 1rem;
+}
+/* /daily takes the shelf's wide frame so the header and tabs stay put
+   between tabs; the puzzle itself keeps the 45rem reading column. */
+.daily > :where(:not(.spine-header)) {
+  max-width: 45rem;
+  min-width: 0;
 }
 .daily-head {
   align-items: baseline;
