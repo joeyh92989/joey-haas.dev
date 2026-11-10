@@ -21,6 +21,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from analytics_routes import create_analytics_router
 from closet_routes import create_closet_router
+from closet_today_routes import create_closet_today_router
 from comics_routes import create_comics_router
 from items import JOB_ROUTES, _job_token_route, create_items_router, require_admin
 from physical_routes import create_physical_router
@@ -46,6 +47,7 @@ EXPECTED = {
     ("POST", "/api/spots/candidates/refresh"),
     ("POST", "/api/spots/weather/refresh"),
     ("POST", "/api/closet/jobs/tag"),
+    ("POST", "/api/closet/jobs/plan"),
 }
 
 
@@ -101,6 +103,7 @@ def _real_app() -> FastAPI:
     app.include_router(create_candidates_router(None, lock=lock))
     app.include_router(create_weekend_router(None, lock=lock))
     app.include_router(create_closet_router(None, lock=lock))
+    app.include_router(create_closet_today_router(None, lock=lock))
     app.add_middleware(SessionMiddleware, secret_key="test", https_only=False)
     return app
 
@@ -132,6 +135,7 @@ async def test_every_whitelisted_route_exists_on_the_real_routers():
     app.include_router(create_candidates_router(None, lock=lock))
     app.include_router(create_weekend_router(None, lock=lock))
     app.include_router(create_closet_router(None, lock=lock))
+    app.include_router(create_closet_today_router(None, lock=lock))
     # FastAPI 0.141 includes routers lazily, so app.routes holds one opaque
     # entry per router; the OpenAPI schema lists the flattened templates.
     real = {
