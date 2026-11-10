@@ -227,6 +227,7 @@ def _line_dict(line: StoreLine) -> dict:
         if line.preorder_closes_at
         else None,
         "url": line.url,
+        "listing_title": line.listing_title,
     }
 
 
