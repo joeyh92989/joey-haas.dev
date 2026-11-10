@@ -374,11 +374,16 @@ describe('Admin Home', () => {
     },
     worn: null,
   }
+  const WORN_LEAD = TODAY.plan.lead.garments.map(({ slot, id }) => ({
+    slot,
+    id,
+  }))
 
   it('leads Closet with the stored outfit, and Wore this records it', async () => {
     const fetch = stubApi({
       '/api/closet/today?stored_only=true': () => json(TODAY),
-      '/api/closet/wore': () => json({ worn: { id: 5 } }),
+      '/api/closet/wore': (options) =>
+        json({ worn: { id: 5, garments: JSON.parse(options.body).garments } }),
       '/api/closet/garments': () =>
         json({ garments: [], counts: { untagged: 3 } }),
     })
@@ -416,7 +421,7 @@ describe('Admin Home', () => {
   it('shows Closet as worn when today is recorded', async () => {
     stubApi({
       '/api/closet/today?stored_only=true': () =>
-        json({ ...TODAY, worn: { id: 1 } }),
+        json({ ...TODAY, worn: { id: 1, garments: WORN_LEAD } }),
     })
     renderAt()
     const closet = await card('Closet')
@@ -424,6 +429,69 @@ describe('Admin Home', () => {
     expect(
       within(closet).queryByRole('button', { name: 'Wore this' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('says another outfit was worn when the record is not the card’s', async () => {
+    stubApi({
+      '/api/closet/today?stored_only=true': () =>
+        json({
+          ...TODAY,
+          worn: {
+            id: 1,
+            garments: [...WORN_LEAD.slice(0, 2), { slot: 'shoes', id: 's9' }],
+          },
+        }),
+    })
+    renderAt()
+    const closet = await card('Closet')
+    expect(
+      await within(closet).findByText('Worn today: another outfit'),
+    ).toBeInTheDocument()
+    expect(within(closet).queryByText('Worn ✓')).not.toBeInTheDocument()
+    fireEvent.click(within(closet).getByRole('button', { name: 'Change' }))
+    expect(
+      within(closet).getByRole('button', { name: 'Wore this' }),
+    ).toBeInTheDocument()
+  })
+
+  it('says the session ended when Wore this gets a 401', async () => {
+    stubApi({
+      '/api/closet/today?stored_only=true': () => json(TODAY),
+      '/api/closet/wore': () => ({
+        ok: false,
+        status: 401,
+        json: async () => ({ detail: 'Not signed in' }),
+      }),
+    })
+    renderAt()
+    const closet = await card('Closet')
+    fireEvent.click(
+      await within(closet).findByRole('button', { name: 'Wore this' }),
+    )
+    expect(await within(closet).findByRole('alert')).toHaveTextContent(
+      'Your session ended',
+    )
+  })
+
+  it('shows the route’s reason when Wore this is refused', async () => {
+    stubApi({
+      '/api/closet/today?stored_only=true': () => json(TODAY),
+      '/api/closet/wore': () => ({
+        ok: false,
+        status: 422,
+        json: async () => ({
+          detail: 'Only an active garment can be worn or turned down',
+        }),
+      }),
+    })
+    renderAt()
+    const closet = await card('Closet')
+    fireEvent.click(
+      await within(closet).findByRole('button', { name: 'Wore this' }),
+    )
+    expect(await within(closet).findByRole('alert')).toHaveTextContent(
+      'Only an active garment can be worn or turned down',
+    )
   })
 
   it('hides Closet when nothing is planned', async () => {

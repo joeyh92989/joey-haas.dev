@@ -10,8 +10,13 @@ import SwapSheet from '../components/SwapSheet.jsx'
 import WrapUpSheet from '../components/WrapUpSheet.jsx'
 import { jobsSummary, useNightly } from '../lib/adminJobs.js'
 import { counted } from '../lib/analytics.js'
-import { apiFetch } from '../lib/api.js'
-import { OCCASION_LABELS, swapTile, woreGarments } from '../lib/closet.js'
+import { apiFetch, errorMessage } from '../lib/api.js'
+import {
+  OCCASION_LABELS,
+  sameOutfit,
+  swapTile,
+  woreGarments,
+} from '../lib/closet.js'
 import { dashboardCounts } from '../lib/dashboard.js'
 import { ownerYear } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
@@ -68,6 +73,8 @@ function outfitMeta(plan) {
   return parts.join(' · ')
 }
 
+const SESSION_ENDED = 'Your session ended. Sign in again to record it.'
+
 /**
  * Closet: the day's stored lead outfit as swatches, with Wore this and
  * Swap. Only a stored plan is read (`stored_only`), so Home never spends a
@@ -79,8 +86,10 @@ function ClosetCard({ untagged }) {
   const [swapped, setSwapped] = useState(false)
   const [swapOpen, setSwapOpen] = useState(false)
   const [worn, setWorn] = useState(null)
+  // Change was pressed on a worn outfit: the actions again.
+  const [changing, setChanging] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState(null)
 
   const plan = today?.plan ?? null
   const lead = outfit ?? plan?.lead ?? null
@@ -89,7 +98,7 @@ function ClosetCard({ untagged }) {
   async function wore() {
     if (busy) return
     setBusy(true)
-    setError(false)
+    setError(null)
     try {
       const response = await apiFetch('/api/closet/wore', {
         method: 'POST',
@@ -101,16 +110,28 @@ function ClosetCard({ untagged }) {
           garments: woreGarments(lead),
         }),
       })
-      if (!response.ok) throw new Error(`status ${response.status}`)
-      setWorn((await response.json()).worn ?? true)
+      if (response.status === 401 || response.status === 403) {
+        setError(SESSION_ENDED)
+        return
+      }
+      if (!response.ok) {
+        setError(await errorMessage(response))
+        return
+      }
+      setWorn((await response.json()).worn ?? null)
+      setChanging(false)
     } catch {
-      setError(true)
+      setError('Couldn’t record it.')
     } finally {
       setBusy(false)
     }
   }
 
-  const done = worn ?? today?.worn
+  // Worn ✓ only for the outfit on the card; a record of another one says so.
+  const record = worn ?? today?.worn
+  let done = null
+  if (record && !changing && lead)
+    done = sameOutfit(record, lead) ? 'Worn ✓' : 'Worn today: another outfit'
   return (
     <>
       <AreaCard
@@ -135,7 +156,16 @@ function ClosetCard({ untagged }) {
         actions={
           lead &&
           (done ? (
-            <span className="muted">Worn ✓</span>
+            <>
+              <span className="muted">{done}</span>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setChanging(true)}
+              >
+                Change
+              </button>
+            </>
           ) : (
             <>
               <button
@@ -156,7 +186,7 @@ function ClosetCard({ untagged }) {
               </button>
               {error && (
                 <span className="admin-error" role="alert">
-                  Couldn’t record it.
+                  {error}
                 </span>
               )}
             </>
