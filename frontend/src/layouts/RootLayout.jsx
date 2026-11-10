@@ -10,6 +10,7 @@ import { trips } from '../content/trips.js'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { isSearchShortcut } from '../lib/searchKeys.js'
+import { hasSpots } from '../lib/snapshotPresence.js'
 import { useAnalyticsBeacon } from '../lib/useAnalyticsBeacon.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
@@ -249,6 +250,7 @@ export default function RootLayout() {
         signedIn={Boolean(signedIn)}
         hasNotes={notes.length > 0}
         hasTrips={trips.length > 0}
+        hasSpots={hasSpots}
       />
     </div>
   )
