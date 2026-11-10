@@ -5,7 +5,7 @@ import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { axeViolations } from '../lib/axe.test-util.js'
-import Travel from './Travel.jsx'
+import Travel, { EMPTY } from './Travel.jsx'
 
 // trips.js globs markdown the Vitest config cannot compile, so it is
 // replaced; tests fill this array. Like the real module, it holds only
@@ -166,11 +166,12 @@ describe('Travel', () => {
     expect(screen.queryByRole('button')).toBeNull()
   })
 
-  it('renders only its heading and lede with no trips', () => {
+  it('says it is empty under its heading and lede with no trips', () => {
     renderTravel()
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Travel',
     )
+    expect(screen.getByText(EMPTY)).toBeInTheDocument()
     expect(screen.queryByRole('list')).toBeNull()
     expect(screen.queryByRole('link')).toBeNull()
   })
