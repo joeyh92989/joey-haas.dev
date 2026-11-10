@@ -1,5 +1,6 @@
 """Review's routes: closet_review_routes.py over the database, with a fake model."""
 
+import asyncio
 import uuid
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
@@ -10,6 +11,7 @@ from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
+import closet_review_routes
 from closet_review_routes import create_closet_review_router
 from closet_today_routes import load_pieces
 from llm import LLMError, _quota_message
@@ -415,3 +417,207 @@ async def test_decisions_count_one_row_each(sessionmaker_for_test):
         assert await session.scalar(select(func.count(GarmentDecision.id))) == 1
         outcome = await session.scalar(select(GarmentDecision.outcome))
     assert outcome == GarmentOutcome.KEPT
+
+
+async def test_a_kept_out_of_season_piece_leaves_the_banner_and_pack_all(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        kept = await client.post(
+            f"/api/closet/garments/{ids['linen shirt']}/decision",
+            json={"outcome": "keep"},
+        )
+        assert kept.status_code == 200
+        body = (await client.get("/api/closet/review")).json()
+        packed = (await client.post("/api/closet/pack-all")).json()
+    assert body["banner"]["count"] == 1
+    assert packed["ids"] == [ids["shorts"]]
+    found = await statuses(sessionmaker_for_test)
+    assert found["linen shirt"] == ("active", None)
+    assert found["shorts"] == ("packed", date(2027, 5, 1))
+
+
+async def test_two_decisions_at_once_write_one(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        answers = await asyncio.gather(
+            *(
+                client.post(
+                    f"/api/closet/garments/{ids['tee']}/decision",
+                    json={"outcome": outcome},
+                )
+                for outcome in ("donate", "sell")
+            )
+        )
+    assert sorted(a.status_code for a in answers) == [200, 409]
+    async with sessionmaker_for_test() as session:
+        assert await session.scalar(select(func.count(GarmentDecision.id))) == 1
+
+
+async def test_an_empty_pack_all_keeps_the_last_undo(sessionmaker_for_test):
+    ids = await seed(
+        sessionmaker_for_test, [("tee", "top", 12, {}), ("oxford", "top", 12, {})]
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        donated = (
+            await client.post(
+                f"/api/closet/garments/{ids['tee']}/decision",
+                json={"outcome": "donate"},
+            )
+        ).json()
+        packed = (await client.post("/api/closet/pack-all")).json()
+        unpacked = (await client.post("/api/closet/unpack-all")).json()
+        undone = await client.post("/api/closet/undo", json={"token": donated["undo"]})
+    assert packed == {"ids": [], "undo": None}
+    assert unpacked == {"ids": [], "undo": None}
+    assert undone.status_code == 200
+    assert (await statuses(sessionmaker_for_test))["tee"] == ("active", None)
+
+
+async def test_undo_leaves_a_garment_changed_since(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        packed = (await client.post("/api/closet/pack-all")).json()
+        async with sessionmaker_for_test() as session:
+            row = await session.get(Garment, uuid.UUID(ids["shorts"]))
+            row.status = GarmentStatus.ACTIVE
+            row.back_on = None
+            await session.commit()
+        undone = (
+            await client.post("/api/closet/undo", json={"token": packed["undo"]})
+        ).json()
+    assert undone == {"ids": [ids["linen shirt"]], "skipped": 1}
+    found = await statuses(sessionmaker_for_test)
+    assert found["linen shirt"] == ("active", None)
+    assert found["shorts"] == ("active", None)
+    # The hand-edited piece keeps its decision; the undone one loses it.
+    assert await decisions(sessionmaker_for_test) == [("shorts", "packed")]
+
+
+async def test_mark_sold_then_undo_puts_it_back_listed(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await client.post(
+            f"/api/closet/garments/{ids['never worn']}/decision",
+            json={"outcome": "sell"},
+        )
+        sold = (
+            await client.post(f"/api/closet/garments/{ids['never worn']}/sold")
+        ).json()
+        assert (await statuses(sessionmaker_for_test))["never worn"] == ("gone", None)
+        undone = await client.post("/api/closet/undo", json={"token": sold["undo"]})
+        again = await client.post(f"/api/closet/garments/{ids['tee']}/sold")
+    assert undone.status_code == 200
+    assert again.status_code == 409
+    assert (await statuses(sessionmaker_for_test))["never worn"] == ("listed", None)
+    assert await decisions(sessionmaker_for_test) == [("never worn", "listed")]
+
+
+async def test_a_decided_piece_leaves_today(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        for name, outcome in (("tee", "donate"), ("oxford", "sell")):
+            await client.post(
+                f"/api/closet/garments/{ids[name]}/decision", json={"outcome": outcome}
+            )
+    async with sessionmaker_for_test() as session:
+        pieces, _, _ = await load_pieces(session, DAY)
+    names = {p.name for p in pieces}
+    assert "tee" not in names and "oxford" not in names and "chinos" in names
+
+
+async def test_pack_away_without_a_category_needs_a_month(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        row = Garment(
+            name=None,
+            category=None,
+            seasons=[],
+            status=GarmentStatus.ACTIVE,
+            acquired_on=date(2025, 1, 1),
+            tag_attempts=0,
+        )
+        session.add(row)
+        await session.commit()
+        garment = str(row.id)
+    async with client_for(sessionmaker_for_test) as client:
+        bare = await client.post(
+            f"/api/closet/garments/{garment}/decision", json={"outcome": "pack"}
+        )
+        dated = await client.post(
+            f"/api/closet/garments/{garment}/decision",
+            json={"outcome": "pack", "back_on": "2027-03-10"},
+        )
+    assert bare.status_code == 422
+    assert "Tag this piece first" in bare.json()["detail"]
+    assert dated.status_code == 200
+
+
+async def test_an_empty_opinion_answer_replaces_the_batch(sessionmaker_for_test):
+    await seed(sessionmaker_for_test)
+    good = FakeProvider(opinion_for(("never worn", "Not your colours.")))
+    async with client_for(sessionmaker_for_test, good) as client:
+        await client.post("/api/closet/jobs/opinion")
+    async with client_for(
+        sessionmaker_for_test, FakeProvider({"opinions": []})
+    ) as client:
+        run = (await client.post("/api/closet/jobs/opinion")).json()
+        body = (await client.get("/api/closet/review")).json()
+    assert run["state"] == "ok" and run["opinions"] == 0 and "note" not in run
+    assert [card["opinion"] for card in body["deck"]] == [None, None, None]
+    assert body["opinion_batch_on"] == DAY.isoformat()
+
+
+async def test_an_old_opinion_batch_is_not_shown(sessionmaker_for_test):
+    await seed(sessionmaker_for_test)
+    good = FakeProvider(opinion_for(("never worn", "Not your colours.")))
+    async with client_for(sessionmaker_for_test, good) as client:
+        await client.post("/api/closet/jobs/opinion")
+    later = DAY + timedelta(days=22)
+    async with client_for(sessionmaker_for_test, day=later) as client:
+        body = (await client.get("/api/closet/review")).json()
+    assert body["opinion_batch_on"] is None
+    assert all(card["opinion"] is None for card in body["deck"])
+
+
+async def test_an_opinion_past_its_budget_keeps_the_last_batch(
+    sessionmaker_for_test, monkeypatch
+):
+    await seed(sessionmaker_for_test)
+    good = FakeProvider(opinion_for(("never worn", "Not your colours.")))
+    async with client_for(sessionmaker_for_test, good) as client:
+        await client.post("/api/closet/jobs/opinion")
+
+    class Slow:
+        async def complete_json(self, prompt, schema, images=None):
+            await asyncio.sleep(5)
+
+    monkeypatch.setattr(closet_review_routes, "OPINION_BUDGET_S", 0.05)
+    async with client_for(sessionmaker_for_test, Slow()) as client:
+        run = (await client.post("/api/closet/jobs/opinion")).json()
+        body = (await client.get("/api/closet/review")).json()
+    assert run["state"] == "skipped" and run["ok"] is True
+    assert run["note"] == "The model ran out of time"
+    assert body["deck"][0]["opinion"] == "Not your colours."
+
+
+async def test_a_failed_opinion_job_records_it_and_keeps_the_batch(
+    sessionmaker_for_test, monkeypatch
+):
+    await seed(sessionmaker_for_test)
+    good = FakeProvider(opinion_for(("never worn", "Not your colours.")))
+    async with client_for(sessionmaker_for_test, good) as client:
+        await client.post("/api/closet/jobs/opinion")
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("prompt exploded")
+
+    monkeypatch.setattr(closet_review_routes.closet_opinion, "build_prompt", broken)
+    async with client_for(sessionmaker_for_test, FakeProvider()) as client:
+        with pytest.raises(RuntimeError):
+            await client.post("/api/closet/jobs/opinion")
+    status = await setting(sessionmaker_for_test, "opinion.last_run")
+    assert status["state"] == "failed" and status["ok"] is False
+    assert "prompt exploded" in status["note"]
+    batch = await setting(sessionmaker_for_test, "opinion.batch")
+    assert batch["opinions"] and batch["batch_on"] == DAY.isoformat()

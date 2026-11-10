@@ -15,14 +15,23 @@
   away `packed` with its month, Sell `listed`, Donate `donated`, Mark sold
   `sold`) and moves the status (`packed`, `listed`, `gone`). Pack all
   writes one per garment; Unpack all only moves status (no outcome).
-- **Undo** is one level deep: each write stores the prior status and
-  `back_on` of what it touched and the decision rows it wrote under
-  `review.undo` with a fresh token, and `POST /undo` with that token puts
-  them back exactly and deletes those rows.
+- **Writes lock their rows** (`SELECT … FOR UPDATE`) and check the status
+  again under the lock, so two tabs or a double tap cannot both decide the
+  same piece. Pack all leaves out a piece kept since the turn, as the deck
+  and the banner do.
+- **Undo** is one level deep: each write stores the prior and the new
+  status and `back_on` of what it touched and the decision rows it wrote
+  under `review.undo` with a fresh token, and `POST /undo` with that token
+  puts them back and deletes those rows. A garment changed since (a hand
+  edit) no longer matches the stored new state: it is left as it is, its
+  decision row kept, and counted in the answer's `skipped`. A write that
+  touches nothing stores no undo, so the last one survives it.
 - **The Sunday opinion** (`POST /jobs/opinion`, a job route) asks the
   model once about the deck (`closet_opinion.py`) and replaces
-  `opinion.batch`; any failure keeps the last batch, stores nothing new,
-  and writes the reason to `opinion.last_run`.
+  `opinion.batch`; a valid answer with no opinions stores an empty batch,
+  while any failure keeps the last batch, stores nothing new, and writes
+  the reason to `opinion.last_run`. A batch older than
+  `OPINION_MAX_AGE_DAYS` is not shown.
 
 Admin only, at the router, with its own lock for the job.
 Spec and plan: docs/planning/2026-11-09-outfit-design.md (PR D, tasks 19-20).
@@ -72,6 +81,9 @@ WORN_WINDOW_DAYS = 30
 # One model call, inside nightly.yml's 300 s curl timeout for this step.
 OPINION_BUDGET_S = 240
 NO_UNDO = "That can no longer be undone"
+# Three missed Sundays and the opinions describe a different deck.
+OPINION_MAX_AGE_DAYS = 21
+NO_CATEGORY = "Tag this piece first, or pick the month to bring it back"
 # The season a turn closes, for the banner's sentence.
 CLOSING = {"autumn": "summer", "spring": "winter"}
 
@@ -113,6 +125,19 @@ def _held(row: Garment, wears: int, last: date | None) -> closet.Held:
 
 def _month_name(on: date) -> str:
     return closet.MONTH_NAMES[on.month - 1]
+
+
+def _iso(on: date | None) -> str | None:
+    return on.isoformat() if on else None
+
+
+def _stale_batch(batch: dict[str, Any], day: date) -> bool:
+    """A batch from more than `OPINION_MAX_AGE_DAYS` ago, or undated."""
+    try:
+        on = date.fromisoformat(batch["batch_on"])
+    except (KeyError, TypeError, ValueError):
+        return bool(batch)
+    return (day - on).days > OPINION_MAX_AGE_DAYS
 
 
 def create_closet_review_router(
@@ -212,6 +237,8 @@ def create_closet_review_router(
         profile, turn, is_open = state["profile"], state["turn"], state["open"]
         photos = set((await session.scalars(select(GarmentImage.garment_id))).all())
         batch = await _setting(session, OPINION_BATCH_KEY) or {}
+        if _stale_batch(batch, day):
+            batch = {}
         opinions = batch.get("opinions") or {}
         by_id = {h.id: h for h in held}
 
@@ -224,7 +251,8 @@ def create_closet_review_router(
                 last_worn=by_id[garment_id].last_worn,
             ).model_dump(mode="json")
 
-        members = closet.turn_members(held, day)
+        kept = await _kept_since(session, turn.on)
+        members = [h for h in closet.turn_members(held, day) if h.id not in kept]
         banner = None
         if is_open and members:
             backs = Counter(closet.bring_back(h, day) for h in members)
@@ -285,10 +313,11 @@ def create_closet_review_router(
 
     async def _remember(
         session: AsyncSession,
-        rows: list[Garment],
+        changes: list[tuple[Garment, GarmentStatus, date | None]],
         decisions: list[GarmentDecision],
     ) -> str:
-        """Store what an undo restores; the caller then changes `rows`."""
+        """Store what an undo restores: each row's state now and the state
+        the caller is about to give it. The caller then changes the rows."""
         token = uuid.uuid4().hex
         await _put(
             session,
@@ -299,14 +328,33 @@ def create_closet_review_router(
                     {
                         "id": str(row.id),
                         "status": row.status.value,
-                        "back_on": row.back_on.isoformat() if row.back_on else None,
+                        "back_on": _iso(row.back_on),
+                        "after_status": status.value,
+                        "after_back_on": _iso(back_on),
                     }
-                    for row in rows
+                    for row, status, back_on in changes
                 ],
                 "decisions": [str(d.id) for d in decisions],
             },
         )
         return token
+
+    async def _locked(session: AsyncSession, ids: list[uuid.UUID]) -> list[Garment]:
+        """The rows, locked for this transaction and read again under the
+        lock, so a status checked after this is the committed one."""
+        if not ids:
+            return []
+        return list(
+            (
+                await session.scalars(
+                    select(Garment)
+                    .where(Garment.id.in_(ids))
+                    .order_by(Garment.id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+            ).all()
+        )
 
     def _decision(
         row: Garment, outcome: GarmentOutcome, day: date, back_on: date | None = None
@@ -320,10 +368,10 @@ def create_closet_review_router(
         )
 
     async def _found(session: AsyncSession, garment_id: uuid.UUID) -> Garment:
-        row = await session.get(Garment, garment_id)
-        if row is None:
+        rows = await _locked(session, [garment_id])
+        if not rows:
             raise HTTPException(status_code=404, detail="No such garment")
-        return row
+        return rows[0]
 
     @router.post("/garments/{garment_id}/decision")
     async def decide(
@@ -343,18 +391,19 @@ def create_closet_review_router(
         if body.outcome == "pack":
             back_on = body.back_on.replace(day=1) if body.back_on else None
             if back_on is None:
-                held = _held(row, 0, None)
-                back_on = closet.bring_back(held, day)
+                if row.category is None:
+                    # The season window is read from the category.
+                    raise HTTPException(status_code=422, detail=NO_CATEGORY)
+                back_on = closet.bring_back(_held(row, 0, None), day)
             if back_on <= day:
                 raise HTTPException(
                     status_code=422, detail="Bring it back in a month still to come"
                 )
         decision = _decision(row, outcome, day, back_on)
-        token = await _remember(session, [row], [decision])
+        after = (status, back_on) if status is not None else (row.status, row.back_on)
+        token = await _remember(session, [(row, *after)], [decision])
         session.add(decision)
-        if status is not None:
-            row.status = status
-            row.back_on = back_on
+        row.status, row.back_on = after
         await session.commit()
         return {"undo": token, "id": str(row.id), "status": row.status.value}
 
@@ -369,7 +418,7 @@ def create_closet_review_router(
                 status_code=409, detail="Only a listed garment can be sold"
             )
         decision = _decision(row, GarmentOutcome.SOLD, today())
-        token = await _remember(session, [row], [decision])
+        token = await _remember(session, [(row, GarmentStatus.GONE, None)], [decision])
         session.add(decision)
         row.status = GarmentStatus.GONE
         row.back_on = None
@@ -381,19 +430,28 @@ def create_closet_review_router(
         """The season turn's Pack all: every active garment out of season,
         packed until its window opens."""
         day = today()
+        profile = profile_out(await load_profile(session))
         held, rows, _, _ = await _load(session, day)
-        members = closet.turn_members(held, day)
-        targets = [rows[h.id] for h in members]
-        decisions = [
-            _decision(rows[h.id], GarmentOutcome.PACKED, day, closet.bring_back(h, day))
+        turn = closet.current_turn(day, profile["spring_turn"], profile["autumn_turn"])
+        kept = await _kept_since(session, turn.on)
+        members = [h for h in closet.turn_members(held, day) if h.id not in kept]
+        locked = await _locked(session, [rows[h.id].id for h in members])
+        still = {str(r.id) for r in locked if r.status == GarmentStatus.ACTIVE}
+        members = [h for h in members if h.id in still]
+        if not members:
+            return {"ids": [], "undo": None}
+        changes = [
+            (rows[h.id], GarmentStatus.PACKED, closet.bring_back(h, day))
             for h in members
         ]
-        token = await _remember(session, targets, decisions)
-        for held_piece, decision in zip(members, decisions, strict=True):
-            row = rows[held_piece.id]
+        decisions = [
+            _decision(row, GarmentOutcome.PACKED, day, back_on)
+            for row, _, back_on in changes
+        ]
+        token = await _remember(session, changes, decisions)
+        for (row, status, back_on), decision in zip(changes, decisions, strict=True):
             session.add(decision)
-            row.status = GarmentStatus.PACKED
-            row.back_on = decision.back_on
+            row.status, row.back_on = status, back_on
         await session.commit()
         return {"ids": [h.id for h in members], "undo": token}
 
@@ -405,26 +463,58 @@ def create_closet_review_router(
         day = today()
         held, rows, _, _ = await _load(session, day)
         due = closet.due_back(held, day)
-        targets = [rows[h.id] for h in due]
-        token = await _remember(session, targets, [])
+        locked = await _locked(session, [rows[h.id].id for h in due])
+        targets = [
+            r
+            for r in locked
+            if r.status == GarmentStatus.PACKED
+            and r.back_on is not None
+            and r.back_on <= day
+        ]
+        if not targets:
+            return {"ids": [], "undo": None}
+        token = await _remember(
+            session, [(row, GarmentStatus.ACTIVE, None) for row in targets], []
+        )
         for row in targets:
             row.status = GarmentStatus.ACTIVE
             row.back_on = None
         await session.commit()
-        return {"ids": [h.id for h in due], "undo": token}
+        ids = {str(row.id) for row in targets}
+        return {"ids": [h.id for h in due if h.id in ids], "undo": token}
 
     @router.post("/undo")
     async def undo(
         body: UndoIn, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
-        """Put back exactly what the write with this token changed."""
-        saved = await _setting(session, UNDO_KEY)
+        """Put back what the write with this token changed, where nothing
+        has changed it since."""
+        saved_row = await session.scalar(
+            select(ClosetSetting)
+            .where(ClosetSetting.key == UNDO_KEY)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        saved = saved_row.value if saved_row else None
         if not saved or saved.get("token") != body.token:
             raise HTTPException(status_code=409, detail=NO_UNDO)
-        restored = []
-        for entry in saved.get("garments") or []:
-            row = await session.get(Garment, uuid.UUID(entry["id"]))
+        entries = saved.get("garments") or []
+        rows = {
+            str(r.id): r
+            for r in await _locked(session, [uuid.UUID(e["id"]) for e in entries])
+        }
+        restored: list[str] = []
+        left: list[uuid.UUID] = []
+        for entry in entries:
+            row = rows.get(entry["id"])
             if row is None:
+                continue
+            if "after_status" in entry and (
+                row.status.value != entry["after_status"]
+                or _iso(row.back_on) != entry["after_back_on"]
+            ):
+                # Changed since: an undo now would overwrite that change.
+                left.append(row.id)
                 continue
             row.status = GarmentStatus(entry["status"])
             row.back_on = (
@@ -434,13 +524,19 @@ def create_closet_review_router(
         ids = [uuid.UUID(d) for d in saved.get("decisions") or []]
         if ids:
             await session.execute(
-                delete(GarmentDecision).where(GarmentDecision.id.in_(ids))
+                delete(GarmentDecision).where(
+                    GarmentDecision.id.in_(ids),
+                    GarmentDecision.garment_id.not_in(left),
+                )
             )
         await session.execute(
-            delete(ClosetSetting).where(ClosetSetting.key == UNDO_KEY)
+            delete(ClosetSetting).where(
+                ClosetSetting.key == UNDO_KEY,
+                ClosetSetting.value["token"].astext == body.token,
+            )
         )
         await session.commit()
-        return {"ids": restored}
+        return {"ids": restored, "skipped": len(left)}
 
     @router.post("/review/dismiss")
     async def dismiss(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
@@ -489,14 +585,19 @@ def create_closet_review_router(
             kept = (
                 closet_opinion.validate(payload, cards) if payload is not None else {}
             )
-            if payload is not None and not kept and note is None:
+            # The model may have nothing to add: a well-formed empty list
+            # is an answer, and replaces last week's opinions.
+            nothing_to_add = isinstance(payload, dict) and payload.get("opinions") == []
+            if payload is not None and not kept and not nothing_to_add and note is None:
                 note = "The model’s opinions did not hold up"
-            if kept:
+            if kept or nothing_to_add:
                 await _put(session, OPINION_BATCH_KEY, closet_opinion.batch(kept, day))
                 summary.update(state="ok", opinions=len(kept))
             else:
                 # Nothing new is stored: the last batch stands, and the
-                # deck is the data's either way.
+                # deck is the data's either way. `ok` stays true, with the
+                # note, as the plan job reports a fallback: the step ran and
+                # Review is whole, only without new opinions.
                 summary.update(state="skipped", opinions=0, note=note)
         await _put(session, OPINION_STATUS_KEY, summary)
         await session.commit()
