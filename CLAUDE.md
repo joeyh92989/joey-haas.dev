@@ -397,14 +397,15 @@ before pushing.
 - **Review writes go through `closet_review_routes.py`**: one
   `garment_decisions` row per outcome, and one level of undo under
   `closet_settings["review.undo"]` that puts back exactly what the last
-  write changed (a stale token is 409 with a `detail`, which the page
-  shows itself: `errorMessage` names every 409 the catalogue lock).
+  write changed. A stale token gets a 409 whose `detail` the page shows
+  itself, because `errorMessage` words every 409 as the catalogue lock.
   Dismissing the season-turn banner closes the turn on the server, and with
   it the out-of-season flags; One by one and Skip are client-only.
 - **The Closet badge is the review count** (`tiles.flagged`), loaded by
-  `AdminLayout` once per sign-in and kept current by the Review page
-  through `setClosetReview`; Home's Closet card shows To review and
-  Untagged.
+  `AdminLayout` on sign-in and again on the way into `/admin/closet*`
+  (a nightly opinion or a season turn changes it), and kept current by the
+  Review page through `setClosetReview`; Home's Closet card shows To review
+  and Untagged.
 
 ## Media tracker
 
@@ -744,13 +745,18 @@ before pushing.
   exactly, so a new route cannot become reachable by the token unnoticed.
 - **Nightly order:** the followed comics' refresh
   (`POST /api/comics/refresh`, in `JOB_ROUTES`; early because it is cheap
-  and the catalogue steps can run the job into its timeout), then registry,
+  and the catalogue steps can run the job into its timeout), then the
+  weekend forecast, then the Closet's tag queue
+  (`POST /api/closet/jobs/tag`), then tomorrow's outfit plans
+  (`POST /api/closet/jobs/plan`), then registry,
   then the WooCommerce stores on Render, then the Shopify stores walked on the runner
   (`backend/scripts/walk_stores.py`, posting each to
   `/api/physical/stores/{key}/ingest`: Shopify rate-limits Render's IP), then Switch 1
   (Sunday evenings in Denver), then resolve (up to 5 rounds), then Radar,
   then Discover (Sunday evenings), then the spot finder (Sunday evenings),
-  then the page-view rollup, then the snapshot compare and the deploy hook.
+  then the Closet's Review opinion (`POST /api/closet/jobs/opinion`, Sunday
+  evenings, or any night started by hand with `closet_opinion`), then the
+  page-view rollup, then the snapshot compare and the deploy hook.
   The weekend forecast (`POST /api/spots/weather/refresh`) runs right after
   the comics, every night. There is no picks step: the public picks are
   computed live, and `POST /api/picker/next` is out of `JOB_ROUTES`.

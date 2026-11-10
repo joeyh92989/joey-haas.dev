@@ -571,8 +571,9 @@ Sunday opinion's prompt and checks are `closet_opinion.py`.
   Tag now. `/admin/closet/:id` edits every field by hand and deletes;
   `/admin/closet/profile` is the Profile, saved whole as one `PATCH`. The
   Closet area's badge counts the pieces Review has flagged (`tiles.flagged`
-  from `GET /api/closet/review`), read once per sign-in by `AdminLayout` and
-  updated by every read on the Review page; Home's Closet card shows that
+  from `GET /api/closet/review`), read by `AdminLayout` on sign-in and again
+  on the way into the Closet area, and updated by every read on the Review
+  page; Home's Closet card shows that
   figure as To review beside Untagged.
 
 ### Review
@@ -609,17 +610,24 @@ with Keep, Pack away, Sell or Donate. The flags are data, never the model.
   writes nothing.
 - **Undo** is one level: every write returns a token, kept under
   `closet_settings["review.undo"]`, and `POST /api/closet/undo` puts back
-  exactly the statuses, months and decision rows that write changed. Any
-  later write replaces it, and a stale token answers 409.
+  the statuses, months and decision rows that write changed. A garment
+  changed since (a hand edit) is left as it is, keeps its decision row, and
+  is counted in the answer's `skipped`. Any later write replaces the token
+  (a Pack all or Unpack all that touches nothing stores none), and a stale
+  token answers 409. Every write locks its rows and checks the status again
+  under the lock, so a double tap writes one decision.
 - **The opinion** is a second pass over the deck, never a flag. The weekly
   step (`POST /api/closet/jobs/opinion`, Sunday evenings in the nightly
   run, in `JOB_ROUTES`) sends the flagged cards as one numbered prompt; the
   model answers with numbers, so an opinion can only attach to a piece the
-  data flagged, and `closet_opinion.validate` drops a number out of range or
-  repeated. The batch is stored under `opinion.batch` and shown last on the
-  card, labelled "Opinion:", at most 200 characters. A model failure keeps
-  last week's batch; every run writes `opinion.last_run`, which `GET
-  /api/closet/status` reads for the Jobs page's Closet opinions row.
+  data flagged. `closet_opinion.validate` drops a number out of range, and
+  a repeated number keeps its first entry. The batch is stored under
+  `opinion.batch` and shown last on the card, labelled "Opinion:", at most
+  200 characters; a batch more than three weeks old is not shown. A valid
+  answer with no opinions stores an empty batch; a model failure keeps last
+  week's. Every run writes `opinion.last_run`, which `GET
+  /api/closet/status` reads for the Jobs page's Closet opinions row. To run
+  it on another night, start Nightly by hand with "closet_opinion" ticked.
 
 ## Smoke test
 

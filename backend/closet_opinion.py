@@ -7,7 +7,8 @@ as one prompt, and stores what `validate` keeps under the batch date.
 
 - **Only flagged pieces.** The prompt numbers the deck's cards and the model
   answers with those numbers, so an opinion can only attach to a piece the
-  data already flagged; a number out of range or given twice is dropped.
+  data already flagged; a number out of range is dropped, and a repeated
+  number keeps its first entry.
   An opinion is never a flag: a piece with an opinion and no flag is not in
   the deck, so the opinion is never shown.
 - **Labelled, last and short.** The deck shows it after the data flags as
@@ -15,6 +16,8 @@ as one prompt, and stores what `validate` keeps under the batch date.
   label is never doubled. At most `MAX_OPINION` characters.
 - **Any failure stores nothing**: the route keeps the last good batch and
   writes the reason to `opinion.last_run`; the deck is the data either way.
+  A valid answer with no opinions is not a failure: it stores an empty
+  batch.
 
 Spec and plan: docs/planning/2026-11-09-outfit-design.md (PR D, task 19).
 """
@@ -129,8 +132,8 @@ def _text(value: Any) -> str:
 
 
 def validate(payload: Any, cards: Sequence[Flagged]) -> dict[str, str]:
-    """The opinions that hold up, by garment id: a number in range, given
-    once, with some text."""
+    """The opinions that hold up, by garment id: a number in range, with
+    some text. A repeated number keeps its first entry."""
     entries = payload.get("opinions") if isinstance(payload, dict) else None
     if not isinstance(entries, list):
         return {}

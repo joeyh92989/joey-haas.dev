@@ -30,6 +30,10 @@ on:
         description: Generate a Discover batch even if it is not Sunday night
         type: boolean
         default: false
+      closet_opinion:
+        description: Ask for the Closet's Review opinions even if it is not Sunday night
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -94,6 +98,7 @@ jobs:
           # The inputs context keeps a boolean a boolean; on a schedule it is
           # empty, which is not "true".
           FORCE_DISCOVER: ${{ inputs.discover }}
+          FORCE_CLOSET_OPINION: ${{ inputs.closet_opinion }}
         run: |
           if [ -z "$JOB_TOKEN" ]; then
             echo "::error::The JOB_TOKEN secret is not set; nothing was refreshed"
@@ -218,7 +223,7 @@ jobs:
           # Weekly: the Closet's Review opinion, one model call over the
           # pieces the data already flagged. A failed call keeps last
           # week's opinions; the 240s model budget sits inside this timeout.
-          if [ "$weekly" = true ]; then
+          if [ "$weekly" = true ] || [ "$FORCE_CLOSET_OPINION" = true ]; then
             call closet-opinion 300 /api/closet/jobs/opinion
           fi
           # Rolls up every finished day's page views and drops raw rows
