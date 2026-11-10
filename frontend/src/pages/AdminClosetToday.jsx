@@ -4,7 +4,11 @@ import FilterChips from '../components/FilterChips.jsx'
 import OutfitSwatches, { Swatch } from '../components/OutfitSwatches.jsx'
 import Sheet from '../components/Sheet.jsx'
 import SwapSheet from '../components/SwapSheet.jsx'
-import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
+import {
+  ACTION_ERROR,
+  LOAD_ERROR,
+  WAKING_OR_PLANNING,
+} from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import {
   NOT_THIS_REASONS,
@@ -13,13 +17,29 @@ import {
   categoryLabel,
   footnoteLine,
   longDate,
+  outfitReason,
   oversizePhoto,
   plannedWords,
+  sameOutfit,
   swapTile,
   woreGarments,
 } from '../lib/closet.js'
 
 const SESSION_ENDED = 'Your session ended. Sign in again to see today.'
+
+/**
+ * How the outfit on screen was chosen, for `POST /api/closet/wore`. A photo
+ * match wins whatever happened after it, then a swapped piece, then an
+ * alternative worn instead. Build around and From the closet plans stay
+ * `planned`: the spec records those as the planner's pick, with the lock
+ * on the plan, not as a source of their own.
+ */
+function sourceOf(plan, lead) {
+  if (plan?.match) return 'own'
+  if (lead.swapped) return 'swapped'
+  if (lead.alt) return 'alternative'
+  return 'planned'
+}
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
 /** The chips' query for `GET /api/closet/today`. */
@@ -78,7 +98,7 @@ function OutfitTile({ tile, locked, busy, onLock, onSave, saving }) {
             type="button"
             className="today-lock"
             aria-pressed={locked}
-            aria-label={`Build around the ${tile.name}`}
+            aria-label={`${locked ? 'Built around' : 'Build around'} the ${tile.name}`}
             disabled={busy}
             onClick={() => onLock(tile)}
           >
@@ -92,7 +112,7 @@ function OutfitTile({ tile, locked, busy, onLock, onSave, saving }) {
         <button
           type="button"
           className="btn sm"
-          disabled={saving}
+          disabled={saving || busy}
           onClick={onSave}
         >
           {saving ? 'Saving…' : 'Save as owned'}
@@ -226,8 +246,9 @@ function OutfitCard({
   outfit,
   lockId,
   busy,
-  worn,
+  wornState,
   saving,
+  headingRef,
   onLock,
   onSave,
   onWore,
@@ -238,12 +259,15 @@ function OutfitCard({
 }) {
   const [asking, setAsking] = useState(false)
   const transient = outfit.garments.some((g) => g.transient)
-  const reason =
-    outfit.ranked_by === 'template' ? 'picked without the model' : outfit.reason
 
   return (
     <section className="panel today-card" aria-labelledby="today-wear">
-      <p className="today-kicker" id="today-wear">
+      <p
+        className="today-kicker"
+        id="today-wear"
+        tabIndex={-1}
+        ref={headingRef}
+      >
         Wear this
       </p>
       <ul className="today-tiles">
@@ -259,10 +283,12 @@ function OutfitCard({
           />
         ))}
       </ul>
-      <p className="today-reason">{reason}</p>
-      {worn ? (
+      <p className="today-reason">{outfitReason(outfit)}</p>
+      {wornState ? (
         <p className="today-worn">
-          <span>Worn ✓</span>
+          <span>
+            {wornState === 'this' ? 'Worn ✓' : 'Worn today: another outfit'}
+          </span>
           <span aria-hidden="true"> · </span>
           <button type="button" className="link-button" onClick={onChange}>
             Change
@@ -305,7 +331,7 @@ function OutfitCard({
           </button>
         </div>
       )}
-      {asking && !worn && (
+      {asking && !wornState && (
         <div className="chip-row" role="group" aria-label="Why not this">
           {NOT_THIS_REASONS.map((reason) => (
             <button
@@ -329,15 +355,13 @@ function OutfitCard({
 
 /** An alternative: swatches, the names on one line, the reason. */
 function OutfitAlt({ outfit, busy, onWear }) {
-  const reason =
-    outfit.ranked_by === 'template' ? 'picked without the model' : outfit.reason
   return (
     <li className="panel today-alt">
       <OutfitSwatches garments={outfit.garments} />
       <p className="today-alt-names">
         {outfit.garments.map((g) => g.name).join(' · ')}
       </p>
-      <p className="today-alt-reason">{reason}</p>
+      <p className="today-alt-reason">{outfitReason(outfit)}</p>
       <button type="button" className="btn sm" disabled={busy} onClick={onWear}>
         Wear this instead
       </button>
@@ -360,11 +384,12 @@ export default function AdminClosetToday() {
   const [answer, setAnswer] = useState(null)
   const [lead, setLead] = useState(null)
   const [alternatives, setAlternatives] = useState([])
-  const [source, setSource] = useState('planned')
   const [choice, setChoice] = useState(null)
   const [worn, setWorn] = useState(null)
   const [changing, setChanging] = useState(false)
   const [busy, setBusy] = useState(false)
+  // What the request in flight is doing, for the status line; '' when idle.
+  const [pending, setPending] = useState('')
   const [error, setError] = useState(null)
   const [slow, setSlow] = useState(false)
   const [swapOpen, setSwapOpen] = useState(false)
@@ -373,13 +398,23 @@ export default function AdminClosetToday() {
   const [photo, setPhoto] = useState(null)
   const [saving, setSaving] = useState(false)
   const busyRef = useRef(false)
+  const headingRef = useRef(null)
+  // Set when a re-plan should move focus to the card once it lands.
+  const focusCard = useRef(false)
+
+  useEffect(() => {
+    if (!focusCard.current || !lead) return
+    focusCard.current = false
+    headingRef.current?.focus()
+  }, [lead])
 
   function take(body, matched = null) {
     const plan = body.plan
     setAnswer(body)
     setLead(plan?.lead ?? null)
-    setAlternatives(plan?.alternatives ?? [])
-    setSource(matched ? 'own' : 'planned')
+    setAlternatives(
+      (plan?.alternatives ?? []).map((outfit) => ({ ...outfit, alt: true })),
+    )
     setPhoto(matched)
     setChoice({
       occasion: plan?.occasion ?? body.defaults.occasion,
@@ -388,11 +423,15 @@ export default function AdminClosetToday() {
     setWorn(body.worn)
   }
 
-  /** One call to the API; the body, or null with the error set. */
-  async function call(path, options, failure = ACTION_ERROR) {
+  /**
+   * One call to the API; the body, or null with the error set. `label` is
+   * what the status line says while it runs.
+   */
+  async function call(path, options, label = 'Planning…') {
     if (busyRef.current) return null
     busyRef.current = true
     setBusy(true)
+    setPending(label)
     setError(null)
     try {
       const response = await apiFetch(path, options)
@@ -406,11 +445,12 @@ export default function AdminClosetToday() {
       }
       return await response.json()
     } catch {
-      setError(failure)
+      setError(ACTION_ERROR)
       return null
     } finally {
       busyRef.current = false
       setBusy(false)
+      setPending('')
     }
   }
 
@@ -450,6 +490,7 @@ export default function AdminClosetToday() {
       body: JSON.stringify({ ...choice, ...extra }),
     })
     if (body) take(body)
+    return body
   }
 
   function changeChoice(next) {
@@ -467,7 +508,8 @@ export default function AdminClosetToday() {
 
   async function matchGarment(garment) {
     setMatchOpen(false)
-    await replan({ lock: garment.id })
+    focusCard.current = true
+    if (!(await replan({ lock: garment.id }))) focusCard.current = false
   }
 
   async function matchPhoto(file) {
@@ -486,10 +528,11 @@ export default function AdminClosetToday() {
     const form = new FormData()
     form.append('photo', photo)
     form.append('attributes', JSON.stringify(answer.plan.match))
-    const garment = await call('/api/closet/garments/from-match', {
-      method: 'POST',
-      body: form,
-    })
+    const garment = await call(
+      '/api/closet/garments/from-match',
+      { method: 'POST', body: form },
+      'Saving…',
+    )
     setSaving(false)
     if (!garment) return
     const owned = (outfit) => ({
@@ -513,16 +556,20 @@ export default function AdminClosetToday() {
   }
 
   async function wore() {
-    const body = await call('/api/closet/wore', {
-      method: 'POST',
-      headers: JSON_HEADERS,
-      body: JSON.stringify({
-        occasion: choice.occasion,
-        bike: choice.bike,
-        source,
-        garments: woreGarments(lead),
-      }),
-    })
+    const body = await call(
+      '/api/closet/wore',
+      {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({
+          occasion: choice.occasion,
+          bike: choice.bike,
+          source: sourceOf(answer.plan, lead),
+          garments: woreGarments(lead),
+        }),
+      },
+      'Recording…',
+    )
     if (!body) return
     setWorn(body.worn)
     setChanging(false)
@@ -532,18 +579,33 @@ export default function AdminClosetToday() {
     const chosen = alternatives[index]
     setAlternatives(alternatives.map((alt, i) => (i === index ? lead : alt)))
     setLead(chosen)
-    setSource('alternative')
     setChanging(true)
   }
 
   function swapped(tile) {
     setSwapOpen(false)
-    setLead((current) => swapTile(current, tile))
-    if (source !== 'own') setSource('swapped')
+    setLead((current) => ({ ...swapTile(current, tile), swapped: true }))
     setChanging(true)
   }
 
+  /**
+   * Not this turns down what is on screen -- a swapped piece or an
+   * alternative worn instead included -- and keeps a Build around lock. An
+   * unsaved photo piece has no garment to decline, so that outfit leaves
+   * `declined` out and the route turns down the stored lead.
+   */
+  function notThis(reason) {
+    const extra = { not_this: reason }
+    if (!lead.garments.some((g) => g.transient))
+      extra.declined = woreGarments(lead)
+    if (answer.plan?.lock) extra.lock = answer.plan.lock
+    replan(extra)
+  }
+
   const plan = answer?.plan ?? null
+  let wornState = null
+  if (worn && !changing && lead)
+    wornState = sameOutfit(worn, lead) ? 'this' : 'other'
   const words = plan ? plannedWords(plan, answer.planned_just_now) : null
   const description = plan
     ? [longDate(plan.day), words].filter(Boolean).join(' · ')
@@ -559,8 +621,11 @@ export default function AdminClosetToday() {
         </p>
       )}
       {!answer && !error && (
-        <p className="muted">{slow ? WAKING : 'Loading…'}</p>
+        <p className="muted">{slow ? WAKING_OR_PLANNING : 'Loading…'}</p>
       )}
+      <p className="muted today-status" role="status">
+        {pending}
+      </p>
 
       {answer && (
         <>
@@ -588,29 +653,25 @@ export default function AdminClosetToday() {
             ]}
             togglesLabel="Getting there"
             value={choice}
-            onChange={busy ? () => {} : changeChoice}
+            onChange={changeChoice}
+            disabled={busy}
           />
-
-          {busy && (
-            <p className="muted" role="status">
-              Planning…
-            </p>
-          )}
 
           {lead ? (
             <OutfitCard
               outfit={lead}
               lockId={plan?.lock}
               busy={busy}
-              worn={worn && !changing}
+              wornState={wornState}
               saving={saving}
+              headingRef={headingRef}
               onLock={lock}
               onSave={saveOwned}
               onWore={wore}
               onChange={() => setChanging(true)}
               onSwap={() => setSwapOpen(true)}
               onMatch={() => setMatchOpen(true)}
-              onNotThis={(reason) => replan({ not_this: reason })}
+              onNotThis={notThis}
             />
           ) : (
             <section className="panel today-card">
@@ -625,7 +686,7 @@ export default function AdminClosetToday() {
             <ul className="today-alts" aria-label="Alternatives">
               {alternatives.map((outfit, index) => (
                 <OutfitAlt
-                  key={outfit.garments.map((g) => g.id).join('-')}
+                  key={`${index}-${outfit.garments.map((g) => g.id).join('-')}`}
                   outfit={outfit}
                   busy={busy}
                   onWear={() => wearInstead(index)}

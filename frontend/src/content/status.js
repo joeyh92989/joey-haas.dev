@@ -11,6 +11,12 @@
 export const WAKING =
   'Waking the server — it sleeps when idle, so this takes about thirty seconds.'
 
+/**
+ * A first load that may be a waking server or a model call, which take
+ * about as long: Closet's Today, whose first read can plan the day.
+ */
+export const WAKING_OR_PLANNING = 'Waking the server or planning…'
+
 export const LOAD_ERROR = 'That didn’t load. Try again in a minute.'
 
 export const ACTION_ERROR = 'Couldn’t reach the server. Try again in a minute.'

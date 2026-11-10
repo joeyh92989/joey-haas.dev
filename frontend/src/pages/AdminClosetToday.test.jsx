@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -91,6 +91,26 @@ function json(body, status = 200) {
   return { ok: status < 300, status, json: async () => body }
 }
 
+/** `POST /api/closet/wore` as the route answers: the outfit it recorded. */
+const recordWore = (call) =>
+  json(
+    {
+      worn: {
+        id: 9,
+        source: call.body.source,
+        garments: call.body.garments,
+      },
+    },
+    201,
+  )
+
+/** Today's record of the stored lead, as `worn` on the route's answer. */
+const WORN_LEAD = {
+  id: 3,
+  source: 'planned',
+  garments: LEAD.garments.map((g) => ({ slot: g.slot, id: g.id })),
+}
+
 /**
  * Stubs fetch with `routes`: "METHOD /path" → a function of the call (or
  * a body). Every call is recorded with its parsed JSON body.
@@ -110,7 +130,7 @@ function stub(routes) {
       calls.push(call)
       const route = routes[`${method} ${path}`]
       if (!route) return json({ detail: 'not stubbed' }, 404)
-      const result = typeof route === 'function' ? route(call) : route
+      const result = await (typeof route === 'function' ? route(call) : route)
       return result?.ok === undefined ? json(result) : result
     }),
   )
@@ -176,7 +196,7 @@ describe('AdminClosetToday', () => {
         {
           ranked_by: 'template',
           model_note: "Gemini's daily quota is used up",
-          lead: { ...LEAD, ranked_by: 'template', reason: 'Template.' },
+          lead: { ...LEAD, ranked_by: 'template', reason: '' },
         },
       ),
     })
@@ -185,7 +205,10 @@ describe('AdminClosetToday', () => {
     expect(
       within(card()).getByText('picked without the model'),
     ).toBeInTheDocument()
-    expect(within(card()).queryByText('Template.')).not.toBeInTheDocument()
+    const alts = screen.getByRole('list', { name: 'Alternatives' })
+    expect(
+      within(alts).getByText('Template pick. Picked without the model.'),
+    ).toBeInTheDocument()
     expect(
       screen.getByText("Model: Gemini's daily quota is used up"),
     ).toBeInTheDocument()
@@ -235,9 +258,10 @@ describe('AdminClosetToday', () => {
     })
     expect(pill).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(pill)
+    // The name says what the pill shows: Built around once it is pressed.
     await waitFor(() =>
       expect(
-        screen.getByRole('button', { name: 'Build around the navy oxford' }),
+        screen.getByRole('button', { name: 'Built around the navy oxford' }),
       ).toHaveAttribute('aria-pressed', 'true'),
     )
     expect(calls.at(-1)).toMatchObject({
@@ -248,7 +272,7 @@ describe('AdminClosetToday', () => {
     expect(screen.getAllByText(/planned just now/)).toHaveLength(2)
 
     await userEvent.click(
-      screen.getByRole('button', { name: 'Build around the navy oxford' }),
+      screen.getByRole('button', { name: 'Built around the navy oxford' }),
     )
     await waitFor(() =>
       expect(
@@ -285,7 +309,100 @@ describe('AdminClosetToday', () => {
       occasion: 'office',
       bike: false,
       not_this: 'too_warm',
+      declined: [
+        { slot: 'top', id: 't1' },
+        { slot: 'bottom', id: 'b1' },
+        { slot: 'shoes', id: 's1' },
+      ],
     })
+  })
+
+  it('Not this turns down the swapped outfit on screen, not the stored one', async () => {
+    const calls = stub({
+      'GET /api/closet/today': answer(),
+      'GET /api/closet/candidates': {
+        slot: 'top',
+        candidates: [tile('top', 't9', 'flannel')],
+      },
+      'POST /api/closet/plan': answer(
+        { planned_just_now: true },
+        { lead: ALT_A, alternatives: [] },
+      ),
+    })
+    renderPage()
+    await screen.findByText('navy oxford')
+    await userEvent.click(screen.getByRole('button', { name: 'Swap a piece' }))
+    const sheet = await screen.findByRole('dialog')
+    await userEvent.click(
+      await within(sheet).findByRole('button', { name: /flannel/ }),
+    )
+    await waitFor(() =>
+      expect(within(card()).getByText('flannel')).toBeInTheDocument(),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Not this…' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Too warm' }))
+    await waitFor(() =>
+      expect(within(card()).getByText('grey tee')).toBeInTheDocument(),
+    )
+    expect(calls.at(-1).body.declined).toEqual([
+      { slot: 'top', id: 't9' },
+      { slot: 'bottom', id: 'b1' },
+      { slot: 'shoes', id: 's1' },
+    ])
+  })
+
+  it('Not this on a Build around plan keeps the lock', async () => {
+    const calls = stub({
+      'GET /api/closet/today': answer({}, { lock: 't1' }),
+      'POST /api/closet/plan': answer({}, { lock: 't1', lead: LEAD }),
+    })
+    renderPage()
+    await screen.findByText('navy oxford')
+    await userEvent.click(screen.getByRole('button', { name: 'Not this…' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Too formal' }))
+    await waitFor(() => expect(calls.at(-1).path).toBe('/api/closet/plan'))
+    expect(calls.at(-1).body).toMatchObject({
+      not_this: 'too_formal',
+      lock: 't1',
+    })
+  })
+
+  it('keeps a locked template plan’s reason, and the swap note on it', async () => {
+    stub({
+      'GET /api/closet/today': answer(
+        {},
+        {
+          ranked_by: 'template',
+          lock: 't1',
+          lead: {
+            ...LEAD,
+            ranked_by: 'template',
+            reason: 'You locked the navy oxford.',
+          },
+        },
+      ),
+      'GET /api/closet/candidates': {
+        slot: 'top',
+        candidates: [tile('top', 't9', 'flannel')],
+      },
+    })
+    renderPage()
+    await screen.findByText('navy oxford')
+    expect(
+      await within(card()).findByText(
+        'You locked the navy oxford. Picked without the model.',
+      ),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Swap a piece' }))
+    const sheet = await screen.findByRole('dialog')
+    await userEvent.click(
+      await within(sheet).findByRole('button', { name: /flannel/ }),
+    )
+    expect(
+      await within(card()).findByText(
+        'You locked the navy oxford. (you swapped the top) · picked without the model',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('swaps one piece on the page and wears it as swapped', async () => {
@@ -301,8 +418,7 @@ describe('AdminClosetToday', () => {
               ],
             }
           : { slot: 'top', candidates: [tile('top', 't1', 'navy oxford')] },
-      'POST /api/closet/wore': (call) =>
-        json({ worn: { id: 9, source: call.body.source } }, 201),
+      'POST /api/closet/wore': recordWore,
     })
     renderPage()
     await screen.findByText('navy oxford')
@@ -347,7 +463,7 @@ describe('AdminClosetToday', () => {
   it('Wore this shows "Worn ✓ · Change", and Change offers the actions again', async () => {
     const calls = stub({
       'GET /api/closet/today': answer(),
-      'POST /api/closet/wore': json({ worn: { id: 9 } }, 201),
+      'POST /api/closet/wore': recordWore,
     })
     renderPage()
     await screen.findByText('navy oxford')
@@ -364,7 +480,7 @@ describe('AdminClosetToday', () => {
   })
 
   it('opens already worn when today was recorded', async () => {
-    stub({ 'GET /api/closet/today': answer({ worn: { id: 3 } }) })
+    stub({ 'GET /api/closet/today': answer({ worn: WORN_LEAD }) })
     renderPage()
     expect(await screen.findByText('Worn ✓')).toBeInTheDocument()
   })
@@ -372,7 +488,7 @@ describe('AdminClosetToday', () => {
   it('wears an alternative instead, recorded as one', async () => {
     const calls = stub({
       'GET /api/closet/today': answer(),
-      'POST /api/closet/wore': json({ worn: { id: 9 } }, 201),
+      'POST /api/closet/wore': recordWore,
     })
     renderPage()
     await screen.findByText('navy oxford')
@@ -451,7 +567,7 @@ describe('AdminClosetToday', () => {
         { id: 'g77', name: 'green shirt', image: null },
         201,
       ),
-      'POST /api/closet/wore': json({ worn: { id: 9 } }, 201),
+      'POST /api/closet/wore': recordWore,
     })
     renderPage()
     await screen.findByText('navy oxford')
@@ -510,5 +626,197 @@ describe('AdminClosetToday', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Your session ended',
     )
+  })
+
+  it('says another outfit was worn when the record is not the lead', async () => {
+    stub({
+      'GET /api/closet/today': answer({
+        worn: {
+          id: 3,
+          source: 'planned',
+          garments: [
+            { slot: 'top', id: 't2' },
+            { slot: 'bottom', id: 'b2' },
+            { slot: 'shoes', id: 's1' },
+          ],
+        },
+      }),
+    })
+    renderPage()
+    await screen.findByText('navy oxford')
+    expect(
+      await within(card()).findByText('Worn today: another outfit'),
+    ).toBeInTheDocument()
+    expect(within(card()).queryByText('Worn ✓')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Change' }))
+    expect(screen.getByRole('button', { name: 'Wore this' })).toBeEnabled()
+  })
+
+  it('after Wore this, a chip with another lead says another outfit', async () => {
+    let worn = null
+    stub({
+      'GET /api/closet/today': (call) =>
+        call.url.includes('occasion=date')
+          ? answer({ worn }, { occasion: 'date', lead: ALT_A })
+          : answer({ worn }),
+      'POST /api/closet/wore': (call) => {
+        worn = { id: 9, source: 'planned', garments: call.body.garments }
+        return json({ worn }, 201)
+      },
+    })
+    renderPage()
+    await screen.findByText('navy oxford')
+    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    expect(await within(card()).findByText('Worn ✓')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Date' }))
+    expect(
+      await within(card()).findByText('Worn today: another outfit'),
+    ).toBeInTheDocument()
+    expect(within(card()).getByText('grey tee')).toBeInTheDocument()
+  })
+
+  it('keeps one status line and says what is running', async () => {
+    let finish
+    stub({
+      'GET /api/closet/today': answer(),
+      'POST /api/closet/wore': (call) =>
+        new Promise((resolve) => {
+          finish = () => resolve(recordWore(call))
+        }),
+    })
+    renderPage()
+    await screen.findByText('navy oxford')
+    const status = screen.getByRole('status')
+    expect(status).toHaveTextContent(/^$/)
+    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    expect(status).toHaveTextContent('Recording…')
+    // The chips are disabled, not silently ignored, while it runs.
+    expect(screen.getByRole('button', { name: 'Date' })).toBeDisabled()
+    finish()
+    await within(card()).findByText('Worn ✓')
+    expect(screen.getByRole('status')).toBe(status)
+    expect(status).toHaveTextContent(/^$/)
+    expect(screen.getByRole('button', { name: 'Date' })).toBeEnabled()
+  })
+
+  it('says it may be waking the server or planning on a slow first load', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      stub({ 'GET /api/closet/today': () => new Promise(() => {}) })
+      renderPage()
+      expect(screen.getByText('Loading…')).toBeInTheDocument()
+      await act(async () => {
+        vi.advanceTimersByTime(3000)
+      })
+      expect(
+        screen.getByText('Waking the server or planning…'),
+      ).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('moves focus to the card once a From the closet plan lands', async () => {
+    stub({
+      'GET /api/closet/today': answer(),
+      'GET /api/closet/garments': {
+        garments: [
+          { id: 'b2', name: 'jeans', category: 'bottom', status: 'active' },
+        ],
+        counts: {},
+      },
+      'POST /api/closet/plan': answer({}, { lock: 'b2', lead: ALT_A }),
+    })
+    renderPage()
+    await screen.findByText('navy oxford')
+    await userEvent.click(screen.getByRole('button', { name: 'Match this…' }))
+    const sheet = await screen.findByRole('dialog')
+    await userEvent.click(
+      within(sheet).getByRole('button', { name: 'From the closet' }),
+    )
+    await userEvent.click(
+      await within(sheet).findByRole('button', { name: /jeans/ }),
+    )
+    await waitFor(() =>
+      expect(within(card()).getByText('grey tee')).toBeInTheDocument(),
+    )
+    await waitFor(() =>
+      expect(document.activeElement).toHaveTextContent('Wear this'),
+    )
+    expect(document.activeElement).toHaveAttribute('id', 'today-wear')
+  })
+
+  it('disables Save as owned while another request runs', async () => {
+    const shirt = tile('top', 'match', 'green shirt', {
+      transient: true,
+      qualifier: 'not owned',
+    })
+    stub({
+      'GET /api/closet/today': answer(),
+      'POST /api/closet/match': answer(
+        {},
+        {
+          lead: { ...LEAD, garments: [shirt, ...LEAD.garments.slice(1)] },
+          alternatives: [],
+          match: { category: 'top' },
+        },
+      ),
+      'POST /api/closet/plan': () => new Promise(() => {}),
+    })
+    renderPage()
+    await screen.findByText('navy oxford')
+    await userEvent.click(screen.getByRole('button', { name: 'Match this…' }))
+    const sheet = await screen.findByRole('dialog')
+    await userEvent.upload(
+      within(sheet).getByLabelText('From a photo'),
+      new File(['x'], 'shirt.jpg', { type: 'image/jpeg' }),
+    )
+    const save = await screen.findByRole('button', { name: 'Save as owned' })
+    expect(save).toBeEnabled()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Build around the grey chinos' }),
+    )
+    expect(screen.getByRole('button', { name: 'Save as owned' })).toBeDisabled()
+  })
+
+  it('gives alternatives with the same pieces their own keys', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      stub({
+        'GET /api/closet/today': answer({}, { alternatives: [ALT_A, ALT_A] }),
+      })
+      renderPage()
+      await screen.findByText('navy oxford')
+      expect(
+        errors.mock.calls.some((args) => String(args[0]).includes('same key')),
+      ).toBe(false)
+    } finally {
+      errors.mockRestore()
+    }
+  })
+
+  it('records a swapped alternative as swapped', async () => {
+    const calls = stub({
+      'GET /api/closet/today': answer(),
+      'GET /api/closet/candidates': {
+        slot: 'top',
+        candidates: [tile('top', 't9', 'flannel')],
+      },
+      'POST /api/closet/wore': recordWore,
+    })
+    renderPage()
+    await screen.findByText('navy oxford')
+    const alts = screen.getByRole('list', { name: 'Alternatives' })
+    await userEvent.click(
+      within(alts).getAllByRole('button', { name: 'Wear this instead' })[0],
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Swap a piece' }))
+    const sheet = await screen.findByRole('dialog')
+    await userEvent.click(
+      await within(sheet).findByRole('button', { name: /flannel/ }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    await within(card()).findByText('Worn ✓')
+    expect(calls.at(-1).body.source).toBe('swapped')
   })
 })

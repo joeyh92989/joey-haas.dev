@@ -343,3 +343,31 @@ export function swapTile(outfit, tile) {
 export function woreGarments(outfit) {
   return outfit.garments.map((g) => ({ slot: g.slot, id: g.id }))
 }
+
+/**
+ * Whether today's recorded outfit (`worn.garments`) is `outfit`: the same
+ * pieces in the same slots, in any order. A worn record without garments
+ * matches nothing, so the page never claims an outfit it cannot see.
+ */
+export function sameOutfit(worn, outfit) {
+  if (!worn?.garments || !outfit?.garments) return false
+  const keys = (garments) => garments.map((g) => `${g.slot}:${g.id}`).sort()
+  const a = keys(worn.garments)
+  const b = keys(outfit.garments)
+  return a.length === b.length && a.every((key, i) => key === b[i])
+}
+
+const TEMPLATE_NOTE = 'picked without the model'
+
+/**
+ * The line under an outfit. A template outfit keeps its reason -- it
+ * carries "You locked the …" and the swap note -- and says it was picked
+ * without the model.
+ */
+export function outfitReason(outfit) {
+  const reason = (outfit.reason ?? '').trim()
+  if (outfit.ranked_by !== 'template') return reason
+  if (!reason) return TEMPLATE_NOTE
+  if (/[.!?]$/.test(reason)) return `${reason} Picked without the model.`
+  return `${reason} · ${TEMPLATE_NOTE}`
+}

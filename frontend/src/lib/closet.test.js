@@ -7,6 +7,8 @@ import {
   plannedWords,
   swapTile,
   woreGarments,
+  sameOutfit,
+  outfitReason,
   chipCounts,
   countsLine,
   filterGarments,
@@ -294,5 +296,68 @@ describe('Today helpers', () => {
       { slot: 'shoes', id: 's3' },
     ])
     expect(outfit.garments[1].id).toBe('s1')
+  })
+})
+
+describe('sameOutfit', () => {
+  const outfit = {
+    garments: [
+      { slot: 'top', id: 't1' },
+      { slot: 'bottom', id: 'b1' },
+      { slot: 'shoes', id: 's1' },
+    ],
+  }
+  it('matches the same pieces in any order', () => {
+    const worn = {
+      garments: [
+        { slot: 'shoes', id: 's1' },
+        { slot: 'top', id: 't1' },
+        { slot: 'bottom', id: 'b1' },
+      ],
+    }
+    expect(sameOutfit(worn, outfit)).toBe(true)
+  })
+  it('refuses a different piece, a missing one, or no garments', () => {
+    expect(
+      sameOutfit(
+        {
+          garments: [
+            ...outfit.garments.slice(0, 2),
+            { slot: 'shoes', id: 's2' },
+          ],
+        },
+        outfit,
+      ),
+    ).toBe(false)
+    expect(sameOutfit({ garments: outfit.garments.slice(0, 2) }, outfit)).toBe(
+      false,
+    )
+    expect(sameOutfit({ id: 9 }, outfit)).toBe(false)
+    expect(sameOutfit(null, outfit)).toBe(false)
+  })
+})
+
+describe('outfitReason', () => {
+  it('keeps a model reason as it is', () => {
+    expect(outfitReason({ ranked_by: 'model', reason: 'Calm.' })).toBe('Calm.')
+  })
+  it('keeps a template reason and says how it was picked', () => {
+    expect(
+      outfitReason({
+        ranked_by: 'template',
+        reason: 'You locked the navy oxford.',
+      }),
+    ).toBe('You locked the navy oxford. Picked without the model.')
+    expect(
+      outfitReason({
+        ranked_by: 'template',
+        reason: 'You locked the navy oxford. (you swapped the shoes)',
+      }),
+    ).toBe(
+      'You locked the navy oxford. (you swapped the shoes) · picked without the model',
+    )
+    expect(outfitReason({ ranked_by: 'template', reason: '' })).toBe(
+      'picked without the model',
+    )
   })
 })

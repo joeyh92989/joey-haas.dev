@@ -9107,6 +9107,12 @@ main h1[tabindex='-1']:focus,
   margin: 0;
 }
 
+/* The status line stays mounted so a screen reader hears each change; it
+   takes no room while nothing is running. */
+.today-status:empty {
+  margin: 0;
+}
+
 .today-alts {
   display: grid;
   gap: 1rem;
