@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 import uuid
 from collections.abc import AsyncIterator, Callable
@@ -87,9 +88,23 @@ def _failure_note(error: str) -> str:
     Reads `llm.py`'s own wording: only Gemini's per-day 429 says "used up",
     Gemini's other 429s say "rate limit", its exhausted 503 chain says "is
     overloaded", and Anthropic's SDK errors start "Error code: 429" or
-    "Error code: 529".
+    "Error code: 529". A missing key, a timeout, a refused key, a 5xx and a
+    network failure are named too (#121): only what is left -- a 400, an
+    unreadable answer -- is "did not answer", which Closet tagging reads as
+    possibly a photo's fault.
     """
     lowered = error.lower()
+    if "is not set" in lowered or "unknown llm_provider" in lowered:
+        return "No model key is set on the API service"
+    if "did not answer in time" in lowered or lowered.startswith("gave up after"):
+        return "The model did not answer in time; try again in a few minutes"
+    if re.search(r"(http|error code:) (401|403)\b", lowered):
+        return "The model's API key was refused; check it on the API service"
+    server_error = re.search(r"returned http (5\d\d)", lowered)
+    if server_error:
+        return f"The model failed with HTTP {server_error.group(1)}; try again later"
+    if "request failed" in lowered and "error code:" not in lowered:
+        return "The model could not be reached; try again in a few minutes"
     if "per day" in lowered and "used up" in lowered:
         return "Gemini's daily quota is used up"
     if "gemini is overloaded" in lowered:
