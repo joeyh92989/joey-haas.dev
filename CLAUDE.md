@@ -96,6 +96,13 @@ before pushing.
   is published (`hasTrips`), and tests mock `content/trips.js` like posts.
   `DrawnMap` (`components/`, placed by `lib/mapFit.js`, drawings in
   `content/maps/`) is the one map component: Denver spots reuses it.
+- The Comics tab and the Denver footer link hide while their page is empty
+  (#125), decided at build time like `hasNotes`: `vite.config.js` reads
+  `public/snapshot/{comics,spots}.json` through
+  `scripts/snapshot-presence.mjs` into `__SNAPSHOT_PRESENCE__`, which
+  `lib/snapshotPresence.js` turns into `hasComics` and `hasSpots`. Only a
+  written, empty snapshot hides a link; dev, tests and a failed optional
+  fetch keep both. No runtime request.
 - Denver spots: the public `/denver` map and list,
   `/admin/spots` (finder and spot list) and `/admin/weekend` (planner),
   backed by `spots_routes.py`, `spots_candidates_routes.py` and

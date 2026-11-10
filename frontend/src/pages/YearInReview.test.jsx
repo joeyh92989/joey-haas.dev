@@ -113,6 +113,34 @@ describe('YearInReview', () => {
     ).toBeInTheDocument()
   })
 
+  it('counts rated finishes in the plural, and one in the singular', () => {
+    answer.value = {
+      data: [
+        ITEMS[0],
+        {
+          ...ITEMS[1],
+          id: 'c',
+          title: 'Pentiment',
+          community_score: 85,
+          finished_at: '2026-05-01',
+        },
+      ],
+      live: true,
+      failed: false,
+    }
+    const { unmount } = renderAt('/shelf/year/2026')
+    expect(
+      screen.getByText(/Of 2 rated finishes with an IGDB community score/),
+    ).toBeInTheDocument()
+    unmount()
+
+    answer.value = { data: ITEMS, live: true, failed: false }
+    renderAt('/shelf/year/2026')
+    expect(
+      screen.getByText(/Of 1 rated finish with an IGDB community score/),
+    ).toBeInTheDocument()
+  })
+
   it('shows days played and the sessions from the public diary', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
     diary.rows = [

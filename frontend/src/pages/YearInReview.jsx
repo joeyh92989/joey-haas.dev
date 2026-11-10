@@ -40,8 +40,8 @@ function shortDate(isoDate) {
   return DAY.format(new Date(Date.UTC(year, month - 1, day)))
 }
 
-function plural(count, word) {
-  return `${count} ${word}${count === 1 ? '' : 's'}`
+function plural(count, word, many = `${word}s`) {
+  return `${count} ${count === 1 ? word : many}`
 }
 
 /** /spine/year: this calendar year's page. */
@@ -214,9 +214,9 @@ export default function YearInReview() {
             <section aria-labelledby="year-versus">
               <h2 id="year-versus">Against the crowd</h2>
               <p className="prose">
-                Of {plural(versus.compared, 'rated finish')} with an IGDB
-                community score, I went higher than the crowd on {versus.higher}{' '}
-                and lower on {versus.lower}.
+                Of {plural(versus.compared, 'rated finish', 'rated finishes')}{' '}
+                with an IGDB community score, I went higher than the crowd on{' '}
+                {versus.higher} and lower on {versus.lower}.
                 {versus.furthest && versus.furthest.gap !== 0 && (
                   <>
                     {' '}
