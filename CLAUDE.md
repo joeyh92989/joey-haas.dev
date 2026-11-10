@@ -96,6 +96,13 @@ before pushing.
   is published (`hasTrips`), and tests mock `content/trips.js` like posts.
   `DrawnMap` (`components/`, placed by `lib/mapFit.js`, drawings in
   `content/maps/`) is the one map component: Denver spots reuses it.
+- The Comics tab and the Denver footer link hide while their page is empty
+  (#125), decided at build time like `hasNotes`: `vite.config.js` reads
+  `public/snapshot/{comics,spots}.json` through
+  `scripts/snapshot-presence.mjs` into `__SNAPSHOT_PRESENCE__`, which
+  `lib/snapshotPresence.js` turns into `hasComics` and `hasSpots`. Only a
+  written, empty snapshot hides a link; dev, tests and a failed optional
+  fetch keep both. No runtime request.
 - Denver spots: the public `/denver` map and list,
   `/admin/spots` (finder and spot list) and `/admin/weekend` (planner),
   backed by `spots_routes.py`, `spots_candidates_routes.py` and
@@ -274,7 +281,7 @@ before pushing.
       `/collection`, now on What's next), and `schema_check` tolerating a database ahead of the
       code. Spec and plan: `docs/planning/2026-09-23-tracker-e8a-*`
 - [x] Tracker E7c — physical catalogue at `/admin/catalogue`: the
-      r/NSCollectors registry (Sheets API), `switch2-tracker`, twelve boutique
+      r/NSCollectors registry (Sheets API), `switch2-tracker`, eleven boutique
       stores and IGDB's N64 list in five new tables (migration `0005`),
       resolved to IGDB, collapsed to one format per game, and synced onto
       owned Switch 2 items. Spec and plan: `docs/planning/2026-09-23-tracker-e7c-*`
@@ -451,8 +458,9 @@ before pushing.
   or the sheet until its real response is recorded by
   `backend/scripts/record_physical_fixtures.py` and a test runs on it;
   re-record when a store's handles change, never edit a fixture. `STORES` in
-  `stores.py` is data: twelve stores (Atari is behind a bot challenge and
-  out). robots.txt is honoured per RFC 9309, not `urllib.robotparser`, whose
+  `stores.py` is data: eleven stores (Atari is behind a bot challenge and
+  out; GameFairy was dropped on 2026-11-10 for persistent 503s, and a
+  refresh archives a dropped store's listings). robots.txt is honoured per RFC 9309, not `urllib.robotparser`, whose
   first-match rule lets Shopify's leading `Allow: /` allow everything.
 - **The collapse rule** (`collapse.py`): any full cartridge in the home region
   makes a game a cartridge, because the registry row and a boutique listing

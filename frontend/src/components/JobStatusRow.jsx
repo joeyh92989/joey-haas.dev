@@ -41,7 +41,7 @@ export default function JobStatusRow({ job, extra }) {
           {extra}
         </span>
       </span>
-      <StatusText state={job.state} />
+      <StatusText state={job.state}>{job.stateWords}</StatusText>
       {job.runNow ? (
         <Link to={job.runNow} className="job-run">
           {job.runWords ?? 'Run now'}

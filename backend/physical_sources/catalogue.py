@@ -405,6 +405,28 @@ async def upsert_listings(
     return changed, archived
 
 
+async def archive_retired_stores(session, stores: tuple[str, ...]) -> int:
+    """Archives every live listing of a store no longer in `stores`.
+
+    A store dropped from STORES is never walked again, so nothing else would
+    archive its listings: they would stay live with their last prices.
+    Archiving keeps raw, igdb_id and format, as a walk does. Returns how many
+    were archived."""
+    now = _now()
+    archived = 0
+    for listing in await session.scalars(
+        select(StoreListing).where(
+            StoreListing.store.not_in(stores),
+            StoreListing.availability != "archived",
+        )
+    ):
+        listing.availability = "archived"
+        listing.updated_at = now
+        archived += 1
+    await session.flush()
+    return archived
+
+
 async def recently_checked_handles(
     session, store: str, days: int = HTML_RECHECK_DAYS
 ) -> frozenset[str]:

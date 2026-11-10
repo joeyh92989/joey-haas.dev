@@ -72,7 +72,7 @@ def by_platform(rows):
 
 
 def test_twelve_stores_nine_on_shopify():
-    assert len(STORES) == 12
+    assert len(STORES) == 11
     assert sum(config.adapter == "shopify" for config in STORES.values()) == 9
     assert "atari" not in STORES
 

@@ -2,7 +2,7 @@
 
 Which games exist physically, and as what, for games the owner does not own:
 the r/NSCollectors Switch 2 registry and its Switch 1 sheet, `switch2-tracker`
-as a cross-check, twelve boutique stores and IGDB's N64 catalogue, read into
+as a cross-check, eleven boutique stores and IGDB's N64 catalogue, read into
 the E7c tables (migration `0005`; the Switch 1 sheet needed no migration).
 Spec: `docs/planning/2026-09-23-tracker-e7c-design.md`; the plan's Execution
 summary records every way the live sources differed from it. The Switch 1
@@ -230,9 +230,10 @@ community titles to them is separate work.
 | `fangamer` | Shopify (`www.`) | USD / USA | `physical-games`, `video-games` |
 | `super_rare` | Shopify | GBP / EUR | `switch-2`, `switch`, `srg-store-new-web` |
 | `pixelheart` | WooCommerce (`www.`) | EUR / EUR | category 65 |
-| `gamefairy` | WooCommerce | USD / USA | category 22 |
 | `oneprint` | WooCommerce | USD / USA | category 18 |
 
+GameFairy is out since 2026-11-10: its store API answered 503 night after
+night (#118), and a refresh archives a dropped store's listings.
 Atari is out: since 2026-09-25 its `products.json` answers every client with a
 Cloudflare bot challenge, and getting past bot detection is off the table.
 Limited Run's `all`, `archive`, `in-production` and `all-in-production` are

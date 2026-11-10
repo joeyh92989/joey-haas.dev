@@ -3,7 +3,11 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import AdminCatalogue, { runState, unmatchedWords } from './AdminCatalogue.jsx'
+import AdminCatalogue, {
+  runState,
+  showingWords,
+  unmatchedWords,
+} from './AdminCatalogue.jsx'
 
 function run(source, fields = {}) {
   return {
@@ -639,5 +643,17 @@ describe('Switch 1 registry', () => {
     renderPage()
     await screen.findByRole('table', { name: 'Sources' })
     expect(screen.queryByText(/Switch 1 titles? unmatched/)).toBeNull()
+  })
+})
+
+describe('showingWords', () => {
+  it('splits the total into the two tiles it sums (#127)', () => {
+    expect(showingWords(50, 242, 17)).toBe(
+      'Showing 50 of 242: 225 to match and 17 with no platform.',
+    )
+  })
+
+  it('keeps the short sentence with no platform-less keys', () => {
+    expect(showingWords(50, 60, 0)).toBe('Showing 50 of 60.')
   })
 })

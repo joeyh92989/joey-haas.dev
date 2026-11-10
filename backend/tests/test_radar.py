@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import date, timedelta
 from decimal import Decimal
 
-from physical_sources.collapse import Candidate, StoreLine
+from physical_sources.collapse import Candidate, StoreLine, listing_label
 from picker import PickerItem
 from radar import (
     DIGITAL_CAP,
@@ -251,6 +251,7 @@ def test_reasons_name_the_similar_game_the_window_and_the_format():
             "availability": "preorder",
             "preorder_closes_at": "2026-11-08",
             "url": "https://example.test/x",
+            "listing_title": None,
         },
     )
 
@@ -336,3 +337,29 @@ def test_only_a_preorder_line_gives_a_window_reason():
     )
     (s,) = build([_pool(40, store_lines=(line,))], [], [], set(), TODAY)
     assert not any(reason.startswith("Pre-orders close") for reason in s.reasons)
+
+
+def test_a_store_line_carries_its_listings_title():
+    line = StoreLine(
+        store="Limited Run",
+        price=Decimal("64.99"),
+        currency="USD",
+        availability="preorder",
+        preorder_closes_at=None,
+        url="https://example.test/ce",
+        listing_format="game_card",
+        listing_id="l4",
+        listing_title="Game 41 (Collector's)",
+    )
+    (s,) = build([_pool(41, store_lines=(line,))], [], [], set(), TODAY)
+    assert s.store_lines[0]["listing_title"] == "Game 41 (Collector's)"
+
+
+def test_listing_label_names_the_edition_only_when_the_title_lacks_it():
+    assert listing_label("Game", "Collector's") == "Game (Collector's)"
+    assert listing_label("Game Collector's Edition", "Collector's") == (
+        "Game Collector's Edition"
+    )
+    assert listing_label("Game", None) == "Game"
+    assert listing_label(None, "Deluxe") == "Deluxe"
+    assert listing_label("  ", None) is None
