@@ -320,7 +320,11 @@ def corpus_rows() -> list[tuple[str, str, str, int | None]]:
                             row.store, row.title, row.title_normalized, row.platform_id
                         )
     for store_dir in sorted((PHYSICAL / "woocommerce").iterdir()):
-        config = STORES[store_dir.name]
+        # A store that left STORES keeps its fixtures for the parser tests
+        # (GameFairy, #118), but is no longer a source of catalogue keys.
+        config = STORES.get(store_dir.name)
+        if config is None:
+            continue
         for path in sorted(store_dir.glob("*.json")):
             for product in json.loads(path.read_text()):
                 for row in woocommerce.explode(product, config):
