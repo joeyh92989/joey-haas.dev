@@ -2,16 +2,32 @@
 
 import dataclasses
 import json
+import re
 from decimal import Decimal
 from pathlib import Path
 
 import httpx2
 import pytest
 
-from physical_sources.stores import STORES
+from physical_sources.stores import STORES, StoreConfig
 from physical_sources.woocommerce import category_url, explode, list_products
 
 WOO = Path(__file__).parent / "fixtures" / "physical" / "woocommerce"
+
+# GameFairy left STORES on 2026-11-10 (#118: HTTP 503 for weeks). Its
+# recorded pages still exercise the adapter, under the config it had.
+GAMEFAIRY = StoreConfig(
+    key="gamefairy",
+    name="GameFairy",
+    adapter="woocommerce",
+    domain="gamefairy.io",
+    currency="USD",
+    region="USA",
+    collections=("22",),
+    title_strip=(re.compile(r"\s*Nintendo Switch\b.*$", re.I),),
+    platform=("attribute:Platform", "title"),
+)
+CONFIGS = {**STORES, "gamefairy": GAMEFAIRY}
 
 
 def products(store: str) -> list[dict]:
@@ -20,7 +36,7 @@ def products(store: str) -> list[dict]:
 
 
 def rows(store: str):
-    config = STORES[store]
+    config = CONFIGS[store]
     return [row for product in products(store) for row in explode(product, config)]
 
 
@@ -80,7 +96,7 @@ def test_backorder_is_preorder():
 
 
 def _serve(store, empty=False):
-    config = STORES[store]
+    config = CONFIGS[store]
     body = [] if empty else products(store)
 
     def handler(request):
@@ -97,7 +113,7 @@ async def test_list_products_reads_one_short_page():
     async with httpx2.AsyncClient(
         transport=httpx2.MockTransport(_serve("gamefairy"))
     ) as client:
-        found, errors = await list_products(STORES["gamefairy"], client, None)
+        found, errors = await list_products(GAMEFAIRY, client, None)
     assert errors == [] and len(found) == len(products("gamefairy"))
 
 
@@ -105,7 +121,7 @@ async def test_list_products_reads_one_short_page():
 async def test_an_empty_category_is_reported():
     handler = _serve("gamefairy", empty=True)
     async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as client:
-        found, errors = await list_products(STORES["gamefairy"], client, None)
+        found, errors = await list_products(GAMEFAIRY, client, None)
     assert found == [] and [e.code for e in errors] == ["empty_collection"]
 
 
@@ -122,7 +138,7 @@ async def test_a_host_ignoring_page_stops_and_malformed_items_drop():
         return httpx2.Response(200, json=full)
 
     async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as client:
-        found, errors = await list_products(STORES["gamefairy"], client, None)
+        found, errors = await list_products(GAMEFAIRY, client, None)
     assert requested == ["1", "2"]
     assert [e.code for e in errors] == ["page_ignored"] and len(found) == 100
 
@@ -130,7 +146,7 @@ async def test_a_host_ignoring_page_stops_and_malformed_items_drop():
 @pytest.mark.asyncio
 async def test_a_second_category_is_walked_even_when_it_repeats_the_first():
 
-    config = dataclasses.replace(STORES["gamefairy"], collections=("22", "23"))
+    config = dataclasses.replace(GAMEFAIRY, collections=("22", "23"))
     shared = [
         {"id": i, "name": f"Game {i} (Nintendo Switch)", "permalink": f"https://x/{i}"}
         for i in range(100)

@@ -22,6 +22,7 @@ from physical_sources.catalogue import (
     upsert_editions,
     upsert_listings,
 )
+from physical_sources.catalogue import archive_retired_stores
 
 
 def edition(ref="a|USA|pub|game card", fmt="game_card", **extra):
@@ -268,6 +269,19 @@ async def test_listings_upsert_and_archive_keeping_their_evidence(session):
         "game_card",
     )
     assert gone.raw == {"body": "x"}
+
+
+@pytest.mark.asyncio
+async def test_a_retired_stores_listings_are_archived(session):
+    await upsert_listings(session, [listing("1")], "super_rare", archive=True)
+    await upsert_listings(session, [listing("2")], "gamefairy", archive=True)
+    await session.commit()
+    assert await archive_retired_stores(session, ("super_rare",)) == 1
+    await session.commit()
+    by_store = {r.store: _v(r.availability) for r in await _listings(session)}
+    assert by_store["gamefairy"] == "archived"
+    assert by_store["super_rare"] != "archived"
+    assert await archive_retired_stores(session, ("super_rare",)) == 0
 
 
 @pytest.mark.asyncio

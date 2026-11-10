@@ -56,6 +56,7 @@ from physical_sources import registry_switch1 as switch1_sheet
 from physical_sources import shopify, tracker, wire, woocommerce
 from physical_sources.base import HostThrottle, PhysicalSourceError
 from physical_sources.catalogue import (
+    archive_retired_stores,
     count_live,
     failure_streaks,
     finish_run,
@@ -583,6 +584,7 @@ def create_physical_router(
         async with http_client_factory() as client:
             for key in keys:
                 runs.append(await refresh_store(session, client, throttle, key))
+        await archive_retired_stores(session, tuple(STORES))
         await release_listed(session)
         outcome = await resolve_run(session)
         return RefreshOut(

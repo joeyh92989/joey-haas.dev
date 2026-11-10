@@ -273,13 +273,13 @@ async def test_resolve_honours_its_limit(sessionmaker_for_test):
 
 async def test_status_flags_a_source_after_three_failures(sessionmaker_for_test):
     async with sessionmaker_for_test() as session:
-        session.add_all(CatalogueRun(source="gamefairy", ok=False) for _ in range(3))
+        session.add_all(CatalogueRun(source="pixelheart", ok=False) for _ in range(3))
         await session.commit()
     async with client_for(sessionmaker_for_test) as client:
         body = (await client.get("/api/physical/status")).json()
     by_source = {s["source"]: s for s in body["sources"]}
-    assert len(by_source) == 17
-    assert by_source["gamefairy"]["needs_attention"] is True
+    assert len(by_source) == 16
+    assert by_source["pixelheart"]["needs_attention"] is True
     assert by_source["nicalis"]["needs_attention"] is False
     assert set(body["totals"]) == {
         "live_editions",
