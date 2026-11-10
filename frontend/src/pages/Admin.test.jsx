@@ -348,4 +348,95 @@ describe('Admin Home', () => {
       '/admin/jobs',
     )
   })
+
+  const TODAY = {
+    plan: {
+      day: '2026-11-09',
+      occasion: 'office',
+      bike: true,
+      weather: { low: 34, high: 58 },
+      lead: {
+        reason: 'Calm.',
+        ranked_by: 'model',
+        garments: [
+          { slot: 'top', id: 't1', name: 'navy oxford', primary_hex: '#223' },
+          {
+            slot: 'bottom',
+            id: 'b1',
+            name: 'grey chinos',
+            primary_hex: '#888',
+          },
+          { slot: 'shoes', id: 's1', name: 'sneakers', primary_hex: '#eee' },
+        ],
+      },
+      alternatives: [],
+      footnote: { active: 40, fit: 22 },
+    },
+    worn: null,
+  }
+
+  it('leads Closet with the stored outfit, and Wore this records it', async () => {
+    const fetch = stubApi({
+      '/api/closet/today?stored_only=true': () => json(TODAY),
+      '/api/closet/wore': () => json({ worn: { id: 5 } }),
+      '/api/closet/garments': () =>
+        json({ garments: [], counts: { untagged: 3 } }),
+    })
+    renderAt()
+    const closet = await card('Closet')
+    expect(
+      await within(closet).findByText('navy oxford · grey chinos · sneakers'),
+    ).toBeInTheDocument()
+    expect(within(closet).getByText('Office · bike · 34° → 58°'))
+    expect(figureOf(closet, 'Fit today')).toHaveTextContent('22')
+    await waitFor(() =>
+      expect(figureOf(closet, 'Untagged')).toHaveTextContent('3'),
+    )
+    expect(within(closet).getByRole('link', { name: 'Today' })).toHaveAttribute(
+      'href',
+      '/admin/closet/today',
+    )
+    fireEvent.click(within(closet).getByRole('button', { name: 'Wore this' }))
+    expect(await within(closet).findByText('Worn ✓')).toBeInTheDocument()
+    const [, options] = fetch.mock.calls.find(([url]) =>
+      String(url).endsWith('/api/closet/wore'),
+    )
+    expect(JSON.parse(options.body)).toEqual({
+      occasion: 'office',
+      bike: true,
+      source: 'planned',
+      garments: [
+        { slot: 'top', id: 't1' },
+        { slot: 'bottom', id: 'b1' },
+        { slot: 'shoes', id: 's1' },
+      ],
+    })
+  })
+
+  it('shows Closet as worn when today is recorded', async () => {
+    stubApi({
+      '/api/closet/today?stored_only=true': () =>
+        json({ ...TODAY, worn: { id: 1 } }),
+    })
+    renderAt()
+    const closet = await card('Closet')
+    expect(await within(closet).findByText('Worn ✓')).toBeInTheDocument()
+    expect(
+      within(closet).queryByRole('button', { name: 'Wore this' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('hides Closet when nothing is planned', async () => {
+    stubApi({
+      '/api/closet/today?stored_only=true': () =>
+        json({ ...TODAY, plan: null }),
+    })
+    renderAt()
+    await card('Shelf')
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('region', { name: 'Closet' }),
+      ).not.toBeInTheDocument(),
+    )
+  })
 })

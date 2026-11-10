@@ -5,10 +5,13 @@ import AreaCard, { AreaLead } from '../components/AreaCard.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import JobsList, { NightlyStatus } from '../components/JobsList.jsx'
 import { StatusText } from '../components/JobStatusRow.jsx'
+import OutfitSwatches from '../components/OutfitSwatches.jsx'
+import SwapSheet from '../components/SwapSheet.jsx'
 import WrapUpSheet from '../components/WrapUpSheet.jsx'
 import { jobsSummary, useNightly } from '../lib/adminJobs.js'
 import { counted } from '../lib/analytics.js'
 import { apiFetch } from '../lib/api.js'
+import { OCCASION_LABELS, swapTile, woreGarments } from '../lib/closet.js'
 import { dashboardCounts } from '../lib/dashboard.js'
 import { ownerYear } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
@@ -55,6 +58,127 @@ function continuingMeta(card) {
   if (card.sessions) parts.push(counted(card.sessions, 'session'))
   if (card.journal_hours) parts.push(`${Math.round(card.journal_hours)}h`)
   return parts.filter(Boolean).join(' · ')
+}
+
+/** The lead outfit's line of detail: the occasion, the bike, the weather. */
+function outfitMeta(plan) {
+  const parts = [OCCASION_LABELS[plan.occasion] ?? plan.occasion]
+  if (plan.bike) parts.push('bike')
+  if (plan.weather) parts.push(`${plan.weather.low}° → ${plan.weather.high}°`)
+  return parts.join(' · ')
+}
+
+/**
+ * Closet: the day's stored lead outfit as swatches, with Wore this and
+ * Swap. Only a stored plan is read (`stored_only`), so Home never spends a
+ * model call; the card hides until the nightly job (or Today) has planned.
+ */
+function ClosetCard({ untagged }) {
+  const today = useRead('/api/closet/today?stored_only=true')
+  const [outfit, setOutfit] = useState(null)
+  const [swapped, setSwapped] = useState(false)
+  const [swapOpen, setSwapOpen] = useState(false)
+  const [worn, setWorn] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(false)
+
+  const plan = today?.plan ?? null
+  const lead = outfit ?? plan?.lead ?? null
+  if (today !== undefined && !lead) return null
+
+  async function wore() {
+    if (busy) return
+    setBusy(true)
+    setError(false)
+    try {
+      const response = await apiFetch('/api/closet/wore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          occasion: plan.occasion,
+          bike: plan.bike,
+          source: swapped ? 'swapped' : 'planned',
+          garments: woreGarments(lead),
+        }),
+      })
+      if (!response.ok) throw new Error(`status ${response.status}`)
+      setWorn((await response.json()).worn ?? true)
+    } catch {
+      setError(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const done = worn ?? today?.worn
+  return (
+    <>
+      <AreaCard
+        title="Closet"
+        to="/admin/closet/today"
+        linkLabel="Today"
+        lead={
+          lead ? (
+            <AreaLead
+              cover={<OutfitSwatches garments={lead.garments} />}
+              title={lead.garments.map((g) => g.name).join(' · ')}
+              meta={outfitMeta(plan)}
+            />
+          ) : (
+            <p className="muted">Loading…</p>
+          )
+        }
+        figures={[
+          { label: 'Untagged', value: figure(untagged) },
+          { label: 'Fit today', value: figure(plan?.footnote?.fit) },
+        ]}
+        actions={
+          lead &&
+          (done ? (
+            <span className="muted">Worn ✓</span>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn primary sm"
+                disabled={busy}
+                onClick={wore}
+              >
+                Wore this
+              </button>
+              <button
+                type="button"
+                className="btn sm"
+                disabled={busy}
+                onClick={() => setSwapOpen(true)}
+              >
+                Swap
+              </button>
+              {error && (
+                <span className="admin-error" role="alert">
+                  Couldn’t record it.
+                </span>
+              )}
+            </>
+          ))
+        }
+      />
+      {plan && (
+        <SwapSheet
+          open={swapOpen}
+          outfit={lead}
+          occasion={plan.occasion}
+          bike={plan.bike}
+          onClose={() => setSwapOpen(false)}
+          onChoose={(tile) => {
+            setSwapOpen(false)
+            setOutfit(swapTile(lead, tile))
+            setSwapped(true)
+          }}
+        />
+      )}
+    </>
+  )
 }
 
 /**
@@ -276,7 +400,7 @@ function SiteCard({ nightly }) {
  * and loads the rows.
  */
 export default function Admin() {
-  const { items } = useOutletContext() ?? {}
+  const { items, closetUntagged } = useOutletContext() ?? {}
   const nightly = useNightly()
   const year = ownerYear(nightly.now)
 
@@ -287,6 +411,7 @@ export default function Admin() {
       </AdminPageHeader>
 
       <div className="area-cards">
+        <ClosetCard untagged={closetUntagged} />
         <ShelfCard items={items} year={year} />
         <DenverCard />
         <SiteCard nightly={nightly} />
