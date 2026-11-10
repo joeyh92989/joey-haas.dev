@@ -39,6 +39,7 @@ from analytics import (
     cap_key,
     client_ip,
     daily_salt,
+    is_automated,
     is_public_referrer,
     normalise,
     range_start,
@@ -99,6 +100,10 @@ def create_track_router(
         done = Response(status_code=204)
         if _opted_out(request) or session_admin(request) is not None:
             return done
+        user_agent = request.headers.get("user-agent", "")
+        # Before the cap, so a crawler spends none of an address's views.
+        if is_automated(user_agent):
+            return done
         raw = await _read_capped(request)
         event = normalise(raw) if raw is not None else None
         if event is None:
@@ -113,7 +118,7 @@ def create_track_router(
             path=event.path,
             referrer_host=event.ref,
             device=event.device,
-            visitor_hash=visitor_hash(salt, ip, request.headers.get("user-agent", "")),
+            visitor_hash=visitor_hash(salt, ip, user_agent),
         )
         try:
             async with factory() as session:
