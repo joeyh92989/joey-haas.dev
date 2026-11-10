@@ -43,6 +43,7 @@ const AdminImport = lazy(() => import('./pages/AdminImport.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
 const AdminCloset = lazy(() => import('./pages/AdminCloset.jsx'))
 const AdminClosetProfile = lazy(() => import('./pages/AdminClosetProfile.jsx'))
+const AdminClosetToday = lazy(() => import('./pages/AdminClosetToday.jsx'))
 const AdminGarment = lazy(() => import('./pages/AdminGarment.jsx'))
 const PlayNext = lazy(() => import('./pages/PlayNext.jsx'))
 // /denver carries the drawn map (~100 kB of path data), which only that page
@@ -143,6 +144,7 @@ export default function App() {
           <Route path="weekend" element={<AdminWeekend />} />
           <Route path="closet" element={<AdminCloset />} />
           <Route path="closet/profile" element={<AdminClosetProfile />} />
+          <Route path="closet/today" element={<AdminClosetToday />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />
           <Route path="closet/:id" element={<KeyedAdminGarment />} />
           {/* Inside the shell, so a mistyped admin URL keeps the sidebar. */}
