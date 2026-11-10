@@ -22,6 +22,7 @@ from analytics_routes import (
 )
 from auth import admin_identity, create_auth_router
 from closet_routes import create_closet_router
+from closet_today_routes import create_closet_today_router
 from comics_routes import create_comics_router
 from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
@@ -174,6 +175,15 @@ app.include_router(
 # tag job writes only garment rows. The model is built per run.
 app.include_router(
     create_closet_router(
+        session_factory,
+        provider_factory=lambda: build_provider(config),
+        lock=asyncio.Lock(),
+    )
+)
+# Today: the day's outfit plan, Wore this and the nightly plan. Its own lock
+# for the plan job; one model call per plan, built per call.
+app.include_router(
+    create_closet_today_router(
         session_factory,
         provider_factory=lambda: build_provider(config),
         lock=asyncio.Lock(),

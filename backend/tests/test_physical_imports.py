@@ -36,6 +36,8 @@ PURE_MODULES = sorted(
         "spot_sources.dedupe",
         "weather",
         "planner",
+        "closet",
+        "closet_rank",
     }
 )
 TOP_LEVEL = {
@@ -52,6 +54,8 @@ TOP_LEVEL = {
     "spot_sources.dedupe",
     "weather",
     "planner",
+    "closet",
+    "closet_rank",
 }
 
 

@@ -9,6 +9,11 @@ blocker. No FastAPI and no SQLAlchemy in the import graph --
 tests/test_physical_imports.py holds it to that -- and only the job route
 calls `fetch_hourly`: nothing on a page's request path reaches NWS.
 
+`hours_for_day` is the one read of the cached `weather_hours`, shared by
+the weekend planner and Closet's Today. It takes the caller's session and
+imports SQLAlchemy and the model inside the function, so importing this
+module still loads neither.
+
 Spec and plan: docs/planning/2026-11-08-denver-spots-design.md.
 """
 
@@ -18,7 +23,7 @@ import re
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx2
@@ -179,6 +184,47 @@ async def fetch_hourly(
     points = await _get_json(client, f"{NWS_BASE}/points/{lat:.4f},{lng:.4f}")
     gridpoint, url = gridpoint_of(points)
     return gridpoint, await _get_json(client, url)
+
+
+# --- The cached hours ---------------------------------------------------------
+
+
+def day_window(first: date, last: date | None = None) -> tuple[datetime, datetime]:
+    """`[start, end)` covering Denver days `first` to `last` inclusive:
+    local midnight to the next local midnight, so a DST day is 23 or 25
+    hours long rather than a UTC day."""
+    end_day = (last or first) + timedelta(days=1)
+    return (
+        datetime.combine(first, time(), DENVER_TZ),
+        datetime.combine(end_day, time(), DENVER_TZ),
+    )
+
+
+async def hours_for_day(session, day: date, last: date | None = None) -> list[Hour]:
+    """The cached hours for Denver day `day` (through `last` when given),
+    from the gridpoint fetched last, in time order; [] before any fetch."""
+    from sqlalchemy import select
+
+    from models import WeatherHour
+
+    latest = await session.scalar(
+        select(WeatherHour.gridpoint).order_by(WeatherHour.fetched_at.desc()).limit(1)
+    )
+    if latest is None:
+        return []
+    start, end = day_window(day, last)
+    rows = await session.scalars(
+        select(WeatherHour)
+        .where(
+            WeatherHour.gridpoint == latest,
+            WeatherHour.starts_at >= start,
+            WeatherHour.starts_at < end,
+        )
+        .order_by(WeatherHour.starts_at)
+    )
+    return [
+        Hour(r.starts_at, r.temp_f, r.precip_pct, r.wind_mph, r.short) for r in rows
+    ]
 
 
 # --- One day, and its verdict ------------------------------------------------

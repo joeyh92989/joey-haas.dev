@@ -55,6 +55,7 @@ export const ADMIN_ROUTES = [
   '/admin/weekend',
   '/admin/closet',
   '/admin/closet/profile',
+  '/admin/closet/today',
 ]
 
 /**

@@ -5,7 +5,7 @@ name: Nightly
 # Replaces snapshot.yml, whose compare and deploy steps are kept verbatim.
 #
 # It writes: the followed comics' issue lists, the weekend forecast, the
-# Closet's garment tags, the catalogue refreshes, Resolve, the Radar and Discover generates, the weekly
+# Closet's garment tags and tomorrow's outfit plans, the catalogue refreshes, Resolve, the Radar and Discover generates, the weekly
 # spot finder and the page-view rollup, through the admin API with the
 # JOB_TOKEN bearer token, which the backend accepts only on items.JOB_ROUTES. A failed write
 # step is a warning: the steps after it run on yesterday's data, the run
@@ -162,6 +162,11 @@ jobs:
           # catalogue night cannot crowd it out; the timeout covers the
           # largest budget at about fifteen seconds a call.
           call closet-tag 900 /api/closet/jobs/tag
+          # Tomorrow's outfit plans, one per occasion chip in the Profile's
+          # default week (one model call each, two by default), so Today
+          # paints from a stored plan. After the tags, so tonight's new
+          # garments are in them; a failed call stores the template plan.
+          call closet-plan 300 /api/closet/jobs/plan
           call registry 900 /api/physical/refresh-registry
           # WooCommerce on Render, then the nine Shopify stores walked on
           # this runner and posted to the API store by store. 75 minutes for

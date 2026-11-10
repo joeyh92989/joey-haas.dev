@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-09
 
+- A private outfit planner for my own closet: each morning it suggests what to wear from the forecast, the day's plans and what I've worn lately, with a swap for any piece and a one-tap log of what I actually wore.
 - [Tonight](/shelf/next) picks live from what I've liked, read through shared genres, settings and moods and how much I actually played them, so they change the moment I finish something. Read next and Watch next sit under the games: what to read from my comics and what to watch from my movies.
 - [Denver, the short list](/denver): the places I keep sending people to, on a map drawn from OpenStreetMap beside the list, filterable by tag.
 - [Shelfle](/daily), a daily puzzle built from my shelf: guess the game in six, each guess graded on platform, year, genre and size. The same puzzle for everyone, new at midnight Denver time, with a streak kept on your device and a spoiler-free grid to share.

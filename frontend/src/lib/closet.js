@@ -258,3 +258,116 @@ export function profileBody(form) {
     tag_budget: numberOrNull(form.tag_budget),
   }
 }
+
+/** Today's occasion chips, in the order `OCCASIONS` in closet.py lists them. */
+export const OCCASION_LABELS = {
+  office: 'Office',
+  wfh: 'WFH',
+  date: 'Date',
+  weekend: 'Weekend',
+  travel: 'Travel',
+  event: 'Event',
+}
+
+/** Not this…'s reason chips: `NOT_THIS` in closet_rank.py holds the keys. */
+export const NOT_THIS_REASONS = [
+  { value: 'too_warm', label: 'Too warm' },
+  { value: 'too_cold', label: 'Too cold' },
+  { value: 'too_formal', label: 'Too formal' },
+  { value: 'too_casual', label: 'Too casual' },
+  { value: 'not_together', label: 'Not those together' },
+  { value: 'tired', label: 'Tired of it' },
+  { value: 'other', label: 'Other' },
+]
+
+/** The owner's zone: plans are made for the day in Denver. */
+const OWNER_ZONE = 'America/Denver'
+
+/** A plan's day, 'YYYY-MM-DD', as "Monday, Nov 9". */
+export function longDate(day) {
+  return new Date(day).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
+/**
+ * When the plan was made, in words: "planned just now" after a re-plan,
+ * "planned last night" for the nightly job's (made before the plan's day
+ * began in Denver), else the time of day.
+ */
+export function plannedWords(plan, justNow) {
+  if (justNow) return 'planned just now'
+  if (!plan?.planned_at) return null
+  const at = new Date(plan.planned_at)
+  if (Number.isNaN(at.getTime())) return null
+  const madeOn = at.toLocaleDateString('en-CA', { timeZone: OWNER_ZONE })
+  if (madeOn < plan.day) return 'planned last night'
+  const time = at.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: OWNER_ZONE,
+  })
+  return `planned at ${time}`
+}
+
+/** The footnote: what the plan chose from, and when it was made. */
+export function footnoteLine(plan, justNow) {
+  const note = plan.footnote ?? {}
+  const parts = [`${note.active ?? 0} active`, `${note.fit ?? 0} fit today`]
+  if (note.skipped_recent) {
+    parts.push(`${note.skipped_recent} skipped as worn this week`)
+  }
+  const words = plannedWords(plan, justNow)
+  if (words) parts.push(words)
+  return parts.join(' · ')
+}
+
+/**
+ * An outfit with one slot's tile replaced by the owner's choice. Nothing is
+ * re-ranked; the reason says so once per slot.
+ */
+export function swapTile(outfit, tile) {
+  const note = `(you swapped the ${tile.slot})`
+  const reason = outfit.reason ?? ''
+  return {
+    ...outfit,
+    garments: outfit.garments.map((g) => (g.slot === tile.slot ? tile : g)),
+    reason: reason.includes(note) ? reason : `${reason} ${note}`.trim(),
+  }
+}
+
+/** The outfit as `POST /api/closet/wore` takes it. */
+export function woreGarments(outfit) {
+  return outfit.garments.map((g) => ({ slot: g.slot, id: g.id }))
+}
+
+/**
+ * Whether today's recorded outfit (`worn.garments`) is `outfit`: the same
+ * pieces in the same slots, in any order. A worn record without garments
+ * matches nothing, so the page never claims an outfit it cannot see.
+ */
+export function sameOutfit(worn, outfit) {
+  if (!worn?.garments || !outfit?.garments) return false
+  const keys = (garments) => garments.map((g) => `${g.slot}:${g.id}`).sort()
+  const a = keys(worn.garments)
+  const b = keys(outfit.garments)
+  return a.length === b.length && a.every((key, i) => key === b[i])
+}
+
+const TEMPLATE_NOTE = 'picked without the model'
+
+/**
+ * The line under an outfit. A template outfit keeps its reason -- it
+ * carries "You locked the …" and the swap note -- and says it was picked
+ * without the model.
+ */
+export function outfitReason(outfit) {
+  const reason = (outfit.reason ?? '').trim()
+  if (outfit.ranked_by !== 'template') return reason
+  if (!reason) return TEMPLATE_NOTE
+  if (/[.!?]$/.test(reason)) return `${reason} Picked without the model.`
+  return `${reason} · ${TEMPLATE_NOTE}`
+}

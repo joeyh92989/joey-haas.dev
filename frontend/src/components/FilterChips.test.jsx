@@ -137,4 +137,91 @@ describe('FilterChips single-member groups', () => {
     )
     expect(screen.getByRole('group', { name: 'Type' })).toBeInTheDocument()
   })
+
+  it('shows a null-count chip always, with no count, and its class', async () => {
+    const onChange = vi.fn()
+    render(
+      <FilterChips
+        groups={[
+          {
+            key: 'occasion',
+            label: 'Occasion',
+            options: [
+              { value: 'office', label: 'Office', count: null },
+              { value: 'date', label: 'Date', count: null },
+            ],
+          },
+        ]}
+        toggles={[
+          {
+            key: 'bike',
+            label: 'Bike',
+            count: null,
+            className: 'chip-modifier',
+          },
+        ]}
+        togglesLabel="Getting there"
+        value={{ occasion: 'office', bike: false }}
+        onChange={onChange}
+      />,
+    )
+    const bike = screen.getByRole('button', { name: 'Bike' })
+    expect(bike).toHaveClass('chip', 'chip-modifier')
+    expect(bike).toHaveTextContent(/^Bike$/)
+    expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent(
+      /^Date$/,
+    )
+    expect(
+      screen.getByRole('group', { name: 'Getting there' }),
+    ).toBeInTheDocument()
+    await userEvent.click(bike)
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ bike: true }),
+    )
+  })
+
+  it('disables every chip, and a press changes nothing', async () => {
+    const onChange = vi.fn()
+    render(
+      <FilterChips
+        groups={GROUPS}
+        toggles={TOGGLES}
+        value={NO_FILTER}
+        onChange={onChange}
+        disabled
+      />,
+    )
+    expect(chip('Games')).toBeDisabled()
+    expect(chip('Want')).toBeDisabled()
+    await userEvent.click(chip('Games'))
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('leaves chips enabled by default', () => {
+    renderChips()
+    expect(chip('Games')).toBeEnabled()
+  })
+
+  it('hides a chip whose count is undefined, as it hides a zero', () => {
+    render(
+      <FilterChips
+        groups={[
+          {
+            key: 'type',
+            label: 'Type',
+            options: [
+              { value: 'game', label: 'Games', count: 3 },
+              { value: 'movie', label: 'Film', count: undefined },
+              { value: 'comic', label: 'Comics', count: 1 },
+            ],
+          },
+        ]}
+        value={NO_FILTER}
+        onChange={() => {}}
+      />,
+    )
+    expect(
+      screen.queryByRole('button', { name: /Film/ }),
+    ).not.toBeInTheDocument()
+  })
 })

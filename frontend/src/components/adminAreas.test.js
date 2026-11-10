@@ -124,6 +124,8 @@ describe('currentPage', () => {
     )
     expect(currentPage(closet.pages, '/admin/closet/12').label).toBe('Closet')
     expect(currentPage(closet.pages, '/admin/closet/').label).toBe('Closet')
+    expect(currentPage(closet.pages, '/admin/closet/today').label).toBe('Today')
+    expect(closet.home).toBe('/admin/closet/today')
     expect(areaFor('/admin/closet/profile').key).toBe('closet')
   })
 

@@ -214,7 +214,9 @@ export default function AdminLayout() {
               </p>
             }
           >
-            <Outlet context={{ ...context, items, setClosetUntagged }} />
+            <Outlet
+              context={{ ...context, items, closetUntagged, setClosetUntagged }}
+            />
           </Suspense>
         </RouteErrorBoundary>
       </AdminShell>

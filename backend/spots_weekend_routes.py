@@ -27,7 +27,7 @@ import logging
 import uuid
 from collections.abc import AsyncIterator, Callable
 from dataclasses import asdict
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
 
 import httpx2
@@ -206,29 +206,6 @@ def create_weekend_router(
 
     # --- the plan --------------------------------------------------------------
 
-    async def _hours(session: AsyncSession, days: list[date]) -> list[weather.Hour]:
-        """The weekend's cached hours from the gridpoint fetched last."""
-        latest = await session.scalar(
-            select(WeatherHour.gridpoint)
-            .order_by(WeatherHour.fetched_at.desc())
-            .limit(1)
-        )
-        if latest is None:
-            return []
-        start = datetime.combine(days[0], time(), OWNER_TZ)
-        end = datetime.combine(days[-1] + timedelta(days=1), time(), OWNER_TZ)
-        rows = await session.scalars(
-            select(WeatherHour).where(
-                WeatherHour.gridpoint == latest,
-                WeatherHour.starts_at >= start,
-                WeatherHour.starts_at < end,
-            )
-        )
-        return [
-            weather.Hour(r.starts_at, r.temp_f, r.precip_pct, r.wind_mph, r.short)
-            for r in rows
-        ]
-
     async def _recent(session: AsyncSession) -> list[dict[str, Any]]:
         rows = await session.execute(
             select(Visit.id, Visit.spot_id, Spot.name, Visit.visited_on)
@@ -256,7 +233,8 @@ def create_weekend_router(
         spot_rows = (await session.scalars(select(Spot))).all()
         names = {str(s.id): s.name for s in spot_rows}
         visits = (await session.execute(select(Visit.spot_id, Visit.visited_on))).all()
-        hours = await _hours(session, planner.weekend_of(day))
+        weekend = planner.weekend_of(day)
+        hours = await weather.hours_for_day(session, weekend[0], weekend[-1])
 
         result = planner.plan(
             [
