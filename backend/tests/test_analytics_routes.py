@@ -149,6 +149,34 @@ async def test_a_bad_or_opted_out_view_is_dropped_with_a_204(
     assert await rows(sessionmaker_for_test) == []
 
 
+@pytest.mark.parametrize(
+    "ua",
+    [
+        "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+        "HeadlessChrome/131.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Chrome-Lighthouse",
+        "python-requests/2.32.3",
+        "curl/8.7.1",
+        "",
+    ],
+)
+async def test_an_automated_user_agent_stores_nothing(sessionmaker_for_test, ua):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post("/api/track", **beacon(ua=ua))
+    assert response.status_code == 204
+    assert await rows(sessionmaker_for_test) == []
+
+
+async def test_a_bot_spends_none_of_its_addresses_views(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        for _ in range(105):
+            await client.post("/api/track", **beacon(ua="Googlebot/2.1"))
+        await client.post("/api/track", **beacon())
+    assert len(await rows(sessionmaker_for_test)) == 1
+
+
 async def test_the_track_route_needs_no_session(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
         response = await client.post("/api/track", **beacon())
@@ -177,7 +205,7 @@ async def test_one_ip_counts_100_views_a_day_whatever_its_user_agent(
 ):
     async with client_for(sessionmaker_for_test) as client:
         for n in range(101):
-            await client.post("/api/track", **beacon(ua=f"bot {n}"))
+            await client.post("/api/track", **beacon(ua=f"Mozilla/5.0 (agent {n})"))
         other = await client.post("/api/track", **beacon(ip="198.51.100.1"))
     assert other.status_code == 204
     assert len(await rows(sessionmaker_for_test)) == 101

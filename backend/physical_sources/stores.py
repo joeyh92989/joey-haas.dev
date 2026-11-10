@@ -351,17 +351,6 @@ STORES: dict[str, StoreConfig] = {
             url_keep=re.compile(r"/en/"),
         ),
         StoreConfig(
-            key="gamefairy",
-            name="GameFairy",
-            adapter="woocommerce",
-            domain="gamefairy.io",
-            currency="USD",
-            region="USA",
-            collections=("22",),
-            title_strip=(re.compile(r"\s*Nintendo Switch\b.*$", _I),),
-            platform=("attribute:Platform", "title"),
-        ),
-        StoreConfig(
             key="oneprint",
             name="1Print Games",
             adapter="woocommerce",

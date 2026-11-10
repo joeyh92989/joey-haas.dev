@@ -82,4 +82,12 @@ describe('SpineHeader', () => {
     expect(tab).toHaveAttribute('href', '/daily')
     expect(tab).toHaveClass('active')
   })
+
+  it('shows the Comics tab unless the build says there are no comics', () => {
+    renderAt('/shelf')
+    expect(screen.getByRole('link', { name: 'Comics' })).toHaveAttribute(
+      'href',
+      '/shelf/comics',
+    )
+  })
 })

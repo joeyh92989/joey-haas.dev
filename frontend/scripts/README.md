@@ -66,6 +66,19 @@ README → Collection snapshot and Nightly job.
   API. Change what the API publishes and you change what the snapshot
   publishes, so `test_public.py` covers both.
 
+## snapshot-presence.mjs
+
+Not a step of its own: `vite.config.js` calls `snapshotPresence(dir)` when
+Vite starts, after `fetch-snapshot.mjs` has written `public/snapshot/`, and
+defines the answer as `__SNAPSHOT_PRESENCE__` for
+`src/lib/snapshotPresence.js` (#125). It reads `comics.json` and
+`spots.json` and answers, per key, `true` (a series or a spot to show),
+`false` (written and empty) or `null` (missing or unreadable). Only `false`
+hides a link: the Comics tab (`SpineTabs`) and the Denver footer link
+(`SiteFooter`'s `hasSpots`). A first comic or spot reaches the links at the
+next build, which the nightly job triggers when either snapshot changes.
+Tests: `snapshot-presence.test.mjs`.
+
 ## build-search-index.mjs
 
 **What and why.** It writes `public/search-index.json`, the site search's

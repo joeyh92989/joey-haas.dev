@@ -6,6 +6,7 @@ import NextRow from '../components/NextRow.jsx'
 import { spine } from '../content/spine.js'
 import { groupByPlatform } from '../lib/next.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
+import { storeLabel } from '../lib/storeLines.js'
 
 /** The server's sections, in the order a store visit reads them. */
 const SECTION_ORDER = ['buy_now', 'preorders', 'later', 'not_on_cartridge']
@@ -23,10 +24,10 @@ function money(line) {
 }
 
 /** One store's listing as a line: store · price · pre-order. */
-function storeWords(line) {
+function storeWords(line, lines) {
   const price = line.price != null ? ` · ${money(line)}` : ''
   const preorder = line.availability === 'preorder' ? ' · pre-order' : ''
-  return `${line.store}${price}${preorder}`
+  return `${storeLabel(line, lines)}${price}${preorder}`
 }
 
 /** Where a game is listed; a line with a URL links to the store's page. */
@@ -38,10 +39,10 @@ function StoreLines({ lines }) {
         <li key={`${line.store}-${index}`}>
           {line.url ? (
             <a href={line.url} rel="noreferrer noopener">
-              {storeWords(line)}
+              {storeWords(line, lines)}
             </a>
           ) : (
-            storeWords(line)
+            storeWords(line, lines)
           )}
         </li>
       ))}

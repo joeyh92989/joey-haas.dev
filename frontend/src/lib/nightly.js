@@ -105,17 +105,29 @@ function parsed(iso) {
  * a failed night.
  *
  * @param {{at?: string, state?: string, ok?: boolean, note?: string}|null|undefined} run
- * @param {{key: string, label: string, runNow: string, runWords?: string, hours: number, ok: string, quiet: Record<string, string>, failed?: string[]}} job
+ * @param {{key: string, label: string, runNow: string, runWords?: string, firstRun?: string, hours: number, ok: string, quiet: Record<string, string>, failed?: string[]}} job
  *   `quiet` words the run states that succeeded without finding anything;
- *   `runWords` replaces "Run now" when the page it links to runs nothing.
+ *   `runWords` replaces "Run now" when the page it links to runs nothing;
+ *   `firstRun` says when a weekly job that has never run will first run.
  * @param {(at: number|null, hours: number) => string} age
  */
 function runRow(run, job, age) {
   const at = parsed(run?.at)
   const row = { key: job.key, label: job.label, at, runNow: job.runNow }
   if (job.runWords) row.runWords = job.runWords
-  if (at === null)
+  if (at === null) {
+    // A weekly job that has not had its first evening yet is waiting, not
+    // lost: say when it runs. The state stays unknown, so it never counts
+    // as ok before it has run.
+    if (job.firstRun)
+      return {
+        ...row,
+        summary: `First run ${job.firstRun}`,
+        state: 'unknown',
+        stateWords: 'scheduled',
+      }
     return { ...row, summary: 'No run recorded', state: 'unknown' }
+  }
   const failed = job.failed ?? ['failed']
   if (failed.includes(run.state) || run.ok === false) {
     const why = run.note ? `: ${run.note}` : ''
@@ -148,7 +160,7 @@ function runRow(run, job, age) {
  * @param {{tag?: object|null, plan?: object|null, opinion?: object|null}|null} [closet]
  *   The Closet jobs' last runs from `GET /api/closet/status`; null leaves
  *   all three unknown.
- * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null, runWords?: string, stopped?: boolean}>}
+ * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null, runWords?: string, stateWords?: string, stopped?: boolean}>}
  *   `stopped` is on the catalogue row only: the schedule may have stopped,
  *   which a failure on its last night would otherwise hide.
  */
@@ -216,6 +228,8 @@ export function nightlyJobs(
         runNow: '/admin/spots',
         hours: DISCOVER_STALE_HOURS,
         ok: 'Sunday evenings only',
+        // Only a status that loaded can say the job has not run yet.
+        firstRun: spots ? 'Sunday evening' : undefined,
         quiet: { no_anchors: 'No anchors to search from' },
       },
       age,
@@ -258,6 +272,7 @@ export function nightlyJobs(
         runWords: 'Open Review',
         hours: DISCOVER_STALE_HOURS,
         ok: 'Sunday evenings only',
+        firstRun: closet ? 'Sunday evening' : undefined,
         quiet: {
           empty: 'Nothing flagged',
           skipped: 'The model had nothing to add',
