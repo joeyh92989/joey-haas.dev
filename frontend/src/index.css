@@ -1368,6 +1368,88 @@ footer {
   min-height: 100vh;
 }
 
+/* Every admin page's form controls, so a form without its own rules
+   (the Closet profile, the play journal, the pull list search) is not left
+   with the browser's light grey defaults. The look is .item-detail-form's.
+   Wrapped in :where() so it has no specificity: any form's own rule wins,
+   whatever its order. Buttons are only the classless ones, because a
+   classed button (.btn, .link-button, .chip) is a design of its own.
+   Native pickers follow the theme through color-scheme on the root. */
+:where(.admin-main)
+  :where(
+    input:not([type]),
+    input[type='text'],
+    input[type='search'],
+    input[type='number'],
+    input[type='date'],
+    input[type='time'],
+    input[type='email'],
+    input[type='url'],
+    input[type='tel'],
+    select,
+    textarea,
+    button:not([class])
+  ) {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.6rem;
+}
+
+:where(.admin-main input[type='file']) {
+  color: var(--text-2);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+/* A rule of its own: one selector a browser does not know drops the
+   whole list it is in. */
+:where(.admin-main input[type='file'])::file-selector-button {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  margin-right: 0.6rem;
+  padding: 0.4rem 0.6rem;
+}
+
+:where(
+  .admin-main input[type='file']:hover:not(:disabled)
+)::file-selector-button {
+  border-color: var(--accent);
+}
+
+:where(.admin-main)
+  :where(
+    button:not([class]):not(:disabled),
+    input[type='file']:not(:disabled)
+  ) {
+  cursor: pointer;
+}
+
+:where(.admin-main) :where(button:not([class]):hover:not(:disabled)) {
+  border-color: var(--accent);
+}
+
+:where(.admin-main) :where(button:not([class]):disabled),
+:where(.admin-main input[type='file']:disabled) {
+  cursor: default;
+  opacity: 0.6;
+}
+
+:where(.admin-main)
+  :where(input, select, textarea, button:not([class])):where(:focus-visible) {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* The rail: --text-3 labels on --sunken measure 5.21 dark, 4.76 light. */
 .admin-rail {
   align-items: center;
