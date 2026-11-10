@@ -21,7 +21,8 @@ export function StatusText({ state, children }) {
 
 /**
  * One nightly job in the Dashboard's panel: when it last ran, what it is,
- * its state, and a link to where it can be run by hand.
+ * its state, and a link to where it can be run by hand ("Run now"), or
+ * to where its output is read when nothing there runs it (`runWords`).
  *
  * @param {object} props
  * @param {ReturnType<typeof import('../lib/nightly.js').nightlyJobs>[number]} props.job
@@ -43,7 +44,7 @@ export default function JobStatusRow({ job, extra }) {
       <StatusText state={job.state} />
       {job.runNow ? (
         <Link to={job.runNow} className="job-run">
-          Run now
+          {job.runWords ?? 'Run now'}
           <span className="visually-hidden">{`: ${job.label}`}</span>
         </Link>
       ) : (

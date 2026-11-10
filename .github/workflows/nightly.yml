@@ -5,7 +5,8 @@ name: Nightly
 # Replaces snapshot.yml, whose compare and deploy steps are kept verbatim.
 #
 # It writes: the followed comics' issue lists, the weekend forecast, the
-# Closet's garment tags and tomorrow's outfit plans, the catalogue refreshes, Resolve, the Radar and Discover generates, the weekly
+# Closet's garment tags, tomorrow's outfit plans and the weekly Review
+# opinions, the catalogue refreshes, Resolve, the Radar and Discover generates, the weekly
 # spot finder and the page-view rollup, through the admin API with the
 # JOB_TOKEN bearer token, which the backend accepts only on items.JOB_ROUTES. A failed write
 # step is a warning: the steps after it run on yesterday's data, the run
@@ -27,6 +28,10 @@ on:
     inputs:
       discover:
         description: Generate a Discover batch even if it is not Sunday night
+        type: boolean
+        default: false
+      closet_opinion:
+        description: Ask for the Closet's Review opinions even if it is not Sunday night
         type: boolean
         default: false
 
@@ -93,6 +98,7 @@ jobs:
           # The inputs context keeps a boolean a boolean; on a schedule it is
           # empty, which is not "true".
           FORCE_DISCOVER: ${{ inputs.discover }}
+          FORCE_CLOSET_OPINION: ${{ inputs.closet_opinion }}
         run: |
           if [ -z "$JOB_TOKEN" ]; then
             echo "::error::The JOB_TOKEN secret is not set; nothing was refreshed"
@@ -213,6 +219,12 @@ jobs:
           # and one model call. No anchors is an ok run that finds nothing.
           if [ "$weekly" = true ]; then
             call spots 600 /api/spots/candidates/refresh
+          fi
+          # Weekly: the Closet's Review opinion, one model call over the
+          # pieces the data already flagged. A failed call keeps last
+          # week's opinions; the 240s model budget sits inside this timeout.
+          if [ "$weekly" = true ] || [ "$FORCE_CLOSET_OPINION" = true ]; then
+            call closet-opinion 300 /api/closet/jobs/opinion
           fi
           # Rolls up every finished day's page views and drops raw rows
           # past 90 days. Idempotent, so a missed night is caught up here.

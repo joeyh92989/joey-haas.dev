@@ -68,6 +68,7 @@ async function closetRuns() {
     return {
       tag: body?.['tag.last_run'] ?? null,
       plan: body?.['plan.last_run'] ?? null,
+      opinion: body?.['opinion.last_run'] ?? null,
     }
   } catch {
     return null

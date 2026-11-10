@@ -117,6 +117,7 @@ const TITLES = [
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
   ['/admin/closet', 'Closet · Admin · Joey Haas'],
   ['/admin/closet/today', 'Today · Admin · Joey Haas'],
+  ['/admin/closet/review', 'Review · Admin · Joey Haas'],
   ['/admin/closet/profile', 'Profile · Admin · Joey Haas'],
   ['/admin/closet/7', 'Garment · Admin · Joey Haas'],
   ['/admin/no-such-page', 'Not found · Joey Haas'],

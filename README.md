@@ -535,7 +535,9 @@ directly on the service in the Render dashboard.
 The Closet (`/admin/closet`, admin only) is the wardrobe behind the outfit
 planner. Spec and plan: `docs/planning/2026-11-09-outfit-design.md`.
 Routes are `backend/closet_routes.py`; thumbnails `closet_images.py`;
-the tagging prompt and its checks `closet_tag.py`.
+the tagging prompt and its checks `closet_tag.py`. Review's routes are
+`closet_review_routes.py`, its flags are the cull in `closet.py`, and the
+Sunday opinion's prompt and checks are `closet_opinion.py`.
 
 - **Photos first, details later.** `POST /api/closet/garments/photos`
   takes up to 24 photos (JPEG, PNG, WebP or HEIC, 14 MB each), makes each a
@@ -568,8 +570,64 @@ the tagging prompt and its checks `closet_tag.py`.
   uploads a rack of photos and moves the view to Untagged, with the toast's
   Tag now. `/admin/closet/:id` edits every field by hand and deletes;
   `/admin/closet/profile` is the Profile, saved whole as one `PATCH`. The
-  Closet area's badge counts untagged garments, read once per sign-in by
-  `AdminLayout` and updated by the Closet page.
+  Closet area's badge counts the pieces Review has flagged (`tiles.flagged`
+  from `GET /api/closet/review`), read by `AdminLayout` on sign-in and again
+  on the way into the Closet area, and updated by every read on the Review
+  page; Home's Closet card shows that
+  figure as To review beside Untagged.
+
+### Review
+
+`/admin/closet/review` is the cull: one flagged piece at a time, decided
+with Keep, Pack away, Sell or Donate. The flags are data, never the model.
+
+- **The flags** (`closet.flags_for`, pure) are worked out on every read from
+  the garments and twelve months of wears, each with the sentence the deck
+  shows: *unworn* (no wear in twelve months though in season for at least
+  eight weeks of them), *condition* (a word such as "pilled" or "stain" in
+  the notes, quoted), *rare* (two wears or fewer while the same category
+  averaged at least six and three times as many), *duplicate* (more than
+  three alike in category, colour and formality; the most worn one is never
+  flagged), and *out of season* (only while a season turn is open). The
+  deck orders cards by how many flags, then the strongest
+  (`FLAG_ORDER`), then name. `closet.suggest` marks one outcome: Donate for
+  condition, Sell for unworn, Donate for rare or duplicate, Pack away for
+  out of season alone.
+- **The season turn** is the Profile's `spring_turn` and `autumn_turn`. From
+  the turn date the banner offers Pack all for the closing season's pieces
+  until it is dismissed (`POST /api/closet/review/dismiss`, which closes the
+  turn and its out-of-season flags) or nothing is left to pack. One by one
+  only hides the banner on the page. A piece kept since the current turn
+  stays out of the deck until the next one.
+- **Outcomes.** `POST /api/closet/garments/{id}/decision` writes one
+  `garment_decisions` row: Keep leaves the garment active, Pack away sets
+  `packed` with a `back_on` month (prefilled with when its season comes
+  back), Sell sets `listed` after the listing checklist (Copy listing puts
+  brand, size from the Profile, condition from the notes and material on
+  the clipboard), and Donate sets `gone`. Listed pieces wait under Listed
+  for sale for Mark sold (`/sold`). Packed pieces whose month has come show
+  as Due back with Unpack all (`/unpack-all`). Skip is the page's alone and
+  writes nothing.
+- **Undo** is one level: every write returns a token, kept under
+  `closet_settings["review.undo"]`, and `POST /api/closet/undo` puts back
+  the statuses, months and decision rows that write changed. A garment
+  changed since (a hand edit) is left as it is, keeps its decision row, and
+  is counted in the answer's `skipped`. Any later write replaces the token
+  (a Pack all or Unpack all that touches nothing stores none), and a stale
+  token answers 409. Every write locks its rows and checks the status again
+  under the lock, so a double tap writes one decision.
+- **The opinion** is a second pass over the deck, never a flag. The weekly
+  step (`POST /api/closet/jobs/opinion`, Sunday evenings in the nightly
+  run, in `JOB_ROUTES`) sends the flagged cards as one numbered prompt; the
+  model answers with numbers, so an opinion can only attach to a piece the
+  data flagged. `closet_opinion.validate` drops a number out of range, and
+  a repeated number keeps its first entry. The batch is stored under
+  `opinion.batch` and shown last on the card, labelled "Opinion:", at most
+  200 characters; a batch more than three weeks old is not shown. A valid
+  answer with no opinions stores an empty batch; a model failure keeps last
+  week's. Every run writes `opinion.last_run`, which `GET
+  /api/closet/status` reads for the Jobs page's Closet opinions row. To run
+  it on another night, start Nightly by hand with "closet_opinion" ticked.
 
 ## Smoke test
 
@@ -699,7 +757,8 @@ keeps the snapshot within a day of production. It calls admin routes with
 3. the followed comics' issue lists (`POST /api/comics/refresh`), then the
    weekend planner's NWS forecast (`POST /api/spots/weather/refresh`), then
    the Closet's tag queue, up to the Profile's tag budget
-   (`POST /api/closet/jobs/tag`; see [Closet](#closet));
+   (`POST /api/closet/jobs/tag`; see [Closet](#closet)), then the day's
+   outfit plan (`POST /api/closet/jobs/plan`);
 4. catalogue registry, then the WooCommerce stores (`refresh-registry`,
    `refresh` with `{"adapter": "woocommerce"}`), then the Shopify stores,
    walked on the runner by `backend/scripts/walk_stores.py`, which posts
@@ -710,7 +769,10 @@ keeps the snapshot within a day of production. It calls admin routes with
 7. Radar generate, then Discover generate on Sunday evenings or when the
    `discover` input is ticked on a manual run;
 8. the spot finder (`POST /api/spots/candidates/refresh`: one Overpass
-   query around the anchors and one model call), on Sunday evenings only;
+   query around the anchors and one model call), on Sunday evenings only,
+   then the Closet's Review opinion (`POST /api/closet/jobs/opinion`, one
+   model call over the flagged pieces; see [Review](#review)), also Sunday
+   evenings only;
 9. the page-view rollup (`POST /api/analytics/rollup`);
 10. the snapshot compare and, only if a body differs, the static-site deploy
     hook.
@@ -726,7 +788,7 @@ limit is 150 minutes.
   → Actions. The two must match. Without the secret the job says so, refreshes
   nothing and fails its summary step. When they differ, or the Render value
   is not set, every call answers 401 and the run fails, naming both causes.
-- **The token opens thirteen routes and nothing else.** The whitelist is
+- **The token opens fifteen routes and nothing else.** The whitelist is
   `items.JOB_ROUTES` and `backend/tests/test_job_token.py` pins it exactly:
   the writes above (the ingest among them) plus `GET /api/physical/status`
   and `GET /api/physical/stores/{key}/html-skip`. The ingest makes the token

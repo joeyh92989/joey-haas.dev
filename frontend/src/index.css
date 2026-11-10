@@ -9266,3 +9266,294 @@ main h1[tabindex='-1']:focus,
   display: flex;
   justify-content: flex-end;
 }
+
+/* ---- Closet Review (/admin/closet/review) ------------------------------- */
+
+.review-banner {
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.review-banner p {
+  margin: 0 0 0.6rem;
+}
+
+.review-banner-acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.review-deck {
+  max-width: 34rem;
+  margin-top: 1.5rem;
+}
+
+.review-progress {
+  color: var(--text-2);
+  font: 500 0.75rem var(--font-mono);
+  margin: 0 0 0.4rem;
+}
+
+/* The bar's track and fill; the line above it says the same in words. */
+.review-bar {
+  background: var(--line);
+  border-radius: 2px;
+  height: 3px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.review-bar span {
+  background: var(--accent);
+  display: block;
+  height: 100%;
+}
+
+.review-card {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.review-thumb {
+  aspect-ratio: 1;
+  background: var(--sunken);
+  border-radius: var(--radius);
+  display: block;
+  overflow: hidden;
+  width: 8rem;
+}
+
+.review-thumb img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.review-name {
+  font-size: 1.15rem;
+  margin: 0 0 0.25rem;
+}
+
+.review-stat {
+  color: var(--text-3);
+  font: 0.75rem var(--font-mono);
+  margin: 0 0 0.75rem;
+}
+
+.evidence {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.evidence li {
+  padding-left: 1.1rem;
+  position: relative;
+}
+
+/* The bullets are decorative: a data flag is filled warn, the model's
+   opinion hollow text-3, and the word "Opinion:" carries the difference. */
+.evidence li::before {
+  border-radius: 50%;
+  content: '';
+  height: 0.5rem;
+  left: 0;
+  position: absolute;
+  top: 0.5em;
+  width: 0.5rem;
+}
+
+.evidence-flag::before {
+  background: var(--warn);
+}
+
+.evidence-opinion {
+  color: var(--text-2);
+}
+
+.evidence-opinion::before {
+  border: 1.5px solid var(--text-3);
+  box-sizing: border-box;
+}
+
+.evidence-opinion strong {
+  font-weight: 600;
+}
+
+.outcomes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.outcome {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 0.15rem;
+  padding: 0.55rem 0.6rem;
+  text-align: center;
+}
+
+.outcome:hover {
+  border-color: var(--text-3);
+}
+
+.outcome:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.outcome[data-suggested] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.outcome:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.outcome-label {
+  font-weight: 600;
+}
+
+.outcome-hint {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.pack-month {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.pack-month input {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+}
+
+.review-skip {
+  margin-top: 0.75rem;
+}
+
+.review-empty {
+  margin-top: 1.5rem;
+  max-width: 34rem;
+}
+
+.review-listed {
+  margin-top: 1.5rem;
+  max-width: 34rem;
+}
+
+.review-listed h2 {
+  margin: 0 0 0.5rem;
+}
+
+.review-listed ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.review-listed li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sell-check {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.sell-thumb {
+  aspect-ratio: 1;
+  background: var(--sunken);
+  border-radius: var(--radius);
+  display: block;
+  overflow: hidden;
+  width: 6rem;
+}
+
+.sell-thumb img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.sell-lines {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sell-lines div {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 0.5rem;
+}
+
+.sell-lines dt {
+  color: var(--text-3);
+  font: 0.75rem var(--font-mono);
+  padding-top: 0.15rem;
+  text-transform: uppercase;
+}
+
+.sell-lines dd {
+  margin: 0;
+}
+
+.sell-copied {
+  min-height: 1.4em;
+}
+
+.sell-sheet .sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .review-card {
+    grid-template-columns: 1fr;
+  }
+
+  .review-thumb {
+    width: 7rem;
+  }
+
+  .outcomes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

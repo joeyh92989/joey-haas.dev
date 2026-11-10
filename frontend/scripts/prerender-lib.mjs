@@ -56,6 +56,7 @@ export const ADMIN_ROUTES = [
   '/admin/closet',
   '/admin/closet/profile',
   '/admin/closet/today',
+  '/admin/closet/review',
 ]
 
 /**

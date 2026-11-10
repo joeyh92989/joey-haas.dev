@@ -125,6 +125,15 @@ describe('currentPage', () => {
     expect(currentPage(closet.pages, '/admin/closet/12').label).toBe('Closet')
     expect(currentPage(closet.pages, '/admin/closet/').label).toBe('Closet')
     expect(currentPage(closet.pages, '/admin/closet/today').label).toBe('Today')
+    expect(currentPage(closet.pages, '/admin/closet/review').label).toBe(
+      'Review',
+    )
+    expect(closet.pages.map((page) => page.label)).toEqual([
+      'Today',
+      'Closet',
+      'Review',
+      'Profile',
+    ])
     expect(closet.home).toBe('/admin/closet/today')
     expect(areaFor('/admin/closet/profile').key).toBe('closet')
   })

@@ -634,6 +634,13 @@ check_equals "GET /api/closet/today unauthenticated" \
 check_equals "POST /api/closet/jobs/plan unauthenticated" \
   "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/closet/jobs/plan")" \
   "401"
+check_equals "GET /api/closet/review unauthenticated" \
+  "$(http_status "$API_URL/api/closet/review")" "401"
+check_equals "POST /api/closet/jobs/opinion unauthenticated" \
+  "$(curl -s -o /dev/null -m 90 -w '%{http_code}' -X POST "$API_URL/api/closet/jobs/opinion")" \
+  "401"
+check_equals "GET /admin/closet/review (deep link)" \
+  "$(http_status "$SITE_URL/admin/closet/review")" "200"
 check_equals "GET /admin/closet/today (deep link)" \
   "$(http_status "$SITE_URL/admin/closet/today")" "200"
 check_equals "GET /admin/closet (deep link)" "$(http_status "$SITE_URL/admin/closet")" "200"
@@ -641,7 +648,7 @@ check_equals "GET /admin/closet/profile (deep link)" \
   "$(http_status "$SITE_URL/admin/closet/profile")" "200"
 # The prerendered admin heads sit at the slash form (no rewrite rule), each
 # a noindex copy of the shell.
-for closet_path in /admin/closet/ /admin/closet/profile/ /admin/closet/today/; do
+for closet_path in /admin/closet/ /admin/closet/profile/ /admin/closet/today/ /admin/closet/review/; do
   if curl -s -m 90 "$SITE_URL$closet_path" | grep -q 'name="robots" content="noindex"'; then
     report_pass "GET $closet_path is noindex" "prerendered admin head"
   else

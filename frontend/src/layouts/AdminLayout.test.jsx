@@ -213,3 +213,86 @@ describe('AdminLayout rows', () => {
     await waitFor(() => expect(itemCalls()).toBe(2))
   })
 })
+
+describe('AdminLayout closet badge', () => {
+  /** The session, no rows, and `/api/closet/review` answering `flagged`. */
+  function stubReview(...flagged) {
+    let index = 0
+    const fetch = vi.fn(async (url) => {
+      const path = String(url)
+      if (path.endsWith('/api/auth/me'))
+        return { ok: true, status: 200, json: async () => ({ email: 'a@b.c' }) }
+      if (path.endsWith('/api/items'))
+        return { ok: true, status: 200, json: async () => [] }
+      if (path.endsWith('/api/closet/review')) {
+        const value = flagged[Math.min(index++, flagged.length - 1)]
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ tiles: { flagged: value } }),
+        }
+      }
+      return { ok: false, status: 404, json: async () => ({}) }
+    })
+    vi.stubGlobal('fetch', fetch)
+    return fetch
+  }
+
+  const closetLink = () =>
+    within(screen.getByRole('navigation', { name: 'Areas' })).getByRole(
+      'link',
+      { name: /^Closet/ },
+    )
+
+  it('shows the flagged count as "to review" on the Closet area', async () => {
+    stubReview(3)
+    renderAt()
+    await screen.findByTestId('page')
+    await waitFor(() =>
+      expect(closetLink()).toHaveAccessibleName('Closet, 3 to review'),
+    )
+  })
+
+  it.each([0, null])('shows no badge when the count is %s', async (value) => {
+    const fetch = stubReview(value)
+    renderAt()
+    await screen.findByTestId('page')
+    await waitFor(() =>
+      expect(
+        fetch.mock.calls.some(([url]) =>
+          String(url).endsWith('/api/closet/review'),
+        ),
+      ).toBe(true),
+    )
+    expect(closetLink()).toHaveAccessibleName('Closet')
+  })
+
+  it('reads the count again on the way into the Closet area', async () => {
+    const fetch = stubReview(3, 5)
+    render(
+      <MemoryRouter initialEntries={['/admin/collection']}>
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route
+              path="collection"
+              element={<Link to="/admin/closet/review">to review</Link>}
+            />
+            <Route path="closet/review" element={<Page />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    await waitFor(() =>
+      expect(closetLink()).toHaveAccessibleName('Closet, 3 to review'),
+    )
+    fireEvent.click(screen.getByRole('link', { name: 'to review' }))
+    await waitFor(() =>
+      expect(closetLink()).toHaveAccessibleName('Closet, 5 to review'),
+    )
+    expect(
+      fetch.mock.calls.filter(([url]) =>
+        String(url).endsWith('/api/closet/review'),
+      ),
+    ).toHaveLength(2)
+  })
+})
