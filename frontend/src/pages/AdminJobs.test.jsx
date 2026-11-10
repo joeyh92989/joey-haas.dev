@@ -161,7 +161,7 @@ describe('Admin Jobs', () => {
       within(panel).getByRole('link', { name: 'Run now: Outfit plans' }),
     ).toHaveAttribute('href', '/admin/closet/today')
     expect(
-      within(panel).getByRole('link', { name: 'Run now: Closet opinions' }),
+      within(panel).getByRole('link', { name: 'Open Review: Closet opinions' }),
     ).toHaveAttribute('href', '/admin/closet/review')
     expect(
       within(rows[8]).queryByRole('link', { name: /Run now/ }),

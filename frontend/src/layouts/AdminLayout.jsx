@@ -92,6 +92,7 @@ export default function AdminLayout() {
   const [signOutFailed, setSignOutFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const itemsLoaded = useRef(false)
+  const reviewLoaded = useRef(false)
   const signedOutHere = useRef(false)
   const [searchParams] = useSearchParams()
   const { pathname } = useLocation()
@@ -100,6 +101,7 @@ export default function AdminLayout() {
   const signedIn = status === 'signed-in'
   // Home and Jobs read the rows for their figures and Recent changes.
   const onDashboard = RELOAD_PATHS.includes(pathname.replace(/\/+$/, ''))
+  const inCloset = /^\/admin\/closet(\/|$)/.test(pathname)
   // The signed-in pages title themselves through AdminPageHeader.
   usePageTitle(signedIn ? null : 'Admin · Joey Haas')
 
@@ -160,19 +162,32 @@ export default function AdminLayout() {
   }, [signedIn, onDashboard])
 
   useEffect(() => {
-    // Once per sign-in; the Closet and Review pages keep them current.
+    // Once per sign-in; the Closet page keeps it current.
     if (!signedIn) return
     let live = true
     loadUntagged().then((count) => {
       if (live && count !== null) setClosetUntagged(count)
     })
-    loadReview().then((count) => {
-      if (live && count !== null) setClosetReview(count)
-    })
     return () => {
       live = false
     }
   }, [signedIn])
+
+  useEffect(() => {
+    // On sign-in, and again on the way into the Closet area: a nightly
+    // opinion or a season turn changes the count without any page here
+    // writing, and one small read is cheaper than a stale badge.
+    if (!signedIn || (!inCloset && reviewLoaded.current)) return
+    let live = true
+    loadReview().then((count) => {
+      if (!live || count === null) return
+      reviewLoaded.current = true
+      setClosetReview(count)
+    })
+    return () => {
+      live = false
+    }
+  }, [signedIn, inCloset])
 
   async function signOut() {
     // Only claim to be signed out if the server actually cleared the session.
@@ -196,6 +211,7 @@ export default function AdminLayout() {
     setClosetUntagged(null)
     setClosetReview(null)
     itemsLoaded.current = false
+    reviewLoaded.current = false
     signedOutHere.current = true
     setStatus('signed-out')
   }
