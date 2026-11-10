@@ -27,8 +27,19 @@ is left. When the model cannot answer, `template()` here is the plan.
 - **Ranking** without a model: warmth distance, formality distance, rest
   since last worn and wears this month (`WEIGHTS`), capped at
   `CANDIDATES_PER_SLOT` per slot, ties broken by name then id.
+- **The cull** (Review, at the end): five data flags, each with the
+  sentence the deck shows (`flags_for`): not worn though in season and
+  owned for `UNWORN_MIN_WEEKS` weeks of the last year (a garment bought
+  mid-season is not "never worn"); rarely worn beside its category's
+  peers; out of season for the next three months, only while a season
+  turn is open; a condition word in the owner's note; and a duplicate
+  cluster (more than `DUPLICATE_MAX` alike), keeping the most-worn. Then
+  the suggested outcome (`suggest`), the deck's order (`deck`), the turn
+  in force (`current_turn`), its Pack all (`turn_members`) and the packed
+  garments due back (`due_back`).
 
-Spec and plan: docs/planning/2026-11-09-outfit-design.md (PR C, task 12).
+Spec and plan: docs/planning/2026-11-09-outfit-design.md (PR C, task 12;
+PR D, task 18).
 """
 
 from __future__ import annotations
@@ -499,3 +510,351 @@ def qualifier(piece: Piece, slot: str, day: date, bike: bool) -> str:
     if days == 1:
         return "worn yesterday"
     return f"worn {piece.last_worn.day} {piece.last_worn:%b}"
+
+
+# --- the cull (Review) -----------------------------------------------------
+#
+# Deterministic flags first, each with the sentence the deck shows, so the
+# decision stays the owner's; the model's opinion (closet_opinion.py) is a
+# second pass over what is flagged here and never a flag of its own.
+
+YEAR_DAYS = 365
+UNWORN_MIN_WEEKS = 8  # in season and owned this long before "never worn"
+RARE_MAX_WEARS = 2
+RARE_PEER_MIN = 6.0  # peers must average at least this many wears...
+RARE_PEER_RATIO = 3.0  # ...and at least this many times this piece's
+PACK_AHEAD_MONTHS = 3  # out of season for the next three months
+DUPLICATE_MAX = 3  # more than this many alike is a cluster
+CONDITION_WORDS = (
+    "pilled",
+    "pilling",
+    "stain",
+    "stretched",
+    "torn",
+    "tear",
+    "hole",
+    "frayed",
+    "faded",
+    "ripped",
+    "shrunk",
+    "worn out",
+    "worn-out",
+    "missing button",
+    "broken zip",
+)
+MAX_NOTE_QUOTE = 80
+
+# The flags in the order the deck lists them and ranks by.
+FLAG_ORDER = ("unworn", "condition", "rare", "duplicate", "out_of_season")
+CATEGORY_PLURAL = {
+    "top": "tops",
+    "mid": "mid layers",
+    "outer": "outer layers",
+    "bottom": "bottoms",
+    "shoes": "pairs of shoes",
+    "accessory": "accessories",
+}
+MONTH_NAMES = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+
+
+@dataclass(frozen=True)
+class Held:
+    """A garment as the review sees it: what it is, since when it is owned
+    (`acquired_on`, else the upload), and its wears in the last year."""
+
+    id: str
+    name: str
+    category: str | None
+    status: str  # GarmentStatus value
+    primary_color: str | None = None
+    formality: int | None = None
+    seasons: tuple[int, ...] = ()
+    notes: str | None = None
+    owned_since: date | None = None
+    wears_12mo: int = 0
+    last_worn: date | None = None
+    back_on: date | None = None
+
+
+@dataclass(frozen=True)
+class Flag:
+    kind: str  # one of FLAG_ORDER
+    sentence: str
+
+
+@dataclass(frozen=True)
+class Flagged:
+    """One deck card: the flags, the suggested outcome and the month a
+    Pack away would prefill (the first of it)."""
+
+    held: Held
+    flags: tuple[Flag, ...]
+    suggested: str  # "keep" | "pack" | "sell" | "donate"
+    back_on: date
+
+
+@dataclass(frozen=True)
+class Turn:
+    """The season turn in force: the latest turn date on or before today."""
+
+    name: str  # "spring" | "autumn"
+    on: date
+
+
+def _months_after(day: date, count: int) -> list[int]:
+    return [(day.month - 1 + step) % 12 + 1 for step in range(count)]
+
+
+def _first_of(month: int, after: date) -> date:
+    """The first of `month` strictly after `after`'s month."""
+    year = after.year if month > after.month else after.year + 1
+    return date(year, month, 1)
+
+
+def season_window(seasons: Iterable[int]) -> str:
+    """Months as runs: "October to March", "all year" when empty."""
+    months = sorted(set(seasons))
+    if not months or len(months) == 12:
+        return "all year"
+    # Start the run after a gap, so a window across the new year reads whole.
+    start = next(m for m in months if (m - 2) % 12 + 1 not in months)
+    run = [(start - 1 + step) % 12 + 1 for step in range(12)]
+    run = [m for m in run if m in months]
+    if len(run) == 1:
+        return MONTH_NAMES[run[0] - 1]
+    return f"{MONTH_NAMES[run[0] - 1]} to {MONTH_NAMES[run[-1] - 1]}"
+
+
+def weeks_in_season(held: Held, day: date) -> int:
+    """Whole weeks of the last year in which the garment was both owned and
+    in its season window: a piece bought in August has had no winter."""
+    start = day - timedelta(days=YEAR_DAYS - 1)
+    if held.owned_since and held.owned_since > start:
+        start = held.owned_since
+    days = 0
+    current = start
+    while current <= day:
+        if not held.seasons or current.month in held.seasons:
+            days += 1
+        current += timedelta(days=1)
+    return days // 7
+
+
+def out_of_season(held: Held, day: date) -> bool:
+    """Its window is closed for this month and the next two."""
+    if not held.seasons:
+        return False
+    return not any(m in held.seasons for m in _months_after(day, PACK_AHEAD_MONTHS))
+
+
+def bring_back(held: Held, day: date) -> date:
+    """The first of the next month its window opens; three months on for a
+    garment worn all year (Pack away still asks)."""
+    if held.seasons:
+        for month in _months_after(day, 13)[1:]:
+            if month in held.seasons:
+                return _first_of(month, day)
+    month = (day.month - 1 + PACK_AHEAD_MONTHS) % 12 + 1
+    return _first_of(month, day)
+
+
+def _condition(notes: str | None) -> str | None:
+    text = " ".join((notes or "").split())
+    lower = text.lower()
+    if not any(word in lower for word in CONDITION_WORDS):
+        return None
+    quote = text if len(text) <= MAX_NOTE_QUOTE else text[: MAX_NOTE_QUOTE - 1] + "…"
+    return f"Your note says “{quote}”."
+
+
+def _times(count: int) -> str:
+    return {1: "once", 2: "twice"}.get(count, f"{count} times")
+
+
+def duplicate_clusters(pieces: Sequence[Held]) -> list[list[Held]]:
+    """Active garments sharing category, colour and formality, more than
+    `DUPLICATE_MAX` of them, each most-worn first (the one to keep)."""
+    groups: dict[tuple[str, str, int], list[Held]] = {}
+    for held in pieces:
+        if held.status != "active" or not held.category:
+            continue
+        if not held.primary_color or held.formality is None:
+            continue
+        key = (held.category, held.primary_color.strip().lower(), held.formality)
+        groups.setdefault(key, []).append(held)
+
+    def most_worn(held: Held) -> tuple:
+        return (-held.wears_12mo, -(held.last_worn or date.min).toordinal(), held.id)
+
+    return [
+        sorted(group, key=most_worn)
+        for group in groups.values()
+        if len(group) > DUPLICATE_MAX
+    ]
+
+
+def flags_for(
+    pieces: Sequence[Held], day: date, turn_open: bool = False
+) -> dict[str, list[Flag]]:
+    """Every active garment's flags by id, in `FLAG_ORDER`. Out of season
+    counts only while a season turn is open: twice a year, not every day."""
+    active = [h for h in pieces if h.status == "active" and h.category]
+    weeks = {h.id: weeks_in_season(h, day) for h in active}
+    seasoned = [h for h in active if weeks[h.id] >= UNWORN_MIN_WEEKS]
+    found: dict[str, dict[str, Flag]] = {h.id: {} for h in active}
+
+    for held in seasoned:
+        if held.wears_12mo == 0:
+            found[held.id]["unworn"] = Flag(
+                "unworn",
+                f"Not worn in the last twelve months, though it was in season "
+                f"for {weeks[held.id]} weeks of them.",
+            )
+            continue
+        if held.wears_12mo > RARE_MAX_WEARS:
+            continue
+        peers = [p for p in seasoned if p.category == held.category and p is not held]
+        if not peers:
+            continue
+        average = sum(p.wears_12mo for p in peers) / len(peers)
+        if average >= RARE_PEER_MIN and average >= RARE_PEER_RATIO * held.wears_12mo:
+            plural = CATEGORY_PLURAL.get(held.category or "", "pieces")
+            found[held.id]["rare"] = Flag(
+                "rare",
+                f"Worn {_times(held.wears_12mo)} in twelve months; your other "
+                f"{plural} averaged {round(average)}.",
+            )
+
+    for held in active:
+        sentence = _condition(held.notes)
+        if sentence:
+            found[held.id]["condition"] = Flag("condition", sentence)
+        if turn_open and out_of_season(held, day):
+            back = bring_back(held, day)
+            found[held.id]["out_of_season"] = Flag(
+                "out_of_season",
+                f"Out of season until {MONTH_NAMES[back.month - 1]}: it is "
+                f"worn {season_window(held.seasons)}.",
+            )
+
+    for cluster in duplicate_clusters(active):
+        keep = cluster[0]
+        plural = CATEGORY_PLURAL.get(keep.category or "", "pieces")
+        colour = (keep.primary_color or "").strip().lower()
+        for held in cluster[1:]:
+            found[held.id]["duplicate"] = Flag(
+                "duplicate",
+                f"One of {len(cluster)} {colour} {plural} at formality "
+                f"{keep.formality}; you wear the {keep.name} most.",
+            )
+
+    return {
+        key: [flags[kind] for kind in FLAG_ORDER if kind in flags]
+        for key, flags in found.items()
+        if flags
+    }
+
+
+def suggest(flags: Sequence[Flag]) -> str:
+    """The outcome the deck highlights. A stained or never-worn piece goes;
+    an out-of-season piece alone is packed."""
+    kinds = {flag.kind for flag in flags}
+    if "condition" in kinds:
+        return "donate"
+    if "unworn" in kinds:
+        return "sell"
+    if kinds & {"rare", "duplicate"}:
+        return "donate"
+    if "out_of_season" in kinds:
+        return "pack"
+    return "keep"
+
+
+def deck(
+    pieces: Sequence[Held],
+    day: date,
+    turn_open: bool = False,
+    kept_since: Iterable[str] = (),
+) -> list[Flagged]:
+    """The review deck: flagged active garments, most flags first, then by
+    the strongest flag, then name. A garment kept since the current turn is
+    left out until the next one."""
+    skip = set(kept_since)
+    flagged = flags_for(pieces, day, turn_open)
+    cards = [
+        Flagged(
+            held=held,
+            flags=tuple(flagged[held.id]),
+            suggested=suggest(flagged[held.id]),
+            back_on=bring_back(held, day),
+        )
+        for held in pieces
+        if held.id in flagged and held.id not in skip
+    ]
+    cards.sort(
+        key=lambda card: (
+            -len(card.flags),
+            FLAG_ORDER.index(card.flags[0].kind),
+            card.held.name.lower(),
+            card.held.id,
+        )
+    )
+    return cards
+
+
+def _turn_date(text: str, year: int) -> date:
+    month, day = (int(part) for part in text.split("-"))
+    return date(year, month, day)
+
+
+def current_turn(day: date, spring: str, autumn: str) -> Turn:
+    """The latest turn date on or before `day` ("MM-DD" each)."""
+    options = [
+        Turn("spring", _turn_date(spring, day.year)),
+        Turn("autumn", _turn_date(autumn, day.year)),
+        Turn("autumn", _turn_date(autumn, day.year - 1)),
+    ]
+    return max((t for t in options if t.on <= day), key=lambda t: t.on)
+
+
+def next_turn(day: date, spring: str, autumn: str) -> Turn:
+    """The first turn date after `day`."""
+    options = [
+        Turn("spring", _turn_date(spring, day.year)),
+        Turn("autumn", _turn_date(autumn, day.year)),
+        Turn("spring", _turn_date(spring, day.year + 1)),
+    ]
+    return min((t for t in options if t.on > day), key=lambda t: t.on)
+
+
+def roughly(on: date) -> str:
+    """ "late April": the empty deck's next turn."""
+    part = "early" if on.day <= 10 else "mid" if on.day <= 20 else "late"
+    return f"{part} {MONTH_NAMES[on.month - 1]}"
+
+
+def turn_members(pieces: Sequence[Held], day: date) -> list[Held]:
+    """The season turn's Pack all: active garments out of season now."""
+    return [h for h in pieces if h.status == "active" and out_of_season(h, day)]
+
+
+def due_back(pieces: Sequence[Held], day: date) -> list[Held]:
+    """Packed garments whose bring-back month has come."""
+    return [
+        h
+        for h in pieces
+        if h.status == "packed" and h.back_on is not None and h.back_on <= day
+    ]
