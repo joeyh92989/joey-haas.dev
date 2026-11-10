@@ -159,6 +159,8 @@ def build_prompt(
     for label, value in about.items():
         if isinstance(value, list):
             value = ", ".join(str(v) for v in value if v)
+        elif isinstance(value, dict):
+            value = ", ".join(f"{k}: {v}" for k, v in value.items() if v)
         if value:
             lines.append(f"{label}: {value}")
     summary = summarise_not_this(not_this)

@@ -200,11 +200,21 @@ def test_in_season(seasons, month, ok):
 
 @pytest.mark.parametrize(
     "days_ago, n, recent",
-    [(0, 5, True), (1, 5, True), (5, 5, True), (6, 5, False), (3, 2, False)],
+    [(0, 5, False), (1, 5, True), (5, 5, True), (6, 5, False), (3, 2, False)],
 )
 def test_a_top_worn_within_n_days_is_recent(days_ago, n, recent):
     p = piece("a", "top", last_worn=DAY - timedelta(days=days_ago))
     assert closet.worn_recently(p, DAY, n) is recent
+
+
+def test_the_swap_fallback_keeps_the_repeat_rule():
+    pieces = [
+        piece("t1", "top", name="worn tee", last_worn=DAY - timedelta(days=2)),
+        piece("t2", "top", name="rested tee", last_worn=DAY - timedelta(days=9)),
+        piece("t3", "top", name="summer tee", seasons=(6, 7, 8)),
+    ]
+    found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"))
+    assert [s.piece.id for s in found] == ["t2"]
 
 
 def test_only_tops_have_the_repeat_rule():

@@ -238,3 +238,17 @@ def test_the_prompt_carries_the_day_the_profile_and_the_numbers():
     assert "worn 2× in 30 days, last 4 days ago" in prompt
     for index, (slot, p) in enumerate(closet_rank.numbered(found)):
         assert f"{index}. {slot}: {p.name}" in prompt
+
+
+def test_the_colouring_is_written_as_words_not_a_dict():
+    request = Request(DAY, "office")
+    found = closet.candidates([], request, READ)
+    prompt = closet_rank.build_prompt(
+        found,
+        request,
+        READ,
+        "Mild.",
+        {"coloring": {"hair": "dark brown", "skin": "olive", "undertone": ""}},
+    )
+    assert "Colouring: hair: dark brown, skin: olive" in prompt
+    assert "{" not in prompt.split("Colouring:", 1)[1].splitlines()[0]

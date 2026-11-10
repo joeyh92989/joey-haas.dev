@@ -1,7 +1,9 @@
 """Today's routes: closet_today_routes.py over the database, with a fake model."""
 
+import asyncio
 import io
 import json
+import uuid
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
 
@@ -13,15 +15,19 @@ from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
 import closet_rank
+import closet_today_routes
+import weather
 from closet_today_routes import create_closet_today_router
 from llm import LLMError, _quota_message
 from models import (
+    ClosetProfile,
     ClosetSetting,
     Garment,
     GarmentCategory,
     GarmentImage,
     GarmentStatus,
     Outfit,
+    OutfitGarment,
     OutfitPlan,
     Wear,
 )
@@ -527,3 +533,192 @@ async def test_not_this_labels_fit_the_column():
         max(len(k) for k in closet_rank.NOT_THIS)
         <= Outfit.__table__.c.not_this.type.length
     )
+
+
+CORE = ("top", "bottom", "shoes")
+
+
+def core(outfit) -> set[str]:
+    return {g["id"] for g in outfit["garments"] if g["slot"] in CORE}
+
+
+async def declined_rows(factory) -> list[tuple[str, set[str]]]:
+    async with factory() as session:
+        rows = (await session.scalars(select(Outfit))).all()
+        out = []
+        for row in rows:
+            ids = await session.scalars(
+                select(OutfitGarment.garment_id).where(
+                    OutfitGarment.outfit_id == row.id
+                )
+            )
+            out.append((row.not_this, {str(i) for i in ids}))
+    return out
+
+
+async def test_not_this_declines_the_outfit_on_screen_and_keeps_the_lock(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test)
+    on_screen = [
+        ("top", "white shirt"),
+        ("bottom", "grey trousers"),
+        ("shoes", "sneakers"),
+    ]
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        await client.get("/api/closet/today")
+        response = await client.post(
+            "/api/closet/plan",
+            json={
+                "not_this": "too_warm",
+                "lock": ids["white shirt"],
+                "declined": [{"slot": s, "id": ids[n]} for s, n in on_screen],
+            },
+        )
+    assert response.status_code == 200, response.text
+    plan = response.json()["plan"]
+    assert plan["lock"] == ids["white shirt"]
+    declined = {ids[n] for _, n in on_screen}
+    assert await declined_rows(sessionmaker_for_test) == [("too_warm", declined)]
+    for outfit in [plan["lead"], *plan["alternatives"]]:
+        assert "white shirt" in names(outfit)
+        assert core(outfit) != declined
+
+
+async def test_not_this_refuses_a_declined_garment_not_active(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        row = await session.get(Garment, uuid.UUID(ids["chinos"]))
+        row.status = GarmentStatus.PACKED
+        await session.commit()
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        retired = await client.post(
+            "/api/closet/plan",
+            json={
+                "not_this": "too_warm",
+                "declined": [{"slot": "bottom", "id": ids["chinos"]}],
+            },
+        )
+        unknown = await client.post(
+            "/api/closet/plan",
+            json={
+                "not_this": "too_warm",
+                "declined": [
+                    {"slot": "top", "id": "00000000-0000-0000-0000-000000000000"}
+                ],
+            },
+        )
+    assert retired.status_code == 422 and unknown.status_code == 422
+    assert await count(sessionmaker_for_test, Outfit) == 0
+
+
+async def test_a_second_not_this_never_brings_back_the_first(sessionmaker_for_test):
+    await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        first = (await client.get("/api/closet/today")).json()["plan"]["lead"]
+        second = (
+            await client.post("/api/closet/plan", json={"not_this": "too_warm"})
+        ).json()["plan"]
+        third = (
+            await client.post("/api/closet/plan", json={"not_this": "too_formal"})
+        ).json()["plan"]
+    assert core(second["lead"]) != core(first)
+    for outfit in [third["lead"], *third["alternatives"]]:
+        assert core(outfit) not in (core(first), core(second["lead"]))
+
+
+async def test_the_plan_job_stops_calling_a_failing_model(sessionmaker_for_test):
+    await seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            ClosetProfile(
+                id=1,
+                weekly_occasions=[
+                    "office",
+                    "wfh",
+                    "date",
+                    "weekend",
+                    "travel",
+                    "event",
+                    "office",
+                ],
+            )
+        )
+        await session.commit()
+    provider = FakeProvider(*[daily_quota() for _ in range(6)])
+    async with client_for(sessionmaker_for_test, provider) as client:
+        summary = (await client.post("/api/closet/jobs/plan")).json()
+    assert len(provider.calls) == 1
+    planned = [p for p in summary["plans"] if p["ranked_by"] is not None]
+    assert len(planned) == len(summary["plans"]) == 6
+    assert {p["ranked_by"] for p in planned} == {"template"}
+    assert summary["note"] == "Gemini's daily quota is used up"
+    assert all(
+        p["note"] == closet_today_routes.JOB_SKIP_FAILED for p in summary["plans"][1:]
+    )
+    assert summary["ok"] is True and summary["state"] == "template"
+    assert await count(sessionmaker_for_test, OutfitPlan) == 6
+
+
+async def test_the_plan_job_out_of_time_makes_no_call(
+    sessionmaker_for_test, monkeypatch
+):
+    await seed(sessionmaker_for_test)
+    monkeypatch.setattr(closet_today_routes, "JOB_MODEL_BUDGET_S", -1)
+    provider = FakeProvider()
+    async with client_for(sessionmaker_for_test, provider) as client:
+        summary = (await client.post("/api/closet/jobs/plan")).json()
+    assert provider.calls == []
+    assert summary["note"] == closet_today_routes.JOB_SKIP_TIME
+    assert summary["ok"] is True
+
+
+async def test_a_plan_job_that_raises_records_the_failure(
+    sessionmaker_for_test, monkeypatch
+):
+    await seed(sessionmaker_for_test)
+
+    async def broken(session, day):
+        raise RuntimeError("weather table gone")
+
+    monkeypatch.setattr(weather, "hours_for_day", broken)
+    async with client_for(sessionmaker_for_test, FakeProvider()) as client:
+        with pytest.raises(RuntimeError):
+            await client.post("/api/closet/jobs/plan")
+    async with sessionmaker_for_test() as session:
+        status = await session.get(ClosetSetting, "plan.last_run")
+    assert status.value["state"] == "failed" and status.value["ok"] is False
+    assert "weather table gone" in status.value["note"]
+
+
+async def test_wore_this_needs_active_garments(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        row = await session.get(Garment, uuid.UUID(ids["chinos"]))
+        row.status = GarmentStatus.PACKED
+        await session.commit()
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        response = await client.post(
+            "/api/closet/wore",
+            json=_wore(ids, ("top", "navy oxford"), ("bottom", "chinos")),
+        )
+    assert response.status_code == 422
+    assert await count(sessionmaker_for_test, Outfit) == 0
+
+
+async def test_two_wore_this_at_once_leave_one_outfit(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        first, second = await asyncio.gather(
+            client.post(
+                "/api/closet/wore",
+                json=_wore(ids, ("top", "navy oxford"), ("bottom", "chinos")),
+            ),
+            client.post(
+                "/api/closet/wore",
+                json=_wore(ids, ("top", "white shirt"), ("bottom", "chinos")),
+            ),
+        )
+    assert first.status_code == second.status_code == 201
+    assert await count(sessionmaker_for_test, Outfit) == 1
+    assert await count(sessionmaker_for_test, Wear) == 2

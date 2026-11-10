@@ -36,6 +36,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 import uuid
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, date, datetime, timedelta
@@ -85,6 +86,12 @@ PLAN_STATUS_KEY = "plan.last_run"
 TRANSIENT_ID = "match"
 WEARS_WINDOW_DAYS = 30
 NOTHING_TO_WEAR = "Nothing in the closet fits today yet"
+# The nightly job must finish inside nightly.yml's 300 s curl timeout, and a
+# model call can take up to 150 s: past this many seconds, the job's
+# remaining chips are planned from the template without a call.
+JOB_MODEL_BUDGET_S = 200
+JOB_SKIP_FAILED = "Planned from the template: the model failed earlier in this run"
+JOB_SKIP_TIME = "Planned from the template: the run was out of time for the model"
 
 
 def owner_today() -> date:
@@ -95,16 +102,19 @@ def _unprocessable(detail: str) -> HTTPException:
     return HTTPException(status_code=422, detail=detail)
 
 
+class WornGarment(BaseModel):
+    slot: GarmentCategory
+    id: uuid.UUID
+
+
 class PlanIn(BaseModel):
     occasion: str | None = None
     bike: bool | None = None
     lock: uuid.UUID | None = None
     not_this: str | None = Field(default=None, max_length=40)
-
-
-class WornGarment(BaseModel):
-    slot: GarmentCategory
-    id: uuid.UUID
+    # Not this: the lead as it was on screen (after any swap), so what is
+    # recorded is what was turned down. The stored lead stands in without it.
+    declined: list[WornGarment] | None = Field(default=None, min_length=1, max_length=6)
 
 
 class WoreIn(BaseModel):
@@ -219,6 +229,29 @@ async def worn_outfits(
     return list(grouped.values())
 
 
+async def declined_today(
+    session: AsyncSession, day: date, occasion: str, bike: bool
+) -> set[frozenset[str]]:
+    """The keys of the outfits turned down today for this occasion and
+    bike, so a second Not this cannot bring the first one back."""
+    rows = (
+        await session.execute(
+            select(Outfit.id, OutfitGarment.slot, OutfitGarment.garment_id)
+            .join(OutfitGarment, OutfitGarment.outfit_id == Outfit.id)
+            .where(
+                Outfit.not_this.is_not(None),
+                Outfit.worn_on == day,
+                Outfit.occasion == occasion,
+                Outfit.bike == bike,
+            )
+        )
+    ).all()
+    grouped: dict[uuid.UUID, list[tuple[str, str]]] = {}
+    for outfit_id, slot, garment_id in rows:
+        grouped.setdefault(outfit_id, []).append((slot.value, str(garment_id)))
+    return {closet.outfit_key(slots) for slots in grouped.values()}
+
+
 async def recent_not_this(session: AsyncSession) -> list[str]:
     """The Not-this reasons, newest first, as many as the prompt reads."""
     return list(
@@ -254,6 +287,21 @@ async def worn_today(session: AsyncSession, day: date) -> dict[str, Any] | None:
         "source": row.source.value,
         "garments": [{"slot": s.value, "id": str(g)} for s, g in garments],
     }
+
+
+async def require_active(session: AsyncSession, ids: list[uuid.UUID]) -> None:
+    """422 unless every id is an active garment in the closet."""
+    statuses = dict(
+        (
+            await session.execute(
+                select(Garment.id, Garment.status).where(Garment.id.in_(ids))
+            )
+        ).all()
+    )
+    if set(statuses) != set(ids):
+        raise _unprocessable("Save the garment from the photo as owned first")
+    if any(status != GarmentStatus.ACTIVE for status in statuses.values()):
+        raise _unprocessable("Only an active garment can be worn or turned down")
 
 
 def defaults_for(profile: dict[str, Any], day: date) -> tuple[str, bool]:
@@ -321,6 +369,15 @@ def create_closet_today_router(
     back to the template plan, never fails the boot. `today` is the owner's
     day (Denver); tests pass their own."""
     job_lock = lock or asyncio.Lock()
+    wore_locks: dict[date, asyncio.Lock] = {}
+
+    def wore_lock(day: date) -> asyncio.Lock:
+        """The day's Wore this lock; other days' idle locks are dropped."""
+        for other in [d for d, held in wore_locks.items() if d != day]:
+            if not wore_locks[other].locked():
+                del wore_locks[other]
+        return wore_locks.setdefault(day, asyncio.Lock())
+
     router = APIRouter(
         prefix="/api/closet",
         tags=["closet"],
@@ -331,15 +388,29 @@ def create_closet_today_router(
         async with factory() as session:
             yield session
 
-    async def rank(prompt: str) -> tuple[dict | None, str | None]:
-        """One model call, or why there was none. Never raises."""
+    async def rank(
+        prompt: str, budget: dict[str, Any] | None = None
+    ) -> tuple[dict | None, str | None]:
+        """One model call, or why there was none. Never raises.
+
+        `budget` is the nightly job's: once a call has failed (quota,
+        overload, timeout) or the run is past `JOB_MODEL_BUDGET_S`, the
+        rest of the run is the template, so the job ends inside the
+        workflow's timeout."""
         if provider_factory is None:
             return None, "No model is configured"
+        if budget is not None:
+            if budget.get("failed"):
+                return None, JOB_SKIP_FAILED
+            if time.monotonic() - budget["started"] > JOB_MODEL_BUDGET_S:
+                return None, JOB_SKIP_TIME
         try:
             provider = provider_factory()
             payload = await provider.complete_json(prompt, closet_rank.SCHEMA)
         except LLMError as error:
             logger.warning("closet plan model call failed: %s", error)
+            if budget is not None:
+                budget["failed"] = True
             return None, _failure_note(str(error))
         except Exception as error:  # a malformed answer must not stop Today
             logger.exception("closet plan model call failed unexpectedly")
@@ -363,6 +434,7 @@ def create_closet_today_router(
         extra: closet.Piece | None = None,
         not_this: list[str] | None = None,
         declined: frozenset[str] | None = None,
+        budget: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """The plan's body for one day, occasion and bike; stores nothing."""
         profile_row = await load_profile(session)
@@ -384,6 +456,7 @@ def create_closet_today_router(
         recent = closet.recent_keys(
             await worn_outfits(session, since, day - timedelta(days=1)), request
         )
+        recent |= await declined_today(session, day, occasion, bike)
         if declined:
             recent = recent | {declined}
         reasons = (not_this or []) + await recent_not_this(session)
@@ -398,7 +471,8 @@ def create_closet_today_router(
             payload, note = await rank(
                 closet_rank.build_prompt(
                     found, request, read, sentence, profile, reasons
-                )
+                ),
+                budget,
             )
             outfits, note = closet_rank.outcome(payload, note, found, recent)
         shaped = [_outfit_out(o, day, bike, photos, rows) for o in outfits]
@@ -495,9 +569,17 @@ def create_closet_today_router(
         if body.not_this is not None:
             if body.not_this not in closet_rank.NOT_THIS:
                 raise _unprocessable(f"{body.not_this} is not a reason")
-            previous = await stored(session, day, occasion, bike)
-            lead = (previous or {}).get("lead")
-            owned = [g for g in (lead or {}).get("garments", []) if not g["transient"]]
+            if body.declined is not None:
+                await require_active(session, [g.id for g in body.declined])
+                owned = [{"slot": g.slot.value, "id": str(g.id)} for g in body.declined]
+            else:
+                previous = await stored(session, day, occasion, bike)
+                lead = (previous or {}).get("lead")
+                owned = [
+                    {"slot": g["slot"], "id": g["id"]}
+                    for g in (lead or {}).get("garments", [])
+                    if not g["transient"]
+                ]
             if owned:
                 outfit = Outfit(
                     worn_on=day,
@@ -517,9 +599,7 @@ def create_closet_today_router(
                         )
                     )
                 await session.commit()
-                declined = closet.outfit_key(
-                    (g["slot"], g["id"]) for g in lead["garments"]
-                )
+                declined = closet.outfit_key((g["slot"], g["id"]) for g in owned)
         plan = await make_plan(
             session,
             day,
@@ -563,17 +643,7 @@ def create_closet_today_router(
         if listed is None:
             # A slot the day does not need (a layer on a warm day): the
             # garments that pass the same rules, least worn first.
-            listed = sorted(
-                (
-                    closet.Scored(p, 0.0)
-                    for p in pieces
-                    if p.category == slot.value
-                    and closet.in_season(p, day.month)
-                    and closet.fits_occasion(p, occasion)
-                    and (not bike or closet.bike_ok(p))
-                ),
-                key=lambda s: (s.piece.wears_30, s.piece.name),
-            )[: closet.CANDIDATES_PER_SLOT]
+            listed = closet.slot_fallback(pieces, slot.value, request)
         return {
             "slot": slot.value,
             "candidates": [
@@ -688,11 +758,14 @@ def create_closet_today_router(
         ids = [g.id for g in body.garments]
         if len(set(ids)) != len(ids):
             raise _unprocessable("A garment can be worn once per outfit")
-        found = set(
-            await session.scalars(select(Garment.id).where(Garment.id.in_(ids)))
-        )
-        if found != set(ids):
-            raise _unprocessable("Save the garment from the photo as owned first")
+        await require_active(session, ids)
+        # Two Wore this at once would each find no earlier outfit and both
+        # write one: the day's replace-the-first is serialised in-process
+        # (one web worker), which needs no migration.
+        async with wore_lock(day):
+            return await _record_wore(session, day, body)
+
+    async def _record_wore(session: AsyncSession, day: date, body: WoreIn) -> dict:
         earlier = list(
             await session.scalars(
                 select(Outfit.id).where(
@@ -754,41 +827,62 @@ def create_closet_today_router(
             raise HTTPException(status_code=409, detail="Planning is already running")
         async with job_lock:
             at = datetime.now(UTC).isoformat()
-            day = today() + timedelta(days=1)
-            profile = profile_out(await load_profile(session))
-            occasion, bike = defaults_for(profile, day)
-            week = [o for o in profile.get("weekly_occasions") or [] if o in OCCASIONS]
-            plans = []
-            for chip in dict.fromkeys([occasion, *week]):
-                plan = await make_plan(session, day, chip, bike)
-                if plan["lead"] is not None:
-                    await store(session, plan)
-                plans.append(
+            try:
+                return await _plan_tomorrow(session, at)
+            except Exception as error:
+                logger.exception("closet plan job failed")
+                await session.rollback()
+                await _write_status(
+                    session,
                     {
-                        "occasion": chip,
-                        "ranked_by": plan["ranked_by"] if plan["lead"] else None,
-                        "note": plan["model_note"],
-                    }
+                        "at": at,
+                        "state": "failed",
+                        "ok": False,
+                        "note": f"{type(error).__name__}: {error}"[:300],
+                    },
                 )
-            if all(p["ranked_by"] is None for p in plans):
-                state = "empty"
-            elif all(p["ranked_by"] in ("model", None) for p in plans):
-                state = "ok"
-            else:
-                state = "template"
-            summary = {
-                "at": at,
-                "state": state,
-                "ok": True,
-                "day": day.isoformat(),
-                "occasion": occasion,
-                "bike": bike,
-                "ranked_by": plans[0]["ranked_by"],
-                "note": next((p["note"] for p in plans if p["note"]), None),
-                "plans": plans,
-            }
-            await _write_status(session, summary)
-            logger.info("closet plan: %s", summary)
-            return summary
+                raise
+
+    async def _plan_tomorrow(session: AsyncSession, at: str) -> dict[str, Any]:
+        day = today() + timedelta(days=1)
+        profile = profile_out(await load_profile(session))
+        occasion, bike = defaults_for(profile, day)
+        week = [o for o in profile.get("weekly_occasions") or [] if o in OCCASIONS]
+        budget: dict[str, Any] = {"started": time.monotonic(), "failed": False}
+        plans = []
+        for chip in dict.fromkeys([occasion, *week]):
+            plan = await make_plan(session, day, chip, bike, budget=budget)
+            if plan["lead"] is not None:
+                await store(session, plan)
+            plans.append(
+                {
+                    "occasion": chip,
+                    "ranked_by": plan["ranked_by"] if plan["lead"] else None,
+                    "note": plan["model_note"],
+                }
+            )
+        if all(p["ranked_by"] is None for p in plans):
+            state = "empty"
+        elif all(p["ranked_by"] in ("model", None) for p in plans):
+            state = "ok"
+        else:
+            state = "template"
+        summary = {
+            "at": at,
+            "state": state,
+            # The run did its job even on the template: every chip has a
+            # plan. `ok` is false only when it raised; the reason a plan is
+            # the template's is in `note`.
+            "ok": True,
+            "day": day.isoformat(),
+            "occasion": occasion,
+            "bike": bike,
+            "ranked_by": plans[0]["ranked_by"],
+            "note": next((p["note"] for p in plans if p["note"]), None),
+            "plans": plans,
+        }
+        await _write_status(session, summary)
+        logger.info("closet plan: %s", summary)
+        return summary
 
     return router

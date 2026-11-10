@@ -305,10 +305,11 @@ def bike_ok(piece: Piece) -> bool:
 
 
 def worn_recently(piece: Piece, day: date, top_days: int) -> bool:
-    """A top worn within `top_days` days before `day` (or on it)."""
+    """A top worn within `top_days` days before `day`. Today's own wear is
+    not recent: it is the outfit already on, not a repeat of one."""
     if piece.category != "top" or piece.last_worn is None:
         return False
-    return 0 <= (day - piece.last_worn).days <= top_days
+    return 0 < (day - piece.last_worn).days <= top_days
 
 
 def score(piece: Piece, target: int, occasion: str, day: date, snow: bool) -> float:
@@ -388,6 +389,25 @@ def candidates(
         skipped_recent=skipped,
         targets={slot: goal[slot] for slot in slots},
     )
+
+
+def slot_fallback(pieces: Sequence[Piece], slot: str, request: Request) -> list[Scored]:
+    """Swap a piece for a slot the day does not need (a layer on a warm
+    day): the pieces that pass the same rules as `candidates`, the repeat
+    rule included, least worn first and capped the same way."""
+    month = request.day.month
+    return sorted(
+        (
+            Scored(p, 0.0)
+            for p in pieces
+            if p.category == slot
+            and in_season(p, month)
+            and fits_occasion(p, request.occasion)
+            and (not request.bike or bike_ok(p))
+            and not worn_recently(p, request.day, request.repeat_top_days)
+        ),
+        key=lambda s: (s.piece.wears_30, s.piece.name),
+    )[:CANDIDATES_PER_SLOT]
 
 
 def recent_keys(
