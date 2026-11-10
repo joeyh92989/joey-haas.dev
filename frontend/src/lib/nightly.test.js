@@ -248,6 +248,32 @@ describe('nightlyJobs', () => {
     expect(jobs['closet-opinions'].state).toBe('unknown')
   })
 
+  it('says when the weekly jobs first run, before they have run', () => {
+    const jobs = byKey(
+      nightlyJobs(
+        summary(),
+        null,
+        NOW,
+        spots({ candidates: null }),
+        closet({ opinion: null }),
+      ),
+    )
+    for (const key of ['spots', 'closet-opinions']) {
+      expect(jobs[key].summary).toBe('First run Sunday evening')
+      expect(jobs[key].stateWords).toBe('scheduled')
+      expect(jobs[key].state).toBe('unknown')
+    }
+    expect(jobs['closet-tags'].stateWords).toBeUndefined()
+  })
+
+  it('says nothing about a first run when the status could not be read', () => {
+    const jobs = byKey(nightlyJobs(summary(), null, NOW, null, null))
+    for (const key of ['spots', 'closet-opinions']) {
+      expect(jobs[key].summary).toBe('No run recorded')
+      expect(jobs[key].stateWords).toBeUndefined()
+    }
+  })
+
   it(`reads the forecast stale after ${STALE_HOURS} hours`, () => {
     const at = (hours) =>
       byKey(

@@ -1,5 +1,6 @@
 import CoverImage from './CoverImage.jsx'
 import { dayWords } from '../lib/releaseWords.js'
+import { storeLabel } from '../lib/storeLines.js'
 
 // Mirrors FORMAT_WORDS in backend/physical_sources/limits.py.
 const FORMAT_WORDS = {
@@ -23,7 +24,7 @@ const ACTION_WORDS = {
   skip: { label: 'Skip', named: (title) => `Skip ${title}` },
 }
 
-function StoreLine({ line }) {
+function StoreLine({ line, lines }) {
   // Only a pre-order line has a window worth naming.
   const closes =
     line.availability === 'preorder' && line.preorder_closes_at
@@ -32,7 +33,7 @@ function StoreLine({ line }) {
   return (
     <li>
       <a href={line.url} target="_blank" rel="noreferrer">
-        {line.store}
+        {storeLabel(line, lines)}
       </a>
       {line.price ? ` · ${line.price} ${line.currency}` : ''}
       {closes}
@@ -89,7 +90,11 @@ export default function RecommendationCard({
         {row.store_lines.length > 0 && (
           <ul className="radar-stores">
             {row.store_lines.map((line, index) => (
-              <StoreLine key={`${line.url}-${index}`} line={line} />
+              <StoreLine
+                key={`${line.url}-${index}`}
+                line={line}
+                lines={row.store_lines}
+              />
             ))}
           </ul>
         )}

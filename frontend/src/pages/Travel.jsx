@@ -6,6 +6,9 @@ import { trips } from '../content/trips.js'
 import { placeSlug } from '../lib/trips.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
+/** The sentence under the lede while no trip is published. */
+export const EMPTY = 'No trips written up yet.'
+
 /**
  * Every place across the trips, as one FilterChips group: the order each
  * is first seen (newest trip first, then visit order), each counted once
@@ -43,7 +46,7 @@ function visits(trip, place) {
  * same single card.
  *
  * The page is unlinked until a trip publishes (T11); reached directly, it
- * renders its lede and nothing else.
+ * says so under its lede (#125).
  */
 export default function Travel() {
   usePageTitle('Travel · Joey Haas')
@@ -65,7 +68,9 @@ export default function Travel() {
       <p className="prose">
         Trips, a day at a time: where we went, what happened and a few photos.
       </p>
-      {trips.length > 0 && (
+      {trips.length === 0 ? (
+        <p className="muted">{EMPTY}</p>
+      ) : (
         <>
           {trips.length > 1 && (
             <FilterChips groups={[group]} value={{ place }} onChange={select} />

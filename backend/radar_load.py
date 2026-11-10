@@ -23,7 +23,7 @@ from models import (
     RecommendationStatus,
     StoreListing,
 )
-from physical_sources.collapse import GameView, ListingView, collapse
+from physical_sources.collapse import GameView, ListingView, collapse, listing_label
 from physical_sources.release_rules import listing_date, preorder_open
 from physical_sources.stores import STORES
 from physical_sources.sync import edition_view
@@ -83,6 +83,7 @@ def listing_view(row: StoreListing) -> ListingView:
         format_tier=_value(row.format_tier),
         release_date=row.release_date,
         release_precision=_value(row.release_precision),
+        listing_title=listing_label(row.title, row.edition_label),
     )
 
 

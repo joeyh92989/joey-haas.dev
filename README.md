@@ -497,7 +497,7 @@ rules (deploy order, invariants, tuning points); this is the map.
 | Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
 | Public showcase | `backend/public.py`, `/shelf`, `/shelf/next` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
 | Play Next | `backend/picker.py`, `taste.py`, `facets.py`, `picker_items.py`, `strategies.py`, `public_picks.py`, `continuing.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/shelf/next`) as "Up next", and What's next's "Tonight" picks live from the same engine over public rows (games, plus Read next for comics and Watch next for movies), where the owner, signed in, can pin a pick, skip it, or start a comic or movie. While a game is being played, Tonight leads with it instead (a Continue card: playing since, journal hours and sessions, last played, stale after 21 quiet days) and the picks drop to a compact list; Wrap up finishes, pauses or abandons it with a rating, a line and the date |
-| Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), its Switch 1 sheet (about 4,500 titles in about 10,000 editions, bulk-matched to IGDB's Switch list), `switch2-tracker`, twelve boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
+| Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), its Switch 1 sheet (about 4,500 titles in about 10,000 editions, bulk-matched to IGDB's Switch list), `switch2-tracker`, eleven boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
 | Radar | `backend/radar.py`, `/admin/radar` | Upcoming physical releases and open pre-orders from the catalogue, ranked by taste; Want adds the game as a public want, and registry-dated cartridges appear on What's next |
 | Discover | `backend/discover.py`, `/admin/discover` | Released physical games on the owner's platforms, pre-scored by taste and re-ranked by one Gemini call with reasons; falls back to the deterministic ranking when the model cannot answer; its top picks appear on What's next, with reasons that name only public games |
 | Comics | `backend/comics.py`, `comics_routes.py`, `public_comics.py`, `/shelf/comics`, `/admin/pull-list` | Series rows with the issues I own as range text and collected editions; Comic Vine's issue list per followed series feeds the pull list and the public "Out this week". Only public series are ever shown publicly; following and skips stay private |
@@ -824,7 +824,9 @@ desktop, phone or tablet. A visitor is a hash of IP address and browser
 that changes every day, so one day cannot be joined to the next, and
 neither the address nor the browser is stored. Nothing is sent under
 Global Privacy Control or Do Not Track, and the figures undercount: the
-API sleeps when idle, and a view sent while it wakes is lost.
+API sleeps when idle, and a view sent while it wakes is lost. Obvious bots
+are left out: anything that says it is a crawler, a headless browser or a
+script is not counted.
 
 The paragraph above is quoted verbatim on `/stats` ("How this is counted",
 `frontend/src/content/stats.js`); `stats.test.js` reads both, so edit it
@@ -841,7 +843,10 @@ here first. The details:
   and answers 204 to anything `origin_check` lets through (a foreign
   `Origin` is refused with 403 first). It drops anything that is not a
   public route, a hostname and a known device, a body over 1 KB, a
-  signed-in admin, and `Sec-GPC` or `DNT`. Caps, in memory and reset at UTC
+  signed-in admin, `Sec-GPC` or `DNT`, and a user agent that is empty or
+  names itself automated (`analytics.AUTOMATED_AGENTS`: crawlers, link
+  unfurlers, headless and driven browsers, monitors, HTTP libraries; #126),
+  which is checked before the cap. Caps, in memory and reset at UTC
   midnight: one IP (an IPv6 address counts as its /64) stores at most 100
   views a day, the whole site at most 5,000, and past 10,000 distinct IPs
   in a day a new one is not counted. The tracker's pages count under

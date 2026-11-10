@@ -95,6 +95,20 @@ class ListingView:
     format_tier: str | None = None
     release_date: date | None = None
     release_precision: str | None = None
+    # What tells two listings at one store apart (#129): `listing_label`.
+    listing_title: str | None = None
+
+
+def listing_label(title: str | None, edition: str | None) -> str | None:
+    """A listing's own title, with its edition word when the title lacks it
+    (two variants of one product share a title; the word came from their
+    options). What the admin store lines show beside a repeated store."""
+    title = (title or "").strip()
+    if not title:
+        return edition
+    if edition and edition.lower() not in title.lower():
+        return f"{title} ({edition})"
+    return title
 
 
 @dataclass(frozen=True)
@@ -129,6 +143,7 @@ class StoreLine:
     listing_id: str
     release_date: date | None = None
     release_precision: str | None = None
+    listing_title: str | None = None
 
 
 @dataclass(frozen=True)
@@ -348,6 +363,7 @@ def collapse(
                 listing_id=listing.id,
                 release_date=listing.release_date,
                 release_precision=listing.release_precision,
+                listing_title=listing.listing_title,
             )
             for listing in listings
         ),
