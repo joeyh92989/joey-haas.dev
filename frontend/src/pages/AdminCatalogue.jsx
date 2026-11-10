@@ -232,7 +232,18 @@ function NeedsMatchRow({ entry, onDecide }) {
 }
 
 /** Keys searched without a sure match, or sold with no platform. */
-function NeedsMatch({ onChange }) {
+/**
+ * The list holds the keys both tiles count: Needs match (searched, no sure
+ * match) and No platform (a store listing with no platform to search on).
+ * Its total is their sum, so the sentence says so (#127).
+ */
+export function showingWords(shown, total, noPlatform) {
+  const base = `Showing ${shown} of ${total}`
+  if (!noPlatform) return `${base}.`
+  return `${base}: ${total - noPlatform} to match and ${noPlatform} with no platform.`
+}
+
+function NeedsMatch({ onChange, noPlatform = 0 }) {
   const [state, setState] = useState({ status: 'loading', keys: [], total: 0 })
 
   useEffect(() => {
@@ -292,7 +303,7 @@ function NeedsMatch({ onChange }) {
       )}
       {state.status === 'ready' && state.total > state.keys.length && (
         <p className="muted">
-          Showing {state.keys.length} of {state.total}.
+          {showingWords(state.keys.length, state.total, noPlatform)}
         </p>
       )}
       <ul className="needs-match-list">
@@ -628,7 +639,11 @@ export default function AdminCatalogue() {
             </table>
           </div>
 
-          <NeedsMatch key={`needs-${round}`} onChange={load} />
+          <NeedsMatch
+            key={`needs-${round}`}
+            onChange={load}
+            noPlatform={status.totals.keys_without_platform ?? 0}
+          />
           <Disagreements key={`disagreements-${round}`} />
         </>
       )}
