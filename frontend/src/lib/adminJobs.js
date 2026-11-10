@@ -59,8 +59,23 @@ async function spotsRuns() {
   }
 }
 
+/** The Closet jobs' last runs, or null when they cannot be read. */
+async function closetRuns() {
+  try {
+    const response = await apiFetch('/api/closet/status')
+    if (!response.ok) return null
+    const body = await response.json()
+    return {
+      tag: body?.['tag.last_run'] ?? null,
+      plan: body?.['plan.last_run'] ?? null,
+    }
+  } catch {
+    return null
+  }
+}
+
 /**
- * The catalogue status, the generate times, the Denver jobs' runs and the
+ * The catalogue status, the generate times, the Denver and Closet jobs' runs and the
  * snapshot's build time.
  * Never rejects. A status that cannot be read leaves `status` null, and the
  * jobs list says so rather than reading as a stopped schedule.
@@ -71,6 +86,7 @@ export async function loadNightly() {
   let status = null
   let generated = { radar: null, discover: null }
   let spots = null
+  let closet = null
   try {
     const response = await apiFetch('/api/physical/status')
     // Any answer means the server is up; only a failed request is unreachable.
@@ -80,14 +96,16 @@ export async function loadNightly() {
       // Not a status document: no jobs rather than "may have stopped".
       if (Array.isArray(body?.sources)) {
         status = body
-        const [times, runs] = await Promise.all([
+        const [times, runs, closetRun] = await Promise.all([
           apiFetch('/api/recommendations/store-list')
             .catch(() => null)
             .then(generatedAt),
           spotsRuns(),
+          closetRuns(),
         ])
         generated = times
         spots = runs
+        closet = closetRun
       }
     }
   } catch {
@@ -98,6 +116,7 @@ export async function loadNightly() {
     status,
     generated,
     spots,
+    closet,
     snapshotAt: (await meta)?.fetched_at,
   }
 }
@@ -130,6 +149,7 @@ export function useNightly() {
         nightly.snapshotAt ?? null,
         now,
         nightly.spots,
+        nightly.closet,
       )
     : null
   return {

@@ -98,21 +98,24 @@ function parsed(iso) {
 }
 
 /**
- * A Denver spots job's row from its `GET /api/spots/status` summary
- * (`{at, state, note?}`, or null before its first run). The job writes its
- * summary on a failed run too, so `state: "failed"` is a failed night.
+ * A Denver or Closet job's row from its status summary (`{at, state, ok?,
+ * note?}`, or null before its first run): `GET /api/spots/status` or
+ * `GET /api/closet/status`. The jobs write their summary on a failed run
+ * too, so a state in `job.failed` (default `["failed"]`) or `ok: false` is
+ * a failed night.
  *
- * @param {{at?: string, state?: string, note?: string}|null|undefined} run
- * @param {{key: string, label: string, runNow: string, hours: number, ok: string, quiet: Record<string, string>}} job
+ * @param {{at?: string, state?: string, ok?: boolean, note?: string}|null|undefined} run
+ * @param {{key: string, label: string, runNow: string, hours: number, ok: string, quiet: Record<string, string>, failed?: string[]}} job
  *   `quiet` words the run states that succeeded without finding anything.
  * @param {(at: number|null, hours: number) => string} age
  */
-function spotsRow(run, job, age) {
+function runRow(run, job, age) {
   const at = parsed(run?.at)
   const row = { key: job.key, label: job.label, at, runNow: job.runNow }
   if (at === null)
     return { ...row, summary: 'No run recorded', state: 'unknown' }
-  if (run.state === 'failed') {
+  const failed = job.failed ?? ['failed']
+  if (failed.includes(run.state) || run.ok === false) {
     const why = run.note ? `: ${run.note}` : ''
     return { ...row, summary: `Failed${why}`, state: 'failed' }
   }
@@ -124,7 +127,8 @@ function spotsRow(run, job, age) {
 
 /**
  * One row per nightly job: the catalogue refresh, Radar, Discover, the
- * weekend forecast, the spot finder, and the public snapshot. A job with
+ * weekend forecast, the spot finder, the closet's tags and outfit plans,
+ * and the public snapshot. A job with
  * no time is "unknown" rather than stale, except the catalogue, whose
  * absence is the clearest sign the schedule has stopped.
  *
@@ -138,6 +142,8 @@ function spotsRow(run, job, age) {
  * @param {{weather?: object|null, candidates?: object|null}|null} [spots]
  *   The Denver jobs' last runs from `GET /api/spots/status`; null when it
  *   could not be read, which leaves both rows unknown.
+ * @param {{tag?: object|null, plan?: object|null}|null} [closet] The Closet
+ *   jobs' last runs from `GET /api/closet/status`; null leaves both unknown.
  * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null, stopped?: boolean}>}
  *   `stopped` is on the catalogue row only: the schedule may have stopped,
  *   which a failure on its last night would otherwise hide.
@@ -147,6 +153,7 @@ export function nightlyJobs(
   snapshotAt,
   now = Date.now(),
   spots = null,
+  closet = null,
 ) {
   const age = (at, hours) => {
     if (at === null) return 'unknown'
@@ -185,7 +192,7 @@ export function nightlyJobs(
       state: age(discoverAt, DISCOVER_STALE_HOURS),
       runNow: '/admin/discover',
     },
-    spotsRow(
+    runRow(
       spots?.weather,
       {
         key: 'weather',
@@ -197,7 +204,7 @@ export function nightlyJobs(
       },
       age,
     ),
-    spotsRow(
+    runRow(
       spots?.candidates,
       {
         key: 'spots',
@@ -206,6 +213,34 @@ export function nightlyJobs(
         hours: DISCOVER_STALE_HOURS,
         ok: 'Sunday evenings only',
         quiet: { no_anchors: 'No anchors to search from' },
+      },
+      age,
+    ),
+    runRow(
+      closet?.tag,
+      {
+        key: 'closet-tags',
+        label: 'Closet tags',
+        runNow: '/admin/closet',
+        hours: STALE_HOURS,
+        ok: 'New photos tagged',
+        quiet: { off: 'Tagging is off', empty: 'Nothing to tag' },
+        failed: ['failed', 'stopped'],
+      },
+      age,
+    ),
+    runRow(
+      closet?.plan,
+      {
+        key: 'closet-plans',
+        label: 'Outfit plans',
+        runNow: '/admin/closet/today',
+        hours: STALE_HOURS,
+        ok: 'Tomorrow planned',
+        quiet: {
+          empty: 'Nothing to plan from',
+          template: 'Planned without the model',
+        },
       },
       age,
     ),

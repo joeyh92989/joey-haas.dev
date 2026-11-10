@@ -137,35 +137,86 @@ const spots = (overrides = {}) => ({
   candidates: { at: hoursAgo(1), state: 'ok' },
   ...overrides,
 })
+const closet = (overrides = {}) => ({
+  tag: { at: hoursAgo(1), state: 'ok', ok: true, note: null },
+  plan: { at: hoursAgo(1), state: 'ok', ok: true, note: null },
+  ...overrides,
+})
+const closetRow = (key, run) =>
+  byKey(nightlyJobs(summary(), null, NOW, null, closet(run)))[key]
 const byKey = (jobs) => Object.fromEntries(jobs.map((job) => [job.key, job]))
 
 describe('nightlyJobs', () => {
-  it('lists the six jobs, all ok', () => {
-    const jobs = nightlyJobs(summary(), hoursAgo(1), NOW, spots())
+  it('lists the eight jobs, all ok', () => {
+    const jobs = nightlyJobs(summary(), hoursAgo(1), NOW, spots(), closet())
     expect(jobs.map((job) => job.key)).toEqual([
       'catalog',
       'radar',
       'discover',
       'weather',
       'spots',
+      'closet-tags',
+      'closet-plans',
       'snapshot',
     ])
-    expect(jobs.map((job) => job.state)).toEqual([
-      'ok',
-      'ok',
-      'ok',
-      'ok',
-      'ok',
-      'ok',
-    ])
+    expect(jobs.every((job) => job.state === 'ok')).toBe(true)
     expect(jobs.map((job) => job.runNow)).toEqual([
       '/admin/catalogue',
       '/admin/radar',
       '/admin/discover',
       '/admin/weekend',
       '/admin/spots',
+      '/admin/closet',
+      '/admin/closet/today',
       null,
     ])
+  })
+
+  it('reads a stopped or failed tag run as failed, with its note', () => {
+    for (const state of ['stopped', 'failed']) {
+      const row = closetRow('closet-tags', {
+        tag: { at: hoursAgo(1), state, ok: false, note: 'Quota used up' },
+      })
+      expect(row.state).toBe('failed')
+      expect(row.summary).toBe('Failed: Quota used up')
+    }
+  })
+
+  it('keeps an idle tag run quiet', () => {
+    const off = closetRow('closet-tags', {
+      tag: { at: hoursAgo(1), state: 'off', ok: true, note: null },
+    })
+    expect([off.state, off.summary]).toEqual(['ok', 'Tagging is off'])
+    const empty = closetRow('closet-tags', {
+      tag: { at: hoursAgo(1), state: 'empty', ok: true, note: null },
+    })
+    expect([empty.state, empty.summary]).toEqual(['ok', 'Nothing to tag'])
+  })
+
+  it("shows the plan run's note when it fell back to the template", () => {
+    const note = "Gemini's daily quota is used up"
+    const row = closetRow('closet-plans', {
+      plan: { at: hoursAgo(1), state: 'template', ok: true, note },
+    })
+    expect([row.state, row.summary]).toEqual(['ok', note])
+    expect(
+      closetRow('closet-plans', {
+        plan: { at: hoursAgo(1), state: 'template', ok: true, note: null },
+      }).summary,
+    ).toBe('Planned without the model')
+  })
+
+  it(`reads the outfit plans stale after ${STALE_HOURS} hours`, () => {
+    const row = closetRow('closet-plans', {
+      plan: { at: hoursAgo(STALE_HOURS + 1), state: 'ok', ok: true },
+    })
+    expect(row.state).toBe('stale')
+  })
+
+  it('reads the Closet rows unknown with no status', () => {
+    const jobs = byKey(nightlyJobs(summary(), null, NOW, null, null))
+    expect(jobs['closet-tags'].state).toBe('unknown')
+    expect(jobs['closet-plans'].summary).toBe('No run recorded')
   })
 
   it(`reads the forecast stale after ${STALE_HOURS} hours`, () => {
