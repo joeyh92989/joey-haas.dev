@@ -20,6 +20,7 @@ from httpx2 import ASGITransport, AsyncClient
 from starlette.middleware.sessions import SessionMiddleware
 
 from analytics_routes import create_analytics_router
+from closet_review_routes import create_closet_review_router
 from closet_routes import create_closet_router
 from closet_today_routes import create_closet_today_router
 from comics_routes import create_comics_router
@@ -48,6 +49,7 @@ EXPECTED = {
     ("POST", "/api/spots/weather/refresh"),
     ("POST", "/api/closet/jobs/tag"),
     ("POST", "/api/closet/jobs/plan"),
+    ("POST", "/api/closet/jobs/opinion"),
 }
 
 
@@ -104,6 +106,7 @@ def _real_app() -> FastAPI:
     app.include_router(create_weekend_router(None, lock=lock))
     app.include_router(create_closet_router(None, lock=lock))
     app.include_router(create_closet_today_router(None, lock=lock))
+    app.include_router(create_closet_review_router(None, lock=lock))
     app.add_middleware(SessionMiddleware, secret_key="test", https_only=False)
     return app
 
@@ -136,6 +139,7 @@ async def test_every_whitelisted_route_exists_on_the_real_routers():
     app.include_router(create_weekend_router(None, lock=lock))
     app.include_router(create_closet_router(None, lock=lock))
     app.include_router(create_closet_today_router(None, lock=lock))
+    app.include_router(create_closet_review_router(None, lock=lock))
     # FastAPI 0.141 includes routers lazily, so app.routes holds one opaque
     # entry per router; the OpenAPI schema lists the flattened templates.
     real = {
