@@ -179,4 +179,49 @@ describe('FilterChips single-member groups', () => {
       expect.objectContaining({ bike: true }),
     )
   })
+
+  it('disables every chip, and a press changes nothing', async () => {
+    const onChange = vi.fn()
+    render(
+      <FilterChips
+        groups={GROUPS}
+        toggles={TOGGLES}
+        value={NO_FILTER}
+        onChange={onChange}
+        disabled
+      />,
+    )
+    expect(chip('Games')).toBeDisabled()
+    expect(chip('Want')).toBeDisabled()
+    await userEvent.click(chip('Games'))
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('leaves chips enabled by default', () => {
+    renderChips()
+    expect(chip('Games')).toBeEnabled()
+  })
+
+  it('hides a chip whose count is undefined, as it hides a zero', () => {
+    render(
+      <FilterChips
+        groups={[
+          {
+            key: 'type',
+            label: 'Type',
+            options: [
+              { value: 'game', label: 'Games', count: 3 },
+              { value: 'movie', label: 'Film', count: undefined },
+              { value: 'comic', label: 'Comics', count: 1 },
+            ],
+          },
+        ]}
+        value={NO_FILTER}
+        onChange={() => {}}
+      />,
+    )
+    expect(
+      screen.queryByRole('button', { name: /Film/ }),
+    ).not.toBeInTheDocument()
+  })
 })

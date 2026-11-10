@@ -2,7 +2,7 @@
  * One chip; hidden at zero unless pressed, so a filter can be undone. A null
  * count is a chip without one (a choice, not a filter), always shown.
  */
-function Chip({ pressed, count, label, onClick, className }) {
+function Chip({ pressed, count, label, onClick, className, disabled }) {
   const counted = count !== null
   if (counted && !pressed && !count) return null
   return (
@@ -10,6 +10,7 @@ function Chip({ pressed, count, label, onClick, className }) {
       type="button"
       className={className ? `chip ${className}` : 'chip'}
       aria-pressed={pressed}
+      disabled={disabled}
       onClick={onClick}
     >
       {label}
@@ -55,6 +56,8 @@ function offersChoice(group, value) {
  * @param {string} [props.togglesLabel] - The toggles row's accessible name.
  * @param {object} props.value - The selection, in `filterItems`' shape.
  * @param {(next: object) => void} props.onChange - Receives the whole new selection.
+ * @param {boolean} [props.disabled] - Disables every chip, for a page that
+ *   is waiting on a request the selection would start again.
  */
 export default function FilterChips({
   groups,
@@ -62,6 +65,7 @@ export default function FilterChips({
   togglesLabel = 'Show only',
   value,
   onChange,
+  disabled = false,
 }) {
   return (
     <div className="chip-rows">
@@ -82,6 +86,7 @@ export default function FilterChips({
                   pressed={pressed}
                   count={option.count}
                   label={option.label}
+                  disabled={disabled}
                   onClick={() =>
                     onChange({
                       ...value,
@@ -102,6 +107,7 @@ export default function FilterChips({
               count={toggle.count}
               label={toggle.label}
               className={toggle.className}
+              disabled={disabled}
               onClick={() =>
                 onChange({ ...value, [toggle.key]: !value[toggle.key] })
               }
