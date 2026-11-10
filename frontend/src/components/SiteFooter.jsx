@@ -12,11 +12,14 @@ import { loginUrl } from '../lib/api.js'
  * @param {boolean} [props.hasNotes] Whether a TIL note is published; the
  *   link waits for one, as the masthead's Blog item waits for a post.
  * @param {boolean} [props.hasTrips] Whether a trip is published, likewise.
+ * @param {boolean} [props.hasSpots] Whether /denver has a spot to show. True
+ *   unless the build's snapshot says otherwise (`lib/snapshotPresence.js`).
  */
 export default function SiteFooter({
   signedIn,
   hasNotes = false,
   hasTrips = false,
+  hasSpots = true,
 }) {
   return (
     <footer className="site-footer">
@@ -35,8 +38,12 @@ export default function SiteFooter({
               &middot; <Link to="/travel">Travel</Link>{' '}
             </>
           )}
-          &middot; <Link to="/denver">Denver</Link> &middot;{' '}
-          <Link to="/colophon">Colophon</Link> &middot;{' '}
+          {hasSpots && (
+            <>
+              &middot; <Link to="/denver">Denver</Link>{' '}
+            </>
+          )}
+          &middot; <Link to="/colophon">Colophon</Link> &middot;{' '}
           <Link to="/stats">Stats</Link>
         </p>
         <p className="footer-links">

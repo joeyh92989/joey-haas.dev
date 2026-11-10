@@ -22,6 +22,6 @@ describe('How this is counted', () => {
     // The README wraps lines; the sentences themselves must be identical.
     const flat = README.replace(/\s+/g, ' ')
     expect(flat).toContain(COUNTED.join(' '))
-    expect(COUNTED).toHaveLength(4)
+    expect(COUNTED).toHaveLength(5)
   })
 })

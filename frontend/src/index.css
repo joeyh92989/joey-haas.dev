@@ -1368,6 +1368,88 @@ footer {
   min-height: 100vh;
 }
 
+/* Every admin page's form controls, so a form without its own rules
+   (the Closet profile, the play journal, the pull list search) is not left
+   with the browser's light grey defaults. The look is .item-detail-form's.
+   Wrapped in :where() so it has no specificity: any form's own rule wins,
+   whatever its order. Buttons are only the classless ones, because a
+   classed button (.btn, .link-button, .chip) is a design of its own.
+   Native pickers follow the theme through color-scheme on the root. */
+:where(.admin-main)
+  :where(
+    input:not([type]),
+    input[type='text'],
+    input[type='search'],
+    input[type='number'],
+    input[type='date'],
+    input[type='time'],
+    input[type='email'],
+    input[type='url'],
+    input[type='tel'],
+    select,
+    textarea,
+    button:not([class])
+  ) {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.6rem;
+}
+
+:where(.admin-main input[type='file']) {
+  color: var(--text-2);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+/* A rule of its own: one selector a browser does not know drops the
+   whole list it is in. */
+:where(.admin-main input[type='file'])::file-selector-button {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  margin-right: 0.6rem;
+  padding: 0.4rem 0.6rem;
+}
+
+:where(
+  .admin-main input[type='file']:hover:not(:disabled)
+)::file-selector-button {
+  border-color: var(--accent);
+}
+
+:where(.admin-main)
+  :where(
+    button:not([class]):not(:disabled),
+    input[type='file']:not(:disabled)
+  ) {
+  cursor: pointer;
+}
+
+:where(.admin-main) :where(button:not([class]):hover:not(:disabled)) {
+  border-color: var(--accent);
+}
+
+:where(.admin-main) :where(button:not([class]):disabled),
+:where(.admin-main input[type='file']:disabled) {
+  cursor: default;
+  opacity: 0.6;
+}
+
+:where(.admin-main)
+  :where(input, select, textarea, button:not([class])):where(:focus-visible) {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* The rail: --text-3 labels on --sunken measure 5.21 dark, 4.76 light. */
 .admin-rail {
   align-items: center;
@@ -2136,6 +2218,11 @@ footer {
   font: inherit;
   font-size: 0.875rem;
   padding: 0.4rem 0.6rem;
+}
+
+/* Wide enough for "Rating" and the spinner beside it. */
+.item-form input[type='number'] {
+  width: 6.5rem;
 }
 
 .item-form input::placeholder {
@@ -4424,11 +4511,23 @@ a.month-bar::before {
   margin-top: 2rem;
 }
 
-/* The signed-in store list's sections read at the public page's size. */
+/* The signed-in store list's sections read at the public page's size, and
+   the other admin recommendation pages (Radar, Discover, the pull list's
+   weeks) take the same heading, so the area reads as one. */
 .next-section h2,
-.store-list-section h2 {
+.store-list-section h2,
+.radar > h2,
+.pull-list-week h2 {
   font-size: 1.375rem;
   margin: 0 0 0.5rem;
+}
+
+/* Radar's and Discover's headings sit in the page's own flow, not in a
+   section, so they and the pull list's weeks carry the store list
+   section's space above. */
+.radar > h2,
+.pull-list-week {
+  margin-top: 1.5rem;
 }
 
 .next-section > p {
@@ -4543,6 +4642,13 @@ a.month-bar::before {
 .tonight-just b {
   color: var(--text);
   font-weight: 600;
+}
+
+/* Stars are a block elsewhere; in the pill they follow the hours on the
+   same line. */
+.tonight-just .stars {
+  display: inline-block;
+  white-space: nowrap;
 }
 
 .tonight-lead {
@@ -6565,6 +6671,20 @@ main h1[tabindex='-1']:focus,
 .pick-choices {
   border: 0;
   margin: 0 0 0.75rem;
+  /* A fieldset's default min-inline-size is min-content, which lets the
+     chips push the page sideways at phone width. */
+  min-width: 0;
+  padding: 0;
+}
+
+/* Pick for me's chips wrap at every width: two short rows, unlike the shelf
+   filters, which scroll sideways on narrow screens (below). */
+.pick-choices .chip-row {
+  flex-wrap: wrap;
+  margin-top: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+  overflow-x: visible;
   padding: 0;
 }
 
@@ -7776,6 +7896,12 @@ main h1[tabindex='-1']:focus,
 .daily {
   display: grid;
   gap: 1rem;
+}
+/* /daily takes the shelf's wide frame so the header and tabs stay put
+   between tabs; the puzzle itself keeps the 45rem reading column. */
+.daily > :where(:not(.spine-header)) {
+  max-width: 45rem;
+  min-width: 0;
 }
 .daily-head {
   align-items: baseline;

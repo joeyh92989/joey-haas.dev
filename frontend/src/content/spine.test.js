@@ -20,7 +20,7 @@ describe('spine.how', () => {
     const names = [...stores.matchAll(/^\s+(?:name|domain)="([^"]+)"/gm)].map(
       (match) => match[1].replace(/^(www|store)\./, '').toLowerCase(),
     )
-    expect(names.length).toBeGreaterThanOrEqual(24)
+    expect(names.length).toBeGreaterThanOrEqual(22)
     const copy = JSON.stringify(how).toLowerCase()
     for (const name of names) expect(copy, name).not.toContain(name)
   })

@@ -4,10 +4,10 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import SiteFooter from './SiteFooter.jsx'
 
-function renderFooter(signedIn, hasNotes) {
+function renderFooter(signedIn, hasNotes, extra = {}) {
   render(
     <MemoryRouter>
-      <SiteFooter signedIn={signedIn} hasNotes={hasNotes} />
+      <SiteFooter signedIn={signedIn} hasNotes={hasNotes} {...extra} />
     </MemoryRouter>,
   )
   return within(screen.getByRole('contentinfo'))
@@ -64,5 +64,20 @@ describe('SiteFooter', () => {
       .map((link) => link.textContent)
       .filter((name) => ['Now', 'Daily', 'TIL', 'Colophon'].includes(name))
     expect(names).toEqual(['Now', 'Daily', 'TIL', 'Colophon'])
+  })
+
+  it('links Denver unless the snapshot says it has no spots', () => {
+    expect(
+      renderFooter(false).getByRole('link', { name: 'Denver' }),
+    ).toHaveAttribute('href', '/denver')
+  })
+
+  it('drops Denver, and only Denver, when it has no spots', () => {
+    renderFooter(false, false, { hasSpots: false })
+    const credit = screen
+      .getByRole('contentinfo')
+      .querySelector('.footer-credit')
+    expect(within(credit).queryByRole('link', { name: 'Denver' })).toBeNull()
+    expect(credit.textContent).toMatch(/Daily · Colophon · Stats$/)
   })
 })

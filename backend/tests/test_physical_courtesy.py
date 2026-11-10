@@ -19,7 +19,7 @@ ROBOTS = Path(__file__).parent / "fixtures" / "physical" / "robots"
 SHOPIFY_PATH = "/collections/coming-soon/products.json?limit=250&page=1"
 WOO_PATH = "/wp-json/wc/store/v1/products?per_page=100&page=1&category=65"
 PRODUCT_PAGE = "/products/terranigma-foiled-standard-edition-switch-2-ps5-xbox"
-WOO_HOSTS = {"www.pixelheart.eu", "gamefairy.io", "1printgames.com"}
+WOO_HOSTS = {"www.pixelheart.eu", "1printgames.com"}
 
 
 def _robots(host: str):
@@ -35,7 +35,7 @@ def test_every_store_allows_the_path_its_adapter_reads(path):
 
 
 def test_every_store_host_has_a_recorded_robots_file():
-    assert len(list(ROBOTS.glob("*.txt"))) == 12
+    assert len(list(ROBOTS.glob("*.txt"))) == 11
 
 
 def test_limited_run_allows_the_product_page_the_html_step_reads():

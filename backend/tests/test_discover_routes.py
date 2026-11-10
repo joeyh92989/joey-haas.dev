@@ -285,7 +285,35 @@ def _quota_body(quota_id):
             "'error': {'type': 'overloaded_error', 'message': 'Overloaded'}}",
             "The model is overloaded; try again in a few minutes",
         ),
-        ("Gemini returned HTTP 500", "The model did not answer"),
+        (
+            "Gemini returned HTTP 500",
+            "The model failed with HTTP 500; try again later",
+        ),
+        (
+            "Gemini returned HTTP 403",
+            "The model's API key was refused; check it on the API service",
+        ),
+        (
+            "Anthropic request failed: Error code: 401 - {'type': 'error'}",
+            "The model's API key was refused; check it on the API service",
+        ),
+        (
+            # llm.py's wording when no model answered before the timeout.
+            "Gemini did not answer in time — tried gemini-3.7-flash. "
+            "Try again in a few minutes.",
+            "The model did not answer in time; try again in a few minutes",
+        ),
+        (
+            "Gave up after 61s across 2 models — try again with fewer photos",
+            "The model did not answer in time; try again in a few minutes",
+        ),
+        (
+            "Gemini request failed: [Errno 8] nodename nor servname provided",
+            "The model could not be reached; try again in a few minutes",
+        ),
+        # Only the unexplained is left as "did not answer".
+        ("Gemini returned HTTP 400", "The model did not answer"),
+        ("Gemini returned no candidates", "The model did not answer"),
     ],
 )
 async def test_a_failed_call_falls_back_and_says_why(
@@ -322,7 +350,7 @@ async def test_a_provider_that_cannot_be_built_falls_back(sessionmaker_for_test)
             )
         ).json()
     assert result["ranked_by"] == "template"
-    assert result["model_note"] == "The model did not answer"
+    assert result["model_note"] == "No model key is set on the API service"
     assert result["count"] == 3
 
 
@@ -496,7 +524,17 @@ async def test_own_from_discover_adds_a_private_owned_item(sessionmaker_for_test
 async def test_the_overload_note_reads_llms_own_wording():
     """llm.py builds its overload message inline; if its wording changes,
     _failure_note has to follow it."""
-    assert "Gemini is overloaded (HTTP" in inspect.getsource(llm)
+    source = inspect.getsource(llm)
+    assert "Gemini is overloaded (HTTP" in source
+    for wording in (
+        "did not answer in time",
+        "Gave up after",
+        "is not set",
+        "Gemini returned HTTP",
+        "Gemini request failed",
+        "Anthropic request failed",
+    ):
+        assert wording in source
 
 
 class NamingProvider(FakeProvider):

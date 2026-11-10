@@ -129,9 +129,12 @@ describe('RootLayout page widths', () => {
   }
 
   // The tracker pages break out to 72rem; everything nested under one too.
-  it.each(['/shelf', '/shelf/abc', '/shelf/year/2026'])('widens %s', (path) => {
-    expect(pageClass(path)).toBe('page page-wide')
-  })
+  it.each(['/shelf', '/shelf/abc', '/shelf/year/2026', '/daily'])(
+    'widens %s',
+    (path) => {
+      expect(pageClass(path)).toBe('page page-wide')
+    },
+  )
 
   // Cards and columns take the masthead's 1040px measure.
   it.each(['/', '/about', '/projects', '/about/'])(
