@@ -553,12 +553,12 @@ from the shared weather module (Denver spec's `weather.py`). Migration:
       resumes the next night; a garment edited by hand is never retagged.
 - [ ] Closet grid/list toggle persists across reloads; the list at 400px
       shows Piece, Wears and the trailing cell only.
-- [ ] Review shows one flagged piece at a time with every flag as a
+- [x] Review shows one flagged piece at a time with every flag as a
       sentence and the opinion last and hollow; each outcome writes a
       `garment_decisions` row and advances; Pack away sets `packed` with a
       `back_on` month; a packed garment never appears in Today's candidates
       or the Active grid.
-- [ ] The season-turn banner appears on the turn date with the correct
+- [x] The season-turn banner appears on the turn date with the correct
       count, Pack all packs them with undo, and the banner clears when
       the count is zero.
 - [ ] With the model unavailable, Today renders the deterministic lead

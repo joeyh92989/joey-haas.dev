@@ -376,6 +376,35 @@ before pushing.
       forecast refresh and the Sunday spot finder, and their Dashboard
       rows. Migration `0013`. Spec and plan:
       `docs/planning/2026-11-08-denver-spots-design.md`
+- [x] Outfit planner — the Closet area (admin only): intake and the tag
+      queue (#115), Today at `/admin/closet/today` with the nightly plan
+      (PR C), and Review at `/admin/closet/review` with the Sunday opinion
+      (PR D). Migration `0014` (PR B); Review needs none. Spec and plan:
+      `docs/planning/2026-11-09-outfit-design.md`
+
+## Closet
+
+- **Review's flags are data; the model only comments.** The cull is
+  `closet.flags_for` / `closet.deck` (pure): unworn, condition, rare,
+  duplicate, and out of season only while a season turn is open, each
+  with the sentence the card shows. `closet_opinion.py` (pure, in
+  `test_physical_imports.py`'s purity list) is a second pass over the deck:
+  the model answers with card numbers, so an opinion attaches only to a
+  piece already flagged and never adds one. It is shown last, labelled
+  "Opinion:". A failed Sunday run keeps last week's `opinion.batch` and
+  writes the reason to `opinion.last_run` (the Jobs page's Closet opinions
+  row reads it through `GET /api/closet/status`).
+- **Review writes go through `closet_review_routes.py`**: one
+  `garment_decisions` row per outcome, and one level of undo under
+  `closet_settings["review.undo"]` that puts back exactly what the last
+  write changed (a stale token is 409 with a `detail`, which the page
+  shows itself: `errorMessage` names every 409 the catalogue lock).
+  Dismissing the season-turn banner closes the turn on the server, and with
+  it the out-of-season flags; One by one and Skip are client-only.
+- **The Closet badge is the review count** (`tiles.flagged`), loaded by
+  `AdminLayout` once per sign-in and kept current by the Review page
+  through `setClosetReview`; Home's Closet card shows To review and
+  Untagged.
 
 ## Media tracker
 
