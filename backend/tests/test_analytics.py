@@ -16,6 +16,7 @@ from analytics import (
     cap_key,
     client_ip,
     daily_salt,
+    is_automated,
     is_public_referrer,
     normalise,
     normalise_path,
@@ -417,3 +418,34 @@ def test_keep_path_hides_a_page_but_not_its_views():
     summary = summarise(stats, DAY, DAY, keep_path=lambda path: path != "/b")
     assert [row["value"] for row in summary["pages"]] == ["/a"]
     assert summary["views"] == 2
+
+
+@pytest.mark.parametrize(
+    "ua",
+    [
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+        "(KHTML, like Gecko) Version/18.1 Safari/605.1.15",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 "
+        "(KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 "
+        "Firefox/132.0",
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like "
+        "Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    ],
+)
+def test_a_browser_is_not_automated(ua):
+    assert not is_automated(ua)
+
+
+@pytest.mark.parametrize(
+    "ua",
+    [
+        "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+        "facebookexternalhit/1.1",
+        "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; ClaudeBot/1.0)",
+        "Go-http-client/2.0",
+        "   ",
+    ],
+)
+def test_a_crawler_library_or_blank_agent_is_automated(ua):
+    assert is_automated(ua)

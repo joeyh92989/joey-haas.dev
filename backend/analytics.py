@@ -11,6 +11,10 @@ thrown away, so whoever holds SESSION_SECRET could still test a known IP
 and user agent against a stored day. Neither the IP nor the user agent is
 stored or logged.
 
+A request whose user agent names itself a bot, crawler, headless browser or
+HTTP library is not counted (`is_automated`, #126). That catches only the
+honest ones; anything posing as a browser still counts.
+
 Abuse is bounded four ways: every field is validated and anything unexpected
 is dropped; one IP (an IPv6 /64) counts at most DAILY_CAP views a day; the
 whole site stores at most DAILY_TOTAL views a day (both in memory, which is
@@ -149,6 +153,49 @@ def client_ip(headers: Mapping[str, str], fallback: str | None) -> str:
         if value:
             return value
     return fallback or ""
+
+
+# User agents that say they are automated: crawlers and link unfurlers,
+# headless and driven browsers, monitors, and HTTP libraries. Matched as
+# case-insensitive substrings; "bot" covers Googlebot, bingbot and the rest.
+AUTOMATED_AGENTS = (
+    "bot",
+    "crawl",
+    "spider",
+    "slurp",
+    "headless",
+    "lighthouse",
+    "pagespeed",
+    "phantomjs",
+    "puppeteer",
+    "playwright",
+    "selenium",
+    "webdriver",
+    "facebookexternalhit",
+    "embedly",
+    "pingdom",
+    "uptime",
+    "monitor",
+    "curl/",
+    "wget/",
+    "python-",
+    "python/",
+    "aiohttp",
+    "httpx",
+    "go-http-client",
+    "java/",
+    "okhttp",
+    "node-fetch",
+    "axios/",
+    "scrapy",
+)
+_AUTOMATED = re.compile("|".join(re.escape(token) for token in AUTOMATED_AGENTS), re.I)
+
+
+def is_automated(user_agent: str) -> bool:
+    """True for a request that names itself automated, or names nothing:
+    a browser always sends a user agent, so an empty one is not a reader."""
+    return not user_agent.strip() or _AUTOMATED.search(user_agent) is not None
 
 
 def daily_salt(secret: str, day: date) -> bytes:

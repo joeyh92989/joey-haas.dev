@@ -184,8 +184,8 @@ describe('Admin Jobs', () => {
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
     expect(rows[3]).toHaveTextContent('Failed: NWS answered 503')
-    expect(rows[4]).toHaveTextContent('No run recorded')
-    expect(rows[4]).toHaveTextContent('unknown')
+    expect(rows[4]).toHaveTextContent('First run Sunday evening')
+    expect(rows[4]).toHaveTextContent('scheduled')
     expect(await screen.findByText(/^nightly failed/)).toBeInTheDocument()
   })
 
