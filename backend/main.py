@@ -21,6 +21,7 @@ from analytics_routes import (
     create_track_router,
 )
 from auth import admin_identity, create_auth_router
+from closet_review_routes import create_closet_review_router
 from closet_routes import create_closet_router
 from closet_today_routes import create_closet_today_router
 from comics_routes import create_comics_router
@@ -184,6 +185,15 @@ app.include_router(
 # for the plan job; one model call per plan, built per call.
 app.include_router(
     create_closet_today_router(
+        session_factory,
+        provider_factory=lambda: build_provider(config),
+        lock=asyncio.Lock(),
+    )
+)
+# Review: the cull's deck, its outcomes, the season turn and the Sunday
+# opinion job. Its own lock for the job; one model call per run.
+app.include_router(
+    create_closet_review_router(
         session_factory,
         provider_factory=lambda: build_provider(config),
         lock=asyncio.Lock(),
