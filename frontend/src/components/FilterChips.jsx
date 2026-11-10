@@ -1,14 +1,24 @@
-/** One chip; hidden at zero unless pressed, so a filter can be undone. */
-function Chip({ pressed, count, label, onClick }) {
-  if (!pressed && !count) return null
+/**
+ * One chip; hidden at zero unless pressed, so a filter can be undone. A null
+ * count is a chip without one (a choice, not a filter), always shown.
+ */
+function Chip({ pressed, count, label, onClick, className }) {
+  const counted = count !== null
+  if (counted && !pressed && !count) return null
   return (
     <button
       type="button"
-      className="chip"
+      className={className ? `chip ${className}` : 'chip'}
       aria-pressed={pressed}
       onClick={onClick}
     >
-      {label} <span className="chip-count">{count}</span>
+      {label}
+      {counted && (
+        <>
+          {' '}
+          <span className="chip-count">{count}</span>
+        </>
+      )}
     </button>
   )
 }
@@ -20,7 +30,10 @@ function Chip({ pressed, count, label, onClick }) {
  */
 function offersChoice(group, value) {
   if (value[group.key] != null) return true
-  return group.options.filter((option) => option.count > 0).length > 1
+  return (
+    group.options.filter((option) => option.count === null || option.count > 0)
+      .length > 1
+  )
 }
 
 /**
@@ -33,14 +46,23 @@ function offersChoice(group, value) {
  * to show, and none pressed, is left out.
  *
  * @param {object} props
- * @param {{key: string, label: string, options: {value: string, label: string, count: number}[]}[]} props.groups
- *   Single-select groups, keyed by the `value` field they set.
- * @param {{key: string, label: string, count: number}[]} [props.toggles]
- *   Boolean toggles, keyed by the `value` field they flip.
+ * @param {{key: string, label: string, options: {value: string, label: string, count: number|null}[]}[]} props.groups
+ *   Single-select groups, keyed by the `value` field they set. A null count
+ *   shows the chip without a count, whatever it would filter to.
+ * @param {{key: string, label: string, count: number|null, className?: string}[]} [props.toggles]
+ *   Boolean toggles, keyed by the `value` field they flip; `className` is
+ *   added to the chip (Today's Bike modifier).
+ * @param {string} [props.togglesLabel] - The toggles row's accessible name.
  * @param {object} props.value - The selection, in `filterItems`' shape.
  * @param {(next: object) => void} props.onChange - Receives the whole new selection.
  */
-export default function FilterChips({ groups, toggles = [], value, onChange }) {
+export default function FilterChips({
+  groups,
+  toggles = [],
+  togglesLabel = 'Show only',
+  value,
+  onChange,
+}) {
   return (
     <div className="chip-rows">
       {groups
@@ -72,13 +94,14 @@ export default function FilterChips({ groups, toggles = [], value, onChange }) {
           </div>
         ))}
       {toggles.length > 0 && (
-        <div className="chip-row" role="group" aria-label="Show only">
+        <div className="chip-row" role="group" aria-label={togglesLabel}>
           {toggles.map((toggle) => (
             <Chip
               key={toggle.key}
               pressed={Boolean(value[toggle.key])}
               count={toggle.count}
               label={toggle.label}
+              className={toggle.className}
               onClick={() =>
                 onChange({ ...value, [toggle.key]: !value[toggle.key] })
               }

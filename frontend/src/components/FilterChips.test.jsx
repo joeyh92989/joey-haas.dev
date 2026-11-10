@@ -137,4 +137,46 @@ describe('FilterChips single-member groups', () => {
     )
     expect(screen.getByRole('group', { name: 'Type' })).toBeInTheDocument()
   })
+
+  it('shows a null-count chip always, with no count, and its class', async () => {
+    const onChange = vi.fn()
+    render(
+      <FilterChips
+        groups={[
+          {
+            key: 'occasion',
+            label: 'Occasion',
+            options: [
+              { value: 'office', label: 'Office', count: null },
+              { value: 'date', label: 'Date', count: null },
+            ],
+          },
+        ]}
+        toggles={[
+          {
+            key: 'bike',
+            label: 'Bike',
+            count: null,
+            className: 'chip-modifier',
+          },
+        ]}
+        togglesLabel="Getting there"
+        value={{ occasion: 'office', bike: false }}
+        onChange={onChange}
+      />,
+    )
+    const bike = screen.getByRole('button', { name: 'Bike' })
+    expect(bike).toHaveClass('chip', 'chip-modifier')
+    expect(bike).toHaveTextContent(/^Bike$/)
+    expect(screen.getByRole('button', { name: 'Date' })).toHaveTextContent(
+      /^Date$/,
+    )
+    expect(
+      screen.getByRole('group', { name: 'Getting there' }),
+    ).toBeInTheDocument()
+    await userEvent.click(bike)
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ bike: true }),
+    )
+  })
 })
