@@ -8924,3 +8924,339 @@ main h1[tabindex='-1']:focus,
     gap: 0.6rem;
   }
 }
+
+/* Today (/admin/closet/today). Tokens only; a garment's own colour
+   (primary_hex) is data, set inline on its swatch. Every text pair below
+   is one the token blocks record: --text-2 and --text-3 on --surface,
+   --accent on --accent-soft (5.76 dark, 5.31 light, the lowest of the
+   four grounds). */
+.today {
+  display: grid;
+  gap: 1rem;
+}
+
+.today-weather {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  padding: 0.75rem 1rem;
+}
+
+.today-temps {
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.today-low {
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.today-high {
+  color: var(--text-2);
+  font-size: 1.125rem;
+}
+
+.today-sentence {
+  color: var(--text-2);
+  flex: 1 1 14rem;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* The hours wrap under the read on a phone: flex-wrap does it. */
+.today-hours {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font: 0.75rem var(--font-mono);
+  gap: 0.25rem 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.today-hours span {
+  color: var(--text-2);
+}
+
+/* Bike is a modifier, not a second occasion: pressed, it takes the
+   accent-soft style rather than the occasion's solid one. */
+.chip.chip-modifier[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.today-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.today-kicker {
+  color: var(--text-3);
+  font: 0.75rem var(--font-mono);
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.today-tiles {
+  display: grid;
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-app-phone .today-tiles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+  .today-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.today-tile {
+  align-content: start;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.today-tile-swatch {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* The locked tile: an --accent outline, a non-text mark at 5.76 (dark)
+   and 5.31 (light) at worst against the grounds it sits on. The pill
+   says "Built around" too, so the outline is never alone. */
+.today-tile[data-locked='true'] .garment-photo {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Build around: hidden until the tile is hovered or holds focus, by
+   opacity so it stays focusable; always shown where there is no hover.
+   --text-2 on --surface is the slot pill's pair (8.53 dark, 8.24 light). */
+.today-lock {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  bottom: 0.4rem;
+  color: var(--text-2);
+  cursor: pointer;
+  font: 0.6875rem var(--font-mono);
+  opacity: 0;
+  padding: 0.1rem 0.5rem;
+  position: absolute;
+  right: 0.4rem;
+  transition: opacity 0.15s ease;
+}
+
+.today-tile:hover .today-lock,
+.today-tile:focus-within .today-lock,
+.today-lock[aria-pressed='true'] {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .today-lock {
+    opacity: 1;
+  }
+}
+
+.today-lock[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.today-lock:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.today-tile[data-transient='true'] .garment-photo {
+  border-style: dashed;
+}
+
+.today-reason {
+  color: var(--text-2);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.today-acts,
+.today-sheet-modes,
+.today-sheet-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.today-worn {
+  color: var(--text-2);
+  margin: 0;
+}
+
+.today-alts {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-app-phone .today-alts {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 640px) {
+  .today-alts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.today-alt {
+  align-content: start;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  padding: 0.85rem 1rem;
+}
+
+.today-alt-names {
+  font-size: 0.875rem;
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-alt-reason {
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.today-footnote {
+  color: var(--text-3);
+  font: 0.75rem var(--font-mono);
+}
+
+.today-footnote p {
+  margin: 0;
+}
+
+/* An outfit as small squares: Today's alternatives and the Home card. */
+.outfit-swatches {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.outfit-swatch {
+  aspect-ratio: 4 / 5;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  display: block;
+  overflow: hidden;
+  width: 1.6rem;
+}
+
+.outfit-swatch img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.area-card-cover:has(.outfit-swatches) {
+  width: auto;
+}
+
+.today-sheet-body,
+.swap-sheet .sheet-body {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.today-sheet-body h2,
+.swap-sheet .sheet-body h2 {
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+.today-sheet-modes .btn[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.today-pick {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.today-pick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.swap-list {
+  display: grid;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.swap-choice {
+  align-items: center;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  width: 100%;
+}
+
+.swap-choice:hover {
+  border-color: var(--text-3);
+}
+
+.swap-choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.swap-choice-text {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.swap-sheet .sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+}
