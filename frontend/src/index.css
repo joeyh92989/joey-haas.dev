@@ -1419,7 +1419,9 @@ footer {
   padding: 0.4rem 0.6rem;
 }
 
-:where(.admin-main input[type='file']:hover:not(:disabled))::file-selector-button {
+:where(
+  .admin-main input[type='file']:hover:not(:disabled)
+)::file-selector-button {
   border-color: var(--accent);
 }
 
