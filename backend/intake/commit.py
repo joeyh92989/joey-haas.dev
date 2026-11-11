@@ -249,6 +249,7 @@ class SingleAdd:
 
     added: int = 0
     already_owned: int = 0
+    issues_added: int = 0
     created: list[uuid.UUID] = field(default_factory=list)
     garment_id: uuid.UUID | None = None
     refused: list[Refusal] = field(default_factory=list)
@@ -265,7 +266,10 @@ async def commit_one(
     """Adds one thing from the add bar through the sitting's own row
     builders and `items.commit_items`, so a single add writes the row a
     sitting would (AC 6): a chosen match, or a row kept as typed (no
-    `chosen`). Does not commit; the caller rolls back on a refusal."""
+    `chosen`). A comic series already on the shelf gains the typed issues
+    by Got it's rule, as in a sitting (`issues_added`); one gaining nothing
+    is `already_owned`. Does not commit; the caller rolls back on a
+    refusal."""
     outcome = SingleAdd()
     kind = REGISTRY.get(kind_key)
     # A transient entry, never added to the session: the builders read it.
@@ -295,6 +299,19 @@ async def commit_one(
     if isinstance(made, Refusal):
         outcome.refused.append(made)
         return outcome
+    key = _key(made.model_dump())
+    if key is not None and _is_comic(kind):
+        on_shelf = (await _series_on_shelf(session, {key: _Series()})).get(key)
+        if on_shelf is not None:
+            issues = expand(parse_ranges(made.issues_owned))
+            gained = issues - expand(parse_ranges(on_shelf.issues_owned))
+            if gained:
+                outcome.issues_added = await got_issues(
+                    session, on_shelf, gained, today
+                )
+            else:
+                outcome.already_owned = 1
+            return outcome
     try:
         result = await commit_items(session, [made], today=today)
     except RowRefused as refused:

@@ -147,6 +147,35 @@ describe('AddSection on the shelf', () => {
     expect(add).toHaveFocus()
   })
 
+  it('says how many issues an owned series gained', async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({
+      search: () => SAGA,
+      add: () => ({
+        status: 200,
+        body: {
+          added: 0,
+          already_owned: 0,
+          issues_added: 2,
+          created: [],
+          garment_id: null,
+        },
+      }),
+    })
+    renderAt()
+    await search(user)
+    await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
+    const drawer = screen.getByRole('dialog', { name: 'Saga' })
+    await user.type(within(drawer).getByLabelText('Issues owned'), '3-4')
+    await user.click(
+      within(drawer).getByRole('button', { name: 'Add to shelf' }),
+    )
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Added 2 issues to Saga',
+    )
+  })
+
   it('closes on Escape, traps focus while open, and returns it to Add', async () => {
     const user = userEvent.setup()
     fakeIntakeApi({ search: () => SAGA })

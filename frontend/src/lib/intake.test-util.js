@@ -227,6 +227,7 @@ export function fakeIntakeApi({
       return json(201, {
         added: 1,
         already_owned: 0,
+        issues_added: 0,
         created: body.kind === 'garment' ? [] : ['item-new'],
         garment_id: body.kind === 'garment' ? 'garment-new' : null,
       })

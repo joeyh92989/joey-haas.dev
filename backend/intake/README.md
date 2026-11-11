@@ -70,7 +70,12 @@ and the entries read from them or typed in.
   sitting would; a typed piece becomes a manual garment as `POST
   /api/closet/garments` makes one. 201 with `created` (or `garment_id`),
   200 with `already_owned: 1` for a title already on the shelf, 422 with
-  `refused` and the first message as `detail`, writing nothing.
+  `refused` and the first message as `detail`, writing nothing. A comic
+  series already on the shelf follows the sitting's rule: the typed issues
+  go through `got_issues`, and the answer is 200 with `issues_added: N`
+  (the add bar says "Added N issues to <title>"); a series gaining nothing
+  is `already_owned: 1`, `issues_added: 0`. Every answer carries
+  `issues_added`.
 
 - `search.py` — `search_area()`, behind `GET /api/intake/search?area=&query=`
   (spec D5), the add bar's search. One query goes to the source of every
