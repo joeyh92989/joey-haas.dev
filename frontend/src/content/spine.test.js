@@ -45,6 +45,14 @@ describe('spine.how', () => {
     }
   })
 
+  it('claims for intake only what has shipped: photos, not search', () => {
+    // Search-to-add ships in intake's PR 3, which adds the wording back.
+    const stop = how.stops.find((s) => s.n === 1)
+    const feature = how.features.find((f) => f.stop === 1)
+    expect(JSON.stringify(stop)).not.toMatch(/search/i)
+    expect(JSON.stringify(feature)).not.toMatch(/search/i)
+  })
+
   it('links only code that exists in the repo', () => {
     const paths = how.stops.flatMap((stop) => stop.code)
     for (const path of paths) {
