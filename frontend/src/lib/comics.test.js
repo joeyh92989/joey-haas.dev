@@ -10,7 +10,6 @@ import {
   filterComics,
   publishersByCount,
   runCount,
-  runLabel,
   searchComics,
   shortDate,
   sortComics,
@@ -59,14 +58,10 @@ describe('ranges', () => {
 })
 
 describe('labels', () => {
-  it('says owned of released, and ongoing with a plus', () => {
+  it('writes owned of released, with a plus while ongoing', () => {
     const run = { owned: 54, released: 72, ongoing: true }
-    expect(runLabel(run)).toBe('54 of 72 issues owned, ongoing')
     expect(runCount(run)).toBe('54 / 72+')
     expect(runCount(run, '/')).toBe('54/72+')
-    expect(runLabel({ owned: 1, released: 1, ongoing: false })).toBe(
-      '1 of 1 issue owned',
-    )
   })
 
   it('dates in UTC, so a week never shifts a day', () => {

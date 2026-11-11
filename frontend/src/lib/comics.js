@@ -84,12 +84,6 @@ export function shortDate(iso) {
   return DAY_MONTH.format(new Date(Date.UTC(year, month - 1, day)))
 }
 
-/** "54 of 72 issues owned, ongoing": the run bar's text equivalent. */
-export function runLabel({ owned, released, ongoing }) {
-  const issues = released === 1 ? 'issue' : 'issues'
-  return `${owned} of ${released} ${issues} owned${ongoing ? ', ongoing' : ''}`
-}
-
 /** "54 / 72+", the `+` marking a series still coming out. */
 export function runCount({ owned, released, ongoing }, separator = ' / ') {
   return `${owned}${separator}${released}${ongoing ? '+' : ''}`

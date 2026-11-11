@@ -668,24 +668,42 @@ export const spine = {
     series: {
       kicker: 'Comic',
       ongoing: 'ongoing',
-      facts: {
-        run: 'Run',
-        format: 'Format',
-        readTo: 'Read to',
-        next: 'Next issue',
-      },
-      run: (owned, released, ongoing) =>
-        `${owned} of ${released} ${released === 1 ? 'issue' : 'issues'}${ongoing ? ' so far' : ''}`,
       asOf: (month) => `as of ${month}`,
-      notStarted: 'Not started',
-      unread: (n) => `${n} on the shelf unread`,
-      issues: 'Issues',
       editions: 'Editions',
       collects: (from, to) =>
         from === to ? `collects #${from}` : `collects #${from}–${to}`,
       about: 'About',
       from: 'From',
       saveError: 'Could not save that issue. Try again.',
+      /** The hero's count, "58 of 72+", and its pill. */
+      count: (held, released, ongoing) =>
+        `${held} of ${released}${ongoing ? '+' : ''}`,
+      pill: {
+        complete: 'Complete run',
+        up_to_date: 'Up to date',
+        gaps: (n) => `${n} missing`,
+      },
+      /** The What's next tiles, in the order a reader asks: read, buy, wait. */
+      next: {
+        label: 'What’s next',
+        toRead: 'Next to read',
+        inEdition: (label) => `in ${label}`,
+        unread: (n) => `${n} unread`,
+        reading: 'Reading',
+        allRead: 'All read',
+        through: (n) => `through #${n}`,
+        gap: 'First gap',
+        missing: (n) => `${n} missing`,
+        run: 'Run',
+        out: 'Next out',
+      },
+      runCard: 'The run',
+      inTheBox: 'In the box',
+      empty: {
+        want: (released, ongoing) =>
+          `Nothing owned yet. ${released} ${released === 1 ? 'issue is' : 'issues are'} out${ongoing ? ' so far' : ''}.`,
+        unrecorded: 'On the shelf, but which issues isn’t recorded yet.',
+      },
     },
     empty: 'No comics on the shelf yet.',
     noMatch: 'No series match those filters.',
