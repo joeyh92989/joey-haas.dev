@@ -11,6 +11,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 - [Site stats](/stats) leave out obvious bots: crawlers, headless browsers and scripts that say what they are no longer count as visitors.
 - Layout fixes across the shelf: [Shelfle](/daily) keeps the shelf's header in place between tabs, Pick for me's chips wrap instead of pushing the page sideways on a phone, and Year in review says "rated finishes".
 - Links to pages with nothing on them yet stay hidden: the Comics tab and the Denver link appear once there is something to show.
+- The [resume](/resume.pdf) has had a proofreading pass: the same roles and figures, in cleaner sentences.
 - Behind the scenes: the admin pages' forms match the site's theme, the store lists tell two editions at one store apart, and a failed recommendation run says why.
 
 ## 2026-11-09
