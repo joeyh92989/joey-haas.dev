@@ -19,7 +19,9 @@ import importer
 from closet_images import (
     LONG_EDGE,
     MAX_PHOTO_BYTES,
+    READING_LONG_EDGE,
     ClosetImageError,
+    make_reading_copy,
     make_thumbnail,
     read_capped,
 )
@@ -192,3 +194,48 @@ def test_the_module_stays_pure():
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module.split(".")[0])
     assert not imported & {"fastapi", "sqlalchemy", "starlette", "models", "db"}
+
+
+# The reading copy (intake, spec D2): what the reader sees tomorrow.
+
+
+def _decode_jpeg(data: bytes) -> Image.Image:
+    image = Image.open(io.BytesIO(data))
+    image.load()
+    return image
+
+
+def test_the_reading_copy_is_an_upright_jpeg_at_most_3072():
+    copy = make_reading_copy(_jpeg_with_orientation(4032, 3024, 6))
+    image = _decode_jpeg(copy)
+    assert image.format == "JPEG"
+    assert max(image.size) == READING_LONG_EDGE == 3072
+    assert image.height > image.width
+    rgb = image.convert("RGB")
+    top = rgb.getpixel((image.width // 2, image.height // 8))
+    assert top[0] > 200 and top[2] < 60
+    # Turned in the pixels, so no orientation tag is left to turn it twice.
+    assert image.getexif().get(0x0112) in (None, 1)
+
+
+def test_a_small_photo_keeps_its_size_in_the_reading_copy():
+    image = _decode_jpeg(make_reading_copy(_jpeg_with_orientation(1200, 800, 1)))
+    assert image.size == (1200, 800)
+
+
+def test_a_heic_opens_as_a_reading_copy():
+    out = io.BytesIO()
+    from_pillow(Image.new("RGB", (640, 480), (0, 128, 0))).save(out, quality=80)
+    image = _decode_jpeg(make_reading_copy(out.getvalue()))
+    assert image.format == "JPEG"
+    assert image.size == (640, 480)
+
+
+def test_the_reading_copy_refuses_an_oversize_photo():
+    with pytest.raises(ClosetImageError, match="too large"):
+        make_reading_copy(b"\xff" * (MAX_PHOTO_BYTES + 1))
+
+
+def test_the_reading_copy_refuses_what_is_not_a_photo():
+    with pytest.raises(ClosetImageError, match="could not be read"):
+        make_reading_copy(b"not a photo")

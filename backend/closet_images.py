@@ -1,4 +1,5 @@
-"""Garment photo thumbnails: any photo in, one small upright WebP out.
+"""Photo bytes: any photo in, a small upright WebP (garments, intake) or an
+upright reading JPEG (intake) out.
 
 Pure: Pillow and pillow-heif only, no FastAPI or database, so the route
 (`closet_routes.py`) owns the HTTP answer and this module owns the bytes.
@@ -21,6 +22,9 @@ Pure: Pillow and pillow-heif only, no FastAPI or database, so the route
 - **HEIC.** `register_heif_opener()` lets Pillow open the iPhone's default.
 - **Flat.** Alpha is composited onto white: the grid draws the photo as a
   tile, and a transparent PNG would show the page through it.
+
+- **Reading copy.** `make_reading_copy` is the same path at 3072px, saved as
+  a JPEG at quality 90 for the intake reader; it is dropped once read.
 
 Photos are processed one at a time by the caller so a decoded 12 MP HEIC
 never sits beside eleven others in Render's 512 MB.
@@ -47,6 +51,9 @@ MAX_PIXELS = 40_000_000
 OPEN_FORMATS = ("JPEG", "PNG", "WEBP", "HEIF")
 LONG_EDGE = 400
 WEBP_QUALITY = 80
+# Intake's reading copy (make_reading_copy).
+READING_LONG_EDGE = 3072
+READING_JPEG_QUALITY = 90
 BACKGROUND = (255, 255, 255)
 
 
@@ -97,8 +104,9 @@ def _flatten(image: Image.Image) -> Image.Image:
     return flat
 
 
-def make_thumbnail(data: bytes) -> Thumbnail:
-    """The photo as an upright WebP whose long edge is at most 400px."""
+def _upright(data: bytes, long_edge: int) -> Image.Image:
+    """The photo shrunk to `long_edge`, turned upright and flattened onto
+    white, or a `ClosetImageError` worded for the owner."""
     if len(data) > MAX_PHOTO_BYTES:
         raise _too_large()
     unreadable = ClosetImageError(
@@ -116,9 +124,9 @@ def make_thumbnail(data: bytes) -> Thumbnail:
                     )
                 # In place, and before the turn: only the small image is
                 # decoded at full depth and transposed.
-                source.thumbnail((LONG_EDGE, LONG_EDGE), Image.Resampling.LANCZOS)
+                source.thumbnail((long_edge, long_edge), Image.Resampling.LANCZOS)
                 image = ImageOps.exif_transpose(source)
-                image = _flatten(image)
+                return _flatten(image)
     except ClosetImageError:
         raise
     except (
@@ -131,6 +139,23 @@ def make_thumbnail(data: bytes) -> Thumbnail:
     ) as error:
         raise unreadable from error
 
+
+def make_thumbnail(data: bytes) -> Thumbnail:
+    """The photo as an upright WebP whose long edge is at most 400px."""
+    image = _upright(data, LONG_EDGE)
     out = io.BytesIO()
     image.save(out, format="WEBP", quality=WEBP_QUALITY)
     return Thumbnail(webp=out.getvalue(), width=image.width, height=image.height)
+
+
+def make_reading_copy(data: bytes) -> bytes:
+    """The photo as an upright JPEG whose long edge is at most 3072px.
+
+    Intake keeps this until the reader has read the photo (spec D2): 3072px
+    keeps a spine's small print legible at one to two MB. The turn is in the
+    pixels and no EXIF is written, so nothing downstream turns it twice.
+    """
+    image = _upright(data, READING_LONG_EDGE)
+    out = io.BytesIO()
+    image.save(out, format="JPEG", quality=READING_JPEG_QUALITY)
+    return out.getvalue()
