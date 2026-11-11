@@ -1,0 +1,267 @@
+"""The sittings API under /api/intake (spec D2, D11; AC 3 and 4)."""
+
+from __future__ import annotations
+
+import uuid
+
+import pytest
+from sqlalchemy import func, select
+
+from models import (
+    Garment,
+    GarmentImage,
+    GarmentStatus,
+    IntakeEntry,
+    IntakeEntryState,
+    IntakePhoto,
+    IntakePhotoState,
+    IntakeSitting,
+)
+from tests.test_closet_routes import jpeg
+from tests.test_intake_kinds import client_for
+
+
+def _photo(name: str = "shelf-1.jpg", data: bytes | None = None, media="image/jpeg"):
+    return {"photo": (name, data or jpeg(), media)}
+
+
+async def _sitting(client, area="shelf", **body) -> dict:
+    response = await client.post("/api/intake/sittings", json={"area": area, **body})
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+async def _count(factory, model) -> int:
+    async with factory() as session:
+        return await session.scalar(select(func.count()).select_from(model))
+
+
+@pytest.mark.asyncio
+async def test_a_sitting_reads_back_identically_from_a_second_client(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as phone:
+        created = await _sitting(phone, kind="game", label="Living room")
+        uploaded = await phone.post(
+            f"/api/intake/sittings/{created['id']}/photos", files=_photo()
+        )
+        assert uploaded.status_code == 201, uploaded.text
+        typed = await phone.post(
+            f"/api/intake/sittings/{created['id']}/entries",
+            json={"kind": "game", "payload": {"title": "Hades"}},
+        )
+        assert typed.status_code == 201, typed.text
+        on_phone = (await phone.get(f"/api/intake/sittings/{created['id']}")).json()
+    async with client_for(sessionmaker_for_test) as laptop:
+        on_laptop = (await laptop.get(f"/api/intake/sittings/{created['id']}")).json()
+        listed = (await laptop.get("/api/intake/sittings?area=shelf")).json()
+    assert on_laptop == on_phone
+    assert on_laptop["label"] == "Living room"
+    assert [entry["payload"] for entry in on_laptop["entries"]] == [{"title": "Hades"}]
+    assert [row["id"] for row in listed] == [created["id"]]
+    assert listed[0]["photos"] == 1
+
+
+@pytest.mark.asyncio
+async def test_uploaded_photos_keep_their_state_across_reloads(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        photo = (
+            await client.post(
+                f"/api/intake/sittings/{sitting['id']}/photos", files=_photo()
+            )
+        ).json()
+    assert photo["state"] == "uploaded"
+    assert photo["filename"] == "shelf-1.jpg"
+    async with sessionmaker_for_test() as session:
+        row = await session.get(IntakePhoto, uuid.UUID(photo["id"]))
+        assert row.reading_jpeg  # kept until it is read
+        row.state = IntakePhotoState.FAILED
+        row.error = "The model did not answer"
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        again = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+        assert [(p["state"], p["error"]) for p in again["photos"]] == [
+            ("failed", "The model did not answer")
+        ]
+        retried = await client.post(f"/api/intake/photos/{photo['id']}/retry")
+        assert retried.status_code == 200
+        assert (retried.json()["state"], retried.json()["error"]) == ("uploaded", None)
+        image = await client.get(f"/api/intake/photos/{photo['id']}/image")
+    assert image.status_code == 200
+    assert image.headers["content-type"] == "image/webp"
+
+
+@pytest.mark.asyncio
+async def test_retry_refuses_a_photo_that_has_not_failed(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        photo = (
+            await client.post(
+                f"/api/intake/sittings/{sitting['id']}/photos", files=_photo()
+            )
+        ).json()
+        response = await client.post(f"/api/intake/photos/{photo['id']}/retry")
+    assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_discard_removes_photos_and_entries(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        await client.post(
+            f"/api/intake/sittings/{sitting['id']}/photos", files=_photo()
+        )
+        await client.post(
+            f"/api/intake/sittings/{sitting['id']}/entries",
+            json={"kind": "movie", "payload": {"title": "Heat"}},
+        )
+        deleted = await client.delete(f"/api/intake/sittings/{sitting['id']}")
+        missing = await client.get(f"/api/intake/sittings/{sitting['id']}")
+    assert deleted.status_code == 204
+    assert missing.status_code == 404
+    assert await _count(sessionmaker_for_test, IntakePhoto) == 0
+    assert await _count(sessionmaker_for_test, IntakeEntry) == 0
+
+
+@pytest.mark.asyncio
+async def test_the_201st_photo_is_refused_in_intakes_own_words(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+    async with sessionmaker_for_test() as session:
+        session.add_all(
+            IntakePhoto(
+                sitting_id=uuid.UUID(sitting["id"]),
+                thumb_webp=b"x",
+                width=1,
+                height=1,
+            )
+            for _ in range(200)
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/photos", files=_photo()
+        )
+    assert response.status_code == 409
+    assert "200 photos" in response.json()["detail"]
+    assert "catalogue" not in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_a_refused_file_is_named(sessionmaker_for_test, monkeypatch):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        url = f"/api/intake/sittings/{sitting['id']}/photos"
+        wrong_type = await client.post(
+            url, files=_photo("notes.pdf", b"%PDF", "application/pdf")
+        )
+        monkeypatch.setattr("closet_images.MAX_PHOTO_BYTES", 10)
+        too_big = await client.post(url, files=_photo("huge.jpg"))
+    assert wrong_type.status_code == 415
+    assert "notes.pdf" in wrong_type.json()["detail"]
+    assert too_big.status_code == 413
+    assert "huge.jpg" in too_big.json()["detail"]
+    assert await _count(sessionmaker_for_test, IntakePhoto) == 0
+
+
+@pytest.mark.asyncio
+async def test_a_closet_photo_makes_an_untagged_garment_and_an_entry(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, area="closet")
+        await client.post(
+            f"/api/intake/sittings/{sitting['id']}/photos", files=_photo("shirt.jpg")
+        )
+        body = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+        await client.delete(f"/api/intake/sittings/{sitting['id']}")
+    (entry,) = body["entries"]
+    assert entry["kind"] == "garment"
+    async with sessionmaker_for_test() as session:
+        garment = await session.get(Garment, uuid.UUID(entry["garment_id"]))
+        assert garment.status is GarmentStatus.UNTAGGED
+        assert await session.get(GarmentImage, garment.id) is not None
+    # Discarding the sitting leaves the garment in the tag queue (spec, D3).
+    assert await _count(sessionmaker_for_test, Garment) == 1
+
+
+@pytest.mark.asyncio
+async def test_a_kind_must_belong_to_the_area(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        wrong = await client.post(
+            "/api/intake/sittings", json={"area": "closet", "kind": "game"}
+        )
+        unknown = await client.post(
+            "/api/intake/sittings", json={"area": "shelf", "kind": "vinyl"}
+        )
+        mixed = await client.post("/api/intake/sittings", json={"area": "shelf"})
+    assert wrong.status_code == 422
+    assert unknown.status_code == 422
+    assert mixed.status_code == 201
+    assert mixed.json()["kind"] is None
+
+
+@pytest.mark.asyncio
+async def test_patch_sitting_and_entry_last_write_wins(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        moved = await client.patch(
+            f"/api/intake/sittings/{sitting['id']}",
+            json={"step": "check", "label": "Hall"},
+        )
+        entry = (
+            await client.post(
+                f"/api/intake/sittings/{sitting['id']}/entries",
+                json={"kind": "game", "payload": {"title": "Celeste"}},
+            )
+        ).json()
+        first = await client.patch(
+            f"/api/intake/entries/{entry['id']}",
+            json={"payload": {"title": "Celeste", "platform": "Switch"}},
+        )
+        second = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"state": "ignored"}
+        )
+    assert (moved.json()["step"], moved.json()["label"]) == ("check", "Hall")
+    assert first.json()["payload"]["platform"] == "Switch"
+    assert second.json()["state"] == "ignored"
+    assert second.json()["payload"]["platform"] == "Switch"
+
+
+@pytest.mark.asyncio
+async def test_counts_are_entries_left_to_check_per_area(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        shelf = await _sitting(client)
+        await _sitting(client, area="closet")
+    async with sessionmaker_for_test() as session:
+        for state in (
+            IntakeEntryState.CHECK,
+            IntakeEntryState.CHECK,
+            IntakeEntryState.EXACT,
+        ):
+            session.add(
+                IntakeEntry(sitting_id=uuid.UUID(shelf["id"]), kind="game", state=state)
+            )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        counts = (await client.get("/api/intake/counts")).json()
+        budget = (await client.get("/api/intake/budget")).json()
+    assert counts == {"shelf": 2, "closet": 0}
+    assert budget["enforced"] is True
+    assert budget["remaining"] > 0
+
+
+@pytest.mark.asyncio
+async def test_signed_out_is_refused(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test, signed_in=False) as client:
+        response = await client.get("/api/intake/sittings?area=shelf")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_an_unknown_sitting_is_404(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get(f"/api/intake/sittings/{uuid.uuid4()}")
+    assert response.status_code == 404
+    assert await _count(sessionmaker_for_test, IntakeSitting) == 0

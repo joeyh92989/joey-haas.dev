@@ -171,6 +171,20 @@ def to_gemini_schema(schema: dict) -> dict:
     return cleaned
 
 
+def _quota_id(body: dict | None) -> str:
+    """The QuotaFailure violation's quotaId in a 429 body, or ""."""
+    quota_id = ""
+    for detail in ((body or {}).get("error") or {}).get("details") or []:
+        for violation in detail.get("violations") or []:
+            quota_id = violation.get("quotaId") or quota_id
+    return quota_id
+
+
+def _is_per_day(body: dict | None) -> bool:
+    """Whether a 429 body names a per-day quota (resets at midnight Pacific)."""
+    return "PerDay" in _quota_id(body)
+
+
 def _quota_message(body: dict | None, tried: int = 1) -> str:
     """A 429 explained in terms of which limit was actually hit.
 
@@ -179,11 +193,7 @@ def _quota_message(body: dict | None, tried: int = 1) -> str:
     the distinction is available rather than guessable -- and getting it wrong
     sends someone retrying for hours against a quota that resets at midnight.
     """
-    quota_id = ""
-    for detail in ((body or {}).get("error") or {}).get("details") or []:
-        for violation in detail.get("violations") or []:
-            quota_id = violation.get("quotaId") or quota_id
-
+    quota_id = _quota_id(body)
     if "PerDay" in quota_id:
         models = "every model tried" if tried > 1 else "this model"
         return (
@@ -212,8 +222,11 @@ class GeminiProvider:
     than an exceptional one, and reaches the UI as "try again".
     """
 
-    def __init__(self, api_key: str, model: str | None = None) -> None:
+    def __init__(self, api_key: str, model: str | None = None, recorder=None) -> None:
         self._api_key = api_key
+        # intake.budget.UsageRecorder, or None: counts each attempt and marks
+        # a model exhausted on a per-day 429 (intake spec D3).
+        self._recorder = recorder
         # A named model pins the request to it; the default falls through the
         # chain, which is what makes an overloaded or exhausted model
         # survivable rather than fatal.
@@ -288,6 +301,8 @@ class GeminiProvider:
                     async with httpx2.AsyncClient(
                         timeout=min(TIMEOUT, max(5.0, remaining))
                     ) as client:
+                        if self._recorder is not None:
+                            await self._recorder.attempt(model)
                         response = await client.post(
                             f"{GEMINI_ROOT}/{model}:generateContent",
                             json=body,
@@ -335,6 +350,12 @@ class GeminiProvider:
                     last_body = response.json()
                 except ValueError:
                     last_body = None
+                if (
+                    self._recorder is not None
+                    and response.status_code == RATE_LIMIT_STATUS
+                    and _is_per_day(last_body)
+                ):
+                    await self._recorder.exhausted(model)
 
                 retryable = response.status_code in OVERLOAD_STATUSES
                 if (
@@ -442,7 +463,7 @@ class AnthropicProvider:
         return self._parse(text)
 
 
-def build_provider(config: Config) -> LLMProvider:
+def build_provider(config: Config, recorder=None) -> LLMProvider:
     """The provider named by LLM_PROVIDER, or an error naming what is missing.
 
     Built per request rather than at import, so an absent key is a failure of
@@ -452,7 +473,7 @@ def build_provider(config: Config) -> LLMProvider:
     if provider == "gemini":
         if not config.gemini_api_key:
             raise LLMError("LLM_PROVIDER is gemini but GEMINI_API_KEY is not set")
-        return GeminiProvider(config.gemini_api_key)
+        return GeminiProvider(config.gemini_api_key, recorder=recorder)
     if provider == "anthropic":
         if not config.anthropic_api_key:
             raise LLMError("LLM_PROVIDER is anthropic but ANTHROPIC_API_KEY is not set")

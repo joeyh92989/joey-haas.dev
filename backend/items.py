@@ -7,7 +7,8 @@ import logging
 import secrets
 import uuid
 from collections import defaultdict
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
@@ -28,6 +29,7 @@ from models import (
     Item,
     ItemStatus,
     ItemType,
+    MovieDiscFormat,
     OwnedFormat,
     PhysicalEdition,
     PhysicalFormat,
@@ -91,6 +93,7 @@ class ItemIn(BaseModel):
     editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
+    disc_format: MovieDiscFormat | None = None
     following: bool = False
 
 
@@ -131,6 +134,7 @@ class ItemPatch(BaseModel):
     editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
+    disc_format: MovieDiscFormat | None = None
     following: bool | None = None
     # "Use registry value" (E7c): the format of this registry edition, with
     # format_source registry. The edition's cart ID is never copied.
@@ -246,6 +250,7 @@ class ItemOut(BaseModel):
     editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
+    disc_format: MovieDiscFormat | None = None
     following: bool = False
     # Play Next was told never to suggest it; the edit page offers Restore.
     play_next_excluded: bool = False
@@ -415,6 +420,7 @@ JOB_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/closet/jobs/tag"),
         ("POST", "/api/closet/jobs/plan"),
         ("POST", "/api/closet/jobs/opinion"),
+        ("POST", "/api/intake/jobs/nightly"),
     }
 )
 
@@ -490,9 +496,27 @@ def _is_comic(changes: dict, row: Item | None) -> bool:
     return item_type == ItemType.COMIC
 
 
+def _check_disc_format(changes: dict, row: Item | None) -> dict:
+    """A disc format is a movie's alone (intake spec D1); RangeError otherwise.
+
+    Only a value is refused: a non-movie may send an explicit null, as a game's
+    form may send empty comic fields.
+    """
+    if changes.get("disc_format") is None:
+        return changes
+    item_type = changes.get("type") or (row.type if row is not None else None)
+    if item_type != ItemType.MOVIE:
+        raise RangeError("Disc format is for movies only.")
+    return changes
+
+
 def _write_fields(changes: dict, row: Item | None) -> dict:
-    """The comic rules, then the copy rules; CopyFieldError or RangeError."""
-    return apply_copy_fields(apply_comic_fields(changes, _is_comic(changes, row)), row)
+    """The comic rules, the disc rule, then the copy rules; CopyFieldError or
+    RangeError."""
+    checked = _check_disc_format(
+        apply_comic_fields(changes, _is_comic(changes, row)), row
+    )
+    return apply_copy_fields(checked, row)
 
 
 def _copy_fields(changes: dict, row: Item | None) -> dict:
@@ -672,6 +696,141 @@ async def _enrich(
     return total
 
 
+# Rows per INSERT in commit_items: Postgres caps a statement at 65,535 bound
+# parameters, and an items row carries some forty columns.
+BULK_CHUNK = 500
+
+
+class RowRefused(Exception):
+    """A row the write rules refuse; `index` is its place in the batch and
+    `error` the rule's own words."""
+
+    def __init__(self, index: int, error: Exception):
+        super().__init__(str(error))
+        self.index = index
+        self.error = error
+
+
+@dataclass(frozen=True)
+class CommitResult:
+    """What commit_items wrote: the new ids, rows dropped as repeats within
+    the batch, and rows already in the collection."""
+
+    created: list[uuid.UUID]
+    duplicates: int
+    existing: int
+
+
+async def _require_favorite_slots(session: AsyncSession, adding: int) -> None:
+    """Refuses a change that would add favourites past the limit.
+
+    Counts only what the change adds, so unfavouriting, re-saving an
+    existing favourite, and rows favourited before the cap existed are
+    never refused. Those extras are kept, not trimmed, and block new
+    favourites until they are. 409 rather than 422: the request is valid,
+    the collection's state is what conflicts with it.
+
+    An application check with no row lock, so two simultaneous requests
+    could both pass. With one admin that is not a realistic race, and a
+    guarantee would take a trigger and a migration.
+    """
+    if adding <= 0:
+        return
+    current = await session.scalar(
+        select(func.count()).select_from(Item).where(Item.favorite.is_(True))
+    )
+    if current + adding > FAVORITES_LIMIT:
+        raise HTTPException(status_code=409, detail=FAVORITES_FULL)
+
+
+async def commit_items(
+    session: AsyncSession, rows: Sequence[ItemIn], *, today: date
+) -> CommitResult:
+    """Creates `rows` as items, skipping ones already in the collection (spec
+    D8: the one create path `/bulk` and intake's commit share).
+
+    Photographing the same shelf twice is expected behaviour, not a
+    mistake, so a duplicate is counted rather than raised.
+
+    Duplicates within the batch are removed here first: ON CONFLICT does
+    not deduplicate rows inside a single statement, so two identical rows
+    in one INSERT would both be written.
+
+    One refused row refuses the batch (RowRefused, before any write for the
+    write rules): this is a review-then-commit step, and a half-imported
+    shelf is harder to reason about. Rows go in INSERTs of at most
+    BULK_CHUNK, all in the caller's transaction. Does not commit.
+    """
+    seen: set[tuple[str, str]] = set()
+    values_list: list[dict] = []
+    index_of: dict[uuid.UUID, int] = {}
+    duplicates = 0
+
+    for index, item in enumerate(rows):
+        values = item.model_dump()
+        try:
+            values.update(_write_fields(item.model_dump(exclude_unset=True), None))
+        except (CopyFieldError, RangeError) as error:
+            raise RowRefused(index, error) from error
+        key = (values.get("external_source"), values.get("external_id"))
+        # A manual row has NULL on both and is never a duplicate of
+        # another manual row -- the same reason the index is partial.
+        if key[0] and key[1]:
+            if key in seen:
+                duplicates += 1
+                continue
+            seen.add(key)
+        values["id"] = uuid.uuid4()
+        index_of[values["id"]] = index
+        values_list.append(values)
+
+    # A multi-row INSERT takes its columns from the first row: a key some
+    # rows lack (apply_copy_fields adds `platform` and `format_source`
+    # only when their inputs were sent) either fails to compile or is
+    # silently dropped from the later rows. Every row gets every key.
+    columns = set().union(*values_list) if values_list else set()
+    for values in values_list:
+        for column in columns:
+            values.setdefault(column, None)
+
+    # Checked before the insert and over the whole batch, so a batch that
+    # would cross the limit is refused whole. A favourited row that ON
+    # CONFLICT would skip as a duplicate still counts: conservative, and
+    # the importer never sets the flag anyway.
+    await _require_favorite_slots(
+        session, sum(1 for values in values_list if values.get("favorite"))
+    )
+
+    created: list[uuid.UUID] = []
+    for start in range(0, len(values_list), BULK_CHUNK):
+        statement = (
+            pg_insert(Item)
+            .values(values_list[start : start + BULK_CHUNK])
+            .on_conflict_do_nothing(
+                index_elements=["external_source", "external_id"],
+                # The index is partial, so Postgres will not match it unless
+                # the predicate is restated here -- without index_where it
+                # answers "no unique or exclusion constraint matching the ON
+                # CONFLICT specification", which reads like a missing index.
+                index_where=text(EXTERNAL_PRESENT),
+            )
+            .returning(Item.id)
+        )
+        created.extend((await session.execute(statement)).scalars())
+    if created:
+        new_items = await session.execute(select(Item).where(Item.id.in_(created)))
+        for new_item in new_items.scalars():
+            try:
+                await playthroughs.seed_rows(session, new_item, today)
+            except playthroughs.PlaythroughError as error:
+                raise RowRefused(index_of[new_item.id], error) from error
+    return CommitResult(
+        created=created,
+        duplicates=duplicates,
+        existing=len(values_list) - len(created),
+    )
+
+
 def create_items_router(
     factory: async_sessionmaker[AsyncSession],
     registry: dict[ItemType, SourceAdapter] | None = None,
@@ -699,27 +858,6 @@ def create_items_router(
         if item is None:
             raise HTTPException(status_code=404, detail="Not found")
         return item
-
-    async def _require_favorite_slots(session: AsyncSession, adding: int) -> None:
-        """Refuses a change that would add favourites past the limit.
-
-        Counts only what the change adds, so unfavouriting, re-saving an
-        existing favourite, and rows favourited before the cap existed are
-        never refused. Those extras are kept, not trimmed, and block new
-        favourites until they are. 409 rather than 422: the request is valid,
-        the collection's state is what conflicts with it.
-
-        An application check with no row lock, so two simultaneous requests
-        could both pass. With one admin that is not a realistic race, and a
-        guarantee would take a trigger and a migration.
-        """
-        if adding <= 0:
-            return
-        current = await session.scalar(
-            select(func.count()).select_from(Item).where(Item.favorite.is_(True))
-        )
-        if current + adding > FAVORITES_LIMIT:
-            raise HTTPException(status_code=409, detail=FAVORITES_FULL)
 
     async def _mark_excluded(session: AsyncSession, items: list[Item]) -> None:
         """Sets play_next_excluded on each item from its "never" events, and a
@@ -876,88 +1014,23 @@ def create_items_router(
         payload: BulkIn,
         session: AsyncSession = Depends(get_session),
     ) -> BulkOut:
-        """Creates many items at once, skipping ones already in the collection.
-
-        Photographing the same shelf twice is expected behaviour, not a
-        mistake, so a duplicate is reported rather than raised.
-
-        Duplicates within the batch are removed here first: ON CONFLICT does
-        not deduplicate rows inside a single statement, so two identical rows
-        in one INSERT would both be written.
-        """
-        seen: set[tuple[str, str]] = set()
-        rows: list[dict] = []
-        within_batch_duplicates = 0
-
-        for item in payload.items:
-            values = item.model_dump()
-            # One refused row refuses the batch: this is a review-then-commit
-            # step, and a half-imported shelf is harder to reason about.
-            try:
-                values.update(_write_fields(item.model_dump(exclude_unset=True), None))
-            except (CopyFieldError, RangeError) as error:
-                raise HTTPException(
-                    status_code=422, detail=f"{item.title}: {error}"
-                ) from error
-            key = (values.get("external_source"), values.get("external_id"))
-            # A manual row has NULL on both and is never a duplicate of
-            # another manual row -- the same reason the index is partial.
-            if key[0] and key[1]:
-                if key in seen:
-                    within_batch_duplicates += 1
-                    continue
-                seen.add(key)
-            values["id"] = uuid.uuid4()
-            rows.append(values)
-
-        # A multi-row INSERT takes its columns from the first row: a key some
-        # rows lack (apply_copy_fields adds `platform` and `format_source`
-        # only when their inputs were sent) either fails to compile or is
-        # silently dropped from the later rows. Every row gets every key.
-        columns = set().union(*rows) if rows else set()
-        for values in rows:
-            for column in columns:
-                values.setdefault(column, None)
-
-        # Checked before the insert and over the whole batch, so a batch that
-        # would cross the limit is refused whole. A favourited row that ON
-        # CONFLICT would skip as a duplicate still counts: conservative, and
-        # the importer never sets the flag anyway.
-        await _require_favorite_slots(
-            session, sum(1 for values in rows if values.get("favorite"))
-        )
-
-        statement = (
-            pg_insert(Item)
-            .values(rows)
-            .on_conflict_do_nothing(
-                index_elements=["external_source", "external_id"],
-                # The index is partial, so Postgres will not match it unless
-                # the predicate is restated here -- without index_where it
-                # answers "no unique or exclusion constraint matching the ON
-                # CONFLICT specification", which reads like a missing index.
-                index_where=text(EXTERNAL_PRESENT),
-            )
-            .returning(Item.id)
-        )
-        result = await session.execute(statement)
-        created = list(result.scalars())
-        if created:
-            new_items = await session.execute(select(Item).where(Item.id.in_(created)))
-            for new_item in new_items.scalars():
-                try:
-                    await playthroughs.seed_rows(session, new_item, date.today())
-                except playthroughs.PlaythroughError as error:
-                    raise HTTPException(
-                        status_code=422, detail=f"{new_item.title}: {error}"
-                    ) from error
+        """Creates many items at once through commit_items, skipping ones
+        already in the collection and reporting them as duplicates."""
+        try:
+            result = await commit_items(session, payload.items, today=date.today())
+        except RowRefused as refused:
+            title = payload.items[refused.index].title
+            raise HTTPException(
+                status_code=422, detail=f"{title}: {refused.error}"
+            ) from refused
         await session.commit()
+        created = result.created
 
         enriched = await _enrich(session, registry, created)
 
         return BulkOut(
             created=len(created),
-            skipped_duplicates=within_batch_duplicates + (len(rows) - len(created)),
+            skipped_duplicates=result.duplicates + result.existing,
             enriched=enriched,
             ids=created,
         )

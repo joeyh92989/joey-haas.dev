@@ -133,6 +133,14 @@ def _enum_column(enum_class: type[enum.Enum], name: str, nullable: bool = True):
     )
 
 
+class MovieDiscFormat(str, enum.Enum):
+    """A movie's best disc on the shelf (migration 0015)."""
+
+    DVD = "dvd"
+    BLURAY = "bluray"
+    UHD = "uhd"
+
+
 class Item(Base):
     """One thing in the collection, of any media type.
 
@@ -252,6 +260,10 @@ class Item(Base):
     read_to: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     shelf_format: Mapped[ComicShelfFormat | None] = _enum_column(
         ComicShelfFormat, "comic_shelf_format"
+    )
+    # Movies only (intake, D1): the best disc owned. Public, no filter chip.
+    disc_format: Mapped[MovieDiscFormat | None] = _enum_column(
+        MovieDiscFormat, "movie_disc_format"
     )
     # On the pull list. Separate from owning: a followed-only series is a
     # private want row (owned_format none, is_public false).
@@ -1300,4 +1312,156 @@ class ClosetSetting(Base):
 
     key: Mapped[str] = mapped_column(String(60), primary_key=True)
     value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[datetime] = _updated_column()
+
+
+# Intake (migration 0015, docs/planning/2026-11-10-intake-design.md).
+
+
+class IntakeArea(str, enum.Enum):
+    SHELF = "shelf"
+    CLOSET = "closet"
+
+
+class IntakePhotoState(str, enum.Enum):
+    UPLOADED = "uploaded"
+    READING = "reading"
+    READ = "read"
+    EMPTY = "empty"
+    FAILED = "failed"
+
+
+class IntakeEntryState(str, enum.Enum):
+    READING = "reading"
+    EXACT = "exact"
+    PROBABLE = "probable"
+    CHECK = "check"
+    OWNED = "owned"
+    READY = "ready"
+    IGNORED = "ignored"
+    TYPED = "typed"
+
+
+def _state_column(enum_class: type[enum.Enum], name: str, default: str):
+    return mapped_column(
+        Enum(enum_class, name=name, values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
+        server_default=text(f"'{default}'"),
+    )
+
+
+def _sitting_fk():
+    return mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("intake_sittings.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+
+class IntakeSitting(Base):
+    """One go at adding things: the photos taken and the entries read from
+    them or typed in. `kind` is a registry key (`intake/kinds.py`), text so a
+    new kind needs no migration; `step` is where the page left off."""
+
+    __tablename__ = "intake_sittings"
+    __table_args__ = (Index("ix_intake_sittings_area_updated", "area", "updated_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    area: Mapped[IntakeArea] = _enum_column(IntakeArea, "intake_area", nullable=False)
+    kind: Mapped[str | None] = mapped_column(String(40))
+    label: Mapped[str | None] = mapped_column(String(120))
+    step: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="shoot", server_default="shoot"
+    )
+    created_at: Mapped[datetime] = _now_column()
+    updated_at: Mapped[datetime] = _updated_column()
+
+
+class IntakePhoto(Base):
+    """A photo in a sitting. `reading_jpeg` is the downscaled copy sent to
+    the model and is dropped once read; `thumb_webp` stays for the page."""
+
+    __tablename__ = "intake_photos"
+    __table_args__ = (Index("ix_intake_photos_sitting_state", "sitting_id", "state"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    sitting_id: Mapped[uuid.UUID] = _sitting_fk()
+    state: Mapped[IntakePhotoState] = _state_column(
+        IntakePhotoState, "intake_photo_state", "uploaded"
+    )
+    attempts: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=0, server_default="0"
+    )
+    error: Mapped[str | None] = mapped_column(Text)
+    filename: Mapped[str | None] = mapped_column(String(255))
+    reading_jpeg: Mapped[bytes | None] = mapped_column(LargeBinary)
+    thumb_webp: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    width: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    height: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    created_at: Mapped[datetime] = _now_column()
+    updated_at: Mapped[datetime] = _updated_column()
+
+
+class IntakeEntry(Base):
+    """One thing read from a photo or typed in. A garment entry points at
+    the untagged garment its upload created and is deleted with it."""
+
+    __tablename__ = "intake_entries"
+    __table_args__ = (Index("ix_intake_entries_sitting", "sitting_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    sitting_id: Mapped[uuid.UUID] = _sitting_fk()
+    photo_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("intake_photos.id", ondelete="SET NULL")
+    )
+    kind: Mapped[str] = mapped_column(String(40), nullable=False)
+    state: Mapped[IntakeEntryState] = _state_column(
+        IntakeEntryState, "intake_entry_state", "typed"
+    )
+    payload: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
+    )
+    candidates: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    chosen: Mapped[dict | None] = mapped_column(JSONB)
+    garment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("garments.id", ondelete="CASCADE")
+    )
+    created_at: Mapped[datetime] = _now_column()
+    updated_at: Mapped[datetime] = _updated_column()
+
+
+class IntakeSetting(Base):
+    """One key/value blob for intake's nightly job (migration 0015), the
+    `closet_settings` shape: `nightly.last_run`, `{at, state, ok, expired,
+    read, waiting, note}`, read by `GET /api/intake/status`."""
+
+    __tablename__ = "intake_settings"
+
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[datetime] = _updated_column()
+
+
+class LlmUsage(Base):
+    """Model calls per Pacific day and model, so the reader knows what is
+    left of the free allowance (`intake/budget.py`)."""
+
+    __tablename__ = "llm_usage"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    model: Mapped[str] = mapped_column(String(80), primary_key=True)
+    calls: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    exhausted: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     updated_at: Mapped[datetime] = _updated_column()

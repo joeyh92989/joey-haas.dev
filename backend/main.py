@@ -29,6 +29,8 @@ from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
 from errors import add_json_errors
 from importer import create_import_router
+from intake.budget import UsageRecorder
+from intake.routes import create_intake_router
 from items import create_items_router
 from journal_routes import create_journal_router
 from llm import build_provider
@@ -57,6 +59,10 @@ verify_schema_is_current(config)
 # One engine for the process. The pool is what makes Neon's connection limit
 # survivable; a per-request engine would exhaust it.
 engine, session_factory = create_engine_and_sessionmaker(config.database_url)
+
+# One recorder for every provider: it counts model calls per Pacific day in its
+# own sessions, so a rolled-back request still leaves its calls counted.
+recorder = UsageRecorder(session_factory)
 
 # Source credentials are checked lazily, so a missing one cannot stop the
 # service booting. This line is what keeps that safe: a mistyped key shows up
@@ -116,6 +122,14 @@ app.add_middleware(
 
 app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
+app.include_router(
+    create_intake_router(
+        session_factory,
+        registry,
+        config=config,
+        provider_factory=lambda: build_provider(config, recorder),
+    )
+)
 app.include_router(create_picker_router(session_factory))
 app.include_router(create_journal_router(session_factory))
 app.include_router(create_spots_router(session_factory))
@@ -152,7 +166,7 @@ app.include_router(
         session_factory,
         registry,
         catalogue_lock,
-        provider_factory=lambda: build_provider(config),
+        provider_factory=lambda: build_provider(config, recorder),
     )
 )
 # The comics refreshes have their own lock: they write only comic rows.
@@ -163,7 +177,7 @@ app.include_router(
     create_candidates_router(
         session_factory,
         physical_http_client,
-        provider_factory=lambda: build_provider(config),
+        provider_factory=lambda: build_provider(config, recorder),
         lock=asyncio.Lock(),
     )
 )
@@ -177,7 +191,7 @@ app.include_router(
 app.include_router(
     create_closet_router(
         session_factory,
-        provider_factory=lambda: build_provider(config),
+        provider_factory=lambda: build_provider(config, recorder),
         lock=asyncio.Lock(),
     )
 )
@@ -186,7 +200,7 @@ app.include_router(
 app.include_router(
     create_closet_today_router(
         session_factory,
-        provider_factory=lambda: build_provider(config),
+        provider_factory=lambda: build_provider(config, recorder),
         lock=asyncio.Lock(),
     )
 )
@@ -195,14 +209,16 @@ app.include_router(
 app.include_router(
     create_closet_review_router(
         session_factory,
-        provider_factory=lambda: build_provider(config),
+        provider_factory=lambda: build_provider(config, recorder),
         lock=asyncio.Lock(),
     )
 )
 # The provider is built per request rather than here, so an absent model key
 # is a failure of the import route alone rather than a service that will not
 # boot -- the same reasoning as the lazy source checks.
-app.include_router(create_import_router(registry, lambda: build_provider(config)))
+app.include_router(
+    create_import_router(registry, lambda: build_provider(config, recorder))
+)
 # The three unauthenticated routers. Every query in the public one filters on
 # is_public, so the gate is the data rather than the caller. The site-stats
 # read serves the analytics summary with its public reductions, cached for an

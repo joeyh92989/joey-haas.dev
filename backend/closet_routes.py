@@ -206,6 +206,65 @@ def _unprocessable(detail: str) -> HTTPException:
     return HTTPException(status_code=422, detail=detail)
 
 
+def check_media_type(upload: UploadFile) -> None:
+    """Refuse (415) a file that is not an image the photo pipeline reads."""
+    if upload.content_type not in ACCEPTED_MEDIA_TYPES:
+        raise HTTPException(
+            status_code=415,
+            detail=(
+                f"{upload.filename or 'file'} is {upload.content_type}; "
+                "upload JPEG, PNG, WebP, or HEIC images"
+            ),
+        )
+
+
+def photo_refusal(name: str, error: ClosetImageError) -> HTTPException:
+    """413 for a photo over the size cap, 422 for one that cannot be read."""
+    too_large = "too large" in str(error)
+    return HTTPException(
+        status_code=413 if too_large else 422, detail=f"{name}: {error}"
+    )
+
+
+async def convert_upload(upload: UploadFile, *converters: Any) -> list[Any]:
+    """Read one upload under the size cap and run each converter on its bytes.
+
+    Converters run off the event loop, one after another, so a decoded
+    12 MP photo is held once. A failure names the file; the upload is
+    closed either way."""
+    name = upload.filename or "A photo"
+    try:
+        data = read_capped(upload.file, upload.size)
+        return [await asyncio.to_thread(convert, data) for convert in converters]
+    except ClosetImageError as error:
+        raise photo_refusal(name, error) from error
+    finally:
+        await upload.close()
+
+
+async def add_garment_photo(
+    session: AsyncSession, thumbnail: Any, created_at: datetime
+) -> Garment:
+    """An untagged garment and its stored thumbnail (flushed, not committed)."""
+    row = Garment(
+        status=GarmentStatus.UNTAGGED,
+        seasons=[],
+        tag_attempts=0,
+        created_at=created_at,
+    )
+    session.add(row)
+    await session.flush()
+    session.add(
+        GarmentImage(
+            garment_id=row.id,
+            webp=thumbnail.webp,
+            width=thumbnail.width,
+            height=thumbnail.height,
+        )
+    )
+    return row
+
+
 def _hex(value: str | None, label: str) -> str | None:
     value = _clean(value)
     if value is None:
@@ -610,61 +669,22 @@ def create_closet_router(
         if len(photos) > MAX_UPLOAD_PHOTOS:
             raise _unprocessable(f"Upload at most {MAX_UPLOAD_PHOTOS} photos at a time")
         for upload in photos:
-            if upload.content_type not in ACCEPTED_MEDIA_TYPES:
-                raise HTTPException(
-                    status_code=415,
-                    detail=(
-                        f"{upload.filename or 'file'} is {upload.content_type}; "
-                        "upload JPEG, PNG, WebP, or HEIC images"
-                    ),
-                )
+            check_media_type(upload)
 
-        thumbnails = []
-        for upload in photos:
-            name = upload.filename or "A photo"
-            try:
-                data = read_capped(upload.file, upload.size)
-            except ClosetImageError as error:
-                too_large = "too large" in str(error)
-                raise HTTPException(
-                    status_code=413 if too_large else 422,
-                    detail=f"{name}: {error}",
-                ) from error
-            try:
-                # Off the event loop, still one photo at a time.
-                thumbnails.append(await asyncio.to_thread(make_thumbnail, data))
-            except ClosetImageError as error:
-                too_large = "too large" in str(error)
-                raise HTTPException(
-                    status_code=413 if too_large else 422,
-                    detail=f"{name}: {error}",
-                ) from error
-            finally:
-                del data
-                await upload.close()
+        # One photo at a time, off the event loop.
+        thumbnails = [
+            (await convert_upload(upload, make_thumbnail))[0] for upload in photos
+        ]
 
         # Ascending created_at in upload order, so the queue tags a rack in
         # the order it was shot.
         start = datetime.now(UTC)
-        rows = []
-        for offset, thumbnail in enumerate(thumbnails):
-            row = Garment(
-                status=GarmentStatus.UNTAGGED,
-                seasons=[],
-                tag_attempts=0,
-                created_at=start + timedelta(microseconds=offset),
+        rows = [
+            await add_garment_photo(
+                session, thumbnail, start + timedelta(microseconds=offset)
             )
-            session.add(row)
-            await session.flush()
-            session.add(
-                GarmentImage(
-                    garment_id=row.id,
-                    webp=thumbnail.webp,
-                    width=thumbnail.width,
-                    height=thumbnail.height,
-                )
-            )
-            rows.append(row)
+            for offset, thumbnail in enumerate(thumbnails)
+        ]
         await session.commit()
         for row in rows:
             await session.refresh(row)

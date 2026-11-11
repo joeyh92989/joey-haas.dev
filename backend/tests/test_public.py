@@ -18,6 +18,7 @@ from models import (
     Item,
     ItemStatus,
     ItemType,
+    MovieDiscFormat,
     OwnedFormat,
     PhysicalEdition,
     PhysicalFormat,
@@ -71,6 +72,7 @@ async def _seed(factory) -> None:
                 finished_at=date(2026, 3, 14),
                 notes="a private thought",
                 owned_format=OwnedFormat.PHYSICAL,
+                disc_format=MovieDiscFormat.UHD,
                 source_metadata={
                     "genres": ["Science Fiction"],
                     "community_score": 7.8,
@@ -130,6 +132,19 @@ async def test_the_public_routes_need_no_session(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
         assert (await client.get("/api/public/items")).status_code == 200
         assert (await client.get("/api/public/stats")).status_code == 200
+
+
+async def test_a_movies_disc_format_is_public(sessionmaker_for_test):
+    """Intake spec D1: a movie's best disc is public, like a comic's shelf format."""
+    await _seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        listed = (await client.get("/api/public/items")).json()
+        by_title = {row["title"]: row for row in listed}
+        film = by_title["Public Film"]
+        detail = (await client.get(f"/api/public/items/{film['id']}")).json()
+    assert film["disc_format"] == "uhd"
+    assert detail["disc_format"] == "uhd"
+    assert by_title["Public Game"]["disc_format"] is None
 
 
 async def test_display_fields_survive_the_mapping(sessionmaker_for_test):
@@ -227,6 +242,7 @@ LIST_FIELDS = {
     "release_date",
     "platform",
     "physical_format",
+    "disc_format",
     "completeness",
     "time_to_beat_hours",
     "pinned",

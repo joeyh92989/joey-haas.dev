@@ -101,6 +101,10 @@ function stubApi(routes = {}) {
         'plan.last_run': { at: ago(3), state: 'ok', ok: true },
         'opinion.last_run': { at: ago(3), state: 'ok', ok: true },
       }),
+    '/api/intake/status': () =>
+      json({
+        'nightly.last_run': { at: ago(3), state: 'empty', ok: true },
+      }),
     '/snapshot/meta.json': () => json({ fetched_at: ago(3) }),
   }
   const table = { ...defaults, ...routes }
@@ -134,12 +138,12 @@ describe('Admin Jobs', () => {
     expect(document.title).toBe('Jobs · Admin · Joey Haas')
   })
 
-  it('lists the nine nightly jobs with their state in words', async () => {
+  it('lists the ten nightly jobs with their state in words', async () => {
     stubApi()
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
-    expect(rows).toHaveLength(9)
+    expect(rows).toHaveLength(10)
     expect(rows[0]).toHaveTextContent('Catalog refresh')
     expect(rows[0]).toHaveTextContent(/ok/)
     expect(rows[3]).toHaveTextContent('Weekend forecast')
@@ -147,7 +151,9 @@ describe('Admin Jobs', () => {
     expect(rows[5]).toHaveTextContent('Closet tags')
     expect(rows[6]).toHaveTextContent('Outfit plans')
     expect(rows[7]).toHaveTextContent('Closet opinions')
-    expect(rows[8]).toHaveTextContent('Public snapshot')
+    expect(rows[8]).toHaveTextContent('Intake')
+    expect(rows[8]).toHaveTextContent('Nothing to read')
+    expect(rows[9]).toHaveTextContent('Public snapshot')
     expect(
       within(panel).getByRole('link', { name: 'Run now: Radar' }),
     ).toHaveAttribute('href', '/admin/radar')
@@ -163,9 +169,11 @@ describe('Admin Jobs', () => {
     expect(
       within(panel).getByRole('link', { name: 'Open Review: Closet opinions' }),
     ).toHaveAttribute('href', '/admin/closet/review')
-    expect(
-      within(rows[8]).queryByRole('link', { name: /Run now/ }),
-    ).not.toBeInTheDocument()
+    for (const row of [rows[8], rows[9]]) {
+      expect(
+        within(row).queryByRole('link', { name: /Run now/ }),
+      ).not.toBeInTheDocument()
+    }
   })
 
   it('names a failed forecast and reads failed in the header', async () => {
@@ -194,7 +202,7 @@ describe('Admin Jobs', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
-    expect(rows).toHaveLength(9)
+    expect(rows).toHaveLength(10)
     expect(rows[3]).toHaveTextContent('unknown')
     expect(rows[4]).toHaveTextContent('unknown')
     expect(rows[0]).toHaveTextContent(/ok/)
@@ -205,7 +213,7 @@ describe('Admin Jobs', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
-    expect(rows).toHaveLength(9)
+    expect(rows).toHaveLength(10)
     expect(rows[5]).toHaveTextContent('unknown')
     expect(rows[6]).toHaveTextContent('unknown')
     expect(rows[4]).toHaveTextContent(/ok/)
@@ -283,8 +291,8 @@ describe('Admin Jobs', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
-    expect(rows[8]).toHaveTextContent('No build time recorded')
-    expect(rows[8]).toHaveTextContent('unknown')
+    expect(rows[9]).toHaveTextContent('No build time recorded')
+    expect(rows[9]).toHaveTextContent('unknown')
     // An unknown job does not drag the headline down.
     expect(screen.getByText(/^nightly ok · /)).toBeInTheDocument()
   })
@@ -346,8 +354,8 @@ describe('Admin Jobs', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
-    expect(rows[8]).toHaveTextContent('Rebuilt nightly')
-    expect(rows[8]).toHaveTextContent('stale')
+    expect(rows[9]).toHaveTextContent('Rebuilt nightly')
+    expect(rows[9]).toHaveTextContent('stale')
   })
 
   it('reads a status body with no sources as no jobs, not a stopped schedule', async () => {

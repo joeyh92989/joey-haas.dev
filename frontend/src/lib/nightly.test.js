@@ -143,13 +143,24 @@ const closet = (overrides = {}) => ({
   opinion: { at: hoursAgo(1), state: 'ok', ok: true, note: null },
   ...overrides,
 })
+const intake = (run = { at: hoursAgo(1), state: 'ok', ok: true, note: null }) =>
+  run
+const intakeRow = (run) =>
+  byKey(nightlyJobs(summary(), null, NOW, null, null, run)).intake
 const closetRow = (key, run) =>
   byKey(nightlyJobs(summary(), null, NOW, null, closet(run)))[key]
 const byKey = (jobs) => Object.fromEntries(jobs.map((job) => [job.key, job]))
 
 describe('nightlyJobs', () => {
-  it('lists the nine jobs, all ok', () => {
-    const jobs = nightlyJobs(summary(), hoursAgo(1), NOW, spots(), closet())
+  it('lists the ten jobs, all ok', () => {
+    const jobs = nightlyJobs(
+      summary(),
+      hoursAgo(1),
+      NOW,
+      spots(),
+      closet(),
+      intake(),
+    )
     expect(jobs.map((job) => job.key)).toEqual([
       'catalog',
       'radar',
@@ -159,6 +170,7 @@ describe('nightlyJobs', () => {
       'closet-tags',
       'closet-plans',
       'closet-opinions',
+      'intake',
       'snapshot',
     ])
     expect(jobs.every((job) => job.state === 'ok')).toBe(true)
@@ -171,6 +183,7 @@ describe('nightlyJobs', () => {
       '/admin/closet',
       '/admin/closet/today',
       '/admin/closet/review',
+      null,
       null,
     ])
   })
@@ -239,6 +252,28 @@ describe('nightlyJobs', () => {
       opinion: { at: hoursAgo(1), state: 'failed', ok: false, note: 'boom' },
     })
     expect([failed.state, failed.summary]).toEqual(['failed', 'Failed: boom'])
+  })
+
+  it('keeps a spent intake budget quiet, and a stopped run failed', () => {
+    const waiting = intakeRow({ at: hoursAgo(1), state: 'waiting', ok: true })
+    expect([waiting.state, waiting.summary]).toEqual([
+      'ok',
+      "Today's budget spent; photos wait",
+    ])
+    const empty = intakeRow({ at: hoursAgo(1), state: 'empty', ok: true })
+    expect(empty.summary).toBe('Nothing to read')
+    for (const state of ['stopped', 'failed']) {
+      const row = intakeRow({ at: hoursAgo(1), state, ok: false, note: 'boom' })
+      expect([row.state, row.summary]).toEqual(['failed', 'Failed: boom'])
+    }
+    expect(
+      intakeRow({ at: hoursAgo(STALE_HOURS + 1), state: 'ok' }).state,
+    ).toBe('stale')
+  })
+
+  it('reads the intake row unknown with no status', () => {
+    const row = intakeRow(null)
+    expect([row.state, row.summary]).toEqual(['unknown', 'No run recorded'])
   })
 
   it('reads the Closet rows unknown with no status', () => {
