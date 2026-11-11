@@ -122,7 +122,14 @@ app.add_middleware(
 
 app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
-app.include_router(create_intake_router(session_factory, registry, config=config))
+app.include_router(
+    create_intake_router(
+        session_factory,
+        registry,
+        config=config,
+        provider_factory=lambda: build_provider(config, recorder),
+    )
+)
 app.include_router(create_picker_router(session_factory))
 app.include_router(create_journal_router(session_factory))
 app.include_router(create_spots_router(session_factory))

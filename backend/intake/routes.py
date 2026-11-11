@@ -9,7 +9,7 @@ does (`intake/commit.py`).
 from __future__ import annotations
 
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -25,7 +25,9 @@ from closet_routes import add_garment_photo, check_media_type, convert_upload
 from config import Config
 from intake.budget import budget_state
 from intake.kinds import REGISTRY, describe
+from intake.reader import read_next
 from items import require_admin
+from llm import LLMError, LLMProvider
 from models import (
     IntakeArea,
     IntakeEntry,
@@ -108,8 +110,11 @@ def create_intake_router(
     registry: dict,
     *,
     config: Config,
+    provider_factory: Callable[[], LLMProvider] | None = None,
 ) -> APIRouter:
-    """The intake router. Every route is admin only."""
+    """The intake router. Every route is admin only. `provider_factory`
+    builds the model per read, so a missing key fails the read, never the
+    boot."""
     router = APIRouter(
         prefix="/api/intake",
         tags=["intake"],
@@ -281,6 +286,31 @@ def create_intake_router(
             )
         await session.commit()
         return photo_json(row)
+
+    @router.post("/sittings/{sitting_id}/read-next")
+    async def read_next_photo(
+        sitting_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict[str, Any]:
+        """Read the sitting's oldest waiting photo. `status` is `read`,
+        `empty`, `failed`, `waiting` (today's budget is spent) or `idle`
+        (nothing waiting)."""
+        await _sitting_or_404(session, sitting_id)
+        state = await budget_state(session, config)
+        budget = state["remaining"] if state["enforced"] else 1
+        if provider_factory is None:
+            raise HTTPException(502, "No model is configured")
+        try:
+            provider = provider_factory()
+        except LLMError as error:
+            raise HTTPException(502, f"No model is configured: {error}") from error
+        outcome = await read_next(
+            session, sitting_id, provider, budget, registry=registry
+        )
+        return {
+            "status": outcome.status,
+            "photo": photo_json(outcome.photo) if outcome.photo else None,
+            "entries": [entry_json(entry) for entry in outcome.entries],
+        }
 
     @router.post("/sittings/{sitting_id}/entries", status_code=201)
     async def add_entry(

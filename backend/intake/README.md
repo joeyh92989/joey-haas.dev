@@ -23,6 +23,15 @@ and the entries read from them or typed in.
 - `garment_kind.py` — the closet's garment: no source, no details step;
   `to_row` keeps only `GarmentFields` keys.
 - `routes.py` — `create_intake_router()`, admin only, under `/api/intake`.
+- `reader.py` — `read_next()`, behind `POST /api/intake/sittings/{id}/read-next`.
+  One call reads the sitting's oldest `uploaded` shelf photo with the photo
+  importer's prompt, `parse_detections` and `resolve_detections`; each title
+  becomes an entry in its `matching.py` confidence (`exact`, `probable`,
+  `check`), `owned` when a trusted match is already an item, or `reading`
+  when its source was busy. The reading copy is dropped once read. A budget
+  of zero or less returns `waiting` and changes nothing; a model error
+  marks only that photo `failed` (Retry requeues it). Closet sittings read
+  nothing here: their garments are tagged by the Closet's tag queue.
 
 ## Why the recorder has its own sessions
 
@@ -40,6 +49,8 @@ from intake.budget import UsageRecorder, budget_state
 recorder = UsageRecorder(session_factory)  # one per process (main.py)
 provider = build_provider(config, recorder)  # Gemini records each attempt
 state = await budget_state(session, config)  # {"remaining", "enforced", "resets_at"}
+outcome = await read_next(session, sitting_id, provider, state["remaining"],
+                          registry=registry)  # status: read/empty/failed/waiting/idle
 ```
 
 ## Adding a kind
