@@ -380,6 +380,7 @@ export function fakeIntakeApi({
         added: written.length,
         already_owned: sitting.entries.filter((e) => e.state === 'owned')
           .length,
+        issues_added: 0,
         skipped_kept: kept.length,
         photos_empty: sitting.photos.filter((p) => p.state === 'empty').length,
         photos_waiting: 0,
