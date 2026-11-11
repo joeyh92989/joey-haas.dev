@@ -3,6 +3,7 @@
 Run from backend/ in any checkout or worktree:
 
     ./.venv/bin/python scripts/record_intake_demo.py PATH/TO/shelf.jpg
+    ./.venv/bin/python scripts/record_intake_demo.py PATH/TO/shelf.jpg --yes
 
 The photo goes through the same path a sitting's photo does: the reading
 copy (`closet_images.make_reading_copy`), one model call with the reader's
@@ -14,10 +15,16 @@ frontend/src/content/intake-demo.json, the only file the public demo at
 confidence and the two stages' timings. No image bytes, no external ids,
 no cover URLs (the public page makes no third-party request).
 
+Every string the file would publish (what was read, the match and candidate
+titles) is printed first; without --yes the run stops there and writes
+nothing, so the owner reads the list before it goes public. A match on an
+item whose `is_public` is false refuses the run, --yes or not, naming the
+private titles: pick a shelf of published titles.
+
 A run where a source could not answer, or where nothing was read, writes
 nothing: the demo would show a miss that is not one. Keys come from the
-main checkout's backend/.env (worktrees have none); nothing is printed but
-the summary line. Never edit the output by hand; re-record instead.
+main checkout's backend/.env (worktrees have none); nothing else is printed.
+Never edit the output by hand; re-record instead.
 """
 
 from __future__ import annotations
@@ -36,6 +43,9 @@ BACKEND = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND))
 sys.path.insert(0, str(BACKEND / "scripts"))
 
+from sqlalchemy import select, tuple_  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
+
 from closet_images import make_reading_copy  # noqa: E402
 from importer import (  # noqa: E402
     DETECTION_SCHEMA,
@@ -45,7 +55,7 @@ from importer import (  # noqa: E402
 )
 from intake.reader import CONFIDENCE_STATES  # noqa: E402
 from llm import Image, LLMProvider  # noqa: E402
-from models import ItemType  # noqa: E402
+from models import Item, ItemType  # noqa: E402
 from sources.base import SourceAdapter, SourceError  # noqa: E402
 
 OUTPUT = BACKEND.parent / "frontend" / "src" / "content" / "intake-demo.json"
@@ -95,11 +105,31 @@ def _row(row: dict) -> dict[str, Any]:
     }
 
 
+async def private_matches(session: AsyncSession, rows: list[dict]) -> list[str]:
+    """Titles of the matches that are items on the shelf with `is_public`
+    false: the public demo must not name them."""
+    keys = {
+        (row["match"]["external_source"], row["match"]["external_id"])
+        for row in rows
+        if row["match"] is not None
+    }
+    if not keys:
+        return []
+    result = await session.execute(
+        select(Item.title)
+        .where(tuple_(Item.external_source, Item.external_id).in_(keys))
+        .where(Item.is_public.is_(False))
+        .order_by(Item.title)
+    )
+    return list(result.scalars())
+
+
 async def record(
     photo: bytes,
     provider: LLMProvider,
     registry: dict[ItemType, SourceAdapter],
     *,
+    session: AsyncSession,
     clock: Callable[[], float] = time.perf_counter,
     today: date | None = None,
 ) -> dict[str, Any]:
@@ -117,6 +147,13 @@ async def record(
     matched = clock()
     if errors:
         raise RecordingRefused("a source could not answer: " + "; ".join(errors))
+    private = await private_matches(session, rows)
+    if private:
+        raise RecordingRefused(
+            "these matches are private items (is_public false): "
+            + ", ".join(private)
+            + "; pick a shelf of published titles"
+        )
     kinds = {detection.media_type for detection in detections}
     return {
         "provisional": False,
@@ -139,10 +176,60 @@ def write(demo: dict[str, Any], out: Path = OUTPUT) -> None:
     )
 
 
+def public_strings(demo: dict[str, Any]) -> list[str]:
+    """Every title the file would publish, once each, in reading order."""
+    seen: dict[str, None] = {}
+    for row in demo["titles"]:
+        seen.setdefault(row["read"], None)
+        for title in [row["match"], *row["candidates"]]:
+            if title is not None:
+                seen.setdefault(title["title"], None)
+    return list(seen)
+
+
+async def run(
+    photo: bytes,
+    provider: LLMProvider,
+    registry: dict[ItemType, SourceAdapter],
+    session: AsyncSession,
+    *,
+    out: Path = OUTPUT,
+    yes: bool = False,
+    clock: Callable[[], float] = time.perf_counter,
+    today: date | None = None,
+) -> int:
+    """Records, prints every public string, and writes only with `yes`."""
+    try:
+        demo = await record(
+            photo, provider, registry, session=session, clock=clock, today=today
+        )
+    except Exception as error:  # noqa: BLE001 -- reported, never a traceback with keys
+        print(f"FAILED: {type(error).__name__}: {error}", file=sys.stderr)
+        return 1
+    print("These strings will be public at /shelf/intake:")
+    for public in public_strings(demo):
+        print(f"  {public}")
+    if not yes:
+        print("Nothing written. Check each is a published title; re-run with --yes.")
+        return 0
+    write(demo, out)
+    counts: dict[str, int] = {}
+    for row in demo["titles"]:
+        counts[row["confidence"]] = counts.get(row["confidence"], 0) + 1
+    summary = ", ".join(f"{n} {state}" for state, n in sorted(counts.items()))
+    print(f"{len(demo['titles'])} read ({summary}); wrote {out}")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("photo", type=Path, help="the shelf photo (JPEG, PNG, HEIC)")
     parser.add_argument("--out", type=Path, default=OUTPUT)
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="write the file (default: print the public strings and stop)",
+    )
     args = parser.parse_args(argv)
 
     from dotenv import load_dotenv
@@ -150,26 +237,30 @@ def main(argv: list[str]) -> int:
 
     load_dotenv(main_checkout_env())
     from config import load_config
+    from db import create_engine_and_sessionmaker
     from llm import build_provider
     from sources.registry import build_registry
 
     config = load_config()
+
     try:
-        demo = asyncio.run(
-            record(
-                args.photo.read_bytes(), build_provider(config), build_registry(config)
-            )
-        )
+        photo = args.photo.read_bytes()
+        provider, registry = build_provider(config), build_registry(config)
     except Exception as error:  # noqa: BLE001 -- reported, never a traceback with keys
         print(f"FAILED: {type(error).__name__}: {error}", file=sys.stderr)
         return 1
-    write(demo, args.out)
-    counts: dict[str, int] = {}
-    for row in demo["titles"]:
-        counts[row["confidence"]] = counts.get(row["confidence"], 0) + 1
-    summary = ", ".join(f"{n} {state}" for state, n in sorted(counts.items()))
-    print(f"{len(demo['titles'])} read ({summary}); wrote {args.out}")
-    return 0
+
+    async def _run() -> int:
+        engine, factory = create_engine_and_sessionmaker(config.database_url)
+        try:
+            async with factory() as session:
+                return await run(
+                    photo, provider, registry, session, out=args.out, yes=args.yes
+                )
+        finally:
+            await engine.dispose()
+
+    return asyncio.run(_run())
 
 
 if __name__ == "__main__":

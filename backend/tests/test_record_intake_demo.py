@@ -15,10 +15,11 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 from PIL import Image as PILImage
 
 from importer import DETECTION_SCHEMA, EXTRACTION_PROMPT
-from models import ItemType
+from models import Item, ItemStatus, ItemType
 from sources.base import SourceResult, SourceUnavailable
 from tests.test_importer import StubSource
 
@@ -76,13 +77,20 @@ class Clock:
         return self.now
 
 
-async def _record(source=None, provider=None):
+@pytest_asyncio.fixture
+async def session(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        yield session
+
+
+async def _record(session, source=None, provider=None):
     provider = provider or FixtureProvider(FIXTURE["detections"])
     source = source or FixtureSource(FIXTURE["searches"])
     demo = await recorder.record(
         _photo(),
         provider,
         {ItemType.MOVIE: source},
+        session=session,
         clock=Clock(),
         today=date(2026, 11, 10),
     )
@@ -90,8 +98,8 @@ async def _record(source=None, provider=None):
 
 
 @pytest.mark.asyncio
-async def test_reads_with_the_readers_own_prompt_and_one_jpeg():
-    _, provider, _ = await _record()
+async def test_reads_with_the_readers_own_prompt_and_one_jpeg(session):
+    _, provider, _ = await _record(session)
     assert len(provider.calls) == 1
     prompt, schema, images = provider.calls[0]
     assert prompt == EXTRACTION_PROMPT
@@ -100,8 +108,10 @@ async def test_reads_with_the_readers_own_prompt_and_one_jpeg():
 
 
 @pytest.mark.asyncio
-async def test_matches_every_title_in_reading_order_with_the_matchers_confidence():
-    demo, _, source = await _record()
+async def test_matches_every_title_in_reading_order_with_the_matchers_confidence(
+    session,
+):
+    demo, _, source = await _record(session)
     assert [query for query, _, _ in source.searches] == [
         "Arrival",
         "The Thing",
@@ -133,8 +143,10 @@ async def test_matches_every_title_in_reading_order_with_the_matchers_confidence
 
 
 @pytest.mark.asyncio
-async def test_records_stage_timings_the_day_and_the_source_and_is_not_provisional():
-    demo, _, _ = await _record()
+async def test_records_stage_timings_the_day_and_the_source_and_is_not_provisional(
+    session,
+):
+    demo, _, _ = await _record(session)
     assert demo["provisional"] is False
     assert demo["recorded_on"] == "2026-11-10"
     assert demo["sources"] == ["tmdb"]
@@ -143,8 +155,8 @@ async def test_records_stage_timings_the_day_and_the_source_and_is_not_provision
 
 
 @pytest.mark.asyncio
-async def test_carries_no_ids_no_urls_and_no_image_bytes():
-    demo, _, _ = await _record()
+async def test_carries_no_ids_no_urls_and_no_image_bytes(session):
+    demo, _, _ = await _record(session)
     text = json.dumps(demo)
     for leak in ("external_id", "329865", "thumbnail", "https://", "index"):
         assert leak not in text
@@ -160,16 +172,16 @@ async def test_carries_no_ids_no_urls_and_no_image_bytes():
 
 
 @pytest.mark.asyncio
-async def test_refuses_a_run_where_a_source_could_not_answer():
+async def test_refuses_a_run_where_a_source_could_not_answer(session):
     source = FixtureSource(FIXTURE["searches"], raises_for={"The Thing"})
     with pytest.raises(recorder.RecordingRefused, match="tmdb is down"):
-        await _record(source=source)
+        await _record(session, source=source)
 
 
 @pytest.mark.asyncio
-async def test_refuses_a_photo_where_nothing_was_read():
+async def test_refuses_a_photo_where_nothing_was_read(session):
     with pytest.raises(recorder.RecordingRefused, match="no titles"):
-        await _record(provider=FixtureProvider({"detections": []}))
+        await _record(session, provider=FixtureProvider({"detections": []}))
 
 
 def test_writes_the_file_sorted_and_newline_terminated(tmp_path):
@@ -196,3 +208,65 @@ def test_the_public_file_is_the_default_output():
         "content",
         "intake-demo.json",
     )
+
+
+async def _run(session, out, *, yes):
+    return await recorder.run(
+        _photo(),
+        FixtureProvider(FIXTURE["detections"]),
+        {ItemType.MOVIE: FixtureSource(FIXTURE["searches"])},
+        session,
+        out=out,
+        yes=yes,
+        clock=Clock(),
+        today=date(2026, 11, 10),
+    )
+
+
+async def _shelve_alien(session, *, is_public):
+    session.add(
+        Item(
+            type=ItemType.MOVIE,
+            title="Alien",
+            status=ItemStatus.BACKLOG,
+            external_source="tmdb",
+            external_id="348",
+            is_public=is_public,
+        )
+    )
+    await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_without_yes_prints_every_public_string_and_writes_nothing(
+    session, tmp_path, capsys
+):
+    out = tmp_path / "intake-demo.json"
+    assert await _run(session, out, yes=False) == 0
+    assert not out.exists()
+    printed = capsys.readouterr().out
+    # What was read, the matches' titles and the candidates' titles.
+    for public in ("Arrival", "The Thing", "Alein", "Alien", "Unreadable Smudge"):
+        assert public in printed
+    assert "--yes" in printed
+
+
+@pytest.mark.asyncio
+async def test_a_match_on_a_private_item_is_refused_even_with_yes(
+    session, tmp_path, capsys
+):
+    await _shelve_alien(session, is_public=False)
+    out = tmp_path / "intake-demo.json"
+    assert await _run(session, out, yes=True) == 1
+    assert not out.exists()
+    error = capsys.readouterr().err
+    assert "private" in error and "Alien" in error
+
+
+@pytest.mark.asyncio
+async def test_a_match_on_a_public_item_writes(session, tmp_path):
+    await _shelve_alien(session, is_public=True)
+    out = tmp_path / "intake-demo.json"
+    assert await _run(session, out, yes=True) == 0
+    demo = json.loads(out.read_text())
+    assert demo["titles"][2]["match"] == {"title": "Alien", "year": 1979}

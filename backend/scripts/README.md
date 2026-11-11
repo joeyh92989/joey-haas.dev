@@ -141,9 +141,18 @@ configured sources), written to `frontend/src/content/intake-demo.json`.
 one. Confidence in the file is the matcher's (string distance,
 `matching.py`), never the model's.
 
+> **Pick a shelf of published titles.** Everything on the photo becomes
+> public text at `/shelf/intake`. Photograph only titles whose items are
+> public (`is_public` true), and read the printed list before writing.
+
 ```bash
 ./.venv/bin/python scripts/record_intake_demo.py ~/Desktop/shelf.jpg
+./.venv/bin/python scripts/record_intake_demo.py ~/Desktop/shelf.jpg --yes
 ```
+
+The first run prints every string the file would publish (what was read,
+each match's and candidate's title) and writes nothing. Re-run with `--yes`
+once each is a title you are happy to publish.
 
 **Writes** what was read, each title's kind and printed year, the
 confidence (`exact`, `probable`, `check`), the match's and candidates'
@@ -154,12 +163,14 @@ committed file).
 
 **Needs** `LLM_PROVIDER` and its key, and the source keys for the kinds on
 the shelf (`TMDB_API_TOKEN` for films), from the main checkout's
-`backend/.env`, plus the variables `config.py` requires. One model call,
-not counted against intake's daily budget (no database is touched), and one
-search per title.
+`backend/.env`, plus the variables `config.py` requires (its
+`DATABASE_URL` is read, never written). One model call, not counted against
+intake's daily budget, and one search per title.
 
-**Refuses** (exit 1, nothing written) when the model reads no title or any
-source could not answer: a busy source would show a miss that is not one.
+**Refuses** (exit 1, nothing written, `--yes` or not) when the model reads
+no title, any source could not answer (a busy source would show a miss that
+is not one), or any match is an item whose `is_public` is false; the
+refusal names the private titles.
 
 Until the first recording, the committed file is a placeholder holding only
 `{"provisional": true}`; the page shows that the demo is not recorded yet,
