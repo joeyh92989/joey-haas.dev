@@ -70,4 +70,13 @@ describe('intake styles', () => {
     expect(rule[0]).toMatch(/outline: 2px solid var\(--accent\);/)
     expect(css).toMatch(/\.btn-file \{[^}]*cursor: pointer;/)
   })
+
+  it('draws the public demo in tokens, with its spine text measured', () => {
+    const block = intakeBlock()
+    expect(block).toContain('/* Public intake demo (/shelf/intake)')
+    expect(block).toMatch(
+      /\.intake-demo-spine \{[^}]*background: var\(--sunken\);[^}]*color: var\(--text\);/,
+    )
+    expect(block).toContain('--text on --sunken 14.25 dark, 16.15 light')
+  })
 })
