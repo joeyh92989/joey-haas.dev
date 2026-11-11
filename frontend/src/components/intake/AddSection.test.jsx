@@ -261,6 +261,34 @@ describe('AddSection on the shelf', () => {
     )
   })
 
+  it('says why when the refusal names a field the drawer does not draw', async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({
+      search: () => SAGA,
+      add: () => ({
+        status: 422,
+        body: {
+          detail: 'Year must be a four-digit year',
+          refused: [
+            {
+              entry_id: 'x',
+              field: 'year',
+              message: 'Year must be a four-digit year',
+            },
+          ],
+        },
+      }),
+    })
+    renderAt()
+    await search(user)
+    await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
+    await user.click(screen.getByRole('button', { name: 'Add to shelf' }))
+    const drawer = screen.getByRole('dialog', { name: 'Saga' })
+    expect(await within(drawer).findByRole('alert')).toHaveTextContent(
+      'Year must be a four-digit year',
+    )
+  })
+
   it('is a modal bottom sheet below 900px', async () => {
     media.phone = true
     const user = userEvent.setup()

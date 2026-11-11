@@ -213,7 +213,16 @@ export default function AddSection({ area, onAdded, children }) {
           if (refusal.field) byField[refusal.field] = refusal.message
         }
         setRefusals(byField)
-        if (Object.keys(byField).length === 0) setDrawerError(body.detail)
+        // The drawer draws a refusal only under the kind's own fields (the
+        // typed title shows none), so any other field's refusal, or one
+        // naming no field, is said once above the actions.
+        const drawn = new Set(kind.fields.map((field) => field.key))
+        const undrawn = (body.refused ?? []).some(
+          (refusal) => !refusal.field || !drawn.has(refusal.field),
+        )
+        if (undrawn || Object.keys(byField).length === 0) {
+          setDrawerError(body.detail)
+        }
         return
       }
       if (!response.ok) {
