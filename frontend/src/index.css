@@ -2680,8 +2680,283 @@ footer {
   font-weight: 500;
 }
 
+/* The add bar (Collection and Closet): the field, ▤ Photos and the
+   disabled barcode; the results under it; the unfinished line; the
+   drawer beside the grid. Text on --surface and --bg is measured above.
+   The waiting line sits on --accent-soft (measured 2026-11-10):
+     --text on --accent-soft 13.11 dark, 15.65 light
+     --text-2 7.30 / 7.18   --text-3 4.79 / 4.61   --accent 5.76 / 5.31 */
+.intake-add {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.intake-addbar {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.intake-addbar input {
+  font-size: 0.9375rem;
+  min-height: 2.75rem;
+  min-width: 0;
+}
+
+.intake-notice {
+  margin: 0;
+}
+
+.intake-results {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.25rem 0 0.75rem;
+}
+
+.intake-results > p,
+.intake-sources,
+.intake-typed {
+  margin: 0;
+  padding: 0 0.75rem;
+}
+
+.intake-results > ul:first-child {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.intake-result {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1.9rem minmax(0, 1fr) auto auto;
+  padding: 0.5rem 0.75rem;
+}
+
+.intake-result-text {
+  display: grid;
+  min-width: 0;
+}
+
+.intake-result-title {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.intake-result-kind {
+  color: var(--text-3);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.intake-sources {
+  display: grid;
+  font-size: 0.875rem;
+  gap: 0.4rem;
+  list-style: none;
+}
+
+.intake-sources li {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.intake-typed {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.intake-resume,
+.intake-waiting {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 0.5rem 0.75rem;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+}
+
+.intake-resume {
+  background: var(--surface);
+}
+
+.intake-waiting {
+  background: var(--accent-soft);
+  margin-bottom: 1rem;
+}
+
+.intake-waiting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.intake-withdrawer {
+  align-items: start;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.intake-withdrawer[data-drawer='open'] {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.intake-withdrawer-main {
+  min-width: 0;
+}
+
+.intake-drawer {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.intake-drawer p {
+  margin: 0;
+}
+
+.intake-drawer-head {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.intake-drawer-head .cover {
+  flex: none;
+  width: 3rem;
+}
+
+.intake-drawer-title {
+  font-size: 1.0625rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.intake-drawer-fields,
+.intake-garment-fields {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.intake-drawer-fields > :not(.intake-field),
+.intake-garment-fields > :not(.intake-field) {
+  grid-column: 1 / -1;
+}
+
+.intake-drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Below 900px: a bottom sheet over a dimmed page, modal. */
+.intake-drawer-sheet {
+  border-radius: var(--radius) var(--radius) 0 0;
+  bottom: 0;
+  left: 0;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  right: 0;
+  top: auto;
+  z-index: 60;
+}
+
+.intake-drawer-backdrop {
+  background: var(--overlay);
+  inset: 0;
+  position: fixed;
+  z-index: 59;
+}
+
+.intake-checksearch {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.intake-checksearch input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Clothes · Check: the piece's photo is 4:5, as the Closet's tiles. */
+.intake-garment-photo {
+  aspect-ratio: 4 / 5;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: block;
+  max-height: 22rem;
+  object-fit: cover;
+  width: 100%;
+}
+
+.intake-garment-missing {
+  color: var(--badge);
+}
+
+.intake-garment-check .intake-checkone {
+  margin-top: 0.5rem;
+}
+
 /* The shell's phone layout (PHONE_QUERY in AdminShell.jsx). */
 @media (max-width: 900px) {
+  .intake-addbar .btn,
+  .intake-drawer .btn,
+  .intake-waiting .btn,
+  .intake-resume .btn,
+  .intake-result .btn,
+  .intake-typed .btn,
+  .intake-garment-check .btn {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+
+  .intake-result {
+    grid-template-columns: 1.9rem minmax(0, 1fr) auto;
+  }
+
+  .intake-result .cover {
+    grid-row: span 2;
+  }
+
+  .intake-result-kind {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .intake-result > .btn {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .intake-garment-photo {
+    max-height: 13rem;
+  }
+
   .intake-kinds {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -9166,22 +9441,6 @@ main h1[tabindex='-1']:focus,
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
   align-items: center;
-}
-
-/* The file input is visually hidden inside its label, so the label shows
-   the focus ring the input would. */
-.closet-camera {
-  cursor: pointer;
-}
-
-.closet-camera:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.closet-camera[data-busy='true'] {
-  cursor: progress;
-  opacity: 0.7;
 }
 
 .closet-toast {

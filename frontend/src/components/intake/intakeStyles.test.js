@@ -34,4 +34,32 @@ describe('intake styles', () => {
     // The ratios are recorded beside the rules.
     expect(block).toContain('--line-strong measured 1.60 and 1.50')
   })
+
+  it('puts the drawer beside the grid, and a fixed sheet below 900px', () => {
+    const block = intakeBlock()
+    expect(block).toMatch(
+      /\.intake-withdrawer\[data-drawer='open'\] \{[^}]*grid-template-columns: minmax\(0, 1fr\) 340px;/,
+    )
+    expect(block).toMatch(/\.intake-drawer-sheet \{[^}]*position: fixed;/)
+  })
+
+  it('records the add bar’s text on --accent-soft (the waiting line)', () => {
+    const block = intakeBlock()
+    expect(block).toMatch(
+      /\.intake-waiting \{[^}]*background: var\(--accent-soft\);/,
+    )
+    expect(block).toContain('--text on --accent-soft 13.11 dark, 15.65 light')
+  })
+
+  it('gives the add bar, drawer and Clothes Check 44px targets on a phone', () => {
+    const phone = intakeBlock().split('@media (max-width: 900px)')[1]
+    for (const selector of [
+      '.intake-addbar .btn',
+      '.intake-drawer .btn',
+      '.intake-waiting .btn',
+      '.intake-result .btn',
+    ]) {
+      expect(phone, selector).toContain(selector)
+    }
+  })
 })

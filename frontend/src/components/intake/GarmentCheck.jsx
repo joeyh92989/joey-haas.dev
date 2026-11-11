@@ -204,7 +204,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
       )}
       {current && (
         <div className="intake-checkone">
-          <div className="intake-checkone-photo">
+          <div className="intake-checkone-source">
             <img
               className="intake-garment-photo"
               src={imageUrl(current.garment)}
@@ -220,7 +220,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
             </p>
           </div>
           <div>
-            <h3 className="intake-checkone-head">
+            <h3 className="kicker">
               Check {position} of {asked.length}
               {summary && ` · ${summary}`}
             </h3>
@@ -243,7 +243,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                 }
                 idPrefix={`garment-${current.garment.id}`}
               />
-              <div className="intake-big3">
+              <div className="intake-actions">
                 <button type="submit" className="btn primary" disabled={busy}>
                   Save and next
                 </button>
@@ -264,7 +264,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                   Skip
                 </button>
               </div>
-              <div className="intake-quiet">
+              <div className="intake-actions quiet">
                 <button
                   type="button"
                   className="btn ghost"
