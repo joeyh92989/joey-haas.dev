@@ -234,6 +234,17 @@ def test_a_skip_on_a_held_issue_is_refused():
     assert apply_comic_fields({"read_to": 3}, True, {"issues_skipped": "1-3"})
 
 
+def test_a_clash_already_stored_does_not_lock_the_row():
+    stored = {"issues_owned": "1-10", "issues_skipped": "5"}
+    # Owning one more passes: the stored clash on #5 is not the write's.
+    assert apply_comic_fields({"issues_owned": "1-11"}, True, stored)
+    # A new clash is still refused.
+    with pytest.raises(RangeError, match="#12 is owned"):
+        apply_comic_fields(
+            {"issues_owned": "1-12", "issues_skipped": "5, 12"}, True, stored
+        )
+
+
 # --- Hero figures (spec AC2) ------------------------------------------------
 
 

@@ -176,6 +176,20 @@ async def test_patch_owns_and_unskips_in_one_request(sessionmaker_for_test):
     assert (stored["issues_owned"], stored["issues_skipped"]) == ("1–7", "9")
 
 
+async def test_patch_takes_a_write_on_a_row_that_already_clashes(
+    sessionmaker_for_test,
+):
+    # Saved before the rule: #5 is skipped and owned. An unrelated write to
+    # the owned issues must not be refused for it.
+    response, stored = await _patch(
+        sessionmaker_for_test,
+        {"issues_owned": "1–10", "issues_skipped": "5"},
+        {"issues_owned": "1-11"},
+    )
+    assert response.status_code == 200, response.text
+    assert stored["issues_owned"] == "1–11"
+
+
 async def test_create_refuses_a_skip_on_an_owned_issue(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
         response = await client.post(

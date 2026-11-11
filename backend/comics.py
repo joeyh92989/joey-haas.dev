@@ -21,8 +21,9 @@ MAX_EDITIONS = 50
 EDITION_KIND_MAX = 20
 EDITION_LABEL_MAX = 80
 
-# The upcoming tail on an ongoing run bar: this share of released issues,
-# never fewer than TAIL_MIN, so a short run still shows it is open-ended.
+# The upcoming segment on an ongoing run: this share of released issues,
+# never fewer than TAIL_MIN. The frontend's lanes draw the tail at a fixed
+# width and ignore this length; it stays in `segments` for API stability.
 TAIL_SHARE = 0.08
 TAIL_MIN = 3
 
@@ -223,23 +224,39 @@ def apply_comic_fields(
     ):
         raise RangeError(f"Read to runs 1 to {MAX_ISSUE}")
     if any(key in result for key in HELD_FIELDS):
-        merged = {key: (current or {}).get(key) for key in HELD_FIELDS}
-        merged.update({key: result[key] for key in HELD_FIELDS if key in result})
-        check_skips(**merged)
+        stored = {key: (current or {}).get(key) for key in HELD_FIELDS}
+        merged = stored | {key: result[key] for key in HELD_FIELDS if key in result}
+        check_skips(**merged, before=stored if current else None)
     return result
 
 
 HELD_FIELDS = ("issues_owned", "issues_skipped", "editions")
 
 
+def _clash(
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+) -> set[int]:
+    return expand(parse_ranges(issues_skipped)) & owned_set(issues_owned, editions)
+
+
 def check_skips(
     issues_owned: str | None,
     issues_skipped: str | None,
     editions: Sequence[dict] | None,
+    before: dict | None = None,
 ) -> None:
     """RangeError naming the first skipped issue that is held, loose or in an
-    edition: a skip is for an issue I chose not to buy."""
-    clash = expand(parse_ranges(issues_skipped)) & owned_set(issues_owned, editions)
+    edition: a skip is for an issue I chose not to buy.
+
+    Only a clash the write introduces is refused. `before` is the stored
+    row's three fields: a row saved before this rule, skipping an issue it
+    now holds, still takes every other write rather than locking until it is
+    cleaned up."""
+    clash = _clash(issues_owned, issues_skipped, editions)
+    if before is not None:
+        clash -= _clash(**before)
     if clash:
         raise RangeError(f"#{min(clash)} is owned, so it can't be skipped")
 

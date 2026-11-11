@@ -37,7 +37,8 @@ ADDED_MONTHS = 12
 
 
 class PublicRunSegment(BaseModel):
-    """One stretch of the run bar: owned, missing or upcoming."""
+    """One stretch of a run, drawn by the card's lanes: owned, missing or
+    upcoming."""
 
     kind: str
     length: int
@@ -156,8 +157,8 @@ class PublicEdition(BaseModel):
 
 
 class PublicComicDetail(BaseModel):
-    """The comic block on /shelf/:id: enough for the run, the issue grid and
-    the editions card."""
+    """The comic block on /shelf/:id: enough for What's next, the run's
+    lanes and box, and the editions card."""
 
     publisher: str | None
     owned_text: str
