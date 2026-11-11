@@ -45,6 +45,14 @@ describe('spine.how', () => {
     }
   })
 
+  it('claims for intake only what has shipped: photos, not search', () => {
+    // Search-to-add ships in intake's PR 3, which adds the wording back.
+    const stop = how.stops.find((s) => s.n === 1)
+    const feature = how.features.find((f) => f.stop === 1)
+    expect(JSON.stringify(stop)).not.toMatch(/search/i)
+    expect(JSON.stringify(feature)).not.toMatch(/search/i)
+  })
+
   it('links only code that exists in the repo', () => {
     const paths = how.stops.flatMap((stop) => stop.code)
     for (const path of paths) {
@@ -60,6 +68,16 @@ describe('spine.how', () => {
         expect(row, `stop ${stop.n}`).toHaveLength(capture.columns.length)
       }
     }
+  })
+
+  it('describes intake at stop 1 and never says a photo is not kept (AC 17)', () => {
+    const [one] = how.stops
+    expect(one.where).toBe('/admin/collection/add')
+    expect(one.capture.url).toBe('/admin/collection/add')
+    expect(one.title).toBe('Takes everything in the same way')
+    const copy = JSON.stringify(how).toLowerCase()
+    expect(copy).not.toContain('nothing from a photo is kept')
+    expect(copy).not.toContain('/admin/import')
   })
 
   it('has a tab for the page', () => {

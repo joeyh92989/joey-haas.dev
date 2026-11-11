@@ -1,0 +1,510 @@
+import '@testing-library/jest-dom'
+import { render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes } from 'react-router'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { axeViolations } from '../lib/axe.test-util.js'
+import {
+  candidate,
+  entry,
+  fakeIntakeApi,
+  photo,
+} from '../lib/intake.test-util.js'
+import AdminSitting from './AdminSitting.jsx'
+
+function renderSitting(id = 's1', area = 'collection') {
+  return render(
+    <MemoryRouter initialEntries={[`/admin/${area}/add/${id}`]}>
+      <Routes>
+        <Route
+          path="/admin/collection/add/:sittingId"
+          element={<AdminSitting />}
+        />
+        <Route path="/admin/closet/add/:sittingId" element={<AdminSitting />} />
+        <Route path="/admin/collection/add" element={<p>Add page</p>} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
+
+const SANDMAN = candidate(1, 'The Sandman', 1989)
+const UNIVERSE = candidate(2, 'The Sandman Universe', 2018)
+
+/** A comic sitting with one photo read: one to check, two exact, one owned. */
+function longbox(extra = {}) {
+  return {
+    id: 's1',
+    area: 'shelf',
+    kind: 'comic',
+    label: 'Longbox 1',
+    photos: [photo('p1', 'read')],
+    entries: [
+      entry('e1', 'check', {
+        photo_id: 'p1',
+        payload: { detected_title: 'SANDMAN' },
+        candidates: [SANDMAN, UNIVERSE],
+        chosen: SANDMAN,
+      }),
+      entry('e2', 'exact', { photo_id: 'p1', chosen: candidate(3, 'Saga') }),
+      entry('e3', 'exact', {
+        photo_id: 'p1',
+        chosen: candidate(4, 'East of West'),
+      }),
+      entry('e4', 'owned', {
+        photo_id: 'p1',
+        chosen: candidate(5, 'Swamp Thing'),
+      }),
+    ],
+    ...extra,
+  }
+}
+
+const steps = () => screen.getByRole('list', { name: 'Steps' })
+const currentStep = () =>
+  within(steps())
+    .getAllByRole('listitem')
+    .find((li) => li.getAttribute('aria-current') === 'step')
+
+async function press(user, element) {
+  element.focus()
+  await user.keyboard('{Enter}')
+}
+
+describe('AdminSitting', () => {
+  it('walks Shoot to Done by keyboard, saving each step', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({ sittings: [longbox()] })
+    renderSitting()
+
+    expect(await screen.findByRole('heading', { name: 'Shoot' })).toBeVisible()
+    expect(currentStep()).toHaveTextContent('Shoot')
+
+    await press(user, screen.getByRole('button', { name: /Start checking/ }))
+    const check = await screen.findByRole('heading', { name: 'Check' })
+    expect(check).toHaveFocus()
+    expect(currentStep()).toHaveTextContent('Check')
+    expect(api.calls('PATCH', /\/sittings\/s1$/).at(-1).body).toEqual({
+      step: 'check',
+    })
+
+    // One at a time: the read text, the best candidate preselected.
+    expect(screen.getByText('SANDMAN')).toBeInTheDocument()
+    const group = screen.getByRole('radiogroup', { name: 'Which one is it?' })
+    expect(
+      within(group).getByRole('radio', { name: /^The Sandman 1989/ }),
+    ).toBeChecked()
+    await user.click(
+      within(group).getByRole('radio', { name: /The Sandman Universe/ }),
+    )
+    await press(user, screen.getByRole('button', { name: 'Yes, this one' }))
+    await waitFor(() =>
+      expect(api.calls('PATCH', /\/entries\/e1$/)[0]?.body).toEqual({
+        state: 'ready',
+        chosen: UNIVERSE,
+      }),
+    )
+    expect(
+      await screen.findByText('Nothing left to check one at a time.'),
+    ).toBeInTheDocument()
+
+    // The skim grid: exact ticked, owned dimmed and unticked.
+    expect(screen.getByRole('checkbox', { name: 'Saga' })).toBeChecked()
+    const owned = screen.getByRole('checkbox', { name: 'Swamp Thing' })
+    expect(owned).not.toBeChecked()
+    expect(owned).toBeDisabled()
+    screen.getByRole('checkbox', { name: 'East of West' }).focus()
+    await user.keyboard(' ')
+    await waitFor(() =>
+      expect(api.calls('PATCH', /\/entries\/e3$/)[0]?.body).toMatchObject({
+        state: 'ignored',
+        payload: { unticked: true, was: 'exact' },
+      }),
+    )
+    expect(
+      screen.getByRole('checkbox', { name: 'East of West' }),
+    ).not.toBeChecked()
+
+    await press(user, screen.getByRole('button', { name: /Details/ }))
+    expect(
+      await screen.findByRole('heading', { name: 'Details' }),
+    ).toHaveFocus()
+
+    // Set for all, then one row's own field.
+    const all = screen.getByRole('group', { name: 'Set for all 2 comics' })
+    await user.selectOptions(
+      within(all).getByLabelText('Shelf format'),
+      'trades',
+    )
+    await user.click(within(all).getByRole('button', { name: 'Apply' }))
+    await waitFor(() =>
+      expect(
+        api.calls('PATCH', /\/entries\/e(1|2)$/).map((call) => call.body),
+      ).toEqual(
+        expect.arrayContaining([
+          { payload: { detected_title: 'SANDMAN', shelf_format: 'trades' } },
+          { payload: { shelf_format: 'trades' } },
+        ]),
+      ),
+    )
+    const saga = screen.getByRole('group', { name: 'Saga' })
+    await user.type(within(saga).getByLabelText('Issues owned'), '1-54')
+    await user.tab()
+    await waitFor(() =>
+      expect(api.calls('PATCH', /\/entries\/e2$/).at(-1).body).toEqual({
+        payload: { shelf_format: 'trades', issues_owned: '1-54' },
+      }),
+    )
+
+    await press(
+      user,
+      screen.getByRole('button', { name: 'Add 2 to the shelf' }),
+    )
+    expect(await screen.findByRole('heading', { name: 'Done' })).toHaveFocus()
+    const figures = screen.getByRole('group', { name: 'What was added' })
+    expect(figures).toHaveTextContent('added, private2')
+    expect(figures).toHaveTextContent('already on the shelf1')
+    expect(figures).toHaveTextContent('skipped, kept as drafts0')
+    expect(figures).toHaveTextContent('photos that read nothing0')
+    expect(api.calls('POST', /\/sittings\/s1\/commit$/)[0].body.today).toMatch(
+      /^\d{4}-\d{2}-\d{2}$/,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Publish these 2' }))
+    await waitFor(() =>
+      expect(api.calls('POST', /\/api\/items\/visibility$/)[0]?.body).toEqual({
+        is_public: true,
+        ids: ['item-e1', 'item-e2'],
+      }),
+    )
+    expect(
+      screen.getByRole('link', { name: 'See them on the shelf' }),
+    ).toHaveAttribute('href', '/admin/collection')
+  })
+
+  it('shows each photo’s true state on a reload in Shoot (AC 4, 16)', async () => {
+    fakeIntakeApi({
+      budget: { remaining: 0, enforced: true },
+      sittings: [
+        longbox({
+          photos: [
+            photo('p1', 'read'),
+            photo('p2', 'failed', { error: 'The model timed out' }),
+            photo('p3', 'uploaded'),
+            photo('p4', 'empty'),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    const strip = await screen.findByRole('list', { name: 'Photos' })
+    const tiles = within(strip).getAllByRole('listitem')
+    expect(tiles[0]).toHaveTextContent('4 read')
+    expect(tiles[1]).toHaveTextContent('failed')
+    expect(tiles[1]).toHaveTextContent('The model timed out')
+    expect(
+      within(tiles[1]).getByRole('button', { name: 'Retry photo 2' }),
+    ).toBeEnabled()
+    expect(tiles[2]).toHaveTextContent('waiting for tomorrow’s budget')
+    expect(tiles[3]).toHaveTextContent('nothing read')
+    expect(document.body).toHaveTextContent(
+      '1 waiting: today’s model budget is used up',
+    )
+    expect(document.body).not.toHaveTextContent('did not answer')
+  })
+
+  it('refuses a wrong file by name, uploads each photo alone and reads it', async () => {
+    const user = userEvent.setup({ applyAccept: false })
+    const api = fakeIntakeApi({
+      sittings: [longbox({ photos: [], entries: [] })],
+      reads: [
+        () => ({
+          status: 'read',
+          entries: [
+            entry('n1', 'exact', { chosen: candidate(9, 'Saga') }),
+            entry('n2', 'check'),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    expect(
+      await screen.findByText(/About 1 model call per photo; 30 left today/),
+    ).toBeInTheDocument()
+    const start = screen.getByRole('button', { name: /Start checking/ })
+    expect(start).toBeDisabled()
+    await user.upload(screen.getByLabelText('Choose files'), [
+      new File(['%PDF'], 'notes.pdf', { type: 'application/pdf' }),
+      new File(['jpeg'], 'box-1.jpg', { type: 'image/jpeg' }),
+    ])
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'notes.pdf is application/pdf; upload JPEG, PNG, WebP or HEIC photos',
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Photo 1 read, 2 titles',
+      ),
+    )
+    expect(api.calls('POST', /\/sittings\/s1\/photos$/)).toHaveLength(1)
+    expect(api.calls('POST', /\/read-next$/).length).toBeGreaterThanOrEqual(1)
+    const strip = screen.getByRole('list', { name: 'Photos' })
+    expect(within(strip).getByRole('listitem')).toHaveTextContent('2 read')
+    expect(start).toBeEnabled()
+  })
+
+  it('says a photo waits for tomorrow when the budget runs out mid-sitting', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [longbox({ photos: [], entries: [] })],
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Shoot' })
+    api.state.budget.remaining = 0
+    await user.upload(
+      screen.getByLabelText('Choose files'),
+      new File(['jpeg'], 'box-1.jpg', { type: 'image/jpeg' }),
+    )
+    const strip = await screen.findByRole('list', { name: 'Photos' })
+    await waitFor(() =>
+      expect(within(strip).getByRole('listitem')).toHaveTextContent(
+        'waiting for tomorrow’s budget',
+      ),
+    )
+  })
+
+  it('retries one failed photo alone', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [
+        longbox({
+          photos: [photo('p1', 'read'), photo('p2', 'failed', { error: 'x' })],
+        }),
+      ],
+      reads: [() => ({ status: 'read', entries: [entry('n1', 'exact')] })],
+    })
+    renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: 'Retry photo 2' }),
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Photo 2 read, 1 title',
+      ),
+    )
+    expect(api.calls('POST', /\/photos\/p2\/retry$/)).toHaveLength(1)
+  })
+
+  it('opens at the step the sitting was left on (AC 3)', async () => {
+    fakeIntakeApi({ sittings: [longbox({ step: 'details' })] })
+    renderSitting()
+    expect(
+      await screen.findByRole('heading', { name: 'Details' }),
+    ).toBeVisible()
+    expect(currentStep()).toHaveTextContent('Details')
+  })
+
+  it("shows intake's own words for a 409, never the catalogue lock", async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({
+      sittings: [longbox({ step: 'details' })],
+      commit: () => ({
+        status: 409,
+        body: { detail: 'This sitting has already been added or discarded.' },
+      }),
+    })
+    renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This sitting has already been added or discarded.',
+    )
+    expect(document.body).not.toHaveTextContent('A refresh is already running')
+  })
+
+  it("puts the write path's refusal beside its field", async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({
+      sittings: [longbox({ step: 'details' })],
+      commit: () => ({
+        status: 422,
+        body: {
+          added: 0,
+          refused: [
+            {
+              entry_id: 'e2',
+              field: 'issues_owned',
+              message: 'Issue 0 is not a range',
+            },
+          ],
+          detail: '1 to fix before anything is added',
+        },
+      }),
+    })
+    renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '1 to fix before anything is added',
+    )
+    const saga = screen.getByRole('group', { name: 'Saga' })
+    expect(
+      within(saga).getByLabelText('Issues owned'),
+    ).toHaveAccessibleDescription('Issue 0 is not a range')
+    expect(screen.queryByRole('heading', { name: 'Done' })).toBeNull()
+  })
+
+  it.each(['shoot', 'check', 'details'])('passes axe on %s', async (step) => {
+    fakeIntakeApi({ sittings: [longbox({ step })] })
+    const { container } = renderSitting()
+    await screen.findByRole('list', { name: 'Steps' })
+    await screen.findByRole('heading', { level: 2 })
+    expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('passes axe on Done', async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({ sittings: [longbox({ step: 'details' })] })
+    const { container } = renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+    )
+    await screen.findByRole('heading', { name: 'Done' })
+    expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('starts the next box fresh, with none of the last one’s state', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({ sittings: [longbox({ step: 'details' })] })
+    renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+    )
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Longbox 1 is in' }),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Shoot the next box' }))
+    expect(await screen.findByRole('heading', { name: 'Shoot' })).toBeVisible()
+    expect(api.calls('GET', /\/sittings\/new-1$/)).toHaveLength(1)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      /^Sitting$/,
+    )
+    expect(document.title).not.toMatch(/is in/)
+    expect(currentStep()).toHaveTextContent('Shoot')
+  })
+
+  /** Holds every read-next until `release()`, so a test can move meanwhile. */
+  function holdReads(api) {
+    let release
+    const gate = new Promise((resolve) => {
+      release = resolve
+    })
+    const inner = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation(async (url, options) => {
+      if (/\/read-next$/.test(String(url))) await gate
+      return inner(url, options)
+    })
+    return () => release()
+  }
+
+  /** Read-nexts asked for, held or not (the fake logs only answered ones). */
+  const readsAsked = (api) =>
+    api.fetch.mock.calls.filter(([url]) => /\/read-next$/.test(String(url)))
+      .length
+
+  it('keeps reading after Start checking, and Check shows what lands', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [
+        longbox({ photos: [photo('p1', 'read'), photo('p2', 'uploaded')] }),
+      ],
+      reads: [
+        () => ({
+          status: 'read',
+          entries: [entry('n1', 'exact', { chosen: candidate(9, 'Hellboy') })],
+        }),
+      ],
+    })
+    const release = holdReads(api)
+    renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: /Start checking/ }),
+    )
+    expect(await screen.findByRole('heading', { name: 'Check' })).toBeVisible()
+    await waitFor(() => expect(readsAsked(api)).toBe(1))
+    release()
+    expect(
+      await screen.findByRole('checkbox', { name: 'Hellboy' }),
+    ).toBeChecked()
+    expect(screen.getByRole('heading', { name: 'Check' })).toBeVisible()
+  })
+
+  it('goes back to Shoot from Check, saving the step', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({ sittings: [longbox({ step: 'check' })] })
+    renderSitting()
+    await press(user, await screen.findByRole('button', { name: /Shoot more/ }))
+    expect(await screen.findByRole('heading', { name: 'Shoot' })).toHaveFocus()
+    expect(currentStep()).toHaveTextContent('Shoot')
+    expect(api.calls('PATCH', /\/sittings\/s1$/).at(-1).body).toEqual({
+      step: 'shoot',
+    })
+  })
+
+  it('stops reading when the page goes, with no read after it', async () => {
+    const api = fakeIntakeApi({
+      sittings: [
+        longbox({
+          photos: [
+            photo('p1', 'read'),
+            photo('p2', 'uploaded'),
+            photo('p3', 'uploaded'),
+          ],
+        }),
+      ],
+      reads: [
+        () => ({ status: 'read', entries: [entry('n1', 'exact')] }),
+        () => ({ status: 'read', entries: [entry('n2', 'exact')] }),
+      ],
+    })
+    const release = holdReads(api)
+    const { unmount } = renderSitting()
+    await waitFor(() => expect(readsAsked(api)).toBe(1))
+    unmount()
+    release()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(readsAsked(api)).toBe(1)
+  })
+
+  it('takes a closet sitting from Shoot to Done with no Details step', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [{ id: 'c1', area: 'closet', kind: 'garment', label: 'Rack' }],
+    })
+    renderSitting('c1', 'closet')
+    await screen.findByRole('heading', { name: 'Shoot' })
+    expect(
+      within(steps())
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual(['1 · Shoot', '2 · Check', '3 · Done'])
+    await user.upload(
+      screen.getByLabelText('Choose files'),
+      new File(['jpeg'], 'shirt.jpg', { type: 'image/jpeg' }),
+    )
+    await user.click(
+      await screen.findByRole('button', { name: /Start checking/ }),
+    )
+    await user.click(
+      await screen.findByRole('button', { name: 'Add 1 to the closet' }),
+    )
+    expect(await screen.findByRole('heading', { name: 'Done' })).toBeVisible()
+    expect(api.calls('POST', /\/read-next$/)).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: /Publish/ })).toBeNull()
+  })
+})

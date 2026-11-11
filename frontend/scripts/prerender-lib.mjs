@@ -44,7 +44,7 @@ export const ADMIN_ROUTES = [
   '/admin/analytics',
   '/admin/jobs',
   '/admin/collection',
-  '/admin/import',
+  '/admin/collection/add',
   '/admin/play-next',
   '/admin/catalogue',
   '/admin/radar',
@@ -57,6 +57,7 @@ export const ADMIN_ROUTES = [
   '/admin/closet/profile',
   '/admin/closet/today',
   '/admin/closet/review',
+  '/admin/closet/add',
 ]
 
 /**

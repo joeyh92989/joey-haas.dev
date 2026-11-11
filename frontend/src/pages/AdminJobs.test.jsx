@@ -169,11 +169,12 @@ describe('Admin Jobs', () => {
     expect(
       within(panel).getByRole('link', { name: 'Open Review: Closet opinions' }),
     ).toHaveAttribute('href', '/admin/closet/review')
-    for (const row of [rows[8], rows[9]]) {
-      expect(
-        within(row).queryByRole('link', { name: /Run now/ }),
-      ).not.toBeInTheDocument()
-    }
+    expect(
+      within(panel).getByRole('link', { name: 'Run now: Intake' }),
+    ).toHaveAttribute('href', '/admin/collection/add')
+    expect(
+      within(rows[9]).queryByRole('link', { name: /Run now/ }),
+    ).not.toBeInTheDocument()
   })
 
   it('names a failed forecast and reads failed in the header', async () => {

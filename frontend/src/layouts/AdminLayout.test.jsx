@@ -296,3 +296,29 @@ describe('AdminLayout closet badge', () => {
     ).toHaveLength(2)
   })
 })
+
+describe('AdminLayout intake badge', () => {
+  it("shows each area's entries left to check on its Add page", async () => {
+    const fetch = vi.fn(async (url) => {
+      const path = String(url)
+      if (path.endsWith('/api/auth/me'))
+        return { ok: true, status: 200, json: async () => ({ email: 'a@b.c' }) }
+      if (path.endsWith('/api/intake/counts'))
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ shelf: 7, closet: 0 }),
+        }
+      return { ok: false, status: 404, json: async () => ({}) }
+    })
+    vi.stubGlobal('fetch', fetch)
+    renderAt('/admin/collection')
+    await screen.findByTestId('page')
+    const pages = await screen.findByRole('navigation', { name: 'Shelf pages' })
+    await waitFor(() =>
+      expect(
+        within(pages).getByRole('link', { name: 'Add, 7 to check' }),
+      ).toBeInTheDocument(),
+    )
+  })
+})

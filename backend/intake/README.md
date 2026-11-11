@@ -42,7 +42,8 @@ and the entries read from them or typed in.
   same create path as `/bulk`, so the rows are the photo importer's: write
   rules, duplicates skipped, playthroughs seeded, private, in INSERTs of at
   most `items.BULK_CHUNK` (500). Answers `{added, already_owned,
-  skipped_kept, photos_empty, photos_waiting, refused}`. By entry state:
+  skipped_kept, photos_empty, photos_waiting, refused}`, and the route adds
+  `created` (the new items' ids, which Done publishes). By entry state:
   exact, probable, ready and typed are written; owned is counted once per
   title; ignored is cleared; check and reading stay in the sitting. A photo
   not yet read (uploaded, reading or failed) is kept too and counted as
@@ -76,7 +77,7 @@ All under `/api/intake`, admin only (`items.require_admin`).
 | Route | What it does |
 |---|---|
 | `GET /kinds` | The kind registry, with each source's state |
-| `POST /sittings`, `GET /sittings?area=`, `GET/PATCH/DELETE /sittings/{id}` | Sittings |
+| `POST /sittings`, `GET /sittings?area=`, `GET/PATCH/DELETE /sittings/{id}` | Sittings; the list carries `photos`, `photos_waiting` (uploaded or reading) and `entries` (a count per state) for the Add page's meter |
 | `POST /sittings/{id}/photos`, `POST /photos/{id}/retry`, `GET /photos/{id}/image` | Photos |
 | `POST /sittings/{id}/read-next` | Read one waiting photo (the page drives it) |
 | `POST /sittings/{id}/entries`, `PATCH /entries/{id}` | Typed and chosen entries |

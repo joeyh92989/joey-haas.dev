@@ -265,3 +265,49 @@ async def test_an_unknown_sitting_is_404(sessionmaker_for_test):
         response = await client.get(f"/api/intake/sittings/{uuid.uuid4()}")
     assert response.status_code == 404
     assert await _count(sessionmaker_for_test, IntakeSitting) == 0
+
+
+@pytest.mark.asyncio
+async def test_the_list_counts_each_sittings_entries_and_waiting_photos(
+    sessionmaker_for_test,
+):
+    # The Add page's Unfinished meter (ready, to check, still reading) is
+    # drawn from the list alone, without opening every sitting.
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, kind="comic")
+        await client.post(
+            f"/api/intake/sittings/{sitting['id']}/photos", files=_photo()
+        )
+    async with sessionmaker_for_test() as session:
+        sitting_id = uuid.UUID(sitting["id"])
+        for state in (
+            IntakeEntryState.EXACT,
+            IntakeEntryState.EXACT,
+            IntakeEntryState.CHECK,
+            IntakeEntryState.READING,
+        ):
+            session.add(IntakeEntry(sitting_id=sitting_id, kind="comic", state=state))
+        session.add(
+            IntakePhoto(
+                sitting_id=sitting_id,
+                state=IntakePhotoState.READ,
+                thumb_webp=b"webp",
+                width=10,
+                height=10,
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        (row,) = (await client.get("/api/intake/sittings?area=shelf")).json()
+    assert row["photos"] == 2
+    assert row["photos_waiting"] == 1
+    assert row["entries"] == {
+        "reading": 1,
+        "exact": 2,
+        "probable": 0,
+        "check": 1,
+        "owned": 0,
+        "ready": 0,
+        "ignored": 0,
+        "typed": 0,
+    }

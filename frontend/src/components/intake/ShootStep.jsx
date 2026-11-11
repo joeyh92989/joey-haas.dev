@@ -1,0 +1,247 @@
+import { useEffect, useRef, useState } from 'react'
+import { apiFetch, errorMessage } from '../../lib/api.js'
+import { PHOTO_ACCEPT } from '../../lib/closet.js'
+import { refuseFile } from '../../lib/intake.js'
+import PhotoTile, { PendingTile } from './PhotoTile.jsx'
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+/** The sitting's running line: titles so far and what is still to come. */
+function runningLine(sitting, budgetSpent) {
+  const { photos, entries } = sitting
+  const count = (state) => entries.filter((e) => e.state === state).length
+  const reading = photos.filter((p) => p.state === 'reading').length
+  const queued = photos.filter((p) => p.state === 'uploaded').length
+  const parts = [
+    `${count('exact')} matched exactly`,
+    `${count('check')} need a look`,
+  ]
+  if (reading) parts.push(`${plural(reading, 'photo')} reading`)
+  if (queued) {
+    parts.push(
+      budgetSpent
+        ? `${queued} waiting: today’s model budget is used up`
+        : `${queued} queued`,
+    )
+  }
+  return { head: `${plural(entries.length, 'title')} so far`, rest: parts }
+}
+
+/**
+ * Sitting step 1: take or choose photos. Each photo is refused before
+ * upload when the server would refuse it (type, size: named) and uploaded
+ * on its own request; the page's reader (`useReadNext`) reads it, and keeps
+ * reading while Check is shown. The nightly reads whatever is left.
+ *
+ * A shelf photo waits in the queue when the day's model budget is spent and
+ * says so; a closet photo becomes an untagged garment at once and is never
+ * read here (the Closet's tag queue names it).
+ *
+ * @param {object} props
+ * @param {object} props.sitting The sitting with its photos and entries.
+ * @param {(update: (sitting: object) => object) => void} props.onChange
+ * @param {{remaining: number, enforced: boolean}|null} props.budget
+ * @param {ReturnType<typeof import('../../lib/useReadNext.js').useReadNext>}
+ *   props.reader The page's reader: drive, merge, budget and error.
+ * @param {() => void} props.onNext Start checking.
+ * @param {import('react').Ref<HTMLHeadingElement>} props.headingRef
+ */
+export default function ShootStep({
+  sitting,
+  onChange,
+  budget,
+  reader,
+  onNext,
+  headingRef,
+}) {
+  const closet = sitting.area === 'closet'
+  const [uploads, setUploads] = useState([])
+  const [refusals, setRefusals] = useState([])
+  const { drive, merge, budgetSpent, error, setError } = reader
+  const alive = useRef(true)
+
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+    }
+  }, [])
+
+  async function upload(files) {
+    setError(null)
+    const refused = []
+    const accepted = []
+    for (const file of files) {
+      const reason = refuseFile(file)
+      if (reason) refused.push(reason)
+      else accepted.push(file)
+    }
+    setRefusals(refused)
+    for (const file of accepted) {
+      const key = `${file.name}-${Math.random()}`
+      setUploads((old) => [...old, { key, name: file.name }])
+      const form = new FormData()
+      form.append('photo', file)
+      try {
+        const response = await apiFetch(
+          `/api/intake/sittings/${sitting.id}/photos`,
+          { method: 'POST', body: form },
+        )
+        if (!alive.current) return
+        if (!response.ok) {
+          const message = await errorMessage(response, { ownConflicts: true })
+          setUploads((old) =>
+            old.map((u) => (u.key === key ? { ...u, error: message } : u)),
+          )
+          continue
+        }
+        const photo = await response.json()
+        setUploads((old) => old.filter((u) => u.key !== key))
+        if (closet) {
+          // The garment and its entry are made on upload; read them back.
+          const again = await apiFetch(`/api/intake/sittings/${sitting.id}`)
+          if (again.ok && alive.current) {
+            const fresh = await again.json()
+            onChange(() => fresh)
+          }
+        } else {
+          merge(photo)
+          drive()
+        }
+      } catch {
+        setUploads((old) =>
+          old.map((u) =>
+            u.key === key ? { ...u, error: 'the upload did not finish' } : u,
+          ),
+        )
+      }
+    }
+  }
+
+  async function retry(photo) {
+    setError(null)
+    const response = await apiFetch(`/api/intake/photos/${photo.id}/retry`, {
+      method: 'POST',
+    })
+    if (!response.ok) {
+      setError(await errorMessage(response, { ownConflicts: true }))
+      return
+    }
+    merge(await response.json())
+    drive()
+  }
+
+  const picked = (event) => {
+    const files = [...(event.target.files ?? [])]
+    event.target.value = ''
+    upload(files)
+  }
+
+  const titlesFrom = (photo) =>
+    sitting.entries.filter((e) => e.photo_id === photo.id).length
+  const line = runningLine(sitting, budgetSpent)
+  const ready = closet
+    ? sitting.entries.length > 0
+    : sitting.photos.some((p) => p.state === 'read')
+
+  return (
+    <section className="intake-step" aria-labelledby="intake-step-heading">
+      <h2 id="intake-step-heading" ref={headingRef} tabIndex={-1}>
+        Shoot
+      </h2>
+      <div className="intake-drop">
+        <p className="intake-drop-title">
+          {closet
+            ? 'Photograph each piece on its own'
+            : 'Photograph the shelf, spines or covers facing you'}
+        </p>
+        <p className="muted">
+          {closet
+            ? 'Each photo becomes a piece at once; the Closet’s tag queue names it.'
+            : '15 to 20 per photo reads best. Keep shooting: each photo is read as it lands.'}
+        </p>
+        {!closet && (
+          <p className="muted">
+            {budget?.enforced
+              ? `About 1 model call per photo; ${budget.remaining} left today.`
+              : 'About 1 model call per photo.'}
+          </p>
+        )}
+        <div className="intake-drop-actions">
+          <label className="btn primary intake-file">
+            Take photos
+            <input
+              type="file"
+              className="visually-hidden"
+              accept={PHOTO_ACCEPT}
+              capture="environment"
+              multiple
+              onChange={picked}
+            />
+          </label>
+          <label className="btn intake-file">
+            Choose files
+            <input
+              type="file"
+              className="visually-hidden"
+              accept={PHOTO_ACCEPT}
+              multiple
+              onChange={picked}
+            />
+          </label>
+        </div>
+      </div>
+
+      {refusals.length > 0 && (
+        <div className="admin-error" role="alert">
+          {refusals.map((reason) => (
+            <p key={reason}>{reason}</p>
+          ))}
+        </div>
+      )}
+      {error && (
+        <p className="admin-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {(sitting.photos.length > 0 || uploads.length > 0) && (
+        <ul className="intake-strip" aria-label="Photos">
+          {sitting.photos.map((photo, index) => (
+            <PhotoTile
+              key={photo.id}
+              photo={photo}
+              number={index + 1}
+              titles={titlesFrom(photo)}
+              budgetSpent={budgetSpent}
+              onRetry={retry}
+            />
+          ))}
+          {uploads.map((upload) => (
+            <PendingTile key={upload.key} upload={upload} />
+          ))}
+        </ul>
+      )}
+
+      <div className="intake-bar">
+        <p>
+          <strong>{line.head}</strong>
+          {!closet && (
+            <>
+              <br />
+              <span className="muted">{line.rest.join(' · ')}</span>
+            </>
+          )}
+        </p>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={!ready}
+          onClick={onNext}
+        >
+          Start checking <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    </section>
+  )
+}

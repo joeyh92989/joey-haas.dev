@@ -3,12 +3,15 @@
  * tab lands), a one-line description shown at the top of its page list, and
  * its pages in list order. Every page keeps the URL it had before areas.
  *
- * A page is `{ to, label, end?, count?, group?, alias? }`:
+ * A page is `{ to, label, end?, count?, group?, alias?, badge? }`:
  * - `end`: matches only its exact path (an index route).
  * - `count`: shows the owned count beside it.
  * - `group`: a kicker heading the run of pages that share it (Shelf only).
  * - `alias`: listed here too, but the page belongs to another area; it is
  *   never what decides the current area.
+ * - `badge`: the key of a pending count the layout loads (`intake.shelf`,
+ *   `intake.closet`: entries left to check), shown beside the page and
+ *   read out as part of its name.
  *
  * `subnav` is the phone's segmented control for the area. An entry is a page
  * (`{ to, label }`) or a sheet of pages (`{ label, sheet: [to, ...] }`).
@@ -42,7 +45,12 @@ export const ADMIN_AREAS = [
         count: true,
         group: 'Collection',
       },
-      { to: '/admin/import', label: 'Import photos', group: 'Collection' },
+      {
+        to: '/admin/collection/add',
+        label: 'Add',
+        group: 'Collection',
+        badge: 'intake.shelf',
+      },
       { to: '/admin/play-next', label: 'Play Next', group: 'Recommend' },
       { to: '/admin/discover', label: 'Discover', group: 'Recommend' },
       { to: '/admin/radar', label: 'Radar', group: 'Recommend' },
@@ -52,6 +60,7 @@ export const ADMIN_AREAS = [
     ],
     subnav: [
       { to: '/admin/collection', label: 'Collection' },
+      { to: '/admin/collection/add', label: 'Add' },
       {
         label: 'Picks',
         sheet: [
@@ -62,7 +71,7 @@ export const ADMIN_AREAS = [
         ],
       },
       { to: '/admin/catalogue', label: 'Sources' },
-      { label: 'More', sheet: ['/admin/import', '/admin/store-list'] },
+      { label: 'More', sheet: ['/admin/store-list'] },
     ],
   },
   {
@@ -74,6 +83,7 @@ export const ADMIN_AREAS = [
     pages: [
       { to: '/admin/closet/today', label: 'Today' },
       { to: '/admin/closet', label: 'Closet' },
+      { to: '/admin/closet/add', label: 'Add', badge: 'intake.closet' },
       { to: '/admin/closet/review', label: 'Review' },
       { to: '/admin/closet/profile', label: 'Profile' },
     ],
@@ -123,14 +133,13 @@ export function currentPage(pages, pathname) {
   return best
 }
 
-/** The page `pathname` is on within `area`, its own pages first. */
+/**
+ * The page `pathname` is on within `area`, its own pages first, the
+ * longest match among them (/admin/collection/add is Add, not Collection).
+ */
 export function pageFor(area, pathname) {
   const owned = area.pages.filter((page) => !page.alias)
-  return (
-    owned.find((page) => onPage(page, pathname)) ??
-    area.pages.find((page) => onPage(page, pathname)) ??
-    null
-  )
+  return currentPage(owned, pathname) ?? currentPage(area.pages, pathname)
 }
 
 /**
@@ -155,12 +164,15 @@ export function pageAt(to) {
   return null
 }
 
-/** The phone segments for an area, sheets resolved to their pages. */
+/**
+ * The phone segments for an area, sheets resolved to their pages and a
+ * page segment carrying its page's fields (its badge).
+ */
 export function segmentsFor(area) {
   if (!area.subnav) return area.pages.map((page) => ({ ...page }))
   return area.subnav.map((entry) =>
     entry.sheet
       ? { label: entry.label, sheet: entry.sheet.map((to) => pageAt(to)) }
-      : { ...entry },
+      : { ...pageAt(entry.to), ...entry },
   )
 }

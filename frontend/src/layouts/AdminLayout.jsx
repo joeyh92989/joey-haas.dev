@@ -60,6 +60,31 @@ async function loadReview() {
   }
 }
 
+/**
+ * Intake entries left to check per area (`{shelf, closet}`), for the Add
+ * pages' badges. Null when the request fails, like the closet counts.
+ */
+async function loadIntakeCounts() {
+  try {
+    const response = await apiFetch('/api/intake/counts')
+    if (!response.ok) return null
+    const body = await response.json()
+    return body && typeof body === 'object' ? body : null
+  } catch {
+    return null
+  }
+}
+
+/** The Add pages' badges from the counts: nothing where nothing waits. */
+function intakeBadges(counts) {
+  const badges = {}
+  for (const area of ['shelf', 'closet']) {
+    const value = counts?.[area]
+    if (value) badges[`intake.${area}`] = { value, words: 'to check' }
+  }
+  return badges
+}
+
 /** The pages that reload the rows each time they open. */
 const RELOAD_PATHS = ['/admin', '/admin/jobs']
 
@@ -79,7 +104,9 @@ const RELOAD_PATHS = ['/admin', '/admin/jobs']
  * `setClosetUntagged`, which the Closet page calls with the count it last
  * read, so Home's figure follows an upload or a tagging run, and
  * `closetReview` / `setClosetReview`, the flagged count Review calls with
- * after every read, so the area's badge follows each decision.
+ * after every read, so the area's badge follows each decision, and
+ * `refreshIntakeCounts`, which a sitting calls after it changes what is
+ * left to check, so the Add pages' badges follow it.
  */
 export default function AdminLayout() {
   const context = useOutletContext()
@@ -89,6 +116,7 @@ export default function AdminLayout() {
   const [items, setItems] = useState(null)
   const [closetUntagged, setClosetUntagged] = useState(null)
   const [closetReview, setClosetReview] = useState(null)
+  const [intakeCounts, setIntakeCounts] = useState(null)
   const [signOutFailed, setSignOutFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const itemsLoaded = useRef(false)
@@ -102,6 +130,7 @@ export default function AdminLayout() {
   // Home and Jobs read the rows for their figures and Recent changes.
   const onDashboard = RELOAD_PATHS.includes(pathname.replace(/\/+$/, ''))
   const inCloset = /^\/admin\/closet(\/|$)/.test(pathname)
+  const inAdd = /^\/admin\/(collection|closet)\/add(\/|$)/.test(pathname)
   // The signed-in pages title themselves through AdminPageHeader.
   usePageTitle(signedIn ? null : 'Admin · Joey Haas')
 
@@ -189,6 +218,25 @@ export default function AdminLayout() {
     }
   }, [signedIn, inCloset])
 
+  useEffect(() => {
+    // On sign-in, and again on the way into an Add page: the nightly reads
+    // photos while nobody is looking, so the count can move on its own.
+    if (!signedIn) return
+    let live = true
+    loadIntakeCounts().then((counts) => {
+      if (live && counts) setIntakeCounts(counts)
+    })
+    return () => {
+      live = false
+    }
+  }, [signedIn, inAdd])
+
+  function refreshIntakeCounts() {
+    loadIntakeCounts().then((counts) => {
+      if (counts) setIntakeCounts(counts)
+    })
+  }
+
   async function signOut() {
     // Only claim to be signed out if the server actually cleared the session.
     // Flipping the UI on a failed request would leave a valid 30-day cookie
@@ -210,6 +258,7 @@ export default function AdminLayout() {
     setItems(null)
     setClosetUntagged(null)
     setClosetReview(null)
+    setIntakeCounts(null)
     itemsLoaded.current = false
     reviewLoaded.current = false
     signedOutHere.current = true
@@ -231,6 +280,7 @@ export default function AdminLayout() {
         email={email}
         ownedCount={owned}
         onSignOut={signOut}
+        pageBadges={intakeBadges(intakeCounts)}
         badges={
           closetReview
             ? { closet: { value: closetReview, words: 'to review' } }
@@ -260,6 +310,7 @@ export default function AdminLayout() {
                 setClosetUntagged,
                 closetReview,
                 setClosetReview,
+                refreshIntakeCounts,
               }}
             />
           </Suspense>

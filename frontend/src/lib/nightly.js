@@ -289,8 +289,8 @@ export function nightlyJobs(
       {
         key: 'intake',
         label: 'Intake',
-        // The Add page that reads photos by hand comes with intake's UI.
-        runNow: null,
+        // A sitting's Shoot step reads waiting photos while it is open.
+        runNow: '/admin/collection/add',
         hours: STALE_HOURS,
         ok: 'Waiting photos read',
         quiet: {
