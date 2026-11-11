@@ -79,6 +79,7 @@ describe('publicRoutes', () => {
       '/shelf/next',
       '/shelf/how',
       '/shelf/comics',
+      '/shelf/intake',
       '/now',
       '/colophon',
       '/stats',
@@ -95,6 +96,9 @@ describe('publicRoutes', () => {
     expect(routeAt(routes, '/shelf/next').title).toBe('What’s next · My Shelf')
     expect(routeAt(routes, '/shelf/how').title).toBe('How it works · My Shelf')
     expect(routeAt(routes, '/shelf/comics').title).toBe('Comics · My Shelf')
+    expect(routeAt(routes, '/shelf/intake').title).toBe(
+      'Try the intake · My Shelf',
+    )
     expect(routeAt(routes, '/blog/how-spine-works').title).toBe(
       'How Spine works · Joey Haas',
     )
@@ -189,7 +193,7 @@ describe('publicRoutes', () => {
   it('leaves out Blog with nothing published, and items without an id', () => {
     const bare = publicRoutes({ posts: [], items: [{ title: 'No id' }] })
     expect(bare.map((route) => route.path)).not.toContain('/blog')
-    expect(bare).toHaveLength(12)
+    expect(bare).toHaveLength(13)
   })
 })
 
@@ -361,7 +365,7 @@ describe('noindex, sitemap and robots', () => {
 
   it('lists every route, with a post’s date', () => {
     const xml = sitemap(publicRoutes({ posts: [POST], items: [ITEM] }))
-    expect(xml.match(/<url>/g)).toHaveLength(15)
+    expect(xml.match(/<url>/g)).toHaveLength(16)
     expect(xml).toContain(
       '<loc>https://joey-haas.dev/blog/how-spine-works</loc><lastmod>2026-10-02</lastmod>',
     )
@@ -536,6 +540,16 @@ describe('render.yaml rewrites', () => {
     for (const rule of rewrites) {
       expect(rule.destination).toBe(`${rule.source}/index.html`)
     }
+  })
+
+  it('rewrites the intake demo ahead of the catch-all (AC 18)', () => {
+    expect(rules).toContainEqual({
+      source: '/shelf/intake',
+      destination: '/shelf/intake/index.html',
+    })
+    expect(rules.findIndex((rule) => rule.source === '/shelf/intake')).toBe(
+      rules.findIndex((rule) => rule.source === '/shelf/comics') + 1,
+    )
   })
 
   it('keeps the SPA catch-all last', () => {

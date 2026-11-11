@@ -129,6 +129,61 @@ parsing is tested against the live shape.
 never printed. One request. Re-record when `DETAIL_PARAMS` changes; never
 edit the fixture by hand.
 
+## record_intake_demo.py
+
+Records the public intake demo at `/shelf/intake`: one real shelf photo
+through the same path a sitting's photo takes (the 3072px reading copy, one
+model call with the reader's prompt and schema, the matcher against the
+configured sources), written to `frontend/src/content/intake-demo.json`.
+
+**Why a recording:** the site's public pages make no API or model calls
+(intake spec, decision 9), so the demo replays a real run instead of making
+one. Confidence in the file is the matcher's (string distance,
+`matching.py`), never the model's.
+
+> **Pick a shelf of published titles.** Everything on the photo becomes
+> public text at `/shelf/intake`. Photograph only titles whose items are
+> public (`is_public` true), and read the printed list before writing.
+
+```bash
+./.venv/bin/python scripts/record_intake_demo.py ~/Desktop/shelf.jpg
+./.venv/bin/python scripts/record_intake_demo.py ~/Desktop/shelf.jpg --yes
+```
+
+The first run prints every string the file would publish (what was read,
+each match's and candidate's title) and writes nothing. Re-run with `--yes`
+once each is a title you are happy to publish.
+
+To leave something out, add `--skip "<title>"` (repeatable; matched
+case-insensitively as a substring of what was read or of the match's title)
+and `--no-alternatives` (publish only each title's match, not the other
+candidates a source offered, which can include fan mods and DLC). Both apply
+to the preview too, so preview with the same flags you will write with.
+
+**Writes** what was read, each title's kind and printed year, the
+confidence (`exact`, `probable`, `check`), the match's and candidates'
+titles and years, the source names and the read and match timings. No image
+bytes, external ids or cover URLs: the public page loads nothing from a
+third party. `--out PATH` writes elsewhere (for a look before replacing the
+committed file).
+
+**Needs** `LLM_PROVIDER` and its key, and the source keys for the kinds on
+the shelf (`TMDB_API_TOKEN` for films), from the main checkout's
+`backend/.env`, plus the variables `config.py` requires (its
+`DATABASE_URL` is read, never written). One model call, not counted against
+intake's daily budget, and one search per title.
+
+**Refuses** (exit 1, nothing written, `--yes` or not) when the model reads
+no title, any source could not answer (a busy source would show a miss that
+is not one), or any match is an item whose `is_public` is false; the
+refusal names the private titles.
+
+Until the first recording, the committed file is a placeholder holding only
+`{"provisional": true}`; the page shows that the demo is not recorded yet,
+and its tests mock the content module. The recorder's own tests run on
+`tests/fixtures/intake_demo/provisional.json`, a hand-made model answer and
+search results, never on the public file. Re-record rather than edit.
+
 ## record_physical_fixtures.py
 
 Records the E7c physical-catalogue sources into `tests/fixtures/physical/`,

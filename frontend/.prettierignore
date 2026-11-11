@@ -18,3 +18,7 @@ public/search-index.json
 # generated, and only ever rewritten by the script.
 src/content/maps
 scripts/fixtures/overpass-*.json
+
+# The intake demo (backend/scripts/record_intake_demo.py): the recorder's
+# output, never edited by hand.
+src/content/intake-demo.json
