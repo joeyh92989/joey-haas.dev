@@ -154,6 +154,12 @@ The first run prints every string the file would publish (what was read,
 each match's and candidate's title) and writes nothing. Re-run with `--yes`
 once each is a title you are happy to publish.
 
+To leave something out, add `--skip "<title>"` (repeatable; matched
+case-insensitively as a substring of what was read or of the match's title)
+and `--no-alternatives` (publish only each title's match, not the other
+candidates a source offered, which can include fan mods and DLC). Both apply
+to the preview too, so preview with the same flags you will write with.
+
 **Writes** what was read, each title's kind and printed year, the
 confidence (`exact`, `probable`, `check`), the match's and candidates'
 titles and years, the source names and the read and match timings. No image

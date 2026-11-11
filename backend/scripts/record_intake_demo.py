@@ -176,6 +176,28 @@ def write(demo: dict[str, Any], out: Path = OUTPUT) -> None:
     )
 
 
+def trim(
+    demo: dict[str, Any], *, skip: list[str], alternatives: bool
+) -> dict[str, Any]:
+    """The demo without skipped titles, and with only the match as candidate
+    when alternatives are off. A skip matches the read or matched title,
+    case-insensitively, as a substring."""
+    needles = [needle.casefold() for needle in skip if needle.strip()]
+
+    def skipped(row: dict) -> bool:
+        texts = [row["read"], (row["match"] or {}).get("title", "")]
+        return any(n in (text or "").casefold() for n in needles for text in texts)
+
+    titles = []
+    for row in demo["titles"]:
+        if skipped(row):
+            continue
+        if not alternatives:
+            row = {**row, "candidates": [row["match"]] if row["match"] else []}
+        titles.append(row)
+    return {**demo, "titles": titles}
+
+
 def public_strings(demo: dict[str, Any]) -> list[str]:
     """Every title the file would publish, once each, in reading order."""
     seen: dict[str, None] = {}
@@ -195,6 +217,8 @@ async def run(
     *,
     out: Path = OUTPUT,
     yes: bool = False,
+    skip: list[str] | None = None,
+    alternatives: bool = True,
     clock: Callable[[], float] = time.perf_counter,
     today: date | None = None,
 ) -> int:
@@ -206,6 +230,7 @@ async def run(
     except Exception as error:  # noqa: BLE001 -- reported, never a traceback with keys
         print(f"FAILED: {type(error).__name__}: {error}", file=sys.stderr)
         return 1
+    demo = trim(demo, skip=skip or [], alternatives=alternatives)
     print("These strings will be public at /shelf/intake:")
     for public in public_strings(demo):
         print(f"  {public}")
@@ -221,7 +246,8 @@ async def run(
     return 0
 
 
-def main(argv: list[str]) -> int:
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    """The command line: the photo, where to write, and what to leave out."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("photo", type=Path, help="the shelf photo (JPEG, PNG, HEIC)")
     parser.add_argument("--out", type=Path, default=OUTPUT)
@@ -230,7 +256,24 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="write the file (default: print the public strings and stop)",
     )
-    args = parser.parse_args(argv)
+    parser.add_argument(
+        "--skip",
+        action="append",
+        default=[],
+        metavar="TITLE",
+        help="leave out a title (read or matched text, case-insensitive); repeatable",
+    )
+    parser.add_argument(
+        "--no-alternatives",
+        dest="alternatives",
+        action="store_false",
+        help="publish only each title's match, not the other candidates",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
 
     from dotenv import load_dotenv
     from migrate_neon import main_checkout_env
@@ -255,7 +298,14 @@ def main(argv: list[str]) -> int:
         try:
             async with factory() as session:
                 return await run(
-                    photo, provider, registry, session, out=args.out, yes=args.yes
+                    photo,
+                    provider,
+                    registry,
+                    session,
+                    out=args.out,
+                    yes=args.yes,
+                    skip=args.skip,
+                    alternatives=args.alternatives,
                 )
         finally:
             await engine.dispose()

@@ -270,3 +270,41 @@ async def test_a_match_on_a_public_item_writes(session, tmp_path):
     assert await _run(session, out, yes=True) == 0
     demo = json.loads(out.read_text())
     assert demo["titles"][2]["match"] == {"title": "Alien", "year": 1979}
+
+
+def _demo() -> dict:
+    def row(read, match, *alts):
+        return {
+            "read": read,
+            "year": None,
+            "kind": "game",
+            "confidence": "exact",
+            "match": {"title": match, "year": 2020},
+            "candidates": [{"title": t, "year": 2020} for t in (match, *alts)],
+        }
+
+    return {
+        "titles": [
+            row("Hades", "Hades", "Hades II"),
+            row("Panty Party パンティパーティー完全体", "Panty Party"),
+        ]
+    }
+
+
+def test_trim_skips_a_title_by_its_read_or_match_text():
+    trimmed = recorder.trim(_demo(), skip=["panty party"], alternatives=True)
+    assert [row["read"] for row in trimmed["titles"]] == ["Hades"]
+
+
+def test_trim_without_alternatives_keeps_only_the_match():
+    trimmed = recorder.trim(_demo(), skip=[], alternatives=False)
+    assert trimmed["titles"][0]["candidates"] == [{"title": "Hades", "year": 2020}]
+    assert "Hades II" not in recorder.public_strings(trimmed)
+
+
+def test_the_flags_parse():
+    args = recorder.parse_args(
+        ["shelf.jpg", "--skip", "Panty Party", "--no-alternatives"]
+    )
+    assert args.skip == ["Panty Party"]
+    assert args.alternatives is False
