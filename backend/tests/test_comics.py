@@ -24,6 +24,7 @@ from comics import (
     snapshot_issues,
     sort_series,
     tail_length,
+    union,
     validate_editions,
     week_of,
 )
@@ -66,6 +67,19 @@ def test_malformed_ranges_are_refused(text):
 def test_format_takes_issue_numbers_too():
     assert format_ranges({3, 1, 2, 7}) == "1–3, 7"
     assert format_ranges(set()) == ""
+
+
+def test_union_joins_range_texts_canonically():
+    assert union("1", "2", "3", "4") == "1–4"
+    assert union("1–2", "3-4, 7", None, " ") == "1–4, 7"
+    assert union("1–4", "2") == "1–4"
+    assert union(None, "") is None
+    assert union() is None
+
+
+def test_union_refuses_a_bad_range():
+    with pytest.raises(RangeError):
+        union("1", "one to five")
 
 
 @pytest.mark.parametrize(

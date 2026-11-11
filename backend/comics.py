@@ -108,6 +108,12 @@ def canonical(text: str | None) -> str | None:
     return format_ranges(parse_ranges(text)) or None
 
 
+def union(*texts: str | None) -> str | None:
+    """The canonical union of range texts ("1", "3–4" -> "1, 3–4"); None
+    when every one is blank. RangeError on a malformed one."""
+    return format_ranges(r for text in texts for r in parse_ranges(text)) or None
+
+
 def expand(ranges: Iterable[tuple[int, int]]) -> set[int]:
     return {number for low, high in ranges for number in range(low, high + 1)}
 

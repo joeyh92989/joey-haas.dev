@@ -7,12 +7,14 @@ import StatTile, { StatTiles } from '../StatTile.jsx'
 /**
  * Sitting step 4: what the commit did, in the commit's own figures (AC 8):
  * added, already on the shelf, skipped and kept, photos that read
- * nothing. Then Shoot the next box, Publish these N (shelf kinds only:
+ * nothing, and the issues added to comic series already on the shelf
+ * (a series is one row, so a new issue of one is not a new item). Then Shoot the next box, Publish these N (shelf kinds only:
  * new rows are private) and See them on the shelf.
  *
  * @param {object} props
- * @param {{added: number, already_owned: number, skipped_kept: number,
- *   photos_empty: number, photos_waiting: number, created?: string[]}}
+ * @param {{added: number, already_owned: number, issues_added?: number,
+ *   skipped_kept: number, photos_empty: number, photos_waiting: number,
+ *   created?: string[]}}
  *   props.answer The commit's answer.
  * @param {object} props.sitting The sitting as it was committed.
  * @param {() => void} props.onNextBox
@@ -31,6 +33,7 @@ export default function DoneStep({
   const [error, setError] = useState(null)
   const closet = sitting.area === 'closet'
   const created = answer.created ?? []
+  const issuesAdded = answer.issues_added ?? 0
 
   async function publish() {
     setPublishing(true)
@@ -78,6 +81,11 @@ export default function DoneStep({
           value={answer.photos_empty}
         />
       </StatTiles>
+      {issuesAdded > 0 && (
+        <p>
+          {`Added ${issuesAdded} ${issuesAdded === 1 ? 'issue' : 'issues'} to series already on the shelf.`}
+        </p>
+      )}
       {error && (
         <p className="admin-error" role="alert">
           {error}
