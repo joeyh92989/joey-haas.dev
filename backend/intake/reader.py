@@ -29,7 +29,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from sqlalchemy import select, tuple_
+from sqlalchemy import func, select, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from importer import (
@@ -268,6 +268,12 @@ async def read_next(
 ) -> ReadOutcome:
     """Read the sitting's oldest `uploaded` photo into entries.
 
+    The photo is claimed first (`reading`, committed, `FOR UPDATE SKIP
+    LOCKED`), so two readers never take the same one; then the model is
+    called, then it is set `read`, `empty` or `failed`. A photo stranded
+    in `reading` by a crash is put back by the nightly
+    (`intake.nightly.reset_stale_reading`).
+
     `budget` is the model calls left today (`intake.budget.remaining`); at
     zero or below nothing is read or changed. `registry` is the source
     adapters the matches are resolved against. The sitting must exist.
@@ -277,8 +283,8 @@ async def read_next(
         return ReadOutcome("idle")
     # Cheap (no model call): a page left open recovers busy sources too.
     await retry_reading(session, registry, sitting_id)
-    photo = await session.scalar(
-        select(IntakePhoto)
+    waiting = (
+        select(IntakePhoto.id)
         .where(
             IntakePhoto.sitting_id == sitting_id,
             IntakePhoto.state == IntakePhotoState.UPLOADED,
@@ -286,14 +292,33 @@ async def read_next(
         .order_by(IntakePhoto.created_at, IntakePhoto.id)
         .limit(1)
     )
-    if photo is None:
-        return ReadOutcome("idle")
     if budget <= 0:
-        return ReadOutcome("waiting")
+        found = await session.scalar(waiting)
+        await session.commit()
+        return ReadOutcome("waiting" if found is not None else "idle")
 
+    # Claim the photo in one statement: a second reader skips the locked
+    # row, and once this commits it is `reading`, out of everyone's queue.
+    photo_id = await session.scalar(
+        update(IntakePhoto)
+        .where(
+            IntakePhoto.id
+            == waiting.with_for_update(skip_locked=True).scalar_subquery(),
+            IntakePhoto.state == IntakePhotoState.UPLOADED,
+        )
+        .values(
+            state=IntakePhotoState.READING,
+            attempts=IntakePhoto.attempts + 1,
+            updated_at=func.now(),
+        )
+        .returning(IntakePhoto.id)
+    )
+    # Done claiming: no connection is held through the model call.
+    await session.commit()
+    if photo_id is None:
+        return ReadOutcome("idle")
+    photo = await session.get(IntakePhoto, photo_id, populate_existing=True)
     image = Image("image/jpeg", photo.reading_jpeg)
-    photo.attempts += 1
-    # Done reading: no connection is held through the model call.
     await session.commit()
 
     try:

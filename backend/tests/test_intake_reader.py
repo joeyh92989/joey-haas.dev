@@ -4,6 +4,7 @@ the reader depends on, as in `test_importer.py`; no model call is spent."""
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
@@ -365,6 +366,47 @@ async def test_read_next_retries_reading_entries_first(sessionmaker_for_test):
     assert provider.calls == 0
     (entry,) = await _entries(sessionmaker_for_test, sitting_id)
     assert entry.state.value == "exact"
+
+
+class GatedProvider:
+    """Holds every call until `release` is set, so two readers overlap."""
+
+    def __init__(self):
+        self.calls = 0
+        self.entered = asyncio.Event()
+        self.release = asyncio.Event()
+
+    async def complete_json(self, prompt, schema, images=None):
+        self.calls += 1
+        self.entered.set()
+        await self.release.wait()
+        return _detections("Dune")
+
+
+async def test_two_readers_never_take_the_same_photo(sessionmaker_for_test):
+    sitting_id, (photo_id,) = await _sitting(sessionmaker_for_test, photos=1)
+    provider = GatedProvider()
+
+    async def read():
+        return await _read(sessionmaker_for_test, sitting_id, provider)
+
+    first = asyncio.create_task(read())
+    await asyncio.wait_for(provider.entered.wait(), 5)
+    # The photo is claimed while the model is out: it reads as `reading`.
+    assert (await _photo(sessionmaker_for_test, photo_id)).state is (
+        IntakePhotoState.READING
+    )
+    second = asyncio.create_task(read())
+    await asyncio.sleep(0.2)
+    provider.release.set()
+    outcomes = await asyncio.wait_for(asyncio.gather(first, second), 5)
+
+    assert provider.calls == 1
+    assert sorted(outcome.status for outcome in outcomes) == ["idle", "read"]
+    assert len(await _entries(sessionmaker_for_test, sitting_id)) == 1
+    photo = await _photo(sessionmaker_for_test, photo_id)
+    assert photo.state is IntakePhotoState.READ
+    assert photo.attempts == 1
 
 
 async def test_a_closet_sitting_leaves_tagging_to_the_tag_queue(

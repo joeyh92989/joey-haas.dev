@@ -296,6 +296,37 @@ async def test_nightly_retries_reading_entries_without_a_model_call(
     assert entry.chosen["external_id"] == "438631"
 
 
+async def test_nightly_puts_a_stale_reading_photo_back_in_the_queue(
+    sessionmaker_for_test,
+):
+    _, (stale, fresh) = await _sitting(sessionmaker_for_test, photos=2)
+    now = datetime.now(UTC)
+    async with sessionmaker_for_test() as session:
+        for photo_id, age in ((stale, 11), (fresh, 5)):
+            await session.execute(
+                update(IntakePhoto)
+                .where(IntakePhoto.id == photo_id)
+                .values(
+                    state=IntakePhotoState.READING,
+                    updated_at=now - timedelta(minutes=age),
+                )
+            )
+        await session.commit()
+    await _leave_calls(sessionmaker_for_test, 5)
+    provider = RecordingProvider(sessionmaker_for_test)
+    async with job_client(sessionmaker_for_test, lambda: provider) as client:
+        body = (await client.post("/api/intake/jobs/nightly", headers=bearer())).json()
+    # The stranded photo is read again; one claimed five minutes ago is left
+    # to the reader that holds it.
+    assert body["read"] == 1
+    assert provider.calls == 1
+    async with sessionmaker_for_test() as session:
+        assert (await session.get(IntakePhoto, stale)).state is IntakePhotoState.READ
+        assert (await session.get(IntakePhoto, fresh)).state is (
+            IntakePhotoState.READING
+        )
+
+
 @pytest.mark.parametrize("headers", [{}, bearer("nope")])
 async def test_a_missing_or_wrong_token_is_refused(sessionmaker_for_test, headers):
     await _sitting(sessionmaker_for_test, photos=1)

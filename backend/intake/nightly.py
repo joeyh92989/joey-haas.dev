@@ -3,7 +3,9 @@
 First it expires sittings nobody has touched for `EXPIRE_AFTER` (thirty
 days): the sitting, its photos and its entries go together. "Touched" is
 the newest `updated_at` of the sitting or anything in it, so a photo read
-or an entry checked last week keeps a month-old sitting.
+or an entry checked last week keeps a month-old sitting. A photo claimed
+`reading` more than `STALE_READING` (ten minutes) ago goes back to
+`uploaded`: its reader crashed.
 
 Then it matches again the entries a busy source left `reading`
 (`retry_reading`, no model call), and reads waiting shelf photos, oldest
@@ -26,7 +28,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import delete, exists, func, select
+from sqlalchemy import delete, exists, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,6 +48,7 @@ from models import (
 logger = logging.getLogger(__name__)
 
 EXPIRE_AFTER = timedelta(days=30)
+STALE_READING = timedelta(minutes=10)
 LAST_RUN_KEY = "nightly.last_run"
 NO_MODEL = "No model is configured"
 
@@ -79,6 +82,22 @@ async def expire_sittings(session: AsyncSession, now: datetime) -> tuple[int, in
     )
     await session.execute(delete(IntakeSitting).where(IntakeSitting.id.in_(ids)))
     return len(ids), photos or 0
+
+
+async def reset_stale_reading(session: AsyncSession, now: datetime) -> int:
+    """Put photos claimed `reading` longer than `STALE_READING` ago back to
+    `uploaded`: a reader that crashed mid-call never strands a photo. A
+    claim sets `updated_at`, so that is the claim's age. Returns how many;
+    the caller commits."""
+    result = await session.execute(
+        update(IntakePhoto)
+        .where(
+            IntakePhoto.state == IntakePhotoState.READING,
+            IntakePhoto.updated_at < now - STALE_READING,
+        )
+        .values(state=IntakePhotoState.UPLOADED, updated_at=func.now())
+    )
+    return result.rowcount or 0
 
 
 def _waiting_photos():
@@ -121,7 +140,10 @@ async def run_nightly(
     """
     now = now or datetime.now(UTC)
     expired, photos_expired = await expire_sittings(session, now)
+    reset = await reset_stale_reading(session, now)
     await session.commit()
+    if reset:
+        logger.info("intake nightly: %d stale reading photos requeued", reset)
     # Entries a busy source left `reading` are matched again first: no
     # model call, so it runs whatever the budget says.
     await retry_reading(session, registry)
