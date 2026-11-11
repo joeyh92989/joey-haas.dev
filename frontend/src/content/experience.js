@@ -24,7 +24,7 @@ export const experience = [
     company: 'Guild',
     meta: '2021 – present · Denver, CO',
     summary:
-      'Owned the APIs that record benefit spending and the funding side of a company-wide eligibility migration, cut over for every partner with no rollbacks: the API contract, the rollout, the alerting, and the incident forensics afterward.',
+      'Owned the APIs that record benefit spending and led the ledger’s move to a new eligibility platform, a phased cutover with zero rollbacks or incidents: the API contract, the parity checks, the alerting, and the runbooks.',
     short:
       'Owned the APIs that record benefit spending and the funding side of a company-wide eligibility migration.',
     current: true,
@@ -43,7 +43,7 @@ export const experience = [
     company: 'MJ Freeway',
     meta: '2018 – 2019 · Denver, CO',
     summary:
-      'Product owner for the core suite of cannabis seed-to-sale software (cultivation, processing, and point of sale), shipping every two to three weeks.',
+      'Product owner for the core suite of cannabis seed-to-sale software (cultivation, processing, and point of sale), shipping every two weeks.',
     short: 'core-suite product owner',
     earlier: true,
   },
