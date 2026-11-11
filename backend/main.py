@@ -122,6 +122,7 @@ app.add_middleware(
 
 app.include_router(create_auth_router(config))
 app.include_router(create_items_router(session_factory, registry))
+app.include_router(create_intake_router(session_factory, registry, config=config))
 app.include_router(create_picker_router(session_factory))
 app.include_router(create_journal_router(session_factory))
 app.include_router(create_spots_router(session_factory))
@@ -217,7 +218,6 @@ app.include_router(
 # hour. The beacon only writes: a validated path, referrer and device under a
 # daily-salted visitor hash, capped per IP per day, answering 204 whatever it
 # does.
-app.include_router(create_intake_router(session_factory, registry, config=config))
 app.include_router(create_public_router(session_factory))
 app.include_router(create_site_stats_router(session_factory, cache=summary_cache))
 app.include_router(create_track_router(session_factory, config.session_secret))
