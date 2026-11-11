@@ -814,3 +814,120 @@ async def test_0014_closet_profile_is_one_row(clean_database):
     with pytest.raises(Exception, match="closet_profile_single_row"):
         async with clean_database.begin() as connection:
             await connection.execute(text("INSERT INTO closet_profile (id) VALUES (2)"))
+
+
+# --- Revision 0015: Intake. ---------------------------------------------------
+
+INTAKE_TABLES = {"intake_sittings", "intake_photos", "intake_entries", "llm_usage"}
+INTAKE_TYPES = {
+    "movie_disc_format",
+    "intake_area",
+    "intake_photo_state",
+    "intake_entry_state",
+}
+
+
+@pytest.mark.asyncio
+async def test_0015_adds_the_intake_tables_and_types(clean_database):
+    result = _alembic("upgrade", "0015")
+    assert result.returncode == 0, result.stderr
+    assert INTAKE_TABLES <= await _tables(clean_database)
+    assert INTAKE_TYPES <= await _types(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_0015_downgrade_removes_them_and_keeps_the_closet(clean_database):
+    assert _alembic("upgrade", "0015").returncode == 0
+    result = _alembic("downgrade", "0014")
+    assert result.returncode == 0, result.stderr
+
+    tables = await _tables(clean_database)
+    assert not INTAKE_TABLES & tables
+    assert CLOSET_TABLES <= tables
+    types = await _types(clean_database)
+    assert not INTAKE_TYPES & types
+    assert "garment_status" in types
+    async with clean_database.connect() as connection:
+        columns = await connection.scalar(
+            text(
+                "SELECT count(*) FROM information_schema.columns "
+                "WHERE table_name = 'items' AND column_name = 'disc_format'"
+            )
+        )
+    assert columns == 0
+
+
+@pytest.mark.asyncio
+async def test_0015_sitting_delete_cascades_and_garment_delete_cascades_entry(
+    clean_database,
+):
+    assert _alembic("upgrade", "0015").returncode == 0
+    async with clean_database.begin() as connection:
+        sitting = await connection.scalar(
+            text(
+                "INSERT INTO intake_sittings (id, area) VALUES "
+                "(gen_random_uuid(), 'shelf') RETURNING id"
+            )
+        )
+        photo = await connection.scalar(
+            text(
+                "INSERT INTO intake_photos (id, sitting_id, thumb_webp, width, "
+                "height) VALUES (gen_random_uuid(), :s, '\\x00'::bytea, 1, 1) "
+                "RETURNING id"
+            ),
+            {"s": sitting},
+        )
+        state, attempts = (
+            await connection.execute(
+                text("SELECT state, attempts FROM intake_photos WHERE id = :p"),
+                {"p": photo},
+            )
+        ).one()
+        assert (state, attempts) == ("uploaded", 0)
+        garment = await connection.scalar(
+            text("INSERT INTO garments (id) VALUES (gen_random_uuid()) RETURNING id")
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO intake_entries (id, sitting_id, photo_id, kind, "
+                "garment_id) VALUES (gen_random_uuid(), :s, :p, 'garment', :g)"
+            ),
+            {"s": sitting, "p": photo, "g": garment},
+        )
+        await connection.execute(
+            text("DELETE FROM garments WHERE id = :g"), {"g": garment}
+        )
+        assert await connection.scalar(text("SELECT count(*) FROM intake_entries")) == 0
+        await connection.execute(
+            text(
+                "INSERT INTO intake_entries (id, sitting_id, photo_id, kind) "
+                "VALUES (gen_random_uuid(), :s, :p, 'game')"
+            ),
+            {"s": sitting, "p": photo},
+        )
+        await connection.execute(
+            text("DELETE FROM intake_sittings WHERE id = :s"), {"s": sitting}
+        )
+        photos = await connection.scalar(text("SELECT count(*) FROM intake_photos"))
+        entries = await connection.scalar(text("SELECT count(*) FROM intake_entries"))
+    assert (photos, entries) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_0015_llm_usage_is_one_row_per_day_and_model(clean_database):
+    assert _alembic("upgrade", "0015").returncode == 0
+    async with clean_database.begin() as connection:
+        row = (
+            await connection.execute(
+                text(
+                    "INSERT INTO llm_usage (day, model) VALUES ('2026-11-10', 'm') "
+                    "RETURNING calls, exhausted"
+                )
+            )
+        ).one()
+    assert tuple(row) == (0, False)
+    with pytest.raises(Exception, match="duplicate key"):
+        async with clean_database.begin() as connection:
+            await connection.execute(
+                text("INSERT INTO llm_usage (day, model) VALUES ('2026-11-10', 'm')")
+            )

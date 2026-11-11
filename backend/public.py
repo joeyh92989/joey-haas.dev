@@ -31,6 +31,7 @@ from models import (
     Item,
     ItemStatus,
     ItemType,
+    MovieDiscFormat,
     OwnedFormat,
     PhysicalFormat,
     PlaySession,
@@ -115,6 +116,7 @@ class PublicItemOut(BaseModel):
     release_date: date | None
     platform: str | None
     physical_format: PhysicalFormat | None
+    disc_format: MovieDiscFormat | None
     completeness: Completeness | None
     # The "normally" figure to the nearest hour, for a card that has one line.
     time_to_beat_hours: int | None
@@ -334,6 +336,7 @@ def _list_fields(
         "release_date": item.release_date,
         "platform": item.platform,
         "physical_format": item.physical_format,
+        "disc_format": item.disc_format,
         "completeness": item.completeness,
         "time_to_beat_hours": _hours(_time_to_beat(snapshot)),
         "pinned": item.pinned_at is not None,

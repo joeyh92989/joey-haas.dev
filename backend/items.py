@@ -28,6 +28,7 @@ from models import (
     Item,
     ItemStatus,
     ItemType,
+    MovieDiscFormat,
     OwnedFormat,
     PhysicalEdition,
     PhysicalFormat,
@@ -91,6 +92,7 @@ class ItemIn(BaseModel):
     editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
+    disc_format: MovieDiscFormat | None = None
     following: bool = False
 
 
@@ -131,6 +133,7 @@ class ItemPatch(BaseModel):
     editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
+    disc_format: MovieDiscFormat | None = None
     following: bool | None = None
     # "Use registry value" (E7c): the format of this registry edition, with
     # format_source registry. The edition's cart ID is never copied.
@@ -246,6 +249,7 @@ class ItemOut(BaseModel):
     editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
+    disc_format: MovieDiscFormat | None = None
     following: bool = False
     # Play Next was told never to suggest it; the edit page offers Restore.
     play_next_excluded: bool = False
@@ -490,9 +494,27 @@ def _is_comic(changes: dict, row: Item | None) -> bool:
     return item_type == ItemType.COMIC
 
 
+def _check_disc_format(changes: dict, row: Item | None) -> dict:
+    """A disc format is a movie's alone (intake spec D1); RangeError otherwise.
+
+    Only a value is refused: a non-movie may send an explicit null, as a game's
+    form may send empty comic fields.
+    """
+    if changes.get("disc_format") is None:
+        return changes
+    item_type = changes.get("type") or (row.type if row is not None else None)
+    if item_type != ItemType.MOVIE:
+        raise RangeError("Disc format is for movies only.")
+    return changes
+
+
 def _write_fields(changes: dict, row: Item | None) -> dict:
-    """The comic rules, then the copy rules; CopyFieldError or RangeError."""
-    return apply_copy_fields(apply_comic_fields(changes, _is_comic(changes, row)), row)
+    """The comic rules, the disc rule, then the copy rules; CopyFieldError or
+    RangeError."""
+    checked = _check_disc_format(
+        apply_comic_fields(changes, _is_comic(changes, row)), row
+    )
+    return apply_copy_fields(checked, row)
 
 
 def _copy_fields(changes: dict, row: Item | None) -> dict:
