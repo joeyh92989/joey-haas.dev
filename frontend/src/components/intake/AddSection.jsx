@@ -230,12 +230,16 @@ export default function AddSection({ area, onAdded, children }) {
         return
       }
       const body = await response.json()
+      // An owned comic series gains the typed issues (Got it's rule).
+      const issuesAdded = body.issues_added ?? 0
       setNotice(
         body.added
           ? area === 'closet'
             ? `${name} added to the closet`
             : `${name} added, private`
-          : `${name} is already on the shelf`,
+          : issuesAdded > 0
+            ? `Added ${issuesAdded} ${issuesAdded === 1 ? 'issue' : 'issues'} to ${name}`
+            : `${name} is already on the shelf`,
       )
       onAdded?.()
       if (again) {

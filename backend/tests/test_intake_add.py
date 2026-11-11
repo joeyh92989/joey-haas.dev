@@ -316,6 +316,75 @@ async def test_a_title_already_on_the_shelf_is_counted_not_added(
     assert (second.json()["added"], second.json()["already_owned"]) == (0, 1)
 
 
+def _saga_add(issues: str) -> dict:
+    return {
+        "kind": "comic",
+        "chosen": {
+            "external_source": "comicvine",
+            "external_id": "cv-1",
+            "title": "Saga",
+        },
+        "payload": {"issues_owned": issues},
+    }
+
+
+@pytest.mark.asyncio
+async def test_an_owned_series_gains_the_typed_issues_by_got_its_rule(
+    sessionmaker_for_test,
+):
+    # The sitting's rule (#146): one row per series, its issues joined.
+    async with client_for(sessionmaker_for_test) as client:
+        first = await client.post("/api/intake/add", json=_saga_add("1-2"))
+        second = await client.post("/api/intake/add", json=_saga_add("3-4"))
+    assert first.status_code == 201, first.text
+    assert second.status_code == 200, second.text
+    body = second.json()
+    assert (body["added"], body["already_owned"], body["issues_added"]) == (0, 0, 2)
+    assert body["created"] == []
+    async with sessionmaker_for_test() as session:
+        (item,) = (await session.scalars(select(Item))).all()
+    assert item.issues_owned == "1–4"
+
+
+@pytest.mark.asyncio
+async def test_an_owned_series_gaining_nothing_is_already_on_the_shelf(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        await client.post("/api/intake/add", json=_saga_add("1-4"))
+        second = await client.post("/api/intake/add", json=_saga_add("2"))
+    assert second.status_code == 200, second.text
+    body = second.json()
+    assert (body["added"], body["already_owned"], body["issues_added"]) == (0, 1, 0)
+    async with sessionmaker_for_test() as session:
+        (item,) = (await session.scalars(select(Item))).all()
+    assert item.issues_owned == "1–4"
+
+
+@pytest.mark.asyncio
+async def test_an_owned_game_is_still_counted_and_gains_no_issues(
+    sessionmaker_for_test,
+):
+    body = {
+        "kind": "game",
+        "chosen": {"external_source": "igdb", "external_id": "9", "title": "Hades"},
+        "payload": {},
+    }
+    async with client_for(sessionmaker_for_test) as client:
+        await client.post("/api/intake/add", json=body)
+        second = await client.post("/api/intake/add", json=body)
+    assert second.status_code == 200, second.text
+    answer = second.json()
+    assert (answer["added"], answer["already_owned"], answer["issues_added"]) == (
+        0,
+        1,
+        0,
+    )
+    async with sessionmaker_for_test() as session:
+        (item,) = (await session.scalars(select(Item))).all()
+    assert item.issues_owned is None
+
+
 @pytest.mark.asyncio
 async def test_a_refused_add_names_the_field_and_writes_nothing(
     sessionmaker_for_test,

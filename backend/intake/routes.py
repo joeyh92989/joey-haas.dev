@@ -218,7 +218,8 @@ def create_intake_router(
     @router.post("/add")
     async def add_one(body: AddIn, session: AsyncSession = Depends(get_session)) -> Any:
         """Add one thing from the add bar through the commit service. 201
-        with the new id; 200 when it was already on the shelf; 422 with
+        with the new id; 200 when it was already on the shelf, with
+        `issues_added` counting the issues an owned comic series gained; 422 with
         `refused` (and the first message as `detail`) when the write rules
         refuse it, writing nothing."""
         today = body.today or date.today()
@@ -239,6 +240,7 @@ def create_intake_router(
             content={
                 "added": outcome.added,
                 "already_owned": outcome.already_owned,
+                "issues_added": outcome.issues_added,
                 "created": [str(i) for i in outcome.created],
                 "garment_id": str(outcome.garment_id) if outcome.garment_id else None,
             },
