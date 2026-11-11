@@ -597,6 +597,35 @@ export const spine = {
       missingCount: (n) => `${n} missing`,
       next: (number, date) => `Next #${number} · ${date}`,
       readTo: (n) => `read to #${n}`,
+      /** The lanes' row names and the box's key. */
+      lanes: { run: 'Run', read: 'Read', skipped: 'Skipped' },
+      private: 'private',
+      skippedKey: 'Skipped (private)',
+      readCell: 'Read',
+      ownedCell: 'Owned, unread',
+      edition: 'Collected edition',
+      key: 'Key',
+      /** The box: books, cells and bundles. */
+      box: {
+        label: 'Issues',
+        cellState: {
+          read: 'Read',
+          owned: 'Owned, unread',
+          missing: 'Missing',
+          skip: 'Skipped',
+        },
+        bundleWord: {
+          read: 'read',
+          owned: 'unread',
+          missing: 'missing',
+          skip: 'skipped',
+        },
+        bundleName: (from, to, words) =>
+          `Issues ${from} to ${to}, ${words}. Show each issue`,
+        foldName: (from, to) => `Fold issues ${from} to ${to}`,
+        readTo: (n) => `read to ${n}`,
+        cellName: (n, state) => `Issue ${n}, ${state}`,
+      },
     },
     pills: { following: 'Following', want: 'Want' },
     hero: {
@@ -639,24 +668,42 @@ export const spine = {
     series: {
       kicker: 'Comic',
       ongoing: 'ongoing',
-      facts: {
-        run: 'Run',
-        format: 'Format',
-        readTo: 'Read to',
-        next: 'Next issue',
-      },
-      run: (owned, released, ongoing) =>
-        `${owned} of ${released} ${released === 1 ? 'issue' : 'issues'}${ongoing ? ' so far' : ''}`,
       asOf: (month) => `as of ${month}`,
-      notStarted: 'Not started',
-      unread: (n) => `${n} on the shelf unread`,
-      issues: 'Issues',
       editions: 'Editions',
       collects: (from, to) =>
         from === to ? `collects #${from}` : `collects #${from}–${to}`,
       about: 'About',
       from: 'From',
       saveError: 'Could not save that issue. Try again.',
+      /** The hero's count, "58 of 72+", and its pill. */
+      count: (held, released, ongoing) =>
+        `${held} of ${released}${ongoing ? '+' : ''}`,
+      pill: {
+        complete: 'Complete run',
+        up_to_date: 'Up to date',
+        gaps: (n) => `${n} missing`,
+      },
+      /** The What's next tiles, in the order a reader asks: read, buy, wait. */
+      next: {
+        label: 'What’s next',
+        toRead: 'Next to read',
+        inEdition: (label) => `in ${label}`,
+        unread: (n) => `${n} unread`,
+        reading: 'Reading',
+        allRead: 'All read',
+        through: (n) => `through #${n}`,
+        gap: 'First gap',
+        missing: (n) => `${n} missing`,
+        run: 'Run',
+        out: 'Next out',
+      },
+      runCard: 'The run',
+      inTheBox: 'In the box',
+      empty: {
+        want: (released, ongoing) =>
+          `Nothing owned yet. ${released} ${released === 1 ? 'issue is' : 'issues are'} out${ongoing ? ' so far' : ''}.`,
+        unrecorded: 'On the shelf, but which issues isn’t recorded yet.',
+      },
     },
     empty: 'No comics on the shelf yet.',
     noMatch: 'No series match those filters.',

@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-11
 
+- [Comics](/shelf/comics) read as runs: each card stacks its cover and shows the run and how far I've read in two lanes, with what's next under them, and a series page leads with what to read, the first gap and the next issue out, then the run as a box of trades, single issues and folded stretches, so a 362-issue series fits on one screen.
 - One way in for everything I track: photograph a shelf or a rack, or search for one title; the sources match it, I check the doubtful ones, and it's added. Games, films, comics and clothes all use it, and a sitting can start on my phone and finish at my desk. Try [the intake demo](/shelf/intake) on a recorded shelf.
 - A refreshed [résumé](/resume.pdf), with the [About](/about) page's bio and timeline brought in line with it.
 

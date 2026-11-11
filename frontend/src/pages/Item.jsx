@@ -2,13 +2,20 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
 import CoverImage from '../components/CoverImage.jsx'
-import IssueGrid from '../components/IssueGrid.jsx'
+import RunBox from '../components/RunBox.jsx'
+import RunLanes, { RunKey } from '../components/RunLanes.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
 import { compactRanges, expandRanges, shortDate } from '../lib/comics.js'
+import {
+  laneSpans,
+  lanesLabel,
+  runModel,
+  runSentence,
+} from '../lib/comicRun.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { STATUS_LABEL } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -254,88 +261,165 @@ function comicKicker(item) {
   return [SERIES.kicker, publisher, year].filter(Boolean).join(' · ')
 }
 
-/**
- * The run in facts. "As of" only for an ongoing series nobody follows: a
- * followed one is refreshed nightly, an ended one cannot drift (spec, 4).
- * Writer is left out: Comic Vine volumes carry no people, only issues do.
- */
-function ComicFacts({ comic }) {
-  const owned = expandRanges(comic.owned_text).length
-  const state = COMICS.runStates[comic.run_state]
+/** A comic's run model from the public detail. Skips are never public. */
+function publicRun(item) {
+  const comic = item.comic
+  return runModel({
+    singles: comic.owned_text,
+    editions: comic.editions,
+    readTo: comic.read_to,
+    released: comic.released,
+    ongoing: comic.ongoing,
+    nextIssue: comic.next_issue?.store_date ? comic.next_issue : null,
+    wanted: item.wanted,
+  })
+}
+
+/** "58 of 72+" and its pill, then the format and the "as of" note. */
+function ComicSummary({ comic, model }) {
+  if (model.held === 0) return null
+  const pill =
+    model.state === 'gaps'
+      ? SERIES.pill.gaps(model.missing)
+      : SERIES.pill[model.state]
+  // "As of" only for an ongoing series nobody follows: a followed one is
+  // refreshed nightly, an ended one cannot drift (comics spec, 4).
   const asOf =
     comic.ongoing && !comic.following && comic.as_of
-      ? SHORT_MONTH_YEAR.format(parseDate(comic.as_of))
+      ? SERIES.asOf(SHORT_MONTH_YEAR.format(parseDate(comic.as_of)))
       : null
-  const format = [
-    COMICS.formats[comic.shelf_format],
-    ...comic.editions.map((edition) => edition.label),
-  ]
-    .filter(Boolean)
-    .join(' · ')
-  const unread = comic.read_to ? owned - comic.read : 0
-  const next =
-    comic.following && comic.next_issue?.store_date ? comic.next_issue : null
+  const notes = [COMICS.formats[comic.shelf_format], asOf].filter(Boolean)
   return (
-    <dl className="item-facts">
-      <div>
-        <dt>{SERIES.facts.run}</dt>
-        <dd>
-          {SERIES.run(owned, comic.released, comic.ongoing)}
-          {state && (
-            <>
-              {' · '}
-              <span
-                className="series-pill"
-                data-ok={comic.run_state === 'gaps' ? undefined : ''}
-              >
-                {state}
-              </span>
-            </>
-          )}
-          {asOf && ` · ${SERIES.asOf(asOf)}`}
-        </dd>
-      </div>
-      {format && (
-        <div>
-          <dt>{SERIES.facts.format}</dt>
-          <dd>{format}</dd>
-        </div>
+    <p className="comic-sum">
+      <b>{SERIES.count(model.held, model.released, model.ongoing)}</b>{' '}
+      <span
+        className="series-pill"
+        data-ok={model.state === 'gaps' ? undefined : ''}
+      >
+        {pill}
+      </span>
+      {notes.length > 0 && (
+        <span className="muted"> · {notes.join(' · ')}</span>
       )}
-      <div>
-        <dt>{SERIES.facts.readTo}</dt>
-        <dd>
-          {comic.read_to ? `#${comic.read_to}` : SERIES.notStarted}
-          {unread > 0 && ` · ${SERIES.unread(unread)}`}
-        </dd>
-      </div>
-      {next && (
-        <div>
-          <dt>{SERIES.facts.next}</dt>
-          <dd>
-            #{next.number} · {shortDate(next.store_date)}
-          </dd>
-        </div>
-      )}
-    </dl>
+    </p>
   )
 }
 
-/** The issue grid, the editions and About: the comic's three cards. */
-function ComicCards({ comic, description, onToggleIssue, saving, saveError }) {
+/**
+ * What's next, in the order a reader asks: what to read, what to buy, what
+ * to wait for. Next out shows only when the API returns a dated issue. A
+ * want or a run with no issues recorded says so in a dashed box instead.
+ */
+function WhatsNext({ model }) {
+  if (model.state === 'want') {
+    return (
+      <div className="comic-hero-next">
+        <p className="comic-empty">
+          {SERIES.empty.want(model.released, model.ongoing)}
+        </p>
+      </div>
+    )
+  }
+  if (model.state === 'unrecorded') {
+    return (
+      <div className="comic-hero-next">
+        <p className="comic-empty">{SERIES.empty.unrecorded}</p>
+      </div>
+    )
+  }
+  const N = SERIES.next
+  const tiles = []
+  if (model.readNext) {
+    tiles.push([
+      N.toRead,
+      `#${model.readNext.n}`,
+      model.readNext.edition
+        ? N.inEdition(model.readNext.edition.label)
+        : N.unread(model.unread),
+    ])
+  } else {
+    tiles.push([
+      N.reading,
+      N.allRead,
+      model.readTo ? N.through(model.readTo) : null,
+    ])
+  }
+  if (model.firstGap) {
+    tiles.push([N.gap, `#${model.firstGap.n}`, N.missing(model.missing)])
+  } else {
+    tiles.push([
+      N.run,
+      SERIES.pill[model.state],
+      SERIES.count(model.held, model.released, model.ongoing),
+    ])
+  }
+  if (model.nextIssue) {
+    tiles.push([
+      N.out,
+      `#${model.nextIssue.number}`,
+      shortDate(model.nextIssue.store_date),
+    ])
+  }
+  return (
+    <section className="comic-hero-next comic-next" aria-label={N.label}>
+      {tiles.map(([label, value, note]) => (
+        <div key={label}>
+          <span>{label}</span>
+          <b>{value}</b>
+          {note && <small>{note}</small>}
+        </div>
+      ))}
+    </section>
+  )
+}
+
+/**
+ * The run card, the editions and About: the comic's cards, in that order.
+ *
+ * The run card draws the lanes (the overview) above the box (the detail),
+ * except for a run of 12 issues or fewer, where the cells already show
+ * everything. The sentence under the box is the text equivalent of both.
+ * Signed in, a single issue's cell toggles it owned and saves at once.
+ */
+function ComicCards({
+  comic,
+  model,
+  description,
+  onToggleIssue,
+  saving,
+  saveError,
+}) {
+  const spans = laneSpans(model)
   return (
     <>
-      <section className="item-card" aria-labelledby="item-issues">
-        <h2 id="item-issues">
-          {SERIES.issues}{' '}
-          {comic.owned_text && <small>#{comic.owned_text}</small>}
-        </h2>
-        <IssueGrid detail={comic} onToggle={onToggleIssue} busy={saving} />
-        {saveError && (
-          <p className="admin-error" role="alert">
-            {saveError}
-          </p>
-        )}
-      </section>
+      {model.held > 0 && (
+        <section className="item-card" aria-labelledby="item-run">
+          <h2 id="item-run">{SERIES.runCard}</h2>
+          {!spans.short && (
+            <>
+              <RunLanes spans={spans} label={lanesLabel(model)} />
+              <p className="comic-box-kicker">{SERIES.inTheBox}</p>
+            </>
+          )}
+          <RunBox
+            model={model}
+            mode={onToggleIssue ? 'toggle' : 'public'}
+            busy={saving}
+            onCell={
+              onToggleIssue
+                ? (issue) => onToggleIssue(issue.n, !issue.held)
+                : undefined
+            }
+          />
+          <RunKey variant="box" />
+          <p className="comic-sentence muted">{runSentence(model)}</p>
+          {saveError && (
+            <p className="admin-error" role="alert">
+              {saveError}
+            </p>
+          )}
+        </section>
+      )}
 
       {comic.editions.length > 0 && (
         <section className="item-card" aria-labelledby="item-editions">
@@ -474,15 +558,21 @@ function ItemPage({ id }) {
         const path = `/api/items/${encodeURIComponent(id)}`
         const current = await apiFetch(path)
         if (!current.ok) throw new Error(`GET ${current.status}`)
-        const numbers = new Set(
-          expandRanges((await current.json()).issues_owned),
-        )
+        const stored = await current.json()
+        const numbers = new Set(expandRanges(stored.issues_owned))
         if (owned) numbers.add(issue)
         else numbers.delete(issue)
+        const changes = { issues_owned: compactRanges(numbers) }
+        // Owning a skipped issue drops the skip, as Got it does: the API
+        // refuses an issue both owned and skipped. The skip is private, so
+        // the public grid drew it as missing.
+        const skipped = new Set(expandRanges(stored.issues_skipped))
+        if (owned && skipped.delete(issue))
+          changes.issues_skipped = compactRanges(skipped)
         const response = await apiFetch(path, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ issues_owned: compactRanges(numbers) }),
+          body: JSON.stringify(changes),
         })
         if (!response.ok) throw new Error(`PATCH ${response.status}`)
         const next = await load()
@@ -576,6 +666,7 @@ function ItemView({
   const isComic = item.type === 'comic'
   // The detail's comic block; the snapshot preview has none.
   const comic = detail && isComic ? item.comic : null
+  const run = comic ? publicRun(item) : null
   const meta = isComic
     ? ''
     : [item.year, item.creator].filter(Boolean).join(' · ')
@@ -615,13 +706,14 @@ function ItemView({
             {statusInWords(item)}
           </p>
           {copy && <p className="item-copy">{copy}</p>}
-          {comic && <ComicFacts comic={comic} />}
+          {comic && <ComicSummary comic={comic} model={run} />}
           {signedIn && (
             <Link to={`/admin/collection/${item.id}`} className="item-edit">
               Edit
             </Link>
           )}
         </div>
+        {comic && <WhatsNext model={run} />}
       </header>
 
       {chips.length > 0 && (
@@ -675,6 +767,7 @@ function ItemView({
       {comic && (
         <ComicCards
           comic={comic}
+          model={run}
           description={description}
           onToggleIssue={onToggleIssue}
           saving={saving}

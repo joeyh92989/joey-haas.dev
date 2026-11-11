@@ -2,15 +2,14 @@ import { describe, expect, it } from 'vitest'
 import {
   chipCounts,
   comicPayload,
-  editionsText,
-  parseEditions,
+  comicErrorField,
+  editionRows,
+  parseEditionRows,
   compactRanges,
-  editionCoverage,
   expandRanges,
   filterComics,
   publishersByCount,
   runCount,
-  runLabel,
   searchComics,
   shortDate,
   sortComics,
@@ -46,27 +45,13 @@ describe('ranges', () => {
       1, 2, 4, 6, 7,
     ])
   })
-
-  it('maps each covered issue to the first edition that collects it', () => {
-    const covered = editionCoverage([
-      { label: 'Vol. 1', from_issue: 1, to_issue: 6 },
-      { label: 'Omnibus', from_issue: 5, to_issue: 12 },
-    ])
-    expect(covered.get(5)).toBe('Vol. 1')
-    expect(covered.get(7)).toBe('Omnibus')
-    expect(covered.has(13)).toBe(false)
-  })
 })
 
 describe('labels', () => {
-  it('says owned of released, and ongoing with a plus', () => {
+  it('writes owned of released, with a plus while ongoing', () => {
     const run = { owned: 54, released: 72, ongoing: true }
-    expect(runLabel(run)).toBe('54 of 72 issues owned, ongoing')
     expect(runCount(run)).toBe('54 / 72+')
     expect(runCount(run, '/')).toBe('54/72+')
-    expect(runLabel({ owned: 1, released: 1, ongoing: false })).toBe(
-      '1 of 1 issue owned',
-    )
   })
 
   it('dates in UTC, so a week never shifts a day', () => {
@@ -135,43 +120,59 @@ describe('chips, search and sorts', () => {
   })
 })
 
-describe('editions text', () => {
+describe('edition rows', () => {
   const editions = [
     { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 },
     { kind: 'Single', label: 'Variant', from: 7, to: 7 },
   ]
 
-  it('writes one line per edition, a single issue as one number', () => {
-    expect(editionsText(editions)).toBe(
-      'Trade · Vol. 1 · 1–6\nSingle · Variant · 7',
-    )
-    expect(editionsText(null)).toBe('')
-  })
-
-  it('reads its own text back, and a hand-typed pipe and hyphen', () => {
-    expect(parseEditions(editionsText(editions))).toEqual({
+  it('reads its own rows back', () => {
+    expect(editionRows(null)).toEqual([])
+    expect(parseEditionRows(editionRows(editions))).toEqual({
       editions,
       error: null,
     })
-    expect(parseEditions('Trade | Vol. 1 | 1-6\n\n').editions).toEqual([
-      editions[0],
-    ])
   })
 
-  it('reads back a label that holds a separator itself', () => {
-    const deluxe = [{ kind: 'Trade', label: 'Vol. 1 · Deluxe', from: 1, to: 6 }]
-    expect(parseEditions(editionsText(deluxe))).toEqual({
-      editions: deluxe,
+  it('drops a blank row and reads a missing "to" as one issue', () => {
+    expect(
+      parseEditionRows([
+        { kind: ' Trade ', label: 'Vol. 2', from: '7', to: '' },
+        { kind: '', label: '', from: '', to: '' },
+      ]),
+    ).toEqual({
+      editions: [{ kind: 'Trade', label: 'Vol. 2', from: 7, to: 7 }],
       error: null,
     })
+    expect(parseEditionRows([])).toEqual({ editions: null, error: null })
   })
 
-  it('is null when blank, and names the line it cannot read', () => {
-    expect(parseEditions('  \n')).toEqual({ editions: null, error: null })
-    expect(parseEditions('Trade · Vol. 1 · 1–6\nVol. 2 6–12')).toEqual({
+  it('names the row it cannot read', () => {
+    expect(
+      parseEditionRows([
+        { kind: 'Trade', label: 'Vol. 1', from: '1', to: '6' },
+        { kind: 'Trade', label: '', from: 'x', to: '' },
+      ]),
+    ).toEqual({
       editions: null,
-      error: 'Editions, line 2: write kind · label · first–last',
+      error: 'Edition 2: give it a kind, a label and the issues it collects.',
     })
+  })
+})
+
+describe('comicErrorField', () => {
+  it.each([
+    ['Issues owned: 4-2 runs backwards', 'issues_owned'],
+    ['Issues skipped: x is not a range', 'issues_skipped'],
+    ['#7 is owned, so it can’t be skipped', 'issues_skipped'],
+    ["#7 is owned, so it can't be skipped", 'issues_skipped'],
+    ['Read to runs 1 to 9999', 'read_to'],
+    ['Vol. 1: collects #6–1 runs backwards', 'editions'],
+    ['edition kind must be 1-20 characters', 'editions'],
+    ['Nothing has changed.', null],
+    [undefined, null],
+  ])('places %s', (detail, field) => {
+    expect(comicErrorField(detail)).toBe(field)
   })
 })
 
@@ -180,7 +181,8 @@ describe('comicPayload', () => {
     expect(
       comicPayload({
         issues_owned: '  ',
-        editions_text: '',
+        issues_skipped: '',
+        editions: [],
         read_to: '',
         shelf_format: '',
         following: false,
@@ -188,6 +190,7 @@ describe('comicPayload', () => {
     ).toEqual({
       fields: {
         issues_owned: null,
+        issues_skipped: null,
         editions: null,
         read_to: null,
         shelf_format: null,
@@ -200,13 +203,15 @@ describe('comicPayload', () => {
   it('trims the ranges and numbers the read marker', () => {
     const { fields } = comicPayload({
       issues_owned: ' 1-54, 60 ',
-      editions_text: '',
+      issues_skipped: ' 58 ',
+      editions: [],
       read_to: '40',
       shelf_format: 'trades',
       following: true,
     })
     expect(fields).toMatchObject({
       issues_owned: '1-54, 60',
+      issues_skipped: '58',
       read_to: 40,
       shelf_format: 'trades',
       following: true,

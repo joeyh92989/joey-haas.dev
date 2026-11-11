@@ -635,13 +635,15 @@ async function renderSaga(options) {
   return screen.findByRole('heading', { level: 1, name: 'Saga' })
 }
 
-/** The issue grid's cells, as [number, kind] in order. */
-function cells() {
-  return [...document.querySelectorAll('.issue-grid > *')].map((cell) => [
-    cell.textContent,
-    cell.dataset.k,
+/** The run box's tiles, as [text, kind] in order. */
+function tiles() {
+  return [...document.querySelectorAll('.run-box > *')].map((tile) => [
+    tile.textContent,
+    tile.dataset.k,
   ])
 }
+
+const box = () => document.querySelector('.run-box')
 
 describe('Item series page (AC5)', () => {
   it('names the comic, its publisher and that it is ongoing, in comic words', async () => {
@@ -653,52 +655,118 @@ describe('Item series page (AC5)', () => {
     expect(document.querySelector('.item-status')).toHaveTextContent('Reading')
   })
 
-  it('states the run, format, read marker and next issue', async () => {
+  it('states the run with its pill, then what is next', async () => {
     stubSaga()
     await renderSaga()
-    const facts = document.querySelector('.item-facts')
-    expect(facts).toHaveTextContent('7 of 8 issues so far · Gaps')
+    const sum = document.querySelector('.comic-sum')
+    expect(sum).toHaveTextContent('7 of 8+ 1 missing')
     // Followed, so refreshed nightly: no "as of".
-    expect(facts).not.toHaveTextContent('as of')
-    expect(facts).toHaveTextContent('Trades · Vol. 2')
-    expect(facts).toHaveTextContent('#3 · 4 on the shelf unread')
-    expect(facts).toHaveTextContent('#9 · Nov 12')
+    expect(sum).toHaveTextContent('Trades')
+    expect(sum).not.toHaveTextContent('as of')
+    const next = screen.getByRole('region', { name: 'What’s next' })
+    expect(next).toHaveTextContent('Next to read#44 unread')
+    expect(next).toHaveTextContent('First gap#51 missing')
+    expect(next).toHaveTextContent('Next out#9Nov 12')
   })
 
-  it('dates the run of an ongoing series nobody follows, and drops its next issue', async () => {
+  it('names the edition the next issue to read is in', async () => {
+    stubSaga({ read_to: 5, read: 4 })
+    await renderSaga()
+    expect(
+      screen.getByRole('region', { name: 'What’s next' }),
+    ).toHaveTextContent('Next to read#6in Vol. 2')
+  })
+
+  it('dates the run of an ongoing series nobody follows', async () => {
     stubSaga({ following: false })
     await renderSaga()
-    const facts = document.querySelector('.item-facts')
-    expect(facts).toHaveTextContent('as of Oct 2026')
-    expect(facts).not.toHaveTextContent(SERIES.facts.next)
-  })
-
-  it('says Not started before the first issue is read', async () => {
-    stubSaga({ read_to: null, read: 0 })
-    await renderSaga()
-    expect(document.querySelector('.item-facts')).toHaveTextContent(
-      `${SERIES.facts.readTo}${SERIES.notStarted}`,
+    expect(document.querySelector('.comic-sum')).toHaveTextContent(
+      'as of Oct 2026',
     )
   })
 
-  it('draws one cell per released issue in its state, and the next one hatched', async () => {
+  it('shows Next out only with a dated next issue (AC8)', async () => {
+    stubSaga({ next_issue: null })
+    await renderSaga()
+    expect(
+      screen.getByRole('region', { name: 'What’s next' }),
+    ).not.toHaveTextContent('Next out')
+  })
+
+  it('says All read, and the run state with no gaps', async () => {
+    stubSaga({
+      owned_text: '1–8',
+      missing: 0,
+      run_state: 'up_to_date',
+      read_to: 8,
+      read: 8,
+    })
+    await renderSaga()
+    const next = screen.getByRole('region', { name: 'What’s next' })
+    expect(next).toHaveTextContent('ReadingAll readthrough #8')
+    expect(next).toHaveTextContent('RunUp to date8 of 8+')
+  })
+
+  it('draws a short run as its box: an edition as one book, no lanes', async () => {
     stubSaga()
     await renderSaga()
-    expect(cells()).toEqual([
+    expect(tiles()).toEqual([
       ['1', 'read'],
       ['2', 'read'],
       ['3', 'read'],
       ['4', 'owned'],
       ['5', 'missing'],
-      ['6', 'owned'],
-      ['7', 'owned'],
-      ['8', 'owned'],
-      ['9', 'unreleased'],
+      ['Vol. 26–8', 'owned'],
+      ['9', 'upcoming'],
     ])
-    expect(screen.getByRole('heading', { name: /Issues/ })).toHaveTextContent(
-      '#1–4, 6–8',
+    // Twelve issues or fewer: the cells already show everything.
+    expect(document.querySelector('.lanes')).toBeNull()
+    expect(document.querySelector('.comic-sentence')).toHaveTextContent(
+      'I own #1–4, 6–8 and have read to #3.',
     )
   })
+
+  it('draws the lanes above the box for a longer run', async () => {
+    stubSaga({ owned_text: '1–30', released: 40, missing: 10 })
+    await renderSaga()
+    expect(
+      screen.getByRole('img', {
+        name: '30 of 40 issues owned, 10 missing, series still coming out, read to number 3',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('puts the run before the editions and About (AC7)', async () => {
+    stubSaga()
+    await renderSaga()
+    const order = [...document.querySelectorAll('.item-card h2')].map(
+      (heading) => heading.textContent,
+    )
+    expect(order).toEqual(['The run', SERIES.editions, SERIES.about])
+  })
+
+  it.each([
+    [
+      'a want',
+      { owned_text: '', editions: [], released: 58 },
+      { wanted: true },
+      'Nothing owned yet. 58 issues are out so far.',
+    ],
+    [
+      'a run with no issues recorded',
+      { owned_text: '', editions: [] },
+      {},
+      'On the shelf, but which issues isn’t recorded yet.',
+    ],
+  ])(
+    'draws a dashed box and no run card for %s',
+    async (_, comic, item, text) => {
+      stubItem({ ...SAGA, ...item, comic: { ...SAGA.comic, ...comic } })
+      await renderSaga()
+      expect(document.querySelector('.comic-empty')).toHaveTextContent(text)
+      expect(screen.queryByRole('heading', { name: 'The run' })).toBeNull()
+    },
+  )
 
   it('lists the editions with what each collects', async () => {
     stubSaga()
@@ -733,9 +801,7 @@ describe('Item series page (AC5)', () => {
   it('is decoration when signed out: no toggles', async () => {
     stubSaga()
     await renderSaga()
-    expect(
-      screen.queryByRole('group', { name: 'Issues I own' }),
-    ).not.toBeInTheDocument()
+    expect(within(box()).queryAllByRole('button')).toHaveLength(0)
   })
 
   it('toggles an issue when signed in, from the owner’s own ranges', async () => {
@@ -765,12 +831,12 @@ describe('Item series page (AC5)', () => {
     })
     vi.stubGlobal('fetch', fetch)
     await renderSaga({ signedIn: true })
-    const grid = screen.getByRole('group', { name: 'Issues I own' })
-    // Edition-covered issues are not toggles.
+    const grid = box()
+    // Edition-covered issues are inside their book, not toggles.
     expect(within(grid).queryByRole('button', { name: 'Issue 6' })).toBeNull()
     await userEvent.click(within(grid).getByRole('button', { name: 'Issue 5' }))
     await waitFor(() =>
-      expect(document.querySelector('.item-facts')).toHaveTextContent(
+      expect(document.querySelector('.comic-sum')).toHaveTextContent(
         'Up to date',
       ),
     )
@@ -779,6 +845,31 @@ describe('Item series page (AC5)', () => {
       ([, options]) => options?.method === 'PATCH',
     )
     expect(patch[0]).toContain(`/api/items/${ID}`)
+  })
+
+  it('drops a private skip when a toggle owns that issue', async () => {
+    let saved = null
+    const fetch = vi.fn(async (url, options = {}) => {
+      if (options.method === 'PATCH') {
+        saved = JSON.parse(options.body)
+        return { ok: true, status: 200, json: async () => ({}) }
+      }
+      if (url.includes('/api/public/')) {
+        return { ok: true, status: 200, json: async () => SAGA }
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues_owned: '1–4', issues_skipped: '5' }),
+      }
+    })
+    vi.stubGlobal('fetch', fetch)
+    await renderSaga({ signedIn: true })
+    await userEvent.click(
+      within(box()).getByRole('button', { name: 'Issue 5' }),
+    )
+    await waitFor(() => expect(saved).not.toBeNull())
+    expect(saved).toEqual({ issues_owned: '1-5', issues_skipped: '' })
   })
 
   it('says so when a toggle fails, and keeps the grid', async () => {

@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { spine } from '../content/spine.js'
 import { runCount, shortDate } from '../lib/comics.js'
 import CoverImage from './CoverImage.jsx'
-import RunBar from './RunBar.jsx'
+import { RowLanes } from './ComicCardRun.jsx'
 
 const COPY = spine.comics
 
@@ -32,7 +32,7 @@ function runNote(row) {
 
 /**
  * One series in the Runs view: cover, title with its Following or Want pill,
- * the meta line, the run bar, and the count with what comes next. A want has
+ * the meta line, the Run and Read lanes, and the count with what comes next. A want has
  * no run, so it shows neither bar nor count.
  *
  * The status dot always sits beside its label: colour is never the only
@@ -79,14 +79,7 @@ export default function SeriesRow({ row, to }) {
           {COPY.status[row.status]}
           {readTo}
         </p>
-        {!row.wanted && (
-          <RunBar
-            segments={row.segments}
-            owned={row.owned}
-            released={row.released}
-            ongoing={row.ongoing}
-          />
-        )}
+        <RowLanes row={row} />
       </div>
       {!row.wanted && (
         <p className="series-count">

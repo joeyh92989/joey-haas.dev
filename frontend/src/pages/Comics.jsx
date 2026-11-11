@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import BarList from '../components/BarList.jsx'
+import ComicCardRun from '../components/ComicCardRun.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
-import RunBadge from '../components/RunBadge.jsx'
 import SeriesList from '../components/SeriesList.jsx'
 import SortControl from '../components/SortControl.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
@@ -458,7 +458,8 @@ export default function Comics() {
                 <PosterCard
                   item={item}
                   to={itemPath(item.id)}
-                  badge={<RunBadge row={item.row} />}
+                  stacked
+                  run={<ComicCardRun row={item.row} />}
                   statusLabels={copy.status}
                 />
               )}

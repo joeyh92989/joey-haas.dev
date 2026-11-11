@@ -21,8 +21,9 @@ MAX_EDITIONS = 50
 EDITION_KIND_MAX = 20
 EDITION_LABEL_MAX = 80
 
-# The upcoming tail on an ongoing run bar: this share of released issues,
-# never fewer than TAIL_MIN, so a short run still shows it is open-ended.
+# The upcoming segment on an ongoing run: this share of released issues,
+# never fewer than TAIL_MIN. The frontend's lanes draw the tail at a fixed
+# width and ignore this length; it stays in `segments` for API stability.
 TAIL_SHARE = 0.08
 TAIL_MIN = 3
 
@@ -188,12 +189,19 @@ COMIC_FIELDS = (
 RANGE_LABELS = {"issues_owned": "Issues owned", "issues_skipped": "Issues skipped"}
 
 
-def apply_comic_fields(changes: dict, is_comic: bool) -> dict:
+def apply_comic_fields(
+    changes: dict, is_comic: bool, current: dict | None = None
+) -> dict:
     """`changes` with its comic fields canonicalised; RangeError otherwise.
 
     `changes` holds only the keys the request set. Keys this function does not
     govern pass through untouched. A non-comic row may carry only empty comic
     fields, so a game's create form sending `following: false` is not refused.
+
+    `current` is the stored row's issues_owned, issues_skipped and editions
+    (absent on a create): whichever of them the request leaves out is read
+    from it, and the result may not skip an issue it holds (the pull list's
+    Skip rule, so the item form cannot get round it).
     """
     sent = {key: changes[key] for key in COMIC_FIELDS if key in changes}
     if not sent:
@@ -215,7 +223,42 @@ def apply_comic_fields(changes: dict, is_comic: bool) -> dict:
         isinstance(read_to, int) and 1 <= read_to <= MAX_ISSUE
     ):
         raise RangeError(f"Read to runs 1 to {MAX_ISSUE}")
+    if any(key in result for key in HELD_FIELDS):
+        stored = {key: (current or {}).get(key) for key in HELD_FIELDS}
+        merged = stored | {key: result[key] for key in HELD_FIELDS if key in result}
+        check_skips(**merged, before=stored if current else None)
     return result
+
+
+HELD_FIELDS = ("issues_owned", "issues_skipped", "editions")
+
+
+def _clash(
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+) -> set[int]:
+    return expand(parse_ranges(issues_skipped)) & owned_set(issues_owned, editions)
+
+
+def check_skips(
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+    before: dict | None = None,
+) -> None:
+    """RangeError naming the first skipped issue that is held, loose or in an
+    edition: a skip is for an issue I chose not to buy.
+
+    Only a clash the write introduces is refused. `before` is the stored
+    row's three fields: a row saved before this rule, skipping an issue it
+    now holds, still takes every other write rather than locking until it is
+    cleaned up."""
+    clash = _clash(issues_owned, issues_skipped, editions)
+    if before is not None:
+        clash -= _clash(**before)
+    if clash:
+        raise RangeError(f"#{min(clash)} is owned, so it can't be skipped")
 
 
 # --- Runs and reading -------------------------------------------------------
@@ -285,6 +328,13 @@ def read_state(read_to: int | None, owned: set[int]) -> ReadState:
     return ReadState(read=read, unread=len(owned) - read, read_to=read_to)
 
 
+def read_next(read_to: int | None, owned: set[int]) -> int | None:
+    """The first held issue past the marker (not started reads from #1), or
+    None when every held issue is read. Skips play no part: a skipped issue
+    is never held."""
+    return min((n for n in owned if n > (read_to or 0)), default=None)
+
+
 def snapshot_released(metadata: dict | None) -> int | None:
     """Released issues from a row's snapshot: the issue fetch's count, else
     the volume's issue count, else unknown."""
@@ -321,6 +371,7 @@ def row_run(
         "owned_text": format_ranges(owned),
         "read": reading.read,
         "unread": reading.unread,
+        "read_next": read_next(read_to, owned),
     }
 
 

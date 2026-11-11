@@ -328,16 +328,20 @@ describe('Comics', () => {
     expect(document.querySelector('.poster-grid')).toBeInTheDocument()
   })
 
-  it('shows the Covers view with run badges and comic status words', async () => {
+  it('shows the Covers view with stacked covers, lanes and comic status words', async () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
     await userEvent.click(
       screen.getByRole('button', { name: copy.views.covers }),
     )
     expect(localStorage.getItem('shelf.public.comics.view')).toBe('"covers"')
-    expect(
-      screen.getByRole('img', { name: '54 of 72 issues owned, ongoing' }),
-    ).toHaveTextContent('54/72+')
+    const lanes = screen.getByRole('img', { name: /^54 of 72 issues owned/ })
+    const card = lanes.closest('.poster-card')
+    expect(card).toHaveTextContent('54/72+')
+    // AC2: no badge on the cover; the lanes sit outside the link.
+    expect(lanes.closest('a')).toBeNull()
+    expect(card.querySelector('.poster-art')).toHaveAttribute('data-stacked')
+    expect(card.querySelector('.run-badge')).toBeNull()
     expect(screen.getByRole('img', { name: 'Reading' })).toBeInTheDocument()
   })
 

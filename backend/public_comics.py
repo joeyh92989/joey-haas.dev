@@ -24,6 +24,7 @@ from comics import (
     format_ranges,
     next_issue,
     pull_weeks,
+    read_next,
     read_state,
     series_from_row,
     shelf_figures,
@@ -36,7 +37,8 @@ ADDED_MONTHS = 12
 
 
 class PublicRunSegment(BaseModel):
-    """One stretch of the run bar: owned, missing or upcoming."""
+    """One stretch of a run, drawn by the card's lanes: owned, missing or
+    upcoming."""
 
     kind: str
     length: int
@@ -69,6 +71,9 @@ class PublicComicRow(BaseModel):
     rating: int | None
     read_to: int | None
     read: int
+    # The first held issue past read_to (editions included); None when all
+    # are read. Skips play no part.
+    read_next: int | None
     next_issue: PublicNextIssue | None
     created_at: datetime
 
@@ -152,8 +157,8 @@ class PublicEdition(BaseModel):
 
 
 class PublicComicDetail(BaseModel):
-    """The comic block on /shelf/:id: enough for the run, the issue grid and
-    the editions card."""
+    """The comic block on /shelf/:id: enough for What's next, the run's
+    lanes and box, and the editions card."""
 
     publisher: str | None
     owned_text: str
@@ -164,6 +169,8 @@ class PublicComicDetail(BaseModel):
     segments: list[PublicRunSegment]
     read_to: int | None
     read: int
+    # As on the shelf row.
+    read_next: int | None
     editions: list[PublicEdition]
     next_issue: PublicNextIssue | None
     following: bool
@@ -234,6 +241,7 @@ def _row(item: Item, series: ComicSeries, today: date) -> PublicComicRow:
         rating=item.rating,
         read_to=item.read_to,
         read=read_state(item.read_to, set(series.owned)).read,
+        read_next=read_next(item.read_to, set(series.owned)),
         next_issue=_next(series, today),
         created_at=item.created_at,
     )
@@ -331,6 +339,7 @@ def comic_detail(item: Item, today: date) -> PublicComicDetail:
         segments=_segments(series),
         read_to=item.read_to,
         read=read_state(item.read_to, set(series.owned)).read,
+        read_next=read_next(item.read_to, set(series.owned)),
         editions=[
             PublicEdition(
                 kind=e["kind"], label=e["label"], from_issue=e["from"], to_issue=e["to"]
