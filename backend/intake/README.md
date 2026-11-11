@@ -60,7 +60,9 @@ and the entries read from them or typed in.
   `uploaded`, so a crashed reader never strands one. Then it retries `reading` entries (`retry_reading()`, no model
   call), then reads waiting shelf photos, oldest first across
   sittings, one `read_next` at a time, re-reading the budget before each,
-  until nothing waits, the budget is down to the reserve (`waiting`), a
+  until nothing waits, the budget is down to the reserve or 480 seconds
+  (`DEADLINE_SECONDS`, inside the workflow's `curl -m 600`) have passed
+  with no new photo started (`waiting`), a
   read fails (`stopped`) or no model is configured (`failed`). The summary
   `{at, state, ok, expired, photos_expired, read, waiting, note}` is
   answered and stored as `intake_settings["nightly.last_run"]`, which

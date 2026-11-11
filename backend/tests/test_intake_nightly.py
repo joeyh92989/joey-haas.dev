@@ -15,7 +15,7 @@ from sqlalchemy import func, select, update
 from starlette.middleware.sessions import SessionMiddleware
 
 from intake.budget import RESERVE, pacific_day
-from intake.nightly import EXPIRE_AFTER, LAST_RUN_KEY, expire_sittings
+from intake.nightly import EXPIRE_AFTER, LAST_RUN_KEY, expire_sittings, run_nightly
 from intake.routes import create_intake_router
 from llm import FREE_TIER_DAILY_REQUESTS, GEMINI_MODELS, LLMError
 from models import (
@@ -325,6 +325,29 @@ async def test_nightly_puts_a_stale_reading_photo_back_in_the_queue(
         assert (await session.get(IntakePhoto, fresh)).state is (
             IntakePhotoState.READING
         )
+
+
+async def test_the_deadline_stops_the_night_before_a_new_photo(
+    sessionmaker_for_test,
+):
+    await _sitting(sessionmaker_for_test, photos=3)
+    await _leave_calls(sessionmaker_for_test, 5)
+    provider = RecordingProvider(sessionmaker_for_test)
+    ticks = iter([0.0, 0.0])  # the start, then the first photo's check
+
+    def clock() -> float:
+        return next(ticks, 481.0)  # past the 480s default from then on
+
+    async with sessionmaker_for_test() as session:
+        body = await run_nightly(
+            session, _config(), lambda: provider, _registry(), clock=clock
+        )
+    assert provider.calls == 1
+    assert body["read"] == 1
+    assert body["state"] == "waiting"
+    assert body["ok"] is True
+    assert body["waiting"] == 2
+    assert "deadline" in body["note"]
 
 
 @pytest.mark.parametrize("headers", [{}, bearer("nope")])

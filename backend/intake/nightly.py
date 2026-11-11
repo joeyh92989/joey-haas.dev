@@ -14,7 +14,8 @@ has calls left above the reserve (`intake.budget`). The budget is read
 afresh before every photo, because the recorder counts each call in its
 own session. A failed read stops the night (the next photo would most
 likely fail the same way, and a failed photo waits for Retry); a missing
-model key fails it without a call.
+model key fails it without a call. After `DEADLINE_SECONDS` (480) no new photo is
+started: the run ends `waiting`, inside the workflow's ten minutes.
 
 The run's summary is stored as `intake_settings["nightly.last_run"]`
 whatever happened, and is what the Jobs page's Intake row reads.
@@ -23,6 +24,7 @@ whatever happened, and is what the Jobs page's Intake row reads.
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -49,6 +51,10 @@ logger = logging.getLogger(__name__)
 
 EXPIRE_AFTER = timedelta(days=30)
 STALE_READING = timedelta(minutes=10)
+# The workflow step gives the call 600s (`curl -m 600`); no new photo is
+# started after this many, so one read in flight still ends inside it.
+DEADLINE_SECONDS = 480.0
+DEADLINE_NOTE = "Stopped at the run's deadline; the rest is read tomorrow"
 LAST_RUN_KEY = "nightly.last_run"
 NO_MODEL = "No model is configured"
 
@@ -130,14 +136,20 @@ async def run_nightly(
     provider_factory: Callable[[], LLMProvider] | None,
     registry: dict,
     now: datetime | None = None,
+    *,
+    deadline: float = DEADLINE_SECONDS,
+    clock: Callable[[], float] = time.monotonic,
 ) -> dict[str, Any]:
     """Expire, then read within the budget; store and return the summary.
 
     `state` is `ok` (read until nothing waited), `empty` (nothing to read),
-    `waiting` (today's budget ran out with photos left), `stopped` (a read
-    failed) or `failed` (no model). `ok` is false for the last two, which
-    the workflow reports as a failed step.
+    `waiting` (today's budget ran out, or `deadline` seconds by `clock`
+    passed, with photos left), `stopped` (a read failed) or `failed` (no
+    model). `ok` is false for the last two, which the workflow reports as
+    a failed step. Past the deadline no new photo is started, so the run
+    ends inside the workflow's `curl -m 600`.
     """
+    started = clock()
     now = now or datetime.now(UTC)
     expired, photos_expired = await expire_sittings(session, now)
     reset = await reset_stale_reading(session, now)
@@ -157,6 +169,9 @@ async def run_nightly(
         left = budget["remaining"] if budget["enforced"] else 1
         if left <= 0:
             state = "waiting"
+            break
+        if clock() - started >= deadline:
+            state, note = "waiting", DEADLINE_NOTE
             break
         if provider is None:
             try:
