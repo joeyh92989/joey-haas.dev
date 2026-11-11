@@ -597,6 +597,14 @@ export const spine = {
       missingCount: (n) => `${n} missing`,
       next: (number, date) => `Next #${number} · ${date}`,
       readTo: (n) => `read to #${n}`,
+      /** The lanes' row names and the box's key. */
+      lanes: { run: 'Run', read: 'Read', skipped: 'Skipped' },
+      private: 'private',
+      skippedKey: 'Skipped (private)',
+      readCell: 'Read',
+      ownedCell: 'Owned, unread',
+      edition: 'Collected edition',
+      key: 'Key',
     },
     pills: { following: 'Following', want: 'Want' },
     hero: {

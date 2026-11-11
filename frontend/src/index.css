@@ -7389,6 +7389,160 @@ main h1[tabindex='-1']:focus,
   }
 }
 
+/* Comic run lanes (comic series display spec): Run, Read and, in admin,
+   Skipped, on one axis. Every span is a non-text mark on the ground it
+   sits on (--lane-ground: --surface in a run card, --bg on a shelf card):
+   owned --chart 6.73 / 7.15 dark, 6.09 / 5.93 light; missing is hollow,
+   a 1.5px --run-missing outline, 3.30 / 3.50 dark, 3.25 / 3.17 light; the
+   read lane --text-2 8.53 / 9.06 dark, 8.24 / 8.03 light. Missing differs
+   from owned by shape (hollow), not only by colour. The 1px ring in the
+   ground colour separates neighbouring spans. */
+.lanes {
+  --lane-ground: var(--surface);
+  --lane-name: 4.5rem;
+  --lane-tail: 0px;
+  --lane-height: 16px;
+  --lane-thin: 4px;
+  display: grid;
+  gap: 5px;
+}
+
+.lanes[data-tail] {
+  --lane-tail: 1.75rem;
+}
+
+.lanes[data-mini] {
+  --lane-name: 0px;
+  --lane-height: 8px;
+  --lane-thin: 3px;
+  gap: 2px;
+}
+
+.lanes[data-mini][data-tail] {
+  --lane-tail: 0.9rem;
+}
+
+.lane {
+  align-items: center;
+  column-gap: 3px;
+  display: grid;
+  grid-template-columns: var(--lane-name) minmax(0, 1fr) var(--lane-tail);
+}
+
+.lane-name {
+  color: var(--text-3);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.lane-private {
+  font-size: 0.625rem;
+  font-style: normal;
+}
+
+.lane-track,
+.lane-tail {
+  height: var(--lane-height);
+  position: relative;
+}
+
+.lane[data-thin] .lane-track,
+.lane[data-thin] .lane-tail {
+  height: var(--lane-thin);
+}
+
+.lane-track i {
+  border-radius: 2px;
+  bottom: 0;
+  box-shadow: 0 0 0 1px var(--lane-ground);
+  min-width: 3px;
+  position: absolute;
+  top: 0;
+}
+
+.lane-tail i {
+  border-radius: 2px;
+  display: block;
+  height: 100%;
+}
+
+.lane-track i[data-k='owned'],
+.run-key i[data-k='owned'] {
+  background: var(--chart);
+}
+
+.lane-track i[data-k='missing'],
+.run-key i[data-k='missing'] {
+  box-shadow:
+    inset 0 0 0 1.5px var(--run-missing),
+    0 0 0 1px var(--lane-ground);
+}
+
+.lane-track i[data-k='skip'],
+.run-key i[data-k='skip'] {
+  border: 1.5px dashed var(--run-missing);
+}
+
+.lane-tail i[data-k='upcoming'],
+.run-key i[data-k='upcoming'] {
+  background: var(--hatch);
+}
+
+.lane-track i[data-k='readbar'],
+.run-key i[data-k='readbar'] {
+  background: var(--text-2);
+}
+
+.lane[data-axis] .lane-track {
+  height: 0.9rem;
+}
+
+.lane[data-axis] b {
+  color: var(--text-3);
+  font: 400 0.625rem/1 var(--font-mono);
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.run-key {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  gap: 0.25rem 1rem;
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+}
+
+.run-key li {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.run-key i {
+  border-radius: 2px;
+  box-sizing: border-box;
+  display: inline-block;
+  height: 0.6rem;
+  width: 0.9rem;
+}
+
+.run-key i[data-k='readbar'] {
+  height: 3px;
+}
+
+@media (max-width: 700px) {
+  .lanes:not([data-mini]) {
+    --lane-name: 3.25rem;
+  }
+}
+
 /* Out this week: one row of issue tiles, scrolling sideways when it
    outgrows the column. */
 .comics-strip {
