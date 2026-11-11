@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import ComicRunEditor from '../components/ComicRunEditor.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import {
   CARTRIDGE_ERA_PLATFORMS,
@@ -13,7 +14,7 @@ import MetadataPicker from '../components/MetadataPicker.jsx'
 import PlayJournal from '../components/PlayJournal.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { comicPayload, editionsText } from '../lib/comics.js'
+import { comicErrorField, comicPayload, editionRows } from '../lib/comics.js'
 import {
   pinPath,
   setStatus as postStatus,
@@ -48,6 +49,7 @@ const EDITABLE = [
   'acquired_at',
   'release_date',
   'issues_owned',
+  'issues_skipped',
   'editions',
   'read_to',
   'shelf_format',
@@ -76,7 +78,8 @@ function toForm(item) {
     acquired_at: item.acquired_at ?? '',
     release_date: item.release_date ?? '',
     issues_owned: item.issues_owned ?? '',
-    editions_text: editionsText(item.editions),
+    issues_skipped: item.issues_skipped ?? '',
+    editions: editionRows(item.editions),
     read_to: item.read_to ?? '',
     shelf_format: item.shelf_format ?? '',
     following: Boolean(item.following),
@@ -101,7 +104,7 @@ function toPayload(form) {
     completeness: orNull(form.completeness),
     acquired_at: orNull(form.acquired_at),
     release_date: orNull(form.release_date),
-    // An unreadable editions line keeps the stored list here; save() stops
+    // An unreadable edition row keeps the stored list here; save() stops
     // on comicPayload's error before anything is sent.
     ...comicPayload(form).fields,
   }
@@ -224,6 +227,8 @@ export default function AdminItem() {
   const [saving, setSaving] = useState(false)
   const [runBusy, setRunBusy] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
+  // A comic field the API refused, shown beside that field.
+  const [comicErrors, setComicErrors] = useState({})
   const [relinking, setRelinking] = useState(false)
   const [refreshingComic, setRefreshingComic] = useState(false)
 
@@ -308,11 +313,12 @@ export default function AdminItem() {
   async function save(event) {
     event.preventDefault()
     setError(null)
+    setComicErrors({})
     setSavedAt(null)
 
-    const editionsError = comicPayload(form).error
+    const editionsError = form.type === 'comic' && comicPayload(form).error
     if (editionsError) {
-      setError(editionsError)
+      setComicErrors({ editions: editionsError })
       return
     }
     const changes = changedFields(item, form)
@@ -338,9 +344,15 @@ export default function AdminItem() {
                 .then((payload) => payload?.detail)
                 .catch(() => null)
             : null
-        setError(
-          typeof detail === 'string' ? detail : 'Couldn’t save those changes.',
-        )
+        // A refused comic field is shown beside it; the form keeps it all.
+        const field = form.type === 'comic' ? comicErrorField(detail) : null
+        if (field) setComicErrors({ [field]: detail })
+        else
+          setError(
+            typeof detail === 'string'
+              ? detail
+              : 'Couldn’t save those changes.',
+          )
         return
       }
       const updated = await response.json()
@@ -427,13 +439,16 @@ export default function AdminItem() {
     // Against the form as it is now, not as it was when the request began: a
     // cold start can hold the request long enough to type into the form.
     setForm((current) => {
-      // Editions are edited as text: an unread or unreadable line is still
-      // a pending edit, so the text field is compared, not the parsed list.
+      // Editions are edited as rows: a half-filled or unreadable row is
+      // still a pending edit, so the rows are compared, not the parsed list.
       const unsaved = Object.keys(changedFields(item, current)).filter(
         (field) => field !== 'editions',
       )
-      if (current.editions_text !== toForm(item).editions_text)
-        unsaved.push('editions_text')
+      if (
+        JSON.stringify(current.editions) !==
+        JSON.stringify(toForm(item).editions)
+      )
+        unsaved.push('editions')
       return {
         ...toForm(updated),
         ...Object.fromEntries(unsaved.map((field) => [field, current[field]])),
@@ -704,11 +719,21 @@ export default function AdminItem() {
             </select>
 
             {form.type === 'comic' ? (
-              <ComicFields
-                value={form}
-                onChange={setForm}
-                released={item.comic_run?.released ?? null}
-              />
+              <>
+                <ComicRunEditor
+                  form={form}
+                  onChange={setForm}
+                  released={item.comic_run?.released ?? null}
+                  ongoing={Boolean(item.comic_run?.ongoing)}
+                />
+                <ComicFields
+                  value={form}
+                  onChange={setForm}
+                  released={item.comic_run?.released ?? null}
+                  showSkipped
+                  errors={comicErrors}
+                />
+              </>
             ) : (
               <>
                 <label htmlFor="platform_id">Platform</label>

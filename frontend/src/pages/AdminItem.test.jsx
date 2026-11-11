@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -761,25 +761,34 @@ describe('AdminItem comic fields', () => {
   it('shows the run in place of the copy fields', async () => {
     stubApi({ item: COMIC })
     renderPage()
-    expect(await screen.findByLabelText('Issues I own')).toHaveValue('1–54')
-    expect(screen.getByLabelText('Collected editions')).toHaveValue(
-      'Trade · Vol. 1 · 1–6',
+    expect(await screen.findByLabelText('Single issues I own')).toHaveValue(
+      '1–54',
     )
+    expect(screen.getByLabelText('Label, Vol. 1')).toHaveValue('Vol. 1')
+    expect(screen.getByLabelText('From issue, Vol. 1')).toHaveValue('1')
     expect(screen.getByText(/Comic Vine lists 72 out/)).toBeInTheDocument()
     expect(screen.queryByLabelText('Cart ID')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Platform')).not.toBeInTheDocument()
+    // The run card leads, with the private Skipped field under it.
+    expect(screen.getByRole('heading', { name: /^The run/ })).toHaveTextContent(
+      '54 of 72 · 18 missing',
+    )
+    expect(screen.getByLabelText(/^Skipped/)).toHaveValue('')
   })
 
   it('sends only the comic fields that changed', async () => {
     const mock = stubApi({ item: COMIC })
     renderPage()
-    const issues = await screen.findByLabelText('Issues I own')
+    const issues = await screen.findByLabelText('Single issues I own')
     await userEvent.clear(issues)
     await userEvent.type(issues, '1-54, 60')
-    await userEvent.type(
-      screen.getByLabelText('Collected editions'),
-      '\nTrade · Vol. 2 · 7-12',
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Add an edition' }),
     )
+    await userEvent.type(screen.getByLabelText('Kind, edition 2'), 'Trade')
+    await userEvent.type(screen.getByLabelText('Label, edition 2'), 'Vol. 2')
+    await userEvent.type(screen.getByLabelText('From issue, Vol. 2'), '7')
+    await userEvent.type(screen.getByLabelText('To issue, Vol. 2'), '12')
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
     await waitFor(() => expect(writeCalls(mock)).toHaveLength(1))
     expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
@@ -791,38 +800,112 @@ describe('AdminItem comic fields', () => {
     })
   })
 
-  it('stops on an editions line it cannot read, sending nothing', async () => {
+  it('removes an edition row', async () => {
     const mock = stubApi({ item: COMIC })
     renderPage()
-    await userEvent.type(
-      await screen.findByLabelText('Collected editions'),
-      '\nVol. 2',
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Remove Vol. 1' }),
     )
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
+    await waitFor(() => expect(writeCalls(mock)).toHaveLength(1))
+    expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({ editions: null })
+  })
+
+  it('stops on an edition row it cannot read, sending nothing', async () => {
+    const mock = stubApi({ item: COMIC })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Add an edition' }),
+    )
+    await userEvent.type(screen.getByLabelText('Label, edition 2'), 'Vol. 2')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Editions, line 2: write kind · label · first–last',
+      'Edition 2: give it a kind, a label and the issues it collects.',
     )
     expect(writeCalls(mock)).toHaveLength(0)
   })
 
-  it('shows the API’s range error and keeps what was typed (AC8)', async () => {
+  it('shows the API’s range error beside its field and keeps what was typed (AC13)', async () => {
     stubApi({
       item: COMIC,
       onWrite: () => ({
         ok: false,
         status: 422,
-        json: async () => ({ detail: 'Issues: “5–2” runs backwards' }),
+        json: async () => ({ detail: 'Issues owned: “5–2” runs backwards' }),
       }),
     })
     renderPage()
-    const issues = await screen.findByLabelText('Issues I own')
+    const issues = await screen.findByLabelText('Single issues I own')
     await userEvent.clear(issues)
     await userEvent.type(issues, '5-2')
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Issues: “5–2” runs backwards',
-    )
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Issues owned: “5–2” runs backwards')
+    expect(alert.id).toBe('comic-issues_owned-error')
+    expect(issues).toHaveAttribute('aria-invalid', 'true')
     expect(issues).toHaveValue('5-2')
+  })
+
+  it('owns a missing issue on a tap and redraws before Save (AC10)', async () => {
+    stubApi({ item: COMIC })
+    renderPage()
+    const box = await screen.findByRole('group', { name: 'Issues' })
+    // 55–72 is one bundle of missing issues until it is opened.
+    await userEvent.click(
+      within(box).getByRole('button', { name: /^Issues 55 to 72, 18 missing/ }),
+    )
+    await userEvent.click(
+      within(box).getByRole('button', { name: 'Issue 60, Missing' }),
+    )
+    expect(screen.getByLabelText('Single issues I own')).toHaveValue('1-54, 60')
+    expect(
+      within(box).getByRole('button', { name: 'Issue 60, Owned, unread' }),
+    ).toHaveFocus()
+    expect(screen.getByRole('heading', { name: /^The run/ })).toHaveTextContent(
+      '55 of 72 · 17 missing',
+    )
+  })
+
+  it('moves Read to here, and back one on the current marker', async () => {
+    stubApi({ item: { ...COMIC, issues_owned: '7–20', read_to: 9 } })
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Read to here' }),
+    )
+    const box = screen.getByRole('group', { name: 'Issues' })
+    await userEvent.click(
+      within(box).getByRole('button', { name: 'Issue 9, Read' }),
+    )
+    expect(screen.getByLabelText('Read to')).toHaveValue(8)
+  })
+
+  it('skips only an issue not held, dashed and in its lane (AC11, AC12)', async () => {
+    stubApi({ item: COMIC })
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Skip' }))
+    const box = screen.getByRole('group', { name: 'Issues' })
+    // A book is never a button: editions are edited as rows.
+    expect(within(box).queryByRole('button', { name: /Vol\. 1/ })).toBeNull()
+    await userEvent.click(
+      within(box).getByRole('button', { name: /^Issues 41 to 54, 14 unread/ }),
+    )
+    await userEvent.click(
+      within(box).getByRole('button', { name: 'Issue 41, Owned, unread' }),
+    )
+    expect(screen.getByLabelText(/^Skipped/)).toHaveValue('')
+    await userEvent.click(
+      within(box).getByRole('button', { name: /^Issues 55 to 72/ }),
+    )
+    await userEvent.click(
+      within(box).getByRole('button', { name: 'Issue 58, Missing' }),
+    )
+    expect(screen.getByLabelText(/^Skipped/)).toHaveValue('58')
+    expect(
+      within(box).getByRole('button', { name: 'Issue 58, Skipped' }),
+    ).toHaveAttribute('data-k', 'skip')
+    expect(
+      screen.getByRole('img', { name: /^54 of 72 issues owned/ }),
+    ).toHaveTextContent('Skipped private')
   })
 
   it('refreshes from Comic Vine, then reads the item again', async () => {
@@ -846,11 +929,13 @@ describe('AdminItem comic fields', () => {
     )
   })
 
-  it('keeps an editions line typed before the refresh lands', async () => {
+  it('keeps an edition row typed before the refresh lands', async () => {
     const mock = stubApi({ item: COMIC })
     renderPage()
-    const editions = await screen.findByLabelText('Collected editions')
-    await userEvent.type(editions, '\nTrade · Vol. 2 · 7-12')
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Add an edition' }),
+    )
+    await userEvent.type(screen.getByLabelText('Label, edition 2'), 'Vol. 2')
     await userEvent.click(
       screen.getByRole('button', { name: 'Refresh from Comic Vine' }),
     )
@@ -867,7 +952,7 @@ describe('AdminItem comic fields', () => {
         screen.getByRole('button', { name: 'Refresh from Comic Vine' }),
       ).toBeEnabled(),
     )
-    expect(editions).toHaveValue('Trade · Vol. 1 · 1–6\nTrade · Vol. 2 · 7-12')
+    expect(screen.getByLabelText('Label, Vol. 2')).toHaveValue('Vol. 2')
   })
 
   it('offers no Comic Vine refresh on a game', async () => {

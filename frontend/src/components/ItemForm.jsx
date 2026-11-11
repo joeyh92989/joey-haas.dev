@@ -1,5 +1,5 @@
 import { spine } from '../content/spine.js'
-import { SHELF_FORMATS } from '../lib/comics.js'
+import { EMPTY_EDITION, SHELF_FORMATS } from '../lib/comics.js'
 import { STATUS_LABEL, STATUS_ORDER } from '../lib/shelf.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -50,26 +50,128 @@ export const CARTRIDGE_ERA_PLATFORMS = [4]
 /** A comic's fields as empty form state, for a new row. */
 export const EMPTY_COMIC_FIELDS = {
   issues_owned: '',
-  editions_text: '',
+  issues_skipped: '',
+  editions: [],
   read_to: '',
   shelf_format: '',
   following: false,
 }
 
+/** Kinds offered for an edition; free text, so any other is fine too. */
+const EDITION_KINDS = ['Trade', 'Omnibus', 'Hardcover', 'Compendium', 'Deluxe']
+
+/** An error from the API, shown beside the field it is about. */
+function FieldError({ id, message }) {
+  if (!message) return null
+  return (
+    <p id={id} className="admin-error comic-field-error" role="alert">
+      {message}
+    </p>
+  )
+}
+
 /**
- * A comic series' own fields (spec, section 5): the owned ranges, collected
- * editions, how far I have read, the format on the shelf, and Follow. Shared
- * by the add form and the edit page, so both read and write one shape.
+ * Collected editions as rows: kind, label, the first and last issue it
+ * collects, and Remove; Add appends a blank row. The API is the one
+ * validator; a blank row is dropped on save.
+ */
+function EditionRows({ rows, onChange, error }) {
+  const update = (index, field) => (event) =>
+    onChange(
+      rows.map((row, at) =>
+        at === index ? { ...row, [field]: event.target.value } : row,
+      ),
+    )
+  return (
+    <fieldset
+      className="comic-editions"
+      aria-describedby="comic-editions-error"
+    >
+      <legend>Collected editions</legend>
+      <datalist id="comic-edition-kinds">
+        {EDITION_KINDS.map((kind) => (
+          <option key={kind} value={kind} />
+        ))}
+      </datalist>
+      {rows.map((row, index) => {
+        const name = row.label || `edition ${index + 1}`
+        return (
+          <div className="comic-edition-row" key={index}>
+            <input
+              aria-label={`Kind, ${name}`}
+              list="comic-edition-kinds"
+              placeholder="Trade"
+              value={row.kind}
+              onChange={update(index, 'kind')}
+            />
+            <input
+              aria-label={`Label, ${name}`}
+              placeholder="Vol. 1"
+              value={row.label}
+              onChange={update(index, 'label')}
+            />
+            <input
+              aria-label={`From issue, ${name}`}
+              inputMode="numeric"
+              placeholder="1"
+              value={row.from}
+              onChange={update(index, 'from')}
+            />
+            <input
+              aria-label={`To issue, ${name}`}
+              inputMode="numeric"
+              placeholder="6"
+              value={row.to}
+              onChange={update(index, 'to')}
+            />
+            <button
+              type="button"
+              className="link-button"
+              aria-label={`Remove ${name}`}
+              onClick={() => onChange(rows.filter((_, at) => at !== index))}
+            >
+              ×
+            </button>
+          </div>
+        )
+      })}
+      <button
+        type="button"
+        className="link-button"
+        onClick={() => onChange([...rows, { ...EMPTY_EDITION }])}
+      >
+        Add an edition
+      </button>
+      <FieldError id="comic-editions-error" message={error} />
+    </fieldset>
+  )
+}
+
+/**
+ * A comic series' own fields (spec, section 5): the single issues owned as
+ * ranges, how far I have read, the skipped issues (admin edit only, and
+ * private), collected editions as rows, the format on the shelf, and
+ * Follow. Shared by the add form and the edit page, so both read and write
+ * one shape. On the edit page the run editor above stays in step with these
+ * fields: a tap rewrites the text, and typing redraws the box.
  *
  * Ranges are checked by the API, which answers a malformed one with a
- * message the page shows; the hint says what it accepts.
+ * message shown beside the field it names; the form keeps what was typed.
  *
  * @param {object} props
  * @param {object} props.value - Form state carrying the EMPTY_COMIC_FIELDS keys.
  * @param {(next: object) => void} props.onChange
  * @param {number|null} [props.released] - Comic Vine's released count, for the hint.
+ * @param {boolean} [props.showSkipped] - The edit page's private Skipped field.
+ * @param {Record<string, string>} [props.errors] - API errors by field.
  */
-export function ComicFields({ value, onChange, released = null }) {
+export function ComicFields({
+  value,
+  onChange,
+  released = null,
+  showSkipped = false,
+  errors = {},
+}) {
   const set = (field) => (event) =>
     onChange({
       ...value,
@@ -78,41 +180,70 @@ export function ComicFields({ value, onChange, released = null }) {
           ? event.target.checked
           : event.target.value,
     })
+  const describedBy = (field, hint) =>
+    [hint, errors[field] && `comic-${field}-error`].filter(Boolean).join(' ') ||
+    undefined
   return (
     <>
-      <label htmlFor="comic-issues">Issues I own</label>
+      <label htmlFor="comic-issues">Single issues I own</label>
       <input
         id="comic-issues"
         placeholder="1–54, 60, 62–64"
-        aria-describedby="comic-issues-hint"
+        aria-describedby={describedBy('issues_owned', 'comic-issues-hint')}
+        aria-invalid={errors.issues_owned ? true : undefined}
         value={value.issues_owned}
         onChange={set('issues_owned')}
       />
       <p id="comic-issues-hint" className="muted comic-hint">
-        Numbers and ranges, separated by commas.
+        Numbers and ranges, separated by commas. Issues in a collected edition
+        are counted from its row.
         {released ? ` Comic Vine lists ${released} out.` : ''}
       </p>
-
-      <label htmlFor="comic-editions">Collected editions</label>
-      <textarea
-        id="comic-editions"
-        rows="3"
-        placeholder="Trade · Vol. 1 · 1–6"
-        aria-describedby="comic-editions-hint"
-        value={value.editions_text}
-        onChange={set('editions_text')}
-      />
-      <p id="comic-editions-hint" className="muted comic-hint">
-        One per line: kind · label · the issues it collects.
-      </p>
+      <FieldError id="comic-issues_owned-error" message={errors.issues_owned} />
 
       <label htmlFor="comic-read-to">Read to</label>
       <input
         id="comic-read-to"
         type="number"
         min="1"
+        aria-describedby={describedBy('read_to')}
+        aria-invalid={errors.read_to ? true : undefined}
         value={value.read_to}
         onChange={set('read_to')}
+      />
+      <FieldError id="comic-read_to-error" message={errors.read_to} />
+
+      {showSkipped && (
+        <>
+          <label htmlFor="comic-skipped">
+            Skipped <span className="comic-private">private</span>
+          </label>
+          <input
+            id="comic-skipped"
+            placeholder="58"
+            aria-describedby={describedBy(
+              'issues_skipped',
+              'comic-skipped-hint',
+            )}
+            aria-invalid={errors.issues_skipped ? true : undefined}
+            value={value.issues_skipped}
+            onChange={set('issues_skipped')}
+          />
+          <p id="comic-skipped-hint" className="muted comic-hint">
+            Issues I chose not to buy. Never public; an owned issue can’t be
+            skipped.
+          </p>
+          <FieldError
+            id="comic-issues_skipped-error"
+            message={errors.issues_skipped}
+          />
+        </>
+      )}
+
+      <EditionRows
+        rows={value.editions}
+        onChange={(editions) => onChange({ ...value, editions })}
+        error={errors.editions}
       />
 
       <label htmlFor="comic-shelf-format">Format on the shelf</label>

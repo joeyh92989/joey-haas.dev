@@ -7932,6 +7932,92 @@ button.run-cell[aria-disabled='true'] {
   gap: 0.35rem;
 }
 
+/* The admin edit's run card leads the comic fields across the whole form;
+   the tap-mode group and the edition rows sit in the same grid. */
+.comic-run-editor {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  grid-column: 1 / -1;
+  margin: 0.5rem 0;
+  padding: 1rem 1.1rem;
+}
+
+.comic-run-editor h2 {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  margin: 0 0 0.7rem;
+}
+
+.comic-run-editor h2 small {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.comic-tap-modes {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0 0.75rem;
+}
+
+.comic-private {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 0.6875rem;
+  padding: 0 0.45rem;
+}
+
+.comic-editions {
+  border: 0;
+  display: grid;
+  gap: 0.4rem;
+  grid-column: 1 / -1;
+  margin: 0.25rem 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.comic-editions legend {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  margin-bottom: 0.4rem;
+  padding: 0;
+}
+
+.comic-edition-row {
+  align-items: center;
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 4rem 4rem auto;
+}
+
+.comic-editions > .link-button {
+  justify-self: start;
+}
+
+.comic-field-error {
+  grid-column: 2;
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .comic-edition-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 3.5rem 3.5rem auto;
+  }
+
+  .comic-field-error {
+    grid-column: 1 / -1;
+  }
+}
+
 .comic-hint {
   font-size: 0.875rem;
   margin: 0 0 0.5rem;

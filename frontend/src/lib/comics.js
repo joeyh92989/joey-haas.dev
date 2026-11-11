@@ -179,76 +179,71 @@ export function sortComics(rows, key) {
 /** The form's shelf formats, in the order the select lists them. */
 export const SHELF_FORMATS = ['singles', 'trades', 'omnibus']
 
-const EDITION_LINE = /^(\d+)\s*(?:[–-]\s*(\d+))?$/
+/** One blank edition row, as the form holds it: every field a string. */
+export const EMPTY_EDITION = { kind: '', label: '', from: '', to: '' }
 
 /**
- * Stored editions as the form's text: "Trade · Vol. 1 · 1–6", one per line.
+ * Stored editions as the form's rows: strings, so the inputs stay
+ * controlled.
  *
  * @param {{kind: string, label: string, from: number, to: number}[]|null} editions
+ * @returns {{kind: string, label: string, from: string, to: string}[]}
  */
-export function editionsText(editions) {
-  return (editions ?? [])
-    .map(({ kind, label, from, to }) =>
-      [kind, label, from === to ? `${from}` : `${from}–${to}`].join(' · '),
-    )
-    .join('\n')
+export function editionRows(editions) {
+  return (editions ?? []).map(({ kind, label, from, to }) => ({
+    kind,
+    label,
+    from: String(from),
+    to: String(to),
+  }))
 }
 
+const ISSUE_NUMBER = /^\d+$/
+
 /**
- * The form's editions text as the API's list. Only the line's shape is
- * checked here; the API judges the numbers and lengths (spec, D7).
+ * The form's edition rows as the API's list. A row left wholly blank is
+ * dropped; a missing "to" means one issue. Only the shape is checked here
+ * (every field filled, whole numbers): the API judges lengths, bounds and
+ * order (spec, D7).
  *
- * @param {string} text
+ * @param {{kind: string, label: string, from: string, to: string}[]} rows
  * @returns {{editions: object[]|null, error: string|null}}
  */
-export function parseEditions(text) {
+export function parseEditionRows(rows) {
   const editions = []
-  const lines = text.split('\n')
-  for (const [index, line] of lines.entries()) {
-    if (!line.trim()) continue
-    // Kind before the first separator, range after the last: a label may
-    // hold a separator itself ("Vol. 1 · Deluxe").
-    const first = line.search(/[·|]/)
-    const last = Math.max(line.lastIndexOf('·'), line.lastIndexOf('|'))
-    const parts =
-      first === last
-        ? []
-        : [
-            line.slice(0, first),
-            line.slice(first + 1, last),
-            line.slice(last + 1),
-          ].map((part) => part.trim())
-    const range = parts.length === 3 && EDITION_LINE.exec(parts[2])
-    if (!range || !parts[0] || !parts[1]) {
+  for (const [index, row] of (rows ?? []).entries()) {
+    const kind = row.kind.trim()
+    const label = row.label.trim()
+    const from = String(row.from).trim()
+    const to = String(row.to).trim() || from
+    if (!kind && !label && !from && !String(row.to).trim()) continue
+    if (!kind || !label || !ISSUE_NUMBER.test(from) || !ISSUE_NUMBER.test(to)) {
       return {
         editions: null,
-        error: `Editions, line ${index + 1}: write kind · label · first–last`,
+        error: `Edition ${index + 1}: give it a kind, a label and the issues it collects.`,
       }
     }
-    const from = Number(range[1])
-    editions.push({
-      kind: parts[0],
-      label: parts[1],
-      from,
-      to: range[2] === undefined ? from : Number(range[2]),
-    })
+    editions.push({ kind, label, from: Number(from), to: Number(to) })
   }
   return { editions: editions.length ? editions : null, error: null }
 }
 
 /**
  * A comic form's own fields as the API takes them: blanks become null and
- * the editions text a list. The error is the editions line it could not read.
+ * the edition rows a list. The error is the first edition row it could not
+ * read.
  *
  * @param {object} form - Carries ComicFields' keys.
  * @returns {{fields: object, error: string|null}}
  */
 export function comicPayload(form) {
-  const { editions, error } = parseEditions(form.editions_text)
+  const { editions, error } = parseEditionRows(form.editions)
   const issues = form.issues_owned.trim()
+  const skipped = (form.issues_skipped ?? '').trim()
   return {
     fields: {
       issues_owned: issues === '' ? null : issues,
+      issues_skipped: skipped === '' ? null : skipped,
       editions,
       read_to: form.read_to === '' ? null : Number(form.read_to),
       shelf_format: form.shelf_format === '' ? null : form.shelf_format,
@@ -256,4 +251,22 @@ export function comicPayload(form) {
     },
     error,
   }
+}
+
+/**
+ * Which comic field an API refusal is about, from the words `comics.py`
+ * uses, so the form can show it beside that field. Null when it names none.
+ *
+ * @param {string} detail - A 422's `detail`.
+ * @returns {'issues_owned'|'issues_skipped'|'read_to'|'editions'|null}
+ */
+export function comicErrorField(detail) {
+  if (typeof detail !== 'string') return null
+  if (detail.startsWith('Issues owned')) return 'issues_owned'
+  if (detail.startsWith('Issues skipped') || detail.includes('be skipped'))
+    return 'issues_skipped'
+  if (detail.startsWith('Read to')) return 'read_to'
+  if (/edition|collects|issue numbers run|editions/i.test(detail))
+    return 'editions'
+  return null
 }
