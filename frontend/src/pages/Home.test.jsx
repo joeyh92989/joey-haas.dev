@@ -55,7 +55,7 @@ describe('Home', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: 'Backend systems where correctness and money are the same problem.',
+        name: 'Shipping software since 2012, from roadmap to production.',
       }),
     ).toBeInTheDocument()
   })
