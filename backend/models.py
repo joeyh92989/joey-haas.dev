@@ -1438,6 +1438,18 @@ class IntakeEntry(Base):
     updated_at: Mapped[datetime] = _updated_column()
 
 
+class IntakeSetting(Base):
+    """One key/value blob for intake's nightly job (migration 0015), the
+    `closet_settings` shape: `nightly.last_run`, `{at, state, ok, expired,
+    read, waiting, note}`, read by `GET /api/intake/status`."""
+
+    __tablename__ = "intake_settings"
+
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[datetime] = _updated_column()
+
+
 class LlmUsage(Base):
     """Model calls per Pacific day and model, so the reader knows what is
     left of the free allowance (`intake/budget.py`)."""

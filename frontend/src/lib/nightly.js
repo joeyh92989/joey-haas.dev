@@ -142,7 +142,7 @@ function runRow(run, job, age) {
 /**
  * One row per nightly job: the catalogue refresh, Radar, Discover, the
  * weekend forecast, the spot finder, the closet's tags, outfit plans and
- * Sunday opinions,
+ * Sunday opinions, intake's photo reading,
  * and the public snapshot. A job with
  * no time is "unknown" rather than stale, except the catalogue, whose
  * absence is the clearest sign the schedule has stopped.
@@ -160,6 +160,9 @@ function runRow(run, job, age) {
  * @param {{tag?: object|null, plan?: object|null, opinion?: object|null}|null} [closet]
  *   The Closet jobs' last runs from `GET /api/closet/status`; null leaves
  *   all three unknown.
+ * @param {{at?: string, state?: string, ok?: boolean, note?: string}|null} [intake]
+ *   Intake's nightly run from `GET /api/intake/status`; null leaves it
+ *   unknown.
  * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null, runWords?: string, stateWords?: string, stopped?: boolean}>}
  *   `stopped` is on the catalogue row only: the schedule may have stopped,
  *   which a failure on its last night would otherwise hide.
@@ -170,6 +173,7 @@ export function nightlyJobs(
   now = Date.now(),
   spots = null,
   closet = null,
+  intake = null,
 ) {
   const age = (at, hours) => {
     if (at === null) return 'unknown'
@@ -277,6 +281,23 @@ export function nightlyJobs(
           empty: 'Nothing flagged',
           skipped: 'The model had nothing to add',
         },
+      },
+      age,
+    ),
+    runRow(
+      intake,
+      {
+        key: 'intake',
+        label: 'Intake',
+        // The Add page that reads photos by hand comes with intake's UI.
+        runNow: null,
+        hours: STALE_HOURS,
+        ok: 'Waiting photos read',
+        quiet: {
+          empty: 'Nothing to read',
+          waiting: "Today's budget spent; photos wait",
+        },
+        failed: ['failed', 'stopped'],
       },
       age,
     ),

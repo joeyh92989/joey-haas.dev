@@ -818,7 +818,13 @@ async def test_0014_closet_profile_is_one_row(clean_database):
 
 # --- Revision 0015: Intake. ---------------------------------------------------
 
-INTAKE_TABLES = {"intake_sittings", "intake_photos", "intake_entries", "llm_usage"}
+INTAKE_TABLES = {
+    "intake_sittings",
+    "intake_photos",
+    "intake_entries",
+    "llm_usage",
+    "intake_settings",
+}
 INTAKE_TYPES = {
     "movie_disc_format",
     "intake_area",

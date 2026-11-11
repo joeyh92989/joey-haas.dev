@@ -10,13 +10,13 @@ go (`intake_photos`, a reading copy that is dropped once read plus a small
 thumbnail) and the entries read from them or typed in (`intake_entries`).
 Garment entries point at the untagged garment their upload created, and go
 with it. `llm_usage` counts model calls per Pacific day so the reader knows
-what is left of the free allowance. `items.disc_format` records a movie's
-best disc.
+what is left of the free allowance, and `intake_settings` keeps the nightly
+job's last run. `items.disc_format` records a movie's best disc.
 
 `kind` is text, not an enum: kinds live in the server's registry
 (`backend/intake/kinds.py`), so adding one needs no migration.
 
-Additive: four new tables, four new types and one nullable column. Nothing
+Additive: five new tables, four new types and one nullable column. Nothing
 existing is altered, renamed or dropped, so the code before this revision
 boots against it and the deploy order (migrate, then merge) holds.
 """
@@ -174,8 +174,16 @@ def upgrade() -> None:
         _now("updated_at"),
     )
 
+    op.create_table(
+        "intake_settings",
+        sa.Column("key", sa.String(60), primary_key=True),
+        sa.Column("value", postgresql.JSONB(), nullable=False),
+        _now("updated_at"),
+    )
+
 
 def downgrade() -> None:
+    op.drop_table("intake_settings")
     op.drop_table("llm_usage")
     op.drop_index("ix_intake_entries_sitting", table_name="intake_entries")
     op.drop_table("intake_entries")

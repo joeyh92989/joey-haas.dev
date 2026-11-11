@@ -173,6 +173,11 @@ jobs:
           # paints from a stored plan. After the tags, so tonight's new
           # garments are in them; a failed call stores the template plan.
           call closet-plan 300 /api/closet/jobs/plan
+          # Intake: expire sittings untouched for 30 days, then read waiting
+          # shelf photos while the free tier has calls above the reserve of
+          # 12. Before Discover, the spot finder and the opinion, which the
+          # reserve keeps for them; a spent budget is ok, not a failure.
+          call intake 600 /api/intake/jobs/nightly
           call registry 900 /api/physical/refresh-registry
           # WooCommerce on Render, then the nine Shopify stores walked on
           # this runner and posted to the API store by store. 75 minutes for

@@ -24,12 +24,14 @@ from closet_review_routes import create_closet_review_router
 from closet_routes import create_closet_router
 from closet_today_routes import create_closet_today_router
 from comics_routes import create_comics_router
+from intake.routes import create_intake_router
 from items import JOB_ROUTES, _job_token_route, create_items_router, require_admin
 from physical_routes import create_physical_router
 from picker_routes import create_picker_router
 from recommendations_routes import create_recommendations_router
 from spots_candidates_routes import create_candidates_router
 from spots_weekend_routes import create_weekend_router
+from tests.test_intake_budget import _config
 
 pytestmark = pytest.mark.asyncio
 
@@ -50,6 +52,7 @@ EXPECTED = {
     ("POST", "/api/closet/jobs/tag"),
     ("POST", "/api/closet/jobs/plan"),
     ("POST", "/api/closet/jobs/opinion"),
+    ("POST", "/api/intake/jobs/nightly"),
 }
 
 
@@ -107,6 +110,7 @@ def _real_app() -> FastAPI:
     app.include_router(create_closet_router(None, lock=lock))
     app.include_router(create_closet_today_router(None, lock=lock))
     app.include_router(create_closet_review_router(None, lock=lock))
+    app.include_router(create_intake_router(None, {}, config=_config()))
     app.add_middleware(SessionMiddleware, secret_key="test", https_only=False)
     return app
 
@@ -140,6 +144,7 @@ async def test_every_whitelisted_route_exists_on_the_real_routers():
     app.include_router(create_closet_router(None, lock=lock))
     app.include_router(create_closet_today_router(None, lock=lock))
     app.include_router(create_closet_review_router(None, lock=lock))
+    app.include_router(create_intake_router(None, {}, config=_config()))
     # FastAPI 0.141 includes routers lazily, so app.routes holds one opaque
     # entry per router; the OpenAPI schema lists the flattened templates.
     real = {
@@ -175,6 +180,8 @@ async def test_the_token_passes_the_gate_on_each_real_route(method, path):
         ("GET", "/api/recommendations?kind=radar"),
         ("GET", "/api/analytics"),
         ("POST", "/api/recommendations/0b7c6f3e-1111-4c1c-9a50-000000000001/want"),
+        ("GET", "/api/intake/status"),
+        ("POST", "/api/intake/sittings/0b7c6f3e-1111-4c1c-9a50-000000000001/read-next"),
     ],
 )
 async def test_the_token_opens_no_other_real_route(method, path):

@@ -42,6 +42,46 @@ and the entries read from them or typed in.
   cleared; check and reading stay in the sitting. The sitting is deleted
   (photos and all) once nothing is kept.
 
+- `nightly.py` — `run_nightly()`, behind `POST /api/intake/jobs/nightly`
+  (spec D4, job token). First `expire_sittings()` deletes sittings nobody
+  has touched for `EXPIRE_AFTER` (30 days), photos and entries with them;
+  "touched" is the newest `updated_at` of the sitting, its photos or its
+  entries. Then it reads waiting shelf photos, oldest first across
+  sittings, one `read_next` at a time, re-reading the budget before each,
+  until nothing waits, the budget is down to the reserve (`waiting`), a
+  read fails (`stopped`) or no model is configured (`failed`). The summary
+  `{at, state, ok, expired, photos_expired, read, waiting, note}` is
+  answered and stored as `intake_settings["nightly.last_run"]`, which
+  `GET /api/intake/status` serves to the Jobs page's Intake row
+  (`frontend/src/lib/nightly.js`).
+
+## Routes
+
+All under `/api/intake`, admin only (`items.require_admin`).
+
+| Route | What it does |
+|---|---|
+| `GET /kinds` | The kind registry, with each source's state |
+| `POST /sittings`, `GET /sittings?area=`, `GET/PATCH/DELETE /sittings/{id}` | Sittings |
+| `POST /sittings/{id}/photos`, `POST /photos/{id}/retry`, `GET /photos/{id}/image` | Photos |
+| `POST /sittings/{id}/read-next` | Read one waiting photo (the page drives it) |
+| `POST /sittings/{id}/entries`, `PATCH /entries/{id}` | Typed and chosen entries |
+| `POST /sittings/{id}/commit` | Write the sitting to the collection |
+| `GET /counts`, `GET /budget` | Entries to check per area; today's free reads |
+| `POST /jobs/nightly` | The nightly step; the **only** intake route the job token opens (`items.JOB_ROUTES`) |
+| `GET /status` | The nightly's last run, null before the first |
+
+## Who reads
+
+While Shoot is open the browser drives `read-next` one photo at a time:
+a request per photo fits the free tier's slow reads and isolates a
+failure. The nightly is the only reader after the tab closes. Its
+workflow step (`.github/workflows/nightly.yml`, `call intake 600`) runs
+after the Closet's outfit plans and before the registry, so it comes
+before Discover, the spot finder and the Closet opinion, which the reserve
+of 12 calls is kept for. A spent budget is an ok night, not a failure:
+the photos wait for tomorrow.
+
 ## Why the recorder has its own sessions
 
 A call is recorded before its request is sent, in a session the recorder
@@ -62,7 +102,24 @@ outcome = await read_next(
     session, sitting_id, provider, state["remaining"], registry=registry
 )  # status: read/empty/failed/waiting/idle
 done = await commit_sitting(session, sitting_id, today=today)  # caller commits
+summary = await run_nightly(session, config, provider_factory, registry)
 ```
+
+```bash
+# The nightly step by hand (JOB_TOKEN from the environment):
+curl -sS -X POST -H "Authorization: Bearer $JOB_TOKEN" \
+  https://api.joey-haas.dev/api/intake/jobs/nightly
+```
+
+## Configuration
+
+Nothing of its own. The reader needs a model (`LLM_PROVIDER`, default
+`gemini`, and its key, e.g. `GEMINI_API_KEY`); without one a read answers
+502 and the nightly records `failed`. The budget is enforced only on
+Gemini. The nightly needs `JOB_TOKEN` on the API and in the workflow's
+secrets, as every nightly step does. Tables: `intake_sittings`,
+`intake_photos`, `intake_entries`, `llm_usage` and `intake_settings`
+(migration 0015).
 
 ## Committing
 
@@ -91,5 +148,10 @@ because `to_row` filters the payload by them.
 
 - Only Gemini is enforced (`enforced` is false for any other provider);
   other providers are built without a recorder.
+- The nightly and an open Shoot page can read at the same moment; each
+  takes the oldest waiting photo, so the two may read the same one twice.
+  At night nobody is shooting, so this is accepted rather than locked.
+- Closet sittings are never read here: their garments are real on upload
+  and tagged by the Closet's tag queue. They do expire.
 - The free-tier ceiling is `llm.FREE_TIER_DAILY_REQUESTS` per model. If
   Google changes it, change it there.

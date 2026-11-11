@@ -8,6 +8,7 @@ does (`intake/commit.py`).
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, date, datetime
@@ -33,6 +34,7 @@ from intake.commit import (
     commit_sitting,
 )
 from intake.kinds import REGISTRY, describe
+from intake.nightly import LAST_RUN_KEY, run_nightly
 from intake.reader import read_next
 from items import _enrich, require_admin
 from llm import LLMError, LLMProvider
@@ -42,6 +44,7 @@ from models import (
     IntakeEntryState,
     IntakePhoto,
     IntakePhotoState,
+    IntakeSetting,
     IntakeSitting,
 )
 
@@ -135,6 +138,8 @@ def create_intake_router(
         tags=["intake"],
         dependencies=[Depends(require_admin)],
     )
+    # One nightly run at a time; a second is a 409, as the closet's jobs are.
+    nightly_lock = asyncio.Lock()
 
     async def get_session() -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:
@@ -448,5 +453,21 @@ def create_intake_router(
     async def budget(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """What is left of today's free reads, and when it resets."""
         return await budget_state(session, config)
+
+    @router.post("/jobs/nightly")
+    async def nightly(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+        """The nightly step (job token): expire sittings untouched for 30
+        days, then read waiting shelf photos while the budget lasts. Its
+        summary is stored as `nightly.last_run` whatever happened."""
+        if nightly_lock.locked():
+            raise HTTPException(409, "The intake nightly is already running")
+        async with nightly_lock:
+            return await run_nightly(session, config, provider_factory, registry)
+
+    @router.get("/status")
+    async def status(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+        """The nightly's last run summary, null before its first run."""
+        row = await session.get(IntakeSetting, LAST_RUN_KEY)
+        return {LAST_RUN_KEY: row.value if row is not None else None}
 
     return router
