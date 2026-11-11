@@ -56,6 +56,8 @@ function SetForAll({ kind, entries, onApply, busy }) {
  *   id, then field key (`''` for a refusal no single field owns).
  * @param {() => Promise<void>} props.onCommit
  * @param {() => void} props.onLater Finish later: back to the Add page.
+ * @param {() => void} props.onBack Back to Check (the step is saved, so
+ *   without it a sitting left in Details could never be checked again).
  * @param {boolean} props.committing
  * @param {string} props.target "the shelf" or "the closet".
  * @param {import('react').Ref<HTMLHeadingElement>} props.headingRef
@@ -67,6 +69,7 @@ export default function DetailsStep({
   refusals,
   onCommit,
   onLater,
+  onBack,
   committing,
   target,
   headingRef,
@@ -199,6 +202,9 @@ export default function DetailsStep({
           New rows are private until published. Finish later keeps the sitting.
         </p>
         <div className="intake-actions">
+          <button type="button" className="btn" onClick={onBack}>
+            <span aria-hidden="true">←</span> Back to Check
+          </button>
           <button type="button" className="btn ghost" onClick={onLater}>
             Finish later
           </button>

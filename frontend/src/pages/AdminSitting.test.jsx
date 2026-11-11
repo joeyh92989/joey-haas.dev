@@ -456,6 +456,21 @@ describe('AdminSitting', () => {
     })
   })
 
+  it('goes back to Check from Details, saving the step', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({ sittings: [longbox({ step: 'details' })] })
+    renderSitting()
+    await press(
+      user,
+      await screen.findByRole('button', { name: /Back to Check/ }),
+    )
+    expect(await screen.findByRole('heading', { name: 'Check' })).toHaveFocus()
+    expect(currentStep()).toHaveTextContent('Check')
+    expect(api.calls('PATCH', /\/sittings\/s1$/).at(-1).body).toEqual({
+      step: 'check',
+    })
+  })
+
   it('stops reading when the page goes, with no read after it', async () => {
     const api = fakeIntakeApi({
       sittings: [

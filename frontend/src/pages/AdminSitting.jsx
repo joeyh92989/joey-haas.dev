@@ -288,6 +288,7 @@ function AdminSitting() {
                 refusals={refusals}
                 onCommit={commit}
                 onLater={() => navigate(addPath(area))}
+                onBack={() => goTo('check')}
                 committing={committing}
                 target={target}
                 headingRef={headingRef}
