@@ -250,6 +250,7 @@ function AdminSitting() {
               onChange={setSitting}
               budget={budget}
               reader={reader}
+              kinds={kinds}
               onNext={() => goTo('check')}
               headingRef={headingRef}
             />

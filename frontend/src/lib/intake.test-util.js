@@ -304,6 +304,16 @@ export function fakeIntakeApi({
       if (method === 'PATCH') Object.assign(sitting, body)
       return json(200, sitting)
     }
+    if ((m = path.match(/^\/api\/intake\/sittings\/([\w-]+)\/entries$/))) {
+      const sitting = state.sittings[m[1]]
+      const added = entry(`t${++next}`, body.chosen ? 'ready' : 'typed', {
+        kind: body.kind,
+        payload: body.payload ?? {},
+        chosen: body.chosen ?? null,
+      })
+      sitting.entries.push(added)
+      return json(201, added)
+    }
     if ((m = path.match(/^\/api\/intake\/sittings\/([\w-]+)\/photos$/))) {
       const sitting = state.sittings[m[1]]
       const file = options.body.get('photo')

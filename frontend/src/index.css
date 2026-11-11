@@ -3023,6 +3023,35 @@ footer {
   }
 }
 
+/* Shoot's Search instead: the add bar's search, adding to the sitting. */
+.intake-shootsearch {
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.intake-shootsearch form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.intake-shootsearch input {
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  flex: 1;
+  min-height: 2.25rem;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .intake-shootsearch .btn,
+  .intake-shootsearch input {
+    min-height: 2.75rem;
+  }
+}
+
 /* Public intake demo (/shelf/intake). A drawn shelf, the four stages and
    the Check rows, from the recording only. Spines alternate --sunken and
    --accent-soft under --text: --text on --sunken 14.25 dark, 16.15 light;
