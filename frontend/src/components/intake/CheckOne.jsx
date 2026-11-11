@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { API_URL } from '../../lib/api.js'
+import { API_URL, apiFetch, errorMessage } from '../../lib/api.js'
 import CoverImage from '../CoverImage.jsx'
 
 const sameCandidate = (a, b) =>
@@ -10,8 +10,10 @@ const sameCandidate = (a, b) =>
 /**
  * One uncertain entry, asked on its own: the photo it came from, the text
  * that was read, and its candidates as a radio group with the best one
- * preselected. Yes, this one confirms; Skip leaves it to check later; Not
- * mine drops it; Keep as typed adds it with no match.
+ * preselected. Yes, this one confirms; Search… looks the title up across
+ * the add bar's sources (`GET /api/intake/search`) and puts the entry's
+ * kind's matches first; Skip leaves it to check later; Not mine drops it;
+ * Keep as typed adds it with no match.
  *
  * @param {object} props
  * @param {object} props.entry An entry in `check`.
@@ -33,13 +35,52 @@ export default function CheckOne({
   position,
 }) {
   const name = useId()
-  const candidates = entry.candidates ?? []
+  const [found, setFound] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [query, setQuery] = useState(entry.payload?.detected_title ?? '')
+  const [searchBusy, setSearchBusy] = useState(false)
+  const [searchNote, setSearchNote] = useState(null)
+  const listed = entry.candidates ?? []
+  // A search's matches lead; the reader's candidates follow, once each.
+  const candidates = [
+    ...found,
+    ...listed.filter(
+      (c) => !found.some((f) => f.external_id === c.external_id),
+    ),
+  ]
   const best =
     candidates.find((c) => sameCandidate(c, entry.chosen)) ?? candidates[0]
   const [picked, setPicked] = useState(best?.external_id ?? null)
   const choice = candidates.find((c) => c.external_id === picked) ?? null
   const read = entry.payload?.detected_title ?? '—'
   const year = entry.payload?.detected_year
+
+  async function search() {
+    setSearchBusy(true)
+    setSearchNote(null)
+    try {
+      const response = await apiFetch(
+        `/api/intake/search?area=shelf&query=${encodeURIComponent(query.trim())}`,
+      )
+      if (!response.ok) {
+        setSearchNote(await errorMessage(response, { ownConflicts: true }))
+        return
+      }
+      const body = await response.json()
+      const mine = body.results.filter((result) => result.kind === entry.kind)
+      setFound(mine)
+      if (mine.length) setPicked(mine[0].external_id)
+      setSearchNote(
+        mine.length
+          ? `${mine.length} found`
+          : `No match for “${query.trim()}”; keep it as typed, or try other words.`,
+      )
+    } catch {
+      setSearchNote('The server did not answer; try again.')
+    } finally {
+      setSearchBusy(false)
+    }
+  }
 
   return (
     <div className="intake-checkone">
@@ -106,6 +147,36 @@ export default function CheckOne({
             {entry.payload?.reason ?? 'No candidates came back for this one.'}
           </p>
         )}
+        {searching && (
+          <form
+            role="search"
+            aria-label="Search this title"
+            className="intake-checksearch"
+            onSubmit={(event) => {
+              event.preventDefault()
+              search()
+            }}
+          >
+            <input
+              type="search"
+              aria-label="Search for this title"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <button
+              type="submit"
+              className="btn"
+              disabled={searchBusy || !query.trim()}
+            >
+              Search
+            </button>
+          </form>
+        )}
+        {searchNote && (
+          <p className="muted" role="status">
+            {searchNote}
+          </p>
+        )}
         <div className="intake-actions">
           <button
             type="button"
@@ -118,8 +189,9 @@ export default function CheckOne({
           <button
             type="button"
             className="btn"
-            disabled
-            aria-describedby={`${name}-search`}
+            disabled={busy}
+            aria-expanded={searching}
+            onClick={() => setSearching(true)}
           >
             Search…
           </button>
@@ -132,10 +204,6 @@ export default function CheckOne({
             Skip
           </button>
         </div>
-        <p id={`${name}-search`} className="muted intake-note">
-          Search arrives with the add bar; until then, keep it as typed and fix
-          the match on its edit page.
-        </p>
         <div className="intake-actions quiet">
           <button
             type="button"

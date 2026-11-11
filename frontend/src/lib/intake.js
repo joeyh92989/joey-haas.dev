@@ -5,7 +5,7 @@
  * from here, so a kind or field added on the server needs nothing new.
  */
 import { FORMAT_OPTIONS, PLATFORM_OPTIONS } from '../components/ItemForm.jsx'
-import { MAX_PHOTO_BYTES, PHOTO_ACCEPT } from './closet.js'
+import { MAX_ATTEMPTS, MAX_PHOTO_BYTES, PHOTO_ACCEPT } from './closet.js'
 import { STATUS_LABEL } from './shelf.js'
 
 /**
@@ -115,4 +115,71 @@ export function entryCover(entry) {
 export function localToday(now = new Date()) {
   const pad = (n) => String(n).padStart(2, '0')
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+/** A default name for a new sitting: its kind and the day. */
+export function sittingLabel(kind, now = new Date()) {
+  const day = now.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+  return `${kind.label} · ${day}`
+}
+
+/**
+ * The fields a form holds, as the API takes them: blanks left out, text
+ * trimmed, a number field as a number. Select values stay strings; the
+ * server reads "3" as 3 where a field is a number.
+ *
+ * @param {Array<{key: string, control: string}>} fields
+ * @param {Record<string, unknown>} values
+ */
+export function fieldPayload(fields, values) {
+  const payload = {}
+  for (const field of fields) {
+    const raw = values[field.key]
+    if (raw == null) continue
+    const text = String(raw).trim()
+    if (text === '') continue
+    payload[field.key] = field.control === 'number' ? Number(text) : text
+  }
+  return payload
+}
+
+/**
+ * What the add bar says about one source's answer, or null when it
+ * answered (`GET /api/intake/search`'s `sources`).
+ *
+ * @param {{state: string, reason: string|null}} source
+ * @param {{label: string}} kind
+ */
+export function sourceWords(source, kind) {
+  if (source.state === 'not_configured') {
+    return `${kind.label} search is off: ${source.reason}`
+  }
+  if (source.state === 'busy') return `${kind.label}: ${source.reason}`
+  if (source.state === 'failed') {
+    return `${kind.label} search failed: ${source.reason}`
+  }
+  return null
+}
+
+/**
+ * Whether Clothes · Check asks about a piece: the tag queue gave up on it
+ * (untagged, never saved by hand, out of attempts). A piece still queued
+ * waits for Tag now or the nightly instead.
+ */
+export function garmentNeedsCheck(garment) {
+  return (
+    garment.status === 'untagged' &&
+    garment.tag_source == null &&
+    garment.tag_attempts >= MAX_ATTEMPTS
+  )
+}
+
+/** The labels of the fields a record leaves empty, in field order. */
+export function missingFields(fields, record) {
+  return fields
+    .filter((field) => record[field.key] == null || record[field.key] === '')
+    .map((field) => field.label)
 }

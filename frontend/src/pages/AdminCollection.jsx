@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
+import AddSection from '../components/intake/AddSection.jsx'
 import ItemForm, {
   EMPTY_COMIC_FIELDS,
   FORMAT_OPTIONS,
@@ -827,173 +828,177 @@ export default function AdminCollection() {
         </p>
       )}
 
-      <WrapUpSheet
-        subject={wrap}
-        onClose={() => setWrap(null)}
-        onDone={wrapDone}
-      />
+      <AddSection area="shelf" onAdded={load}>
+        <WrapUpSheet
+          subject={wrap}
+          onClose={() => setWrap(null)}
+          onDone={wrapDone}
+        />
 
-      <MetadataPicker type={form.type} onSelect={applyCandidate} />
+        <MetadataPicker type={form.type} onSelect={applyCandidate} />
 
-      <ItemForm
-        value={form}
-        onChange={setForm}
-        onSubmit={addItem}
-        busy={saving}
-        linkedSource={form.external_source}
-        onClearLink={clearLink}
-      />
+        <ItemForm
+          value={form}
+          onChange={setForm}
+          onSubmit={addItem}
+          busy={saving}
+          linkedSource={form.external_source}
+          onClearLink={clearLink}
+        />
 
-      {items.length === 0 ? (
-        <p className="muted">Nothing in the collection yet.</p>
-      ) : (
-        <>
-          {refreshResult && (
-            <p className="muted" role="status">
-              {`Updated ${refreshResult.updated} · skipped ${refreshResult.skipped} · failed ${refreshResult.failed}`}
-            </p>
-          )}
+        {items.length === 0 ? (
+          <p className="muted">Nothing in the collection yet.</p>
+        ) : (
+          <>
+            {refreshResult && (
+              <p className="muted" role="status">
+                {`Updated ${refreshResult.updated} · skipped ${refreshResult.skipped} · failed ${refreshResult.failed}`}
+              </p>
+            )}
 
-          {view === 'shelf' ? (
-            renderShelf()
-          ) : (
-            <div className="item-table-wrap">
-              {selected.size > 0 && (
-                <div
-                  className="bulk-set"
-                  role="group"
-                  aria-label="Selected items"
-                >
-                  <span>{selected.size} selected</span>
-                  <label>
-                    Set platform
-                    <select
-                      value={bulkPlatform}
-                      onChange={(event) => setBulkPlatform(event.target.value)}
-                    >
-                      <option value="">unchanged</option>
-                      {PLATFORM_OPTIONS.map(([id, name]) => (
-                        <option key={id} value={id}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Set format
-                    <select
-                      value={bulkFormat}
-                      onChange={(event) => setBulkFormat(event.target.value)}
-                    >
-                      <option value="">unchanged</option>
-                      {FORMAT_OPTIONS.map(([format, label]) => (
-                        <option key={format} value={format}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    type="button"
-                    disabled={
-                      bulkBusy || (bulkPlatform === '' && bulkFormat === '')
-                    }
-                    onClick={applyBulkSet}
+            {view === 'shelf' ? (
+              renderShelf()
+            ) : (
+              <div className="item-table-wrap">
+                {selected.size > 0 && (
+                  <div
+                    className="bulk-set"
+                    role="group"
+                    aria-label="Selected items"
                   >
-                    Apply
-                  </button>
-                </div>
-              )}
-              <table className="item-table">
-                <thead>
-                  <tr>
-                    <th>
-                      <input
-                        type="checkbox"
-                        aria-label="Select all"
-                        checked={
-                          items.length > 0 && selected.size === items.length
+                    <span>{selected.size} selected</span>
+                    <label>
+                      Set platform
+                      <select
+                        value={bulkPlatform}
+                        onChange={(event) =>
+                          setBulkPlatform(event.target.value)
                         }
-                        onChange={toggleAll}
-                      />
-                    </th>
-                    <th>
-                      <span className="visually-hidden">Cover</span>
-                    </th>
-                    <th>Type</th>
-                    <th>Title</th>
-                    <th>Platform</th>
-                    <th>Status</th>
-                    <th>Rating</th>
-                    <th>Public</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id}>
-                      <td>
+                      >
+                        <option value="">unchanged</option>
+                        {PLATFORM_OPTIONS.map(([id, name]) => (
+                          <option key={id} value={id}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Set format
+                      <select
+                        value={bulkFormat}
+                        onChange={(event) => setBulkFormat(event.target.value)}
+                      >
+                        <option value="">unchanged</option>
+                        {FORMAT_OPTIONS.map(([format, label]) => (
+                          <option key={format} value={format}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      disabled={
+                        bulkBusy || (bulkPlatform === '' && bulkFormat === '')
+                      }
+                      onClick={applyBulkSet}
+                    >
+                      Apply
+                    </button>
+                  </div>
+                )}
+                <table className="item-table">
+                  <thead>
+                    <tr>
+                      <th>
                         <input
                           type="checkbox"
-                          aria-label={`Select ${item.title}`}
-                          checked={selected.has(item.id)}
-                          onChange={() => toggleSelected(item.id)}
-                        />
-                      </td>
-                      <td className="item-cover-cell">
-                        <CoverImage src={item.cover_url} type={item.type} />
-                      </td>
-                      <td>{item.type}</td>
-                      <td>
-                        {/* The row links to the detail view: a wrong match is
-                          fixed there, not here. */}
-                        <Link to={`/admin/collection/${item.id}`}>
-                          {item.title}
-                        </Link>
-                      </td>
-                      <td>{item.platform ?? '—'}</td>
-                      <td>
-                        <select
-                          aria-label={`Status for ${item.title}`}
-                          value={item.status}
-                          onChange={(event) =>
-                            updateStatus(item, event.target.value)
+                          aria-label="Select all"
+                          checked={
+                            items.length > 0 && selected.size === items.length
                           }
-                        >
-                          {statusMoves(item).map((entry) => (
-                            <option key={entry.status} value={entry.status}>
-                              {entry.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>{item.rating ?? '—'}</td>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={item.is_public}
-                          aria-label={`Public: ${item.title}`}
-                          onChange={(event) =>
-                            updateVisibility(item.id, event.target.checked)
-                          }
+                          onChange={toggleAll}
                         />
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          Delete
-                        </button>
-                      </td>
+                      </th>
+                      <th>
+                        <span className="visually-hidden">Cover</span>
+                      </th>
+                      <th>Type</th>
+                      <th>Title</th>
+                      <th>Platform</th>
+                      <th>Status</th>
+                      <th>Rating</th>
+                      <th>Public</th>
+                      <th />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
+                  </thead>
+                  <tbody>
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${item.title}`}
+                            checked={selected.has(item.id)}
+                            onChange={() => toggleSelected(item.id)}
+                          />
+                        </td>
+                        <td className="item-cover-cell">
+                          <CoverImage src={item.cover_url} type={item.type} />
+                        </td>
+                        <td>{item.type}</td>
+                        <td>
+                          {/* The row links to the detail view: a wrong match is
+                          fixed there, not here. */}
+                          <Link to={`/admin/collection/${item.id}`}>
+                            {item.title}
+                          </Link>
+                        </td>
+                        <td>{item.platform ?? '—'}</td>
+                        <td>
+                          <select
+                            aria-label={`Status for ${item.title}`}
+                            value={item.status}
+                            onChange={(event) =>
+                              updateStatus(item, event.target.value)
+                            }
+                          >
+                            {statusMoves(item).map((entry) => (
+                              <option key={entry.status} value={entry.status}>
+                                {entry.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>{item.rating ?? '—'}</td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={item.is_public}
+                            aria-label={`Public: ${item.title}`}
+                            onChange={(event) =>
+                              updateVisibility(item.id, event.target.checked)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => removeItem(item.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </AddSection>
     </section>
   )
 }

@@ -110,7 +110,11 @@ export default function DoneStep({
             {`Publish these ${created.length}`}
           </button>
         )}
-        <Link className="btn" to={shelfPath(sitting.area)}>
+        <Link
+          className="btn"
+          to={shelfPath(sitting.area)}
+          state={closet ? { closetStatus: 'untagged' } : undefined}
+        >
           {closet ? 'See them in the closet' : 'See them on the shelf'}
         </Link>
       </div>

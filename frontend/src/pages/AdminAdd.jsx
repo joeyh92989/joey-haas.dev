@@ -5,7 +5,7 @@ import KindTile from '../components/intake/KindTile.jsx'
 import UnfinishedList from '../components/intake/UnfinishedList.jsx'
 import { LOAD_ERROR } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { addPath, areaOfPath } from '../lib/intake.js'
+import { addPath, areaOfPath, sittingLabel } from '../lib/intake.js'
 
 /** The mixed shelf: one sitting, and the reader sorts each title's kind. */
 const MIXED = {
@@ -13,15 +13,6 @@ const MIXED = {
   label: 'Mixed shelf',
   ways_in: ['photo'],
   note: 'the reader sorts each title',
-}
-
-/** A default name for a new sitting: its kind and the day. */
-function sittingLabel(kind, now = new Date()) {
-  const day = now.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
-  return `${kind.label} · ${day}`
 }
 
 /**

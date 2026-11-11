@@ -197,6 +197,70 @@ def _typed_garment(kind: Kind, entry: IntakeEntry) -> Garment | Refusal:
     return row
 
 
+@dataclass
+class SingleAdd:
+    """What one add bar commit did: the counts, the new item ids, the new
+    garment's id, or the refusals that kept it from writing."""
+
+    added: int = 0
+    already_owned: int = 0
+    created: list[uuid.UUID] = field(default_factory=list)
+    garment_id: uuid.UUID | None = None
+    refused: list[Refusal] = field(default_factory=list)
+
+
+async def commit_one(
+    session: AsyncSession,
+    kind_key: str,
+    *,
+    chosen: dict[str, Any] | None,
+    payload: dict[str, Any],
+    today: date,
+) -> SingleAdd:
+    """Adds one thing from the add bar through the sitting's own row
+    builders and `items.commit_items`, so a single add writes the row a
+    sitting would (AC 6): a chosen match, or a row kept as typed (no
+    `chosen`). Does not commit; the caller rolls back on a refusal."""
+    outcome = SingleAdd()
+    kind = REGISTRY.get(kind_key)
+    # A transient entry, never added to the session: the builders read it.
+    entry = IntakeEntry(
+        id=uuid.uuid4(),
+        kind=kind_key,
+        state=S.READY,
+        payload=payload,
+        chosen=chosen,
+    )
+    if kind is None:
+        outcome.refused.append(
+            Refusal(entry.id, "kind", f"{kind_key} is not a kind intake knows")
+        )
+        return outcome
+    if kind.area is IntakeArea.CLOSET:
+        made = _typed_garment(kind, entry)
+        if isinstance(made, Refusal):
+            outcome.refused.append(made)
+            return outcome
+        session.add(made)
+        await session.flush()
+        outcome.garment_id = made.id
+        outcome.added = 1
+        return outcome
+    made = _shelf_item(kind, entry)
+    if isinstance(made, Refusal):
+        outcome.refused.append(made)
+        return outcome
+    try:
+        result = await commit_items(session, [made], today=today)
+    except RowRefused as refused:
+        outcome.refused.append(Refusal(entry.id, None, str(refused.error)))
+        return outcome
+    outcome.created = result.created
+    outcome.added = len(result.created)
+    outcome.already_owned = result.existing + result.duplicates
+    return outcome
+
+
 async def commit_sitting(
     session: AsyncSession, sitting_id: uuid.UUID, *, today: date
 ) -> SittingCommit:

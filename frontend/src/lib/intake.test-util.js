@@ -139,6 +139,11 @@ const json = (status, body) => ({
  *   error?: string}>} [options.reads] What each read-next does to the
  *   oldest uploaded photo, in turn; a read with no script reads nothing.
  * @param {(sitting: object) => {status: number, body: object}} [options.commit]
+ * @param {(area: string, query: string) => {results: object[],
+ *   sources: object[]}} [options.search] The add bar's search answer.
+ * @param {(body: object) => {status: number, body: object}} [options.add]
+ *   `POST /api/intake/add`'s answer; by default one item added.
+ * @param {Array<object>} [options.garments] The Closet's garments.
  * @returns {{fetch: import('vitest').Mock, state: object, calls: (method:
  *   string, pattern: RegExp) => Array<{url: string, body: unknown}>}}
  */
@@ -147,8 +152,12 @@ export function fakeIntakeApi({
   budget = { remaining: 30, enforced: true },
   reads = [],
   commit,
+  search = () => ({ results: [], sources: [] }),
+  add,
+  garments = [],
 } = {}) {
   const state = {
+    garments: structuredClone(garments),
     sittings: Object.fromEntries(
       sittings.map((s) => [
         s.id,
@@ -207,6 +216,53 @@ export function fakeIntakeApi({
       return json(200, { email: 'admin@example.com' })
     }
     if (path === '/api/intake/kinds') return json(200, KINDS)
+    if ((m = path.match(/^\/api\/intake\/search\?area=(\w+)&query=(.*)$/))) {
+      return json(200, search(m[1], decodeURIComponent(m[2])))
+    }
+    if (path === '/api/intake/add' && method === 'POST') {
+      if (add) {
+        const answer = add(body)
+        return json(answer.status, answer.body)
+      }
+      return json(201, {
+        added: 1,
+        already_owned: 0,
+        created: body.kind === 'garment' ? [] : ['item-new'],
+        garment_id: body.kind === 'garment' ? 'garment-new' : null,
+      })
+    }
+    if ((m = path.match(/^\/api\/intake\/entries\/([\w-]+)\/tag-again$/))) {
+      const found = findEntry(m[1])
+      const garment = state.garments.find((g) => g.id === found.garment_id)
+      garment.tag_attempts = 0
+      return json(200, found)
+    }
+    if (path === '/api/closet/garments') {
+      const counts = { total: state.garments.length }
+      for (const g of state.garments)
+        counts[g.status] = (counts[g.status] ?? 0) + 1
+      return json(200, { garments: state.garments, counts })
+    }
+    if ((m = path.match(/^\/api\/closet\/garments\/([\w-]+)$/))) {
+      const index = state.garments.findIndex((g) => g.id === m[1])
+      if (method === 'DELETE') {
+        state.garments.splice(index, 1)
+        for (const s of Object.values(state.sittings)) {
+          s.entries = s.entries.filter((e) => e.garment_id !== m[1])
+        }
+        return { ok: true, status: 204, json: async () => null }
+      }
+      if (method === 'PATCH') {
+        Object.assign(state.garments[index], body, {
+          tag_source: 'manual',
+          status: 'active',
+        })
+      }
+      return json(200, state.garments[index])
+    }
+    if (path === '/api/closet/tag' && method === 'POST') {
+      return json(200, { tagged: 0, calls: 1, note: null, remaining: 1 })
+    }
     if (path === '/api/intake/budget') {
       return json(200, { ...state.budget, resets_at: '2026-11-11T08:00:00Z' })
     }

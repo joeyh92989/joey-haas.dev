@@ -163,68 +163,55 @@ describe('AdminCloset', () => {
     )
   })
 
-  it('uploads photos, shows the toast and tags one batch on Tag now', async () => {
-    const fresh = [
-      garment('e', null, { status: 'untagged', tag_source: null }),
-      garment('f', null, { status: 'untagged', tag_source: null }),
-    ]
-    let after = GARMENTS
-    const calls = stubApi({
-      'GET /api/closet/garments': () => json(closet(after)),
-      'POST /api/closet/garments/photos': () => {
-        after = [...fresh, ...GARMENTS]
-        return json({ added: 2, garments: fresh }, 201)
-      },
-      'POST /api/closet/tag': () =>
-        json({ tagged: 2, calls: 1, note: null, remaining: 1 }),
-    })
+  it('has the add bar in place of ＋ Camera: type-only, ▤ Photos', async () => {
+    stubApi()
     renderCloset()
     await screen.findByRole('list')
-    const photos = [1, 2].map(
-      (n) =>
-        new File([new Uint8Array([255, 216, n])], `${n}.jpg`, {
-          type: 'image/jpeg',
-        }),
-    )
-    await userEvent.upload(screen.getByLabelText('Add garment photos'), photos)
+    expect(screen.getByRole('textbox', { name: 'Add' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Add from photos' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByLabelText('Add garment photos')).toBeNull()
+  })
 
-    const upload = calls.find((c) => c.path === '/api/closet/garments/photos')
-    expect(upload.method).toBe('POST')
-    expect(upload.body.getAll('photos')).toHaveLength(2)
-    const toast = await screen.findByText(/tagging tonight/)
-    expect(toast.closest('[role=status]')).toHaveTextContent(
-      '2 added · tagging tonight',
+  it('shows the photos waiting for tags and tags one batch on Tag now', async () => {
+    const queued = [
+      garment('e', null, { status: 'untagged', tag_source: null }),
+      garment('f', null, { status: 'untagged', tag_source: null }),
+      // Given up on: Clothes · Check asks about it, the queue does not.
+      garment('g', null, {
+        status: 'untagged',
+        tag_source: null,
+        tag_attempts: 3,
+      }),
+    ]
+    let after = [...queued, ...GARMENTS]
+    const calls = stubApi({
+      'GET /api/closet/garments': () => json(closet(after)),
+      'POST /api/closet/tag': () => {
+        after = GARMENTS
+        return json({ tagged: 2, calls: 1, note: null, remaining: 1 })
+      },
+    })
+    renderCloset()
+    const line = await screen.findByText(/photos waiting/)
+    // d (untagged, never tried) and e, f: three in the queue.
+    expect(line.closest('.intake-waiting')).toHaveTextContent(
+      '3 photos waiting for tags',
     )
-    // The view moves to the untagged garments, the new ones among them.
-    expect(tiles()).toEqual([
-      '/admin/closet/e',
-      '/admin/closet/f',
-      '/admin/closet/d',
-    ])
-
     await userEvent.click(screen.getByRole('button', { name: 'Tag now' }))
     expect(
       await screen.findByText(/2 tagged, 1 still queued/),
     ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Tag now' }),
-    ).not.toBeInTheDocument()
     expect(calls.filter((c) => c.path === '/api/closet/tag')).toHaveLength(1)
   })
 
   it('says so when tagging is already running', async () => {
     stubApi({
-      'POST /api/closet/garments/photos': () =>
-        json({ added: 1, garments: [] }, 201),
       'POST /api/closet/tag': () =>
         json({ detail: 'A refresh is already running' }, 409),
     })
     renderCloset()
-    await screen.findByRole('list')
-    await userEvent.upload(
-      screen.getByLabelText('Add garment photos'),
-      new File([new Uint8Array([1])], '1.jpg', { type: 'image/jpeg' }),
-    )
     await userEvent.click(
       await screen.findByRole('button', { name: 'Tag now' }),
     )
@@ -233,115 +220,28 @@ describe('AdminCloset', () => {
     ).toBeInTheDocument()
   })
 
-  it('refuses more than 24 photos before sending any', async () => {
-    const calls = stubApi()
-    renderCloset()
-    await screen.findByRole('list')
-    const photos = Array.from(
-      { length: 25 },
-      (_, n) =>
-        new File([new Uint8Array([n])], `${n}.jpg`, { type: 'image/jpeg' }),
-    )
-    await userEvent.upload(screen.getByLabelText('Add garment photos'), photos)
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Upload at most 24 photos at a time; 25 were picked.',
-    )
-    expect(calls.some((c) => c.method === 'POST')).toBe(false)
-  })
-
-  it('refuses a photo over the byte cap by name, before sending any', async () => {
-    const calls = stubApi()
-    renderCloset()
-    await screen.findByRole('list')
-    const small = new File([new Uint8Array([1])], 'ok.jpg', {
-      type: 'image/jpeg',
-    })
-    const big = new File([new Uint8Array([2])], 'huge.heic', {
-      type: 'image/heic',
-    })
-    Object.defineProperty(big, 'size', { value: 14 * 1024 * 1024 + 1 })
-    await userEvent.upload(screen.getByLabelText('Add garment photos'), [
-      small,
-      big,
-    ])
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'huge.heic is too large: at most 14 MB a photo.',
-    )
-    expect(calls.some((c) => c.method === 'POST')).toBe(false)
-  })
-
-  it('offers only the formats the upload accepts', async () => {
+  it('shows the waiting pieces on Show them, and at once from a sitting (AC 7)', async () => {
     stubApi()
     renderCloset()
     await screen.findByRole('list')
-    expect(screen.getByLabelText('Add garment photos')).toHaveAttribute(
-      'accept',
-      'image/jpeg,image/png,image/webp,image/heic,image/heif',
-    )
+    expect(tiles()).not.toContain('/admin/closet/d')
+    await userEvent.click(screen.getByRole('button', { name: 'Show them' }))
+    expect(tiles()).toEqual(['/admin/closet/d'])
   })
 
-  it('clears every chip but Untagged after an upload', async () => {
-    const fresh = [
-      garment('e', null, {
-        status: 'untagged',
-        tag_source: null,
-        category: null,
-        warmth: null,
-      }),
-    ]
-    let after = GARMENTS
-    stubApi({
-      'GET /api/closet/garments': () => json(closet(after)),
-      'POST /api/closet/garments/photos': () => {
-        after = [...fresh, ...GARMENTS]
-        return json({ added: 1, garments: fresh }, 201)
-      },
-    })
-    renderCloset()
+  it('opens on the untagged pieces when a sitting sends them here', async () => {
+    stubApi()
+    render(
+      <MemoryRouter
+        initialEntries={[
+          { pathname: '/admin/closet', state: { closetStatus: 'untagged' } },
+        ]}
+      >
+        <AdminCloset />
+      </MemoryRouter>,
+    )
     await screen.findByRole('list')
-    await userEvent.click(screen.getByRole('button', { name: /^Warm/ }))
-    await userEvent.upload(
-      screen.getByLabelText('Add garment photos'),
-      new File([new Uint8Array([1])], '1.jpg', { type: 'image/jpeg' }),
-    )
-    await screen.findByText(/tagging tonight/)
-    expect(screen.getByRole('button', { name: /^Warm/ })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
-    expect(tiles()).toEqual(['/admin/closet/e', '/admin/closet/d'])
-  })
-
-  it('keeps a toast dismissed during Tag now dismissed', async () => {
-    let finish
-    const calls = stubApi({
-      'POST /api/closet/garments/photos': () =>
-        json({ added: 1, garments: [] }, 201),
-      'POST /api/closet/tag': () =>
-        new Promise((resolve) => {
-          finish = () =>
-            resolve(json({ tagged: 1, calls: 1, note: null, remaining: 0 }))
-        }),
-    })
-    renderCloset()
-    await screen.findByRole('list')
-    await userEvent.upload(
-      screen.getByLabelText('Add garment photos'),
-      new File([new Uint8Array([1])], '1.jpg', { type: 'image/jpeg' }),
-    )
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Tag now' }),
-    )
-    await userEvent.click(screen.getByRole('button', { name: /Dismiss/ }))
-    finish()
-    // The re-read after the run is the last thing Tag now does.
-    await waitFor(() =>
-      expect(
-        calls.filter((c) => c.path === '/api/closet/garments'),
-      ).toHaveLength(3),
-    )
-    expect(screen.queryByText(/1 tagged/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/tagging tonight/)).not.toBeInTheDocument()
+    expect(tiles()).toEqual(['/admin/closet/d'])
   })
 
   it('reports the badge count to the layout and a signed-out read', async () => {

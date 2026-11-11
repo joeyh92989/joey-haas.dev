@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
   entryTitle,
+  fieldPayload,
+  garmentNeedsCheck,
   localToday,
   meterCounts,
+  missingFields,
   optionLabel,
   refuseFile,
+  sittingLabel,
+  sourceWords,
 } from './intake.js'
 
 describe('optionLabel', () => {
@@ -62,5 +67,78 @@ describe('entryTitle', () => {
 describe('localToday', () => {
   it('is the local calendar day', () => {
     expect(localToday(new Date(2026, 10, 9, 23, 30))).toBe('2026-11-09')
+  })
+})
+
+describe('fieldPayload', () => {
+  const fields = [
+    { key: 'name', control: 'text' },
+    { key: 'warmth', control: 'select' },
+    { key: 'pages', control: 'number' },
+  ]
+
+  it('drops blanks and sends numbers as numbers', () => {
+    expect(
+      fieldPayload(fields, { name: ' Oxford ', warmth: '', pages: '12' }),
+    ).toEqual({
+      name: 'Oxford',
+      pages: 12,
+    })
+  })
+})
+
+describe('sourceWords', () => {
+  it('words each state a source can answer in', () => {
+    const kind = { label: 'Comic' }
+    expect(
+      sourceWords({ state: 'busy', reason: 'comicvine is busy' }, kind),
+    ).toBe('Comic: comicvine is busy')
+    expect(
+      sourceWords({ state: 'not_configured', reason: 'no key' }, kind),
+    ).toBe('Comic search is off: no key')
+    expect(sourceWords({ state: 'failed', reason: 'bad' }, kind)).toBe(
+      'Comic search failed: bad',
+    )
+    expect(sourceWords({ state: 'ok', reason: null }, kind)).toBeNull()
+  })
+})
+
+describe('garmentNeedsCheck', () => {
+  const garment = (extra) => ({
+    status: 'untagged',
+    tag_source: null,
+    tag_attempts: 0,
+    ...extra,
+  })
+
+  it('asks only about pieces the tagger gave up on', () => {
+    expect(garmentNeedsCheck(garment({ tag_attempts: 3 }))).toBe(true)
+    expect(garmentNeedsCheck(garment({ tag_attempts: 1 }))).toBe(false)
+    expect(
+      garmentNeedsCheck(garment({ tag_attempts: 3, tag_source: 'manual' })),
+    ).toBe(false)
+    expect(
+      garmentNeedsCheck(garment({ status: 'active', tag_attempts: 3 })),
+    ).toBe(false)
+  })
+
+  it('names the fields the tagger left empty', () => {
+    const fields = [
+      { key: 'name', label: 'Name' },
+      { key: 'category', label: 'Slot' },
+      { key: 'warmth', label: 'Warmth' },
+    ]
+    expect(missingFields(fields, { name: 'Oxford', category: null })).toEqual([
+      'Slot',
+      'Warmth',
+    ])
+  })
+})
+
+describe('sittingLabel', () => {
+  it('is the kind and the day', () => {
+    expect(sittingLabel({ label: 'Garment' }, new Date(2026, 10, 10))).toBe(
+      'Garment · Nov 10',
+    )
   })
 })
