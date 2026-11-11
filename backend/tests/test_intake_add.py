@@ -341,6 +341,11 @@ async def test_an_owned_series_gains_the_typed_issues_by_got_its_rule(
     body = second.json()
     assert (body["added"], body["already_owned"], body["issues_added"]) == (0, 0, 2)
     assert body["created"] == []
+    [grew] = body["series_grew"]
+    assert grew["title"] == "Saga"
+    assert grew["before"] == {"owned": 2, "released": 2}
+    assert (grew["added"], grew["already"]) == ([3, 4], [])
+    assert grew["after_owned_text"] == "1–4"
     async with sessionmaker_for_test() as session:
         (item,) = (await session.scalars(select(Item))).all()
     assert item.issues_owned == "1–4"
@@ -356,6 +361,8 @@ async def test_an_owned_series_gaining_nothing_is_already_on_the_shelf(
     assert second.status_code == 200, second.text
     body = second.json()
     assert (body["added"], body["already_owned"], body["issues_added"]) == (0, 1, 0)
+    [grew] = body["series_grew"]
+    assert (grew["added"], grew["already"]) == ([], [2])
     async with sessionmaker_for_test() as session:
         (item,) = (await session.scalars(select(Item))).all()
     assert item.issues_owned == "1–4"
