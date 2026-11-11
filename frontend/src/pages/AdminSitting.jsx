@@ -13,6 +13,7 @@ import ShootStep from '../components/intake/ShootStep.jsx'
 import SittingStepper from '../components/intake/SittingStepper.jsx'
 import { LOAD_ERROR } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { useReadNext } from '../lib/useReadNext.js'
 import {
   addPath,
   areaOfPath,
@@ -45,7 +46,9 @@ export default function KeyedAdminSitting() {
  * One sitting (`/admin/collection/add/:sittingId`, and the Closet's): the
  * stepper, then Shoot, Check, Details (kinds that have one) and Done. The
  * step is saved on the sitting, so it reopens where it was left, on any
- * device (AC 3); moving a step moves focus to its heading.
+ * device (AC 3); moving a step moves focus to its heading. Photos are read
+ * while the page is open, whichever step shows, and one polite live region
+ * announces each read ("Photo 3 read, 11 titles").
  */
 function AdminSitting() {
   const { sittingId } = useParams()
@@ -65,6 +68,8 @@ function AdminSitting() {
   const [starting, setStarting] = useState(false)
   const headingRef = useRef(null)
   const moved = useRef(false)
+  // The reader lives here, not in Shoot, so it keeps reading during Check.
+  const reader = useReadNext({ sitting, budget, onChange: setSitting })
 
   useEffect(() => {
     let live = true
@@ -237,6 +242,7 @@ function AdminSitting() {
               sitting={sitting}
               onChange={setSitting}
               budget={budget}
+              reader={reader}
               onNext={() => goTo('check')}
               headingRef={headingRef}
             />
@@ -246,6 +252,7 @@ function AdminSitting() {
               sitting={sitting}
               onEntry={replaceEntry}
               headingRef={headingRef}
+              onBack={() => goTo('shoot')}
               nextBusy={committing}
               onNext={
                 steps.includes('details') ? () => goTo('details') : commit
@@ -290,6 +297,9 @@ function AdminSitting() {
               />
             </>
           )}
+          <p role="status" className="visually-hidden">
+            {reader.announcement}
+          </p>
         </>
       )}
     </>

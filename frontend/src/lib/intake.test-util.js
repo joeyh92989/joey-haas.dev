@@ -122,10 +122,11 @@ export function photo(id, state, extra = {}) {
   return { id, state, filename: `${id}.jpg`, error: null, ...extra }
 }
 
+// A copy, as a real response is: the page must never share the fake's arrays.
 const json = (status, body) => ({
   ok: status >= 200 && status < 300,
   status,
-  json: async () => body,
+  json: async () => structuredClone(body),
 })
 
 /**

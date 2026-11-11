@@ -398,6 +398,89 @@ describe('AdminSitting', () => {
     expect(currentStep()).toHaveTextContent('Shoot')
   })
 
+  /** Holds every read-next until `release()`, so a test can move meanwhile. */
+  function holdReads(api) {
+    let release
+    const gate = new Promise((resolve) => {
+      release = resolve
+    })
+    const inner = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation(async (url, options) => {
+      if (/\/read-next$/.test(String(url))) await gate
+      return inner(url, options)
+    })
+    return () => release()
+  }
+
+  /** Read-nexts asked for, held or not (the fake logs only answered ones). */
+  const readsAsked = (api) =>
+    api.fetch.mock.calls.filter(([url]) => /\/read-next$/.test(String(url)))
+      .length
+
+  it('keeps reading after Start checking, and Check shows what lands', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [
+        longbox({ photos: [photo('p1', 'read'), photo('p2', 'uploaded')] }),
+      ],
+      reads: [
+        () => ({
+          status: 'read',
+          entries: [entry('n1', 'exact', { chosen: candidate(9, 'Hellboy') })],
+        }),
+      ],
+    })
+    const release = holdReads(api)
+    renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: /Start checking/ }),
+    )
+    expect(await screen.findByRole('heading', { name: 'Check' })).toBeVisible()
+    await waitFor(() => expect(readsAsked(api)).toBe(1))
+    release()
+    expect(
+      await screen.findByRole('checkbox', { name: 'Hellboy' }),
+    ).toBeChecked()
+    expect(screen.getByRole('heading', { name: 'Check' })).toBeVisible()
+  })
+
+  it('goes back to Shoot from Check, saving the step', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({ sittings: [longbox({ step: 'check' })] })
+    renderSitting()
+    await press(user, await screen.findByRole('button', { name: /Shoot more/ }))
+    expect(await screen.findByRole('heading', { name: 'Shoot' })).toHaveFocus()
+    expect(currentStep()).toHaveTextContent('Shoot')
+    expect(api.calls('PATCH', /\/sittings\/s1$/).at(-1).body).toEqual({
+      step: 'shoot',
+    })
+  })
+
+  it('stops reading when the page goes, with no read after it', async () => {
+    const api = fakeIntakeApi({
+      sittings: [
+        longbox({
+          photos: [
+            photo('p1', 'read'),
+            photo('p2', 'uploaded'),
+            photo('p3', 'uploaded'),
+          ],
+        }),
+      ],
+      reads: [
+        () => ({ status: 'read', entries: [entry('n1', 'exact')] }),
+        () => ({ status: 'read', entries: [entry('n2', 'exact')] }),
+      ],
+    })
+    const release = holdReads(api)
+    const { unmount } = renderSitting()
+    await waitFor(() => expect(readsAsked(api)).toBe(1))
+    unmount()
+    release()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(readsAsked(api)).toBe(1)
+  })
+
   it('takes a closet sitting from Shoot to Done with no Details step', async () => {
     const user = userEvent.setup()
     const api = fakeIntakeApi({

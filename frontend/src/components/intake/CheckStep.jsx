@@ -12,6 +12,8 @@ import SkimGrid, { inSkim } from './SkimGrid.jsx'
  * @param {object} props
  * @param {object} props.sitting
  * @param {(entry: object) => void} props.onEntry An entry the API answered with.
+ * @param {() => void} props.onBack Shoot more: back to Shoot (photos
+ *   still being read keep landing here meanwhile).
  * @param {() => void} props.onNext
  * @param {import('react').ReactNode} props.next The next button's words.
  * @param {boolean} [props.nextBusy]
@@ -22,6 +24,7 @@ import SkimGrid, { inSkim } from './SkimGrid.jsx'
 export default function CheckStep({
   sitting,
   onEntry,
+  onBack,
   onNext,
   next,
   nextBusy = false,
@@ -137,14 +140,19 @@ export default function CheckStep({
             ? 'Only pieces the tagger could not finish are asked about.'
             : 'Only the uncertain ones are asked one at a time; exact matches are a grid to skim.'}
         </p>
-        <button
-          type="button"
-          className="btn primary"
-          disabled={nextBusy}
-          onClick={onNext}
-        >
-          {next}
-        </button>
+        <span className="intake-bar-actions">
+          <button type="button" className="btn" onClick={onBack}>
+            <span aria-hidden="true">←</span> Shoot more
+          </button>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={nextBusy}
+            onClick={onNext}
+          >
+            {next}
+          </button>
+        </span>
       </div>
       {footer}
     </section>

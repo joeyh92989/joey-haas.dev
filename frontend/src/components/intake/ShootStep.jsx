@@ -29,10 +29,9 @@ function runningLine(sitting, budgetSpent) {
 
 /**
  * Sitting step 1: take or choose photos. Each photo is refused before
- * upload when the server would refuse it (type, size: named), uploaded on
- * its own request, and read one at a time through `read-next` while this
- * page is open (spec D4); the nightly reads whatever is left. One polite
- * live region announces each read ("Photo 3 read, 11 titles").
+ * upload when the server would refuse it (type, size: named) and uploaded
+ * on its own request; the page's reader (`useReadNext`) reads it, and keeps
+ * reading while Check is shown. The nightly reads whatever is left.
  *
  * A shelf photo waits in the queue when the day's model budget is spent and
  * says so; a closet photo becomes an untagged garment at once and is never
@@ -42,6 +41,8 @@ function runningLine(sitting, budgetSpent) {
  * @param {object} props.sitting The sitting with its photos and entries.
  * @param {(update: (sitting: object) => object) => void} props.onChange
  * @param {{remaining: number, enforced: boolean}|null} props.budget
+ * @param {ReturnType<typeof import('../../lib/useReadNext.js').useReadNext>}
+ *   props.reader The page's reader: drive, merge, budget and error.
  * @param {() => void} props.onNext Start checking.
  * @param {import('react').Ref<HTMLHeadingElement>} props.headingRef
  */
@@ -49,103 +50,21 @@ export default function ShootStep({
   sitting,
   onChange,
   budget,
+  reader,
   onNext,
   headingRef,
 }) {
   const closet = sitting.area === 'closet'
   const [uploads, setUploads] = useState([])
   const [refusals, setRefusals] = useState([])
-  const [announcement, setAnnouncement] = useState('')
-  const [error, setError] = useState(null)
-  const [budgetSpent, setBudgetSpent] = useState(
-    Boolean(budget?.enforced && budget.remaining <= 0),
-  )
-  const running = useRef(false)
-  const again = useRef(false)
+  const { drive, merge, budgetSpent, error, setError } = reader
   const alive = useRef(true)
-  const spent = useRef(budgetSpent)
-  // The photo order, read by the reader loop after renders it cannot see.
-  const order = useRef(sitting.photos.map((p) => p.id))
-  order.current = sitting.photos.map((p) => p.id)
 
   useEffect(() => {
     alive.current = true
     return () => {
       alive.current = false
     }
-  }, [])
-
-  /** Merges a photo, and any entries read from it, into the sitting. */
-  function merge(photo, entries = []) {
-    onChange((old) => {
-      const known = old.photos.some((p) => p.id === photo.id)
-      return {
-        ...old,
-        photos: known
-          ? old.photos.map((p) => (p.id === photo.id ? photo : p))
-          : [...old.photos, photo],
-        entries: [...old.entries, ...entries],
-      }
-    })
-  }
-
-  /** Reads waiting photos one at a time until none waits or the budget is out. */
-  async function drive() {
-    if (closet || spent.current) return
-    if (running.current) {
-      again.current = true
-      return
-    }
-    running.current = true
-    try {
-      for (;;) {
-        again.current = false
-        const response = await apiFetch(
-          `/api/intake/sittings/${sitting.id}/read-next`,
-          { method: 'POST' },
-        )
-        if (!alive.current) return
-        if (!response.ok) {
-          setError(await errorMessage(response, { ownConflicts: true }))
-          return
-        }
-        const body = await response.json()
-        if (!alive.current) return
-        if (body.photo) merge(body.photo, body.entries)
-        const number = body.photo
-          ? order.current.indexOf(body.photo.id) + 1 || order.current.length + 1
-          : null
-        if (body.status === 'read') {
-          setAnnouncement(
-            `Photo ${number} read, ${plural(body.entries.length, 'title')}`,
-          )
-        } else if (body.status === 'empty') {
-          setAnnouncement(`Photo ${number} read, nothing found`)
-        } else if (body.status === 'failed') {
-          setAnnouncement(`Photo ${number} failed to read`)
-        } else if (body.status === 'waiting') {
-          spent.current = true
-          setBudgetSpent(true)
-          setAnnouncement('Today’s model budget is used up; photos wait')
-          return
-        } else if (!again.current) {
-          return // idle, and nothing new was uploaded meanwhile
-        }
-      }
-    } catch {
-      if (alive.current) setError('The server did not answer; try again.')
-    } finally {
-      running.current = false
-    }
-  }
-
-  useEffect(() => {
-    // A reload in Shoot picks up where the last tab left off, once the
-    // page has painted.
-    if (!sitting.photos.some((p) => p.state === 'uploaded')) return
-    const timer = setTimeout(drive)
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function upload(files) {
@@ -303,10 +222,6 @@ export default function ShootStep({
           ))}
         </ul>
       )}
-
-      <p role="status" className="visually-hidden">
-        {announcement}
-      </p>
 
       <div className="intake-bar">
         <p>

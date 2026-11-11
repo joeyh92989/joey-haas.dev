@@ -2501,6 +2501,12 @@ footer {
   margin: 0;
 }
 
+.intake-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .intake-checkone {
   align-items: start;
   display: grid;
