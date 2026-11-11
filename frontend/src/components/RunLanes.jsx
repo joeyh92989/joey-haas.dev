@@ -74,7 +74,6 @@ export default function RunLanes({ spans, label, mini = false, showSkipped }) {
     <div
       className="lanes"
       data-mini={mini ? '' : undefined}
-      data-short={short ? '' : undefined}
       data-tail={tail ? '' : undefined}
       data-private={showSkipped && skipped.length > 0 ? '' : undefined}
       role="img"

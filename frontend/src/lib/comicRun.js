@@ -17,18 +17,31 @@ export const SHORT_RUN = 12
 /** Consecutive same-state issues outside an edition fold into a bundle. */
 export const BUNDLE_MIN = 12
 
+/** The API's highest issue number (comics.MAX_ISSUE); past it is a typo. */
+export const MAX_ISSUE = 9999
+
 /**
  * One edition in the model's shape, from either the public API's
  * `{from_issue, to_issue}` or the admin form's `{from, to}`.
  */
-function normaliseEdition(edition) {
+function normaliseEdition(edition, index) {
   const from = edition.from ?? edition.from_issue
-  const to = edition.to ?? edition.to_issue
-  return { kind: edition.kind, label: edition.label, from, to }
+  const to = Math.min(edition.to ?? edition.to_issue, MAX_ISSUE)
+  return { kind: edition.kind, label: edition.label, from, to, index }
 }
 
-const toNumbers = (value) =>
-  Array.isArray(value) ? value : expandRanges(value ?? '')
+/**
+ * Issue numbers from ranges text or a list, up to MAX_ISSUE. A range typed
+ * past it is cut there: the API refuses it on Save, and the run must not
+ * try to draw a million issues while it is being typed.
+ */
+function toNumbers(value) {
+  if (Array.isArray(value)) return value.filter((n) => n <= MAX_ISSUE)
+  const capped = (value ?? '').replace(/\d+/g, (digits) =>
+    String(Math.min(Number(digits), MAX_ISSUE + 1)),
+  )
+  return expandRanges(capped).filter((n) => n <= MAX_ISSUE)
+}
 
 /**
  * The per-issue state of a run and the counts every view shows.
@@ -54,7 +67,9 @@ export function runModel({
   skipped = '',
   wanted = false,
 }) {
-  const books = (editions ?? []).map(normaliseEdition)
+  const books = (editions ?? [])
+    .map(normaliseEdition)
+    .filter((book) => book.from <= book.to)
   const singleSet = new Set(toNumbers(singles))
   const skipSet = new Set(toNumbers(skipped))
   const editionOf = new Map()
@@ -63,7 +78,9 @@ export function runModel({
       if (!editionOf.has(n)) editionOf.set(n, book)
     }
   }
-  const highestHeld = Math.max(0, ...singleSet, ...editionOf.keys())
+  let highestHeld = 0
+  for (const n of singleSet) if (n > highestHeld) highestHeld = n
+  for (const n of editionOf.keys()) if (n > highestHeld) highestHeld = n
   const total = Math.max(released ?? 0, highestHeld)
   const read = readTo ?? 0
 
@@ -134,17 +151,12 @@ export function displayRanges(numbers) {
   return parts.join(', ')
 }
 
-const STATE_WORD = {
-  read: 'read',
-  owned: 'unread',
-  missing: 'missing',
-  skip: 'skipped',
-}
-
 /**
  * The box: a book per edition, a cell per issue, a bundle for a long even
  * stretch, and one cell for the next dated issue, in issue order. An issue
- * is drawn once: inside its book or as a cell.
+ * is drawn once: inside its book or as a cell. Each edition is one book,
+ * once: where editions overlap, an issue belongs to the first that covers
+ * it, and a nested edition's book follows the book it sits inside.
  *
  * @param {ReturnType<typeof runModel>} model
  * @param {Set<number>} [open] - Issues shown as cells: a stretch holding any
@@ -157,20 +169,31 @@ export function boxTiles(model, open = new Set()) {
   const tiles = []
   const { issues, readTo } = model
   const read = readTo ?? 0
+  const drawn = new Set()
+  const bookTile = (book) => {
+    drawn.add(book)
+    tiles.push({
+      type: 'book',
+      edition: book,
+      from: book.from,
+      to: book.to,
+      k: read >= book.to ? 'read' : 'owned',
+      readTo: read >= book.from && read < book.to ? read : null,
+    })
+  }
   let i = 0
   while (i < issues.length) {
     const issue = issues[i]
     if (issue.edition) {
       const book = issue.edition
-      tiles.push({
-        type: 'book',
-        edition: book,
-        from: book.from,
-        to: book.to,
-        k: read >= book.to ? 'read' : 'owned',
-        readTo: read >= book.from && read < book.to ? read : null,
-      })
+      if (!drawn.has(book)) bookTile(book)
       while (i < issues.length && issues[i].edition === book) i += 1
+      // An edition wholly inside one already drawn owns no issue of its
+      // own: its book follows the one it sits in.
+      const last = issues[i - 1].n
+      for (const other of model.editions) {
+        if (!drawn.has(other) && other.from <= last) bookTile(other)
+      }
       continue
     }
     let j = i
@@ -192,7 +215,6 @@ export function boxTiles(model, open = new Set()) {
         to,
         k: issue.k,
         count,
-        word: STATE_WORD[issue.k],
       })
     } else {
       if (count >= BUNDLE_MIN)

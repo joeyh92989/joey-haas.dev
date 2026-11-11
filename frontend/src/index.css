@@ -7481,6 +7481,11 @@ main h1[tabindex='-1']:focus,
   .lanes:not([data-mini]) {
     --lane-name: 3.25rem;
   }
+
+  /* "Skipped private" keeps its privacy marker on a phone. */
+  .lanes[data-private] {
+    --lane-name: 6.25rem;
+  }
 }
 
 /* The run box: books, cells and bundles in issue order, on --surface.
@@ -7525,6 +7530,12 @@ main h1[tabindex='-1']:focus,
 button.run-cell,
 button.run-bundle {
   cursor: pointer;
+}
+
+button.run-cell:focus-visible,
+button.run-bundle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 button.run-cell[aria-disabled='true'] {
@@ -7630,14 +7641,17 @@ button.run-cell[aria-disabled='true'] {
   width: 0.9rem;
 }
 
-.run-key i[data-k='book'] {
+.run-key i[data-k='book'],
+.run-key[data-variant='box'] i[data-k='book'] {
   background: var(--accent-soft);
   border: 1px solid var(--chart-2);
   border-left: 4px solid var(--text-2);
   width: 1.4rem;
 }
 
-@container (max-width: 700px) {
+/* A phone's box (about 21rem wide) fits ten cells to a row; wider boxes
+   keep 2.1rem squares. */
+@container (max-width: 26rem) {
   .run-cell {
     height: 2rem;
     width: calc((100% - 27px) / 10);
@@ -8066,6 +8080,10 @@ button.run-cell[aria-disabled='true'] {
 .comic-field-error {
   grid-column: 2;
   margin: 0;
+}
+
+.comic-editions .comic-field-error {
+  grid-column: 1 / -1;
 }
 
 @media (max-width: 700px) {

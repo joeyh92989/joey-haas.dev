@@ -67,13 +67,16 @@ export default function RunBox({ model, mode = 'public', onCell, busy }) {
   }
 
   const hidden = mode === 'public' ? true : undefined
+  const interactive =
+    mode !== 'public' ||
+    tiles.some((tile) => tile.type === 'bundle' || tile.type === 'fold')
 
   const renderTile = (tile) => {
     switch (tile.type) {
       case 'book':
         return (
           <span
-            key={`book-${tile.from}-${tile.edition.label}`}
+            key={`book-${tile.edition.index}`}
             className="run-book"
             data-k={tile.k}
             aria-hidden={hidden}
@@ -181,7 +184,16 @@ export default function RunBox({ model, mode = 'public', onCell, busy }) {
 
   return (
     <div className="run-box-frame">
-      <div ref={boxRef} className="run-box" role="group" aria-label={BOX.label}>
+      {/* Public, a box with no bundle has nothing to operate, and the
+          sentence under it says what it shows: decoration, not an empty
+          labelled group. */}
+      <div
+        ref={boxRef}
+        className="run-box"
+        {...(interactive
+          ? { role: 'group', 'aria-label': BOX.label }
+          : { 'aria-hidden': true })}
+      >
         {tiles.map(renderTile)}
       </div>
     </div>

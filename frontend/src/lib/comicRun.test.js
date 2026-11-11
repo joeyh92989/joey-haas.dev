@@ -193,8 +193,41 @@ describe('boxTiles', () => {
       type: 'bundle',
       from: 61,
       to: 72,
-      word: 'missing',
+      k: 'missing',
     })
+  })
+
+  it('draws every edition once when editions overlap', () => {
+    const nested = boxTiles(
+      runModel({
+        editions: [
+          { kind: 'Omnibus', label: 'B', from: 1, to: 20 },
+          { kind: 'Trade', label: 'A', from: 5, to: 10 },
+        ],
+        released: 20,
+      }),
+    )
+    expect(nested.map((tile) => tile.edition?.label)).toEqual(['B', 'A'])
+    const around = boxTiles(
+      runModel({
+        editions: [
+          { kind: 'Trade', label: 'A', from: 5, to: 10 },
+          { kind: 'Omnibus', label: 'B', from: 1, to: 20 },
+        ],
+        released: 20,
+      }),
+    )
+    expect(around.map((tile) => tile.edition?.label)).toEqual(['B', 'A'])
+  })
+
+  it('cuts a range typed past the API’s last issue instead of drawing it', () => {
+    const model = runModel({ singles: '1-300000', released: 10 })
+    expect(model.released).toBe(9999)
+    const editions = runModel({
+      editions: [{ kind: 'Trade', label: 'Huge', from: 1, to: 1000000 }],
+      released: 10,
+    })
+    expect(editions.released).toBe(9999)
   })
 
   it('draws an issue in the first edition that covers it only', () => {

@@ -643,7 +643,7 @@ function tiles() {
   ])
 }
 
-const box = () => screen.getByRole('group', { name: 'Issues' })
+const box = () => document.querySelector('.run-box')
 
 describe('Item series page (AC5)', () => {
   it('names the comic, its publisher and that it is ongoing, in comic words', async () => {
@@ -845,6 +845,31 @@ describe('Item series page (AC5)', () => {
       ([, options]) => options?.method === 'PATCH',
     )
     expect(patch[0]).toContain(`/api/items/${ID}`)
+  })
+
+  it('drops a private skip when a toggle owns that issue', async () => {
+    let saved = null
+    const fetch = vi.fn(async (url, options = {}) => {
+      if (options.method === 'PATCH') {
+        saved = JSON.parse(options.body)
+        return { ok: true, status: 200, json: async () => ({}) }
+      }
+      if (url.includes('/api/public/')) {
+        return { ok: true, status: 200, json: async () => SAGA }
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues_owned: '1–4', issues_skipped: '5' }),
+      }
+    })
+    vi.stubGlobal('fetch', fetch)
+    await renderSaga({ signedIn: true })
+    await userEvent.click(
+      within(box()).getByRole('button', { name: 'Issue 5' }),
+    )
+    await waitFor(() => expect(saved).not.toBeNull())
+    expect(saved).toEqual({ issues_owned: '1-5', issues_skipped: '' })
   })
 
   it('says so when a toggle fails, and keeps the grid', async () => {

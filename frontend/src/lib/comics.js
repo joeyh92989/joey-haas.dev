@@ -62,22 +62,6 @@ export function compactRanges(numbers) {
   return parts.join(', ')
 }
 
-/**
- * Which edition covers each issue it collects, first edition winning.
- *
- * @param {{label: string, from_issue: number, to_issue: number}[]} editions
- * @returns {Map<number, string>} Issue number to edition label.
- */
-export function editionCoverage(editions) {
-  const covered = new Map()
-  for (const edition of editions ?? []) {
-    for (let n = edition.from_issue; n <= edition.to_issue; n += 1) {
-      if (!covered.has(n)) covered.set(n, edition.label)
-    }
-  }
-  return covered
-}
-
 /** "Nov 11" for an ISO date, in UTC like the API's weeks. */
 export function shortDate(iso) {
   const [year, month, day] = iso.split('-').map(Number)

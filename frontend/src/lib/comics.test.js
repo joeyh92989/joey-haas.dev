@@ -6,7 +6,6 @@ import {
   editionRows,
   parseEditionRows,
   compactRanges,
-  editionCoverage,
   expandRanges,
   filterComics,
   publishersByCount,
@@ -45,16 +44,6 @@ describe('ranges', () => {
     expect(expandRanges(compactRanges([1, 2, 4, 6, 7]))).toEqual([
       1, 2, 4, 6, 7,
     ])
-  })
-
-  it('maps each covered issue to the first edition that collects it', () => {
-    const covered = editionCoverage([
-      { label: 'Vol. 1', from_issue: 1, to_issue: 6 },
-      { label: 'Omnibus', from_issue: 5, to_issue: 12 },
-    ])
-    expect(covered.get(5)).toBe('Vol. 1')
-    expect(covered.get(7)).toBe('Omnibus')
-    expect(covered.has(13)).toBe(false)
   })
 })
 

@@ -7,7 +7,7 @@ import { axeViolations } from '../lib/axe.test-util.js'
 import { runModel } from '../lib/comicRun.js'
 import RunBox from './RunBox.jsx'
 
-const box = () => screen.getByRole('group', { name: 'Issues' })
+const box = () => document.querySelector('.run-box')
 
 describe('RunBox', () => {
   it('opens a bundle and folds it again by keyboard', async () => {
@@ -67,6 +67,9 @@ describe('RunBox', () => {
       box().querySelectorAll('.run-cell[aria-hidden="true"]'),
     ).toHaveLength(3)
     expect(screen.queryAllByRole('button')).toHaveLength(0)
+    // Nothing to operate: decoration, not an empty labelled group.
+    expect(box()).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.queryByRole('group')).toBeNull()
   })
 
   it('never draws a skip it was not given', () => {

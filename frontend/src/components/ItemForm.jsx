@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { spine } from '../content/spine.js'
 import { EMPTY_EDITION, SHELF_FORMATS } from '../lib/comics.js'
 import { STATUS_LABEL, STATUS_ORDER } from '../lib/shelf.js'
@@ -76,6 +77,7 @@ function FieldError({ id, message }) {
  * validator; a blank row is dropped on save.
  */
 function EditionRows({ rows, onChange, error }) {
+  const addRef = useRef(null)
   const update = (index, field) => (event) =>
     onChange(
       rows.map((row, at) =>
@@ -85,7 +87,7 @@ function EditionRows({ rows, onChange, error }) {
   return (
     <fieldset
       className="comic-editions"
-      aria-describedby="comic-editions-error"
+      aria-describedby={error ? 'comic-editions-error' : undefined}
     >
       <legend>Collected editions</legend>
       <datalist id="comic-edition-kinds">
@@ -128,7 +130,13 @@ function EditionRows({ rows, onChange, error }) {
               type="button"
               className="link-button"
               aria-label={`Remove ${name}`}
-              onClick={() => onChange(rows.filter((_, at) => at !== index))}
+              onClick={() => {
+                onChange(rows.filter((_, at) => at !== index))
+                // The row and its button are gone: land on Add, never on
+                // the next row's Remove, where a second Enter would remove
+                // another edition.
+                addRef.current?.focus()
+              }}
             >
               ×
             </button>
@@ -138,6 +146,7 @@ function EditionRows({ rows, onChange, error }) {
       <button
         type="button"
         className="link-button"
+        ref={addRef}
         onClick={() => onChange([...rows, { ...EMPTY_EDITION }])}
       >
         Add an edition

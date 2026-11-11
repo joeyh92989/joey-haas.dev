@@ -558,15 +558,21 @@ function ItemPage({ id }) {
         const path = `/api/items/${encodeURIComponent(id)}`
         const current = await apiFetch(path)
         if (!current.ok) throw new Error(`GET ${current.status}`)
-        const numbers = new Set(
-          expandRanges((await current.json()).issues_owned),
-        )
+        const stored = await current.json()
+        const numbers = new Set(expandRanges(stored.issues_owned))
         if (owned) numbers.add(issue)
         else numbers.delete(issue)
+        const changes = { issues_owned: compactRanges(numbers) }
+        // Owning a skipped issue drops the skip, as Got it does: the API
+        // refuses an issue both owned and skipped. The skip is private, so
+        // the public grid drew it as missing.
+        const skipped = new Set(expandRanges(stored.issues_skipped))
+        if (owned && skipped.delete(issue))
+          changes.issues_skipped = compactRanges(skipped)
         const response = await apiFetch(path, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ issues_owned: compactRanges(numbers) }),
+          body: JSON.stringify(changes),
         })
         if (!response.ok) throw new Error(`PATCH ${response.status}`)
         const next = await load()
