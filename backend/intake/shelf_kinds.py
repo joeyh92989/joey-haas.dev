@@ -49,7 +49,11 @@ COMIC_FIELDS = (
 
 def _shelf_row(item_type: T):
     def to_row(entry: dict[str, Any]) -> dict[str, Any]:
-        chosen = entry.get("chosen") or {}
+        chosen = dict(entry.get("chosen") or {})
+        # The reader stores the importer's candidate, whose cover is
+        # `thumbnail_url`; a search pick may already say `cover_url`.
+        if chosen.get("cover_url") is None and chosen.get("thumbnail_url"):
+            chosen["cover_url"] = chosen["thumbnail_url"]
         row = {key: chosen[key] for key in CHOSEN_FIELDS if key in chosen}
         payload = entry.get("payload") or {}
         row.update({k: v for k, v in payload.items() if k in ITEM_FIELDS})

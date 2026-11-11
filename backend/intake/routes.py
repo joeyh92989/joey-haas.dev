@@ -10,10 +10,11 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator, Callable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -24,9 +25,16 @@ from closet_images import make_reading_copy, make_thumbnail
 from closet_routes import add_garment_photo, check_media_type, convert_upload
 from config import Config
 from intake.budget import budget_state
+from intake.commit import (
+    NOTHING_TO_ADD,
+    SITTING_GONE,
+    NothingToAdd,
+    SittingGone,
+    commit_sitting,
+)
 from intake.kinds import REGISTRY, describe
 from intake.reader import read_next
-from items import require_admin
+from items import _enrich, require_admin
 from llm import LLMError, LLMProvider
 from models import (
     IntakeArea,
@@ -63,6 +71,13 @@ class EntryCreate(BaseModel):
 
     kind: str = Field(max_length=40)
     payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class CommitIn(BaseModel):
+    """The owner's local day, for the playthroughs a commit seeds (as the
+    status route takes it); the server's day when left out."""
+
+    today: date | None = None
 
 
 class EntryPatch(BaseModel):
@@ -330,6 +345,43 @@ def create_intake_router(
         session.add(entry)
         await session.commit()
         return entry_json(entry)
+
+    @router.post("/sittings/{sitting_id}/commit")
+    async def commit(
+        sitting_id: uuid.UUID,
+        body: CommitIn | None = None,
+        session: AsyncSession = Depends(get_session),
+    ) -> Any:
+        """Add the sitting's entries to the collection, all or nothing
+        (`intake/commit.py`). A refused row answers 422 with the same shape,
+        `refused` naming each entry, and writes nothing. A sitting already
+        committed or discarded, as from a second device, is a 409."""
+        today = body.today if body and body.today else date.today()
+        try:
+            outcome = await commit_sitting(session, sitting_id, today=today)
+        except SittingGone:
+            raise HTTPException(409, SITTING_GONE) from None
+        except NothingToAdd:
+            raise HTTPException(409, NOTHING_TO_ADD) from None
+        if outcome.refused:
+            await session.rollback()
+            count = len(outcome.refused)
+            return JSONResponse(
+                status_code=422,
+                content={
+                    **outcome.as_json(),
+                    "added": 0,
+                    "already_owned": 0,
+                    "skipped_kept": 0,
+                    "photos_empty": 0,
+                    "detail": f"{count} to fix before anything is added",
+                },
+            )
+        await session.commit()
+        # As /bulk does: covers, creators and snapshots after the commit,
+        # best effort, so a slow or failing source never undoes the add.
+        await _enrich(session, registry, outcome.created)
+        return outcome.as_json()
 
     @router.patch("/entries/{entry_id}")
     async def patch_entry(
