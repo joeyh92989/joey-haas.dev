@@ -126,6 +126,7 @@ async def test_forty_exact_entries_commit_in_one_request(sessionmaker_for_test):
         "added": 40,
         "already_owned": 0,
         "issues_added": 0,
+        "series_grew": [],
         "skipped_kept": 0,
         "photos_empty": 0,
         "photos_waiting": 0,
@@ -249,6 +250,7 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         "added": 2,
         "already_owned": 2,
         "issues_added": 0,
+        "series_grew": [],
         "skipped_kept": 2,
         "photos_empty": 2,
         "photos_waiting": 0,
@@ -339,6 +341,75 @@ async def test_a_series_that_gains_nothing_is_already_owned(sessionmaker_for_tes
     assert (body["added"], body["issues_added"], body["already_owned"]) == (0, 0, 1)
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned == "1–4"
+
+
+@pytest.mark.asyncio
+async def test_each_series_on_the_shelf_is_reported_with_what_it_gained(
+    sessionmaker_for_test,
+):
+    await _seed_series(
+        sessionmaker_for_test,
+        issues_owned="1–2",
+        editions=[{"kind": "Trade", "label": "Vol. 2", "from": 5, "to": 6}],
+        source_metadata={"released": 8, "ongoing": True},
+    )
+    entries = [
+        ("comic", S.OWNED, {"issues_owned": "3"}, _series()),
+        ("comic", S.EXACT, {"issues_owned": "4, 2, 6"}, _series()),
+        # A new series is added, not reported as grown.
+        ("comic", S.EXACT, {"issues_owned": "1"}, _match(8, "comicvine")),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    # An issue held in an edition is held: it is not written again loose.
+    assert body["issues_added"] == 2
+    [grew] = body["series_grew"]
+    items = {item.external_id: item for item in await _items(sessionmaker_for_test)}
+    assert grew == {
+        "item_id": str(items["7"].id),
+        "title": "Waterworld",
+        "is_public": False,
+        "cover_url": None,
+        "before": {"owned": 4, "released": 8},
+        "ongoing": True,
+        "added": [3, 4],
+        # Held already: one loose, one inside the edition.
+        "already": [2, 6],
+        "after_owned_text": "1–6",
+    }
+    assert items["7"].issues_owned == "1–4"
+
+
+@pytest.mark.asyncio
+async def test_a_series_gaining_nothing_is_still_reported(sessionmaker_for_test):
+    await _seed_series(sessionmaker_for_test, issues_owned="1–4")
+    entries = [("comic", S.OWNED, {"issues_owned": "2"}, _series())]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [grew] = response.json()["series_grew"]
+    assert (grew["added"], grew["already"]) == ([], [2])
+    assert grew["after_owned_text"] == "1–4"
+
+
+@pytest.mark.asyncio
+async def test_a_refused_commit_reports_no_series(sessionmaker_for_test):
+    await _seed_series(sessionmaker_for_test, issues_owned="1–2")
+    entries = [
+        ("comic", S.OWNED, {"issues_owned": "3"}, _series()),
+        ("comic", S.EXACT, {"issues_owned": "x-y"}, _match(9, "comicvine")),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 422, response.text
+    assert response.json()["series_grew"] == []
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_owned == "1–2"
 
 
 @pytest.mark.asyncio

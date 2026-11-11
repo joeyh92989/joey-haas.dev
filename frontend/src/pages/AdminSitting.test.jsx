@@ -335,6 +335,183 @@ describe('AdminSitting', () => {
     ).toBeInTheDocument()
   })
 
+  it('lists comics adding to a series on the shelf, apart from the grid (AC 15)', async () => {
+    const user = userEvent.setup()
+    const saga = {
+      item_id: 'saga-item',
+      title: 'Saga',
+      cover_url: null,
+      owned: 57,
+      owned_text: '1–57',
+      released: 72,
+      ongoing: true,
+    }
+    const { calls } = fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'check',
+          entries: [
+            entry('e5', 'owned', {
+              chosen: candidate(9, 'Saga'),
+              payload: { detected_title: 'SAGA 58', issues_owned: '58' },
+              on_shelf: saga,
+            }),
+            entry('e6', 'owned', {
+              chosen: candidate(9, 'Saga'),
+              payload: { detected_title: 'SAGA 60', issues_owned: '60' },
+              on_shelf: { ...saga, owned_text: '1–57, 60' },
+            }),
+            entry('e7', 'owned', {
+              chosen: candidate(9, 'Saga'),
+              payload: { detected_title: 'SAGA' },
+              on_shelf: saga,
+            }),
+            entry('e3', 'exact', { chosen: candidate(4, 'East of West') }),
+          ],
+        }),
+      ],
+    })
+    const { container } = renderSitting()
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Already on the shelf · adds issues · 3',
+      }),
+    ).toBeVisible()
+    const [adds, owned, untyped] = within(
+      container.querySelector('.intake-grow-list'),
+    ).getAllByRole('listitem')
+    expect(adds).toHaveTextContent('read from the photo: SAGA 58')
+    expect(adds).toHaveTextContent('adds #58 · 57 of 72+ → 58 of 72+')
+    expect(adds).toHaveTextContent('14 missing')
+    expect(adds.querySelector('[data-k="new"]')).toHaveTextContent('+58')
+    expect(
+      within(adds).getByRole('checkbox', { name: 'Add to Saga' }),
+    ).toBeChecked()
+    expect(owned).toHaveTextContent(
+      '#60 is already on the shelf · nothing to add',
+    )
+    expect(
+      within(owned).getByRole('checkbox', { name: 'Add to Saga' }),
+    ).toBeDisabled()
+    expect(untyped).toHaveTextContent('No issues typed yet')
+    // The grid keeps only titles new to the shelf.
+    expect(screen.getByRole('heading', { name: /Matched · 1/ })).toBeVisible()
+
+    // Edit issues types the numbers the photo cannot carry.
+    await user.click(
+      within(untyped).getByRole('button', { name: 'Edit issues of Saga' }),
+    )
+    const field = within(untyped).getByLabelText(
+      'Issues of Saga in this sitting',
+    )
+    expect(field).toHaveFocus()
+    await user.type(field, '59-60')
+    await user.click(
+      within(untyped).getByRole('button', { name: 'Save issues' }),
+    )
+    await waitFor(() =>
+      expect(untyped).toHaveTextContent(
+        'adds #59, #60 · 58 of 72+ → 60 of 72+',
+      ),
+    )
+    const [save] = calls('PATCH', /\/api\/intake\/entries\/e7$/)
+    expect(save.body.payload).toEqual({
+      detected_title: 'SAGA',
+      issues_owned: '59-60',
+    })
+    expect(
+      within(untyped).getByRole('button', { name: 'Edit issues of Saga' }),
+    ).toHaveFocus()
+
+    // Unticking keeps the entry, as the grid does.
+    await user.click(
+      within(adds).getByRole('checkbox', { name: 'Add to Saga' }),
+    )
+    const [untick] = calls('PATCH', /\/api\/intake\/entries\/e5$/)
+    expect(untick.body.state).toBe('ignored')
+    expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('lists the series that grew on Done, each linked (AC 16)', async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({
+      sittings: [longbox({ step: 'details' })],
+      commit: () => ({
+        status: 200,
+        body: {
+          added: 1,
+          already_owned: 0,
+          issues_added: 3,
+          series_grew: [
+            {
+              item_id: 'ww-item',
+              title: 'Waterworld',
+              is_public: true,
+              cover_url: null,
+              before: { owned: 2, released: 4 },
+              ongoing: false,
+              added: [3, 4],
+              already: [],
+              after_owned_text: '1–4',
+            },
+            {
+              item_id: 'saga-item',
+              title: 'Saga',
+              is_public: false,
+              cover_url: null,
+              before: { owned: 57, released: 72 },
+              ongoing: true,
+              added: [58],
+              already: [],
+              after_owned_text: '1–58',
+            },
+            {
+              item_id: 'saga-item-2',
+              title: 'Saga again',
+              cover_url: null,
+              before: { owned: 58, released: 72 },
+              ongoing: true,
+              added: [],
+              already: [60],
+              after_owned_text: '1–58, 60',
+            },
+          ],
+          skipped_kept: 0,
+          photos_empty: 0,
+          photos_waiting: 0,
+          refused: [],
+          created: ['item-e2'],
+        },
+      }),
+    })
+    const { container } = renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+    )
+    await screen.findByRole('heading', { name: 'Done' })
+    const tiles = screen.getByRole('group', { name: 'What was added' })
+    expect(tiles).toHaveTextContent('series grew23 issues')
+    expect(tiles).toHaveTextContent('issue already owned1')
+    const list = container.querySelector('.intake-grow-list')
+    const rows = within(list).getAllByRole('listitem')
+    expect(rows).toHaveLength(2)
+    expect(
+      within(rows[0]).getByRole('link', { name: 'Waterworld' }),
+    ).toHaveAttribute('href', '/shelf/ww-item/')
+    expect(rows[0]).toHaveTextContent('adds #3, #4 · 2 of 4 → 4 of 4')
+    expect(rows[0]).toHaveTextContent('Complete run')
+    expect(rows[1]).toHaveTextContent('adds #58 · 57 of 72+ → 58 of 72+')
+    // A private series has no public page yet: its admin page instead.
+    expect(within(rows[1]).getByRole('link', { name: 'Saga' })).toHaveAttribute(
+      'href',
+      '/admin/collection/saga-item',
+    )
+    expect(within(list).queryByRole('checkbox')).toBeNull()
+    expect(within(list).queryByRole('button')).toBeNull()
+    expect(document.body).not.toHaveTextContent(/issues to series/)
+    expect(await axeViolations(container)).toEqual([])
+  })
+
   it('says nothing of issues when none joined a series', async () => {
     const user = userEvent.setup()
     fakeIntakeApi({ sittings: [longbox({ step: 'details' })] })

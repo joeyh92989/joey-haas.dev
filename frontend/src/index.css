@@ -2649,6 +2649,135 @@ footer {
   overflow-wrap: anywhere;
 }
 
+/* "Already on the shelf · adds issues" (Check) and "Series that grew"
+   (Done): one row per series, its sentence and the cells around the
+   change. An added cell is --ok, its "+n" numeral --bg: measured (WCAG
+   2.x, from the token values) --ok on --surface 8.27 dark / 5.32 light,
+   --bg on --ok 8.78 / 5.18. The other cells are the run box's own. At a
+   phone's width Edit issues drops under the row. */
+.intake-grow-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+}
+
+.intake-grow {
+  align-items: start;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.4rem 0.75rem;
+  grid-template-areas: 'cover body edit';
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  padding: 0.75rem 1rem;
+}
+
+.intake-grow[data-tick] {
+  grid-template-areas: 'tick cover body edit';
+  grid-template-columns: auto 2.5rem minmax(0, 1fr) auto;
+}
+
+.intake-grow:first-child {
+  border-top: 0;
+}
+
+.intake-grow-tick {
+  grid-area: tick;
+  margin-top: 0.2rem;
+}
+
+.intake-grow-cover {
+  grid-area: cover;
+}
+
+.intake-grow-body {
+  grid-area: body;
+  min-width: 0;
+}
+
+.intake-grow-edit {
+  grid-area: edit;
+}
+
+.intake-grow-title {
+  font-weight: 600;
+  margin: 0;
+}
+
+.intake-grow-read {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  margin: 0.1rem 0 0;
+}
+
+.intake-grow-adds {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0.3rem 0 0;
+}
+
+.intake-grow-adds b {
+  color: var(--text);
+}
+
+.intake-grow-adds .mono,
+.intake-grow-form input {
+  font-family: var(--font-mono);
+}
+
+.intake-grow-strip {
+  margin-top: 0.45rem;
+  max-width: 26rem;
+}
+
+.run-cell[data-k='new'] {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--bg);
+}
+
+.run-cell[data-gap] {
+  color: var(--text-3);
+}
+
+.intake-grow-form {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  max-width: 22rem;
+}
+
+.intake-grow-form label {
+  font-size: 0.8125rem;
+}
+
+.intake-grow-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 40rem) {
+  .intake-grow,
+  .intake-grow[data-tick] {
+    grid-template-areas:
+      'tick cover body'
+      '. . edit';
+    grid-template-columns: auto 2.5rem minmax(0, 1fr);
+  }
+
+  .intake-grow:not([data-tick]) {
+    grid-template-areas: 'cover body';
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+  }
+
+  .intake-grow-edit {
+    justify-self: start;
+  }
+}
+
 .intake-pass {
   margin-bottom: 1rem;
   padding: 1rem;

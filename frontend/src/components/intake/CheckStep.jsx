@@ -1,12 +1,52 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
+import { seriesGrowth } from '../../lib/comicRun.js'
+import { entryCover } from '../../lib/intake.js'
 import CheckOne from './CheckOne.jsx'
 import GarmentCheck from './GarmentCheck.jsx'
+import SeriesGrewRow from './SeriesGrewRow.jsx'
 import SkimGrid, { inSkim } from './SkimGrid.jsx'
 
 /**
+ * Whether an entry adds to a comic series already on the shelf: settled
+ * (not asked one at a time, not still reading) and matched to a series
+ * the API marked `on_shelf`. These leave the skim grid for their own
+ * group, "Already on the shelf · adds issues".
+ */
+export function addsToSeries(entry) {
+  return Boolean(entry.on_shelf) && inSkim(entry) && entry.kind === 'comic'
+}
+
+/**
+ * What each entry brings to its series, in sitting order. A series with
+ * several rows counts them in turn, as the commit joins them: the second
+ * row starts where the first, if ticked, leaves the run.
+ */
+function growths(entries) {
+  const sofar = new Map()
+  return new Map(
+    entries.map((entry) => {
+      const shelf = entry.on_shelf
+      const earlier = sofar.get(shelf.item_id) ?? []
+      const growth = seriesGrowth({
+        ownedText: [shelf.owned_text, ...earlier].filter(Boolean).join(', '),
+        issues: entry.payload?.issues_owned ?? '',
+        released: shelf.released,
+        ongoing: shelf.ongoing,
+      })
+      if (entry.state !== 'ignored')
+        sofar.set(shelf.item_id, [...earlier, ...growth.added])
+      return [entry.id, growth]
+    }),
+  )
+}
+
+/**
  * Sitting step 2: the uncertain entries one at a time, then the trusted
- * ones as a grid to skim. Only `check` entries are asked; Skip keeps one
+ * ones as a grid to skim. A comic matched to a series already on the shelf
+ * is not a new title, so it leaves the grid for "Already on the shelf ·
+ * adds issues": a row saying what it adds, with Edit issues to type them
+ * (photos never carry issue numbers). Only `check` entries are asked; Skip keeps one
  * for later (it stays in the sitting at commit, counted as kept). Every
  * answer is saved on the entry at once, so another device sees it (AC 3).
  *
@@ -47,7 +87,11 @@ export default function CheckStep({
   const checks = sitting.entries.filter((e) => e.state === 'check')
   const left = checks.filter((e) => !skipped.has(e.id))
   const current = left[0] ?? null
-  const skim = sitting.entries.filter(inSkim)
+  const grows = closet ? [] : sitting.entries.filter(addsToSeries)
+  const growthOf = growths(grows)
+  const skim = sitting.entries.filter(
+    (entry) => inSkim(entry) && !grows.includes(entry),
+  )
   const photoNumber = (entry) => {
     const index = sitting.photos.findIndex((p) => p.id === entry.photo_id)
     return index < 0 ? null : index + 1
@@ -84,6 +128,12 @@ export default function CheckStep({
     setSkipped((old) => new Set(old).add(entry.id))
     // The next entry renders in the same place; keep the reader there.
     setTimeout(() => oneRef.current?.focus())
+  }
+
+  function saveIssues(entry, text) {
+    return patch(entry, {
+      payload: { ...entry.payload, issues_owned: text || null },
+    })
   }
 
   function toggle(entry, ticked) {
@@ -141,6 +191,33 @@ export default function CheckStep({
           {skipped.size > 0 &&
             ` ${skipped.size} skipped: kept in the sitting for later.`}
         </p>
+      )}
+
+      {grows.length > 0 && (
+        <>
+          <h3 className="kicker intake-skim-head">
+            Already on the shelf · adds issues · {grows.length}
+          </h3>
+          <ul className="intake-grow-list">
+            {grows.map((entry) => (
+              <SeriesGrewRow
+                key={entry.id}
+                title={entry.on_shelf.title}
+                coverUrl={entry.on_shelf.cover_url ?? entryCover(entry)}
+                read={entry.payload?.detected_title ?? null}
+                growth={growthOf.get(entry.id)}
+                typed={Boolean(entry.payload?.issues_owned)}
+                tick={{
+                  checked: entry.state !== 'ignored',
+                  onChange: (ticked) => toggle(entry, ticked),
+                }}
+                issuesText={entry.payload?.issues_owned ?? ''}
+                onSaveIssues={(text) => saveIssues(entry, text)}
+                busy={busy}
+              />
+            ))}
+          </ul>
+        </>
       )}
 
       {skim.length > 0 && (

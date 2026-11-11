@@ -16,7 +16,9 @@ An entry's state decides what happens to it:
 A comic is one row per series, so its entries (written or owned) are never
 dropped as repeats: their issues are joined into one new row, or added to
 the series already on the shelf by Got it's rule (`issues_added`; a series
-gaining nothing is `already_owned`).
+gaining nothing is `already_owned`). Each series already on the shelf is
+also reported on its own (`series_grew`): the issues it gained, the ones it
+held already, and its run before and after, for Done's "Series that grew".
 
 A photo not yet read (uploaded, reading or failed) is kept too, and counted
 as `photos_waiting`: committing mid-read never loses a photo. The sitting
@@ -38,7 +40,15 @@ from sqlalchemy import delete, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from closet_routes import GarmentFields, apply_garment_fields
-from comics import RangeError, expand, format_ranges, parse_ranges, union
+from comics import (
+    RangeError,
+    expand,
+    format_ranges,
+    owned_set,
+    parse_ranges,
+    row_run,
+    union,
+)
 from comics_routes import got_issues
 from formats import CopyFieldError
 from intake.kinds import REGISTRY, Kind
@@ -110,6 +120,61 @@ class Refusal:
         }
 
 
+def _run_of(item: Item) -> dict[str, Any]:
+    return row_run(
+        item.issues_owned,
+        item.issues_skipped,
+        item.editions,
+        item.read_to,
+        item.source_metadata,
+    )
+
+
+@dataclass
+class SeriesGrew:
+    """One series already on the shelf that a commit wrote issues to: the
+    issues it gained and those it held already (loose or in an edition),
+    against its run before the write. Made before the write; `after` is
+    filled in once Got it's rule has run."""
+
+    item: Item
+    before: dict[str, Any]
+    added: list[int]
+    already: list[int]
+    after_owned_text: str = ""
+
+    @classmethod
+    def before_write(cls, item: Item, issues: set[int]) -> SeriesGrew:
+        held = owned_set(item.issues_owned, item.editions)
+        return cls(
+            item=item,
+            before=_run_of(item),
+            added=sorted(issues - held),
+            already=sorted(issues & held),
+        )
+
+    def after_write(self) -> None:
+        self.after_owned_text = format_ranges(
+            owned_set(self.item.issues_owned, self.item.editions)
+        )
+
+    def as_json(self) -> dict[str, Any]:
+        return {
+            "item_id": str(self.item.id),
+            "title": self.item.title,
+            "is_public": self.item.is_public,
+            "cover_url": self.item.cover_url,
+            "before": {
+                "owned": self.before["owned"],
+                "released": self.before["released"],
+            },
+            "ongoing": self.before["ongoing"],
+            "added": self.added,
+            "already": self.already,
+            "after_owned_text": self.after_owned_text,
+        }
+
+
 @dataclass
 class SittingCommit:
     """What a commit did, as Done shows it (AC 8), and the new item ids."""
@@ -122,6 +187,7 @@ class SittingCommit:
     photos_waiting: int = 0
     refused: list[Refusal] = field(default_factory=list)
     created: list[uuid.UUID] = field(default_factory=list)
+    series_grew: list[SeriesGrew] = field(default_factory=list)
 
     def as_json(self) -> dict[str, Any]:
         """The route's answer."""
@@ -129,6 +195,7 @@ class SittingCommit:
             "added": self.added,
             "already_owned": self.already_owned,
             "issues_added": self.issues_added,
+            "series_grew": [grew.as_json() for grew in self.series_grew],
             "skipped_kept": self.skipped_kept,
             "photos_empty": self.photos_empty,
             "photos_waiting": self.photos_waiting,
@@ -235,6 +302,47 @@ async def _series_on_shelf(
     return {(item.external_source, item.external_id): item for item in found}
 
 
+async def series_on_shelf_for(
+    session: AsyncSession, entries: list[IntakeEntry]
+) -> dict[uuid.UUID, dict[str, Any]]:
+    """Each comic entry whose series is already on the shelf, by the
+    commit's own key, with that series' run as it stands now, so Check can
+    say what the entry adds before anything is written. Entries without a
+    match, or not comics, are left out."""
+    keys: dict[uuid.UUID, tuple[str, str]] = {}
+    for entry in entries:
+        kind = REGISTRY.get(entry.kind)
+        if not _is_comic(kind):
+            continue
+        key = _key(shelf_row(kind, entry))
+        if key is not None:
+            keys[entry.id] = key
+    if not keys:
+        return {}
+    found = await session.scalars(
+        select(Item).where(
+            tuple_(Item.external_source, Item.external_id).in_(set(keys.values()))
+        )
+    )
+    items = {(item.external_source, item.external_id): item for item in found}
+    shelf: dict[uuid.UUID, dict[str, Any]] = {}
+    for entry_id, key in keys.items():
+        item = items.get(key)
+        if item is None:
+            continue
+        run = _run_of(item)
+        shelf[entry_id] = {
+            "item_id": str(item.id),
+            "title": item.title,
+            "cover_url": item.cover_url,
+            "owned": run["owned"],
+            "owned_text": run["owned_text"],
+            "released": run["released"],
+            "ongoing": run["ongoing"],
+        }
+    return shelf
+
+
 def _with_issues(row: ItemIn, issues: set[int]) -> ItemIn:
     """The first entry's row carrying the series' joined issues."""
     fields = row.model_dump(exclude_unset=True)
@@ -253,6 +361,7 @@ class SingleAdd:
     created: list[uuid.UUID] = field(default_factory=list)
     garment_id: uuid.UUID | None = None
     refused: list[Refusal] = field(default_factory=list)
+    series_grew: list[SeriesGrew] = field(default_factory=list)
 
 
 async def commit_one(
@@ -267,8 +376,9 @@ async def commit_one(
     builders and `items.commit_items`, so a single add writes the row a
     sitting would (AC 6): a chosen match, or a row kept as typed (no
     `chosen`). A comic series already on the shelf gains the typed issues
-    by Got it's rule, as in a sitting (`issues_added`); one gaining nothing
-    is `already_owned`. Does not commit; the caller rolls back on a
+    by Got it's rule, as in a sitting (`issues_added`, and `series_grew`
+    for its own report); one gaining nothing is `already_owned`. Does not
+    commit; the caller rolls back on a
     refusal."""
     outcome = SingleAdd()
     kind = REGISTRY.get(kind_key)
@@ -304,13 +414,16 @@ async def commit_one(
         on_shelf = (await _series_on_shelf(session, {key: _Series()})).get(key)
         if on_shelf is not None:
             issues = expand(parse_ranges(made.issues_owned))
-            gained = issues - expand(parse_ranges(on_shelf.issues_owned))
+            gained = issues - owned_set(on_shelf.issues_owned, on_shelf.editions)
+            grew = SeriesGrew.before_write(on_shelf, issues)
             if gained:
                 outcome.issues_added = await got_issues(
                     session, on_shelf, gained, today
                 )
             else:
                 outcome.already_owned = 1
+            grew.after_write()
+            outcome.series_grew.append(grew)
             return outcome
     try:
         result = await commit_items(session, [made], today=today)
@@ -442,7 +555,8 @@ async def commit_sitting(
         issues = expand(parse_ranges(union(*found.issues)))
         item = on_shelf.get(key)
         if item is not None:
-            gained = issues - expand(parse_ranges(item.issues_owned))
+            outcome.series_grew.append(SeriesGrew.before_write(item, issues))
+            gained = issues - owned_set(item.issues_owned, item.editions)
             if gained:
                 gains.append((item, gained))
             else:
@@ -465,6 +579,8 @@ async def commit_sitting(
     session.add_all(garments)
     for item, gained in gains:
         outcome.issues_added += await got_issues(session, item, gained, today)
+    for grew in outcome.series_grew:
+        grew.after_write()
     outcome.created = result.created
     outcome.added += len(result.created) + len(garments)
     outcome.already_owned += result.existing

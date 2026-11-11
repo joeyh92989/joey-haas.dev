@@ -40,6 +40,7 @@ from intake.commit import (
     SittingGone,
     commit_one,
     commit_sitting,
+    series_on_shelf_for,
 )
 from intake.kinds import REGISTRY, describe
 from intake.nightly import LAST_RUN_KEY, run_nightly
@@ -130,8 +131,12 @@ def photo_json(photo: IntakePhoto) -> dict[str, Any]:
     }
 
 
-def entry_json(entry: IntakeEntry) -> dict[str, Any]:
-    """The page's view of an entry."""
+def entry_json(
+    entry: IntakeEntry, on_shelf: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """The page's view of an entry. `on_shelf` is the comic series the
+    entry would add issues to, as it stands now (`series_on_shelf_for`),
+    else null."""
     return {
         "id": str(entry.id),
         "photo_id": str(entry.photo_id) if entry.photo_id else None,
@@ -141,7 +146,17 @@ def entry_json(entry: IntakeEntry) -> dict[str, Any]:
         "candidates": entry.candidates,
         "chosen": entry.chosen,
         "garment_id": str(entry.garment_id) if entry.garment_id else None,
+        "on_shelf": on_shelf,
     }
+
+
+async def entries_json(
+    session: AsyncSession, entries: list[IntakeEntry]
+) -> list[dict[str, Any]]:
+    """Entries as the page sees them, each comic marked with the series
+    already on the shelf it matches."""
+    shelf = await series_on_shelf_for(session, entries)
+    return [entry_json(entry, shelf.get(entry.id)) for entry in entries]
 
 
 def _check_kind(area: IntakeArea, kind: str | None) -> None:
@@ -202,7 +217,7 @@ def create_intake_router(
             "label": sitting.label,
             "step": sitting.step,
             "photos": [photo_json(photo) for photo in photos],
-            "entries": [entry_json(entry) for entry in entries],
+            "entries": await entries_json(session, list(entries)),
         }
 
     @router.get("/kinds")
@@ -224,7 +239,8 @@ def create_intake_router(
     async def add_one(body: AddIn, session: AsyncSession = Depends(get_session)) -> Any:
         """Add one thing from the add bar through the commit service. 201
         with the new id; 200 when it was already on the shelf, with
-        `issues_added` counting the issues an owned comic series gained; 422 with
+        `issues_added` counting the issues an owned comic series gained and
+        `series_grew` reporting that series on its own; 422 with
         `refused` (and the first message as `detail`) when the write rules
         refuse it, writing nothing."""
         today = body.today or date.today()
@@ -246,6 +262,7 @@ def create_intake_router(
                 "added": outcome.added,
                 "already_owned": outcome.already_owned,
                 "issues_added": outcome.issues_added,
+                "series_grew": [grew.as_json() for grew in outcome.series_grew],
                 "created": [str(i) for i in outcome.created],
                 "garment_id": str(outcome.garment_id) if outcome.garment_id else None,
             },
@@ -432,7 +449,7 @@ def create_intake_router(
         return {
             "status": outcome.status,
             "photo": photo_json(outcome.photo) if outcome.photo else None,
-            "entries": [entry_json(entry) for entry in outcome.entries],
+            "entries": await entries_json(session, list(outcome.entries)),
         }
 
     @router.post("/sittings/{sitting_id}/entries", status_code=201)
@@ -468,7 +485,8 @@ def create_intake_router(
         )
         session.add(entry)
         await session.commit()
-        return entry_json(entry)
+        [shown] = await entries_json(session, [entry])
+        return shown
 
     @router.post("/sittings/{sitting_id}/commit")
     async def commit(
@@ -496,6 +514,7 @@ def create_intake_router(
                     **outcome.as_json(),
                     "added": 0,
                     "already_owned": 0,
+                    "series_grew": [],
                     "skipped_kept": 0,
                     "photos_empty": 0,
                     "photos_waiting": 0,
@@ -525,7 +544,8 @@ def create_intake_router(
                 continue
             setattr(entry, field, value)
         await session.commit()
-        return entry_json(entry)
+        [shown] = await entries_json(session, [entry])
+        return shown
 
     @router.post("/entries/{entry_id}/tag-again")
     async def tag_again(

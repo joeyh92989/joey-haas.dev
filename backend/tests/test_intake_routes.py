@@ -368,6 +368,62 @@ async def test_a_chosen_result_already_on_the_shelf_is_owned(sessionmaker_for_te
     assert added.json()["state"] == "owned"
 
 
+SAGA = {"external_source": "comicvine", "external_id": "cv-1", "title": "Saga"}
+
+
+@pytest.mark.asyncio
+async def test_a_comic_entry_carries_the_series_already_on_the_shelf(
+    sessionmaker_for_test,
+):
+    """Check draws what an entry adds before the commit, so each comic
+    entry matching a series on the shelf carries that series' run now."""
+    async with sessionmaker_for_test() as session:
+        saga = Item(
+            type=ItemType.COMIC,
+            title="Saga",
+            status=ItemStatus.BACKLOG,
+            external_source="comicvine",
+            external_id="cv-1",
+            issues_owned="1–57",
+            source_metadata={"released": 72, "ongoing": True},
+        )
+        session.add(saga)
+        await session.commit()
+        saga_id = str(saga.id)
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        path = f"/api/intake/sittings/{sitting['id']}"
+        added = await client.post(
+            f"{path}/entries",
+            json={"kind": "comic", "chosen": SAGA, "payload": {"issues_owned": "58"}},
+        )
+        other = await client.post(
+            f"{path}/entries",
+            json={"kind": "movie", "chosen": DUNE},
+        )
+        patched = await client.patch(
+            f"/api/intake/entries/{added.json()['id']}",
+            json={"payload": {"issues_owned": "58-59"}},
+        )
+        read_back = await client.get(path)
+    assert added.status_code == 201, added.text
+    on_shelf = {
+        "item_id": saga_id,
+        "title": "Saga",
+        "cover_url": None,
+        "owned": 57,
+        "owned_text": "1–57",
+        "released": 72,
+        "ongoing": True,
+    }
+    assert added.json()["on_shelf"] == on_shelf
+    assert other.json()["on_shelf"] is None
+    assert patched.json()["on_shelf"] == on_shelf
+    entries = {entry["kind"]: entry for entry in read_back.json()["entries"]}
+    assert entries["comic"]["on_shelf"] == on_shelf
+    assert entries["movie"]["on_shelf"] is None
+
+
 @pytest.mark.asyncio
 async def test_a_chosen_entry_commits_as_its_match(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:

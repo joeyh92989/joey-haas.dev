@@ -42,7 +42,7 @@ and the entries read from them or typed in.
   same create path as `/bulk`, so the rows are the photo importer's: write
   rules, duplicates skipped, playthroughs seeded, private, in INSERTs of at
   most `items.BULK_CHUNK` (500). Answers `{added, already_owned,
-  issues_added, skipped_kept, photos_empty, photos_waiting, refused}`, and the route adds
+  issues_added, series_grew, skipped_kept, photos_empty, photos_waiting, refused}`, and the route adds
   `created` (the new items' ids, which Done publishes). By entry state:
   exact, probable, ready and typed are written; owned is counted once per
   title; ignored is cleared; check and reading stay in the sitting. A photo
@@ -56,7 +56,14 @@ and the entries read from them or typed in.
   `comics_routes.got_issues`, Got it's own rule (union, never lowered; a
   newly owned number leaves `issues_skipped`; a followed or wanted row
   becomes owned, To read), and `issues_added` counts the issues it gained;
-  a series that gains nothing is `already_owned`. Games, movies and board
+  a series that gains nothing is `already_owned`. Each such series is also
+  reported on its own in `series_grew` (`SeriesGrew`): `{item_id, title,
+  is_public, cover_url, before: {owned, released}, ongoing, added, already, after_owned_text}`,
+  where `added` and `already` split the sitting's issues of it against
+  what it held before (loose or in an edition), for Done's "Series that
+  grew". An issue already inside an edition is held, so it is neither
+  gained nor written again as a loose single; a refused commit reports
+  `series_grew: []`. Games, movies and board
   games keep the old rule: one row per key, later photos dropped. The
   reader does not read an issue number off a photo (the importer's schema
   has no such field), so issues come from Details' Issues owned.
@@ -75,7 +82,13 @@ and the entries read from them or typed in.
   go through `got_issues`, and the answer is 200 with `issues_added: N`
   (the add bar says "Added N issues to <title>"); a series gaining nothing
   is `already_owned: 1`, `issues_added: 0`. Every answer carries
-  `issues_added`.
+  `issues_added` and `series_grew` (that series' report, as a sitting's).
+  Before any commit, `series_on_shelf_for()` marks each comic entry whose
+  series is already an item (by the commit's own key) with that series'
+  run as it stands: every route that answers with entries (the sitting,
+  read-next, add entry, PATCH entry) carries it as `on_shelf: {item_id,
+  title, cover_url, owned, owned_text, released, ongoing}`, else null, so
+  Check can say what an entry adds before it is written.
 
 - `search.py` — `search_area()`, behind `GET /api/intake/search?area=&query=`
   (spec D5), the add bar's search. One query goes to the source of every
