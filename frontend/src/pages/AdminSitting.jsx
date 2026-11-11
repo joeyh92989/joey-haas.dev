@@ -31,12 +31,23 @@ function stepsFor(sitting, kinds) {
 }
 
 /**
+ * The sitting page, remounted per sitting: Shoot the next box navigates to
+ * a new `:sittingId` on the same route element, and React would otherwise
+ * keep the last sitting's commit answer, refusals and focus flag, so the
+ * new sitting would open headed "<old label> is in".
+ */
+export default function KeyedAdminSitting() {
+  const { sittingId } = useParams()
+  return <AdminSitting key={sittingId} />
+}
+
+/**
  * One sitting (`/admin/collection/add/:sittingId`, and the Closet's): the
  * stepper, then Shoot, Check, Details (kinds that have one) and Done. The
  * step is saved on the sitting, so it reopens where it was left, on any
  * device (AC 3); moving a step moves focus to its heading.
  */
-export default function AdminSitting() {
+function AdminSitting() {
   const { sittingId } = useParams()
   const { pathname } = useLocation()
   const navigate = useNavigate()

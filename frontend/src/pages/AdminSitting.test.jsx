@@ -378,6 +378,26 @@ describe('AdminSitting', () => {
     expect(await axeViolations(container)).toEqual([])
   })
 
+  it('starts the next box fresh, with none of the last one’s state', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({ sittings: [longbox({ step: 'details' })] })
+    renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+    )
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Longbox 1 is in' }),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Shoot the next box' }))
+    expect(await screen.findByRole('heading', { name: 'Shoot' })).toBeVisible()
+    expect(api.calls('GET', /\/sittings\/new-1$/)).toHaveLength(1)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      /^Sitting$/,
+    )
+    expect(document.title).not.toMatch(/is in/)
+    expect(currentStep()).toHaveTextContent('Shoot')
+  })
+
   it('takes a closet sitting from Shoot to Done with no Details step', async () => {
     const user = userEvent.setup()
     const api = fakeIntakeApi({
