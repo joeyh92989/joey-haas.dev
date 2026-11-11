@@ -21,6 +21,7 @@ from llm import FREE_TIER_DAILY_REQUESTS, GEMINI_MODELS, LLMError
 from models import (
     IntakeArea,
     IntakeEntry,
+    IntakeEntryState,
     IntakePhoto,
     IntakePhotoState,
     IntakeSetting,
@@ -160,12 +161,15 @@ async def _leave_calls(factory, left: int) -> None:
 
 
 @asynccontextmanager
-async def job_client(factory, provider_factory, *, token=TOKEN):
+async def job_client(factory, provider_factory, *, token=TOKEN, registry=None):
     app = FastAPI()
     app.state.job_token = token
     app.include_router(
         create_intake_router(
-            factory, _registry(), config=_config(), provider_factory=provider_factory
+            factory,
+            registry if registry is not None else _registry(),
+            config=_config(),
+            provider_factory=provider_factory,
         )
     )
     app.add_middleware(SessionMiddleware, secret_key="test-secret", https_only=False)
@@ -260,6 +264,36 @@ async def test_no_model_fails_the_night_without_touching_a_photo(
     assert body["ok"] is False
     assert "No model is configured" in body["note"]
     assert body["waiting"] == 1
+
+
+async def test_nightly_retries_reading_entries_without_a_model_call(
+    sessionmaker_for_test,
+):
+    sitting_id, _ = await _sitting(sessionmaker_for_test, photos=0)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            IntakeEntry(
+                sitting_id=sitting_id,
+                kind="movie",
+                state=IntakeEntryState.READING,
+                payload={
+                    "detected_title": "Dune",
+                    "detected_year": None,
+                    "detected_platform": None,
+                    "reason": "tmdb is busy, will retry",
+                },
+            )
+        )
+        await session.commit()
+    provider = RecordingProvider(sessionmaker_for_test)
+    async with job_client(sessionmaker_for_test, lambda: provider) as client:
+        body = (await client.post("/api/intake/jobs/nightly", headers=bearer())).json()
+    assert provider.calls == 0
+    assert body["state"] == "empty"
+    async with sessionmaker_for_test() as session:
+        entry = await session.scalar(select(IntakeEntry))
+    assert entry.state is IntakeEntryState.EXACT
+    assert entry.chosen["external_id"] == "438631"
 
 
 @pytest.mark.parametrize("headers", [{}, bearer("nope")])

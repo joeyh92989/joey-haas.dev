@@ -5,12 +5,14 @@ days): the sitting, its photos and its entries go together. "Touched" is
 the newest `updated_at` of the sitting or anything in it, so a photo read
 or an entry checked last week keeps a month-old sitting.
 
-Then it reads waiting shelf photos, oldest first across sittings, one
-`read_next` at a time, while the free tier has calls left above the reserve
-(`intake.budget`). The budget is read afresh before every photo, because
-the recorder counts each call in its own session. A failed read stops the
-night (the next photo would most likely fail the same way, and a failed
-photo waits for Retry); a missing model key fails it without a call.
+Then it matches again the entries a busy source left `reading`
+(`retry_reading`, no model call), and reads waiting shelf photos, oldest
+first across sittings, one `read_next` at a time, while the free tier
+has calls left above the reserve (`intake.budget`). The budget is read
+afresh before every photo, because the recorder counts each call in its
+own session. A failed read stops the night (the next photo would most
+likely fail the same way, and a failed photo waits for Retry); a missing
+model key fails it without a call.
 
 The run's summary is stored as `intake_settings["nightly.last_run"]`
 whatever happened, and is what the Jobs page's Intake row reads.
@@ -30,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import Config
 from intake.budget import budget_state
-from intake.reader import read_next
+from intake.reader import read_next, retry_reading
 from llm import LLMError, LLMProvider
 from models import (
     IntakeArea,
@@ -120,6 +122,9 @@ async def run_nightly(
     now = now or datetime.now(UTC)
     expired, photos_expired = await expire_sittings(session, now)
     await session.commit()
+    # Entries a busy source left `reading` are matched again first: no
+    # model call, so it runs whatever the budget says.
+    await retry_reading(session, registry)
 
     read = 0
     state = "empty"

@@ -13,6 +13,8 @@ schema and resolution (`importer.py`) unchanged; confidence comes from
   Retry puts the failed one back in the queue.
 - **A busy source is not a miss.** A rate-limited or unavailable source
   leaves its entries `reading`, worded "<source> is busy, will retry".
+  `retry_reading` matches them again from their detected fields, with no
+  model call: at the start of every `read_next` and of the nightly.
 - **Already on the shelf.** An exact or probable match whose
   `(external_source, external_id)` is already an item -- the commit's
   duplicate rule -- is `owned`; an uncertain one stays `check`.
@@ -33,6 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from importer import (
     DETECTION_SCHEMA,
     EXTRACTION_PROMPT,
+    Detection,
     parse_detections,
     resolve_detections,
 )
@@ -112,13 +115,12 @@ async def _owned(session: AsyncSession, rows: list[dict]) -> set[tuple[str, str]
     return {(source, external_id) for source, external_id in found.all()}
 
 
-def _entry(
-    sitting_id: uuid.UUID,
-    photo_id: uuid.UUID,
-    row: dict,
-    busy: dict[tuple, str],
-    owned: set[tuple[str, str]],
-) -> IntakeEntry:
+def _resolution(
+    row: dict, busy: dict[tuple, str], owned: set[tuple[str, str]]
+) -> tuple[IntakeEntryState, dict[str, Any]]:
+    """An importer row's entry state and payload: `reading` while its
+    source is busy, else its confidence, `owned` for a trusted match that
+    is already an item."""
     payload: dict[str, Any] = {
         "detected_title": row["detected_title"],
         "detected_year": row["detected_year"],
@@ -132,15 +134,25 @@ def _entry(
         (row["detected_title"], row["detected_year"], row["detected_platform"])
     )
     if source is not None:
-        state = IntakeEntryState.READING
         payload["reason"] = f"{source} is busy, will retry"
-    else:
-        state = CONFIDENCE_STATES[row["confidence"]]
-        # Only a trusted match is called owned: an uncertain one may point
-        # at the owned item by nothing more than being the nearest title.
-        key = (match["external_source"], match["external_id"]) if match else None
-        if state is not IntakeEntryState.CHECK and key in owned:
-            state = IntakeEntryState.OWNED
+        return IntakeEntryState.READING, payload
+    state = CONFIDENCE_STATES[row["confidence"]]
+    # Only a trusted match is called owned: an uncertain one may point
+    # at the owned item by nothing more than being the nearest title.
+    key = (match["external_source"], match["external_id"]) if match else None
+    if state is not IntakeEntryState.CHECK and key in owned:
+        state = IntakeEntryState.OWNED
+    return state, payload
+
+
+def _entry(
+    sitting_id: uuid.UUID,
+    photo_id: uuid.UUID,
+    row: dict,
+    busy: dict[tuple, str],
+    owned: set[tuple[str, str]],
+) -> IntakeEntry:
+    state, payload = _resolution(row, busy, owned)
     return IntakeEntry(
         sitting_id=sitting_id,
         photo_id=photo_id,
@@ -148,8 +160,102 @@ def _entry(
         state=state,
         payload=payload,
         candidates=row["candidates"],
-        chosen=match,
+        chosen=row["match"],
     )
+
+
+async def _resolve(
+    session: AsyncSession,
+    registry: dict[ItemType, SourceAdapter],
+    detections: list[Detection],
+) -> tuple[list[dict], dict[tuple, str], set[tuple[str, str]]]:
+    busy: dict[tuple, str] = {}
+    watched = {
+        media_type: _Watched(adapter, busy) for media_type, adapter in registry.items()
+    }
+    rows = await resolve_detections(watched, detections)
+    return rows, busy, await _owned(session, rows)
+
+
+async def retry_reading(
+    session: AsyncSession,
+    registry: dict[ItemType, SourceAdapter],
+    sitting_id: uuid.UUID | None = None,
+) -> int:
+    """Match again the shelf entries left `reading` by a busy source, from
+    their `payload.detected_*` fields: no model call. `sitting_id` limits
+    it to one sitting (`read_next`); without it every shelf sitting's
+    (the nightly). Returns how many entries left `reading`; one whose
+    source is still busy stays as it is. Commits."""
+    query = (
+        select(IntakeEntry.id, IntakeEntry.kind, IntakeEntry.payload)
+        .join(IntakeSitting, IntakeSitting.id == IntakeEntry.sitting_id)
+        .where(
+            IntakeEntry.state == IntakeEntryState.READING,
+            IntakeSitting.area == IntakeArea.SHELF,
+        )
+        .order_by(IntakeEntry.created_at, IntakeEntry.id)
+    )
+    if sitting_id is not None:
+        query = query.where(IntakeEntry.sitting_id == sitting_id)
+    waiting = (await session.execute(query)).all()
+    ids: list[uuid.UUID] = []
+    detections: list[Detection] = []
+    for entry_id, kind, payload in waiting:
+        payload = payload or {}
+        title = payload.get("detected_title")
+        try:
+            media_type = ItemType(kind)
+        except ValueError:
+            continue
+        if not title:
+            continue
+        ids.append(entry_id)
+        detections.append(
+            Detection(
+                index=len(detections),
+                title=title,
+                media_type=media_type,
+                year=payload.get("detected_year"),
+                platform=payload.get("detected_platform"),
+            )
+        )
+    # No connection is held through the source calls.
+    await session.commit()
+    if not detections:
+        return 0
+
+    rows, busy, owned = await _resolve(session, registry, detections)
+    # Re-read under lock: an entry changed or deleted meanwhile is left be.
+    entries = {
+        entry.id: entry
+        for entry in (
+            await session.scalars(
+                select(IntakeEntry)
+                .where(
+                    IntakeEntry.id.in_(ids),
+                    IntakeEntry.state == IntakeEntryState.READING,
+                )
+                .with_for_update()
+            )
+        ).all()
+    }
+    resolved = 0
+    for row in rows:
+        entry = entries.get(ids[row["index"]])
+        if entry is None:
+            continue
+        state, payload = _resolution(row, busy, owned)
+        if state is IntakeEntryState.READING:
+            continue
+        entry.state = state
+        entry.payload = {**(entry.payload or {}), **payload}
+        entry.candidates = row["candidates"]
+        entry.chosen = row["match"]
+        resolved += 1
+    await session.commit()
+    logger.info("intake retry: %d of %d reading entries matched", resolved, len(ids))
+    return resolved
 
 
 async def read_next(
@@ -169,6 +275,8 @@ async def read_next(
     sitting = await session.get(IntakeSitting, sitting_id)
     if sitting is None or sitting.area is not IntakeArea.SHELF:
         return ReadOutcome("idle")
+    # Cheap (no model call): a page left open recovers busy sources too.
+    await retry_reading(session, registry, sitting_id)
     photo = await session.scalar(
         select(IntakePhoto)
         .where(
@@ -200,12 +308,7 @@ async def read_next(
         await session.commit()
         return ReadOutcome("failed", photo)
 
-    busy: dict[tuple, str] = {}
-    watched = {
-        media_type: _Watched(adapter, busy) for media_type, adapter in registry.items()
-    }
-    rows = await resolve_detections(watched, detections)
-    owned = await _owned(session, rows)
+    rows, busy, owned = await _resolve(session, registry, detections)
     entries = [_entry(sitting_id, photo.id, row, busy, owned) for row in rows]
     session.add_all(entries)
     photo.state = IntakePhotoState.READ if entries else IntakePhotoState.EMPTY

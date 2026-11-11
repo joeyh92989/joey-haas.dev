@@ -28,7 +28,10 @@ and the entries read from them or typed in.
   importer's prompt, `parse_detections` and `resolve_detections`; each title
   becomes an entry in its `matching.py` confidence (`exact`, `probable`,
   `check`), `owned` when a trusted match is already an item, or `reading`
-  when its source was busy. The reading copy is dropped once read. A budget
+  when its source was busy. `retry_reading()` matches `reading` entries
+  again from their `payload.detected_*` fields with the same mapping and
+  no model call; `read_next` runs it for its sitting first, the nightly
+  for every shelf sitting. The reading copy is dropped once read. A budget
   of zero or less returns `waiting` and changes nothing; a model error
   marks only that photo `failed` (Retry requeues it). Closet sittings read
   nothing here: their garments are tagged by the Closet's tag queue.
@@ -50,7 +53,8 @@ and the entries read from them or typed in.
   (spec D4, job token). First `expire_sittings()` deletes sittings nobody
   has touched for `EXPIRE_AFTER` (30 days), photos and entries with them;
   "touched" is the newest `updated_at` of the sitting, its photos or its
-  entries. Then it reads waiting shelf photos, oldest first across
+  entries. Then it retries `reading` entries (`retry_reading()`, no model
+  call), then reads waiting shelf photos, oldest first across
   sittings, one `read_next` at a time, re-reading the budget before each,
   until nothing waits, the budget is down to the reserve (`waiting`), a
   read fails (`stopped`) or no model is configured (`failed`). The summary

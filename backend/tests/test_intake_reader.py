@@ -15,7 +15,7 @@ from sqlalchemy import select, update
 from starlette.middleware.sessions import SessionMiddleware
 
 from intake.budget import pacific_day
-from intake.reader import read_next
+from intake.reader import read_next, retry_reading
 from intake.routes import create_intake_router
 from llm import GEMINI_MODELS, LLMError
 from models import (
@@ -289,6 +289,82 @@ async def test_a_busy_source_leaves_the_entry_reading(sessionmaker_for_test):
     (entry,) = await _entries(sessionmaker_for_test, sitting_id)
     assert entry.state.value == "reading"
     assert entry.payload["reason"] == "tmdb is busy, will retry"
+
+
+class BusyOnce(StubSource):
+    """A source that is busy for its first `busy` searches, then answers."""
+
+    def __init__(self, busy=1):
+        super().__init__(
+            "tmdb",
+            ItemType.MOVIE,
+            [SourceResult(external_id="438631", title="Dune", year=2021)],
+        )
+        self._busy = busy
+
+    async def search(self, query, year=None, platform=None):
+        self.searches.append((query, year, platform))
+        if self._busy:
+            self._busy -= 1
+            raise SourceRateLimited("tmdb", "rate limited")
+        return self._results
+
+
+async def test_a_reading_entry_is_retried_without_a_model_call(
+    sessionmaker_for_test,
+):
+    sitting_id, _ = await _sitting(sessionmaker_for_test)
+    source = BusyOnce()
+    provider = CountingProvider(_detections("Dune"))
+    await _read(sessionmaker_for_test, sitting_id, provider, registry=_registry(source))
+    (entry,) = await _entries(sessionmaker_for_test, sitting_id)
+    assert entry.state.value == "reading"
+
+    async with sessionmaker_for_test() as session:
+        retried = await retry_reading(session, _registry(source))
+    assert retried == 1
+    (entry,) = await _entries(sessionmaker_for_test, sitting_id)
+    assert entry.state.value == "exact"
+    assert entry.chosen["external_id"] == "438631"
+    assert entry.payload["detected_title"] == "Dune"
+    assert entry.payload["reason"] is None
+    assert provider.calls == 1  # the read only; the retry made no model call
+    assert len(source.searches) == 2
+
+
+async def test_a_source_still_busy_leaves_the_entry_reading(sessionmaker_for_test):
+    sitting_id, _ = await _sitting(sessionmaker_for_test)
+    source = BusyOnce(busy=2)
+    await _read(
+        sessionmaker_for_test,
+        sitting_id,
+        CountingProvider(_detections("Dune")),
+        registry=_registry(source),
+    )
+    async with sessionmaker_for_test() as session:
+        assert await retry_reading(session, _registry(source)) == 0
+    (entry,) = await _entries(sessionmaker_for_test, sitting_id)
+    assert entry.state.value == "reading"
+    assert entry.payload["reason"] == "tmdb is busy, will retry"
+
+
+async def test_read_next_retries_reading_entries_first(sessionmaker_for_test):
+    sitting_id, _ = await _sitting(sessionmaker_for_test)
+    source = BusyOnce()
+    await _read(
+        sessionmaker_for_test,
+        sitting_id,
+        CountingProvider(_detections("Dune")),
+        registry=_registry(source),
+    )
+    provider = CountingProvider()
+    outcome = await _read(
+        sessionmaker_for_test, sitting_id, provider, registry=_registry(source)
+    )
+    assert outcome.status == "idle"
+    assert provider.calls == 0
+    (entry,) = await _entries(sessionmaker_for_test, sitting_id)
+    assert entry.state.value == "exact"
 
 
 async def test_a_closet_sitting_leaves_tagging_to_the_tag_queue(
