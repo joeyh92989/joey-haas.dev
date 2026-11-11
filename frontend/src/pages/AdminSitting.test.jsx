@@ -507,4 +507,46 @@ describe('AdminSitting', () => {
     expect(api.calls('POST', /\/read-next$/)).toHaveLength(0)
     expect(screen.queryByRole('button', { name: /Publish/ })).toBeNull()
   })
+
+  it('asks about a given-up piece in Clothes · Check and removes its photo', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [
+        {
+          id: 'c2',
+          area: 'closet',
+          kind: 'garment',
+          label: 'Rack',
+          step: 'check',
+          entries: [
+            entry('ge1', 'ready', { kind: 'garment', garment_id: 'gx' }),
+          ],
+        },
+      ],
+      garments: [
+        {
+          id: 'gx',
+          name: 'Oxford shirt',
+          status: 'untagged',
+          tag_source: null,
+          tag_attempts: 3,
+          image: null,
+        },
+      ],
+    })
+    renderSitting('c2', 'closet')
+    expect(
+      await screen.findByRole('button', { name: 'Save and next' }),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Remove this photo' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, remove' }))
+    await waitFor(() =>
+      expect(api.calls('DELETE', /\/api\/closet\/garments\/gx$/)).toHaveLength(
+        1,
+      ),
+    )
+    expect(
+      await screen.findByText(/Nothing left to check one at a time/),
+    ).toBeInTheDocument()
+  })
 })

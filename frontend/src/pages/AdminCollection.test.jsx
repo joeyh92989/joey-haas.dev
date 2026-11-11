@@ -871,7 +871,7 @@ describe('AdminCollection create form', () => {
       screen.getByLabelText('Copy format'),
       'game_card',
     )
-    await userEvent.click(screen.getByRole('button', { name: /add/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^add$/i }))
 
     await waitFor(() => {
       const body = JSON.parse(writeCalls(mock)[0][1].body)
@@ -889,7 +889,7 @@ describe('AdminCollection create form', () => {
       screen.getByLabelText('Owned format'),
       'physical',
     )
-    await userEvent.click(screen.getByRole('button', { name: /add/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^add$/i }))
 
     await waitFor(() => {
       const body = JSON.parse(writeCalls(mock)[0][1].body)

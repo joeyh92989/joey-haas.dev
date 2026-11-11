@@ -45,12 +45,12 @@ describe('spine.how', () => {
     }
   })
 
-  it('claims for intake only what has shipped: photos, not search', () => {
-    // Search-to-add ships in intake's PR 3, which adds the wording back.
+  it('names both ways in at stop 1: a shelf photo and a search', () => {
+    // The add bar's search ships with intake's PR 3.
     const stop = how.stops.find((s) => s.n === 1)
     const feature = how.features.find((f) => f.stop === 1)
-    expect(JSON.stringify(stop)).not.toMatch(/search/i)
-    expect(JSON.stringify(feature)).not.toMatch(/search/i)
+    expect(stop.claim).toMatch(/photograph a shelf or search for a title/)
+    expect(feature.line).toMatch(/a search/)
   })
 
   it('links only code that exists in the repo', () => {

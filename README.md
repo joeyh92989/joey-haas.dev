@@ -568,9 +568,10 @@ Sunday opinion's prompt and checks are `closet_opinion.py`.
   (`POST /api/closet/tag`) tags one batch whatever the budget says.
 - **The pages.** `/admin/closet` is every garment as 4:5 tiles or a table
   with wear meters (the choice kept under `shelf.admin.closet.view`),
-  filtered by status (Active by default), slot, Warm and Smart. ＋ Camera
-  uploads a rack of photos and moves the view to Untagged, with the toast's
-  Tag now. `/admin/closet/:id` edits every field by hand and deletes;
+  filtered by status (Active by default), slot, Warm and Smart. Pieces
+  come in through intake's add bar (see Intake): ▤ Photos opens a clothes
+  sitting at Shoot, each photo an untagged garment at once, and the "N
+  photos waiting · Tag now" line runs one batch of the queue. `/admin/closet/:id` edits every field by hand and deletes;
   `/admin/closet/profile` is the Profile, saved whole as one `PATCH`. The
   Closet area's badge counts the pieces Review has flagged (`tiles.flagged`
   from `GET /api/closet/review`), read by `AdminLayout` on sign-in and again
@@ -659,10 +660,29 @@ the phone and finish at the desk.
 - **Check** asks only `check` entries, one at a time (a radio group, best
   preselected); exact and probable matches are a skim grid of checkboxes.
   Unticking stores `ignored` with `payload.unticked` and `payload.was`, so a
-  reload shows it unticked rather than gone. Search… waits for the add bar.
+  reload shows it unticked rather than gone. Search… looks the title up
+  through the add bar's search and lists the entry's kind's matches first.
+  A clothes sitting's Check is `GarmentCheck`: only pieces the tag queue
+  gave up on, one at a time (Save and next, Tag again, Skip, Remove this
+  photo), read from the Closet's own garments.
 - **Details** is one pass per kind present; **Done** shows the commit's own
   four figures, and Publish these N publishes the commit's `created` ids
   through `POST /api/items/visibility`.
+- **The add bar** (`components/intake/AddSection.jsx`, with `AddBar`,
+  `AddResults` and `AddDrawer`) sits above the grid on `/admin/collection`
+  and `/admin/closet`. On the shelf it searches on submit (`GET
+  /api/intake/search`), labels each result with its kind, links one
+  already owned (On shelf) and words each source that did not answer; a
+  source with no credentials is a disabled Search button with its reason,
+  and "Keep as typed" offers every kind that can be typed. In the Closet
+  it is type-only. Add opens the drawer (beside the grid, a modal bottom
+  sheet below 900px through `useMediaQuery`; focus trapped, Escape closes,
+  focus back on the button that opened it), which commits through `POST
+  /api/intake/add`. ▤ Photos opens the Add page, or straight to Shoot
+  where the area has one photo kind (the Closet). An unfinished sitting is
+  one line with Resume; drafts never show in the grid. The Closet's "N
+  photos waiting · Tag now" line counts its tag queue; a closet sitting's
+  Done sends the Closet straight to its untagged pieces.
 - Intake's 409s are its own words: it calls `errorMessage(response, {
   ownConflicts: true })`, which reads the `detail` instead of the catalogue
   lock wording.

@@ -14,7 +14,15 @@ from collections.abc import AsyncIterator, Callable
 from datetime import UTC, date, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+)
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -30,14 +38,18 @@ from intake.commit import (
     SITTING_GONE,
     NothingToAdd,
     SittingGone,
+    commit_one,
     commit_sitting,
 )
 from intake.kinds import REGISTRY, describe
 from intake.nightly import LAST_RUN_KEY, run_nightly
 from intake.reader import read_next
+from intake.search import search_area
 from items import _enrich, require_admin
 from llm import LLMError, LLMProvider
 from models import (
+    Garment,
+    GarmentStatus,
     IntakeArea,
     IntakeEntry,
     IntakeEntryState,
@@ -80,6 +92,19 @@ class CommitIn(BaseModel):
     status route takes it); the server's day when left out."""
 
     today: date | None = None
+
+
+class AddIn(BaseModel):
+    """One thing from the add bar: a kind, the chosen search result (none
+    when kept as typed) and the kind's fields."""
+
+    kind: str = Field(max_length=40)
+    chosen: dict[str, Any] | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    today: date | None = None
+
+
+TAG_AGAIN_REFUSED = "Only a piece the tagger gave up on can be tagged again"
 
 
 class EntryPatch(BaseModel):
@@ -179,6 +204,45 @@ def create_intake_router(
     async def list_kinds() -> list[dict[str, Any]]:
         """Every registered kind, with its fields and source state."""
         return [describe(kind, registry) for kind in REGISTRY.values()]
+
+    @router.get("/search")
+    async def search(
+        area: IntakeArea,
+        query: str = Query(min_length=1, max_length=200),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """The add bar's search: every source of the area's kinds at once,
+        each with its state, owned results marked (`intake/search.py`)."""
+        return await search_area(session, registry, area, query.strip() or query)
+
+    @router.post("/add")
+    async def add_one(body: AddIn, session: AsyncSession = Depends(get_session)) -> Any:
+        """Add one thing from the add bar through the commit service. 201
+        with the new id; 200 when it was already on the shelf; 422 with
+        `refused` (and the first message as `detail`) when the write rules
+        refuse it, writing nothing."""
+        today = body.today or date.today()
+        outcome = await commit_one(
+            session, body.kind, chosen=body.chosen, payload=body.payload, today=today
+        )
+        if outcome.refused:
+            await session.rollback()
+            refused = [refusal.as_json() for refusal in outcome.refused]
+            return JSONResponse(
+                status_code=422,
+                content={"detail": refused[0]["message"], "refused": refused},
+            )
+        await session.commit()
+        await _enrich(session, registry, outcome.created)
+        return JSONResponse(
+            status_code=201 if outcome.added else 200,
+            content={
+                "added": outcome.added,
+                "already_owned": outcome.already_owned,
+                "created": [str(i) for i in outcome.created],
+                "garment_id": str(outcome.garment_id) if outcome.garment_id else None,
+            },
+        )
 
     @router.post("/sittings", status_code=201)
     async def create_sitting(
@@ -437,6 +501,26 @@ def create_intake_router(
             if field == "state" and value is None:
                 continue
             setattr(entry, field, value)
+        await session.commit()
+        return entry_json(entry)
+
+    @router.post("/entries/{entry_id}/tag-again")
+    async def tag_again(
+        entry_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict[str, Any]:
+        """Clothes Check's Tag again: a piece the tag queue gave up on goes
+        back in it with its attempts reset; Tag now or the nightly takes it."""
+        entry = await session.get(IntakeEntry, entry_id)
+        if entry is None or entry.garment_id is None:
+            raise HTTPException(404, "No such piece")
+        garment = await session.get(Garment, entry.garment_id)
+        if (
+            garment is None
+            or garment.status is not GarmentStatus.UNTAGGED
+            or garment.tag_source is not None
+        ):
+            raise HTTPException(409, TAG_AGAIN_REFUSED)
+        garment.tag_attempts = 0
         await session.commit()
         return entry_json(entry)
 

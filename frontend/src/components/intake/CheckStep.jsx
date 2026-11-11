@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import CheckOne from './CheckOne.jsx'
+import GarmentCheck from './GarmentCheck.jsx'
 import SkimGrid, { inSkim } from './SkimGrid.jsx'
 
 /**
@@ -20,6 +21,10 @@ import SkimGrid, { inSkim } from './SkimGrid.jsx'
  * @param {import('react').ReactNode} [props.footer] Under the next button
  *   (a commit's refusal on a sitting with no Details step).
  * @param {import('react').Ref<HTMLHeadingElement>} props.headingRef
+ * @param {Array<object>} [props.kinds] The registry, for Clothes · Check's
+ *   garment fields.
+ * @param {(entryId: string) => void} [props.onRemoved] Clothes · Check
+ *   removed a photo, its garment and its entry.
  */
 export default function CheckStep({
   sitting,
@@ -30,6 +35,8 @@ export default function CheckStep({
   nextBusy = false,
   footer,
   headingRef,
+  kinds = [],
+  onRemoved = () => {},
 }) {
   const [skipped, setSkipped] = useState(() => new Set())
   const [busy, setBusy] = useState(false)
@@ -104,7 +111,20 @@ export default function CheckStep({
           {error}
         </p>
       )}
-      {current ? (
+      {closet ? (
+        <GarmentCheck
+          sitting={sitting}
+          kind={
+            kinds.find((kind) => kind.key === 'garment') ?? {
+              key: 'garment',
+              area: 'closet',
+              label: 'Garment',
+              fields: [],
+            }
+          }
+          onRemoved={onRemoved}
+        />
+      ) : current ? (
         <CheckOne
           key={current.id}
           entry={current}
@@ -117,9 +137,7 @@ export default function CheckStep({
         />
       ) : (
         <p className="muted" ref={oneRef} tabIndex={-1}>
-          {closet
-            ? 'Pieces are real garments already; the Closet’s tag queue names them, and Tag now on the Closet page runs it.'
-            : 'Nothing left to check one at a time.'}
+          Nothing left to check one at a time.
           {skipped.size > 0 &&
             ` ${skipped.size} skipped: kept in the sitting for later.`}
         </p>

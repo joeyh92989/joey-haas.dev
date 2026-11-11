@@ -134,6 +134,13 @@ function AdminSitting() {
     context.refreshIntakeCounts?.()
   }
 
+  function removeEntry(entryId) {
+    setSitting((old) => ({
+      ...old,
+      entries: old.entries.filter((e) => e.id !== entryId),
+    }))
+  }
+
   async function commit() {
     setCommitting(true)
     setCommitError(null)
@@ -252,6 +259,8 @@ function AdminSitting() {
               sitting={sitting}
               onEntry={replaceEntry}
               headingRef={headingRef}
+              kinds={kinds}
+              onRemoved={removeEntry}
               onBack={() => goTo('shoot')}
               nextBusy={committing}
               onNext={

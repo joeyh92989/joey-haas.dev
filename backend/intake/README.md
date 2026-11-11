@@ -51,6 +51,23 @@ and the entries read from them or typed in.
   nothing is kept. A commit that would change nothing is a 409 in intake's
   words: `NOTHING_TO_ADD` when only entries to check remain,
   `PHOTOS_STILL_WAITING` when no entry is left but photos still wait.
+  `commit_one()`, behind `POST /api/intake/add`, is the add bar's single
+  add: a transient entry (a chosen result, or none when kept as typed)
+  through the same row builders and `commit_items`, so it writes the row a
+  sitting would; a typed piece becomes a manual garment as `POST
+  /api/closet/garments` makes one. 201 with `created` (or `garment_id`),
+  200 with `already_owned: 1` for a title already on the shelf, 422 with
+  `refused` and the first message as `detail`, writing nothing.
+
+- `search.py` — `search_area()`, behind `GET /api/intake/search?area=&query=`
+  (spec D5), the add bar's search. One query goes to the source of every
+  kind in the area at once (`asyncio.gather`), each under its own
+  `SEARCH_TIMEOUT` (8 s), so a slow Comic Vine never holds up IGDB. Answers
+  `{results, sources}`: each result carries its `kind` and, when its
+  `(external_source, external_id)` is already an item, `owned_item_id`;
+  each source is `ok`, `not_configured` (with `describe()`'s reason),
+  `busy` (rate-limited, down or past the timeout: not a miss) or `failed`.
+  The Closet has no source, so its answer is empty both ways.
 
 - `nightly.py` — `run_nightly()`, behind `POST /api/intake/jobs/nightly`
   (spec D4, job token). First `expire_sittings()` deletes sittings nobody
@@ -81,6 +98,9 @@ All under `/api/intake`, admin only (`items.require_admin`).
 | `POST /sittings/{id}/photos`, `POST /photos/{id}/retry`, `GET /photos/{id}/image` | Photos |
 | `POST /sittings/{id}/read-next` | Read one waiting photo (the page drives it) |
 | `POST /sittings/{id}/entries`, `PATCH /entries/{id}` | Typed and chosen entries |
+| `GET /search?area=&query=` | The add bar's search across the area's sources (`search.py`) |
+| `POST /add` | One thing from the add bar, through the commit service |
+| `POST /entries/{id}/tag-again` | Clothes · Check's Tag again: a piece the tag queue gave up on goes back in it (attempts reset); 409 for a piece tagged or saved by hand |
 | `POST /sittings/{id}/commit` | Write the sitting to the collection |
 | `GET /counts`, `GET /budget` | Entries to check per area; today's free reads |
 | `POST /jobs/nightly` | The nightly step; the **only** intake route the job token opens (`items.JOB_ROUTES`) |
