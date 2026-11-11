@@ -44,6 +44,8 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState('')
+  // The garment whose removal is being asked about: removing deletes it.
+  const [asking, setAsking] = useState(null)
 
   useEffect(() => {
     let live = true
@@ -264,16 +266,43 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                   Skip
                 </button>
               </div>
-              <div className="intake-actions quiet">
-                <button
-                  type="button"
-                  className="btn ghost"
-                  disabled={busy}
-                  onClick={remove}
-                >
-                  Remove this photo
-                </button>
-              </div>
+              {asking === current.garment.id ? (
+                <div className="intake-actions quiet" role="group">
+                  <span>
+                    Remove {current.garment.name || 'this piece'}? The photo and
+                    the piece go with it.
+                  </span>
+                  <button
+                    type="button"
+                    className="btn sm"
+                    disabled={busy}
+                    onClick={() => {
+                      setAsking(null)
+                      remove()
+                    }}
+                  >
+                    Yes, remove
+                  </button>
+                  <button
+                    type="button"
+                    className="btn sm ghost"
+                    onClick={() => setAsking(null)}
+                  >
+                    Keep it
+                  </button>
+                </div>
+              ) : (
+                <div className="intake-actions quiet">
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    disabled={busy}
+                    onClick={() => setAsking(current.garment.id)}
+                  >
+                    Remove this photo
+                  </button>
+                </div>
+              )}
             </form>
           </div>
         </div>

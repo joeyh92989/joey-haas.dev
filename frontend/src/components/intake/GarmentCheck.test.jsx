@@ -146,7 +146,14 @@ describe('GarmentCheck (Clothes · Check)', () => {
     await user.click(screen.getByRole('button', { name: 'Skip' }))
     expect(screen.getByLabelText('Name')).toHaveValue('Chore coat')
     expect(api.calls('PATCH', /garments/)).toEqual([])
+    // Removing deletes the garment, so it asks once first (as Discard does).
     await user.click(screen.getByRole('button', { name: 'Remove this photo' }))
+    expect(screen.getByText(/Remove Chore coat\?/)).toBeInTheDocument()
+    expect(api.calls('DELETE', /garments/)).toEqual([])
+    await user.click(screen.getByRole('button', { name: 'Keep it' }))
+    expect(api.calls('DELETE', /garments/)).toEqual([])
+    await user.click(screen.getByRole('button', { name: 'Remove this photo' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, remove' }))
     await waitFor(() => expect(onRemoved).toHaveBeenCalledWith('e2'))
     expect(api.calls('DELETE', /\/api\/closet\/garments\/g2$/)).toHaveLength(1)
     expect(

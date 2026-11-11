@@ -539,6 +539,7 @@ describe('AdminSitting', () => {
       await screen.findByRole('button', { name: 'Save and next' }),
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Remove this photo' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, remove' }))
     await waitFor(() =>
       expect(api.calls('DELETE', /\/api\/closet\/garments\/gx$/)).toHaveLength(
         1,
