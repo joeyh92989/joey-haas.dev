@@ -6,11 +6,11 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-11
 
+- One way in for everything I track: photograph a shelf or a rack, or search for one title; the sources match it, I check the doubtful ones, and it's added. Games, films, comics and clothes all use it, and a sitting can start on my phone and finish at my desk. Try [the intake demo](/shelf/intake) on a recorded shelf.
 - A refreshed [résumé](/resume.pdf), with the [About](/about) page's bio and timeline brought in line with it.
 
 ## 2026-11-10
 
-- One way in for everything I track: photograph a shelf or a rack, or search for one title; the sources match it, I check the doubtful ones, and it's added. Games, films, comics and clothes all use it, and a sitting can start on my phone and finish at my desk. Try [the intake demo](/shelf/intake) on a recorded shelf.
 - Behind the scenes: a new intake pipeline reads shelf photos into a draft you check before anything joins the collection, with a nightly job that reads within the free daily budget.
 - Behind the scenes: one Add page for the shelf and the closet replaces the photo importer. A sitting of photos is read one at a time, saved so it can be finished on another device, checked (only the doubtful titles one by one, the rest at a glance) and added in one go; [How it works](/shelf/how) stop 1 now describes it.
 - Behind the scenes: a search-to-add bar above the shelf and the closet. One search asks every source at once and names the kind of each result, says which sources could not answer, and adds one title at a time through the same path as a sitting; the closet's pieces are typed in or photographed, and its photos waiting to be tagged sit on one line with Tag now. [How it works](/shelf/how) stop 1 names both ways in.

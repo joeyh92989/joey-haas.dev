@@ -1,3 +1,421 @@
 {
-  "provisional": true
+  "provisional": false,
+  "recorded_on": "2026-11-11",
+  "sources": [
+    "igdb"
+  ],
+  "stages": {
+    "match_ms": 7545,
+    "read_ms": 27342
+  },
+  "titles": [
+    {
+      "candidates": [
+        {
+          "title": "Borderlands Legendary Collection",
+          "year": 2020
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Borderlands Legendary Collection",
+        "year": 2020
+      },
+      "read": "Borderlands Legendary Collection",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Go Go Jump!!",
+          "year": 2023
+        }
+      ],
+      "confidence": "check",
+      "kind": "game",
+      "match": {
+        "title": "Go Go Jump!!",
+        "year": 2023
+      },
+      "read": "Going Under",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "The Legend of Zelda: Breath of the Wild",
+          "year": 2017
+        }
+      ],
+      "confidence": "check",
+      "kind": "game",
+      "match": {
+        "title": "The Legend of Zelda: Breath of the Wild",
+        "year": 2017
+      },
+      "read": "The Legend of Zelda: Breath of the Wild",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Super Mario Odyssey",
+          "year": 2017
+        }
+      ],
+      "confidence": "check",
+      "kind": "game",
+      "match": {
+        "title": "Super Mario Odyssey",
+        "year": 2017
+      },
+      "read": "Super Mario Odyssey",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Mario Kart 8 Deluxe",
+          "year": 2017
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Mario Kart 8 Deluxe",
+        "year": 2017
+      },
+      "read": "Mario Kart 8 Deluxe",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Splatoon 2",
+          "year": 2017
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Splatoon 2",
+        "year": 2017
+      },
+      "read": "Splatoon 2",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Hades",
+          "year": 2020
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Hades",
+        "year": 2020
+      },
+      "read": "Hades",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Night Trap: 25th Anniversary Edition",
+          "year": 2017
+        }
+      ],
+      "confidence": "check",
+      "kind": "game",
+      "match": {
+        "title": "Night Trap: 25th Anniversary Edition",
+        "year": 2017
+      },
+      "read": "Night Trap",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Paper Mario: The Origami King",
+          "year": 2020
+        }
+      ],
+      "confidence": "check",
+      "kind": "game",
+      "match": {
+        "title": "Paper Mario: The Origami King",
+        "year": 2020
+      },
+      "read": "Paper Mario: The Origami King",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Super Mario Party",
+          "year": 2018
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Super Mario Party",
+        "year": 2018
+      },
+      "read": "Super Mario Party",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Resident Evil: Origins Collection",
+          "year": 2016
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Resident Evil: Origins Collection",
+        "year": 2016
+      },
+      "read": "Resident Evil Origins Collection",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "BioShock: The Collection",
+          "year": 2016
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "BioShock: The Collection",
+        "year": 2016
+      },
+      "read": "BioShock: The Collection",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Yoshi's Crafted World",
+          "year": 2019
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Yoshi's Crafted World",
+        "year": 2019
+      },
+      "read": "Yoshi's Crafted World",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Persona 5 Royal",
+          "year": 2019
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Persona 5 Royal",
+        "year": 2019
+      },
+      "read": "Persona 5 Royal",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Carrion",
+          "year": 2020
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Carrion",
+        "year": 2020
+      },
+      "read": "Carrion",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Star Wars: Heritage Pack",
+          "year": 2023
+        }
+      ],
+      "confidence": "check",
+      "kind": "game",
+      "match": {
+        "title": "Star Wars: Heritage Pack",
+        "year": 2023
+      },
+      "read": "Star Wars Heritage Pack",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Catherine: Full Body",
+          "year": 2019
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Catherine: Full Body",
+        "year": 2019
+      },
+      "read": "Catherine: Full Body",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Metal Gear Solid Master Collection: Volume 1",
+          "year": 2023
+        }
+      ],
+      "confidence": "probable",
+      "kind": "game",
+      "match": {
+        "title": "Metal Gear Solid Master Collection: Volume 1",
+        "year": 2023
+      },
+      "read": "Metal Gear Solid Master Collection Vol. 1",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Metal Slug Tactics",
+          "year": 2024
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Metal Slug Tactics",
+        "year": 2024
+      },
+      "read": "Metal Slug Tactics",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Doki Doki Literature Club Plus!",
+          "year": 2021
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Doki Doki Literature Club Plus!",
+        "year": 2021
+      },
+      "read": "Doki Doki Literature Club Plus!",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Pokémon Sword",
+          "year": 2019
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Pokémon Sword",
+        "year": 2019
+      },
+      "read": "Pokémon Sword",
+      "year": null
+    },
+    {
+      "candidates": [],
+      "confidence": "check",
+      "kind": "game",
+      "match": null,
+      "read": "熱血硬派くにおくん外伝 リバーシティガールズ2",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Mortal Kombat 1",
+          "year": 2023
+        }
+      ],
+      "confidence": "check",
+      "kind": "game",
+      "match": {
+        "title": "Mortal Kombat 1",
+        "year": 2023
+      },
+      "read": "Mortal Kombat 1",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Turnip Boy Robs a Bank",
+          "year": 2024
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Turnip Boy Robs a Bank",
+        "year": 2024
+      },
+      "read": "Turnip Boy Robs a Bank",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Dungeon Munchies",
+          "year": 2019
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Dungeon Munchies",
+        "year": 2019
+      },
+      "read": "Dungeon Munchies",
+      "year": null
+    },
+    {
+      "candidates": [
+        {
+          "title": "Undertale",
+          "year": 2015
+        }
+      ],
+      "confidence": "exact",
+      "kind": "game",
+      "match": {
+        "title": "Undertale",
+        "year": 2015
+      },
+      "read": "Undertale",
+      "year": null
+    }
+  ]
 }

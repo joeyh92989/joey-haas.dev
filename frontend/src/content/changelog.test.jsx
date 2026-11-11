@@ -67,7 +67,7 @@ describe('the shipped changelog', () => {
   })
 
   it('links the intake demo under its day (AC 18)', () => {
-    const day = CHANGELOG.find((entry) => entry.date === '2026-11-10')
+    const day = CHANGELOG.find((entry) => entry.date === '2026-11-11')
     expect(
       day.lines.some((line) =>
         line.includes('[the intake demo](/shelf/intake)'),
