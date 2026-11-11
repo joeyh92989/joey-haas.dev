@@ -313,13 +313,19 @@ function ComicSummary({ comic, model }) {
 function WhatsNext({ model }) {
   if (model.state === 'want') {
     return (
-      <p className="comic-empty">
-        {SERIES.empty.want(model.released, model.ongoing)}
-      </p>
+      <div className="comic-hero-next">
+        <p className="comic-empty">
+          {SERIES.empty.want(model.released, model.ongoing)}
+        </p>
+      </div>
     )
   }
   if (model.state === 'unrecorded') {
-    return <p className="comic-empty">{SERIES.empty.unrecorded}</p>
+    return (
+      <div className="comic-hero-next">
+        <p className="comic-empty">{SERIES.empty.unrecorded}</p>
+      </div>
+    )
   }
   const N = SERIES.next
   const tiles = []
@@ -355,7 +361,7 @@ function WhatsNext({ model }) {
     ])
   }
   return (
-    <section className="comic-next" aria-label={N.label}>
+    <section className="comic-hero-next comic-next" aria-label={N.label}>
       {tiles.map(([label, value, note]) => (
         <div key={label}>
           <span>{label}</span>
@@ -364,16 +370,6 @@ function WhatsNext({ model }) {
         </div>
       ))}
     </section>
-  )
-}
-
-/** The hero's comic block: the count with its pill, then What's next. */
-function ComicFacts({ comic, model }) {
-  return (
-    <>
-      <ComicSummary comic={comic} model={model} />
-      <WhatsNext model={model} />
-    </>
   )
 }
 
@@ -704,13 +700,14 @@ function ItemView({
             {statusInWords(item)}
           </p>
           {copy && <p className="item-copy">{copy}</p>}
-          {comic && <ComicFacts comic={comic} model={run} />}
+          {comic && <ComicSummary comic={comic} model={run} />}
           {signedIn && (
             <Link to={`/admin/collection/${item.id}`} className="item-edit">
               Edit
             </Link>
           )}
         </div>
+        {comic && <WhatsNext model={run} />}
       </header>
 
       {chips.length > 0 && (

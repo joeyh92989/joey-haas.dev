@@ -52,7 +52,9 @@
   --redact: repeating-linear-gradient(135deg, #626b77 0 6px, #1b1f24 6px 12px);
   /* Comic runs. Missing issues and the not-out-yet hatch are non-text marks
      on --surface, built on the redaction stripe's mark colour: 3.30 (the
-     spec's --line-strong reached only 1.73). */
+     spec's --line-strong reached only 1.73). The lanes' hollow missing
+     outline also sits on --bg on a shelf card: 3.50. Text over the hatch
+     is --text: 4.65 on the stripe (comic series display spec). */
   --run-missing: #626b77;
   --hatch: repeating-linear-gradient(
     135deg,
@@ -122,7 +124,8 @@
   /* Redaction stripe 3.25 on --surface (mockup #e4e4df: 1.28). Pill
      borders ok 5.32, warn 4.24, accent 6.09; the New badge on --bg 5.93. */
   --redact: repeating-linear-gradient(135deg, #8a8f98 0 6px, #f3f3f0 6px 12px);
-  /* Comic runs on --surface: 3.25 (--line-strong reached 1.66). */
+  /* Comic runs on --surface: 3.25 (--line-strong reached 1.66); the
+     lanes' missing outline on --bg 3.17; --text over the hatch 5.53. */
   --run-missing: #8a8f98;
   --hatch: repeating-linear-gradient(
     135deg,
@@ -4243,6 +4246,9 @@ a.month-bar::before {
 }
 
 .item-heading {
+  /* The rest of the row, so a comic's What's next tiles have room. */
+  flex: 1 1 auto;
+  min-width: 0;
   padding-bottom: 0.25rem;
 }
 
@@ -7333,6 +7339,11 @@ main h1[tabindex='-1']:focus,
   --lane-tail: 1.75rem;
 }
 
+/* The admin lanes name a private lane: room for "Skipped private". */
+.lanes[data-private] {
+  --lane-name: 6.75rem;
+}
+
 .lanes[data-mini] {
   --lane-name: 0px;
   --lane-height: 8px;
@@ -7403,8 +7414,14 @@ main h1[tabindex='-1']:focus,
 }
 
 .lane-track i[data-k='skip'],
-.run-key i[data-k='skip'] {
+.run-key i[data-k='skip'],
+.run-key[data-variant='box'] i[data-k='skip'] {
   border: 1.5px dashed var(--run-missing);
+}
+
+/* A single skipped issue is still a dash you can see. */
+.lane-track i[data-k='skip'] {
+  min-width: 6px;
 }
 
 .lane-tail i[data-k='upcoming'],
@@ -7448,6 +7465,7 @@ main h1[tabindex='-1']:focus,
 }
 
 .run-key i {
+  border-color: transparent;
   border-radius: 2px;
   box-sizing: border-box;
   display: inline-block;
@@ -7591,13 +7609,20 @@ button.run-cell[aria-disabled='true'] {
 .run-cell[data-k='upcoming'],
 .run-key[data-variant='box'] i[data-k='upcoming'] {
   background: var(--hatch);
-  color: var(--text-2);
+  /* --text, not --text-2: over the hatch's darker stripe --text-2 is 2.59
+     dark / 2.54 light; --text is 4.65 / 5.53. */
+  color: var(--text);
 }
 
 .run-cell[data-fold] {
   border-color: var(--line-strong);
   color: var(--text-2);
   font-size: 0.875rem;
+}
+
+.run-key[data-variant='box'] i:not([data-k='skip']) {
+  border-style: solid;
+  border-width: 1px;
 }
 
 .run-key[data-variant='box'] i {
@@ -7632,11 +7657,35 @@ button.run-cell[aria-disabled='true'] {
   font-weight: 600;
 }
 
+/* A comic's hero is a grid: What's next sits under the heading beside the
+   cover, and spans the row under both on a phone. */
+.item-head:has(> .comic-hero-next) {
+  align-items: end;
+  display: grid;
+  grid-template-areas:
+    'cover heading'
+    '. next';
+  grid-template-columns: 9rem minmax(0, 1fr);
+}
+
+.item-head:has(> .comic-hero-next) .item-cover {
+  grid-area: cover;
+}
+
+.item-head:has(> .comic-hero-next) .item-heading {
+  grid-area: heading;
+}
+
+.comic-hero-next {
+  grid-area: next;
+  margin-top: 0.9rem;
+  max-width: 36rem;
+}
+
 .comic-next {
   display: grid;
   gap: 0.6rem;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  margin-top: 0.9rem;
 }
 
 .comic-next > div {
@@ -7672,7 +7721,7 @@ button.run-cell[aria-disabled='true'] {
   border-radius: 8px;
   color: var(--text-2);
   font-size: 0.875rem;
-  margin: 0.9rem 0 0;
+  margin: 0;
   padding: 1rem;
 }
 
@@ -7690,6 +7739,17 @@ button.run-cell[aria-disabled='true'] {
 }
 
 @media (max-width: 700px) {
+  .item-head:has(> .comic-hero-next) {
+    grid-template-areas:
+      'cover heading'
+      'next next';
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+  }
+
+  .comic-hero-next {
+    margin-right: 1rem;
+  }
+
   .comic-next {
     grid-template-columns: 1fr;
   }

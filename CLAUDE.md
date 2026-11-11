@@ -706,24 +706,39 @@ before pushing.
   `shelf_format` (`comic_shelf_format`) and `following`.
   **`backend/comics.py` is the one range parser** (spec, D7): every write
   path canonicalises through it and answers a bad range with a 422 the
-  form shows as it is; `lib/comics.js` only expands the canonical text and
-  checks an editions line's shape. Comic Vine's issue list per followed
-  series lives in `source_metadata.issues` (`sources/comicvine.py`
+  form shows beside its field; `lib/comics.js` only expands the canonical
+  text and checks an edition row's shape. Comic Vine's issue list per
+  followed series lives in `source_metadata.issues` (`sources/comicvine.py`
   `fetch_issues`, one call per series; an answer naming another volume is
   refused whole). The pull list (`comics_routes.py`, admin only) groups
   issues into weeks of Wednesday to Tuesday in UTC days (D4); Got it adds
   the number to `issues_owned`, Skip to `issues_skipped`, and Skip refuses
-  an owned issue. **Only public series are shown publicly** (D5): a
-  series reaches `/api/public/comics`, Out this week and
-  `comics_this_week` on `/api/public/next` only when its row is public
+  an owned issue; every item write path refuses it too
+  (`comics.check_skips`, a 422 from `apply_comic_fields`, which reads the
+  stored row for whichever field a request leaves out). **Only public
+  series are shown publicly** (D5): a series reaches
+  `/api/public/comics`, Out this week and `comics_this_week` on
+  `/api/public/next` only when its row is public
   (owned and published, or a Want). Following alone is private, and so is
   every skip: `public_comics.py` never emits `issues_skipped`, a price or a
-  store. The run bar and issue grid draw missing issues with
-  `--run-missing` and the not-yet-out tail with `--hatch`, chosen on
-  measured contrast (3.30 dark, 3.25 light on `--surface`; `--line-strong`
-  measured 1.73 and 1.66 and was refused): changing either means measuring
-  again. **Deploy order:** apply `0010` to Neon, merge, follow series on
-  `/admin/pull-list`, then Refresh followed once (or wait for the nightly).
+  store. **A run is drawn one way everywhere** (comic series display
+  spec, `docs/planning/2026-11-11-comic-series-display-design.md`): the
+  pure `lib/comicRun.js` derives per-issue state (held = a single or in an
+  edition, counted once; read; missing; skipped in admin only) from the
+  ranges, `editions` and `read_to`, and three views draw it: `RunLanes`
+  (Run and Read on one axis, a fixed-width hatched tail while ongoing; the
+  card and Runs row draw them from `segments`), `RunBox` (a book per
+  edition, a cell per issue, a bundle for 12 or more same-state issues
+  outside an edition, opening on a tap; no issue cap) and the admin's
+  `ComicRunEditor` (tap modes Owned, Read to here, Skip over the box). The
+  card's "read next" is the public `read_next`. Missing is hollow (a
+  `--run-missing` outline) and the tail `--hatch`, chosen on measured
+  contrast (3.30 dark, 3.25 light on `--surface`, 3.50 and 3.17 on `--bg`;
+  `--line-strong` measured 1.73 and 1.66 and was refused): changing either
+  means measuring again. The public `owned_text` already merges editions,
+  so only the admin can tell an issue held twice. **Deploy order:** apply
+  `0010` to Neon, merge, follow series on `/admin/pull-list`, then Refresh
+  followed once (or wait for the nightly).
 - **The play journal** (migration `0007`, `play_sessions`) is logged on the
   admin item page (`components/PlayJournal.jsx`, `journal_routes.py`): one
   row per day played, optional minutes, a private note. The public diary,
