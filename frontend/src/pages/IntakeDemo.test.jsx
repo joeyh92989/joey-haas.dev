@@ -158,7 +158,7 @@ describe('IntakeDemo', () => {
       'aria-current',
       'step',
     )
-    expect(screen.getByText('Reading the spines…')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Reading the spines…')
     await act(() => vi.advanceTimersByTimeAsync(800))
     expect(screen.getByText('Match').closest('li')).toHaveAttribute(
       'aria-current',
@@ -166,6 +166,34 @@ describe('IntakeDemo', () => {
     )
     await act(() => vi.advanceTimersByTimeAsync(400))
     expect(screen.getAllByRole('listitem', { name: /read “/ })).toHaveLength(3)
+  })
+
+  it('moves focus to Start over after Read, and back to Read after Start over', () => {
+    // fireEvent focuses nothing itself, so the page must move focus.
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Read this shelf' }))
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Start over' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Start over' }))
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Read this shelf' }),
+    )
+  })
+
+  it('keeps focus on Start over through the replay and announces each stage', async () => {
+    state.reduced = false
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Read this shelf' }))
+    const over = screen.getByRole('button', { name: 'Start over' })
+    expect(document.activeElement).toBe(over)
+    expect(screen.getByRole('status')).toHaveTextContent('Reading the spines…')
+    await act(() => vi.advanceTimersByTimeAsync(800))
+    expect(screen.getByRole('status')).toHaveTextContent('Matching the titles…')
+    await act(() => vi.advanceTimersByTimeAsync(400))
+    expect(screen.getByRole('status')).not.toHaveTextContent(/Matching|Reading/)
+    expect(document.activeElement).toBe(over)
   })
 
   it('shows no demo while the recording is the provisional placeholder', () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import ConfidenceBadge from '../components/intake/ConfidenceBadge.jsx'
 import { intake as copy } from '../content/intake.js'
@@ -101,6 +101,16 @@ export default function IntakeDemo() {
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   const [step, setStep] = useState('idle')
   const [note, setNote] = useState(null)
+  const readButton = useRef(null)
+  const overButton = useRef(null)
+  // The control to focus once the step's render lands: the one pressed
+  // unmounts (Read this shelf) or swaps out (Start over).
+  const focusNext = useRef(null)
+
+  useEffect(() => {
+    focusNext.current?.current?.focus()
+    focusNext.current = null
+  }, [step])
 
   useEffect(() => {
     if (!recording || (step !== 'read' && step !== 'match')) return undefined
@@ -125,12 +135,17 @@ export default function IntakeDemo() {
   // Reduced motion skips the replay and shows the review at once.
   const read = () => {
     setNote(null)
+    focusNext.current = overButton
     setStep(reduced ? 'review' : 'read')
   }
   const over = () => {
     setNote(null)
+    focusNext.current = readButton
     setStep('idle')
   }
+  // The replay's stage, announced through the status note below.
+  const stageNote =
+    step === 'read' ? copy.reading : step === 'match' ? copy.matching : null
 
   return (
     <article className="intake-demo">
@@ -142,7 +157,12 @@ export default function IntakeDemo() {
           <div className="intake-demo-actions">
             {step === 'idle' ? (
               <>
-                <button type="button" className="btn primary" onClick={read}>
+                <button
+                  ref={readButton}
+                  type="button"
+                  className="btn primary"
+                  onClick={read}
+                >
                   {copy.buttons.read}
                 </button>
                 <button
@@ -154,7 +174,12 @@ export default function IntakeDemo() {
                 </button>
               </>
             ) : (
-              <button type="button" className="btn" onClick={over}>
+              <button
+                ref={overButton}
+                type="button"
+                className="btn"
+                onClick={over}
+              >
                 {copy.buttons.over}
               </button>
             )}
@@ -173,12 +198,12 @@ export default function IntakeDemo() {
                 ))}
               </ul>
             ) : (
-              <p className="intake-demo-empty">
-                {step === 'read'
-                  ? copy.reading
-                  : step === 'match'
-                    ? copy.matching
-                    : copy.empty}
+              // The stage line is shown here and announced by the status note.
+              <p
+                className="intake-demo-empty"
+                aria-hidden={stageNote ? 'true' : undefined}
+              >
+                {stageNote ?? copy.empty}
               </p>
             )}
           </div>
@@ -204,7 +229,10 @@ export default function IntakeDemo() {
             </>
           )}
           <p className="intake-demo-note" role="status">
-            {note}
+            {note ??
+              (stageNote && (
+                <span className="visually-hidden">{stageNote}</span>
+              ))}
           </p>
           <p className="intake-demo-fine">{copy.fine}</p>
         </div>
