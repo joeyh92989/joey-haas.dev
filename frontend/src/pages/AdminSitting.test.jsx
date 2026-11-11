@@ -603,4 +603,73 @@ describe('AdminSitting', () => {
       await screen.findByText(/Nothing left to check one at a time/),
     ).toBeInTheDocument()
   })
+
+  it('adds a searched title to the sitting from Shoot (Search instead)', async () => {
+    const user = userEvent.setup()
+    const saga = {
+      ...candidate(7, 'Saga', 2012),
+      kind: 'comic',
+      owned_item_id: null,
+    }
+    const api = fakeIntakeApi({
+      sittings: [longbox({ photos: [], entries: [] })],
+      search: () => ({
+        results: [saga],
+        sources: [{ kind: 'comic', state: 'ok', reason: null }],
+      }),
+    })
+    const { container } = renderSitting()
+    await screen.findByRole('heading', { name: 'Shoot' })
+    await user.click(screen.getByRole('button', { name: 'Search instead' }))
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search for a title' }),
+      'Saga{Enter}',
+    )
+    await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
+    await waitFor(() =>
+      expect(screen.getByText('1 title so far')).toBeInTheDocument(),
+    )
+    const [added] = api.calls('POST', /\/sittings\/s1\/entries$/)
+    expect(added.body).toEqual({ kind: 'comic', chosen: saga })
+    expect(api.state.sittings.s1.entries).toHaveLength(1)
+    expect(
+      screen.getByText('Saga added to this sitting.').closest('[role=status]'),
+    ).not.toBeNull()
+    expect(screen.getByRole('button', { name: /Start checking/ })).toBeEnabled()
+    expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('keeps a searched title as typed from Shoot', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [longbox({ photos: [], entries: [] })],
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Shoot' })
+    await user.click(screen.getByRole('button', { name: 'Search instead' }))
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search for a title' }),
+      'Lost zine{Enter}',
+    )
+    await user.click(
+      await screen.findByRole('button', { name: 'Keep as a typed Comic' }),
+    )
+    await waitFor(() =>
+      expect(api.calls('POST', /\/sittings\/s1\/entries$/)).toHaveLength(1),
+    )
+    expect(api.calls('POST', /\/sittings\/s1\/entries$/)[0].body).toEqual({
+      kind: 'comic',
+      payload: { title: 'Lost zine' },
+    })
+    expect(await screen.findByText('1 title so far')).toBeInTheDocument()
+  })
+
+  it('offers no Search instead in a closet sitting', async () => {
+    fakeIntakeApi({
+      sittings: [{ id: 'c1', area: 'closet', kind: 'garment', label: 'Rack' }],
+    })
+    renderSitting('c1', 'closet')
+    await screen.findByRole('heading', { name: 'Shoot' })
+    expect(screen.queryByRole('button', { name: 'Search instead' })).toBeNull()
+  })
 })

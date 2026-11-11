@@ -1,0 +1,25 @@
+{
+  "provisional": true,
+  "note": "Hand-made stand-in for the recorder's tests: a model answer and the source's search results. Not a recording; the public demo file is only ever record_intake_demo.py's output.",
+  "detections": {
+    "detections": [
+      {"title": "Arrival", "media_type": "movie", "year": 2016},
+      {"title": "The Thing", "media_type": "movie"},
+      {"title": "Alein", "media_type": "movie"},
+      {"title": "Unreadable Smudge", "media_type": "movie"}
+    ]
+  },
+  "searches": {
+    "Arrival": [
+      {"external_id": "329865", "title": "Arrival", "year": 2016, "thumbnail_url": "https://image.example/arrival.jpg"}
+    ],
+    "The Thing": [
+      {"external_id": "1091", "title": "The Thing", "year": 1982, "thumbnail_url": null},
+      {"external_id": "60935", "title": "The Thing", "year": 2011, "thumbnail_url": null}
+    ],
+    "Alein": [
+      {"external_id": "348", "title": "Alien", "year": 1979, "thumbnail_url": null}
+    ],
+    "Unreadable Smudge": []
+  }
+}

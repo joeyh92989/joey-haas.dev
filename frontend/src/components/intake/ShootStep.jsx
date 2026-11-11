@@ -3,6 +3,7 @@ import { apiFetch, errorMessage } from '../../lib/api.js'
 import { PHOTO_ACCEPT } from '../../lib/closet.js'
 import { refuseFile } from '../../lib/intake.js'
 import PhotoTile, { PendingTile } from './PhotoTile.jsx'
+import ShootSearch from './ShootSearch.jsx'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
@@ -37,12 +38,16 @@ function runningLine(sitting, budgetSpent) {
  * says so; a closet photo becomes an untagged garment at once and is never
  * read here (the Closet's tag queue names it).
  *
+ * A shelf sitting also offers "Search instead" (`ShootSearch`): a title
+ * found by the add bar's search joins the sitting as an entry.
+ *
  * @param {object} props
  * @param {object} props.sitting The sitting with its photos and entries.
  * @param {(update: (sitting: object) => object) => void} props.onChange
  * @param {{remaining: number, enforced: boolean}|null} props.budget
  * @param {ReturnType<typeof import('../../lib/useReadNext.js').useReadNext>}
  *   props.reader The page's reader: drive, merge, budget and error.
+ * @param {object[]} [props.kinds] Every kind, for Search instead.
  * @param {() => void} props.onNext Start checking.
  * @param {import('react').Ref<HTMLHeadingElement>} props.headingRef
  */
@@ -51,11 +56,13 @@ export default function ShootStep({
   onChange,
   budget,
   reader,
+  kinds = [],
   onNext,
   headingRef,
 }) {
   const closet = sitting.area === 'closet'
   const [uploads, setUploads] = useState([])
+  const [searching, setSearching] = useState(false)
   const [refusals, setRefusals] = useState([])
   const { drive, merge, budgetSpent, error, setError } = reader
   const alive = useRef(true)
@@ -140,9 +147,10 @@ export default function ShootStep({
   const titlesFrom = (photo) =>
     sitting.entries.filter((e) => e.photo_id === photo.id).length
   const line = runningLine(sitting, budgetSpent)
-  const ready = closet
-    ? sitting.entries.length > 0
-    : sitting.photos.some((p) => p.state === 'read')
+  // A searched or typed entry is something to check too.
+  const ready =
+    sitting.entries.length > 0 ||
+    (!closet && sitting.photos.some((p) => p.state === 'read'))
 
   return (
     <section className="intake-step" aria-labelledby="intake-step-heading">
@@ -189,7 +197,26 @@ export default function ShootStep({
               onChange={picked}
             />
           </label>
+          {!closet && (
+            <button
+              type="button"
+              className="btn"
+              aria-expanded={searching}
+              onClick={() => setSearching((open) => !open)}
+            >
+              Search instead
+            </button>
+          )}
         </div>
+        {searching && (
+          <ShootSearch
+            sitting={sitting}
+            kinds={kinds}
+            onAdded={(added) =>
+              onChange((old) => ({ ...old, entries: [...old.entries, added] }))
+            }
+          />
+        )}
       </div>
 
       {refusals.length > 0 && (

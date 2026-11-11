@@ -57,6 +57,7 @@ from models import (
     IntakePhotoState,
     IntakeSetting,
     IntakeSitting,
+    Item,
 )
 
 PHOTO_LIMIT = 200
@@ -81,10 +82,12 @@ class SittingPatch(BaseModel):
 
 
 class EntryCreate(BaseModel):
-    """A typed entry, or one chosen from search."""
+    """A typed entry, or one chosen from search: `chosen` is a search
+    result as `GET /search` answers it (Shoot's "Search instead")."""
 
     kind: str = Field(max_length=40)
     payload: dict[str, Any] = Field(default_factory=dict)
+    chosen: dict[str, Any] | None = None
 
 
 class CommitIn(BaseModel):
@@ -103,6 +106,8 @@ class AddIn(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     today: date | None = None
 
+
+CHOSEN_REFUSED = "A chosen result needs its external_source and external_id"
 
 TAG_AGAIN_REFUSED = "Only a piece the tagger gave up on can be tagged again"
 
@@ -436,14 +441,30 @@ def create_intake_router(
         body: EntryCreate,
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
-        """Add a typed entry, or one chosen from search."""
+        """Add a typed entry, or one chosen from search. A chosen result is
+        `ready` (a person picked it), or `owned` when its
+        `(external_source, external_id)` is already an item, the commit's
+        duplicate rule, as the reader marks a trusted match."""
         sitting = await _sitting_or_404(session, sitting_id)
         _check_kind(sitting.area, body.kind)
+        state = IntakeEntryState.TYPED
+        if body.chosen is not None:
+            source = body.chosen.get("external_source")
+            external_id = body.chosen.get("external_id")
+            if not isinstance(source, str) or not isinstance(external_id, str):
+                raise HTTPException(422, CHOSEN_REFUSED)
+            owned = await session.scalar(
+                select(Item.id)
+                .where(Item.external_source == source, Item.external_id == external_id)
+                .limit(1)
+            )
+            state = IntakeEntryState.OWNED if owned else IntakeEntryState.READY
         entry = IntakeEntry(
             sitting_id=sitting.id,
             kind=body.kind,
-            state=IntakeEntryState.TYPED,
+            state=state,
             payload=body.payload,
+            chosen=body.chosen,
         )
         session.add(entry)
         await session.commit()

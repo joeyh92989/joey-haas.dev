@@ -12,6 +12,7 @@
 import { clip } from '../lib/clip.js'
 import { denver } from './denver.js'
 import { daily } from './daily.js'
+import { intake } from './intake.js'
 import { profile } from './profile.js'
 import { spine } from './spine.js'
 
@@ -63,6 +64,7 @@ export const STATIC_PAGES = [
     `${spine.comics.title} · ${spine.name}`,
     spine.comics.lede,
   ),
+  row(intake.path, intake.title, intake.headTitle, intake.description),
   row(
     '/now',
     'Now',

@@ -16,6 +16,9 @@ from models import (
     IntakePhoto,
     IntakePhotoState,
     IntakeSitting,
+    Item,
+    ItemStatus,
+    ItemType,
 )
 from tests.test_closet_routes import jpeg
 from tests.test_intake_kinds import client_for
@@ -311,3 +314,103 @@ async def test_the_list_counts_each_sittings_entries_and_waiting_photos(
         "ignored": 0,
         "typed": 0,
     }
+
+
+# Shoot's "Search instead" (spec, Sitting · 1 Shoot): a search result chosen
+# from the add bar's search joins the sitting as an entry.
+DUNE = {
+    "kind": "movie",
+    "external_source": "tmdb",
+    "external_id": "438631",
+    "title": "Dune",
+    "year": 2021,
+    "thumbnail_url": "https://image.tmdb.org/t/p/w185/dune.jpg",
+}
+
+
+@pytest.mark.asyncio
+async def test_a_chosen_search_result_joins_the_sitting_ready(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        added = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/entries",
+            json={"kind": "movie", "chosen": DUNE},
+        )
+        assert added.status_code == 201, added.text
+        entry = added.json()
+        read_back = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+    assert entry["state"] == "ready"
+    assert entry["chosen"] == DUNE
+    assert entry["kind"] == "movie"
+    assert read_back["entries"] == [entry]
+
+
+@pytest.mark.asyncio
+async def test_a_chosen_result_already_on_the_shelf_is_owned(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Item(
+                type=ItemType.MOVIE,
+                title="Dune",
+                status=ItemStatus.BACKLOG,
+                external_source="tmdb",
+                external_id="438631",
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        added = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/entries",
+            json={"kind": "movie", "chosen": DUNE},
+        )
+    assert added.status_code == 201, added.text
+    assert added.json()["state"] == "owned"
+
+
+@pytest.mark.asyncio
+async def test_a_chosen_entry_commits_as_its_match(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        await client.post(
+            f"/api/intake/sittings/{sitting['id']}/entries",
+            json={"kind": "movie", "chosen": DUNE},
+        )
+        committed = await client.post(f"/api/intake/sittings/{sitting['id']}/commit")
+    assert committed.status_code == 200, committed.text
+    assert committed.json()["added"] == 1
+    async with sessionmaker_for_test() as session:
+        item = await session.scalar(select(Item))
+    assert (item.title, item.external_source, item.external_id) == (
+        "Dune",
+        "tmdb",
+        "438631",
+    )
+    assert item.is_public is False
+
+
+@pytest.mark.asyncio
+async def test_a_typed_entry_is_still_typed(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        added = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/entries",
+            json={"kind": "movie", "payload": {"title": "Home video"}},
+        )
+    assert added.json()["state"] == "typed"
+    assert added.json()["chosen"] is None
+
+
+@pytest.mark.asyncio
+async def test_a_chosen_result_without_its_source_key_is_refused(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        refused = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/entries",
+            json={"kind": "movie", "chosen": {"title": "Dune"}},
+        )
+    assert refused.status_code == 422
+    assert "external_id" in refused.json()["detail"]
+    assert await _count(sessionmaker_for_test, IntakeEntry) == 0

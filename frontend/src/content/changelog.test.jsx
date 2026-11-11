@@ -65,4 +65,13 @@ describe('the shipped changelog', () => {
     const lines = CHANGELOG.flatMap((entry) => entry.lines)
     expect(lines.some((line) => line.includes('[Stats](/stats)'))).toBe(true)
   })
+
+  it('links the intake demo under its day (AC 18)', () => {
+    const day = CHANGELOG.find((entry) => entry.date === '2026-11-11')
+    expect(
+      day.lines.some((line) =>
+        line.includes('[the intake demo](/shelf/intake)'),
+      ),
+    ).toBe(true)
+  })
 })
