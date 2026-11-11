@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 mockups: docs/planning/mockups/2026-11-10-intake/
 chosen: chosen.html
 demo: d-public-demo.html
@@ -591,3 +591,297 @@ Sources: [caniuse: BarcodeDetector](https://caniuse.com/mdn-api_barcodedetector)
 [TMDB find by ID](https://developer.themoviedb.org/reference/find-by-id) ·
 [Open Library APIs](https://openlibrary.org/developers/api) ·
 [Comic Vine API](https://comicvine.gamespot.com/api/documentation)
+
+---
+
+# Plan (Code, 2026-11-10)
+
+Tier: **Full** (migration, a new nightly step and `JOB_ROUTES` entry, an
+LLM-layer change shared by every model caller, a new public page and its
+`render.yaml` rewrite). Built from `origin/main` at the base of `feat/intake`
+(this doc is commit `0a22475`). Joey's calls (2026-11-10): four stacked PRs;
+the browser drives reading with a nightly step as backstop; the public demo
+ships last, from a recording of a real shelf photo; no GitHub issues.
+
+## Corrections to the spec, found in the code
+
+- **`OwnedFormat` has five values**: physical, digital, subscription,
+  `borrowed` and `none` (the want list). The disc-format reasoning stands.
+- **"One photo per request" is a client rule.** `POST /api/import/photos`
+  accepts up to 20 files; only `AdminImport.jsx` sends one at a time. Intake
+  makes it a server rule: its upload route takes exactly one file.
+- **There are no page badges, only area badges** (`AreaBadge` in
+  `AdminShell.jsx`; `adminAreas.js` pages are `{to, label, end?, count?,
+  group?, alias?}`). The Add page's "entries left to check" badge needs a new
+  page field, `badge: 'intake.shelf' | 'intake.closet'`, read from one count
+  endpoint.
+- **The Closet has no "N photos waiting · Tag now" line today**; it is built
+  here (task 12), from the existing tag queue and `POST /api/closet/tag`.
+- **The `.confidence-*` rules exist** (`index.css` ~2429-2450, used by the
+  import page) with different colours from the design. `ConfidenceBadge`
+  replaces them; the old rules go with `AdminImport.jsx`.
+- **Nothing runs in the background.** No route outlives its request and
+  Render's free tier sleeps, so "reading continues after the tab closes"
+  means the nightly step (D4), not a task.
+- **No cross-kind search exists.** Each adapter in `backend/sources/`
+  (`igdb`, `tmdb`, `comicvine`, `bgg`) is called per kind; the fan-out is new
+  (D5).
+- **The phone layout is ≤900px** (the admin shell's breakpoint); 400px is the
+  mockup width, which is where it is checked.
+- **How it works stop 1** caption lives in `frontend/src/lib/spine.js`
+  (~L115, `where: '/admin/import'`); both the caption and `where` change.
+- **Shelfle-style fixtures come from the build snapshot**, not a recorded
+  file; the demo's recorder is new (task 15).
+
+## Open questions, resolved
+
+| Question | Decision | Why |
+|---|---|---|
+| D1 · Movie disc format | Nullable `items.disc_format`, new enum `movie_disc_format` (`dvd`, `bluray`, `uhd`). Written only for `type = movie` (422 otherwise, in `_write_fields`); public like `shelf_format`; **no filter chip**. A combo pack records its best disc. | The spec's three reasons hold in the code: `formats.py` owns `physical_format`; enum values cannot be dropped. A chip can follow once there are discs to filter. |
+| D2 · Draft storage | Migration `0015`: `intake_sittings` (id, area, kind nullable for mixed, label, step, created/updated), `intake_photos` (id, sitting FK cascade, state `uploaded`/`reading`/`read`/`empty`/`failed`, `attempts`, `error`, `reading_jpeg bytea` nullable, `thumb_webp bytea`, `width`, `height`), `intake_entries` (id, sitting FK cascade, photo FK nullable, kind, state `reading`/`exact`/`probable`/`check`/`owned`/`ready`/`ignored`/`typed`, `payload jsonb`, `candidates jsonb`, `chosen jsonb`, `garment_id` FK `ON DELETE CASCADE` nullable, `updated_at`), and `llm_usage(day date, model text, calls int, exhausted bool, PK(day, model))`. | One migration for the whole feature, additive. Garment entries **point at** the untagged garment so its image stays in `garment_images`. Last write wins per entry via `updated_at`. |
+| D2 · Photo bytes | On upload: `reading_jpeg` = upright JPEG, long edge ≤3072, q90 (new `closet_images.make_reading_copy`), plus the 400px WebP from `make_thumbnail`. After a successful read `reading_jpeg` is set NULL; thumbnails are deleted with the sitting on commit or discard. | A waiting photo has to survive until tomorrow; 3072px keeps spine text legible at ~1–2 MB; the thumbnail is all Check needs. |
+| D3 · Model budget | `build_provider(config, recorder: UsageRecorder \| None = None)`. `GeminiProvider` calls `recorder.attempt(model)` before each try and `recorder.exhausted(model)` on a 429 whose quota id contains `PerDay`. The recorder writes through **its own short session** (commits even when the request rolls back). Day = **Pacific** calendar day (Google's reset). `remaining = Σ(20 − calls)` over models not exhausted today, **minus a reserve of 12**; the reader refuses to start a read when `remaining ≤ 0`. Enforced only when `llm_provider == "gemini"`. Every `provider_factory` in `main.py` (L155-198, import router L205) passes the recorder so all callers are counted. | Google reports the limit only on a 429, so the API counts. 12 covers a nightly's closet-tag, closet-plan, Discover and spots with room. Counting every caller is what makes "remaining" honest. |
+| D4 · Who reads | The browser drives `POST /api/intake/sittings/{id}/read-next` one photo at a time while Shoot is open. `POST /api/intake/jobs/nightly` (job token) first expires sittings untouched for **30 days** (with photos), then reads waiting photos while `remaining > 0`. Workflow step `intake` goes **after `closet-plan`, before `registry`**, so it precedes Discover; the reserve protects Discover, spots and the opinion. | Joey's choice. A request per photo fits the free tier's 7–8 minute reads; the nightly is the only "after the tab closes". |
+| D5 · Search | `GET /api/intake/search?area=&query=` fans out with `asyncio.gather` to each configured adapter of the area's kinds, **8s per source**, and returns `{results: [...], sources: [{kind, state: ok\|not_configured\|busy\|failed}]}`. Owned results carry `owned_item_id` (On shelf). Submit only. | A slow Comic Vine never blocks IGDB's answer; the per-source state is what the UI words. |
+| D6 · Mixed shelf | One Details pass per kind present, in kind order. | Spec's recommendation; each kind's fields differ. |
+| D7 · Limits | A sitting holds at most **200 photos** (409 with its own text beyond). Commit sends rows in chunks of ≤500 through the shared commit service. | 200 photos ≈ 3,000+ titles, far past a box; keeps one sitting's thumbnails bounded. |
+| D8 · Commit | Extract `/bulk`'s core (`items.py` :874-963) into `commit_items(session, rows, *, today) -> CommitResult` at module level, with `_require_favorite_slots` lifted beside it. Intake pre-validates each row with `_write_fields` so a refusal maps back to its entry. `/bulk` calls the same function; its tests stay unchanged. | AC 6 asks for the same rows; one function is the only way to promise that. |
+| D9 · Demo route | `/shelf/intake` is an explicit static route, a `STATIC_PAGES` row (`content/intake.js`), a `publicRoutes` entry and its own `render.yaml` rewrite before `/*` (deploy-path carve-out, PR 4). | Static pages already work this way; the `/shelf/*` catch-all handles item slugs, not pages. |
+| D10 · More Gemini models | **Out of this stack**: a follow-up spike (measure each model's allowance, compare readings on recorded fixtures). The budget derives from `len(GEMINI_MODELS)`, so a model added later widens it with no code change. | Needs real measurements first, as the spec says. |
+| D11 · Kind contract | `GET /api/intake/kinds` returns `[{key, area, label, ways_in, source_state, has_details, fields: [{key, label, control, options, per_item, required}]}]`; the frontend renders only from it. | AC 9 and 10: a kind or field added on the server reaches every component with no frontend change. |
+| Admin routes | `/admin/collection/add` and `/admin/closet/add` (`AdminAdd`), sittings at `…/add/:sittingId` (`AdminSitting`). `/admin/import` → `<Navigate replace to="/admin/collection/add">`. | The static `add` segment outranks `/admin/collection/:id` in react-router's ranking (pinned by a test). |
+| 409 wording | Intake passes its own text to `errorMessage`, never the catalogue-lock wording. | `errorMessage` words every 409 as the catalogue lock today. |
+
+## Conflicts with open PRs
+
+The spec's list (#118, #122, #126-#129) shows none. Re-check `gh pr list`
+before each PR opens; `JOB_ROUTES`, `test_job_token.py`, `nightly.yml`,
+`items.py` and `index.css` are the likely shared files.
+
+## Delivery: a four-PR stack
+
+Branches: `feat/intake` (PR 1, this worktree, carries this doc), then
+`feat/intake-shelf`, `feat/intake-add`, `feat/intake-demo`, each in its own
+worktree under `~/Developer/joey-haas.dev-worktrees/` based on the previous.
+
+```mermaid
+flowchart LR
+  P1[PR 1 · migration 0015, budget, kinds, sittings API, reader, nightly] --> P2[PR 2 · Add page, sitting stepper, retire /admin/import, stop 1]
+  P2 --> P3[PR 3 · add bar, search, drawer, closet kind, Tag now line]
+  P3 --> P4[PR 4 · public demo, recorder, changelog, render.yaml]
+```
+
+Tasks are sequential unless marked **parallel-safe**.
+
+### PR 1 — Backend: storage, budget, kinds, sittings, reading
+
+1. **Migration `0015_add_intake.py`** + models (`IntakeSitting`,
+   `IntakePhoto`, `IntakeEntry`, `LlmUsage`, `MovieDiscFormat`,
+   `Item.disc_format`) per D1/D2. `schema_check.py` learns the new tables.
+   *Tests:* migration up/down on the test DB; `test_schema_check` passes;
+   `disc_format` written for a movie, 422 for a game (`test_items.py`).
+2. **Budget** (`backend/intake/budget.py`): `UsageRecorder` (`attempt(model)`,
+   `exhausted(model)`, own session factory), `pacific_day(now) -> date`,
+   `remaining(session, models, reserve=12) -> int`,
+   `budget_state(...) -> {remaining, enforced, resets_at}`. `llm.py`:
+   `build_provider(config, recorder=None)`, `GeminiProvider` records per
+   attempt. `main.py` passes one recorder to every factory.
+   *Tests:* attempt counts per model; a PerDay 429 marks only that model;
+   counts survive a rolled-back request session; day boundary at Pacific
+   midnight (not UTC); `remaining` excludes exhausted models and the
+   reserve; anthropic provider ⇒ `enforced: false`; existing `test_llm.py`
+   green with `recorder=None`.
+3. **Kind registry** (`backend/intake/kinds.py`, `shelf_kinds.py`,
+   `garment_kind.py`): frozen `FieldSpec`/`Kind` dataclasses, `register()`,
+   `kinds_for(area)`. Shelf kinds `game` (igdb), `movie` (tmdb; fields
+   include `disc_format`), `comic` (comicvine; `issues` is `per_item`),
+   `boardgame` (bgg; `source_state` explains "no source until BGG opens"
+   when unconfigured); `garment` (closet, ways in photos and type).
+   Each kind supplies `to_row(entry) -> dict` for commit. **Parallel-safe
+   with task 2.**
+   *Tests:* a test kind registered in the suite appears in `GET
+   /api/intake/kinds` with its fields (AC 9 server half); a field added to
+   it appears in the response (AC 10 server half).
+4. **Photo storage**: `closet_images.make_reading_copy(data) -> bytes`
+   (exif-transposed JPEG ≤3072, q90). **Parallel-safe with tasks 2–3.**
+   *Tests:* a sideways iPhone JPEG fixture comes out upright and ≤3072; HEIC
+   opens; oversize refused as today.
+5. **Sittings API** (`backend/intake/routes.py`, router at `/api/intake`,
+   admin auth): `GET kinds`, `GET budget`, `GET counts` (entries left to
+   check per area, for the badge), `POST/GET/PATCH/DELETE sittings[/{id}]`
+   (list = unfinished per area), `POST sittings/{id}/photos` (one file;
+   type/size refused with the file's name; cap 200), `GET
+   photos/{id}/image`, `POST photos/{id}/retry`, `POST sittings/{id}/entries`
+   (typed or searched), `PATCH entries/{id}`. Garment photos create an
+   untagged `Garment` + `garment_images` row exactly as `/garments/photos`
+   does (shared helper) and an entry pointing at it.
+   *Tests:* a sitting reads back identically from a second client (AC 3);
+   uploaded photos keep their state across reloads (AC 4); discard removes
+   photos and entries; 409 text is intake's own; 201st photo refused.
+6. **Reader** (`backend/intake/reader.py`): `read_next(session, sitting_id,
+   provider, budget) -> ReadOutcome`. Picks the oldest `uploaded` photo,
+   runs the importer's prompt and `parse_detections`/`resolve_detections`,
+   writes entries with `matching.py` confidence (exact/probable/check;
+   owned ⇒ `owned`), sets `reading_jpeg` NULL. A source that is busy leaves
+   the entry `reading` ("will retry"), never a miss. Budget spent ⇒ returns
+   `waiting` and changes nothing. A failure marks only that photo `failed`.
+   Garment sittings call the existing tagging function instead.
+   *Tests (recorded LLM fixture, fake adapters):* one photo ⇒ entries with
+   confidences; one failed photo leaves others readable, retry reads it
+   alone (AC 12); budget at 0 ⇒ `waiting`, photo still stored, read after
+   the day rolls (AC 16); nothing-read ⇒ `empty`.
+7. **Commit** (`backend/intake/commit.py` + D8 extraction in `items.py`):
+   `POST sittings/{id}/commit` → `{added, already_owned, skipped_kept,
+   photos_empty, refused: [{entry_id, field, message}]}`. Refused rows stop
+   the commit before any write. New items private; playthroughs seeded;
+   comic ranges through `comics.py`; garments flip nothing (already real).
+   *Tests:* 40 exact entries commit with no per-entry calls (AC 5); rows
+   equal what `/bulk` writes for the same input (AC 6); figures equal
+   what was written (AC 8 server half); a bad issue range maps to its entry.
+8. **Nightly** `POST /api/intake/jobs/nightly` (job token): expire, then
+   read within the reserve; add to `JOB_ROUTES`; `test_job_token.py`
+   updated; `nightly.yml` step `call intake 600 /api/intake/jobs/nightly`
+   between `closet-plan` and `registry`; `lib/nightly.js` row; README for
+   `backend/intake/`.
+   *Tests:* 31-day-old sitting expires with photos, 29-day-old stays; reads
+   stop at the reserve; job-token pin.
+
+### PR 2 — Shelf sittings UI, retire Import, stop 1
+
+9. **Kind-driven components** (`components/intake/`): `KindFields` (renders
+   any `FieldSpec` list; "set for all" mode), `ConfidenceBadge`, `KindTile`,
+   `UnfinishedList` with the three-part meter. `adminAreas.js` gains Add
+   pages with `badge`; `AreaPages`/`AreaSubnav` render page badges.
+   *Tests:* a test kind's fields render in `KindFields` with no component
+   change (AC 9/10 client half); badge in the accessible name; meter
+   segments labelled.
+10. **`AdminAdd` and `AdminSitting`**: `SittingStepper` (ordered list,
+    `aria-current="step"`, focus to heading), `ShootStep`/`PhotoTile`
+    (client refusal of type/size with name; one upload per photo; drives
+    `read-next` serially; budget line; one polite live region), `CheckOne`
+    (radio group, best preselected, the five actions), `SkimGrid`
+    (checkboxes labelled by title; owned dimmed and unticked),
+    `DetailsStep` (one pass per kind, refusals beside the field),
+    `DoneStep` (four `StatTile`s from the commit answer). Routes in App.jsx
+    and `ADMIN_ROUTES`; `/admin/import` redirects; `AdminImport.jsx` and the
+    old `.confidence-*` rules removed; stop 1 caption and `where` updated
+    in `spine.js` (public copy from the spec, nine stops kept).
+    *Tests:* stepper keyboard path end to end with a mocked API; reload in
+    Shoot shows true per-photo state; `waiting for tomorrow's budget`
+    wording (#121's), never "did not answer"; `/admin/import` lands on Add
+    (AC 15); `add` outranks `:id`; How it works has nine stops and no
+    "never kept" sentence (AC 17); axe on each step.
+11. **CSS** (admin block of `index.css`): tokens only; measure confidence
+    words ≥4.5:1 and meter segments ≥3:1 on their surfaces in both themes,
+    record beside the rules (swap `--line-strong` for `--status-backlog` if
+    it fails). *Verification:* browser at 1280/400, both themes, vs
+    `chosen.html` (Add page, Shoot, Check, Details, Done).
+
+### PR 3 — Add bar, drawer, Closet
+
+12. **`AddBar`, `AddResults`, `AddDrawer`** on Collection and Closet:
+    search on submit (per-source states worded; disabled kinds say why —
+    AC 11), On shelf links, drawer beside the grid at 1280 and bottom sheet
+    below 900 (`useMediaQuery`), focus trap and return, "Add and search
+    again", "No match, keep as typed". Single adds go through the commit
+    service (`POST /api/intake/add`, added to PR 3's backend). Unfinished
+    sitting line with Resume; drafts never in the grid. Closet: type-only
+    field, ▤ Photos straight to Shoot, the "N photos waiting · Tag now"
+    line.
+    *Tests:* drawer Escape/focus return; keep-as-typed commits a manual row;
+    an unconfigured source's kind commits as typed; garment sitting creates
+    the same garments and thumbnails as before and shows untagged pieces at
+    once (AC 7); clothes Check actions (Save and next, Tag again, Skip,
+    Remove this photo).
+13. **CSS + verification** for Add bar, Single add, Closet, Clothes · Check
+    at 1280/400, both themes (AC 1 completes here).
+
+### PR 4 — Public demo and changelog
+
+14. **Recorder** `backend/scripts/record_intake_demo.py`: runs one real
+    shelf photo through the reader and matcher, writes
+    `frontend/src/content/intake-demo.json` (titles, candidates, confidences,
+    stage timings; no image bytes, no ids). README beside it. Tests use a
+    provisional fixture under `tests/`; **the public file is only ever the
+    recorder's output.**
+15. **`IntakeDemo`** at `/shelf/intake`: drawn shelf, stage strip, Check
+    rows reusing `ConfidenceBadge`; final button says it is pretend; the
+    confidence-from-string-distance sentence. `content/intake.js`
+    `STATIC_PAGES` row, `publicRoutes`, `render.yaml` rewrite before `/*`,
+    `prerender-lib.test` pin; changelog `## 2026-11-…` entry (the demo for
+    the public; "Behind the scenes" for the admin tools).
+    *Tests:* no `fetch` to `/api` (AC 2); prerendered; rewrite pinned;
+    changelog parses (AC 18). **Blocked on Joey's recording**; the PR waits
+    in draft until then.
+
+### Acceptance criteria → tasks
+
+| AC | Task(s) | AC | Task(s) |
+|---|---|---|---|
+| 1 | 11, 13 | 10 | 3, 9 |
+| 2 | 15 | 11 | 3, 12 |
+| 3 | 5 | 12 | 6, 10 |
+| 4 | 5, 10 | 13 | 11, 13 |
+| 5 | 7, 10 | 14 | 10, 12 |
+| 6 | 7 | 15 | 10 |
+| 7 | 5, 12 | 16 | 2, 6, 10 |
+| 8 | 7, 10 | 17 | 10 |
+| 9 | 3, 9 | 18 | 15 |
+
+### Review Focus
+
+Inputs the spec implies that no AC names, each pinned by a test in its task:
+
+1. **Two devices committing the same sitting** — the second commit gets 409
+   with intake's text and writes nothing (task 7).
+2. **A photo that is read but whose source is down for every title** — all
+   entries stay `reading`, the nightly retries the match without a model
+   call (task 6).
+3. **The same title on two photos of one sitting** — one entry ready, the
+   other marked duplicate, counted once on Done (task 7).
+4. **A garment deleted from the Closet mid-sitting** — its entry goes with
+   it (FK cascade) and the sitting still commits (task 5).
+5. **Budget recorder failing to write** — the model call still proceeds and
+   the error is logged; reading never breaks because counting did (task 2).
+
+## Milestones
+
+```
+STOP — carve-out review (before any code): migration 0015 (tables and enum
+       above), the llm.py recorder touching every model caller, the new
+       JOB_ROUTES entry + nightly.yml step
+Milestone 1 (auto): PR 1 — tasks 1–8, opened ready for review
+Milestone 2 (auto): PR 2 — tasks 9–11
+Milestone 3 (auto): PR 3 — tasks 12–13
+STOP — carve-out review: render.yaml rewrite (deploy path), and Joey's
+       real shelf photo for the recorder
+Milestone 4 (auto): PR 4 — tasks 14–15
+Finish gate per PR → PRs opened as a stack
+```
+
+**Deploy order:** apply `0015` to Neon (`migrate_neon.py current`, then
+`upgrade`, from the PR 1 worktree), then merge PR 1. PRs 2–4 need no
+migration. PR 1 merged alone is invisible (no UI) apart from the nightly
+step, which finds nothing to read.
+
+## Environment testing
+
+- Backend: `./.venv/bin/pytest` from the main checkout's venv, **one run at
+  a time**. LLM calls use recorded fixtures; no network in tests.
+- Frontend: `npm test`, `VITE_DAILY_SALT=local npm run build` per PR.
+- Browser per UI PR: local API with dummy env, Vite dev server, signed in;
+  1280 and 400, both themes, against `chosen.html`. One real sitting of ~3
+  shelf photos through Gemini on the dev key (PR 2) and ~5 garments (PR 3)
+  is the only model spend before merge; a forced budget of 0 checks the
+  waiting state without spending.
+- Contrast pairs measured and recorded in `index.css`.
+
+## Smoke test strategy
+
+`smoke.sh` gains signed-out checks: `GET /api/intake/kinds`, `GET
+/api/intake/sittings`, `POST /api/intake/sittings/1/read-next` and `POST
+/api/intake/jobs/nightly` without the token answer 401; `/admin/collection/add`
+serves the shell (200, noindex). After PR 4: `/shelf/intake` 200 and
+indexed, no `/api` request in its HTML. After PR 1 deploys, the next
+nightly shows `intake` ok with 0 read. After PR 2, Joey shoots one real
+box; Done's figures match the collection's new private rows.
