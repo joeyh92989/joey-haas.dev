@@ -411,7 +411,7 @@ describe('AdminSitting', () => {
     )
     await waitFor(() =>
       expect(untyped).toHaveTextContent(
-        'adds #59, #60 · 57 of 72+ → 59 of 72+',
+        'adds #59, #60 · 58 of 72+ → 60 of 72+',
       ),
     )
     const [save] = calls('PATCH', /\/api\/intake\/entries\/e7$/)
@@ -446,6 +446,7 @@ describe('AdminSitting', () => {
             {
               item_id: 'ww-item',
               title: 'Waterworld',
+              is_public: true,
               cover_url: null,
               before: { owned: 2, released: 4 },
               ongoing: false,
@@ -456,6 +457,7 @@ describe('AdminSitting', () => {
             {
               item_id: 'saga-item',
               title: 'Saga',
+              is_public: false,
               cover_url: null,
               before: { owned: 57, released: 72 },
               ongoing: true,
@@ -499,6 +501,11 @@ describe('AdminSitting', () => {
     expect(rows[0]).toHaveTextContent('adds #3, #4 · 2 of 4 → 4 of 4')
     expect(rows[0]).toHaveTextContent('Complete run')
     expect(rows[1]).toHaveTextContent('adds #58 · 57 of 72+ → 58 of 72+')
+    // A private series has no public page yet: its admin page instead.
+    expect(within(rows[1]).getByRole('link', { name: 'Saga' })).toHaveAttribute(
+      'href',
+      '/admin/collection/saga-item',
+    )
     expect(within(list).queryByRole('checkbox')).toBeNull()
     expect(within(list).queryByRole('button')).toBeNull()
     expect(document.body).not.toHaveTextContent(/issues to series/)

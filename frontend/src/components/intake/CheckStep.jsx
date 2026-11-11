@@ -17,15 +17,28 @@ export function addsToSeries(entry) {
   return Boolean(entry.on_shelf) && inSkim(entry) && entry.kind === 'comic'
 }
 
-/** What one entry brings to its series, from the series as it stands. */
-function entryGrowth(entry) {
-  const shelf = entry.on_shelf
-  return seriesGrowth({
-    ownedText: shelf.owned_text,
-    issues: entry.payload?.issues_owned ?? '',
-    released: shelf.released,
-    ongoing: shelf.ongoing,
-  })
+/**
+ * What each entry brings to its series, in sitting order. A series with
+ * several rows counts them in turn, as the commit joins them: the second
+ * row starts where the first, if ticked, leaves the run.
+ */
+function growths(entries) {
+  const sofar = new Map()
+  return new Map(
+    entries.map((entry) => {
+      const shelf = entry.on_shelf
+      const earlier = sofar.get(shelf.item_id) ?? []
+      const growth = seriesGrowth({
+        ownedText: [shelf.owned_text, ...earlier].filter(Boolean).join(', '),
+        issues: entry.payload?.issues_owned ?? '',
+        released: shelf.released,
+        ongoing: shelf.ongoing,
+      })
+      if (entry.state !== 'ignored')
+        sofar.set(shelf.item_id, [...earlier, ...growth.added])
+      return [entry.id, growth]
+    }),
+  )
 }
 
 /**
@@ -75,6 +88,7 @@ export default function CheckStep({
   const left = checks.filter((e) => !skipped.has(e.id))
   const current = left[0] ?? null
   const grows = closet ? [] : sitting.entries.filter(addsToSeries)
+  const growthOf = growths(grows)
   const skim = sitting.entries.filter(
     (entry) => inSkim(entry) && !grows.includes(entry),
   )
@@ -191,7 +205,7 @@ export default function CheckStep({
                 title={entry.on_shelf.title}
                 coverUrl={entry.on_shelf.cover_url ?? entryCover(entry)}
                 read={entry.payload?.detected_title ?? null}
-                growth={entryGrowth(entry)}
+                growth={growthOf.get(entry.id)}
                 typed={Boolean(entry.payload?.issues_owned)}
                 tick={{
                   checked: entry.state !== 'ignored',

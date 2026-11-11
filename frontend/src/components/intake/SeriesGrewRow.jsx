@@ -149,7 +149,7 @@ export default function SeriesGrewRow({
           type="checkbox"
           className="intake-grow-tick"
           checked={tick.checked && !nothing}
-          disabled={nothing || busy}
+          disabled={nothing}
           aria-label={`Add to ${title}`}
           onChange={(event) => tick.onChange(event.target.checked)}
         />

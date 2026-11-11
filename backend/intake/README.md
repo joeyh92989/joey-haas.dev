@@ -58,12 +58,12 @@ and the entries read from them or typed in.
   becomes owned, To read), and `issues_added` counts the issues it gained;
   a series that gains nothing is `already_owned`. Each such series is also
   reported on its own in `series_grew` (`SeriesGrew`): `{item_id, title,
-  cover_url, before: {owned, released}, ongoing, added, already, after_owned_text}`,
+  is_public, cover_url, before: {owned, released}, ongoing, added, already, after_owned_text}`,
   where `added` and `already` split the sitting's issues of it against
   what it held before (loose or in an edition), for Done's "Series that
-  grew". `issues_added` keeps its old meaning (loose issues written, so an
-  issue already inside an edition counts there and not in `added`); a
-  refused commit reports `series_grew: []`. Games, movies and board
+  grew". An issue already inside an edition is held, so it is neither
+  gained nor written again as a loose single; a refused commit reports
+  `series_grew: []`. Games, movies and board
   games keep the old rule: one row per key, later photos dropped. The
   reader does not read an issue number off a photo (the importer's schema
   has no such field), so issues come from Details' Issues owned.

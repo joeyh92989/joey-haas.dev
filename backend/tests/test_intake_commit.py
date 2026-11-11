@@ -364,14 +364,14 @@ async def test_each_series_on_the_shelf_is_reported_with_what_it_gained(
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     body = response.json()
-    # The old figure counts loose issues written (6 joins the singles); the
-    # report counts against what was held, so 6 is already owned there.
-    assert body["issues_added"] == 3
+    # An issue held in an edition is held: it is not written again loose.
+    assert body["issues_added"] == 2
     [grew] = body["series_grew"]
     items = {item.external_id: item for item in await _items(sessionmaker_for_test)}
     assert grew == {
         "item_id": str(items["7"].id),
         "title": "Waterworld",
+        "is_public": False,
         "cover_url": None,
         "before": {"owned": 4, "released": 8},
         "ongoing": True,
@@ -380,6 +380,7 @@ async def test_each_series_on_the_shelf_is_reported_with_what_it_gained(
         "already": [2, 6],
         "after_owned_text": "1–6",
     }
+    assert items["7"].issues_owned == "1–4"
 
 
 @pytest.mark.asyncio

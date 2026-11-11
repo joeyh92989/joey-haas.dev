@@ -34,7 +34,8 @@ export function reportGrowth(grew) {
  * nothing, and the issues added to comic series already on the shelf
  * (a series is one row, so a new issue of one is not a new item): from
  * `series_grew`, a "series grew" and an "already owned" tile and the
- * "Series that grew" list, each title linking to its series page. Then
+ * "Series that grew" list, each title linking to its series page (its
+ * admin page while it is private: the public page would not find it). Then
  * Shoot the next box, Publish these N (shelf kinds only: new rows are
  * private) and See them on the shelf.
  *
@@ -142,7 +143,11 @@ export default function DoneStep({
                 key={series.item_id}
                 title={series.title}
                 coverUrl={series.cover_url ?? null}
-                to={itemPath(series.item_id)}
+                to={
+                  series.is_public === false
+                    ? `/admin/collection/${series.item_id}`
+                    : itemPath(series.item_id)
+                }
                 growth={reportGrowth(series)}
               />
             ))}

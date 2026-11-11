@@ -162,6 +162,7 @@ class SeriesGrew:
         return {
             "item_id": str(self.item.id),
             "title": self.item.title,
+            "is_public": self.item.is_public,
             "cover_url": self.item.cover_url,
             "before": {
                 "owned": self.before["owned"],
@@ -413,7 +414,7 @@ async def commit_one(
         on_shelf = (await _series_on_shelf(session, {key: _Series()})).get(key)
         if on_shelf is not None:
             issues = expand(parse_ranges(made.issues_owned))
-            gained = issues - expand(parse_ranges(on_shelf.issues_owned))
+            gained = issues - owned_set(on_shelf.issues_owned, on_shelf.editions)
             grew = SeriesGrew.before_write(on_shelf, issues)
             if gained:
                 outcome.issues_added = await got_issues(
@@ -555,7 +556,7 @@ async def commit_sitting(
         item = on_shelf.get(key)
         if item is not None:
             outcome.series_grew.append(SeriesGrew.before_write(item, issues))
-            gained = issues - expand(parse_ranges(item.issues_owned))
+            gained = issues - owned_set(item.issues_owned, item.editions)
             if gained:
                 gains.append((item, gained))
             else:
