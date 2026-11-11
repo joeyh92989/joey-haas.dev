@@ -13,7 +13,11 @@ An entry's state decides what happens to it:
 - ignored: cleared, not counted;
 - check, reading: kept in the sitting to come back to (`skipped_kept`).
 
-The sitting goes once nothing is kept, and its photos with it.
+A photo not yet read (uploaded, reading or failed) is kept too, and counted
+as `photos_waiting`: committing mid-read never loses a photo. The sitting
+goes once nothing is kept, and its photos with it. A commit that would
+change nothing -- only kept entries, or no entries while photos still wait
+-- is a 409 in intake's words, never a deletion.
 """
 
 from __future__ import annotations
@@ -49,6 +53,8 @@ from models import (
 S = IntakeEntryState
 WRITTEN = frozenset({S.EXACT, S.PROBABLE, S.READY, S.TYPED})
 KEPT = frozenset({S.CHECK, S.READING})
+P = IntakePhotoState
+WAITING_PHOTOS = frozenset({P.UPLOADED, P.READING, P.FAILED})
 
 # Intake's own words for a 409 (spec: never the catalogue-lock wording).
 SITTING_GONE = (
@@ -56,6 +62,9 @@ SITTING_GONE = (
 )
 NOTHING_TO_ADD = (
     "Nothing in this sitting is ready to add yet; the rest is still to check."
+)
+PHOTOS_STILL_WAITING = (
+    "Nothing in this sitting is ready to add yet; its photos are still being read."
 )
 
 
@@ -65,6 +74,14 @@ class SittingGone(Exception):
 
 class NothingToAdd(Exception):
     """Every entry left is still to check: a commit would change nothing."""
+
+    detail = NOTHING_TO_ADD
+
+
+class PhotosStillWaiting(NothingToAdd):
+    """No entry to add yet while photos still wait to be read."""
+
+    detail = PHOTOS_STILL_WAITING
 
 
 @dataclass(frozen=True)
@@ -93,6 +110,7 @@ class SittingCommit:
     already_owned: int = 0
     skipped_kept: int = 0
     photos_empty: int = 0
+    photos_waiting: int = 0
     refused: list[Refusal] = field(default_factory=list)
     created: list[uuid.UUID] = field(default_factory=list)
 
@@ -103,6 +121,7 @@ class SittingCommit:
             "already_owned": self.already_owned,
             "skipped_kept": self.skipped_kept,
             "photos_empty": self.photos_empty,
+            "photos_waiting": self.photos_waiting,
             "refused": [refusal.as_json() for refusal in self.refused],
         }
 
@@ -186,7 +205,8 @@ async def commit_sitting(
 
     The sitting row is locked first, so a second device committing at the
     same moment waits, then finds it gone (SittingGone). NothingToAdd when
-    only entries still to check remain.
+    only entries still to check remain; PhotosStillWaiting when no entry is
+    left to settle while photos still wait to be read.
     """
     sitting = await session.scalar(
         select(IntakeSitting).where(IntakeSitting.id == sitting_id).with_for_update()
@@ -201,10 +221,21 @@ async def commit_sitting(
         )
     ).all()
     kept = [entry for entry in entries if entry.state in KEPT]
-    if kept and len(kept) == len(entries):
-        raise NothingToAdd
+    photos_waiting = await session.scalar(
+        select(func.count())
+        .select_from(IntakePhoto)
+        .where(
+            IntakePhoto.sitting_id == sitting_id,
+            IntakePhoto.state.in_(WAITING_PHOTOS),
+        )
+    )
+    if len(kept) == len(entries):
+        if photos_waiting:
+            raise PhotosStillWaiting
+        if kept:
+            raise NothingToAdd
 
-    outcome = SittingCommit(skipped_kept=len(kept))
+    outcome = SittingCommit(skipped_kept=len(kept), photos_waiting=photos_waiting)
     outcome.photos_empty = await session.scalar(
         select(func.count())
         .select_from(IntakePhoto)
@@ -279,7 +310,7 @@ async def commit_sitting(
     outcome.added += len(result.created) + len(garments)
     outcome.already_owned += result.existing
 
-    if kept:
+    if kept or photos_waiting:
         await session.execute(
             delete(IntakeEntry).where(
                 IntakeEntry.sitting_id == sitting_id,

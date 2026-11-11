@@ -37,10 +37,14 @@ and the entries read from them or typed in.
   same create path as `/bulk`, so the rows are the photo importer's: write
   rules, duplicates skipped, playthroughs seeded, private, in INSERTs of at
   most `items.BULK_CHUNK` (500). Answers `{added, already_owned,
-  skipped_kept, photos_empty, refused}`. By entry state: exact, probable,
-  ready and typed are written; owned is counted once per title; ignored is
-  cleared; check and reading stay in the sitting. The sitting is deleted
-  (photos and all) once nothing is kept.
+  skipped_kept, photos_empty, photos_waiting, refused}`. By entry state:
+  exact, probable, ready and typed are written; owned is counted once per
+  title; ignored is cleared; check and reading stay in the sitting. A photo
+  not yet read (uploaded, reading or failed) is kept too and counted as
+  `photos_waiting`. The sitting is deleted (photos and all) only once
+  nothing is kept. A commit that would change nothing is a 409 in intake's
+  words: `NOTHING_TO_ADD` when only entries to check remain,
+  `PHOTOS_STILL_WAITING` when no entry is left but photos still wait.
 
 - `nightly.py` — `run_nightly()`, behind `POST /api/intake/jobs/nightly`
   (spec D4, job token). First `expire_sittings()` deletes sittings nobody

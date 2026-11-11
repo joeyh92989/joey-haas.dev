@@ -27,7 +27,6 @@ from closet_routes import add_garment_photo, check_media_type, convert_upload
 from config import Config
 from intake.budget import budget_state
 from intake.commit import (
-    NOTHING_TO_ADD,
     SITTING_GONE,
     NothingToAdd,
     SittingGone,
@@ -366,8 +365,8 @@ def create_intake_router(
             outcome = await commit_sitting(session, sitting_id, today=today)
         except SittingGone:
             raise HTTPException(409, SITTING_GONE) from None
-        except NothingToAdd:
-            raise HTTPException(409, NOTHING_TO_ADD) from None
+        except NothingToAdd as refused:
+            raise HTTPException(409, refused.detail) from None
         if outcome.refused:
             await session.rollback()
             count = len(outcome.refused)
@@ -379,6 +378,7 @@ def create_intake_router(
                     "already_owned": 0,
                     "skipped_kept": 0,
                     "photos_empty": 0,
+                    "photos_waiting": 0,
                     "detail": f"{count} to fix before anything is added",
                 },
             )

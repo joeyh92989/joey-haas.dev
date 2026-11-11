@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import func, select
 
 import items
-from intake.commit import NOTHING_TO_ADD
+from intake.commit import NOTHING_TO_ADD, PHOTOS_STILL_WAITING
 from models import (
     Garment,
     GarmentStatus,
@@ -124,6 +124,7 @@ async def test_forty_exact_entries_commit_in_one_request(sessionmaker_for_test):
         "already_owned": 0,
         "skipped_kept": 0,
         "photos_empty": 0,
+        "photos_waiting": 0,
         "refused": [],
     }
     rows = await _items(sessionmaker_for_test)
@@ -243,6 +244,7 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         "already_owned": 2,
         "skipped_kept": 2,
         "photos_empty": 2,
+        "photos_waiting": 0,
         "refused": [],
     }
     assert await _count(sessionmaker_for_test, Item) == 1 + body["added"]
@@ -318,6 +320,65 @@ async def test_a_commit_that_would_change_nothing_is_409(sessionmaker_for_test):
     assert response.status_code == 409
     assert response.json()["detail"] == NOTHING_TO_ADD
     assert await _count(sessionmaker_for_test, IntakeEntry) == 1
+
+
+async def _add_photos(factory, sitting_id, states) -> None:
+    async with factory() as session:
+        for state in states:
+            session.add(
+                IntakePhoto(
+                    sitting_id=sitting_id,
+                    state=state,
+                    reading_jpeg=None if state is IntakePhotoState.READ else b"jpeg",
+                    thumb_webp=b"webp",
+                    width=10,
+                    height=10,
+                )
+            )
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_a_commit_mid_read_keeps_the_unread_photos(sessionmaker_for_test):
+    # 30 photos: 10 read into entries, the rest still uploaded, reading or failed.
+    entries = [("game", S.EXACT, {}, _match(n)) for n in range(10)]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    P = IntakePhotoState
+    waiting = [P.UPLOADED] * 14 + [P.READING] * 3 + [P.FAILED] * 3
+    await _add_photos(sessionmaker_for_test, sitting_id, [P.READ] * 10 + waiting)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["added"] == 10
+    assert body["photos_waiting"] == 20
+    async with sessionmaker_for_test() as session:
+        assert await session.get(IntakeSitting, sitting_id) is not None
+        states = (
+            await session.scalars(
+                select(IntakePhoto.state).where(IntakePhoto.sitting_id == sitting_id)
+            )
+        ).all()
+    assert sorted(state.value for state in states if state is not P.READ) == sorted(
+        state.value for state in waiting
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_sitting_with_only_unread_photos_is_409_and_keeps_them(
+    sessionmaker_for_test,
+):
+    sitting_id = await _seed(sessionmaker_for_test)
+    await _add_photos(
+        sessionmaker_for_test, sitting_id, [IntakePhotoState.UPLOADED] * 3
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 409
+    assert response.json()["detail"] == PHOTOS_STILL_WAITING
+    assert "catalogue" not in response.json()["detail"]
+    assert await _count(sessionmaker_for_test, IntakeSitting) == 1
+    assert await _count(sessionmaker_for_test, IntakePhoto) == 3
 
 
 @pytest.mark.asyncio
