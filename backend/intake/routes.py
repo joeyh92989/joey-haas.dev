@@ -195,7 +195,8 @@ def create_intake_router(
     async def list_sittings(
         area: IntakeArea, session: AsyncSession = Depends(get_session)
     ) -> list[dict[str, Any]]:
-        """The area's open sittings, newest first, with a photo count each."""
+        """The area's open sittings, newest first: photo count, photos still
+        waiting to be read, and entries per state."""
         photo_count = (
             select(func.count())
             .where(IntakePhoto.sitting_id == IntakeSitting.id)
@@ -208,6 +209,36 @@ def create_intake_router(
                 .order_by(IntakeSitting.updated_at.desc(), IntakeSitting.id)
             )
         ).all()
+        ids = [sitting.id for sitting, _ in rows]
+        # Two grouped counts for the whole list: the Add page's meter
+        # (ready, to check, still reading) without opening each sitting.
+        entry_counts: dict[uuid.UUID, dict[str, int]] = {
+            sitting_id: {state.value: 0 for state in IntakeEntryState}
+            for sitting_id in ids
+        }
+        waiting: dict[uuid.UUID, int] = dict.fromkeys(ids, 0)
+        if ids:
+            for sitting_id, state, count in (
+                await session.execute(
+                    select(IntakeEntry.sitting_id, IntakeEntry.state, func.count())
+                    .where(IntakeEntry.sitting_id.in_(ids))
+                    .group_by(IntakeEntry.sitting_id, IntakeEntry.state)
+                )
+            ).all():
+                entry_counts[sitting_id][state.value] = count
+            for sitting_id, count in (
+                await session.execute(
+                    select(IntakePhoto.sitting_id, func.count())
+                    .where(
+                        IntakePhoto.sitting_id.in_(ids),
+                        IntakePhoto.state.in_(
+                            [IntakePhotoState.UPLOADED, IntakePhotoState.READING]
+                        ),
+                    )
+                    .group_by(IntakePhoto.sitting_id)
+                )
+            ).all():
+                waiting[sitting_id] = count
         return [
             {
                 "id": str(sitting.id),
@@ -216,6 +247,8 @@ def create_intake_router(
                 "label": sitting.label,
                 "step": sitting.step,
                 "photos": count,
+                "photos_waiting": waiting[sitting.id],
+                "entries": entry_counts[sitting.id],
                 "updated_at": sitting.updated_at,
             }
             for sitting, count in rows

@@ -76,7 +76,7 @@ All under `/api/intake`, admin only (`items.require_admin`).
 | Route | What it does |
 |---|---|
 | `GET /kinds` | The kind registry, with each source's state |
-| `POST /sittings`, `GET /sittings?area=`, `GET/PATCH/DELETE /sittings/{id}` | Sittings |
+| `POST /sittings`, `GET /sittings?area=`, `GET/PATCH/DELETE /sittings/{id}` | Sittings; the list carries `photos`, `photos_waiting` (uploaded or reading) and `entries` (a count per state) for the Add page's meter |
 | `POST /sittings/{id}/photos`, `POST /photos/{id}/retry`, `GET /photos/{id}/image` | Photos |
 | `POST /sittings/{id}/read-next` | Read one waiting photo (the page drives it) |
 | `POST /sittings/{id}/entries`, `PATCH /entries/{id}` | Typed and chosen entries |

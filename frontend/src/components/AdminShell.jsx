@@ -40,6 +40,14 @@ function AreaBadge({ badge }) {
 }
 
 /**
+ * A page's pending count (the Add page's entries left to check), drawn
+ * like an area's badge and read out as part of the page's name.
+ */
+function PageBadge({ page, badges }) {
+  return page.badge ? <AreaBadge badge={badges[page.badge]} /> : null
+}
+
+/**
  * A page link marked current by the shell, not by NavLink's own matching:
  * NavLink without `end` would also mark a parent page (Closet) on its
  * child's path (/admin/closet/profile). Only the longest match is current.
@@ -115,7 +123,14 @@ function runs(pages) {
 }
 
 /** The desktop's second column: the current area's pages and the account. */
-function AreaPages({ area, pathname, ownedCount, email, onSignOut }) {
+function AreaPages({
+  area,
+  pathname,
+  ownedCount,
+  pageBadges,
+  email,
+  onSignOut,
+}) {
   const here = currentPage(area.pages, pathname)
   return (
     <aside className="admin-side">
@@ -141,6 +156,7 @@ function AreaPages({ area, pathname, ownedCount, email, onSignOut }) {
                   <PageLink page={page} current={page === here}>
                     {page.label}
                     {page.count && <OwnedCount value={ownedCount} />}
+                    <PageBadge page={page} badges={pageBadges} />
                   </PageLink>
                 </li>
               ))}
@@ -225,7 +241,7 @@ function TabSheet({ label, pages, open, onClose, returnFocusRef }) {
  * a few pages and sheets of the rest. A sheet segment is current when the
  * page is one of its own.
  */
-function AreaSubnav({ area, pathname, sheet, onOpen, onClose }) {
+function AreaSubnav({ area, pathname, pageBadges, sheet, onOpen, onClose }) {
   const segments = segmentsFor(area)
   const here = currentPage(
     segments.flatMap((segment) => segment.sheet ?? [segment]),
@@ -246,6 +262,7 @@ function AreaSubnav({ area, pathname, sheet, onOpen, onClose }) {
                 current={here?.to === segment.to}
               >
                 {segment.label}
+                <PageBadge page={segment} badges={pageBadges} />
               </PageLink>
             )
           }
@@ -294,6 +311,9 @@ function AreaSubnav({ area, pathname, sheet, onOpen, onClose }) {
  * @param {number|null} props.ownedCount Shown beside Collection once loaded.
  * @param {Record<string, {value: number, words: string}>} [props.badges]
  *   Pending counts per area key, e.g. `{ closet: { value: 9, words: 'to review' } }`.
+ * @param {Record<string, {value: number, words: string}>} [props.pageBadges]
+ *   Pending counts per page `badge` key, e.g.
+ *   `{ 'intake.shelf': { value: 7, words: 'to check' } }`.
  * @param {() => void} props.onSignOut Signs out; the layout owns the result.
  * @param {import('react').ReactNode} props.children The routed page.
  */
@@ -301,6 +321,7 @@ export default function AdminShell({
   email,
   ownedCount,
   badges = {},
+  pageBadges = {},
   onSignOut,
   children,
 }) {
@@ -327,6 +348,7 @@ export default function AdminShell({
           area={area}
           pathname={pathname}
           ownedCount={ownedCount}
+          pageBadges={pageBadges}
           email={email}
           onSignOut={onSignOut}
         />
@@ -337,6 +359,7 @@ export default function AdminShell({
           <AreaSubnav
             area={area}
             pathname={pathname}
+            pageBadges={pageBadges}
             sheet={sheet}
             onOpen={setSheet}
             onClose={() => setSheet(null)}
