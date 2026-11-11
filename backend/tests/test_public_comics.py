@@ -36,7 +36,7 @@ ROW_FIELDS = {
     "item_id", "title", "publisher", "year", "cover_url", "ongoing",
     "following", "wanted", "shelf_format", "edition_labels", "owned",
     "released", "missing", "run_state", "segments", "status", "rating",
-    "read_to", "read", "next_issue", "created_at",
+    "read_to", "read", "read_next", "next_issue", "created_at",
 }  # fmt: skip
 STATS_FIELDS = {
     "series", "issues_owned", "missing", "read_percent", "runs", "by_status",
@@ -48,7 +48,8 @@ ISSUE_FIELDS = {
 }  # fmt: skip
 DETAIL_FIELDS = {
     "publisher", "owned_text", "released", "ongoing", "run_state", "missing",
-    "segments", "read_to", "read", "editions", "next_issue", "following",
+    "segments", "read_to", "read", "read_next", "editions", "next_issue",
+    "following",
     "shelf_format", "as_of",
 }  # fmt: skip
 
@@ -283,7 +284,37 @@ async def test_the_item_page_carries_the_comic_block(sessionmaker_for_test):
     ]
     assert comic["as_of"] == "2026-11-05"
     assert comic["read_to"] == 30
+    assert comic["read_next"] == 31
     assert comic["shelf_format"] == saga.shelf_format.value
+
+
+@pytest.mark.parametrize(
+    ("fields", "expected"),
+    [
+        # Past the singles, into the edition (55–60); 51 is skipped, so
+        # missing, and never next.
+        ({"read_to": 54}, 55),
+        # A gap: read to 50, 51 is not held, so 52.
+        ({"read_to": 50}, 52),
+        # Everything held is read.
+        ({"read_to": 60}, None),
+        ({"read_to": 72}, None),
+        # Not started: the first held issue.
+        ({"read_to": None}, 1),
+        ({"read_to": None, "issues_owned": "3–5", "editions": None}, 3),
+    ],
+)
+async def test_read_next_is_the_first_held_issue_past_read_to(
+    sessionmaker_for_test, fields, expected
+):
+    saga = _saga()
+    for field, value in fields.items():
+        setattr(saga, field, value)
+    await _add(sessionmaker_for_test, saga)
+    async with client_for(sessionmaker_for_test) as client:
+        row = (await client.get("/api/public/comics")).json()["series"][0]
+        comic = (await client.get(f"/api/public/items/{saga.id}")).json()["comic"]
+    assert row["read_next"] == comic["read_next"] == expected
 
 
 async def test_a_private_followed_series_appears_in_no_public_body(

@@ -17,6 +17,7 @@ from comics import (
     owned_set,
     parse_ranges,
     pull_weeks,
+    read_next,
     read_state,
     row_run,
     run_summary,
@@ -165,7 +166,7 @@ def test_the_admin_run_counts_editions_and_reads_the_snapshot():
     assert (run["owned"], run["released"], run["missing"]) == (10, 12, 2)
     assert run["state"] == "gaps"
     assert run["segments"][-1] == {"kind": "upcoming", "length": 3}
-    assert (run["read"], run["unread"]) == (8, 2)
+    assert (run["read"], run["unread"], run["read_next"]) == (8, 2, 9)
 
 
 def test_an_unfetched_run_falls_back_to_the_volume_count():
@@ -209,6 +210,28 @@ def test_read_counts_owned_issues_up_to_the_marker():
     state = read_state(11, {1, 2, 3, 10, 11, 12, 14})
     assert (state.read, state.unread) == (5, 2)
     assert read_state(None, {1, 2}).read == 0
+
+
+def test_read_next_is_the_first_held_issue_past_the_marker():
+    held = {1, 2, 3, 10, 11, 12, 14}
+    assert read_next(None, held) == 1
+    assert read_next(3, held) == 10  # over the gap
+    assert read_next(12, held) == 14
+    assert read_next(14, held) is None
+    assert read_next(None, set()) is None
+
+
+def test_a_skip_on_a_held_issue_is_refused():
+    editions = [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}]
+    with pytest.raises(RangeError, match="#9 is owned, so it can't be skipped"):
+        apply_comic_fields({"issues_skipped": "9"}, True, {"issues_owned": "7-10"})
+    with pytest.raises(RangeError, match="#4 is owned"):
+        apply_comic_fields({"issues_skipped": "4"}, True, {"editions": editions})
+    # Owning and unskipping in one write passes; a write that leaves all
+    # three alone is not checked.
+    both = {"issues_owned": "1-9", "issues_skipped": None}
+    assert apply_comic_fields(both, True, {"issues_skipped": "9"})["issues_owned"]
+    assert apply_comic_fields({"read_to": 3}, True, {"issues_skipped": "1-3"})
 
 
 # --- Hero figures (spec AC2) ------------------------------------------------

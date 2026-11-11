@@ -20,7 +20,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import playthroughs
 from auth import session_admin
-from comics import ISSUE_SNAPSHOT_KEYS, RangeError, apply_comic_fields, row_run
+from comics import (
+    HELD_FIELDS,
+    ISSUE_SNAPSHOT_KEYS,
+    RangeError,
+    apply_comic_fields,
+    row_run,
+)
 from formats import CopyFieldError, apply_copy_fields
 from models import (
     ComicShelfFormat,
@@ -513,8 +519,9 @@ def _check_disc_format(changes: dict, row: Item | None) -> dict:
 def _write_fields(changes: dict, row: Item | None) -> dict:
     """The comic rules, the disc rule, then the copy rules; CopyFieldError or
     RangeError."""
+    current = None if row is None else {key: getattr(row, key) for key in HELD_FIELDS}
     checked = _check_disc_format(
-        apply_comic_fields(changes, _is_comic(changes, row)), row
+        apply_comic_fields(changes, _is_comic(changes, row), current), row
     )
     return apply_copy_fields(checked, row)
 

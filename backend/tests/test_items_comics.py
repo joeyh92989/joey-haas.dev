@@ -127,3 +127,59 @@ async def test_bulk_create_refuses_a_bad_range_naming_the_row(sessionmaker_for_t
         )
     assert response.status_code == 422
     assert response.json()["detail"] == "Y: Issues owned: issue numbers start at 1"
+
+
+async def _patch(factory, seed: dict, body: dict):
+    item_id = await _seed(factory, **seed)
+    async with client_for(factory) as client:
+        response = await client.patch(f"/api/items/{item_id}", json=body)
+        stored = (await client.get(f"/api/items/{item_id}")).json()
+    return response, stored
+
+
+async def test_patch_refuses_a_skip_on_an_owned_issue(sessionmaker_for_test):
+    response, stored = await _patch(
+        sessionmaker_for_test, {"issues_owned": "1-10"}, {"issues_skipped": "7"}
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "#7 is owned, so it can't be skipped"
+    assert stored["issues_skipped"] is None
+
+
+async def test_patch_refuses_a_skip_on_an_edition_issue(sessionmaker_for_test):
+    editions = [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}]
+    response, _ = await _patch(
+        sessionmaker_for_test, {"editions": editions}, {"issues_skipped": "4-5"}
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "#4 is owned, so it can't be skipped"
+
+
+async def test_patch_refuses_owning_an_issue_left_skipped(sessionmaker_for_test):
+    response, stored = await _patch(
+        sessionmaker_for_test,
+        {"issues_owned": "1-6", "issues_skipped": "7"},
+        {"issues_owned": "1-7"},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "#7 is owned, so it can't be skipped"
+    assert stored["issues_owned"] == "1-6"  # as seeded, unchanged
+
+
+async def test_patch_owns_and_unskips_in_one_request(sessionmaker_for_test):
+    response, stored = await _patch(
+        sessionmaker_for_test,
+        {"issues_owned": "1-6", "issues_skipped": "7, 9"},
+        {"issues_owned": "1-7", "issues_skipped": "9"},
+    )
+    assert response.status_code == 200, response.text
+    assert (stored["issues_owned"], stored["issues_skipped"]) == ("1–7", "9")
+
+
+async def test_create_refuses_a_skip_on_an_owned_issue(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/items", json=_comic(issues_owned="1-3", issues_skipped="2")
+        )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "#2 is owned, so it can't be skipped"
