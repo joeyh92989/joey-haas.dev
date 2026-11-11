@@ -12,6 +12,17 @@ and the entries read from them or typed in.
   on a per-day 429. `remaining()` is the calls left across models that are
   not exhausted, minus a reserve of `RESERVE` (12) kept for the rest of the
   site; `budget_state()` is what the intake page shows.
+- `kinds.py` — the kind registry (spec D11). A `Kind` is data: its area,
+  ways in (photo, search, type), metadata source, `FieldSpec`s and a
+  `to_row` that turns an entry into the row to write. `register()` adds or
+  replaces one; `describe()` is what `GET /api/intake/kinds` serves,
+  including `source_state` ("ready", or why the source is not).
+- `shelf_kinds.py` — game, movie, comic and board game. `to_row` keeps the
+  chosen match's metadata plus the payload's `ItemIn` fields, and records a
+  physical copy. Board games are typed only while BGG needs a token.
+- `garment_kind.py` — the closet's garment: no source, no details step;
+  `to_row` keeps only `GarmentFields` keys.
+- `routes.py` — `create_intake_router()`, admin only, under `/api/intake`.
 
 ## Why the recorder has its own sessions
 
@@ -30,6 +41,13 @@ recorder = UsageRecorder(session_factory)  # one per process (main.py)
 provider = build_provider(config, recorder)  # Gemini records each attempt
 state = await budget_state(session, config)  # {"remaining", "enforced", "resets_at"}
 ```
+
+## Adding a kind
+
+Write a `Kind`, `register()` it in a module `routes.py` imports, and it is
+served. `kind` is text in the database, so no migration is needed. Field
+keys must be the row's own column names (`platform_id`, not `platform`),
+because `to_row` filters the payload by them.
 
 ## Gotchas
 

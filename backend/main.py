@@ -30,6 +30,7 @@ from db import create_engine_and_sessionmaker, engine_lifespan
 from errors import add_json_errors
 from importer import create_import_router
 from intake.budget import UsageRecorder
+from intake.routes import create_intake_router
 from items import create_items_router
 from journal_routes import create_journal_router
 from llm import build_provider
@@ -216,6 +217,7 @@ app.include_router(
 # hour. The beacon only writes: a validated path, referrer and device under a
 # daily-salted visitor hash, capped per IP per day, answering 204 whatever it
 # does.
+app.include_router(create_intake_router(session_factory, registry, config=config))
 app.include_router(create_public_router(session_factory))
 app.include_router(create_site_stats_router(session_factory, cache=summary_cache))
 app.include_router(create_track_router(session_factory, config.session_secret))
