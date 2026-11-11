@@ -119,7 +119,10 @@ async def test_forty_exact_entries_commit_in_one_request(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
-    assert response.json() == {
+    body = response.json()
+    # Done's "Publish these N" publishes exactly what was created.
+    created = body.pop("created")
+    assert body == {
         "added": 40,
         "already_owned": 0,
         "skipped_kept": 0,
@@ -129,6 +132,7 @@ async def test_forty_exact_entries_commit_in_one_request(sessionmaker_for_test):
     }
     rows = await _items(sessionmaker_for_test)
     assert len(rows) == 40
+    assert sorted(created) == sorted(str(row.id) for row in rows)
     assert all(not row.is_public for row in rows)  # new items are private
     assert all(row.status == ItemStatus.BACKLOG for row in rows)
     # Nothing left to come back to: the sitting goes with its entries.
@@ -239,6 +243,7 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     body = response.json()
+    assert len(body.pop("created")) == 2
     assert body == {
         "added": 2,
         "already_owned": 2,

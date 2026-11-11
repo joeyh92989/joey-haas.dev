@@ -39,7 +39,8 @@ const AdminStoreList = lazy(() => import('./pages/AdminStoreList.jsx'))
 const AdminSpots = lazy(() => import('./pages/AdminSpots.jsx'))
 const AdminWeekend = lazy(() => import('./pages/AdminWeekend.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
-const AdminImport = lazy(() => import('./pages/AdminImport.jsx'))
+const AdminAdd = lazy(() => import('./pages/AdminAdd.jsx'))
+const AdminSitting = lazy(() => import('./pages/AdminSitting.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
 const AdminCloset = lazy(() => import('./pages/AdminCloset.jsx'))
 const AdminClosetProfile = lazy(() => import('./pages/AdminClosetProfile.jsx'))
@@ -134,7 +135,11 @@ export default function App() {
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="jobs" element={<AdminJobs />} />
           <Route path="collection" element={<AdminCollection />} />
-          <Route path="import" element={<AdminImport />} />
+          {/* Import photos became Add (intake); old links land there. */}
+          <Route
+            path="import"
+            element={<Navigate replace to="/admin/collection/add" />}
+          />
           <Route path="play-next" element={<PlayNext />} />
           <Route path="catalogue" element={<AdminCatalogue />} />
           <Route path="radar" element={<AdminRadar />} />
@@ -147,6 +152,11 @@ export default function App() {
           <Route path="closet/profile" element={<AdminClosetProfile />} />
           <Route path="closet/today" element={<AdminClosetToday />} />
           <Route path="closet/review" element={<AdminClosetReview />} />
+          {/* The static `add` outranks `:id` in react-router's ranking. */}
+          <Route path="collection/add" element={<AdminAdd />} />
+          <Route path="collection/add/:sittingId" element={<AdminSitting />} />
+          <Route path="closet/add" element={<AdminAdd />} />
+          <Route path="closet/add/:sittingId" element={<AdminSitting />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />
           <Route path="closet/:id" element={<KeyedAdminGarment />} />
           {/* Inside the shell, so a mistyped admin URL keeps the sidebar. */}

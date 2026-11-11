@@ -419,7 +419,8 @@ def create_intake_router(
         # As /bulk does: covers, creators and snapshots after the commit,
         # best effort, so a slow or failing source never undoes the add.
         await _enrich(session, registry, outcome.created)
-        return outcome.as_json()
+        # The new items' ids, for Done's "Publish these N".
+        return {**outcome.as_json(), "created": [str(i) for i in outcome.created]}
 
     @router.patch("/entries/{entry_id}")
     async def patch_entry(

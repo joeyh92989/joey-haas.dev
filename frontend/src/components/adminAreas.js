@@ -45,7 +45,12 @@ export const ADMIN_AREAS = [
         count: true,
         group: 'Collection',
       },
-      { to: '/admin/import', label: 'Import photos', group: 'Collection' },
+      {
+        to: '/admin/collection/add',
+        label: 'Add',
+        group: 'Collection',
+        badge: 'intake.shelf',
+      },
       { to: '/admin/play-next', label: 'Play Next', group: 'Recommend' },
       { to: '/admin/discover', label: 'Discover', group: 'Recommend' },
       { to: '/admin/radar', label: 'Radar', group: 'Recommend' },
@@ -55,6 +60,7 @@ export const ADMIN_AREAS = [
     ],
     subnav: [
       { to: '/admin/collection', label: 'Collection' },
+      { to: '/admin/collection/add', label: 'Add' },
       {
         label: 'Picks',
         sheet: [
@@ -65,7 +71,7 @@ export const ADMIN_AREAS = [
         ],
       },
       { to: '/admin/catalogue', label: 'Sources' },
-      { label: 'More', sheet: ['/admin/import', '/admin/store-list'] },
+      { label: 'More', sheet: ['/admin/store-list'] },
     ],
   },
   {
@@ -77,6 +83,7 @@ export const ADMIN_AREAS = [
     pages: [
       { to: '/admin/closet/today', label: 'Today' },
       { to: '/admin/closet', label: 'Closet' },
+      { to: '/admin/closet/add', label: 'Add', badge: 'intake.closet' },
       { to: '/admin/closet/review', label: 'Review' },
       { to: '/admin/closet/profile', label: 'Profile' },
     ],

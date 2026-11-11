@@ -68,7 +68,9 @@ snapshot files and never call the API.
 | `/admin/analytics` | Analytics | Page views, visitors, views per day, pages, referrers and devices over 7, 30, 90 days or all time, from the first-party beacon (see [Analytics](#analytics)) |
 | `/admin/collection` | Shelf | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
 | `/admin/collection/:id` | Edit item | Every field, plus re-linking to a different IGDB/TMDB/Comic Vine match |
-| `/admin/import` | Import | Photograph a shelf; a vision model reads the titles and each is resolved against its source |
+| `/admin/collection/add`, `/admin/closet/add` | Add | Intake: a tile per kind the API registers for the area, and the area's unfinished sittings (see [Intake](#intake)) |
+| `/admin/collection/add/:id`, `/admin/closet/add/:id` | Sitting | One sitting: Shoot, Check, Details (shelf kinds) and Done |
+| `/admin/import` | Redirect | Import photos became Add: redirects client-side to `/admin/collection/add` |
 | `/admin/play-next` | Play Next | Three picks from the owned backlog |
 | `/admin/catalogue` | Sources | What exists physically: registries (Switch 2 and Switch 1), stores, N64 |
 | `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Want adds the game as a public want, listed on What's next |
@@ -628,6 +630,45 @@ with Keep, Pack away, Sell or Donate. The flags are data, never the model.
   week's. Every run writes `opinion.last_run`, which `GET
   /api/closet/status` reads for the Jobs page's Closet opinions row. To run
   it on another night, start Nightly by hand with "closet_opinion" ticked.
+
+## Intake
+
+One way in for the shelf and the closet (spec and plan:
+`docs/planning/2026-11-10-intake-design.md`; the server half is
+`backend/intake/README.md`). A *sitting* is a server-side draft: its photos,
+the entries read from them, and the step it was left on, so it can start on
+the phone and finish at the desk.
+
+- **The pages.** `pages/AdminAdd.jsx` is each area's Add page: kind tiles
+  from `GET /api/intake/kinds` (a Mixed shelf tile when the area has more
+  than one photo kind) and Unfinished, one row per sitting with a
+  three-part meter (ready, to check, still reading) from `GET
+  /api/intake/sittings?area=`. `pages/AdminSitting.jsx` is one sitting:
+  `SittingStepper` and the step components in `components/intake/`. The
+  step is PATCHed onto the sitting on every move.
+- **Kind-driven.** `KindFields` renders any kind's `FieldSpec` list (the
+  whole list, the shared fields for "Set for all", or the per-item ones for
+  a Details row), so a kind or field added on the server needs no change
+  here. `lib/intake.js` holds only presentation (option values in words)
+  and pure helpers.
+- **Shoot** refuses a wrong type or an oversized file by name before
+  upload, uploads each photo on its own request, and drives `POST
+  /sittings/{id}/read-next` one photo at a time while the page is open;
+  the nightly reads the rest. A spent budget makes waiting photos say
+  "waiting for tomorrow's budget". One polite live region announces reads.
+- **Check** asks only `check` entries, one at a time (a radio group, best
+  preselected); exact and probable matches are a skim grid of checkboxes.
+  Unticking stores `ignored` with `payload.unticked` and `payload.was`, so a
+  reload shows it unticked rather than gone. Search… waits for the add bar.
+- **Details** is one pass per kind present; **Done** shows the commit's own
+  four figures, and Publish these N publishes the commit's `created` ids
+  through `POST /api/items/visibility`.
+- Intake's 409s are its own words: it calls `errorMessage(response, {
+  ownConflicts: true })`, which reads the `detail` instead of the catalogue
+  lock wording.
+- The Add pages' badges are the entries left to check (`GET
+  /api/intake/counts`), loaded by `AdminLayout` and refreshed by a sitting
+  through `refreshIntakeCounts`.
 
 ## Smoke test
 

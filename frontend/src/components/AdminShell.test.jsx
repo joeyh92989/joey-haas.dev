@@ -109,7 +109,7 @@ describe('AdminShell on a desktop', () => {
           .map((link) => link.firstChild.textContent),
       ])
     expect(groups).toEqual([
-      ['Collection', ['Collection', 'Import photos']],
+      ['Collection', ['Collection', 'Add']],
       ['Recommend', ['Play Next', 'Discover', 'Radar', 'Pull list']],
       ['Catalogue', ['Sources', 'Store list']],
     ])
@@ -166,6 +166,18 @@ describe('AdminShell on a desktop', () => {
     expect(
       within(areas()).getByRole('link', { name: 'Site, 2 jobs failed' }),
     ).toBeInTheDocument()
+  })
+
+  it("reads a page's badge as part of its name", () => {
+    renderAt('/admin/collection', {
+      pageBadges: { 'intake.shelf': { value: 7, words: 'to check' } },
+    })
+    expect(
+      within(screen.getByRole('navigation', { name: 'Shelf pages' })).getByRole(
+        'link',
+        { name: 'Add, 7 to check' },
+      ),
+    ).toHaveAttribute('href', '/admin/collection/add')
   })
 
   it('shows the account, a way back to the site and sign-out', () => {
@@ -251,12 +263,22 @@ describe('AdminShell on a phone', () => {
     )
   })
 
-  it('gives Shelf two pages and two sheets', () => {
+  it('gives Shelf three pages and two sheets', () => {
     renderAt('/admin/collection')
     const sub = screen.getByRole('navigation', { name: 'Shelf pages' })
     expect(
       [...sub.querySelectorAll('a, button')].map((el) => el.textContent),
-    ).toEqual(['Collection', 'Picks', 'Sources', 'More'])
+    ).toEqual(['Collection', 'Add', 'Picks', 'Sources', 'More'])
+  })
+
+  it("reads the Add segment's badge as part of its name", () => {
+    renderAt('/admin/collection', {
+      pageBadges: { 'intake.shelf': { value: 7, words: 'to check' } },
+    })
+    const sub = screen.getByRole('navigation', { name: 'Shelf pages' })
+    expect(
+      within(sub).getByRole('link', { name: 'Add, 7 to check' }),
+    ).toBeInTheDocument()
   })
 
   it('marks the segment whose sheet holds the current page', () => {
@@ -273,7 +295,7 @@ describe('AdminShell on a phone', () => {
 
   it.each([
     ['Picks', ['Play Next', 'Discover', 'Radar', 'Pull list']],
-    ['More', ['Import photos', 'Store list']],
+    ['More', ['Store list']],
   ])('opens %s as a sheet of its pages', (label, links) => {
     renderAt('/admin/collection')
     fireEvent.click(screen.getByRole('button', { name: label }))

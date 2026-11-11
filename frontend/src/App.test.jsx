@@ -63,6 +63,15 @@ afterEach(() => {
 })
 
 describe('App redirects', () => {
+  it('lands /admin/import on Shelf’s Add page (AC 15)', async () => {
+    renderAt('/admin/import')
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        /^\/admin\/collection\/add$/,
+      ),
+    )
+  })
+
   // Each pre-rename URL lands on its /shelf page in one hop.
   it.each([
     ['/spine', /^\/shelf$/],
@@ -105,7 +114,11 @@ const TITLES = [
   ['/admin/analytics', 'Analytics · Admin · Joey Haas'],
   ['/admin/jobs', 'Jobs · Admin · Joey Haas'],
   ['/admin/collection', 'Shelf · Admin · Joey Haas'],
-  ['/admin/import', 'Import photos · Admin · Joey Haas'],
+  // `add` outranks `:id`: the Add page, not an item called "add".
+  ['/admin/collection/add', 'Add · Admin · Joey Haas'],
+  ['/admin/collection/add/abc', 'Sitting · Admin · Joey Haas'],
+  ['/admin/closet/add', 'Add · Admin · Joey Haas'],
+  ['/admin/closet/add/abc', 'Sitting · Admin · Joey Haas'],
   ['/admin/play-next', 'Play Next · Admin · Joey Haas'],
   ['/admin/catalogue', 'Sources · Admin · Joey Haas'],
   ['/admin/radar', 'Radar · Admin · Joey Haas'],

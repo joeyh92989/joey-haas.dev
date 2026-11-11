@@ -18,10 +18,16 @@ export const loginUrl = `${API_URL}/api/auth/login`
 /**
  * A failed response's error in words: the API's `detail` when it sent one,
  * else the status. A 409 from the catalogue means another refresh holds the
- * lock, which is worth saying plainly.
+ * lock, which is worth saying plainly; a caller whose 409s mean something
+ * else (intake's sittings) passes `ownConflicts` to read the detail instead.
+ *
+ * @param {Response} response
+ * @param {{ownConflicts?: boolean}} [options]
  */
-export async function errorMessage(response) {
-  if (response.status === 409) return 'A refresh is already running'
+export async function errorMessage(response, { ownConflicts = false } = {}) {
+  if (response.status === 409 && !ownConflicts) {
+    return 'A refresh is already running'
+  }
   try {
     const body = await response.json()
     if (typeof body.detail === 'string') return body.detail

@@ -81,6 +81,34 @@ describe('ADMIN_AREAS', () => {
   })
 })
 
+describe('Add pages', () => {
+  it("badge each area's Add page with its entries left to check", () => {
+    const badged = ADMIN_AREAS.flatMap((area) =>
+      area.pages.filter((page) => page.badge).map((page) => [area.key, page]),
+    )
+    expect(badged.map(([key, page]) => [key, page.to, page.badge])).toEqual([
+      ['shelf', '/admin/collection/add', 'intake.shelf'],
+      ['closet', '/admin/closet/add', 'intake.closet'],
+    ])
+  })
+
+  it('no longer lists Import photos', () => {
+    const paths = ADMIN_AREAS.flatMap((area) => area.pages.map((p) => p.to))
+    expect(paths).not.toContain('/admin/import')
+  })
+
+  it("puts Add in the Shelf's phone segments, after Collection", () => {
+    const shelf = ADMIN_AREAS.find((area) => area.key === 'shelf')
+    expect(segmentsFor(shelf).map((segment) => segment.label)).toEqual([
+      'Collection',
+      'Add',
+      'Picks',
+      'Sources',
+      'More',
+    ])
+  })
+})
+
 describe('areaFor', () => {
   it.each([
     ['/admin', 'home', 'Home'],
@@ -88,7 +116,10 @@ describe('areaFor', () => {
     ['/admin/jobs', 'home', 'Jobs'],
     ['/admin/collection', 'shelf', 'Collection'],
     ['/admin/collection/42', 'shelf', 'Collection'],
-    ['/admin/import', 'shelf', 'Import photos'],
+    ['/admin/collection/add', 'shelf', 'Add'],
+    ['/admin/collection/add/abc', 'shelf', 'Add'],
+    ['/admin/closet/add', 'closet', 'Add'],
+    ['/admin/closet/add/abc', 'closet', 'Add'],
     ['/admin/play-next', 'shelf', 'Play Next'],
     ['/admin/discover', 'shelf', 'Discover'],
     ['/admin/radar', 'shelf', 'Radar'],
@@ -128,9 +159,11 @@ describe('currentPage', () => {
     expect(currentPage(closet.pages, '/admin/closet/review').label).toBe(
       'Review',
     )
+    expect(currentPage(closet.pages, '/admin/closet/add').label).toBe('Add')
     expect(closet.pages.map((page) => page.label)).toEqual([
       'Today',
       'Closet',
+      'Add',
       'Review',
       'Profile',
     ])

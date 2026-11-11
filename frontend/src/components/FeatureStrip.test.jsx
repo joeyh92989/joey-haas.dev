@@ -24,6 +24,6 @@ describe('FeatureStrip', () => {
       '/shelf/how#stop-4',
       '/shelf/how#stop-7',
     ])
-    expect(cards[0]).toHaveAccessibleName(/^Reads the shelf/)
+    expect(cards[0]).toHaveAccessibleName(/^Takes it all in/)
   })
 })

@@ -183,7 +183,7 @@ describe('nightlyJobs', () => {
       '/admin/closet',
       '/admin/closet/today',
       '/admin/closet/review',
-      null,
+      '/admin/collection/add',
       null,
     ])
   })
@@ -269,6 +269,10 @@ describe('nightlyJobs', () => {
     expect(
       intakeRow({ at: hoursAgo(STALE_HOURS + 1), state: 'ok' }).state,
     ).toBe('stale')
+  })
+
+  it("links the intake row to Shelf's Add page, where reading is driven", () => {
+    expect(intakeRow(null).runNow).toBe('/admin/collection/add')
   })
 
   it('reads the intake row unknown with no status', () => {

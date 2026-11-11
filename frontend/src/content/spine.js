@@ -52,7 +52,7 @@ export const spine = {
     tryPickForMe: 'Try Pick for me: choose a length and a mood',
     title: 'How My Shelf works, in nine stops',
     description:
-      'A guided tour of My Shelf: photo import, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
+      'A guided tour of My Shelf: intake, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
     lede: 'Everything on the Collection and What’s next pages comes out of a pipeline I run for myself. Each stop pairs the public result with a drawing of the signed-in tool that made it and links to the code it runs.',
     tocLabel: 'Stops',
     live: 'Live, from the public API',
@@ -74,8 +74,8 @@ export const spine = {
     features: [
       {
         stop: 1,
-        title: 'Reads the shelf',
-        line: 'One photo in, titles out, matched to IGDB.',
+        title: 'Takes it all in',
+        line: 'A shelf photo or a search, matched to its source.',
       },
       {
         stop: 2,
@@ -101,22 +101,26 @@ export const spine = {
     stops: [
       {
         n: 1,
-        where: '/admin/import',
-        title: 'Reads the shelf from a photo',
+        where: '/admin/collection/add',
+        title: 'Takes everything in the same way',
         claim:
-          'A vision model reads the titles off a photo of the shelf. It’s never asked how confident it is: the server compares each title against IGDB by string similarity and marks the match exact, probable, or uncertain, so I only have to check the doubtful ones.',
+          'Games, films, comics and clothes all come in through one pipeline: photograph a shelf or search for a title, let the source match it, check the doubtful ones, add. A vision model reads the titles off the photo and is never asked how confident it is: the server compares each title with the source by string similarity and marks the match exact, probable or uncertain.',
         why: {
-          lead: 'Why this way:',
-          text: 'a model’s confidence can’t be tested, but a similarity score can. The model returns titles only, so the entire matching path runs in tests without ever calling the model.',
+          lead: 'Why one pipeline:',
+          text: 'each kind of thing declares only what is its own: how it’s recognised, what it’s matched against, which fields it asks for. A new kind is one module, not a new page. And a similarity score can be tested where a model’s confidence can’t, so the whole matching path runs in tests without calling the model.',
         },
-        code: ['backend/importer.py', 'backend/matching.py'],
+        code: [
+          'backend/intake/kinds.py',
+          'backend/intake/reader.py',
+          'backend/matching.py',
+        ],
         live: {
           caption:
-            'The newest games on the shelf. The import itself isn’t public: nothing from a photo is kept after the request completes.',
+            'The newest games on the shelf. The intake itself is signed-in only. A shelf photo is kept until it is read, then only as a small thumbnail until its sitting is added or discarded, then deleted.',
           empty: 'Nothing on the shelf yet.',
         },
         capture: {
-          url: '/admin/import',
+          url: '/admin/collection/add',
           tag: 'signed in',
           note: 'The signed-in tool, drawn, with illustrative rows. The model returns titles; the server does the matching.',
           columns: ['Title', 'Match', 'Confidence'],
@@ -135,7 +139,7 @@ export const spine = {
             [
               'NIGHT TRAP',
               'Night Trap: 25th Anniversary Edition',
-              { pill: 'uncertain', tone: 'warn' },
+              { pill: 'check', tone: 'warn' },
             ],
           ],
         },

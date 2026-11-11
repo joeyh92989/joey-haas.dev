@@ -42,7 +42,8 @@ and the entries read from them or typed in.
   same create path as `/bulk`, so the rows are the photo importer's: write
   rules, duplicates skipped, playthroughs seeded, private, in INSERTs of at
   most `items.BULK_CHUNK` (500). Answers `{added, already_owned,
-  skipped_kept, photos_empty, photos_waiting, refused}`. By entry state:
+  skipped_kept, photos_empty, photos_waiting, refused}`, and the route adds
+  `created` (the new items' ids, which Done publishes). By entry state:
   exact, probable, ready and typed are written; owned is counted once per
   title; ignored is cleared; check and reading stay in the sitting. A photo
   not yet read (uploaded, reading or failed) is kept too and counted as
