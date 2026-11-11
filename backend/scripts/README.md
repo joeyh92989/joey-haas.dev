@@ -129,6 +129,44 @@ parsing is tested against the live shape.
 never printed. One request. Re-record when `DETAIL_PARAMS` changes; never
 edit the fixture by hand.
 
+## record_intake_demo.py
+
+Records the public intake demo at `/shelf/intake`: one real shelf photo
+through the same path a sitting's photo takes (the 3072px reading copy, one
+model call with the reader's prompt and schema, the matcher against the
+configured sources), written to `frontend/src/content/intake-demo.json`.
+
+**Why a recording:** the site's public pages make no API or model calls
+(intake spec, decision 9), so the demo replays a real run instead of making
+one. Confidence in the file is the matcher's (string distance,
+`matching.py`), never the model's.
+
+```bash
+./.venv/bin/python scripts/record_intake_demo.py ~/Desktop/shelf.jpg
+```
+
+**Writes** what was read, each title's kind and printed year, the
+confidence (`exact`, `probable`, `check`), the match's and candidates'
+titles and years, the source names and the read and match timings. No image
+bytes, external ids or cover URLs: the public page loads nothing from a
+third party. `--out PATH` writes elsewhere (for a look before replacing the
+committed file).
+
+**Needs** `LLM_PROVIDER` and its key, and the source keys for the kinds on
+the shelf (`TMDB_API_TOKEN` for films), from the main checkout's
+`backend/.env`, plus the variables `config.py` requires. One model call,
+not counted against intake's daily budget (no database is touched), and one
+search per title.
+
+**Refuses** (exit 1, nothing written) when the model reads no title or any
+source could not answer: a busy source would show a miss that is not one.
+
+Until the first recording, the committed file is a placeholder holding only
+`{"provisional": true}`; the page shows that the demo is not recorded yet,
+and its tests mock the content module. The recorder's own tests run on
+`tests/fixtures/intake_demo/provisional.json`, a hand-made model answer and
+search results, never on the public file. Re-record rather than edit.
+
 ## record_physical_fixtures.py
 
 Records the E7c physical-catalogue sources into `tests/fixtures/physical/`,
