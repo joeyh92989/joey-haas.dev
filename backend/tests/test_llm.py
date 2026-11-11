@@ -267,17 +267,20 @@ def _quota_body(quota_id: str) -> dict:
 async def test_a_transient_503_is_retried_and_can_succeed(monkeypatch):
     # Not hypothetical: gemini-3.7-flash really did answer 503 on consecutive
     # live calls while listed and available, and a real photo import failed
-    # this way. Without the retry a good import fails for a reason the person
-    # holding the phone can do nothing about.
+    # this way. With no other model to fall through to -- a pinned model, or
+    # the last in the chain -- the retry is what keeps a good import from
+    # failing for a reason the person holding the phone can do nothing about.
     ok = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
     calls = _patch_client(
         monkeypatch, [_FakeResponse(503), _FakeResponse(503), _FakeResponse(200, ok)]
     )
 
-    result = await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+    result = await GeminiProvider(api_key="k", model=GEMINI_MODELS[0]).complete_json(
+        "go", SCHEMA
+    )
 
     assert result == {"titles": ["Dune"]}
-    assert len(calls) == 3
+    assert calls == [GEMINI_MODELS[0]] * 3
 
 
 @pytest.mark.asyncio
@@ -287,16 +290,14 @@ async def test_an_overloaded_model_falls_through_to_the_next(monkeypatch):
     # quota is per model too, so falling through buys availability and budget
     # at once.
     ok = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
-    calls = _patch_client(
-        monkeypatch,
-        [_FakeResponse(503)] * 4 + [_FakeResponse(200, ok)],
-    )
+    calls = _patch_client(monkeypatch, [_FakeResponse(503), _FakeResponse(200, ok)])
 
     result = await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
 
     assert result == {"titles": ["Dune"]}
-    assert calls[0] == GEMINI_MODELS[0]
-    assert calls[-1] == GEMINI_MODELS[1]
+    # One attempt on the overloaded model, not a back-off: the next model
+    # answering now beats the same one perhaps answering later.
+    assert calls == [GEMINI_MODELS[0], GEMINI_MODELS[1]]
 
 
 @pytest.mark.asyncio
@@ -326,9 +327,10 @@ async def test_sustained_overload_across_every_model_gives_up(monkeypatch):
     with pytest.raises(LLMError) as excinfo:
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
 
-    # Four attempts per model -- one more than there are delays, since the
-    # last is not followed by a wait -- across every model in the chain.
-    assert len(calls) == 4 * len(GEMINI_MODELS)
+    # One attempt on every model but the last, which has nothing to fall
+    # through to and so backs off: four attempts, one more than there are
+    # delays, since the final one is not followed by a wait.
+    assert calls == list(GEMINI_MODELS[:-1]) + [GEMINI_MODELS[-1]] * 4
     assert set(calls) == set(GEMINI_MODELS)
     assert "overloaded" in str(excinfo.value).lower()
 
@@ -488,3 +490,139 @@ async def test_timeouts_everywhere_say_so_rather_than_an_http_status(monkeypatch
     with pytest.raises(LLMError, match="did not answer in time") as raised:
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
     assert "HTTP" not in str(raised.value)
+
+
+class _Clock:
+    """A clock that moves only when a request or a wait would take time.
+
+    `_patch_clock` advances on every reading, which makes the outcome depend
+    on how often the loop happens to look at the time. These tests are about
+    how long each model is allowed to hold the chain, so time passes where it
+    would in production: inside the request and inside the back-off.
+    """
+
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+class _ModelClient:
+    """Answers per model, and charges the clock for each request.
+
+    A timeout costs `timeout_takes` seconds, or the timeout the client was
+    actually given if that is shorter -- a request cannot outlive its own
+    timeout, which is what makes "within the budget" checkable.
+    """
+
+    def __init__(self, outcomes, calls, clock, timeout, timeout_takes):
+        self._outcomes = outcomes
+        self._calls = calls
+        self._clock = clock
+        self._timeout = timeout
+        self._timeout_takes = timeout_takes
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_):
+        return False
+
+    async def post(self, url, **_kwargs):
+        model = url.split("/models/")[-1].split(":")[0]
+        self._calls.append((model, self._timeout))
+        outcome = self._outcomes[model]
+        if isinstance(outcome, Exception):
+            self._clock.now += min(self._timeout_takes, self._timeout)
+            raise outcome
+        self._clock.now += 1.0
+        return outcome
+
+
+def _patch_models(monkeypatch, outcomes, timeout_takes=60.0):
+    """Each model answers the same way every time; returns (calls, clock)."""
+    calls: list[tuple[str, float]] = []
+    clock = _Clock()
+    monkeypatch.setattr("llm.monotonic", clock)
+    monkeypatch.setattr("llm.RETRY_DELAYS_SECONDS", (0, 0, 0))
+    monkeypatch.setattr("llm.TOTAL_BUDGET_SECONDS", 150.0)
+    monkeypatch.setattr(
+        "llm.httpx2.AsyncClient",
+        lambda timeout, **_: _ModelClient(
+            outcomes, calls, clock, timeout, timeout_takes
+        ),
+    )
+    return calls, clock
+
+
+OK = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
+
+
+@pytest.mark.asyncio
+async def test_a_first_model_that_keeps_timing_out_does_not_starve_the_rest(
+    monkeypatch,
+):
+    # The production failure: the first model timed out, answered 503, timed
+    # out again, and its retries spent the whole 150s budget, so the healthy
+    # models behind it were never asked and every caller failed.
+    first, second, third = GEMINI_MODELS
+    calls, _ = _patch_models(
+        monkeypatch,
+        {
+            first: httpx2.ReadTimeout("read timed out"),
+            second: _FakeResponse(200, OK),
+            third: _FakeResponse(200, OK),
+        },
+    )
+
+    assert await GeminiProvider(api_key="k").complete_json("go", SCHEMA) == {
+        "titles": ["Dune"]
+    }
+    assert [model for model, _ in calls] == [first, second]
+
+
+@pytest.mark.asyncio
+async def test_a_503_moves_to_the_next_model_after_one_attempt(monkeypatch):
+    first, second, third = GEMINI_MODELS
+    calls, _ = _patch_models(
+        monkeypatch,
+        {
+            first: _FakeResponse(503),
+            second: _FakeResponse(200, OK),
+            third: _FakeResponse(200, OK),
+        },
+    )
+
+    assert await GeminiProvider(api_key="k").complete_json("go", SCHEMA) == {
+        "titles": ["Dune"]
+    }
+    assert [model for model, _ in calls] == [first, second]
+
+
+@pytest.mark.asyncio
+async def test_no_model_is_given_more_than_its_share_of_the_budget(monkeypatch):
+    # The timeout handed to each request is the cap that matters: a model
+    # cannot hold the chain longer than its own request is allowed to run.
+    calls, _ = _patch_models(
+        monkeypatch, dict.fromkeys(GEMINI_MODELS, httpx2.ReadTimeout("slow"))
+    )
+
+    with pytest.raises(LLMError):
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    first_timeout = calls[0][1]
+    assert first_timeout <= 150.0 / len(GEMINI_MODELS)
+
+
+@pytest.mark.asyncio
+async def test_every_model_overloaded_gives_up_within_the_budget(monkeypatch):
+    calls, clock = _patch_models(
+        monkeypatch, dict.fromkeys(GEMINI_MODELS, httpx2.ReadTimeout("slow"))
+    )
+
+    with pytest.raises(LLMError, match="across 3 models"):
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    assert {model for model, _ in calls} == set(GEMINI_MODELS)
+    assert clock.now <= 150.0
