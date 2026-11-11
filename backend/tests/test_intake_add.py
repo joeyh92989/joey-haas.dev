@@ -180,6 +180,38 @@ async def test_a_busy_or_slow_source_never_blocks_the_others(
 
 
 @pytest.mark.asyncio
+async def test_an_unexpected_error_fails_one_source_and_the_rest_still_answer(
+    sessionmaker_for_test,
+):
+    # A parsing bug (here a KeyError carrying a key-bearing URL) fails its
+    # own source only, and the client sees fixed wording, never the error.
+    secret = "https://api.example/search?api_key=SECRET"
+    registry = _registry(
+        **{
+            ItemType.COMIC: Stub("comicvine", ItemType.COMIC, raises=KeyError(secret)),
+            ItemType.MOVIE: Stub(
+                "tmdb", ItemType.MOVIE, raises=SourceError("tmdb", secret)
+            ),
+            ItemType.GAME: Stub("igdb", ItemType.GAME, [SAGA_GAME]),
+        }
+    )
+    async with client_for(sessionmaker_for_test, registry) as client:
+        response = await client.get("/api/intake/search?area=shelf&query=saga")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert [row["external_id"] for row in body["results"]] == ["ig-9"]
+    by_kind = {row["kind"]: row for row in body["sources"]}
+    assert by_kind["comic"] == {
+        "kind": "comic",
+        "state": "failed",
+        "reason": "comicvine could not be searched just now",
+    }
+    assert by_kind["movie"]["state"] == "failed"
+    assert by_kind["movie"]["reason"] == "tmdb could not be searched just now"
+    assert "SECRET" not in response.text
+
+
+@pytest.mark.asyncio
 async def test_an_unavailable_source_is_busy_and_the_rest_still_answer(
     sessionmaker_for_test,
 ):

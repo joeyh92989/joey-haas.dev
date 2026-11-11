@@ -4,7 +4,8 @@ One query goes to the source of every kind in the area at once, each under
 its own `SEARCH_TIMEOUT`, so a slow Comic Vine never holds up IGDB's answer.
 Each kind reports a state the page words: `ok`, `not_configured` (with the
 reason `GET /api/intake/kinds` gives), `busy` (rate-limited, down or past
-the timeout: try again, not a miss) or `failed`. A result whose
+the timeout: try again, not a miss) or `failed` (any other error, worded
+the same whatever it was; the error itself is only logged). A result whose
 `(external_source, external_id)` is already an item carries
 `owned_item_id`, the commit's own duplicate rule, so the page links to it
 instead of adding it twice.
@@ -29,6 +30,12 @@ logger = logging.getLogger(__name__)
 SEARCH_TIMEOUT = 8.0
 
 
+def _failed(kind: Kind, adapter: Any) -> dict:
+    """A failed source's state, in fixed wording whatever went wrong."""
+    reason = f"{adapter.source_name} could not be searched just now"
+    return {"kind": kind.key, "state": "failed", "reason": reason}
+
+
 async def _search_kind(kind: Kind, registry: dict, query: str) -> tuple[dict, list]:
     adapter = registry.get(kind.source)
     if adapter is None or not adapter.configured():
@@ -40,8 +47,14 @@ async def _search_kind(kind: Kind, registry: dict, query: str) -> tuple[dict, li
         reason = f"{adapter.source_name} is busy; try again in a moment"
         return {"kind": kind.key, "state": "busy", "reason": reason}, []
     except SourceError as error:
+        # The error's text can carry a request URL, and some sources' keys
+        # travel in the query string: it goes to the log, never the client.
         logger.info("intake search: %s failed: %s", adapter.source_name, error)
-        return {"kind": kind.key, "state": "failed", "reason": str(error)}, []
+        return _failed(kind, adapter), []
+    except Exception:
+        # A parsing bug in one adapter fails that source, not the search.
+        logger.exception("intake search: %s raised", adapter.source_name)
+        return _failed(kind, adapter), []
     rows = [
         {
             "kind": kind.key,
