@@ -60,8 +60,20 @@ MAX_TOKENS = 8000
 
 # Overload, not rate limiting. gemini-3.7-flash returns 503 while listed and
 # available, in bursts lasting tens of seconds rather than milliseconds -- a
-# real import failed on one photo this way. Backing off across several attempts
-# is what turns that into a slow success instead of a mystifying failure.
+# real import failed on one photo this way.
+#
+# An overloaded model that has another model behind it gets ONE attempt and
+# then the chain moves on. Backing off was first added to ride out those
+# bursts, but on 2026-11-11 it was the bursts that broke everything: 3.7 timed
+# out, answered 503, timed out again, and its retries spent the whole budget,
+# so 3.6 and 3.5 -- healthy all along -- were never asked, and intake reads,
+# Discover and closet tagging all failed. A burst that lasts tens of seconds
+# is better answered by the next model now than by the same one later.
+#
+# The back-off below is therefore kept only for the last model in the chain
+# (and so for a pinned model, which is a chain of one): with nothing left to
+# fall through to, waiting out a burst is still what turns it into a slow
+# success instead of a mystifying failure.
 OVERLOAD_STATUSES = frozenset({500, 502, 503, 504})
 RETRY_DELAYS_SECONDS = (2.0, 5.0, 10.0)
 
@@ -73,15 +85,31 @@ RATE_LIMIT_STATUS = 429
 
 # A ceiling on the whole chain, not on one attempt.
 #
-# TIMEOUT is per request, and the chain is four attempts across three models --
-# twelve requests, which at 120s each could legitimately run twenty-four
-# minutes with nothing anywhere saying stop. A real three-photo import took
-# seven to eight minutes and returned no feedback the entire time.
+# TIMEOUT is per request, and without a ceiling the chain could legitimately
+# run for many minutes with nothing anywhere saying stop. A real three-photo
+# import once took seven to eight minutes and returned no feedback the entire
+# time.
 #
-# Checked between attempts rather than mid-flight: cancelling a request already
-# in progress throws away work that has been paid for, and the next attempt
-# would start from nothing anyway.
+# The budget is shared out, not first come first served. Each model may use at
+# most an even share of what is left when it is reached -- the remaining budget
+# divided by the models still to try -- and every request's timeout is capped
+# by that share, so a model that hangs gives up its turn instead of the whole
+# chain's. A model that answers quickly leaves its unused time to the ones
+# after it rather than wasting it, which is why the share is recomputed rather
+# than fixed at TOTAL_BUDGET_SECONDS / len(models): a slow but healthy vision
+# request on the second model should not be cut off at 50s while 100s sit
+# unused. Since every earlier model is capped at its share, each later model is
+# still guaranteed at least TOTAL_BUDGET_SECONDS / len(models). The last model
+# may use whatever is left.
+#
+# Enforced through the request timeout and checked between attempts, never by
+# cancelling a request mid-flight: that throws away work already paid for.
 TOTAL_BUDGET_SECONDS = 150.0
+
+# The shortest request worth sending. A share with less than this left is
+# treated as spent: a few seconds is not long enough for a vision request to
+# answer, so sending one would only use up a daily request for nothing.
+MIN_ATTEMPT_SECONDS = 5.0
 
 # Measured against the live API, because Google does not publish it: the free
 # tier allows twenty generate_content requests per day, per project, per
@@ -275,32 +303,52 @@ class GeminiProvider:
         last_status: int | None = None
         last_body: dict | None = None
         timed_out = False
+        # Models that were actually sent a request -- the N in "across N
+        # models". Claiming three were tried when the budget went during the
+        # first is a small lie that would send someone looking in the wrong
+        # place.
+        tried = 0
+        budget_ran_out = False
         started = monotonic()
 
         def spent() -> float:
             return monotonic() - started
 
-        for tried, model in enumerate(self._models):
-            if spent() > TOTAL_BUDGET_SECONDS:
-                # `tried`, not len(self._models): claiming three models were
-                # tried when the budget went during the first is a small lie
-                # that would send someone looking in the wrong place.
-                raise LLMError(
-                    f"Gave up after {spent():.0f}s across {tried} "
-                    f"model{'s' if tried != 1 else ''} — try again with fewer "
-                    "photos"
-                )
+        def gave_up(elapsed: float) -> LLMError:
+            return LLMError(
+                f"Gave up after {elapsed:.0f}s across {tried} "
+                f"model{'s' if tried != 1 else ''} — try again with fewer "
+                "photos"
+            )
 
-            # One attempt more than there are delays: the final attempt is not
+        for index, model in enumerate(self._models):
+            now = spent()
+            if now > TOTAL_BUDGET_SECONDS:
+                raise gave_up(now)
+
+            # This model's share of what is left (see TOTAL_BUDGET_SECONDS).
+            # For the last model that is all of it.
+            models_left = len(self._models) - index
+            share_ends = now + (TOTAL_BUDGET_SECONDS - now) / models_left
+            is_last = models_left == 1
+            # Only the last model waits out an overload (see
+            # OVERLOAD_STATUSES); any other moves on after one attempt. One
+            # attempt more than there are delays: the final attempt is not
             # followed by a wait.
-            for attempt in range(len(RETRY_DELAYS_SECONDS) + 1):
+            attempts = len(RETRY_DELAYS_SECONDS) + 1 if is_last else 1
+
+            for attempt in range(attempts):
+                # Never longer than this model's share has left, which is
+                # never longer than the whole budget has left: a hanging
+                # request would otherwise take the next model's turn.
+                allowed = min(TIMEOUT, share_ends - (now if attempt == 0 else spent()))
+                if allowed < MIN_ATTEMPT_SECONDS:
+                    budget_ran_out = True
+                    break
+                if attempt == 0:
+                    tried += 1
                 try:
-                    # Never longer than the budget has left: a timed-out
-                    # attempt followed by a full second one would double it.
-                    remaining = TOTAL_BUDGET_SECONDS - spent()
-                    async with httpx2.AsyncClient(
-                        timeout=min(TIMEOUT, max(5.0, remaining))
-                    ) as client:
+                    async with httpx2.AsyncClient(timeout=allowed) as client:
                         if self._recorder is not None:
                             await self._recorder.attempt(model)
                         response = await client.post(
@@ -309,16 +357,13 @@ class GeminiProvider:
                             headers={"x-goog-api-key": self._api_key},
                         )
                 except httpx2.TimeoutException as error:
-                    # The same outage as a 504, so retried and fallen through
-                    # like one, within the same budget.
+                    # The same outage as a 504, so handled like one, within
+                    # the same share.
                     logger.info(
                         "gemini %s attempt %d timed out: %s", model, attempt + 1, error
                     )
                     last_status, last_body, timed_out = 504, None, True
-                    if (
-                        attempt < len(RETRY_DELAYS_SECONDS)
-                        and spent() < TOTAL_BUDGET_SECONDS
-                    ):
+                    if attempt < attempts - 1:
                         await asyncio.sleep(RETRY_DELAYS_SECONDS[attempt])
                         continue
                     break
@@ -357,25 +402,28 @@ class GeminiProvider:
                 ):
                     await self._recorder.exhausted(model)
 
-                retryable = response.status_code in OVERLOAD_STATUSES
-                if (
-                    retryable
-                    and attempt < len(RETRY_DELAYS_SECONDS)
-                    and spent() < TOTAL_BUDGET_SECONDS
-                ):
+                if response.status_code in OVERLOAD_STATUSES and attempt < attempts - 1:
                     await asyncio.sleep(RETRY_DELAYS_SECONDS[attempt])
                     continue
                 break
 
             # Overload and an exhausted quota are both properties of one
             # model, not of Gemini, so both are worth trying the next one for.
+            # So is a spent share: it says nothing about the next model.
             # Anything else -- a malformed request, a bad key -- would fail
             # identically everywhere and is not worth the extra calls.
-            if last_status in OVERLOAD_STATUSES or last_status == RATE_LIMIT_STATUS:
+            if (
+                last_status in OVERLOAD_STATUSES
+                or last_status == RATE_LIMIT_STATUS
+                or budget_ran_out
+            ):
                 logger.info("gemini falling through from %s (%s)", model, last_status)
                 continue
             break
 
+        if budget_ran_out and last_status != RATE_LIMIT_STATUS:
+            # Time, not the models, is what ran out.
+            raise gave_up(spent())
         if last_status == RATE_LIMIT_STATUS:
             raise LLMError(_quota_message(last_body, tried=len(self._models)))
         if timed_out:

@@ -129,7 +129,10 @@ async def test_the_provider_records_each_attempt(monkeypatch, sessionmaker_for_t
     provider = GeminiProvider("key", recorder=recorder)
     assert await provider.complete_json("p", {"type": "object"}) == {}
     rows = await _rows(sessionmaker_for_test)
-    assert rows[GEMINI_MODELS[0]].calls == 2
+    # The 503 moves the chain on, and both attempts are counted, each against
+    # the model it was sent to.
+    assert rows[GEMINI_MODELS[0]].calls == 1
+    assert rows[GEMINI_MODELS[1]].calls == 1
 
 
 @pytest.mark.asyncio
