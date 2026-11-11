@@ -7,6 +7,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 ## 2026-11-10
 
 - Behind the scenes: a new intake pipeline reads shelf photos into a draft you check before anything joins the collection, with a nightly job that reads within the free daily budget.
+- Behind the scenes: one Add page for the shelf and the closet replaces the photo importer. A sitting of photos is read one at a time, saved so it can be finished on another device, checked (only the doubtful titles one by one, the rest at a glance) and added in one go; [How it works](/shelf/how) stop 1 now describes it.
 - [Site stats](/stats) leave out obvious bots: crawlers, headless browsers and scripts that say what they are no longer count as visitors.
 - Layout fixes across the shelf: [Shelfle](/daily) keeps the shelf's header in place between tabs, Pick for me's chips wrap instead of pushing the page sideways on a phone, and Year in review says "rated finishes".
 - Links to pages with nothing on them yet stay hidden: the Comics tab and the Denver link appear once there is something to show.
