@@ -307,6 +307,45 @@ describe('AdminSitting', () => {
     expect(currentStep()).toHaveTextContent('Details')
   })
 
+  it('says how many issues joined series already on the shelf', async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({
+      sittings: [longbox({ step: 'details' })],
+      commit: () => ({
+        status: 200,
+        body: {
+          added: 1,
+          already_owned: 0,
+          issues_added: 3,
+          skipped_kept: 1,
+          photos_empty: 0,
+          photos_waiting: 0,
+          refused: [],
+          created: ['item-e2'],
+        },
+      }),
+    })
+    renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+    )
+    await screen.findByRole('heading', { name: 'Done' })
+    expect(
+      screen.getByText('Added 3 issues to series already on the shelf.'),
+    ).toBeInTheDocument()
+  })
+
+  it('says nothing of issues when none joined a series', async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({ sittings: [longbox({ step: 'details' })] })
+    renderSitting()
+    await user.click(
+      await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+    )
+    await screen.findByRole('heading', { name: 'Done' })
+    expect(document.body).not.toHaveTextContent(/issues? to series/)
+  })
+
   it("shows intake's own words for a 409, never the catalogue lock", async () => {
     const user = userEvent.setup()
     fakeIntakeApi({
