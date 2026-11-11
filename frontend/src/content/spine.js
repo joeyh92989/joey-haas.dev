@@ -605,6 +605,27 @@ export const spine = {
       ownedCell: 'Owned, unread',
       edition: 'Collected edition',
       key: 'Key',
+      /** The box: books, cells and bundles. */
+      box: {
+        label: 'Issues',
+        cellState: {
+          read: 'Read',
+          owned: 'Owned, unread',
+          missing: 'Missing',
+          skip: 'Skipped',
+        },
+        bundleWord: {
+          read: 'read',
+          owned: 'unread',
+          missing: 'missing',
+          skip: 'skipped',
+        },
+        bundleName: (from, to, words) =>
+          `Issues ${from} to ${to}, ${words}. Show each issue`,
+        foldName: (from, to) => `Fold issues ${from} to ${to}`,
+        readTo: (n) => `read to ${n}`,
+        cellName: (n, state) => `Issue ${n}, ${state}`,
+      },
     },
     pills: { following: 'Following', want: 'Want' },
     hero: {

@@ -7543,6 +7543,160 @@ main h1[tabindex='-1']:focus,
   }
 }
 
+/* The run box: books, cells and bundles in issue order, on --surface.
+   Owned cells keep the issue grid's style: the --chart-2 border is 3.15
+   dark / 3.10 light on --surface, the edge that matters (2.69 / 2.71
+   against its own --accent-soft fill). Read cells' numerals are
+   --accent-ink on --chart, 7.15 / 6.09. Missing is a hollow --run-missing
+   border, 3.30 / 3.25; skipped is dashed, with a ×. A book's spine is
+   decoration (it fails 3:1 against a read book's fill): its label and
+   range are what make it a book. Nothing fades with opacity. */
+.run-box-frame {
+  container-type: inline-size;
+}
+
+.run-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.run-cell,
+.run-book,
+.run-bundle {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  box-sizing: border-box;
+  color: var(--text-3);
+  display: grid;
+  font: 500 0.625rem/1 var(--font-mono);
+  font-style: normal;
+  height: 2.1rem;
+  padding: 0;
+  place-items: center;
+  position: relative;
+}
+
+.run-cell {
+  width: 2.1rem;
+}
+
+button.run-cell,
+button.run-bundle {
+  cursor: pointer;
+}
+
+button.run-cell[aria-disabled='true'] {
+  cursor: progress;
+}
+
+.run-book,
+.run-bundle {
+  align-content: center;
+  font-family: var(--font-sans);
+  gap: 2px;
+  justify-items: start;
+  min-width: 5.2rem;
+  padding: 0 0.6rem;
+}
+
+.run-book {
+  border-left: 4px solid var(--text-2);
+  border-radius: 1px 3px 3px 1px;
+}
+
+.run-book b,
+.run-bundle b {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.run-book small,
+.run-bundle small {
+  font-size: 0.625rem;
+}
+
+.run-cell[data-k='owned'],
+.run-book[data-k='owned'],
+.run-bundle[data-k='owned'],
+.run-key[data-variant='box'] i[data-k='owned'] {
+  background: var(--accent-soft);
+  border-color: var(--chart-2);
+  color: var(--text);
+}
+
+.run-book[data-k='owned'] {
+  border-left-color: var(--text-2);
+}
+
+.run-cell[data-k='read'],
+.run-book[data-k='read'],
+.run-bundle[data-k='read'],
+.run-key[data-variant='box'] i[data-k='read'] {
+  background: var(--chart);
+  color: var(--accent-ink);
+}
+
+.run-cell[data-k='read']::after {
+  bottom: 1px;
+  content: '✓';
+  font-size: 0.5rem;
+  position: absolute;
+  right: 2px;
+}
+
+.run-cell[data-k='missing'],
+.run-bundle[data-k='missing'],
+.run-key[data-variant='box'] i[data-k='missing'] {
+  border-color: var(--run-missing);
+  box-shadow: none;
+}
+
+.run-cell[data-k='skip'],
+.run-bundle[data-k='skip'] {
+  border: 1.5px dashed var(--run-missing);
+}
+
+.run-cell[data-k='skip']::after {
+  bottom: 1px;
+  content: '×';
+  font-size: 0.5625rem;
+  position: absolute;
+  right: 2px;
+}
+
+.run-cell[data-k='upcoming'],
+.run-key[data-variant='box'] i[data-k='upcoming'] {
+  background: var(--hatch);
+  color: var(--text-2);
+}
+
+.run-cell[data-fold] {
+  border-color: var(--line-strong);
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.run-key[data-variant='box'] i {
+  height: 0.9rem;
+  width: 0.9rem;
+}
+
+.run-key i[data-k='book'] {
+  background: var(--accent-soft);
+  border: 1px solid var(--chart-2);
+  border-left: 4px solid var(--text-2);
+  width: 1.4rem;
+}
+
+@container (max-width: 700px) {
+  .run-cell {
+    height: 2rem;
+    width: calc((100% - 27px) / 10);
+  }
+}
+
 /* Out this week: one row of issue tiles, scrolling sideways when it
    outgrows the column. */
 .comics-strip {

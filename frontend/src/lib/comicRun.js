@@ -147,7 +147,10 @@ const STATE_WORD = {
  * is drawn once: inside its book or as a cell.
  *
  * @param {ReturnType<typeof runModel>} model
- * @param {Set<number>} [open] - First issue of each bundle shown as cells.
+ * @param {Set<number>} [open] - Issues shown as cells: a stretch holding any
+ *   of them is drawn open (a fold, then its cells), never as a bundle. Keyed
+ *   by issue rather than by bundle, so a stretch that grows or merges after
+ *   an admin tap stays open around the issue that was tapped.
  * @returns {object[]} Tiles: `{type: 'book'|'cell'|'bundle'|'fold'|'next', ...}`.
  */
 export function boxTiles(model, open = new Set()) {
@@ -180,7 +183,9 @@ export function boxTiles(model, open = new Set()) {
     const count = j - i + 1
     const from = issue.n
     const to = issues[j].n
-    if (count >= BUNDLE_MIN && !open.has(from)) {
+    let opened = false
+    for (let x = from; x <= to && !opened; x += 1) opened = open.has(x)
+    if (count >= BUNDLE_MIN && !opened) {
       tiles.push({
         type: 'bundle',
         from,
