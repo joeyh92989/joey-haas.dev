@@ -372,6 +372,7 @@ async def test_each_series_on_the_shelf_is_reported_with_what_it_gained(
     assert grew == {
         "item_id": str(items["7"].id),
         "title": "Waterworld",
+        "cover_url": None,
         "before": {"owned": 4, "released": 8},
         "ongoing": True,
         "added": [3, 4],

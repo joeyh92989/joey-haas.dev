@@ -162,6 +162,7 @@ class SeriesGrew:
         return {
             "item_id": str(self.item.id),
             "title": self.item.title,
+            "cover_url": self.item.cover_url,
             "before": {
                 "owned": self.before["owned"],
                 "released": self.before["released"],

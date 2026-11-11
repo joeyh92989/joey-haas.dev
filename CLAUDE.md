@@ -736,7 +736,12 @@ before pushing.
   contrast (3.30 dark, 3.25 light on `--surface`, 3.50 and 3.17 on `--bg`;
   `--line-strong` measured 1.73 and 1.66 and was refused): changing either
   means measuring again. The public `owned_text` already merges editions,
-  so only the admin can tell an issue held twice. **Deploy order:** apply
+  so only the admin can tell an issue held twice. Intake draws the same
+  cells for a series it adds to: every entry the intake routes answer
+  with carries `on_shelf` (the matched series' run now, or null), Check
+  lists those under "Already on the shelf · adds issues"
+  (`SeriesGrewRow`, `comicRun.seriesGrowth` and `nearCells`), and Done's
+  "Series that grew" reads the commit's `series_grew`. **Deploy order:** apply
   `0010` to Neon, merge, follow series on `/admin/pull-list`, then Refresh
   followed once (or wait for the nightly).
 - **The play journal** (migration `0007`, `play_sessions`) is logged on the

@@ -398,3 +398,70 @@ export function cardLines(row, formatDate) {
     lanes: true,
   }
 }
+
+/** The near-cells strip: this many issues before an added one, and after. */
+export const NEAR_BEFORE = 3
+export const NEAR_AFTER = 2
+
+/**
+ * What an intake row brings to a series already on the shelf: the issues
+ * it adds, those already held (loose or in an edition: the shelf's
+ * `owned_text` merges both), and the run before and after.
+ *
+ * @param {object} input
+ * @param {string} input.ownedText - The series' `owned_text` before the add.
+ * @param {string|number[]} input.issues - The row's issues, as typed or as numbers.
+ * @param {number} input.released
+ * @param {boolean} [input.ongoing]
+ * @returns {{before: ReturnType<typeof runModel>, after: ReturnType<typeof runModel>,
+ *   added: number[], already: number[]}}
+ */
+export function seriesGrowth({ ownedText, issues, released, ongoing = false }) {
+  const held = new Set(toNumbers(ownedText))
+  const brought = [...new Set(toNumbers(issues))].sort((a, b) => a - b)
+  const added = brought.filter((n) => !held.has(n))
+  const already = brought.filter((n) => held.has(n))
+  return {
+    before: runModel({ singles: [...held], released, ongoing }),
+    after: runModel({ singles: [...held, ...added], released, ongoing }),
+    added,
+    already,
+  }
+}
+
+/**
+ * The cells around a change, for an intake row: up to NEAR_BEFORE issues
+ * before each added issue and NEAR_AFTER after it, the added ones as
+ * `new`, and a gap where the run goes on beyond what is drawn. With
+ * nothing added, the cells around `around` (an issue already held).
+ *
+ * @param {ReturnType<typeof runModel>} model - The run after the add.
+ * @param {number[]} added
+ * @param {number[]} [around]
+ * @returns {Array<{type: 'cell', n: number, k: string}|{type: 'gap', after: number}>}
+ */
+export function nearCells(model, added, around = []) {
+  const focus = added.length ? added : around
+  const total = model.released
+  const shown = new Set()
+  for (const n of focus) {
+    for (let x = n - NEAR_BEFORE; x <= n + NEAR_AFTER; x += 1) {
+      if (x >= 1 && x <= total) shown.add(x)
+    }
+  }
+  if (!shown.size) return []
+  const isAdded = new Set(added)
+  const tiles = []
+  let last = 0
+  for (const n of [...shown].sort((a, b) => a - b)) {
+    if (n > last + 1) tiles.push({ type: 'gap', after: last })
+    tiles.push({
+      type: 'cell',
+      n,
+      k: isAdded.has(n) ? 'new' : model.issues[n - 1].k,
+    })
+    last = n
+  }
+  if (last < total) tiles.push({ type: 'gap', after: last })
+  return tiles
+}

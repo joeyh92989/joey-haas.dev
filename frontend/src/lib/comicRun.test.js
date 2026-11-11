@@ -7,8 +7,10 @@ import {
   laneSpans,
   laneSpansFromRow,
   lanesLabel,
+  nearCells,
   runModel,
   runSentence,
+  seriesGrowth,
 } from './comicRun.js'
 
 const SPAWN = {
@@ -384,5 +386,68 @@ describe('cardLines', () => {
     expect(cardLines({ ...row, owned: 0 }, date).status).toBe(
       'Issues not recorded',
     )
+  })
+})
+
+describe('seriesGrowth', () => {
+  it('splits what a row brings into added and already held', () => {
+    const growth = seriesGrowth({
+      ownedText: '1–2, 5–6',
+      issues: '6, 3-4',
+      released: 8,
+      ongoing: true,
+    })
+    expect(growth.added).toEqual([3, 4])
+    expect(growth.already).toEqual([6])
+    expect(growth.before.held).toBe(4)
+    expect(growth.after.held).toBe(6)
+    expect(growth.after.state).toBe('gaps')
+  })
+
+  it('brings nothing when nothing is typed', () => {
+    const growth = seriesGrowth({ ownedText: '1–4', issues: '', released: 4 })
+    expect(growth.added).toEqual([])
+    expect(growth.already).toEqual([])
+    expect(growth.after.state).toBe('complete')
+  })
+
+  it('caps a typo instead of drawing a million issues', () => {
+    const growth = seriesGrowth({
+      ownedText: '1',
+      issues: '2-999999',
+      released: 4,
+    })
+    expect(growth.added.at(-1)).toBe(9999)
+  })
+})
+
+describe('nearCells', () => {
+  const after = (singles, released) => runModel({ singles, released })
+  const shape = (tiles) =>
+    tiles.map((t) => (t.type === 'gap' ? '…' : `${t.n}${t.k[0]}`)).join(' ')
+
+  it('draws three before and two after the added issues, then a gap', () => {
+    // Saga: 1–57 held, 58 added, 72 out.
+    const tiles = nearCells(after('1–58', 72), [58])
+    expect(shape(tiles)).toBe('… 55o 56o 57o 58n 59m 60m …')
+  })
+
+  it('starts at #1 with no leading gap and stops at the last issue', () => {
+    const tiles = nearCells(after('1–4', 4), [3, 4])
+    expect(shape(tiles)).toBe('1o 2o 3n 4n')
+  })
+
+  it('puts a gap between added issues far apart', () => {
+    const tiles = nearCells(after('1–60', 60), [3, 50])
+    expect(shape(tiles)).toBe('1o 2o 3n 4o 5o … 47o 48o 49o 50n 51o 52o …')
+  })
+
+  it('centres on an issue already held when nothing is added', () => {
+    const tiles = nearCells(after('1–72', 72), [], [60])
+    expect(shape(tiles)).toBe('… 57o 58o 59o 60o 61o 62o …')
+  })
+
+  it('is empty with nothing to centre on', () => {
+    expect(nearCells(after('1–4', 4), [])).toEqual([])
   })
 })

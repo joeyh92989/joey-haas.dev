@@ -1,20 +1,47 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { apiFetch, errorMessage } from '../../lib/api.js'
+import { runModel } from '../../lib/comicRun.js'
 import { shelfPath } from '../../lib/intake.js'
+import { itemPath } from '../../lib/spinePaths.js'
 import StatTile, { StatTiles } from '../StatTile.jsx'
+import SeriesGrewRow from './SeriesGrewRow.jsx'
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+/** One `series_grew` report as the row's growth: before, after, the split. */
+export function reportGrowth(grew) {
+  const { before } = grew
+  return {
+    before: {
+      held: before.owned,
+      released: before.released,
+      ongoing: grew.ongoing,
+    },
+    after: runModel({
+      singles: grew.after_owned_text,
+      released: before.released,
+      ongoing: grew.ongoing,
+    }),
+    added: grew.added,
+    already: grew.already,
+  }
+}
 
 /**
  * Sitting step 4: what the commit did, in the commit's own figures (AC 8):
  * added, already on the shelf, skipped and kept, photos that read
  * nothing, and the issues added to comic series already on the shelf
- * (a series is one row, so a new issue of one is not a new item). Then Shoot the next box, Publish these N (shelf kinds only:
- * new rows are private) and See them on the shelf.
+ * (a series is one row, so a new issue of one is not a new item): from
+ * `series_grew`, a "series grew" and an "already owned" tile and the
+ * "Series that grew" list, each title linking to its series page. Then
+ * Shoot the next box, Publish these N (shelf kinds only: new rows are
+ * private) and See them on the shelf.
  *
  * @param {object} props
  * @param {{added: number, already_owned: number, issues_added?: number,
- *   skipped_kept: number, photos_empty: number, photos_waiting: number,
- *   created?: string[]}}
+ *   series_grew?: object[], skipped_kept: number, photos_empty: number,
+ *   photos_waiting: number, created?: string[]}}
  *   props.answer The commit's answer.
  * @param {object} props.sitting The sitting as it was committed.
  * @param {() => void} props.onNextBox
@@ -34,6 +61,14 @@ export default function DoneStep({
   const closet = sitting.area === 'closet'
   const created = answer.created ?? []
   const issuesAdded = answer.issues_added ?? 0
+  // An answer from before `series_grew` existed says it in one line.
+  const report = answer.series_grew ?? null
+  const grew = (report ?? []).filter((series) => series.added.length > 0)
+  const grewIssues = grew.reduce((sum, series) => sum + series.added.length, 0)
+  const alreadyIssues = (report ?? []).reduce(
+    (sum, series) => sum + series.already.length,
+    0,
+  )
 
   async function publish() {
     setPublishing(true)
@@ -80,8 +115,41 @@ export default function DoneStep({
           label="photos that read nothing"
           value={answer.photos_empty}
         />
+        {grew.length > 0 && (
+          <StatTile
+            label="series grew"
+            value={grew.length}
+            detail={plural(grewIssues, 'issue')}
+          />
+        )}
+        {alreadyIssues > 0 && (
+          <StatTile
+            label={
+              alreadyIssues === 1
+                ? 'issue already owned'
+                : 'issues already owned'
+            }
+            value={alreadyIssues}
+          />
+        )}
       </StatTiles>
-      {issuesAdded > 0 && (
+      {grew.length > 0 && (
+        <>
+          <h3 className="kicker intake-skim-head">Series that grew</h3>
+          <ul className="intake-grow-list">
+            {grew.map((series) => (
+              <SeriesGrewRow
+                key={series.item_id}
+                title={series.title}
+                coverUrl={series.cover_url ?? null}
+                to={itemPath(series.item_id)}
+                growth={reportGrowth(series)}
+              />
+            ))}
+          </ul>
+        </>
+      )}
+      {report === null && issuesAdded > 0 && (
         <p>
           {`Added ${issuesAdded} ${issuesAdded === 1 ? 'issue' : 'issues'} to series already on the shelf.`}
         </p>

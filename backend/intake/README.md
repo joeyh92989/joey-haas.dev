@@ -58,7 +58,7 @@ and the entries read from them or typed in.
   becomes owned, To read), and `issues_added` counts the issues it gained;
   a series that gains nothing is `already_owned`. Each such series is also
   reported on its own in `series_grew` (`SeriesGrew`): `{item_id, title,
-  before: {owned, released}, ongoing, added, already, after_owned_text}`,
+  cover_url, before: {owned, released}, ongoing, added, already, after_owned_text}`,
   where `added` and `already` split the sitting's issues of it against
   what it held before (loose or in an edition), for Done's "Series that
   grew". `issues_added` keeps its old meaning (loose issues written, so an
