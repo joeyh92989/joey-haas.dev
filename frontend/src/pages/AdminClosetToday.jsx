@@ -189,7 +189,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
         >
           From the closet
         </button>
-        <label className="btn closet-camera">
+        <label className="btn btn-file">
           From a photo
           <input
             type="file"

@@ -62,4 +62,12 @@ describe('intake styles', () => {
       expect(phone, selector).toContain(selector)
     }
   })
+
+  it('keeps a file-picker label focusable and pointable (.btn-file)', () => {
+    // The input inside is visually hidden, so the label is the only ring.
+    const rule = css.match(/\.btn-file:focus-within \{[^}]*\}/)
+    expect(rule, '.btn-file:focus-within').not.toBeNull()
+    expect(rule[0]).toMatch(/outline: 2px solid var\(--accent\);/)
+    expect(css).toMatch(/\.btn-file \{[^}]*cursor: pointer;/)
+  })
 })

@@ -574,6 +574,10 @@ describe('AdminClosetToday', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Match this…' }))
     const sheet = await screen.findByRole('dialog')
     const file = new File(['x'], 'shirt.jpg', { type: 'image/jpeg' })
+    // The input is visually hidden: its label carries the focus ring.
+    expect(within(sheet).getByText('From a photo').closest('label')).toHaveClass(
+      'btn-file',
+    )
     await userEvent.upload(within(sheet).getByLabelText('From a photo'), file)
     expect(await within(card()).findByText('green shirt')).toBeInTheDocument()
     const match = calls.find((c) => c.path === '/api/closet/match')
