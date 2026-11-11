@@ -125,6 +125,7 @@ async def test_forty_exact_entries_commit_in_one_request(sessionmaker_for_test):
     assert body == {
         "added": 40,
         "already_owned": 0,
+        "issues_added": 0,
         "skipped_kept": 0,
         "photos_empty": 0,
         "photos_waiting": 0,
@@ -247,6 +248,7 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
     assert body == {
         "added": 2,
         "already_owned": 2,
+        "issues_added": 0,
         "skipped_kept": 2,
         "photos_empty": 2,
         "photos_waiting": 0,
@@ -258,6 +260,102 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         assert await session.get(IntakeSitting, sitting_id) is not None
         left = (await session.scalars(select(IntakeEntry.state))).all()
     assert sorted(state.value for state in left) == ["check", "reading"]
+
+
+def _series(n: int = 7) -> dict:
+    """A Comic Vine volume, as the reader stores it in `chosen`."""
+    return _match(n, "comicvine", title="Waterworld")
+
+
+async def _seed_series(factory, n: int = 7, **fields) -> None:
+    async with factory() as session:
+        session.add(
+            Item(
+                type=ItemType.COMIC,
+                title="Waterworld",
+                status=ItemStatus.BACKLOG,
+                external_source="comicvine",
+                external_id=str(n),
+                **fields,
+            )
+        )
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_issues_of_one_series_in_a_sitting_become_one_row(sessionmaker_for_test):
+    entries = [
+        (
+            "comic",
+            S.EXACT,
+            {"issues_owned": str(n), "shelf_format": "singles"},
+            _series(),
+        )
+        for n in (1, 2, 3, 4)
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["added"] == 1
+    assert body["issues_added"] == 0
+    assert body["already_owned"] == 0
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_owned == "1–4"
+
+
+@pytest.mark.asyncio
+async def test_a_series_on_the_shelf_gains_the_sittings_issues(sessionmaker_for_test):
+    await _seed_series(sessionmaker_for_test, issues_owned="1–2", issues_skipped="3, 9")
+    entries = [
+        # One the reader knew was on the shelf, one it did not.
+        ("comic", S.OWNED, {"issues_owned": "3"}, _series()),
+        ("comic", S.EXACT, {"issues_owned": "4"}, _series()),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["added"] == 0
+    assert body["issues_added"] == 2
+    assert body["already_owned"] == 0
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_owned == "1–4"
+    # Got it's rule: an issue now owned is no longer skipped.
+    assert row.issues_skipped == "9"
+
+
+@pytest.mark.asyncio
+async def test_a_series_that_gains_nothing_is_already_owned(sessionmaker_for_test):
+    await _seed_series(sessionmaker_for_test, issues_owned="1–4")
+    entries = [("comic", S.EXACT, {"issues_owned": "2"}, _series())]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["added"], body["issues_added"], body["already_owned"]) == (0, 0, 1)
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_owned == "1–4"
+
+
+@pytest.mark.asyncio
+async def test_two_games_with_one_key_still_write_one_row(sessionmaker_for_test):
+    entries = [
+        ("game", S.EXACT, {"title": "First photo"}, _match(1)),
+        ("game", S.EXACT, {"title": "Second photo"}, _match(1)),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["added"], body["already_owned"], body["issues_added"]) == (1, 0, 0)
+    [row] = await _items(sessionmaker_for_test)
+    # Entries seeded together tie on created_at; either photo's fields win.
+    assert row.title in {"First photo", "Second photo"}
 
 
 @pytest.mark.asyncio

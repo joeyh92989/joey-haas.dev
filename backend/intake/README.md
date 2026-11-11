@@ -42,12 +42,25 @@ and the entries read from them or typed in.
   same create path as `/bulk`, so the rows are the photo importer's: write
   rules, duplicates skipped, playthroughs seeded, private, in INSERTs of at
   most `items.BULK_CHUNK` (500). Answers `{added, already_owned,
-  skipped_kept, photos_empty, photos_waiting, refused}`, and the route adds
+  issues_added, skipped_kept, photos_empty, photos_waiting, refused}`, and the route adds
   `created` (the new items' ids, which Done publishes). By entry state:
   exact, probable, ready and typed are written; owned is counted once per
   title; ignored is cleared; check and reading stay in the sitting. A photo
   not yet read (uploaded, reading or failed) is kept too and counted as
-  `photos_waiting`. The sitting is deleted (photos and all) only once
+  `photos_waiting`. **Comics merge, never drop:** a comic is one row per
+  series, so every comic entry (written or owned) resolving to one
+  `(external_source, external_id)` joins its `issues_owned` through
+  `comics.union`, the one range parser; other fields follow the first
+  written entry. A series not yet an item is one new row (`added` 1). A
+  series already in `items` gains the sitting's issues through
+  `comics_routes.got_issues`, Got it's own rule (union, never lowered; a
+  newly owned number leaves `issues_skipped`; a followed or wanted row
+  becomes owned, To read), and `issues_added` counts the issues it gained;
+  a series that gains nothing is `already_owned`. Games, movies and board
+  games keep the old rule: one row per key, later photos dropped. The
+  reader does not read an issue number off a photo (the importer's schema
+  has no such field), so issues come from Details' Issues owned.
+  The sitting is deleted (photos and all) only once
   nothing is kept. A commit that would change nothing is a 409 in intake's
   words: `NOTHING_TO_ADD` when only entries to check remain,
   `PHOTOS_STILL_WAITING` when no entry is left but photos still wait.
