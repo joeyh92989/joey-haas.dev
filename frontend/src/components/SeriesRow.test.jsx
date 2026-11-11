@@ -56,7 +56,7 @@ function renderList(rows) {
 }
 
 describe('SeriesList', () => {
-  it('shows a run with its bar, count, next issue and read marker', () => {
+  it('shows a run with its lanes, count, next issue and read marker', () => {
     renderList([SAGA])
     const row = screen
       .getAllByRole('listitem')
@@ -69,23 +69,21 @@ describe('SeriesList', () => {
     expect(row).toHaveTextContent(
       'Image · 2012– · Trades (Vol. 1–9) · Reading, read to #40',
     )
-    // AC3: the bar is the run the API sent, released plus the tail.
-    const bar = within(row).getByRole('img', {
-      name: '54 of 72 issues owned, ongoing',
+    // The lanes draw the run the API sent; the tail is a fixed width.
+    const lanes = within(row).getByRole('img', {
+      name: /^54 of 72 issues owned, .*series still coming out, read to number 40$/,
     })
-    const lengths = [...bar.querySelectorAll('i')].map((i) =>
-      Number(i.style.flexGrow),
-    )
-    expect(lengths.reduce((a, b) => a + b, 0)).toBe(72 + 7)
+    expect(lanes.querySelector('.lane-tail [data-k="upcoming"]')).not.toBeNull()
+    expect(lanes.querySelector('[data-k="readbar"]')).not.toBeNull()
     expect(row).toHaveTextContent('54 / 72+')
     expect(row).toHaveTextContent('Next #73 · Nov 11')
   })
 
-  it('gives a want no bar and no count, and keeps the key only for runs', () => {
+  it('gives a want no lanes and no count, and keeps the key only for runs', () => {
     const { container } = renderList([WANT])
     expect(screen.queryByRole('img')).toBeNull()
     expect(container.querySelector('.series-count')).toBeNull()
-    expect(screen.queryByRole('list', { name: 'Run bar key' })).toBeNull()
+    expect(screen.queryByRole('list', { name: 'Key' })).toBeNull()
     expect(screen.getByText('Want')).toBeInTheDocument()
   })
 

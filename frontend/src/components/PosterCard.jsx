@@ -69,8 +69,11 @@ function KeyGlyph() {
  * @param {(item: object) => import('react').ReactNode} [props.actions] -
  *   Optional controls rendered beside the link.
  * @param {boolean} [props.dimmed] - Fade the card (finished and abandoned).
- * @param {import('react').ReactNode} [props.badge] - A corner mark on the
- *   poster, such as a comic's RunBadge.
+ * @param {boolean} [props.stacked] - Draw two offset edges behind the cover,
+ *   so a comic series reads as more than one book before any text.
+ *   Decorative.
+ * @param {import('react').ReactNode} [props.run] - A comic's run, under the
+ *   title and outside the link (ComicCardRun).
  * @param {Record<string, string>} [props.statusLabels] - The status mark's
  *   names; comics pass their own (Reading, Read).
  */
@@ -79,7 +82,8 @@ export default function PosterCard({
   to,
   actions,
   dimmed = false,
-  badge = null,
+  stacked = false,
+  run = null,
   statusLabels = STATUS_LABEL,
 }) {
   const meta = [item.year, item.creator].filter(Boolean).join(' · ')
@@ -89,9 +93,8 @@ export default function PosterCard({
   return (
     <div className="poster-card" data-dimmed={dimmed || undefined}>
       <Link to={to} className="poster-link">
-        <span className="poster-art">
+        <span className="poster-art" data-stacked={stacked || undefined}>
           <CoverImage src={item.cover_url} type={item.type} alt="" />
-          {badge}
           {/* Backlog gets no mark: its absence is the signal. */}
           {item.status !== 'backlog' && statusLabels[item.status] && (
             <span
@@ -101,8 +104,8 @@ export default function PosterCard({
               aria-label={statusLabels[item.status]}
             />
           )}
-          {/* Bottom-left, unless a badge (a comic’s run) or the ribbon holds it. */}
-          {!badge && !coming && <ReplayMark count={item.times_completed} />}
+          {/* Bottom-left, unless the ribbon holds it. */}
+          {!coming && <ReplayMark count={item.times_completed} />}
           {mark && (
             <span className="format-mark" role="img" aria-label={mark}>
               {mark === 'Format not recorded' ? '?' : <KeyGlyph />}
@@ -117,6 +120,7 @@ export default function PosterCard({
         </span>
         <span className="poster-title">{item.title}</span>
       </Link>
+      {run}
       <Stars rating={item.rating} />
       {meta && <p className="poster-meta muted">{meta}</p>}
       {actions && <div className="poster-actions">{actions(item)}</div>}

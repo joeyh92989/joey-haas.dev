@@ -2,7 +2,6 @@ import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
-import RunBadge from './RunBadge.jsx'
 import RunBar, { RunLegend } from './RunBar.jsx'
 
 const SEGMENTS = [
@@ -34,24 +33,5 @@ describe('RunBar', () => {
     const legend = screen.getByRole('list', { name: 'Run bar key' })
     expect(legend).toHaveTextContent('Owned')
     expect(await axeViolations(container)).toEqual([])
-  })
-})
-
-describe('RunBadge', () => {
-  it('shows the count, marked complete for a finished run', () => {
-    render(
-      <RunBadge
-        row={{ owned: 12, released: 12, ongoing: false, run_state: 'complete' }}
-      />,
-    )
-    const badge = screen.getByRole('img', { name: '12 of 12 issues owned' })
-    expect(badge).toHaveTextContent('12/12')
-    expect(badge).toHaveAttribute('data-complete')
-  })
-
-  it('says Want for a want, with no run', () => {
-    const { container } = render(<RunBadge row={{ wanted: true }} />)
-    expect(container.textContent).toBe('Want')
-    expect(screen.queryByRole('img')).toBeNull()
   })
 })

@@ -7210,26 +7210,6 @@ main h1[tabindex='-1']:focus,
   width: 0.9rem;
 }
 
-.run-badge {
-  background: var(--bg);
-  border-radius: 3px;
-  bottom: 0.4rem;
-  color: var(--text);
-  font: 500 0.6875rem var(--font-mono);
-  left: 0.4rem;
-  padding: 0.1rem 0.4rem;
-  position: absolute;
-  z-index: 1;
-}
-
-.run-badge[data-complete] {
-  color: var(--ok);
-}
-
-.run-badge[data-wanted] {
-  color: var(--warn);
-}
-
 .series-list {
   border-top: 1px solid var(--line);
   list-style: none;
@@ -7302,9 +7282,55 @@ main h1[tabindex='-1']:focus,
   margin-right: 0.3rem;
 }
 
-.series-row .run {
+.series-row .lanes {
+  --lane-ground: var(--bg);
   margin-top: 0.45rem;
   max-width: 32rem;
+}
+
+/* A comic's card: two offset edges behind the cover say "a series, more
+   than one book" (decorative, --line-strong on --surface), and the run
+   sits under the title. The lanes sit on the page, --bg. */
+.poster-art[data-stacked] {
+  isolation: isolate;
+  margin: 0 6px 6px 0;
+}
+
+.poster-art[data-stacked]::before {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  box-shadow:
+    3px 3px 0 -1px var(--surface),
+    3px 3px 0 0 var(--line-strong);
+  content: '';
+  inset: 0;
+  position: absolute;
+  transform: translate(3px, 3px);
+  z-index: -1;
+}
+
+.comic-card-run {
+  margin-top: 0.4rem;
+}
+
+.comic-card-run .lanes {
+  --lane-ground: var(--bg);
+  margin-bottom: 0.3rem;
+}
+
+.comic-card-line {
+  color: var(--text-2);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.comic-card-line b {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .series-count {

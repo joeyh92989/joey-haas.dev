@@ -1,8 +1,8 @@
-import { RunLegend } from './RunBar.jsx'
+import { RunKey } from './RunLanes.jsx'
 import SeriesRow from './SeriesRow.jsx'
 
 /**
- * The Runs view on /shelf/comics: the run bar key once, then a row per
+ * The Runs view on /shelf/comics: the lanes' key once, then a row per
  * series in the order given.
  *
  * @param {object} props
@@ -12,7 +12,7 @@ import SeriesRow from './SeriesRow.jsx'
 export default function SeriesList({ rows, linkFor }) {
   return (
     <>
-      {rows.some((row) => !row.wanted) && <RunLegend />}
+      {rows.some((row) => !row.wanted) && <RunKey />}
       <ul className="series-list">
         {rows.map((row) => (
           <SeriesRow key={row.item_id} row={row} to={linkFor(row)} />

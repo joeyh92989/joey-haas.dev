@@ -37,14 +37,6 @@ describe('PosterCard', () => {
     expect(screen.queryByRole('img', { name: /Finished \d+ times/ })).toBeNull()
   })
 
-  it('leaves the corner to a badge when one is given', () => {
-    renderCard({
-      item: { ...ITEM, times_completed: 2 },
-      badge: <span className="run-badge">#12</span>,
-    })
-    expect(screen.queryByRole('img', { name: 'Finished 2 times' })).toBeNull()
-  })
-
   it('names a paused game’s mark Paused', () => {
     renderCard({ item: { ...ITEM, status: 'paused' } })
     const mark = screen.getByRole('img', { name: 'Paused' })
@@ -65,11 +57,19 @@ describe('PosterCard', () => {
     expect(screen.getByRole('button', { name: 'Rate' }).closest('a')).toBeNull()
   })
 
-  it('puts a badge inside the poster art, not outside the link', () => {
-    renderCard({ badge: <span className="run-badge">12/12</span> })
-    const badge = screen.getByText('12/12')
-    expect(badge.closest('.poster-art')).not.toBeNull()
-    expect(badge.closest('a')).toHaveAttribute('href', '/shelf/1')
+  it('puts a comic’s run under the title, outside the link', () => {
+    renderCard({ run: <p>12/12 · Complete run</p>, stacked: true })
+    expect(screen.getByText('12/12 · Complete run').closest('a')).toBeNull()
+    expect(document.querySelector('.poster-art')).toHaveAttribute(
+      'data-stacked',
+    )
+  })
+
+  it('draws no stack for a single book', () => {
+    renderCard()
+    expect(document.querySelector('.poster-art')).not.toHaveAttribute(
+      'data-stacked',
+    )
   })
 
   it('passes the item to the actions render prop', () => {
