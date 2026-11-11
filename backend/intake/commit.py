@@ -13,6 +13,11 @@ An entry's state decides what happens to it:
 - ignored: cleared, not counted;
 - check, reading: kept in the sitting to come back to (`skipped_kept`).
 
+A comic is one row per series, so its entries (written or owned) are never
+dropped as repeats: their issues are joined into one new row, or added to
+the series already on the shelf by Got it's rule (`issues_added`; a series
+gaining nothing is `already_owned`).
+
 A photo not yet read (uploaded, reading or failed) is kept too, and counted
 as `photos_waiting`: committing mid-read never loses a photo. The sitting
 goes once nothing is kept, and its photos with it. A commit that would
@@ -29,11 +34,12 @@ from typing import Any
 
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from closet_routes import GarmentFields, apply_garment_fields
-from comics import RangeError
+from comics import RangeError, expand, format_ranges, parse_ranges, union
+from comics_routes import got_issues
 from formats import CopyFieldError
 from intake.kinds import REGISTRY, Kind
 from items import ItemIn, RowRefused, _write_fields, commit_items
@@ -47,7 +53,9 @@ from models import (
     IntakePhoto,
     IntakePhotoState,
     IntakeSitting,
+    Item,
     ItemStatus,
+    ItemType,
 )
 
 S = IntakeEntryState
@@ -108,6 +116,7 @@ class SittingCommit:
 
     added: int = 0
     already_owned: int = 0
+    issues_added: int = 0
     skipped_kept: int = 0
     photos_empty: int = 0
     photos_waiting: int = 0
@@ -119,6 +128,7 @@ class SittingCommit:
         return {
             "added": self.added,
             "already_owned": self.already_owned,
+            "issues_added": self.issues_added,
             "skipped_kept": self.skipped_kept,
             "photos_empty": self.photos_empty,
             "photos_waiting": self.photos_waiting,
@@ -195,6 +205,41 @@ def _typed_garment(kind: Kind, entry: IntakeEntry) -> Garment | Refusal:
     except HTTPException as error:
         return Refusal(entry.id, None, str(error.detail))
     return row
+
+
+def _is_comic(kind: Kind | None) -> bool:
+    return kind is not None and kind.source is ItemType.COMIC
+
+
+@dataclass
+class _Series:
+    """One comic series in a sitting: the first written entry's row (None
+    when every entry was marked owned) and every entry's issue ranges."""
+
+    row: ItemIn | None = None
+    entry: IntakeEntry | None = None
+    issues: list[str | None] = field(default_factory=list)
+
+
+async def _series_on_shelf(
+    session: AsyncSession, series: dict[tuple[str, str], _Series]
+) -> dict[tuple[str, str], Item]:
+    """The sitting's series already in `items`, locked for the write."""
+    if not series:
+        return {}
+    found = await session.scalars(
+        select(Item)
+        .where(tuple_(Item.external_source, Item.external_id).in_(list(series)))
+        .with_for_update()
+    )
+    return {(item.external_source, item.external_id): item for item in found}
+
+
+def _with_issues(row: ItemIn, issues: set[int]) -> ItemIn:
+    """The first entry's row carrying the series' joined issues."""
+    fields = row.model_dump(exclude_unset=True)
+    fields["issues_owned"] = format_ranges(issues) or None
+    return ItemIn.model_validate(fields)
 
 
 @dataclass
@@ -310,12 +355,15 @@ async def commit_sitting(
     )
 
     # A title marked owned on two photos is one title already on the shelf.
+    # A comic series is settled with the sitting's other issues of it below.
     owned_keys: set[tuple[str, str]] = set()
     for entry in entries:
         if entry.state is not S.OWNED:
             continue
         kind = REGISTRY.get(entry.kind)
         key = _key(shelf_row(kind, entry)) if kind else None
+        if key is not None and _is_comic(kind):
+            continue
         if key is None:
             outcome.already_owned += 1
         elif key not in owned_keys:
@@ -326,10 +374,12 @@ async def commit_sitting(
     row_entries: list[IntakeEntry] = []
     garments: list[Garment] = []
     seen: set[tuple[str, str]] = set()
+    series: dict[tuple[str, str], _Series] = {}
     for entry in entries:
-        if entry.state not in WRITTEN:
-            continue
         kind = REGISTRY.get(entry.kind)
+        owned_comic = entry.state is S.OWNED and _is_comic(kind)
+        if entry.state not in WRITTEN and not owned_comic:
+            continue
         if kind is None:
             outcome.refused.append(
                 Refusal(entry.id, "kind", f"{entry.kind} is not a kind intake knows")
@@ -350,6 +400,13 @@ async def commit_sitting(
             outcome.refused.append(made)
             continue
         key = _key(made.model_dump())
+        if key is not None and _is_comic(kind):
+            # Every photo of one series is one row: its issues are joined.
+            found = series.setdefault(key, _Series())
+            found.issues.append(made.issues_owned)
+            if found.row is None and not owned_comic:
+                found.row, found.entry = made, entry
+            continue
         if key in owned_keys:
             continue  # counted once, as already owned
         if key is not None:
@@ -362,6 +419,25 @@ async def commit_sitting(
     if outcome.refused:
         return outcome
 
+    on_shelf = await _series_on_shelf(session, series)
+    gains: list[tuple[Item, set[int]]] = []
+    for key, found in series.items():
+        issues = expand(parse_ranges(union(*found.issues)))
+        item = on_shelf.get(key)
+        if item is not None:
+            gained = issues - expand(parse_ranges(item.issues_owned))
+            if gained:
+                gains.append((item, gained))
+            else:
+                outcome.already_owned += 1
+        elif found.row is None:
+            # Marked owned, but the row has gone since: written as before,
+            # which is not at all.
+            outcome.already_owned += 1
+        else:
+            rows.append(_with_issues(found.row, issues))
+            row_entries.append(found.entry)
+
     try:
         result = await commit_items(session, rows, today=today)
     except RowRefused as refused:
@@ -370,6 +446,8 @@ async def commit_sitting(
         )
         return outcome
     session.add_all(garments)
+    for item, gained in gains:
+        outcome.issues_added += await got_issues(session, item, gained, today)
     outcome.created = result.created
     outcome.added += len(result.created) + len(garments)
     outcome.already_owned += result.existing

@@ -58,6 +58,31 @@ class VolumeIn(BaseModel):
     external_id: str = Field(pattern=r"^\d{1,12}$")
 
 
+async def got_issues(
+    session: AsyncSession, item: Item, numbers: set[int], today: date
+) -> int:
+    """Got it's rule for a set of issues: adds them to the owned ranges and
+    takes them out of the skipped ones; a followed-only or wanted row becomes
+    an owned one, To read. Never removes an owned issue. Returns how many
+    issues were not owned before. Does not commit (the pull list's Got it
+    and intake's commit share it)."""
+    before = expand(parse_ranges(item.issues_owned))
+    owned = before | numbers
+    skipped = expand(parse_ranges(item.issues_skipped)) - numbers
+    body: dict = {
+        "issues_owned": format_ranges(owned),
+        "issues_skipped": format_ranges(skipped) or None,
+    }
+    if item.owned_format == OwnedFormat.NONE:
+        body.update(owned_format=OwnedFormat.PHYSICAL)
+        # Through playthroughs.py, the one writer of status (a no-op for
+        # the usual Want, already in the backlog).
+        await apply_status(session, item, ItemStatus.BACKLOG, today)
+    for field, value in _copy_fields(body, item).items():
+        setattr(item, field, value)
+    return len(owned - before)
+
+
 def _state(item: Item) -> dict:
     """A row's comic state after a write, for the page to redraw in place."""
     return {
@@ -335,19 +360,7 @@ def create_comics_router(
         """Adds the issue to the owned ranges (and out of the skipped ones).
         A followed-only or wanted row becomes an owned one, To read."""
         item = await _comic(session, item_id)
-        owned = expand(parse_ranges(item.issues_owned)) | {number}
-        skipped = expand(parse_ranges(item.issues_skipped)) - {number}
-        body: dict = {
-            "issues_owned": format_ranges(owned),
-            "issues_skipped": format_ranges(skipped) or None,
-        }
-        if item.owned_format == OwnedFormat.NONE:
-            body.update(owned_format=OwnedFormat.PHYSICAL)
-            # Through playthroughs.py, the one writer of status (a no-op for
-            # the usual Want, already in the backlog).
-            await apply_status(session, item, ItemStatus.BACKLOG, date.today())
-        for field, value in _copy_fields(body, item).items():
-            setattr(item, field, value)
+        await got_issues(session, item, {number}, date.today())
         await session.commit()
         await session.refresh(item)
         return _state(item)
