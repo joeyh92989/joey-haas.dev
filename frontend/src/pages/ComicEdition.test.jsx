@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { LOAD_ERROR } from '../content/status.js'
 import { axeViolations } from '../lib/axe.test-util.js'
 import * as edits from '../lib/comicEdits.js'
 import ComicEdition from './ComicEdition.jsx'
@@ -66,6 +67,34 @@ beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllGlobals())
 
 describe('ComicEdition', () => {
+  it('keeps a heading and the way back when the read fails, and Try again loads it', async () => {
+    const answers = [
+      { ok: false, status: 500 },
+      { ok: true, status: 200 },
+    ]
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        const next = answers.length > 1 ? answers.shift() : answers[0]
+        return { ...next, json: async () => PAGE }
+      }),
+    )
+    renderEdition()
+    expect(await screen.findByRole('alert')).toHaveTextContent(LOAD_ERROR)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Collected edition' }),
+    ).toBeInTheDocument()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(
+      within(crumbs).getByRole('link', { name: 'Series' }),
+    ).toHaveAttribute('href', `/shelf/${ID}/`)
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /Volume One/ }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
   it('asks the public edition endpoint', async () => {
     const fetch = stubApi()
     renderEdition()

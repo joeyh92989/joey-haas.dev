@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
+import LoadState from '../components/LoadState.jsx'
+import SpineHeader from '../components/SpineHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverWall from '../components/CoverWall.jsx'
 import RunBox from '../components/RunBox.jsx'
@@ -23,7 +25,7 @@ import { runWords, STATUS_LABEL } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 import { itemPath } from '../lib/spinePaths.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
+import { useLiveRead } from '../lib/useLiveRead.js'
 
 const COMICS = spine.comics
 const SERIES = COMICS.series
@@ -506,9 +508,7 @@ export default function Item() {
  */
 function ItemPage({ id }) {
   const { signedIn = false } = useOutletContext() ?? {}
-  const [result, setResult] = useState({ state: 'loading', item: null })
   const [preview, setPreview] = useState(null)
-  const [slow, setSlow] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
@@ -517,43 +517,35 @@ function ItemPage({ id }) {
   const [skipped, setSkipped] = useState(null)
   const [wall, setWall] = useState(null)
 
-  /**
-   * Loads the item and returns what to show; the effect applies it, since
-   * setting state in an effect body is what react-hooks forbids.
-   */
-  const load = useCallback(async () => {
-    try {
+  const read = useLiveRead(
+    async (signal) => {
       const response = await apiFetch(
         `/api/public/items/${encodeURIComponent(id)}`,
+        { signal },
       )
-      if (response.status === 404) return { state: 'missing', item: null }
-      if (!response.ok) return { state: 'error', item: null }
-      return { state: 'ready', item: await response.json() }
-    } catch {
-      return { state: 'error', item: null }
-    }
-  }, [id])
+      if (response.status === 404) return { missing: true }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return response.json()
+    },
+    [id],
+  )
+  const { failed, retry } = read
+  const missing = read.data?.missing === true
+  const loaded = missing ? null : read.data
 
+  // The card-level fields from the build-time snapshot, painted while the
+  // API wakes. The API stays authoritative: its 404 wins over a snapshot
+  // taken before the item was unpublished.
   useEffect(() => {
     let cancelled = false
-    const timer = setTimeout(() => setSlow(true), 2000)
-    // The card-level fields from the build-time snapshot, painted while the
-    // API wakes. The API stays authoritative: its 404 wins over a snapshot
-    // taken before the item was unpublished.
     readSnapshot('items').then((items) => {
       const match = items?.find((entry) => entry.id === id)
       if (!cancelled && match) setPreview(match)
     })
-    load()
-      .then((next) => {
-        if (!cancelled) setResult(next)
-      })
-      .finally(() => clearTimeout(timer))
     return () => {
       cancelled = true
-      clearTimeout(timer)
     }
-  }, [id, load])
+  }, [id])
 
   // The owner's playthroughs come from the admin read, which a visitor
   // cannot make; the public item carries only the dates. Quiet on failure:
@@ -576,7 +568,7 @@ function ItemPage({ id }) {
 
   // A comic's issue rows and editions, for the cover wall. Quiet on failure
   // (and while the series has no issue rows): the run box draws as before.
-  const comicReady = result.state === 'ready' && result.item.type === 'comic'
+  const comicReady = loaded?.type === 'comic'
   useEffect(() => {
     if (!comicReady) return undefined
     let cancelled = false
@@ -602,33 +594,32 @@ function ItemPage({ id }) {
       setSaveError(null)
       try {
         await toggleOwned(id, issue, owned)
-        const next = await load()
-        if (next.state === 'ready') setResult(next)
+        retry()
       } catch {
         setSaveError(SERIES.saveError)
       } finally {
         setSaving(false)
       }
     },
-    [id, load],
+    [id, retry],
   )
 
-  const shown = result.state === 'ready' ? result.item : preview
+  const shown = loaded ?? preview
   // Null on a 404, so NotFound's own title stands (see usePageTitle).
   usePageTitle(
-    result.state === 'missing'
+    missing
       ? null
       : shown
         ? `${shown.title} · ${spine.name}`
         : `${spine.name} · Joey Haas`,
   )
 
-  if (result.state === 'missing') return <NotFound />
+  if (missing) return <NotFound />
 
-  if (result.state === 'ready') {
+  if (loaded) {
     return (
       <ItemView
-        item={result.item}
+        item={loaded}
         detail
         signedIn={signedIn}
         runs={signedIn ? runs : null}
@@ -639,6 +630,7 @@ function ItemPage({ id }) {
         onToggleIssue={signedIn ? toggleIssue : undefined}
         saving={saving}
         saveError={saveError}
+        loadState={failed ? <LoadState failed stale onRetry={retry} /> : null}
       />
     )
   }
@@ -649,26 +641,17 @@ function ItemPage({ id }) {
         item={preview}
         detail={false}
         signedIn={signedIn}
-        note={result.state === 'error' ? LOAD_ERROR : null}
+        loadState={failed ? <LoadState failed stale onRetry={retry} /> : null}
       />
     )
   }
 
-  if (result.state === 'loading') {
-    return (
-      <section>
-        <p className="muted" role="status">
-          {slow ? WAKING : 'Loading…'}
-        </p>
-      </section>
-    )
-  }
-
+  // Nothing to show yet, or the read failed: the shelf's header keeps the
+  // page's h1 either way.
   return (
     <section>
-      <p className="admin-error" role="alert">
-        {LOAD_ERROR}
-      </p>
+      <SpineHeader />
+      <LoadState loading={!failed} failed={failed} onRetry={retry} />
     </section>
   )
 }
@@ -687,7 +670,7 @@ function ItemView({
   runs = null,
   skipped = null,
   wall = null,
-  note = null,
+  loadState = null,
   expanded = false,
   onToggleDescription,
   onToggleIssue,
@@ -813,7 +796,7 @@ function ItemView({
         />
       )}
 
-      {note && <p className="admin-error">{note}</p>}
+      {loadState}
 
       {similar.length > 0 && (
         <section className="item-similar" aria-label="More from this shelf">

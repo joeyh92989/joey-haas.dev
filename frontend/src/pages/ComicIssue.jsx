@@ -2,16 +2,17 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import ComicDescription from '../components/ComicDescription.jsx'
 import CoverImage from '../components/CoverImage.jsx'
+import LoadState from '../components/LoadState.jsx'
 import NeighbourStrip from '../components/NeighbourStrip.jsx'
 import OwnerControls from '../components/OwnerControls.jsx'
 import StatePill from '../components/StatePill.jsx'
 import { spine } from '../content/spine.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
 import { apiFetch } from '../lib/api.js'
 import { expandRanges } from '../lib/comics.js'
 import { formatDate } from '../lib/formatDate.js'
 import { editionPath, itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { useLiveRead } from '../lib/useLiveRead.js'
 import NotFound from './NotFound.jsx'
 
 const COPY = spine.comics.issue
@@ -38,22 +39,24 @@ function storedView(row) {
  */
 export default function ComicIssue({ id, n }) {
   const { signedIn = false } = useOutletContext() ?? {}
-  const [result, setResult] = useState({ state: 'loading', page: null })
   const [stored, setStored] = useState(null)
-  const [slow, setSlow] = useState(false)
 
-  const load = useCallback(async () => {
-    try {
+  // A 404 answers with `{ missing: true }`; any other non-OK answer fails.
+  const read = useLiveRead(
+    async (signal) => {
       const response = await apiFetch(
         `/api/public/items/${encodeURIComponent(id)}/issues/${n}`,
+        { signal },
       )
-      if (response.status === 404) return { state: 'missing', page: null }
-      if (!response.ok) return { state: 'error', page: null }
-      return { state: 'ready', page: await response.json() }
-    } catch {
-      return { state: 'error', page: null }
-    }
-  }, [id, n])
+      if (response.status === 404) return { missing: true }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return response.json()
+    },
+    [id, n],
+  )
+  const { failed, retry } = read
+  const missing = read.data?.missing === true
+  const page = missing ? null : read.data
 
   const loadStored = useCallback(async () => {
     try {
@@ -63,20 +66,6 @@ export default function ComicIssue({ id, n }) {
       return null
     }
   }, [id])
-
-  useEffect(() => {
-    let cancelled = false
-    const timer = setTimeout(() => setSlow(true), 2000)
-    load()
-      .then((next) => {
-        if (!cancelled) setResult(next)
-      })
-      .finally(() => clearTimeout(timer))
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [load])
 
   useEffect(() => {
     if (!signedIn) return undefined
@@ -91,37 +80,38 @@ export default function ComicIssue({ id, n }) {
 
   /** After an owner action: the public body and the owner's row again. */
   const reload = useCallback(async () => {
-    const [next, row] = await Promise.all([load(), loadStored()])
-    if (next.state === 'ready') setResult(next)
+    retry()
+    const row = await loadStored()
     if (row) setStored(row)
-  }, [load, loadStored])
+  }, [retry, loadStored])
 
-  const page = result.page
   usePageTitle(
-    result.state === 'missing'
+    missing
       ? null
       : page
         ? `${page.series_title} #${n} · ${spine.name}`
         : `${spine.name} · Joey Haas`,
   )
 
-  if (result.state === 'missing') return <NotFound />
-  if (result.state === 'loading') {
+  if (missing) return <NotFound />
+
+  if (!page) {
     return (
-      <section>
-        <p className="muted" role="status">
-          {slow ? WAKING : 'Loading…'}
-        </p>
-      </section>
-    )
-  }
-  if (result.state === 'error') {
-    return (
-      <section>
-        <p className="admin-error" role="alert">
-          {LOAD_ERROR}
-        </p>
-      </section>
+      <article className="comic-issue">
+        <nav aria-label={COPY.breadcrumb} className="comic-issue-crumbs">
+          <ol>
+            <li>
+              <Link to={spine.tabs.comics.to}>{COPY.comics}</Link>
+            </li>
+            <li>
+              <Link to={itemPath(id)}>{COPY.series}</Link>
+            </li>
+            <li aria-current="page">#{n}</li>
+          </ol>
+        </nav>
+        <h1>{COPY.fallbackTitle(n)}</h1>
+        <LoadState loading={!failed} failed={failed} onRetry={retry} />
+      </article>
     )
   }
 
@@ -151,6 +141,8 @@ export default function ComicIssue({ id, n }) {
           <li aria-current="page">#{page.number}</li>
         </ol>
       </nav>
+
+      <LoadState failed={failed} stale onRetry={retry} />
 
       <NeighbourStrip
         list={page.neighbours}

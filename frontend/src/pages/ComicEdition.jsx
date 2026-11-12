@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import ComicDescription from '../components/ComicDescription.jsx'
+import LoadState from '../components/LoadState.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverTile from '../components/CoverTile.jsx'
 import StatePill from '../components/StatePill.jsx'
 import { spine } from '../content/spine.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
 import { apiFetch } from '../lib/api.js'
 import { setReadTo } from '../lib/comicEdits.js'
 import { editionPath, issuePath, itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import { useLiveRead } from '../lib/useLiveRead.js'
 import NotFound from './NotFound.jsx'
 
 const COPY = spine.comics.edition
@@ -90,68 +91,49 @@ function Neighbour({ side, to, name }) {
  */
 export default function ComicEdition({ id, slug }) {
   const { signedIn = false } = useOutletContext() ?? {}
-  const [result, setResult] = useState({ state: 'loading', page: null })
-  const [slow, setSlow] = useState(false)
-
-  const load = useCallback(async () => {
-    try {
+  const read = useLiveRead(
+    async (signal) => {
       const response = await apiFetch(
         `/api/public/items/${encodeURIComponent(id)}/editions/${encodeURIComponent(slug)}`,
+        { signal },
       )
-      if (response.status === 404) return { state: 'missing', page: null }
-      if (!response.ok) return { state: 'error', page: null }
-      return { state: 'ready', page: await response.json() }
-    } catch {
-      return { state: 'error', page: null }
-    }
-  }, [id, slug])
+      if (response.status === 404) return { missing: true }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return response.json()
+    },
+    [id, slug],
+  )
+  const { failed, retry } = read
+  const missing = read.data?.missing === true
+  const page = missing ? null : read.data
 
-  useEffect(() => {
-    let cancelled = false
-    const timer = setTimeout(() => setSlow(true), 2000)
-    load()
-      .then((next) => {
-        if (!cancelled) setResult(next)
-      })
-      .finally(() => clearTimeout(timer))
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [load])
-
-  /** After an owner action: the public body again. */
-  const reload = useCallback(async () => {
-    const next = await load()
-    if (next.state === 'ready') setResult(next)
-  }, [load])
-
-  const page = result.page
   usePageTitle(
-    result.state === 'missing'
+    missing
       ? null
       : page
         ? `${COPY.title(page.series_title, page.label)} · ${spine.name}`
         : `${spine.name} · Joey Haas`,
   )
 
-  if (result.state === 'missing') return <NotFound />
-  if (result.state === 'loading') {
+  if (missing) return <NotFound />
+
+  if (!page) {
     return (
-      <section>
-        <p className="muted" role="status">
-          {slow ? WAKING : 'Loading…'}
-        </p>
-      </section>
-    )
-  }
-  if (result.state === 'error') {
-    return (
-      <section>
-        <p className="admin-error" role="alert">
-          {LOAD_ERROR}
-        </p>
-      </section>
+      <article className="comic-issue comic-edition">
+        <nav aria-label={ISSUE.breadcrumb} className="comic-issue-crumbs">
+          <ol>
+            <li>
+              <Link to={spine.tabs.comics.to}>{ISSUE.comics}</Link>
+            </li>
+            <li>
+              <Link to={itemPath(id)}>{ISSUE.series}</Link>
+            </li>
+            <li aria-current="page">{COPY.fallbackTitle}</li>
+          </ol>
+        </nav>
+        <h1>{COPY.fallbackTitle}</h1>
+        <LoadState loading={!failed} failed={failed} onRetry={retry} />
+      </article>
     )
   }
 
@@ -184,6 +166,8 @@ export default function ComicEdition({ id, slug }) {
         </ol>
       </nav>
 
+      <LoadState failed={failed} stale onRetry={retry} />
+
       <div className="comic-issue-main">
         <div className="comic-issue-cover book-tile">
           <CoverImage
@@ -213,7 +197,7 @@ export default function ComicEdition({ id, slug }) {
 
           <ComicDescription paragraphs={page.description} />
 
-          {signedIn && <OwnerBox id={id} page={page} onChanged={reload} />}
+          {signedIn && <OwnerBox id={id} page={page} onChanged={retry} />}
 
           <p className="comic-issue-attribution">
             {ISSUE.attribution.before}{' '}
