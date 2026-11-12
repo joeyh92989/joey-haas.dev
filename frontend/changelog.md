@@ -6,7 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-12
 
-- The comics shelf now tells same-titled series apart by year and publisher.
+- Comics now read as comics on their pages: Reading, Reads and Read on instead of game words.
 
 ## 2026-11-11
 

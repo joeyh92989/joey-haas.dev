@@ -7365,13 +7365,6 @@ main h1[tabindex='-1']:focus,
   margin-right: 0.4rem;
 }
 
-.series-edition {
-  color: var(--text-2);
-  font-size: 0.8125rem;
-  font-weight: 400;
-  margin-right: 0.4rem;
-}
-
 .series-pill {
   border: 1px solid var(--line-strong);
   border-radius: 999px;

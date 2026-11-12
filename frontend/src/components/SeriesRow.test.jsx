@@ -87,7 +87,7 @@ describe('SeriesList', () => {
     expect(screen.getByText('Want')).toBeInTheDocument()
   })
 
-  it('tells same-titled series apart by year and publisher, and only those', () => {
+  it('gives same-titled series distinct link names, and a unique one just its title', () => {
     const creep = (id, year, publisher) => ({
       ...SAGA,
       item_id: id,
@@ -102,18 +102,13 @@ describe('SeriesList', () => {
       creep('c4', 2025, 'Skybound'),
       SAGA,
     ])
-    const rows = screen
-      .getAllByRole('listitem')
-      .filter((li) => li.matches('.series-row'))
-    const tags = rows.map(
-      (li) => li.querySelector('.series-edition')?.textContent,
-    )
-    expect(tags).toEqual([
-      '2022 · Image',
-      '2023 · Image',
-      '2024',
-      '2025 · Skybound',
-      undefined,
+    const names = screen.getAllByRole('link').map((a) => a.textContent)
+    expect(names).toEqual([
+      'Creepshow (2022, Image)',
+      'Creepshow (2023, Image)',
+      'Creepshow (2024)',
+      'Creepshow (2025, Skybound)',
+      SAGA.title,
     ])
   })
 
