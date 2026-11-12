@@ -4,13 +4,13 @@ AC 5, 6 and 8; Review Focus 1 and 3)."""
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import func, select
 
 import items
-from intake.commit import NOTHING_TO_ADD, PHOTOS_STILL_WAITING
+from intake.commit import NOTHING_TO_ADD, PHOTOS_STILL_WAITING, commit_sitting
 from models import (
     ComicShelfFormat,
     Garment,
@@ -381,6 +381,7 @@ async def test_each_series_on_the_shelf_is_reported_with_what_it_gained(
         "added": [3, 4],
         # Held already: one loose, one inside the edition.
         "already": [2, 6],
+        "editions_added": [],
         "after_owned_text": "1–6",
     }
     assert items["7"].issues_owned == "1–4"
@@ -870,3 +871,121 @@ async def test_a_refused_edition_is_reported_on_the_editions_field(
     assert response.status_code == 422, response.text
     [refused] = response.json()["refused"]
     assert refused["field"] == "editions"
+
+
+@pytest.mark.asyncio
+async def test_a_singles_row_with_a_bad_hidden_edition_still_commits(
+    sessionmaker_for_test,
+):
+    bad = {"kind": "Trade", "label": "Vol. 1", "from": 6, "to": 1}
+    entries = [
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "7", "shelf_format": "singles", "editions": [bad]},
+            _series(),
+        )
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.editions is None
+    assert row.issues_owned == "7"
+
+
+@pytest.mark.asyncio
+async def test_typed_issues_are_written_loose_beside_a_covering_trade(
+    sessionmaker_for_test,
+):
+    await _seed_series(sessionmaker_for_test, issues_owned="1")
+    entries = [
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "2-6", "shelf_format": "trades", "editions": [TRADE]},
+            _series(),
+        )
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["issues_added"], body["already_owned"]) == (5, 0)
+    [grew] = body["series_grew"]
+    assert grew["added"] == [2, 3, 4, 5, 6]
+    assert grew["editions_added"] == [TRADE]
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_owned == "1–6"
+    assert row.editions == [TRADE]
+
+
+@pytest.mark.asyncio
+async def test_a_series_gaining_only_an_edition_is_grown_not_already_owned(
+    sessionmaker_for_test,
+):
+    await _seed_series(sessionmaker_for_test, issues_owned="1–6")
+    entries = [
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "2", "shelf_format": "trades", "editions": [TRADE]},
+            _series(),
+        )
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["issues_added"], body["already_owned"]) == (0, 0)
+    [grew] = body["series_grew"]
+    assert (grew["added"], grew["editions_added"]) == ([], [TRADE])
+    [row] = await _items(sessionmaker_for_test)
+    assert row.editions == [TRADE]
+
+
+@pytest.mark.asyncio
+async def test_a_refused_sitting_touches_no_series_even_without_a_rollback(
+    sessionmaker_for_test,
+):
+    await _seed_series(sessionmaker_for_test, 7, issues_owned="1")
+    # Series 8 holds the most editions a row may: one more is refused only
+    # when merged, after the first series would already have been changed.
+    full = [
+        {"kind": "Trade", "label": f"V{n}", "from": n, "to": n} for n in range(100, 150)
+    ]
+    await _seed_series(sessionmaker_for_test, 8, issues_owned="1", editions=full)
+    entries = [
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "2", "shelf_format": "trades", "editions": [TRADE]},
+            _series(7),
+        ),
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "2", "shelf_format": "trades", "editions": [TRADE]},
+            _series(8),
+        ),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with sessionmaker_for_test() as session:  # the good series first
+        for entry in await session.scalars(select(IntakeEntry)):
+            entry.created_at = datetime(2026, 11, 10, tzinfo=UTC) + timedelta(
+                minutes=int(entry.chosen["external_id"])
+            )
+        await session.commit()
+    async with sessionmaker_for_test() as session:
+        outcome = await commit_sitting(session, sitting_id, today=date(2026, 11, 12))
+        assert len(outcome.refused) == 1
+        assert outcome.series_grew == []
+        items = {i.external_id: i for i in await session.scalars(select(Item))}
+        assert items["7"].editions is None
+        assert items["7"].shelf_format is None
+        assert items["7"].issues_owned == "1"
+        assert items["8"].editions == full
+        assert not session.dirty
