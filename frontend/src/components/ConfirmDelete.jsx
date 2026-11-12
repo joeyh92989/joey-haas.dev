@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 /**
  * A Delete button that asks in place before it deletes: pressing it swaps
  * in "Delete for good" / "Keep it" (the pattern in GarmentForm). No browser
- * dialog, so it works the same on touch and in tests.
+ * dialog, so it works the same on touch and in tests. While the delete is
+ * in flight both buttons are disabled, so a double-click sends one request.
  *
  * @param {object} props
  * @param {() => (void | Promise<void>)} props.onConfirm  Runs only from "Delete for good".
@@ -12,6 +13,7 @@ import { useEffect, useRef, useState } from 'react'
  */
 export default function ConfirmDelete({ onConfirm, subject, className }) {
   const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
   const deleteRef = useRef(null)
   const keepRef = useRef(null)
   const refocus = useRef(false)
@@ -31,21 +33,31 @@ export default function ConfirmDelete({ onConfirm, subject, className }) {
   }
 
   async function confirm() {
+    if (busy) return
+    setBusy(true)
     try {
       await onConfirm()
-    } finally {
-      // Still mounted when the delete failed: put the button back.
-      if (deleteRef.current === null && keepRef.current) close()
+    } catch {
+      // The caller reports its own errors; here the button just comes back.
     }
+    // A successful delete usually unmounts this; if it did not, ask again.
+    setBusy(false)
+    close()
   }
 
   if (confirming) {
     return (
       <>
-        <button type="button" className="danger" onClick={confirm}>
+        <button
+          type="button"
+          className="danger"
+          disabled={busy}
+          aria-busy={busy}
+          onClick={confirm}
+        >
           Delete for good
         </button>
-        <button type="button" ref={keepRef} onClick={close}>
+        <button type="button" ref={keepRef} disabled={busy} onClick={close}>
           Keep it
         </button>
       </>

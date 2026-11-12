@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import ConfirmDelete from './ConfirmDelete.jsx'
@@ -51,5 +51,48 @@ describe('ConfirmDelete', () => {
     expect(
       screen.getByRole('button', { name: 'Delete Star Fox' }),
     ).toBeInTheDocument()
+  })
+
+  it('moves focus to Keep it when the question opens', async () => {
+    render(<ConfirmDelete onConfirm={() => {}} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus()
+  })
+
+  it('ignores a second click while the delete is in flight', async () => {
+    let finish
+    const onConfirm = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    render(<ConfirmDelete onConfirm={onConfirm} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    const sure = screen.getByRole('button', { name: 'Delete for good' })
+    await userEvent.click(sure)
+    await userEvent.click(sure)
+
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+    expect(sure).toBeDisabled()
+    expect(sure).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByRole('button', { name: 'Keep it' })).toBeDisabled()
+    await act(async () => finish())
+  })
+
+  it('brings Delete back focused when onConfirm fails', async () => {
+    const onConfirm = vi.fn(() => Promise.reject(new Error('nope')))
+    render(<ConfirmDelete onConfirm={onConfirm} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete for good' }),
+    )
+
+    const button = await screen.findByRole('button', { name: 'Delete' })
+    expect(button).toHaveFocus()
   })
 })
