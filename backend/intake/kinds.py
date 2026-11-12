@@ -74,9 +74,7 @@ def _source_state(kind: Kind, registry: dict) -> str | None:
     if adapter is not None and adapter.configured():
         return "ready"
     if kind.source == ItemType.BOARDGAME:
-        from sources.bgg import UNAVAILABLE
-
-        return f"BGG unavailable: {UNAVAILABLE}"
+        return "Needs a BoardGameGeek key; added by typing for now."
     return f"{kind.source.value} source is not configured"
 
 

@@ -52,4 +52,23 @@ describe('KindTile', () => {
     expect(tile).toBeDisabled()
     expect(tile).toHaveTextContent('added one at a time')
   })
+
+  it('shows the short source reason on a disabled tile', () => {
+    render(
+      <KindTile
+        kind={kind({
+          key: 'boardgame',
+          label: 'Board game',
+          ways_in: ['type'],
+          source_state: 'Needs a BoardGameGeek key; added by typing for now.',
+        })}
+        onStart={() => {}}
+      />,
+    )
+    expect(
+      screen.getAllByText('Needs a BoardGameGeek key; added by typing for now.')
+        .length,
+    ).toBeGreaterThan(0)
+    expect(screen.queryByText(/BGG unavailable/)).toBeNull()
+  })
 })

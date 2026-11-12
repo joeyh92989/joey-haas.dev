@@ -175,7 +175,10 @@ async def test_an_unconfigured_source_is_named_with_its_reason(
     assert body["results"] == []
     reasons = {row["kind"]: row for row in body["sources"]}
     assert reasons["boardgame"]["state"] == "not_configured"
-    assert reasons["boardgame"]["reason"].startswith("BGG unavailable")
+    assert (
+        reasons["boardgame"]["reason"]
+        == "Needs a BoardGameGeek key; added by typing for now."
+    )
     assert reasons["comic"]["state"] == "not_configured"
     assert reasons["comic"]["reason"]
 

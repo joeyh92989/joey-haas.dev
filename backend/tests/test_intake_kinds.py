@@ -98,7 +98,10 @@ async def test_the_built_in_kinds(sessionmaker_for_test):
     served = await _kinds(sessionmaker_for_test)
     assert {"game", "movie", "comic", "boardgame", "garment"} <= set(served)
     assert served["boardgame"]["ways_in"] == ["type"]
-    assert "BGG" in served["boardgame"]["source_state"]
+    assert (
+        served["boardgame"]["source_state"]
+        == "Needs a BoardGameGeek key; added by typing for now."
+    )
     assert served["game"]["ways_in"] == ["photo", "search", "type"]
     assert served["garment"]["area"] == "closet"
     assert served["garment"]["has_details"] is False

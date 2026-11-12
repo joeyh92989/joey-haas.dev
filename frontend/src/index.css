@@ -2295,8 +2295,15 @@ footer {
   display: grid;
   font: inherit;
   gap: 0.15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.75rem 0.85rem;
   text-align: left;
+}
+
+.intake-kind > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .intake-kind:hover:not(:disabled) {
