@@ -134,12 +134,17 @@ async def sync_series(
         if row is None or row.external_id != volume_id:
             await session.rollback()
             return SyncResult(requests, written, False)
-        written += await upsert_issues(session, item_id, page.issues, today)
-        offset += ALL_ISSUES_PAGE
-        complete = offset >= page.total
-        if complete:
-            row.issues_synced_on = today
-        await session.commit()
+        try:
+            written += await upsert_issues(session, item_id, page.issues, today)
+            offset += ALL_ISSUES_PAGE
+            complete = offset >= page.total
+            if complete:
+                row.issues_synced_on = today
+            await session.commit()
+        except Exception as error:
+            logger.exception("issue sync write failed for %s", item_id)
+            await session.rollback()
+            return SyncResult(requests, written, False, error=str(error))
         if complete:
             return SyncResult(requests, written, True)
     return SyncResult(requests, written, False)

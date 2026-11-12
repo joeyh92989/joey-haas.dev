@@ -6,6 +6,7 @@ from datetime import date
 import pytest
 from sqlalchemy import func, select
 
+import comics_routes
 from comic_issues import sync_series
 from models import ComicIssue, Item, ItemType
 from sources.base import SourceError, SourceRateLimited
@@ -291,3 +292,91 @@ async def test_editing_a_label_keeps_the_link(sessionmaker_for_test):
     assert stored["label"] == "Volume One"
     assert stored["cv_id"] == 99
     assert stored["cover_url"] == "https://img/99.jpg"
+
+
+async def test_a_series_deleted_mid_sync_does_not_stop_the_run(sessionmaker_for_test):
+    doomed = await _seed(
+        sessionmaker_for_test, is_public=True, title="A", external_id="77"
+    )
+    good = await _seed(
+        sessionmaker_for_test,
+        is_public=True,
+        title="B",
+        issues_synced_on=date(2026, 1, 1),
+    )
+    source = PagingComicVine(totals={VOLUME: 3, "77": 3})
+    original = source.fetch_issue_page
+
+    async def delete_then_page(volume_id, offset):
+        page = await original(volume_id, offset)
+        if volume_id == "77":
+            async with sessionmaker_for_test() as session:
+                await session.delete(await session.get(Item, doomed))
+                await session.commit()
+        return page
+
+    source.fetch_issue_page = delete_then_page
+    async with client_for(sessionmaker_for_test, source) as client:
+        response = await client.post("/api/comics/issues/sync")
+
+    assert response.status_code == 200
+    by_id = {s["id"]: s for s in response.json()["series"]}
+    assert by_id[str(doomed)]["complete"] is False
+    assert by_id[str(good)]["complete"] is True
+    assert await _count(sessionmaker_for_test, good) == 3
+
+
+async def test_a_write_failure_is_reported_and_the_run_continues(
+    sessionmaker_for_test, monkeypatch
+):
+    import comic_issues
+
+    bad = await _seed(
+        sessionmaker_for_test, is_public=True, title="A", external_id="77"
+    )
+    good = await _seed(
+        sessionmaker_for_test,
+        is_public=True,
+        title="B",
+        issues_synced_on=date(2026, 1, 1),
+    )
+    real = comic_issues.upsert_issues
+
+    async def flaky(session, item_id, issues, today):
+        if item_id == bad:
+            raise RuntimeError("boom")
+        return await real(session, item_id, issues, today)
+
+    monkeypatch.setattr(comic_issues, "upsert_issues", flaky)
+    source = PagingComicVine(totals={VOLUME: 3, "77": 3})
+    async with client_for(sessionmaker_for_test, source) as client:
+        body = (await client.post("/api/comics/issues/sync")).json()
+
+    by_id = {s["id"]: s for s in body["series"]}
+    assert body["ok"] is False
+    assert by_id[str(bad)]["error"] == "boom"
+    assert by_id[str(good)]["complete"] is True
+
+
+async def test_a_crashing_sync_still_returns_create_and_refresh(
+    sessionmaker_for_test, monkeypatch
+):
+    async def boom(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(comics_routes, "sync_series", boom)
+    source = PagingComicVine(issues={VOLUME: SAGA_ISSUES})
+
+    async def fetch_issues(external_id):
+        return list(source.issues.get(external_id, []))
+
+    source.fetch_issues = fetch_issues
+    async with client_for(sessionmaker_for_test, source) as client:
+        created = await client.post("/api/comics/want", json={"external_id": VOLUME})
+        assert created.status_code == 201
+        assert created.json()["title"]
+        refreshed = await client.post(
+            f"/api/comics/{created.json()['item_id']}/refresh"
+        )
+    assert refreshed.status_code == 200
+    assert refreshed.json()["title"]

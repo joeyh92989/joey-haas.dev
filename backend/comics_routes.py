@@ -209,16 +209,18 @@ def create_comics_router(
     async def _sync_quietly(session: AsyncSession, item: Item) -> None:
         """The issue pages' first pull. Best effort: a failure is logged and
         the sync job finishes it later."""
+        item_id = item.id
         try:
             result = await sync_series(
                 session, source(), item, ISSUE_SYNC_BUDGET, _today()
             )
             if result.error:
-                logger.warning("issue sync for %s failed: %s", item.id, result.error)
-            await session.refresh(item)
+                logger.warning("issue sync for %s failed: %s", item_id, result.error)
         except Exception:
-            logger.exception("issue sync for %s failed", item.id)
+            logger.exception("issue sync for %s failed", item_id)
             await session.rollback()
+        # A rollback expires the row; the caller still renders it.
+        await session.refresh(item)
 
     @router.get("/search")
     async def search(q: str, session: AsyncSession = Depends(get_session)) -> list:
@@ -511,8 +513,8 @@ def create_comics_router(
         """
         adapter = source()
         rows = (
-            await session.scalars(
-                select(Item)
+            await session.execute(
+                select(Item.id)
                 .where(
                     Item.type == ItemType.COMIC,
                     Item.is_public.is_(True),
@@ -525,10 +527,15 @@ def create_comics_router(
         today = _today()
         remaining = budget
         series: list[dict] = []
-        for item in rows:
+        for (row_id,) in rows:
             if remaining <= 0:
                 break
-            item_id = str(item.id)
+            # A fresh row each time: an earlier series' rollback expires
+            # every object the session holds.
+            item = await session.get(Item, row_id)
+            if item is None:
+                continue
+            item_id = str(row_id)
             result = await sync_series(session, adapter, item, remaining, today)
             remaining -= result.requests
             entry = {
