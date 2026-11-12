@@ -2,8 +2,10 @@ import { test as base, expect } from '@playwright/test'
 
 /** A console error caused by the missing backend, which is expected. */
 function isApiNoise(message) {
-  const url = message.location().url
-  return /\/api\//.test(url) || /\/api\//.test(message.text())
+  return (
+    message.text().includes('Failed to load resource') &&
+    /\/api\//.test(message.location().url)
+  )
 }
 
 /**
