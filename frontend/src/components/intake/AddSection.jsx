@@ -196,7 +196,7 @@ export default function AddSection({ area, onAdded, children }) {
     }
   }
 
-  async function add({ title, values }, again) {
+  async function add({ title, values }) {
     const { kind, chosen } = drawer
     const payload = fieldPayload(kind.fields, values)
     if (title !== undefined) payload.title = title.trim()
@@ -251,14 +251,12 @@ export default function AddSection({ area, onAdded, children }) {
             : `${name} is already on the shelf`,
       )
       onAdded?.()
-      if (again) {
-        setDrawer(null)
-        setAnswer(null)
-        setQuery('')
-        setTimeout(() => inputRef.current?.focus())
-      } else {
-        closeDrawer()
-      }
+      // A finished add leaves the bar empty and focused, ready for the next
+      // piece, whether or not the owner asked to go again.
+      setDrawer(null)
+      setAnswer(null)
+      setQuery('')
+      setTimeout(() => inputRef.current?.focus())
     } catch {
       setDrawerError(NO_ANSWER)
     } finally {

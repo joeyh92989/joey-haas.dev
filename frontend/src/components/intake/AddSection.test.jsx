@@ -144,7 +144,8 @@ describe('AddSection on the shelf', () => {
     expect(sent.body.today).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(onAdded).toHaveBeenCalled()
     expect(screen.getByRole('status')).toHaveTextContent('Saga added, private')
-    expect(add).toHaveFocus()
+    expect(screen.getByRole('searchbox')).toHaveValue('')
+    expect(screen.queryByRole('list', { name: /Results/ })).toBeNull()
   })
 
   it('says how many issues an owned series gained', async () => {
