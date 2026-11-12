@@ -7,6 +7,7 @@ import {
   demoCounts,
   rowMeta,
   rowTitle,
+  spineLabel,
   spineSize,
   stageDelays,
 } from '../lib/intakeDemo.js'
@@ -36,21 +37,26 @@ function DrawnShelf({ titles }) {
       role="img"
       aria-label={copy.shelfLabel(reads)}
     >
-      {reads.map((read, index) => (
-        <span
-          key={`${read}-${index}`}
-          className="intake-demo-spine"
-          data-tone={index % 2 ? 'soft' : undefined}
-          data-size={spineSize(read)}
-          // Heights vary so it reads as a shelf, deterministically; a long
-          // title takes the full height.
-          style={{
-            height: spineSize(read) ? '100%' : `${78 + ((index * 37) % 22)}%`,
-          }}
-        >
-          {read}
-        </span>
-      ))}
+      {titles.map((row, index) => {
+        const label = spineLabel(row)
+        return (
+          <span
+            key={`${row.read}-${index}`}
+            className="intake-demo-spine"
+            data-tone={index % 2 ? 'soft' : undefined}
+            data-size={spineSize(label)}
+            // Heights vary so it reads as a shelf, deterministically; a long
+            // title takes the full height.
+            style={{
+              height: spineSize(label)
+                ? '100%'
+                : `${78 + ((index * 37) % 22)}%`,
+            }}
+          >
+            {label}
+          </span>
+        )
+      })}
     </div>
   )
 }

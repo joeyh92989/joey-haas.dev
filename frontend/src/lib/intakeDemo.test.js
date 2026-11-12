@@ -122,3 +122,14 @@ describe('spineSize', () => {
     expect(spineSize('熱血硬派くにおくん外伝 リバーシティガールズ2')).toBe('sm')
   })
 })
+
+describe('spineLabel', () => {
+  it('shortens long titles for the spine and keeps the rest', async () => {
+    const { spineLabel } = await import('./intakeDemo.js')
+    expect(spineLabel({ read: 'Hades' })).toBe('Hades')
+    expect(
+      spineLabel({ read: 'The Legend of Zelda: Breath of the Wild' }),
+    ).toBe('Breath of the Wild')
+    expect(spineLabel({ read: 'Hades', spine: 'HDS' })).toBe('HDS')
+  })
+})
