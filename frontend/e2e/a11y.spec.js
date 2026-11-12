@@ -15,11 +15,6 @@ async function violationsOn(page) {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa'])
     .analyze()
-  if (process.env.A11Y_DUMP) {
-    console.log(
-      `A11Y_DUMP ${JSON.stringify({ url: page.url(), theme: await page.locator('html').getAttribute('data-theme'), violations: results.violations.map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.length, targets: v.nodes.slice(0, 3).map((n) => n.target.join(' ')) })) })}`,
-    )
-  }
   return results.violations
 }
 
@@ -51,22 +46,32 @@ for (const path of routes) {
 }
 
 // Keeps the known list honest: an entry whose rule no longer violates on its
-// route (in either theme) must be removed.
-test('known a11y entries still apply', async ({
-  page,
-  openRoute,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
-  test.skip(KNOWN_A11Y.length === 0, 'no known entries')
-  const stale = []
-  for (const { route, ruleId } of KNOWN_A11Y) {
+// route (in either theme) must be removed. One test per entry, and only for
+// routes this run covers (a build without /blog or /til has no such entries).
+const covered = new Set(routes)
+for (const { route, ruleId } of KNOWN_A11Y.filter((e) =>
+  covered.has(e.route),
+)) {
+  test(`known a11y entry ${route} ${ruleId} still applies`, async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
     let found = false
     for (const theme of THEMES) {
       await openRoute(route, theme)
       const violations = await violationsOn(page)
       found ||= violations.some((v) => v.id === ruleId)
     }
-    if (!found) stale.push(`${route} ${ruleId}`)
+    expect(
+      found,
+      `${route} no longer violates ${ruleId}; remove the entry`,
+    ).toBe(true)
+  })
+}
+
+test('every known a11y entry references an issue number', () => {
+  for (const entry of KNOWN_A11Y) {
+    expect(entry.issue, `${entry.route} ${entry.ruleId}`).toMatch(/^#\d+$/)
   }
-  expect(stale, 'known entries that no longer violate; remove them').toEqual([])
 })

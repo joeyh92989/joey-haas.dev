@@ -23,6 +23,11 @@ export const test = base.extend({
       errors.push(`console: ${message.text()}`)
     })
     await page.route('**/api/track', (route) => route.abort())
+    // Locally `vite preview` proxies /api to :8000; a running backend would
+    // make pages render live data. Keep the no-backend premise.
+    if (!process.env.E2E_BASE_URL) {
+      await page.route('**/api/**', (route) => route.abort())
+    }
 
     await use(async (path, theme = 'light') => {
       await page.addInitScript((value) => {

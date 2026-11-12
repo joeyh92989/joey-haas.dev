@@ -23,6 +23,9 @@
     "react-dom": "^19.0.0",
     "react-router": "^8.3.1"
   },
+  "overrides": {
+    "playwright-core": "1.64.1"
+  },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^10.0.1",

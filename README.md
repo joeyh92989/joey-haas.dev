@@ -742,8 +742,12 @@ Playwright runs the built site in Chromium, as a desktop and a phone (Pixel 5):
   the chosen theme, logs no uncaught or console errors (failed `/api/` requests
   are ignored: the tests run without a backend), and on the phone does not
   scroll sideways. The unknown-path (NotFound) page is covered too.
-- **Accessibility:** axe (WCAG 2 A/AA) must find no serious or critical
-  violations on any route, in both the light and dark theme.
+- **Accessibility:** axe (WCAG 2 A/AA) must find no new serious or critical
+  violations on any route, in both the light and dark theme. Known ones are
+  excused in `frontend/e2e/known-a11y.js` (all eight entries are links told
+  apart from text by colour only, tracked in #182). The axe pass runs on the
+  desktop project only; the phone project runs the smoke checks, including
+  the sideways-scroll check.
 
 The route list comes from `STATIC_PAGES` in `frontend/src/content/pages.js`, so
 a new static page is covered automatically. `/blog` and `/til` are included
@@ -764,11 +768,14 @@ running, set `E2E_BASE_URL` instead of building:
 Known problems are tracked, not hidden:
 
 - A genuine site defect is marked `test.fail()` with a `// known: ... backlog
-  issue` comment. When the defect is fixed the test starts passing, which
+  issue` comment. The one today is `/shelf/comics` losing its `h1` when the
+  API is down (#181); it is an expected failure in local runs only, since a
+  live site has an API. When the defect is fixed the test starts passing, which
   Playwright reports as a failure, so the marker has to be removed.
 - An excused accessibility violation is an entry in
-  `frontend/e2e/known-a11y.js` (`{ route, ruleId, issue }`). An entry that no
-  longer matches a violation fails the suite, so fixed ones get deleted.
+  `frontend/e2e/known-a11y.js` (`{ route, ruleId, issue }`, `issue` being
+  `#<number>`). An entry that no longer matches a violation fails the suite
+  (one test per entry), so fixed ones get deleted.
 
 ### Screenshots
 
