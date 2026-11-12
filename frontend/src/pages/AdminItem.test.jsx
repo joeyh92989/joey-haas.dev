@@ -776,6 +776,24 @@ describe('AdminItem comic fields', () => {
     expect(screen.getByLabelText(/^Skipped/)).toHaveValue('')
   })
 
+  it('leaves out the Comic Vine sentence for an unlinked comic', async () => {
+    stubApi({
+      item: {
+        ...COMIC,
+        external_source: null,
+        external_id: null,
+        issues_owned: '1-2',
+        editions: [],
+        comic_run: { owned: 2, released: 2 },
+      },
+    })
+    renderPage()
+    expect(await screen.findByLabelText('Single issues I own')).toHaveValue(
+      '1-2',
+    )
+    expect(screen.queryByText(/Comic Vine lists/)).not.toBeInTheDocument()
+  })
+
   it('sends only the comic fields that changed', async () => {
     const mock = stubApi({ item: COMIC })
     renderPage()

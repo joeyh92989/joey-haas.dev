@@ -730,7 +730,13 @@ export default function AdminItem() {
                 <ComicFields
                   value={form}
                   onChange={setForm}
-                  released={item.comic_run?.released ?? null}
+                  // An unlinked run's "released" is only the highest owned
+                  // issue, so Comic Vine's count shows only once linked.
+                  released={
+                    item.external_source === 'comicvine' && item.external_id
+                      ? (item.comic_run?.released ?? null)
+                      : null
+                  }
                   showSkipped
                   errors={comicErrors}
                   editionLinks={{
