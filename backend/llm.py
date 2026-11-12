@@ -7,9 +7,9 @@ responseSchema, Anthropic through output_config.format -- so neither returns
 prose that has to be salvaged with a regex.
 
 The free Gemini models are tried first, in an order chosen per call, and
-Claude Haiku is the paid last link when ANTHROPIC_API_KEY is set
-(docs/planning/2026-11-11-llm-fallback-chain-design.md). On a normal day the
-paid link is never reached.
+Claude Haiku is a paid last link, off unless LLM_PAID_FALLBACK is true and
+ANTHROPIC_API_KEY is set (docs/planning/2026-11-11-llm-fallback-chain-design.md).
+The site runs free: by default the chain ends at the last Gemini model.
 
 Images are passed inline as base64 and are not kept beyond the request.
 (Starlette spools an upload over 1 MB to a temporary file while the request
@@ -150,9 +150,8 @@ RATE_LIMIT_STATUS = 429
 # by that share, so a model that hangs gives up its turn instead of the whole
 # chain's. A model that answers quickly leaves its unused time to the ones
 # after it rather than wasting it, which is why the share is recomputed rather
-# than fixed. Since every earlier model is capped at its share, each later
-# model is still guaranteed at least budget / len(models). The last model may
-# use whatever is left.
+# than fixed. The last model may use whatever is left. (The divisor is capped
+# at SHARE_SPREAD, below.)
 #
 # Enforced through the request timeout and checked between attempts, never by
 # cancelling a request mid-flight: that throws away work already paid for.
@@ -163,6 +162,15 @@ TOTAL_BUDGET_SECONDS = 150.0
 # TOTAL_BUDGET_SECONDS plus Haiku's own answer, well inside the slowest
 # caller's wrapper (closet opinion's OPINION_BUDGET_S, 240s).
 ANTHROPIC_RESERVE_SECONDS = 60.0
+
+# A share divides what is left by at most this many models, not by every
+# model still to try. Six models dividing the budget evenly gave the first
+# vision model 15s, too little for a real photo read, so every model would
+# time out and the paid link would answer routine imports. Three keeps the
+# share main had with its three models (50s, or 30s ahead of the paid link)
+# while a hanging model still gives up its turn; later models get less if
+# earlier ones hang, never less than MIN_ATTEMPT_SECONDS in practice.
+SHARE_SPREAD = 3
 
 # The shortest request worth sending. A share with less than this left is
 # treated as spent: a few seconds is not long enough for a vision request to
@@ -389,7 +397,7 @@ def _per_day_message(tried: int) -> str:
     return (
         f"Gemini's free tier allows {FREE_TIER_DAILY_REQUESTS} requests per "
         f"day per model, and {models} is used up. It resets at midnight "
-        "Pacific — or set ANTHROPIC_API_KEY to fall back to Claude Haiku."
+        "Pacific."
     )
 
 
@@ -420,9 +428,10 @@ class LLMProvider(Protocol):
 class GeminiProvider:
     """Gemini via REST.
 
-    Free-tier request limits are not published -- the documentation defers to
-    the AI Studio dashboard -- so 429 is treated as an expected outcome rather
-    than an exceptional one, and reaches the UI as "try again".
+    Walks TEXT_ORDER or VISION_ORDER. A per-day 429 marks the model used up
+    until midnight Pacific and the walk moves on; only when every model has
+    failed does the caller see an error (a ModelUnavailable that
+    ChainedProvider hands to Haiku, or the reason, worded for the UI).
     """
 
     def __init__(self, api_key: str, model: str | None = None, recorder=None) -> None:
@@ -541,6 +550,8 @@ class GeminiProvider:
         # place.
         tried = 0
         budget_ran_out = False
+        # The last model's connection failed (no response at all).
+        unreachable: httpx2.HTTPError | None = None
 
         def gave_up(elapsed: float) -> LLMError:
             return ModelUnavailable(
@@ -557,7 +568,7 @@ class GeminiProvider:
             # This model's share of what is left (see TOTAL_BUDGET_SECONDS).
             # For the last model that is all of it.
             models_left = len(models) - index
-            share_ends = now + (budget - now) / models_left
+            share_ends = now + (budget - now) / min(models_left, SHARE_SPREAD)
             # Only the last model, with nothing behind it, waits out an
             # overload (see OVERLOAD_STATUSES), and then only once.
             retries = OVERLOAD_RETRIES if models_left == 1 and final else 0
@@ -593,6 +604,7 @@ class GeminiProvider:
                     # the same share.
                     logger.debug("gemini %s timed out: %s", model, error)
                     last_status, last_body, timed_out = 504, None, True
+                    unreachable = None
                     if retried < retries:
                         await asyncio.sleep(RETRY_DELAY_SECONDS)
                         retried += 1
@@ -600,8 +612,14 @@ class GeminiProvider:
                     trace.note(model, "timeout")
                     break
                 except httpx2.HTTPError as error:
+                    # A dropped connection is one request's bad luck, not
+                    # Gemini's: the next free model is worth it before the
+                    # paid one.
+                    logger.debug("gemini %s unreachable: %s", model, error)
+                    last_status, last_body, timed_out = None, None, False
+                    unreachable = error
                     trace.note(model, "unreachable")
-                    raise ModelUnavailable(f"Gemini request failed: {error}") from error
+                    break
 
                 logger.debug(
                     "gemini %s -> %s (%d images)",
@@ -611,6 +629,7 @@ class GeminiProvider:
                 )
 
                 timed_out = False
+                unreachable = None
                 if response.status_code < 400:
                     try:
                         payload = response.json()
@@ -667,6 +686,7 @@ class GeminiProvider:
                 last_status in OVERLOAD_STATUSES
                 or last_status in (RATE_LIMIT_STATUS, NOT_FOUND_STATUS)
                 or budget_ran_out
+                or unreachable is not None
             ):
                 continue
             break
@@ -692,6 +712,8 @@ class GeminiProvider:
             raise ModelUnavailable(
                 f"Gemini no longer serves {', '.join(models)} (HTTP 404)"
             )
+        if unreachable is not None:
+            raise ModelUnavailable(f"Gemini request failed: {unreachable}")
         raise LLMError(f"Gemini returned HTTP {last_status}")
 
 
@@ -748,8 +770,11 @@ class AnthropicProvider:
 
         # A client per call, closed with it: an unclosed one leaks its pool.
         try:
+            # No SDK retries: its default of two would triple both the time
+            # (past closet opinion's 240s wrapper) and the bill. The Gemini
+            # chain ahead of it is the retry.
             async with anthropic.AsyncAnthropic(
-                api_key=self._api_key, timeout=timeout
+                api_key=self._api_key, timeout=timeout, max_retries=0
             ) as client:
                 try:
                     response = await client.messages.create(
@@ -841,8 +866,10 @@ class ChainedProvider:
 def build_provider(config: Config, recorder=None) -> LLMProvider:
     """The provider LLM_PROVIDER names, or an error naming what is missing.
 
-    gemini with ANTHROPIC_API_KEY set is the chain with the paid last link;
-    without it, Gemini alone as before. anthropic is Anthropic only.
+    gemini is the free chain alone, unless LLM_PAID_FALLBACK is true and
+    ANTHROPIC_API_KEY is set: then Haiku is the paid last link. A key alone
+    never adds it, so nothing is billed by accident. anthropic is Anthropic
+    only.
 
     Built per request rather than at import, so an absent key is a failure of
     the one route that needs a model rather than a service that will not boot.
@@ -852,7 +879,7 @@ def build_provider(config: Config, recorder=None) -> LLMProvider:
         if not config.gemini_api_key:
             raise LLMError("LLM_PROVIDER is gemini but GEMINI_API_KEY is not set")
         gemini = GeminiProvider(config.gemini_api_key, recorder=recorder)
-        if config.anthropic_api_key:
+        if config.llm_paid_fallback and config.anthropic_api_key:
             return ChainedProvider(gemini, AnthropicProvider(config.anthropic_api_key))
         return gemini
     if provider == "anthropic":

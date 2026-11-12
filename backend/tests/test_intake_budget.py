@@ -162,14 +162,14 @@ async def test_a_per_day_429_marks_only_that_model(monkeypatch, sessionmaker_for
 
 def test_build_provider_hands_the_recorder_to_gemini():
     recorder = UsageRecorder(session_factory=None)
-    gemini_only = replace(_config(), anthropic_api_key=None)
+    gemini_only = _config()  # an Anthropic key, but the paid link is off
     provider = build_provider(gemini_only, recorder)
     assert isinstance(provider, GeminiProvider)
     assert provider._recorder is recorder
     assert build_provider(gemini_only).__class__ is GeminiProvider
     # With the paid link, the recorder still reaches the Gemini half: every
     # free-tier attempt is counted whoever ends up answering.
-    chained = build_provider(_config(), recorder)
+    chained = build_provider(replace(_config(), llm_paid_fallback=True), recorder)
     assert isinstance(chained, ChainedProvider)
     assert chained._gemini._recorder is recorder
 

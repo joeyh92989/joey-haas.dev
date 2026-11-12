@@ -64,6 +64,11 @@ class Config:
     llm_provider: str = "gemini"
     gemini_api_key: str | None = None
     anthropic_api_key: str | None = None
+    # Whether Claude Haiku may answer after the free Gemini chain fails
+    # (docs/planning/2026-11-11-llm-fallback-chain-design.md). Off unless
+    # LLM_PAID_FALLBACK is exactly "true": the site is meant to cost nothing,
+    # so a key left on the service must never start billing by itself.
+    llm_paid_fallback: bool = False
     # The nightly workflow's bearer token (Spine Next spec, A1). Unset means
     # every bearer request is a 401 and only a session is admin, as before.
     # It opens only items.JOB_ROUTES, never the rest of the admin API.
@@ -147,5 +152,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         llm_provider=_optional(source, "LLM_PROVIDER") or "gemini",
         gemini_api_key=_optional(source, "GEMINI_API_KEY"),
         anthropic_api_key=_optional(source, "ANTHROPIC_API_KEY"),
+        llm_paid_fallback=(_optional(source, "LLM_PAID_FALLBACK") or "").lower()
+        == "true",
         job_token=_optional(source, "JOB_TOKEN"),
     )

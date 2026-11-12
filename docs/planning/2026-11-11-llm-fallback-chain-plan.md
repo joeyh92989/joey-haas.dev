@@ -222,6 +222,40 @@ Finish gate → PR
 If Joey prefers to leave `render.yaml` alone, task 9 is dropped, and the
 stale comment is noted in the PR.
 
+## Deviations found at the finish gate
+
+The review of the whole branch changed or recorded these:
+
+- **The chain is constants, not a `ChainModel` dataclass** (task 2). It is
+  `THINKING_LEVELS` plus the `TEXT_ORDER` and `VISION_ORDER` tuples. Two
+  tuples and a dict say the same thing with less code, and the probe reads
+  the dict directly.
+- **The paid link is opt-in, off by default** (Joey, 2026-11-11: "we
+  don't want any costs, keep it free"). `ANTHROPIC_API_KEY` alone no longer
+  adds Haiku; `LLM_PAID_FALLBACK=true` must be set as well, and it is
+  deliberately absent from `render.yaml`. At the time the key was not set
+  on the Render API service either. So the per-day message no longer
+  suggests the key: it ends "It resets at midnight Pacific.", and a failed
+  paid link reads "Gemini unavailable, then …". `_failure_note` matches
+  both.
+- **A model's budget share is capped at a third of what is left**
+  (`SHARE_SPREAD`), not split six ways. Split six ways, the first vision
+  model got 15s, so routine photo reads would have timed out across the
+  free chain and been paid for on Haiku. With the cap it gets 50s with
+  Gemini only, or 30s with Haiku behind it.
+- **A dropped connection moves on to the next free model.** It no longer
+  hands off straight to Haiku.
+- **The Anthropic client never retries** (`max_retries=0`). The SDK's
+  default of two would have tripled both the wait, past closet opinion's
+  240s wrapper, and the bill.
+- **`_failure_note` words three more reasons:** an Anthropic 5xx, an
+  Anthropic timeout and a withdrawn Gemini model (404). Each used to fall
+  to "did not answer", and Closet tagging reads that as the photo's fault.
+- **Left as designed:** a 200 that cannot be parsed (a safety block, or
+  truncated JSON) stops the chain as a plain `LLMError`. The whole call can
+  still run slightly past `TOTAL_BUDGET_SECONDS`, because Haiku is
+  guaranteed at least `ANTHROPIC_RESERVE_SECONDS`.
+
 ## Environment test section
 
 - **Unit:** `cd backend && ./.venv/bin/pytest`, the full suite, once,
@@ -242,5 +276,5 @@ stale comment is noted in the PR.
 - **Post-deploy:** `./scripts/smoke.sh https://joey-haas.dev
   https://api.joey-haas.dev`, then read the Render log for the new
   one-line-per-call entries.
-- **Rollback:** unset `ANTHROPIC_API_KEY` on Render to drop the paid link
+- **Rollback:** unset `LLM_PAID_FALLBACK` (or the key) on Render to drop the paid link
   without a deploy; revert the PR to restore the old chain.

@@ -166,8 +166,9 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
-      # The provider when LLM_PROVIDER is anthropic; with gemini, the paid
-      # last link after the free Gemini chain (backend/llm.py). Unset: no overflow.
+      # The provider when LLM_PROVIDER is anthropic. With gemini it is unused
+      # unless LLM_PAID_FALLBACK=true is also set (deliberately not in this
+      # Blueprint), which adds Haiku after the free chain (backend/llm.py).
       - key: ANTHROPIC_API_KEY
         sync: false
       # The nightly workflow's bearer token (.github/workflows/nightly.yml).

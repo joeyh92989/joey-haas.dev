@@ -441,8 +441,10 @@ async def test_a_daily_quota_says_so_rather_than_try_again_shortly(monkeypatch):
     message = str(excinfo.value)
     assert "per day" in message
     assert "shortly" not in message
-    # The escape hatch is named, because it is the actionable part.
-    assert "anthropic" in message.lower()
+    # When it comes back is the actionable part. Paying is not offered: the
+    # site runs free (LLM_PAID_FALLBACK is off by default).
+    assert "midnight Pacific" in message
+    assert "anthropic" not in message.lower()
 
 
 @pytest.mark.asyncio
@@ -620,8 +622,12 @@ async def test_no_model_is_given_more_than_its_share_of_the_budget(monkeypatch):
     with pytest.raises(LLMError):
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
 
-    first_timeout = calls[0][1]
-    assert first_timeout <= 150.0 / len(GEMINI_MODELS)
+    # A third of what is left (llm.SHARE_SPREAD), never all of it: every
+    # model behind a hanging one is still asked.
+    timeouts = [timeout for _, timeout in calls]
+    assert timeouts[0] <= 150.0 / 3
+    assert all(timeout >= 5.0 for timeout in timeouts)
+    assert [model for model, _ in calls] == list(TEXT_ORDER)
 
 
 @pytest.mark.asyncio
@@ -640,6 +646,7 @@ async def test_every_model_overloaded_gives_up_within_the_budget(monkeypatch):
 # --- the fallback chain (docs/planning/2026-11-11-llm-fallback-chain-*) ------
 
 import logging  # noqa: E402
+import sys  # noqa: E402
 from datetime import UTC, datetime, timedelta  # noqa: E402
 
 import llm  # noqa: E402
@@ -673,17 +680,6 @@ async def test_a_call_with_images_goes_to_the_vision_order(monkeypatch):
     assert calls == [VISION_ORDER[0]]
 
 
-def test_every_chain_model_is_sent_its_thinking_level():
-    provider = GeminiProvider(api_key="k")
-    for model, level in THINKING_LEVELS.items():
-        body = provider._build_body("go", SCHEMA, [], THINKING_LEVELS[model])
-        assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": level}
-    assert (
-        "thinkingConfig"
-        not in provider._build_body("go", SCHEMA, [])["generationConfig"]
-    )
-
-
 class _BodyClient(_FakeClient):
     """Records each request body alongside the model."""
 
@@ -694,6 +690,31 @@ class _BodyClient(_FakeClient):
     async def post(self, url, **kwargs):
         self._bodies.append(kwargs["json"])
         return await super().post(url, **kwargs)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("images", "order"), [([], TEXT_ORDER), ([JPEG], VISION_ORDER)]
+)
+async def test_every_request_the_walk_sends_carries_its_models_level(
+    monkeypatch, images, order
+):
+    calls: list[str] = []
+    bodies: list[dict] = []
+    monkeypatch.setattr("llm.RETRY_DELAY_SECONDS", 0)
+    monkeypatch.setattr(
+        "llm.httpx2.AsyncClient",
+        lambda **_: _BodyClient([_FakeResponse(503)], calls, bodies),
+    )
+
+    with pytest.raises(LLMError):
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA, images)
+
+    assert calls[: len(order)] == list(order)
+    for model, body in zip(calls, bodies, strict=True):
+        assert body["generationConfig"]["thinkingConfig"] == {
+            "thinkingLevel": THINKING_LEVELS[model]
+        }
 
 
 @pytest.mark.asyncio
@@ -909,11 +930,29 @@ async def test_without_a_key_the_daily_message_still_reads_as_used_up(monkeypatc
     assert "LLM_PROVIDER=anthropic" not in str(raised.value)
 
 
-def test_build_provider_chains_when_both_keys_are_set():
+def test_a_stray_anthropic_key_alone_never_adds_the_paid_link():
+    # The site runs free: a key left on the service must not start billing.
     both = build_provider(
         _config(llm_provider="gemini", gemini_api_key="g", anthropic_api_key="a")
     )
-    assert isinstance(both, ChainedProvider)
+    assert type(both) is GeminiProvider
+
+
+def test_build_provider_chains_only_when_the_paid_fallback_is_switched_on():
+    opted_in = build_provider(
+        _config(
+            llm_provider="gemini",
+            gemini_api_key="g",
+            anthropic_api_key="a",
+            llm_paid_fallback=True,
+        )
+    )
+    assert isinstance(opted_in, ChainedProvider)
+
+    switched_on_without_a_key = build_provider(
+        _config(llm_provider="gemini", gemini_api_key="g", llm_paid_fallback=True)
+    )
+    assert type(switched_on_without_a_key) is GeminiProvider
 
     anthropic_only = build_provider(
         _config(llm_provider="anthropic", gemini_api_key="g", anthropic_api_key="a")
@@ -957,3 +996,120 @@ async def test_one_log_line_for_a_hand_off_and_for_a_failure(monkeypatch, caplog
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
     [line] = _llm_info_lines(caplog)
     assert line.startswith("llm failed in ")
+
+
+@pytest.mark.asyncio
+async def test_a_dropped_connection_moves_on_to_the_next_free_model(monkeypatch):
+    calls = _patch_client(
+        monkeypatch,
+        [httpx2.RemoteProtocolError("server disconnected"), _FakeResponse(200, OK)],
+    )
+    anthropic = _FakeAnthropic()
+
+    result = await _chain(anthropic).complete_json("go", SCHEMA)
+
+    assert result == {"titles": ["Dune"]}
+    assert calls == list(TEXT_ORDER[:2])
+    assert anthropic.calls == []
+
+
+@pytest.mark.asyncio
+async def test_every_model_unreachable_is_unavailable_and_goes_to_haiku(monkeypatch):
+    calls = _patch_client(monkeypatch, [httpx2.ConnectError("no route")])
+
+    with pytest.raises(llm.ModelUnavailable, match="request failed"):
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+    assert calls == list(TEXT_ORDER)
+
+    anthropic = _FakeAnthropic()
+    assert await _chain(anthropic).complete_json("go", SCHEMA) == {"titles": ["Haiku"]}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("chained", "first_share"), [(False, 50.0), (True, 30.0)])
+async def test_the_first_model_gets_a_third_of_the_budget_not_a_sixth(
+    monkeypatch, chained, first_share
+):
+    calls, _ = _patch_models(
+        monkeypatch, dict.fromkeys(GEMINI_MODELS, _FakeResponse(200, OK))
+    )
+    provider = _chain(_FakeAnthropic()) if chained else GeminiProvider(api_key="k")
+
+    await provider.complete_json("go", SCHEMA, [JPEG])
+
+    assert calls == [(VISION_ORDER[0], pytest.approx(first_share))]
+
+
+class _FakeSDK:
+    """A stand-in `anthropic` module, recording how the client is built."""
+
+    class APIError(Exception):
+        pass
+
+    def __init__(self):
+        self.client_kwargs: dict = {}
+        sdk = self
+
+        class AsyncAnthropic:
+            def __init__(self, **kwargs):
+                sdk.client_kwargs = kwargs
+                self.messages = self
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_):
+                return False
+
+            async def create(self, **_kwargs):
+                block = type("Block", (), {"type": "text", "text": '{"ok": 1}'})
+                return type(
+                    "Response", (), {"content": [block], "stop_reason": "end_turn"}
+                )
+
+        self.AsyncAnthropic = AsyncAnthropic
+
+
+@pytest.mark.asyncio
+async def test_the_paid_link_never_lets_the_sdk_retry(monkeypatch):
+    sdk = _FakeSDK()
+    monkeypatch.setitem(sys.modules, "anthropic", sdk)
+
+    result = await AnthropicProvider(api_key="k").complete_json(
+        "go", SCHEMA, timeout=60.0
+    )
+
+    assert result == {"ok": 1}
+    assert sdk.client_kwargs["max_retries"] == 0
+    assert sdk.client_kwargs["timeout"] == 60.0
+
+
+@pytest.mark.parametrize(
+    ("error", "note"),
+    [
+        (
+            "Gemini unavailable, then Anthropic request failed: Error code: 500 - {}",
+            "The model failed with HTTP 500; try again later",
+        ),
+        (
+            "Gemini unavailable, then Anthropic request failed: Error code: 529 - {}",
+            "The model is overloaded; try again in a few minutes",
+        ),
+        (
+            "Gemini unavailable, then Anthropic request failed: Request timed out.",
+            "The model did not answer in time; try again in a few minutes",
+        ),
+        (
+            "Gemini no longer serves gemini-3.6-flash (HTTP 404)",
+            "The model is no longer served; the chain in llm.py needs updating",
+        ),
+        (
+            "Gemini request failed: no route",
+            "The model could not be reached; try again in a few minutes",
+        ),
+    ],
+)
+def test_chain_failures_are_worded_for_the_owner(error, note):
+    # Anything left as "did not answer" reads to Closet tagging as the photo's
+    # fault, so every reason the chain can now raise needs its own wording.
+    assert _failure_note(error) == note

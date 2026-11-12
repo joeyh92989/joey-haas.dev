@@ -535,5 +535,5 @@ one per chain model (six). Run it once, not in a loop.
 **Prints** the served Flash models, then one row per probe: status,
 latency, whether the answer parsed as JSON, the quota id and value from a
 429 (`quotaValue` comes from the error body, which Google does not
-document, so it may be blank), and the API's error message on a 4xx. The
-key goes only in the request header and is never printed.
+document, so it may be blank), and the API's error message on any error
+(the exception's name when no response came back). The key goes only in the request header and is never printed.

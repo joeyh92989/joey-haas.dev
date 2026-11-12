@@ -153,3 +153,25 @@ def test_job_token_is_optional():
 def test_job_token_is_read_and_blank_means_unset():
     assert load_config({**COMPLETE, "JOB_TOKEN": " s3cret "}).job_token == "s3cret"
     assert load_config({**COMPLETE, "JOB_TOKEN": "   "}).job_token is None
+
+
+@pytest.mark.parametrize(
+    ("value", "on"),
+    [
+        (None, False),
+        ("", False),
+        ("false", False),
+        ("1", False),
+        ("yes", False),
+        ("true", True),
+        ("TRUE", True),
+        (" true ", True),
+    ],
+)
+def test_the_paid_fallback_is_on_only_for_an_explicit_true(value, on):
+    # The site is meant to cost nothing: anything short of "true" keeps
+    # Claude Haiku out of the chain, whatever keys are set.
+    env = {**COMPLETE, "ANTHROPIC_API_KEY": "a"}
+    if value is not None:
+        env["LLM_PAID_FALLBACK"] = value
+    assert load_config(env).llm_paid_fallback is on

@@ -184,7 +184,8 @@ Nothing of its own. The reader needs a model (`LLM_PROVIDER`, default
 502 and the nightly records `failed`. The budget is enforced only on
 Gemini, and counts `FREE_TIER_DAILY_REQUESTS` for each model in
 `llm.GEMINI_MODELS` (six since the fallback chain); a read that Gemini
-cannot answer still goes to Claude Haiku when `ANTHROPIC_API_KEY` is set. The nightly needs `JOB_TOKEN` on the API and in the workflow's
+cannot answer goes to Claude Haiku only when the paid fallback is switched
+on (`LLM_PAID_FALLBACK=true` with `ANTHROPIC_API_KEY`; off by default). The nightly needs `JOB_TOKEN` on the API and in the workflow's
 secrets, as every nightly step does. Tables: `intake_sittings`,
 `intake_photos`, `intake_entries`, `llm_usage` and `intake_settings`
 (migration 0015).

@@ -524,7 +524,7 @@ sources are configured at startup. Set them on the API service in Render and in
 | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` | Games (Twitch developer app) |
 | `TMDB_API_TOKEN` | Films |
 | `COMICVINE_API_KEY` | Comics |
-| `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, with `LLM_PROVIDER` | Photo import, Discover's ranking, Closet tagging and the other model calls. With `LLM_PROVIDER=gemini` (the default), setting `ANTHROPIC_API_KEY` as well adds Claude Haiku as the last link of the chain, reached only when every free Gemini model is used up, overloaded or out of time; `anthropic` sends every call to Haiku |
+| `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, with `LLM_PROVIDER` | Photo import, Discover's ranking, Closet tagging and the other model calls. With `LLM_PROVIDER=gemini` (the default) the chain is free and ends at the last Gemini model. Claude Haiku is added as a paid last link only when `LLM_PAID_FALLBACK=true` **and** `ANTHROPIC_API_KEY` are both set, reached only when every free Gemini model is used up, overloaded or out of time; a key alone bills nothing. `anthropic` sends every call to Haiku |
 | `GOOGLE_SHEETS_API_KEY` | The catalogue's registry refresh (the stores run without it) |
 | `BGG_TOKEN` | Reserved for board games; not usable yet |
 
