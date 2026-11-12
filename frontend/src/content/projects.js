@@ -1,4 +1,5 @@
 import { profile } from './profile.js'
+import { intake } from './intake.js'
 import { spine } from './spine.js'
 
 /**
@@ -31,6 +32,7 @@ export const projects = [
     links: [
       { to: spine.path, label: `Open ${spine.name}` },
       spine.links.post,
+      { to: intake.path, label: intake.title },
       spine.links.source,
     ],
     tech: [

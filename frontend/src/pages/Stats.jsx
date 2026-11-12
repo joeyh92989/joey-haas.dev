@@ -148,7 +148,7 @@ export default function Stats() {
       <h2>How this is counted</h2>
       <p className="prose">{COUNTED.join(' ')}</p>
 
-      <h2>Changes</h2>
+      <h2 id="changes">Changes</h2>
       <ol className="changelog" role="list">
         {CHANGELOG.map((entry) => (
           <li key={entry.date}>

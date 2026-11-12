@@ -252,7 +252,10 @@ describe('Stats', () => {
     })
     expect(screen.getByRole('status')).toHaveTextContent(WAKING)
     // The changelog is static copy: it shows whatever the API does.
-    expect(screen.getByRole('heading', { name: 'Changes' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Changes' })).toHaveAttribute(
+      'id',
+      'changes',
+    )
   })
 
   it('keeps its heading on a failed read, and Try again brings the figures', async () => {

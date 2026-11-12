@@ -4,7 +4,7 @@
  * screen reader pairs each value with its label.
  *
  * @param {object} props
- * @param {{label: string, value: import('react').ReactNode}[]} props.rows
+ * @param {{label: string, value: import('react').ReactNode, oneLine?: boolean}[]} props.rows
  */
 export default function FactsTable({ rows }) {
   return (
@@ -12,7 +12,9 @@ export default function FactsTable({ rows }) {
       {rows.map((row) => (
         <div key={row.label}>
           <dt>{row.label}</dt>
-          <dd>{row.value}</dd>
+          <dd className={row.oneLine ? 'facts-one-line' : undefined}>
+            {row.value}
+          </dd>
         </div>
       ))}
     </dl>

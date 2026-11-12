@@ -6,6 +6,8 @@ import Home from './Home.jsx'
 
 const content = vi.hoisted(() => ({ posts: [] }))
 vi.mock('../content/posts.js', () => content)
+const changes = vi.hoisted(() => ({ CHANGELOG: [] }))
+vi.mock('../content/changelog.js', () => changes)
 const tripContent = vi.hoisted(() => ({ trips: [] }))
 vi.mock('../content/trips.js', () => tripContent)
 const snapshots = vi.hoisted(() => ({ items: null }))
@@ -21,6 +23,8 @@ const POST = {
     summary: 'What it is, and the one rule.',
   },
 }
+
+const entry = (lines) => ({ date: '2026-10-02', lines })
 
 function game(id, fields) {
   return { id, type: 'game', title: `Game ${id}`, wanted: false, ...fields }
@@ -45,6 +49,7 @@ function facts() {
 
 afterEach(() => {
   content.posts.length = 0
+  changes.CHANGELOG.length = 0
   tripContent.trips.length = 0
   snapshots.items = null
 })
@@ -83,10 +88,29 @@ describe('Home', () => {
     expect(Object.keys(facts())).toEqual(['Now', 'Focus', 'Stack'])
   })
 
-  it('adds the newest post as Last shipped', () => {
-    content.posts.push(POST)
+  it('reads Last shipped from the newest changelog entry, named by its first link', () => {
+    changes.CHANGELOG.push(
+      entry(['The [shelf](/shelf) pages say when they cannot load.']),
+    )
     renderHome()
-    expect(facts()['Last shipped']).toBe('How Spine works · Oct 2')
+    expect(facts()['Last shipped']).toBe('My Shelf · Oct 2')
+    expect(
+      screen.getByRole('link', { name: 'My Shelf · Oct 2' }),
+    ).toHaveAttribute('href', '/stats#changes')
+  })
+
+  it('cuts a plain Last shipped at a word and keeps it on one line', () => {
+    changes.CHANGELOG.push(
+      entry([
+        'Links inside running text are now underlined, so they can be told apart.',
+      ]),
+    )
+    renderHome()
+    const text = facts()['Last shipped']
+    expect(text).toBe('Links inside running text are now underlined… · Oct 2')
+    expect(
+      screen.getByRole('link', { name: /Links inside/ }).closest('dd'),
+    ).toHaveClass('facts-one-line')
   })
 
   it('adds what is being played from the snapshot', async () => {

@@ -106,6 +106,28 @@ describe('Now', () => {
     ).toHaveAttribute('href', '/shelf/feed.xml')
   })
 
+  it('falls back to the first Tonight pick when nothing is pinned', async () => {
+    snapshots.items = [item('1', { title: 'Hades II', status: 'active' })]
+    snapshots.next = {
+      tonight: {
+        up_next: null,
+        picks: [
+          { item_id: '9', title: 'Dredge', platform: 'Switch' },
+          { item_id: '10', title: 'Pikmin 4', platform: null },
+        ],
+      },
+    }
+    renderPage()
+
+    const heading = await screen.findByRole('heading', { name: 'Up next' })
+    expect(heading.nextSibling).toHaveTextContent('Dredge · Switch')
+    expect(screen.getByRole('link', { name: 'Dredge' })).toHaveAttribute(
+      'href',
+      '/shelf/9/',
+    )
+    expect(screen.queryByText('Pikmin 4')).not.toBeInTheDocument()
+  })
+
   it('points to My Shelf when the build has no snapshot', async () => {
     renderPage()
     expect(await screen.findByText(/Nothing to show/)).toBeInTheDocument()

@@ -750,6 +750,15 @@ p.muted a,
   text-align: right;
 }
 
+/* A value that must stay on one line (Last shipped); text past the card is
+   cut with an ellipsis. The text is already clipped at a word. */
+.facts dd.facts-one-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Home's Work and Experience: a hairline above, the heading and its "all"
    link on one line. */
 .home-section {
@@ -11910,4 +11919,9 @@ a.btn.sm {
 
 .load-state p {
   margin: 0;
+}
+
+/* Now: the RSS line sits apart from the finished list above it. */
+.now-rss {
+  margin-top: 0.75rem;
 }

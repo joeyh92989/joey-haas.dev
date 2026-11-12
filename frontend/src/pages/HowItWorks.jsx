@@ -5,6 +5,7 @@ import NextRow from '../components/NextRow.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import Stop from '../components/Stop.jsx'
 import StopIndex from '../components/StopIndex.jsx'
+import { intake } from '../content/intake.js'
 import { spine } from '../content/spine.js'
 import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -147,9 +148,18 @@ export default function HowItWorks() {
 
   const live = {
     1: (
-      <Live state={items} empty={copy.stops[0].live.empty} count={games.length}>
-        <NewestCovers games={games} />
-      </Live>
+      <>
+        <Live
+          state={items}
+          empty={copy.stops[0].live.empty}
+          count={games.length}
+        >
+          <NewestCovers games={games} />
+        </Live>
+        <p className="how-try">
+          <Link to={intake.path}>{intake.title}</Link>
+        </p>
+      </>
     ),
     2: (
       <Live

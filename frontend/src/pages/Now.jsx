@@ -51,7 +51,7 @@ export default function Now() {
       ([snapshotItems, next]) => {
         if (cancelled) return
         setItems(snapshotItems ?? [])
-        setUpNext(next?.tonight?.up_next ?? null)
+        setUpNext(next?.tonight?.up_next ?? next?.tonight?.picks?.[0] ?? null)
       },
     )
     return () => {
@@ -149,7 +149,7 @@ export default function Now() {
               </li>
             ))}
           </ul>
-          <p className="muted">
+          <p className="muted now-rss">
             Also as an{' '}
             <a href={`${spine.path}/feed.xml`}>RSS feed of finished games</a>.
           </p>
