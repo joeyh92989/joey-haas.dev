@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 
 import pytest
@@ -15,7 +16,7 @@ from intake.budget import (
     pacific_day,
     remaining,
 )
-from llm import GEMINI_MODELS, GeminiProvider, build_provider
+from llm import GEMINI_MODELS, ChainedProvider, GeminiProvider, build_provider
 from models import LlmUsage
 from tests.test_llm import _FakeResponse, _patch_client, _quota_body
 
@@ -89,9 +90,10 @@ async def test_remaining_excludes_exhausted_models_and_the_reserve(
     async with sessionmaker_for_test() as session:
         left = await remaining(session, GEMINI_MODELS, day=date(2026, 11, 10))
         tomorrow = await remaining(session, GEMINI_MODELS, day=date(2026, 11, 11))
-    # Model 0: 15 left; model 1: exhausted; model 2: untouched, 20.
-    assert left == 15 + 20 - 12
-    assert tomorrow == 3 * DAILY_REQUESTS - 12
+    # Model 0: 15 left; model 1: exhausted; the rest untouched, 20 each.
+    untouched = len(GEMINI_MODELS) - 2
+    assert left == 15 + untouched * DAILY_REQUESTS - 12
+    assert tomorrow == len(GEMINI_MODELS) * DAILY_REQUESTS - 12
 
 
 @pytest.mark.asyncio
@@ -108,7 +110,7 @@ async def test_budget_state_resets_at_pacific_midnight(sessionmaker_for_test):
     async with sessionmaker_for_test() as session:
         state = await budget_state(session, _config(), now=EVENING)
     assert state == {
-        "remaining": 3 * DAILY_REQUESTS - 12,
+        "remaining": len(GEMINI_MODELS) * DAILY_REQUESTS - 12,
         "enforced": True,
         "resets_at": datetime(2026, 11, 11, 8, 0, tzinfo=UTC),
     }
@@ -152,17 +154,24 @@ async def test_a_per_day_429_marks_only_that_model(monkeypatch, sessionmaker_for
     rows = await _rows(sessionmaker_for_test)
     assert rows[GEMINI_MODELS[0]].exhausted is True
     assert rows[GEMINI_MODELS[1]].exhausted is False
+    # The third model answers, so the chain stops there.
     assert {model: row.calls for model, row in rows.items()} == dict.fromkeys(
-        GEMINI_MODELS, 1
+        GEMINI_MODELS[:3], 1
     )
 
 
 def test_build_provider_hands_the_recorder_to_gemini():
     recorder = UsageRecorder(session_factory=None)
-    provider = build_provider(_config(), recorder)
+    gemini_only = replace(_config(), anthropic_api_key=None)
+    provider = build_provider(gemini_only, recorder)
     assert isinstance(provider, GeminiProvider)
     assert provider._recorder is recorder
-    assert build_provider(_config()).__class__ is GeminiProvider
+    assert build_provider(gemini_only).__class__ is GeminiProvider
+    # With the paid link, the recorder still reaches the Gemini half: every
+    # free-tier attempt is counted whoever ends up answering.
+    chained = build_provider(_config(), recorder)
+    assert isinstance(chained, ChainedProvider)
+    assert chained._gemini._recorder is recorder
 
 
 @pytest.mark.parametrize("provider", ["anthropic"])

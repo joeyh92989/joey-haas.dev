@@ -231,7 +231,7 @@ def _patch_client(monkeypatch, responses: list[_FakeResponse]) -> list[str]:
     monkeypatch.setattr(
         "llm.httpx2.AsyncClient", lambda **_: _FakeClient(responses, calls)
     )
-    monkeypatch.setattr("llm.RETRY_DELAYS_SECONDS", (0, 0, 0))
+    monkeypatch.setattr("llm.RETRY_DELAY_SECONDS", 0)
     return calls
 
 
@@ -271,16 +271,28 @@ async def test_a_transient_503_is_retried_and_can_succeed(monkeypatch):
     # the last in the chain -- the retry is what keeps a good import from
     # failing for a reason the person holding the phone can do nothing about.
     ok = {"candidates": [{"content": {"parts": [{"text": '{"titles": ["Dune"]}'}]}}]}
-    calls = _patch_client(
-        monkeypatch, [_FakeResponse(503), _FakeResponse(503), _FakeResponse(200, ok)]
-    )
+    calls = _patch_client(monkeypatch, [_FakeResponse(503), _FakeResponse(200, ok)])
 
     result = await GeminiProvider(api_key="k", model=GEMINI_MODELS[0]).complete_json(
         "go", SCHEMA
     )
 
     assert result == {"titles": ["Dune"]}
-    assert calls == [GEMINI_MODELS[0]] * 3
+    assert calls == [GEMINI_MODELS[0]] * 2
+
+
+@pytest.mark.asyncio
+async def test_an_overloaded_model_is_retried_at_most_once(monkeypatch):
+    # One retry, not a back-off schedule: with six models and a paid link,
+    # moving on is cheaper than waiting.
+    calls = _patch_client(monkeypatch, [_FakeResponse(503)])
+
+    with pytest.raises(LLMError, match="overloaded"):
+        await GeminiProvider(api_key="k", model=GEMINI_MODELS[0]).complete_json(
+            "go", SCHEMA
+        )
+
+    assert calls == [GEMINI_MODELS[0]] * 2
 
 
 @pytest.mark.asyncio
@@ -328,9 +340,8 @@ async def test_sustained_overload_across_every_model_gives_up(monkeypatch):
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
 
     # One attempt on every model but the last, which has nothing to fall
-    # through to and so backs off: four attempts, one more than there are
-    # delays, since the final one is not followed by a wait.
-    assert calls == list(GEMINI_MODELS[:-1]) + [GEMINI_MODELS[-1]] * 4
+    # through to and so gets one retry.
+    assert calls == list(GEMINI_MODELS[:-1]) + [GEMINI_MODELS[-1]] * 2
     assert set(calls) == set(GEMINI_MODELS)
     assert "overloaded" in str(excinfo.value).lower()
 
@@ -545,7 +556,7 @@ def _patch_models(monkeypatch, outcomes, timeout_takes=60.0):
     calls: list[tuple[str, float]] = []
     clock = _Clock()
     monkeypatch.setattr("llm.monotonic", clock)
-    monkeypatch.setattr("llm.RETRY_DELAYS_SECONDS", (0, 0, 0))
+    monkeypatch.setattr("llm.RETRY_DELAY_SECONDS", 0)
     monkeypatch.setattr("llm.TOTAL_BUDGET_SECONDS", 150.0)
     monkeypatch.setattr(
         "llm.httpx2.AsyncClient",
@@ -566,13 +577,12 @@ async def test_a_first_model_that_keeps_timing_out_does_not_starve_the_rest(
     # The production failure: the first model timed out, answered 503, timed
     # out again, and its retries spent the whole 150s budget, so the healthy
     # models behind it were never asked and every caller failed.
-    first, second, third = GEMINI_MODELS
+    first, second, *_ = GEMINI_MODELS
     calls, _ = _patch_models(
         monkeypatch,
         {
+            **dict.fromkeys(GEMINI_MODELS, _FakeResponse(200, OK)),
             first: httpx2.ReadTimeout("read timed out"),
-            second: _FakeResponse(200, OK),
-            third: _FakeResponse(200, OK),
         },
     )
 
@@ -584,13 +594,12 @@ async def test_a_first_model_that_keeps_timing_out_does_not_starve_the_rest(
 
 @pytest.mark.asyncio
 async def test_a_503_moves_to_the_next_model_after_one_attempt(monkeypatch):
-    first, second, third = GEMINI_MODELS
+    first, second, *_ = GEMINI_MODELS
     calls, _ = _patch_models(
         monkeypatch,
         {
+            **dict.fromkeys(GEMINI_MODELS, _FakeResponse(200, OK)),
             first: _FakeResponse(503),
-            second: _FakeResponse(200, OK),
-            third: _FakeResponse(200, OK),
         },
     )
 
@@ -621,8 +630,330 @@ async def test_every_model_overloaded_gives_up_within_the_budget(monkeypatch):
         monkeypatch, dict.fromkeys(GEMINI_MODELS, httpx2.ReadTimeout("slow"))
     )
 
-    with pytest.raises(LLMError, match="across 3 models"):
+    with pytest.raises(LLMError, match=f"across {len(GEMINI_MODELS)} models"):
         await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
 
     assert {model for model, _ in calls} == set(GEMINI_MODELS)
     assert clock.now <= 150.0
+
+
+# --- the fallback chain (docs/planning/2026-11-11-llm-fallback-chain-*) ------
+
+import logging  # noqa: E402
+from datetime import UTC, datetime, timedelta  # noqa: E402
+
+import llm  # noqa: E402
+from llm import (  # noqa: E402
+    ANTHROPIC_RESERVE_SECONDS,
+    TEXT_ORDER,
+    THINKING_LEVELS,
+    VISION_ORDER,
+    ChainedProvider,
+    ModelUnavailable,
+    is_exhausted,
+)
+from recommendations_routes import _failure_note  # noqa: E402
+
+LITE = {"gemini-3.5-flash-lite", "gemini-3.1-flash-lite"}
+
+
+def test_text_calls_start_on_flash_lite_and_image_calls_on_flash():
+    assert TEXT_ORDER[0] in LITE
+    assert VISION_ORDER[0] not in LITE
+    # Both orders hold every model, so either can fall all the way through.
+    assert sorted(TEXT_ORDER) == sorted(VISION_ORDER) == sorted(THINKING_LEVELS)
+
+
+@pytest.mark.asyncio
+async def test_a_call_with_images_goes_to_the_vision_order(monkeypatch):
+    calls = _patch_client(monkeypatch, [_FakeResponse(200, OK)])
+
+    await GeminiProvider(api_key="k").complete_json("go", SCHEMA, [JPEG])
+
+    assert calls == [VISION_ORDER[0]]
+
+
+def test_every_chain_model_is_sent_its_thinking_level():
+    provider = GeminiProvider(api_key="k")
+    for model, level in THINKING_LEVELS.items():
+        body = provider._build_body("go", SCHEMA, [], THINKING_LEVELS[model])
+        assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": level}
+    assert (
+        "thinkingConfig"
+        not in provider._build_body("go", SCHEMA, [])["generationConfig"]
+    )
+
+
+class _BodyClient(_FakeClient):
+    """Records each request body alongside the model."""
+
+    def __init__(self, responses, calls, bodies):
+        super().__init__(responses, calls)
+        self._bodies = bodies
+
+    async def post(self, url, **kwargs):
+        self._bodies.append(kwargs["json"])
+        return await super().post(url, **kwargs)
+
+
+@pytest.mark.asyncio
+async def test_a_refused_thinking_level_is_retried_without_it(monkeypatch, caplog):
+    # The probe's real answer from gemini-3.7-flash to MINIMAL.
+    refused = _FakeResponse(
+        400,
+        {
+            "error": {
+                "code": 400,
+                "message": "Thinking level MINIMAL is not supported for this "
+                "model. Please retry with other thinking level.",
+            }
+        },
+    )
+    calls: list[str] = []
+    bodies: list[dict] = []
+    queue = [refused, _FakeResponse(200, OK)]
+    monkeypatch.setattr(
+        "llm.httpx2.AsyncClient", lambda **_: _BodyClient(queue, calls, bodies)
+    )
+
+    with caplog.at_level(logging.WARNING, logger="llm"):
+        result = await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    assert result == {"titles": ["Dune"]}
+    assert calls == [TEXT_ORDER[0]] * 2
+    assert bodies[0]["generationConfig"]["thinkingConfig"] == {
+        "thinkingLevel": THINKING_LEVELS[TEXT_ORDER[0]]
+    }
+    assert "thinkingConfig" not in bodies[1]["generationConfig"]
+    assert "refused thinking level" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_a_withdrawn_model_falls_through(monkeypatch):
+    # The 2.5 models answer 404 "no longer available to new users".
+    calls = _patch_client(monkeypatch, [_FakeResponse(404), _FakeResponse(200, OK)])
+
+    assert await GeminiProvider(api_key="k").complete_json("go", SCHEMA) == {
+        "titles": ["Dune"]
+    }
+    assert calls == list(TEXT_ORDER[:2])
+
+
+PER_DAY = "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+PER_MINUTE = "GenerateRequestsPerMinutePerProjectPerModel-FreeTier"
+
+
+@pytest.mark.asyncio
+async def test_a_per_day_429_is_not_asked_again_the_same_day(monkeypatch):
+    first = TEXT_ORDER[0]
+    calls = _patch_client(
+        monkeypatch,
+        [_FakeResponse(429, _quota_body(PER_DAY)), _FakeResponse(200, OK)],
+    )
+    provider = GeminiProvider(api_key="k")
+
+    await provider.complete_json("go", SCHEMA)
+    await provider.complete_json("go", SCHEMA)
+
+    assert calls == [first, TEXT_ORDER[1], TEXT_ORDER[1]]
+    assert is_exhausted(first)
+
+
+@pytest.mark.asyncio
+async def test_a_per_minute_429_falls_through_without_marking(monkeypatch):
+    first = TEXT_ORDER[0]
+    calls = _patch_client(
+        monkeypatch,
+        [_FakeResponse(429, _quota_body(PER_MINUTE)), _FakeResponse(200, OK)],
+    )
+    provider = GeminiProvider(api_key="k")
+
+    await provider.complete_json("go", SCHEMA)
+    await provider.complete_json("go", SCHEMA)
+
+    assert calls == [first, TEXT_ORDER[1], first]
+    assert not is_exhausted(first)
+
+
+def test_an_exhausted_model_is_asked_again_after_midnight_pacific(monkeypatch):
+    # 23:30 in Los Angeles on 11 November (PST, UTC-8).
+    now = datetime(2026, 11, 12, 7, 30, tzinfo=UTC)
+    monkeypatch.setattr("llm._utcnow", lambda: now)
+    llm.mark_exhausted("gemini-3.6-flash")
+    assert is_exhausted("gemini-3.6-flash")
+
+    monkeypatch.setattr("llm._utcnow", lambda: now + timedelta(minutes=29))
+    assert is_exhausted("gemini-3.6-flash")
+    monkeypatch.setattr("llm._utcnow", lambda: now + timedelta(minutes=30))
+    assert not is_exhausted("gemini-3.6-flash")
+
+
+@pytest.mark.asyncio
+async def test_every_model_exhausted_sends_nothing_and_says_used_up(monkeypatch):
+    calls = _patch_client(monkeypatch, [_FakeResponse(200, OK)])
+    for model in TEXT_ORDER:
+        llm.mark_exhausted(model)
+
+    with pytest.raises(ModelUnavailable) as raised:
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    assert calls == []
+    assert _failure_note(str(raised.value)) == "Gemini's daily quota is used up"
+
+
+class _FakeAnthropic:
+    """Stands in for AnthropicProvider inside the chain."""
+
+    model = "claude-haiku-5-5"
+
+    def __init__(self, answer=None, error: LLMError | None = None, clock=None):
+        self.calls: list[dict] = []
+        self._answer = answer if answer is not None else {"titles": ["Haiku"]}
+        self._error = error
+        self._clock = clock
+
+    async def complete_json(self, prompt, schema, images=None, *, timeout, trace):
+        self.calls.append(
+            {
+                "images": len(images or []),
+                "timeout": timeout,
+                "at": self._clock.now if self._clock else None,
+            }
+        )
+        if self._error is not None:
+            trace.note(self.model, "failed")
+            raise self._error
+        return self._answer
+
+
+def _chain(anthropic) -> ChainedProvider:
+    return ChainedProvider(GeminiProvider(api_key="k"), anthropic)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("images", [[], [JPEG]])
+async def test_haiku_answers_when_every_gemini_model_is_used_up(monkeypatch, images):
+    _patch_client(monkeypatch, [_FakeResponse(429, _quota_body(PER_DAY))])
+    anthropic = _FakeAnthropic()
+
+    result = await _chain(anthropic).complete_json("go", SCHEMA, images)
+
+    assert result == {"titles": ["Haiku"]}
+    assert anthropic.calls[0]["images"] == len(images)
+
+
+@pytest.mark.asyncio
+async def test_gemini_answering_never_reaches_haiku(monkeypatch):
+    _patch_client(monkeypatch, [_FakeResponse(200, OK)])
+    anthropic = _FakeAnthropic()
+
+    assert await _chain(anthropic).complete_json("go", SCHEMA) == {"titles": ["Dune"]}
+    assert anthropic.calls == []
+
+
+@pytest.mark.asyncio
+async def test_a_bad_request_is_not_handed_to_the_paid_link(monkeypatch):
+    _patch_client(monkeypatch, [_FakeResponse(400)])
+    anthropic = _FakeAnthropic()
+
+    with pytest.raises(LLMError, match="HTTP 400"):
+        await _chain(anthropic).complete_json("go", SCHEMA)
+    assert anthropic.calls == []
+
+
+@pytest.mark.asyncio
+async def test_with_a_paid_link_the_last_gemini_model_does_not_retry(monkeypatch):
+    calls = _patch_client(monkeypatch, [_FakeResponse(503)])
+
+    await _chain(_FakeAnthropic()).complete_json("go", SCHEMA)
+
+    assert calls == list(TEXT_ORDER)
+
+
+@pytest.mark.asyncio
+async def test_gemini_hands_off_inside_its_share_of_the_budget(monkeypatch):
+    calls, clock = _patch_models(
+        monkeypatch, dict.fromkeys(GEMINI_MODELS, httpx2.ReadTimeout("slow"))
+    )
+    anthropic = _FakeAnthropic(clock=clock)
+
+    assert await _chain(anthropic).complete_json("go", SCHEMA) == {"titles": ["Haiku"]}
+
+    gemini_budget = 150.0 - ANTHROPIC_RESERVE_SECONDS
+    assert anthropic.calls[0]["at"] <= gemini_budget
+    assert anthropic.calls[0]["timeout"] >= ANTHROPIC_RESERVE_SECONDS
+    assert all(timeout <= gemini_budget for _, timeout in calls)
+
+
+@pytest.mark.asyncio
+async def test_a_failing_paid_link_keeps_its_own_words(monkeypatch):
+    _patch_client(monkeypatch, [_FakeResponse(429, _quota_body(PER_DAY))])
+    overloaded = LLMError("Anthropic request failed: Error code: 529 - overloaded")
+
+    with pytest.raises(LLMError) as raised:
+        await _chain(_FakeAnthropic(error=overloaded)).complete_json("go", SCHEMA)
+
+    assert _failure_note(str(raised.value)) == (
+        "The model is overloaded; try again in a few minutes"
+    )
+
+
+@pytest.mark.asyncio
+async def test_without_a_key_the_daily_message_still_reads_as_used_up(monkeypatch):
+    _patch_client(monkeypatch, [_FakeResponse(429, _quota_body(PER_DAY))])
+
+    with pytest.raises(LLMError) as raised:
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    assert _failure_note(str(raised.value)) == "Gemini's daily quota is used up"
+    assert "LLM_PROVIDER=anthropic" not in str(raised.value)
+
+
+def test_build_provider_chains_when_both_keys_are_set():
+    both = build_provider(
+        _config(llm_provider="gemini", gemini_api_key="g", anthropic_api_key="a")
+    )
+    assert isinstance(both, ChainedProvider)
+
+    anthropic_only = build_provider(
+        _config(llm_provider="anthropic", gemini_api_key="g", anthropic_api_key="a")
+    )
+    assert isinstance(anthropic_only, AnthropicProvider)
+    assert anthropic_only.model == "claude-haiku-5-5"
+
+
+def _llm_info_lines(caplog) -> list[str]:
+    return [
+        r.getMessage()
+        for r in caplog.records
+        if r.name == "llm" and r.levelno == logging.INFO
+    ]
+
+
+@pytest.mark.asyncio
+async def test_one_log_line_names_the_answer_and_what_was_skipped(monkeypatch, caplog):
+    _patch_client(monkeypatch, [_FakeResponse(503), _FakeResponse(200, OK)])
+
+    with caplog.at_level(logging.DEBUG, logger="llm"):
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+
+    [line] = _llm_info_lines(caplog)
+    assert line.startswith(f"llm answered by {TEXT_ORDER[1]} in ")
+    assert f"skipped: {TEXT_ORDER[0]}(503)" in line
+
+
+@pytest.mark.asyncio
+async def test_one_log_line_for_a_hand_off_and_for_a_failure(monkeypatch, caplog):
+    _patch_client(monkeypatch, [_FakeResponse(429, _quota_body(PER_DAY))])
+
+    with caplog.at_level(logging.DEBUG, logger="llm"):
+        await _chain(_FakeAnthropic()).complete_json("go", SCHEMA)
+    [line] = _llm_info_lines(caplog)
+    assert line.startswith("llm answered by claude-haiku-5-5 in ")
+    assert f"{TEXT_ORDER[0]}(used up)" in line
+
+    caplog.clear()
+    with caplog.at_level(logging.DEBUG, logger="llm"), pytest.raises(LLMError):
+        await GeminiProvider(api_key="k").complete_json("go", SCHEMA)
+    [line] = _llm_info_lines(caplog)
+    assert line.startswith("llm failed in ")
