@@ -639,7 +639,7 @@ describe('AdminClosetReview', () => {
     stub({ 'GET /api/closet/review': json({}, 401) })
     renderPage()
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session ended. Sign in again to review.',
+      'Your session ended. Sign in again.',
     )
   })
 
@@ -662,7 +662,7 @@ describe('AdminClosetReview', () => {
     await screen.findByRole('heading', { name: 'never worn' })
     await user.click(outcome('Donate'))
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session ended. Sign in again to review.',
+      'Your session ended. Sign in again.',
     )
     expect(screen.getByRole('heading', { name: 'never worn' })).toBeVisible()
   })

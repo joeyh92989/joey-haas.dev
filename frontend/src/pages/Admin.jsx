@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import AreaCard, { AreaLead } from '../components/AreaCard.jsx'
 import CoverImage from '../components/CoverImage.jsx'
+import LoadState from '../components/LoadState.jsx'
 import JobsList, { NightlyStatus } from '../components/JobsList.jsx'
 import { StatusText } from '../components/JobStatusRow.jsx'
 import OutfitSwatches from '../components/OutfitSwatches.jsx'
@@ -10,6 +11,7 @@ import SwapSheet from '../components/SwapSheet.jsx'
 import WrapUpSheet from '../components/WrapUpSheet.jsx'
 import { jobsSummary, useNightly } from '../lib/adminJobs.js'
 import { counted } from '../lib/analytics.js'
+import { SESSION_ENDED } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import {
   OCCASION_LABELS,
@@ -20,16 +22,29 @@ import {
 import { dashboardCounts } from '../lib/dashboard.js'
 import { ownerYear } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
+import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
+
+/** What a card says in place of a figure or lead it could not read. */
+const COULDNT_READ = "Couldn't read"
+
+/** The cards in page order, as the top line names them. */
+const AREAS = ['Closet', 'Shelf', 'Denver', 'Site']
 
 /**
- * A JSON body, or null when it cannot be read. Never rejects: a card shows
- * what it has rather than failing the page.
+ * A JSON body, or null when it cannot be read or does not answer within the
+ * deadline. Never rejects: a card shows what it has rather than failing the
+ * page.
  */
-async function readJson(path) {
+async function readJson(path, signal) {
   try {
-    const response = await apiFetch(path)
-    if (!response.ok) return null
-    return await response.json()
+    return await withDeadline(
+      async (inner) => {
+        const response = await apiFetch(path, { signal: inner })
+        if (!response.ok) return null
+        return await response.json()
+      },
+      { ms: READ_DEADLINE_MS, signal },
+    )
   } catch {
     return null
   }
@@ -37,25 +52,33 @@ async function readJson(path) {
 
 /**
  * Reads `path` once per `round`. undefined until the first read lands, null
- * when the read failed. A later round keeps the last body until its own
- * lands, so a card never drops the controls it was just used through.
+ * when the read failed. A later round keeps the last good body until its own
+ * lands, so a card never drops the controls it was just used through; a
+ * failed one goes back to undefined (loading) while it is read again.
  */
 function useRead(path, round = 0) {
-  const [body, setBody] = useState(undefined)
+  const [state, setState] = useState({ round, body: undefined })
   useEffect(() => {
-    let live = true
-    readJson(path).then((next) => {
-      if (live) setBody(next)
+    const controller = new AbortController()
+    readJson(path, controller.signal).then((body) => {
+      if (!controller.signal.aborted) setState({ round, body })
     })
-    return () => {
-      live = false
-    }
+    return () => controller.abort()
   }, [path, round])
-  return body
+  if (state.round !== round && state.body === null) return undefined
+  return state.body
+}
+
+/** Tells Home whether the card named `area` has a read that failed. */
+function useReportFailure(area, failed, onFailure) {
+  useEffect(() => {
+    onFailure(area, failed)
+  }, [area, failed, onFailure])
 }
 
 const listLength = (body) => (Array.isArray(body) ? body.length : null)
-const figure = (value) => (value === null || value === undefined ? '—' : value)
+const figure = (value, failed = false) =>
+  value === null || value === undefined ? (failed ? COULDNT_READ : '—') : value
 
 /** The game in hand's line of detail: platform, sessions and hours. */
 function continuingMeta(card) {
@@ -73,8 +96,6 @@ function outfitMeta(plan) {
   return parts.join(' · ')
 }
 
-const SESSION_ENDED = 'Your session ended. Sign in again to record it.'
-
 /**
  * Closet: the day's stored lead outfit as swatches, with Wore this and
  * Swap. Only a stored plan is read (`stored_only`), so Home never spends a
@@ -82,8 +103,8 @@ const SESSION_ENDED = 'Your session ended. Sign in again to record it.'
  * Its figures are the layout's: what Review has flagged, and what is still
  * untagged.
  */
-function ClosetCard({ review, untagged }) {
-  const today = useRead('/api/closet/today?stored_only=true')
+function ClosetCard({ review, untagged, round, onFailure }) {
+  const today = useRead('/api/closet/today?stored_only=true', round)
   const [outfit, setOutfit] = useState(null)
   const [swapped, setSwapped] = useState(false)
   const [swapOpen, setSwapOpen] = useState(false)
@@ -95,7 +116,9 @@ function ClosetCard({ review, untagged }) {
 
   const plan = today?.plan ?? null
   const lead = outfit ?? plan?.lead ?? null
-  if (today !== undefined && !lead) return null
+  const failed = today === null
+  useReportFailure('Closet', failed, onFailure)
+  if (today !== undefined && !failed && !lead) return null
 
   async function wore() {
     if (busy) return
@@ -148,12 +171,12 @@ function ClosetCard({ review, untagged }) {
               meta={outfitMeta(plan)}
             />
           ) : (
-            <p className="muted">Loading…</p>
+            <p className="muted">{failed ? COULDNT_READ : 'Loading…'}</p>
           )
         }
         figures={[
-          { label: 'To review', value: figure(review) },
-          { label: 'Untagged', value: figure(untagged) },
+          { label: 'To review', value: figure(review, failed) },
+          { label: 'Untagged', value: figure(untagged, failed) },
         ]}
         actions={
           lead &&
@@ -217,15 +240,17 @@ function ClosetCard({ review, untagged }) {
  * Shelf: the game in hand with Log tonight and Wrap up, or else the next
  * game to start; what is owned, finished this year and out this week.
  */
-function ShelfCard({ items, year }) {
+function ShelfCard({ items, year, round: retryRound, onFailure }) {
   const [round, setRound] = useState(0)
   const [wrap, setWrap] = useState(null)
   const [logError, setLogError] = useState(false)
   // The game being logged, held from the press until the refetch says the
   // day is logged, so a second press cannot post the same day twice.
   const [loggingId, setLoggingId] = useState(null)
-  const continuing = useRead('/api/picker/continuing', round)
-  const next = useRead('/api/public/next')
+  const continuing = useRead('/api/picker/continuing', round + retryRound)
+  const next = useRead('/api/public/next', retryRound)
+  const failed = continuing === null || next === null
+  useReportFailure('Shelf', failed, onFailure)
 
   const card = continuing?.cards?.[0] ?? null
   const pick = next?.tonight?.up_next ?? next?.tonight?.picks?.[0] ?? null
@@ -240,6 +265,7 @@ function ShelfCard({ items, year }) {
     counts.owned === 0 &&
     !card &&
     !pick &&
+    !failed &&
     continuing !== undefined
   )
     return null
@@ -318,6 +344,8 @@ function ShelfCard({ items, year }) {
     )
   } else if (continuing === undefined) {
     lead = <p className="muted">Loading…</p>
+  } else if (continuing === null) {
+    lead = <p className="muted">{COULDNT_READ}</p>
   }
 
   return (
@@ -328,12 +356,12 @@ function ShelfCard({ items, year }) {
         linkLabel="Play Next"
         lead={lead}
         figures={[
-          { label: 'Owned', value: figure(counts?.owned) },
+          { label: 'Owned', value: figure(counts?.owned, failed) },
           {
             label: `Finished · ${year}`,
-            value: figure(counts?.finishedThisYear),
+            value: figure(counts?.finishedThisYear, failed),
           },
-          { label: 'Comics this week', value: figure(comics) },
+          { label: 'Comics this week', value: figure(comics, failed) },
         ]}
         actions={actions}
       />
@@ -350,15 +378,22 @@ function ShelfCard({ items, year }) {
 }
 
 /** Denver: this weekend's first suggestions, and the spots and the queue. */
-function DenverCard() {
-  const plan = useRead('/api/spots/plan')
-  const spots = useRead('/api/spots')
-  const candidates = useRead('/api/spots/candidates')
+function DenverCard({ round, onFailure }) {
+  const plan = useRead('/api/spots/plan', round)
+  const spots = useRead('/api/spots', round)
+  const candidates = useRead('/api/spots/candidates', round)
+  const failed = plan === null || spots === null || candidates === null
+  useReportFailure('Denver', failed, onFailure)
   const suggestions = Array.isArray(plan?.suggestions) ? plan.suggestions : []
   const spotCount = listLength(spots)
   const queued = listLength(candidates)
 
-  if (spotCount === 0 && plan !== undefined && suggestions.length === 0)
+  if (
+    spotCount === 0 &&
+    plan !== undefined &&
+    !failed &&
+    suggestions.length === 0
+  )
     return null
 
   const [first, second] = suggestions
@@ -368,7 +403,9 @@ function DenverCard() {
       meta={second && `${second.when} · ${second.name}`}
     />
   ) : (
-    plan === undefined && <p className="muted">Loading…</p>
+    (plan === undefined || plan === null) && (
+      <p className="muted">{plan === null ? COULDNT_READ : 'Loading…'}</p>
+    )
   )
 
   return (
@@ -378,8 +415,8 @@ function DenverCard() {
       linkLabel="Weekend"
       lead={lead}
       figures={[
-        { label: 'Spots', value: figure(spotCount) },
-        { label: 'Candidates', value: figure(queued) },
+        { label: 'Spots', value: figure(spotCount, failed) },
+        { label: 'Candidates', value: figure(queued, failed) },
       ]}
       actions={
         queued ? (
@@ -393,8 +430,10 @@ function DenverCard() {
 }
 
 /** Site: the last seven days' traffic and the nightly jobs in one line. */
-function SiteCard({ nightly }) {
-  const views = useRead('/api/analytics?range=7d')
+function SiteCard({ nightly, round, onFailure }) {
+  const views = useRead('/api/analytics?range=7d', round)
+  const failed = views === null
+  useReportFailure('Site', failed, onFailure)
   const read = typeof views?.views === 'number' ? views : null
   // Ranked rows from analytics._ranked: {value, count}.
   const top = read?.pages?.[0]?.value ?? null
@@ -413,8 +452,8 @@ function SiteCard({ nightly }) {
         ) : null
       }
       figures={[
-        { label: 'Views · 7 days', value: figure(read?.views) },
-        { label: 'Visitors', value: figure(read?.visitors) },
+        { label: 'Views · 7 days', value: figure(read?.views, failed) },
+        { label: 'Visitors', value: figure(read?.visitors, failed) },
         ...(top ? [{ label: 'Top page', value: top }] : []),
       ]}
       actions={
@@ -435,6 +474,23 @@ export default function Admin() {
   const { items, closetUntagged, closetReview } = useOutletContext() ?? {}
   const nightly = useNightly()
   const year = ownerYear(nightly.now)
+  // Which cards have a read that failed, and how often each was retried.
+  const [failures, setFailures] = useState({})
+  const [rounds, setRounds] = useState({})
+  const onFailure = useCallback(
+    (area, failed) =>
+      setFailures((current) =>
+        current[area] === failed ? current : { ...current, [area]: failed },
+      ),
+    [],
+  )
+  const failedAreas = AREAS.filter((area) => failures[area])
+  const retry = () =>
+    setRounds((current) => {
+      const next = { ...current }
+      for (const area of failedAreas) next[area] = (next[area] ?? 0) + 1
+      return next
+    })
 
   return (
     <section className="dashboard">
@@ -442,11 +498,33 @@ export default function Admin() {
         <NightlyStatus nightly={nightly} />
       </AdminPageHeader>
 
+      {failedAreas.length > 0 && (
+        <LoadState
+          failed
+          message={`${COULDNT_READ}: ${failedAreas.join(', ')}.`}
+          onRetry={retry}
+        />
+      )}
+
       <div className="area-cards">
-        <ClosetCard review={closetReview} untagged={closetUntagged} />
-        <ShelfCard items={items} year={year} />
-        <DenverCard />
-        <SiteCard nightly={nightly} />
+        <ClosetCard
+          review={closetReview}
+          untagged={closetUntagged}
+          round={rounds.Closet ?? 0}
+          onFailure={onFailure}
+        />
+        <ShelfCard
+          items={items}
+          year={year}
+          round={rounds.Shelf ?? 0}
+          onFailure={onFailure}
+        />
+        <DenverCard round={rounds.Denver ?? 0} onFailure={onFailure} />
+        <SiteCard
+          nightly={nightly}
+          round={rounds.Site ?? 0}
+          onFailure={onFailure}
+        />
       </div>
 
       <JobsList

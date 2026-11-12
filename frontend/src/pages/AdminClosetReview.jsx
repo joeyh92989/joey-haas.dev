@@ -5,11 +5,15 @@ import ReviewDeck from '../components/ReviewDeck.jsx'
 import SeasonTurnBanner from '../components/SeasonTurnBanner.jsx'
 import SellChecklistSheet from '../components/SellChecklistSheet.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
-import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
+import {
+  ACTION_ERROR,
+  LOAD_ERROR,
+  SESSION_ENDED,
+  WAKING,
+} from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { garmentTitle } from '../lib/closet.js'
 
-const SESSION_ENDED = 'Your session ended. Sign in again to review.'
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
 /**

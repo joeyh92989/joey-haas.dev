@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
+import LoadState from '../components/LoadState.jsx'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import RateAFew from '../components/RateAFew.jsx'
 import RecommendationCard, {
   DISCOVER_ACTIONS,
 } from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 
 const POPULARITY = [
@@ -26,20 +28,25 @@ const PLATFORMS = [
 
 async function fetchDiscover() {
   try {
-    const [discover, items] = await Promise.all([
-      apiFetch('/api/recommendations?kind=discover'),
-      apiFetch('/api/items?type=game&status=finished'),
-    ])
-    if (discover.status === 401 || items.status === 401)
-      return { state: 'unauthorized' }
-    if (!discover.ok)
-      return { state: 'error', error: await errorMessage(discover) }
-    // Rate a few is an extra: the picks still show without it.
-    return {
-      state: 'ready',
-      discover: await discover.json(),
-      items: items.ok ? await items.json() : [],
-    }
+    return await withDeadline(
+      async (signal) => {
+        const [discover, items] = await Promise.all([
+          apiFetch('/api/recommendations?kind=discover', { signal }),
+          apiFetch('/api/items?type=game&status=finished', { signal }),
+        ])
+        if (discover.status === 401 || items.status === 401)
+          return { state: 'unauthorized' }
+        if (!discover.ok)
+          return { state: 'error', error: await errorMessage(discover) }
+        // Rate a few is an extra: the picks still show without it.
+        return {
+          state: 'ready',
+          discover: await discover.json(),
+          items: items.ok ? await items.json() : [],
+        }
+      },
+      { ms: READ_DEADLINE_MS },
+    )
   } catch {
     return { state: 'error', error: LOAD_ERROR }
   }
@@ -107,6 +114,7 @@ export default function AdminDiscover() {
   // the list cannot say.
   const [emptyNote, setEmptyNote] = useState(null)
   const [error, setError] = useState(null)
+  const [attempt, setAttempt] = useState(0)
 
   const apply = useCallback((result) => {
     setState(result.state)
@@ -123,7 +131,7 @@ export default function AdminDiscover() {
     return () => {
       live = false
     }
-  }, [apply, signedIn])
+  }, [apply, signedIn, attempt])
 
   function togglePlatform(id) {
     setPlatforms((current) =>
@@ -307,8 +315,17 @@ export default function AdminDiscover() {
         </p>
       )}
       {message && <p role="status">{message}</p>}
-      {error && <p role="alert">{error}</p>}
-      {state === 'loading' && <p className="muted">Loading Discover…</p>}
+      {error && state !== 'error' && <p role="alert">{error}</p>}
+      <LoadState
+        loading={state === 'loading'}
+        failed={state === 'error'}
+        message={error ?? undefined}
+        onRetry={() => {
+          setState('loading')
+          setError(null)
+          setAttempt((n) => n + 1)
+        }}
+      />
 
       <RateAFew
         items={items}

@@ -496,6 +496,36 @@ describe('Registry disagreements', () => {
   })
 })
 
+describe('failed list reads', () => {
+  it.each([
+    ['Needs match', 'needs-match', { keys: [], total: 0 }],
+    ['Registry disagreements', 'disagreements', { items: [] }],
+  ])(
+    '%s says it did not load, never the raw error, and Try again reads it',
+    async (name, path, body) => {
+      let up = false
+      stubApi({
+        [`GET /api/physical/${path}`]: () =>
+          up ? json(body) : json({ detail: 'psycopg exploded' }, 500),
+      })
+      renderPage()
+      const panel = await screen.findByRole('region', { name })
+      const alert = await within(panel).findByRole('alert')
+      expect(alert).toHaveTextContent(
+        'That didn’t load. Try again in a minute.',
+      )
+      expect(panel).not.toHaveTextContent('psycopg exploded')
+      up = true
+      await userEvent
+        .setup()
+        .click(within(alert).getByRole('button', { name: 'Try again' }))
+      await waitFor(() =>
+        expect(within(panel).queryByRole('alert')).not.toBeInTheDocument(),
+      )
+    },
+  )
+})
+
 describe('finish-gate review', () => {
   it('stops Resolve when a batch changes nothing', async () => {
     const calls = stubApi({

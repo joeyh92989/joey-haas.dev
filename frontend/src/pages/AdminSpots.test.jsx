@@ -272,6 +272,23 @@ describe('AdminSpots', () => {
     )
   })
 
+  it('says the spots failed to load and offers Try again', async () => {
+    let up = false
+    stubApi({
+      'GET /api/spots': () => (up ? json(SPOTS) : json({}, 500)),
+    })
+    render(<AdminSpots />)
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('The spots couldn’t be read.')
+    expect(screen.queryByText('Loading spots…')).not.toBeInTheDocument()
+    up = true
+    await userEvent
+      .setup()
+      .click(within(alert).getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByRole('table')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   describe('the spot finder', () => {
     function candidate(id, name, fields = {}) {
       return {

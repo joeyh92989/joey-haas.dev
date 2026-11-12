@@ -405,4 +405,28 @@ describe('AdminRadar', () => {
     renderPage({ signedIn: false })
     expect(await screen.findByRole('link', { name: 'Sign in' })).toBeVisible()
   })
+
+  it('says the read failed and reads again on Try again', async () => {
+    let up = false
+    stubApi({
+      'GET /api/recommendations': async () => {
+        if (!up) throw new TypeError('Failed to fetch')
+        return { ok: true, status: 200, json: async () => RADAR }
+      },
+    })
+    renderPage()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('That didn’t load. Try again in a minute.')
+    expect(screen.queryByText(/^Loading/)).not.toBeInTheDocument()
+    up = true
+    await userEvent
+      .setup()
+      .click(within(alert).getByRole('button', { name: 'Try again' }))
+    expect(
+      await screen.findByRole('heading', { name: 'Wanted, still to come' }),
+    ).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
+    )
+  })
 })

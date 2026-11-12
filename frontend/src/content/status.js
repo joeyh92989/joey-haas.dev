@@ -59,7 +59,7 @@ export const ACTION_ERROR = 'Couldn’t reach the server. Try again in a minute.
 export const TRY_AGAIN = 'Try again'
 
 /** A signed-in action that finds the session gone. */
-export const SESSION_ENDED = 'Your session ended. Sign in again to record it.'
+export const SESSION_ENDED = 'Your session ended. Sign in again.'
 
 /** Beside Try again when a live refresh failed but an older copy is showing. */
 export const STALE_COPY = 'Showing the last saved copy.'

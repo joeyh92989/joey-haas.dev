@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import { StatusText } from '../components/JobStatusRow.jsx'
+import LoadState from '../components/LoadState.jsx'
 import Panel from '../components/Panel.jsx'
 import SuggestionCard from '../components/SuggestionCard.jsx'
 import WeatherPanel from '../components/WeatherPanel.jsx'
@@ -10,6 +11,7 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { formatDate } from '../lib/formatDate.js'
 import { whenWords } from '../lib/nightly.js'
 import { localToday } from '../lib/statusMoves.js'
+import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 
 const copy = denver.weekend
 const ACTION_ERROR = 'That didn’t go through. Check your connection.'
@@ -46,11 +48,23 @@ async function failureText(response) {
 /** The plan for a seed, returned rather than set: `{plan}` or `{error}`. */
 async function fetchPlan(seed) {
   try {
-    const response = await apiFetch(`/api/spots/plan?seed=${seed}`)
-    if (response.ok) return { plan: await response.json() }
+    // The deadline covers the body too: a plan that never finishes arriving
+    // is a failed read.
+    const answer = await withDeadline(
+      async (signal) => {
+        const response = await apiFetch(`/api/spots/plan?seed=${seed}`, {
+          signal,
+        })
+        return response.ok
+          ? { plan: await response.json() }
+          : { status: response.status }
+      },
+      { ms: READ_DEADLINE_MS },
+    )
+    if (answer.plan) return answer
     return {
       error:
-        response.status === 401 || response.status === 403
+        answer.status === 401 || answer.status === 403
           ? denver.admin.sessionEnded
           : copy.readError,
     }
@@ -312,13 +326,16 @@ export default function AdminWeekend() {
     return (
       <div className="weekend">
         <AdminPageHeader title={copy.title} />
-        {error ? (
-          <p className="admin-error" role="alert">
-            {error}
-          </p>
-        ) : (
-          <p className="muted">Loading…</p>
-        )}
+        <LoadState
+          loading={!error}
+          failed={!!error}
+          message={error ?? undefined}
+          onRetry={() => {
+            setReadError(null)
+            setWriteError(null)
+            again()
+          }}
+        />
       </div>
     )
   }

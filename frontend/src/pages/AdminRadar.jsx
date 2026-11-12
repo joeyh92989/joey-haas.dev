@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
+import LoadState from '../components/LoadState.jsx'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import RecommendationCard from '../components/RecommendationCard.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { dayWords, MONTH, releaseWords, utc } from '../lib/releaseWords.js'
 import { localToday } from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
@@ -75,20 +77,26 @@ export function byMonth(rows, today) {
 
 async function fetchRadar() {
   try {
-    const [radar, watching] = await Promise.all([
-      apiFetch('/api/recommendations?kind=radar'),
-      apiFetch('/api/recommendations/watching'),
-    ])
-    if (radar.status === 401 || watching.status === 401)
-      return { state: 'unauthorized' }
-    if (!radar.ok) return { state: 'error', error: await errorMessage(radar) }
-    if (!watching.ok)
-      return { state: 'error', error: await errorMessage(watching) }
-    return {
-      state: 'ready',
-      radar: await radar.json(),
-      watching: await watching.json(),
-    }
+    return await withDeadline(
+      async (signal) => {
+        const [radar, watching] = await Promise.all([
+          apiFetch('/api/recommendations?kind=radar', { signal }),
+          apiFetch('/api/recommendations/watching', { signal }),
+        ])
+        if (radar.status === 401 || watching.status === 401)
+          return { state: 'unauthorized' }
+        if (!radar.ok)
+          return { state: 'error', error: await errorMessage(radar) }
+        if (!watching.ok)
+          return { state: 'error', error: await errorMessage(watching) }
+        return {
+          state: 'ready',
+          radar: await radar.json(),
+          watching: await watching.json(),
+        }
+      },
+      { ms: READ_DEADLINE_MS },
+    )
   } catch {
     return { state: 'error', error: LOAD_ERROR }
   }
@@ -137,6 +145,7 @@ export default function AdminRadar() {
   const [keyCards, setKeyCards] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
+  const [attempt, setAttempt] = useState(0)
 
   const apply = useCallback((result) => {
     setState(result.state)
@@ -153,7 +162,7 @@ export default function AdminRadar() {
     return () => {
       live = false
     }
-  }, [apply, signedIn])
+  }, [apply, signedIn, attempt])
 
   async function generate() {
     setBusy(true)
@@ -293,8 +302,17 @@ export default function AdminRadar() {
         </p>
       )}
       {message && <p role="status">{message}</p>}
-      {error && <p role="alert">{error}</p>}
-      {state === 'loading' && <p className="muted">Loading the radar…</p>}
+      {error && state !== 'error' && <p role="alert">{error}</p>}
+      <LoadState
+        loading={state === 'loading'}
+        failed={state === 'error'}
+        message={error ?? undefined}
+        onRetry={() => {
+          setState('loading')
+          setError(null)
+          setAttempt((n) => n + 1)
+        }}
+      />
 
       <h2>Wanted, still to come</h2>
       {watching.length ? (

@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import BarList from '../components/BarList.jsx'
 import DayBars from '../components/DayBars.jsx'
+import LoadState from '../components/LoadState.jsx'
 import Panel from '../components/Panel.jsx'
 import RangeControl from '../components/RangeControl.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { dayLabel, deviceName, referrerName } from '../lib/analytics.js'
 import { apiFetch } from '../lib/api.js'
+import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 
 /** The range shown first. */
 const DEFAULT_RANGE = '30d'
@@ -39,35 +41,46 @@ export default function AdminAnalytics() {
   const [data, setData] = useState(null)
   const [loaded, setLoaded] = useState(null)
   const [error, setError] = useState(null)
+  const [attempt, setAttempt] = useState(0)
   const loading = loaded !== range && !error
 
   useEffect(() => {
-    let live = true
-    apiFetch(`/api/analytics?range=${range}`)
-      .then(async (response) => {
+    const controller = new AbortController()
+    withDeadline(
+      async (signal) => {
+        const response = await apiFetch(`/api/analytics?range=${range}`, {
+          signal,
+        })
         if (!response.ok) throw response
-        const body = await response.json()
-        if (!live) return
+        return response.json()
+      },
+      { ms: READ_DEADLINE_MS, signal: controller.signal },
+    )
+      .then((body) => {
+        if (controller.signal.aborted) return
         setData(body)
         setLoaded(range)
         setError(null)
       })
       .catch((failure) => {
-        if (live) setError(failureWords(failure))
+        if (!controller.signal.aborted) setError(failureWords(failure))
       })
-    return () => {
-      live = false
-    }
-  }, [range])
+    return () => controller.abort()
+  }, [range, attempt])
 
   function changeRange(next) {
     setError(null)
     setRange(next)
   }
 
+  const retry = useCallback(() => {
+    setError(null)
+    setAttempt((n) => n + 1)
+  }, [])
+
   const best = data?.best_day
   // What a list shows before its first body: not "None yet", which is a count.
-  const pending = <p className="muted">{error ? '—' : 'Loading…'}</p>
+  const pending = <p className="muted">—</p>
   const span =
     data && (SPAN_WORDS[data.range] ?? `since ${dayLabel(data.start)}`)
 
@@ -80,11 +93,12 @@ export default function AdminAnalytics() {
         <RangeControl value={range} onChange={changeRange} />
       </AdminPageHeader>
 
-      {error && (
-        <p role="alert" className="muted">
-          {error}
-        </p>
-      )}
+      <LoadState
+        loading={loading && !data}
+        failed={!!error}
+        message={error ?? undefined}
+        onRetry={retry}
+      />
 
       <StatTiles label="Analytics figures">
         <StatTile
@@ -120,7 +134,7 @@ export default function AdminAnalytics() {
         action={<span className="kicker">UTC days</span>}
       >
         {!data ? (
-          <p className="muted">{error ? '—' : 'Loading…'}</p>
+          pending
         ) : data.views ? (
           <DayBars series={data.series} />
         ) : (

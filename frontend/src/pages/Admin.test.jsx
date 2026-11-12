@@ -103,6 +103,7 @@ function stubApi(routes = {}) {
         'candidates.last_run': { at: ago(30), state: 'ok', queued: 4 },
       }),
     '/snapshot/meta.json': () => json({ fetched_at: ago(3) }),
+    '/api/closet/today?stored_only=true': () => json({ plan: null }),
     '/api/picker/continuing': () => json({ cards: [CONTINUING] }),
     '/api/public/next': () =>
       json({
@@ -322,9 +323,12 @@ describe('Admin Home', () => {
     )
   })
 
-  it('shows dashes when the reads fail, and keeps the page', async () => {
+  it('names the reads that failed, says so on the card, and keeps the page', async () => {
     stubApi({
       '/api/analytics?range=7d': () => json({}, false),
+      '/api/picker/continuing': () => {
+        throw new TypeError('Failed to fetch')
+      },
       '/api/physical/status': () => {
         throw new TypeError('Failed to fetch')
       },
@@ -332,9 +336,60 @@ describe('Admin Home', () => {
     renderAt()
     expect(await screen.findByText('API unreachable')).toBeInTheDocument()
     const site = await card('Site')
-    expect(figureOf(site, 'Views · 7 days')).toHaveTextContent('—')
+    await waitFor(() =>
+      expect(figureOf(site, 'Views · 7 days')).toHaveTextContent(
+        "Couldn't read",
+      ),
+    )
+    const shelf = await card('Shelf')
+    expect(within(shelf).getByText("Couldn't read")).toBeInTheDocument()
+    expect(
+      await screen.findByText("Couldn't read: Shelf, Site."),
+    ).toBeInTheDocument()
     expect(
       screen.getByText('The nightly status couldn’t be read.'),
+    ).toBeInTheDocument()
+  })
+
+  it('re-runs only the failed reads with one Try again', async () => {
+    let analyticsUp = false
+    const fetch = stubApi({
+      '/api/analytics?range=7d': () =>
+        analyticsUp
+          ? json({ views: 42, visitors: 7, pages: [] })
+          : json({}, false),
+    })
+    renderAt()
+    expect(await screen.findByText("Couldn't read: Site.")).toBeInTheDocument()
+    const calls = (path) =>
+      fetch.mock.calls.filter(([url]) => String(url).endsWith(path)).length
+    expect(calls('/api/analytics?range=7d')).toBe(1)
+    expect(calls('/api/spots')).toBe(1)
+
+    analyticsUp = true
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    const site = await card('Site')
+    await waitFor(() =>
+      expect(figureOf(site, 'Views · 7 days')).toHaveTextContent('42'),
+    )
+    expect(calls('/api/analytics?range=7d')).toBe(2)
+    expect(calls('/api/spots')).toBe(1)
+    await waitFor(() =>
+      expect(screen.queryByText(/^Couldn't read:/)).not.toBeInTheDocument(),
+    )
+  })
+
+  it('keeps the Closet card when its read fails', async () => {
+    stubApi({
+      '/api/closet/today?stored_only=true': () => json({}, false),
+    })
+    renderAt()
+    const closet = await card('Closet')
+    expect(
+      (await within(closet).findAllByText("Couldn't read")).length,
+    ).toBeGreaterThan(0)
+    expect(
+      await screen.findByText("Couldn't read: Closet."),
     ).toBeInTheDocument()
   })
 

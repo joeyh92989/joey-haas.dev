@@ -20,6 +20,8 @@ import { SLOW_LOAD_AFTER_S } from '../lib/waits.js'
  * @param {boolean} [props.failed]
  * @param {boolean} [props.stale] Older data is on screen despite the failure.
  * @param {() => void} [props.onRetry] Called by Try again.
+ * @param {string} [props.message] A page's own failure words, shown instead
+ *   of `LOAD_ERROR` when nothing is on screen (`stale` keeps its own line).
  * @param {string} [props.className]
  */
 export default function LoadState({
@@ -27,6 +29,7 @@ export default function LoadState({
   failed = false,
   stale = false,
   onRetry,
+  message = LOAD_ERROR,
   className = '',
 }) {
   const waiting = loading && !failed
@@ -39,7 +42,7 @@ export default function LoadState({
         className={`${cls}${stale ? ' stale' : ''}`}
         role={stale ? 'status' : 'alert'}
       >
-        <p className="muted">{stale ? STALE_COPY : LOAD_ERROR}</p>
+        <p className="muted">{stale ? STALE_COPY : message}</p>
         {onRetry && (
           <button type="button" className="btn sm" onClick={onRetry}>
             {TRY_AGAIN}

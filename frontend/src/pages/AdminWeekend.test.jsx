@@ -437,6 +437,22 @@ describe('AdminWeekend', () => {
     )
   })
 
+  it('offers Try again on a failed first read, then shows the plan', async () => {
+    const user = userEvent.setup()
+    let up = false
+    stubApi({
+      'GET /api/spots/plan?seed=0': () => (up ? json(plan()) : json({}, 500)),
+    })
+    renderPage()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('The weekend plan couldn’t be read.')
+    up = true
+    await user.click(within(alert).getByRole('button', { name: 'Try again' }))
+    expect(
+      await screen.findByRole('heading', { name: 'Corvus Coffee' }),
+    ).toBeInTheDocument()
+  })
+
   it('shows a refused write without losing the plan', async () => {
     const user = userEvent.setup()
     stubApi({

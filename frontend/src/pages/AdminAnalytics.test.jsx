@@ -77,7 +77,7 @@ describe('AdminAnalytics', () => {
     )
     render(<AdminAnalytics />)
     expect(screen.queryByText('None yet.')).not.toBeInTheDocument()
-    expect(screen.getAllByText('Loading…')).toHaveLength(4)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 
   it('opens on 30 days and shows zeros with the launch date when empty', async () => {
@@ -150,5 +150,20 @@ describe('AdminAnalytics', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Your session ended. Reload to sign in.',
     )
+  })
+
+  it('offers Try again when the read fails, and reads again', async () => {
+    const answers = { '30d': json({}, 500) }
+    const fetch = stubApi(answers)
+    render(<AdminAnalytics />)
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('The analytics couldn’t be read.')
+    answers['30d'] = json(FULL)
+    fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }))
+    expect(
+      await screen.findByText('Mon 12 Oct · news.example.com'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledTimes(2)
   })
 })
