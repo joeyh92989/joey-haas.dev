@@ -43,7 +43,7 @@ async def test_upsert_inserts_then_updates(sessionmaker_for_test):
         await session.commit()
         count = await session.scalar(select(func.count()).select_from(ComicIssue))
         assert count == 1
-        rows = await load_issues(session, item_id)
+        rows = await load_issues(session, item_id, with_description=True)
         assert rows[0].name == "B"
         assert rows[0].fetched_on == later
         assert rows[0].description == ["One.", "Two."]

@@ -15,6 +15,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from models import ComicIssue, Item
 from sources.base import SourceError, SourceRateLimited
@@ -80,13 +81,28 @@ async def upsert_issues(
     return len(rows)
 
 
-async def load_issues(session: AsyncSession, item_id: uuid.UUID) -> list[ComicIssue]:
-    """A series' stored issues, ordered by number."""
-    result = await session.scalars(
-        select(ComicIssue)
-        .where(ComicIssue.item_id == item_id)
-        .order_by(ComicIssue.number)
-    )
+async def load_issues(
+    session: AsyncSession,
+    item_id: uuid.UUID,
+    low: int | None = None,
+    high: int | None = None,
+    *,
+    with_description: bool = False,
+) -> list[ComicIssue]:
+    """A series' stored issues, ordered by number.
+
+    `low` and `high` bound the numbers (both inclusive). The description is a
+    JSONB column that can be large, so it is left unloaded unless
+    `with_description`: reading it from a row loaded without it raises.
+    """
+    query = select(ComicIssue).where(ComicIssue.item_id == item_id)
+    if low is not None:
+        query = query.where(ComicIssue.number >= low)
+    if high is not None:
+        query = query.where(ComicIssue.number <= high)
+    if not with_description:
+        query = query.options(defer(ComicIssue.description))
+    result = await session.scalars(query.order_by(ComicIssue.number))
     return list(result)
 
 

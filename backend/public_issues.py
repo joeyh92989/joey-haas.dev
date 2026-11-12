@@ -20,6 +20,7 @@ from urllib.parse import urlparse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from comic_issues import load_issues
 from comics import (
@@ -194,6 +195,21 @@ def _state(
     return "not-out" if number == upcoming else ""
 
 
+def _page_numbers(
+    series: ComicSeries, released: int, upcoming: int | None
+) -> list[int]:
+    """The issue numbers that have a page: the one rule of the issue route, the
+    wall and the index."""
+    candidates = {*range(1, released + 1), *series.owned}
+    if upcoming is not None:
+        candidates.add(upcoming)
+    return sorted(
+        n
+        for n in candidates
+        if 1 <= n <= MAX_ISSUE and _state(n, series, released, upcoming)
+    )
+
+
 def _upcoming(series: ComicSeries, today: date) -> int | None:
     issue = next_issue(series, today)
     return issue.count if issue is not None else None
@@ -206,10 +222,10 @@ def _neighbours(
     upcoming: int | None,
     rows: dict[int, ComicIssue],
 ) -> list[PublicNeighbour]:
+    """The strip around an issue, the issue itself included (the page marks and
+    centres on it)."""
     out = []
     for number in range(max(1, around - NEIGHBOURS), around + NEIGHBOURS + 1):
-        if number == around:
-            continue
         state = _state(number, series, released, upcoming)
         if state:
             row = rows.get(number)
@@ -235,10 +251,15 @@ def _edition_cover(edition: dict, by_number: dict[int, ComicIssue]) -> str | Non
     )
 
 
-async def build_wall(session: AsyncSession, item_id: uuid.UUID) -> PublicWall | None:
+async def build_wall(
+    session: AsyncSession, item_id: uuid.UUID, today: date
+) -> PublicWall | None:
     item = await _public_comic(session, item_id)
     if item is None:
         return None
+    series = series_of(item)
+    released = series.run().released
+    numbers = set(_page_numbers(series, released, _upcoming(series, today)))
     rows = await load_issues(session, item.id)
     by_number = {row.number: row for row in rows}
     editions = _editions(item)
@@ -255,7 +276,6 @@ async def build_wall(session: AsyncSession, item_id: uuid.UUID) -> PublicWall | 
                 cover_url=cover,
             )
         )
-    series = series_of(item)
     return PublicWall(
         series_title=item.title,
         publisher=series.publisher,
@@ -267,6 +287,7 @@ async def build_wall(session: AsyncSession, item_id: uuid.UUID) -> PublicWall | 
                 cover_url=row.cover_url,
             )
             for row in rows
+            if row.number in numbers
         ],
         editions=out_editions,
     )
@@ -294,8 +315,18 @@ async def build_issue_page(
     state = _state(number, series, released, upcoming)
     if not state:
         return None
-    rows = {row.number: row for row in await load_issues(session, item.id)}
-    row = rows.get(number)
+    # The issue in full; its strip needs only the covers around it.
+    full = await load_issues(session, item.id, number, number, with_description=True)
+    row = full[0] if full else None
+    rows = {
+        r.number: r
+        for r in await load_issues(
+            session,
+            item.id,
+            max(1, number - NEIGHBOURS),
+            number + NEIGHBOURS,
+        )
+    }
     editions = _editions(item)
     slugs = edition_slugs(editions)
     covering = next(
@@ -349,7 +380,7 @@ async def build_edition_page(
     series = series_of(item)
     released = series.run().released
     upcoming = _upcoming(series, today)
-    rows = {row.number: row for row in await load_issues(session, item.id)}
+    rows = {row.number: row for row in await load_issues(session, item.id, low, high)}
     collected = [rows[n] for n in range(low, high + 1) if n in rows]
     cover = edition.get("cover_url") or next(
         (r.cover_url for r in collected if r.cover_url), None
@@ -417,7 +448,9 @@ async def load_comic_index(
     by_item: dict[uuid.UUID, dict[int, ComicIssue]] = {item.id: {} for item in items}
     if items:
         result = await session.scalars(
-            select(ComicIssue).where(ComicIssue.item_id.in_(list(by_item)))
+            select(ComicIssue)
+            .where(ComicIssue.item_id.in_(list(by_item)))
+            .options(defer(ComicIssue.description))
         )
         for row in result:
             by_item[row.item_id][row.number] = row
@@ -427,14 +460,7 @@ async def load_comic_index(
         released = series.run().released
         upcoming = _upcoming(series, today)
         rows = by_item[item.id]
-        candidates = {*range(1, released + 1), *series.owned}
-        if upcoming is not None:
-            candidates.add(upcoming)
-        numbers = sorted(
-            n
-            for n in candidates
-            if 1 <= n <= MAX_ISSUE and _state(n, series, released, upcoming)
-        )
+        numbers = _page_numbers(series, released, upcoming)
         editions = _editions(item)
         out.append(
             PublicComicIndex(

@@ -8,7 +8,7 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import event, select
 
 import public
 from models import ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
@@ -219,11 +219,69 @@ async def test_issue_page_neighbours(sessionmaker_for_test):
         (4, "owned"),
         (5, "owned"),
         (6, "owned"),
+        (7, "missing"),  # the issue itself: the strip centres on it
         (8, "missing"),
         (9, "not-out"),
         # 10 and 11 have no page.
     ]
     assert page["neighbours"][0]["cover_url"] == "https://cv.test/m3.jpg"
+
+
+async def test_wall_lists_only_numbers_that_have_a_page(sessionmaker_for_test):
+    # 10 and 12 are past the run (released 8, next 9): Comic Vine rows, no page.
+    item_id = await _seed(sessionmaker_for_test, numbers=(1, 2, 9, 10, 12))
+    body = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
+    ).json()
+    assert [i["number"] for i in body["issues"]] == [1, 2, 9]
+
+
+@pytest.fixture
+def statements(engine):
+    """The SQL the public reads run, as text."""
+    seen: list[str] = []
+
+    def record(conn, cursor, statement, *args):
+        seen.append(statement)
+
+    event.listen(engine.sync_engine, "before_cursor_execute", record)
+    yield seen
+    event.remove(engine.sync_engine, "before_cursor_execute", record)
+
+
+def _reading_descriptions(seen):
+    return [q for q in seen if "comic_issues.description" in q]
+
+
+async def test_list_reads_do_not_load_the_description(
+    sessionmaker_for_test, statements
+):
+    item_id = await _seed(sessionmaker_for_test)
+    for path in (
+        f"/api/public/items/{item_id}/issues",
+        f"/api/public/items/{item_id}/editions/ed-5-6",
+        "/api/public/comic-issues",
+    ):
+        statements.clear()
+        assert (await _get(sessionmaker_for_test, path)).status_code == 200
+        assert any("comic_issues" in q for q in statements), path
+        assert _reading_descriptions(statements) == [], path
+
+
+async def test_the_issue_page_loads_one_description_and_a_bounded_strip(
+    sessionmaker_for_test, statements
+):
+    item_id = await _seed(sessionmaker_for_test, numbers=tuple(range(1, 9)))
+    statements.clear()
+    response = await _get(
+        sessionmaker_for_test, f"/api/public/items/{item_id}/issues/3"
+    )
+    assert response.status_code == 200
+    assert response.json()["description"] == ["About 3."]
+    assert len(_reading_descriptions(statements)) == 1
+    assert all(
+        "comic_issues.number" in q for q in statements if "FROM comic_issues" in q
+    )
 
 
 async def test_issue_page_held_as(sessionmaker_for_test):

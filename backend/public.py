@@ -702,7 +702,7 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         item_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> PublicWall:
         """The cover wall of one public comic series: its issues and editions."""
-        wall = await build_wall(session, item_id)
+        wall = await build_wall(session, item_id, datetime.now(UTC).date())
         if wall is None:
             raise HTTPException(status_code=404, detail="Not found")
         return wall

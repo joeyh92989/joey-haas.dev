@@ -305,9 +305,7 @@ async def test_resaving_an_edition_keeps_the_link(sessionmaker_for_test):
         response = await client.patch(
             f"/api/items/{item_id}",
             json={
-                "editions": [
-                    {"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}
-                ]
+                "editions": [{"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}]
             },
         )
     assert response.status_code == 200, response.text
