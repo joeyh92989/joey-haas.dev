@@ -6,7 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-11
 
-- The model behind the site's suggestions and photo reading answers faster and runs out less: the free models are tried in a longer chain, quick ones first for text and stronger ones first for photos, with a paid model as the last resort instead of an error.
+- The model behind the site's suggestions and photo reading answers faster and runs out less: the free models are tried in a longer chain, quick ones first for text and stronger ones first for photos, and one that has used up its day is skipped until midnight.
 - Adding comics to a series already on my shelf now says so: the check step lists each one apart from the new titles, with the issues it adds, the count before and after, and the cells around the change, and the summary ends with the [series](/shelf/comics) that grew.
 - [Comics](/shelf/comics) read as runs: each card stacks its cover and shows the run and how far I've read in two lanes, with what's next under them, and a series page leads with what to read, the first gap and the next issue out, then the run as a box of trades, single issues and folded stretches, so a 362-issue series fits on one screen.
 - One way in for everything I track: photograph a shelf or a rack, or search for one title; the sources match it, I check the doubtful ones, and it's added. Games, films, comics and clothes all use it, and a sitting can start on my phone and finish at my desk. Try [the intake demo](/shelf/intake) on a recorded shelf.
