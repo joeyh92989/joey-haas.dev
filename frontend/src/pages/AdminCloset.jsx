@@ -26,7 +26,12 @@ import {
 } from '../lib/closet.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import { useElapsed } from '../lib/useElapsed.js'
-import { WaitTimeout, withDeadline } from '../lib/waits.js'
+import {
+  SLOW_LOAD_AFTER_S,
+  STILL_WORKING_AFTER_S,
+  WaitTimeout,
+  withDeadline,
+} from '../lib/waits.js'
 
 const SESSION_ENDED = 'Your session ended. Sign in again to see the closet.'
 
@@ -96,7 +101,7 @@ export default function AdminCloset() {
 
   useEffect(() => {
     let live = true
-    const timer = setTimeout(() => setSlow(true), 3000)
+    const timer = setTimeout(() => setSlow(true), SLOW_LOAD_AFTER_S * 1000)
     fetchCloset().then((result) => {
       clearTimeout(timer)
       if (!live) return
@@ -194,7 +199,7 @@ export default function AdminCloset() {
               {tagging?.state === 'tagging' ? (
                 <>
                   {taggingWait(tagging.count)} · {elapsed} s
-                  {elapsed >= 30 && <> {STILL_TAGGING}</>}
+                  {elapsed >= STILL_WORKING_AFTER_S && <> {STILL_TAGGING}</>}
                 </>
               ) : tagging?.state === 'done' ? (
                 tagging.failed ? (

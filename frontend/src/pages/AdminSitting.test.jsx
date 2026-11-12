@@ -1612,7 +1612,7 @@ describe('AdminSitting waits (#160)', () => {
   it('stops the reader with a message when read-next passes the deadline', async () => {
     const api = await openWithHungReads([photo('p1', 'uploaded')])
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(165_000)
+      await vi.advanceTimersByTimeAsync(195_000)
     })
     expect(screen.getByRole('alert')).toHaveTextContent(
       "The reader didn't answer in time; try again.",

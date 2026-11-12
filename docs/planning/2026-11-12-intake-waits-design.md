@@ -41,11 +41,12 @@ In: the three waits. Out: server-side speed; the reader's model; any new endpoin
      take up to two minutes`.
    - Today: `Waking the server or planning the day · 12 s`; after 20 s `still working —
      planning asks the model and can take up to two minutes`.
-3. **A client deadline just past the server's budget.** A request still unanswered after 165 s
-   (`llm.TOTAL_BUDGET_SECONDS` 150 s + margin) is reported as a failure in that wait's own
+3. **A client deadline just past the server's budget.** A request still unanswered after 195 s
+   (a cold wake of about 30 s + `llm.TOTAL_BUDGET_SECONDS` 150 s + a 15 s margin) is reported as a failure in that wait's own
    words, with Retry where the page already has one; the request is aborted with an
-   `AbortController` passed to `apiFetch` (add an optional `signal`). *Why 165 s:* anything
-   shorter would report a failure for a call the server is still allowed to finish.
+   `AbortController` passed to `apiFetch` (add an optional `signal`). *Why 195 s:* the wait can
+   begin on a sleeping server, so the wake comes before the model's budget; anything shorter would
+   report a failure for a call the server is still allowed to finish.
 4. Failures the server already reports (a failed photo, a tag `note`, `LOAD_ERROR`) keep their
    current words; the change is that the waiting word never outlives them.
 

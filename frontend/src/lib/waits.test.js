@@ -1,12 +1,35 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { WAIT_DEADLINE_MS, WaitTimeout, withDeadline } from './waits.js'
+import {
+  SLOW_LOAD_AFTER_S,
+  STILL_PLANNING_AFTER_S,
+  STILL_WORKING_AFTER_S,
+  WAIT_DEADLINE_MS,
+  WaitTimeout,
+  withDeadline,
+} from './waits.js'
 
 describe('withDeadline', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
-  it('uses a 165 s deadline', () => {
-    expect(WAIT_DEADLINE_MS).toBe(165_000)
+  it('uses a 195 s deadline', () => {
+    expect(WAIT_DEADLINE_MS).toBe(195_000)
+  })
+
+  it('exports the still-working points', () => {
+    expect(STILL_WORKING_AFTER_S).toBe(30)
+    expect(STILL_PLANNING_AFTER_S).toBe(20)
+    expect(SLOW_LOAD_AFTER_S).toBe(3)
+  })
+
+  it('rejects, and clears its timer, when the work throws synchronously', async () => {
+    const boom = new Error('sync')
+    await expect(
+      withDeadline(() => {
+        throw boom
+      }),
+    ).rejects.toBe(boom)
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('resolves with the work and clears its timer', async () => {

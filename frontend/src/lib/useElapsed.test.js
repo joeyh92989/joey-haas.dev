@@ -34,6 +34,24 @@ describe('useElapsed', () => {
     expect(result.current).toBe(2)
   })
 
+  it('shows 0, not the old count, on the first render after turning on again', () => {
+    const seen = []
+    const { rerender } = renderHook(
+      ({ on }) => {
+        const n = useElapsed(on)
+        seen.push([on, n])
+        return n
+      },
+      { initialProps: { on: true } },
+    )
+    act(() => vi.advanceTimersByTime(4000))
+    rerender({ on: false })
+    seen.length = 0
+    rerender({ on: true })
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every(([, n]) => n === 0)).toBe(true)
+  })
+
   it('stops ticking on unmount', () => {
     const { unmount } = renderHook(() => useElapsed(true))
     unmount()

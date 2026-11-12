@@ -16,7 +16,7 @@ Spec: `2026-11-12-intake-waits-design.md`.
 - Frontend gate: full `npm test`, `npm run lint`, `npx prettier --check .`.
 - No backend change, no migration.
 - Exact thresholds: still-working after 30 s (sitting, Tag now) and 20 s (Today); client
-  deadline 165 s everywhere (`WAIT_DEADLINE_MS = 165_000`, one constant).
+  deadline 195 s everywhere (`WAIT_DEADLINE_MS = 195_000`, one constant).
 - Conventional commits ending with:
   `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` and
   `Claude-Session: https://claude.ai/code/session_01FurUAQooqsFBEgbmUaVzWS`.
@@ -26,7 +26,7 @@ Spec: `2026-11-12-intake-waits-design.md`.
 - New `frontend/src/lib/useElapsed.js`: `useElapsed(active)` returns whole seconds since
   `active` became true, ticking once a second, 0 when inactive. Unit test with fake timers.
 - `lib/api.js` `apiFetch`: accept an optional `signal` and pass it to `fetch` (no behaviour
-  change otherwise). Export `WAIT_DEADLINE_MS = 165_000` from one module (e.g. `lib/waits.js`)
+  change otherwise). Export `WAIT_DEADLINE_MS = 195_000` from one module (e.g. `lib/waits.js`)
   with a small `withDeadline(fn)` helper that aborts after the deadline and rejects with a
   recognisable timeout error.
 - `content/status.js`: the words for Today: `Waking the server or planning the day`

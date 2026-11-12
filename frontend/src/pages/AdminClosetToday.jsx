@@ -13,7 +13,12 @@ import {
 } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { useElapsed } from '../lib/useElapsed.js'
-import { WaitTimeout, withDeadline } from '../lib/waits.js'
+import {
+  SLOW_LOAD_AFTER_S,
+  STILL_PLANNING_AFTER_S,
+  WaitTimeout,
+  withDeadline,
+} from '../lib/waits.js'
 import {
   NOT_THIS_REASONS,
   OCCASION_LABELS,
@@ -640,10 +645,12 @@ export default function AdminClosetToday() {
       )}
       {!answer && !error && (
         <p className="muted">
-          {elapsed < 3 ? 'Loading…' : `${WAKING_OR_PLANNING} · ${elapsed} s`}
+          {elapsed < SLOW_LOAD_AFTER_S
+            ? 'Loading…'
+            : `${WAKING_OR_PLANNING} · ${elapsed} s`}
         </p>
       )}
-      {!answer && !error && elapsed >= 20 && (
+      {!answer && !error && elapsed >= STILL_PLANNING_AFTER_S && (
         <p className="muted">{STILL_PLANNING}</p>
       )}
       <p className="muted today-status" role="status">

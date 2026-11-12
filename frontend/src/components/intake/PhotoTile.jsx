@@ -6,9 +6,7 @@ import {
 } from '../../content/status.js'
 import { BUDGET_WAITING } from '../../lib/intake.js'
 import { useElapsed } from '../../lib/useElapsed.js'
-
-/** Seconds into a read after which the tile owns up to a long one. */
-const STILL_READING_AFTER = 30
+import { STILL_WORKING_AFTER_S } from '../../lib/waits.js'
 
 /**
  * What a photo's tile says, from its state on the server. `ahead` is how
@@ -71,7 +69,7 @@ export default function PhotoTile({
         loading="lazy"
       />
       <span>{photoWords(shown, titles, budgetSpent, ahead, seconds)}</span>
-      {shown.state === 'reading' && seconds >= STILL_READING_AFTER && (
+      {shown.state === 'reading' && seconds >= STILL_WORKING_AFTER_S && (
         <span className="muted">{STILL_READING}</span>
       )}
       {photo.state === 'failed' && (

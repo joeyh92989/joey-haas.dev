@@ -734,7 +734,7 @@ describe('AdminClosetToday', () => {
       ).toBeInTheDocument()
     })
 
-    it('fails with the deadline line and a Retry at 165 s, and Retry asks again', async () => {
+    it('fails with the deadline line and a Retry at 195 s, and Retry asks again', async () => {
       let asked = 0
       stub({
         'GET /api/closet/today': () => {
@@ -744,7 +744,7 @@ describe('AdminClosetToday', () => {
       })
       renderPage()
       await act(async () => {
-        vi.advanceTimersByTime(165_000)
+        vi.advanceTimersByTime(195_000)
       })
       expect(screen.getByRole('alert')).toHaveTextContent(
         "Planning didn't answer in time. Try again.",

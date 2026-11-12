@@ -9,6 +9,13 @@ import { useEffect, useState } from 'react'
  */
 export function useElapsed(active) {
   const [seconds, setSeconds] = useState(0)
+  const [wasActive, setWasActive] = useState(active)
+  // Reset while rendering, so the first render of a new wait shows 0 and
+  // never the last wait's count.
+  if (active !== wasActive) {
+    setWasActive(active)
+    if (active) setSeconds(0)
+  }
   useEffect(() => {
     if (!active) return undefined
     const start = Date.now()

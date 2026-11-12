@@ -265,10 +265,10 @@ describe('AdminCloset', () => {
       )
     })
 
-    it('says tagging did not answer at 165 s, and that it may still finish', async () => {
+    it('says tagging did not answer at 195 s, and that it may still finish', async () => {
       await startTagging([untagged('e')], () => new Promise(() => {}))
       await act(async () => {
-        vi.advanceTimersByTime(165_000)
+        vi.advanceTimersByTime(195_000)
       })
       expect(
         screen.getByText(

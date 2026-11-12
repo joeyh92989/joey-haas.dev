@@ -1,9 +1,18 @@
 /**
- * Bounds on a wait for the API. The server can be asleep (about thirty
- * seconds to wake) and then call a model (up to two minutes), so one
- * deadline sits above both and is shared by every page that waits.
+ * Bounds on a wait for the API, shared by every page that waits: a cold
+ * wake (about 30 s) plus the model's whole budget (`llm.TOTAL_BUDGET_SECONDS`
+ * in the backend, 150 s) plus a margin of 15 s.
  */
-export const WAIT_DEADLINE_MS = 165_000
+export const WAIT_DEADLINE_MS = 195_000
+
+/** Seconds into a wait after which Tag now and a photo's read own up to a long one. */
+export const STILL_WORKING_AFTER_S = 30
+
+/** Seconds into Today's first load after which it says planning takes a while. */
+export const STILL_PLANNING_AFTER_S = 20
+
+/** Seconds into a first load after which a page says it is waking the server. */
+export const SLOW_LOAD_AFTER_S = 3
 
 /** What `withDeadline` rejects with when the deadline passes. */
 export class WaitTimeout extends Error {
@@ -52,5 +61,7 @@ export function withDeadline(
       else outer.addEventListener('abort', onOuterAbort)
     }
   })
-  return Promise.race([fn(controller.signal), stop]).finally(cleanup)
+  // Inside a promise chain, so a synchronous throw from `fn` rejects.
+  const work = Promise.resolve().then(() => fn(controller.signal))
+  return Promise.race([work, stop]).finally(cleanup)
 }
