@@ -297,7 +297,7 @@ export default function AdminItem() {
         setError(
           typeof detail === 'string'
             ? detail
-            : 'Couldn’t change that playthrough.',
+            : `Couldn’t change that ${runWords(item?.type).run}.`,
         )
         return false
       }
