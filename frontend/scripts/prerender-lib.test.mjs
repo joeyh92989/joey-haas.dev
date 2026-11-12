@@ -18,6 +18,7 @@ import {
   sitemap,
   strayTripDirs,
 } from './prerender-lib.mjs'
+import { editionPath, issuePath } from '../src/lib/spinePaths.js'
 import { readPublished } from './markdown-lib.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -341,6 +342,27 @@ describe('comic issue and edition pages', () => {
     expect(page.image.url).toBe('https://cv.test/v10.jpg')
     expect(renderHead(SHELL, page)).toContain(
       `<link rel="canonical" href="https://joey-haas.dev/shelf/${SAGA}/ed-55-60/" />`,
+    )
+  })
+
+  it('has the URLs the SPA links to, for an id that needs encoding', () => {
+    const id = 'a b/ü'
+    const rows = publicRoutes({
+      posts: [],
+      items: [],
+      comicIssues: [
+        {
+          item_id: id,
+          series_title: 'Odd',
+          issues: [{ number: 7, name: null, cover_url: null }],
+          editions: [{ slug: 'ed-1-6', label: 'One', cover_url: null }],
+        },
+      ],
+    })
+    const [issue, edition] = rows.filter((r) => r.path.startsWith('/shelf/a'))
+    expect(routeUrl(issue)).toBe(`https://joey-haas.dev${issuePath(id, 7)}`)
+    expect(routeUrl(edition)).toBe(
+      `https://joey-haas.dev${editionPath(id, 'ed-1-6')}`,
     )
   })
 

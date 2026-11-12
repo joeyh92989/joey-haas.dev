@@ -14,7 +14,7 @@ import {
 import { MIN_POOL, dailyPool } from '../src/lib/daily.js'
 import { finishRows } from '../src/lib/finishes.js'
 import { clip } from '../src/lib/clip.js'
-import { itemPath } from '../src/lib/spinePaths.js'
+import { editionPath, issuePath, itemPath } from '../src/lib/spinePaths.js'
 import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 
 export const SITE_URL = 'https://joey-haas.dev'
@@ -276,7 +276,8 @@ export function publicRoutes({
   // `legacy` mirror.
   for (const series of Array.isArray(comicIssues) ? comicIssues : []) {
     if (!series?.item_id || !series.series_title) continue
-    const base = `${spine.path}/${encodeURIComponent(series.item_id)}`
+    // The SPA's own builders, minus the slash `slash: true` puts back.
+    const bare = (path) => path.slice(0, -1)
     const cover = (url, alt) =>
       typeof url === 'string' && url.startsWith('https://')
         ? { url, alt }
@@ -287,7 +288,7 @@ export function publicRoutes({
       const named = issue.name ? `, “${issue.name}”` : ''
       routes.push({
         ...page(
-          `${base}/${issue.number}`,
+          bare(issuePath(series.item_id, issue.number)),
           `${label} · ${spine.name}`,
           `${label}${named}, from ${profile.name}’s comic shelf on ${spine.name}.`,
         ),
@@ -300,7 +301,7 @@ export function publicRoutes({
       const label = `${series.series_title}, ${edition.label}`
       routes.push({
         ...page(
-          `${base}/${encodeURIComponent(edition.slug)}`,
+          bare(editionPath(series.item_id, edition.slug)),
           `${label} · ${spine.name}`,
           `${label}, a collected edition on ${profile.name}’s comic shelf on ${spine.name}.`,
         ),
