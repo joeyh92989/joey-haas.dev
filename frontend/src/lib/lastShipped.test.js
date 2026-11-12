@@ -6,26 +6,13 @@ describe('lastShippedText', () => {
     expect(lastShippedText(undefined)).toBeNull()
   })
 
-  it('names the page the first bullet links to', () => {
-    expect(lastShippedText({ lines: ['See [Stats](/stats) now.'] }, [])).toBe(
-      'Stats',
+  it('keeps a short bullet whole, links as their text', () => {
+    expect(lastShippedText({ lines: ['See [Stats](/stats) now.'] })).toBe(
+      'See Stats now.',
     )
   })
 
-  it('uses the link text for a page with no row, and skips hidden or external links', () => {
-    expect(
-      lastShippedText(
-        {
-          lines: [
-            '[Denver](/denver) and [docs](https://x.test) and [Year](/shelf/year/2026).',
-          ],
-        },
-        ['/denver'],
-      ),
-    ).toBe('Year')
-  })
-
-  it('cuts plain text at a word', () => {
+  it('cuts a long bullet at a word with an ellipsis', () => {
     const text = lastShippedText({
       lines: [
         'One two three four five six seven eight nine ten eleven twelve.',

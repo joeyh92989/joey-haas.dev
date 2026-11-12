@@ -88,14 +88,12 @@ describe('Home', () => {
     expect(Object.keys(facts())).toEqual(['Now', 'Focus', 'Stack'])
   })
 
-  it('reads Last shipped from the newest changelog entry, named by its first link', () => {
-    changes.CHANGELOG.push(
-      entry(['The [shelf](/shelf) pages say when they cannot load.']),
-    )
+  it('reads Last shipped from the newest changelog bullet, linking to the changes', () => {
+    changes.CHANGELOG.push(entry(['The [shelf](/shelf) pages load faster.']))
     renderHome()
-    expect(facts()['Last shipped']).toBe('My Shelf · Oct 2')
+    expect(facts()['Last shipped']).toBe('The shelf pages load faster. · Oct 2')
     expect(
-      screen.getByRole('link', { name: 'My Shelf · Oct 2' }),
+      screen.getByRole('link', { name: /The shelf pages/ }),
     ).toHaveAttribute('href', '/stats#changes')
   })
 
