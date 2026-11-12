@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from './api.js'
+import { READ_DEADLINE_MS, withDeadline } from './waits.js'
 import { isValidSnapshot, readSnapshot } from './snapshot.js'
 
 const EMPTY = { data: null, live: false, failed: false }
@@ -14,46 +15,72 @@ const EMPTY = { data: null, live: false, failed: false }
  * previous name's answer at once.
  *
  * @param {string} name A snapshot name; the live path is /api/public/{name}.
- * @returns {{data: any|null, live: boolean, failed: boolean}}
+ * The live read stops at `READ_DEADLINE_MS` (it then counts as failed).
+ * `retry()` re-runs the live read, clears `failed` and keeps any painted data.
+ *
+ * @returns {{data: any|null, live: boolean, failed: boolean, retry: () => void}}
  */
 export function useSnapshotThenLive(name) {
   // The name travels with the answer, so an answer for another name is never
   // returned, and no state is reset inside the effect.
   const [state, setState] = useState({ name, ...EMPTY })
+  const [attempt, setAttempt] = useState(0)
 
-  useEffect(() => {
-    let cancelled = false
-    let live = false
-    // An update for this name starts from whatever this name has so far.
-    const update = (change) =>
+  // An update for this name starts from whatever this name has so far.
+  const update = useCallback(
+    (change) =>
       setState((s) => ({
         ...(s.name === name ? s : { name, ...EMPTY }),
         ...change,
-      }))
+      })),
+    [name],
+  )
 
+  // The snapshot paints once per name; a retry does not re-read it.
+  useEffect(() => {
+    let cancelled = false
     // readSnapshot never rejects (it resolves null on any failure), so it
     // needs no catch.
     readSnapshot(name).then((body) => {
-      if (!cancelled && !live && body) update({ data: body })
+      if (cancelled || !body) return
+      // Live data that arrived first is never overwritten by a late snapshot.
+      setState((s) => {
+        const mine = s.name === name ? s : { name, ...EMPTY }
+        return mine.live ? mine : { ...mine, data: body }
+      })
     })
-    apiFetch(`/api/public/${name}`)
-      .then((response) => (response.ok ? response.json() : null))
+    return () => {
+      cancelled = true
+    }
+  }, [name])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    withDeadline(
+      async (signal) => {
+        const response = await apiFetch(`/api/public/${name}`, { signal })
+        return response.ok ? response.json() : null
+      },
+      { ms: READ_DEADLINE_MS, signal: controller.signal },
+    )
       .then((body) => {
-        if (cancelled) return
+        if (controller.signal.aborted) return
         if (isValidSnapshot(name, body)) {
-          live = true
           update({ data: body, live: true, failed: false })
         } else {
           update({ failed: true })
         }
       })
       .catch(() => {
-        if (!cancelled) update({ failed: true })
+        if (!controller.signal.aborted) update({ failed: true })
       })
-    return () => {
-      cancelled = true
-    }
+    return () => controller.abort()
+  }, [name, attempt, update])
+
+  const retry = useCallback(() => {
+    setState((s) => (s.name === name ? { ...s, failed: false } : s))
+    setAttempt((a) => a + 1)
   }, [name])
 
-  return state.name === name ? state : EMPTY
+  return { ...(state.name === name ? state : EMPTY), retry }
 }

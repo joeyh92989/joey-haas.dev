@@ -54,3 +54,12 @@ export const READER_TIMEOUT = "The reader didn't answer in time; try again."
 export const LOAD_ERROR = 'That didn’t load. Try again in a minute.'
 
 export const ACTION_ERROR = 'Couldn’t reach the server. Try again in a minute.'
+
+/** The label on the button that re-runs a failed read. */
+export const TRY_AGAIN = 'Try again'
+
+/** A signed-in action that finds the session gone. */
+export const SESSION_ENDED = 'Your session ended. Sign in again to record it.'
+
+/** Beside Try again when a live refresh failed but an older copy is showing. */
+export const STALE_COPY = 'Showing the last saved copy.'

@@ -1,0 +1,59 @@
+import { LOAD_ERROR, STALE_COPY, TRY_AGAIN, WAKING } from '../content/status.js'
+import { useElapsed } from '../lib/useElapsed.js'
+import { SLOW_LOAD_AFTER_S } from '../lib/waits.js'
+
+/**
+ * The one status line for a read: waiting, failed, or (once data is there)
+ * nothing. Pair it with `useSnapshotThenLive` or `useLiveRead`:
+ * `<LoadState loading={!data && !failed} failed={failed} stale={!!data}
+ * onRetry={retry} />`.
+ *
+ * - `loading` -- a read is in flight with nothing to show. Says "Loading…",
+ *   then the WAKING line after `SLOW_LOAD_AFTER_S` seconds (`role="status"`).
+ * - `failed` -- the read failed. With no `stale` data: `LOAD_ERROR` and a
+ *   Try again button in a `role="alert"`. With `stale`: the quiet
+ *   "Showing the last saved copy." line and Try again, in a `role="status"`.
+ * - neither -- renders nothing.
+ *
+ * @param {object} props
+ * @param {boolean} [props.loading]
+ * @param {boolean} [props.failed]
+ * @param {boolean} [props.stale] Older data is on screen despite the failure.
+ * @param {() => void} [props.onRetry] Called by Try again.
+ * @param {string} [props.className]
+ */
+export default function LoadState({
+  loading = false,
+  failed = false,
+  stale = false,
+  onRetry,
+  className = '',
+}) {
+  const waiting = loading && !failed
+  const seconds = useElapsed(waiting)
+  const cls = `load-state ${className}`.trim()
+
+  if (failed) {
+    return (
+      <div
+        className={`${cls}${stale ? ' stale' : ''}`}
+        role={stale ? 'status' : 'alert'}
+      >
+        <p className="muted">{stale ? STALE_COPY : LOAD_ERROR}</p>
+        {onRetry && (
+          <button type="button" className="btn sm" onClick={onRetry}>
+            {TRY_AGAIN}
+          </button>
+        )}
+      </div>
+    )
+  }
+  if (waiting) {
+    return (
+      <p className={`${cls} muted`} role="status">
+        {seconds >= SLOW_LOAD_AFTER_S ? WAKING : 'Loading…'}
+      </p>
+    )
+  }
+  return null
+}
