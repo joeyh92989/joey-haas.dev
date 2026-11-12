@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import { API_URL, apiFetch, errorMessage } from '../../lib/api.js'
+import { comicDetails } from '../../lib/intake.js'
 import CoverImage from '../CoverImage.jsx'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
 
@@ -130,9 +131,10 @@ export default function CheckOne({
                     name={name}
                     value={candidate.external_id}
                     aria-label={
-                      candidate.year
+                      (candidate.year
                         ? `${candidate.title} (${candidate.year})`
-                        : candidate.title
+                        : candidate.title) +
+                      (candidate.publisher ? `, ${candidate.publisher}` : '')
                     }
                     checked={candidate.external_id === picked}
                     onChange={() => setPicked(candidate.external_id)}
@@ -143,7 +145,11 @@ export default function CheckOne({
                   />
                   <span>
                     {candidate.title}{' '}
-                    <span className="muted">{candidate.year ?? ''}</span>
+                    <span className="muted">
+                      {[candidate.year, ...comicDetails(candidate)]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
                   </span>
                 </label>
               ))}

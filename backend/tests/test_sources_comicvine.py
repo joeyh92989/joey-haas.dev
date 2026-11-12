@@ -63,6 +63,18 @@ def test_search_payload_maps_onto_source_results():
     assert first.year is None or 1900 < first.year < 2100
 
 
+def test_search_results_carry_publisher_and_issue_count():
+    raw = _search_payload()["results"]
+    results = ComicVineSource(_config())._parse_search(_search_payload())
+
+    assert len(results) == len(raw[:SEARCH_LIMIT])
+    for result, row in zip(results, raw, strict=False):
+        assert result.publisher == (row.get("publisher") or {}).get("name")
+        assert result.issue_count == row.get("count_of_issues")
+    assert any(r.publisher for r in results)
+    assert any(r.issue_count is not None for r in results)
+
+
 def test_search_respects_the_documented_ceiling_of_ten():
     # ComicVine's own documentation says /search cannot exceed 10.
     assert SEARCH_LIMIT == 10

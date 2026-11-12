@@ -222,6 +222,8 @@ class ComicVineSource:
                 title=row.get("name") or "",
                 year=year_from_date(row.get("start_year")),
                 thumbnail_url=self._image_url(row, "icon_url"),
+                publisher=(row.get("publisher") or {}).get("name"),
+                issue_count=row.get("count_of_issues"),
             )
             for row in payload.get("results") or []
         ][:SEARCH_LIMIT]

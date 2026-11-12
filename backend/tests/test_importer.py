@@ -261,3 +261,19 @@ async def test_the_detected_platform_is_returned_as_a_platform_id():
 
     ids = [row["platform_id"] for row in response.json()["detections"]]
     assert ids == [508, 4, None, None]
+
+
+@pytest.mark.asyncio
+async def test_candidate_json_carries_publisher_and_count_only_when_known():
+    from importer import _candidate_json
+    from sources.base import SourceResult
+
+    known = _candidate_json(
+        "comicvine",
+        SourceResult("1", "Saga", 2012, publisher="Image", issue_count=66),
+    )
+    assert known["publisher"] == "Image"
+    assert known["issue_count"] == 66
+    bare = _candidate_json("tmdb", SourceResult("2", "Dune", 2021))
+    assert "publisher" not in bare
+    assert "issue_count" not in bare

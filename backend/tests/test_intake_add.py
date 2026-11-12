@@ -140,6 +140,32 @@ async def test_search_labels_each_result_with_its_kind_and_marks_owned(
 
 
 @pytest.mark.asyncio
+async def test_a_result_with_a_publisher_and_count_carries_them(sessionmaker_for_test):
+    registry = _registry(
+        **{
+            ItemType.COMIC: Stub(
+                "comicvine",
+                ItemType.COMIC,
+                [
+                    SourceResult(
+                        "cv-1", "Creepshow", 2024, publisher="Image", issue_count=5
+                    ),
+                    SourceResult("cv-2", "Creepshow", 1982),
+                ],
+            ),
+        }
+    )
+    async with client_for(sessionmaker_for_test, registry) as client:
+        response = await client.get("/api/intake/search?area=shelf&query=creepshow")
+    by_id = {row["external_id"]: row for row in response.json()["results"]}
+    assert by_id["cv-1"]["publisher"] == "Image"
+    assert by_id["cv-1"]["issue_count"] == 5
+    # A source that knows neither leaves the keys off: other sources unchanged.
+    assert "publisher" not in by_id["cv-2"]
+    assert "issue_count" not in by_id["cv-2"]
+
+
+@pytest.mark.asyncio
 async def test_an_unconfigured_source_is_named_with_its_reason(
     sessionmaker_for_test,
 ):

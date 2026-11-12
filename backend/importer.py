@@ -122,13 +122,20 @@ class Detection:
 
 
 def _candidate_json(source_name: str, result: SourceResult) -> dict:
-    return {
+    candidate = {
         "external_source": source_name,
         "external_id": result.external_id,
         "title": result.title,
         "year": result.year,
         "thumbnail_url": result.thumbnail_url,
     }
+    # Present only when the source knows them (ComicVine), so other sources'
+    # candidates are unchanged.
+    if result.publisher:
+        candidate["publisher"] = result.publisher
+    if result.issue_count is not None:
+        candidate["issue_count"] = result.issue_count
+    return candidate
 
 
 def _unresolved(detection: Detection, reason: str) -> dict:

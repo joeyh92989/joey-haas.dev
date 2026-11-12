@@ -196,3 +196,20 @@ export function missingFields(fields, record) {
     .filter((field) => record[field.key] == null || record[field.key] === '')
     .map((field) => field.label)
 }
+
+/**
+ * The extra words after a comic's `Title (year)`: "Image · 66 issues". A
+ * result without a publisher or count (every other source) yields nothing.
+ *
+ * @param {{publisher?: string|null, issue_count?: number|null}} result
+ * @returns {string[]}
+ */
+export function comicDetails(result) {
+  const count = result.issue_count
+  return [
+    result.publisher,
+    Number.isInteger(count) && count >= 0
+      ? `${count} ${count === 1 ? 'issue' : 'issues'}`
+      : null,
+  ].filter(Boolean)
+}

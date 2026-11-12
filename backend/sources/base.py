@@ -78,6 +78,9 @@ class SourceResult:
     title: str
     year: int | None = None
     thumbnail_url: str | None = None
+    # Only ComicVine fills these, so six same-titled series can be told apart.
+    publisher: str | None = None
+    issue_count: int | None = None
 
 
 @dataclass(frozen=True)
