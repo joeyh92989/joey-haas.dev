@@ -125,6 +125,7 @@ function runRow(run, job, age) {
         summary: `First run ${job.firstRun}`,
         state: 'unknown',
         stateWords: 'scheduled',
+        scheduled: true,
       }
     return { ...row, summary: 'No run recorded', state: 'unknown' }
   }

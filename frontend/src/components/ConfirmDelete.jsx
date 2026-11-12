@@ -37,8 +37,10 @@ export default function ConfirmDelete({ onConfirm, subject, className }) {
     setBusy(true)
     try {
       await onConfirm()
-    } catch {
-      // The caller reports its own errors; here the button just comes back.
+    } catch (error) {
+      // The caller reports its own errors; log this one so a caller that
+      // throws is visible, then bring the button back.
+      console.error(error)
     }
     // A successful delete usually unmounts this; if it did not, ask again.
     setBusy(false)
@@ -50,14 +52,22 @@ export default function ConfirmDelete({ onConfirm, subject, className }) {
       <>
         <button
           type="button"
-          className="danger"
+          className="btn danger"
+          aria-label={subject ? `Delete ${subject} for good` : undefined}
           disabled={busy}
           aria-busy={busy}
           onClick={confirm}
         >
           Delete for good
         </button>
-        <button type="button" ref={keepRef} disabled={busy} onClick={close}>
+        <button
+          type="button"
+          ref={keepRef}
+          className="btn ghost"
+          aria-label={subject ? `Keep ${subject}` : undefined}
+          disabled={busy}
+          onClick={close}
+        >
           Keep it
         </button>
       </>

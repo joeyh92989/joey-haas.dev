@@ -17,8 +17,8 @@ export default function FeatureStrip() {
         {copy.features.map((feature) => (
           <li key={feature.stop}>
             <Link to={`${copy.path}#stop-${feature.stop}`}>
-              <span className="tour-does-n" aria-hidden="true">
-                Stop {String(feature.stop).padStart(2, '0')}
+              <span className="tour-does-n">
+                {copy.stopLabel} {feature.stop}
               </span>
               <b>{feature.title}</b>
               <span className="tour-does-line">{feature.line}</span>

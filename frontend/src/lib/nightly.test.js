@@ -300,6 +300,7 @@ describe('nightlyJobs', () => {
     for (const key of ['spots', 'closet-opinions']) {
       expect(jobs[key].summary).toBe('First run Sunday evening')
       expect(jobs[key].stateWords).toBe('scheduled')
+      expect(jobs[key].scheduled).toBe(true)
       expect(jobs[key].state).toBe('unknown')
     }
     expect(jobs['closet-tags'].stateWords).toBeUndefined()

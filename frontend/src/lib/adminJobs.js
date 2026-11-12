@@ -192,10 +192,12 @@ export function jobsSummary(jobs) {
   const first =
     jobs.find((job) => job.state === 'failed') ??
     jobs.find((job) => job.state === 'stale') ??
-    jobs.find(
-      (job) => job.state === 'unknown' && job.stateWords !== 'scheduled',
-    )
-  if (!first) return { state: 'ok', words: `${ok} of ${jobs.length} jobs ok` }
+    jobs.find((job) => job.state === 'unknown' && !job.scheduled)
+  if (!first) {
+    const waiting = jobs.filter((job) => job.scheduled).length
+    const tail = waiting ? ` · ${waiting} scheduled` : ''
+    return { state: 'ok', words: `${ok} of ${jobs.length} jobs ok${tail}` }
+  }
   return {
     state: first.state,
     words: `${ok} of ${jobs.length} jobs ok · ${first.label} ${first.stateWords ?? first.state}`,

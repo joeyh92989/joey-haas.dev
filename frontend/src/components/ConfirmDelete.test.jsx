@@ -95,4 +95,49 @@ describe('ConfirmDelete', () => {
     const button = await screen.findByRole('button', { name: 'Delete' })
     expect(button).toHaveFocus()
   })
+
+  it('names the subject on both confirm buttons, text unchanged', async () => {
+    render(<ConfirmDelete onConfirm={() => {}} subject="Star Fox" />)
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete Star Fox' }),
+    )
+
+    const sure = screen.getByRole('button', {
+      name: 'Delete Star Fox for good',
+    })
+    const keep = screen.getByRole('button', { name: 'Keep Star Fox' })
+    expect(sure).toHaveTextContent('Delete for good')
+    expect(keep).toHaveTextContent('Keep it')
+  })
+
+  it('uses the shared button classes for the confirm pair', async () => {
+    render(<ConfirmDelete onConfirm={() => {}} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(screen.getByRole('button', { name: 'Delete for good' })).toHaveClass(
+      'btn',
+      'danger',
+    )
+    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveClass(
+      'btn',
+      'ghost',
+    )
+  })
+
+  it('logs an error from onConfirm instead of swallowing it', async () => {
+    const error = new Error('nope')
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    render(<ConfirmDelete onConfirm={() => Promise.reject(error)} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete for good' }),
+    )
+
+    await screen.findByRole('button', { name: 'Delete' })
+    expect(log).toHaveBeenCalledWith(error)
+    log.mockRestore()
+  })
 })

@@ -120,7 +120,7 @@ export default function AdminCollection() {
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
   // The pull list's Own… arrives with the volume to prefill (spec, section 4).
-  const { state: arrival, pathname, search } = useLocation()
+  const { state: arrival, key: arrivalKey, pathname, search } = useLocation()
   const navigate = useNavigate()
   const [form, setForm] = useState(() => ({
     ...EMPTY_FORM,
@@ -136,6 +136,18 @@ export default function AdminCollection() {
   const [fullOpen, setFullOpen] = useState(() => Boolean(arrival?.prefill))
   const fullFormRef = useRef(null)
   const landedPrefilled = useRef(Boolean(arrival?.prefill))
+  // A prefill that arrives while the page is mounted (same-route navigation)
+  // is applied once per location key, like a fresh arrival.
+  const appliedKey = useRef(arrival?.prefill ? arrivalKey : null)
+  const [focusTick, setFocusTick] = useState(0)
+  useEffect(() => {
+    if (!arrival?.prefill || appliedKey.current === arrivalKey) return
+    appliedKey.current = arrivalKey
+    setForm({ ...EMPTY_FORM, ...arrival.prefill })
+    setFullOpen(true)
+    landedPrefilled.current = true
+    setFocusTick((tick) => tick + 1)
+  }, [arrival, arrivalKey])
   // Arriving with a prefill, bring the open form into view and focus Title
   // once the page has loaded and the form exists.
   useEffect(() => {
@@ -144,8 +156,16 @@ export default function AdminCollection() {
     landedPrefilled.current = false
     details.scrollIntoView?.({ block: 'start' })
     details.querySelector('input[aria-label="Title"]')?.focus()
-  }, [status])
+  }, [status, focusTick])
   const [error, setError] = useState(null)
+  // After a delete, focus moves to the list rather than falling to the body.
+  const listRef = useRef(null)
+  const focusListNext = useRef(false)
+  useEffect(() => {
+    if (!focusListNext.current) return
+    focusListNext.current = false
+    listRef.current?.focus()
+  }, [items])
   // The Wrap up sheet's subject and preselected outcome, or null: Finish,
   // Pause and Abandon open it instead of writing (Tonight continue spec).
   const [wrap, setWrap] = useState(null)
@@ -590,6 +610,9 @@ export default function AdminCollection() {
       setError(ACTION_ERROR)
       return
     }
+    // The row is gone, and so is the button that had focus: park it on the
+    // list once the new rows are drawn.
+    focusListNext.current = true
     await load()
   }
 
@@ -869,156 +892,160 @@ export default function AdminCollection() {
           />
         </details>
 
-        {items.length === 0 ? (
-          <p className="muted">Nothing in the collection yet.</p>
-        ) : (
-          <>
-            {refreshResult && (
-              <p className="muted" role="status">
-                {`Updated ${refreshResult.updated} · skipped ${refreshResult.skipped} · failed ${refreshResult.failed}`}
-              </p>
-            )}
+        <div className="collection-list" ref={listRef} tabIndex={-1}>
+          {items.length === 0 ? (
+            <p className="muted">Nothing in the collection yet.</p>
+          ) : (
+            <>
+              {refreshResult && (
+                <p className="muted" role="status">
+                  {`Updated ${refreshResult.updated} · skipped ${refreshResult.skipped} · failed ${refreshResult.failed}`}
+                </p>
+              )}
 
-            {view === 'shelf' ? (
-              renderShelf()
-            ) : (
-              <div className="item-table-wrap">
-                {selected.size > 0 && (
-                  <div
-                    className="bulk-set"
-                    role="group"
-                    aria-label="Selected items"
-                  >
-                    <span>{selected.size} selected</span>
-                    <label>
-                      Set platform
-                      <select
-                        value={bulkPlatform}
-                        onChange={(event) =>
-                          setBulkPlatform(event.target.value)
-                        }
-                      >
-                        <option value="">unchanged</option>
-                        {PLATFORM_OPTIONS.map(([id, name]) => (
-                          <option key={id} value={id}>
-                            {name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Set format
-                      <select
-                        value={bulkFormat}
-                        onChange={(event) => setBulkFormat(event.target.value)}
-                      >
-                        <option value="">unchanged</option>
-                        {FORMAT_OPTIONS.map(([format, label]) => (
-                          <option key={format} value={format}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      disabled={
-                        bulkBusy || (bulkPlatform === '' && bulkFormat === '')
-                      }
-                      onClick={applyBulkSet}
+              {view === 'shelf' ? (
+                renderShelf()
+              ) : (
+                <div className="item-table-wrap">
+                  {selected.size > 0 && (
+                    <div
+                      className="bulk-set"
+                      role="group"
+                      aria-label="Selected items"
                     >
-                      Apply
-                    </button>
-                  </div>
-                )}
-                <table className="item-table">
-                  <thead>
-                    <tr>
-                      <th>
-                        <input
-                          type="checkbox"
-                          aria-label="Select all"
-                          checked={
-                            items.length > 0 && selected.size === items.length
+                      <span>{selected.size} selected</span>
+                      <label>
+                        Set platform
+                        <select
+                          value={bulkPlatform}
+                          onChange={(event) =>
+                            setBulkPlatform(event.target.value)
                           }
-                          onChange={toggleAll}
-                        />
-                      </th>
-                      <th>
-                        <span className="visually-hidden">Cover</span>
-                      </th>
-                      <th>Type</th>
-                      <th>Title</th>
-                      <th>Platform</th>
-                      <th>Status</th>
-                      <th>Rating</th>
-                      <th>Public</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item) => (
-                      <tr key={item.id}>
-                        <td>
+                        >
+                          <option value="">unchanged</option>
+                          {PLATFORM_OPTIONS.map(([id, name]) => (
+                            <option key={id} value={id}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Set format
+                        <select
+                          value={bulkFormat}
+                          onChange={(event) =>
+                            setBulkFormat(event.target.value)
+                          }
+                        >
+                          <option value="">unchanged</option>
+                          {FORMAT_OPTIONS.map(([format, label]) => (
+                            <option key={format} value={format}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <button
+                        type="button"
+                        disabled={
+                          bulkBusy || (bulkPlatform === '' && bulkFormat === '')
+                        }
+                        onClick={applyBulkSet}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
+                  <table className="item-table">
+                    <thead>
+                      <tr>
+                        <th>
                           <input
                             type="checkbox"
-                            aria-label={`Select ${item.title}`}
-                            checked={selected.has(item.id)}
-                            onChange={() => toggleSelected(item.id)}
-                          />
-                        </td>
-                        <td className="item-cover-cell">
-                          <CoverImage src={item.cover_url} type={item.type} />
-                        </td>
-                        <td>{item.type}</td>
-                        <td>
-                          {/* The row links to the detail view: a wrong match is
-                          fixed there, not here. */}
-                          <Link to={`/admin/collection/${item.id}`}>
-                            {item.title}
-                          </Link>
-                        </td>
-                        <td>{item.platform ?? '—'}</td>
-                        <td>
-                          <select
-                            aria-label={`Status for ${item.title}`}
-                            value={item.status}
-                            onChange={(event) =>
-                              updateStatus(item, event.target.value)
+                            aria-label="Select all"
+                            checked={
+                              items.length > 0 && selected.size === items.length
                             }
-                          >
-                            {statusMoves(item).map((entry) => (
-                              <option key={entry.status} value={entry.status}>
-                                {entry.label}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>{item.rating ?? '—'}</td>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={item.is_public}
-                            aria-label={`Public: ${item.title}`}
-                            onChange={(event) =>
-                              updateVisibility(item.id, event.target.checked)
-                            }
+                            onChange={toggleAll}
                           />
-                        </td>
-                        <td>
-                          <ConfirmDelete
-                            subject={item.title}
-                            onConfirm={() => removeItem(item.id)}
-                          />
-                        </td>
+                        </th>
+                        <th>
+                          <span className="visually-hidden">Cover</span>
+                        </th>
+                        <th>Type</th>
+                        <th>Title</th>
+                        <th>Platform</th>
+                        <th>Status</th>
+                        <th>Rating</th>
+                        <th>Public</th>
+                        <th />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
+                    </thead>
+                    <tbody>
+                      {items.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${item.title}`}
+                              checked={selected.has(item.id)}
+                              onChange={() => toggleSelected(item.id)}
+                            />
+                          </td>
+                          <td className="item-cover-cell">
+                            <CoverImage src={item.cover_url} type={item.type} />
+                          </td>
+                          <td>{item.type}</td>
+                          <td>
+                            {/* The row links to the detail view: a wrong match is
+                          fixed there, not here. */}
+                            <Link to={`/admin/collection/${item.id}`}>
+                              {item.title}
+                            </Link>
+                          </td>
+                          <td>{item.platform ?? '—'}</td>
+                          <td>
+                            <select
+                              aria-label={`Status for ${item.title}`}
+                              value={item.status}
+                              onChange={(event) =>
+                                updateStatus(item, event.target.value)
+                              }
+                            >
+                              {statusMoves(item).map((entry) => (
+                                <option key={entry.status} value={entry.status}>
+                                  {entry.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>{item.rating ?? '—'}</td>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={item.is_public}
+                              aria-label={`Public: ${item.title}`}
+                              onChange={(event) =>
+                                updateVisibility(item.id, event.target.checked)
+                              }
+                            />
+                          </td>
+                          <td>
+                            <ConfirmDelete
+                              subject={item.title}
+                              onConfirm={() => removeItem(item.id)}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </AddSection>
     </section>
   )

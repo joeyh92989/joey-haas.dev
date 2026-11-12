@@ -6,6 +6,7 @@ const scheduled = (label) => ({
   label,
   state: 'unknown',
   stateWords: 'scheduled',
+  scheduled: true,
 })
 
 describe('jobsSummary', () => {
@@ -19,8 +20,16 @@ describe('jobsSummary', () => {
   it('does not call a scheduled job a problem', () => {
     expect(jobsSummary([ok('A'), ok('B'), scheduled('Spot finder')])).toEqual({
       state: 'ok',
-      words: '2 of 3 jobs ok',
+      words: '2 of 3 jobs ok · 1 scheduled',
     })
+  })
+
+  it('filters on the flag, not on the display word', () => {
+    const out = jobsSummary([
+      ok('A'),
+      { label: 'Radar', state: 'unknown', stateWords: 'scheduled' },
+    ])
+    expect(out.words).toBe('1 of 2 jobs ok · Radar scheduled')
   })
 
   it('still names a genuinely unknown job', () => {

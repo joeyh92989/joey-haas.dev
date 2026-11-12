@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, useLocation } from 'react-router'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { localToday } from '../lib/statusMoves.js'
 import { ownerYear } from '../lib/formatDate.js'
@@ -125,6 +125,39 @@ describe('AdminCollection arriving from the pull list', () => {
     expect(screen.getByDisplayValue('Absolute Batman')).toBeInTheDocument()
     expect(fullFormDetails()).toHaveProperty('open', true)
     expect(screen.getByLabelText('Title')).toHaveFocus()
+  })
+
+  it('applies a second prefill that arrives while mounted', async () => {
+    stubApi()
+    function Go() {
+      const navigate = useNavigate()
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            navigate('/admin/collection', {
+              state: { prefill: { type: 'comic', title: 'Saga' } },
+            })
+          }
+        >
+          go
+        </button>
+      )
+    }
+    render(
+      <MemoryRouter initialEntries={['/admin/collection']}>
+        <AdminCollection />
+        <Go />
+      </MemoryRouter>,
+    )
+    await screen.findByText('Add with the full form')
+    expect(fullFormDetails()).toHaveProperty('open', false)
+
+    await userEvent.click(screen.getByRole('button', { name: 'go' }))
+
+    expect(await screen.findByDisplayValue('Saga')).toBeInTheDocument()
+    expect(fullFormDetails()).toHaveProperty('open', true)
+    await waitFor(() => expect(screen.getByLabelText('Title')).toHaveFocus())
   })
 })
 
@@ -328,7 +361,7 @@ describe('AdminCollection list view status', () => {
     })
   })
 
-  it('asks before deleting a row, and deletes only on Delete for good', async () => {
+  it('asks before deleting a row, and deletes only on Delete Star Fox for good', async () => {
     const mock = stubApi()
     renderPage()
 
@@ -336,14 +369,14 @@ describe('AdminCollection list view status', () => {
       await screen.findByRole('button', { name: 'Delete Star Fox' }),
     )
     expect(writeCalls(mock)).toHaveLength(0)
-    await userEvent.click(screen.getByRole('button', { name: 'Keep it' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Keep Star Fox' }))
     expect(writeCalls(mock)).toHaveLength(0)
 
     await userEvent.click(
       screen.getByRole('button', { name: 'Delete Star Fox' }),
     )
     await userEvent.click(
-      screen.getByRole('button', { name: 'Delete for good' }),
+      screen.getByRole('button', { name: 'Delete Star Fox for good' }),
     )
 
     await waitFor(() => {
@@ -351,6 +384,34 @@ describe('AdminCollection list view status', () => {
       expect(String(call[0])).toMatch(/\/api\/items\/a$/)
       expect(call[1].method).toBe('DELETE')
     })
+  })
+
+  it('moves focus to the list when a row is deleted, not the body', async () => {
+    let rows = ITEMS
+    const mock = stubApi()
+    mock.mockImplementation(async (url, options = {}) => {
+      const method = options.method ?? 'GET'
+      if (method === 'DELETE') {
+        rows = rows.filter((item) => !String(url).endsWith(`/${item.id}`))
+        return { ok: true, status: 200, json: async () => ({}) }
+      }
+      return { ok: true, status: 200, json: async () => rows }
+    })
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Delete Star Fox' }),
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete Star Fox for good' }),
+    )
+
+    await waitFor(() =>
+      expect(screen.queryByText('Star Fox')).not.toBeInTheDocument(),
+    )
+    await waitFor(() =>
+      expect(document.querySelector('.collection-list')).toHaveFocus(),
+    )
   })
 
   it('posts any other status the same way', async () => {
