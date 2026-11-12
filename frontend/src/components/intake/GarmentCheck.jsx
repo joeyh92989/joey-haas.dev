@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LOAD_ERROR } from '../../content/status.js'
-import { removePhotoRequest } from '../../lib/intakeRemove.js'
+import {
+  removeGarmentRequest,
+  removePhotoRequest,
+} from '../../lib/intakeRemove.js'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { imageUrl, tagResult } from '../../lib/closet.js'
 import {
@@ -163,9 +166,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
     run(async () => {
       const response = entry.photo_id
         ? await removePhotoRequest(sitting.id, entry.photo_id)
-        : await apiFetch(`/api/closet/garments/${garment.id}`, {
-            method: 'DELETE',
-          })
+        : await removeGarmentRequest(garment.id)
       if (!response.ok && response.status !== 404) {
         setError(await errorMessage(response, { ownConflicts: true }))
         return
@@ -324,10 +325,12 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                 const name = piece.garment.name || 'this piece'
                 return (
                   <li key={piece.entry.id}>
-                    <img
-                      src={imageUrl(piece.garment)}
-                      alt={piece.garment.name || 'A piece'}
-                    />
+                    {imageUrl(piece.garment) && (
+                      <img
+                        src={imageUrl(piece.garment)}
+                        alt={piece.garment.name || 'A piece'}
+                      />
+                    )}
                     <span>{piece.garment.name || 'Untitled piece'}</span>
                     {asking === piece.garment.id ? (
                       <span className="intake-actions quiet" role="group">

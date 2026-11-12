@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { entryCover, entryTitle, WRITTEN_STATES } from '../../lib/intake.js'
-import { removeEntryRequest } from '../../lib/intakeRemove.js'
+import { removeEntry } from '../../lib/intakeRemove.js'
 import CoverImage from '../CoverImage.jsx'
 import KindFields from './KindFields.jsx'
 
@@ -123,19 +123,7 @@ export default function DetailsStep({
   }
 
   /** Take a title out of the sitting: it is not written, nor listed again. */
-  async function remove(entry) {
-    setError(null)
-    try {
-      const response = await removeEntryRequest(entry)
-      if (!response.ok) {
-        setError(await errorMessage(response, { ownConflicts: true }))
-        return
-      }
-      onEntry(await response.json())
-    } catch {
-      setError('The server did not answer; try again.')
-    }
-  }
+  const remove = (entry) => removeEntry(entry, { onEntry, onError: setError })
 
   function saveField(entry, key) {
     const value = drafts[entry.id]?.[key]

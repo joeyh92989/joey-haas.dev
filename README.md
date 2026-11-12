@@ -657,14 +657,29 @@ the phone and finish at the desk.
   /sittings/{id}/read-next` one photo at a time while the page is open;
   the nightly reads the rest. A spent budget makes waiting photos say
   "waiting for tomorrow's budget". One polite live region announces reads.
-- **Check** asks only `check` entries, one at a time (a radio group, best
-  preselected); exact and probable matches are a skim grid of checkboxes.
-  Unticking stores `ignored` with `payload.unticked` and `payload.was`, so a
-  reload shows it unticked rather than gone. Search… looks the title up
-  through the add bar's search and lists the entry's kind's matches first.
-  A clothes sitting's Check is `GarmentCheck`: only pieces the tag queue
-  gave up on, one at a time (Save and next, Tag again, Skip, Remove this
-  photo), read from the Closet's own garments.
+- **Check** asks `check` and `probable` entries, one at a time (a radio
+  group, the best candidate preselected; a Probable badge marks a likely
+  match you still confirm). The skim grid of checkboxes holds exact,
+  searched and typed titles. Unticking stores `ignored` with
+  `payload.unticked` and `payload.was`, so a reload shows it unticked rather
+  than gone. Search… looks the title up through the add bar's search and
+  lists the entry's kind's matches first. A clothes sitting's Check is
+  `GarmentCheck`: only pieces the tag queue gave up on, one at a time (Save
+  and next, Tag again, Skip, Remove this photo), read from the Closet's own
+  garments.
+- **Removing before the commit.** Remove sits on Shoot's photo tiles and its
+  list of searched and typed titles, on the Check skim grid, on Already on
+  the shelf rows, on Details rows and on the closet's Other photos. A title
+  is removed with `PATCH state: ignored` (no `payload.unticked`); a photo
+  with `DELETE /api/intake/sittings/{id}/photos/{photo_id}`, which takes
+  every title read from it (a 409 while the photo is being read). A typed
+  closet piece is deleted with its garment. All of it goes through
+  `lib/intakeRemove.js`; `removeEntry` ignores a second click on the same
+  entry while the first is on its way.
+- **Shoot's count line** reads `N titles so far · N ready · N to check · N
+  reading · N on the shelf · N unticked · N photos waiting to be read`, zero
+  parts dropped. The title parts add up to the total; removed titles are in
+  neither, and an unticked one stays listed since Check can retick it.
 - **Details** is one pass per kind present; **Done** shows the commit's own
   four figures, and Publish these N publishes the commit's `created` ids
   through `POST /api/items/visibility`.
@@ -686,8 +701,8 @@ the phone and finish at the desk.
 - Intake's 409s are its own words: it calls `errorMessage(response, {
   ownConflicts: true })`, which reads the `detail` instead of the catalogue
   lock wording.
-- The Add pages' badges are the entries left to check (`GET
-  /api/intake/counts`), loaded by `AdminLayout` and refreshed by a sitting
+- The Add pages' badges are the entries left to check or confirm, `check`
+  and `probable` (`GET /api/intake/counts`), loaded by `AdminLayout` and refreshed by a sitting
   through `refreshIntakeCounts`.
 
 ## Smoke test

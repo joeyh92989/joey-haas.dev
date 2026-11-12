@@ -9,7 +9,7 @@ import {
 } from '../../lib/intake.js'
 import {
   live,
-  removeEntryRequest,
+  removeEntry,
   removePhotoRequest,
 } from '../../lib/intakeRemove.js'
 import PhotoTile, { PendingTile } from './PhotoTile.jsx'
@@ -19,12 +19,13 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /**
  * The sitting's running line: titles so far and what is still to come.
- * The title parts partition the total exactly (ignored entries, removed or
- * unticked, are in neither). Photos not yet read are counted in their own
+ * The title parts partition the total exactly: removed entries are in
+ * neither, and an unticked one (skim grid) stays listed under its own part,
+ * since Check can retick it. Photos not yet read are counted in their own
  * words after the parts. Zero parts are dropped.
  */
 function runningLine(sitting, budgetSpent, noun) {
-  const entries = sitting.entries.filter((e) => e.state !== 'ignored')
+  const entries = live(sitting.entries)
   const count = (states) =>
     entries.filter((e) => states.includes(e.state)).length
   const waiting = sitting.photos.filter((p) =>
@@ -35,6 +36,7 @@ function runningLine(sitting, budgetSpent, noun) {
     [count(CHECK_STATES), (n) => `${n} to check`],
     [count(['reading']), (n) => `${n} reading`],
     [count(['owned']), (n) => `${n} on the shelf`],
+    [count(['ignored']), (n) => `${n} unticked`],
     [
       waiting,
       (n) =>
@@ -188,11 +190,11 @@ export default function ShootStep({
       () => onPhotoRemoved(photo.id),
     )
 
-  const removeTitle = (entry) =>
-    removal(
-      () => removeEntryRequest(entry),
-      async (response) => onEntry(await response.json()),
-    )
+  async function removeTitle(entry) {
+    setRemoving(true)
+    await removeEntry(entry, { onEntry, onError: setError })
+    if (alive.current) setRemoving(false)
+  }
 
   const picked = (event) => {
     const files = [...(event.target.files ?? [])]

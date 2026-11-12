@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
+import { WRITTEN_STATES } from '../../lib/intake.js'
 import { live } from '../../lib/intakeRemove.js'
 import AddResults from './AddResults.jsx'
 
@@ -59,10 +60,12 @@ export default function ShootSearch({ sitting, kinds, onAdded }) {
     }
   }
 
-  // Added to this sitting: a live entry chose this source and id.
+  // Added to this sitting: a live entry in a written state chose this source
+  // and id. A guess still to confirm, or an unticked entry, is not added.
   const isAdded = (result) =>
     live(sitting.entries).some(
       (entry) =>
+        WRITTEN_STATES.includes(entry.state) &&
         entry.chosen?.external_source === result.external_source &&
         String(entry.chosen?.external_id) === String(result.external_id),
     )

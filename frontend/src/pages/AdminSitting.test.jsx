@@ -140,7 +140,7 @@ describe('AdminSitting', () => {
     ).toBeInTheDocument()
   })
 
-  it('keeps reading entries in the total and counts unread photos apart', async () => {
+  it('keeps reading and unticked entries in the total and counts unread photos apart', async () => {
     fakeIntakeApi({
       sittings: [
         longbox({
@@ -164,7 +164,7 @@ describe('AdminSitting', () => {
     renderSitting()
     expect(
       await screen.findByText(
-        '2 titles so far · 1 ready · 1 reading · 2 photos waiting to be read',
+        '3 titles so far · 1 ready · 1 reading · 1 unticked · 2 photos waiting to be read',
       ),
     ).toBeInTheDocument()
   })
@@ -239,6 +239,30 @@ describe('AdminSitting', () => {
     await waitFor(() =>
       expect(api.calls('PATCH', /\/entries\/t1$/)[1]?.body.state).toBe('typed'),
     )
+  })
+
+  it('renders no empty hint paragraph when there is no grid', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'check',
+          entries: [
+            entry('e1', 'check', {
+              photo_id: 'p1',
+              payload: { detected_title: 'SANDMAN' },
+              candidates: [SANDMAN, UNIVERSE],
+              chosen: SANDMAN,
+            }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Check' })
+    const empty = [...document.querySelectorAll('.intake-bar p')].filter(
+      (p) => !p.textContent.trim(),
+    )
+    expect(empty).toHaveLength(0)
   })
 
   it('drops the grid sentence when there is no grid', async () => {
@@ -1031,6 +1055,50 @@ describe('AdminSitting', () => {
     expect(api.calls('POST', /\/sittings\/s1\/entries$/)).toHaveLength(2)
   })
 
+  it('offers Add, not Added, for a guess still to check and for an unticked title', async () => {
+    const user = userEvent.setup()
+    const saga = {
+      ...candidate(7, 'Saga', 2012),
+      kind: 'comic',
+      owned_item_id: null,
+    }
+    const zine = {
+      ...candidate(8, 'Zine', 2015),
+      kind: 'comic',
+      owned_item_id: null,
+    }
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          photos: [],
+          entries: [
+            entry('c1', 'probable', { kind: 'comic', chosen: saga }),
+            entry('u1', 'ignored', {
+              kind: 'comic',
+              chosen: zine,
+              payload: { unticked: true, was: 'exact' },
+            }),
+          ],
+        }),
+      ],
+      search: () => ({
+        results: [saga, zine],
+        sources: [{ kind: 'comic', state: 'ok', reason: null }],
+      }),
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Shoot' })
+    await user.click(screen.getByRole('button', { name: 'Search instead' }))
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search for a title' }),
+      'Saga{Enter}',
+    )
+    expect(
+      await screen.findByRole('button', { name: 'Add Saga' }),
+    ).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Add Zine' })).toBeEnabled()
+  })
+
   it('shows Added for a result already in the sitting when the search is reopened', async () => {
     const user = userEvent.setup()
     const saga = {
@@ -1124,6 +1192,55 @@ describe('AdminSitting', () => {
       ).not.toBeInTheDocument()
     })
 
+    it('does not bring a removed photo back when its read lands late', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [
+          longbox({
+            step: 'shoot',
+            photos: [photo('p1', 'uploaded')],
+            entries: [],
+          }),
+        ],
+        reads: [
+          () => ({
+            status: 'read',
+            entries: [
+              entry('n1', 'exact', { chosen: candidate(9, 'Hellboy') }),
+            ],
+          }),
+        ],
+      })
+      // The read is computed at once but answered only on release.
+      let release
+      const gate = new Promise((resolve) => {
+        release = resolve
+      })
+      const inner = api.fetch.getMockImplementation()
+      api.fetch.mockImplementation(async (url, options) => {
+        const answer = await inner(url, options)
+        if (/\/read-next$/.test(String(url))) await gate
+        return answer
+      })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      await waitFor(() => expect(readsAsked(api)).toBe(1))
+      await user.click(screen.getByRole('button', { name: 'Remove photo 1' }))
+      await waitFor(() =>
+        expect(api.calls('DELETE', /\/photos\/p1$/)).toHaveLength(1),
+      )
+      release()
+      await waitFor(() =>
+        expect(api.calls('POST', /\/read-next$/).length).toBeGreaterThanOrEqual(
+          1,
+        ),
+      )
+      expect(await screen.findByText('0 titles so far')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Remove photo 1' }),
+      ).not.toBeInTheDocument()
+    })
+
     it('says so when the sitting is gone, and keeps the photo shown', async () => {
       const user = userEvent.setup()
       const api = fakeIntakeApi({ sittings: [longbox({ step: 'shoot' })] })
@@ -1167,6 +1284,44 @@ describe('AdminSitting', () => {
       expect(
         screen.queryByRole('button', { name: 'Remove Lost zine' }),
       ).not.toBeInTheDocument()
+    })
+
+    it('removes a typed closet piece from Shoot with its garment', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [
+          {
+            id: 'c3',
+            area: 'closet',
+            kind: 'garment',
+            label: 'Rack',
+            step: 'shoot',
+            entries: [
+              entry('ge1', 'typed', {
+                kind: 'garment',
+                garment_id: 'gx',
+                payload: { name: 'Grey coat' },
+              }),
+            ],
+          },
+        ],
+        garments: [{ id: 'gx', name: 'Grey coat', status: 'active' }],
+      })
+      renderSitting('c3', 'closet')
+      await user.click(
+        await screen.findByRole('button', { name: 'Remove Grey coat' }),
+      )
+      await waitFor(() =>
+        expect(
+          api.calls('DELETE', /\/api\/closet\/garments\/gx$/),
+        ).toHaveLength(1),
+      )
+      expect(api.calls('PATCH', /\/entries\//)).toHaveLength(0)
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('button', { name: 'Remove Grey coat' }),
+        ).not.toBeInTheDocument(),
+      )
     })
 
     it('removes a title from the Check skim grid', async () => {

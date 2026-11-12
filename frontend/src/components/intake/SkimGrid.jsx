@@ -4,8 +4,9 @@ import ConfidenceBadge from './ConfidenceBadge.jsx'
 
 /**
  * Whether an entry belongs in the skim grid: an exact match, a searched or
- * typed title (`ready`, `typed`), one already owned, or one unticked here (kept as `ignored` with a note of what it
- * was, so a reload or a second device shows it unticked, not gone).
+ * typed title (`ready`, `typed`), one already owned, or one unticked here
+ * (kept as `ignored` with a note of what it was, so a reload or a second
+ * device shows it unticked, not gone).
  */
 export function inSkim(entry) {
   return (

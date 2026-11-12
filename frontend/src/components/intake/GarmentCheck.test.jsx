@@ -184,4 +184,18 @@ describe('GarmentCheck (Clothes · Check)', () => {
       screen.getByRole('heading', { name: /Check 1 of 1/ }),
     ).toBeInTheDocument()
   })
+
+  it('draws no image for a listed piece that has none', async () => {
+    const garments = GARMENTS.map((g) =>
+      g.id === 'g2' ? { ...g, image: null } : g,
+    )
+    fakeIntakeApi({ sittings: [SITTING], garments })
+    renderCheck()
+    await screen.findByRole('heading', { name: /Check 1 of 2/ })
+    const others = screen.getByRole('list', { name: 'Other photos' })
+    const row = within(others).getByText('Chore coat').closest('li')
+    expect(within(row).queryByRole('img')).toBeNull()
+    // The pieces that have a photo still show it.
+    expect(within(others).getAllByRole('img')).toHaveLength(2)
+  })
 })

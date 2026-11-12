@@ -136,7 +136,7 @@ describe('garmentNeedsCheck', () => {
 })
 
 describe('sittingLabel', () => {
-  it('is the kind and the day', () => {
+  it('is the kind, the day and the time', () => {
     expect(
       sittingLabel({ label: 'Garment' }, new Date('2026-11-11T02:42:00Z')),
     ).toBe('Garment · Nov 10, 7:42 PM')

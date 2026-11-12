@@ -147,6 +147,7 @@ function AdminSitting() {
   }
 
   function removePhoto(photoId) {
+    reader.forget(photoId)
     setSitting((old) => ({
       ...old,
       photos: old.photos.filter((photo) => photo.id !== photoId),
