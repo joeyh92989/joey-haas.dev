@@ -530,7 +530,7 @@ too.
 
 **Costs** nothing for the model list (`models.list`) and one request from
 the day's free quota for each row of `CANDIDATES` whose model is listed:
-up to 12, with two models probed three times. Run it once, not in a loop.
+one per chain model (six). Run it once, not in a loop.
 
 **Prints** the served Flash models, then one row per probe: status,
 latency, whether the answer parsed as JSON, the quota id and value from a

@@ -179,16 +179,9 @@ async def test_the_key_travels_in_a_header_and_never_in_the_table():
     assert "gemini-3.6-flash" in table
 
 
-def test_the_default_candidates_cover_the_spec_and_the_stale_models():
-    names = {candidate.model for candidate in probe.CANDIDATES}
+def test_the_default_candidates_are_the_chain_with_its_levels():
+    from llm import THINKING_LEVELS
 
-    assert {
-        "gemini-3.8-flash",
-        "gemini-3.6-flash",
-        "gemini-3.5-flash-lite",
-        "gemini-3.1-flash-lite",
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
-        "gemini-3.7-flash",
-        "gemini-3.5-flash",
-    } <= names
+    assert {c.model: c.thinking for c in probe.CANDIDATES} == {
+        model: {"thinkingLevel": level} for model, level in THINKING_LEVELS.items()
+    }

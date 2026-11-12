@@ -45,24 +45,18 @@ class Candidate:
     thinking: dict | None
 
 
-# The planned config per model, then the 2.5 variants that settle D1: the
-# docs say thinkingLevel errors before Gemini 3 and do not document
-# thinkingBudget, so both are asked about. 3.7 and 3.5 Flash are probed only
-# to learn whether they are still served.
-CANDIDATES = (
-    Candidate("gemini-3.8-flash", {"thinkingLevel": "LOW"}),
-    Candidate("gemini-3.6-flash", {"thinkingLevel": "MINIMAL"}),
-    Candidate("gemini-3.5-flash-lite", {"thinkingLevel": "MINIMAL"}),
-    Candidate("gemini-3.1-flash-lite", {"thinkingLevel": "MINIMAL"}),
-    Candidate("gemini-2.5-flash", None),
-    Candidate("gemini-2.5-flash", {"thinkingBudget": 0}),
-    Candidate("gemini-2.5-flash", {"thinkingLevel": "LOW"}),
-    Candidate("gemini-2.5-flash-lite", None),
-    Candidate("gemini-2.5-flash-lite", {"thinkingBudget": 0}),
-    Candidate("gemini-2.5-flash-lite", {"thinkingLevel": "LOW"}),
-    Candidate("gemini-3.7-flash", None),
-    Candidate("gemini-3.5-flash", None),
-)
+def _chain_candidates() -> tuple[Candidate, ...]:
+    from llm import THINKING_LEVELS
+
+    return tuple(
+        Candidate(model, {"thinkingLevel": level})
+        for model, level in THINKING_LEVELS.items()
+    )
+
+
+# The chain as llm.py has it, each model with its thinking level. Edit
+# llm.THINKING_LEVELS, not this, and re-run to check a change.
+CANDIDATES = _chain_candidates()
 
 
 @dataclass(frozen=True)
