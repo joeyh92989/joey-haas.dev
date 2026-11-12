@@ -327,13 +327,22 @@ async def read_next(
         )
         detections = parse_detections(payload)
     except Exception as error:  # noqa: BLE001 -- one photo fails, not the sitting
-        logger.warning("intake read of photo %s failed: %s", photo.id, error)
+        logger.warning("intake read of photo %s failed: %s", photo_id, error)
+        photo = await session.get(IntakePhoto, photo_id, populate_existing=True)
+        if photo is None:
+            return ReadOutcome("idle")
         photo.state = IntakePhotoState.FAILED
         photo.error = str(error) or type(error).__name__
         await session.commit()
         return ReadOutcome("failed", photo)
 
     rows, busy, owned = await _resolve(session, registry, detections)
+    # The photo may have been removed while the model was reading it: the
+    # read is discarded, not written against a row that is gone.
+    photo = await session.get(IntakePhoto, photo_id, populate_existing=True)
+    if photo is None:
+        await session.rollback()
+        return ReadOutcome("idle")
     entries = [_entry(sitting_id, photo.id, row, busy, owned) for row in rows]
     session.add_all(entries)
     photo.state = IntakePhotoState.READ if entries else IntakePhotoState.EMPTY

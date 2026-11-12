@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { seriesGrowth } from '../../lib/comicRun.js'
-import { entryCover } from '../../lib/intake.js'
+import { CHECK_STATES, entryCover } from '../../lib/intake.js'
+import { live, removeEntry } from '../../lib/intakeRemove.js'
 import CheckOne from './CheckOne.jsx'
 import GarmentCheck from './GarmentCheck.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
@@ -46,7 +47,7 @@ function growths(entries) {
  * ones as a grid to skim. A comic matched to a series already on the shelf
  * is not a new title, so it leaves the grid for "Already on the shelf ·
  * adds issues": a row saying what it adds, with Edit issues to type them
- * (photos never carry issue numbers). Only `check` entries are asked; Skip keeps one
+ * (photos never carry issue numbers). Only `check` and `probable` entries are asked; Skip keeps one
  * for later (it stays in the sitting at commit, counted as kept). Every
  * answer is saved on the entry at once, so another device sees it (AC 3).
  *
@@ -84,14 +85,16 @@ export default function CheckStep({
   const oneRef = useRef(null)
   const closet = sitting.area === 'closet'
 
-  const checks = sitting.entries.filter((e) => e.state === 'check')
+  const checks = sitting.entries.filter((e) => CHECK_STATES.includes(e.state))
   const left = checks.filter((e) => !skipped.has(e.id))
   const current = left[0] ?? null
   const grows = closet ? [] : sitting.entries.filter(addsToSeries)
   const growthOf = growths(grows)
-  const skim = sitting.entries.filter(
-    (entry) => inSkim(entry) && !grows.includes(entry),
-  )
+  const skim = closet
+    ? []
+    : live(sitting.entries).filter(
+        (entry) => inSkim(entry) && !grows.includes(entry),
+      )
   const photoNumber = (entry) => {
     const index = sitting.photos.findIndex((p) => p.id === entry.photo_id)
     return index < 0 ? null : index + 1
@@ -130,6 +133,13 @@ export default function CheckStep({
     setTimeout(() => oneRef.current?.focus())
   }
 
+  /** Take a title out of the sitting: it is never shown again nor written. */
+  async function remove(entry) {
+    setBusy(true)
+    await removeEntry(entry, { onEntry, onError: setError })
+    setBusy(false)
+  }
+
   function saveIssues(entry, text) {
     return patch(entry, {
       payload: { ...entry.payload, issues_owned: text || null },
@@ -150,6 +160,11 @@ export default function CheckStep({
       })
     }
   }
+
+  const hint = closet
+    ? 'Only pieces the tagger could not finish are asked about.'
+    : skim.length > 0 &&
+      'Only the uncertain ones are asked one at a time; exact matches are a grid to skim.'
 
   return (
     <section className="intake-step" aria-labelledby="intake-step-heading">
@@ -213,6 +228,7 @@ export default function CheckStep({
                 }}
                 issuesText={entry.payload?.issues_owned ?? ''}
                 onSaveIssues={(text) => saveIssues(entry, text)}
+                onRemove={() => remove(entry)}
                 busy={busy}
               />
             ))}
@@ -225,16 +241,17 @@ export default function CheckStep({
           <h3 className="kicker intake-skim-head">
             Matched · {skim.length} · untick anything wrong
           </h3>
-          <SkimGrid entries={skim} onToggle={toggle} />
+          <SkimGrid
+            entries={skim}
+            onToggle={toggle}
+            onRemove={remove}
+            busy={busy}
+          />
         </>
       )}
 
       <div className="intake-bar">
-        <p className="muted">
-          {closet
-            ? 'Only pieces the tagger could not finish are asked about.'
-            : 'Only the uncertain ones are asked one at a time; exact matches are a grid to skim.'}
-        </p>
+        {hint && <p className="muted">{hint}</p>}
         <span className="intake-bar-actions">
           <button type="button" className="btn" onClick={onBack}>
             <span aria-hidden="true">←</span> Shoot more

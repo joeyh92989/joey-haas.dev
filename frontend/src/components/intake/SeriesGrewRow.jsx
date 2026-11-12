@@ -98,6 +98,7 @@ function Strip({ growth }) {
  * @param {{checked: boolean, onChange: (ticked: boolean) => void}} [props.tick]
  * @param {string} [props.issuesText] - The row's issues as typed, for Edit issues.
  * @param {(text: string) => Promise<boolean>} [props.onSaveIssues]
+ * @param {() => void} [props.onRemove] Remove this title from the sitting.
  * @param {boolean} [props.busy]
  */
 export default function SeriesGrewRow({
@@ -110,6 +111,7 @@ export default function SeriesGrewRow({
   tick,
   issuesText = '',
   onSaveIssues,
+  onRemove,
   busy = false,
 }) {
   const [editing, setEditing] = useState(false)
@@ -197,6 +199,17 @@ export default function SeriesGrewRow({
           onClick={open}
         >
           Edit issues
+        </button>
+      )}
+      {onRemove && !editing && (
+        <button
+          type="button"
+          className="btn ghost sm"
+          aria-label={`Remove ${title}`}
+          disabled={busy}
+          onClick={onRemove}
+        >
+          Remove
         </button>
       )}
     </li>

@@ -77,7 +77,7 @@ describe('demoCounts', () => {
       exact: 1,
       probable: 1,
       check: 2,
-      adds: 2,
+      adds: 1,
     })
   })
 })

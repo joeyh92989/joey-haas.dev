@@ -15,10 +15,25 @@ import AddResults from './AddResults.jsx'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
-/** The newest unfinished sitting as one line, with Resume. */
+/**
+ * One unfinished sitting as a line with Resume; with several, their count
+ * and a link to the Add page's list, so no one is named over another.
+ */
 function UnfinishedLine({ sittings, area }) {
   if (!sittings?.length) return null
   const [newest, ...rest] = sittings
+  if (rest.length > 0) {
+    return (
+      <p className="intake-resume">
+        <span>
+          <b>{sittings.length} sittings</b> are unfinished
+        </span>
+        <Link className="btn" to={addPath(area)}>
+          See them on the Add page <span aria-hidden="true">→</span>
+        </Link>
+      </p>
+    )
+  }
   const counts = meterCounts(newest)
   const label = newest.label ?? 'A sitting'
   return (
@@ -26,12 +41,6 @@ function UnfinishedLine({ sittings, area }) {
       <span>
         <b>{label}</b> is unfinished · {counts.check} to check, {counts.ready}{' '}
         ready
-        {rest.length > 0 && (
-          <>
-            {' · '}
-            <Link to={addPath(area)}>{rest.length} more on the Add page</Link>
-          </>
-        )}
       </span>
       <Link
         className="btn"

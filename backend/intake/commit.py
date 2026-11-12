@@ -8,10 +8,11 @@ its entry and nothing is written until it is fixed (all or nothing).
 
 An entry's state decides what happens to it:
 
-- exact, probable, ready, typed: written (`added`);
+- exact, ready, typed: written (`added`);
 - owned: not written, counted once per title (`already_owned`);
 - ignored: cleared, not counted;
-- check, reading: kept in the sitting to come back to (`skipped_kept`).
+- check, probable (not yet confirmed), reading: kept in the sitting to come
+  back to (`skipped_kept`).
 
 A comic is one row per series, so its entries (written or owned) are never
 dropped as repeats: their issues are joined into one new row, or added to
@@ -54,6 +55,7 @@ from formats import CopyFieldError
 from intake.kinds import REGISTRY, Kind
 from items import ItemIn, RowRefused, _write_fields, commit_items
 from models import (
+    ComicShelfFormat,
     Garment,
     GarmentStatus,
     GarmentTagSource,
@@ -69,8 +71,8 @@ from models import (
 )
 
 S = IntakeEntryState
-WRITTEN = frozenset({S.EXACT, S.PROBABLE, S.READY, S.TYPED})
-KEPT = frozenset({S.CHECK, S.READING})
+WRITTEN = frozenset({S.EXACT, S.READY, S.TYPED})
+KEPT = frozenset({S.CHECK, S.PROBABLE, S.READING})
 P = IntakePhotoState
 WAITING_PHOTOS = frozenset({P.UPLOADED, P.READING, P.FAILED})
 
@@ -281,11 +283,13 @@ def _is_comic(kind: Kind | None) -> bool:
 @dataclass
 class _Series:
     """One comic series in a sitting: the first written entry's row (None
-    when every entry was marked owned) and every entry's issue ranges."""
+    when every entry was marked owned), every entry's issue ranges, and the
+    shelf format Details set (the first entry that has one)."""
 
     row: ItemIn | None = None
     entry: IntakeEntry | None = None
     issues: list[str | None] = field(default_factory=list)
+    shelf_format: ComicShelfFormat | None = None
 
 
 async def _series_on_shelf(
@@ -416,6 +420,8 @@ async def commit_one(
             issues = expand(parse_ranges(made.issues_owned))
             gained = issues - owned_set(on_shelf.issues_owned, on_shelf.editions)
             grew = SeriesGrew.before_write(on_shelf, issues)
+            if made.shelf_format is not None:
+                on_shelf.shelf_format = made.shelf_format
             if gained:
                 outcome.issues_added = await got_issues(
                     session, on_shelf, gained, today
@@ -534,6 +540,8 @@ async def commit_sitting(
             # Every photo of one series is one row: its issues are joined.
             found = series.setdefault(key, _Series())
             found.issues.append(made.issues_owned)
+            if found.shelf_format is None and not owned_comic:
+                found.shelf_format = made.shelf_format
             if found.row is None and not owned_comic:
                 found.row, found.entry = made, entry
             continue
@@ -556,6 +564,8 @@ async def commit_sitting(
         item = on_shelf.get(key)
         if item is not None:
             outcome.series_grew.append(SeriesGrew.before_write(item, issues))
+            if found.shelf_format is not None:
+                item.shelf_format = found.shelf_format
             gained = issues - owned_set(item.issues_owned, item.editions)
             if gained:
                 gains.append((item, gained))
@@ -566,7 +576,13 @@ async def commit_sitting(
             # which is not at all.
             outcome.already_owned += 1
         else:
-            rows.append(_with_issues(found.row, issues))
+            new_row = _with_issues(found.row, issues)
+            if found.shelf_format is not None:
+                # The first entry that has one, as for an existing series.
+                new_row = new_row.model_copy(
+                    update={"shelf_format": found.shelf_format}
+                )
+            rows.append(new_row)
             row_entries.append(found.entry)
 
     try:

@@ -24,7 +24,7 @@ export function readRecording(raw) {
 
 /**
  * How many were read, by confidence, and how many a commit would add
- * (exact and probable; a check waits for a person).
+ * (exact only; a probable match or a check waits for a person).
  *
  * @param {object[]} titles The recording's rows.
  */
@@ -38,7 +38,7 @@ export function demoCounts(titles) {
     exact,
     probable,
     check: count('check'),
-    adds: exact + probable,
+    adds: exact,
   }
 }
 

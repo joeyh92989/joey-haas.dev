@@ -167,6 +167,9 @@ def _check_kind(area: IntakeArea, kind: str | None) -> None:
         raise HTTPException(422, f"{kind} is not a {area.value} kind")
 
 
+PHOTO_BEING_READ = "This photo is being read; try again in a moment."
+
+
 def create_intake_router(
     session_factory: async_sessionmaker[AsyncSession],
     registry: dict,
@@ -337,6 +340,7 @@ def create_intake_router(
                 "photos": count,
                 "photos_waiting": waiting[sitting.id],
                 "entries": entry_counts[sitting.id],
+                "created_at": sitting.created_at,
                 "updated_at": sitting.updated_at,
             }
             for sitting, count in rows
@@ -426,6 +430,54 @@ def create_intake_router(
             )
         await session.commit()
         return photo_json(row)
+
+    @router.delete("/sittings/{sitting_id}/photos/{photo_id}", status_code=204)
+    async def delete_photo(
+        sitting_id: uuid.UUID,
+        photo_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> Response:
+        """Remove one photo from an unfinished sitting, with every entry read
+        from it. A closet photo takes its piece along, tagged or not, as
+        Check's Remove this photo does. A sitting already added or discarded,
+        as from a second device, is a 409, and so is a photo being read right
+        now (`reading` in the database); a photo of another sitting is a 404."""
+        sitting = await session.get(IntakeSitting, sitting_id)
+        if sitting is None:
+            raise HTTPException(409, SITTING_GONE)
+        # Locked, so a reader finishing at this moment waits for the delete
+        # (or the delete sees the state it left).
+        photo = await session.scalar(
+            select(IntakePhoto).where(IntakePhoto.id == photo_id).with_for_update()
+        )
+        if photo is None or photo.sitting_id != sitting.id:
+            raise HTTPException(404, "No such photo")
+        if photo.state is IntakePhotoState.READING:
+            raise HTTPException(409, PHOTO_BEING_READ)
+        entries = (
+            await session.scalars(
+                select(IntakeEntry).where(IntakeEntry.photo_id == photo.id)
+            )
+        ).all()
+        garment_ids = [e.garment_id for e in entries if e.garment_id is not None]
+        garments = (
+            {
+                g.id: g
+                for g in await session.scalars(
+                    select(Garment).where(Garment.id.in_(garment_ids))
+                )
+            }
+            if garment_ids
+            else {}
+        )
+        for entry in entries:
+            garment = garments.get(entry.garment_id)
+            # A piece's entry goes with it, by cascade.
+            await session.delete(garment if garment is not None else entry)
+        sitting.updated_at = func.now()
+        await session.delete(photo)
+        await session.commit()
+        return Response(status_code=204)
 
     @router.post("/sittings/{sitting_id}/read-next")
     async def read_next_photo(
@@ -598,12 +650,17 @@ def create_intake_router(
 
     @router.get("/counts")
     async def counts(session: AsyncSession = Depends(get_session)) -> dict[str, int]:
-        """Entries left to check, per area (the rail's badges)."""
+        """Entries left to check or confirm (`check` and `probable`), per area
+        (the rail's badges)."""
         rows = (
             await session.execute(
                 select(IntakeSitting.area, func.count())
                 .join(IntakeEntry, IntakeEntry.sitting_id == IntakeSitting.id)
-                .where(IntakeEntry.state == IntakeEntryState.CHECK)
+                .where(
+                    IntakeEntry.state.in_(
+                        (IntakeEntryState.CHECK, IntakeEntryState.PROBABLE)
+                    )
+                )
                 .group_by(IntakeSitting.area)
             )
         ).all()

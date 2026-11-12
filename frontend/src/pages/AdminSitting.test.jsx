@@ -76,6 +76,215 @@ async function press(user, element) {
 }
 
 describe('AdminSitting', () => {
+  it('asks a probable match one at a time instead of skimming it', async () => {
+    const user = userEvent.setup()
+    const saga = candidate(3, 'Saga', 2012)
+    const api = fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'check',
+          entries: [
+            entry('e1', 'probable', {
+              photo_id: 'p1',
+              payload: { detected_title: 'SAGA' },
+              candidates: [saga],
+              chosen: saga,
+            }),
+            entry('e2', 'exact', {
+              photo_id: 'p1',
+              chosen: candidate(4, 'East of West'),
+            }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+
+    const group = await screen.findByRole('radiogroup', {
+      name: 'Which one is it?',
+    })
+    expect(within(group).getByRole('radio', { name: /^Saga/ })).toBeChecked()
+    expect(screen.getByText('Probable')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: 'Saga' })).toBeNull()
+    expect(screen.getByRole('checkbox', { name: 'East of West' })).toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Yes, this one' }))
+    await waitFor(() =>
+      expect(api.calls('PATCH', /\/entries\/e1$/)[0]?.body).toEqual({
+        state: 'ready',
+        chosen: saga,
+      }),
+    )
+  })
+
+  it('splits the Shoot count into parts that add up (#159)', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'shoot',
+          photos: [photo('p1', 'read'), photo('p2', 'reading')],
+          entries: [
+            ...longbox().entries,
+            entry('t1', 'typed', { payload: { title: 'Lost zine' } }),
+            entry('r1', 'ready', { chosen: candidate(9, 'Paper Girls') }),
+            entry('p9', 'probable', { photo_id: 'p1', chosen: SANDMAN }),
+            entry('x1', 'ignored', { photo_id: 'p1' }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    expect(
+      await screen.findByText(
+        '7 titles so far · 4 ready · 2 to check · 1 on the shelf · 1 photo waiting to be read',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps reading and unticked entries in the total and counts unread photos apart', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'shoot',
+          photos: [
+            photo('p1', 'read'),
+            photo('p2', 'reading'),
+            photo('p3', 'uploaded'),
+          ],
+          entries: [
+            entry('e2', 'exact', { chosen: candidate(3, 'Saga') }),
+            entry('e5', 'reading', { photo_id: 'p2' }),
+            entry('u1', 'ignored', {
+              chosen: candidate(4, 'East of West'),
+              payload: { unticked: true, was: 'exact' },
+            }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    expect(
+      await screen.findByText(
+        '3 titles so far · 1 ready · 1 reading · 1 unticked · 2 photos waiting to be read',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('drops zero parts from the Shoot count', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'shoot',
+          photos: [photo('p1', 'read')],
+          entries: [entry('e2', 'exact', { chosen: candidate(3, 'Saga') })],
+        }),
+      ],
+    })
+    renderSitting()
+    expect(
+      await screen.findByText('1 title so far · 1 ready'),
+    ).toBeInTheDocument()
+  })
+
+  it('counts pieces in a closet sitting (#165)', async () => {
+    fakeIntakeApi({
+      sittings: [
+        {
+          id: 'c1',
+          area: 'closet',
+          kind: 'garment',
+          label: 'Rack',
+          photos: [photo('p1', 'read'), photo('p2', 'read')],
+          entries: [
+            entry('g1', 'check', { photo_id: 'p1' }),
+            entry('g2', 'check', { photo_id: 'p2' }),
+          ],
+        },
+      ],
+    })
+    renderSitting('c1', 'closet')
+    expect(await screen.findByText(/^2 pieces so far/)).toBeInTheDocument()
+  })
+
+  it('shows searched and typed titles ticked on Check, and reticks them (#165)', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'check',
+          photos: [],
+          entries: [
+            entry('r1', 'ready', { chosen: candidate(9, 'Paper Girls') }),
+            entry('t1', 'typed', { payload: { title: 'Lost zine' } }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    const zine = await screen.findByRole('checkbox', { name: 'Lost zine' })
+    expect(zine).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Paper Girls' })).toBeChecked()
+    await user.click(zine)
+    await waitFor(() =>
+      expect(api.calls('PATCH', /\/entries\/t1$/)[0]?.body).toMatchObject({
+        state: 'ignored',
+        payload: { unticked: true, was: 'typed' },
+      }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('checkbox', { name: 'Lost zine' }),
+      ).not.toBeChecked(),
+    )
+    await user.click(screen.getByRole('checkbox', { name: 'Lost zine' }))
+    await waitFor(() =>
+      expect(api.calls('PATCH', /\/entries\/t1$/)[1]?.body.state).toBe('typed'),
+    )
+  })
+
+  it('renders no empty hint paragraph when there is no grid', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'check',
+          entries: [
+            entry('e1', 'check', {
+              photo_id: 'p1',
+              payload: { detected_title: 'SANDMAN' },
+              candidates: [SANDMAN, UNIVERSE],
+              chosen: SANDMAN,
+            }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Check' })
+    const empty = [...document.querySelectorAll('.intake-bar p')].filter(
+      (p) => !p.textContent.trim(),
+    )
+    expect(empty).toHaveLength(0)
+  })
+
+  it('drops the grid sentence when there is no grid', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'check',
+          entries: [
+            entry('e1', 'check', {
+              photo_id: 'p1',
+              payload: { detected_title: 'SANDMAN' },
+              candidates: [SANDMAN],
+            }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    await screen.findByRole('radiogroup', { name: 'Which one is it?' })
+    expect(screen.queryByText(/exact matches are a grid/)).toBeNull()
+  })
+
   it('walks Shoot to Done by keyboard, saving each step', async () => {
     const user = userEvent.setup()
     const api = fakeIntakeApi({ sittings: [longbox()] })
@@ -96,7 +305,7 @@ describe('AdminSitting', () => {
     expect(screen.getByText('SANDMAN')).toBeInTheDocument()
     const group = screen.getByRole('radiogroup', { name: 'Which one is it?' })
     expect(
-      within(group).getByRole('radio', { name: /^The Sandman 1989/ }),
+      within(group).getByRole('radio', { name: /^The Sandman \(1989\)/ }),
     ).toBeChecked()
     await user.click(
       within(group).getByRole('radio', { name: /The Sandman Universe/ }),
@@ -212,7 +421,7 @@ describe('AdminSitting', () => {
     expect(tiles[2]).toHaveTextContent('waiting for tomorrow’s budget')
     expect(tiles[3]).toHaveTextContent('nothing read')
     expect(document.body).toHaveTextContent(
-      '1 waiting: today’s model budget is used up',
+      '1 photo waiting to be read: today’s model budget is used up',
     )
     expect(document.body).not.toHaveTextContent('did not answer')
   })
@@ -804,7 +1013,7 @@ describe('AdminSitting', () => {
     )
     await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
     await waitFor(() =>
-      expect(screen.getByText('1 title so far')).toBeInTheDocument(),
+      expect(screen.getByText('1 title so far · 1 ready')).toBeInTheDocument(),
     )
     const [added] = api.calls('POST', /\/sittings\/s1\/entries$/)
     expect(added.body).toEqual({ kind: 'comic', chosen: saga })
@@ -814,6 +1023,112 @@ describe('AdminSitting', () => {
     ).not.toBeNull()
     expect(screen.getByRole('button', { name: /Start checking/ })).toBeEnabled()
     expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('shows Added, not a second Add, for a result already in the sitting; removing it offers Add again', async () => {
+    const user = userEvent.setup()
+    const saga = {
+      ...candidate(7, 'Saga', 2012),
+      kind: 'comic',
+      owned_item_id: null,
+    }
+    const api = fakeIntakeApi({
+      sittings: [longbox({ photos: [], entries: [] })],
+      search: () => ({
+        results: [saga],
+        sources: [{ kind: 'comic', state: 'ok', reason: null }],
+      }),
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Shoot' })
+    await user.click(screen.getByRole('button', { name: 'Search instead' }))
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search for a title' }),
+      'Saga{Enter}',
+    )
+    await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
+    const added = await screen.findByRole('button', { name: 'Added: Saga' })
+    expect(added).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Add Saga' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: /^Remove Saga/ }))
+    await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
+    expect(api.calls('POST', /\/sittings\/s1\/entries$/)).toHaveLength(2)
+  })
+
+  it('offers Add, not Added, for a guess still to check and for an unticked title', async () => {
+    const user = userEvent.setup()
+    const saga = {
+      ...candidate(7, 'Saga', 2012),
+      kind: 'comic',
+      owned_item_id: null,
+    }
+    const zine = {
+      ...candidate(8, 'Zine', 2015),
+      kind: 'comic',
+      owned_item_id: null,
+    }
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          photos: [],
+          entries: [
+            entry('c1', 'probable', { kind: 'comic', chosen: saga }),
+            entry('u1', 'ignored', {
+              kind: 'comic',
+              chosen: zine,
+              payload: { unticked: true, was: 'exact' },
+            }),
+          ],
+        }),
+      ],
+      search: () => ({
+        results: [saga, zine],
+        sources: [{ kind: 'comic', state: 'ok', reason: null }],
+      }),
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Shoot' })
+    await user.click(screen.getByRole('button', { name: 'Search instead' }))
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search for a title' }),
+      'Saga{Enter}',
+    )
+    expect(
+      await screen.findByRole('button', { name: 'Add Saga' }),
+    ).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Add Zine' })).toBeEnabled()
+  })
+
+  it('shows Added for a result already in the sitting when the search is reopened', async () => {
+    const user = userEvent.setup()
+    const saga = {
+      ...candidate(7, 'Saga', 2012),
+      kind: 'comic',
+      owned_item_id: null,
+    }
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          photos: [],
+          entries: [entry('t1', 'ready', { kind: 'comic', chosen: saga })],
+        }),
+      ],
+      search: () => ({
+        results: [saga],
+        sources: [{ kind: 'comic', state: 'ok', reason: null }],
+      }),
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Shoot' })
+    await user.click(screen.getByRole('button', { name: 'Search instead' }))
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search for a title' }),
+      'Saga{Enter}',
+    )
+    expect(
+      await screen.findByRole('button', { name: 'Added: Saga' }),
+    ).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Add Saga' })).toBeNull()
   })
 
   it('keeps a searched title as typed from Shoot', async () => {
@@ -838,7 +1153,9 @@ describe('AdminSitting', () => {
       kind: 'comic',
       payload: { title: 'Lost zine' },
     })
-    expect(await screen.findByText('1 title so far')).toBeInTheDocument()
+    expect(
+      await screen.findByText('1 title so far · 1 ready'),
+    ).toBeInTheDocument()
   })
 
   it('offers no Search instead in a closet sitting', async () => {
@@ -848,5 +1165,203 @@ describe('AdminSitting', () => {
     renderSitting('c1', 'closet')
     await screen.findByRole('heading', { name: 'Shoot' })
     expect(screen.queryByRole('button', { name: 'Search instead' })).toBeNull()
+  })
+
+  describe('removing a title or photo before it is added (#157)', () => {
+    it('removes a photo from Shoot with the titles read from it', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [longbox({ step: 'shoot' })],
+      })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      expect(
+        screen.getByText(
+          '4 titles so far · 2 ready · 1 to check · 1 on the shelf',
+        ),
+      ).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Remove photo 1' }))
+      await waitFor(() =>
+        expect(api.calls('DELETE', /\/sittings\/s1\/photos\/p1$/)).toHaveLength(
+          1,
+        ),
+      )
+      expect(await screen.findByText('0 titles so far')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Remove photo 1' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('does not bring a removed photo back when its read lands late', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [
+          longbox({
+            step: 'shoot',
+            photos: [photo('p1', 'uploaded')],
+            entries: [],
+          }),
+        ],
+        reads: [
+          () => ({
+            status: 'read',
+            entries: [
+              entry('n1', 'exact', { chosen: candidate(9, 'Hellboy') }),
+            ],
+          }),
+        ],
+      })
+      // The read is computed at once but answered only on release.
+      let release
+      const gate = new Promise((resolve) => {
+        release = resolve
+      })
+      const inner = api.fetch.getMockImplementation()
+      api.fetch.mockImplementation(async (url, options) => {
+        const answer = await inner(url, options)
+        if (/\/read-next$/.test(String(url))) await gate
+        return answer
+      })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      await waitFor(() => expect(readsAsked(api)).toBe(1))
+      await user.click(screen.getByRole('button', { name: 'Remove photo 1' }))
+      await waitFor(() =>
+        expect(api.calls('DELETE', /\/photos\/p1$/)).toHaveLength(1),
+      )
+      release()
+      await waitFor(() =>
+        expect(api.calls('POST', /\/read-next$/).length).toBeGreaterThanOrEqual(
+          1,
+        ),
+      )
+      expect(await screen.findByText('0 titles so far')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Remove photo 1' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('says so when the sitting is gone, and keeps the photo shown', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [longbox({ step: 'shoot' })] })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      delete api.state.sittings.s1
+      await user.click(screen.getByRole('button', { name: 'Remove photo 1' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'already been added or discarded',
+      )
+      expect(
+        screen.getByRole('button', { name: 'Remove photo 1' }),
+      ).toBeInTheDocument()
+    })
+
+    it('removes a searched or typed title from Shoot without writing it', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [
+          longbox({
+            step: 'shoot',
+            photos: [],
+            entries: [
+              entry('t1', 'typed', {
+                payload: { title: 'Lost zine' },
+              }),
+            ],
+          }),
+        ],
+      })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      await user.click(screen.getByRole('button', { name: 'Remove Lost zine' }))
+      await waitFor(() =>
+        expect(api.calls('PATCH', /\/entries\/t1$/)).toHaveLength(1),
+      )
+      const { body } = api.calls('PATCH', /\/entries\/t1$/)[0]
+      expect(body.state).toBe('ignored')
+      expect(body.payload?.unticked).toBeUndefined()
+      expect(await screen.findByText('0 titles so far')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Remove Lost zine' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('removes a typed closet piece from Shoot with its garment', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [
+          {
+            id: 'c3',
+            area: 'closet',
+            kind: 'garment',
+            label: 'Rack',
+            step: 'shoot',
+            entries: [
+              entry('ge1', 'typed', {
+                kind: 'garment',
+                garment_id: 'gx',
+                payload: { name: 'Grey coat' },
+              }),
+            ],
+          },
+        ],
+        garments: [{ id: 'gx', name: 'Grey coat', status: 'active' }],
+      })
+      renderSitting('c3', 'closet')
+      await user.click(
+        await screen.findByRole('button', { name: 'Remove Grey coat' }),
+      )
+      await waitFor(() =>
+        expect(
+          api.calls('DELETE', /\/api\/closet\/garments\/gx$/),
+        ).toHaveLength(1),
+      )
+      expect(api.calls('PATCH', /\/entries\//)).toHaveLength(0)
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('button', { name: 'Remove Grey coat' }),
+        ).not.toBeInTheDocument(),
+      )
+    })
+
+    it('removes a title from the Check skim grid', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [longbox({ step: 'check' })] })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Check' })
+      await user.click(screen.getByRole('button', { name: 'Remove Saga' }))
+      await waitFor(() =>
+        expect(api.calls('PATCH', /\/entries\/e2$/)).toHaveLength(1),
+      )
+      expect(api.calls('PATCH', /\/entries\/e2$/)[0].body).toEqual({
+        state: 'ignored',
+        payload: {},
+      })
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('checkbox', { name: /Saga/ }),
+        ).not.toBeInTheDocument(),
+      )
+      expect(
+        screen.getByRole('checkbox', { name: /East of West/ }),
+      ).toBeInTheDocument()
+    })
+
+    it('removes a title from Details', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [longbox({ step: 'details' })] })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Details' })
+      await user.click(screen.getByRole('button', { name: 'Remove Saga' }))
+      await waitFor(() =>
+        expect(api.calls('PATCH', /\/entries\/e2$/)).toHaveLength(1),
+      )
+      expect(
+        await screen.findByRole('button', { name: /Add 1 to/ }),
+      ).toBeEnabled()
+      expect(
+        screen.queryByRole('group', { name: 'Saga' }),
+      ).not.toBeInTheDocument()
+    })
   })
 })

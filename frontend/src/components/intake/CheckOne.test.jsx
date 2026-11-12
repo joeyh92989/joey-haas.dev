@@ -11,6 +11,50 @@ afterEach(() => {
 })
 
 describe('CheckOne', () => {
+  it('shows a probable entry with its badge and its candidate preselected', () => {
+    const best = candidate(2, 'Saga', 2012)
+    render(
+      <CheckOne
+        entry={entry('e1', 'probable', {
+          payload: { detected_title: 'SAGA' },
+          candidates: [candidate(1, 'Sagas', 2001), best],
+          chosen: best,
+        })}
+        photoNumber={1}
+        position="1 of 1"
+        onAnswer={vi.fn()}
+        onSkip={vi.fn()}
+        busy={false}
+      />,
+    )
+    expect(screen.getByText('Probable')).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /^Saga \(2012\)/ })).toBeChecked()
+  })
+
+  it('names each candidate radio by its title and year, not its id', () => {
+    render(
+      <CheckOne
+        entry={entry('e1', 'check', {
+          kind: 'comic',
+          payload: { detected_title: 'Paper Girls' },
+          candidates: [
+            candidate(85128, 'Paper Girls', 2015),
+            candidate(99001, 'Paper Girls Deluxe', 2018),
+          ],
+        })}
+        photoNumber={1}
+        position="1 of 1"
+        onAnswer={vi.fn()}
+        onSkip={vi.fn()}
+        busy={false}
+      />,
+    )
+    expect(
+      screen.getByRole('radio', { name: 'Paper Girls (2015)' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: /85128/ })).toBeNull()
+  })
+
   it('searches the entry’s kind for a better match and answers with it', async () => {
     const user = userEvent.setup()
     const api = fakeIntakeApi({

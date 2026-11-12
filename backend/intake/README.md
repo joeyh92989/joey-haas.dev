@@ -35,7 +35,7 @@ and the entries read from them or typed in.
   no model call; `read_next` runs it for its sitting first, the nightly
   for every shelf sitting. The reading copy is dropped once read. A budget
   of zero or less returns `waiting` and changes nothing; a model error
-  marks only that photo `failed` (Retry requeues it). Closet sittings read
+  marks only that photo `failed` (Retry requeues it). A photo removed while it was being read is dropped with its read (`idle`, no error). Closet sittings read
   nothing here: their garments are tagged by the Closet's tag queue.
 - `commit.py` — `commit_sitting()`, behind `POST /api/intake/sittings/{id}/commit`
   (spec D8). Shelf entries become items through `items.commit_items`, the
@@ -44,8 +44,8 @@ and the entries read from them or typed in.
   most `items.BULK_CHUNK` (500). Answers `{added, already_owned,
   issues_added, series_grew, skipped_kept, photos_empty, photos_waiting, refused}`, and the route adds
   `created` (the new items' ids, which Done publishes). By entry state:
-  exact, probable, ready and typed are written; owned is counted once per
-  title; ignored is cleared; check and reading stay in the sitting. A photo
+  exact, ready and typed are written; owned is counted once per
+  title; ignored is cleared; check, probable (unconfirmed) and reading stay in the sitting. A photo
   not yet read (uploaded, reading or failed) is kept too and counted as
   `photos_waiting`. **Comics merge, never drop:** a comic is one row per
   series, so every comic entry (written or owned) resolving to one
@@ -55,7 +55,9 @@ and the entries read from them or typed in.
   series already in `items` gains the sitting's issues through
   `comics_routes.got_issues`, Got it's own rule (union, never lowered; a
   newly owned number leaves `issues_skipped`; a followed or wanted row
-  becomes owned, To read), and `issues_added` counts the issues it gained;
+  becomes owned, To read), and `issues_added` counts the issues it gained; a
+  shelf format set in Details (the first entry that has one) is saved on that
+  existing row too, and not counted as an issue gained;
   a series that gains nothing is `already_owned`. Each such series is also
   reported on its own in `series_grew` (`SeriesGrew`): `{item_id, title,
   is_public, cover_url, before: {owned, released}, ongoing, added, already, after_owned_text}`,
@@ -126,14 +128,14 @@ All under `/api/intake`, admin only (`items.require_admin`).
 |---|---|
 | `GET /kinds` | The kind registry, with each source's state |
 | `POST /sittings`, `GET /sittings?area=`, `GET/PATCH/DELETE /sittings/{id}` | Sittings; the list carries `photos`, `photos_waiting` (uploaded or reading) and `entries` (a count per state) for the Add page's meter |
-| `POST /sittings/{id}/photos`, `POST /photos/{id}/retry`, `GET /photos/{id}/image` | Photos |
+| `POST /sittings/{id}/photos`, `DELETE /sittings/{id}/photos/{photo_id}`, `POST /photos/{id}/retry`, `GET /photos/{id}/image` | Photos. The delete drops the photo and every entry read from it (a closet photo takes its piece too, tagged or not); 409 `SITTING_GONE` on an added or discarded sitting, 409 "This photo is being read; try again in a moment." while the photo is `reading` in the database (the row is locked for the check), 404 for a photo of another sitting; it also touches the sitting's `updated_at`. A single entry is removed by `PATCH` `state: ignored` with no `payload.unticked` (an ignored entry with `unticked` is the skim grid's untick and stays visible) |
 | `POST /sittings/{id}/read-next` | Read one waiting photo (the page drives it) |
 | `POST /sittings/{id}/entries`, `PATCH /entries/{id}` | Typed and chosen entries |
 | `GET /search?area=&query=` | The add bar's search across the area's sources (`search.py`) |
 | `POST /add` | One thing from the add bar, through the commit service |
 | `POST /entries/{id}/tag-again` | Clothes · Check's Tag again: a piece the tag queue gave up on goes back in it (attempts reset); 409 for a piece tagged or saved by hand |
 | `POST /sittings/{id}/commit` | Write the sitting to the collection |
-| `GET /counts`, `GET /budget` | Entries to check per area; today's free reads |
+| `GET /counts`, `GET /budget` | Entries to check or confirm (`check` and `probable`) per area; today's free reads |
 | `POST /jobs/nightly` | The nightly step; the **only** intake route the job token opens (`items.JOB_ROUTES`) |
 | `GET /status` | The nightly's last run, null before the first |
 

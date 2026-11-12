@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { meterCounts } from '../../lib/intake.js'
+import { meterCounts, startedAt } from '../../lib/intake.js'
 
 /** A sitting's name on the page; one left unnamed still has one. */
 export function sittingName(sitting) {
@@ -69,6 +69,8 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
                 {name} <span className="muted">· {kind}</span>
               </p>
               <p className="muted">
+                {sitting.created_at &&
+                  `started ${startedAt(sitting.created_at)} · `}
                 {photos} · {counts.check} to check, {counts.ready} ready,{' '}
                 {counts.reading} still reading
                 {counts.owned > 0 && `, ${counts.owned} already on the shelf`}

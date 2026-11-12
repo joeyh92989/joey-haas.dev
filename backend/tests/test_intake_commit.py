@@ -4,6 +4,7 @@ AC 5, 6 and 8; Review Focus 1 and 3)."""
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import func, select
@@ -11,6 +12,7 @@ from sqlalchemy import func, select
 import items
 from intake.commit import NOTHING_TO_ADD, PHOTOS_STILL_WAITING
 from models import (
+    ComicShelfFormat,
     Garment,
     GarmentStatus,
     IntakeArea,
@@ -230,6 +232,7 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         ("game", S.EXACT, {}, _match(1)),
         # The same title on a second photo: counted once.
         ("game", S.EXACT, {}, _match(1)),
+        # Unconfirmed: asked one at a time, never written unasked.
         ("game", S.PROBABLE, {}, _match(2)),
         # Marked owned by the reader, twice: one title on the shelf.
         ("game", S.OWNED, {}, _match(3)),
@@ -245,13 +248,13 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     body = response.json()
-    assert len(body.pop("created")) == 2
+    assert len(body.pop("created")) == 1
     assert body == {
-        "added": 2,
+        "added": 1,
         "already_owned": 2,
         "issues_added": 0,
         "series_grew": [],
-        "skipped_kept": 2,
+        "skipped_kept": 3,
         "photos_empty": 2,
         "photos_waiting": 0,
         "refused": [],
@@ -261,7 +264,7 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
     async with sessionmaker_for_test() as session:
         assert await session.get(IntakeSitting, sitting_id) is not None
         left = (await session.scalars(select(IntakeEntry.state))).all()
-    assert sorted(state.value for state in left) == ["check", "reading"]
+    assert sorted(state.value for state in left) == ["check", "probable", "reading"]
 
 
 def _series(n: int = 7) -> dict:
@@ -605,3 +608,88 @@ async def test_a_closet_sitting_keeps_its_garments_and_adds_typed_ones(
         )
     assert names == ["Grey wool coat", "None"]  # the photo's garment untouched
     assert await _count(sessionmaker_for_test, IntakeSitting) == 0
+
+
+@pytest.mark.asyncio
+async def test_a_source_matched_comic_keeps_the_shelf_format_set_in_details(
+    sessionmaker_for_test,
+):
+    entries = [
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "1", "shelf_format": "singles", "status": "backlog"},
+            _series(),
+        )
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        async with sessionmaker_for_test() as session:
+            entry_id = await session.scalar(select(IntakeEntry.id))
+        patched = await client.patch(
+            f"/api/intake/entries/{entry_id}",
+            json={
+                "payload": {
+                    "issues_owned": "1",
+                    "shelf_format": "singles",
+                    "status": "backlog",
+                }
+            },
+        )
+        assert patched.status_code == 200, patched.text
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.shelf_format == ComicShelfFormat.SINGLES
+
+
+@pytest.mark.asyncio
+async def test_a_series_on_the_shelf_takes_the_shelf_format_set_in_details(
+    sessionmaker_for_test,
+):
+    await _seed_series(sessionmaker_for_test, issues_owned="1")
+    entries = [
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "2", "shelf_format": "singles"},
+            _series(),
+        )
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_owned == "1–2"
+    assert row.shelf_format == ComicShelfFormat.SINGLES
+
+
+@pytest.mark.asyncio
+async def test_a_new_series_takes_the_first_shelf_format_of_any_entry(
+    sessionmaker_for_test,
+):
+    # Only the second photo's entry has a format: the one new row gets it,
+    # as an existing series would.
+    entries = [
+        ("comic", S.READY, {"issues_owned": "1"}, _series()),
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "2", "shelf_format": "trades"},
+            _series(),
+        ),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with sessionmaker_for_test() as session:  # pin the commit's order
+        for entry in await session.scalars(select(IntakeEntry)):
+            entry.created_at = datetime(2026, 11, 10, tzinfo=UTC) + timedelta(
+                minutes=int(entry.payload["issues_owned"])
+            )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_owned == "1–2"
+    assert row.shelf_format == ComicShelfFormat.TRADES

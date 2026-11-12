@@ -35,15 +35,19 @@ export function optionLabel(fieldKey, value) {
 }
 
 /** Entry states written by a commit (intake/commit.py). */
-export const WRITTEN_STATES = ['exact', 'probable', 'ready', 'typed']
+export const WRITTEN_STATES = ['exact', 'ready', 'typed']
+
+/** Entry states asked one at a time in Check (a probable match is asked too). */
+export const CHECK_STATES = ['check', 'probable']
 
 /** The skim grid's states: trusted matches, and what is already owned. */
-export const SKIM_STATES = ['exact', 'probable', 'owned']
+export const SKIM_STATES = ['exact', 'owned']
 
 /**
- * A listed sitting's meter: ready (written at commit), to check, and still
- * reading (entries whose source was busy plus photos not yet read), and
- * the titles already on the shelf.
+ * A listed sitting's meter: ready (written at commit), to check (check and
+ * probable entries, asked one at a time), and still reading (entries whose
+ * source was busy plus photos not yet read), and the titles already on the
+ * shelf.
  *
  * @param {{entries?: Record<string, number>, photos_waiting?: number}} sitting
  */
@@ -52,7 +56,7 @@ export function meterCounts(sitting) {
   const count = (state) => entries[state] ?? 0
   return {
     ready: WRITTEN_STATES.reduce((sum, state) => sum + count(state), 0),
-    check: count('check'),
+    check: CHECK_STATES.reduce((sum, state) => sum + count(state), 0),
     reading: count('reading') + (sitting.photos_waiting ?? 0),
     owned: count('owned'),
   }
@@ -117,13 +121,22 @@ export function localToday(now = new Date()) {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
 
-/** A default name for a new sitting: its kind and the day. */
+const SITTING_STARTED = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/Denver',
+})
+
+/** When a sitting began, as "Nov 11, 7:42 PM" in the owner's Denver time. */
+export function startedAt(when) {
+  return SITTING_STARTED.format(new Date(when))
+}
+
+/** A default name for a new sitting: its kind and when it began. */
 export function sittingLabel(kind, now = new Date()) {
-  const day = now.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
-  return `${kind.label} · ${day}`
+  return `${kind.label} · ${startedAt(now)}`
 }
 
 /**

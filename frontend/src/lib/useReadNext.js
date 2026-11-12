@@ -22,7 +22,7 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
  * @param {(update: (sitting: object) => object) => void} options.onChange
  *   The sitting's state setter.
  * @returns {{drive: () => Promise<void>, merge: (photo: object,
- *   entries?: object[]) => void, budgetSpent: boolean, announcement: string,
+ *   entries?: object[]) => void, forget: (photoId: string) => void, budgetSpent: boolean, announcement: string,
  *   error: string|null, setError: (error: string|null) => void}}
  */
 export function useReadNext({ sitting, budget, onChange }) {
@@ -38,6 +38,9 @@ export function useReadNext({ sitting, budget, onChange }) {
   const spent = useRef(budgetSpent)
   spent.current = budgetSpent
   const started = useRef(false)
+  // Photos removed in this session: a read answered after the removal must
+  // not bring the photo or its titles back.
+  const removed = useRef(new Set())
   // The sitting and photo order, read by the loop after renders it cannot see.
   const current = useRef(sitting)
   current.current = sitting
@@ -53,6 +56,7 @@ export function useReadNext({ sitting, budget, onChange }) {
 
   /** Merges a photo, and any entries read from it, into the sitting. */
   function merge(photo, entries = []) {
+    if (removed.current.has(photo.id)) return
     onChange((old) => {
       const known = old.photos.some((p) => p.id === photo.id)
       return {
@@ -63,6 +67,11 @@ export function useReadNext({ sitting, budget, onChange }) {
         entries: [...old.entries, ...entries],
       }
     })
+  }
+
+  /** Remembers a removed photo so a late read of it is never merged back. */
+  function forget(photoId) {
+    removed.current.add(photoId)
   }
 
   /** Reads waiting photos one at a time until none waits or the budget is out. */
@@ -128,5 +137,5 @@ export function useReadNext({ sitting, budget, onChange }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sitting])
 
-  return { drive, merge, budgetSpent, announcement, error, setError }
+  return { drive, merge, forget, budgetSpent, announcement, error, setError }
 }

@@ -334,6 +334,30 @@ export function fakeIntakeApi({
       }
       return json(201, added)
     }
+    if (
+      (m = path.match(
+        /^\/api\/intake\/sittings\/([\w-]+)\/photos\/([\w-]+)$/,
+      )) &&
+      method === 'DELETE'
+    ) {
+      const sitting = state.sittings[m[1]]
+      if (!sitting) {
+        return json(409, {
+          detail:
+            'This sitting has already been added or discarded, perhaps on another device.',
+        })
+      }
+      if (!sitting.photos.some((p) => p.id === m[2])) {
+        return json(404, { detail: 'No such photo' })
+      }
+      const dropped = sitting.entries.filter((e) => e.photo_id === m[2])
+      state.garments = state.garments.filter(
+        (g) => !dropped.some((e) => e.garment_id === g.id),
+      )
+      sitting.photos = sitting.photos.filter((p) => p.id !== m[2])
+      sitting.entries = sitting.entries.filter((e) => e.photo_id !== m[2])
+      return { ok: true, status: 204, json: async () => null }
+    }
     if ((m = path.match(/^\/api\/intake\/sittings\/([\w-]+)\/read-next$/))) {
       const sitting = state.sittings[m[1]]
       const waiting = sitting.photos.find((p) => p.state === 'uploaded')
@@ -382,10 +406,10 @@ export function fakeIntakeApi({
         return json(answer.status, answer.body)
       }
       const written = sitting.entries.filter((e) =>
-        ['exact', 'probable', 'ready', 'typed'].includes(e.state),
+        ['exact', 'ready', 'typed'].includes(e.state),
       )
       const kept = sitting.entries.filter((e) =>
-        ['check', 'reading'].includes(e.state),
+        ['check', 'probable', 'reading'].includes(e.state),
       )
       const answer = {
         added: written.length,

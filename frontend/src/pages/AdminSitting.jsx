@@ -134,11 +134,26 @@ function AdminSitting() {
     context.refreshIntakeCounts?.()
   }
 
+  /** Clothes · Check removed a piece: its entry, and its photo with it. */
   function removeEntry(entryId) {
+    setSitting((old) => {
+      const photoId = old.entries.find((e) => e.id === entryId)?.photo_id
+      return {
+        ...old,
+        photos: old.photos.filter((photo) => photo.id !== photoId),
+        entries: old.entries.filter((e) => e.id !== entryId),
+      }
+    })
+  }
+
+  function removePhoto(photoId) {
+    reader.forget(photoId)
     setSitting((old) => ({
       ...old,
-      entries: old.entries.filter((e) => e.id !== entryId),
+      photos: old.photos.filter((photo) => photo.id !== photoId),
+      entries: old.entries.filter((entry) => entry.photo_id !== photoId),
     }))
+    context.refreshIntakeCounts?.()
   }
 
   async function commit() {
@@ -252,6 +267,8 @@ function AdminSitting() {
               reader={reader}
               kinds={kinds}
               onNext={() => goTo('check')}
+              onEntry={replaceEntry}
+              onPhotoRemoved={removePhoto}
               headingRef={headingRef}
             />
           )}

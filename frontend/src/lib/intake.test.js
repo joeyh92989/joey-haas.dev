@@ -25,13 +25,13 @@ describe('optionLabel', () => {
 })
 
 describe('meterCounts', () => {
-  it('counts written states as ready and unread photos as reading', () => {
+  it('counts written states as ready, a probable match as to check, and unread photos as reading', () => {
     expect(
       meterCounts({
         photos_waiting: 2,
         entries: { exact: 3, probable: 1, typed: 1, check: 4, reading: 1 },
       }),
-    ).toEqual({ ready: 5, check: 4, reading: 3, owned: 0 })
+    ).toEqual({ ready: 4, check: 5, reading: 3, owned: 0 })
   })
 })
 
@@ -136,9 +136,19 @@ describe('garmentNeedsCheck', () => {
 })
 
 describe('sittingLabel', () => {
-  it('is the kind and the day', () => {
-    expect(sittingLabel({ label: 'Garment' }, new Date(2026, 10, 10))).toBe(
-      'Garment · Nov 10',
+  it('is the kind, the day and the time', () => {
+    expect(
+      sittingLabel({ label: 'Garment' }, new Date('2026-11-11T02:42:00Z')),
+    ).toBe('Garment · Nov 10, 7:42 PM')
+  })
+
+  it('tells two same-day sittings apart, in Denver time', () => {
+    const kind = { label: 'Comic' }
+    expect(sittingLabel(kind, new Date('2026-11-12T02:42:00Z'))).toBe(
+      'Comic · Nov 11, 7:42 PM',
+    )
+    expect(sittingLabel(kind, new Date('2026-11-12T04:05:00Z'))).toBe(
+      'Comic · Nov 11, 9:05 PM',
     )
   })
 })
