@@ -135,6 +135,7 @@ const TITLES = [
   ['/admin/closet/7', 'Garment · Admin · Joey Haas'],
   ['/admin/no-such-page', 'Not found · Joey Haas'],
   ['/shelf/42', 'My Shelf · Joey Haas'],
+  ['/shelf/42/58/', 'My Shelf · Joey Haas'],
   ['/shelf/comics', 'Comics · My Shelf'],
   ['/shelf/intake', 'Try the intake · My Shelf'],
   ['/shelf/next', 'What’s next · My Shelf'],
@@ -170,6 +171,16 @@ describe('App page titles', () => {
       expect(document.title).toBe('How Spine works · Joey Haas'),
     )
   })
+
+  // /shelf/:id/:part serves only a canonical issue number; the edition
+  // slug is NotFound until its page exists.
+  it.each(['abc', '058', '0', '12345', '5x', 'ed-1-6'])(
+    'sends /shelf/42/%s/ to NotFound',
+    async (part) => {
+      renderAt(`/shelf/42/${part}/`)
+      await waitFor(() => expect(document.title).toBe('Not found · Joey Haas'))
+    },
+  )
 
   // A route added to App.jsx without a row here fails this test. Layout
   // routes (the ones with children) and the two /collection redirects set

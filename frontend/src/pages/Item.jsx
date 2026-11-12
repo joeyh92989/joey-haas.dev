@@ -10,7 +10,8 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
-import { compactRanges, expandRanges, shortDate } from '../lib/comics.js'
+import { shortDate } from '../lib/comics.js'
+import { toggleOwned } from '../lib/comicEdits.js'
 import {
   laneSpans,
   lanesLabel,
@@ -578,36 +579,16 @@ function ItemPage({ id }) {
   }, [id, comicReady])
 
   /**
-   * Owns or unowns one issue from the grid, then reloads the public detail,
-   * which recomputes the run. The ranges sent are the owner's own
-   * `issues_owned`, read first: the public `owned_text` counts the
-   * editions' issues too, and writing it back would bake them in.
+   * Owns or unowns one issue from the grid (`lib/comicEdits.js` edits the
+   * owner's own ranges), then reloads the public detail, which recomputes
+   * the run.
    */
   const toggleIssue = useCallback(
     async (issue, owned) => {
       setSaving(true)
       setSaveError(null)
       try {
-        const path = `/api/items/${encodeURIComponent(id)}`
-        const current = await apiFetch(path)
-        if (!current.ok) throw new Error(`GET ${current.status}`)
-        const stored = await current.json()
-        const numbers = new Set(expandRanges(stored.issues_owned))
-        if (owned) numbers.add(issue)
-        else numbers.delete(issue)
-        const changes = { issues_owned: compactRanges(numbers) }
-        // Owning a skipped issue drops the skip, as Got it does: the API
-        // refuses an issue both owned and skipped. The skip is private, so
-        // the public grid drew it as missing.
-        const skipped = new Set(expandRanges(stored.issues_skipped))
-        if (owned && skipped.delete(issue))
-          changes.issues_skipped = compactRanges(skipped)
-        const response = await apiFetch(path, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(changes),
-        })
-        if (!response.ok) throw new Error(`PATCH ${response.status}`)
+        await toggleOwned(id, issue, owned)
         const next = await load()
         if (next.state === 'ready') setResult(next)
       } catch {
