@@ -34,12 +34,88 @@ import {
  */
 const SHIKI_THEMES = { light: 'light-plus', dark: 'dark-plus' }
 
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkRehype)
-  .use(rehypeShiki, { themes: SHIKI_THEMES, defaultColor: 'light' })
-  .use(rehypeStringify)
+/** The visible text of a hast node. */
+function textOf(node) {
+  if (node.type === 'text') return node.value
+  return (node.children ?? []).map(textOf).join('')
+}
+
+/** Lowercase letters, digits and hyphens. */
+function slugify(text) {
+  const slug = text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .trim()
+    .replace(/\s+/g, '-')
+  return slug || 'section'
+}
+
+/**
+ * Gives every h2 and h3 a stable id: its text, slugged, with -1, -2... on a
+ * repeat within the same document. Stable means the same text always gives
+ * the same id, so a shared link keeps working until the heading is renamed.
+ * The h2s are left on `file.data.headings` as [{id, text}] for the contents
+ * list; the markup is otherwise untouched, so the Shiki step is unaffected.
+ *
+ * A heading that already has an id (GFM's `footnote-label`) or is screen-reader
+ * only keeps what it has: it is no part of the author's outline, so it gets no
+ * new id and never enters the contents list. Its id is still taken, so a
+ * later heading cannot collide with it.
+ */
+export function rehypeHeadingIds() {
+  return (tree, file) => {
+    const used = new Set()
+    const headings = []
+    const isHeading = (node) =>
+      node.type === 'element' && /^h[23]$/.test(node.tagName)
+    const isAuthored = (node) => {
+      const { id, className } = node.properties ?? {}
+      const classes = [].concat(className ?? [])
+      return !id && !classes.includes('sr-only')
+    }
+    const collect = (node) => {
+      if (isHeading(node) && node.properties?.id) {
+        used.add(String(node.properties.id))
+      }
+      node.children?.forEach(collect)
+    }
+    const walk = (node) => {
+      if (isHeading(node) && isAuthored(node)) {
+        const text = textOf(node)
+        const base = slugify(text)
+        let id = base
+        for (let n = 1; used.has(id); n += 1) id = `${base}-${n}`
+        used.add(id)
+        node.properties = { ...node.properties, id }
+        if (node.tagName === 'h2') headings.push({ id, text })
+      }
+      node.children?.forEach(walk)
+    }
+    collect(tree)
+    walk(tree)
+    file.data.headings = headings
+  }
+}
+
+/** The parse and highlight chain both pipelines share; `ids` adds heading ids. */
+function pipeline({ ids = false } = {}) {
+  const chain = unified().use(remarkParse).use(remarkGfm).use(remarkRehype)
+  if (ids) chain.use(rehypeHeadingIds)
+  return chain
+    .use(rehypeShiki, { themes: SHIKI_THEMES, defaultColor: 'light' })
+    .use(rehypeStringify)
+}
+
+const processor = pipeline()
+
+/** The post pipeline: the same, plus heading ids. Trips keep their own markup. */
+const entryProcessor = pipeline({ ids: true })
+
+/** Compiles a post or note body to { html, headings }. */
+export async function compileEntry(content) {
+  const file = await entryProcessor.process(content)
+  return { html: String(file), headings: file.data.headings }
+}
 
 /**
  * A slug becomes part of a URL and of the RSS feed's XML. Restricting it to
@@ -157,7 +233,7 @@ async function compileTrip({ data, content, slug, id }) {
 /**
  * Compiles markdown posts, TIL notes and trips to JS modules at build time.
  *
- * A post or a note becomes a module exporting { slug, frontmatter, html };
+ * A post or a note becomes a module exporting { slug, frontmatter, html, headings };
  * a trip, under frontend/trips/, exports { slug, frontmatter, days }. Parsing
  * and syntax highlighting both happen here, so the browser downloads neither a
  * markdown parser nor a highlighter.
@@ -224,7 +300,7 @@ export default function markdown() {
         return { code: 'export default null', map: null }
       }
 
-      const html = String(await processor.process(content))
+      const { html, headings } = await compileEntry(content)
       const frontmatter = {
         title: String(data.title),
         date: toDateString(data.date, slug, this),
@@ -235,7 +311,7 @@ export default function markdown() {
       }
 
       return {
-        code: `export default ${JSON.stringify({ slug, frontmatter, html })}`,
+        code: `export default ${JSON.stringify({ slug, frontmatter, html, headings })}`,
         map: null,
       }
     },

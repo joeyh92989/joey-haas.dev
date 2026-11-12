@@ -856,7 +856,9 @@ p.muted a,
 @media (max-width: 700px) {
   .hero {
     gap: 24px;
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr), not 1fr: a bare 1fr track will not shrink below its
+       content, so a long facts value widens the whole hero. */
+    grid-template-columns: minmax(0, 1fr);
     padding: 0.5rem 0 2rem;
   }
 
@@ -1230,6 +1232,35 @@ section + section {
   color: var(--text-2);
   font-size: 1.125rem;
   margin-top: 0.5rem;
+}
+
+.post-toc {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  margin-top: 1.5rem;
+  padding: 0.75rem 0;
+}
+
+.post-toc-label {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.375rem;
+  text-transform: uppercase;
+}
+
+.post-toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.post-toc a {
+  color: var(--text);
+  display: block;
+  font-size: 0.9375rem;
+  padding: 0.25rem 0;
 }
 
 .post-body {
@@ -11910,4 +11941,9 @@ a.btn.sm {
 
 .load-state p {
   margin: 0;
+}
+
+/* Now: the RSS line sits apart from the finished list above it. */
+.now-rss {
+  margin-top: 0.75rem;
 }

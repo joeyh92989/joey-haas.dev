@@ -14,6 +14,7 @@ import {
 import { MIN_POOL, dailyPool } from '../src/lib/daily.js'
 import { finishRows } from '../src/lib/finishes.js'
 import { clip } from '../src/lib/clip.js'
+import { isHiddenPath } from '../src/lib/snapshotPresence.js'
 import { editionPath, issuePath, itemPath } from '../src/lib/spinePaths.js'
 import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 
@@ -168,6 +169,8 @@ function tripImage(trip) {
  * @param {object[]} [input.comicIssues] The comic-issues snapshot: per public
  *   series, the issues and editions that have a page. Absent or empty adds
  *   no pages.
+ * @param {string[]} [input.hidden] Static paths whose page has nothing on it
+ *   (#183): marked `noindex`, so the head says so and the sitemap skips them.
  * @returns {{path: string, title: string, description: string,
  *   type: string, image: object, lastmod?: string, slash?: boolean,
  *   legacy?: boolean}[]}
@@ -179,6 +182,7 @@ export function publicRoutes({
   trips = [],
   items,
   comicIssues = [],
+  hidden = [],
 }) {
   const page = (path, title, description) => ({
     path,
@@ -197,6 +201,7 @@ export function publicRoutes({
   const routes = staticPages(posts.length > 0).map((entry) => ({
     ...page(entry.path, entry.headTitle, entry.description),
     ...flags[entry.path],
+    ...(isHiddenPath(entry.path, hidden) ? { noindex: true } : {}),
   }))
   // The sitemap wants W3C dates; anything else is left out, not passed on.
   const lastmod = (date) =>
@@ -415,6 +420,7 @@ export function headTags(route) {
     // A cover is portrait: the large card would crop it to a strip.
     `<meta name="twitter:card" content="${image.width ? 'summary_large_image' : 'summary'}" />`,
   )
+  if (route.noindex) lines.push('<meta name="robots" content="noindex" />')
   if (route.feed) {
     lines.push(
       `<link rel="alternate" type="application/rss+xml" title="${escapeHtml(route.feed.title)}" href="${escapeHtml(route.feed.href)}" />`,
@@ -515,6 +521,7 @@ ${entries}
 /** sitemap.xml for the public routes. */
 export function sitemap(routes) {
   const entries = routes
+    .filter((route) => !route.noindex)
     .map((route) => {
       const lastmod = route.lastmod ? `<lastmod>${route.lastmod}</lastmod>` : ''
       return `  <url><loc>${escapeHtml(routeUrl(route))}</loc>${lastmod}</url>`

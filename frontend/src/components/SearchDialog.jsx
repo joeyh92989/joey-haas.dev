@@ -2,10 +2,13 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { posts } from '../content/posts.js'
 import { staticPages } from '../content/pages.js'
+import { hiddenPaths } from '../lib/snapshotPresence.js'
 import { loadIndex, pageEntry, search } from '../lib/searchIndex.js'
 
 /** The bundled Pages group, there before (and without) the index. */
-const PAGE_ENTRIES = staticPages(posts.length > 0).map(pageEntry)
+const PAGE_ENTRIES = staticPages(posts.length > 0)
+  .filter((entry) => !hiddenPaths.includes(entry.path))
+  .map(pageEntry)
 
 /**
  * The site search: a native modal <dialog> holding a combobox and its

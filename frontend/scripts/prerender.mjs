@@ -39,6 +39,8 @@ import {
 import { readPublished } from './markdown-lib.mjs'
 import { spine } from '../src/content/spine.js'
 import { parseChangelog } from '../src/lib/changelog.js'
+import { hiddenPathsFor } from '../src/lib/snapshotPresence.js'
+import { snapshotPresence } from './snapshot-presence.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(here, '..', 'dist')
@@ -95,6 +97,8 @@ const routes = publicRoutes({
   trips,
   items,
   comicIssues,
+  // An empty page stays routable but is noindex and out of the sitemap.
+  hidden: hiddenPathsFor(snapshotPresence(path.join(dist, 'snapshot'))),
 })
 
 // Before any head is written: a draft trip's photos leave dist/ here.

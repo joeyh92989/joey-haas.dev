@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import BlogPost from './BlogPost.jsx'
@@ -22,15 +22,34 @@ vi.mock('../content/posts.js', () => {
       html: '<p>Body.</p>',
     },
   ]
+  const heads = (n) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `part-${i + 1}`,
+      text: `Part ${i + 1}`,
+    }))
+  posts.push(
+    {
+      slug: 'four',
+      frontmatter: { title: 'Four', date: '2026-08-01', tags: [] },
+      html: '<p>Body.</p>',
+      headings: heads(4),
+    },
+    {
+      slug: 'five',
+      frontmatter: { title: 'Five', date: '2026-07-01', tags: [] },
+      html: '<h2 id="part-2">Part 2</h2><h2 id="part-3">Part 3</h2>',
+      headings: heads(5),
+    },
+  )
   return {
     posts,
     findPost: (slug) => posts.find((post) => post.slug === slug),
   }
 })
 
-function renderPost(slug) {
+function renderPost(slug, hash = '') {
   return render(
-    <MemoryRouter initialEntries={[`/blog/${slug}`]}>
+    <MemoryRouter initialEntries={[`/blog/${slug}${hash}`]}>
       <Routes>
         <Route path="/blog/:slug" element={<BlogPost />} />
       </Routes>
@@ -52,5 +71,53 @@ describe('BlogPost', () => {
   it('has no summary line when the post has none', () => {
     const { container } = renderPost('without')
     expect(container.querySelector('.post-summary')).toBeNull()
+  })
+
+  it('lists the h2s above four of them, each linking to its id', () => {
+    renderPost('five')
+    const nav = screen.getByRole('navigation', { name: 'On this page' })
+    const links = within(nav).getAllByRole('link')
+    expect(links).toHaveLength(5)
+    expect(links[2]).toHaveAttribute('href', '/blog/five#part-3')
+    expect(links[2]).toHaveTextContent('Part 3')
+  })
+
+  it('has no contents list at four h2s or without headings', () => {
+    renderPost('four')
+    expect(screen.queryByText('On this page')).toBeNull()
+    renderPost('without')
+    expect(screen.queryByText('On this page')).toBeNull()
+  })
+
+  it('has one back link, above the title', () => {
+    const { container } = renderPost('without')
+    const links = screen.getAllByRole('link', { name: '← All posts' })
+    expect(links).toHaveLength(1)
+    expect(
+      container.querySelector('h1').previousElementSibling,
+    ).toContainElement(links[0])
+  })
+
+  it('moves focus to the heading a contents link names', () => {
+    renderPost('five')
+    const nav = screen.getByRole('navigation', { name: 'On this page' })
+    expect(within(nav).getByRole('link', { name: 'Part 3' })).toHaveAttribute(
+      'href',
+      '/blog/five#part-3',
+    )
+    act(() => within(nav).getByRole('link', { name: 'Part 3' }).click())
+    expect(document.getElementById('part-3')).toHaveFocus()
+  })
+
+  it('lands on the heading named by the address when the post opens', () => {
+    renderPost('five', '#part-2')
+    const target = document.getElementById('part-2')
+    expect(target).toHaveFocus()
+    expect(target).toHaveAttribute('tabindex', '-1')
+  })
+
+  it('ignores an address that names nothing on the page', () => {
+    renderPost('five', '#nope')
+    expect(document.body).toHaveFocus()
   })
 })

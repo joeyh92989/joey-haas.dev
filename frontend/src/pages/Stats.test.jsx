@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { Link, MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CHANGELOG } from '../content/changelog.js'
 import { COUNTED, FROM_SNAPSHOT } from '../content/stats.js'
@@ -252,7 +252,23 @@ describe('Stats', () => {
     })
     expect(screen.getByRole('status')).toHaveTextContent(WAKING)
     // The changelog is static copy: it shows whatever the API does.
-    expect(screen.getByRole('heading', { name: 'Changes' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Changes' }).closest('section'),
+    ).toHaveAttribute('id', 'changes')
+  })
+
+  it('lands on Changes when a link on the site goes to /stats#changes', () => {
+    mockStats({})
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Link to="/stats#changes">Latest</Link>
+        <Stats />
+      </MemoryRouter>,
+    )
+    const heading = screen.getByRole('heading', { name: 'Changes' })
+    expect(heading).not.toHaveFocus()
+    act(() => screen.getByRole('link', { name: 'Latest' }).click())
+    expect(heading).toHaveFocus()
   })
 
   it('keeps its heading on a failed read, and Try again brings the figures', async () => {

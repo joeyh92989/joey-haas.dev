@@ -43,7 +43,7 @@ export const denver = {
     viewLabel: 'View',
     views: { list: 'List', map: 'Map' },
     count: (count) => `${count} ${count === 1 ? 'spot' : 'spots'}`,
-    sorted: 'sorted by neighbourhood',
+    sorted: 'sorted by neighborhood',
     offMap: 'Off the map',
     noMatch: 'No spot has all of those tags.',
     empty: 'No spots yet.',

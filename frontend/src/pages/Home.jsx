@@ -4,6 +4,7 @@ import CoverStrip from '../components/CoverStrip.jsx'
 import FactsTable from '../components/FactsTable.jsx'
 import Kicker from '../components/Kicker.jsx'
 import { homeExperience } from '../content/experience.js'
+import { CHANGELOG } from '../content/changelog.js'
 import { posts } from '../content/posts.js'
 import { profile } from '../content/profile.js'
 import { projects } from '../content/projects.js'
@@ -22,12 +23,14 @@ const SHORT_DAY = new Intl.DateTimeFormat('en', {
 
 const thisSite = projects.find((project) => project.url === profile.repo)
 
-/** "How Spine works · Oct 2" for the newest post, or null without one. */
-function lastShipped(post) {
-  if (!post) return null
-  const [year, month, day] = post.frontmatter.date.split('-').map(Number)
-  const date = SHORT_DAY.format(new Date(Date.UTC(year, month - 1, day)))
-  return `${post.frontmatter.title} · ${date}`
+/** "Nov 12" for the newest changelog entry, linking to the changes. */
+function lastShipped(entry) {
+  if (!entry) return null
+  return (
+    <Link to="/stats#changes">
+      {SHORT_DAY.format(new Date(`${entry.date}T00:00:00Z`))}
+    </Link>
+  )
 }
 
 /**
@@ -35,9 +38,10 @@ function lastShipped(post) {
  * work history.
  *
  * Makes no API call. Playing comes from the build-time snapshot and is
- * left out until it arrives, or when nothing is being played; Last shipped
- * is the newest post and is left out while there is none, as Latest trip
- * and the Travel card are while no trip is published.
+ * left out until it arrives, or when nothing is being played. Last shipped
+ * is the date of the newest changelog entry, linking to the changes, and is
+ * left out while there is none, as Latest trip and the Travel card are while
+ * no trip is published.
  */
 export default function Home() {
   usePageTitle('Joey Haas · Senior software engineer, Denver')
@@ -55,7 +59,7 @@ export default function Home() {
     }
   }, [])
 
-  const shipped = lastShipped(latest)
+  const shipped = lastShipped(CHANGELOG[0])
   const facts = [
     ...profile.facts,
     ...(shipped ? [{ label: 'Last shipped', value: shipped }] : []),

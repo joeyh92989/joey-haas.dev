@@ -43,7 +43,9 @@ function finishedOn(isoDate) {
 export default function Now() {
   usePageTitle('Now · Joey Haas')
   const [items, setItems] = useState(null)
+  // The game to show and whether it is Tonight's pick, not a pinned up_next.
   const [upNext, setUpNext] = useState(null)
+  const [isPick, setIsPick] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -51,7 +53,9 @@ export default function Now() {
       ([snapshotItems, next]) => {
         if (cancelled) return
         setItems(snapshotItems ?? [])
-        setUpNext(next?.tonight?.up_next ?? null)
+        const pinned = next?.tonight?.up_next
+        setUpNext(pinned ?? next?.tonight?.picks?.[0] ?? null)
+        setIsPick(!pinned)
       },
     )
     return () => {
@@ -122,7 +126,9 @@ export default function Now() {
 
       {upNext && (
         <section aria-labelledby="now-up-next">
-          <h2 id="now-up-next">Up next</h2>
+          <h2 id="now-up-next">
+            {isPick ? spine.next.sections.tonight : 'Up next'}
+          </h2>
           <p>
             <Link to={itemPath(upNext.item_id)}>{upNext.title}</Link>
             {upNext.platform && (
@@ -149,7 +155,7 @@ export default function Now() {
               </li>
             ))}
           </ul>
-          <p className="muted">
+          <p className="muted now-rss">
             Also as an{' '}
             <a href={`${spine.path}/feed.xml`}>RSS feed of finished games</a>.
           </p>

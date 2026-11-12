@@ -13,6 +13,7 @@ import {
 } from '../content/stats.js'
 import { deviceName, referrerName, showsAllTime } from '../lib/analytics.js'
 import { pageName, usePageTitles } from '../lib/pageTitles.js'
+import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 
@@ -51,6 +52,7 @@ const referrerLabel = (value) =>
  */
 export default function Stats() {
   usePageTitle(STATS_TITLE)
+  useHashFocus()
   const { data, live, failed, retry } = useSnapshotThenLive('site-stats')
   // When the live answer landed: stamped in the render that first sees
   // `live`, React's pattern for state derived from a changed input.
@@ -148,21 +150,23 @@ export default function Stats() {
       <h2>How this is counted</h2>
       <p className="prose">{COUNTED.join(' ')}</p>
 
-      <h2>Changes</h2>
-      <ol className="changelog" role="list">
-        {CHANGELOG.map((entry) => (
-          <li key={entry.date}>
-            <time dateTime={entry.date}>
-              {CHANGE_DATE.format(new Date(`${entry.date}T00:00:00Z`))}
-            </time>
-            <ul>
-              {entry.lines.map((line, index) => (
-                <li key={index}>{renderLine(line)}</li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ol>
+      <section id="changes" aria-labelledby="changes-title">
+        <h2 id="changes-title">Changes</h2>
+        <ol className="changelog" role="list">
+          {CHANGELOG.map((entry) => (
+            <li key={entry.date}>
+              <time dateTime={entry.date}>
+                {CHANGE_DATE.format(new Date(`${entry.date}T00:00:00Z`))}
+              </time>
+              <ul>
+                {entry.lines.map((line, index) => (
+                  <li key={index}>{renderLine(line)}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ol>
+      </section>
     </section>
   )
 }

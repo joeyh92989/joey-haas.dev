@@ -2,6 +2,7 @@ import '@testing-library/jest-dom'
 import { act, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { intake } from '../content/intake.js'
 import { spine } from '../content/spine.js'
 import { WAKING } from '../content/status.js'
 import userEvent from '@testing-library/user-event'
@@ -133,8 +134,16 @@ describe('HowItWorks', () => {
     const titles = within(stop(1))
       .getAllByRole('link')
       .map((link) => link.textContent)
-      .filter((text) => !text.includes('/'))
+      .filter((text) => !text.includes('/') && text !== intake.title)
     expect(titles).toEqual(['Newest', 'Third', 'Fourth', 'Second'])
+  })
+
+  it('links the intake demo from the photo-intake stop', () => {
+    mockData({ items: empty, next: empty })
+    renderAt()
+    expect(
+      within(stop(1)).getByRole('link', { name: intake.title }),
+    ).toHaveAttribute('href', '/shelf/intake')
   })
 
   it('links stop 3 to Pick for me, also before Play Next has picks', () => {
