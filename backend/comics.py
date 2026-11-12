@@ -136,15 +136,57 @@ def issue_number(text: str | None) -> int | None:
 # --- Editions ---------------------------------------------------------------
 
 
-def validate_editions(raw: object) -> list[dict]:
-    """Editions as stored: [{kind, label, from, to}], or RangeError."""
+URL_MAX = 2000
+
+
+def edition_slugs(editions: Sequence[dict]) -> list[str]:
+    """`ed-<from>-<to>`, with `-2`, `-3`... on a repeated range.
+
+    The same rule as `editionSlugs` in frontend/src/lib/coverWall.js: the
+    link route and the public pages name an edition by it.
+    """
+    seen: dict[str, int] = {}
+    slugs = []
+    for edition in editions or []:
+        base = f"ed-{edition.get('from')}-{edition.get('to')}"
+        seen[base] = seen.get(base, 0) + 1
+        slugs.append(base if seen[base] == 1 else f"{base}-{seen[base]}")
+    return slugs
+
+
+def _server_keys(entry: dict) -> dict:
+    """The server-written link keys of an edition entry, cleaned; absent or
+    malformed ones are left out."""
+    out: dict = {}
+    for key in ("cover_url", "large_url"):
+        value = entry.get(key)
+        if isinstance(value, str) and value and len(value) <= URL_MAX:
+            out[key] = value
+    description = entry.get("description")
+    if isinstance(description, list) and all(isinstance(p, str) for p in description):
+        out["description"] = list(description)
+    return out
+
+
+def validate_editions(raw: object, current: Sequence[dict] | None = None) -> list[dict]:
+    """Editions as stored: [{kind, label, from, to}] plus an optional
+    Comic Vine link (`cv_id`, with the server-written `cover_url`,
+    `large_url` and `description`), or RangeError.
+
+    `current` is the stored editions. With it, an edition is matched to its
+    stored twin by slug, so an ordinary edit (a new label) that sends no link
+    keys keeps the link, and a `cv_id` that changed or was cleared drops the
+    server-written keys with it: they describe the old issue. Without it (a
+    create) whatever the request sends is kept.
+    """
     if raw is None:
         return []
     if not isinstance(raw, list):
         raise RangeError("editions must be a list")
     if len(raw) > MAX_EDITIONS:
         raise RangeError(f"at most {MAX_EDITIONS} editions")
-    editions = []
+    editions: list[dict] = []
+    sent_entries: list[dict] = []
     for entry in raw:
         if not isinstance(entry, dict):
             raise RangeError("each edition needs a kind, a label and a range")
@@ -161,7 +203,33 @@ def validate_editions(raw: object) -> list[dict]:
             raise RangeError(f"{label}: issue numbers run 1 to {MAX_ISSUE}")
         if low > high:
             raise RangeError(f"{label}: collects #{low}–{high} runs backwards")
-        editions.append({"kind": kind, "label": label, "from": low, "to": high})
+        cv_id = entry.get("cv_id")
+        if cv_id is not None and (
+            not isinstance(cv_id, int) or isinstance(cv_id, bool) or cv_id < 1
+        ):
+            raise RangeError(
+                f"{label}: the Comic Vine issue id must be a positive whole number"
+            )
+        edition = {"kind": kind, "label": label, "from": low, "to": high}
+        if cv_id is not None:
+            edition["cv_id"] = cv_id
+        editions.append(edition)
+        sent_entries.append(entry)
+    stored = dict(zip(edition_slugs(current or []), current or [], strict=True))
+    slugs = edition_slugs(editions)
+    for slug, edition, sent in zip(slugs, editions, sent_entries, strict=True):
+        twin = stored.get(slug)
+        if "cv_id" not in sent:
+            # No link sent: an ordinary edit keeps the stored link.
+            if twin and twin.get("cv_id") is not None:
+                edition["cv_id"] = twin["cv_id"]
+                edition.update(_server_keys(twin))
+        elif edition.get("cv_id") is None:
+            continue  # cleared: no link, no server keys
+        elif current is None:
+            edition.update(_server_keys(sent))
+        elif twin and twin.get("cv_id") == edition["cv_id"]:
+            edition.update(_server_keys(twin) | _server_keys(sent))
     return editions
 
 
@@ -217,7 +285,10 @@ def apply_comic_fields(
             except RangeError as error:
                 raise RangeError(f"{label}: {error}") from error
     if "editions" in result:
-        result["editions"] = validate_editions(result["editions"]) or None
+        result["editions"] = (
+            validate_editions(result["editions"], (current or {}).get("editions"))
+            or None
+        )
     read_to = result.get("read_to")
     if read_to is not None and not (
         isinstance(read_to, int) and 1 <= read_to <= MAX_ISSUE
