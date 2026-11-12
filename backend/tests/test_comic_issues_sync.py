@@ -4,10 +4,11 @@ from dataclasses import asdict
 from datetime import date
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 import comics_routes
 from comic_issues import sync_series
+from comics_routes import ISSUE_SYNC_BUDGET
 from models import ComicIssue, Item, ItemType
 from sources.base import SourceError, SourceRateLimited
 from sources.comicvine import CvIssue, CvIssueHit, IssuePage
@@ -196,7 +197,29 @@ async def test_create_syncs_issues(sessionmaker_for_test):
     assert response.status_code == 201
     async with sessionmaker_for_test() as session:
         count = await session.scalar(select(func.count()).select_from(ComicIssue))
-    assert count == 150
+    assert count == 100  # one page; the nightly finishes the rest
+
+
+async def test_the_inline_sync_budget_is_one_request():
+    assert ISSUE_SYNC_BUDGET == 1
+
+
+async def test_a_series_deleted_mid_inline_sync_does_not_fail_the_write(
+    sessionmaker_for_test,
+):
+    source = PagingComicVine(issues={VOLUME: SAGA_ISSUES}, totals={VOLUME: 50})
+    original = source.fetch_issue_page
+
+    async def deleting(volume_id, offset):
+        async with sessionmaker_for_test() as other:
+            await other.execute(delete(Item))
+            await other.commit()
+        return await original(volume_id, offset)
+
+    source.fetch_issue_page = deleting
+    async with client_for(sessionmaker_for_test, source) as client:
+        response = await client.post("/api/comics/want", json={"external_id": VOLUME})
+    assert response.status_code == 201, response.text
 
 
 async def test_a_failed_sync_does_not_fail_create_or_refresh(sessionmaker_for_test):

@@ -54,7 +54,9 @@ def _today() -> date:
     return datetime.now(UTC).date()
 
 
-ISSUE_SYNC_BUDGET = 10  # requests a create or a refresh may spend on issues
+# Requests a create or a refresh may spend on issues: one page (up to 100
+# issues). The request waits on it, so the nightly sync finishes longer runs.
+ISSUE_SYNC_BUDGET = 1
 
 
 LINK_KEYS = ("cv_id", "cover_url", "large_url", "description")
@@ -203,24 +205,32 @@ def create_comics_router(
                 status_code=409, detail="Already on your shelf"
             ) from None
         await session.refresh(item)
-        await _sync_quietly(session, item)
+        await _sync_quietly(item)
         return item
 
-    async def _sync_quietly(session: AsyncSession, item: Item) -> None:
-        """The issue pages' first pull. Best effort: a failure is logged and
-        the sync job finishes it later."""
-        item_id = item.id
+    async def _sync_quietly(item: Item) -> None:
+        """The issue pages' first pull, at most `ISSUE_SYNC_BUDGET` requests.
+        Best effort: a failure is logged and the sync job finishes it later.
+
+        It runs in a session of its own, so the caller's row (already fresh)
+        is never expired by the sync's commits: a series deleted mid-sync
+        cannot turn a successful write into a 500, and nothing has to be
+        refreshed afterwards."""
+        item_id, volume_id = item.id, item.external_id
+        if item.external_source != SOURCE or not volume_id:
+            return
         try:
-            result = await sync_series(
-                session, source(), item, ISSUE_SYNC_BUDGET, _today()
-            )
+            async with factory() as sync_session:
+                linked = await sync_session.get(Item, item_id)
+                if linked is None:
+                    return
+                result = await sync_series(
+                    sync_session, source(), linked, ISSUE_SYNC_BUDGET, _today()
+                )
             if result.error:
                 logger.warning("issue sync for %s failed: %s", item_id, result.error)
         except Exception:
             logger.exception("issue sync for %s failed", item_id)
-            await session.rollback()
-        # A rollback expires the row; the caller still renders it.
-        await session.refresh(item)
 
     @router.get("/search")
     async def search(q: str, session: AsyncSession = Depends(get_session)) -> list:
@@ -483,7 +493,7 @@ def create_comics_router(
         _apply_series(item, detail, issues)
         await session.commit()
         await session.refresh(item)
-        await _sync_quietly(session, item)
+        await _sync_quietly(item)
         return _state(item)
 
     @router.get("/issues/search")
