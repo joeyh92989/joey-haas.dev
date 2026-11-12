@@ -10,12 +10,17 @@ import {
 } from '../content/stats.js'
 import { LOAD_ERROR, WAKING } from '../content/status.js'
 import { axeViolations } from '../lib/axe.test-util.js'
+import { loadIndex } from '../lib/searchIndex.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import Stats from './Stats.jsx'
 
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
   useSnapshotThenLive: vi.fn(),
 }))
+
+vi.mock('../lib/searchIndex.js', () => ({ loadIndex: vi.fn() }))
+
+const ITEM = '0b7c6f3e-1111-4c1c-9a50-000000000001'
 
 const DAYS = Array.from({ length: 30 }, (_, index) => ({
   day: `2026-10-${String(index + 1).padStart(2, '0')}`,
@@ -43,7 +48,7 @@ const summary = (overrides = {}) => ({
     { value: 'desktop', count: 30 },
     { value: 'phone', count: 7 },
   ],
-  live_since: '2026-10-20',
+  live_since: '2026-09-01',
   ...overrides,
 })
 
@@ -73,6 +78,7 @@ const tiles = () => within(screen.getByRole('group', { name: 'Site figures' }))
 
 describe('Stats', () => {
   beforeEach(() => {
+    vi.mocked(loadIndex).mockResolvedValue({ unavailable: true })
     vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.setSystemTime(new Date('2026-11-06T15:04:00'))
   })
@@ -120,6 +126,48 @@ describe('Stats', () => {
     ).toBeInTheDocument()
     expect(screen.getByText(COUNTED.join(' '))).toBeInTheDocument()
     expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('hides the all-time tiles until counting is over 30 days old', () => {
+    const young = { ...BODY, all: summary({ live_since: '2026-10-20' }) }
+    mockStats({ data: young })
+    renderPage()
+    expect(
+      tiles()
+        .getAllByRole('definition')
+        .map((node) => node.textContent),
+    ).toEqual(['37', 'last 30 days', '21', 'last 30 days'])
+  })
+
+  it('names the busiest day and its count under the chart', () => {
+    mockStats({ data: BODY })
+    renderPage()
+    expect(screen.getByText('Busiest day: Fri 30 Oct, 8 views.')).toBeVisible()
+  })
+
+  it('names item, year and month rows, and keeps the path when unknown', async () => {
+    vi.mocked(loadIndex).mockResolvedValue({
+      entries: [{ g: 'shelf', title: 'Hades', href: `/shelf/${ITEM}/` }],
+    })
+    mockStats({
+      data: {
+        ...BODY,
+        thirty: summary({
+          pages: [
+            { value: `/shelf/${ITEM}`, count: 9 },
+            { value: '/shelf/year/2026', count: 5 },
+            { value: '/shelf/journal/2026-10', count: 4 },
+            { value: '/about', count: 2 },
+          ],
+        }),
+      },
+    })
+    renderPage()
+    const list = within(screen.getByRole('list', { name: 'Pages by views' }))
+    expect(await list.findByText('Hades')).toBeInTheDocument()
+    expect(list.getByText('2026 in review')).toBeInTheDocument()
+    expect(list.getByText('October 2026 · My Shelf')).toBeInTheDocument()
+    expect(list.getByText('/about')).toBeInTheDocument()
   })
 
   it('says live, with the time, once the API has answered', () => {

@@ -25,6 +25,15 @@ describe('DayBars', () => {
     expect(bars[0].style.height).toBe('25%')
   })
 
+  it('captions the busiest day, the latest on a tie, and none with no views', () => {
+    const { rerender } = render(<DayBars series={SERIES} />)
+    expect(screen.getByText('Busiest day: Tue 13 Oct, 8 views.')).toBeVisible()
+    rerender(
+      <DayBars series={SERIES.map((point) => ({ ...point, views: 0 }))} />,
+    )
+    expect(screen.queryByText(/Busiest day/)).toBeNull()
+  })
+
   it('holds the same figures in a hidden table', () => {
     render(<DayBars series={SERIES} />)
     const table = screen.getByRole('table', { name: 'Views per UTC day' })

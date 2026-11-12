@@ -25,3 +25,11 @@ export const LIVE_AS_OF = (time) => `Live as of ${time}.`
 export const FROM_SNAPSHOT = "From last night's snapshot."
 export const FROM_SNAPSHOT_ASLEEP =
   "From last night's snapshot; the API is asleep."
+
+/** The line under the day chart: the busiest day and its count. */
+export const PEAK_CAPTION = (day, views) =>
+  `Busiest day: ${day}, ${views} ${views === 1 ? 'view' : 'views'}.`
+
+/** What a comic page is called in the Pages list, after its series title. */
+export const ISSUE_NAME = (title, number) => `${title} · issue ${number}`
+export const EDITION_NAME = (title) => `${title} · collected edition`

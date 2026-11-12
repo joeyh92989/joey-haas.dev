@@ -12,7 +12,8 @@ import {
   STATS_TITLE,
 } from '../content/stats.js'
 import { LOAD_ERROR, WAKING } from '../content/status.js'
-import { deviceName, referrerName } from '../lib/analytics.js'
+import { deviceName, referrerName, showsAllTime } from '../lib/analytics.js'
+import { pageName, usePageTitles } from '../lib/pageTitles.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 
@@ -46,7 +47,8 @@ const referrerLabel = (value) =>
  * GET /api/public/site-stats, with how they are counted and the changelog.
  * Paints the build-time snapshot first and says where the figures came
  * from; the waking line only without a snapshot. The day series and the
- * lists are the last thirty days; the tiles add all time.
+ * lists are the last thirty days; the tiles add all time once counting
+ * is more than thirty days old.
  */
 export default function Stats() {
   usePageTitle(STATS_TITLE)
@@ -56,6 +58,7 @@ export default function Stats() {
   const [liveAt, setLiveAt] = useState(null)
   if (live && liveAt === null) setLiveAt(new Date())
   const [slow, setSlow] = useState(false)
+  const titles = usePageTitles()
 
   useEffect(() => {
     const timer = setTimeout(() => setSlow(true), 3000)
@@ -87,16 +90,20 @@ export default function Stats() {
               value={figure(thirty.visitors)}
               detail="last 30 days"
             />
-            <StatTile
-              label="Views"
-              value={figure(data.all.views)}
-              detail="all time"
-            />
-            <StatTile
-              label="Visitors"
-              value={figure(data.all.visitors)}
-              detail="all time"
-            />
+            {showsAllTime(data.all.live_since) && (
+              <>
+                <StatTile
+                  label="Views"
+                  value={figure(data.all.views)}
+                  detail="all time"
+                />
+                <StatTile
+                  label="Visitors"
+                  value={figure(data.all.visitors)}
+                  detail="all time"
+                />
+              </>
+            )}
           </StatTiles>
           <p className="muted site-stats-status" role="status">
             {status}
@@ -115,7 +122,11 @@ export default function Stats() {
             <section aria-labelledby="stats-pages">
               <h2 id="stats-pages">Pages</h2>
               <span className="kicker">views, last 30 days</span>
-              <BarList label="Pages by views" rows={thirty.pages} />
+              <BarList
+                label="Pages by views"
+                rows={thirty.pages}
+                name={(path) => pageName(titles, path)}
+              />
             </section>
             <section aria-labelledby="stats-referrers">
               <h2 id="stats-referrers">Referrers</h2>

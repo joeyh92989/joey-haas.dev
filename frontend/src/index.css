@@ -2176,6 +2176,12 @@ footer {
   background: var(--chart);
 }
 
+.day-bars-peak {
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  margin: 0.5rem 0 0;
+}
+
 .day-bars-axis {
   color: var(--text-3);
   display: flex;
@@ -6577,8 +6583,8 @@ main h1[tabindex='-1']:focus,
   margin: 0.75rem 0 0;
 }
 
-/* The day series scrolls in its own box on a phone rather than squeezing
-   thirty bars into the column (min-width below). */
+/* The thirty bars share the column at any width (.day-bar flexes); the
+   box only guards against overflow. */
 .site-stats-days {
   overflow-x: auto;
 }
@@ -6643,10 +6649,6 @@ main h1[tabindex='-1']:focus,
 @media (max-width: 700px) {
   .site-stats-lists {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .site-stats-days .day-bars {
-    min-width: 30rem;
   }
 }
 
