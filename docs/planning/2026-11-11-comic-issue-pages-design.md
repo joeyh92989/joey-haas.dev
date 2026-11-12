@@ -1,5 +1,5 @@
 ---
-status: ready-for-plan
+status: planned
 topic: comic-issue-pages
 date: 2026-11-11
 mockups: docs/planning/mockups/2026-11-11-comic-issue-pages/
@@ -338,3 +338,7 @@ Tokens used, all existing: `--chart`, `--chart-2`, `--accent-soft`,
 - **Order of work.** The series display spec is `planned` in the
   `feat-llm-fallback-chain` worktree. Build this after it, or fold the
   two series-page changes into one plan?
+
+---
+
+Plan: [`2026-11-11-comic-issue-pages-plan.md`](2026-11-11-comic-issue-pages-plan.md).
