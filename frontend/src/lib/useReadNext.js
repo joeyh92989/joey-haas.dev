@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { READER_TIMEOUT } from '../content/status.js'
 import { apiFetch, errorMessage } from './api.js'
-import { WaitTimeout, withDeadline } from './waits.js'
-
-/** How long the sitting's re-fetch after a failed read may take. */
-const REFETCH_DEADLINE_MS = 20_000
+import { REFETCH_DEADLINE_MS, WaitTimeout, withDeadline } from './waits.js'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
@@ -75,7 +72,7 @@ export function useReadNext({ sitting, budget, onChange }) {
     }
   }, [])
 
-  /** Replaces the sitting with the server's, best effort. */
+  /** Brings the sitting up to the server's state, best effort. */
   async function refetch(sittingId) {
     try {
       const fresh = await withDeadline(
@@ -88,10 +85,26 @@ export function useReadNext({ sitting, budget, onChange }) {
         { ms: REFETCH_DEADLINE_MS },
       )
       if (!fresh || !alive.current) return
-      onChange(() => ({
-        ...fresh,
-        photos: fresh.photos.filter((p) => !removed.current.has(p.id)),
-      }))
+      // Merge, don't replace: a photo uploaded (or an entry added) while
+      // this was in flight is not in the snapshot yet, and must stay.
+      const gone = (photoId) => removed.current.has(photoId)
+      onChange((old) => {
+        const photoIds = new Set(fresh.photos.map((p) => p.id))
+        const entryIds = new Set(fresh.entries.map((e) => e.id))
+        return {
+          ...fresh,
+          photos: [
+            ...fresh.photos.filter((p) => !gone(p.id)),
+            ...old.photos.filter((p) => !photoIds.has(p.id) && !gone(p.id)),
+          ],
+          entries: [
+            ...fresh.entries.filter((e) => !gone(e.photo_id)),
+            ...old.entries.filter(
+              (e) => !entryIds.has(e.id) && !gone(e.photo_id),
+            ),
+          ],
+        }
+      })
     } catch {
       // The reader's error already says the server did not answer; a hung
       // re-fetch gives up at its own deadline.

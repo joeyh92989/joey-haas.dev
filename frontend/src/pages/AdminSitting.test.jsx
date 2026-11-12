@@ -1,9 +1,17 @@
 import '@testing-library/jest-dom'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
+import { REFETCH_DEADLINE_MS } from '../lib/waits.js'
 import {
   candidate,
   entry,
@@ -1739,12 +1747,62 @@ describe('AdminSitting waits (#160)', () => {
       screen.queryByRole('button', { name: 'Read again' }),
     ).not.toBeInTheDocument()
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(20_000)
+      await vi.advanceTimersByTimeAsync(REFETCH_DEADLINE_MS)
     })
     await act(async () => {
       screen.getByRole('button', { name: 'Read again' }).click()
     })
     expect(readsOf(api)).toBe(2)
+  })
+
+  it('keeps a photo uploaded while the re-fetch was pending', async () => {
+    // Not p1: the fake names its first upload that.
+    const api = await openWithHungReads([photo('a1', 'uploaded')])
+    // The re-fetch answers late, with the sitting as it was when asked.
+    let release
+    const gate = new Promise((resolve) => {
+      release = resolve
+    })
+    const inner = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation(async (url, options) => {
+      let answer = await inner(url, options)
+      if (
+        /\/api\/intake\/sittings\/s1$/.test(String(url)) &&
+        (options?.method ?? 'GET') === 'GET'
+      ) {
+        // The body as it is now: the answer is late, not fresh.
+        const body = await answer.json()
+        answer = {
+          ok: answer.ok,
+          status: answer.status,
+          json: async () => body,
+        }
+        await gate
+      }
+      return answer
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    const input = screen.getByLabelText('Choose files')
+    await act(async () => {
+      fireEvent.change(input, {
+        target: {
+          files: [new File(['x'], 'late.jpg', { type: 'image/jpeg' })],
+        },
+      })
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(
+      screen.getAllByRole('button', { name: /^Remove photo/ }),
+    ).toHaveLength(2)
+    await act(async () => {
+      release()
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(
+      screen.getAllByRole('button', { name: /^Remove photo/ }),
+    ).toHaveLength(2)
   })
 
   it('offers Read again after a deadline, which clears the error and reads again', async () => {

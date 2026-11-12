@@ -5,6 +5,9 @@
  */
 export const WAIT_DEADLINE_MS = 195_000
 
+/** How long the sitting's re-fetch after a failed read may take, in ms. */
+export const REFETCH_DEADLINE_MS = 20_000
+
 /** Seconds into a wait after which Tag now and a photo's read own up to a long one. */
 export const STILL_WORKING_AFTER_S = 30
 
