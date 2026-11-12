@@ -169,6 +169,28 @@ async def record(
     }
 
 
+def keep_spines(demo: dict[str, Any], out: Path) -> dict[str, Any]:
+    """The demo with each row's hand-written `spine` label carried over from
+    the file at `out`, matched by the row's `read` text, so a re-record does
+    not drop the short spine labels. A row already carrying one keeps it."""
+    try:
+        old = json.loads(out.read_text())
+    except (OSError, ValueError):
+        return demo
+    labels = {
+        row["read"]: row["spine"]
+        for row in old.get("titles", [])
+        if isinstance(row, dict) and row.get("spine") and "read" in row
+    }
+    titles = [
+        {**row, "spine": labels[row["read"]]}
+        if "spine" not in row and row.get("read") in labels
+        else row
+        for row in demo["titles"]
+    ]
+    return {**demo, "titles": titles}
+
+
 def write(demo: dict[str, Any], out: Path = OUTPUT) -> None:
     """Writes the document as the frontend reads it."""
     out.write_text(
@@ -237,7 +259,7 @@ async def run(
     if not yes:
         print("Nothing written. Check each is a published title; re-run with --yes.")
         return 0
-    write(demo, out)
+    write(keep_spines(demo, out), out)
     counts: dict[str, int] = {}
     for row in demo["titles"]:
         counts[row["confidence"]] = counts.get(row["confidence"], 0) + 1
