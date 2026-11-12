@@ -43,6 +43,7 @@ Spec: `2026-11-12-comic-shelf-fixes-design.md`.
   two or more rows in a list share a title, each shows its start year (and publisher when
   known) beside the title. Check what `backend/public_comics.py` (~55-70) already sends; use
   only fields already public.
+- `frontend/changelog.md`: one bullet under `## 2026-11-12` (create the heading at the top if absent): `The comics shelf now tells same-titled series apart by year and publisher.`
 - Acceptance: four `Creepshow` rows read with their years.
 - Tests: SeriesList/Comics test with colliding titles.
 
