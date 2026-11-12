@@ -9,7 +9,7 @@
  * ("Could not get picks") stays with its page.
  */
 export const WAKING =
-  'Waking the server — it sleeps when idle, so this takes about thirty seconds.'
+  'Waking the server — it sleeps when idle, so this can take up to a minute.'
 
 /**
  * A first load that may be a waking server or a model call, which take
@@ -63,3 +63,13 @@ export const SESSION_ENDED = 'Your session ended. Sign in again.'
 
 /** Beside Try again when a live refresh failed but an older copy is showing. */
 export const STALE_COPY = 'Showing the last saved copy.'
+
+/** Beside Try again when a refresh of live data failed; what is shown is older. */
+export const REFRESH_FAILED = 'Couldn’t refresh. Showing what was here before.'
+
+/** An owner's change went through, but re-reading the page afterwards failed. */
+export const SAVED_NOT_REFRESHED =
+  'Saved, but couldn’t refresh the page. Try again to see it.'
+
+/** The play diary is a separate read; this is its failure, not "no sessions". */
+export const DIARY_FAILED = 'Couldn’t load the play diary.'

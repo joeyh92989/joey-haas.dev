@@ -28,11 +28,44 @@ describe('useLiveRead', () => {
     const { result } = renderHook(() => useLiveRead('/api/public/x'))
     await waitFor(() => expect(result.current.failed).toBe(true))
     expect(result.current.data).toBeNull()
-    act(() => result.current.retry())
+    act(() => {
+      result.current.retry()
+    })
     expect(result.current.failed).toBe(false)
     await waitFor(() => expect(result.current.data).toEqual({ a: 2 }))
     expect(result.current.failed).toBe(false)
     expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('retry resolves once the re-read has landed, or failed', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 503 })
+      .mockResolvedValueOnce(ok({ a: 2 }))
+      .mockResolvedValueOnce({ ok: false, status: 503 })
+    vi.stubGlobal('fetch', fetchMock)
+    const { result } = renderHook(() => useLiveRead('/api/public/x'))
+    await waitFor(() => expect(result.current.failed).toBe(true))
+    let landed
+    act(() => {
+      landed = result.current.retry()
+    })
+    let settled = false
+    landed.then(() => {
+      settled = true
+    })
+    expect(settled).toBe(false)
+    await expect(landed).resolves.toEqual({ failed: false })
+    await waitFor(() => expect(result.current.data).toEqual({ a: 2 }))
+
+    let again
+    act(() => {
+      again = result.current.retry()
+    })
+    await expect(again).resolves.toEqual({ failed: true })
+    // The data already shown stays, marked failed.
+    expect(result.current.data).toEqual({ a: 2 })
+    await waitFor(() => expect(result.current.failed).toBe(true))
   })
 
   it('accepts a function and reruns it when deps change', async () => {

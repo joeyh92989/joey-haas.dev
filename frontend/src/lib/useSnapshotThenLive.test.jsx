@@ -188,12 +188,29 @@ describe('useSnapshotThenLive', () => {
     const { result } = renderHook(() => useSnapshotThenLive('next'))
     await waitFor(() => expect(result.current.failed).toBe(true))
     expect(result.current.data.buy_now).toHaveLength(1)
-    act(() => result.current.retry())
+    act(() => {
+      result.current.retry()
+    })
     expect(result.current.failed).toBe(false)
     expect(result.current.data.buy_now).toHaveLength(1)
     await waitFor(() => expect(result.current.live).toBe(true))
     expect(result.current.data.buy_now).toEqual([])
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(readSnapshot).toHaveBeenCalledTimes(1)
+  })
+
+  it('retry resolves with whether the re-read failed', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('down'))
+      .mockResolvedValueOnce({ ok: true, json: async () => BODY })
+    vi.stubGlobal('fetch', fetchMock)
+    const { result } = renderHook(() => useSnapshotThenLive('next'))
+    await waitFor(() => expect(result.current.failed).toBe(true))
+    let landed
+    act(() => {
+      landed = result.current.retry()
+    })
+    await expect(landed).resolves.toEqual({ failed: false })
   })
 })

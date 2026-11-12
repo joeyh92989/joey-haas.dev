@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch } from './api.js'
 import { READ_DEADLINE_MS, withDeadline } from './waits.js'
 import { isValidSnapshot, readSnapshot } from './snapshot.js'
@@ -17,14 +17,17 @@ const EMPTY = { data: null, live: false, failed: false }
  * @param {string} name A snapshot name; the live path is /api/public/{name}.
  * The live read stops at `READ_DEADLINE_MS` (it then counts as failed).
  * `retry()` re-runs the live read, clears `failed` and keeps any painted data.
+ * It returns a promise that resolves, never rejects, once the re-read has
+ * landed or failed, with `{failed}`.
  *
- * @returns {{data: any|null, live: boolean, failed: boolean, retry: () => void}}
+ * @returns {{data: any|null, live: boolean, failed: boolean, retry: () => Promise<{failed: boolean}>}}
  */
 export function useSnapshotThenLive(name) {
   // The name travels with the answer, so an answer for another name is never
   // returned, and no state is reset inside the effect.
   const [state, setState] = useState({ name, ...EMPTY })
   const [attempt, setAttempt] = useState(0)
+  const waiting = useRef([])
 
   // An update for this name starts from whatever this name has so far.
   const update = useCallback(
@@ -56,6 +59,11 @@ export function useSnapshotThenLive(name) {
 
   useEffect(() => {
     const controller = new AbortController()
+    const settle = (failed) => {
+      const list = waiting.current
+      waiting.current = []
+      list.forEach((resolve) => resolve({ failed }))
+    }
     withDeadline(
       async (signal) => {
         const response = await apiFetch(`/api/public/${name}`, { signal })
@@ -67,19 +75,34 @@ export function useSnapshotThenLive(name) {
         if (controller.signal.aborted) return
         if (isValidSnapshot(name, body)) {
           update({ data: body, live: true, failed: false })
+          settle(false)
         } else {
           update({ failed: true })
+          settle(true)
         }
       })
       .catch(() => {
-        if (!controller.signal.aborted) update({ failed: true })
+        if (controller.signal.aborted) return
+        update({ failed: true })
+        settle(true)
       })
     return () => controller.abort()
   }, [name, attempt, update])
 
+  // Nothing is left waiting on a read that will never land.
+  useEffect(
+    () => () => {
+      const list = waiting.current
+      waiting.current = []
+      list.forEach((resolve) => resolve({ failed: true }))
+    },
+    [],
+  )
+
   const retry = useCallback(() => {
     setState((s) => (s.name === name ? { ...s, failed: false } : s))
     setAttempt((a) => a + 1)
+    return new Promise((resolve) => waiting.current.push(resolve))
   }, [name])
 
   return { ...(state.name === name ? state : EMPTY), retry }

@@ -10,9 +10,10 @@ export const REFETCH_DEADLINE_MS = 20_000
 
 /**
  * How long a page's read of the API may take, in ms. A cold start is 30 to
- * 60 s, so a read that is still hanging after 60 s has failed.
+ * 50 s or more, plus the first database connection, so a read that is still
+ * hanging after 90 s has failed.
  */
-export const READ_DEADLINE_MS = 60_000
+export const READ_DEADLINE_MS = 90_000
 
 /** Seconds into a wait after which Tag now and a photo's read own up to a long one. */
 export const STILL_WORKING_AFTER_S = 30

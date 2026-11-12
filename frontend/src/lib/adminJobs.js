@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { SESSION_ENDED } from '../content/status.js'
 import { apiFetch } from './api.js'
 import { lastNightly, nightlyHeadline, nightlyJobs } from './nightly.js'
 import { readSnapshot } from './snapshot.js'
@@ -13,7 +14,7 @@ export const API_WORDS = {
   awake: { state: 'ok', words: 'API awake' },
   'signed-out': {
     state: 'failed',
-    words: 'Your session ended. Reload to sign in.',
+    words: SESSION_ENDED,
   },
   error: { state: 'failed', words: 'API error' },
   unreachable: { state: 'failed', words: 'API unreachable' },

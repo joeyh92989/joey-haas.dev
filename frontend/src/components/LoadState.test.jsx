@@ -1,7 +1,14 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { LOAD_ERROR, STALE_COPY, TRY_AGAIN, WAKING } from '../content/status.js'
+import {
+  LOAD_ERROR,
+  REFRESH_FAILED,
+  SESSION_ENDED,
+  STALE_COPY,
+  TRY_AGAIN,
+  WAKING,
+} from '../content/status.js'
 import LoadState from './LoadState.jsx'
 
 afterEach(() => vi.useRealTimers())
@@ -55,5 +62,25 @@ describe('LoadState', () => {
   it('keeps the stale line when a message is given and data is showing', () => {
     render(<LoadState failed stale message="Custom" />)
     expect(screen.getByRole('status').textContent).toContain(STALE_COPY)
+  })
+
+  it('says the refresh failed once live data was on screen', () => {
+    render(<LoadState failed stale live onRetry={vi.fn()} />)
+    const line = screen.getByRole('status').textContent
+    expect(line).toContain(REFRESH_FAILED)
+    expect(line).not.toContain(STALE_COPY)
+  })
+
+  it('lets a page word the stale line itself', () => {
+    render(<LoadState failed stale live staleMessage="Saved, not shown." />)
+    expect(screen.getByRole('status').textContent).toContain(
+      'Saved, not shown.',
+    )
+  })
+
+  it('says the session ended, with no Try again, when told so', () => {
+    render(<LoadState ended failed onRetry={vi.fn()} />)
+    expect(screen.getByRole('alert').textContent).toBe(SESSION_ENDED)
+    expect(screen.queryByRole('button')).toBeNull()
   })
 })
