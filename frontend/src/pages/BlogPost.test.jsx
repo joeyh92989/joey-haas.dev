@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import BlogPost from './BlogPost.jsx'
@@ -22,6 +22,25 @@ vi.mock('../content/posts.js', () => {
       html: '<p>Body.</p>',
     },
   ]
+  const heads = (n) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `part-${i + 1}`,
+      text: `Part ${i + 1}`,
+    }))
+  posts.push(
+    {
+      slug: 'four',
+      frontmatter: { title: 'Four', date: '2026-08-01', tags: [] },
+      html: '<p>Body.</p>',
+      headings: heads(4),
+    },
+    {
+      slug: 'five',
+      frontmatter: { title: 'Five', date: '2026-07-01', tags: [] },
+      html: '<p>Body.</p>',
+      headings: heads(5),
+    },
+  )
   return {
     posts,
     findPost: (slug) => posts.find((post) => post.slug === slug),
@@ -52,5 +71,30 @@ describe('BlogPost', () => {
   it('has no summary line when the post has none', () => {
     const { container } = renderPost('without')
     expect(container.querySelector('.post-summary')).toBeNull()
+  })
+
+  it('lists the h2s above four of them, each linking to its id', () => {
+    renderPost('five')
+    const nav = screen.getByRole('navigation', { name: 'On this page' })
+    const links = within(nav).getAllByRole('link')
+    expect(links).toHaveLength(5)
+    expect(links[2]).toHaveAttribute('href', '#part-3')
+    expect(links[2]).toHaveTextContent('Part 3')
+  })
+
+  it('has no contents list at four h2s or without headings', () => {
+    renderPost('four')
+    expect(screen.queryByText('On this page')).toBeNull()
+    renderPost('without')
+    expect(screen.queryByText('On this page')).toBeNull()
+  })
+
+  it('has a back link above the title as well as below the body', () => {
+    const { container } = renderPost('without')
+    const links = screen.getAllByRole('link', { name: '← All posts' })
+    expect(links).toHaveLength(2)
+    expect(
+      container.querySelector('h1').previousElementSibling,
+    ).toContainElement(links[0])
   })
 })

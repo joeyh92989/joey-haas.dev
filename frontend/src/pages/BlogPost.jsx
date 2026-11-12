@@ -4,6 +4,9 @@ import { findPost } from '../content/posts.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 
+/** A post with more h2s than this gets a contents list. */
+const MIN_HEADINGS_FOR_CONTENTS = 4
+
 /**
  * A single post.
  *
@@ -22,14 +25,35 @@ export default function BlogPost() {
 
   if (!post) return <NotFound />
 
+  // Only a long post earns a contents list; a short one is quicker to scroll.
+  const headings = post.headings ?? []
+
   return (
     <section>
+      <p>
+        <Link to="/blog">← All posts</Link>
+      </p>
       <h1>{post.frontmatter.title}</h1>
       {post.frontmatter.summary && (
         <p className="post-summary">{post.frontmatter.summary}</p>
       )}
       {post.frontmatter.draft && <span className="draft-badge">Draft</span>}
       <PostMeta date={post.frontmatter.date} tags={post.frontmatter.tags} />
+
+      {headings.length > MIN_HEADINGS_FOR_CONTENTS && (
+        <nav className="post-toc" aria-labelledby="post-toc-label">
+          <p className="post-toc-label" id="post-toc-label">
+            On this page
+          </p>
+          <ol>
+            {headings.map((heading) => (
+              <li key={heading.id}>
+                <a href={`#${heading.id}`}>{heading.text}</a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
 
       <div
         className="post-body"
