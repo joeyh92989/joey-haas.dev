@@ -26,3 +26,13 @@ export function yearPath(year) {
 export function monthPath(month) {
   return `${spine.path}/journal/${month}/`
 }
+
+/** `/shelf/<id>/<n>/`, one issue's page. */
+export function issuePath(id, n) {
+  return `${spine.path}/${encodeURIComponent(id)}/${encodeURIComponent(n)}/`
+}
+
+/** `/shelf/<id>/<slug>/`, one edition's page (`ed-<from>-<to>`). */
+export function editionPath(id, slug) {
+  return `${spine.path}/${encodeURIComponent(id)}/${encodeURIComponent(slug)}/`
+}

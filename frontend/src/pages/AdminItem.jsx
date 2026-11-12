@@ -732,6 +732,14 @@ export default function AdminItem() {
                   released={item.comic_run?.released ?? null}
                   showSkipped
                   errors={comicErrors}
+                  editionLinks={{
+                    itemId: id,
+                    saved: item.editions ?? [],
+                    // Only the stored editions change: the rows being typed
+                    // are untouched, and Save sends no link keys.
+                    onLinked: (editions) =>
+                      setItem((current) => ({ ...current, editions })),
+                  }}
                 />
               </>
             ) : (

@@ -15,7 +15,8 @@
  * empty page. The pre-rename /spine pages get heads too (legacyRoutes),
  * and the feed is written at both prefixes. Shelf items come from the
  * build-time snapshot, which holds public items only; without a snapshot,
- * items are simply skipped.
+ * items are simply skipped. Issue and edition pages come from the optional
+ * comic-issues snapshot and, like items, stay on the catch-all.
  *
  * Runs after `vite build`, so dist/ already exists.
  */
@@ -50,17 +51,20 @@ const postsDir = path.join(here, '..', 'posts')
 const notesDir = path.join(here, '..', 'notes')
 const tripsDir = path.join(here, '..', 'trips')
 
-/** The snapshot's items, or none when this build has no snapshot. */
-async function readItems() {
+/**
+ * One snapshot file as a list, or none when this build has none. `what`
+ * names the pages it feeds, for the warning.
+ */
+async function readList(file, what) {
   try {
     const body = JSON.parse(
-      await fs.readFile(path.join(dist, 'snapshot', 'items.json'), 'utf8'),
+      await fs.readFile(path.join(dist, 'snapshot', file), 'utf8'),
     )
     return Array.isArray(body) ? body : []
   } catch (error) {
     // No snapshot is normal (CI, local builds); a broken one is worth a line.
     if (error.code !== 'ENOENT') {
-      console.warn(`prerender: snapshot unreadable, no item pages: ${error}`)
+      console.warn(`prerender: snapshot unreadable, no ${what}: ${error}`)
     }
     return []
   }
@@ -76,7 +80,8 @@ async function write(route, html) {
 }
 
 const shell = await fs.readFile(path.join(dist, 'index.html'), 'utf8')
-const items = await readItems()
+const items = await readList('items.json', 'item pages')
+const comicIssues = await readList('comic-issues.json', 'issue pages')
 const trips = await readPublished(tripsDir)
 
 // No snapshot (CI, most local builds) means no pool to check: /daily then
@@ -89,6 +94,7 @@ const routes = publicRoutes({
   notes: await readPublished(notesDir),
   trips,
   items,
+  comicIssues,
 })
 
 // Before any head is written: a draft trip's photos leave dist/ here.

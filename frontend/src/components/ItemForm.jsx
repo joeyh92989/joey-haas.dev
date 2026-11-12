@@ -1,6 +1,8 @@
 import { useRef } from 'react'
 import { spine } from '../content/spine.js'
+import { editionSlugs } from '../lib/coverWall.js'
 import { EMPTY_EDITION, SHELF_FORMATS } from '../lib/comics.js'
+import EditionLinkPicker from './EditionLinkPicker.jsx'
 import { STATUS_LABEL, STATUS_ORDER } from '../lib/shelf.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -76,7 +78,7 @@ function FieldError({ id, message }) {
  * collects, and Remove; Add appends a blank row. The API is the one
  * validator; a blank row is dropped on save.
  */
-function EditionRows({ rows, onChange, error }) {
+function EditionRows({ rows, onChange, error, links = null }) {
   const addRef = useRef(null)
   const update = (index, field) => (event) =>
     onChange(
@@ -84,6 +86,17 @@ function EditionRows({ rows, onChange, error }) {
         at === index ? { ...row, [field]: event.target.value } : row,
       ),
     )
+  // Linking is for saved editions only: a row is saved when its range names
+  // a stored edition. The slug is the API's (`editionSlugs`), numbers
+  // normalised so "01" and 1 are the same range.
+  const rowSlugs = editionSlugs(
+    rows.map((row) => ({
+      from: Number(row.from) || row.from,
+      to: Number(row.to) || row.to,
+    })),
+  )
+  const stored = links?.saved ?? []
+  const storedSlugs = editionSlugs(stored)
   return (
     <fieldset
       className="comic-editions"
@@ -97,49 +110,64 @@ function EditionRows({ rows, onChange, error }) {
       </datalist>
       {rows.map((row, index) => {
         const name = row.label || `edition ${index + 1}`
+        const at = storedSlugs.indexOf(rowSlugs[index])
         return (
-          <div className="comic-edition-row" key={index}>
-            <input
-              aria-label={`Kind, ${name}`}
-              list="comic-edition-kinds"
-              placeholder="Trade"
-              value={row.kind}
-              onChange={update(index, 'kind')}
-            />
-            <input
-              aria-label={`Label, ${name}`}
-              placeholder="Vol. 1"
-              value={row.label}
-              onChange={update(index, 'label')}
-            />
-            <input
-              aria-label={`From issue, ${name}`}
-              inputMode="numeric"
-              placeholder="1"
-              value={row.from}
-              onChange={update(index, 'from')}
-            />
-            <input
-              aria-label={`To issue, ${name}`}
-              inputMode="numeric"
-              placeholder="6"
-              value={row.to}
-              onChange={update(index, 'to')}
-            />
-            <button
-              type="button"
-              className="link-button"
-              aria-label={`Remove ${name}`}
-              onClick={() => {
-                onChange(rows.filter((_, at) => at !== index))
-                // The row and its button are gone: land on Add, never on
-                // the next row's Remove, where a second Enter would remove
-                // another edition.
-                addRef.current?.focus()
-              }}
-            >
-              ×
-            </button>
+          <div className="comic-edition" key={index}>
+            <div className="comic-edition-row">
+              <input
+                aria-label={`Kind, ${name}`}
+                list="comic-edition-kinds"
+                placeholder="Trade"
+                value={row.kind}
+                onChange={update(index, 'kind')}
+              />
+              <input
+                aria-label={`Label, ${name}`}
+                placeholder="Vol. 1"
+                value={row.label}
+                onChange={update(index, 'label')}
+              />
+              <input
+                aria-label={`From issue, ${name}`}
+                inputMode="numeric"
+                placeholder="1"
+                value={row.from}
+                onChange={update(index, 'from')}
+              />
+              <input
+                aria-label={`To issue, ${name}`}
+                inputMode="numeric"
+                placeholder="6"
+                value={row.to}
+                onChange={update(index, 'to')}
+              />
+              <button
+                type="button"
+                className="link-button"
+                aria-label={`Remove ${name}`}
+                onClick={() => {
+                  onChange(rows.filter((_, at) => at !== index))
+                  // The row and its button are gone: land on Add, never on
+                  // the next row's Remove, where a second Enter would remove
+                  // another edition.
+                  addRef.current?.focus()
+                }}
+              >
+                ×
+              </button>
+            </div>
+            {links && (
+              <EditionLinkPicker
+                itemId={links.itemId}
+                slug={rowSlugs[index]}
+                name={name}
+                cvId={at >= 0 ? (stored[at].cv_id ?? null) : null}
+                onLinked={links.onLinked}
+                disabledReason={
+                  at >= 0 ? undefined : 'Save the edition before linking it.'
+                }
+              />
+            )}
           </div>
         )
       })}
@@ -173,6 +201,9 @@ function EditionRows({ rows, onChange, error }) {
  * @param {number|null} [props.released] - Comic Vine's released count, for the hint.
  * @param {boolean} [props.showSkipped] - The edit page's private Skipped field.
  * @param {Record<string, string>} [props.errors] - API errors by field.
+ * @param {{itemId: string, saved: object[], onLinked: (editions: object[]) => void}|null} [props.editionLinks]
+ *   - The edit page's Comic Vine link control per edition row; `saved` is
+ *   the stored editions. Absent on the add form, where nothing is saved yet.
  */
 export function ComicFields({
   value,
@@ -180,6 +211,7 @@ export function ComicFields({
   released = null,
   showSkipped = false,
   errors = {},
+  editionLinks = null,
 }) {
   const set = (field) => (event) =>
     onChange({
@@ -253,6 +285,7 @@ export function ComicFields({
         rows={value.editions}
         onChange={(editions) => onChange({ ...value, editions })}
         error={errors.editions}
+        links={editionLinks}
       />
 
       <label htmlFor="comic-shelf-format">Format on the shelf</label>

@@ -4,7 +4,8 @@ name: Nightly
 # build-time snapshot within a day of production (Spine Next spec, A3).
 # Replaces snapshot.yml, whose compare and deploy steps are kept verbatim.
 #
-# It writes: the followed comics' issue lists, the weekend forecast, the
+# It writes: the followed comics' issue lists, every comic's issue pages,
+# the weekend forecast, the
 # Closet's garment tags, tomorrow's outfit plans and the weekly Review
 # opinions, the catalogue refreshes, Resolve, the Radar and Discover generates, the weekly
 # spot finder and the page-view rollup, through the admin API with the
@@ -159,6 +160,14 @@ jobs:
           # request per followed series) and the slow catalogue steps after
           # it can run this step into its timeout.
           call comics 600 /api/comics/refresh
+          # Every issue of every comic, stalest series first: one Comic Vine
+          # request per 100 issues, 120 requests at most. The budget keeps the
+          # night inside Comic Vine's shared 200-an-hour /issues limit (the
+          # refresh above and the Follow-time syncs spend from it too) and a
+          # series longer than the budget finishes over the next nights. The
+          # throttle spaces requests a second apart, so 120 take two minutes
+          # plus latency; 420 s leaves room for slow pages.
+          call comic-issues 420 '/api/comics/issues/sync?budget=120'
           # The weekend planner's forecast: one NWS gridpoint, a few seconds.
           # A failed fetch answers 502 and the planner keeps the last one.
           call weather 120 /api/spots/weather/refresh

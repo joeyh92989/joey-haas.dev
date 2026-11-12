@@ -5,6 +5,8 @@ import About from './pages/About.jsx'
 import Blog from './pages/Blog.jsx'
 import Collection from './pages/Collection.jsx'
 import Comics from './pages/Comics.jsx'
+import ComicEdition from './pages/ComicEdition.jsx'
+import ComicIssue from './pages/ComicIssue.jsx'
 import Daily from './pages/Daily.jsx'
 import IntakeDemo from './pages/IntakeDemo.jsx'
 import Colophon from './pages/Colophon.jsx'
@@ -62,6 +64,29 @@ function ParamRedirect({ to }) {
   return <Navigate to={to(useParams())} replace />
 }
 
+/** A canonical issue number: ASCII digits, no leading zero, at most 4. */
+const ISSUE_PART = /^[1-9][0-9]{0,3}$/
+
+/** A canonical edition slug: `ed-<from>-<to>`, `-2`... on a repeat. */
+const EDITION_PART = /^ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(-[2-9][0-9]*)?$/
+
+/**
+ * /shelf/:id/:part: an issue's page for a canonical number, or an edition's
+ * for a canonical `ed-...` slug, remounted per page. Anything else, a
+ * leading zero or a stray suffix included, is NotFound rather than a second
+ * address for the same page.
+ */
+function ShelfPart() {
+  const { id, part } = useParams()
+  if (ISSUE_PART.test(part)) {
+    return <ComicIssue key={`${id}/${part}`} id={id} n={Number(part)} />
+  }
+  if (EDITION_PART.test(part)) {
+    return <ComicEdition key={`${id}/${part}`} id={id} slug={part} />
+  }
+  return <NotFound />
+}
+
 /**
  * The admin item page, remounted per id: going from one item to another
  * (back and forward included) must not carry the first item's form, or a
@@ -103,6 +128,7 @@ export default function App() {
         <Route path="shelf/year/:year" element={<YearInReview />} />
         <Route path="shelf/journal/:month" element={<MonthInReview />} />
         <Route path="shelf/:id" element={<Item />} />
+        <Route path="shelf/:id/:part" element={<ShelfPart />} />
         {/* Pre-rename URLs, kept so links already shared still land. Each
             goes straight to /shelf, never through another redirect. */}
         <Route path="spine" element={<Navigate to="/shelf" replace />} />

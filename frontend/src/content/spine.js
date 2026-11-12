@@ -627,6 +627,36 @@ export const spine = {
         cellName: (n, state) => `Issue ${n}, ${state}`,
       },
     },
+    /** The cover wall on the series page, and the tiles the issue and edition pages share. */
+    wall: {
+      title: 'Every book in the run',
+      /** The pills, word for word. */
+      states: {
+        read: 'Read ✓',
+        owned: 'Owned',
+        missing: 'Missing',
+        'not-out': 'Not out yet',
+        skipped: 'Skipped · private',
+      },
+      /** The state words inside a tile's name ("Saga #58, Missing"). */
+      names: {
+        read: 'Read',
+        owned: 'Owned',
+        missing: 'Missing',
+        'not-out': 'Not out yet',
+        skipped: 'Skipped',
+      },
+      /** The tile's link name: "Saga #58, Missing". */
+      tileName: (series, n, state) => `${series} #${n}, ${state}`,
+      bookName: (label, from, to, readTo) =>
+        `${label}, collects #${from}–${to}${readTo != null ? `, read to #${readTo}` : ''}`,
+      /** The stack's visible text, which is also its name. */
+      stack: (from, to, count) =>
+        `#${from}–${to} · ${count} missing · Show covers`,
+      fold: 'Fold these back up',
+      readTo: (n) => `read to ${n}`,
+      edition: 'Collected edition',
+    },
     pills: { following: 'Following', want: 'Want' },
     hero: {
       series: 'Series',
@@ -703,6 +733,60 @@ export const spine = {
         want: (released, ongoing) =>
           `Nothing owned yet. ${released} ${released === 1 ? 'issue is' : 'issues are'} out${ongoing ? ' so far' : ''}.`,
         unrecorded: 'On the shelf, but which issues isn’t recorded yet.',
+      },
+    },
+    /** The public issue page, /shelf/:id/:n/. */
+    issue: {
+      comics: 'Comics',
+      breadcrumb: 'Breadcrumb',
+      neighbours: 'Neighbouring issues',
+      coverAlt: (series, n) => `Cover of ${series} #${n}`,
+      facts: {
+        issue: 'Issue',
+        inStores: 'In stores',
+        heldAs: 'Held as',
+        read: 'Read',
+      },
+      of: (n, released, ongoing) => `#${n} of ${released}${ongoing ? '+' : ''}`,
+      read: { yes: 'Yes', notYet: 'Not yet', none: '—' },
+      inEdition: (label) => `In ${label} →`,
+      noDescription: 'Comic Vine has no description for this issue.',
+      more: 'More',
+      less: 'Less',
+      attribution: {
+        before: 'Cover and description from',
+        label: 'Comic Vine',
+        after: '.',
+      },
+      owner: {
+        note: 'Only you see these buttons.',
+        own: 'I own this',
+        owned: 'Owned ✓',
+        readTo: 'Read to here',
+        readDone: 'Read to here ✓',
+        skip: 'Skip · private',
+        skipped: 'Skipped · private ✓',
+        failed: 'Could not save that change. Try again.',
+      },
+    },
+    /** The public collected-edition page, /shelf/:id/ed-<from>-<to>/. */
+    edition: {
+      title: (series, label) => `${series}, ${label}`,
+      kicker: (kind, from, to) =>
+        `${kind} · collects ${from === to ? `#${from}` : `#${from}–${to}`}`,
+      coverAlt: (series, label) => `Cover of ${series}, ${label}`,
+      facts: { collects: 'Collects', format: 'Format', read: 'Read' },
+      collects: (from, to) => (from === to ? `#${from}` : `#${from}–${to}`),
+      read: { all: 'All of it', to: (n) => `To #${n}`, notYet: 'Not yet' },
+      inside: 'Inside this book',
+      previous: 'Previous',
+      next: 'Next',
+      neighbours: 'Neighbouring editions',
+      owner: {
+        owned: 'Owned ✓',
+        readToEnd: 'Read to the end',
+        readDone: 'Read to the end ✓',
+        edit: 'Edit edition',
       },
     },
     empty: 'No comics on the shelf yet.',

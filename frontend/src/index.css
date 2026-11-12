@@ -7868,6 +7868,236 @@ button.run-cell[aria-disabled='true'] {
   padding: 1rem;
 }
 
+/* The cover wall: a cover per issue, a book per edition, a stack for a long
+   missing stretch. A state is a frame as well as a colour: read and owned
+   are solid (--chart, --chart-2), missing is dashed --run-missing over a
+   greyed cover, not-out is the --hatch block. The tick on a read cover and
+   the pills' marks are decoration; the state word is in each tile's name.
+   Focus draws what hover draws. */
+.cover-wall-grid {
+  display: grid;
+  gap: 1rem 0.8rem;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+}
+
+.cover-tile {
+  color: inherit;
+  display: block;
+  min-width: 0;
+  position: relative;
+  text-decoration: none;
+}
+
+.cover-tile-frame {
+  border: 2px solid transparent;
+  border-radius: 6px;
+  display: block;
+  padding: 2px;
+  position: relative;
+}
+
+a.cover-tile:hover .cover-tile-frame,
+a.cover-tile:focus-visible .cover-tile-frame {
+  border-color: var(--accent);
+}
+
+a.cover-tile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cover-tile[aria-current='page'] .cover-tile-frame {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.cover-tile[data-state='owned'] .cover-tile-frame,
+.cover-tile[data-state='book'] .cover-tile-frame {
+  border-color: var(--chart-2);
+}
+
+.cover-tile[data-state='read'] .cover-tile-frame {
+  border-color: var(--chart);
+}
+
+.cover-tile[data-state='missing'] .cover-tile-frame,
+.cover-tile[data-state='skipped'] .cover-tile-frame {
+  border: 1.5px dashed var(--run-missing);
+  padding: 2.5px;
+}
+
+.cover-tile[data-state='missing'] .cover,
+.cover-tile[data-state='skipped'] .cover {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.cover-tile-hatch {
+  align-items: flex-end;
+  aspect-ratio: 2 / 3;
+  display: flex;
+  padding: 8%;
+  background-image: var(--hatch);
+  border: 1px solid var(--run-missing);
+  border-radius: 4px;
+}
+
+.cover-tile-chip {
+  background: var(--surface);
+  border-radius: 3px;
+  color: var(--text);
+  font: 600 0.75rem/1 var(--font-mono);
+  padding: 0.15rem 0.3rem;
+}
+
+.cover-tile-tick {
+  background: var(--chart);
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  color: var(--accent-ink);
+  font: 700 0.6875rem/1 var(--font-mono);
+  height: 1.125rem;
+  line-height: 1.125rem;
+  position: absolute;
+  right: -4px;
+  text-align: center;
+  top: -4px;
+  width: 1.125rem;
+}
+
+.cover-tile-cap {
+  color: var(--text-2);
+  display: flex;
+  font: 500 0.6875rem/1.3 var(--font-mono);
+  gap: 0.25rem;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+}
+
+.cover-tile-cap em {
+  color: var(--text-3);
+  font-style: normal;
+}
+
+/* A stacked edge for a book, drawn with the sunken and line tones. */
+.book-tile .cover {
+  box-shadow:
+    4px 4px 0 var(--sunken),
+    5px 5px 0 var(--line-strong),
+    8px 8px 0 var(--sunken),
+    9px 9px 0 var(--line-strong);
+  margin: 0 9px 9px 0;
+  width: calc(100% - 9px);
+}
+
+.book-tile .cover-tile-cap {
+  flex-direction: column;
+  gap: 0;
+}
+
+.cover-tile[data-size='strip'] {
+  flex: 0 0 76px;
+}
+
+.cover-tile[data-size='inside'] {
+  flex: 0 0 46px;
+}
+
+.cover-tile[data-size='inside'] .cover-tile-cap em {
+  display: none;
+}
+
+.cover-stack {
+  align-items: center;
+  aspect-ratio: 2 / 3;
+  background: none;
+  border: 1.5px dashed var(--run-missing);
+  border-radius: 4px;
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font: 500 0.75rem/1.3 var(--font-mono);
+  gap: 0.3rem;
+  justify-content: center;
+  padding: 0.4rem;
+  text-align: center;
+  width: 100%;
+}
+
+.cover-stack:hover,
+.cover-stack:focus-visible {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.cover-stack:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cover-stack[data-fold] {
+  border-style: solid;
+}
+
+.cover-wall-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.state-pill {
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 99px;
+  color: var(--text-2);
+  display: inline-flex;
+  font: 500 0.6875rem/1 var(--font-mono);
+  gap: 0.3rem;
+  padding: 0.3rem 0.45rem;
+  white-space: nowrap;
+}
+
+.state-pill[data-state='read'] {
+  background: var(--chart);
+  border-color: var(--chart);
+  color: var(--accent-ink);
+}
+
+.state-pill[data-state='owned'],
+.state-pill[data-state='book'] {
+  background: var(--accent-soft);
+  border-color: var(--chart-2);
+  color: var(--text);
+}
+
+.state-pill[data-state='missing'] {
+  border: 1.5px solid var(--run-missing);
+}
+
+.state-pill[data-state='skipped'] {
+  border: 1.5px dashed var(--run-missing);
+}
+
+.state-pill[data-state='not-out']::before {
+  background-image: var(--hatch);
+  border: 1px solid var(--run-missing);
+  border-radius: 2px;
+  content: '';
+  height: 10px;
+  width: 12px;
+}
+
+@media (max-width: 480px) {
+  .cover-wall-grid {
+    gap: 0.8rem 0.5rem;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .comic-box-kicker {
   color: var(--text-3);
   font-size: 0.6875rem;
@@ -11233,4 +11463,235 @@ button.run-cell[aria-disabled='true'] {
   .outcomes {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* The public issue page (/shelf/:id/:n/). Cover column at 300px; at phone
+   width the order is strip, cover (62%, centred), then text. The strip
+   scrolls inside itself, never the page. */
+.comic-issue-crumbs ol {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.25rem 0.5rem;
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.comic-issue-crumbs li + li::before {
+  color: var(--text-3);
+  content: '/';
+  margin-right: 0.5rem;
+}
+
+.neighbour-strip {
+  display: flex;
+  gap: 0.6rem;
+  list-style: none;
+  margin: 0 0 1rem;
+  overflow-x: auto;
+  padding: 0.35rem 0.25rem 0.6rem;
+}
+
+.neighbour-strip > li {
+  flex: 0 0 76px;
+  min-width: 0;
+}
+
+.neighbour-strip .cover-tile[data-size='strip'] {
+  flex-basis: auto;
+}
+
+.comic-issue-main {
+  align-items: start;
+  display: grid;
+  gap: 1.75rem;
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.comic-issue-text h1 {
+  margin: 0 0 0.5rem;
+}
+
+.comic-issue-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+a.state-pill {
+  color: var(--text);
+  text-decoration: none;
+}
+
+a.state-pill:hover,
+a.state-pill:focus-visible {
+  border-color: var(--accent);
+}
+
+.comic-issue-facts {
+  display: grid;
+  font-size: 0.875rem;
+  gap: 0.35rem 1rem;
+  grid-template-columns: max-content 1fr;
+  margin: 1rem 0;
+}
+
+.comic-issue-facts dt {
+  color: var(--text-3);
+}
+
+.comic-issue-facts dd {
+  color: var(--text);
+  margin: 0;
+}
+
+.comic-issue-desc {
+  color: var(--text-2);
+  max-width: 42rem;
+}
+
+.comic-issue-desc.muted {
+  font-style: italic;
+}
+
+.comic-issue-owner {
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+  margin: 1rem 0;
+  padding: 0.75rem;
+}
+
+.comic-issue-owner-note {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  margin: 0 0 0.5rem;
+}
+
+.comic-issue-owner-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.comic-issue-attribution {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  margin: 1rem 0 0;
+}
+
+@media (max-width: 640px) {
+  .comic-issue-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .comic-issue-cover {
+    margin: 0 auto;
+    width: 62%;
+  }
+}
+
+/* The collected-edition page: the issue page's layout, the covers inside the
+   book in a strip, and the neighbouring editions under it. */
+.edition-inside-title {
+  font-size: 1rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.inside-strip > li {
+  flex: 0 0 46px;
+}
+
+.inside-strip .cover-tile[data-size='inside'] {
+  flex-basis: auto;
+}
+
+.edition-neighbours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+.edition-neighbour {
+  color: var(--text);
+  display: grid;
+  gap: 0.1rem;
+  text-decoration: none;
+}
+
+.edition-neighbour.next {
+  margin-left: auto;
+  text-align: right;
+}
+
+.edition-neighbour:hover strong,
+.edition-neighbour:focus-visible strong {
+  color: var(--accent);
+}
+
+.edition-neighbour .tiny {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+a.btn.sm {
+  text-decoration: none;
+}
+
+/* The picker under an edition row on the admin edit page. */
+.comic-edition-link {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.comic-edition-link .muted {
+  margin: 0;
+}
+
+.edition-link-hits {
+  display: grid;
+  gap: 0.25rem;
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.edition-link-hit {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 0.6rem;
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  width: 100%;
+}
+
+.edition-link-hit:hover,
+.edition-link-hit:focus-visible {
+  border-color: var(--accent);
+}
+
+.edition-link-hit img {
+  height: 40px;
+  object-fit: cover;
+  width: 27px;
+}
+
+.comic-edition {
+  display: grid;
+  gap: 0.25rem;
 }

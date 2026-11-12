@@ -905,6 +905,95 @@ describe('Item series page (AC5)', () => {
   })
 })
 
+describe('Item cover wall', () => {
+  const ROWS = Array.from({ length: 8 }, (_, i) => ({
+    number: String(i + 1),
+    name: null,
+    store_date: '2020-01-01',
+    cover_url: null,
+  }))
+
+  function stubWall(issues) {
+    const fetch = vi.fn(async (url) => {
+      const body = String(url).endsWith('/issues')
+        ? { series_title: 'Saga', publisher: 'Image', issues, editions: [] }
+        : SAGA
+      return { ok: true, status: 200, json: async () => body }
+    })
+    vi.stubGlobal('fetch', fetch)
+    return fetch
+  }
+
+  it('draws the wall in place of the run box when the series has issue rows', async () => {
+    const fetch = stubWall(ROWS)
+    await renderSaga()
+    expect(
+      await screen.findByRole('heading', { name: 'Every book in the run' }),
+    ).toBeInTheDocument()
+    expect(
+      fetch.mock.calls.some(([url]) =>
+        String(url).endsWith(`/api/public/items/${ID}/issues`),
+      ),
+    ).toBe(true)
+    expect(document.querySelector('.run-box')).toBeNull()
+    expect(
+      screen.getByRole('link', { name: 'Saga #5, Missing' }),
+    ).toHaveAttribute('href', `/shelf/${ID}/5/`)
+  })
+
+  it("signed in, marks the owner's skipped issues from the row already fetched", async () => {
+    const fetch = vi.fn(async (url) => {
+      const text = String(url)
+      const body = text.endsWith('/issues')
+        ? {
+            series_title: 'Saga',
+            publisher: 'Image',
+            issues: ROWS,
+            editions: [],
+          }
+        : text.includes('/api/public/')
+          ? SAGA
+          : { issues_owned: '1–4', issues_skipped: '5', playthroughs: [] }
+      return { ok: true, status: 200, json: async () => body }
+    })
+    vi.stubGlobal('fetch', fetch)
+    await renderSaga({ signedIn: true })
+    expect(
+      await screen.findByRole('link', { name: 'Saga #5, Skipped' }),
+    ).toBeInTheDocument()
+    expect(
+      fetch.mock.calls.filter(([url]) => !String(url).includes('/api/public/')),
+    ).toHaveLength(1)
+  })
+
+  it('signed out, never shows a skipped issue', async () => {
+    stubWall(ROWS)
+    await renderSaga()
+    expect(
+      await screen.findByRole('link', { name: 'Saga #5, Missing' }),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the run box, toggle mode included, when the issue list is empty', async () => {
+    stubWall([])
+    await renderSaga({ signedIn: true })
+    expect(
+      screen.queryByRole('heading', { name: 'Every book in the run' }),
+    ).toBeNull()
+    expect(
+      await screen.findByRole('button', { name: 'Issue 5' }),
+    ).toBeInTheDocument()
+  })
+
+  it('has no toggle cells on the series page once the wall is there', async () => {
+    stubWall(ROWS)
+    await renderSaga({ signedIn: true })
+    await screen.findByRole('heading', { name: 'Every book in the run' })
+    expect(screen.queryByRole('button', { name: 'Issue 5' })).toBeNull()
+    expect(document.querySelector('.run-box')).toBeNull()
+  })
+})
+
 describe('Item playthroughs', () => {
   const RUNS = [
     {

@@ -114,6 +114,56 @@ It also records Saga's `/volume/4050-46568/` detail with `VOLUME_FIELD_LIST`
 `tests/fixtures/comicvine_volume.json`, the bare response body. Re-record
 when `VOLUME_FIELD_LIST` changes. Five requests in all.
 
+## probe_comicvine_issues.py
+
+Probes the Comic Vine calls behind the public issue pages and records two
+fixtures, so `fetch_issue_page`, `fetch_issue` and the description cleaner are
+tested against what the API returns.
+
+**Why:** the issue pages page a whole volume (`filter=volume:<id>`, 100 rows,
+`sort=id:asc`) and need `description` on the list endpoint, so a volume costs
+`ceil(n / 100)` calls instead of one per issue. The script prints `HELD` or
+`NOT HELD` for the volume filter and says whether `description` came back on
+every row; it exits non-zero when either is false.
+
+**Run** from `backend/`, in the main checkout or any worktree:
+
+```bash
+./.venv/bin/python scripts/probe_comicvine_issues.py
+```
+
+**Needs** `COMICVINE_API_KEY`, read from the main checkout's `backend/.env`
+(worktrees have none), never printed, and a fixture is refused if the key
+appears in it. One request a second with the adapter's User-Agent.
+
+**Writes** `tests/fixtures/comicvine_issues_page.json` (Saga, volume 46568,
+the first 15 of its 72 rows, `{recorded_on, volume_id, issues}` where `issues`
+is the trimmed raw body) and `comicvine_issue_detail.json` (the bare
+`/issue/4000-303557/` body: Vinland Saga "Volume 1", a trade paperback found
+through the issue search). Saga has no non-whole issue numbers, so the tests
+that need `#0`, `#1.MU` and `#½` build them in the test file; do not edit the
+fixtures by hand, re-record them when `ALL_ISSUES_FIELD_LIST` changes. Eight
+requests plus nine image reads.
+
+**Measured image keys** (Vinland Saga "Volume 1", read 2026-11-11 from the
+first bytes of each file). The site uses `medium_url` for the strip and
+`super_url` for the cover:
+
+| key | pixels |
+|---|---|
+| `tiny_url` | 30x30 |
+| `icon_url` | 80x80 |
+| `thumb_url` | 112x160 |
+| `small_url` | 450x640 |
+| `medium_url` | 675x960 |
+| `super_url` | 900x1280 |
+| `original_url` | 640x910 |
+| `screen_url` | 480x270 |
+| `screen_large_url` | 1280x720 |
+
+`original_url` is smaller than `super_url` here (the large size is scaled up
+from it), and the two `screen_*` keys are 16:9 crops, not covers.
+
 ## record_tmdb_fixtures.py
 
 Records TMDB's detail answer for Dune (2021, `/movie/438631`) into

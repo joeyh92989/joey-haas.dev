@@ -955,6 +955,73 @@ describe('AdminItem comic fields', () => {
     expect(screen.getByLabelText('Label, Vol. 2')).toHaveValue('Vol. 2')
   })
 
+  it('links a saved edition to Comic Vine and shows the stored link', async () => {
+    const linked = [{ ...COMIC.editions[0], cv_id: 4242 }]
+    const base = stubApi({ item: COMIC })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const path = String(url)
+        if (path.includes('/api/comics/issues/search')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => [
+              { cv_id: 4242, volume_name: 'Saga', number: '1', name: null },
+            ],
+          }
+        }
+        if (path.endsWith('/editions/ed-1-6/link')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ item_id: 'abc', editions: linked }),
+          }
+        }
+        return base(url, options)
+      }),
+    )
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Link to Comic Vine, Vol. 1',
+      }),
+    )
+    await userEvent.type(screen.getByLabelText('Search Comic Vine'), 'saga')
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Saga #1/ }),
+    )
+    expect(
+      await screen.findByText('Linked to Comic Vine (issue 4242)'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows an existing link and disables the control on an unsaved row', async () => {
+    stubApi({
+      item: {
+        ...COMIC,
+        editions: [{ ...COMIC.editions[0], cv_id: 4242 }],
+      },
+    })
+    renderPage()
+    expect(
+      await screen.findByText('Linked to Comic Vine (issue 4242)'),
+    ).toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Add an edition' }),
+    )
+    await userEvent.type(screen.getByLabelText('From issue, edition 2'), '7')
+    await userEvent.type(screen.getByLabelText('To issue, edition 2'), '12')
+    const buttons = screen.getAllByRole('button', {
+      name: /Link to Comic Vine/,
+    })
+    expect(buttons[0]).toBeEnabled()
+    expect(buttons[1]).toBeDisabled()
+    expect(
+      screen.getByText('Save the edition before linking it.'),
+    ).toBeInTheDocument()
+  })
+
   it('offers no Comic Vine refresh on a game', async () => {
     stubApi()
     renderPage()

@@ -119,6 +119,22 @@ const isSpot = (row) =>
 const isSpotsBody = (body) => Array.isArray(body) && body.every(isSpot)
 
 /**
+ * The issue and edition pages' list (comic issue pages spec): one row per
+ * public series. Only the prerender reads it, for link-preview heads. Keep in
+ * step with nothing in src/: the app never reads this file.
+ */
+const isComicIssuesBody = (body) =>
+  Array.isArray(body) &&
+  body.every(
+    (row) =>
+      isObject(row) &&
+      typeof row.item_id === 'string' &&
+      typeof row.series_title === 'string' &&
+      Array.isArray(row.issues) &&
+      Array.isArray(row.editions),
+  )
+
+/**
  * The snapshots, the endpoint each copies, the shape it must have, and
  * whether the build can go without it. A required snapshot that fails fails
  * them all; an optional one is only left out.
@@ -173,6 +189,13 @@ export const SNAPSHOTS = {
   spots: {
     path: '/api/public/spots',
     valid: isSpotsBody,
+    required: false,
+  },
+  // Optional like next: the issue and edition pages' heads, new in the
+  // release that ships its endpoint. Read by the prerender only.
+  'comic-issues': {
+    path: '/api/public/comic-issues',
+    valid: isComicIssuesBody,
     required: false,
   },
 }

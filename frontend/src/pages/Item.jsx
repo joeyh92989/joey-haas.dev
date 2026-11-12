@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
 import CoverImage from '../components/CoverImage.jsx'
+import CoverWall from '../components/CoverWall.jsx'
 import RunBox from '../components/RunBox.jsx'
 import RunLanes, { RunKey } from '../components/RunLanes.jsx'
 import PosterCard from '../components/PosterCard.jsx'
@@ -9,7 +10,8 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
-import { compactRanges, expandRanges, shortDate } from '../lib/comics.js'
+import { expandRanges, shortDate } from '../lib/comics.js'
+import { toggleOwned } from '../lib/comicEdits.js'
 import {
   laneSpans,
   lanesLabel,
@@ -383,13 +385,18 @@ function WhatsNext({ model }) {
  */
 function ComicCards({
   comic,
+  detail,
   model,
   description,
+  wall,
+  skipped,
+  series,
   onToggleIssue,
   saving,
   saveError,
 }) {
   const spans = laneSpans(model)
+  const hasWall = (wall?.issues?.length ?? 0) > 0
   return (
     <>
       {model.held > 0 && (
@@ -398,20 +405,26 @@ function ComicCards({
           {!spans.short && (
             <>
               <RunLanes spans={spans} label={lanesLabel(model)} />
-              <p className="comic-box-kicker">{SERIES.inTheBox}</p>
+              {!hasWall && (
+                <p className="comic-box-kicker">{SERIES.inTheBox}</p>
+              )}
             </>
           )}
-          <RunBox
-            model={model}
-            mode={onToggleIssue ? 'toggle' : 'public'}
-            busy={saving}
-            onCell={
-              onToggleIssue
-                ? (issue) => onToggleIssue(issue.n, !issue.held)
-                : undefined
-            }
-          />
-          <RunKey variant="box" />
+          {!hasWall && (
+            <>
+              <RunBox
+                model={model}
+                mode={onToggleIssue ? 'toggle' : 'public'}
+                busy={saving}
+                onCell={
+                  onToggleIssue
+                    ? (issue) => onToggleIssue(issue.n, !issue.held)
+                    : undefined
+                }
+              />
+              <RunKey variant="box" />
+            </>
+          )}
           <p className="comic-sentence muted">{runSentence(model)}</p>
           {saveError && (
             <p className="admin-error" role="alert">
@@ -419,6 +432,15 @@ function ComicCards({
             </p>
           )}
         </section>
+      )}
+
+      {model.held > 0 && hasWall && (
+        <CoverWall
+          wall={wall}
+          detail={detail}
+          series={series}
+          skipped={skipped ?? undefined}
+        />
       )}
 
       {comic.editions.length > 0 && (
@@ -488,6 +510,9 @@ function ItemPage({ id }) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [runs, setRuns] = useState(null)
+  // The owner's skipped issues, from the same row as the playthroughs.
+  const [skipped, setSkipped] = useState(null)
+  const [wall, setWall] = useState(null)
 
   /**
    * Loads the item and returns what to show; the effect applies it, since
@@ -536,7 +561,9 @@ function ItemPage({ id }) {
     apiFetch(`/api/items/${encodeURIComponent(id)}`)
       .then((response) => (response.ok ? response.json() : null))
       .then((body) => {
-        if (!cancelled) setRuns(body?.playthroughs ?? null)
+        if (cancelled) return
+        setRuns(body?.playthroughs ?? null)
+        setSkipped(new Set(expandRanges(body?.issues_skipped)))
       })
       .catch(() => {})
     return () => {
@@ -544,37 +571,34 @@ function ItemPage({ id }) {
     }
   }, [id, signedIn])
 
+  // A comic's issue rows and editions, for the cover wall. Quiet on failure
+  // (and while the series has no issue rows): the run box draws as before.
+  const comicReady = result.state === 'ready' && result.item.type === 'comic'
+  useEffect(() => {
+    if (!comicReady) return undefined
+    let cancelled = false
+    apiFetch(`/api/public/items/${encodeURIComponent(id)}/issues`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (!cancelled) setWall(Array.isArray(body?.issues) ? body : null)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [id, comicReady])
+
   /**
-   * Owns or unowns one issue from the grid, then reloads the public detail,
-   * which recomputes the run. The ranges sent are the owner's own
-   * `issues_owned`, read first: the public `owned_text` counts the
-   * editions' issues too, and writing it back would bake them in.
+   * Owns or unowns one issue from the grid (`lib/comicEdits.js` edits the
+   * owner's own ranges), then reloads the public detail, which recomputes
+   * the run.
    */
   const toggleIssue = useCallback(
     async (issue, owned) => {
       setSaving(true)
       setSaveError(null)
       try {
-        const path = `/api/items/${encodeURIComponent(id)}`
-        const current = await apiFetch(path)
-        if (!current.ok) throw new Error(`GET ${current.status}`)
-        const stored = await current.json()
-        const numbers = new Set(expandRanges(stored.issues_owned))
-        if (owned) numbers.add(issue)
-        else numbers.delete(issue)
-        const changes = { issues_owned: compactRanges(numbers) }
-        // Owning a skipped issue drops the skip, as Got it does: the API
-        // refuses an issue both owned and skipped. The skip is private, so
-        // the public grid drew it as missing.
-        const skipped = new Set(expandRanges(stored.issues_skipped))
-        if (owned && skipped.delete(issue))
-          changes.issues_skipped = compactRanges(skipped)
-        const response = await apiFetch(path, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(changes),
-        })
-        if (!response.ok) throw new Error(`PATCH ${response.status}`)
+        await toggleOwned(id, issue, owned)
         const next = await load()
         if (next.state === 'ready') setResult(next)
       } catch {
@@ -605,6 +629,8 @@ function ItemPage({ id }) {
         detail
         signedIn={signedIn}
         runs={signedIn ? runs : null}
+        skipped={signedIn ? skipped : null}
+        wall={wall}
         expanded={expanded}
         onToggleDescription={() => setExpanded((current) => !current)}
         onToggleIssue={signedIn ? toggleIssue : undefined}
@@ -656,6 +682,8 @@ function ItemView({
   detail,
   signedIn,
   runs = null,
+  skipped = null,
+  wall = null,
   note = null,
   expanded = false,
   onToggleDescription,
@@ -767,6 +795,10 @@ function ItemView({
       {comic && (
         <ComicCards
           comic={comic}
+          detail={item}
+          wall={wall}
+          skipped={skipped ?? undefined}
+          series={{ id: item.id, title: item.title }}
           model={run}
           description={description}
           onToggleIssue={onToggleIssue}

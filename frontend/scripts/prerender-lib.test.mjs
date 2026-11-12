@@ -18,6 +18,7 @@ import {
   sitemap,
   strayTripDirs,
 } from './prerender-lib.mjs'
+import { editionPath, issuePath } from '../src/lib/spinePaths.js'
 import { readPublished } from './markdown-lib.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -285,6 +286,120 @@ describe('renderHead', () => {
   })
 })
 
+describe('comic issue and edition pages', () => {
+  const SAGA = '6f1c2c1e-0000-4000-8000-0000000000aa'
+  const COMIC_ISSUES = [
+    {
+      item_id: SAGA,
+      series_title: 'Saga',
+      issues: [
+        { number: 58, name: 'Chapter 58', cover_url: 'https://cv.test/58.jpg' },
+        { number: 59, name: null, cover_url: null },
+      ],
+      editions: [
+        {
+          slug: 'ed-55-60',
+          label: 'Volume Ten',
+          cover_url: 'https://cv.test/v10.jpg',
+        },
+        { slug: 'ed-1-6', label: 'Deluxe', cover_url: 'http://cv.test/x.jpg' },
+      ],
+    },
+  ]
+  const routes = publicRoutes({
+    posts: [],
+    items: [ITEM],
+    comicIssues: COMIC_ISSUES,
+  })
+
+  it('emits an issue page with its cover, slash form and no /spine mirror', () => {
+    const page = routeAt(routes, `/shelf/${SAGA}/58`)
+    expect(page.title).toBe('Saga #58 · My Shelf')
+    expect(page.slash).toBe(true)
+    expect(page.legacy).toBeUndefined()
+    expect(page.image).toEqual({
+      url: 'https://cv.test/58.jpg',
+      alt: 'Cover of Saga #58',
+    })
+    expect(page.description).toContain('Saga #58')
+    expect(routeUrl(page)).toBe(`https://joey-haas.dev/shelf/${SAGA}/58/`)
+    expect(legacyRoutes(routes).map((r) => r.path)).not.toContain(
+      `/spine/${SAGA}/58`,
+    )
+  })
+
+  it('falls back to the site card without an https cover', () => {
+    const bare = routeAt(routes, `/shelf/${SAGA}/59`)
+    const insecure = routeAt(routes, `/shelf/${SAGA}/ed-1-6`)
+    expect(bare.image.url).toMatch(/og-card/)
+    expect(insecure.image.url).toBe(bare.image.url)
+  })
+
+  it('emits an edition page titled by series and label', () => {
+    const page = routeAt(routes, `/shelf/${SAGA}/ed-55-60`)
+    expect(page.title).toBe('Saga, Volume Ten · My Shelf')
+    expect(page.slash).toBe(true)
+    expect(page.image.url).toBe('https://cv.test/v10.jpg')
+    expect(renderHead(SHELL, page)).toContain(
+      `<link rel="canonical" href="https://joey-haas.dev/shelf/${SAGA}/ed-55-60/" />`,
+    )
+  })
+
+  it('has the URLs the SPA links to, for an id that needs encoding', () => {
+    const id = 'a b/ü'
+    const rows = publicRoutes({
+      posts: [],
+      items: [],
+      comicIssues: [
+        {
+          item_id: id,
+          series_title: 'Odd',
+          issues: [{ number: 7, name: null, cover_url: null }],
+          editions: [{ slug: 'ed-1-6', label: 'One', cover_url: null }],
+        },
+      ],
+    })
+    const [issue, edition] = rows.filter((r) => r.path.startsWith('/shelf/a'))
+    expect(routeUrl(issue)).toBe(`https://joey-haas.dev${issuePath(id, 7)}`)
+    expect(routeUrl(edition)).toBe(
+      `https://joey-haas.dev${editionPath(id, 'ed-1-6')}`,
+    )
+  })
+
+  it('lists them in the sitemap like item pages', () => {
+    expect(sitemap(routes)).toContain(
+      `<loc>https://joey-haas.dev/shelf/${SAGA}/58/</loc>`,
+    )
+  })
+
+  it('adds nothing without a comic-issues snapshot', () => {
+    const none = publicRoutes({ posts: [], items: [ITEM] })
+    expect(none.map((r) => r.path)).toEqual(
+      publicRoutes({ posts: [], items: [ITEM], comicIssues: [] }).map(
+        (r) => r.path,
+      ),
+    )
+    expect(none.some((r) => r.path.startsWith(`/shelf/${SAGA}`))).toBe(false)
+    expect(() =>
+      publicRoutes({ posts: [], items: [], comicIssues: null }),
+    ).not.toThrow()
+  })
+
+  it('skips malformed rows without crashing', () => {
+    const bad = publicRoutes({
+      posts: [],
+      items: [],
+      comicIssues: [
+        null,
+        { item_id: SAGA },
+        { series_title: 'No id', issues: [{ number: 1 }] },
+        { item_id: SAGA, series_title: 'Saga', issues: [{ number: 'x' }, {}] },
+      ],
+    })
+    expect(bad.some((r) => r.path.startsWith(`/shelf/${SAGA}`))).toBe(false)
+  })
+})
+
 describe('strayTripDirs', () => {
   it('names every travel folder that is not a published trip', () => {
     // A draft's built photos are copied from public/ like any other file;
@@ -527,8 +642,18 @@ describe('render.yaml rewrites', () => {
     notes: publishedNotes,
     trips: publishedTrips,
     items: [],
+    comicIssues: [
+      {
+        item_id: 'abc',
+        series_title: 'Saga',
+        issues: [{ number: 1, name: null, cover_url: null }],
+        editions: [{ slug: 'ed-1-2', label: 'Volume One', cover_url: null }],
+      },
+    ],
   })
+  // Slash pages (item, year, month, issue, edition) stay on the catch-all.
   const pages = [...built, ...legacyRoutes(built)]
+    .filter((route) => !route.slash)
     .map((route) => route.path)
     .filter((route) => route !== '/')
 

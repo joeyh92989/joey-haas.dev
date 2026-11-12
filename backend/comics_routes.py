@@ -16,18 +16,21 @@ import asyncio
 import logging
 import uuid
 from collections.abc import AsyncIterator
+from dataclasses import asdict
 from datetime import UTC, date, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from comic_issues import sync_series
 from comics import (
     MAX_ISSUE,
     comic_snapshot,
+    edition_slugs,
     expand,
     format_ranges,
     owned_set,
@@ -49,6 +52,18 @@ SOURCE = "comicvine"
 
 def _today() -> date:
     return datetime.now(UTC).date()
+
+
+# Requests a create or a refresh may spend on issues: one page (up to 100
+# issues). The request waits on it, so the nightly sync finishes longer runs.
+ISSUE_SYNC_BUDGET = 1
+
+
+LINK_KEYS = ("cv_id", "cover_url", "large_url", "description")
+
+
+class LinkIn(BaseModel):
+    cv_id: int | None = Field(default=None, ge=1)
 
 
 IssueNumber = Annotated[int, Path(ge=1, le=MAX_ISSUE)]
@@ -190,7 +205,32 @@ def create_comics_router(
                 status_code=409, detail="Already on your shelf"
             ) from None
         await session.refresh(item)
+        await _sync_quietly(item)
         return item
+
+    async def _sync_quietly(item: Item) -> None:
+        """The issue pages' first pull, at most `ISSUE_SYNC_BUDGET` requests.
+        Best effort: a failure is logged and the sync job finishes it later.
+
+        It runs in a session of its own, so the caller's row (already fresh)
+        is never expired by the sync's commits: a series deleted mid-sync
+        cannot turn a successful write into a 500, and nothing has to be
+        refreshed afterwards."""
+        item_id, volume_id = item.id, item.external_id
+        if item.external_source != SOURCE or not volume_id:
+            return
+        try:
+            async with factory() as sync_session:
+                linked = await sync_session.get(Item, item_id)
+                if linked is None:
+                    return
+                result = await sync_series(
+                    sync_session, source(), linked, ISSUE_SYNC_BUDGET, _today()
+                )
+            if result.error:
+                logger.warning("issue sync for %s failed: %s", item_id, result.error)
+        except Exception:
+            logger.exception("issue sync for %s failed", item_id)
 
     @router.get("/search")
     async def search(q: str, session: AsyncSession = Depends(get_session)) -> list:
@@ -453,6 +493,120 @@ def create_comics_router(
         _apply_series(item, detail, issues)
         await session.commit()
         await session.refresh(item)
+        await _sync_quietly(item)
         return _state(item)
+
+    @router.get("/issues/search")
+    async def search_issues(q: str) -> list[dict]:
+        """Comic Vine issues, for choosing what an edition collects."""
+        query = q.strip()
+        if not query:
+            raise HTTPException(status_code=422, detail="Type an issue to find")
+        try:
+            hits = await source().search_issues(query)
+        except SourceError as error:
+            raise _http_error_for(error) from error
+        return [asdict(hit) for hit in hits]
+
+    @router.post("/issues/sync")
+    async def sync_issues(
+        budget: int = Query(120, ge=1, le=190),
+        _lock=Depends(exclusive),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Pages every issue of each public linked series into comic_issues,
+        stalest first, within `budget` Comic Vine requests.
+
+        One series' failure is reported and the run goes on; a rate limit
+        stops it (every later request would meet the same wall). Each page
+        commits on its own and no lock is held across a request.
+        """
+        adapter = source()
+        rows = (
+            await session.execute(
+                select(Item.id)
+                .where(
+                    Item.type == ItemType.COMIC,
+                    Item.is_public.is_(True),
+                    Item.external_source == SOURCE,
+                    Item.external_id.is_not(None),
+                )
+                .order_by(Item.issues_synced_on.asc().nulls_first(), Item.id)
+            )
+        ).all()
+        today = _today()
+        remaining = budget
+        series: list[dict] = []
+        for (row_id,) in rows:
+            if remaining <= 0:
+                break
+            # A fresh row each time: an earlier series' rollback expires
+            # every object the session holds.
+            item = await session.get(Item, row_id)
+            if item is None:
+                continue
+            item_id = str(row_id)
+            result = await sync_series(session, adapter, item, remaining, today)
+            remaining -= result.requests
+            entry = {
+                "id": item_id,
+                "requests": result.requests,
+                "written": result.written,
+                "complete": result.complete,
+            }
+            if result.error:
+                entry["error"] = result.error
+            series.append(entry)
+            if result.rate_limited:
+                break
+        return {
+            "ok": not any("error" in s for s in series),
+            "series": series,
+            "requests": budget - remaining,
+        }
+
+    @router.put("/{item_id}/editions/{slug}/link")
+    async def link_edition(
+        item_id: uuid.UUID,
+        slug: str,
+        body: LinkIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Links a collected edition to a Comic Vine issue (or unlinks it)."""
+
+        def locate(item: Item) -> tuple[list[dict], dict]:
+            editions = [dict(e) for e in item.editions or []]
+            slugs = edition_slugs(editions)
+            if slug not in slugs:
+                raise HTTPException(status_code=404, detail="No such edition")
+            edition = editions[slugs.index(slug)]
+            for key in LINK_KEYS:
+                edition.pop(key, None)
+            return editions, edition
+
+        item = await _comic(session, item_id)
+        editions, edition = locate(item)
+        if body.cv_id is not None:
+            await session.rollback()  # no row lock across the request
+            try:
+                issue = await source().fetch_issue(body.cv_id)
+            except SourceError as error:
+                raise _http_error_for(error) from error
+            if issue is None:
+                raise HTTPException(
+                    status_code=422, detail="Comic Vine has no such issue"
+                )
+            item = await _comic(session, item_id)
+            editions, edition = locate(item)  # it may have changed meanwhile
+            edition.update(
+                cv_id=issue.cv_id,
+                cover_url=issue.cover_url,
+                large_url=issue.large_url,
+                description=list(issue.description),
+            )
+        item.editions = editions
+        await session.commit()
+        await session.refresh(item)
+        return {"item_id": str(item.id), "editions": item.editions}
 
     return router

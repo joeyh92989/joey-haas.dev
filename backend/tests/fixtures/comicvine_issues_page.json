@@ -1,0 +1,405 @@
+{
+  "issues": {
+    "error": "OK",
+    "limit": 100,
+    "number_of_page_results": 72,
+    "number_of_total_results": 72,
+    "offset": 0,
+    "results": [
+      {
+        "cover_date": "2012-03-01",
+        "description": "<p><i>Y: THE LAST MAN writer BRIAN K. VAUGHAN returns to comics with red-hot artist FIONA STAPLES for an all-new ONGOING SERIES! Star Wars-style action collides with Game of Thrones-esque drama in this original sci-fi/fantasy epic for mature readers, as new parents Marko and Alana risk everything to raise their child amidst a never-ending galactic war. The adventure begins in a spectacular DOUBLE-SIZED FIRST ISSUE, with forty-four pages of story with no ads for the regular price of just $2.99!</i></p><h4>List of covers and their creators:</h4><table data-max-width=\"true\"><thead><tr><th scope=\"col\">Cover</th><th scope=\"col\">Name</th><th scope=\"col\">Creators</th><th scope=\"col\">Sidebar Location</th></tr></thead><tbody><tr><td>Reg</td><td>Regular Cover</td><td>Fiona Staples</td><td>1</td></tr><tr><td>Var</td><td>C2E2 Diamond Retailer Summit 2012 Exclusive Variant (Limited to 500 copies)</td><td>Fiona Staples</td><td>6</td></tr><tr><td><p>2nd Print</p></td><td>Second Printing Cover</td><td>Fiona Staples</td><td>8</td></tr><tr><td>3rd Print</td><td>Third Printing Cover</td><td>Fiona Staples</td><td>7</td></tr><tr><td>4th Print</td><td>Fourth Printing Cover</td><td>Fiona Staples</td><td>5</td></tr><tr><td><p>5th Print</p></td><td>Fifth Printing Cover</td><td>Fiona Staples</td><td>4</td></tr><tr><td>RE</td><td>Nerd Store Exclusive Turkish Edition</td><td>Fiona Staples</td><td>2</td></tr><tr><td>RE</td><td>Nerd Store Exclusive Turkish Variant Edition</td><td>Fiona Staples</td><td>3</td></tr></tbody></table>",
+        "id": 321297,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/10/108980/2260155-saga__1__2012_.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/10/108980/2260155-saga__1__2012_.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/10/108980/2260155-saga__1__2012_.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/10/108980/2260155-saga__1__2012_.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/10/108980/2260155-saga__1__2012_.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/10/108980/2260155-saga__1__2012_.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/10/108980/2260155-saga__1__2012_.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/10/108980/2260155-saga__1__2012_.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/10/108980/2260155-saga__1__2012_.jpg"
+        },
+        "issue_number": "1",
+        "name": "Chapter One",
+        "store_date": "2012-03-14",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2012-04-01",
+        "description": "<p><i>The ongoing epic continues! After deserting their galactic armies, former soldiers Marko and Alana must now protect their newborn girl from the lethal killers dispatched to destroy their family.</i></p>",
+        "id": 329242,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3501433-02.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3501433-02.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3501433-02.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3501433-02.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3501433-02.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3501433-02.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3501433-02.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3501433-02.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3501433-02.jpg"
+        },
+        "issue_number": "2",
+        "name": "Chapter Two",
+        "store_date": "2012-04-11",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2012-05-01",
+        "description": "<p><i>BKV's and FIONA STAPLES' controversial epic continues! Stranded on a mystical alien world, new parents Marko and Alana encounter their greatest fear.</i></p>",
+        "id": 335911,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3501434-03.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3501434-03.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3501434-03.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3501434-03.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3501434-03.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3501434-03.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3501434-03.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3501434-03.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3501434-03.jpg"
+        },
+        "issue_number": "3",
+        "name": "Chapter Three",
+        "store_date": "2012-05-16",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2012-06-01",
+        "description": "<p><i>Welcome to SEXTILLION, a distant planet where even your darkest fantasies become reality. See why everyone's talking about this hit new ongoing adventure from BRIAN K. VAUGHAN and FIONA STAPLES!</i></p>",
+        "id": 341531,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3501435-04.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3501435-04.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3501435-04.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3501435-04.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3501435-04.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3501435-04.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3501435-04.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3501435-04.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3501435-04.jpg"
+        },
+        "issue_number": "4",
+        "name": "Chapter Four",
+        "store_date": "2012-06-20",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2012-07-01",
+        "description": "<p><i>The smash hit ongoing series from Brian K. Vaughan and Fiona Staples continues, as Prince Robot IV's hunt for Hazel and her parents takes a deadly turn.</i></p>",
+        "id": 346353,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3501436-05.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3501436-05.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3501436-05.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3501436-05.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3501436-05.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3501436-05.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3501436-05.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3501436-05.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3501436-05.jpg"
+        },
+        "issue_number": "5",
+        "name": "Chapter Five",
+        "store_date": "2012-07-18",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2012-08-01",
+        "description": "<p><i>The epic hit series continues, as Alana and her baby finally reach the legendary Rocketship Forest, where everything changes forever.</i></p>",
+        "id": 350913,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3501437-06.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3501437-06.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3501437-06.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3501437-06.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3501437-06.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3501437-06.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3501437-06.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3501437-06.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3501437-06.jpg"
+        },
+        "issue_number": "6",
+        "name": "Chapter Six",
+        "store_date": "2012-08-15",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2012-11-01",
+        "description": "<p><i>Brian K. Vaughan and Fiona Staples' smash-hit ongoing series returns! An all-new adventure begins, as new parents Marko and Alana make an unexpected discovery in the vast emptiness of outer space.</i></p><h4>List of covers and their creators:</h4><table data-max-width=\"true\"><thead><tr><th scope=\"col\">Cover</th><th scope=\"col\">Name</th><th scope=\"col\">Creators</th><th scope=\"col\">Sidebar Location</th></tr></thead><tbody><tr><td>Reg</td><td>Regular Cover</td><td>Fiona Staples</td><td>1</td></tr><tr><td>Var</td><td>Ghost Variant</td><td>Paul Pope &amp; Fiona Staples</td><td>3</td></tr><tr><td>2nd Print</td><td>Second Printing Cover</td><td>Fiona Staples</td><td>2</td></tr></tbody></table>",
+        "id": 367683,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3501438-07.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3501438-07.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3501438-07.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3501438-07.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3501438-07.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3501438-07.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3501438-07.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3501438-07.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3501438-07.jpg"
+        },
+        "issue_number": "7",
+        "name": "Chapter Seven",
+        "store_date": "2012-11-14",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2012-12-01",
+        "description": "<p><i>Former soldier and new mom Alana has already survived lethal assassins, rampaging armies and alien monstrosities, but now she faces her greatest challenge yet: the in-laws.</i></p>",
+        "id": 373265,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3501439-08.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3501439-08.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3501439-08.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3501439-08.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3501439-08.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3501439-08.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3501439-08.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3501439-08.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3501439-08.jpg"
+        },
+        "issue_number": "8",
+        "name": "Chapter Eight",
+        "store_date": "2012-12-19",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2012-12-31",
+        "description": "<p><i>The Will finally has a good day.</i></p><p><i></i>Written by <a href=\"//www.comicvine.com/brian-k-vaughan/4040-40448/\" data-ref-id=\"4040-40448\">Brian K. Vaughan</a> with art by <a href=\"/fiona-staples/4040-52884/\" data-ref-id=\"4040-52884\">Fiona Staples</a>, The Will demonstrates why he is the deadliest Freelancer money can buy and makes a new friend, is reunited with an old one, and gets a lead on <a href=\"/alana/4005-83012/\" data-ref-id=\"4005-83012\">Alana</a> and <a href=\"/marko/4005-83011/\" data-ref-id=\"4005-83011\">Marko</a>'s whereabouts.</p><p>The story is reprinted in <em>Saga, Volume Two</em>.</p>",
+        "id": 380323,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3501440-09.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3501440-09.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3501440-09.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3501440-09.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3501440-09.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3501440-09.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3501440-09.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3501440-09.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3501440-09.jpg"
+        },
+        "issue_number": "9",
+        "name": "Chapter Nine",
+        "store_date": "2013-01-16",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2013-02-01",
+        "description": "<p><i>Marko and Alana's long-lost babysitter Izabel finally returns to the fold, but at what cost?</i></p>",
+        "id": 387225,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3504248-10.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3504248-10.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3504248-10.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3504248-10.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3504248-10.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3504248-10.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3504248-10.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3504248-10.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3504248-10.jpg"
+        },
+        "issue_number": "10",
+        "name": "Chapter Ten",
+        "store_date": "2013-02-20",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2013-03-31",
+        "description": "<p><i>It's an intergalactic family reunion, as Hazel's parents and grandparents join forces to escape a dying world.</i></p>",
+        "id": 394820,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3504249-11.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3504249-11.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3504249-11.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3504249-11.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3504249-11.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3504249-11.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3504249-11.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3504249-11.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3504249-11.jpg"
+        },
+        "issue_number": "11",
+        "name": "Chapter Eleven",
+        "store_date": "2013-03-20",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2013-04-30",
+        "description": "<p><em>Prince Robot IV makes his move.</em></p>",
+        "id": 396392,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/66303/2970537-prv16005_cov.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/66303/2970537-prv16005_cov.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/66303/2970537-prv16005_cov.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/66303/2970537-prv16005_cov.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/66303/2970537-prv16005_cov.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/66303/2970537-prv16005_cov.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/66303/2970537-prv16005_cov.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/66303/2970537-prv16005_cov.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/66303/2970537-prv16005_cov.jpg"
+        },
+        "issue_number": "12",
+        "name": "Chapter Twelve",
+        "store_date": "2013-04-10",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2013-08-31",
+        "description": "<p><em>THE SMASH-HIT, CRITICALLY ACCLAIMED SERIES RETURNS! Now that you've read the first two bestselling collections of SAGA, you're all caught up and ready to jump on the ongoing train with Chapter Thirteen, beginning an all-new monthly sci-fi/fantasy adventure, as Hazel and her parents head to the planet Quietus in search of cult romance novelist D. Oswald Heist.</em></p>",
+        "id": 421660,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3341096-13.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3341096-13.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3341096-13.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3341096-13.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3341096-13.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3341096-13.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3341096-13.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3341096-13.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3341096-13.jpg"
+        },
+        "issue_number": "13",
+        "name": "Chapter Thirteen",
+        "store_date": "2013-08-14",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2013-09-30",
+        "description": "<p><em>Gwendolyn and Slave Girl think about the future.</em></p>",
+        "id": 426820,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/3341097-14.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/3341097-14.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/3341097-14.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/3341097-14.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/3341097-14.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/3341097-14.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/3341097-14.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/3341097-14.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/3341097-14.jpg"
+        },
+        "issue_number": "14",
+        "name": "Chapter Fourteen",
+        "store_date": "2013-09-25",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      },
+      {
+        "cover_date": "2013-10-31",
+        "description": "<p><em>Everything starts coming together.</em></p>",
+        "id": 431409,
+        "image": {
+          "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/6/67663/4404500-15.jpg",
+          "image_tags": "All Images",
+          "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/4404500-15.jpg",
+          "original_url": "https://comicvine.gamespot.com/a/uploads/original/6/67663/4404500-15.jpg",
+          "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/6/67663/4404500-15.jpg",
+          "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/6/67663/4404500-15.jpg",
+          "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/6/67663/4404500-15.jpg",
+          "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/6/67663/4404500-15.jpg",
+          "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/6/67663/4404500-15.jpg",
+          "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/6/67663/4404500-15.jpg"
+        },
+        "issue_number": "15",
+        "name": "Chapter Fifteen",
+        "store_date": "2013-10-30",
+        "volume": {
+          "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-46568/",
+          "id": 46568,
+          "name": "Saga",
+          "site_detail_url": "https://comicvine.gamespot.com/saga/4050-46568/"
+        }
+      }
+    ],
+    "status_code": 1,
+    "version": "1.0"
+  },
+  "recorded_on": "2026-11-11",
+  "volume_id": 46568
+}

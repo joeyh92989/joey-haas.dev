@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { itemPath, monthPath, yearPath } from './spinePaths.js'
+import {
+  editionPath,
+  issuePath,
+  itemPath,
+  monthPath,
+  yearPath,
+} from './spinePaths.js'
 
 describe('spine paths', () => {
   it('ends every page path with a slash', () => {
@@ -10,5 +16,10 @@ describe('spine paths', () => {
 
   it('encodes the item id', () => {
     expect(itemPath('a/b')).toBe('/shelf/a%2Fb/')
+  })
+
+  it('builds issue and edition paths', () => {
+    expect(issuePath(5, 58)).toBe('/shelf/5/58/')
+    expect(editionPath(5, 'ed-1-6')).toBe('/shelf/5/ed-1-6/')
   })
 })

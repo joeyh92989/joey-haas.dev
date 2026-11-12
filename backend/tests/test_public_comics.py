@@ -19,6 +19,20 @@ from public_comics import (
     PublicComicRow,
     PublicComicStats,
 )
+from public_issues import (
+    PublicComicIndex,
+    PublicComicIndexEdition,
+    PublicComicIndexIssue,
+    PublicEditionLink,
+    PublicEditionNext,
+    PublicEditionPage,
+    PublicIssueEdition,
+    PublicIssuePage,
+    PublicNeighbour,
+    PublicWall,
+    PublicWallEdition,
+    PublicWallIssue,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -174,6 +188,47 @@ async def test_the_comic_models_publish_exactly_these_fields():
     assert set(PublicComicStats.model_fields) == STATS_FIELDS
     assert set(PublicComicIssue.model_fields) == ISSUE_FIELDS
     assert set(PublicComicDetail.model_fields) == DETAIL_FIELDS
+
+
+async def test_the_issue_page_models_publish_exactly_these_fields():
+    """The issue and edition pages: no skip, price, store link or private id.
+    COMIC_FORBIDDEN holds for every field name, nested models included."""
+    assert set(PublicWall.model_fields) == {
+        "series_title", "publisher", "issues", "editions",
+    }  # fmt: skip
+    assert set(PublicWallIssue.model_fields) == {
+        "number", "name", "store_date", "cover_url",
+    }  # fmt: skip
+    assert set(PublicWallEdition.model_fields) == {
+        "slug", "kind", "label", "from_issue", "to_issue", "cover_url",
+    }  # fmt: skip
+    assert set(PublicNeighbour.model_fields) == {"number", "cover_url", "state"}
+    assert set(PublicIssueEdition.model_fields) == {"slug", "label", "kind"}
+    assert set(PublicIssuePage.model_fields) == {
+        "series_id", "series_title", "publisher", "number", "name",
+        "store_date", "cover_date", "cover_url", "large_url", "description",
+        "state", "held_as", "edition", "released", "ongoing", "neighbours",
+        "source_url",
+    }  # fmt: skip
+    assert set(PublicEditionLink.model_fields) == {"slug", "label"}
+    assert set(PublicEditionNext.model_fields) == {"slug", "label", "number"}
+    assert set(PublicEditionPage.model_fields) == {
+        "series_id", "series_title", "publisher", "slug", "kind", "label",
+        "from_issue", "to_issue", "cover_url", "large_url", "description",
+        "state", "read", "read_to", "inside", "prev", "next", "source_url",
+    }  # fmt: skip
+    assert set(PublicComicIndex.model_fields) == {
+        "item_id", "series_title", "issues", "editions",
+    }  # fmt: skip
+    assert set(PublicComicIndexIssue.model_fields) == {"number", "name", "cover_url"}
+    assert set(PublicComicIndexEdition.model_fields) == {"slug", "label", "cover_url"}
+    for model in (
+        PublicComicIndex, PublicComicIndexIssue, PublicComicIndexEdition,
+        PublicWall, PublicWallIssue, PublicWallEdition, PublicNeighbour,
+        PublicIssueEdition, PublicIssuePage, PublicEditionLink,
+        PublicEditionNext, PublicEditionPage,
+    ):  # fmt: skip
+        assert COMIC_FORBIDDEN.isdisjoint(set(model.model_fields)), model
 
 
 async def test_the_hero_numbers_and_cards_agree_with_the_rows(sessionmaker_for_test):
