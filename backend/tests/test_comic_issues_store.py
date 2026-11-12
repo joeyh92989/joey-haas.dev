@@ -50,6 +50,39 @@ async def test_upsert_inserts_then_updates(sessionmaker_for_test):
 
 
 @pytest.mark.asyncio
+async def test_upsert_duplicate_number_keeps_lowest_cv_id_in_batch(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        item_id = await _series(session)
+        await upsert_issues(
+            session, item_id, [_issue(11, 2, "second"), _issue(10, 2, "first")], TODAY
+        )
+        await session.commit()
+        assert [r.name for r in await load_issues(session, item_id)] == ["first"]
+
+
+@pytest.mark.asyncio
+async def test_a_later_page_does_not_overwrite_a_lower_cv_id(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        item_id = await _series(session)
+        await upsert_issues(session, item_id, [_issue(10, 2, "low")], TODAY)
+        await upsert_issues(session, item_id, [_issue(11, 2, "high")], TODAY)
+        await session.commit()
+        assert [(r.cv_id, r.name) for r in await load_issues(session, item_id)] == [
+            (10, "low")
+        ]
+        # A lower id arriving later takes the number over; the same id refreshes.
+        await upsert_issues(session, item_id, [_issue(9, 2, "lower")], TODAY)
+        await upsert_issues(session, item_id, [_issue(9, 2, "lower again")], TODAY)
+        await session.commit()
+        session.expire_all()
+        assert [(r.cv_id, r.name) for r in await load_issues(session, item_id)] == [
+            (9, "lower again")
+        ]
+
+
+@pytest.mark.asyncio
 async def test_upsert_duplicate_number_keeps_first(sessionmaker_for_test):
     async with sessionmaker_for_test() as session:
         item_id = await _series(session)

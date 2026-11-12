@@ -40,13 +40,18 @@ async def upsert_issues(
     """Insert or update a series' issues on (item_id, number).
 
     Returns the number of rows written. Issues without a number are skipped
-    (the table cannot hold them), and when two issues share a number the first
-    in the list wins: one INSERT ... ON CONFLICT cannot touch a row twice.
-    The caller commits.
+    (the table cannot hold them), and when two issues share a number the lowest
+    Comic Vine id wins, within the batch (one INSERT ... ON CONFLICT cannot
+    touch a row twice) and against the stored row (so a later page never
+    overwrites an earlier one; the same id still refreshes). The caller
+    commits.
     """
     first: dict[int, CvIssue] = {}
     for issue in issues:
-        if issue.number is not None and issue.number not in first:
+        if issue.number is None:
+            continue
+        held = first.get(issue.number)
+        if held is None or issue.cv_id < held.cv_id:
             first[issue.number] = issue
     if not first:
         return 0
@@ -69,6 +74,7 @@ async def upsert_issues(
     statement = statement.on_conflict_do_update(
         index_elements=["item_id", "number"],
         set_={column: getattr(statement.excluded, column) for column in _UPDATED},
+        where=ComicIssue.cv_id >= statement.excluded.cv_id,
     )
     await session.execute(statement)
     return len(rows)
