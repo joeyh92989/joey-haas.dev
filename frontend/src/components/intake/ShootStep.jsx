@@ -19,27 +19,28 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /**
  * The sitting's running line: titles so far and what is still to come.
- * Every live entry falls in exactly one part, so the parts add up to the
- * total (removed entries are in neither). Zero parts are dropped.
+ * The title parts partition the total exactly (ignored entries, removed or
+ * unticked, are in neither). Photos not yet read are counted in their own
+ * words after the parts. Zero parts are dropped.
  */
 function runningLine(sitting, budgetSpent, noun) {
-  const { photos } = sitting
-  const entries = live(sitting.entries)
+  const entries = sitting.entries.filter((e) => e.state !== 'ignored')
   const count = (states) =>
     entries.filter((e) => states.includes(e.state)).length
-  const reading = photos.filter((p) => p.state === 'reading').length
-  const queued = photos.filter((p) => p.state === 'uploaded').length
+  const waiting = sitting.photos.filter((p) =>
+    ['uploaded', 'reading'].includes(p.state),
+  ).length
   const parts = [
     [count(WRITTEN_STATES), (n) => `${n} ready`],
     [count(CHECK_STATES), (n) => `${n} to check`],
-    [reading, (n) => `${n} reading`],
+    [count(['reading']), (n) => `${n} reading`],
     [count(['owned']), (n) => `${n} on the shelf`],
     [
-      queued,
+      waiting,
       (n) =>
-        budgetSpent
-          ? `${n} waiting: today’s model budget is used up`
-          : `${n} queued`,
+        `${plural(n, 'photo')} waiting to be read${
+          budgetSpent ? ': today’s model budget is used up' : ''
+        }`,
     ],
   ]
     .filter(([n]) => n > 0)

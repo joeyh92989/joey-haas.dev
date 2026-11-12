@@ -135,7 +135,36 @@ describe('AdminSitting', () => {
     renderSitting()
     expect(
       await screen.findByText(
-        '7 titles so far · 4 ready · 2 to check · 1 reading · 1 on the shelf',
+        '7 titles so far · 4 ready · 2 to check · 1 on the shelf · 1 photo waiting to be read',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps reading entries in the total and counts unread photos apart', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'shoot',
+          photos: [
+            photo('p1', 'read'),
+            photo('p2', 'reading'),
+            photo('p3', 'uploaded'),
+          ],
+          entries: [
+            entry('e2', 'exact', { chosen: candidate(3, 'Saga') }),
+            entry('e5', 'reading', { photo_id: 'p2' }),
+            entry('u1', 'ignored', {
+              chosen: candidate(4, 'East of West'),
+              payload: { unticked: true, was: 'exact' },
+            }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    expect(
+      await screen.findByText(
+        '2 titles so far · 1 ready · 1 reading · 2 photos waiting to be read',
       ),
     ).toBeInTheDocument()
   })
@@ -368,7 +397,7 @@ describe('AdminSitting', () => {
     expect(tiles[2]).toHaveTextContent('waiting for tomorrow’s budget')
     expect(tiles[3]).toHaveTextContent('nothing read')
     expect(document.body).toHaveTextContent(
-      '1 waiting: today’s model budget is used up',
+      '1 photo waiting to be read: today’s model budget is used up',
     )
     expect(document.body).not.toHaveTextContent('did not answer')
   })
