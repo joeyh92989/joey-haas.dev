@@ -4032,6 +4032,7 @@ footer {
   .spine-tabs {
     flex-wrap: nowrap;
     overflow-x: auto;
+    padding-inline-end: 2rem; /* the last tab scrolls clear of the fade */
     scrollbar-width: none;
     -webkit-mask-image: linear-gradient(
       to right,
