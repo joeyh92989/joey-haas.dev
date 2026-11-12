@@ -225,7 +225,9 @@ async def load_summary(
 
 async def public_path_filter(session: AsyncSession) -> Callable[[str], bool]:
     """A keep_path for the public read: an item page is listed only while
-    its item is public, so a private game's page is never named."""
+    its item is public, so a private game's page is never named. A comic's
+    issue and edition pages (/shelf/<id>/<n>, /shelf/<id>/ed-...) follow
+    their series the same way."""
     public = {
         str(item_id)
         for item_id in (
@@ -234,7 +236,9 @@ async def public_path_filter(session: AsyncSession) -> Callable[[str], bool]:
     }
 
     def keep(path: str) -> bool:
-        match = ITEM_PATH.fullmatch(path)
+        # A prefix match: the paths are already allowlisted, and the id is
+        # fixed-width, so the issue and edition forms reach the same check.
+        match = ITEM_PATH.match(path)
         return match is None or match.group(1) in public
 
     return keep

@@ -446,6 +446,33 @@ async def test_site_stats_never_lists_a_private_item_page(sessionmaker_for_test)
     assert f"/shelf/{hidden_id}" in {row["value"] for row in admin["pages"]}
 
 
+async def test_site_stats_never_lists_a_private_series_issue_or_edition(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    today = date(2026, 10, 20)
+    async with factory() as session:
+        shown = Item(type=ItemType.COMIC, title="Shown", status=ItemStatus.BACKLOG)
+        hidden = Item(type=ItemType.COMIC, title="Hidden", status=ItemStatus.BACKLOG)
+        shown.is_public, hidden.is_public = True, False
+        session.add_all([shown, hidden])
+        await session.commit()
+        shown_id, hidden_id = str(shown.id), str(hidden.id)
+    parts = ("1", "12", "ed-1-6", "ed-7-12-2")
+    for series_id in (shown_id, hidden_id):
+        for part in parts:
+            await _view(factory, today, path=f"/shelf/{series_id}/{part}")
+    async with client_for(factory) as client:
+        public = (await client.get("/api/public/site-stats")).json()["thirty"]
+    async with client_for(factory, signed_in=True) as client:
+        admin = (await client.get("/api/analytics?range=30d")).json()
+    listed = {row["value"] for row in public["pages"]}
+    assert listed == {f"/shelf/{shown_id}/{part}" for part in parts}
+    # The views still count; only the private series' paths are withheld.
+    assert public["views"] == 8
+    assert f"/shelf/{hidden_id}/ed-1-6" in {row["value"] for row in admin["pages"]}
+
+
 async def test_the_public_and_admin_reads_never_share_a_cache_entry(
     sessionmaker_for_test,
 ):
