@@ -776,6 +776,24 @@ describe('AdminItem comic fields', () => {
     expect(screen.getByLabelText(/^Skipped/)).toHaveValue('')
   })
 
+  it('leaves out the Comic Vine sentence for an unlinked comic', async () => {
+    stubApi({
+      item: {
+        ...COMIC,
+        external_source: null,
+        external_id: null,
+        issues_owned: '1-2',
+        editions: [],
+        comic_run: { owned: 2, released: 2 },
+      },
+    })
+    renderPage()
+    expect(await screen.findByLabelText('Single issues I own')).toHaveValue(
+      '1-2',
+    )
+    expect(screen.queryByText(/Comic Vine lists/)).not.toBeInTheDocument()
+  })
+
   it('sends only the comic fields that changed', async () => {
     const mock = stubApi({ item: COMIC })
     renderPage()
@@ -1173,5 +1191,55 @@ describe('AdminItem playthroughs', () => {
     expect(
       await screen.findByText('That date is too far from today.'),
     ).toBeInTheDocument()
+  })
+})
+
+describe('AdminItem for a comic in comic words', () => {
+  const COMIC_RUNS = {
+    ...ITEM,
+    type: 'comic',
+    title: 'Saga',
+    status: 'finished',
+    times_completed: 1,
+    playthroughs: [
+      {
+        number: 1,
+        started_on: '2026-03-01',
+        finished_on: '2026-03-20',
+        paused_on: null,
+        outcome: 'finished',
+        journal_days: 0,
+        journal_minutes: 0,
+      },
+    ],
+  }
+
+  it('shows Reads, Reading, Reread and Add a past read', async () => {
+    stubApi({ item: COMIC_RUNS })
+    renderPage()
+
+    expect(
+      await screen.findByRole('heading', { name: 'Reads' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('option', { name: 'Reread, starts read 2' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Paused' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Add a past read' }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Read on')).toBeInTheDocument()
+    expect(screen.queryByText(/Playthrough/)).toBeNull()
+    expect(screen.queryByText(/Playing/)).toBeNull()
+    expect(screen.queryByText('Played on')).toBeNull()
+  })
+
+  it('names the active status Reading in the status control', async () => {
+    stubApi({ item: { ...COMIC_RUNS, status: 'backlog', playthroughs: [] } })
+    renderPage()
+    expect(
+      await screen.findByRole('option', { name: 'Reading' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Playing' })).toBeNull()
   })
 })

@@ -500,7 +500,6 @@ export const spine = {
       /** The Wrap up sheet: outcome first, the extras on the same screen. */
       sheet: {
         title: (title) => `Wrap up ${title}`,
-        playthrough: (number) => `Playthrough ${number}`,
         since: 'since',
         close: 'Close',
         outcomeGroup: 'How did it end',
@@ -527,7 +526,7 @@ export const spine = {
           abandoned: 'Mark abandoned',
         },
         done: (title, status) => `${title} marked ${status}`,
-        ratingFailed: 'The game is marked, but the rating didn’t save.',
+        ratingFailed: 'It’s marked, but the rating didn’t save.',
       },
     },
     badges: { new: 'New', topPick: 'Top pick' },

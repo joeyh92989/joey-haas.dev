@@ -31,8 +31,10 @@ class SourceAdapter(Protocol):
 ```
 
 `SourceResult` is one picker row: `external_id`, `title`, `year`,
-`thumbnail_url`. `SourceDetail` is the full record, mapped onto the columns
-`Item` actually has plus a `source_metadata` snapshot.
+`thumbnail_url`, plus `publisher` and `issue_count` (ComicVine only, else
+`None`) so same-titled series can be told apart. `SourceDetail` is the full
+record, mapped onto the columns `Item` actually has plus a `source_metadata`
+snapshot.
 
 Errors are typed (`sources/base.py`):
 

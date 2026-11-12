@@ -1,9 +1,18 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { entryCover, entryTitle, WRITTEN_STATES } from '../../lib/intake.js'
+import { editionRows, parseEditionRows } from '../../lib/comics.js'
 import { removeEntry } from '../../lib/intakeRemove.js'
 import CoverImage from '../CoverImage.jsx'
+import { EditionRows } from '../ItemForm.jsx'
 import KindFields from './KindFields.jsx'
+
+/** Shelf formats that hold collected editions; singles carry issues only. */
+const COLLECTED = ['trades', 'omnibus']
+
+/** Whether a row shows the editions editor (a comic on a collected format). */
+const showsEditions = (entry) =>
+  entry.kind === 'comic' && COLLECTED.includes(entry.payload?.shelf_format)
 
 const plural = (label, n) => {
   const word = label.toLowerCase()
@@ -21,6 +30,7 @@ function SetForAll({ kind, entries, onApply, busy }) {
       <p className="kicker">{name}</p>
       <div className="intake-setall-fields">
         <KindFields
+          kindKey={kind.key}
           idPrefix={`all-${kind.key}`}
           fields={kind.fields}
           mode="all"
@@ -78,7 +88,18 @@ export default function DetailsStep({
   const [drafts, setDrafts] = useState({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  // Edition rows being typed by entry id, and the shape error each one found.
+  // Each is {rows, base}: `base` is the payload's editions (as JSON) when
+  // the rows were last typed in, so a change from outside is told apart
+  // from this row's own save.
+  const [edits, setEdits] = useState({})
+  const [editionErrors, setEditionErrors] = useState({})
   const saving = useRef(new Set())
+  // The newest payload each entry is known to have, updated before a PATCH
+  // goes out: two saves in a row build on each other, not on the render.
+  const latest = useRef({})
+  const inFlight = useRef({})
+  const editors = useRef({})
 
   const written = sitting.entries.filter((e) =>
     WRITTEN_STATES.includes(e.state),
@@ -90,8 +111,17 @@ export default function DetailsStep({
     }))
     .filter((pass) => pass.entries.length)
 
-  /** PATCHes an entry's payload, tracked so a commit waits for it. */
-  function savePayload(entry, payload) {
+  /** The entry's payload as last saved or sent, never an older render's. */
+  const currentPayload = (entry) => latest.current[entry.id] ?? entry.payload
+
+  /**
+   * PATCHes an entry's payload, tracked so a commit waits for it. `change`
+   * maps the latest known payload to the one to send.
+   */
+  function savePayload(entry, change) {
+    const payload = change(currentPayload(entry) ?? {})
+    latest.current[entry.id] = payload
+    inFlight.current[entry.id] = (inFlight.current[entry.id] ?? 0) + 1
     const request = (async () => {
       const response = await apiFetch(`/api/intake/entries/${entry.id}`, {
         method: 'PATCH',
@@ -99,11 +129,20 @@ export default function DetailsStep({
         body: JSON.stringify({ payload }),
       })
       if (!response.ok) {
+        delete latest.current[entry.id]
         setError(await errorMessage(response, { ownConflicts: true }))
         return
       }
       onEntry(await response.json())
-    })().catch(() => setError('The server did not answer; try again.'))
+    })()
+      .catch(() => {
+        delete latest.current[entry.id]
+        setError('The server did not answer; try again.')
+      })
+      .finally(() => {
+        // Nothing newer is on its way: the entry prop is the truth again.
+        if (!--inFlight.current[entry.id]) delete latest.current[entry.id]
+      })
     saving.current.add(request)
     request.finally(() => saving.current.delete(request))
     return request
@@ -117,7 +156,9 @@ export default function DetailsStep({
     setBusy(true)
     setError(null)
     await Promise.all(
-      entries.map((entry) => savePayload(entry, { ...entry.payload, ...set })),
+      entries.map((entry) =>
+        savePayload(entry, (payload) => ({ ...payload, ...set })),
+      ),
     )
     setBusy(false)
   }
@@ -127,11 +168,58 @@ export default function DetailsStep({
 
   function saveField(entry, key) {
     const value = drafts[entry.id]?.[key]
-    if (value === undefined || value === (entry.payload?.[key] ?? '')) return
-    savePayload(entry, { ...entry.payload, [key]: value })
+    if (value === undefined || value === (currentPayload(entry)?.[key] ?? ''))
+      return
+    savePayload(entry, (payload) => ({ ...payload, [key]: value }))
+  }
+
+  /** The editor's rows: what was typed, unless the payload moved under it. */
+  function editorRows(entry) {
+    const edit = edits[entry.id]
+    const saved = entry.payload?.editions ?? null
+    if (edit && edit.base !== JSON.stringify(saved)) {
+      const { editions } = parseEditionRows(edit.rows)
+      if (JSON.stringify(editions) !== JSON.stringify(saved)) return null
+    }
+    return edit?.rows ?? null
+  }
+
+  /** Reads one row's editor, records its shape error and returns it. */
+  function readEditions(entry) {
+    const rows = editorRows(entry)
+    if (!rows) return { editions: undefined, error: null }
+    const { editions, error: shape } = parseEditionRows(rows)
+    setEditionErrors((old) => ({ ...old, [entry.id]: shape }))
+    return { editions, error: shape }
+  }
+
+  /** Edition rows lose focus: the whole list is read and saved at once. */
+  function saveEditions(entry) {
+    const { editions, error: shape } = readEditions(entry)
+    if (editions === undefined || shape) return
+    const same =
+      JSON.stringify(editions) ===
+      JSON.stringify(currentPayload(entry)?.editions ?? null)
+    if (same) return
+    savePayload(entry, (payload) => {
+      const rest = { ...payload }
+      delete rest.editions
+      return editions ? { ...rest, editions } : rest
+    })
   }
 
   async function add() {
+    // An editor left half filled stops the commit: say where, and go there.
+    let blocked = null
+    for (const entry of written) {
+      if (!showsEditions(entry)) continue
+      const { error: shape } = readEditions(entry)
+      if (shape && !blocked) blocked = entry
+    }
+    if (blocked) {
+      editors.current[blocked.id]?.querySelector('input')?.focus()
+      return
+    }
     // A field still saving from its blur goes in before the commit reads it.
     await Promise.all([...saving.current])
     await onCommit()
@@ -164,8 +252,12 @@ export default function DetailsStep({
               const perItem = new Set(
                 kind.fields.filter((f) => f.per_item).map((f) => f.key),
               )
+              const collected = showsEditions(entry)
               const loose = Object.entries(refused)
-                .filter(([key]) => !perItem.has(key))
+                .filter(
+                  ([key]) =>
+                    !perItem.has(key) && !(collected && key === 'editions'),
+                )
                 .map(([, message]) => message)
               return (
                 <li key={entry.id}>
@@ -181,6 +273,7 @@ export default function DetailsStep({
                       ))}
                     </div>
                     <KindFields
+                      kindKey={kind.key}
                       idPrefix={`row-${entry.id}`}
                       fields={kind.fields}
                       mode="item"
@@ -194,6 +287,45 @@ export default function DetailsStep({
                       }
                       onBlur={(key) => saveField(entry, key)}
                     />
+                    {collected && (
+                      <div
+                        className="intake-editions"
+                        ref={(node) => {
+                          if (node) editors.current[entry.id] = node
+                          else delete editors.current[entry.id]
+                        }}
+                        onBlur={(event) => {
+                          if (
+                            !event.currentTarget.contains(event.relatedTarget)
+                          )
+                            saveEditions(entry)
+                        }}
+                      >
+                        <EditionRows
+                          idPrefix={`row-${entry.id}`}
+                          rows={
+                            editorRows(entry) ??
+                            editionRows(entry.payload?.editions)
+                          }
+                          onChange={(rows) =>
+                            setEdits((old) => ({
+                              ...old,
+                              [entry.id]: {
+                                rows,
+                                base: JSON.stringify(
+                                  entry.payload?.editions ?? null,
+                                ),
+                              },
+                            }))
+                          }
+                          error={
+                            editorRows(entry)
+                              ? editionErrors[entry.id]
+                              : refused.editions
+                          }
+                        />
+                      </div>
+                    )}
                     <button
                       type="button"
                       className="btn sm ghost"

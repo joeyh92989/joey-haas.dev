@@ -87,6 +87,31 @@ describe('SeriesList', () => {
     expect(screen.getByText('Want')).toBeInTheDocument()
   })
 
+  it('gives same-titled series distinct link names, and a unique one just its title', () => {
+    const creep = (id, year, publisher) => ({
+      ...SAGA,
+      item_id: id,
+      title: 'Creepshow',
+      year,
+      publisher,
+    })
+    renderList([
+      creep('c1', 2022, 'Image'),
+      creep('c2', 2023, 'Image'),
+      creep('c3', 2024, null),
+      creep('c4', 2025, 'Skybound'),
+      SAGA,
+    ])
+    const names = screen.getAllByRole('link').map((a) => a.textContent)
+    expect(names).toEqual([
+      'Creepshow (2022, Image)',
+      'Creepshow (2023, Image)',
+      'Creepshow (2024)',
+      'Creepshow (2025, Skybound)',
+      SAGA.title,
+    ])
+  })
+
   it('has no axe violations', async () => {
     const { container } = renderList([SAGA, WANT])
     expect(await axeViolations(container)).toEqual([])

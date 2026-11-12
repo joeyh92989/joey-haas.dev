@@ -3,7 +3,7 @@ import { spine } from '../content/spine.js'
 import { editionSlugs } from '../lib/coverWall.js'
 import { EMPTY_EDITION, SHELF_FORMATS } from '../lib/comics.js'
 import EditionLinkPicker from './EditionLinkPicker.jsx'
-import { STATUS_LABEL, STATUS_ORDER } from '../lib/shelf.js'
+import { STATUS_ORDER, statusLabel } from '../lib/shelf.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const OWNED_FORMATS = [
@@ -76,9 +76,16 @@ function FieldError({ id, message }) {
 /**
  * Collected editions as rows: kind, label, the first and last issue it
  * collects, and Remove; Add appends a blank row. The API is the one
- * validator; a blank row is dropped on save.
+ * validator; a blank row is dropped on save. `idPrefix` keeps the ids unique
+ * when several editors share a page (the sitting's Details rows).
  */
-function EditionRows({ rows, onChange, error, links = null }) {
+export function EditionRows({
+  rows,
+  onChange,
+  error,
+  links = null,
+  idPrefix = 'comic',
+}) {
   const addRef = useRef(null)
   const update = (index, field) => (event) =>
     onChange(
@@ -100,10 +107,10 @@ function EditionRows({ rows, onChange, error, links = null }) {
   return (
     <fieldset
       className="comic-editions"
-      aria-describedby={error ? 'comic-editions-error' : undefined}
+      aria-describedby={error ? `${idPrefix}-editions-error` : undefined}
     >
       <legend>Collected editions</legend>
-      <datalist id="comic-edition-kinds">
+      <datalist id={`${idPrefix}-edition-kinds`}>
         {EDITION_KINDS.map((kind) => (
           <option key={kind} value={kind} />
         ))}
@@ -116,7 +123,7 @@ function EditionRows({ rows, onChange, error, links = null }) {
             <div className="comic-edition-row">
               <input
                 aria-label={`Kind, ${name}`}
-                list="comic-edition-kinds"
+                list={`${idPrefix}-edition-kinds`}
                 placeholder="Trade"
                 value={row.kind}
                 onChange={update(index, 'kind')}
@@ -179,7 +186,7 @@ function EditionRows({ rows, onChange, error, links = null }) {
       >
         Add an edition
       </button>
-      <FieldError id="comic-editions-error" message={error} />
+      <FieldError id={`${idPrefix}-editions-error`} message={error} />
     </fieldset>
   )
 }
@@ -383,7 +390,7 @@ export default function ItemForm({
       <select aria-label="Status" value={value.status} onChange={set('status')}>
         {STATUS_ORDER.map((status) => (
           <option key={status} value={status}>
-            {STATUS_LABEL[status]}
+            {statusLabel(status, value.type)}
           </option>
         ))}
       </select>

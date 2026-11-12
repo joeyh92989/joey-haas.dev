@@ -347,3 +347,21 @@ describe('WrapUpSheet', () => {
     expect(apiFetch).not.toHaveBeenCalled()
   })
 })
+
+describe('WrapUpSheet for a comic', () => {
+  it('numbers the read, with no play words', async () => {
+    mockApi({
+      'GET /api/items/h2': { ok: true, body: DETAIL },
+    })
+    renderSheet({
+      subject: {
+        item: { ...ITEM, title: 'Saga', type: 'comic' },
+        preselect: 'finished',
+      },
+    })
+    await screen.findByText(/Read 2/)
+    const dialog = document.querySelector('dialog')
+    expect(dialog.textContent).toContain('Read 2 · since Oct 24, 2026')
+    expect(dialog.textContent).not.toMatch(/play/i)
+  })
+})

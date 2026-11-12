@@ -12,6 +12,15 @@ import {
   sourceWords,
 } from './intake.js'
 
+describe('optionLabel for a status', () => {
+  it('reads Reading for a comic sitting and Playing otherwise', () => {
+    expect(optionLabel('status', 'active', 'comic')).toBe('Reading')
+    expect(optionLabel('status', 'active', 'game')).toBe('Playing')
+    expect(optionLabel('status', 'active')).toBe('Playing')
+    expect(optionLabel('status', 'paused', 'comic')).toBe('Paused')
+  })
+})
+
 describe('optionLabel', () => {
   it("uses the site's own names where it has them", () => {
     expect(optionLabel('platform_id', '508')).toBe('Nintendo Switch 2')

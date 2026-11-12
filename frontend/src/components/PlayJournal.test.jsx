@@ -79,3 +79,11 @@ describe('PlayJournal', () => {
     ).toBeInTheDocument()
   })
 })
+
+describe('PlayJournal for a comic', () => {
+  it('labels the date Read on', async () => {
+    render(<PlayJournal itemId="i1" type="comic" />)
+    expect(await screen.findByLabelText('Read on')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Played on')).toBeNull()
+  })
+})

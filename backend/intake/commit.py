@@ -16,10 +16,14 @@ An entry's state decides what happens to it:
 
 A comic is one row per series, so its entries (written or owned) are never
 dropped as repeats: their issues are joined into one new row, or added to
-the series already on the shelf by Got it's rule (`issues_added`; a series
-gaining nothing is `already_owned`). Each series already on the shelf is
-also reported on its own (`series_grew`): the issues it gained, the ones it
-held already, and its run before and after, for Done's "Series that grew".
+the series already on the shelf by Got it's rule (`issues_added`). The
+issues a series gains are the typed ones its editions did not hold before
+this commit, so they are written loose as typed, in a sitting and in the
+add bar alike. A series gaining neither issues nor an edition is
+`already_owned`; one gaining only an edition is grown. Each series already
+on the shelf is also reported on its own (`series_grew`): the issues it
+gained, the ones it held already, the editions it gained, and its run before
+and after, for Done's "Series that grew".
 
 A photo not yet read (uploaded, reading or failed) is kept too, and counted
 as `photos_waiting`: committing mid-read never loses a photo. The sitting
@@ -49,6 +53,7 @@ from comics import (
     parse_ranges,
     row_run,
     union,
+    validate_editions,
 )
 from comics_routes import got_issues
 from formats import CopyFieldError
@@ -143,6 +148,7 @@ class SeriesGrew:
     before: dict[str, Any]
     added: list[int]
     already: list[int]
+    editions_added: list[dict] = field(default_factory=list)
     after_owned_text: str = ""
 
     @classmethod
@@ -173,6 +179,7 @@ class SeriesGrew:
             "ongoing": self.before["ongoing"],
             "added": self.added,
             "already": self.already,
+            "editions_added": self.editions_added,
             "after_owned_text": self.after_owned_text,
         }
 
@@ -217,6 +224,12 @@ def shelf_row(kind: Kind, entry: IntakeEntry) -> dict[str, Any]:
         row["year"] = payload["detected_year"]
     row.setdefault("status", ItemStatus.BACKLOG.value)
     row["is_public"] = False
+    if kind.source is ItemType.COMIC and row.get("shelf_format") not in {
+        collected.value for collected in _COLLECTED
+    }:
+        # Editions are only for collected formats: a row switched back to
+        # singles keeps none, and is not refused for ones it no longer shows.
+        row.pop("editions", None)
     return row
 
 
@@ -284,12 +297,51 @@ def _is_comic(kind: Kind | None) -> bool:
 class _Series:
     """One comic series in a sitting: the first written entry's row (None
     when every entry was marked owned), every entry's issue ranges, and the
-    shelf format Details set (the first entry that has one)."""
+    shelf format and collected editions Details set (the first entry that has
+    each)."""
 
     row: ItemIn | None = None
     entry: IntakeEntry | None = None
     issues: list[str | None] = field(default_factory=list)
     shelf_format: ComicShelfFormat | None = None
+    # (entry, editions) of each entry that carries some, in commit order.
+    editions: list[tuple[IntakeEntry, list[dict]]] = field(default_factory=list)
+
+
+_COLLECTED = (ComicShelfFormat.TRADES, ComicShelfFormat.OMNIBUS)
+
+
+def _entry_editions(made: ItemIn) -> list[dict]:
+    """The editions an entry's row brings: only a trades or omnibus row, so a
+    row switched back to singles writes none left over."""
+    return list(made.editions or []) if made.shelf_format in _COLLECTED else []
+
+
+def _editions_gained(held: list[dict] | None, merged: list[dict] | None) -> list[dict]:
+    """The editions `merged` has that `held` lacks (by kind, label and range)."""
+    keys = ("kind", "label", "from", "to")
+    had = {tuple(edition.get(key) for key in keys) for edition in held or []}
+    return [
+        edition
+        for edition in merged or []
+        if tuple(edition.get(key) for key in keys) not in had
+    ]
+
+
+def _merged_editions(held: list[dict] | None, added: list[dict]) -> list[dict] | None:
+    """`held` plus the `added` ones it lacks (an identical kind, label and
+    range is not added twice), canonical. Raises RangeError."""
+
+    def core(edition: dict) -> tuple:
+        return tuple(edition.get(key) for key in ("kind", "label", "from", "to"))
+
+    merged = list(held or [])
+    seen = {core(edition) for edition in merged}
+    for edition in added:
+        if core(edition) not in seen:
+            seen.add(core(edition))
+            merged.append(edition)
+    return validate_editions(merged, held) or None
 
 
 async def _series_on_shelf(
@@ -420,17 +472,29 @@ async def commit_one(
             issues = expand(parse_ranges(made.issues_owned))
             gained = issues - owned_set(on_shelf.issues_owned, on_shelf.editions)
             grew = SeriesGrew.before_write(on_shelf, issues)
+            added = _entry_editions(made)
+            merged = on_shelf.editions
+            if added:
+                try:
+                    merged = _merged_editions(on_shelf.editions, added)
+                except RangeError as error:
+                    outcome.refused.append(Refusal(entry.id, "editions", str(error)))
+                    return outcome
+            grew.editions_added = _editions_gained(on_shelf.editions, merged)
+            on_shelf.editions = merged
             if made.shelf_format is not None:
                 on_shelf.shelf_format = made.shelf_format
             if gained:
                 outcome.issues_added = await got_issues(
                     session, on_shelf, gained, today
                 )
-            else:
+            elif not grew.editions_added:
                 outcome.already_owned = 1
             grew.after_write()
             outcome.series_grew.append(grew)
             return outcome
+    if made.editions and not _entry_editions(made):
+        made = made.model_copy(update={"editions": None})
     try:
         result = await commit_items(session, [made], today=today)
     except RowRefused as refused:
@@ -542,6 +606,8 @@ async def commit_sitting(
             found.issues.append(made.issues_owned)
             if found.shelf_format is None and not owned_comic:
                 found.shelf_format = made.shelf_format
+            if not owned_comic and (added := _entry_editions(made)):
+                found.editions.append((entry, added))
             if found.row is None and not owned_comic:
                 found.row, found.entry = made, entry
             continue
@@ -558,18 +624,43 @@ async def commit_sitting(
         return outcome
 
     on_shelf = await _series_on_shelf(session, series)
-    gains: list[tuple[Item, set[int]]] = []
+    # Settle every series' editions first: a refusal anywhere leaves every
+    # item untouched, whether or not the caller rolls back.
+    plans: list[tuple[_Series, Item | None, set[int], list[dict] | None]] = []
     for key, found in series.items():
-        issues = expand(parse_ranges(union(*found.issues)))
         item = on_shelf.get(key)
+        merged = item.editions if item is not None else None
+        if found.editions:
+            try:
+                merged = _merged_editions(
+                    merged, [e for _, eds in found.editions for e in eds]
+                )
+            except RangeError as error:
+                outcome.refused.append(
+                    Refusal(found.editions[0][0].id, "editions", str(error))
+                )
+                continue
+        issues = expand(parse_ranges(union(*found.issues)))
+        plans.append((found, item, issues, merged))
+    if outcome.refused:
+        return outcome
+
+    gains: list[tuple[Item, set[int]]] = []
+    for found, item, issues, merged in plans:
         if item is not None:
-            outcome.series_grew.append(SeriesGrew.before_write(item, issues))
+            grew = SeriesGrew.before_write(item, issues)
+            # What the typed issues add is judged against the editions the
+            # row had, so they are written loose exactly as typed (as in
+            # `commit_one`).
+            gained = issues - owned_set(item.issues_owned, item.editions)
+            grew.editions_added = _editions_gained(item.editions, merged)
+            item.editions = merged
+            outcome.series_grew.append(grew)
             if found.shelf_format is not None:
                 item.shelf_format = found.shelf_format
-            gained = issues - owned_set(item.issues_owned, item.editions)
             if gained:
                 gains.append((item, gained))
-            else:
+            elif not grew.editions_added:
                 outcome.already_owned += 1
         elif found.row is None:
             # Marked owned, but the row has gone since: written as before,
@@ -582,9 +673,12 @@ async def commit_sitting(
                 new_row = new_row.model_copy(
                     update={"shelf_format": found.shelf_format}
                 )
+            new_row = new_row.model_copy(update={"editions": merged})
             rows.append(new_row)
             row_entries.append(found.entry)
 
+    if outcome.refused:
+        return outcome
     try:
         result = await commit_items(session, rows, today=today)
     except RowRefused as refused:

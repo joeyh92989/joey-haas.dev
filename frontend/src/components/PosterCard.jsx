@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { STATUS_LABEL } from '../lib/shelf.js'
+import { statusLabel } from '../lib/shelf.js'
 import { localToday } from '../lib/statusMoves.js'
 import CoverImage from './CoverImage.jsx'
 import Stars from './Stars.jsx'
@@ -84,8 +84,11 @@ export default function PosterCard({
   dimmed = false,
   stacked = false,
   run = null,
-  statusLabels = STATUS_LABEL,
+  statusLabels,
 }) {
+  const markLabel = statusLabels
+    ? statusLabels[item.status]
+    : statusLabel(item.status, item.type)
   const meta = [item.year, item.creator].filter(Boolean).join(' · ')
   const mark = formatMark(item)
   const coming = upcoming(item)
@@ -96,12 +99,12 @@ export default function PosterCard({
         <span className="poster-art" data-stacked={stacked || undefined}>
           <CoverImage src={item.cover_url} type={item.type} alt="" />
           {/* Backlog gets no mark: its absence is the signal. */}
-          {item.status !== 'backlog' && statusLabels[item.status] && (
+          {item.status !== 'backlog' && markLabel && (
             <span
               className="status-mark"
               data-status={item.status}
               role="img"
-              aria-label={statusLabels[item.status]}
+              aria-label={markLabel}
             />
           )}
           {/* Bottom-left, unless the ribbon holds it. */}

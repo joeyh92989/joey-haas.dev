@@ -784,6 +784,203 @@ describe('AdminSitting', () => {
     expect(screen.queryByRole('heading', { name: 'Done' })).toBeNull()
   })
 
+  describe('collected editions in Details', () => {
+    const tradeSitting = () =>
+      longbox({
+        step: 'details',
+        entries: [
+          entry('e2', 'ready', {
+            photo_id: 'p1',
+            chosen: candidate(3, 'Saga'),
+            payload: { shelf_format: 'trades' },
+          }),
+          entry('e3', 'ready', {
+            photo_id: 'p1',
+            chosen: candidate(4, 'East of West'),
+            payload: { shelf_format: 'singles' },
+          }),
+        ],
+      })
+
+    it('offers editions on a trades row only, and saves them with the payload', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [tradeSitting()] })
+      renderSitting()
+      const saga = await screen.findByRole('group', { name: 'Saga' })
+      expect(
+        within(screen.getByRole('group', { name: 'East of West' })).queryByText(
+          'Collected editions',
+        ),
+      ).toBeNull()
+      await user.click(
+        within(saga).getByRole('button', { name: 'Add an edition' }),
+      )
+      await user.type(within(saga).getByLabelText('Label, edition 1'), 'Vol. 1')
+      // The row is named by its label once it has one.
+      await user.type(within(saga).getByLabelText('Kind, Vol. 1'), 'Trade')
+      await user.type(within(saga).getByLabelText('From issue, Vol. 1'), '1')
+      await user.type(within(saga).getByLabelText('To issue, Vol. 1'), '6')
+      await user.click(document.body) // focus leaves the editions
+      await waitFor(() =>
+        expect(api.calls('PATCH', /\/entries\/e2$/).at(-1)?.body).toEqual({
+          payload: {
+            shelf_format: 'trades',
+            editions: [{ kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 }],
+          },
+        }),
+      )
+    })
+
+    it('says so beside the row when an edition is half filled, and saves nothing', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [tradeSitting()] })
+      renderSitting()
+      const saga = await screen.findByRole('group', { name: 'Saga' })
+      await user.click(
+        within(saga).getByRole('button', { name: 'Add an edition' }),
+      )
+      await user.type(within(saga).getByLabelText('Kind, edition 1'), 'Trade')
+      await user.click(document.body) // focus leaves the editions
+      expect(await within(saga).findByRole('alert')).toHaveTextContent(
+        'Edition 1',
+      )
+      expect(api.calls('PATCH', /\/entries\/e2$/)).toHaveLength(0)
+    })
+
+    it("puts the write path's refusal beside the editions", async () => {
+      const user = userEvent.setup()
+      fakeIntakeApi({
+        sittings: [tradeSitting()],
+        commit: () => ({
+          status: 422,
+          body: {
+            added: 0,
+            refused: [
+              {
+                entry_id: 'e2',
+                field: 'editions',
+                message: 'edition runs backwards',
+              },
+            ],
+            detail: '1 to fix before anything is added',
+          },
+        }),
+      })
+      renderSitting()
+      await user.click(
+        await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+      )
+      const saga = screen.getByRole('group', { name: 'Saga' })
+      expect(
+        await within(saga).findByText('edition runs backwards'),
+      ).toBeInTheDocument()
+      expect(saga).toHaveTextContent('Collected editions')
+    })
+
+    it('does not add while an edition on any row is half filled', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [tradeSitting()] })
+      renderSitting()
+      const saga = await screen.findByRole('group', { name: 'Saga' })
+      await user.click(
+        within(saga).getByRole('button', { name: 'Add an edition' }),
+      )
+      await user.type(within(saga).getByLabelText('Kind, edition 1'), 'Trade')
+      await user.click(
+        screen.getByRole('button', { name: 'Add 2 to the shelf' }),
+      )
+      expect(await within(saga).findByRole('alert')).toHaveTextContent(
+        'Edition 1',
+      )
+      expect(api.calls('POST', /\/commit$/)).toHaveLength(0)
+      expect(api.calls('PATCH', /\/entries\/e2$/)).toHaveLength(0)
+      expect(saga.contains(document.activeElement)).toBe(true)
+    })
+
+    it('clears the stale refusal once the owner edits the editions', async () => {
+      const user = userEvent.setup()
+      fakeIntakeApi({
+        sittings: [tradeSitting()],
+        commit: () => ({
+          status: 422,
+          body: {
+            added: 0,
+            refused: [
+              {
+                entry_id: 'e2',
+                field: 'editions',
+                message: 'edition runs backwards',
+              },
+            ],
+            detail: '1 to fix before anything is added',
+          },
+        }),
+      })
+      renderSitting()
+      await user.click(
+        await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
+      )
+      const saga = screen.getByRole('group', { name: 'Saga' })
+      await within(saga).findByText('edition runs backwards')
+      await user.click(
+        within(saga).getByRole('button', { name: 'Add an edition' }),
+      )
+      await user.type(within(saga).getByLabelText('Label, edition 1'), 'Vol. 1')
+      await user.type(within(saga).getByLabelText('Kind, Vol. 1'), 'Trade')
+      await user.type(within(saga).getByLabelText('From issue, Vol. 1'), '1')
+      await user.type(within(saga).getByLabelText('To issue, Vol. 1'), '6')
+      await user.click(document.body)
+      await waitFor(() =>
+        expect(within(saga).queryByText('edition runs backwards')).toBeNull(),
+      )
+    })
+
+    it('keeps both a just-saved edition and the Issues field saved after it', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [tradeSitting()] })
+      // The first PATCH answers only when released, as a slow network would.
+      const real = api.fetch
+      let release
+      const gate = new Promise((resolve) => (release = resolve))
+      let patches = 0
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url, options = {}) => {
+          const answer = await real(url, options)
+          if (options.method === 'PATCH' && /\/entries\/e2$/.test(url)) {
+            if (++patches === 1) await gate
+          }
+          return answer
+        }),
+      )
+      renderSitting()
+      const saga = await screen.findByRole('group', { name: 'Saga' })
+      await user.click(
+        within(saga).getByRole('button', { name: 'Add an edition' }),
+      )
+      await user.type(within(saga).getByLabelText('Label, edition 1'), 'Vol. 1')
+      await user.type(within(saga).getByLabelText('Kind, Vol. 1'), 'Trade')
+      await user.type(within(saga).getByLabelText('From issue, Vol. 1'), '1')
+      await user.type(within(saga).getByLabelText('To issue, Vol. 1'), '6')
+      await user.click(within(saga).getByLabelText('Issues owned'))
+      await user.type(within(saga).getByLabelText('Issues owned'), '7')
+      await user.click(document.body)
+      await waitFor(() =>
+        expect(api.calls('PATCH', /\/entries\/e2$/)).toHaveLength(2),
+      )
+      release()
+      await waitFor(() =>
+        expect(api.calls('PATCH', /\/entries\/e2$/).at(-1)?.body).toEqual({
+          payload: {
+            shelf_format: 'trades',
+            editions: [{ kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 }],
+            issues_owned: '7',
+          },
+        }),
+      )
+    })
+  })
+
   it.each(['shoot', 'check', 'details'])('passes axe on %s', async (step) => {
     fakeIntakeApi({ sittings: [longbox({ step })] })
     const { container } = renderSitting()

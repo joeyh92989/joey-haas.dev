@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import CoverImage from '../CoverImage.jsx'
-import { sourceWords } from '../../lib/intake.js'
+import { comicDetails, sourceWords } from '../../lib/intake.js'
 
 /**
  * The add bar's answer (`GET /api/intake/search`): one row per result
@@ -43,7 +43,11 @@ export default function AddResults({
         <ul aria-label={`Results for “${query}”`}>
           {results.map((result) => {
             const kind = kinds[result.kind]
-            const meta = [result.year, result.external_source]
+            const meta = [
+              result.year,
+              ...comicDetails(result),
+              result.external_source,
+            ]
               .filter(Boolean)
               .join(' · ')
             return (

@@ -55,8 +55,9 @@ async def _search_kind(kind: Kind, registry: dict, query: str) -> tuple[dict, li
         # A parsing bug in one adapter fails that source, not the search.
         logger.exception("intake search: %s raised", adapter.source_name)
         return _failed(kind, adapter), []
-    rows = [
-        {
+    rows = []
+    for result in found:
+        row = {
             "kind": kind.key,
             "external_source": adapter.source_name,
             "external_id": str(result.external_id),
@@ -64,8 +65,12 @@ async def _search_kind(kind: Kind, registry: dict, query: str) -> tuple[dict, li
             "year": result.year,
             "thumbnail_url": result.thumbnail_url,
         }
-        for result in found
-    ]
+        # Only ComicVine knows these; other sources' rows are unchanged.
+        if result.publisher:
+            row["publisher"] = result.publisher
+        if result.issue_count is not None:
+            row["issue_count"] = result.issue_count
+        rows.append(row)
     return {"kind": kind.key, "state": "ok", "reason": None}, rows
 
 

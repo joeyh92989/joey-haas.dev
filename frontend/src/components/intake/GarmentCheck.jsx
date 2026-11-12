@@ -243,6 +243,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
               }}
             >
               <KindFields
+                kindKey={kind.key}
                 fields={kind.fields}
                 values={values}
                 onChange={(key, value) =>

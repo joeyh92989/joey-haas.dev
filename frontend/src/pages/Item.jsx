@@ -19,7 +19,7 @@ import {
   runSentence,
 } from '../lib/comicRun.js'
 import { readSnapshot } from '../lib/snapshot.js'
-import { STATUS_LABEL } from '../lib/shelf.js'
+import { runWords, STATUS_LABEL } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 import { itemPath } from '../lib/spinePaths.js'
@@ -112,7 +112,10 @@ function playedLine(item) {
   const times = item.times_completed ?? 0
   const finishes = item.finishes ?? []
   if (times > 0 && (item.status === 'active' || item.status === 'paused')) {
-    const verb = item.status === 'paused' ? 'Replay paused' : 'Playing again'
+    const verb =
+      item.status === 'paused'
+        ? `${runWords(item.type).replay} paused`
+        : runWords(item.type).again
     const last = item.finished_at
       ? ` · last finished ${DAY.format(parseDate(item.finished_at))}`
       : ''
@@ -236,7 +239,7 @@ function Tiles({ item, detail }) {
       )}
       {detail && showPlayed && (
         <div className="item-tile">
-          <dt>Played</dt>
+          <dt>{runWords(item.type).tile}</dt>
           <dd>
             {item.times_completed > 0 && (
               <span className="item-tile-figure">
@@ -782,9 +785,12 @@ function ItemView({
       <Tiles item={item} detail={detail} />
 
       {runs && runs.length > 0 && (
-        <section className="item-playthroughs" aria-label="Playthroughs">
-          <h2>Playthroughs</h2>
-          <PlaythroughTable runs={runs} />
+        <section
+          className="item-playthroughs"
+          aria-label={runWords(item.type).runs}
+        >
+          <h2>{runWords(item.type).runs}</h2>
+          <PlaythroughTable runs={runs} type={item.type} />
           <p className="muted playthroughs-note">
             Dates change on the{' '}
             <Link to={`/admin/collection/${item.id}`}>edit page</Link>.

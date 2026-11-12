@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { runWords, statusLabel } from '../lib/shelf.js'
 
 /**
  * One item's playthroughs, oldest first: number, started, finished,
@@ -12,6 +13,7 @@ import { useState } from 'react'
  * @param {object} props
  * @param {Array<{number: number, started_on: string|null, finished_on: string|null, paused_on: string|null, outcome: string|null, journal_days: number, journal_minutes: number}>} props.runs
  * @param {boolean} [props.editable]
+ * @param {string} [props.type] The item's type; a comic's runs are reads.
  * @param {boolean} [props.busy] - A write is in flight; the controls wait.
  * @param {(number: number, changes: object) => void} [props.onEdit]
  * @param {(number: number) => void} [props.onDelete]
@@ -20,17 +22,19 @@ import { useState } from 'react'
  */
 export default function PlaythroughTable({
   runs,
+  type,
   editable = false,
   busy = false,
   onEdit,
   onDelete,
   onAdd,
 }) {
+  const words = runWords(type)
   const sorted = [...runs].sort((a, b) => a.number - b.number)
   return (
     <div className="playthroughs">
       {sorted.length === 0 ? (
-        <p className="muted">No playthroughs yet.</p>
+        <p className="muted">{words.noRuns}</p>
       ) : (
         <div className="playthroughs-wrap">
           <table className="playthroughs-table">
@@ -52,6 +56,7 @@ export default function PlaythroughTable({
               {sorted.map((run) =>
                 editable ? (
                   <EditableRow
+                    type={type}
                     // Remount when the server's dates change, so the inputs
                     // start from what was saved.
                     key={`${run.number}-${run.started_on}-${run.finished_on}`}
@@ -65,7 +70,7 @@ export default function PlaythroughTable({
                     <td className="mono">{run.number}</td>
                     <td>{formatDay(run.started_on)}</td>
                     <td>{formatDay(run.finished_on)}</td>
-                    <td>{outcomeLabel(run)}</td>
+                    <td>{outcomeLabel(run, type)}</td>
                     <td>{journalText(run)}</td>
                   </tr>
                 ),
@@ -74,12 +79,13 @@ export default function PlaythroughTable({
           </table>
         </div>
       )}
-      {editable && <AddPast busy={busy} onAdd={onAdd} />}
+      {editable && <AddPast busy={busy} onAdd={onAdd} type={type} />}
     </div>
   )
 }
 
-function EditableRow({ run, busy, onEdit, onDelete }) {
+function EditableRow({ run, type, busy, onEdit, onDelete }) {
+  const words = runWords(type)
   const [started, setStarted] = useState(run.started_on ?? '')
   const [finished, setFinished] = useState(run.finished_on ?? '')
   const open = run.outcome == null
@@ -94,7 +100,7 @@ function EditableRow({ run, busy, onEdit, onDelete }) {
       <td>
         <input
           type="date"
-          aria-label={`Started, playthrough ${run.number}`}
+          aria-label={`Started, ${words.run} ${run.number}`}
           value={started}
           onChange={(event) => setStarted(event.target.value)}
         />
@@ -105,20 +111,20 @@ function EditableRow({ run, busy, onEdit, onDelete }) {
         ) : (
           <input
             type="date"
-            aria-label={`Finished, playthrough ${run.number}`}
+            aria-label={`Finished, ${words.run} ${run.number}`}
             value={finished}
             onChange={(event) => setFinished(event.target.value)}
           />
         )}
       </td>
-      <td>{outcomeLabel(run)}</td>
+      <td>{outcomeLabel(run, type)}</td>
       <td>{journalText(run)}</td>
       <td className="playthroughs-actions">
         {dirty && (
           <button
             type="button"
             disabled={busy}
-            aria-label={`Save playthrough ${run.number}`}
+            aria-label={`Save ${words.run} ${run.number}`}
             onClick={() => onEdit(run.number, changes)}
           >
             Save
@@ -130,7 +136,7 @@ function EditableRow({ run, busy, onEdit, onDelete }) {
             type="button"
             className="danger"
             disabled={busy}
-            aria-label={`Delete playthrough ${run.number}`}
+            aria-label={`Delete ${words.run} ${run.number}`}
             onClick={() => onDelete(run.number)}
           >
             Delete
@@ -141,7 +147,8 @@ function EditableRow({ run, busy, onEdit, onDelete }) {
   )
 }
 
-function AddPast({ busy, onAdd }) {
+function AddPast({ busy, onAdd, type }) {
+  const words = runWords(type)
   const [adding, setAdding] = useState(false)
   const [started, setStarted] = useState('')
   const [finished, setFinished] = useState('')
@@ -153,7 +160,7 @@ function AddPast({ busy, onAdd }) {
           className="link-button"
           onClick={() => setAdding(true)}
         >
-          Add a past playthrough
+          {words.addPast}
         </button>
       </p>
     )
@@ -162,7 +169,7 @@ function AddPast({ busy, onAdd }) {
     <div
       className="playthroughs-add-form"
       role="group"
-      aria-label="Past playthrough"
+      aria-label={words.pastRun}
     >
       <label>
         Started
@@ -218,10 +225,10 @@ export function formatDay(value) {
 }
 
 /** What became of the run; an open one is Playing or Paused. */
-export function outcomeLabel(run) {
+export function outcomeLabel(run, type) {
   if (run.outcome === 'finished') return 'Finished'
   if (run.outcome === 'abandoned') return 'Abandoned'
-  return run.paused_on ? 'Paused' : 'Playing'
+  return run.paused_on ? 'Paused' : statusLabel('active', type)
 }
 
 /** "6 days · 11 h", "1 day · 40 min", "2 days", or a dash with none. */

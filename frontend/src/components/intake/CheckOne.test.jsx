@@ -55,6 +55,46 @@ describe('CheckOne', () => {
     expect(screen.queryByRole('radio', { name: /85128/ })).toBeNull()
   })
 
+  it('tells same-titled comic candidates apart by publisher and issue count', () => {
+    render(
+      <CheckOne
+        entry={entry('e1', 'check', {
+          kind: 'comic',
+          payload: { detected_title: 'Creepshow' },
+          candidates: [
+            {
+              ...candidate(1, 'Creepshow', 2024),
+              publisher: 'Image',
+              issue_count: 1,
+            },
+            {
+              ...candidate(2, 'Creepshow', 1982),
+              publisher: 'DC',
+              issue_count: 12,
+            },
+            candidate(3, 'Creepshow', 2000),
+          ],
+        })}
+        photoNumber={1}
+        position="1 of 1"
+        onAnswer={vi.fn()}
+        onSkip={vi.fn()}
+        busy={false}
+      />,
+    )
+    expect(
+      screen.getByRole('radio', { name: 'Creepshow (2024), Image' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('radio', { name: 'Creepshow (1982), DC' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('radio', { name: 'Creepshow (2000)' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Image · 1 issue$/)).toBeInTheDocument()
+    expect(screen.getByText(/DC · 12 issues$/)).toBeInTheDocument()
+  })
+
   it('searches the entry’s kind for a better match and answers with it', async () => {
     const user = userEvent.setup()
     const api = fakeIntakeApi({

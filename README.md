@@ -663,7 +663,9 @@ the phone and finish at the desk.
   searched and typed titles. Unticking stores `ignored` with
   `payload.unticked` and `payload.was`, so a reload shows it unticked rather
   than gone. Search… looks the title up through the add bar's search and
-  lists the entry's kind's matches first. A clothes sitting's Check is
+  lists the entry's kind's matches first; a comic result adds its publisher
+  and issue count (`lib/intake.js` `comicDetails`) to tell same-titled
+  series apart. A clothes sitting's Check is
   `GarmentCheck`: only pieces the tag queue gave up on, one at a time (Save
   and next, Tag again, Skip, Remove this photo), read from the Closet's own
   garments.
@@ -680,7 +682,11 @@ the phone and finish at the desk.
   reading · N on the shelf · N unticked · N photos waiting to be read`, zero
   parts dropped. The title parts add up to the total; removed titles are in
   neither, and an unticked one stays listed since Check can retick it.
-- **Details** is one pass per kind present; **Done** shows the commit's own
+- **Details** is one pass per kind present; a comic on a trades or omnibus
+  shelf format also gets the collected-editions editor (kind, label and the
+  issues each collects), saved on the entry's payload when focus leaves it
+  and checked again when Add is pressed, which will not commit past a
+  half-filled edition. **Done** shows the commit's own
   four figures, and Publish these N publishes the commit's `created` ids
   through `POST /api/items/visibility`.
 - **The add bar** (`components/intake/AddSection.jsx`, with `AddBar`,

@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-12
+
+- Comics now read as comics on their pages: Reading, Reads and Read on instead of game words.
+
 ## 2026-11-11
 
 - Every comic issue and collected edition now has a cover on its [series page](/shelf/comics) and a page of its own, with its Comic Vine description.

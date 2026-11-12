@@ -6,7 +6,7 @@
  */
 import { FORMAT_OPTIONS, PLATFORM_OPTIONS } from '../components/ItemForm.jsx'
 import { MAX_ATTEMPTS, MAX_PHOTO_BYTES, PHOTO_ACCEPT } from './closet.js'
-import { STATUS_LABEL } from './shelf.js'
+import { statusLabel } from './shelf.js'
 
 /**
  * Words for option values the site already names elsewhere. Presentation
@@ -17,7 +17,6 @@ const OPTION_WORDS = {
     PLATFORM_OPTIONS.map(([id, name]) => [String(id), name]),
   ),
   physical_format: Object.fromEntries(FORMAT_OPTIONS),
-  status: STATUS_LABEL,
   shelf_format: {
     singles: 'Single issues',
     trades: 'Trade paperbacks',
@@ -26,9 +25,15 @@ const OPTION_WORDS = {
   disc_format: { dvd: 'DVD', bluray: 'Blu-ray', uhd: '4K UHD' },
 }
 
-/** An option value in words: the site's own name, or the value made readable. */
-export function optionLabel(fieldKey, value) {
-  const known = OPTION_WORDS[fieldKey]?.[String(value)]
+/**
+ * An option value in words: the site's own name, or the value made readable.
+ * `kindKey` is the sitting's kind, for the words that follow the item type.
+ */
+export function optionLabel(fieldKey, value, kindKey) {
+  const known =
+    fieldKey === 'status'
+      ? statusLabel(String(value), kindKey)
+      : OPTION_WORDS[fieldKey]?.[String(value)]
   if (known) return known
   const words = String(value).replace(/_/g, ' ')
   return words.charAt(0).toUpperCase() + words.slice(1)
@@ -195,4 +200,21 @@ export function missingFields(fields, record) {
   return fields
     .filter((field) => record[field.key] == null || record[field.key] === '')
     .map((field) => field.label)
+}
+
+/**
+ * The extra words after a comic's `Title (year)`: "Image · 66 issues". A
+ * result without a publisher or count (every other source) yields nothing.
+ *
+ * @param {{publisher?: string|null, issue_count?: number|null}} result
+ * @returns {string[]}
+ */
+export function comicDetails(result) {
+  const count = result.issue_count
+  return [
+    result.publisher,
+    Number.isInteger(count) && count >= 0
+      ? `${count} ${count === 1 ? 'issue' : 'issues'}`
+      : null,
+  ].filter(Boolean)
 }

@@ -2842,6 +2842,12 @@ footer {
   padding: 0.5rem 0;
 }
 
+/* A trade row's editions sit on their own line under the row. */
+.intake-editions {
+  grid-column: 1 / -1;
+  order: 1;
+}
+
 .intake-rows li:last-child .intake-row {
   border-bottom: 0;
 }
@@ -8489,6 +8495,18 @@ a.cover-tile:focus-visible {
 .comic-hint {
   font-size: 0.875rem;
   margin: 0 0 0.5rem;
+}
+
+/* In the admin edit's label/input grid the hint sits under its input, not
+   in the narrow label column (which pushed the next row out of line). */
+.item-detail-form .comic-hint {
+  grid-column: 2;
+}
+
+@media (max-width: 700px) {
+  .item-detail-form .comic-hint {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Pick for me (Pick for me spec): the band on What's next. */
