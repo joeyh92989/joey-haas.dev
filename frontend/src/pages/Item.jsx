@@ -32,6 +32,7 @@ import { useRefreshAfterWrite } from '../lib/useRefreshAfterWrite.js'
 
 const COMICS = spine.comics
 const SERIES = COMICS.series
+const ITEM = spine.item
 const COMIC_VINE = 'https://comicvine.gamespot.com/'
 
 const SHORT_MONTH_YEAR = new Intl.DateTimeFormat('en', {
@@ -187,17 +188,20 @@ function copyLine(item) {
   return parts.length > 0 ? `My copy: ${parts.join(' · ')}` : null
 }
 
-/** "≈ 12 h · 18 h to complete", or whichever figure exists. */
-function timeToBeatText(timeToBeat) {
-  if (!timeToBeat) return null
-  const parts = []
-  if (timeToBeat.normally != null) {
-    parts.push(`≈ ${Math.round(timeToBeat.normally)} h`)
-  }
-  if (timeToBeat.completely != null) {
-    parts.push(`${Math.round(timeToBeat.completely)} h to complete`)
-  }
-  return parts.length > 0 ? parts.join(' · ') : null
+/** Hours as a tile figure, or null when IGDB has none. */
+function hours(value) {
+  return value == null ? null : `${Math.round(value)} h`
+}
+
+/** Main story and To complete as labelled figures; a missing one is omitted. */
+function timeToBeatFigures(timeToBeat) {
+  if (!timeToBeat) return []
+  const main = hours(timeToBeat.normally)
+  const full = hours(timeToBeat.completely)
+  return [
+    main && [ITEM.mainStory, `≈ ${main}`],
+    full && [ITEM.toComplete, full],
+  ].filter(Boolean)
 }
 
 /**
@@ -207,7 +211,7 @@ function timeToBeatText(timeToBeat) {
 function Tiles({ item, detail }) {
   const played = playedLine(item)
   const showPlayed = item.times_completed > 0 || played
-  const timeToBeat = timeToBeatText(item.time_to_beat)
+  const timeToBeat = timeToBeatFigures(item.time_to_beat)
   return (
     <dl className="item-tiles">
       <div className="item-tile">
@@ -234,11 +238,16 @@ function Tiles({ item, detail }) {
           </dd>
         </div>
       )}
-      {detail && timeToBeat && (
+      {detail && timeToBeat.length > 0 && (
         <div className="item-tile">
           <dt>Time to beat</dt>
           <dd>
-            <span className="item-tile-figure">{timeToBeat}</span>
+            {timeToBeat.map(([label, figure]) => (
+              <span className="item-ttb" key={label}>
+                <span className="muted">{label}</span>
+                <span className="item-tile-figure">{figure}</span>
+              </span>
+            ))}
           </dd>
         </div>
       )}
@@ -706,17 +715,27 @@ function ItemView({
     (platform) => platform !== item.platform,
   )
   const copy = copyLine(item)
-  const chips = [
-    // What the game is, then where else it exists. The copy on the shelf
-    // has its own line.
-    ...item.genres.map((genre) => [`genre-${genre}`, genre, false]),
-    ...themes.map((theme) => [`theme-${theme}`, theme, true]),
-    ...otherPlatforms.map((platform) => [
-      `platform-${platform}`,
-      platform,
-      true,
-    ]),
-  ]
+  // What the game is, then where else it exists. The copy on the shelf has
+  // its own line.
+  const chipGroups = [
+    [
+      'genres',
+      ITEM.genresLabel,
+      [
+        ...item.genres.map((genre) => [`genre-${genre}`, genre, false]),
+        ...themes.map((theme) => [`theme-${theme}`, theme, true]),
+      ],
+    ],
+    [
+      'also-on',
+      ITEM.alsoOnLabel,
+      otherPlatforms.map((platform) => [
+        `platform-${platform}`,
+        platform,
+        true,
+      ]),
+    ],
+  ].filter(([, , chips]) => chips.length > 0)
   const similar = detail ? (item.similar_in_collection ?? []) : []
 
   return (
@@ -747,17 +766,28 @@ function ItemView({
         {comic && <WhatsNext model={run} />}
       </header>
 
-      {chips.length > 0 && (
-        <ul className="item-chips">
-          {chips.map(([key, label, muted]) => (
-            <li
-              key={key}
-              className={muted ? 'item-chip item-chip-muted' : 'item-chip'}
-            >
-              {label}
-            </li>
+      {chipGroups.length > 0 && (
+        <dl className="item-groups">
+          {chipGroups.map(([key, label, chips]) => (
+            <div key={key}>
+              <dt>{label}</dt>
+              <dd>
+                <ul className="item-chips">
+                  {chips.map(([chipKey, chipLabel, muted]) => (
+                    <li
+                      key={chipKey}
+                      className={
+                        muted ? 'item-chip item-chip-muted' : 'item-chip'
+                      }
+                    >
+                      {chipLabel}
+                    </li>
+                  ))}
+                </ul>
+              </dd>
+            </div>
           ))}
-        </ul>
+        </dl>
       )}
 
       {description && !comic && (

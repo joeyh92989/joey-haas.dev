@@ -171,25 +171,47 @@ describe('Item', () => {
     expect(screen.getByText('Paused · since Aug 2026')).toBeInTheDocument()
   })
 
-  it('lists genres, then the other platforms muted', async () => {
+  function groups() {
+    return [...document.querySelectorAll('.item-groups > div')].map((group) => [
+      group.querySelector('dt').textContent,
+      [...group.querySelectorAll('li')].map((chip) => [
+        chip.textContent,
+        chip.classList.contains('item-chip-muted'),
+      ]),
+    ])
+  }
+
+  it('labels the genres and the other platforms', async () => {
     stubItem()
     await renderReady()
-
-    const chips = [...document.querySelectorAll('.item-chips li')]
-    expect(chips.map((chip) => chip.textContent)).toEqual([
-      'Roguelike',
-      'Action',
-      'PC',
-      'Nintendo Switch',
+    expect(groups()).toEqual([
+      [
+        'Genres',
+        [
+          ['Roguelike', false],
+          ['Action', false],
+        ],
+      ],
+      [
+        'Also on',
+        [
+          ['PC', true],
+          ['Nintendo Switch', true],
+        ],
+      ],
     ])
-    expect(chips[2]).toHaveClass('item-chip-muted')
-    expect(chips[0]).not.toHaveClass('item-chip-muted')
   })
 
-  it('has no chip row when there are no genres or platforms', async () => {
+  it('omits a group that would be empty', async () => {
     stubItem({ genres: [], platforms: [] })
     await renderReady()
-    expect(document.querySelector('.item-chips')).toBeNull()
+    expect(document.querySelector('.item-groups')).toBeNull()
+  })
+
+  it('shows only Genres when there is no other platform', async () => {
+    stubItem({ platforms: [] })
+    await renderReady()
+    expect(groups().map(([label]) => label)).toEqual(['Genres'])
   })
 
   it('clamps the description, and More and Less toggle the clamp', async () => {
@@ -453,6 +475,9 @@ describe('Item copy details', () => {
       ['PC', true],
       ['PlayStation 4', true],
     ])
+    // The owned platform is not an "Also on" chip.
+    const alsoOn = [...document.querySelectorAll('.item-groups > div')][1]
+    expect(alsoOn.textContent).not.toMatch(/Nintendo Switch/)
     expect(
       screen.getByText(
         'My copy: Nintendo Switch · Full game on cartridge · Complete in box',
@@ -490,14 +515,25 @@ describe('Item copy details', () => {
   })
 
   it.each([
-    [{ normally: 11.6, completely: 18.2 }, '≈ 12 h · 18 h to complete'],
-    [{ normally: 4.4, completely: null }, '≈ 4 h'],
-  ])('shows time to beat', async (timeToBeat, text) => {
+    [
+      { normally: 11.6, completely: 18.2 },
+      [
+        ['Main story', '≈ 12 h'],
+        ['To complete', '18 h'],
+      ],
+    ],
+    [{ normally: 4.4, completely: null }, [['Main story', '≈ 4 h']]],
+    [{ normally: null, completely: 18.2 }, [['To complete', '18 h']]],
+  ])('shows time to beat with named figures', async (timeToBeat, figures) => {
     stubItem({ time_to_beat: { hastily: null, count: 3, ...timeToBeat } })
     await renderReady()
     const tiles = within(document.querySelector('.item-tiles'))
     expect(tiles.getByText('Time to beat')).toBeInTheDocument()
-    expect(tiles.getByText(text)).toBeInTheDocument()
+    const rows = [...document.querySelectorAll('.item-ttb')].map((row) => [
+      row.children[0].textContent,
+      row.children[1].textContent,
+    ])
+    expect(rows).toEqual(figures)
   })
 
   it('has no time-to-beat tile without data', async () => {

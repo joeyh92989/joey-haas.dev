@@ -572,6 +572,13 @@ export const spine = {
     error: LOAD_ERROR,
   },
   /** /shelf/comics and the comic parts of the series page and What's next. */
+  item: {
+    // copy: pending voice review
+    genresLabel: 'Genres',
+    alsoOnLabel: 'Also on',
+    mainStory: 'Main story',
+    toComplete: 'To complete',
+  },
   comics: {
     path: '/shelf/comics',
     title: 'Comics',
