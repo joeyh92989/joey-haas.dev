@@ -5,6 +5,7 @@ import About from './pages/About.jsx'
 import Blog from './pages/Blog.jsx'
 import Collection from './pages/Collection.jsx'
 import Comics from './pages/Comics.jsx'
+import ComicEdition from './pages/ComicEdition.jsx'
 import ComicIssue from './pages/ComicIssue.jsx'
 import Daily from './pages/Daily.jsx'
 import IntakeDemo from './pages/IntakeDemo.jsx'
@@ -66,16 +67,22 @@ function ParamRedirect({ to }) {
 /** A canonical issue number: ASCII digits, no leading zero, at most 4. */
 const ISSUE_PART = /^[1-9][0-9]{0,3}$/
 
+/** A canonical edition slug: `ed-<from>-<to>`, `-2`... on a repeat. */
+const EDITION_PART = /^ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(-[2-9][0-9]*)?$/
+
 /**
- * /shelf/:id/:part: an issue's page for a canonical number, remounted per
- * issue. `ed-...` is the edition page's (not built yet, so NotFound);
- * anything else, a leading zero or a stray suffix included, is NotFound
- * rather than a second address for the same page.
+ * /shelf/:id/:part: an issue's page for a canonical number, or an edition's
+ * for a canonical `ed-...` slug, remounted per page. Anything else, a
+ * leading zero or a stray suffix included, is NotFound rather than a second
+ * address for the same page.
  */
 function ShelfPart() {
   const { id, part } = useParams()
   if (ISSUE_PART.test(part)) {
     return <ComicIssue key={`${id}/${part}`} id={id} n={Number(part)} />
+  }
+  if (EDITION_PART.test(part)) {
+    return <ComicEdition key={`${id}/${part}`} id={id} slug={part} />
   }
   return <NotFound />
 }

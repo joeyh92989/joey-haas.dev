@@ -769,6 +769,26 @@ export const spine = {
         failed: 'Could not save that change. Try again.',
       },
     },
+    /** The public collected-edition page, /shelf/:id/ed-<from>-<to>/. */
+    edition: {
+      title: (series, label) => `${series}, ${label}`,
+      kicker: (kind, from, to) =>
+        `${kind} · collects ${from === to ? `#${from}` : `#${from}–${to}`}`,
+      coverAlt: (series, label) => `Cover of ${series}, ${label}`,
+      facts: { collects: 'Collects', format: 'Format', read: 'Read' },
+      collects: (from, to) => (from === to ? `#${from}` : `#${from}–${to}`),
+      read: { all: 'All of it', to: (n) => `To #${n}`, notYet: 'Not yet' },
+      inside: 'Inside this book',
+      previous: 'Previous',
+      next: 'Next',
+      neighbours: 'Neighbouring editions',
+      owner: {
+        owned: 'Owned ✓',
+        readToEnd: 'Read to the end',
+        readDone: 'Read to the end ✓',
+        edit: 'Edit edition',
+      },
+    },
     empty: 'No comics on the shelf yet.',
     noMatch: 'No series match those filters.',
     attribution: { before: 'Comic data from', label: 'Comic Vine', after: '.' },

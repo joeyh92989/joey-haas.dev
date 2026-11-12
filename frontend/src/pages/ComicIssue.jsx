@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
+import ComicDescription from '../components/ComicDescription.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import NeighbourStrip from '../components/NeighbourStrip.jsx'
 import OwnerControls from '../components/OwnerControls.jsx'
@@ -22,37 +23,6 @@ function storedView(row) {
     ownedSet: new Set(expandRanges(row.issues_owned)),
     skippedSet: new Set(expandRanges(row.issues_skipped)),
   }
-}
-
-/** The description: its first paragraph, the rest behind "More". */
-function Description({ paragraphs }) {
-  const [open, setOpen] = useState(false)
-  if (!paragraphs.length)
-    return <p className="comic-issue-desc muted">{COPY.noDescription}</p>
-  const [first, ...rest] = paragraphs
-  return (
-    <div className="comic-issue-desc">
-      <p>{first}</p>
-      {rest.length > 0 && (
-        <>
-          <div id="issue-more" hidden={!open}>
-            {rest.map((text, index) => (
-              <p key={index}>{text}</p>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="link-button"
-            aria-expanded={open}
-            aria-controls="issue-more"
-            onClick={() => setOpen((current) => !current)}
-          >
-            {open ? COPY.less : COPY.more}
-          </button>
-        </>
-      )}
-    </div>
-  )
 }
 
 /**
@@ -231,7 +201,7 @@ export default function ComicIssue({ id, n }) {
             <dd>{readFact}</dd>
           </dl>
 
-          <Description paragraphs={page.description} />
+          <ComicDescription paragraphs={page.description} />
 
           {signedIn && stored && (
             <OwnerControls
