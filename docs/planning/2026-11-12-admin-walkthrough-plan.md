@@ -42,6 +42,7 @@ Spec: `2026-11-12-admin-walkthrough-design.md`.
 - `frontend/src/content/spine.js:170` fallback `['Stores', '12 watched']` →
   `['Stores', '11 watched']`.
 - Do not edit `frontend/posts/how-spine-works.md`.
+- `frontend/changelog.md`: add one bullet under a `## 2026-11-12` heading (create it at the top if absent): `Fixed the store count in the shelf copy, and the What it does cards now name the stop they link to.`
 - Acceptance: `grep -rn "twelve" frontend/src` finds nothing about stores; tests green.
 
 ### Task 3: Site card summary uses the row's words (#169)
