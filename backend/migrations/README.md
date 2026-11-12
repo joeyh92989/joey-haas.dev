@@ -29,6 +29,11 @@ the same transaction. A downgrade cannot remove the value (there is no DROP
 VALUE), so it moves any rows using it back to a value the old code knows, and
 IF NOT EXISTS keeps the next upgrade from failing on the leftover label.
 
+A new table that points at an item uses `postgresql.UUID(as_uuid=True)` for
+the key: `items.id` is a UUID, and a plain `Integer` foreign key fails at
+create time (0016's `comic_issues` is the model to copy: composite primary
+key, `ON DELETE CASCADE`).
+
 ## Applying it
 
 ```bash

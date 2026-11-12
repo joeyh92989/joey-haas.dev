@@ -265,6 +265,9 @@ class Item(Base):
     disc_format: Mapped[MovieDiscFormat | None] = _enum_column(
         MovieDiscFormat, "movie_disc_format"
     )
+    # When the issue sync last walked this series (comic_issues); NULL = never.
+    # The sync takes the stalest first.
+    issues_synced_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     # On the pull list. Separate from owning: a followed-only series is a
     # private want row (owned_format none, is_public false).
     following: Mapped[bool] = mapped_column(
@@ -1465,3 +1468,30 @@ class LlmUsage(Base):
         Boolean, nullable=False, default=False, server_default="false"
     )
     updated_at: Mapped[datetime] = _updated_column()
+
+
+class ComicIssue(Base):
+    """One issue of a followed series, as the public issue pages show it.
+
+    Written only by `comic_issues.upsert_issues`; the rows go with their
+    series. `description` is cleaned paragraphs, never HTML.
+    """
+
+    __tablename__ = "comic_issues"
+
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("items.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    number: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
+    cv_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    store_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    cover_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    cover_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    large_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[list] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    fetched_on: Mapped[date] = mapped_column(Date, nullable=False)
