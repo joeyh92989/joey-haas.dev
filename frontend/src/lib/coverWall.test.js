@@ -33,11 +33,9 @@ const wall = (over, open = new Set()) =>
 
 describe('editionSlugs', () => {
   it('names an edition by its range and numbers duplicates', () => {
-    expect(editionSlugs([edition(1, 6), edition(7, 12), edition(1, 6)])).toEqual([
-      'ed-1-6',
-      'ed-7-12',
-      'ed-1-6-2',
-    ])
+    expect(
+      editionSlugs([edition(1, 6), edition(7, 12), edition(1, 6)]),
+    ).toEqual(['ed-1-6', 'ed-7-12', 'ed-1-6-2'])
   })
 })
 
@@ -61,7 +59,10 @@ describe('wallTiles', () => {
       released: 8,
     })
     expect(tiles.map((t) => t.kind)).toEqual(['book', 'cover', 'cover'])
-    expect(tiles[0]).toMatchObject({ slug: 'ed-1-6', cover_url: 'https://img/ed-1.jpg' })
+    expect(tiles[0]).toMatchObject({
+      slug: 'ed-1-6',
+      cover_url: 'https://img/ed-1.jpg',
+    })
     expect(tiles.slice(1).map((t) => t.n)).toEqual([7, 8])
   })
 
@@ -110,7 +111,12 @@ describe('wallTiles', () => {
       owned: new Set([1, 2, 3]),
       released: 3,
     })
-    expect(tiles[2]).toMatchObject({ kind: 'cover', n: 3, cover_url: null, state: 'owned' })
+    expect(tiles[2]).toMatchObject({
+      kind: 'cover',
+      n: 3,
+      cover_url: null,
+      state: 'owned',
+    })
   })
 
   it('adds one not-out tile last', () => {

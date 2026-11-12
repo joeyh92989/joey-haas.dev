@@ -97,7 +97,14 @@ export function wallTiles(
       n,
       cover_url: row?.cover_url ?? null,
       store_date: row?.store_date ?? null,
-      state: issueState({ n, owned: held, readTo, released: model.released, nextDated, skipped }),
+      state: issueState({
+        n,
+        owned: held,
+        readTo,
+        released: model.released,
+        nextDated,
+        skipped,
+      }),
     }
   }
 
@@ -116,7 +123,8 @@ export function wallTiles(
       continue
     }
     let j = i
-    while (list[j + 1] && !list[j + 1].edition && list[j + 1].k === issue.k) j += 1
+    while (list[j + 1] && !list[j + 1].edition && list[j + 1].k === issue.k)
+      j += 1
     const count = j - i + 1
     if (issue.k === 'missing' && count >= BUNDLE_MIN) {
       const from = issue.n

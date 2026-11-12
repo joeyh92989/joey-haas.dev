@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { editionPath, issuePath, itemPath, monthPath, yearPath } from './spinePaths.js'
+import {
+  editionPath,
+  issuePath,
+  itemPath,
+  monthPath,
+  yearPath,
+} from './spinePaths.js'
 
 describe('spine paths', () => {
   it('ends every page path with a slash', () => {
