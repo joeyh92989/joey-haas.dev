@@ -49,7 +49,7 @@ describe('CoverTile', () => {
   it('draws a not-out issue as a block, not a link', () => {
     show({ kind: 'not-out', n: 73, store_date: '2026-12-02' })
     expect(screen.queryByRole('link')).toBeNull()
-    expect(screen.getByText('#73')).toBeInTheDocument()
+    expect(screen.getByText('#73')).toHaveClass('cover-tile-chip')
     expect(screen.getByText('Not out yet')).toBeInTheDocument()
   })
 })

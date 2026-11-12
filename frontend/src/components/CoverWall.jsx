@@ -82,13 +82,9 @@ export default function CoverWall({ wall, detail, series, skipped }) {
             className="cover-stack"
             data-focus={`stack-${tile.key}`}
             aria-expanded="false"
-            aria-label={WALL.stackName(tile.from, tile.to, tile.count)}
             onClick={() => toggle(tile.key, true, `fold-${tile.key}`)}
           >
-            <b>
-              #{tile.from}–{tile.to}
-            </b>
-            <span>{WALL.stackWords(tile.count)}</span>
+            {WALL.stack(tile.from, tile.to, tile.count)}
           </button>
         )
       case 'fold':

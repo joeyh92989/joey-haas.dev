@@ -7933,10 +7933,21 @@ a.cover-tile:focus-visible {
 }
 
 .cover-tile-hatch {
+  align-items: flex-end;
   aspect-ratio: 2 / 3;
+  display: flex;
+  padding: 8%;
   background-image: var(--hatch);
   border: 1px solid var(--run-missing);
   border-radius: 4px;
+}
+
+.cover-tile-chip {
+  background: var(--surface);
+  border-radius: 3px;
+  color: var(--text);
+  font: 600 0.75rem/1 var(--font-mono);
+  padding: 0.15rem 0.3rem;
 }
 
 .cover-tile-tick {

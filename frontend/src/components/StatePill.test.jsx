@@ -5,11 +5,11 @@ import StatePill from './StatePill.jsx'
 
 describe('StatePill', () => {
   it.each([
-    ['read', 'Read'],
+    ['read', 'Read ✓'],
     ['owned', 'Owned'],
     ['missing', 'Missing'],
     ['not-out', 'Not out yet'],
-    ['skipped', 'Skipped'],
+    ['skipped', 'Skipped · private'],
   ])('words %s as %s', (state, word) => {
     render(<StatePill state={state} />)
     expect(screen.getByText(word)).toHaveAttribute('data-state', state)

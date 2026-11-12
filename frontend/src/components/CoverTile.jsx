@@ -28,12 +28,15 @@ export default function CoverTile({ tile, size, series, current = false }) {
     return (
       <div className="cover-tile" data-size={size} data-state="not-out">
         <div className="cover-tile-frame">
-          <div className="cover-tile-hatch" aria-hidden="true" />
+          <div className="cover-tile-hatch">
+            <span className="cover-tile-chip">#{tile.n}</span>
+          </div>
         </div>
-        <span className="cover-tile-cap">
-          <span>#{tile.n}</span>
-          {date && <em>{date}</em>}
-        </span>
+        {date && (
+          <span className="cover-tile-cap">
+            <em>{date}</em>
+          </span>
+        )}
         <span className="visually-hidden">{WALL.states['not-out']}</span>
       </div>
     )
@@ -45,7 +48,7 @@ export default function CoverTile({ tile, size, series, current = false }) {
       data-size={size}
       data-state={tile.state}
       aria-current={current ? 'page' : undefined}
-      aria-label={WALL.tileName(series.title, tile.n, WALL.states[tile.state])}
+      aria-label={WALL.tileName(series.title, tile.n, WALL.names[tile.state])}
     >
       <span className="cover-tile-frame">
         <CoverImage src={tile.cover_url} type="comic" alt="" />

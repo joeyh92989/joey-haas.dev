@@ -47,7 +47,9 @@ describe('CoverWall', () => {
     expect(
       screen.getByRole('heading', { name: 'Every book in the run' }),
     ).toBeInTheDocument()
-    const stack = screen.getByRole('button', { name: /Issues 1 to 12/ })
+    const stack = screen.getByRole('button', {
+      name: '#1–12 · 12 missing · Show covers',
+    })
     expect(stack).toHaveAttribute('aria-expanded', 'false')
     await user.click(stack)
 
@@ -57,7 +59,7 @@ describe('CoverWall', () => {
     expect(missing).toHaveLength(12)
     await user.click(fold)
     expect(
-      screen.getByRole('button', { name: /Issues 1 to 12/ }),
+      screen.getByRole('button', { name: '#1–12 · 12 missing · Show covers' }),
     ).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryAllByRole('link', { name: /, Missing$/ })).toHaveLength(
       0,
@@ -117,5 +119,29 @@ describe('CoverWall', () => {
     )
     const key = screen.getByRole('list', { name: 'Key' })
     expect(within(key).getByText('Missing')).toBeInTheDocument()
+  })
+})
+
+describe('CoverWall key words', () => {
+  it('words the key pills verbatim', () => {
+    render(
+      <MemoryRouter>
+        <CoverWall
+          wall={{ series_title: 'Saga', issues: issuesTo(3), editions: [] }}
+          detail={detail({ owned_text: '1–3', released: 3 })}
+          series={SERIES}
+          skipped={new Set([2])}
+        />
+      </MemoryRouter>,
+    )
+    const key = screen.getByRole('list', { name: 'Key' })
+    for (const word of [
+      'Read ✓',
+      'Owned',
+      'Missing',
+      'Not out yet',
+      'Skipped · private',
+    ])
+      expect(within(key).getByText(word)).toBeInTheDocument()
   })
 })
