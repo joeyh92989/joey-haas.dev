@@ -565,7 +565,14 @@ Sunday opinion's prompt and checks are `closet_opinion.py`.
   summary) or an empty queue, and writes `closet_settings["tag.last_run"]`
   (`{at, state, tagged, calls, remaining, note}`), which `GET
   /api/closet/status` reads. **Tag now** on the Closet page
-  (`POST /api/closet/tag`) tags one batch whatever the budget says.
+  (`POST /api/closet/tag`) tags one batch whatever the budget says. While it
+  waits the page reads `Tagging N photos — one batch · N s` (N is at most
+  `TAG_BATCH_SIZE`, 10, mirroring `closet_tag.BATCH_SIZE`), adds a
+  still-working line after 30 s, and gives up with an alert at 195 s (a
+  cold wake, the model's 150 s budget and a margin); the tags may still
+  land, and the page re-reads the closet either way. Today waits the same
+  way on its first load: `Waking the server or planning the day · N s`, a
+  still-planning line after 20 s, and a Retry after the same 195 s give-up.
 - **The pages.** `/admin/closet` is every garment as 4:5 tiles or a table
   with wear meters (the choice kept under `shelf.admin.closet.view`),
   filtered by status (Active by default), slot, Warm and Smart. Pieces
@@ -655,7 +662,12 @@ the phone and finish at the desk.
 - **Shoot** refuses a wrong type or an oversized file by name before
   upload, uploads each photo on its own request, and drives `POST
   /sittings/{id}/read-next` one photo at a time while the page is open;
-  the nightly reads the rest. A spent budget makes waiting photos say
+  the nightly reads the rest. A queued photo says its place
+  ("waiting to be read · 2 ahead"), the one being read counts seconds
+  ("reading · 12 s", with a still-reading line after 30 s). A read the
+  client gives up on at 195 s, or a network error, re-fetches the sitting
+  so the tiles show the server's real state, and the error offers Read
+  again. Remove is off on the photo being read. A spent budget makes waiting photos say
   "waiting for tomorrow's budget". One polite live region announces reads.
 - **Check** asks `check` and `probable` entries, one at a time (a radio
   group, the best candidate preselected; a Probable badge marks a likely

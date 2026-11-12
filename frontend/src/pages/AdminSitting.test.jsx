@@ -1389,13 +1389,13 @@ describe('AdminSitting', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('does not bring a removed photo back when its read lands late', async () => {
+    it("does not bring a removed photo back when another photo's read lands late", async () => {
       const user = userEvent.setup()
       const api = fakeIntakeApi({
         sittings: [
           longbox({
             step: 'shoot',
-            photos: [photo('p1', 'uploaded')],
+            photos: [photo('p1', 'uploaded'), photo('p2', 'uploaded')],
             entries: [],
           }),
         ],
@@ -1422,20 +1422,48 @@ describe('AdminSitting', () => {
       renderSitting()
       await screen.findByRole('heading', { name: 'Shoot' })
       await waitFor(() => expect(readsAsked(api)).toBe(1))
-      await user.click(screen.getByRole('button', { name: 'Remove photo 1' }))
+      // p1 is the photo in flight: it cannot be removed, p2 can.
+      expect(
+        screen.getByRole('button', { name: 'Remove photo 1' }),
+      ).toBeDisabled()
+      await user.click(screen.getByRole('button', { name: 'Remove photo 2' }))
       await waitFor(() =>
-        expect(api.calls('DELETE', /\/photos\/p1$/)).toHaveLength(1),
+        expect(api.calls('DELETE', /\/photos\/p2$/)).toHaveLength(1),
       )
       release()
-      await waitFor(() =>
-        expect(api.calls('POST', /\/read-next$/).length).toBeGreaterThanOrEqual(
-          1,
-        ),
-      )
-      expect(await screen.findByText('0 titles so far')).toBeInTheDocument()
+      expect(await screen.findByText(/^1 title so far/)).toBeInTheDocument()
       expect(
-        screen.queryByRole('button', { name: 'Remove photo 1' }),
+        screen.queryByRole('button', { name: 'Remove photo 2' }),
       ).not.toBeInTheDocument()
+    })
+
+    it("still shows the server's 409 when it refuses a removal", async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [
+          longbox({
+            step: 'shoot',
+            photos: [photo('p1', 'read'), photo('p2', 'uploaded')],
+            entries: [],
+          }),
+        ],
+      })
+      const inner = api.fetch.getMockImplementation()
+      api.fetch.mockImplementation(async (url, options) =>
+        options?.method === 'DELETE' && /\/photos\/p2$/.test(String(url))
+          ? {
+              ok: false,
+              status: 409,
+              json: async () => ({ detail: 'That photo is being read.' }),
+            }
+          : inner(url, options),
+      )
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      await user.click(screen.getByRole('button', { name: 'Remove photo 2' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'That photo is being read.',
+      )
     })
 
     it('says so when the sitting is gone, and keeps the photo shown', async () => {
@@ -1629,11 +1657,79 @@ describe('AdminSitting waits (#160)', () => {
     ).toHaveLength(1)
   })
 
-  it('tells the visitor photos are read one at a time, in order', async () => {
+  const readsOf = (api) =>
+    api.fetch.mock.calls.filter(([url]) => /\/read-next$/.test(String(url)))
+      .length
+  const sittingGets = (api) =>
+    api.fetch.mock.calls.filter(
+      ([url, options]) =>
+        /\/api\/intake\/sittings\/s1$/.test(String(url)) &&
+        (options?.method ?? 'GET') === 'GET',
+    ).length
+
+  it('re-fetches the sitting after a deadline, so tiles show the server state', async () => {
+    const api = await openWithHungReads([
+      photo('p1', 'uploaded'),
+      photo('p2', 'uploaded'),
+    ])
+    const before = sittingGets(api)
+    // The server finished p1 while the answer was lost.
+    api.state.sittings.s1.photos[0].state = 'read'
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    expect(sittingGets(api)).toBe(before + 1)
+    const tiles = within(
+      screen.getByRole('list', { name: 'Photos' }),
+    ).getAllByRole('listitem')
+    expect(within(tiles[0]).getByText('4 read')).toBeVisible()
+    // Nothing is marked reading that the server did not claim.
+    expect(screen.queryByText(/^reading/)).not.toBeInTheDocument()
+    expect(
+      within(tiles[1]).getByText('waiting to be read · next'),
+    ).toBeVisible()
+  })
+
+  it('offers Read again after a deadline, which clears the error and reads again', async () => {
+    const api = await openWithHungReads([photo('p1', 'uploaded')])
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    expect(readsOf(api)).toBe(1)
+    const alert = screen.getByRole('alert')
+    expect(
+      within(alert.parentElement).getByRole('button', { name: 'Read again' }),
+    ).toBeVisible()
+    await act(async () => {
+      screen.getByRole('button', { name: 'Read again' }).click()
+    })
+    expect(readsOf(api)).toBe(2)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Read again' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('does not offer Read again for an error the reader did not raise', async () => {
+    await openWithHungReads([photo('p1', 'failed', { error: 'bad' })])
+    expect(
+      screen.queryByRole('button', { name: 'Read again' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('disables Remove on the photo being read, not on those queued', async () => {
+    await openWithHungReads([photo('p1', 'uploaded'), photo('p2', 'uploaded')])
+    expect(
+      screen.getByRole('button', { name: 'Remove photo 1' }),
+    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Remove photo 2' })).toBeEnabled()
+  })
+
+  it('tells the visitor photos are read one at a time, oldest first', async () => {
     await openWithHungReads([photo('p1', 'read')])
     expect(
       screen.getByText(
-        /Keep shooting: photos are read one at a time, in the order you took them\./,
+        /Keep shooting: photos are read one at a time, oldest first\./,
       ),
     ).toBeVisible()
   })

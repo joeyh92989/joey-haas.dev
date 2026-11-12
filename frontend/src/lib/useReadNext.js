@@ -23,9 +23,14 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
  * @param {{remaining: number, enforced: boolean}|null} options.budget
  * @param {(update: (sitting: object) => object) => void} options.onChange
  *   The sitting's state setter.
+ * After a deadline or a network error the sitting is read again from the
+ * server (it has usually finished or failed that read), and `readAgain`
+ * clears the error and restarts the loop.
+ *
  * @returns {{drive: () => Promise<void>, merge: (photo: object,
  *   entries?: object[]) => void, forget: (photoId: string) => void, budgetSpent: boolean, readingId: string|null, announcement: string,
- *   error: string|null, setError: (error: string|null) => void}}
+ *   error: string|null, setError: (error: string|null) => void,
+ *   readFailed: boolean, readAgain: () => void}}
  */
 export function useReadNext({ sitting, budget, onChange }) {
   const [readSpent, setReadSpent] = useState(false)
@@ -33,7 +38,13 @@ export function useReadNext({ sitting, budget, onChange }) {
   const budgetSpent =
     readSpent || Boolean(budget?.enforced && budget.remaining <= 0)
   const [announcement, setAnnouncement] = useState('')
-  const [error, setError] = useState(null)
+  const [error, setErrorState] = useState(null)
+  // The error is the reader's own timeout or network failure: Read again fits.
+  const [readFailed, setReadFailed] = useState(false)
+  const setError = (next) => {
+    setErrorState(next)
+    setReadFailed(false)
+  }
   // The photo whose read-next is in flight: the server has claimed it, but
   // the sitting shows it `uploaded` until the answer lands.
   const [readingId, setReadingId] = useState(null)
@@ -52,12 +63,30 @@ export function useReadNext({ sitting, budget, onChange }) {
   const order = useRef([])
   order.current = sitting ? sitting.photos.map((p) => p.id) : []
 
+  // Deliberately not aborted on unmount: the `alive` guards below stop
+  // every state update and the loop, and the server finishes its read anyway.
   useEffect(() => {
     alive.current = true
     return () => {
       alive.current = false
     }
   }, [])
+
+  /** Replaces the sitting with the server's, best effort. */
+  async function refetch(sittingId) {
+    try {
+      const response = await apiFetch(`/api/intake/sittings/${sittingId}`)
+      if (!response.ok || !alive.current) return
+      const fresh = await response.json()
+      if (!alive.current) return
+      onChange(() => ({
+        ...fresh,
+        photos: fresh.photos.filter((p) => !removed.current.has(p.id)),
+      }))
+    } catch {
+      // The reader's error already says the server did not answer.
+    }
+  }
 
   /** Merges a photo, and any entries read from it, into the sitting. */
   function merge(photo, entries = []) {
@@ -138,16 +167,26 @@ export function useReadNext({ sitting, budget, onChange }) {
       }
     } catch (caught) {
       if (alive.current) {
-        setError(
+        // Nothing is in flight any more, whatever the server did with it.
+        setReadingId(null)
+        setErrorState(
           caught instanceof WaitTimeout
             ? READER_TIMEOUT
             : 'The server did not answer; try again.',
         )
+        setReadFailed(true)
+        await refetch(now.id)
       }
     } finally {
       if (alive.current) setReadingId(null)
       running.current = false
     }
+  }
+
+  /** Clears the reader's error and starts reading again. */
+  function readAgain() {
+    setError(null)
+    drive()
   }
 
   useEffect(() => {
@@ -170,5 +209,7 @@ export function useReadNext({ sitting, budget, onChange }) {
     announcement,
     error,
     setError,
+    readFailed,
+    readAgain,
   }
 }

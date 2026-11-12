@@ -103,7 +103,16 @@ export default function ShootStep({
   const [searching, setSearching] = useState(false)
   const [refusals, setRefusals] = useState([])
   const [removing, setRemoving] = useState(false)
-  const { drive, merge, budgetSpent, readingId, error, setError } = reader
+  const {
+    drive,
+    merge,
+    budgetSpent,
+    readingId,
+    error,
+    setError,
+    readFailed,
+    readAgain,
+  } = reader
   const alive = useRef(true)
 
   useEffect(() => {
@@ -236,7 +245,7 @@ export default function ShootStep({
         <p className="muted">
           {closet
             ? 'Each photo becomes a piece at once; the Closet’s tag queue names it.'
-            : '15 to 20 per photo reads best. Keep shooting: photos are read one at a time, in the order you took them.'}
+            : '15 to 20 per photo reads best. Keep shooting: photos are read one at a time, oldest first.'}
         </p>
         {!closet && (
           <p className="muted">
@@ -297,9 +306,16 @@ export default function ShootStep({
         </div>
       )}
       {error && (
-        <p className="admin-error" role="alert">
-          {error}
-        </p>
+        <div className="intake-error">
+          <p className="admin-error" role="alert">
+            {error}
+          </p>
+          {readFailed && (
+            <button type="button" className="btn sm" onClick={readAgain}>
+              Read again
+            </button>
+          )}
+        </div>
       )}
 
       {(sitting.photos.length > 0 || uploads.length > 0) && (

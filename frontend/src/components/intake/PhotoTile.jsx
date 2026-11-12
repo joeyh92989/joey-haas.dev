@@ -90,7 +90,7 @@ export default function PhotoTile({
           type="button"
           className="btn sm ghost"
           aria-label={`Remove photo ${number}`}
-          disabled={busy || photo.state === 'reading'}
+          disabled={busy || shown.state === 'reading'}
           onClick={() => onRemove(photo)}
         >
           Remove
