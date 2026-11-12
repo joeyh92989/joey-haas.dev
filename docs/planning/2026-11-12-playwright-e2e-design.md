@@ -48,9 +48,10 @@ flowchart LR
 ```
 
 - Routes come from `STATIC_PAGES` (`src/content/pages.js`), the one list search and prerender
-  already read, imported directly (it has no Vite imports). Every path is requested with a
-  trailing slash, which is what Render serves the prerendered file at; `vite preview` maps
-  `/about/` to `dist/about/index.html` the same way.
+  already read, imported directly (it has no Vite imports). Static pages are requested in
+  their canonical form, without a trailing slash, as the sitemap and nav write them (first
+  built with the slash; the final review found that `NavLink end` then misses, so screenshots
+  showed the wrong active tab). Dynamic samples keep the slash, which is their canonical form.
 - Theme is seeded with `page.addInitScript` writing `localStorage.theme` before the pre-paint
   script runs, then checked on `html[data-theme]`.
 - The analytics beacon is kept out of the numbers twice: `navigator.globalPrivacyControl` is set
