@@ -1,5 +1,5 @@
 import { apiFetch } from './api.js'
-import { STATUS_LABEL, STATUS_ORDER } from './shelf.js'
+import { runWords, STATUS_ORDER, statusLabel } from './shelf.js'
 
 /**
  * The status control's entries for one admin row, and the call that makes
@@ -53,10 +53,11 @@ function undoesToday(item, target) {
  */
 function move(item, target) {
   const from = item.status
+  const words = runWords(item.type)
   if (target === 'active' && (from === 'finished' || from === 'abandoned')) {
     return {
-      verb: from === 'finished' ? 'Replay' : 'Try again',
-      hint: `starts playthrough ${nextNumber(item)}`,
+      verb: from === 'finished' ? words.replay : 'Try again',
+      hint: `starts ${words.run} ${nextNumber(item)}`,
     }
   }
   if (target === 'active' && from === 'paused') {
@@ -70,8 +71,8 @@ function move(item, target) {
   }
   if (from === 'active' && undoesToday(item, target)) {
     return {
-      verb: target === 'finished' ? 'Finish' : STATUS_LABEL[target],
-      hint: `undoes today’s ${target === 'finished' ? 'Replay' : 'Try again'}`,
+      verb: target === 'finished' ? 'Finish' : statusLabel(target, item.type),
+      hint: `undoes today’s ${target === 'finished' ? words.replay : 'Try again'}`,
     }
   }
   if (from === 'active' && target === 'finished') {
@@ -89,13 +90,13 @@ function move(item, target) {
  * `label` is the verb for a named move, else the status name; `name` is the
  * accessible name, verb and hint together ("Replay, starts playthrough 3").
  *
- * @param {{status: string, playthroughs?: object[], times_completed?: number}} item
+ * @param {{status: string, type?: string, playthroughs?: object[], times_completed?: number}} item
  * @returns {Array<{status: string, label: string, hint: string|null, name: string, current: boolean}>}
  */
 export function statusMoves(item) {
   return STATUS_ORDER.map((status) => {
     const named = move(item, status)
-    const label = named?.verb ?? STATUS_LABEL[status]
+    const label = named?.verb ?? statusLabel(status, item.type)
     const hint = named?.hint ?? null
     return {
       status,

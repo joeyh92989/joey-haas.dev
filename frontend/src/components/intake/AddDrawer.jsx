@@ -130,6 +130,7 @@ export default function AddDrawer({
             </div>
           )}
           <KindFields
+            kindKey={kind.key}
             fields={kind.fields}
             values={values}
             onChange={(key, value) =>

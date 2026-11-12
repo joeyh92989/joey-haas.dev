@@ -11,6 +11,7 @@ import {
   PLATFORM_OPTIONS,
 } from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
+import { runWords } from '../lib/shelf.js'
 import PlayJournal from '../components/PlayJournal.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -672,7 +673,7 @@ export default function AdminItem() {
             <MetadataPicker type={form.type} onSelect={relink} />
           </div>
 
-          <PlayJournal itemId={item.id} />
+          <PlayJournal itemId={item.id} type={item.type} />
         </div>
 
         <div className="item-detail-main">
@@ -880,7 +881,7 @@ export default function AdminItem() {
             className="item-playthroughs"
             aria-labelledby="playthroughs-heading"
           >
-            <h2 id="playthroughs-heading">Playthroughs</h2>
+            <h2 id="playthroughs-heading">{runWords(item.type).runs}</h2>
             <p className="item-status-control">
               <label htmlFor="status">Status</label>
               <select
@@ -899,6 +900,7 @@ export default function AdminItem() {
               </select>
             </p>
             <PlaythroughTable
+              type={item.type}
               runs={item.playthroughs ?? []}
               editable
               busy={runBusy}

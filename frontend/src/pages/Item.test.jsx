@@ -1052,3 +1052,38 @@ describe('Item playthroughs', () => {
     expect(screen.queryByRole('region', { name: 'Playthroughs' })).toBeNull()
   })
 })
+
+describe('Item for a comic in comic words', () => {
+  const RUN = {
+    number: 1,
+    started_on: '2026-05-01',
+    finished_on: null,
+    paused_on: null,
+    outcome: null,
+    journal_days: 0,
+    journal_minutes: 0,
+  }
+
+  it('says Reads, Reading and Read, never the game words', async () => {
+    const owned = { ...SAGA, times_completed: 1, playthroughs: [RUN] }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => ({
+        ok: true,
+        status: 200,
+        json: async () => (String(url).includes('/api/public/') ? SAGA : owned),
+      })),
+    )
+    renderPage({ signedIn: true })
+    await screen.findByRole('heading', { level: 1, name: 'Saga' })
+
+    const section = await screen.findByRole('region', { name: 'Reads' })
+    expect(
+      within(section).getByRole('heading', { name: 'Reads' }),
+    ).toBeVisible()
+    expect(within(section).getByText('Reading')).toBeInTheDocument()
+    expect(screen.queryByText('Playthroughs')).toBeNull()
+    expect(screen.queryByText('Played')).toBeNull()
+    expect(screen.queryByText(/Playing/)).toBeNull()
+  })
+})

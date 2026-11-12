@@ -21,6 +21,8 @@ const INPUT_TYPES = { text: 'text', number: 'number', date: 'date' }
  *   entry (a comic's issues). Left out, every field.
  * @param {Record<string, string>} [props.refusals] The write path's own
  *   message per field key, shown beside that field.
+ * @param {string} [props.kindKey] The sitting's kind (`comic`, `game`), for
+ *   option words that follow the item type.
  * @param {string} props.idPrefix Unique per instance, for label ids.
  */
 export default function KindFields({
@@ -30,6 +32,7 @@ export default function KindFields({
   onBlur,
   mode,
   refusals = {},
+  kindKey,
   idPrefix,
 }) {
   const shown = fields.filter((field) =>
@@ -55,7 +58,7 @@ export default function KindFields({
             <option value="">—</option>
             {field.options.map((option) => (
               <option key={option} value={option}>
-                {optionLabel(field.key, option)}
+                {optionLabel(field.key, option, kindKey)}
               </option>
             ))}
           </select>

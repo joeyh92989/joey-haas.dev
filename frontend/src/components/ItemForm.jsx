@@ -3,7 +3,7 @@ import { spine } from '../content/spine.js'
 import { editionSlugs } from '../lib/coverWall.js'
 import { EMPTY_EDITION, SHELF_FORMATS } from '../lib/comics.js'
 import EditionLinkPicker from './EditionLinkPicker.jsx'
-import { STATUS_LABEL, STATUS_ORDER } from '../lib/shelf.js'
+import { STATUS_ORDER, statusLabel } from '../lib/shelf.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const OWNED_FORMATS = [
@@ -383,7 +383,7 @@ export default function ItemForm({
       <select aria-label="Status" value={value.status} onChange={set('status')}>
         {STATUS_ORDER.map((status) => (
           <option key={status} value={status}>
-            {STATUS_LABEL[status]}
+            {statusLabel(status, value.type)}
           </option>
         ))}
       </select>

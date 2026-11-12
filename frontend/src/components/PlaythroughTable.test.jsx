@@ -106,3 +106,39 @@ describe('the cell text', () => {
     expect(journalText({ journal_days: 0, journal_minutes: 0 })).toBe('—')
   })
 })
+
+describe('PlaythroughTable for a comic', () => {
+  it('says reads, never playthroughs or Playing', async () => {
+    const run = {
+      number: 1,
+      started_on: '2026-01-01',
+      finished_on: null,
+      paused_on: null,
+      outcome: null,
+      journal_days: 0,
+      journal_minutes: 0,
+    }
+    const { unmount } = render(
+      <PlaythroughTable runs={[]} type="comic" editable onAdd={() => {}} />,
+    )
+    expect(screen.getByText('No reads yet.')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Add a past read'))
+    expect(screen.getByRole('group', { name: 'Past read' })).toBeInTheDocument()
+    unmount()
+    render(
+      <PlaythroughTable
+        runs={[run]}
+        type="comic"
+        editable
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
+    )
+    expect(screen.getByText('Reading')).toBeInTheDocument()
+    expect(screen.getByLabelText('Started, read 1')).toBeInTheDocument()
+    expect(screen.queryByText(/play/i)).toBeNull()
+    expect(outcomeLabel({ outcome: null, paused_on: null }, 'comic')).toBe(
+      'Reading',
+    )
+  })
+})

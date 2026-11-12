@@ -5,7 +5,9 @@ import {
   filterItems,
   NO_FILTER,
   readShelfPref,
+  runWords,
   searchItems,
+  statusLabel,
   sortItems,
   STATUS_LABEL,
   STATUS_ORDER,
@@ -340,5 +342,30 @@ describe('topFavourites', () => {
     const copy = structuredClone(rows)
     topFavourites(rows, 1)
     expect(rows).toEqual(copy)
+  })
+})
+
+describe('words follow the item type', () => {
+  it('reads an active comic as Reading and everything else as before', () => {
+    expect(statusLabel('active', 'comic')).toBe('Reading')
+    expect(statusLabel('active', 'game')).toBe('Playing')
+    expect(statusLabel('active')).toBe('Playing')
+    expect(statusLabel('paused', 'comic')).toBe('Paused')
+    expect(statusLabel('finished', 'comic')).toBe('Finished')
+    expect(statusLabel('nope', 'comic')).toBeUndefined()
+  })
+
+  it('names the runs for a comic and a game', () => {
+    expect(runWords('comic')).toMatchObject({
+      runs: 'Reads',
+      addPast: 'Add a past read',
+      journalOn: 'Read on',
+    })
+    expect(runWords('game')).toMatchObject({
+      runs: 'Playthroughs',
+      addPast: 'Add a past playthrough',
+      journalOn: 'Played on',
+    })
+    expect(runWords(undefined).runs).toBe('Playthroughs')
   })
 })

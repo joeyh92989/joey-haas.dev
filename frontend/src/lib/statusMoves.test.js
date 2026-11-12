@@ -196,3 +196,19 @@ describe('localToday', () => {
     expect(localToday(new Date(2026, 0, 5, 23, 30))).toBe('2026-01-05')
   })
 })
+
+describe('statusMoves for a comic', () => {
+  it('reads Reading and Reread, and counts reads not playthroughs', () => {
+    const backlog = statusMoves({ status: 'backlog', type: 'comic' })
+    expect(backlog[1]).toMatchObject({ label: 'Reading' })
+    const done = byStatus({
+      status: 'finished',
+      type: 'comic',
+      playthroughs: [{ number: 1, outcome: 'finished' }],
+    })
+    expect(done.active.name).toBe('Reread, starts read 2')
+    const dropped = byStatus({ status: 'abandoned', type: 'comic' })
+    expect(dropped.active.label).toBe('Try again')
+    expect(dropped.active.hint).toBe('starts read 1')
+  })
+})

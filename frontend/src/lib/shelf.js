@@ -25,6 +25,51 @@ export const STATUS_LABEL = {
   abandoned: 'Abandoned',
 }
 
+/**
+ * A status in words for the item's type: an active comic is Reading, every
+ * other pairing keeps the shelf's own name.
+ *
+ * @param {string} status
+ * @param {string} [type]
+ */
+export function statusLabel(status, type) {
+  if (type === 'comic' && status === 'active') return 'Reading'
+  return STATUS_LABEL[status]
+}
+
+const GAME_WORDS = {
+  runs: 'Playthroughs',
+  run: 'playthrough',
+  noRuns: 'No playthroughs yet.',
+  addPast: 'Add a past playthrough',
+  pastRun: 'Past playthrough',
+  journalOn: 'Played on',
+  tile: 'Played',
+  again: 'Playing again',
+  replay: 'Replay',
+}
+
+const COMIC_WORDS = {
+  runs: 'Reads',
+  run: 'read',
+  noRuns: 'No reads yet.',
+  addPast: 'Add a past read',
+  pastRun: 'Past read',
+  journalOn: 'Read on',
+  tile: 'Read',
+  again: 'Reading again',
+  replay: 'Reread',
+}
+
+/**
+ * The words for an item's runs (playthroughs for a game, reads for a comic).
+ *
+ * @param {string} [type]
+ */
+export function runWords(type) {
+  return type === 'comic' ? COMIC_WORDS : GAME_WORDS
+}
+
 const TITLE_COLLATOR = new Intl.Collator(undefined, {
   numeric: true,
   sensitivity: 'base',

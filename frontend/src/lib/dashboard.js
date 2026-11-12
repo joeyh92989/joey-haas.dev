@@ -1,4 +1,4 @@
-import { STATUS_LABEL } from './shelf.js'
+import { statusLabel } from './shelf.js'
 
 /**
  * Finishes in a year, counted from the admin rows: finished playthroughs,
@@ -74,8 +74,8 @@ export function recentChanges(items, jobs, limit = 6) {
       key: `item-${item.id}`,
       title: item.title,
       to: `/admin/collection/${item.id}`,
-      change: STATUS_LABEL[item.status]
-        ? `Edited · ${STATUS_LABEL[item.status]}`
+      change: statusLabel(item.status, item.type)
+        ? `Edited · ${statusLabel(item.status, item.type)}`
         : 'Edited',
       at,
     }))

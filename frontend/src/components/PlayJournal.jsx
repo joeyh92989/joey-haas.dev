@@ -1,3 +1,4 @@
+import { runWords } from '../lib/shelf.js'
 import { useCallback, useEffect, useState } from 'react'
 import { ACTION_ERROR } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -22,8 +23,9 @@ function shown(isoDate) {
  *
  * @param {object} props
  * @param {string} props.itemId
+ * @param {string} [props.type] The item's type, for the words (a comic's day is Read on).
  */
-export default function PlayJournal({ itemId }) {
+export default function PlayJournal({ itemId, type }) {
   const [sessions, setSessions] = useState(null)
   const [playedOn, setPlayedOn] = useState(() => localToday())
   const [minutes, setMinutes] = useState('')
@@ -99,7 +101,7 @@ export default function PlayJournal({ itemId }) {
     <div className="play-journal">
       <h2>Journal</h2>
       <form className="play-journal-form" onSubmit={log}>
-        <label htmlFor="journal-played-on">Played on</label>
+        <label htmlFor="journal-played-on">{runWords(type).journalOn}</label>
         <input
           id="journal-played-on"
           type="date"

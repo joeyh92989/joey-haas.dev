@@ -21,6 +21,7 @@ function SetForAll({ kind, entries, onApply, busy }) {
       <p className="kicker">{name}</p>
       <div className="intake-setall-fields">
         <KindFields
+          kindKey={kind.key}
           idPrefix={`all-${kind.key}`}
           fields={kind.fields}
           mode="all"
@@ -181,6 +182,7 @@ export default function DetailsStep({
                       ))}
                     </div>
                     <KindFields
+                      kindKey={kind.key}
                       idPrefix={`row-${entry.id}`}
                       fields={kind.fields}
                       mode="item"
