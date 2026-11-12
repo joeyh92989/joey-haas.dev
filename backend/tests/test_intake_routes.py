@@ -317,6 +317,15 @@ async def test_the_list_counts_each_sittings_entries_and_waiting_photos(
     }
 
 
+@pytest.mark.asyncio
+async def test_the_list_says_when_each_sitting_was_started(sessionmaker_for_test):
+    # Two sittings can share a label; the list's created_at tells them apart.
+    async with client_for(sessionmaker_for_test) as client:
+        await _sitting(client, kind="comic")
+        (row,) = (await client.get("/api/intake/sittings?area=shelf")).json()
+    assert row["created_at"]
+
+
 # Shoot's "Search instead" (spec, Sitting · 1 Shoot): a search result chosen
 # from the add bar's search joins the sitting as an entry.
 DUNE = {

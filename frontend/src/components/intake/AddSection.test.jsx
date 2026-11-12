@@ -357,6 +357,24 @@ describe('AddSection on the shelf', () => {
     expect(screen.getByText('the grid')).toBeInTheDocument()
   })
 
+  it('counts several unfinished sittings and links to the list', async () => {
+    const sitting = (id) => ({
+      id,
+      area: 'shelf',
+      kind: 'comic',
+      label: 'Comic · Nov 11',
+      entries: [entry(`e${id}`, 'check')],
+    })
+    fakeIntakeApi({ sittings: [sitting('s1'), sitting('s2')] })
+    renderAt()
+    const line = await screen.findByText(/are unfinished/)
+    expect(line).toHaveTextContent('2 sittings are unfinished')
+    expect(
+      screen.getByRole('link', { name: /See them on the Add page/ }),
+    ).toHaveAttribute('href', '/admin/collection/add')
+    expect(screen.queryByText('Comic · Nov 11')).not.toBeInTheDocument()
+  })
+
   it('sends ▤ Photos to the Add page to choose a kind', async () => {
     const user = userEvent.setup()
     fakeIntakeApi()

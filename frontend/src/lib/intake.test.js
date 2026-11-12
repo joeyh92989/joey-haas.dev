@@ -137,8 +137,18 @@ describe('garmentNeedsCheck', () => {
 
 describe('sittingLabel', () => {
   it('is the kind and the day', () => {
-    expect(sittingLabel({ label: 'Garment' }, new Date(2026, 10, 10))).toBe(
-      'Garment · Nov 10',
+    expect(
+      sittingLabel({ label: 'Garment' }, new Date('2026-11-11T02:42:00Z')),
+    ).toBe('Garment · Nov 10, 7:42 PM')
+  })
+
+  it('tells two same-day sittings apart, in Denver time', () => {
+    const kind = { label: 'Comic' }
+    expect(sittingLabel(kind, new Date('2026-11-12T02:42:00Z'))).toBe(
+      'Comic · Nov 11, 7:42 PM',
+    )
+    expect(sittingLabel(kind, new Date('2026-11-12T04:05:00Z'))).toBe(
+      'Comic · Nov 11, 9:05 PM',
     )
   })
 })

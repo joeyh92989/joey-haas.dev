@@ -337,6 +337,7 @@ def create_intake_router(
                 "photos": count,
                 "photos_waiting": waiting[sitting.id],
                 "entries": entry_counts[sitting.id],
+                "created_at": sitting.created_at,
                 "updated_at": sitting.updated_at,
             }
             for sitting, count in rows

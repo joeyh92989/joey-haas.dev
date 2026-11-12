@@ -26,6 +26,7 @@ const SITTING = {
   photos: 6,
   photos_waiting: 1,
   entries: entries({ exact: 29, ready: 2, check: 7, reading: 2, owned: 3 }),
+  created_at: '2026-11-11T02:42:00Z',
   updated_at: '2026-11-10T19:42:00Z',
 }
 
@@ -95,5 +96,16 @@ describe('UnfinishedList', () => {
     renderList({ sittings: [{ ...SITTING, kind: null, label: null }] })
     expect(screen.getByRole('listitem')).toHaveTextContent('Untitled sitting')
     expect(screen.getByRole('listitem')).toHaveTextContent('Mixed shelf')
+  })
+
+  it('tells two same-label sittings apart by when each began', () => {
+    renderList({
+      sittings: [
+        SITTING,
+        { ...SITTING, id: 's2', created_at: '2026-11-12T04:05:00Z' },
+      ],
+    })
+    expect(screen.getByText(/started Nov 10, 7:42 PM/)).toBeInTheDocument()
+    expect(screen.getByText(/started Nov 11, 9:05 PM/)).toBeInTheDocument()
   })
 })

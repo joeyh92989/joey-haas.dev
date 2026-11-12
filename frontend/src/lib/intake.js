@@ -121,13 +121,22 @@ export function localToday(now = new Date()) {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
 
-/** A default name for a new sitting: its kind and the day. */
+const SITTING_STARTED = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/Denver',
+})
+
+/** When a sitting began, as "Nov 11, 7:42 PM" in the owner's Denver time. */
+export function startedAt(when) {
+  return SITTING_STARTED.format(new Date(when))
+}
+
+/** A default name for a new sitting: its kind and when it began. */
 export function sittingLabel(kind, now = new Date()) {
-  const day = now.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
-  return `${kind.label} · ${day}`
+  return `${kind.label} · ${startedAt(now)}`
 }
 
 /**
