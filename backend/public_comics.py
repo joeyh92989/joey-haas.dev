@@ -202,7 +202,7 @@ def series_of(item: Item) -> ComicSeries:
 
 def _editions(item: Item) -> list[dict]:
     try:
-        return validate_editions(item.editions)
+        return validate_editions(item.editions, stored_rows=True)
     except ValueError:
         return []
 

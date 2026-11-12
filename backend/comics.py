@@ -168,16 +168,20 @@ def _server_keys(entry: dict) -> dict:
     return out
 
 
-def validate_editions(raw: object, current: Sequence[dict] | None = None) -> list[dict]:
+def validate_editions(
+    raw: object, current: Sequence[dict] | None = None, *, stored_rows: bool = False
+) -> list[dict]:
     """Editions as stored: [{kind, label, from, to}] plus an optional
     Comic Vine link (`cv_id`, with the server-written `cover_url`,
     `large_url` and `description`), or RangeError.
 
     `current` is the stored editions. With it, an edition is matched to its
-    stored twin by slug, so an ordinary edit (a new label) that sends no link
-    keys keeps the link, and a `cv_id` that changed or was cleared drops the
-    server-written keys with it: they describe the old issue. Without it (a
-    create) whatever the request sends is kept.
+    stored twin by slug, so an ordinary edit that sends no link keys keeps the
+    link (when slug, kind and label all match), and a `cv_id`
+    that changed or was cleared drops the server-written keys with it: they
+    describe the old issue. The server-written keys are never taken from the
+    request, only from the stored twin. `stored_rows=True` is for reading the
+    stored column itself, whose keys are kept as they are.
     """
     if raw is None:
         return []
@@ -218,18 +222,29 @@ def validate_editions(raw: object, current: Sequence[dict] | None = None) -> lis
     stored = dict(zip(edition_slugs(current or []), current or [], strict=True))
     slugs = edition_slugs(editions)
     for slug, edition, sent in zip(slugs, editions, sent_entries, strict=True):
+        if stored_rows:
+            # Reading what the server stored: its keys are its own.
+            if edition.get("cv_id") is not None:
+                edition.update(_server_keys(sent))
+            continue
         twin = stored.get(slug)
+        # Only the link route writes the server keys: a request never does.
         if "cv_id" not in sent:
-            # No link sent: an ordinary edit keeps the stored link.
-            if twin and twin.get("cv_id") is not None:
+            # No link sent: an ordinary edit keeps the stored link, but only
+            # on the same edition (slug, kind and label), never on a range
+            # that merely reuses a slug after a swap or a delete.
+            if (
+                twin
+                and twin.get("cv_id") is not None
+                and twin.get("kind") == edition["kind"]
+                and twin.get("label") == edition["label"]
+            ):
                 edition["cv_id"] = twin["cv_id"]
                 edition.update(_server_keys(twin))
         elif edition.get("cv_id") is None:
             continue  # cleared: no link, no server keys
-        elif current is None:
-            edition.update(_server_keys(sent))
         elif twin and twin.get("cv_id") == edition["cv_id"]:
-            edition.update(_server_keys(twin) | _server_keys(sent))
+            edition.update(_server_keys(twin))
     return editions
 
 

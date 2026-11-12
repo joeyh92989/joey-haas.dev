@@ -549,19 +549,58 @@ def test_validate_editions_keeps_cv_id_and_drops_cover_on_relink():
         "large_url": "https://img/b.jpg",
         "description": ["One.", "Two."],
     }
-    kept = validate_editions([linked])
+    kept = validate_editions([linked], stored_rows=True)
     assert kept == [linked]
     # Resent unchanged against the stored row: kept.
     assert validate_editions([linked], [linked]) == [linked]
     # An ordinary edit that sends no link keys inherits the stored link.
-    plain = {"kind": "TPB", "label": "Volume One", "from": 1, "to": 6}
-    assert validate_editions([plain], [linked]) == [{**linked, "label": "Volume One"}]
+    plain = {"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}
+    assert validate_editions([plain], [linked]) == [linked]
     # A different cv_id, or an explicit null, drops the server-written keys.
     base = {"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}
     assert validate_editions([{**linked, "cv_id": 100}], [linked]) == [
         {**base, "cv_id": 100}
     ]
     assert validate_editions([{**linked, "cv_id": None}], [linked]) == [base]
+
+
+def test_server_keys_are_never_taken_from_the_request():
+    linked = {
+        "kind": "TPB",
+        "label": "Vol. 1",
+        "from": 1,
+        "to": 6,
+        "cv_id": 99,
+        "cover_url": "https://img/a.jpg",
+        "large_url": "https://img/b.jpg",
+        "description": ["One."],
+    }
+    base = {"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}
+    forged = {**linked, "cover_url": "https://evil/x.jpg", "description": ["Bad."]}
+    # A create: a cv_id may arrive, the keys may not.
+    assert validate_editions([forged]) == [{**base, "cv_id": 99}]
+    # An update with the cv_id unchanged: the stored keys win.
+    assert validate_editions([forged], [linked]) == [linked]
+    # An update with no stored twin: no keys.
+    assert validate_editions([forged], [{**base, "from": 7, "to": 9}]) == [
+        {**base, "cv_id": 99}
+    ]
+
+
+def test_link_is_inherited_only_by_the_same_edition():
+    linked = {
+        "kind": "TPB",
+        "label": "Vol. 1",
+        "from": 1,
+        "to": 6,
+        "cv_id": 99,
+        "cover_url": "https://img/a.jpg",
+    }
+    # Same slug (a range reused after a swap or delete) but another edition.
+    other_kind = {"kind": "Omnibus", "label": "Vol. 1", "from": 1, "to": 6}
+    other_label = {"kind": "TPB", "label": "Vol. 2", "from": 1, "to": 6}
+    assert validate_editions([other_kind], [linked]) == [other_kind]
+    assert validate_editions([other_label], [linked]) == [other_label]
 
 
 @pytest.mark.parametrize("cv_id", [0, -1, "9", True, 1.5])
