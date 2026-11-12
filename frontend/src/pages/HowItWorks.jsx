@@ -5,6 +5,7 @@ import SpineHeader from '../components/SpineHeader.jsx'
 import Stop from '../components/Stop.jsx'
 import StopIndex from '../components/StopIndex.jsx'
 import { spine } from '../content/spine.js'
+import { TRY_AGAIN } from '../content/status.js'
 import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
@@ -78,6 +79,17 @@ function Live({ state, empty, children, count }) {
   if (count > 0) return children
   if (!state.data && !state.failed) {
     return <p className="muted">{spine.next.loading}</p>
+  }
+  // A failed read with nothing painted is not an empty shelf.
+  if (state.failed && !state.data) {
+    return (
+      <div className="load-state" role="alert">
+        <p className="muted">{copy.liveFailed}</p>
+        <button type="button" className="btn sm" onClick={state.retry}>
+          {TRY_AGAIN}
+        </button>
+      </div>
+    )
   }
   return <p className="muted">{empty}</p>
 }

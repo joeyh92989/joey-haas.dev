@@ -1,4 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router'
+import LoadState from '../components/LoadState.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
@@ -12,7 +13,6 @@ import { isoMonth } from '../lib/monthInReview.js'
 import { finishYears, yearInReview } from '../lib/yearInReview.js'
 import NotFound from './NotFound.jsx'
 import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
-import { LOAD_ERROR } from '../content/status.js'
 
 const MONTHS = [
   'Jan',
@@ -59,7 +59,7 @@ export default function YearInReview() {
   const { year: param } = useParams()
   const valid = /^\d{4}$/.test(param ?? '')
   const year = Number(param)
-  const { data, failed } = useSnapshotThenLive('items')
+  const { data, failed, retry } = useSnapshotThenLive('items')
   // Hooks run before the not-found return below; an invalid year asks for
   // nothing.
   const played = usePublicDiary(valid ? year : null)
@@ -98,16 +98,12 @@ export default function YearInReview() {
         </nav>
       )}
 
-      {!data && !failed && (
-        <p className="muted" role="status">
-          Loading…
-        </p>
-      )}
-      {!data && failed && (
-        <p className="admin-error" role="alert">
-          {LOAD_ERROR}
-        </p>
-      )}
+      <LoadState
+        loading={!data && !failed}
+        failed={failed}
+        stale={!!data}
+        onRetry={retry}
+      />
 
       {data && review.count === 0 && (
         <p className="muted">

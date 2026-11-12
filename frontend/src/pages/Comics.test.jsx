@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
+import { flaky } from '../lib/flaky.test-util.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
+import { LOAD_ERROR, STALE_COPY, WAKING } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { itemPath } from '../lib/spinePaths.js'
 import Comics from './Comics.jsx'
@@ -382,6 +383,30 @@ describe('Comics', () => {
     mockComics({ data: null, live: false, failed: true })
     renderPage()
     expect(screen.getByRole('alert')).toHaveTextContent(LOAD_ERROR)
+  })
+
+  it('keeps its heading when nothing loads, and Try again brings the shelf', async () => {
+    vi.mocked(useSnapshotThenLive).mockImplementation(
+      flaky({ data: COMICS, live: true }),
+    )
+    renderPage()
+    expect(
+      screen.getByRole('heading', { level: 1, name: copy.title }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(copy.empty)).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getAllByText('Saga').length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('heading', { level: 1, name: copy.title }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows the quiet stale line over a painted snapshot', () => {
+    mockComics({ data: COMICS, live: false, failed: true, retry: vi.fn() })
+    renderPage()
+    expect(screen.getByRole('status')).toHaveTextContent(STALE_COPY)
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('credits Comic Vine', () => {

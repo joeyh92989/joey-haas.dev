@@ -2,9 +2,6 @@ import { test, expect } from './fixtures.js'
 import { NOT_FOUND_PATH, routePaths } from './routes.js'
 
 const THEMES = ['light', 'dark']
-const COMICS = '/shelf/comics'
-// known: /shelf/comics drops its h1 when the API is down — #181 (local runs)
-const skipsH1 = (path) => path === COMICS && !process.env.E2E_BASE_URL
 
 for (const path of routePaths()) {
   for (const theme of THEMES) {
@@ -14,9 +11,7 @@ for (const path of routePaths()) {
     }, testInfo) => {
       const { response, errors } = await openRoute(path, theme)
       expect(response.status()).toBeLessThan(400)
-      if (!skipsH1(path)) {
-        await expect(page.locator('h1').first()).toBeVisible()
-      }
+      await expect(page.locator('h1').first()).toBeVisible()
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
       if (testInfo.project.name === 'phone') {
         const overflow = await page.evaluate(
@@ -27,21 +22,6 @@ for (const path of routePaths()) {
         expect(overflow).toBeLessThanOrEqual(1)
       }
       expect(errors).toEqual([])
-    })
-  }
-}
-
-// known: /shelf/comics drops its h1 when the API is down — #181
-// Only the local run has no API; against a live site the h1 renders.
-if (!process.env.E2E_BASE_URL && routePaths().includes(COMICS)) {
-  for (const theme of THEMES) {
-    test(`${COMICS} h1 (known #181) (${theme})`, async ({
-      page,
-      openRoute,
-    }) => {
-      test.fail(true, 'h1 missing without a backend, #181')
-      await openRoute(COMICS, theme)
-      await expect(page.locator('h1').first()).toBeVisible()
     })
   }
 }

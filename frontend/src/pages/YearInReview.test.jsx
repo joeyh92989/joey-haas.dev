@@ -1,6 +1,8 @@
 import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
+import { flaky } from '../lib/flaky.test-util.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import YearInReview from './YearInReview.jsx'
 
@@ -8,7 +10,8 @@ const answer = vi.hoisted(() => ({
   value: { data: null, live: false, failed: false },
 }))
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
-  useSnapshotThenLive: () => answer.value,
+  useSnapshotThenLive: () =>
+    typeof answer.value === 'function' ? answer.value() : answer.value,
 }))
 const diary = vi.hoisted(() => ({ rows: [] }))
 vi.mock('../lib/usePublicDiary.js', () => ({
@@ -216,6 +219,17 @@ describe('YearInReview', () => {
     answer.value = { data: null, live: false, failed: true }
     renderAt('/shelf/year/2026')
     expect(screen.getByRole('alert')).toHaveTextContent('didn’t load')
+    expect(
+      screen.getByRole('heading', { level: 1, name: '2026 in review' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows the year after Try again', async () => {
+    answer.value = flaky({ data: ITEMS, live: true })
+    renderAt('/shelf/year/2026')
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getAllByText('Hades II').length).toBeGreaterThan(0)
   })
 
   it('treats a year that is not a year as not found', () => {

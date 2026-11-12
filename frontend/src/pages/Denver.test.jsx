@@ -10,6 +10,7 @@ import {
 } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
+import { flaky } from '../lib/flaky.test-util.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { LOAD_ERROR } from '../content/status.js'
 import { denver } from '../content/denver.js'
@@ -310,6 +311,21 @@ describe('Denver', () => {
       </MemoryRouter>,
     )
     expect(screen.getByRole('alert')).toHaveTextContent(LOAD_ERROR)
+    expect(
+      screen.getByRole('heading', { level: 1, name: denver.title }),
+    ).toBeInTheDocument()
+  })
+
+  it('offers Try again after a failed load, then shows the spots', async () => {
+    useSnapshotThenLive.mockImplementation(flaky({ data: SPOTS, live: true }))
+    render(
+      <MemoryRouter initialEntries={['/denver']}>
+        <Denver />
+      </MemoryRouter>,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('Union Station')).toBeInTheDocument()
   })
 
   it('has no axe violations', async () => {

@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router'
+import LoadState from '../components/LoadState.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
@@ -10,7 +11,6 @@ import { usePublicDiaryState } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NotFound from './NotFound.jsx'
 import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
-import { LOAD_ERROR } from '../content/status.js'
 
 const DAY = new Intl.DateTimeFormat('en', {
   weekday: 'short',
@@ -33,7 +33,7 @@ function dayWords(isoDate) {
 export default function MonthInReview() {
   const { month } = useParams()
   const parsed = parseMonth(month)
-  const { data, failed } = useSnapshotThenLive('items')
+  const { data, failed, retry } = useSnapshotThenLive('items')
   // Hooks run before the not-found return below; an invalid month asks for
   // nothing.
   const diary = usePublicDiaryState(parsed ? parsed.year : null)
@@ -75,16 +75,12 @@ export default function MonthInReview() {
         )}
       </nav>
 
-      {!data && !failed && (
-        <p className="muted" role="status">
-          Loading…
-        </p>
-      )}
-      {!data && failed && (
-        <p className="admin-error" role="alert">
-          {LOAD_ERROR}
-        </p>
-      )}
+      <LoadState
+        loading={!data && !failed}
+        failed={failed}
+        stale={!!data}
+        onRetry={retry}
+      />
 
       {data && empty && (
         <p className="muted">

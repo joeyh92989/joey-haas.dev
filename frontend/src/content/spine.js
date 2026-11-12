@@ -48,6 +48,8 @@ export const spine = {
    * prices) never reach the public API, so they can't be shown live.
    */
   how: {
+    // A stop whose live read failed (the empty copy is only for a real empty).
+    liveFailed: "Couldn't load this stop's live example.",
     path: '/shelf/how',
     tryPickForMe: 'Try Pick for me: choose a length and a mood',
     title: 'How My Shelf works, in nine stops',
@@ -737,6 +739,8 @@ export const spine = {
     /** The public issue page, /shelf/:id/:n/. */
     issue: {
       comics: 'Comics',
+      series: 'Series',
+      fallbackTitle: (n) => `Issue #${n}`,
       breadcrumb: 'Breadcrumb',
       neighbours: 'Neighbouring issues',
       coverAlt: (series, n) => `Cover of ${series} #${n}`,
@@ -770,6 +774,7 @@ export const spine = {
     },
     /** The public collected-edition page, /shelf/:id/ed-<from>-<to>/. */
     edition: {
+      fallbackTitle: 'Collected edition',
       title: (series, label) => `${series}, ${label}`,
       kicker: (kind, from, to) =>
         `${kind} · collects ${from === to ? `#${from}` : `#${from}–${to}`}`,

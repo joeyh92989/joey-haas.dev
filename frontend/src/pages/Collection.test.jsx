@@ -670,6 +670,27 @@ describe('Collection', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/didn’t load/i)
   })
 
+  it('keeps the header on a failed load, and Try again shows the shelf', async () => {
+    let up = false
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const body = String(url).includes('/api/public/items') ? ITEMS : STATS
+        return { ok: up, status: up ? 200 : 500, json: async () => body }
+      }),
+    )
+    renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent(/didn’t load/i)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Nothing on the shelf yet.')).toBeNull()
+    up = true
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect((await screen.findAllByText('Dune')).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
   it('treats a live body of the wrong shape as a failed load', async () => {
     // A 200 whose body is not a list would otherwise throw in the render.
     stubApi({ items: { detail: 'not a list' }, stats: { total: 1 } })
