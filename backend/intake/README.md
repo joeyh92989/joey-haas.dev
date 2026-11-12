@@ -59,19 +59,26 @@ and the entries read from them or typed in.
   shelf format set in Details (the first entry that has one) is saved on that
   existing row too, and not counted as an issue gained;
   collected `editions` set in Details count only on a trades or omnibus row
-  (a singles row writes none). They are merged: a new series' row gets every
+  (a singles row writes none, and a stale invalid edition on a row switched
+  back to singles is dropped before validation, never refused). They are merged: a new series' row gets every
   such entry's editions, and a series already on the shelf gets them added to
   the editions it holds, an identical kind, label and range once only, all
   re-checked by `comics.validate_editions`. An edition the write rules refuse
-  is a refusal on field `editions` and nothing is written;
-  a series that gains nothing is `already_owned`. Each such series is also
-  reported on its own in `series_grew` (`SeriesGrew`): `{item_id, title,
-  is_public, cover_url, before: {owned, released}, ongoing, added, already, after_owned_text}`,
-  where `added` and `already` split the sitting's issues of it against
-  what it held before (loose or in an edition), for Done's "Series that
-  grew". An issue already inside an edition is held, so it is neither
-  gained nor written again as a loose single; a refused commit reports
-  `series_grew: []`. Games, movies and board
+  is a refusal on field `editions`; every series' merged editions are checked
+  before any item is changed, so a refused sitting writes and mutates nothing.
+  One rule counts what a series gains, in a sitting and in the add bar:
+  the typed issues not held before the commit's editions merged in are
+  written loose as typed (`issues_added`), and the editions it gains are
+  listed apart. A series gaining neither issues nor an edition is
+  `already_owned`; one gaining only an edition is grown, not already owned.
+  Each such series is also reported on its own in `series_grew`
+  (`SeriesGrew`): `{item_id, title, is_public, cover_url, before: {owned,
+  released}, ongoing, added, already, editions_added, after_owned_text}`,
+  where `added` and `already` split the typed issues against what the row
+  held before (loose or in an edition), and `editions_added` is the
+  editions it gained, for Done's "Series that grew". An issue already inside
+  a stored edition is held, so it is neither gained nor written again as a
+  loose single; a refused commit reports `series_grew: []`. Games, movies and board
   games keep the old rule: one row per key, later photos dropped. The
   reader does not read an issue number off a photo (the importer's schema
   has no such field), so issues come from Details' Issues owned.
@@ -106,6 +113,8 @@ and the entries read from them or typed in.
   `(external_source, external_id)` is already an item, `owned_item_id`;
   each source is `ok`, `not_configured` (with `describe()`'s reason),
   `busy` (rate-limited, down or past the timeout: not a miss) or `failed`.
+  A comic result also carries `publisher` and `issue_count` (Comic Vine's;
+  null for other kinds), so same-titled series can be told apart.
   The Closet has no source, so its answer is empty both ways.
 
 - `nightly.py` — `run_nightly()`, behind `POST /api/intake/jobs/nightly`
