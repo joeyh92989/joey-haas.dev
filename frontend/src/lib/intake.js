@@ -37,14 +37,17 @@ export function optionLabel(fieldKey, value) {
 /** Entry states written by a commit (intake/commit.py). */
 export const WRITTEN_STATES = ['exact', 'ready', 'typed']
 
+/** Entry states asked one at a time in Check (a probable match is asked too). */
+export const CHECK_STATES = ['check', 'probable']
+
 /** The skim grid's states: trusted matches, and what is already owned. */
 export const SKIM_STATES = ['exact', 'owned']
 
 /**
- * A listed sitting's meter: ready (written at commit), to check (including probable matches, asked
- * one at a time), and still
- * reading (entries whose source was busy plus photos not yet read), and
- * the titles already on the shelf.
+ * A listed sitting's meter: ready (written at commit), to check (check and
+ * probable entries, asked one at a time), and still reading (entries whose
+ * source was busy plus photos not yet read), and the titles already on the
+ * shelf.
  *
  * @param {{entries?: Record<string, number>, photos_waiting?: number}} sitting
  */
@@ -53,7 +56,7 @@ export function meterCounts(sitting) {
   const count = (state) => entries[state] ?? 0
   return {
     ready: WRITTEN_STATES.reduce((sum, state) => sum + count(state), 0),
-    check: count('check') + count('probable'),
+    check: CHECK_STATES.reduce((sum, state) => sum + count(state), 0),
     reading: count('reading') + (sitting.photos_waiting ?? 0),
     owned: count('owned'),
   }

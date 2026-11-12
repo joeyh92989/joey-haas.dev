@@ -128,7 +128,7 @@ describe('IntakeDemo', () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(screen.getByRole('button', { name: 'Read this shelf' }))
-    await user.click(screen.getByRole('button', { name: 'Add 2 (pretend)' }))
+    await user.click(screen.getByRole('button', { name: 'Add 1 (pretend)' }))
     expect(screen.getByRole('status')).toHaveTextContent(
       'Pretend: nothing was written.',
     )

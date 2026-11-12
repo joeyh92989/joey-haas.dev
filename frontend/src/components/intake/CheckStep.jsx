@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { seriesGrowth } from '../../lib/comicRun.js'
-import { entryCover } from '../../lib/intake.js'
+import { CHECK_STATES, entryCover } from '../../lib/intake.js'
 import CheckOne from './CheckOne.jsx'
 import GarmentCheck from './GarmentCheck.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
@@ -84,9 +84,7 @@ export default function CheckStep({
   const oneRef = useRef(null)
   const closet = sitting.area === 'closet'
 
-  const checks = sitting.entries.filter((e) =>
-    ['check', 'probable'].includes(e.state),
-  )
+  const checks = sitting.entries.filter((e) => CHECK_STATES.includes(e.state))
   const left = checks.filter((e) => !skipped.has(e.id))
   const current = left[0] ?? null
   const grows = closet ? [] : sitting.entries.filter(addsToSeries)
