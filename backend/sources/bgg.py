@@ -42,6 +42,9 @@ UNAVAILABLE = (
     f"token; set BGG_TOKEN after registering at {REGISTRATION_URL}"
 )
 
+# The one-line version, for the intake tiles' status text.
+SHORT_REASON = "Needs a BoardGameGeek key; added by typing for now."
+
 
 class BggSource:
     """Board game metadata from BGG. Not yet usable -- see the module docstring."""
