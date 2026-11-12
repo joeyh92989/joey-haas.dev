@@ -3995,6 +3995,9 @@ footer {
   background: none;
   border-bottom: 2px solid transparent;
   border-radius: 0;
+  /* A grid or flex item (Daily's grid) must be allowed to shrink, or the
+     tab row's scroll width widens the page on a phone. */
+  min-width: 0;
   font-size: 1rem;
   font-weight: 500;
   padding: 0.375rem 0;
@@ -4023,6 +4026,31 @@ footer {
   margin-left: 0.25rem;
   text-transform: uppercase;
   vertical-align: 0.15em;
+/* Phone: one row that scrolls sideways, never wrapping (#192). The right edge
+   fades with a mask, so it needs no colour; the tabs stay focusable links. */
+@media (max-width: 700px) {
+  .spine-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 calc(100% - 2rem),
+      transparent
+    );
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  }
+
+  .spine-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .spine-tabs a {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+
 }
 
 .spine-tabs a:focus-visible,

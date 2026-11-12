@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { NavLink } from 'react-router'
+import MastNavLink from './MastNavLink.jsx'
 
 /**
  * The site nav as a sheet, for a phone, where the masthead has room for a
@@ -78,14 +78,7 @@ export default function MobileNavSheet({
           </div>
           <nav aria-label="Site">
             {items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                onClick={onClose}
-              >
-                {item.label}
-              </NavLink>
+              <MastNavLink key={item.to} item={item} onClick={onClose} />
             ))}
             <a href="/resume.pdf" onClick={onClose}>
               Resume ↓

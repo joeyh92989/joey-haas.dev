@@ -69,14 +69,14 @@ function isWideRoute(pathname) {
  *
  * @param {boolean} hasPosts Whether any post is published.
  * @param {boolean} [hasTrips] Whether any trip is published.
- * @returns {{to: string, label: string, end?: boolean}[]}
+ * @returns {{to: string, label: string, end?: boolean, also?: string[]}[]}
  */
 function navItems(hasPosts, hasTrips = false) {
   return [
     { to: '/', label: 'Home', end: true },
     { to: '/about', label: 'About' },
     { to: '/projects', label: 'Projects' },
-    { to: spine.path, label: spine.name },
+    { to: spine.path, label: spine.name, also: [spine.tabs.daily.to] },
     ...(hasTrips ? [{ to: '/travel', label: 'Travel' }] : []),
     ...(hasPosts ? [{ to: '/blog', label: 'Blog' }] : []),
   ]

@@ -122,6 +122,17 @@ describe('RootLayout theme toggle', () => {
   })
 })
 
+describe('RootLayout masthead on Daily', () => {
+  it('marks My Shelf current on /daily (#192)', () => {
+    renderAt('/daily')
+    const nav = screen.getByRole('navigation', { name: 'Site' })
+    expect(within(nav).getByRole('link', { name: 'My Shelf' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+  })
+})
+
 describe('RootLayout page widths', () => {
   function pageClass(path) {
     const { container } = renderAt(path)

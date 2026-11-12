@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router'
 import { spine } from '../content/spine.js'
 import { hasComics } from '../lib/snapshotPresence.js'
@@ -17,8 +18,16 @@ import { hasComics } from '../lib/snapshotPresence.js'
  */
 export default function SpineTabs({ comics = hasComics }) {
   const { how } = spine.tabs
+  const nav = useRef(null)
+  // On a phone the row scrolls sideways; bring the current tab into view on
+  // mount. jsdom has no scrollIntoView.
+  useEffect(() => {
+    nav.current
+      ?.querySelector('a.active')
+      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [])
   return (
-    <nav className="spine-tabs" aria-label={`${spine.name} sections`}>
+    <nav ref={nav} className="spine-tabs" aria-label={`${spine.name} sections`}>
       <NavLink to={spine.tabs.shelf.to} end>
         {spine.tabs.shelf.label}
       </NavLink>

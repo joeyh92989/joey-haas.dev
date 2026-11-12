@@ -7,7 +7,7 @@ import SiteMast from './SiteMast.jsx'
 const ITEMS = [
   { to: '/', label: 'Home', end: true },
   { to: '/about', label: 'About' },
-  { to: '/shelf', label: 'My Shelf' },
+  { to: '/shelf', label: 'My Shelf', also: ['/daily'] },
 ]
 
 function renderAt(path = '/', props = {}) {
@@ -52,6 +52,18 @@ afterEach(() => {
 describe('SiteMast', () => {
   it('marks the current page in the nav', () => {
     renderAt('/shelf/abc')
+    const nav = screen.getByRole('navigation', { name: 'Site' })
+    expect(within(nav).getByRole('link', { name: 'My Shelf' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(within(nav).getByRole('link', { name: 'Home' })).not.toHaveAttribute(
+      'aria-current',
+    )
+  })
+
+  it('marks My Shelf on /daily, a shelf tab outside /shelf (#192)', () => {
+    renderAt('/daily')
     const nav = screen.getByRole('navigation', { name: 'Site' })
     expect(within(nav).getByRole('link', { name: 'My Shelf' })).toHaveAttribute(
       'aria-current',
