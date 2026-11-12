@@ -452,7 +452,7 @@ export const spine = {
       outOf: 'out of 100',
       terms: {
         affinity: 'Taste',
-        similarity: 'Like my favourites',
+        similarity: 'Like my favorites',
         quality: 'Quality',
         length_fit: 'Fits the length',
       },
@@ -744,7 +744,7 @@ export const spine = {
       series: 'Series',
       fallbackTitle: (n) => `Issue #${n}`,
       breadcrumb: 'Breadcrumb',
-      neighbours: 'Neighbouring issues',
+      neighbours: 'Neighboring issues',
       coverAlt: (series, n) => `Cover of ${series} #${n}`,
       facts: {
         issue: 'Issue',
@@ -787,7 +787,7 @@ export const spine = {
       inside: 'Inside this book',
       previous: 'Previous',
       next: 'Next',
-      neighbours: 'Neighbouring editions',
+      neighbours: 'Neighboring editions',
       owner: {
         owned: 'Owned ✓',
         readToEnd: 'Read to the end',

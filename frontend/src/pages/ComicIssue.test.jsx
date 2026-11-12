@@ -203,7 +203,7 @@ describe('ComicIssue, public', () => {
     stubApi()
     renderIssue()
     const strip = await screen.findByRole('list', {
-      name: 'Neighbouring issues',
+      name: 'Neighboring issues',
     })
     expect(
       within(strip).getByRole('link', { name: 'Saga #58, Owned' }),

@@ -23,7 +23,7 @@ function renderStrip() {
 describe('NeighbourStrip', () => {
   it('is a labelled list with the current issue marked', () => {
     renderStrip()
-    const list = screen.getByRole('list', { name: 'Neighbouring issues' })
+    const list = screen.getByRole('list', { name: 'Neighboring issues' })
     const items = within(list).getAllByRole('listitem')
     expect(items).toHaveLength(4)
     const current = within(list).getByRole('link', { name: 'Saga #58, Owned' })
