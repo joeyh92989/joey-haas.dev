@@ -284,12 +284,14 @@ def _is_comic(kind: Kind | None) -> bool:
 class _Series:
     """One comic series in a sitting: the first written entry's row (None
     when every entry was marked owned), every entry's issue ranges, and the
-    shelf format Details set (the first entry that has one)."""
+    shelf format and collected editions Details set (the first entry that has
+    each)."""
 
     row: ItemIn | None = None
     entry: IntakeEntry | None = None
     issues: list[str | None] = field(default_factory=list)
     shelf_format: ComicShelfFormat | None = None
+    editions: list[dict] | None = None
 
 
 async def _series_on_shelf(
@@ -542,6 +544,8 @@ async def commit_sitting(
             found.issues.append(made.issues_owned)
             if found.shelf_format is None and not owned_comic:
                 found.shelf_format = made.shelf_format
+            if found.editions is None and not owned_comic:
+                found.editions = made.editions
             if found.row is None and not owned_comic:
                 found.row, found.entry = made, entry
             continue
@@ -582,6 +586,8 @@ async def commit_sitting(
                 new_row = new_row.model_copy(
                     update={"shelf_format": found.shelf_format}
                 )
+            if found.editions is not None:
+                new_row = new_row.model_copy(update={"editions": found.editions})
             rows.append(new_row)
             row_entries.append(found.entry)
 

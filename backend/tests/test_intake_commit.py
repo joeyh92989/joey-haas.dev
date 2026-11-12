@@ -693,3 +693,77 @@ async def test_a_new_series_takes_the_first_shelf_format_of_any_entry(
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned == "1–2"
     assert row.shelf_format == ComicShelfFormat.TRADES
+
+
+TRADE = {"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}
+
+
+@pytest.mark.asyncio
+async def test_a_new_series_keeps_the_editions_set_in_details(sessionmaker_for_test):
+    entries = [
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "7", "shelf_format": "trades", "editions": [TRADE]},
+            _series(),
+        )
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.editions == [TRADE]
+    assert row.issues_owned == "7"
+
+
+@pytest.mark.asyncio
+async def test_a_new_series_takes_the_editions_of_the_first_entry_that_has_them(
+    sessionmaker_for_test,
+):
+    entries = [
+        ("comic", S.READY, {"issues_owned": "7"}, _series()),
+        ("comic", S.READY, {"issues_owned": "8", "editions": [TRADE]}, _series()),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with sessionmaker_for_test() as session:  # pin the commit's order
+        for entry in await session.scalars(select(IntakeEntry)):
+            entry.created_at = datetime(2026, 11, 10, tzinfo=UTC) + timedelta(
+                minutes=int(entry.payload["issues_owned"])
+            )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.editions == [TRADE]
+
+
+@pytest.mark.asyncio
+async def test_a_series_on_the_shelf_keeps_its_own_editions(sessionmaker_for_test):
+    stored = {"kind": "Omnibus", "label": "Book 1", "from": 20, "to": 30}
+    await _seed_series(sessionmaker_for_test, issues_owned="1", editions=[stored])
+    entries = [
+        ("comic", S.READY, {"issues_owned": "2", "editions": [TRADE]}, _series())
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.editions == [stored]
+    assert row.issues_owned == "1–2"
+
+
+@pytest.mark.asyncio
+async def test_a_refused_edition_is_reported_on_the_editions_field(
+    sessionmaker_for_test,
+):
+    bad = {"kind": "Trade", "label": "Vol. 1", "from": 6, "to": 1}
+    entries = [("comic", S.READY, {"issues_owned": "7", "editions": [bad]}, _series())]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 422, response.text
+    [refused] = response.json()["refused"]
+    assert refused["field"] == "editions"

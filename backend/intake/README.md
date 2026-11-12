@@ -58,6 +58,11 @@ and the entries read from them or typed in.
   becomes owned, To read), and `issues_added` counts the issues it gained; a
   shelf format set in Details (the first entry that has one) is saved on that
   existing row too, and not counted as an issue gained;
+  collected `editions` set in Details (for a trades or omnibus row) go onto a
+  new series' row from the first entry that has them, as the shelf format
+  does; a series already on the shelf keeps its own editions untouched (edit
+  them on its item page), and an edition the write rules refuse is a
+  refusal on field `editions`;
   a series that gains nothing is `already_owned`. Each such series is also
   reported on its own in `series_grew` (`SeriesGrew`): `{item_id, title,
   is_public, cover_url, before: {owned, released}, ongoing, added, already, after_owned_text}`,
