@@ -5,7 +5,6 @@ import Panel from '../components/Panel.jsx'
 import SpotFinder from '../components/SpotFinder.jsx'
 import SpotForm from '../components/SpotForm.jsx'
 import { denver, tagLabel } from '../content/denver.js'
-import { SESSION_ENDED } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { formatDate } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
@@ -36,12 +35,8 @@ async function fetchSpots() {
       { ms: READ_DEADLINE_MS },
     )
     if (answer.spots) return answer
-    return {
-      error:
-        answer.status === 401 || answer.status === 403
-          ? SESSION_ENDED
-          : denver.admin.readError,
-    }
+    if (answer.status === 401 || answer.status === 403) return { ended: true }
+    return { error: denver.admin.readError }
   } catch {
     return { error: denver.admin.readError }
   }
@@ -71,6 +66,8 @@ export default function AdminSpots() {
   const [error, setError] = useState(null)
   // The first read's failure, apart from the writes' messages above it.
   const [readError, setReadError] = useState(null)
+  // The read was refused for the session: nothing to retry.
+  const [readEnded, setReadEnded] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [notice, setNotice] = useState(null)
   const [query, setQuery] = useState('')
@@ -85,7 +82,8 @@ export default function AdminSpots() {
     let live = true
     fetchSpots().then((result) => {
       if (!live) return
-      if (result.error) setReadError(result.error)
+      if (result.ended) setReadEnded(true)
+      else if (result.error) setReadError(result.error)
       else setSpots(result.spots)
     })
     return () => {
@@ -252,17 +250,14 @@ export default function AdminSpots() {
         <div className="finder-table">
           {spots === null && (
             <LoadState
-              loading={!readError}
+              loading={!readError && !readEnded}
               failed={!!readError}
+              ended={readEnded}
               message={readError ?? undefined}
-              onRetry={
-                readError === SESSION_ENDED
-                  ? undefined
-                  : () => {
-                      setReadError(null)
-                      setAttempt((n) => n + 1)
-                    }
-              }
+              onRetry={() => {
+                setReadError(null)
+                setAttempt((n) => n + 1)
+              }}
             />
           )}
 

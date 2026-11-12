@@ -119,7 +119,7 @@ describe('SpotForm', () => {
     render(<SpotForm spot={SPOT} onSaved={() => {}} onCancel={() => {}} />)
     await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session ended. Reload to sign in.',
+      'Your session ended. Sign in again.',
     )
   })
 

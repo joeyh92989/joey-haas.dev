@@ -5,8 +5,9 @@ import LoadState from '../components/LoadState.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
+import { ACTION_ERROR } from '../content/status.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
+import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 
 const KIND_ORDER = ['registry', 'store', 'platform', 'resolve']
 
@@ -38,15 +39,18 @@ const TOTAL_LABELS = [
 /** GET /status as {state, status, error}; the caller decides what to set. */
 async function fetchStatus() {
   try {
-    const response = await apiFetch('/api/physical/status')
-    if (response.status === 401) return { state: 'unauthorized' }
-    if (!response.ok) return { state: 'error', error: LOAD_ERROR }
-    return { state: 'ready', status: await response.json() }
+    // The deadline covers the body too.
+    return await withDeadline(
+      async (signal) => {
+        const response = await apiFetch('/api/physical/status', { signal })
+        if (response.status === 401) return { state: 'unauthorized' }
+        if (!response.ok) return { state: 'error' }
+        return { state: 'ready', status: await response.json() }
+      },
+      { ms: READ_DEADLINE_MS },
+    )
   } catch {
-    return {
-      state: 'error',
-      error: LOAD_ERROR,
-    }
+    return { state: 'error' }
   }
 }
 
@@ -345,10 +349,13 @@ export default function AdminCatalogue() {
   const apply = useCallback((result) => {
     setState(result.state)
     if (result.status) setStatus(result.status)
-    if (result.error) setError(result.error)
   }, [])
 
   const load = useCallback(async () => apply(await fetchStatus()), [apply])
+  const retryStatus = () => {
+    setState('loading')
+    load()
+  }
 
   // Signing in on another tab flips signedIn; read the status again then.
   useEffect(() => {
@@ -552,7 +559,12 @@ export default function AdminCatalogue() {
         </p>
       )}
 
-      {state === 'loading' && <p className="muted">Loading the catalog…</p>}
+      <LoadState
+        loading={state === 'loading'}
+        failed={state === 'error'}
+        stale={!!status}
+        onRetry={retryStatus}
+      />
 
       {status && (
         <>

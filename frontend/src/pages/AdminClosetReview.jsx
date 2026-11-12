@@ -179,17 +179,16 @@ export default function AdminClosetReview() {
     const timer = setTimeout(() => setSlow(true), 3000)
     apiFetch('/api/closet/review')
       .then(async (response) => {
-        if (response.status === 401 || response.status === 403)
-          throw new Error(SESSION_ENDED)
-        if (!response.ok) throw new Error(LOAD_ERROR)
+        if (response.status === 401 || response.status === 403) {
+          if (live) setError(SESSION_ENDED)
+          return
+        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
         const body = await response.json()
         if (live) take(body)
       })
-      .catch((failure) => {
-        if (live)
-          setError(
-            failure.message === SESSION_ENDED ? SESSION_ENDED : LOAD_ERROR,
-          )
+      .catch(() => {
+        if (live) setError(LOAD_ERROR)
       })
       .finally(() => clearTimeout(timer))
     return () => {

@@ -7,7 +7,6 @@ import Panel from '../components/Panel.jsx'
 import SuggestionCard from '../components/SuggestionCard.jsx'
 import WeatherPanel from '../components/WeatherPanel.jsx'
 import { denver } from '../content/denver.js'
-import { SESSION_ENDED } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { formatDate } from '../lib/formatDate.js'
 import { whenWords } from '../lib/nightly.js'
@@ -63,12 +62,8 @@ async function fetchPlan(seed) {
       { ms: READ_DEADLINE_MS },
     )
     if (answer.plan) return answer
-    return {
-      error:
-        answer.status === 401 || answer.status === 403
-          ? SESSION_ENDED
-          : copy.readError,
-    }
+    if (answer.status === 401 || answer.status === 403) return { ended: true }
+    return { error: copy.readError }
   } catch {
     return { error: copy.readError }
   }
@@ -201,6 +196,8 @@ export default function AdminWeekend() {
   // Kept apart so a re-read cannot clear a refused write's message: a
   // failed forecast refresh reads the plan again and still says why.
   const [readError, setReadError] = useState(null)
+  // The read was refused for the session: nothing to retry.
+  const [readEnded, setReadEnded] = useState(false)
   const [writeError, setWriteError] = useState(null)
   const error = writeError ?? readError
   const [busy, setBusy] = useState(false)
@@ -218,6 +215,9 @@ export default function AdminWeekend() {
       if (result.plan) {
         setPlan(result.plan)
         setReadError(null)
+        setReadEnded(false)
+      } else if (result.ended) {
+        setReadEnded(true)
       } else {
         setReadError(result.error)
       }
@@ -328,18 +328,15 @@ export default function AdminWeekend() {
       <div className="weekend">
         <AdminPageHeader title={copy.title} />
         <LoadState
-          loading={!error}
+          loading={!error && !readEnded}
           failed={!!error}
+          ended={readEnded}
           message={error ?? undefined}
-          onRetry={
-            error === SESSION_ENDED
-              ? undefined
-              : () => {
-                  setReadError(null)
-                  setWriteError(null)
-                  again()
-                }
-          }
+          onRetry={() => {
+            setReadError(null)
+            setWriteError(null)
+            again()
+          }}
         />
       </div>
     )

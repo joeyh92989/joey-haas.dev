@@ -7,7 +7,6 @@ import Panel from '../components/Panel.jsx'
 import RangeControl from '../components/RangeControl.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { dayLabel, deviceName, referrerName } from '../lib/analytics.js'
-import { SESSION_ENDED } from '../content/status.js'
 import { apiFetch } from '../lib/api.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 
@@ -21,13 +20,11 @@ const SPAN_WORDS = {
   '90d': 'last 90 days',
 }
 
-/** What went wrong, in words, for a read that did not answer 200. */
-function failureWords(response) {
-  if (response?.status === 401 || response?.status === 403) {
-    return SESSION_ENDED
-  }
-  return 'The analytics couldn’t be read.'
-}
+/** Whether a failed read was refused for the session (401 or 403). */
+const refused = (response) =>
+  response?.status === 401 || response?.status === 403
+
+const READ_FAILED = 'The analytics couldn’t be read.'
 
 /**
  * First-party page analytics, at /admin/analytics: four tiles, views per
@@ -42,6 +39,8 @@ export default function AdminAnalytics() {
   const [data, setData] = useState(null)
   const [loaded, setLoaded] = useState(null)
   const [error, setError] = useState(null)
+  // The read was refused for the session: nothing to retry.
+  const [ended, setEnded] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const loading = loaded !== range && !error
 
@@ -62,9 +61,12 @@ export default function AdminAnalytics() {
         setData(body)
         setLoaded(range)
         setError(null)
+        setEnded(false)
       })
       .catch((failure) => {
-        if (!controller.signal.aborted) setError(failureWords(failure))
+        if (controller.signal.aborted) return
+        setEnded(refused(failure))
+        setError(READ_FAILED)
       })
     return () => controller.abort()
   }, [range, attempt])
@@ -97,8 +99,9 @@ export default function AdminAnalytics() {
       <LoadState
         loading={loading && !data}
         failed={!!error}
+        ended={ended}
         message={error ?? undefined}
-        onRetry={error === SESSION_ENDED ? undefined : retry}
+        onRetry={retry}
       />
 
       <StatTiles label="Analytics figures">

@@ -259,7 +259,7 @@ describe('AdminSpots', () => {
     await screen.findByRole('table')
     await userEvent.setup().click(screen.getByLabelText("Public: Sloan's Lake"))
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session ended. Reload to sign in.',
+      'Your session ended. Sign in again.',
     )
     expect(screen.getByLabelText("Public: Sloan's Lake")).not.toBeChecked()
   })

@@ -338,13 +338,13 @@ describe('Admin Home', () => {
     const site = await card('Site')
     await waitFor(() =>
       expect(figureOf(site, 'Views · 7 days')).toHaveTextContent(
-        "Couldn't read",
+        'Couldn’t read',
       ),
     )
     const shelf = await card('Shelf')
-    expect(within(shelf).getByText("Couldn't read")).toBeInTheDocument()
+    expect(within(shelf).getByText('Couldn’t read')).toBeInTheDocument()
     expect(
-      await screen.findByText("Couldn't read: Shelf, Site."),
+      await screen.findByText('Couldn’t read: Shelf, Site.'),
     ).toBeInTheDocument()
     expect(
       screen.getByText('The nightly status couldn’t be read.'),
@@ -357,7 +357,7 @@ describe('Admin Home', () => {
     expect(
       await screen.findByText('Your session ended. Sign in again.'),
     ).toBeInTheDocument()
-    expect(screen.queryByText(/^Couldn't read:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Couldn’t read:/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
@@ -370,7 +370,7 @@ describe('Admin Home', () => {
           : json({}, false),
     })
     renderAt()
-    expect(await screen.findByText("Couldn't read: Site.")).toBeInTheDocument()
+    expect(await screen.findByText('Couldn’t read: Site.')).toBeInTheDocument()
     const calls = (path) =>
       fetch.mock.calls.filter(([url]) => String(url).endsWith(path)).length
     expect(calls('/api/analytics?range=7d')).toBe(1)
@@ -385,7 +385,7 @@ describe('Admin Home', () => {
     expect(calls('/api/analytics?range=7d')).toBe(2)
     expect(calls('/api/spots')).toBe(1)
     await waitFor(() =>
-      expect(screen.queryByText(/^Couldn't read:/)).not.toBeInTheDocument(),
+      expect(screen.queryByText(/^Couldn’t read:/)).not.toBeInTheDocument(),
     )
   })
 
@@ -396,11 +396,66 @@ describe('Admin Home', () => {
     renderAt()
     const closet = await card('Closet')
     expect(
-      (await within(closet).findAllByText("Couldn't read")).length,
+      (await within(closet).findAllByText('Couldn’t read')).length,
     ).toBeGreaterThan(0)
     expect(
-      await screen.findByText("Couldn't read: Closet."),
+      await screen.findByText('Couldn’t read: Closet.'),
     ).toBeInTheDocument()
+  })
+
+  it('keeps the Shelf card and its controls when a later read round fails', async () => {
+    let logged = false
+    stubApi({
+      '/api/items/a1/sessions': () => {
+        logged = true
+        return json({})
+      },
+      '/api/picker/continuing': () =>
+        logged ? json({}, false, 503) : json({ cards: [CONTINUING] }),
+    })
+    renderAt()
+    const shelf = await card('Shelf')
+    fireEvent.click(
+      await within(shelf).findByRole('button', { name: 'Log tonight' }),
+    )
+    expect(await screen.findByText('Couldn’t read: Shelf.')).toBeInTheDocument()
+    expect(within(shelf).getByText('Continue: Dredge')).toBeInTheDocument()
+    expect(
+      within(shelf).getByRole('button', { name: 'Wrap up' }),
+    ).toBeInTheDocument()
+    expect(within(shelf).queryByText('Couldn’t read')).toBeNull()
+  })
+
+  it('says Couldn’t read only for figures the card reads itself', async () => {
+    stubApi({
+      '/api/closet/today?stored_only=true': () => json({}, false),
+      '/api/picker/continuing': () => json({}, false),
+    })
+    renderAt()
+    const closet = await card('Closet')
+    await screen.findByText('Couldn’t read: Closet, Shelf.')
+    // Review and Untagged come from the layout, Owned and Finished from its
+    // items: their sources did not fail.
+    expect(figureOf(closet, 'To review')).not.toHaveTextContent('Couldn’t read')
+    expect(figureOf(closet, 'Untagged')).not.toHaveTextContent('Couldn’t read')
+    const shelf = await card('Shelf')
+    await waitFor(() => expect(figureOf(shelf, 'Owned')).toHaveTextContent('2'))
+    expect(figureOf(shelf, `Finished · ${YEAR}`)).not.toHaveTextContent(
+      'Couldn’t read',
+    )
+    // The Shelf read that failed is the one that feeds this figure.
+    expect(figureOf(shelf, 'Comics this week')).toHaveTextContent('2')
+  })
+
+  it('keeps — for a context figure that is missing, not Couldn’t read', async () => {
+    stubApi({
+      '/api/items': () => json({}, false),
+      '/api/picker/continuing': () => json({}, false),
+    })
+    renderAt()
+    const shelf = await card('Shelf')
+    await screen.findByText('Couldn’t read: Shelf.')
+    expect(figureOf(shelf, 'Owned')).toHaveTextContent('—')
   })
 
   it('lists the nightly jobs, linked to the Jobs page', async () => {
