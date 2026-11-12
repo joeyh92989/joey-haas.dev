@@ -726,6 +726,20 @@ describe('an empty page (#183)', () => {
     expect(sitemap(hidden)).toContain('/about')
   })
 
+  it('hides Comics the same way, in head and sitemap', () => {
+    const both = publicRoutes({
+      posts: [],
+      items: [],
+      hidden: ['/denver', '/shelf/comics'],
+    })
+    const shell = '<html><head><title>x</title></head><body></body></html>'
+    expect(renderHead(shell, routeAt(both, '/shelf/comics'))).toContain(
+      '<meta name="robots" content="noindex" />',
+    )
+    expect(sitemap(both)).not.toContain('/shelf/comics')
+    expect(sitemap(both)).toContain('/shelf</loc>')
+  })
+
   it('changes nothing when no path is hidden', () => {
     const plain = publicRoutes({ posts: [], items: [] })
     expect(plain.some((r) => r.noindex)).toBe(false)

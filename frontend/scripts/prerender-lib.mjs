@@ -14,6 +14,7 @@ import {
 import { MIN_POOL, dailyPool } from '../src/lib/daily.js'
 import { finishRows } from '../src/lib/finishes.js'
 import { clip } from '../src/lib/clip.js'
+import { isHiddenPath } from '../src/lib/snapshotPresence.js'
 import { editionPath, issuePath, itemPath } from '../src/lib/spinePaths.js'
 import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
 
@@ -200,7 +201,7 @@ export function publicRoutes({
   const routes = staticPages(posts.length > 0).map((entry) => ({
     ...page(entry.path, entry.headTitle, entry.description),
     ...flags[entry.path],
-    ...(hidden.includes(entry.path) ? { noindex: true } : {}),
+    ...(isHiddenPath(entry.path, hidden) ? { noindex: true } : {}),
   }))
   // The sitemap wants W3C dates; anything else is left out, not passed on.
   const lastmod = (date) =>

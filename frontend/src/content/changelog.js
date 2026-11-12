@@ -16,7 +16,7 @@ import { createElement } from 'react'
 import { Link } from 'react-router'
 import raw from '../../changelog.md?raw'
 import { parseChangelog } from '../lib/changelog.js'
-import { hiddenPaths } from '../lib/snapshotPresence.js'
+import { hiddenPaths, isHiddenPath } from '../lib/snapshotPresence.js'
 
 const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g
 
@@ -51,7 +51,7 @@ export function renderLine(line, hidden = hiddenPaths) {
   for (const match of line.matchAll(LINK)) {
     if (match.index > last) nodes.push(line.slice(last, match.index))
     const [, text, href] = match
-    if (hidden.includes(href)) {
+    if (isHiddenPath(href, hidden)) {
       nodes.push(text)
       last = match.index + match[0].length
       continue

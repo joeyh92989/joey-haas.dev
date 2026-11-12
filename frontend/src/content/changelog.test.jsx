@@ -91,4 +91,28 @@ describe('renderLine with a hidden path (#183)', () => {
     expect(screen.getByRole('link', { name: 'shelf' })).toBeInTheDocument()
     expect(screen.getByText(/See Denver and/)).toBeInTheDocument()
   })
+
+  it('matches the page, not the exact text: a fragment or a trailing slash', () => {
+    render(
+      <MemoryRouter>
+        <p>
+          {renderLine('[Map](/denver#map) and [Home](/denver/) and [Up](/).', [
+            '/denver',
+          ])}
+        </p>
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('link', { name: 'Map' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Home' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Up' })).toBeInTheDocument()
+  })
+
+  it('leaves Comics unlinked when its snapshot is empty', () => {
+    render(
+      <MemoryRouter>
+        <p>{renderLine('See [Comics](/shelf/comics).', ['/shelf/comics'])}</p>
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('link', { name: 'Comics' })).toBeNull()
+  })
 })
