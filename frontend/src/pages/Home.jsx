@@ -30,8 +30,9 @@ function lastShipped(entry) {
   if (!text) return null
   const date = SHORT_DAY.format(new Date(`${entry.date}T00:00:00Z`))
   return (
-    <Link to="/stats#changes">
-      {text} · {date}
+    <Link to="/stats#changes" className="facts-ship">
+      <span className="facts-ship-text">{text}</span>
+      <span className="facts-ship-date"> · {date}</span>
     </Link>
   )
 }

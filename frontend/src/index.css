@@ -759,6 +759,24 @@ p.muted a,
   white-space: nowrap;
 }
 
+/* Last shipped: the text gives way with an ellipsis, the date stays. */
+.facts-ship {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.facts-ship-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.facts-ship-date {
+  flex: none;
+  white-space: pre;
+}
+
 /* Home's Work and Experience: a hairline above, the heading and its "all"
    link on one line. */
 .home-section {
@@ -865,7 +883,9 @@ p.muted a,
 @media (max-width: 700px) {
   .hero {
     gap: 24px;
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr), not 1fr: a bare 1fr track will not shrink below its
+       content, so the nowrap Last shipped row widened the whole hero. */
+    grid-template-columns: minmax(0, 1fr);
     padding: 0.5rem 0 2rem;
   }
 
