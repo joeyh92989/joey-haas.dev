@@ -40,7 +40,7 @@ function textOf(node) {
   return (node.children ?? []).map(textOf).join('')
 }
 
-/** Lowercase letters, digits and hyphens, the way GitHub slugs a heading. */
+/** Lowercase letters, digits and hyphens. */
 function slugify(text) {
   const slug = text
     .toLowerCase()
@@ -56,13 +56,31 @@ function slugify(text) {
  * the same id, so a shared link keeps working until the heading is renamed.
  * The h2s are left on `file.data.headings` as [{id, text}] for the contents
  * list; the markup is otherwise untouched, so the Shiki step is unaffected.
+ *
+ * A heading that already has an id (GFM's `footnote-label`) or is screen-reader
+ * only keeps what it has: it is no part of the author's outline, so it gets no
+ * new id and never enters the contents list. Its id is still taken, so a
+ * later heading cannot collide with it.
  */
 export function rehypeHeadingIds() {
   return (tree, file) => {
     const used = new Set()
     const headings = []
+    const isHeading = (node) =>
+      node.type === 'element' && /^h[23]$/.test(node.tagName)
+    const isAuthored = (node) => {
+      const { id, className } = node.properties ?? {}
+      const classes = [].concat(className ?? [])
+      return !id && !classes.includes('sr-only')
+    }
+    const collect = (node) => {
+      if (isHeading(node) && node.properties?.id) {
+        used.add(String(node.properties.id))
+      }
+      node.children?.forEach(collect)
+    }
     const walk = (node) => {
-      if (node.type === 'element' && /^h[23]$/.test(node.tagName)) {
+      if (isHeading(node) && isAuthored(node)) {
         const text = textOf(node)
         const base = slugify(text)
         let id = base
@@ -73,26 +91,25 @@ export function rehypeHeadingIds() {
       }
       node.children?.forEach(walk)
     }
+    collect(tree)
     walk(tree)
     file.data.headings = headings
   }
 }
 
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkRehype)
-  .use(rehypeShiki, { themes: SHIKI_THEMES, defaultColor: 'light' })
-  .use(rehypeStringify)
+/** The parse and highlight chain both pipelines share; `ids` adds heading ids. */
+function pipeline({ ids = false } = {}) {
+  const chain = unified().use(remarkParse).use(remarkGfm).use(remarkRehype)
+  if (ids) chain.use(rehypeHeadingIds)
+  return chain
+    .use(rehypeShiki, { themes: SHIKI_THEMES, defaultColor: 'light' })
+    .use(rehypeStringify)
+}
+
+const processor = pipeline()
 
 /** The post pipeline: the same, plus heading ids. Trips keep their own markup. */
-const entryProcessor = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkRehype)
-  .use(rehypeHeadingIds)
-  .use(rehypeShiki, { themes: SHIKI_THEMES, defaultColor: 'light' })
-  .use(rehypeStringify)
+const entryProcessor = pipeline({ ids: true })
 
 /** Compiles a post or note body to { html, headings }. */
 export async function compileEntry(content) {

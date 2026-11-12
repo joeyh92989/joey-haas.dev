@@ -32,6 +32,15 @@ describe('compileEntry heading ids', () => {
     expect(a).toEqual(b)
   })
 
+  it('leaves the footnote heading alone and out of the contents', async () => {
+    const { html, headings } = await compileEntry(
+      '## Intro\n\nText[^1].\n\n## Footnote label\n\n[^1]: A note.\n',
+    )
+    expect(html).toContain('id="footnote-label"')
+    expect(html).toContain('<h2 id="footnote-label-1">Footnote label</h2>')
+    expect(headings.map((h) => h.id)).toEqual(['intro', 'footnote-label-1'])
+  })
+
   it('still highlights code', async () => {
     const { html } = await compileEntry('## Code\n\n```js\nconst a = 1\n```\n')
     expect(html).toContain('shiki')

@@ -1,11 +1,12 @@
-import { Link, useParams } from 'react-router'
+import { useEffect } from 'react'
+import { Link, useLocation, useParams } from 'react-router'
 import PostMeta from '../components/PostMeta.jsx'
 import { findPost } from '../content/posts.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 
 /** A post with more h2s than this gets a contents list. */
-const MIN_HEADINGS_FOR_CONTENTS = 4
+const MAX_HEADINGS_WITHOUT_CONTENTS = 4
 
 /**
  * A single post.
@@ -19,9 +20,28 @@ const MIN_HEADINGS_FOR_CONTENTS = 4
 export default function BlogPost() {
   const { slug } = useParams()
   const post = findPost(slug)
+  const { hash, key } = useLocation()
 
   // Null when missing, so NotFound's own title stands (see usePageTitle).
   usePageTitle(post ? `${post.frontmatter.title} · Joey Haas` : null)
+
+  // A link to `#id` (the contents list, or one shared) lands on that heading
+  // and moves focus there, rather than leaving it on the link just pressed.
+  // The router holds back the browser's own jump, so this does the scroll.
+  useEffect(() => {
+    if (!post || !hash) return
+    let id
+    try {
+      id = decodeURIComponent(hash.slice(1))
+    } catch {
+      return
+    }
+    const target = document.getElementById(id)
+    if (!target) return
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
+    target.scrollIntoView?.({ block: 'start' })
+    target.focus({ preventScroll: true })
+  }, [post, hash, key])
 
   if (!post) return <NotFound />
 
@@ -40,7 +60,7 @@ export default function BlogPost() {
       {post.frontmatter.draft && <span className="draft-badge">Draft</span>}
       <PostMeta date={post.frontmatter.date} tags={post.frontmatter.tags} />
 
-      {headings.length > MIN_HEADINGS_FOR_CONTENTS && (
+      {headings.length > MAX_HEADINGS_WITHOUT_CONTENTS && (
         <nav className="post-toc" aria-labelledby="post-toc-label">
           <p className="post-toc-label" id="post-toc-label">
             On this page
@@ -48,7 +68,7 @@ export default function BlogPost() {
           <ol>
             {headings.map((heading) => (
               <li key={heading.id}>
-                <a href={`#${heading.id}`}>{heading.text}</a>
+                <Link to={{ hash: heading.id }}>{heading.text}</Link>
               </li>
             ))}
           </ol>
@@ -59,10 +79,6 @@ export default function BlogPost() {
         className="post-body"
         dangerouslySetInnerHTML={{ __html: post.html }}
       />
-
-      <p>
-        <Link to="/blog">← All posts</Link>
-      </p>
     </section>
   )
 }

@@ -119,13 +119,30 @@ describe('Now', () => {
     }
     renderPage()
 
-    const heading = await screen.findByRole('heading', { name: 'Up next' })
+    const heading = await screen.findByRole('heading', { name: 'Tonight' })
+    expect(screen.queryByRole('heading', { name: 'Up next' })).toBeNull()
     expect(heading.nextSibling).toHaveTextContent('Dredge · Switch')
     expect(screen.getByRole('link', { name: 'Dredge' })).toHaveAttribute(
       'href',
       '/shelf/9/',
     )
     expect(screen.queryByText('Pikmin 4')).not.toBeInTheDocument()
+  })
+
+  it('keeps a pinned up_next as Up next, ahead of the first pick', async () => {
+    snapshots.items = [item('1', { title: 'Hades II', status: 'active' })]
+    snapshots.next = {
+      tonight: {
+        up_next: { item_id: '8', title: 'Metroid Prime 4', platform: null },
+        picks: [{ item_id: '9', title: 'Dredge', platform: 'Switch' }],
+      },
+    }
+    renderPage()
+
+    const heading = await screen.findByRole('heading', { name: 'Up next' })
+    expect(heading.nextSibling).toHaveTextContent('Metroid Prime 4')
+    expect(screen.queryByRole('heading', { name: 'Tonight' })).toBeNull()
+    expect(screen.queryByText('Dredge')).toBeNull()
   })
 
   it('points to My Shelf when the build has no snapshot', async () => {
