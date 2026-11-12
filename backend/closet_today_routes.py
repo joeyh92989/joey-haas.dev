@@ -5,7 +5,9 @@
   two alternatives, `ranked_by`, `model_note` and the footnote. GET
   `/today` answers the stored plan, or plans on open and stores it; POST
   `/plan` re-plans (an occasion chip, Build around, Not this) and
-  overwrites it. `stored_only` lets the Home card read without planning.
+  overwrites it. GET re-plans a stored plan that names an inactive garment
+  (keeping a still-active Build-around lock); `stored_only` lets the Home
+  card read without planning and answers no plan when the stored one is stale.
 - **One model call per plan**, Discover's contract (`rank`, never raises):
   `closet.py` filters and ranks, `closet_rank.py` asks the model to choose
   by indices, and any failure is the template plan with the reason in
@@ -517,28 +519,45 @@ def create_closet_today_router(
         row = await session.get(OutfitPlan, (day, occasion, bike))
         return dict(row.body) if row is not None else None
 
-    async def names_inactive(session: AsyncSession, plan: dict[str, Any]) -> bool:
-        """True when the plan names a garment that is deleted or not active."""
-        outfits = [plan.get("lead"), *plan.get("alternatives", [])]
-        named = {
-            uuid.UUID(g["id"])
-            for outfit in outfits
-            if outfit
-            for g in outfit["garments"]
-            if not g.get("transient")
-        }
-        if not named:
-            return False
-        active = set(
+    async def active_ids(session: AsyncSession, ids: set[uuid.UUID]) -> set[uuid.UUID]:
+        """The subset of `ids` that are active garments."""
+        if not ids:
+            return set()
+        return set(
             (
                 await session.scalars(
                     select(Garment.id).where(
-                        Garment.id.in_(named), Garment.status == GarmentStatus.ACTIVE
+                        Garment.id.in_(ids), Garment.status == GarmentStatus.ACTIVE
                     )
                 )
             ).all()
         )
-        return active != named
+
+    async def names_inactive(session: AsyncSession, plan: dict[str, Any]) -> bool:
+        """True when the plan names a garment that is deleted or not active.
+
+        A body that cannot be read (null alternatives, a non-UUID id) counts as
+        stale, so it is planned again instead of locking Today out."""
+        try:
+            outfits = [plan.get("lead"), *(plan.get("alternatives") or [])]
+            named = {
+                uuid.UUID(g["id"])
+                for outfit in outfits
+                if outfit
+                for g in outfit["garments"]
+                if not g.get("transient")
+            }
+        except (KeyError, TypeError, ValueError, AttributeError):
+            return True
+        return bool(named) and await active_ids(session, named) != named
+
+    async def kept_lock(session: AsyncSession, plan: dict[str, Any]) -> str | None:
+        """The stale plan's Build-around lock, when that garment is still active."""
+        try:
+            lock = uuid.UUID(str(plan.get("lock")))
+        except ValueError:
+            return None
+        return str(lock) if lock in await active_ids(session, {lock}) else None
 
     async def answer(
         session: AsyncSession, day: date, plan: dict | None, just_now: bool
@@ -571,15 +590,29 @@ def create_closet_today_router(
         plan = await stored(session, day, occasion, bike)
         # A plan naming a garment since deleted, packed, listed or gone is
         # stale: plan again for the same occasion and bike it was stored under.
-        if plan is not None and await names_inactive(session, plan):
+        lock_id = None
+        stale = plan is not None and await names_inactive(session, plan)
+        if stale:
+            lock_id = await kept_lock(session, plan)
             plan = None
             if stored_only:  # never shown stale, never planned here
                 return await answer(session, day, None, False)
         elif plan is not None or stored_only:
             return await answer(session, day, plan, False)
-        plan = await make_plan(session, day, occasion, bike)
+        plan = await make_plan(session, day, occasion, bike, lock_id=lock_id)
         if plan["lead"] is not None:
             await store(session, plan)
+        elif stale:
+            # No new lead: drop the stale row so later reads (and stored_only)
+            # don't recheck it and agree there is no plan.
+            await session.execute(
+                delete(OutfitPlan).where(
+                    OutfitPlan.day == day,
+                    OutfitPlan.occasion == occasion,
+                    OutfitPlan.bike == bike,
+                )
+            )
+            await session.commit()
         return await answer(session, day, plan, True)
 
     @router.post("/plan")
@@ -604,11 +637,14 @@ def create_closet_today_router(
             else:
                 previous = await stored(session, day, occasion, bike)
                 lead = (previous or {}).get("lead")
-                owned = [
+                held = [
                     {"slot": g["slot"], "id": g["id"]}
                     for g in (lead or {}).get("garments", [])
                     if not g["transient"]
                 ]
+                # A stale lead may name a garment since deleted or packed.
+                live = await active_ids(session, {uuid.UUID(g["id"]) for g in held})
+                owned = [g for g in held if uuid.UUID(g["id"]) in live]
             if owned:
                 outfit = Outfit(
                     worn_on=day,

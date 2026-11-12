@@ -775,3 +775,164 @@ async def test_today_replans_the_same_occasion_and_bike_it_read(sessionmaker_for
         again = (await client.get(url)).json()["plan"]
     assert again["occasion"] == "wfh" and again["bike"] is True
     assert gone not in _plan_ids(again)
+
+
+async def _stale(factory, garment_id, status=None):
+    async with factory() as session:
+        row = await session.get(Garment, uuid.UUID(garment_id))
+        if status is None:
+            await session.delete(row)
+        else:
+            row.status = status
+        await session.commit()
+
+
+async def _plan_rows(factory) -> list[OutfitPlan]:
+    async with factory() as session:
+        return list((await session.scalars(select(OutfitPlan))).all())
+
+
+async def test_stored_only_on_a_stale_plan_answers_none_and_calls_no_model(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test)
+    provider = FakeProvider(None)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+        calls = len(provider.calls)
+        await _stale(
+            sessionmaker_for_test,
+            plan["lead"]["garments"][0]["id"],
+            GarmentStatus.PACKED,
+        )
+        body = (await client.get("/api/closet/today?stored_only=true")).json()
+    assert body["plan"] is None and body["planned_just_now"] is False
+    assert len(provider.calls) == calls and ids
+
+
+async def test_only_an_alternative_naming_an_inactive_garment_is_stale(
+    sessionmaker_for_test,
+):
+    await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+        lead_ids = {g["id"] for g in plan["lead"]["garments"]}
+        only_alt = next(
+            g["id"]
+            for alt in plan["alternatives"]
+            for g in alt["garments"]
+            if g["id"] not in lead_ids
+        )
+        await _stale(sessionmaker_for_test, only_alt)
+        again = (await client.get("/api/closet/today")).json()
+    assert again["planned_just_now"] is True
+    assert only_alt not in _plan_ids(again["plan"])
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        {"alternatives": None},
+        {"alternatives": "x"},
+        {"lead": None},
+        {"lead": {"garments": [{"slot": "top", "id": "not-a-uuid"}]}},
+        {"lead": {}},
+    ],
+)
+async def test_a_malformed_stored_plan_is_planned_again_not_a_500(
+    sessionmaker_for_test, damage
+):
+    await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        first = (await client.get("/api/closet/today")).json()["plan"]
+        async with sessionmaker_for_test() as session:
+            row = (await session.scalars(select(OutfitPlan))).one()
+            row.body = {**first, **damage}
+            await session.commit()
+        response = await client.get("/api/closet/today")
+    assert response.status_code == 200
+    body = response.json()
+    if "alternatives" not in damage or damage["alternatives"] == "x":
+        # Unreadable ids are stale: planned again. A plain null or missing
+        # lead or alternatives is merely tolerated.
+        if damage != {"lead": None} and damage != {"lead": {}}:
+            assert body["planned_just_now"] is True
+            assert body["plan"]["lead"] is not None
+
+
+async def test_a_stale_plan_with_no_new_lead_deletes_its_row(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        await client.get("/api/closet/today")
+        assert len(await _plan_rows(sessionmaker_for_test)) == 1
+        for gid in ids.values():
+            await _stale(sessionmaker_for_test, gid)
+        again = (await client.get("/api/closet/today")).json()
+        later = (await client.get("/api/closet/today?stored_only=true")).json()
+    assert again["plan"]["lead"] is None
+    assert await _plan_rows(sessionmaker_for_test) == []
+    assert later["plan"] is None
+
+
+async def _with_lock(factory, lock):
+    async with factory() as session:
+        row = (await session.scalars(select(OutfitPlan))).one()
+        row.body = {**row.body, "lock": lock}
+        await session.commit()
+
+
+async def test_a_stale_plan_keeps_its_active_build_around_lock(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+        await _with_lock(sessionmaker_for_test, ids["blue shirt"])
+        victim = next(
+            g["id"] for g in plan["lead"]["garments"] if g["id"] != ids["blue shirt"]
+        )
+        await _stale(sessionmaker_for_test, victim)
+        again = (await client.get("/api/closet/today")).json()["plan"]
+    assert again["lock"] == ids["blue shirt"]
+    for outfit in [again["lead"], *again["alternatives"]]:
+        assert "blue shirt" in names(outfit)
+
+
+async def test_a_stale_plan_drops_a_lock_on_the_inactive_garment(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        await client.get("/api/closet/today")
+        await _with_lock(sessionmaker_for_test, ids["blue shirt"])
+        await _stale(sessionmaker_for_test, ids["blue shirt"], GarmentStatus.PACKED)
+        # Make the stored plan name the packed garment so it is stale.
+        async with sessionmaker_for_test() as session:
+            row = (await session.scalars(select(OutfitPlan))).one()
+            body = dict(row.body)
+            body["lead"] = {
+                **body["lead"],
+                "garments": [
+                    *body["lead"]["garments"],
+                    {"slot": "top", "id": ids["blue shirt"], "transient": False},
+                ],
+            }
+            row.body = body
+            await session.commit()
+        response = await client.get("/api/closet/today")
+    assert response.status_code == 200
+    assert response.json()["plan"]["lock"] is None
+
+
+async def test_not_this_on_a_stale_plan_skips_the_deleted_garment(
+    sessionmaker_for_test,
+):
+    await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+        gone = plan["lead"]["garments"][0]["id"]
+        await _stale(sessionmaker_for_test, gone)
+        response = await client.post(
+            "/api/closet/plan", json={"not_this": sorted(closet_rank.NOT_THIS)[0]}
+        )
+    assert response.status_code == 200
+    rows = await declined_rows(sessionmaker_for_test)
+    assert all(gone not in ids for _, ids in rows)
