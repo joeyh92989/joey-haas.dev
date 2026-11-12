@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 import items
 from intake.commit import NOTHING_TO_ADD, PHOTOS_STILL_WAITING
 from models import (
+    ComicShelfFormat,
     Garment,
     GarmentStatus,
     IntakeArea,
@@ -606,3 +607,58 @@ async def test_a_closet_sitting_keeps_its_garments_and_adds_typed_ones(
         )
     assert names == ["Grey wool coat", "None"]  # the photo's garment untouched
     assert await _count(sessionmaker_for_test, IntakeSitting) == 0
+
+
+@pytest.mark.asyncio
+async def test_a_source_matched_comic_keeps_the_shelf_format_set_in_details(
+    sessionmaker_for_test,
+):
+    entries = [
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "1", "shelf_format": "singles", "status": "backlog"},
+            _series(),
+        )
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        async with sessionmaker_for_test() as session:
+            entry_id = await session.scalar(select(IntakeEntry.id))
+        patched = await client.patch(
+            f"/api/intake/entries/{entry_id}",
+            json={
+                "payload": {
+                    "issues_owned": "1",
+                    "shelf_format": "singles",
+                    "status": "backlog",
+                }
+            },
+        )
+        assert patched.status_code == 200, patched.text
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.shelf_format == ComicShelfFormat.SINGLES
+
+
+@pytest.mark.asyncio
+async def test_a_series_on_the_shelf_takes_the_shelf_format_set_in_details(
+    sessionmaker_for_test,
+):
+    await _seed_series(sessionmaker_for_test, issues_owned="1")
+    entries = [
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "2", "shelf_format": "singles"},
+            _series(),
+        )
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_owned == "1–2"
+    assert row.shelf_format == ComicShelfFormat.SINGLES

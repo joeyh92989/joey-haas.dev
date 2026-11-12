@@ -55,6 +55,7 @@ from formats import CopyFieldError
 from intake.kinds import REGISTRY, Kind
 from items import ItemIn, RowRefused, _write_fields, commit_items
 from models import (
+    ComicShelfFormat,
     Garment,
     GarmentStatus,
     GarmentTagSource,
@@ -282,11 +283,13 @@ def _is_comic(kind: Kind | None) -> bool:
 @dataclass
 class _Series:
     """One comic series in a sitting: the first written entry's row (None
-    when every entry was marked owned) and every entry's issue ranges."""
+    when every entry was marked owned), every entry's issue ranges, and the
+    shelf format Details set (the first entry that has one)."""
 
     row: ItemIn | None = None
     entry: IntakeEntry | None = None
     issues: list[str | None] = field(default_factory=list)
+    shelf_format: ComicShelfFormat | None = None
 
 
 async def _series_on_shelf(
@@ -417,6 +420,8 @@ async def commit_one(
             issues = expand(parse_ranges(made.issues_owned))
             gained = issues - owned_set(on_shelf.issues_owned, on_shelf.editions)
             grew = SeriesGrew.before_write(on_shelf, issues)
+            if made.shelf_format is not None:
+                on_shelf.shelf_format = made.shelf_format
             if gained:
                 outcome.issues_added = await got_issues(
                     session, on_shelf, gained, today
@@ -535,6 +540,8 @@ async def commit_sitting(
             # Every photo of one series is one row: its issues are joined.
             found = series.setdefault(key, _Series())
             found.issues.append(made.issues_owned)
+            if found.shelf_format is None and not owned_comic:
+                found.shelf_format = made.shelf_format
             if found.row is None and not owned_comic:
                 found.row, found.entry = made, entry
             continue
@@ -557,6 +564,8 @@ async def commit_sitting(
         item = on_shelf.get(key)
         if item is not None:
             outcome.series_grew.append(SeriesGrew.before_write(item, issues))
+            if found.shelf_format is not None:
+                item.shelf_format = found.shelf_format
             gained = issues - owned_set(item.issues_owned, item.editions)
             if gained:
                 gains.append((item, gained))

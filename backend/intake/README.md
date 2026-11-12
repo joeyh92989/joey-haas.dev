@@ -55,7 +55,9 @@ and the entries read from them or typed in.
   series already in `items` gains the sitting's issues through
   `comics_routes.got_issues`, Got it's own rule (union, never lowered; a
   newly owned number leaves `issues_skipped`; a followed or wanted row
-  becomes owned, To read), and `issues_added` counts the issues it gained;
+  becomes owned, To read), and `issues_added` counts the issues it gained; a
+  shelf format set in Details (the first entry that has one) is saved on that
+  existing row too, and not counted as an issue gained;
   a series that gains nothing is `already_owned`. Each such series is also
   reported on its own in `series_grew` (`SeriesGrew`): `{item_id, title,
   is_public, cover_url, before: {owned, released}, ongoing, added, already, after_owned_text}`,
