@@ -35,6 +35,22 @@ export const STILL_TAGGING = 'Still working — this can take up to two minutes.
 export const TAGGING_TIMEOUT =
   "Tagging didn't answer in time. It may still finish — reload to see."
 
+/** A photo waiting for the reader: how many are read before it. */
+export const photoQueued = (ahead) =>
+  ahead > 0
+    ? `waiting to be read · ${ahead} ahead`
+    : 'waiting to be read · next'
+
+/** The photo being read, `seconds` into the model call. */
+export const photoReading = (seconds) => `reading · ${seconds} s`
+
+/** Shown beside `photoReading` once a read has gone on a while. */
+export const STILL_READING =
+  'still reading — the model can take a minute or two'
+
+/** The reader's failure when a read passes its deadline. */
+export const READER_TIMEOUT = "The reader didn't answer in time; try again."
+
 export const LOAD_ERROR = 'That didn’t load. Try again in a minute.'
 
 export const ACTION_ERROR = 'Couldn’t reach the server. Try again in a minute.'

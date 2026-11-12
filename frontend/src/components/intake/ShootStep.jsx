@@ -18,6 +18,17 @@ import ShootSearch from './ShootSearch.jsx'
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /**
+ * How many photos are read before the one at `index`: the waiting photos
+ * (`uploaded`) before it. The reader takes them oldest first, which is the
+ * order of `photos`; the one in flight (`readingId`) is being read, not waiting.
+ */
+function aheadOf(photos, index, readingId) {
+  return photos
+    .slice(0, index)
+    .filter((p) => p.state === 'uploaded' && p.id !== readingId).length
+}
+
+/**
  * The sitting's running line: titles so far and what is still to come.
  * The title parts partition the total exactly: removed entries are in
  * neither, and an unticked one (skim grid) stays listed under its own part,
@@ -92,7 +103,7 @@ export default function ShootStep({
   const [searching, setSearching] = useState(false)
   const [refusals, setRefusals] = useState([])
   const [removing, setRemoving] = useState(false)
-  const { drive, merge, budgetSpent, error, setError } = reader
+  const { drive, merge, budgetSpent, readingId, error, setError } = reader
   const alive = useRef(true)
 
   useEffect(() => {
@@ -225,7 +236,7 @@ export default function ShootStep({
         <p className="muted">
           {closet
             ? 'Each photo becomes a piece at once; the Closet’s tag queue names it.'
-            : '15 to 20 per photo reads best. Keep shooting: each photo is read as it lands.'}
+            : '15 to 20 per photo reads best. Keep shooting: photos are read one at a time, in the order you took them.'}
         </p>
         {!closet && (
           <p className="muted">
@@ -300,6 +311,8 @@ export default function ShootStep({
               number={index + 1}
               titles={titlesFrom(photo)}
               budgetSpent={budgetSpent}
+              ahead={aheadOf(sitting.photos, index, readingId)}
+              reading={photo.id === readingId}
               onRetry={retry}
               onRemove={removePhoto}
               busy={removing}

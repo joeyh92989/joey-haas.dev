@@ -1,13 +1,26 @@
 import { API_URL } from '../../lib/api.js'
+import {
+  STILL_READING,
+  photoQueued,
+  photoReading,
+} from '../../content/status.js'
 import { BUDGET_WAITING } from '../../lib/intake.js'
+import { useElapsed } from '../../lib/useElapsed.js'
 
-/** What a photo's tile says, from its state on the server. */
-export function photoWords(photo, titles, budgetSpent) {
+/** Seconds into a read after which the tile owns up to a long one. */
+const STILL_READING_AFTER = 30
+
+/**
+ * What a photo's tile says, from its state on the server. `ahead` is how
+ * many waiting photos are read before this one; `seconds` how long its
+ * read has gone on.
+ */
+export function photoWords(photo, titles, budgetSpent, ahead = 0, seconds = 0) {
   switch (photo.state) {
     case 'uploaded':
-      return budgetSpent ? BUDGET_WAITING : 'queued'
+      return budgetSpent ? BUDGET_WAITING : photoQueued(ahead)
     case 'reading':
-      return 'reading…'
+      return photoReading(seconds)
     case 'read':
       return `${titles} read`
     case 'empty':
@@ -29,6 +42,9 @@ export function photoWords(photo, titles, budgetSpent) {
  * @param {number} props.number Its place in the sitting, from 1.
  * @param {number} props.titles Entries read from it.
  * @param {boolean} props.budgetSpent Today's model budget is used up.
+ * @param {number} [props.ahead] Waiting photos read before this one.
+ * @param {boolean} [props.reading] The reader has this photo in flight: the
+ *   server claimed it, though the sitting still shows it `uploaded`.
  * @param {(photo: object) => void} props.onRetry
  * @param {(photo: object) => void} [props.onRemove] Remove this photo, and
  *   the titles read from it, before the sitting is added.
@@ -39,18 +55,25 @@ export default function PhotoTile({
   number,
   titles,
   budgetSpent,
+  ahead = 0,
+  reading = false,
   onRetry,
   onRemove,
   busy = false,
 }) {
+  const shown = reading ? { ...photo, state: 'reading' } : photo
+  const seconds = useElapsed(shown.state === 'reading')
   return (
-    <li className={`intake-shot intake-shot-${photo.state}`}>
+    <li className={`intake-shot intake-shot-${shown.state}`}>
       <img
         src={`${API_URL}/api/intake/photos/${photo.id}/image`}
         alt={`Photo ${number}`}
         loading="lazy"
       />
-      <span>{photoWords(photo, titles, budgetSpent)}</span>
+      <span>{photoWords(shown, titles, budgetSpent, ahead, seconds)}</span>
+      {shown.state === 'reading' && seconds >= STILL_READING_AFTER && (
+        <span className="muted">{STILL_READING}</span>
+      )}
       {photo.state === 'failed' && (
         <>
           {photo.error && <span className="muted">{photo.error}</span>}

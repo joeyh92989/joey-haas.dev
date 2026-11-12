@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import {
   candidate,
@@ -1560,5 +1560,81 @@ describe('AdminSitting', () => {
         screen.queryByRole('group', { name: 'Saga' }),
       ).not.toBeInTheDocument()
     })
+  })
+})
+
+describe('AdminSitting waits (#160)', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  /** Opens a sitting whose read-next never answers. */
+  async function openWithHungReads(photos) {
+    const api = fakeIntakeApi({ sittings: [longbox({ photos })] })
+    const inner = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation((url, options) =>
+      /\/read-next$/.test(String(url))
+        ? new Promise(() => {})
+        : inner(url, options),
+    )
+    renderSitting()
+    // Let the sitting load, then the reader start by itself.
+    for (let i = 0; i < 3; i++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10)
+      })
+    }
+    return api
+  }
+
+  it('tells the photo in flight from the ones queued behind it', async () => {
+    await openWithHungReads([
+      photo('p1', 'read'),
+      photo('p2', 'uploaded'),
+      photo('p3', 'uploaded'),
+      photo('p4', 'uploaded'),
+    ])
+    const tiles = within(
+      screen.getByRole('list', { name: 'Photos' }),
+    ).getAllByRole('listitem')
+    expect(within(tiles[1]).getByText('reading · 0 s')).toBeVisible()
+    expect(
+      within(tiles[2]).getByText('waiting to be read · next'),
+    ).toBeVisible()
+    expect(
+      within(tiles[3]).getByText('waiting to be read · 1 ahead'),
+    ).toBeVisible()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000)
+    })
+    expect(within(tiles[1]).getByText('reading · 5 s')).toBeVisible()
+  })
+
+  it('stops the reader with a message when read-next passes the deadline', async () => {
+    const api = await openWithHungReads([photo('p1', 'uploaded')])
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(165_000)
+    })
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      "The reader didn't answer in time; try again.",
+    )
+    const asked = api.fetch.mock.calls.filter(([url]) =>
+      /\/read-next$/.test(String(url)),
+    ).length
+    expect(asked).toBe(1)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000)
+    })
+    expect(
+      api.fetch.mock.calls.filter(([url]) => /\/read-next$/.test(String(url))),
+    ).toHaveLength(1)
+  })
+
+  it('tells the visitor photos are read one at a time, in order', async () => {
+    await openWithHungReads([photo('p1', 'read')])
+    expect(
+      screen.getByText(
+        /Keep shooting: photos are read one at a time, in the order you took them\./,
+      ),
+    ).toBeVisible()
   })
 })

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { READER_TIMEOUT } from '../content/status.js'
 import { apiFetch, errorMessage } from './api.js'
+import { WaitTimeout, withDeadline } from './waits.js'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
@@ -22,7 +24,7 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
  * @param {(update: (sitting: object) => object) => void} options.onChange
  *   The sitting's state setter.
  * @returns {{drive: () => Promise<void>, merge: (photo: object,
- *   entries?: object[]) => void, forget: (photoId: string) => void, budgetSpent: boolean, announcement: string,
+ *   entries?: object[]) => void, forget: (photoId: string) => void, budgetSpent: boolean, readingId: string|null, announcement: string,
  *   error: string|null, setError: (error: string|null) => void}}
  */
 export function useReadNext({ sitting, budget, onChange }) {
@@ -32,6 +34,9 @@ export function useReadNext({ sitting, budget, onChange }) {
     readSpent || Boolean(budget?.enforced && budget.remaining <= 0)
   const [announcement, setAnnouncement] = useState('')
   const [error, setError] = useState(null)
+  // The photo whose read-next is in flight: the server has claimed it, but
+  // the sitting shows it `uploaded` until the answer lands.
+  const [readingId, setReadingId] = useState(null)
   const running = useRef(false)
   const again = useRef(false)
   const alive = useRef(true)
@@ -87,17 +92,29 @@ export function useReadNext({ sitting, budget, onChange }) {
       for (;;) {
         if (!alive.current) return
         again.current = false
-        const response = await apiFetch(
-          `/api/intake/sittings/${now.id}/read-next`,
-          { method: 'POST' },
-        )
+        // The server claims the oldest waiting photo, so that is the one
+        // this call reads. The deadline covers the body too.
+        const next = current.current?.photos.find((p) => p.state === 'uploaded')
+        setReadingId(next ? next.id : null)
+        const result = await withDeadline(async (signal) => {
+          const response = await apiFetch(
+            `/api/intake/sittings/${now.id}/read-next`,
+            { method: 'POST', signal },
+          )
+          if (!response.ok) {
+            return {
+              message: await errorMessage(response, { ownConflicts: true }),
+            }
+          }
+          return { body: await response.json() }
+        })
         if (!alive.current) return
-        if (!response.ok) {
-          setError(await errorMessage(response, { ownConflicts: true }))
+        setReadingId(null)
+        if (result.message !== undefined) {
+          setError(result.message)
           return
         }
-        const body = await response.json()
-        if (!alive.current) return
+        const body = result.body
         if (body.photo) merge(body.photo, body.entries)
         const number = body.photo
           ? order.current.indexOf(body.photo.id) + 1 || order.current.length + 1
@@ -119,9 +136,16 @@ export function useReadNext({ sitting, budget, onChange }) {
           return // idle, and nothing new was uploaded meanwhile
         }
       }
-    } catch {
-      if (alive.current) setError('The server did not answer; try again.')
+    } catch (caught) {
+      if (alive.current) {
+        setError(
+          caught instanceof WaitTimeout
+            ? READER_TIMEOUT
+            : 'The server did not answer; try again.',
+        )
+      }
     } finally {
+      if (alive.current) setReadingId(null)
       running.current = false
     }
   }
@@ -137,5 +161,14 @@ export function useReadNext({ sitting, budget, onChange }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sitting])
 
-  return { drive, merge, forget, budgetSpent, announcement, error, setError }
+  return {
+    drive,
+    merge,
+    forget,
+    budgetSpent,
+    readingId,
+    announcement,
+    error,
+    setError,
+  }
 }
