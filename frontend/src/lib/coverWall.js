@@ -31,7 +31,6 @@ export function editionSlugs(editions) {
  * @param {Set<number>} input.owned - Held issues, singles and editions merged.
  * @param {number|null} [input.readTo]
  * @param {number} input.released
- * @param {number|null} [input.nextDated] - The next dated issue's number.
  * @param {Set<number>} [input.skipped]
  */
 export function issueState({
@@ -39,12 +38,11 @@ export function issueState({
   owned,
   readTo = null,
   released,
-  nextDated = null,
   skipped,
 }) {
   if (owned.has(n)) return n <= (readTo ?? 0) ? 'read' : 'owned'
   if (skipped?.has(n)) return 'skipped'
-  if (n > released || n === nextDated) return 'not-out'
+  if (n > released) return 'not-out'
   return 'missing'
 }
 
@@ -75,7 +73,6 @@ export function wallTiles(
   const slugs = editionSlugs(editions)
   const rowOf = new Map((issues ?? []).map((row) => [Number(row.number), row]))
   const held = new Set(model.issues.filter((i) => i.held).map((i) => i.n))
-  const nextDated = nextIssue ? Number(nextIssue.number) : null
   const read = readTo ?? 0
 
   const tiles = []
@@ -102,7 +99,6 @@ export function wallTiles(
         owned: held,
         readTo,
         released: model.released,
-        nextDated,
         skipped,
       }),
     }

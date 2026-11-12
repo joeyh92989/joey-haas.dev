@@ -49,6 +49,11 @@ describe('issueState', () => {
     expect(issueState({ ...base, n: 3, skipped: new Set([3]) })).toBe('skipped')
     expect(issueState({ ...base, n: 3, skipped: new Set() })).toBe('missing')
   })
+
+  it('calls a released issue missing even when it is the next dated one', () => {
+    // On release day the API says missing; the wall must agree.
+    expect(issueState({ ...base, n: 5, nextDated: 5 })).toBe('missing')
+  })
 })
 
 describe('wallTiles', () => {
