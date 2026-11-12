@@ -16,6 +16,7 @@ import { createElement } from 'react'
 import { Link } from 'react-router'
 import raw from '../../changelog.md?raw'
 import { parseChangelog } from '../lib/changelog.js'
+import { hiddenPaths } from '../lib/snapshotPresence.js'
 
 const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g
 
@@ -37,17 +38,24 @@ export function isRouterPath(href) {
 
 /**
  * One changelog line as React nodes: text, with each markdown link a
- * router Link (a page path, see `isRouterPath`) or an anchor.
+ * router Link (a page path, see `isRouterPath`) or an anchor. A link to a
+ * hidden path (a page with nothing on it yet) stays as plain text.
  *
  * @param {string} line
+ * @param {string[]} [hidden] Paths to leave unlinked; this build's by default.
  * @returns {import('react').ReactNode[]}
  */
-export function renderLine(line) {
+export function renderLine(line, hidden = hiddenPaths) {
   const nodes = []
   let last = 0
   for (const match of line.matchAll(LINK)) {
     if (match.index > last) nodes.push(line.slice(last, match.index))
     const [, text, href] = match
+    if (hidden.includes(href)) {
+      nodes.push(text)
+      last = match.index + match[0].length
+      continue
+    }
     nodes.push(
       isRouterPath(href)
         ? createElement(Link, { key: match.index, to: href }, text)

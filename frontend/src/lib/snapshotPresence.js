@@ -17,3 +17,18 @@ export const hasComics = presence.comics !== false
 
 /** False only when the build's spots snapshot holds no spots. */
 export const hasSpots = presence.spots !== false
+
+/**
+ * The pages whose snapshot is written and empty. They stay routable, but the
+ * sitemap, search and changelog links leave them out. A future page joins by
+ * adding a line here.
+ *
+ * @param {{comics?: boolean|null, spots?: boolean|null}} p A presence record.
+ * @returns {string[]}
+ */
+export function hiddenPathsFor(p) {
+  return p.spots === false ? ['/denver'] : []
+}
+
+/** This build's hidden pages. */
+export const hiddenPaths = hiddenPathsFor(presence)

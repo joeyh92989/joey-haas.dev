@@ -75,3 +75,20 @@ describe('the shipped changelog', () => {
     ).toBe(true)
   })
 })
+
+describe('renderLine with a hidden path (#183)', () => {
+  it('renders the link as plain text', () => {
+    render(
+      <MemoryRouter>
+        <p>
+          {renderLine('See [Denver](/denver) and [shelf](/shelf).', [
+            '/denver',
+          ])}
+        </p>
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('link', { name: 'Denver' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'shelf' })).toBeInTheDocument()
+    expect(screen.getByText(/See Denver and/)).toBeInTheDocument()
+  })
+})

@@ -104,6 +104,16 @@ describe('SearchDialog', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('finds the Denver page while it has spots', async () => {
+    stubIndex(INDEX)
+    const user = userEvent.setup()
+    renderHarness()
+    await user.type(await openWithButton(user), 'denver')
+    expect(
+      await screen.findByRole('option', { name: /^Denver/ }),
+    ).toBeInTheDocument()
+  })
+
   it('finds a shelf title and lands on its page with Enter', async () => {
     stubIndex(INDEX)
     const user = userEvent.setup()

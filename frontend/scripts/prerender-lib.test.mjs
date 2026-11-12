@@ -707,3 +707,28 @@ describe('assertDailyPool', () => {
     expect(() => assertDailyPool(items)).toThrow(/29 eligible/)
   })
 })
+
+describe('an empty page (#183)', () => {
+  const hidden = publicRoutes({ posts: [], items: [], hidden: ['/denver'] })
+
+  it('gets noindex in its head and nowhere else', () => {
+    const shell = '<html><head><title>x</title></head><body></body></html>'
+    const html = (route) => renderHead(shell, route)
+    expect(html(routeAt(hidden, '/denver'))).toContain(
+      '<meta name="robots" content="noindex" />',
+    )
+    expect(html(routeAt(hidden, '/about'))).not.toContain('noindex')
+  })
+
+  it('stays out of the sitemap, still prerendered', () => {
+    expect(hidden.map((r) => r.path)).toContain('/denver')
+    expect(sitemap(hidden)).not.toContain('/denver')
+    expect(sitemap(hidden)).toContain('/about')
+  })
+
+  it('changes nothing when no path is hidden', () => {
+    const plain = publicRoutes({ posts: [], items: [] })
+    expect(plain.some((r) => r.noindex)).toBe(false)
+    expect(sitemap(plain)).toContain('/denver')
+  })
+})
