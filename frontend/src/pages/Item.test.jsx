@@ -941,6 +941,39 @@ describe('Item cover wall', () => {
     ).toHaveAttribute('href', `/shelf/${ID}/5/`)
   })
 
+  it("signed in, marks the owner's skipped issues from the row already fetched", async () => {
+    const fetch = vi.fn(async (url) => {
+      const text = String(url)
+      const body = text.endsWith('/issues')
+        ? {
+            series_title: 'Saga',
+            publisher: 'Image',
+            issues: ROWS,
+            editions: [],
+          }
+        : text.includes('/api/public/')
+          ? SAGA
+          : { issues_owned: '1–4', issues_skipped: '5', playthroughs: [] }
+      return { ok: true, status: 200, json: async () => body }
+    })
+    vi.stubGlobal('fetch', fetch)
+    await renderSaga({ signedIn: true })
+    expect(
+      await screen.findByRole('link', { name: 'Saga #5, Skipped' }),
+    ).toBeInTheDocument()
+    expect(
+      fetch.mock.calls.filter(([url]) => !String(url).includes('/api/public/')),
+    ).toHaveLength(1)
+  })
+
+  it('signed out, never shows a skipped issue', async () => {
+    stubWall(ROWS)
+    await renderSaga()
+    expect(
+      await screen.findByRole('link', { name: 'Saga #5, Missing' }),
+    ).toBeInTheDocument()
+  })
+
   it('keeps the run box, toggle mode included, when the issue list is empty', async () => {
     stubWall([])
     await renderSaga({ signedIn: true })

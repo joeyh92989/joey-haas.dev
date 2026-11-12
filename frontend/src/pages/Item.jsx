@@ -10,7 +10,7 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import Stars from '../components/Stars.jsx'
 import { apiFetch } from '../lib/api.js'
-import { shortDate } from '../lib/comics.js'
+import { expandRanges, shortDate } from '../lib/comics.js'
 import { toggleOwned } from '../lib/comicEdits.js'
 import {
   laneSpans,
@@ -389,6 +389,7 @@ function ComicCards({
   model,
   description,
   wall,
+  skipped,
   series,
   onToggleIssue,
   saving,
@@ -434,7 +435,12 @@ function ComicCards({
       )}
 
       {model.held > 0 && hasWall && (
-        <CoverWall wall={wall} detail={detail} series={series} />
+        <CoverWall
+          wall={wall}
+          detail={detail}
+          series={series}
+          skipped={skipped ?? undefined}
+        />
       )}
 
       {comic.editions.length > 0 && (
@@ -504,6 +510,8 @@ function ItemPage({ id }) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [runs, setRuns] = useState(null)
+  // The owner's skipped issues, from the same row as the playthroughs.
+  const [skipped, setSkipped] = useState(null)
   const [wall, setWall] = useState(null)
 
   /**
@@ -553,7 +561,9 @@ function ItemPage({ id }) {
     apiFetch(`/api/items/${encodeURIComponent(id)}`)
       .then((response) => (response.ok ? response.json() : null))
       .then((body) => {
-        if (!cancelled) setRuns(body?.playthroughs ?? null)
+        if (cancelled) return
+        setRuns(body?.playthroughs ?? null)
+        setSkipped(new Set(expandRanges(body?.issues_skipped)))
       })
       .catch(() => {})
     return () => {
@@ -619,6 +629,7 @@ function ItemPage({ id }) {
         detail
         signedIn={signedIn}
         runs={signedIn ? runs : null}
+        skipped={signedIn ? skipped : null}
         wall={wall}
         expanded={expanded}
         onToggleDescription={() => setExpanded((current) => !current)}
@@ -671,6 +682,7 @@ function ItemView({
   detail,
   signedIn,
   runs = null,
+  skipped = null,
   wall = null,
   note = null,
   expanded = false,
@@ -785,6 +797,7 @@ function ItemView({
           comic={comic}
           detail={item}
           wall={wall}
+          skipped={skipped ?? undefined}
           series={{ id: item.id, title: item.title }}
           model={run}
           description={description}
