@@ -7,6 +7,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 ## 2026-11-12
 
 - Comics now read as comics on their pages: Reading, Reads and Read on instead of game words.
+- Fixed the store count in the shelf copy, and the What it does cards now name the stop they link to.
 
 ## 2026-11-11
 

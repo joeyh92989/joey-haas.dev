@@ -24,7 +24,7 @@ export const projects = [
       'I collect games on cartridge, and nothing tracked them the way I wanted, least of all whether a box holds the full game or a download code. My Shelf does. It reads a shelf from a photograph, resolves every title against IGDB, picks tonight’s game from the backlog, and watches boutique publishers for the next cartridge worth owning.',
     highlights: [
       'Photo import: a vision model reads titles off the spines; each match is scored by string distance, never by asking the model how sure it is.',
-      'A physical catalog: a community registry and twelve boutique stores, collapsed to one honest format per game, full cartridge or Game-Key Card.',
+      'A physical catalog: a community registry and a watch list of boutique stores, collapsed to one honest format per game, full cartridge or Game-Key Card.',
       'Play Next scores the backlog on six weighted terms, mostly a taste profile built from my own ratings, favorites, and finishes, plus fit and time waiting. Every pick says why.',
       'Discover and Radar: the model only ever picks positions in a list the server built, with a deterministic fallback when it can’t answer.',
     ],
