@@ -576,7 +576,13 @@ async def commit_sitting(
             # which is not at all.
             outcome.already_owned += 1
         else:
-            rows.append(_with_issues(found.row, issues))
+            new_row = _with_issues(found.row, issues)
+            if found.shelf_format is not None:
+                # The first entry that has one, as for an existing series.
+                new_row = new_row.model_copy(
+                    update={"shelf_format": found.shelf_format}
+                )
+            rows.append(new_row)
             row_entries.append(found.entry)
 
     try:

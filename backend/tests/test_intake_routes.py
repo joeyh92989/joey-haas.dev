@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from intake.commit import SITTING_GONE
 from models import (
@@ -231,6 +232,21 @@ async def test_patch_sitting_and_entry_last_write_wins(sessionmaker_for_test):
     assert first.json()["payload"]["platform"] == "Switch"
     assert second.json()["state"] == "ignored"
     assert second.json()["payload"]["platform"] == "Switch"
+
+
+@pytest.mark.asyncio
+async def test_counts_include_probable_entries(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        shelf = await _sitting(client)
+    async with sessionmaker_for_test() as session:
+        for state in (IntakeEntryState.CHECK, IntakeEntryState.PROBABLE):
+            session.add(
+                IntakeEntry(sitting_id=uuid.UUID(shelf["id"]), kind="game", state=state)
+            )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        counts = (await client.get("/api/intake/counts")).json()
+    assert counts == {"shelf": 2, "closet": 0}
 
 
 @pytest.mark.asyncio
@@ -531,6 +547,46 @@ async def test_deleting_a_photo_drops_it_and_the_entries_read_from_it(
     assert shown["photos"] == []
     assert [e["payload"]["title"] for e in shown["entries"]] == ["Typed"]
     assert await _count(sessionmaker_for_test, IntakePhoto) == 0
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_photo_being_read_is_a_409_and_changes_nothing(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        photo_id = await _seed_photo_entries(sessionmaker_for_test, sitting["id"])
+        async with sessionmaker_for_test() as session:
+            photo = await session.get(IntakePhoto, uuid.UUID(photo_id))
+            photo.state = IntakePhotoState.READING
+            await session.commit()
+        response = await client.delete(
+            f"/api/intake/sittings/{sitting['id']}/photos/{photo_id}"
+        )
+    assert response.status_code == 409
+    assert (
+        response.json()["detail"] == "This photo is being read; try again in a moment."
+    )
+    assert await _count(sessionmaker_for_test, IntakePhoto) == 1
+    assert await _count(sessionmaker_for_test, IntakeEntry) == 3
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_photo_touches_the_sitting(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        photo_id = await _seed_photo_entries(sessionmaker_for_test, sitting["id"])
+        async with sessionmaker_for_test() as session:
+            await session.execute(
+                update(IntakeSitting)
+                .where(IntakeSitting.id == uuid.UUID(sitting["id"]))
+                .values(updated_at=datetime(2020, 1, 1, tzinfo=UTC))
+            )
+            await session.commit()
+        await client.delete(f"/api/intake/sittings/{sitting['id']}/photos/{photo_id}")
+    async with sessionmaker_for_test() as session:
+        row = await session.get(IntakeSitting, uuid.UUID(sitting["id"]))
+    assert row.updated_at.year >= 2026
 
 
 @pytest.mark.asyncio

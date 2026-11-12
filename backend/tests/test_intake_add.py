@@ -352,6 +352,22 @@ async def test_an_owned_series_gains_the_typed_issues_by_got_its_rule(
 
 
 @pytest.mark.asyncio
+async def test_an_owned_series_takes_the_shelf_format_typed_with_the_add(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        await client.post("/api/intake/add", json=_saga_add("1-2"))
+        body = _saga_add("3")
+        body["payload"]["shelf_format"] = "trades"
+        second = await client.post("/api/intake/add", json=body)
+    assert second.status_code == 200, second.text
+    async with sessionmaker_for_test() as session:
+        (item,) = (await session.scalars(select(Item))).all()
+    assert item.shelf_format.value == "trades"
+    assert item.issues_owned == "1–3"
+
+
+@pytest.mark.asyncio
 async def test_an_owned_series_gaining_nothing_is_already_on_the_shelf(
     sessionmaker_for_test,
 ):

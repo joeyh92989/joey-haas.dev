@@ -448,3 +448,24 @@ async def reader_client(factory, registry, provider):
         transport=ASGITransport(app=app), base_url="http://testserver"
     ) as client:
         yield client
+
+
+async def test_a_photo_removed_during_its_read_is_discarded_not_a_500(
+    sessionmaker_for_test,
+):
+    sitting_id, (photo_id,) = await _sitting(sessionmaker_for_test)
+
+    class DeletingProvider:
+        """Answers, but the photo is removed while the model is thinking."""
+
+        async def complete_json(self, prompt, schema, images=None):
+            async with sessionmaker_for_test() as other:
+                gone = await other.get(IntakePhoto, photo_id)
+                await other.delete(gone)
+                await other.commit()
+            return _detections("Dune")
+
+    outcome = await _read(sessionmaker_for_test, sitting_id, DeletingProvider())
+    assert outcome.status == "idle"
+    assert outcome.entries == []
+    assert await _entries(sessionmaker_for_test, sitting_id) == []

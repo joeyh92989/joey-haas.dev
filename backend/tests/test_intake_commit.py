@@ -4,6 +4,7 @@ AC 5, 6 and 8; Review Focus 1 and 3)."""
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import func, select
@@ -662,3 +663,33 @@ async def test_a_series_on_the_shelf_takes_the_shelf_format_set_in_details(
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned == "1–2"
     assert row.shelf_format == ComicShelfFormat.SINGLES
+
+
+@pytest.mark.asyncio
+async def test_a_new_series_takes_the_first_shelf_format_of_any_entry(
+    sessionmaker_for_test,
+):
+    # Only the second photo's entry has a format: the one new row gets it,
+    # as an existing series would.
+    entries = [
+        ("comic", S.READY, {"issues_owned": "1"}, _series()),
+        (
+            "comic",
+            S.READY,
+            {"issues_owned": "2", "shelf_format": "trades"},
+            _series(),
+        ),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with sessionmaker_for_test() as session:  # pin the commit's order
+        for entry in await session.scalars(select(IntakeEntry)):
+            entry.created_at = datetime(2026, 11, 10, tzinfo=UTC) + timedelta(
+                minutes=int(entry.payload["issues_owned"])
+            )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_owned == "1–2"
+    assert row.shelf_format == ComicShelfFormat.TRADES
