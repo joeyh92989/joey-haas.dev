@@ -11,7 +11,8 @@ An entry's state decides what happens to it:
 - exact, ready, typed: written (`added`);
 - owned: not written, counted once per title (`already_owned`);
 - ignored: cleared, not counted;
-- check, probable (not yet confirmed), reading: kept in the sitting to come back to (`skipped_kept`).
+- check, probable (not yet confirmed), reading: kept in the sitting to come
+  back to (`skipped_kept`).
 
 A comic is one row per series, so its entries (written or owned) are never
 dropped as repeats: their issues are joined into one new row, or added to
