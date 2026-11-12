@@ -172,15 +172,6 @@ export default function Daily() {
             {rows.length === 0 && (
               <p className="daily-hint muted">{copy.hint}</p>
             )}
-            <ShelfleBoard rows={rows} />
-            <p className="daily-legend">
-              {LEGEND_STATES.map((state) => (
-                <span key={state}>
-                  <i data-state={state} aria-hidden="true" />
-                  {copy.legend[state]}
-                </span>
-              ))}
-            </p>
             {!over && (
               <GuessCombobox
                 pool={pool}
@@ -197,6 +188,15 @@ export default function Daily() {
                 }
               />
             )}
+            <ShelfleBoard rows={rows} />
+            <p className="daily-legend">
+              {LEGEND_STATES.map((state) => (
+                <span key={state}>
+                  <i data-state={state} aria-hidden="true" />
+                  {copy.legend[state]}
+                </span>
+              ))}
+            </p>
             <p className="daily-status muted" role="status" aria-live="polite">
               {status}
             </p>
