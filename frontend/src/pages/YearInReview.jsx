@@ -254,8 +254,10 @@ export default function YearInReview() {
                   <time dateTime={item.finished_at}>
                     {shortDate(item.finished_at)}
                   </time>
-                  <Link to={itemPath(item.id)}>{item.title}</Link>
-                  {item.again && <AgainTag />}
+                  <span>
+                    <Link to={itemPath(item.id)}>{item.title}</Link>
+                    {item.again && <AgainTag />}
+                  </span>
                   {item.rating != null && (
                     <span className="muted">{item.rating}/10</span>
                   )}

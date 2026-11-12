@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import YearInReview from './YearInReview.jsx'
@@ -83,6 +83,30 @@ describe('YearInReview', () => {
       'Sep 30Hades II again10/10',
       'Feb 10Hades II10/10',
     ])
+  })
+
+  it('keeps the again tag inside the title cell', () => {
+    answer.value = {
+      data: [
+        {
+          ...ITEMS[0],
+          finishes: ['2026-02-10', '2026-09-30'],
+          times_completed: 2,
+        },
+      ],
+      live: true,
+      failed: false,
+    }
+    renderAt('/shelf/year/2026')
+
+    const row = screen
+      .getByRole('heading', { name: 'Finishes' })
+      .nextSibling.querySelector('li')
+    expect(row.children).toHaveLength(3)
+    expect(row.children[1]).toContainElement(within(row).getByText('again'))
+    expect(row.children[1]).toContainElement(
+      within(row).getByRole('link', { name: 'Hades II' }),
+    )
   })
 
   it('shows the year’s numbers, diary and the other years', () => {
