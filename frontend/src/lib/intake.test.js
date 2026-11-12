@@ -25,13 +25,13 @@ describe('optionLabel', () => {
 })
 
 describe('meterCounts', () => {
-  it('counts written states as ready and unread photos as reading', () => {
+  it('counts written states as ready, a probable match as to check, and unread photos as reading', () => {
     expect(
       meterCounts({
         photos_waiting: 2,
         entries: { exact: 3, probable: 1, typed: 1, check: 4, reading: 1 },
       }),
-    ).toEqual({ ready: 5, check: 4, reading: 3, owned: 0 })
+    ).toEqual({ ready: 4, check: 5, reading: 3, owned: 0 })
   })
 })
 

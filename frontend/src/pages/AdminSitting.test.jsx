@@ -76,6 +76,48 @@ async function press(user, element) {
 }
 
 describe('AdminSitting', () => {
+  it('asks a probable match one at a time instead of skimming it', async () => {
+    const user = userEvent.setup()
+    const saga = candidate(3, 'Saga', 2012)
+    const api = fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'check',
+          entries: [
+            entry('e1', 'probable', {
+              photo_id: 'p1',
+              payload: { detected_title: 'SAGA' },
+              candidates: [saga],
+              chosen: saga,
+            }),
+            entry('e2', 'exact', {
+              photo_id: 'p1',
+              chosen: candidate(4, 'East of West'),
+            }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+
+    const group = await screen.findByRole('radiogroup', {
+      name: 'Which one is it?',
+    })
+    expect(within(group).getByRole('radio', { name: /^Saga/ })).toBeChecked()
+    expect(screen.getByText('Probable')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: 'Saga' })).toBeNull()
+    expect(
+      screen.getByRole('checkbox', { name: 'East of West' }),
+    ).toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Yes, this one' }))
+    await waitFor(() =>
+      expect(api.calls('PATCH', /\/entries\/e1$/)[0]?.body).toEqual({
+        state: 'ready',
+        chosen: saga,
+      }),
+    )
+  })
+
   it('walks Shoot to Done by keyboard, saving each step', async () => {
     const user = userEvent.setup()
     const api = fakeIntakeApi({ sittings: [longbox()] })

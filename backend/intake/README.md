@@ -44,8 +44,8 @@ and the entries read from them or typed in.
   most `items.BULK_CHUNK` (500). Answers `{added, already_owned,
   issues_added, series_grew, skipped_kept, photos_empty, photos_waiting, refused}`, and the route adds
   `created` (the new items' ids, which Done publishes). By entry state:
-  exact, probable, ready and typed are written; owned is counted once per
-  title; ignored is cleared; check and reading stay in the sitting. A photo
+  exact, ready and typed are written; owned is counted once per
+  title; ignored is cleared; check, probable (unconfirmed) and reading stay in the sitting. A photo
   not yet read (uploaded, reading or failed) is kept too and counted as
   `photos_waiting`. **Comics merge, never drop:** a comic is one row per
   series, so every comic entry (written or owned) resolving to one

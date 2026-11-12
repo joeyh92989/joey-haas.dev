@@ -84,7 +84,9 @@ export default function CheckStep({
   const oneRef = useRef(null)
   const closet = sitting.area === 'closet'
 
-  const checks = sitting.entries.filter((e) => e.state === 'check')
+  const checks = sitting.entries.filter((e) =>
+    ['check', 'probable'].includes(e.state),
+  )
   const left = checks.filter((e) => !skipped.has(e.id))
   const current = left[0] ?? null
   const grows = closet ? [] : sitting.entries.filter(addsToSeries)

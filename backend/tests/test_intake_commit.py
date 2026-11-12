@@ -230,6 +230,7 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         ("game", S.EXACT, {}, _match(1)),
         # The same title on a second photo: counted once.
         ("game", S.EXACT, {}, _match(1)),
+        # Unconfirmed: asked one at a time, never written unasked.
         ("game", S.PROBABLE, {}, _match(2)),
         # Marked owned by the reader, twice: one title on the shelf.
         ("game", S.OWNED, {}, _match(3)),
@@ -245,13 +246,13 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     body = response.json()
-    assert len(body.pop("created")) == 2
+    assert len(body.pop("created")) == 1
     assert body == {
-        "added": 2,
+        "added": 1,
         "already_owned": 2,
         "issues_added": 0,
         "series_grew": [],
-        "skipped_kept": 2,
+        "skipped_kept": 3,
         "photos_empty": 2,
         "photos_waiting": 0,
         "refused": [],
@@ -261,7 +262,7 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
     async with sessionmaker_for_test() as session:
         assert await session.get(IntakeSitting, sitting_id) is not None
         left = (await session.scalars(select(IntakeEntry.state))).all()
-    assert sorted(state.value for state in left) == ["check", "reading"]
+    assert sorted(state.value for state in left) == ["check", "probable", "reading"]
 
 
 def _series(n: int = 7) -> dict:

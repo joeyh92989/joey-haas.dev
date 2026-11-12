@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { API_URL, apiFetch, errorMessage } from '../../lib/api.js'
 import CoverImage from '../CoverImage.jsx'
+import ConfidenceBadge from './ConfidenceBadge.jsx'
 
 const sameCandidate = (a, b) =>
   Boolean(a && b) &&
@@ -16,7 +17,7 @@ const sameCandidate = (a, b) =>
  * Keep as typed adds it with no match.
  *
  * @param {object} props
- * @param {object} props.entry An entry in `check`.
+ * @param {object} props.entry An entry in `check` or `probable`.
  * @param {number|null} props.photoNumber Its photo's place in the sitting.
  * @param {(entry: object, change: object) => void} props.onAnswer PATCHes
  *   the entry; `change` is `{state, chosen?}`.
@@ -104,6 +105,7 @@ export default function CheckOne({
         <h3 ref={headingRef} tabIndex={-1} className="kicker">
           To check · {position}
         </h3>
+        {entry.state === 'probable' && <ConfidenceBadge state="probable" />}
         {candidates.length ? (
           <>
             <p id={`${name}-question`} className="intake-question">

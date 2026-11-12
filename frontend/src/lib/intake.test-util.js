@@ -382,10 +382,10 @@ export function fakeIntakeApi({
         return json(answer.status, answer.body)
       }
       const written = sitting.entries.filter((e) =>
-        ['exact', 'probable', 'ready', 'typed'].includes(e.state),
+        ['exact', 'ready', 'typed'].includes(e.state),
       )
       const kept = sitting.entries.filter((e) =>
-        ['check', 'reading'].includes(e.state),
+        ['check', 'probable', 'reading'].includes(e.state),
       )
       const answer = {
         added: written.length,

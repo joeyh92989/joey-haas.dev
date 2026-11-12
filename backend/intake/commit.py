@@ -69,8 +69,8 @@ from models import (
 )
 
 S = IntakeEntryState
-WRITTEN = frozenset({S.EXACT, S.PROBABLE, S.READY, S.TYPED})
-KEPT = frozenset({S.CHECK, S.READING})
+WRITTEN = frozenset({S.EXACT, S.READY, S.TYPED})
+KEPT = frozenset({S.CHECK, S.PROBABLE, S.READING})
 P = IntakePhotoState
 WAITING_PHOTOS = frozenset({P.UPLOADED, P.READING, P.FAILED})
 

@@ -3,19 +3,19 @@ import CoverImage from '../CoverImage.jsx'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
 
 /**
- * Whether an entry belongs in the skim grid: a trusted match, one already
+ * Whether an entry belongs in the skim grid: an exact match, one already
  * owned, or one unticked here (kept as `ignored` with a note of what it
  * was, so a reload or a second device shows it unticked, not gone).
  */
 export function inSkim(entry) {
   return (
-    ['exact', 'probable', 'owned'].includes(entry.state) ||
+    ['exact', 'owned'].includes(entry.state) ||
     (entry.state === 'ignored' && entry.payload?.unticked === true)
   )
 }
 
 /**
- * The trusted matches as a grid to skim, not a tap each (spec D4): a
+ * The exact matches as a grid to skim, not a tap each (spec D4): a
  * ticked checkbox per cover, labelled by its title; untick to drop one.
  * What is already on the shelf is dimmed, unticked and cannot be ticked.
  *
@@ -29,7 +29,7 @@ export default function SkimGrid({ entries, onToggle }) {
     <ul className="intake-skim">
       {entries.map((entry) => {
         const owned = entry.state === 'owned'
-        const ticked = entry.state === 'exact' || entry.state === 'probable'
+        const ticked = entry.state === 'exact'
         const shown =
           entry.state === 'ignored' ? entry.payload?.was : entry.state
         return (
