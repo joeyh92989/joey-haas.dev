@@ -3,6 +3,9 @@ import { READER_TIMEOUT } from '../content/status.js'
 import { apiFetch, errorMessage } from './api.js'
 import { WaitTimeout, withDeadline } from './waits.js'
 
+/** How long the sitting's re-fetch after a failed read may take. */
+const REFETCH_DEADLINE_MS = 20_000
+
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /**
@@ -75,16 +78,23 @@ export function useReadNext({ sitting, budget, onChange }) {
   /** Replaces the sitting with the server's, best effort. */
   async function refetch(sittingId) {
     try {
-      const response = await apiFetch(`/api/intake/sittings/${sittingId}`)
-      if (!response.ok || !alive.current) return
-      const fresh = await response.json()
-      if (!alive.current) return
+      const fresh = await withDeadline(
+        async (signal) => {
+          const response = await apiFetch(`/api/intake/sittings/${sittingId}`, {
+            signal,
+          })
+          return response.ok ? response.json() : null
+        },
+        { ms: REFETCH_DEADLINE_MS },
+      )
+      if (!fresh || !alive.current) return
       onChange(() => ({
         ...fresh,
         photos: fresh.photos.filter((p) => !removed.current.has(p.id)),
       }))
     } catch {
-      // The reader's error already says the server did not answer.
+      // The reader's error already says the server did not answer; a hung
+      // re-fetch gives up at its own deadline.
     }
   }
 
@@ -117,6 +127,7 @@ export function useReadNext({ sitting, budget, onChange }) {
       return
     }
     running.current = true
+    let failed = false
     try {
       for (;;) {
         if (!alive.current) return
@@ -174,12 +185,17 @@ export function useReadNext({ sitting, budget, onChange }) {
             ? READER_TIMEOUT
             : 'The server did not answer; try again.',
         )
-        setReadFailed(true)
-        await refetch(now.id)
+        failed = true
       }
     } finally {
       if (alive.current) setReadingId(null)
       running.current = false
+    }
+    // After the loop has ended, so Read again always starts a fresh one:
+    // show the server's state, then offer it.
+    if (failed && alive.current) {
+      await refetch(now.id)
+      if (alive.current && !running.current) setReadFailed(true)
     }
   }
 

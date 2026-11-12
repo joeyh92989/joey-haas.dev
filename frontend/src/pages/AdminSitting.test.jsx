@@ -1690,6 +1690,63 @@ describe('AdminSitting waits (#160)', () => {
     ).toBeVisible()
   })
 
+  /** Makes every later GET of the sitting wait for `release()`, or forever. */
+  function holdSittingGets(api) {
+    let release
+    const gate = new Promise((resolve) => {
+      release = resolve
+    })
+    const inner = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation(async (url, options) => {
+      if (
+        /\/api\/intake\/sittings\/s1$/.test(String(url)) &&
+        (options?.method ?? 'GET') === 'GET'
+      ) {
+        await gate
+      }
+      return inner(url, options)
+    })
+    return release
+  }
+
+  it('offers Read again only once the re-fetch has settled, and it then reads', async () => {
+    const api = await openWithHungReads([photo('p1', 'uploaded')])
+    const release = holdSittingGets(api)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    expect(screen.getByRole('alert')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Read again' }),
+    ).not.toBeInTheDocument()
+    await act(async () => {
+      release()
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    await act(async () => {
+      screen.getByRole('button', { name: 'Read again' }).click()
+    })
+    expect(readsOf(api)).toBe(2)
+  })
+
+  it('still offers a working Read again when the re-fetch never answers', async () => {
+    const api = await openWithHungReads([photo('p1', 'uploaded')])
+    holdSittingGets(api)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    expect(
+      screen.queryByRole('button', { name: 'Read again' }),
+    ).not.toBeInTheDocument()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000)
+    })
+    await act(async () => {
+      screen.getByRole('button', { name: 'Read again' }).click()
+    })
+    expect(readsOf(api)).toBe(2)
+  })
+
   it('offers Read again after a deadline, which clears the error and reads again', async () => {
     const api = await openWithHungReads([photo('p1', 'uploaded')])
     await act(async () => {
