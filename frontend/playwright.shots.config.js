@@ -56,6 +56,7 @@ export default defineConfig({
   testMatch: 'shots.spec.js',
   forbidOnly: false,
   retries: 0,
+  fullyParallel: true,
   workers: remote ? 4 : undefined,
   reporter: [['list']],
   globalSetup: './e2e/shots-setup.js',
