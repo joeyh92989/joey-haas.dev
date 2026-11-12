@@ -23,6 +23,7 @@ import {
   chipCounts,
   countsLine,
   filterGarments,
+  settleFilter,
   tagResult,
 } from '../lib/closet.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
@@ -81,7 +82,7 @@ export default function AdminCloset() {
   const [slow, setSlow] = useState(false)
   const [filter, setFilter] = useState(() =>
     location.state?.closetStatus === 'untagged'
-      ? { ...DEFAULT_FILTER, status: 'untagged' }
+      ? { ...DEFAULT_FILTER, status: 'untagged', untaggedToo: false }
       : DEFAULT_FILTER,
   )
   const [view, setView] = useState(() => {
@@ -229,7 +230,11 @@ export default function AdminCloset() {
                 type="button"
                 className="btn"
                 onClick={() =>
-                  setFilter({ ...DEFAULT_FILTER, status: 'untagged' })
+                  setFilter({
+                    ...DEFAULT_FILTER,
+                    status: 'untagged',
+                    untaggedToo: false,
+                  })
                 }
               >
                 Show them
@@ -273,7 +278,7 @@ export default function AdminCloset() {
               { key: 'smart', label: 'Smart', count: counts.smart },
             ]}
             value={filter}
-            onChange={setFilter}
+            onChange={(next) => setFilter((prev) => settleFilter(prev, next))}
           />
           <div className="closet-toolbar-end">
             <div className="chip-row" role="group" aria-label="View">

@@ -158,9 +158,14 @@ export function imageUrl(garment) {
   return garment.image ? `${API_URL}${garment.image}` : null
 }
 
-/** The default filter: Active pressed, nothing else. */
+/**
+ * The default filter: Active pressed, and untagged pieces kept too, so a
+ * fresh upload shows before the tag queue reaches it. `untaggedToo` marks
+ * that default; `settleFilter` drops it once the owner presses a status chip.
+ */
 export const DEFAULT_FILTER = {
   status: 'active',
+  untaggedToo: true,
   category: null,
   warm: false,
   smart: false,
@@ -170,11 +175,24 @@ export const DEFAULT_FILTER = {
 export function filterGarments(garments, filter) {
   return garments.filter(
     (g) =>
-      (!filter.status || g.status === filter.status) &&
+      (!filter.status ||
+        g.status === filter.status ||
+        (filter.untaggedToo && g.status === 'untagged')) &&
       (!filter.category || g.category === filter.category) &&
       (!filter.warm || (g.warmth ?? 0) >= HIGH) &&
       (!filter.smart || (g.formality ?? 0) >= HIGH),
   )
+}
+
+/**
+ * The filter after the chips report a change. Pressing (or clearing) a
+ * status chip ends the default's extra untagged pieces: a chip filters
+ * strictly.
+ */
+export function settleFilter(previous, next) {
+  return next.status === previous.status
+    ? next
+    : { ...next, untaggedToo: false }
 }
 
 /** The chips' counts, each from the whole closet as the shelf's are. */
