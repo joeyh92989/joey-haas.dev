@@ -627,6 +627,27 @@ export const spine = {
         cellName: (n, state) => `Issue ${n}, ${state}`,
       },
     },
+    /** The cover wall on the series page, and the tiles the issue and edition pages share. */
+    wall: {
+      title: 'Every book in the run',
+      states: {
+        read: 'Read',
+        owned: 'Owned',
+        missing: 'Missing',
+        'not-out': 'Not out yet',
+        skipped: 'Skipped',
+      },
+      /** The tile's link name: "Saga #58, Missing". */
+      tileName: (series, n, state) => `${series} #${n}, ${state}`,
+      bookName: (label, from, to, readTo) =>
+        `${label}, collects #${from}–${to}${readTo != null ? `, read to #${readTo}` : ''}`,
+      stackName: (from, to, count) =>
+        `Issues ${from} to ${to}, ${count} missing. Show each issue`,
+      stackWords: (count) => `${count} missing`,
+      fold: 'Fold these back up',
+      readTo: (n) => `read to ${n}`,
+      edition: 'Collected edition',
+    },
     pills: { following: 'Following', want: 'Want' },
     hero: {
       series: 'Series',

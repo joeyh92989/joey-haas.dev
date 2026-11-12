@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
 import CoverImage from '../components/CoverImage.jsx'
+import CoverWall from '../components/CoverWall.jsx'
 import RunBox from '../components/RunBox.jsx'
 import RunLanes, { RunKey } from '../components/RunLanes.jsx'
 import PosterCard from '../components/PosterCard.jsx'
@@ -383,13 +384,17 @@ function WhatsNext({ model }) {
  */
 function ComicCards({
   comic,
+  detail,
   model,
   description,
+  wall,
+  series,
   onToggleIssue,
   saving,
   saveError,
 }) {
   const spans = laneSpans(model)
+  const hasWall = (wall?.issues?.length ?? 0) > 0
   return (
     <>
       {model.held > 0 && (
@@ -398,20 +403,26 @@ function ComicCards({
           {!spans.short && (
             <>
               <RunLanes spans={spans} label={lanesLabel(model)} />
-              <p className="comic-box-kicker">{SERIES.inTheBox}</p>
+              {!hasWall && (
+                <p className="comic-box-kicker">{SERIES.inTheBox}</p>
+              )}
             </>
           )}
-          <RunBox
-            model={model}
-            mode={onToggleIssue ? 'toggle' : 'public'}
-            busy={saving}
-            onCell={
-              onToggleIssue
-                ? (issue) => onToggleIssue(issue.n, !issue.held)
-                : undefined
-            }
-          />
-          <RunKey variant="box" />
+          {!hasWall && (
+            <>
+              <RunBox
+                model={model}
+                mode={onToggleIssue ? 'toggle' : 'public'}
+                busy={saving}
+                onCell={
+                  onToggleIssue
+                    ? (issue) => onToggleIssue(issue.n, !issue.held)
+                    : undefined
+                }
+              />
+              <RunKey variant="box" />
+            </>
+          )}
           <p className="comic-sentence muted">{runSentence(model)}</p>
           {saveError && (
             <p className="admin-error" role="alert">
@@ -419,6 +430,10 @@ function ComicCards({
             </p>
           )}
         </section>
+      )}
+
+      {model.held > 0 && hasWall && (
+        <CoverWall wall={wall} detail={detail} series={series} />
       )}
 
       {comic.editions.length > 0 && (
@@ -488,6 +503,7 @@ function ItemPage({ id }) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [runs, setRuns] = useState(null)
+  const [wall, setWall] = useState(null)
 
   /**
    * Loads the item and returns what to show; the effect applies it, since
@@ -543,6 +559,23 @@ function ItemPage({ id }) {
       cancelled = true
     }
   }, [id, signedIn])
+
+  // A comic's issue rows and editions, for the cover wall. Quiet on failure
+  // (and while the series has no issue rows): the run box draws as before.
+  const comicReady = result.state === 'ready' && result.item.type === 'comic'
+  useEffect(() => {
+    if (!comicReady) return undefined
+    let cancelled = false
+    apiFetch(`/api/public/items/${encodeURIComponent(id)}/issues`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (!cancelled) setWall(Array.isArray(body?.issues) ? body : null)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [id, comicReady])
 
   /**
    * Owns or unowns one issue from the grid, then reloads the public detail,
@@ -605,6 +638,7 @@ function ItemPage({ id }) {
         detail
         signedIn={signedIn}
         runs={signedIn ? runs : null}
+        wall={wall}
         expanded={expanded}
         onToggleDescription={() => setExpanded((current) => !current)}
         onToggleIssue={signedIn ? toggleIssue : undefined}
@@ -656,6 +690,7 @@ function ItemView({
   detail,
   signedIn,
   runs = null,
+  wall = null,
   note = null,
   expanded = false,
   onToggleDescription,
@@ -767,6 +802,9 @@ function ItemView({
       {comic && (
         <ComicCards
           comic={comic}
+          detail={item}
+          wall={wall}
+          series={{ id: item.id, title: item.title }}
           model={run}
           description={description}
           onToggleIssue={onToggleIssue}
