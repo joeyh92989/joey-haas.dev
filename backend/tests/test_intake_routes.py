@@ -7,6 +7,7 @@ import uuid
 import pytest
 from sqlalchemy import func, select
 
+from intake.commit import SITTING_GONE
 from models import (
     Garment,
     GarmentImage,
@@ -470,3 +471,121 @@ async def test_a_chosen_result_without_its_source_key_is_refused(
     assert refused.status_code == 422
     assert "external_id" in refused.json()["detail"]
     assert await _count(sessionmaker_for_test, IntakeEntry) == 0
+
+
+async def _seed_photo_entries(factory, sitting_id: str):
+    """One photo with two entries read from it, and one typed entry."""
+    async with factory() as session:
+        photo = IntakePhoto(
+            sitting_id=uuid.UUID(sitting_id),
+            state=IntakePhotoState.READ,
+            thumb_webp=b"x",
+            width=1,
+            height=1,
+        )
+        session.add(photo)
+        await session.flush()
+        for title, state in (("Heat", "exact"), ("Ronin", "check")):
+            session.add(
+                IntakeEntry(
+                    sitting_id=uuid.UUID(sitting_id),
+                    photo_id=photo.id,
+                    kind="movie",
+                    state=IntakeEntryState(state),
+                    payload={"title": title},
+                )
+            )
+        session.add(
+            IntakeEntry(
+                sitting_id=uuid.UUID(sitting_id),
+                kind="movie",
+                state=IntakeEntryState.TYPED,
+                payload={"title": "Typed"},
+            )
+        )
+        await session.commit()
+        return str(photo.id)
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_photo_drops_it_and_the_entries_read_from_it(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        photo_id = await _seed_photo_entries(sessionmaker_for_test, sitting["id"])
+        response = await client.delete(
+            f"/api/intake/sittings/{sitting['id']}/photos/{photo_id}"
+        )
+        shown = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+    assert response.status_code == 204
+    assert shown["photos"] == []
+    assert [e["payload"]["title"] for e in shown["entries"]] == ["Typed"]
+    assert await _count(sessionmaker_for_test, IntakePhoto) == 0
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_photo_not_in_that_sitting_is_a_404(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        mine = await _sitting(client)
+        other = await _sitting(client)
+        photo_id = await _seed_photo_entries(sessionmaker_for_test, other["id"])
+        wrong = await client.delete(
+            f"/api/intake/sittings/{mine['id']}/photos/{photo_id}"
+        )
+        missing = await client.delete(
+            f"/api/intake/sittings/{mine['id']}/photos/{uuid.uuid4()}"
+        )
+    assert wrong.status_code == 404
+    assert missing.status_code == 404
+    assert await _count(sessionmaker_for_test, IntakePhoto) == 1
+    assert await _count(sessionmaker_for_test, IntakeEntry) == 3
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_photo_from_a_gone_sitting_is_intakes_409(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        photo_id = await _seed_photo_entries(sessionmaker_for_test, sitting["id"])
+        await client.delete(f"/api/intake/sittings/{sitting['id']}")
+        response = await client.delete(
+            f"/api/intake/sittings/{sitting['id']}/photos/{photo_id}"
+        )
+    assert response.status_code == 409
+    assert response.json()["detail"] == SITTING_GONE
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_closet_photo_takes_its_piece_with_it(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, area="closet")
+        uploaded = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/photos", files=_photo()
+        )
+        photo_id = uploaded.json()["id"]
+        response = await client.delete(
+            f"/api/intake/sittings/{sitting['id']}/photos/{photo_id}"
+        )
+        shown = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+    assert response.status_code == 204
+    assert shown["photos"] == [] and shown["entries"] == []
+    assert await _count(sessionmaker_for_test, Garment) == 0
+
+
+@pytest.mark.asyncio
+async def test_an_entry_removed_by_ignoring_it_carries_no_unticked_note(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client)
+        await _seed_photo_entries(sessionmaker_for_test, sitting["id"])
+        shown = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+        typed = next(e for e in shown["entries"] if e["state"] == "typed")
+        patched = await client.patch(
+            f"/api/intake/entries/{typed['id']}", json={"state": "ignored"}
+        )
+    assert patched.status_code == 200
+    assert "unticked" not in patched.json()["payload"]
+    assert patched.json()["state"] == "ignored"

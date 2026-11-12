@@ -128,7 +128,7 @@ All under `/api/intake`, admin only (`items.require_admin`).
 |---|---|
 | `GET /kinds` | The kind registry, with each source's state |
 | `POST /sittings`, `GET /sittings?area=`, `GET/PATCH/DELETE /sittings/{id}` | Sittings; the list carries `photos`, `photos_waiting` (uploaded or reading) and `entries` (a count per state) for the Add page's meter |
-| `POST /sittings/{id}/photos`, `POST /photos/{id}/retry`, `GET /photos/{id}/image` | Photos |
+| `POST /sittings/{id}/photos`, `DELETE /sittings/{id}/photos/{photo_id}`, `POST /photos/{id}/retry`, `GET /photos/{id}/image` | Photos. The delete drops the photo and every entry read from it (a closet photo takes its untagged piece too); 409 `SITTING_GONE` on an added or discarded sitting, 404 for a photo of another sitting. A single entry is removed by `PATCH` `state: ignored` with no `payload.unticked` (an ignored entry with `unticked` is the skim grid's untick and stays visible) |
 | `POST /sittings/{id}/read-next` | Read one waiting photo (the page drives it) |
 | `POST /sittings/{id}/entries`, `PATCH /entries/{id}` | Typed and chosen entries |
 | `GET /search?area=&query=` | The add bar's search across the area's sources (`search.py`) |

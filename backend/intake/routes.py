@@ -427,6 +427,39 @@ def create_intake_router(
         await session.commit()
         return photo_json(row)
 
+    @router.delete("/sittings/{sitting_id}/photos/{photo_id}", status_code=204)
+    async def delete_photo(
+        sitting_id: uuid.UUID,
+        photo_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> Response:
+        """Remove one photo from an unfinished sitting, with every entry read
+        from it. A closet photo takes its untagged piece along, as Check's
+        Remove this photo does. A sitting already added or discarded, as from
+        a second device, is a 409; a photo of another sitting is a 404."""
+        sitting = await session.get(IntakeSitting, sitting_id)
+        if sitting is None:
+            raise HTTPException(409, SITTING_GONE)
+        photo = await session.get(IntakePhoto, photo_id)
+        if photo is None or photo.sitting_id != sitting.id:
+            raise HTTPException(404, "No such photo")
+        entries = (
+            await session.scalars(
+                select(IntakeEntry).where(IntakeEntry.photo_id == photo.id)
+            )
+        ).all()
+        for entry in entries:
+            garment = (
+                await session.get(Garment, entry.garment_id)
+                if entry.garment_id is not None
+                else None
+            )
+            # A piece's entry goes with it, by cascade.
+            await session.delete(garment if garment is not None else entry)
+        await session.delete(photo)
+        await session.commit()
+        return Response(status_code=204)
+
     @router.post("/sittings/{sitting_id}/read-next")
     async def read_next_photo(
         sitting_id: uuid.UUID, session: AsyncSession = Depends(get_session)
