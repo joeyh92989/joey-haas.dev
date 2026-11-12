@@ -787,6 +787,10 @@ strips.
 - **`comics.json` and `spots.json` are optional too**, the same way:
   `/shelf/comics` and `/denver` paint them when the build wrote them, and
   the nightly compares them with a failure there only a warning.
+- **`comic-issues.json` is optional too** (`/api/public/comic-issues`): the
+  list of public series with the issue and edition pages that exist. Only the
+  prerender reads it, to write `dist/shelf/<id>/<n>/index.html` and
+  `.../<slug>/index.html` heads; the nightly does not compare it.
 - **`status.json` and `site-stats.json` are optional too** (the status
   strip, and `/stats`), and neither is compared by the nightly: `next.json`
   differs every night, so the redeploy that follows carries fresh ones.

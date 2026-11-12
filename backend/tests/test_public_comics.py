@@ -20,6 +20,9 @@ from public_comics import (
     PublicComicStats,
 )
 from public_issues import (
+    PublicComicIndex,
+    PublicComicIndexEdition,
+    PublicComicIndexIssue,
     PublicEditionLink,
     PublicEditionNext,
     PublicEditionPage,
@@ -214,7 +217,13 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         "from_issue", "to_issue", "cover_url", "large_url", "description",
         "state", "read", "read_to", "inside", "prev", "next", "source_url",
     }  # fmt: skip
+    assert set(PublicComicIndex.model_fields) == {
+        "item_id", "series_title", "issues", "editions",
+    }  # fmt: skip
+    assert set(PublicComicIndexIssue.model_fields) == {"number", "name", "cover_url"}
+    assert set(PublicComicIndexEdition.model_fields) == {"slug", "label", "cover_url"}
     for model in (
+        PublicComicIndex, PublicComicIndexIssue, PublicComicIndexEdition,
         PublicWall, PublicWallIssue, PublicWallEdition, PublicNeighbour,
         PublicIssueEdition, PublicIssuePage, PublicEditionLink,
         PublicEditionNext, PublicEditionPage,

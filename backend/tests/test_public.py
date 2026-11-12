@@ -39,7 +39,12 @@ from public import (
     create_public_router,
 )
 from public_comics import PublicComicsOut
-from public_issues import PublicEditionPage, PublicIssuePage, PublicWall
+from public_issues import (
+    PublicComicIndex,
+    PublicEditionPage,
+    PublicIssuePage,
+    PublicWall,
+)
 from public_outputs import PublicNextOut, PublicStatusOut
 
 pytestmark = pytest.mark.asyncio
@@ -822,6 +827,7 @@ PUBLIC_MODELS = (
     PublicWall,
     PublicIssuePage,
     PublicEditionPage,
+    PublicComicIndex,
 )
 
 

@@ -406,6 +406,40 @@ describe('fetchSnapshot', () => {
     expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
   })
 
+  it('declares comic-issues as optional, builds without it', async () => {
+    const body = [
+      { item_id: 'a', series_title: 'Saga', issues: [], editions: [] },
+    ]
+    expect(SNAPSHOTS['comic-issues'].path).toBe('/api/public/comic-issues')
+    expect(SNAPSHOTS['comic-issues'].required).toBe(false)
+    expect(SNAPSHOTS['comic-issues'].valid(body)).toBe(true)
+    expect(SNAPSHOTS['comic-issues'].valid({})).toBe(false)
+    expect(SNAPSHOTS['comic-issues'].valid([{ item_id: 'a' }])).toBe(false)
+
+    const base = {
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    }
+    const text = JSON.stringify(body)
+    expect(
+      await run(
+        api({
+          ...base,
+          '/api/public/comic-issues': ok(JSON.parse(text), text),
+        }),
+      ),
+    ).toBe('written')
+    expect(await written()).toEqual([
+      'comic-issues.json',
+      'items.json',
+      'meta.json',
+      'stats.json',
+    ])
+    expect(await run(api(base))).toBe('written')
+    expect(await written()).toEqual(['items.json', 'meta.json', 'stats.json'])
+  })
+
   it('declares spots as optional, writes it verbatim, builds without it', async () => {
     const spots = [
       {

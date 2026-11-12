@@ -48,12 +48,14 @@ from public_comics import (
     load_public_comics,
 )
 from public_issues import (
+    PublicComicIndex,
     PublicEditionPage,
     PublicIssuePage,
     PublicWall,
     build_edition_page,
     build_issue_page,
     build_wall,
+    load_comic_index,
 )
 from public_next_cache import PublicNextCache
 from public_outputs import (
@@ -686,6 +688,14 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         response.headers["Cache-Control"] = "public, max-age=300"
         counts = await status_counts(session, REFRESH_SOURCES)
         return PublicStatusOut(**counts, stores_watched=len(STORES))
+
+    @router.get("/comic-issues", response_model=list[PublicComicIndex])
+    async def public_comic_issues(
+        session: AsyncSession = Depends(get_session),
+    ) -> list[PublicComicIndex]:
+        """The build's list of issue and edition pages (their link-preview
+        heads): public series only, numbers that have a page, no state."""
+        return await load_comic_index(session, datetime.now(UTC).date())
 
     @router.get("/items/{item_id}/issues", response_model=PublicWall)
     async def public_wall(

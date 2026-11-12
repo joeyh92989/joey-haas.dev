@@ -14,6 +14,9 @@ import public
 from models import ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
 from public import create_public_router
 from public_issues import (
+    PublicComicIndex,
+    PublicComicIndexEdition,
+    PublicComicIndexIssue,
     PublicEditionPage,
     PublicIssuePage,
     PublicWall,
@@ -388,3 +391,65 @@ async def test_a_skip_changes_no_issue_body(sessionmaker_for_test):
         row.issues_skipped = "7, 8"
         await session.commit()
     assert await bodies() == before
+
+
+INDEX_FIELDS = {"item_id", "series_title", "issues", "editions"}
+INDEX_ISSUE_FIELDS = {"number", "name", "cover_url"}
+INDEX_EDITION_FIELDS = {"slug", "label", "cover_url"}
+
+
+async def test_the_index_models_publish_exactly_these_fields():
+    assert set(PublicComicIndex.model_fields) == INDEX_FIELDS
+    assert set(PublicComicIndexIssue.model_fields) == INDEX_ISSUE_FIELDS
+    assert set(PublicComicIndexEdition.model_fields) == INDEX_EDITION_FIELDS
+
+
+async def test_the_index_lists_public_series_with_pages_only(sessionmaker_for_test):
+    """Prerender's feed: one row per public series, the numbers that have a
+    page (1..released and the next dated issue), no state, no skips."""
+    item_id = await _seed(sessionmaker_for_test)
+    await _seed(sessionmaker_for_test, _series(is_public=False, title="Hidden"))
+    await _seed(
+        sessionmaker_for_test,
+        Item(id=uuid.uuid4(), type=ItemType.GAME, title="G", is_public=True,
+             status=ItemStatus.BACKLOG),
+    )  # fmt: skip
+    response = await _get(sessionmaker_for_test, "/api/public/comic-issues")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    row = body[0]
+    assert set(row) == INDEX_FIELDS
+    assert row["item_id"] == str(item_id)
+    assert row["series_title"] == "Saga"
+    # released is 8 and #9 is dated ahead; a skip (#8) is still a page.
+    assert [i["number"] for i in row["issues"]] == list(range(1, 10))
+    assert all(set(i) == INDEX_ISSUE_FIELDS for i in row["issues"])
+    assert row["issues"][0] == {
+        "number": 1, "name": "Issue 1", "cover_url": "https://cv.test/m1.jpg",
+    }  # fmt: skip
+    # No stored row for #8 and #9: a page with no name or cover.
+    assert row["issues"][7] == {"number": 8, "name": None, "cover_url": None}
+    assert [e["slug"] for e in row["editions"]] == ["ed-5-6", "ed-5-6-2"]
+    assert all(set(e) == INDEX_EDITION_FIELDS for e in row["editions"])
+    assert row["editions"][0]["label"] == "Volume Two"
+    assert row["editions"][0]["cover_url"] == "https://cv.test/m5.jpg"
+    assert COMIC_FORBIDDEN.isdisjoint(set(_keys(body)))
+
+
+async def test_the_index_matches_the_issue_route_and_ignores_skips(
+    sessionmaker_for_test,
+):
+    item_id = await _seed(sessionmaker_for_test)
+    before = (await _get(sessionmaker_for_test, "/api/public/comic-issues")).content
+    async with sessionmaker_for_test() as session:
+        row = (await session.execute(select(Item))).scalar_one()
+        row.issues_skipped = "7, 8"
+        await session.commit()
+    after = (await _get(sessionmaker_for_test, "/api/public/comic-issues")).content
+    assert after == before
+    for number in (1, 9):
+        path = f"/api/public/items/{item_id}/issues/{number}"
+        assert (await _get(sessionmaker_for_test, path)).status_code == 200
+    path = f"/api/public/items/{item_id}/issues/10"
+    assert (await _get(sessionmaker_for_test, path)).status_code == 404

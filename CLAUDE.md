@@ -195,7 +195,10 @@ before pushing.
   because a rewrite to a file the build did not write serves an empty 200
   rather than the SPA. `prerender-lib.test.mjs` checks the rules match the
   pages exactly. `/shelf/:id`, `/shelf/year/:year` and
-  `/shelf/journal/:month` stay on the catch-all, so their prerendered heads
+  `/shelf/journal/:month`, and the comic issue and edition pages
+  (`/shelf/<id>/<n>`, `/shelf/<id>/<slug>`, from the optional
+  `comic-issues.json` snapshot, in the sitemap like items, no `/spine`
+  mirror) stay on the catch-all, so their prerendered heads
   are served only at the slash form (`/shelf/<id>/`). Every link, canonical,
   `og:url`, sitemap entry and feed link uses that form, built by
   `src/lib/spinePaths.js`; never hand-write a shelf item, year or month path.

@@ -165,12 +165,21 @@ function tripImage(trip) {
  * @param {{slug: string, title: string, date: string, body: string,
  *   frontmatter: object}[]} [input.trips] Published trips.
  * @param {object[]} input.items The snapshot's public items.
+ * @param {object[]} [input.comicIssues] The comic-issues snapshot: per public
+ *   series, the issues and editions that have a page. Absent or empty adds
+ *   no pages.
  * @returns {{path: string, title: string, description: string,
  *   type: string, image: object, lastmod?: string, slash?: boolean,
  *   legacy?: boolean}[]}
  *   `legacy` marks a page that also had a /spine URL; see legacyRoutes().
  */
-export function publicRoutes({ posts, notes = [], trips = [], items }) {
+export function publicRoutes({
+  posts,
+  notes = [],
+  trips = [],
+  items,
+  comicIssues = [],
+}) {
   const page = (path, title, description) => ({
     path,
     title,
@@ -261,6 +270,44 @@ export function publicRoutes({ posts, notes = [], trips = [], items }) {
         ? { url: item.cover_url, alt: `Cover of ${item.title}` }
         : DEFAULT_IMAGE,
     })
+  }
+  // Issue and edition pages of public comic series. Like item pages they stay
+  // on the catch-all (slash form only), and they had no /spine URL, so no
+  // `legacy` mirror.
+  for (const series of Array.isArray(comicIssues) ? comicIssues : []) {
+    if (!series?.item_id || !series.series_title) continue
+    const base = `${spine.path}/${encodeURIComponent(series.item_id)}`
+    const cover = (url, alt) =>
+      typeof url === 'string' && url.startsWith('https://')
+        ? { url, alt }
+        : DEFAULT_IMAGE
+    for (const issue of series.issues ?? []) {
+      if (!Number.isInteger(issue?.number)) continue
+      const label = `${series.series_title} #${issue.number}`
+      const named = issue.name ? `, “${issue.name}”` : ''
+      routes.push({
+        ...page(
+          `${base}/${issue.number}`,
+          `${label} · ${spine.name}`,
+          `${label}${named}, from ${profile.name}’s comic shelf on ${spine.name}.`,
+        ),
+        slash: true,
+        image: cover(issue.cover_url, `Cover of ${label}`),
+      })
+    }
+    for (const edition of series.editions ?? []) {
+      if (!edition?.slug || !edition.label) continue
+      const label = `${series.series_title}, ${edition.label}`
+      routes.push({
+        ...page(
+          `${base}/${encodeURIComponent(edition.slug)}`,
+          `${label} · ${spine.name}`,
+          `${label}, a collected edition on ${profile.name}’s comic shelf on ${spine.name}.`,
+        ),
+        slash: true,
+        image: cover(edition.cover_url, `Cover of ${label}`),
+      })
+    }
   }
   // One page per year with a finish, from the same pure function the page
   // uses, so the preview's count is the page's count.

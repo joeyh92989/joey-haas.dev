@@ -31,7 +31,7 @@ from comics import (
     parse_ranges,
 )
 from models import ComicIssue, Item, ItemType
-from public_comics import _editions, series_of
+from public_comics import _editions, public_comic_items, series_of
 
 COMIC_VINE_HOST = "comicvine.gamespot.com"
 # The Comic Vine home page, for a series that has no page of its own stored.
@@ -137,6 +137,28 @@ class PublicEditionPage(BaseModel):
     source_url: str | None
 
 
+class PublicComicIndexIssue(BaseModel):
+    number: int
+    name: str | None
+    cover_url: str | None
+
+
+class PublicComicIndexEdition(BaseModel):
+    slug: str
+    label: str
+    cover_url: str | None
+
+
+class PublicComicIndex(BaseModel):
+    """GET /api/public/comic-issues: the build's list of issue and edition
+    pages, for their link-preview heads. No state, ownership or skip."""
+
+    item_id: uuid.UUID
+    series_title: str
+    issues: list[PublicComicIndexIssue]
+    editions: list[PublicComicIndexEdition]
+
+
 async def _public_comic(session: AsyncSession, item_id: uuid.UUID) -> Item | None:
     """One row by id, held to the public predicate."""
     result = await session.execute(
@@ -201,6 +223,18 @@ def _neighbours(
     return out
 
 
+def _edition_cover(edition: dict, by_number: dict[int, ComicIssue]) -> str | None:
+    """The edition's own cover, else the first stored cover inside it."""
+    return edition.get("cover_url") or next(
+        (
+            by_number[n].cover_url
+            for n in range(edition["from"], edition["to"] + 1)
+            if n in by_number and by_number[n].cover_url
+        ),
+        None,
+    )
+
+
 async def build_wall(session: AsyncSession, item_id: uuid.UUID) -> PublicWall | None:
     item = await _public_comic(session, item_id)
     if item is None:
@@ -210,16 +244,7 @@ async def build_wall(session: AsyncSession, item_id: uuid.UUID) -> PublicWall | 
     editions = _editions(item)
     out_editions = []
     for slug, edition in zip(edition_slugs(editions), editions, strict=True):
-        cover = edition.get("cover_url")
-        if not cover:
-            cover = next(
-                (
-                    by_number[n].cover_url
-                    for n in range(edition["from"], edition["to"] + 1)
-                    if n in by_number and by_number[n].cover_url
-                ),
-                None,
-            )
+        cover = _edition_cover(edition, by_number)
         out_editions.append(
             PublicWallEdition(
                 slug=slug,
@@ -380,3 +405,59 @@ async def build_edition_page(
         next=following,
         source_url=_comic_vine_url(item),
     )
+
+
+async def load_comic_index(
+    session: AsyncSession, today: date
+) -> list[PublicComicIndex]:
+    """Every public series with the issue numbers that have a page (the same
+    rule as the issue route: `_state` is non-empty) and its editions. The
+    issues of all series come in one query."""
+    items = await public_comic_items(session)
+    by_item: dict[uuid.UUID, dict[int, ComicIssue]] = {item.id: {} for item in items}
+    if items:
+        result = await session.scalars(
+            select(ComicIssue).where(ComicIssue.item_id.in_(list(by_item)))
+        )
+        for row in result:
+            by_item[row.item_id][row.number] = row
+    out = []
+    for item in sorted(items, key=lambda i: (i.title, str(i.id))):
+        series = series_of(item)
+        released = series.run().released
+        upcoming = _upcoming(series, today)
+        rows = by_item[item.id]
+        candidates = {*range(1, released + 1), *series.owned}
+        if upcoming is not None:
+            candidates.add(upcoming)
+        numbers = sorted(
+            n
+            for n in candidates
+            if 1 <= n <= MAX_ISSUE and _state(n, series, released, upcoming)
+        )
+        editions = _editions(item)
+        out.append(
+            PublicComicIndex(
+                item_id=item.id,
+                series_title=item.title,
+                issues=[
+                    PublicComicIndexIssue(
+                        number=n,
+                        name=rows[n].name if n in rows else None,
+                        cover_url=rows[n].cover_url if n in rows else None,
+                    )
+                    for n in numbers
+                ],
+                editions=[
+                    PublicComicIndexEdition(
+                        slug=slug,
+                        label=edition["label"],
+                        cover_url=_edition_cover(edition, rows),
+                    )
+                    for slug, edition in zip(
+                        edition_slugs(editions), editions, strict=True
+                    )
+                ],
+            )
+        )
+    return out

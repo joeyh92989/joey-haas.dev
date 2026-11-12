@@ -26,8 +26,11 @@ strips, so they still make no API calls.
   something unexpected, the build ships without a snapshot, and the site
   behaves as it did before the snapshot existed.
 - Required snapshots (`items`, `stats`) are written together or not at all.
-- `next`, `status`, `comics` and `site-stats` are optional; if one fails,
-  the build leaves that file out.
+- `next`, `status`, `comics`, `site-stats`, `pick-for-me`, `spots` and
+  `comic-issues` are optional; if one fails, the build leaves that file out.
+  `comic-issues.json` (`/api/public/comic-issues`) is read only by the
+  prerender, for the heads of the comic issue and edition pages; without it
+  those pages keep the site card. The nightly does not compare it.
 - Beside them it writes `meta.json`, `{"fetched_at": "<ISO time>"}`, which
   the admin Dashboard reads for the snapshot row of its jobs panel. It is
   not an API body, so the nightly compare does not read it, and it is
