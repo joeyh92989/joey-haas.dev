@@ -33,13 +33,7 @@ export function editionSlugs(editions) {
  * @param {number} input.released
  * @param {Set<number>} [input.skipped]
  */
-export function issueState({
-  n,
-  owned,
-  readTo = null,
-  released,
-  skipped,
-}) {
+export function issueState({ n, owned, readTo = null, released, skipped }) {
   if (owned.has(n)) return n <= (readTo ?? 0) ? 'read' : 'owned'
   if (skipped?.has(n)) return 'skipped'
   if (n > released) return 'not-out'
