@@ -50,6 +50,7 @@ describe('CoverTile', () => {
     show({ kind: 'not-out', n: 73, store_date: '2026-12-02' })
     expect(screen.queryByRole('link')).toBeNull()
     expect(screen.getByText('#73')).toHaveClass('cover-tile-chip')
-    expect(screen.getByText('Not out yet')).toBeInTheDocument()
+    // The name carries the series, as a held tile's does.
+    expect(screen.getByText('Saga #73, Not out yet')).toBeInTheDocument()
   })
 })

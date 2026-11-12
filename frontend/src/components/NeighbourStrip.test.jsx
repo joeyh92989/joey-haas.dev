@@ -43,7 +43,7 @@ describe('NeighbourStrip', () => {
   it('draws the not-out tile as a non-link', () => {
     renderStrip()
     expect(screen.queryByRole('link', { name: /#60/ })).toBeNull()
-    expect(screen.getByText('Not out yet')).toBeInTheDocument()
+    expect(screen.getByText('Saga #60, Not out yet')).toBeInTheDocument()
   })
 
   it('scrolls the current tile into view when it can', () => {

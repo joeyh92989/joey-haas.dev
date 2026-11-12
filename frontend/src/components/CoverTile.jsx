@@ -27,17 +27,19 @@ export default function CoverTile({ tile, size, series, current = false }) {
   if (tile.kind === 'not-out') {
     return (
       <div className="cover-tile" data-size={size} data-state="not-out">
-        <div className="cover-tile-frame">
+        <div className="cover-tile-frame" aria-hidden="true">
           <div className="cover-tile-hatch">
             <span className="cover-tile-chip">#{tile.n}</span>
           </div>
         </div>
         {date && (
-          <span className="cover-tile-cap">
+          <span className="cover-tile-cap" aria-hidden="true">
             <em>{date}</em>
           </span>
         )}
-        <span className="visually-hidden">{WALL.states['not-out']}</span>
+        <span className="visually-hidden">
+          {WALL.tileName(series.title, tile.n, WALL.names['not-out'])}
+        </span>
       </div>
     )
   }

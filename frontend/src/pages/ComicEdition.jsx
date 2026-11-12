@@ -14,6 +14,8 @@ import NotFound from './NotFound.jsx'
 
 const COPY = spine.comics.edition
 const ISSUE = spine.comics.issue
+// A series with no Comic Vine page of its own still credits the site.
+const COMIC_VINE_HOME = 'https://comicvine.gamespot.com/'
 
 /** The owner's buttons: state, Read to the end, and the way to edit. */
 function OwnerBox({ id, page, onChanged }) {
@@ -44,7 +46,7 @@ function OwnerBox({ id, page, onChanged }) {
         <button
           type="button"
           className="btn sm"
-          disabled={busy}
+          disabled={busy || done}
           onClick={readToEnd}
         >
           {done ? COPY.owner.readDone : COPY.owner.readToEnd}
@@ -215,7 +217,10 @@ export default function ComicEdition({ id, slug }) {
 
           <p className="comic-issue-attribution">
             {ISSUE.attribution.before}{' '}
-            <a href={page.source_url} rel="noreferrer noopener">
+            <a
+              href={page.source_url || COMIC_VINE_HOME}
+              rel="noreferrer noopener"
+            >
               {ISSUE.attribution.label}
             </a>
             {ISSUE.attribution.after}

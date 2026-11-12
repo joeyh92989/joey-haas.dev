@@ -200,6 +200,24 @@ describe('ComicEdition', () => {
     await waitFor(() => expect(fetch.mock.calls.length).toBeGreaterThan(1))
   })
 
+  it('disables Read to the end once the whole book is read', async () => {
+    stubApi({ page: { read: 'all', read_to: 6 } })
+    renderEdition({ signedIn: true })
+    expect(
+      await screen.findByRole('button', { name: 'Read to the end ✓' }),
+    ).toBeDisabled()
+  })
+
+  it('falls back to the Comic Vine home page when the series has no page', async () => {
+    stubApi({ page: { source_url: null } })
+    renderEdition()
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.getByRole('link', { name: 'Comic Vine' })).toHaveAttribute(
+      'href',
+      'https://comicvine.gamespot.com/',
+    )
+  })
+
   it('shows the refusal when Read to the end fails', async () => {
     stubApi()
     edits.setReadTo.mockRejectedValueOnce(new Error('Read to is past the run'))
