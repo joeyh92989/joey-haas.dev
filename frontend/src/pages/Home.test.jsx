@@ -88,27 +88,14 @@ describe('Home', () => {
     expect(Object.keys(facts())).toEqual(['Now', 'Focus', 'Stack'])
   })
 
-  it('reads Last shipped from the newest changelog bullet, linking to the changes', () => {
+  it('dates Last shipped from the newest changelog entry, linking to the changes', () => {
     changes.CHANGELOG.push(entry(['The [shelf](/shelf) pages load faster.']))
     renderHome()
-    expect(facts()['Last shipped']).toBe('The shelf pages load faster. · Oct 2')
-    expect(
-      screen.getByRole('link', { name: /The shelf pages/ }),
-    ).toHaveAttribute('href', '/stats#changes')
-  })
-
-  it('cuts a plain Last shipped at a word and keeps it on one line', () => {
-    changes.CHANGELOG.push(
-      entry([
-        'Links inside running text are now underlined, so they can be told apart.',
-      ]),
+    expect(facts()['Last shipped']).toBe('Oct 2')
+    expect(screen.getByRole('link', { name: 'Oct 2' })).toHaveAttribute(
+      'href',
+      '/stats#changes',
     )
-    renderHome()
-    const text = facts()['Last shipped']
-    expect(text).toBe('Links inside running text are now underlined… · Oct 2')
-    expect(
-      screen.getByRole('link', { name: /Links inside/ }).closest('dd'),
-    ).toHaveClass('facts-one-line')
   })
 
   it('adds what is being played from the snapshot', async () => {

@@ -750,33 +750,6 @@ p.muted a,
   text-align: right;
 }
 
-/* A value that must stay on one line (Last shipped); text past the card is
-   cut with an ellipsis. The text is already clipped at a word. */
-.facts dd.facts-one-line {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Last shipped: the text gives way with an ellipsis, the date stays. */
-.facts-ship {
-  display: flex;
-  justify-content: flex-end;
-  min-width: 0;
-}
-
-.facts-ship-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.facts-ship-date {
-  flex: none;
-  white-space: pre;
-}
-
 /* Home's Work and Experience: a hairline above, the heading and its "all"
    link on one line. */
 .home-section {
@@ -884,7 +857,7 @@ p.muted a,
   .hero {
     gap: 24px;
     /* minmax(0, 1fr), not 1fr: a bare 1fr track will not shrink below its
-       content, so the nowrap Last shipped row widened the whole hero. */
+       content, so a long facts value widens the whole hero. */
     grid-template-columns: minmax(0, 1fr);
     padding: 0.5rem 0 2rem;
   }

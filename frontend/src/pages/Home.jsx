@@ -10,7 +10,6 @@ import { profile } from '../content/profile.js'
 import { projects } from '../content/projects.js'
 import { spine } from '../content/spine.js'
 import { trips } from '../content/trips.js'
-import { lastShippedText } from '../lib/lastShipped.js'
 import { nowLists } from '../lib/nowLists.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { tripMonth } from '../lib/tripDates.js'
@@ -24,15 +23,12 @@ const SHORT_DAY = new Intl.DateTimeFormat('en', {
 
 const thisSite = projects.find((project) => project.url === profile.repo)
 
-/** "My Shelf · Nov 12" for the newest changelog entry, or null without one. */
+/** "Nov 12" for the newest changelog entry, linking to the changes. */
 function lastShipped(entry) {
-  const text = lastShippedText(entry)
-  if (!text) return null
-  const date = SHORT_DAY.format(new Date(`${entry.date}T00:00:00Z`))
+  if (!entry) return null
   return (
-    <Link to="/stats#changes" className="facts-ship">
-      <span className="facts-ship-text">{text}</span>
-      <span className="facts-ship-date"> · {date}</span>
+    <Link to="/stats#changes">
+      {SHORT_DAY.format(new Date(`${entry.date}T00:00:00Z`))}
     </Link>
   )
 }
@@ -42,9 +38,10 @@ function lastShipped(entry) {
  * work history.
  *
  * Makes no API call. Playing comes from the build-time snapshot and is
- * left out until it arrives, or when nothing is being played; Last shipped
- * is the newest changelog entry and is left out while there is none, as Latest trip
- * and the Travel card are while no trip is published.
+ * left out until it arrives, or when nothing is being played. Last shipped
+ * is the date of the newest changelog entry, linking to the changes, and is
+ * left out while there is none, as Latest trip and the Travel card are while
+ * no trip is published.
  */
 export default function Home() {
   usePageTitle('Joey Haas · Senior software engineer, Denver')
@@ -65,9 +62,7 @@ export default function Home() {
   const shipped = lastShipped(CHANGELOG[0])
   const facts = [
     ...profile.facts,
-    ...(shipped
-      ? [{ label: 'Last shipped', value: shipped, oneLine: true }]
-      : []),
+    ...(shipped ? [{ label: 'Last shipped', value: shipped }] : []),
     ...(latestTrip
       ? [
           {
