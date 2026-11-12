@@ -43,4 +43,17 @@ describe('LoadState', () => {
     const { container } = render(<LoadState />)
     expect(container.innerHTML).toBe('')
   })
+
+  it("shows the page's own message instead of LOAD_ERROR, and no button without onRetry", () => {
+    render(<LoadState failed message="The analytics couldn’t be read." />)
+    const alert = screen.getByRole('alert')
+    expect(alert.textContent).toContain('The analytics couldn’t be read.')
+    expect(alert.textContent).not.toContain(LOAD_ERROR)
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('keeps the stale line when a message is given and data is showing', () => {
+    render(<LoadState failed stale message="Custom" />)
+    expect(screen.getByRole('status').textContent).toContain(STALE_COPY)
+  })
 })

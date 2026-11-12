@@ -148,7 +148,7 @@ describe('AdminAnalytics', () => {
     expect(tile('Page views')).toHaveTextContent('—')
     fireEvent.click(screen.getByRole('button', { name: '7d' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session ended. Reload to sign in.',
+      'Your session ended. Sign in again.',
     )
   })
 
@@ -165,5 +165,14 @@ describe('AdminAnalytics', () => {
     ).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows no Try again when the session has ended', async () => {
+    stubApi({ '30d': json({}, 401) })
+    render(<AdminAnalytics />)
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your session ended. Sign in again.',
+    )
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 })

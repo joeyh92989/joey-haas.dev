@@ -7,6 +7,7 @@ import Panel from '../components/Panel.jsx'
 import RangeControl from '../components/RangeControl.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { dayLabel, deviceName, referrerName } from '../lib/analytics.js'
+import { SESSION_ENDED } from '../content/status.js'
 import { apiFetch } from '../lib/api.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 
@@ -23,7 +24,7 @@ const SPAN_WORDS = {
 /** What went wrong, in words, for a read that did not answer 200. */
 function failureWords(response) {
   if (response?.status === 401 || response?.status === 403) {
-    return 'Your session ended. Reload to sign in.'
+    return SESSION_ENDED
   }
   return 'The analytics couldn’t be read.'
 }
@@ -97,7 +98,7 @@ export default function AdminAnalytics() {
         loading={loading && !data}
         failed={!!error}
         message={error ?? undefined}
-        onRetry={retry}
+        onRetry={error === SESSION_ENDED ? undefined : retry}
       />
 
       <StatTiles label="Analytics figures">

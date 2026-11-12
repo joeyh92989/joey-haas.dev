@@ -7,6 +7,7 @@ import Panel from '../components/Panel.jsx'
 import SuggestionCard from '../components/SuggestionCard.jsx'
 import WeatherPanel from '../components/WeatherPanel.jsx'
 import { denver } from '../content/denver.js'
+import { SESSION_ENDED } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { formatDate } from '../lib/formatDate.js'
 import { whenWords } from '../lib/nightly.js'
@@ -65,7 +66,7 @@ async function fetchPlan(seed) {
     return {
       error:
         answer.status === 401 || answer.status === 403
-          ? denver.admin.sessionEnded
+          ? SESSION_ENDED
           : copy.readError,
     }
   } catch {
@@ -330,11 +331,15 @@ export default function AdminWeekend() {
           loading={!error}
           failed={!!error}
           message={error ?? undefined}
-          onRetry={() => {
-            setReadError(null)
-            setWriteError(null)
-            again()
-          }}
+          onRetry={
+            error === SESSION_ENDED
+              ? undefined
+              : () => {
+                  setReadError(null)
+                  setWriteError(null)
+                  again()
+                }
+          }
         />
       </div>
     )

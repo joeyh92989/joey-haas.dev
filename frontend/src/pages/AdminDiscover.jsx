@@ -36,8 +36,7 @@ async function fetchDiscover() {
         ])
         if (discover.status === 401 || items.status === 401)
           return { state: 'unauthorized' }
-        if (!discover.ok)
-          return { state: 'error', error: await errorMessage(discover) }
+        if (!discover.ok) return { state: 'error', error: LOAD_ERROR }
         // Rate a few is an extra: the picks still show without it.
         return {
           state: 'ready',

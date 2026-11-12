@@ -85,10 +85,8 @@ async function fetchRadar() {
         ])
         if (radar.status === 401 || watching.status === 401)
           return { state: 'unauthorized' }
-        if (!radar.ok)
-          return { state: 'error', error: await errorMessage(radar) }
-        if (!watching.ok)
-          return { state: 'error', error: await errorMessage(watching) }
+        if (!radar.ok) return { state: 'error', error: LOAD_ERROR }
+        if (!watching.ok) return { state: 'error', error: LOAD_ERROR }
         return {
           state: 'ready',
           radar: await radar.json(),

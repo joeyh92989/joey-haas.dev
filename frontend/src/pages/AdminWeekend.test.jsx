@@ -433,8 +433,9 @@ describe('AdminWeekend', () => {
     stubApi({ 'GET /api/spots/plan?seed=0': () => json({}, 401) })
     renderPage()
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session ended. Reload to sign in.',
+      'Your session ended. Sign in again.',
     )
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it('offers Try again on a failed first read, then shows the plan', async () => {

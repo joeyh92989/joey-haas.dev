@@ -40,8 +40,7 @@ async function fetchStatus() {
   try {
     const response = await apiFetch('/api/physical/status')
     if (response.status === 401) return { state: 'unauthorized' }
-    if (!response.ok)
-      return { state: 'error', error: await errorMessage(response) }
+    if (!response.ok) return { state: 'error', error: LOAD_ERROR }
     return { state: 'ready', status: await response.json() }
   } catch {
     return {

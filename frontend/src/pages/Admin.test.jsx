@@ -30,9 +30,9 @@ function renderAt(path = '/admin') {
 
 const HOUR = 3600 * 1000
 const ago = (hours) => new Date(Date.now() - hours * HOUR).toISOString()
-const json = (body, ok = true) => ({
+const json = (body, ok = true, status = ok ? 200 : 500) => ({
   ok,
-  status: ok ? 200 : 500,
+  status,
   json: async () => body,
 })
 const YEAR = ownerYear()
@@ -349,6 +349,16 @@ describe('Admin Home', () => {
     expect(
       screen.getByText('The nightly status couldn’t be read.'),
     ).toBeInTheDocument()
+  })
+
+  it('says the session ended on a refused read, with no Try again', async () => {
+    stubApi({ '/api/analytics?range=7d': () => json({}, false, 401) })
+    renderAt()
+    expect(
+      await screen.findByText('Your session ended. Sign in again.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/^Couldn't read:/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it('re-runs only the failed reads with one Try again', async () => {

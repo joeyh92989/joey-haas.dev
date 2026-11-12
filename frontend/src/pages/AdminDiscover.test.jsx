@@ -444,4 +444,18 @@ describe('AdminDiscover', () => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
     )
   })
+
+  it('hides a 5xx detail behind the shared failure words', async () => {
+    stubApi({
+      'GET /api/recommendations': async () => ({
+        ok: false,
+        status: 503,
+        json: async () => ({ detail: 'psycopg exploded' }),
+      }),
+    })
+    renderPage()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('That didn’t load. Try again in a minute.')
+    expect(document.body).not.toHaveTextContent('psycopg exploded')
+  })
 })

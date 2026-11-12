@@ -496,6 +496,19 @@ describe('Registry disagreements', () => {
   })
 })
 
+describe('the main status read', () => {
+  it('says it did not load, never the raw detail', async () => {
+    stubApi({
+      'GET /api/physical/status': () =>
+        json({ detail: 'psycopg exploded' }, 500),
+    })
+    renderPage()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('That didn’t load. Try again in a minute.')
+    expect(document.body).not.toHaveTextContent('psycopg exploded')
+  })
+})
+
 describe('failed list reads', () => {
   it.each([
     ['Needs match', 'needs-match', { keys: [], total: 0 }],

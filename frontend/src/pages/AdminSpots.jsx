@@ -5,6 +5,7 @@ import Panel from '../components/Panel.jsx'
 import SpotFinder from '../components/SpotFinder.jsx'
 import SpotForm from '../components/SpotForm.jsx'
 import { denver, tagLabel } from '../content/denver.js'
+import { SESSION_ENDED } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { formatDate } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
@@ -38,7 +39,7 @@ async function fetchSpots() {
     return {
       error:
         answer.status === 401 || answer.status === 403
-          ? denver.admin.sessionEnded
+          ? SESSION_ENDED
           : denver.admin.readError,
     }
   } catch {
@@ -254,10 +255,14 @@ export default function AdminSpots() {
               loading={!readError}
               failed={!!readError}
               message={readError ?? undefined}
-              onRetry={() => {
-                setReadError(null)
-                setAttempt((n) => n + 1)
-              }}
+              onRetry={
+                readError === SESSION_ENDED
+                  ? undefined
+                  : () => {
+                      setReadError(null)
+                      setAttempt((n) => n + 1)
+                    }
+              }
             />
           )}
 

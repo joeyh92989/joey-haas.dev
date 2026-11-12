@@ -264,12 +264,13 @@ describe('AdminSpots', () => {
     expect(screen.getByLabelText("Public: Sloan's Lake")).not.toBeChecked()
   })
 
-  it('says the session ended on a 401', async () => {
+  it('says the session ended on a 401, with no Try again', async () => {
     stubApi({ 'GET /api/spots': () => json({ detail: 'x' }, 401) })
     render(<AdminSpots />)
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session ended. Reload to sign in.',
+      'Your session ended. Sign in again.',
     )
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it('says the spots failed to load and offers Try again', async () => {
