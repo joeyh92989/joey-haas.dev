@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-11
 
+- Every comic issue and collected edition now has a cover on its [series page](/shelf/comics) and a page of its own, with its Comic Vine description.
 - The model behind the site's suggestions and photo reading answers faster and runs out less: the free models are tried in a longer chain, quick ones first for text and stronger ones first for photos, and one that has used up its day is skipped until midnight.
 - Adding comics to a series already on my shelf now says so: the check step lists each one apart from the new titles, with the issues it adds, the count before and after, and the cells around the change, and the summary ends with the [series](/shelf/comics) that grew.
 - [Comics](/shelf/comics) read as runs: each card stacks its cover and shows the run and how far I've read in two lanes, with what's next under them, and a series page leads with what to read, the first gap and the next issue out, then the run as a box of trades, single issues and folded stretches, so a 362-issue series fits on one screen.

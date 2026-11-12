@@ -347,7 +347,10 @@ before pushing.
       editions, the public `/shelf/comics` and the comic series page, Comics
       this week on What's next, and the admin pull list at
       `/admin/pull-list`. Migration `0010`. Spec and plan:
-      `docs/planning/2026-11-01-comics-design.md`
+      `docs/planning/2026-11-01-comics-design.md`. Issue pages: a cover
+      wall, an issue page and an edition page per series, from
+      `comic_issues` (migration `0016`;
+      `docs/planning/2026-11-11-comic-issue-pages-design.md`)
 - [x] Play states — the `paused` status, replays as playthroughs
       (migration `0011`, `playthroughs`), the status route, the paused mark
       and replay count on the shelf, and the playthrough table on the item
@@ -438,7 +441,8 @@ before pushing.
   backfilled one finished run per completion; `0012` adds the nullable
   `playthroughs.note` (the Wrap up sheet's line); `0013` adds Denver
   spots' `spots`, `candidates`, `dismissals`, `visits`, `weather_hours`
-  and `spot_settings`.
+  and `spot_settings`; `0016` adds `comic_issues` and
+  `items.issues_synced_on` (additive).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -703,17 +707,19 @@ before pushing.
   `/next` forbids. `frontend/src/lib/pick-for-me-keys.json` is the key
   contract both test suites read: regenerate it when `combo_keys` changes.
 - **Comics** are ordinary `items` rows of type `comic`, one per series
-  (Comic Vine volume), never one per issue: there is no issue table.
+  (Comic Vine volume), never one per issue: `items` has no issue rows. Issue
+  detail lives in the separate `comic_issues` table (below).
   Migration `0010` adds `issues_owned` and `issues_skipped` (range text,
   "1–54, 60"), `editions` (JSONB, `[{kind, label, from, to}]`), `read_to`,
   `shelf_format` (`comic_shelf_format`) and `following`.
   **`backend/comics.py` is the one range parser** (spec, D7): every write
   path canonicalises through it and answers a bad range with a 422 the
   form shows beside its field; `lib/comics.js` only expands the canonical
-  text and checks an edition row's shape. Comic Vine's issue list per
-  followed series lives in `source_metadata.issues` (`sources/comicvine.py`
-  `fetch_issues`, one call per series; an answer naming another volume is
-  refused whole). The pull list (`comics_routes.py`, admin only) groups
+  text and checks an edition row's shape. The pull list's short
+  Comic Vine snapshot (10 issues) per followed series lives in
+  `source_metadata.issues` (`sources/comicvine.py` `fetch_issues`, one call
+  per series; an answer naming another volume is refused whole); every
+  issue of every series lives in `comic_issues`, not there. The pull list (`comics_routes.py`, admin only) groups
   issues into weeks of Wednesday to Tuesday in UTC days (D4); Got it adds
   the number to `issues_owned`, Skip to `issues_skipped`, and Skip refuses
   an owned issue; every item write path refuses it too
@@ -770,6 +776,28 @@ before pushing.
   payload under Gemini's 20MB inline ceiling.
 - Source attribution on the collection page is required by TMDB's and Comic
   Vine's terms, not decoration. A test pins the TMDB wording verbatim.
+- **Comic issue pages** (migration `0016`, additive: the
+  `comic_issues` table, keyed `(item_id, number)`, `ON DELETE CASCADE`, and
+  `items.issues_synced_on`). `comic_issues.sync_series` pages a linked
+  series' every issue from Comic Vine (`sort=id:asc`, one request per 100
+  issues, descriptions included) and sets `issues_synced_on` only when the
+  last page was reached; a partial run leaves the series stalest and the
+  next one restarts at offset 0 (upserts make that idempotent).
+  `POST /api/comics/issues/sync?budget=` is in `JOB_ROUTES`: stalest series
+  first, budget 1 to 190 requests (default 120). The same sync runs on
+  Follow and Want create and on "Refresh from Comic Vine" (budget 10). An
+  edition links to its Comic Vine issue by `cv_id` (`GET
+  /api/comics/issues/search`, `PUT /api/comics/{id}/editions/{slug}/link`);
+  an edit that changes the edition's range changes its slug and unlinks it.
+  Public reads: `GET /api/public/items/{id}/issues`, `/issues/{n}`,
+  `/editions/{slug}`, and `GET /api/public/comic-issues` (the snapshot the
+  build prerenders from). Frontend routes `/shelf/<id>/<n>/` and
+  `/shelf/<id>/ed-<from>-<to>/`; the cover wall replaces `RunBox` on the
+  public series page when issue rows exist (no toggle there; `RunBox` is
+  unchanged otherwise); the owner's range edits are shared in
+  `lib/comicEdits.js`. **Deploy order:** apply `0016` to Neon, merge, then
+  run the sync once by hand (`POST /api/comics/issues/sync` with the job
+  token) or wait for the nightly.
 - **Job token:** `require_admin` accepts `Bearer JOB_TOKEN` only on
   `items.JOB_ROUTES`, matched on the routed template, and
   `tests/test_job_token.py` is the point of it: it pins the whitelist
@@ -777,6 +805,9 @@ before pushing.
 - **Nightly order:** the followed comics' refresh
   (`POST /api/comics/refresh`, in `JOB_ROUTES`; early because it is cheap
   and the catalogue steps can run the job into its timeout), then the
+  comic issue sync (`POST /api/comics/issues/sync?budget=120`, also in
+  `JOB_ROUTES`, right after the refresh so a followed series' new issues
+  land the same night), then the
   weekend forecast, then the Closet's tag queue
   (`POST /api/closet/jobs/tag`), then tomorrow's outfit plans
   (`POST /api/closet/jobs/plan`), then registry,
