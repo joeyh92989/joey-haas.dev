@@ -24,6 +24,17 @@ export const STILL_PLANNING =
 /** Today's failure when the wait passes its deadline. */
 export const PLANNING_TIMEOUT = "Planning didn't answer in time. Try again."
 
+/** Tag now's wait: one model call over the queue, `count` photos long. */
+export const taggingWait = (count) =>
+  `Tagging ${count} ${count === 1 ? 'photo' : 'photos'} — one model call`
+
+/** Shown beside `taggingWait` once Tag now has waited a while. */
+export const STILL_TAGGING = 'Still working — this can take up to two minutes.'
+
+/** Tag now's failure when the wait passes its deadline. */
+export const TAGGING_TIMEOUT =
+  "Tagging didn't answer in time. It may still finish — reload to see."
+
 export const LOAD_ERROR = 'That didn’t load. Try again in a minute.'
 
 export const ACTION_ERROR = 'Couldn’t reach the server. Try again in a minute.'

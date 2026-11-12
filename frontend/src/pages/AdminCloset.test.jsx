@@ -1,8 +1,15 @@
 import '@testing-library/jest-dom'
-import { render, screen, within } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminCloset from './AdminCloset.jsx'
 
 function garment(id, name, fields = {}) {
@@ -204,6 +211,94 @@ describe('AdminCloset', () => {
       await screen.findByText(/2 tagged, 1 still queued/),
     ).toBeInTheDocument()
     expect(calls.filter((c) => c.path === '/api/closet/tag')).toHaveLength(1)
+  })
+
+  describe('a slow Tag now', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    const untagged = (id) =>
+      garment(id, null, { status: 'untagged', tag_source: null })
+
+    async function startTagging(queuedPieces, tagHandler) {
+      const calls = stubApi({
+        'GET /api/closet/garments': () =>
+          json(closet([...queuedPieces, ...GARMENTS.slice(0, 2)])),
+        'POST /api/closet/tag': tagHandler,
+      })
+      renderCloset()
+      await act(async () => {})
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Tag now' }))
+      })
+      return calls
+    }
+
+    it('names the wait with the count and seconds, then says it is still working', async () => {
+      await startTagging(
+        [untagged('e'), untagged('f')],
+        () => new Promise(() => {}),
+      )
+      const status = screen.getByText(/^Tagging/)
+      expect(status).toHaveTextContent(
+        'Tagging 2 photos — one model call · 0 s',
+      )
+      await act(async () => {
+        vi.advanceTimersByTime(29_000)
+      })
+      expect(status).toHaveTextContent(
+        'Tagging 2 photos — one model call · 29 s',
+      )
+      expect(screen.queryByText(/Still working/)).not.toBeInTheDocument()
+      await act(async () => {
+        vi.advanceTimersByTime(1000)
+      })
+      expect(status).toHaveTextContent(
+        'Tagging 2 photos — one model call · 30 s Still working — this can take up to two minutes.',
+      )
+    })
+
+    it('says "photo" for a single piece', async () => {
+      await startTagging([untagged('e')], () => new Promise(() => {}))
+      expect(screen.getByText(/^Tagging/)).toHaveTextContent(
+        'Tagging 1 photo — one model call · 0 s',
+      )
+    })
+
+    it('says tagging did not answer at 165 s, and that it may still finish', async () => {
+      await startTagging([untagged('e')], () => new Promise(() => {}))
+      await act(async () => {
+        vi.advanceTimersByTime(165_000)
+      })
+      expect(
+        screen.getByText(
+          "Tagging didn't answer in time. It may still finish — reload to see.",
+        ),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/Still working/)).not.toBeInTheDocument()
+    })
+
+    it('keeps its words for a network error', async () => {
+      await startTagging([untagged('e')], () => {
+        throw new TypeError('Failed to fetch')
+      })
+      expect(
+        screen.getByText(
+          'Tag now: tagging did not start. Check your connection',
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it('does not update after unmount', async () => {
+      await startTagging([untagged('e')], () => new Promise(() => {}))
+      cleanup()
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+      await act(async () => {
+        vi.advanceTimersByTime(170_000)
+      })
+      expect(errors).not.toHaveBeenCalled()
+      errors.mockRestore()
+    })
   })
 
   it('says so when tagging is already running', async () => {
