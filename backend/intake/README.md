@@ -58,11 +58,12 @@ and the entries read from them or typed in.
   becomes owned, To read), and `issues_added` counts the issues it gained; a
   shelf format set in Details (the first entry that has one) is saved on that
   existing row too, and not counted as an issue gained;
-  collected `editions` set in Details (for a trades or omnibus row) go onto a
-  new series' row from the first entry that has them, as the shelf format
-  does; a series already on the shelf keeps its own editions untouched (edit
-  them on its item page), and an edition the write rules refuse is a
-  refusal on field `editions`;
+  collected `editions` set in Details count only on a trades or omnibus row
+  (a singles row writes none). They are merged: a new series' row gets every
+  such entry's editions, and a series already on the shelf gets them added to
+  the editions it holds, an identical kind, label and range once only, all
+  re-checked by `comics.validate_editions`. An edition the write rules refuse
+  is a refusal on field `editions` and nothing is written;
   a series that gains nothing is `already_owned`. Each such series is also
   reported on its own in `series_grew` (`SeriesGrew`): `{item_id, title,
   is_public, cover_url, before: {owned, released}, ongoing, added, already, after_owned_text}`,

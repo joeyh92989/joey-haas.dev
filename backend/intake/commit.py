@@ -49,6 +49,7 @@ from comics import (
     parse_ranges,
     row_run,
     union,
+    validate_editions,
 )
 from comics_routes import got_issues
 from formats import CopyFieldError
@@ -291,7 +292,33 @@ class _Series:
     entry: IntakeEntry | None = None
     issues: list[str | None] = field(default_factory=list)
     shelf_format: ComicShelfFormat | None = None
-    editions: list[dict] | None = None
+    # (entry, editions) of each entry that carries some, in commit order.
+    editions: list[tuple[IntakeEntry, list[dict]]] = field(default_factory=list)
+
+
+_COLLECTED = (ComicShelfFormat.TRADES, ComicShelfFormat.OMNIBUS)
+
+
+def _entry_editions(made: ItemIn) -> list[dict]:
+    """The editions an entry's row brings: only a trades or omnibus row, so a
+    row switched back to singles writes none left over."""
+    return list(made.editions or []) if made.shelf_format in _COLLECTED else []
+
+
+def _merged_editions(held: list[dict] | None, added: list[dict]) -> list[dict] | None:
+    """`held` plus the `added` ones it lacks (an identical kind, label and
+    range is not added twice), canonical. Raises RangeError."""
+
+    def core(edition: dict) -> tuple:
+        return tuple(edition.get(key) for key in ("kind", "label", "from", "to"))
+
+    merged = list(held or [])
+    seen = {core(edition) for edition in merged}
+    for edition in added:
+        if core(edition) not in seen:
+            seen.add(core(edition))
+            merged.append(edition)
+    return validate_editions(merged, held) or None
 
 
 async def _series_on_shelf(
@@ -422,6 +449,13 @@ async def commit_one(
             issues = expand(parse_ranges(made.issues_owned))
             gained = issues - owned_set(on_shelf.issues_owned, on_shelf.editions)
             grew = SeriesGrew.before_write(on_shelf, issues)
+            added = _entry_editions(made)
+            if added:
+                try:
+                    on_shelf.editions = _merged_editions(on_shelf.editions, added)
+                except RangeError as error:
+                    outcome.refused.append(Refusal(entry.id, "editions", str(error)))
+                    return outcome
             if made.shelf_format is not None:
                 on_shelf.shelf_format = made.shelf_format
             if gained:
@@ -433,6 +467,8 @@ async def commit_one(
             grew.after_write()
             outcome.series_grew.append(grew)
             return outcome
+    if made.editions and not _entry_editions(made):
+        made = made.model_copy(update={"editions": None})
     try:
         result = await commit_items(session, [made], today=today)
     except RowRefused as refused:
@@ -544,8 +580,8 @@ async def commit_sitting(
             found.issues.append(made.issues_owned)
             if found.shelf_format is None and not owned_comic:
                 found.shelf_format = made.shelf_format
-            if found.editions is None and not owned_comic:
-                found.editions = made.editions
+            if not owned_comic and (added := _entry_editions(made)):
+                found.editions.append((entry, added))
             if found.row is None and not owned_comic:
                 found.row, found.entry = made, entry
             continue
@@ -568,6 +604,16 @@ async def commit_sitting(
         item = on_shelf.get(key)
         if item is not None:
             outcome.series_grew.append(SeriesGrew.before_write(item, issues))
+            if found.editions:
+                try:
+                    item.editions = _merged_editions(
+                        item.editions, [e for _, eds in found.editions for e in eds]
+                    )
+                except RangeError as error:
+                    outcome.refused.append(
+                        Refusal(found.editions[0][0].id, "editions", str(error))
+                    )
+                    continue
             if found.shelf_format is not None:
                 item.shelf_format = found.shelf_format
             gained = issues - owned_set(item.issues_owned, item.editions)
@@ -586,11 +632,23 @@ async def commit_sitting(
                 new_row = new_row.model_copy(
                     update={"shelf_format": found.shelf_format}
                 )
-            if found.editions is not None:
-                new_row = new_row.model_copy(update={"editions": found.editions})
+            merged = None
+            if found.editions:
+                try:
+                    merged = _merged_editions(
+                        None, [e for _, eds in found.editions for e in eds]
+                    )
+                except RangeError as error:
+                    outcome.refused.append(
+                        Refusal(found.editions[0][0].id, "editions", str(error))
+                    )
+                    continue
+            new_row = new_row.model_copy(update={"editions": merged})
             rows.append(new_row)
             row_entries.append(found.entry)
 
+    if outcome.refused:
+        return outcome
     try:
         result = await commit_items(session, rows, today=today)
     except RowRefused as refused:
