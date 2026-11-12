@@ -757,6 +757,23 @@ describe('AdminClosetToday', () => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 
+    it('offers Retry for a first load that failed, and not for a lost session', async () => {
+      let status = 500
+      stub({ 'GET /api/closet/today': () => json({}, status) })
+      renderPage()
+      await act(async () => {})
+      expect(screen.getByRole('alert')).toHaveTextContent(/didn.t load/)
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+      status = 401
+      await act(async () => {
+        screen.getByRole('button', { name: 'Retry' }).click()
+      })
+      expect(screen.getByRole('alert')).toHaveTextContent(/Your session ended/)
+      expect(
+        screen.queryByRole('button', { name: 'Retry' }),
+      ).not.toBeInTheDocument()
+    })
+
     it('does not update after unmount', async () => {
       stub({ 'GET /api/closet/today': () => new Promise(() => {}) })
       const view = renderPage()

@@ -402,6 +402,8 @@ export default function AdminClosetToday() {
   const [error, setError] = useState(null)
   // Bumped by Retry to run the first load again.
   const [attempt, setAttempt] = useState(0)
+  // The first load failed in a way another try can fix (not a lost session).
+  const [retryable, setRetryable] = useState(false)
   const elapsed = useElapsed(!answer && !error)
   const [swapOpen, setSwapOpen] = useState(false)
   const [matchOpen, setMatchOpen] = useState(false)
@@ -480,11 +482,11 @@ export default function AdminClosetToday() {
       .then((body) => take(body))
       .catch((failure) => {
         if (unmounted.signal.aborted) return
+        const ended =
+          !(failure instanceof WaitTimeout) && failure.message === SESSION_ENDED
+        setRetryable(!ended)
         if (failure instanceof WaitTimeout) setError(PLANNING_TIMEOUT)
-        else
-          setError(
-            failure.message === SESSION_ENDED ? SESSION_ENDED : LOAD_ERROR,
-          )
+        else setError(ended ? SESSION_ENDED : LOAD_ERROR)
       })
     return () => unmounted.abort()
   }, [attempt])
@@ -631,12 +633,13 @@ export default function AdminClosetToday() {
           {error}
         </p>
       )}
-      {error === PLANNING_TIMEOUT && (
+      {retryable && !answer && error && (
         <button
           type="button"
           className="btn"
           onClick={() => {
             setError(null)
+            setRetryable(false)
             setAttempt((n) => n + 1)
           }}
         >
