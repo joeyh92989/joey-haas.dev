@@ -269,7 +269,7 @@ async def test_issue_search(sessionmaker_for_test):
     assert asdict(CvIssueHit(7, "Saga", "1", None, "https://img/t.jpg", 2012))
 
 
-async def test_editing_a_label_keeps_the_link(sessionmaker_for_test):
+async def test_resaving_an_edition_keeps_the_link(sessionmaker_for_test):
     item_id = await _edition_item(
         sessionmaker_for_test,
         cv_id=99,
@@ -283,13 +283,13 @@ async def test_editing_a_label_keeps_the_link(sessionmaker_for_test):
             f"/api/items/{item_id}",
             json={
                 "editions": [
-                    {"kind": "Trade", "label": "Volume One", "from": 1, "to": 6}
+                    {"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}
                 ]
             },
         )
     assert response.status_code == 200, response.text
     stored = (await _row(sessionmaker_for_test, item_id)).editions[0]
-    assert stored["label"] == "Volume One"
+    assert stored["label"] == "Vol. 1"
     assert stored["cv_id"] == 99
     assert stored["cover_url"] == "https://img/99.jpg"
 

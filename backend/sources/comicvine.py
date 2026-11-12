@@ -359,10 +359,14 @@ class ComicVineSource:
             raise SourceError(
                 self.source_name, "the /issues volume filter was not applied"
             )
+        total = payload.get("number_of_total_results")
+        if isinstance(total, bool) or not isinstance(total, int) or total < 0:
+            # Reading a missing total as 0 would mark the series complete.
+            raise SourceError(self.source_name, "no result count in the /issues page")
         issues = [self._parse_issue(row) for row in rows]
         return IssuePage(
             issues=[issue for issue in issues if issue.number is not None],
-            total=int(payload.get("number_of_total_results") or 0),
+            total=total,
         )
 
     async def fetch_issue(self, cv_id: int) -> CvIssue | None:

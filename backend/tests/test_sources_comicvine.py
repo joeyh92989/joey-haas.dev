@@ -356,6 +356,18 @@ async def test_fetch_issue_page_parses_whole_numbers_only(monkeypatch):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("total", [None, "x", -1])
+async def test_fetch_issue_page_refuses_a_missing_total(monkeypatch, total):
+    body = {"error": "OK", "results": []}
+    if total is not None:
+        body["number_of_total_results"] = total
+    _patch_http(monkeypatch, _FakeResponse(200, body))
+
+    with pytest.raises(SourceError):
+        await ComicVineSource(_config()).fetch_issue_page("46568", 0)
+
+
+@pytest.mark.asyncio
 async def test_fetch_issue_page_sends_offset_and_limit(monkeypatch):
     seen = _patch_http(
         monkeypatch,
