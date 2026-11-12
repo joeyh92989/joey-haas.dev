@@ -55,3 +55,8 @@ frontend/trips/**/*.[gG][iI][fF]
 frontend/trips/**/*.[dD][nN][gG]
 frontend/trips/**/*.[mM][oO][vV]
 frontend/trips/**/*.[mM][pP]4
+
+# Playwright output (frontend/e2e)
+frontend/test-results/
+frontend/playwright-report/
+frontend/e2e-shots/

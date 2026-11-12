@@ -1,5 +1,13 @@
 # Learnings
 
+### 2026-11-12 · lesson · Screenshots must load the page the way a visitor does
+The first shots run produced two false findings: grey covers (native `loading="lazy"` images never scrolled into view) and an inactive Collection tab (static routes requested as `/shelf/`, which `NavLink end` does not match). Make lazy images eager before a full-page capture, request every page in its canonical sitemap form, and check a surprising visual finding against the code before filing it.
+PR #206 · docs/planning/2026-11-12-site-review-issues.md
+
+### 2026-11-12 · decision · Browser tests run on Playwright against the built site
+Chose `@playwright/test` over Vitest browser mode and an ad hoc script: it exercises the built, prerendered `dist` (what ships), and the one setup serves both CI (smoke + axe on every PR) and design reviews (`npm run shots`).
+docs/planning/2026-11-12-playwright-e2e-design.md
+
 ### 2026-11-12 · lesson · CI's format check is not lint
 #175 went red on `prettier --check` (`npm run format:check`), which `npm run lint` does not run; the local preflight had only run lint, tests and build. Run `npm run format:check` in every frontend preflight and implementer gate.
 PR #175 · docs/planning/2026-11-12-closet-walkthrough-plan.md

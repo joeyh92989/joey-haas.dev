@@ -9,6 +9,8 @@
     "snapshot": "SNAPSHOT_API_URL=https://api.joey-haas.dev node scripts/fetch-snapshot.mjs",
     "preview": "vite preview",
     "test": "vitest run",
+    "e2e": "playwright test",
+    "shots": "playwright test -c playwright.shots.config.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -21,8 +23,13 @@
     "react-dom": "^19.0.0",
     "react-router": "^8.3.1"
   },
+  "overrides": {
+    "playwright-core": "1.64.1"
+  },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.64.1",
     "@shikijs/rehype": "^4.4.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

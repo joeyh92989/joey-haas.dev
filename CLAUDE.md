@@ -36,6 +36,8 @@ backend, deployed on Render via Blueprint (render.yaml).
 - Frontend build check: `cd frontend && VITE_DAILY_SALT=local npm run build`
   (`vite.config.js` refuses a build without Shelfle's salt)
 - Frontend tests: `cd frontend && npm test`
+- Browser tests: `cd frontend && VITE_DAILY_SALT=local npm run build && npm run e2e`
+- Review screenshots: `cd frontend && npm run shots` (or `E2E_BASE_URL=https://joey-haas.dev npm run shots`)
 - Backend tests: `cd backend && ./.venv/bin/pytest`. One run at a time: every
   run drops and recreates the schema in the one local test database, so two
   at once (a second worktree, a review agent) fail each other with "relation
