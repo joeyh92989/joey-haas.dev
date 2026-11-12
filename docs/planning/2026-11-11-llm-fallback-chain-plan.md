@@ -20,7 +20,44 @@ Written 2026-11-11 by Code. The spec ([2026-11-11-llm-fallback-chain-design.md](
 | `thinkingLevel` + `responseSchema` | No documented conflict and no documented support. Confirmed only by the probe (task 1). | https://aistudio.google.com/docs/structured-output |
 | Haiku 5.5 structured outputs | GA via `output_config.format`, no beta header. Images supported. $0.10 / $0.50 per 1M up to 100K-token prompts. Schemas must keep `additionalProperties: false` and use no min/max constraints (true of today's schemas, which already run on Haiku 4.5). | https://platform.claude.com/docs/en/build-with-claude/structured-outputs , https://platform.claude.com/docs/en/models/haiku-5-5/overview |
 | Free-tier daily quota per model | Not published. The 429 body carries `violations[].quotaValue` in practice, which comes from third-party logs, not Google docs. The probe reads it when present; otherwise `FREE_TIER_DAILY_REQUESTS = 20` stays. | https://aistudio.google.com/docs/rate-limits ; forum logs linked in research notes |
-| Which models are served | **Not yet checked.** The live `models.list` probe is task 1 and needs Joey's OK to run with the real key. | — |
+| Which models are served | See "Probe results" below. | `scripts/probe_llm_chain.py`, 2026-11-11 |
+
+## Probe results (2026-11-11, `scripts/probe_llm_chain.py`)
+
+| Model | Thinking sent | Result |
+|---|---|---|
+| gemini-3.8-flash | `LOW` | read timeout at 60s |
+| gemini-3.7-flash | none | read timeout at 60s |
+| gemini-3.7-flash | `MINIMAL` | **400** "Thinking level MINIMAL is not supported for this model" |
+| gemini-3.6-flash | `MINIMAL` | 503 high demand (12.9s) |
+| gemini-3.5-flash | none | 200, 2.2s |
+| gemini-3.5-flash | `MINIMAL` | 200, 0.8s |
+| gemini-3.5-flash-lite | `MINIMAL` | 200, 0.6s |
+| gemini-3.1-flash-lite | `MINIMAL` | 200, 0.6s |
+| gemini-2.5-flash, -lite | any | **404** "no longer available to new users" |
+
+What this changes in the plan:
+
+- **The 2.5 models are out.** D1's 2.5 question is moot: every chain model is
+  3.x and gets a `thinkingLevel`, so the spec's AC "every Gemini request
+  carries a thinking level" holds as written.
+- **3.7 and 3.5 Flash stay.** Both are served, though missing from the models
+  page. 3.7 gets `LOW` (`MINIMAL` is refused); 3.8 gets `LOW` per the docs; 3.6,
+  3.5 and both Flash-Lites get `MINIMAL`.
+- **No 429 was seen**, so no `quotaValue`. `FREE_TIER_DAILY_REQUESTS = 20`
+  stays, unconfirmed for the new models.
+- **Added to task 2:** a 404 falls through like overload. A model withdrawn
+  later, as 2.5 was, then fails only itself.
+
+Final chain (replaces D5):
+
+- text: `3.5-flash-lite`, `3.1-flash-lite`, `3.5-flash`, `3.6-flash`,
+  `3.7-flash`, `3.8-flash`
+- vision: `3.6-flash`, `3.5-flash`, `3.8-flash`, `3.7-flash`,
+  `3.5-flash-lite`, `3.1-flash-lite`
+
+`gemini-flash-latest` and `gemini-flash-lite-latest` stay out (aliases sharing
+a listed model's quota).
 
 **What the code already does (found while planning, not in the spec):**
 
