@@ -1,9 +1,12 @@
 import '@testing-library/jest-dom'
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { spine } from '../content/spine.js'
+import { WAKING } from '../content/status.js'
+import userEvent from '@testing-library/user-event'
 import { axeViolations } from '../lib/axe.test-util.js'
+import { flaky } from '../lib/flaky.test-util.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import HowItWorks from './HowItWorks.jsx'
 
@@ -90,7 +93,7 @@ function mockData({ items, next, status = empty }) {
 }
 
 const ready = (data) => ({ data, live: true, failed: false })
-const empty = { data: null, live: false, failed: true }
+const empty = { data: null, live: false, failed: true, retry: () => {} }
 
 function renderAt(path = '/shelf/how') {
   return render(
@@ -233,12 +236,71 @@ describe('HowItWorks', () => {
     expect(within(stop(4)).getByText('Far Cart')).toBeInTheDocument()
   })
 
-  it('says so in each live box when there is nothing to show', () => {
-    mockData({ items: empty, next: empty })
+  it('says so in each live box when the shelf is really empty', () => {
+    mockData({ items: ready([]), next: ready({}) })
     renderAt()
     for (const n of [1, 2, 3, 4]) {
       expect(stop(n)).toHaveTextContent(spine.how.stops[n - 1].live.empty)
     }
+  })
+
+  it('says a failed read failed, never the empty copy', () => {
+    mockData({ items: empty, next: empty })
+    renderAt()
+    for (const n of [1, 2, 3, 4]) {
+      expect(stop(n)).not.toHaveTextContent(spine.how.stops[n - 1].live.empty)
+    }
+    for (const n of [1, 2]) {
+      expect(stop(n)).toHaveTextContent(spine.how.liveFailed)
+      expect(
+        within(stop(n)).getByRole('button', { name: 'Try again' }),
+      ).toBeInTheDocument()
+    }
+  })
+
+  it('raises one alert per failed read: the stops sharing next point to the first', () => {
+    mockData({ items: empty, next: empty })
+    renderAt()
+    // items (stop 1) and next (stop 2) each fail once.
+    expect(screen.getAllByRole('alert')).toHaveLength(2)
+    for (const n of [3, 4]) {
+      expect(within(stop(n)).queryByRole('alert')).toBeNull()
+      expect(
+        within(stop(n)).queryByRole('button', { name: 'Try again' }),
+      ).toBeNull()
+      expect(stop(n)).toHaveTextContent(spine.how.liveFailedSame)
+    }
+  })
+
+  it('turns Loading… into the waking line after the threshold', () => {
+    vi.useFakeTimers()
+    mockData({
+      items: { data: null, live: false, failed: false },
+      next: { data: null, live: false, failed: false },
+    })
+    renderAt()
+    expect(within(stop(1)).getByRole('status')).toHaveTextContent('Loading…')
+    act(() => {
+      vi.advanceTimersByTime(3500)
+    })
+    expect(within(stop(1)).getByRole('status')).toHaveTextContent(WAKING)
+    vi.useRealTimers()
+  })
+
+  it('shows the live example after Try again', async () => {
+    const reads = {
+      items: flaky(ready(ITEMS)),
+      next: flaky(ready(NEXT)),
+      status: flaky(ready(STATUS)),
+    }
+    vi.mocked(useSnapshotThenLive).mockImplementation((name) => reads[name]())
+    renderAt()
+    expect(stop(1)).toHaveTextContent(spine.how.liveFailed)
+    await userEvent.click(
+      within(stop(1)).getByRole('button', { name: 'Try again' }),
+    )
+    expect(within(stop(1)).getByText('Newest')).toBeInTheDocument()
+    expect(stop(1)).not.toHaveTextContent(spine.how.liveFailed)
   })
 
   it('withholds store names in the drawings and draws real tables', () => {

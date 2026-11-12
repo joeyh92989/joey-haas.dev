@@ -1,15 +1,13 @@
 import '@testing-library/jest-dom'
 import { act, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CHANGELOG } from '../content/changelog.js'
-import {
-  COUNTED,
-  FROM_SNAPSHOT,
-  FROM_SNAPSHOT_ASLEEP,
-} from '../content/stats.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
+import { COUNTED, FROM_SNAPSHOT } from '../content/stats.js'
+import { LOAD_ERROR, STALE_COPY, WAKING } from '../content/status.js'
 import { axeViolations } from '../lib/axe.test-util.js'
+import { flaky } from '../lib/flaky.test-util.js'
 import { loadIndex } from '../lib/searchIndex.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import Stats from './Stats.jsx'
@@ -206,10 +204,11 @@ describe('Stats', () => {
     ])
   })
 
-  it('keeps the snapshot figures and says asleep when the API did not answer', () => {
-    mockStats({ data: BODY, failed: true })
+  it('keeps the snapshot figures and says so when the API did not answer', () => {
+    mockStats({ data: BODY, failed: true, retry: vi.fn() })
     renderPage()
-    expect(screen.getByRole('status')).toHaveTextContent(FROM_SNAPSHOT_ASLEEP)
+    expect(screen.getByRole('status')).toHaveTextContent(STALE_COPY)
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
     expect(tiles().getAllByRole('definition')[0]).toHaveTextContent('37')
     expect(screen.queryByRole('alert')).toBeNull()
   })
@@ -254,6 +253,18 @@ describe('Stats', () => {
     expect(screen.getByRole('status')).toHaveTextContent(WAKING)
     // The changelog is static copy: it shows whatever the API does.
     expect(screen.getByRole('heading', { name: 'Changes' })).toBeInTheDocument()
+  })
+
+  it('keeps its heading on a failed read, and Try again brings the figures', async () => {
+    vi.mocked(useSnapshotThenLive).mockImplementation(
+      flaky({ data: BODY, live: true }),
+    )
+    renderPage()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Stats' }),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(tiles().getAllByRole('definition')[0]).toHaveTextContent('37')
   })
 
   it('shows the error with no snapshot and a failed read', () => {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
+import LoadState from '../components/LoadState.jsx'
 import JustFinishedChip from '../components/JustFinishedChip.jsx'
 import Lane from '../components/Lane.jsx'
 import NextRow from '../components/NextRow.jsx'
@@ -600,7 +601,7 @@ function Tonight({ tonight, signedIn, onRefresh }) {
 export default function Next() {
   usePageTitle(`${copy.title} · ${spine.name}`)
   const { signedIn = false } = useOutletContext() ?? {}
-  const { data: loaded, failed } = useSnapshotThenLive('next')
+  const { data: loaded, failed, retry } = useSnapshotThenLive('next')
   const { data: pickTable } = useSnapshotThenLive('pick-for-me')
   // A live body fetched after an owner's write outranks the page's first.
   const [refreshed, setRefreshed] = useState(null)
@@ -613,12 +614,6 @@ export default function Next() {
       data.wanted.some((row) => row.type === 'comic')),
   )
   const [sort, setSort] = useState(storedSort)
-  const [slow, setSlow] = useState(false)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setSlow(true), 3000)
-    return () => clearTimeout(timer)
-  }, [])
 
   /** Refetches the live body; true when it arrived. */
   async function refresh() {
@@ -645,16 +640,7 @@ export default function Next() {
       <p className="spine-lede">{copy.lede}</p>
       {data && <Freshness generated={data.generated_at} />}
 
-      {!data && !failed && (
-        <p className="muted" role="status">
-          {slow ? copy.waking : copy.loading}
-        </p>
-      )}
-      {!data && failed && (
-        <p className="admin-error" role="alert">
-          {copy.error}
-        </p>
-      )}
+      {!data && <LoadState loading={!failed} failed={failed} onRetry={retry} />}
 
       {data && (
         <>

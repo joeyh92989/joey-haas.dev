@@ -1,26 +1,41 @@
 import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
+import { flaky } from '../lib/flaky.test-util.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { DIARY_FAILED } from '../content/status.js'
 import MonthInReview from './MonthInReview.jsx'
 
 const answer = vi.hoisted(() => ({
   value: { data: null, live: false, failed: false },
 }))
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
-  useSnapshotThenLive: () => answer.value,
+  useSnapshotThenLive: () =>
+    typeof answer.value === 'function' ? answer.value() : answer.value,
 }))
 const diary = vi.hoisted(() => ({
   rows: [],
   settled: true,
   failed: false,
   nearby: [],
+  retry: vi.fn(),
 }))
 vi.mock('../lib/usePublicDiary.js', () => ({
   usePublicDiaryState: (year) =>
     year === 2026
-      ? { sessions: diary.rows, settled: diary.settled, failed: diary.failed }
-      : { sessions: diary.nearby, settled: true, failed: false },
+      ? {
+          sessions: diary.rows,
+          settled: diary.settled,
+          failed: diary.failed,
+          retry: diary.retry,
+        }
+      : {
+          sessions: diary.nearby,
+          settled: true,
+          failed: false,
+          retry: vi.fn(),
+        },
 }))
 
 function game(id, title, finishedAt) {
@@ -128,6 +143,17 @@ describe('MonthInReview', () => {
     ).toBeInTheDocument()
   })
 
+  it('says the diary did not load, with Try again, instead of looking empty', async () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.failed = true
+    diary.retry = vi.fn()
+    renderAt('/shelf/journal/2026-09')
+    expect(screen.getByRole('alert')).toHaveTextContent(DIARY_FAILED)
+    expect(screen.queryByText(/finished or played/)).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(diary.retry).toHaveBeenCalledTimes(1)
+  })
+
   it('says at least when some sessions have no minutes', () => {
     answer.value = { data: ITEMS, live: true, failed: false }
     diary.rows = SESSIONS
@@ -156,6 +182,17 @@ describe('MonthInReview', () => {
     answer.value = { data: null, live: false, failed: true }
     renderAt('/shelf/journal/2026-10')
     expect(screen.getByRole('alert')).toHaveTextContent('didn’t load')
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'October 2026' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows the month after Try again', async () => {
+    answer.value = flaky({ data: ITEMS, live: true })
+    renderAt('/shelf/journal/2026-10')
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getAllByText('Hades II').length).toBeGreaterThan(0)
   })
 
   it.each(['2026-13', 'october', '2026-1'])(

@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
+import LoadState from '../components/LoadState.jsx'
 import NextRow from '../components/NextRow.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import Stop from '../components/Stop.jsx'
@@ -72,12 +73,24 @@ function withCounts(stop, status) {
 
 /**
  * A live box's body: the rows once there are some, the stop's empty line
- * once the source has answered without any, and a loading line until then.
+ * once the source has answered without any, and a LoadState until then.
+ * Stops that share one read (What's next feeds three) pass `follower` on
+ * all but the first, so a failure raises one alert, not three.
  */
-function Live({ state, empty, children, count }) {
+function Live({ state, empty, children, count, follower = false }) {
   if (count > 0) return children
-  if (!state.data && !state.failed) {
-    return <p className="muted">{spine.next.loading}</p>
+  const unread = state.failed && !state.data
+  // A failed read with nothing painted is not an empty shelf.
+  if (unread && follower) return <p className="muted">{copy.liveFailedSame}</p>
+  if (unread || (!state.data && !state.failed)) {
+    return (
+      <LoadState
+        loading={!state.data && !state.failed}
+        failed={state.failed}
+        message={copy.liveFailed}
+        onRetry={state.retry}
+      />
+    )
   }
   return <p className="muted">{empty}</p>
 }
@@ -151,6 +164,7 @@ export default function HowItWorks() {
       <>
         <Live
           state={next}
+          follower
           empty={copy.stops[2].live.empty}
           count={
             continuing.length +
@@ -187,7 +201,12 @@ export default function HowItWorks() {
       </>
     ),
     4: (
-      <Live state={next} empty={copy.stops[3].live.empty} count={radar.length}>
+      <Live
+        state={next}
+        follower
+        empty={copy.stops[3].live.empty}
+        count={radar.length}
+      >
         <Rows rows={radar} />
       </Live>
     ),

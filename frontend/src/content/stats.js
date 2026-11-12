@@ -23,8 +23,6 @@ export const COUNTED = [
 /** The status line under the tiles, by where the figures came from. */
 export const LIVE_AS_OF = (time) => `Live as of ${time}.`
 export const FROM_SNAPSHOT = "From last night's snapshot."
-export const FROM_SNAPSHOT_ASLEEP =
-  "From last night's snapshot; the API is asleep."
 
 /** The line under the day chart: the busiest day and its count. */
 export const PEAK_CAPTION = (day, views) =>

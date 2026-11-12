@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import FeatureStrip from '../components/FeatureStrip.jsx'
+import LoadState from '../components/LoadState.jsx'
 import NextBand from '../components/NextBand.jsx'
 import NowPlaying from '../components/NowPlaying.jsx'
 import PosterCard from '../components/PosterCard.jsx'
@@ -11,10 +12,8 @@ import SpineHeader from '../components/SpineHeader.jsx'
 import StatusStrip from '../components/StatusStrip.jsx'
 import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
-import { apiFetch } from '../lib/api.js'
 import { dailyPool } from '../lib/daily.js'
 import { ownerMonth, ownerYear } from '../lib/formatDate.js'
-import { isValidSnapshot, readSnapshot } from '../lib/snapshot.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import {
@@ -30,7 +29,6 @@ import {
   writeShelfPref,
 } from '../lib/shelf.js'
 import { itemPath } from '../lib/spinePaths.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 
@@ -44,6 +42,7 @@ const TYPE_LABEL = {
 const SIZES = ['comfortable', 'compact']
 const FAVOURITES_SHOWN = 4
 const SKELETON_CARDS = 12
+const NO_ITEMS = []
 const RATINGS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 const MONTH_LABEL = new Intl.DateTimeFormat('en', {
@@ -376,10 +375,16 @@ export default function Collection() {
   // Read here, once, for the band and the status strip.
   const next = useSnapshotThenLive('next').data
   const status = useSnapshotThenLive('status').data
-  const [items, setItems] = useState([])
-  const [stats, setStats] = useState(null)
-  const [state, setState] = useState('loading')
-  const [slow, setSlow] = useState(false)
+  const itemsRead = useSnapshotThenLive('items')
+  const statsRead = useSnapshotThenLive('stats')
+  const items = itemsRead.data ?? NO_ITEMS
+  const stats = statsRead.data
+  const failed = itemsRead.failed
+  const liveItems = itemsRead.live
+  const retry = () => {
+    itemsRead.retry()
+    if (statsRead.failed) statsRead.retry()
+  }
   const [filters, setFilters] = useState(NO_FILTER)
   // The site search's no-match link lands here as /shelf?q=…, also from
   // /shelf itself, where the page stays mounted: a new q replaces the
@@ -400,74 +405,6 @@ export default function Collection() {
   })
   const [dim, setDim] = useState(() => readShelfPref('shelf.public.dim', false))
 
-  /**
-   * Loads the collection and returns what to show.
-   *
-   * Returns rather than setting state so the effect can apply the result in a
-   * promise continuation: setting state in an effect body is what
-   * react-hooks/set-state-in-effect forbids.
-   */
-  const load = useCallback(async () => {
-    try {
-      const [itemsResponse, statsResponse] = await Promise.all([
-        apiFetch('/api/public/items'),
-        apiFetch('/api/public/stats'),
-      ])
-      if (!itemsResponse.ok) return { state: 'error', items: [], stats: null }
-      // Live bodies are held to the snapshot's shape rule: a 200 with the
-      // wrong shape is an error, not a crash in the render below.
-      const items = await itemsResponse.json()
-      if (!isValidSnapshot('items', items)) {
-        return { state: 'error', items: [], stats: null }
-      }
-      const stats = statsResponse.ok ? await statsResponse.json() : null
-      return {
-        state: 'ready',
-        items,
-        stats: isValidSnapshot('stats', stats) ? stats : null,
-      }
-    } catch {
-      return { state: 'error', items: [], stats: null }
-    }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    // Set once live data is applied, so a slower snapshot never overwrites it.
-    let live = false
-    const timer = setTimeout(() => setSlow(true), 2000)
-
-    Promise.all([readSnapshot('items'), readSnapshot('stats')]).then(
-      ([snapshotItems, snapshotStats]) => {
-        if (cancelled || live || !snapshotItems) return
-        clearTimeout(timer)
-        setItems(snapshotItems)
-        setStats(snapshotStats)
-        setState('ready')
-      },
-    )
-
-    load().then((result) => {
-      if (cancelled) return
-      clearTimeout(timer)
-      if (result.state === 'ready') {
-        live = true
-        setItems(result.items)
-        // A failed live stats call must not wipe stats a snapshot painted.
-        setStats((current) => result.stats ?? current)
-        setState('ready')
-      } else {
-        // A painted snapshot outranks an error: stale beats nothing.
-        setState((current) => (current === 'ready' ? current : 'error'))
-      }
-    })
-
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [load])
-
   function changeSize(next) {
     setSize(next)
     writeShelfPref('shelf.public.size', next)
@@ -478,33 +415,24 @@ export default function Collection() {
     writeShelfPref('shelf.public.dim', next)
   }
 
-  if (state === 'loading') {
-    return (
-      <section>
-        <SpineHeader />
-        <p className="muted" role="status">
-          {slow ? WAKING : 'Loading…'}
-        </p>
-        <ul className="skeleton-grid" aria-hidden="true">
-          {Array.from({ length: SKELETON_CARDS }, (_, index) => (
-            <li key={index} className="skeleton-card">
-              <span className="skeleton-cover" />
-              <span className="skeleton-line" />
-              <span className="skeleton-line skeleton-line-short" />
-            </li>
-          ))}
-        </ul>
-      </section>
-    )
-  }
+  const waiting = !itemsRead.data && !failed
 
-  if (state === 'error') {
+  if (!itemsRead.data) {
     return (
       <section>
         <SpineHeader />
-        <p className="admin-error" role="alert">
-          {LOAD_ERROR}
-        </p>
+        <LoadState loading={waiting} failed={failed} onRetry={retry} />
+        {waiting && (
+          <ul className="skeleton-grid" aria-hidden="true">
+            {Array.from({ length: SKELETON_CARDS }, (_, index) => (
+              <li key={index} className="skeleton-card">
+                <span className="skeleton-cover" />
+                <span className="skeleton-line" />
+                <span className="skeleton-line skeleton-line-short" />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     )
   }
@@ -554,6 +482,7 @@ export default function Collection() {
   return (
     <section>
       <SpineHeader />
+      <LoadState failed={failed} stale live={liveItems} onRetry={retry} />
 
       {items.length === 0 ? (
         <p className="muted">Nothing on the shelf yet.</p>

@@ -30,9 +30,9 @@ function renderAt(path = '/admin') {
 
 const HOUR = 3600 * 1000
 const ago = (hours) => new Date(Date.now() - hours * HOUR).toISOString()
-const json = (body, ok = true) => ({
+const json = (body, ok = true, status = ok ? 200 : 500) => ({
   ok,
-  status: ok ? 200 : 500,
+  status,
   json: async () => body,
 })
 const YEAR = ownerYear()
@@ -103,6 +103,7 @@ function stubApi(routes = {}) {
         'candidates.last_run': { at: ago(30), state: 'ok', queued: 4 },
       }),
     '/snapshot/meta.json': () => json({ fetched_at: ago(3) }),
+    '/api/closet/today?stored_only=true': () => json({ plan: null }),
     '/api/picker/continuing': () => json({ cards: [CONTINUING] }),
     '/api/public/next': () =>
       json({
@@ -322,9 +323,12 @@ describe('Admin Home', () => {
     )
   })
 
-  it('shows dashes when the reads fail, and keeps the page', async () => {
+  it('names the reads that failed, says so on the card, and keeps the page', async () => {
     stubApi({
       '/api/analytics?range=7d': () => json({}, false),
+      '/api/picker/continuing': () => {
+        throw new TypeError('Failed to fetch')
+      },
       '/api/physical/status': () => {
         throw new TypeError('Failed to fetch')
       },
@@ -332,10 +336,126 @@ describe('Admin Home', () => {
     renderAt()
     expect(await screen.findByText('API unreachable')).toBeInTheDocument()
     const site = await card('Site')
-    expect(figureOf(site, 'Views · 7 days')).toHaveTextContent('—')
+    await waitFor(() =>
+      expect(figureOf(site, 'Views · 7 days')).toHaveTextContent(
+        'Couldn’t read',
+      ),
+    )
+    const shelf = await card('Shelf')
+    expect(within(shelf).getByText('Couldn’t read')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Couldn’t read: Shelf, Site.'),
+    ).toBeInTheDocument()
     expect(
       screen.getByText('The nightly status couldn’t be read.'),
     ).toBeInTheDocument()
+  })
+
+  it('says the session ended on a refused read, with no Try again', async () => {
+    stubApi({ '/api/analytics?range=7d': () => json({}, false, 401) })
+    renderAt()
+    expect(
+      await screen.findByText('Your session ended. Sign in again.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/^Couldn’t read:/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+  })
+
+  it('re-runs only the failed reads with one Try again', async () => {
+    let analyticsUp = false
+    const fetch = stubApi({
+      '/api/analytics?range=7d': () =>
+        analyticsUp
+          ? json({ views: 42, visitors: 7, pages: [] })
+          : json({}, false),
+    })
+    renderAt()
+    expect(await screen.findByText('Couldn’t read: Site.')).toBeInTheDocument()
+    const calls = (path) =>
+      fetch.mock.calls.filter(([url]) => String(url).endsWith(path)).length
+    expect(calls('/api/analytics?range=7d')).toBe(1)
+    expect(calls('/api/spots')).toBe(1)
+
+    analyticsUp = true
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    const site = await card('Site')
+    await waitFor(() =>
+      expect(figureOf(site, 'Views · 7 days')).toHaveTextContent('42'),
+    )
+    expect(calls('/api/analytics?range=7d')).toBe(2)
+    expect(calls('/api/spots')).toBe(1)
+    await waitFor(() =>
+      expect(screen.queryByText(/^Couldn’t read:/)).not.toBeInTheDocument(),
+    )
+  })
+
+  it('keeps the Closet card when its read fails', async () => {
+    stubApi({
+      '/api/closet/today?stored_only=true': () => json({}, false),
+    })
+    renderAt()
+    const closet = await card('Closet')
+    expect(
+      (await within(closet).findAllByText('Couldn’t read')).length,
+    ).toBeGreaterThan(0)
+    expect(
+      await screen.findByText('Couldn’t read: Closet.'),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the Shelf card and its controls when a later read round fails', async () => {
+    let logged = false
+    stubApi({
+      '/api/items/a1/sessions': () => {
+        logged = true
+        return json({})
+      },
+      '/api/picker/continuing': () =>
+        logged ? json({}, false, 503) : json({ cards: [CONTINUING] }),
+    })
+    renderAt()
+    const shelf = await card('Shelf')
+    fireEvent.click(
+      await within(shelf).findByRole('button', { name: 'Log tonight' }),
+    )
+    expect(await screen.findByText('Couldn’t read: Shelf.')).toBeInTheDocument()
+    expect(within(shelf).getByText('Continue: Dredge')).toBeInTheDocument()
+    expect(
+      within(shelf).getByRole('button', { name: 'Wrap up' }),
+    ).toBeInTheDocument()
+    expect(within(shelf).queryByText('Couldn’t read')).toBeNull()
+  })
+
+  it('says Couldn’t read only for figures the card reads itself', async () => {
+    stubApi({
+      '/api/closet/today?stored_only=true': () => json({}, false),
+      '/api/picker/continuing': () => json({}, false),
+    })
+    renderAt()
+    const closet = await card('Closet')
+    await screen.findByText('Couldn’t read: Closet, Shelf.')
+    // Review and Untagged come from the layout, Owned and Finished from its
+    // items: their sources did not fail.
+    expect(figureOf(closet, 'To review')).not.toHaveTextContent('Couldn’t read')
+    expect(figureOf(closet, 'Untagged')).not.toHaveTextContent('Couldn’t read')
+    const shelf = await card('Shelf')
+    await waitFor(() => expect(figureOf(shelf, 'Owned')).toHaveTextContent('2'))
+    expect(figureOf(shelf, `Finished · ${YEAR}`)).not.toHaveTextContent(
+      'Couldn’t read',
+    )
+    // The Shelf read that failed is the one that feeds this figure.
+    expect(figureOf(shelf, 'Comics this week')).toHaveTextContent('2')
+  })
+
+  it('keeps — for a context figure that is missing, not Couldn’t read', async () => {
+    stubApi({
+      '/api/items': () => json({}, false),
+      '/api/picker/continuing': () => json({}, false),
+    })
+    renderAt()
+    const shelf = await card('Shelf')
+    await screen.findByText('Couldn’t read: Shelf.')
+    expect(figureOf(shelf, 'Owned')).toHaveTextContent('—')
   })
 
   it('lists the nightly jobs, linked to the Jobs page', async () => {

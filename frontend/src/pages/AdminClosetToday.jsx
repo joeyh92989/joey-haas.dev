@@ -8,6 +8,7 @@ import {
   ACTION_ERROR,
   LOAD_ERROR,
   PLANNING_TIMEOUT,
+  SESSION_ENDED,
   STILL_PLANNING,
   WAKING_OR_PLANNING,
 } from '../content/status.js'
@@ -33,8 +34,6 @@ import {
   swapTile,
   woreGarments,
 } from '../lib/closet.js'
-
-const SESSION_ENDED = 'Your session ended. Sign in again to see today.'
 
 /**
  * How the outfit on screen was chosen, for `POST /api/closet/wore`. A photo

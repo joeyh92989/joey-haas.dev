@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import LoadState from '../components/LoadState.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
+import { ACTION_ERROR } from '../content/status.js'
+import { useLiveRead } from '../lib/useLiveRead.js'
+import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 
 const KIND_ORDER = ['registry', 'store', 'platform', 'resolve']
 
@@ -23,12 +26,6 @@ const PLATFORM_CHOICES = [
   [4, 'Nintendo 64'],
 ]
 
-async function getJson(path) {
-  const response = await apiFetch(path)
-  if (!response.ok) throw new Error(await errorMessage(response))
-  return response.json()
-}
-
 const TOTAL_LABELS = [
   ['live_editions', 'Registry editions'],
   ['live_listings', 'Store listings'],
@@ -42,16 +39,18 @@ const TOTAL_LABELS = [
 /** GET /status as {state, status, error}; the caller decides what to set. */
 async function fetchStatus() {
   try {
-    const response = await apiFetch('/api/physical/status')
-    if (response.status === 401) return { state: 'unauthorized' }
-    if (!response.ok)
-      return { state: 'error', error: await errorMessage(response) }
-    return { state: 'ready', status: await response.json() }
+    // The deadline covers the body too.
+    return await withDeadline(
+      async (signal) => {
+        const response = await apiFetch('/api/physical/status', { signal })
+        if (response.status === 401) return { state: 'unauthorized' }
+        if (!response.ok) return { state: 'error' }
+        return { state: 'ready', status: await response.json() }
+      },
+      { ms: READ_DEADLINE_MS },
+    )
   } catch {
-    return {
-      state: 'error',
-      error: LOAD_ERROR,
-    }
+    return { state: 'error' }
   }
 }
 
@@ -244,21 +243,18 @@ export function showingWords(shown, total, noPlatform) {
 }
 
 function NeedsMatch({ onChange, noPlatform = 0 }) {
-  const [state, setState] = useState({ status: 'loading', keys: [], total: 0 })
-
-  useEffect(() => {
-    let live = true
-    getJson('/api/physical/needs-match')
-      .then((body) => {
-        if (live) setState({ status: 'ready', ...body })
-      })
-      .catch((error) => {
-        if (live) setState({ status: 'error', keys: [], error: error.message })
-      })
-    return () => {
-      live = false
-    }
-  }, [])
+  const { data, failed, retry } = useLiveRead('/api/physical/needs-match')
+  // Rows decided here leave the list; nothing is reloaded.
+  const [decided, setDecided] = useState([])
+  const keys = (data?.keys ?? []).filter(
+    (key) =>
+      !decided.some(
+        (gone) =>
+          gone.title_normalized === key.title_normalized &&
+          gone.platform_id === key.platform_id,
+      ),
+  )
+  const total = (data?.total ?? 0) - decided.length
 
   async function decide(entry, action) {
     try {
@@ -275,16 +271,7 @@ function NeedsMatch({ onChange, noPlatform = 0 }) {
     } catch {
       return ACTION_ERROR
     }
-    // Decided rows leave the list here; nothing is reloaded.
-    setState((current) => ({
-      ...current,
-      keys: current.keys.filter(
-        (key) =>
-          key.title_normalized !== entry.title_normalized ||
-          key.platform_id !== entry.platform_id,
-      ),
-      total: current.total - 1,
-    }))
+    setDecided((current) => [...current, entry])
     onChange()
     return null
   }
@@ -292,22 +279,15 @@ function NeedsMatch({ onChange, noPlatform = 0 }) {
   return (
     <section className="needs-match" aria-labelledby="needs-match-heading">
       <h2 id="needs-match-heading">Needs match</h2>
-      {state.status === 'loading' && <p className="muted">Loading…</p>}
-      {state.status === 'error' && (
-        <p className="admin-error" role="alert">
-          {state.error}
-        </p>
-      )}
-      {state.status === 'ready' && state.keys.length === 0 && (
+      <LoadState loading={!data && !failed} failed={failed} onRetry={retry} />
+      {data && keys.length === 0 && (
         <p className="muted">Nothing needs a match.</p>
       )}
-      {state.status === 'ready' && state.total > state.keys.length && (
-        <p className="muted">
-          {showingWords(state.keys.length, state.total, noPlatform)}
-        </p>
+      {data && total > keys.length && (
+        <p className="muted">{showingWords(keys.length, total, noPlatform)}</p>
       )}
       <ul className="needs-match-list">
-        {state.keys.map((entry) => (
+        {keys.map((entry) => (
           <NeedsMatchRow
             key={`${entry.title_normalized}:${entry.platform_id}`}
             entry={entry}
@@ -321,35 +301,18 @@ function NeedsMatch({ onChange, noPlatform = 0 }) {
 
 /** Copies whose recorded format the registry contradicts. */
 function Disagreements() {
-  const [state, setState] = useState({ status: 'loading', items: [] })
-
-  useEffect(() => {
-    let live = true
-    getJson('/api/physical/disagreements')
-      .then((body) => {
-        if (live) setState({ status: 'ready', items: body.items })
-      })
-      .catch((error) => {
-        if (live) setState({ status: 'error', items: [], error: error.message })
-      })
-    return () => {
-      live = false
-    }
-  }, [])
+  const { data, failed, retry } = useLiveRead('/api/physical/disagreements')
+  const items = data?.items ?? []
 
   return (
     <section className="disagreements" aria-labelledby="disagreements-heading">
       <h2 id="disagreements-heading">Registry disagreements</h2>
-      {state.status === 'error' && (
-        <p className="admin-error" role="alert">
-          {state.error}
-        </p>
-      )}
-      {state.status === 'ready' && state.items.length === 0 && (
+      <LoadState loading={!data && !failed} failed={failed} onRetry={retry} />
+      {data && items.length === 0 && (
         <p className="muted">No copy disagrees with the registry.</p>
       )}
       <ul className="disagreement-list">
-        {state.items.map((item) => (
+        {items.map((item) => (
           <li key={item.item_id}>
             <Link to={`/admin/collection/${item.item_id}`}>{item.title}</Link>{' '}
             <span className="muted">({item.region})</span>
@@ -386,10 +349,13 @@ export default function AdminCatalogue() {
   const apply = useCallback((result) => {
     setState(result.state)
     if (result.status) setStatus(result.status)
-    if (result.error) setError(result.error)
   }, [])
 
   const load = useCallback(async () => apply(await fetchStatus()), [apply])
+  const retryStatus = () => {
+    setState('loading')
+    load()
+  }
 
   // Signing in on another tab flips signedIn; read the status again then.
   useEffect(() => {
@@ -593,7 +559,12 @@ export default function AdminCatalogue() {
         </p>
       )}
 
-      {state === 'loading' && <p className="muted">Loading the catalog…</p>}
+      <LoadState
+        loading={state === 'loading'}
+        failed={state === 'error'}
+        stale={!!status}
+        onRetry={retryStatus}
+      />
 
       {status && (
         <>

@@ -7,6 +7,7 @@ import GarmentTile from '../components/GarmentTile.jsx'
 import AddSection from '../components/intake/AddSection.jsx'
 import {
   LOAD_ERROR,
+  SESSION_ENDED,
   STILL_TAGGING,
   TAGGING_TIMEOUT,
   WAKING,
@@ -34,8 +35,6 @@ import {
   WaitTimeout,
   withDeadline,
 } from '../lib/waits.js'
-
-const SESSION_ENDED = 'Your session ended. Sign in again to see the closet.'
 
 /** `GET /api/closet/garments`, returned rather than set. */
 async function fetchCloset() {

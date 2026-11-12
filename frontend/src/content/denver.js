@@ -8,6 +8,8 @@
  * Spec and plan: docs/planning/2026-11-08-denver-spots-design.md.
  */
 
+import { SESSION_ENDED } from './status.js'
+
 /** Each tag's label, in the backend's vocabulary order. */
 export const TAG_LABELS = {
   coffee: 'Coffee',
@@ -55,7 +57,7 @@ export const denver = {
     empty: 'No spots yet. Add one by hand.',
     noMatch: 'No spot matches that search.',
     readError: 'The spots couldn’t be read.',
-    sessionEnded: 'Your session ended. Reload to sign in.',
+    sessionEnded: SESSION_ENDED,
     panelTitle: 'All spots',
   },
   finder: {

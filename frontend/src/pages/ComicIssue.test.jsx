@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { spine } from '../content/spine.js'
+import { LOAD_ERROR, SAVED_NOT_REFRESHED } from '../content/status.js'
 import { axeViolations } from '../lib/axe.test-util.js'
 import * as edits from '../lib/comicEdits.js'
 import ComicIssue from './ComicIssue.jsx'
@@ -83,6 +84,37 @@ beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllGlobals())
 
 describe('ComicIssue, public', () => {
+  it('keeps a heading and the way back when the read fails, and Try again loads it', async () => {
+    const answers = [
+      { ok: false, status: 500 },
+      { ok: true, status: 200 },
+    ]
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        const next = answers.length > 1 ? answers.shift() : answers[0]
+        return { ...next, json: async () => PAGE }
+      }),
+    )
+    renderIssue()
+    expect(await screen.findByRole('alert')).toHaveTextContent(LOAD_ERROR)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Issue #58' }),
+    ).toBeInTheDocument()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(
+      within(crumbs).getByRole('link', { name: 'Comics' }),
+    ).toHaveAttribute('href', '/shelf/comics')
+    expect(
+      within(crumbs).getByRole('link', { name: 'Series' }),
+    ).toHaveAttribute('href', `/shelf/${ID}/`)
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /#58/ }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
   it('shows the breadcrumb, heading, name and cover', async () => {
     stubApi()
     renderIssue()
@@ -306,5 +338,57 @@ describe('ComicIssue, signed in', () => {
     expect(
       screen.getByRole('button', { name: COPY.owner.skipped }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('ComicIssue, owner action then refresh', () => {
+  /** The public page answers once, then holds the re-read until released. */
+  function stubHeldReread() {
+    let release
+    let publicReads = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        if (String(url).includes('/api/public/items/')) {
+          publicReads += 1
+          if (publicReads === 1) {
+            return { ok: true, status: 200, json: async () => PAGE }
+          }
+          await new Promise((resolve) => {
+            release = resolve
+          })
+          return { ok: false, status: 503, json: async () => ({}) }
+        }
+        return { ok: true, status: 200, json: async () => STORED }
+      }),
+    )
+    return () => release()
+  }
+
+  it('keeps the buttons busy until the re-read settles, ignoring a second press', async () => {
+    const release = stubHeldReread()
+    renderIssue({ signedIn: true })
+    const button = await screen.findByRole('button', {
+      name: COPY.owner.readTo,
+    })
+    await userEvent.click(button)
+    expect(edits.setReadTo).toHaveBeenCalledTimes(1)
+    // The write is done; the re-read is still out.
+    await waitFor(() => expect(button).toBeDisabled())
+    await userEvent.click(button)
+    expect(edits.setReadTo).toHaveBeenCalledTimes(1)
+    release()
+    await waitFor(() => expect(button).toBeEnabled())
+  })
+
+  it('says the change was saved when the re-read after it fails', async () => {
+    const release = stubHeldReread()
+    renderIssue({ signedIn: true })
+    await userEvent.click(
+      await screen.findByRole('button', { name: COPY.owner.readTo }),
+    )
+    release()
+    expect(await screen.findByText(SAVED_NOT_REFRESHED)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
   })
 })

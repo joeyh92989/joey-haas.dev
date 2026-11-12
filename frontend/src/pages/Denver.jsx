@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
+import LoadState from '../components/LoadState.jsx'
 import SpotCard, { SpotTags } from '../components/SpotCard.jsx'
 import SpotMap from '../components/SpotMap.jsx'
 import { TAGS, denver, tagLabel } from '../content/denver.js'
 import { denverMap } from '../content/maps/denver.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
 import { placeSpots } from '../lib/mapFit.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -126,20 +126,14 @@ function Popover({ spot }) {
  */
 export default function Denver() {
   usePageTitle(`${copy.title} · Joey Haas`)
-  const { data, failed } = useSnapshotThenLive('spots')
+  const { data, live, failed, retry } = useSnapshotThenLive('spots')
   const [searchParams, setSearchParams] = useSearchParams()
   const tagParam = searchParams.get('tag')
   const pressed = useMemo(() => parseTags(tagParam), [tagParam])
   const [chosen, setChosen] = useState(null)
   const [view, setView] = useState('list')
-  const [slow, setSlow] = useState(false)
   const phone = useMediaQuery(PHONE)
   const cards = useRef(new Map())
-
-  useEffect(() => {
-    const timer = setTimeout(() => setSlow(true), 3000)
-    return () => clearTimeout(timer)
-  }, [])
 
   const spots = useMemo(
     () =>
@@ -193,15 +187,7 @@ export default function Denver() {
       <section className="denver-page">
         <h1>{copy.title}</h1>
         <p className="denver-lede">{copy.lede}</p>
-        {failed ? (
-          <p className="admin-error" role="alert">
-            {LOAD_ERROR}
-          </p>
-        ) : (
-          <p className="muted" role="status">
-            {slow ? WAKING : 'Loading…'}
-          </p>
-        )}
+        <LoadState loading={!failed} failed={failed} onRetry={retry} />
       </section>
     )
   }
@@ -213,6 +199,7 @@ export default function Denver() {
     <section className="denver-page">
       <h1>{copy.title}</h1>
       <p className="denver-lede">{copy.lede}</p>
+      <LoadState failed={failed} stale live={live} onRetry={retry} />
       <TagChips
         counts={tagCounts(spots)}
         total={spots.length}

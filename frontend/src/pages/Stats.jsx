@@ -1,17 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import BarList from '../components/BarList.jsx'
 import DayBars from '../components/DayBars.jsx'
+import LoadState from '../components/LoadState.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { CHANGELOG, renderLine } from '../content/changelog.js'
 import {
   COUNTED,
   FROM_SNAPSHOT,
-  FROM_SNAPSHOT_ASLEEP,
   LEDE,
   LIVE_AS_OF,
   STATS_TITLE,
 } from '../content/stats.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
 import { deviceName, referrerName, showsAllTime } from '../lib/analytics.js'
 import { pageName, usePageTitles } from '../lib/pageTitles.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -52,24 +51,14 @@ const referrerLabel = (value) =>
  */
 export default function Stats() {
   usePageTitle(STATS_TITLE)
-  const { data, live, failed } = useSnapshotThenLive('site-stats')
+  const { data, live, failed, retry } = useSnapshotThenLive('site-stats')
   // When the live answer landed: stamped in the render that first sees
   // `live`, React's pattern for state derived from a changed input.
   const [liveAt, setLiveAt] = useState(null)
   if (live && liveAt === null) setLiveAt(new Date())
-  const [slow, setSlow] = useState(false)
   const titles = usePageTitles()
 
-  useEffect(() => {
-    const timer = setTimeout(() => setSlow(true), 3000)
-    return () => clearTimeout(timer)
-  }, [])
-
-  const status = liveAt
-    ? LIVE_AS_OF(TIME.format(liveAt))
-    : failed
-      ? FROM_SNAPSHOT_ASLEEP
-      : FROM_SNAPSHOT
+  const status = liveAt ? LIVE_AS_OF(TIME.format(liveAt)) : FROM_SNAPSHOT
   const thirty = data?.thirty
 
   return (
@@ -105,9 +94,13 @@ export default function Stats() {
               </>
             )}
           </StatTiles>
-          <p className="muted site-stats-status" role="status">
-            {status}
-          </p>
+          {failed ? (
+            <LoadState failed stale live={live} onRetry={retry} />
+          ) : (
+            <p className="muted site-stats-status" role="status">
+              {status}
+            </p>
+          )}
 
           <h2>Views per day</h2>
           {thirty.views ? (
@@ -148,14 +141,8 @@ export default function Stats() {
             </section>
           </div>
         </>
-      ) : failed ? (
-        <p className="admin-error" role="alert">
-          {LOAD_ERROR}
-        </p>
       ) : (
-        <p className="muted" role="status">
-          {slow ? WAKING : 'Loading…'}
-        </p>
+        <LoadState loading={!failed} failed={failed} onRetry={retry} />
       )}
 
       <h2>How this is counted</h2>

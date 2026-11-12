@@ -332,7 +332,7 @@ describe('Admin Jobs', () => {
     })
     renderAt()
     expect(
-      await screen.findByText('Your session ended. Reload to sign in.'),
+      await screen.findByText('Your session ended. Sign in again.'),
     ).toBeInTheDocument()
   })
 

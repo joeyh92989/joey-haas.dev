@@ -420,4 +420,42 @@ describe('AdminDiscover', () => {
       await screen.findByRole('link', { name: 'Sign in' }),
     ).toHaveAttribute('href', '/admin')
   })
+
+  it('says the read failed and reads again on Try again', async () => {
+    let up = false
+    stubApi({
+      'GET /api/recommendations': async () => {
+        if (!up) throw new TypeError('Failed to fetch')
+        return { ok: true, status: 200, json: async () => DISCOVER }
+      },
+    })
+    renderPage()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('That didn’t load. Try again in a minute.')
+    expect(screen.queryByText(/^Loading/)).not.toBeInTheDocument()
+    up = true
+    await userEvent
+      .setup()
+      .click(within(alert).getByRole('button', { name: 'Try again' }))
+    expect(
+      await screen.findByRole('heading', { name: 'Picks' }),
+    ).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
+    )
+  })
+
+  it('hides a 5xx detail behind the shared failure words', async () => {
+    stubApi({
+      'GET /api/recommendations': async () => ({
+        ok: false,
+        status: 503,
+        json: async () => ({ detail: 'psycopg exploded' }),
+      }),
+    })
+    renderPage()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('That didn’t load. Try again in a minute.')
+    expect(document.body).not.toHaveTextContent('psycopg exploded')
+  })
 })

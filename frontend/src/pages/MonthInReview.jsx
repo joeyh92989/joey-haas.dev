@@ -1,4 +1,6 @@
 import { Link, useParams } from 'react-router'
+import LoadState from '../components/LoadState.jsx'
+import { DIARY_FAILED } from '../content/status.js'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
@@ -10,7 +12,6 @@ import { usePublicDiaryState } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NotFound from './NotFound.jsx'
 import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
-import { LOAD_ERROR } from '../content/status.js'
 
 const DAY = new Intl.DateTimeFormat('en', {
   weekday: 'short',
@@ -28,12 +29,13 @@ function dayWords(isoDate) {
  * One month of the play journal: the games finished that month and the
  * sessions logged, by day. Built from the public items (snapshot first,
  * then live) and the public diary, so it shows nothing the shelf does not.
- * A diary that fails to load reads as no sessions.
+ * A diary that fails to load says so, with Try again, where the Played list
+ * would be; the empty line then speaks only for the finishes.
  */
 export default function MonthInReview() {
   const { month } = useParams()
   const parsed = parseMonth(month)
-  const { data, failed } = useSnapshotThenLive('items')
+  const { data, failed, retry } = useSnapshotThenLive('items')
   // Hooks run before the not-found return below; an invalid month asks for
   // nothing.
   const diary = usePublicDiaryState(parsed ? parsed.year : null)
@@ -75,16 +77,12 @@ export default function MonthInReview() {
         )}
       </nav>
 
-      {!data && !failed && (
-        <p className="muted" role="status">
-          Loading…
-        </p>
-      )}
-      {!data && failed && (
-        <p className="admin-error" role="alert">
-          {LOAD_ERROR}
-        </p>
-      )}
+      <LoadState
+        loading={!data && !failed}
+        failed={failed}
+        stale={!!data}
+        onRetry={retry}
+      />
 
       {data && empty && (
         <p className="muted">
@@ -92,6 +90,10 @@ export default function MonthInReview() {
             ? `Nothing finished in ${name}.`
             : `Nothing finished or played in ${name}.`}
         </p>
+      )}
+
+      {diary.failed && (
+        <LoadState failed message={DIARY_FAILED} onRetry={diary.retry} />
       )}
 
       {review.finished.length > 0 && (

@@ -1,5 +1,6 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { READ_DEADLINE_MS } from './waits.js'
 import { readSnapshot } from './snapshot.js'
 import { useSnapshotThenLive } from './useSnapshotThenLive.js'
 
@@ -152,6 +153,64 @@ describe('useSnapshotThenLive', () => {
     )
     await waitFor(() => expect(result.current.live).toBe(true))
     rerender({ name: 'stats' })
-    expect(result.current).toEqual({ data: null, live: false, failed: false })
+    expect(result.current).toMatchObject({
+      data: null,
+      live: false,
+      failed: false,
+    })
+  })
+
+  it('fails at the deadline when the live read hangs, keeping the snapshot', async () => {
+    vi.useFakeTimers()
+    vi.mocked(readSnapshot).mockResolvedValue(BODY)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    const { result } = renderHook(() => useSnapshotThenLive('next'))
+    await act(() => vi.advanceTimersByTimeAsync(READ_DEADLINE_MS + 1))
+    expect(result.current.failed).toBe(true)
+    expect(result.current.data).toEqual(BODY)
+    vi.useRealTimers()
+  })
+
+  it('retry re-runs the live read, clears failed and keeps painted data', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue({
+      ...BODY,
+      buy_now: [{ title: 'Old' }],
+    })
+    vi.mocked(readSnapshot).mockClear()
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('down'))
+      .mockResolvedValueOnce({ ok: true, json: async () => BODY })
+    vi.stubGlobal('fetch', fetchMock)
+    const { result } = renderHook(() => useSnapshotThenLive('next'))
+    await waitFor(() => expect(result.current.failed).toBe(true))
+    expect(result.current.data.buy_now).toHaveLength(1)
+    act(() => {
+      result.current.retry()
+    })
+    expect(result.current.failed).toBe(false)
+    expect(result.current.data.buy_now).toHaveLength(1)
+    await waitFor(() => expect(result.current.live).toBe(true))
+    expect(result.current.data.buy_now).toEqual([])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(readSnapshot).toHaveBeenCalledTimes(1)
+  })
+
+  it('retry resolves with whether the re-read failed', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('down'))
+      .mockResolvedValueOnce({ ok: true, json: async () => BODY })
+    vi.stubGlobal('fetch', fetchMock)
+    const { result } = renderHook(() => useSnapshotThenLive('next'))
+    await waitFor(() => expect(result.current.failed).toBe(true))
+    let landed
+    act(() => {
+      landed = result.current.retry()
+    })
+    await expect(landed).resolves.toEqual({ failed: false })
   })
 })

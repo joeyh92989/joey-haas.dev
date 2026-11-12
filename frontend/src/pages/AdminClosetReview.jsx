@@ -5,11 +5,15 @@ import ReviewDeck from '../components/ReviewDeck.jsx'
 import SeasonTurnBanner from '../components/SeasonTurnBanner.jsx'
 import SellChecklistSheet from '../components/SellChecklistSheet.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
-import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
+import {
+  ACTION_ERROR,
+  LOAD_ERROR,
+  SESSION_ENDED,
+  WAKING,
+} from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { garmentTitle } from '../lib/closet.js'
 
-const SESSION_ENDED = 'Your session ended. Sign in again to review.'
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
 /**
@@ -175,17 +179,16 @@ export default function AdminClosetReview() {
     const timer = setTimeout(() => setSlow(true), 3000)
     apiFetch('/api/closet/review')
       .then(async (response) => {
-        if (response.status === 401 || response.status === 403)
-          throw new Error(SESSION_ENDED)
-        if (!response.ok) throw new Error(LOAD_ERROR)
+        if (response.status === 401 || response.status === 403) {
+          if (live) setError(SESSION_ENDED)
+          return
+        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
         const body = await response.json()
         if (live) take(body)
       })
-      .catch((failure) => {
-        if (live)
-          setError(
-            failure.message === SESSION_ENDED ? SESSION_ENDED : LOAD_ERROR,
-          )
+      .catch(() => {
+        if (live) setError(LOAD_ERROR)
       })
       .finally(() => clearTimeout(timer))
     return () => {

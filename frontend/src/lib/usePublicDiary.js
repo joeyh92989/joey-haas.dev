@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from './api.js'
 
 const PENDING = { sessions: [], settled: false, failed: false }
@@ -9,16 +9,18 @@ const PENDING = { sessions: [], settled: false, failed: false }
  *
  * Live only: the diary has no build-time snapshot, so it appears when the
  * API answers and the page around it never waits for it. A failed or
- * malformed answer is an empty diary marked `failed`, not an error.
+ * malformed answer is an empty diary marked `failed`, not an error; `retry()`
+ * asks again.
  *
  * @param {number|null} year Null asks for nothing and stays unsettled.
- * @returns {{sessions: object[], settled: boolean, failed: boolean}}
- *   Sessions most recent first.
+ * @returns {{sessions: object[], settled: boolean, failed: boolean,
+ *   retry: () => void}} Sessions most recent first.
  */
 export function usePublicDiaryState(year) {
   // The year travels with the answer, so a slower answer for another year
   // is never shown, and no state is reset inside the effect.
   const [state, setState] = useState({ year, ...PENDING })
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     if (year == null) return undefined
@@ -40,9 +42,16 @@ export function usePublicDiaryState(year) {
     return () => {
       cancelled = true
     }
+  }, [year, attempt])
+
+  const retry = useCallback(() => {
+    setState((s) =>
+      s.year === year ? { ...s, failed: false, settled: false } : s,
+    )
+    setAttempt((a) => a + 1)
   }, [year])
 
-  return state.year === year ? state : PENDING
+  return { ...(state.year === year ? state : PENDING), retry }
 }
 
 /**

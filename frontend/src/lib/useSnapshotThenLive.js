@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch } from './api.js'
+import { READ_DEADLINE_MS, withDeadline } from './waits.js'
 import { isValidSnapshot, readSnapshot } from './snapshot.js'
 
 const EMPTY = { data: null, live: false, failed: false }
@@ -14,46 +15,95 @@ const EMPTY = { data: null, live: false, failed: false }
  * previous name's answer at once.
  *
  * @param {string} name A snapshot name; the live path is /api/public/{name}.
- * @returns {{data: any|null, live: boolean, failed: boolean}}
+ * The live read stops at `READ_DEADLINE_MS` (it then counts as failed).
+ * `retry()` re-runs the live read, clears `failed` and keeps any painted data.
+ * It returns a promise that resolves, never rejects, once the re-read has
+ * landed or failed, with `{failed}`.
+ *
+ * @returns {{data: any|null, live: boolean, failed: boolean, retry: () => Promise<{failed: boolean}>}}
  */
 export function useSnapshotThenLive(name) {
   // The name travels with the answer, so an answer for another name is never
   // returned, and no state is reset inside the effect.
   const [state, setState] = useState({ name, ...EMPTY })
+  const [attempt, setAttempt] = useState(0)
+  const waiting = useRef([])
 
-  useEffect(() => {
-    let cancelled = false
-    let live = false
-    // An update for this name starts from whatever this name has so far.
-    const update = (change) =>
+  // An update for this name starts from whatever this name has so far.
+  const update = useCallback(
+    (change) =>
       setState((s) => ({
         ...(s.name === name ? s : { name, ...EMPTY }),
         ...change,
-      }))
+      })),
+    [name],
+  )
 
+  // The snapshot paints once per name; a retry does not re-read it.
+  useEffect(() => {
+    let cancelled = false
     // readSnapshot never rejects (it resolves null on any failure), so it
     // needs no catch.
     readSnapshot(name).then((body) => {
-      if (!cancelled && !live && body) update({ data: body })
+      if (cancelled || !body) return
+      // Live data that arrived first is never overwritten by a late snapshot.
+      setState((s) => {
+        const mine = s.name === name ? s : { name, ...EMPTY }
+        return mine.live ? mine : { ...mine, data: body }
+      })
     })
-    apiFetch(`/api/public/${name}`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body) => {
-        if (cancelled) return
-        if (isValidSnapshot(name, body)) {
-          live = true
-          update({ data: body, live: true, failed: false })
-        } else {
-          update({ failed: true })
-        }
-      })
-      .catch(() => {
-        if (!cancelled) update({ failed: true })
-      })
     return () => {
       cancelled = true
     }
   }, [name])
 
-  return state.name === name ? state : EMPTY
+  useEffect(() => {
+    const controller = new AbortController()
+    const settle = (failed) => {
+      const list = waiting.current
+      waiting.current = []
+      list.forEach((resolve) => resolve({ failed }))
+    }
+    withDeadline(
+      async (signal) => {
+        const response = await apiFetch(`/api/public/${name}`, { signal })
+        return response.ok ? response.json() : null
+      },
+      { ms: READ_DEADLINE_MS, signal: controller.signal },
+    )
+      .then((body) => {
+        if (controller.signal.aborted) return
+        if (isValidSnapshot(name, body)) {
+          update({ data: body, live: true, failed: false })
+          settle(false)
+        } else {
+          update({ failed: true })
+          settle(true)
+        }
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        update({ failed: true })
+        settle(true)
+      })
+    return () => controller.abort()
+  }, [name, attempt, update])
+
+  // Nothing is left waiting on a read that will never land.
+  useEffect(
+    () => () => {
+      const list = waiting.current
+      waiting.current = []
+      list.forEach((resolve) => resolve({ failed: true }))
+    },
+    [],
+  )
+
+  const retry = useCallback(() => {
+    setState((s) => (s.name === name ? { ...s, failed: false } : s))
+    setAttempt((a) => a + 1)
+    return new Promise((resolve) => waiting.current.push(resolve))
+  }, [name])
+
+  return { ...(state.name === name ? state : EMPTY), retry }
 }

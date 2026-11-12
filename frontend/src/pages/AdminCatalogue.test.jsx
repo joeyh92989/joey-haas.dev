@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { LOAD_ERROR } from '../content/status.js'
 import AdminCatalogue, {
   runState,
   showingWords,
@@ -314,6 +315,23 @@ describe('AdminCatalogue', () => {
     )
   })
 
+  it('says the catalog did not load, then loads it on Try again', async () => {
+    let up = false
+    stubApi({
+      'GET /api/physical/status': () =>
+        up ? json(STATUS) : json({ detail: 'boom' }, 500),
+    })
+    renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent(LOAD_ERROR)
+    expect(screen.queryByText(/boom/)).toBeNull()
+    up = true
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(
+      await screen.findByRole('table', { name: 'Sources' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(LOAD_ERROR)).toBeNull()
+  })
+
   it('asks for a sign-in when the API says 401', async () => {
     stubApi({
       'GET /api/physical/status': () =>
@@ -494,6 +512,49 @@ describe('Registry disagreements', () => {
       await screen.findByText('No copy disagrees with the registry.'),
     ).toBeInTheDocument()
   })
+})
+
+describe('the main status read', () => {
+  it('says it did not load, never the raw detail', async () => {
+    stubApi({
+      'GET /api/physical/status': () =>
+        json({ detail: 'psycopg exploded' }, 500),
+    })
+    renderPage()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('That didn’t load. Try again in a minute.')
+    expect(document.body).not.toHaveTextContent('psycopg exploded')
+  })
+})
+
+describe('failed list reads', () => {
+  it.each([
+    ['Needs match', 'needs-match', { keys: [], total: 0 }],
+    ['Registry disagreements', 'disagreements', { items: [] }],
+  ])(
+    '%s says it did not load, never the raw error, and Try again reads it',
+    async (name, path, body) => {
+      let up = false
+      stubApi({
+        [`GET /api/physical/${path}`]: () =>
+          up ? json(body) : json({ detail: 'psycopg exploded' }, 500),
+      })
+      renderPage()
+      const panel = await screen.findByRole('region', { name })
+      const alert = await within(panel).findByRole('alert')
+      expect(alert).toHaveTextContent(
+        'That didn’t load. Try again in a minute.',
+      )
+      expect(panel).not.toHaveTextContent('psycopg exploded')
+      up = true
+      await userEvent
+        .setup()
+        .click(within(alert).getByRole('button', { name: 'Try again' }))
+      await waitFor(() =>
+        expect(within(panel).queryByRole('alert')).not.toBeInTheDocument(),
+      )
+    },
+  )
 })
 
 describe('finish-gate review', () => {

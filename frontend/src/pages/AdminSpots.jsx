@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import LoadState from '../components/LoadState.jsx'
 import Panel from '../components/Panel.jsx'
 import SpotFinder from '../components/SpotFinder.jsx'
 import SpotForm from '../components/SpotForm.jsx'
@@ -8,6 +9,7 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { formatDate } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 
 /** The admin shell's phone breakpoint; the Last visit column drops below it. */
 const PHONE = '(max-width: 700px)'
@@ -22,14 +24,19 @@ async function failureText(response) {
 /** Every spot, returned rather than set: `{spots}` or `{error}`. */
 async function fetchSpots() {
   try {
-    const response = await apiFetch('/api/spots')
-    if (response.ok) return { spots: await response.json() }
-    return {
-      error:
-        response.status === 401 || response.status === 403
-          ? denver.admin.sessionEnded
-          : denver.admin.readError,
-    }
+    // The deadline covers the body too.
+    const answer = await withDeadline(
+      async (signal) => {
+        const response = await apiFetch('/api/spots', { signal })
+        return response.ok
+          ? { spots: await response.json() }
+          : { status: response.status }
+      },
+      { ms: READ_DEADLINE_MS },
+    )
+    if (answer.spots) return answer
+    if (answer.status === 401 || answer.status === 403) return { ended: true }
+    return { error: denver.admin.readError }
   } catch {
     return { error: denver.admin.readError }
   }
@@ -57,6 +64,11 @@ export default function AdminSpots() {
   const phone = useMediaQuery(PHONE)
   const [spots, setSpots] = useState(null)
   const [error, setError] = useState(null)
+  // The first read's failure, apart from the writes' messages above it.
+  const [readError, setReadError] = useState(null)
+  // The read was refused for the session: nothing to retry.
+  const [readEnded, setReadEnded] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [notice, setNotice] = useState(null)
   const [query, setQuery] = useState('')
   // null: no form; 'new': adding; a spot: editing it.
@@ -70,13 +82,14 @@ export default function AdminSpots() {
     let live = true
     fetchSpots().then((result) => {
       if (!live) return
-      if (result.error) setError(result.error)
+      if (result.ended) setReadEnded(true)
+      else if (result.error) setReadError(result.error)
       else setSpots(result.spots)
     })
     return () => {
       live = false
     }
-  }, [])
+  }, [attempt])
 
   // After Accept: the new spot comes from the server, slug and all.
   async function rereadSpots() {
@@ -235,7 +248,18 @@ export default function AdminSpots() {
           }
         />
         <div className="finder-table">
-          {spots === null && !error && <p>Loading spots…</p>}
+          {spots === null && (
+            <LoadState
+              loading={!readError && !readEnded}
+              failed={!!readError}
+              ended={readEnded}
+              message={readError ?? undefined}
+              onRetry={() => {
+                setReadError(null)
+                setAttempt((n) => n + 1)
+              }}
+            />
+          )}
 
           {spots !== null && (
             <Panel

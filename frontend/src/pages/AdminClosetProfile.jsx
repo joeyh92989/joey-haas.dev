@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
+import { LOAD_ERROR, SESSION_ENDED, WAKING } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { CATEGORIES, profileBody, profileForm } from '../lib/closet.js'
 
@@ -35,7 +35,7 @@ export default function AdminClosetProfile() {
         if (!response.ok) {
           setError(
             response.status === 401 || response.status === 403
-              ? 'Your session ended. Sign in again.'
+              ? SESSION_ENDED
               : LOAD_ERROR,
           )
           return

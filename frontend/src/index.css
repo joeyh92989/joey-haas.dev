@@ -11898,3 +11898,16 @@ a.btn.sm {
   padding-block: 0.5rem;
   font-weight: 600;
 }
+
+/* ---------- LoadState ---------- */
+
+.load-state {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.load-state p {
+  margin: 0;
+}

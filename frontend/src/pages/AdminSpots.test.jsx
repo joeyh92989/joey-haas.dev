@@ -259,17 +259,35 @@ describe('AdminSpots', () => {
     await screen.findByRole('table')
     await userEvent.setup().click(screen.getByLabelText("Public: Sloan's Lake"))
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session ended. Reload to sign in.',
+      'Your session ended. Sign in again.',
     )
     expect(screen.getByLabelText("Public: Sloan's Lake")).not.toBeChecked()
   })
 
-  it('says the session ended on a 401', async () => {
+  it('says the session ended on a 401, with no Try again', async () => {
     stubApi({ 'GET /api/spots': () => json({ detail: 'x' }, 401) })
     render(<AdminSpots />)
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session ended. Reload to sign in.',
+      'Your session ended. Sign in again.',
     )
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+  })
+
+  it('says the spots failed to load and offers Try again', async () => {
+    let up = false
+    stubApi({
+      'GET /api/spots': () => (up ? json(SPOTS) : json({}, 500)),
+    })
+    render(<AdminSpots />)
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('The spots couldn’t be read.')
+    expect(screen.queryByText('Loading spots…')).not.toBeInTheDocument()
+    up = true
+    await userEvent
+      .setup()
+      .click(within(alert).getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByRole('table')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   describe('the spot finder', () => {

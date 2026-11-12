@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import GarmentForm from '../components/GarmentForm.jsx'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
+import { LOAD_ERROR, SESSION_ENDED, WAKING } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { garmentTitle, statLine } from '../lib/closet.js'
 
@@ -31,7 +31,7 @@ export default function AdminGarment() {
         if (response.ok) setGarment(await response.json())
         else if (response.status === 404) setError('No garment has this id.')
         else if (response.status === 401 || response.status === 403)
-          setError('Your session ended. Sign in again.')
+          setError(SESSION_ENDED)
         else setError(LOAD_ERROR)
       })
       .catch(() => live && setError(LOAD_ERROR))

@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import BarList from '../components/BarList.jsx'
 import ComicCardRun from '../components/ComicCardRun.jsx'
 import CoverImage from '../components/CoverImage.jsx'
+import LoadState from '../components/LoadState.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import SeriesList from '../components/SeriesList.jsx'
 import SortControl from '../components/SortControl.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import { spine } from '../content/spine.js'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
 import {
   COMIC_CHIPS,
   COMIC_SORTS,
@@ -317,18 +317,12 @@ const asPoster = (row) => ({
  */
 export default function Comics() {
   usePageTitle(`${copy.title} · ${spine.name}`)
-  const { data, failed } = useSnapshotThenLive('comics')
+  const { data, live, failed, retry } = useSnapshotThenLive('comics')
   const [chip, setChip] = useState(() => storedPref(PREF.chip, COMIC_CHIPS))
   const [sort, setSort] = useState(() => storedPref(PREF.sort, COMIC_SORTS))
   const [view, setView] = useState(() => storedPref(PREF.view, VIEWS))
   const [publisher, setPublisher] = useState(null)
   const [query, setQuery] = useState('')
-  const [slow, setSlow] = useState(false)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setSlow(true), 3000)
-    return () => clearTimeout(timer)
-  }, [])
 
   function changeChip(next) {
     setChip(next)
@@ -345,24 +339,7 @@ export default function Comics() {
     writeShelfPref(PREF.view, next)
   }
 
-  if (!data) {
-    return (
-      <section className="comics-page">
-        <SpineHeader asLink />
-        {failed ? (
-          <p className="admin-error" role="alert">
-            {LOAD_ERROR}
-          </p>
-        ) : (
-          <p className="muted" role="status">
-            {slow ? WAKING : 'Loading…'}
-          </p>
-        )}
-      </section>
-    )
-  }
-
-  const { series, stats, this_week: thisWeek } = data
+  const { series = [], stats, this_week: thisWeek } = data ?? {}
   const visible = sortComics(
     searchComics(filterComics(series, chip, publisher), query),
     sort,
@@ -375,7 +352,15 @@ export default function Comics() {
       <h1 className="next-title">{copy.title}</h1>
       <p className="spine-lede">{copy.lede}</p>
 
-      {series.length === 0 ? (
+      <LoadState
+        loading={!data && !failed}
+        failed={failed}
+        stale={!!data}
+        live={live}
+        onRetry={retry}
+      />
+
+      {!data ? null : series.length === 0 ? (
         <p className="muted">{copy.empty}</p>
       ) : (
         <>

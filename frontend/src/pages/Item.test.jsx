@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { LOAD_ERROR } from '../content/status.js'
+import { STALE_COPY } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
@@ -304,10 +304,30 @@ describe('Item', () => {
     ).toBeInTheDocument()
   })
 
-  it('reports any other failure', async () => {
+  it('reports any other failure, with a heading', async () => {
     stubApi({ ok: false, status: 500, json: async () => ({}) })
     renderPage()
     expect(await screen.findByText(/didn’t load/i)).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  })
+
+  it('shows the item after Try again', async () => {
+    const answers = [
+      { ok: false, status: 500, json: async () => ({}) },
+      { ok: true, status: 200, json: async () => DETAIL },
+    ]
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => (answers.length > 1 ? answers.shift() : answers[0])),
+    )
+    renderPage()
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Try again' }),
+    )
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Hades' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('announces the cold start while the server wakes', async () => {
@@ -575,7 +595,8 @@ describe('Item snapshot preview', () => {
     vi.mocked(readSnapshot).mockResolvedValue([ROW])
     stubApi({ ok: false, status: 500, json: async () => ({}) })
     await renderReady()
-    expect(await screen.findByText(LOAD_ERROR)).toBeInTheDocument()
+    expect(await screen.findByText(STALE_COPY)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
     // The preview stays up with a note; the error page would replace it.
     expect(
       screen.getByRole('heading', { level: 1, name: 'Hades' }),
