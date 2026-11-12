@@ -181,7 +181,8 @@ export function useNightly() {
 
 /**
  * The jobs in one line for Home's Site card: how many are ok, and the first
- * that is not, with its state.
+ * that is a problem, in the row's own words. A scheduled job (a first run
+ * still due) is not a problem.
  *
  * @param {ReturnType<typeof nightlyJobs>} jobs
  * @returns {{state: string, words: string}}
@@ -191,10 +192,12 @@ export function jobsSummary(jobs) {
   const first =
     jobs.find((job) => job.state === 'failed') ??
     jobs.find((job) => job.state === 'stale') ??
-    jobs.find((job) => job.state === 'unknown')
+    jobs.find(
+      (job) => job.state === 'unknown' && job.stateWords !== 'scheduled',
+    )
   if (!first) return { state: 'ok', words: `${ok} of ${jobs.length} jobs ok` }
   return {
     state: first.state,
-    words: `${ok} of ${jobs.length} jobs ok · ${first.label} ${first.state}`,
+    words: `${ok} of ${jobs.length} jobs ok · ${first.label} ${first.stateWords ?? first.state}`,
   }
 }
