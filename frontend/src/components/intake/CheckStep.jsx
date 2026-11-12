@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { seriesGrowth } from '../../lib/comicRun.js'
 import { CHECK_STATES, entryCover } from '../../lib/intake.js'
+import { removeEntryRequest } from '../../lib/intakeRemove.js'
 import CheckOne from './CheckOne.jsx'
 import GarmentCheck from './GarmentCheck.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
@@ -130,6 +131,24 @@ export default function CheckStep({
     setTimeout(() => oneRef.current?.focus())
   }
 
+  /** Take a title out of the sitting: it is never shown again nor written. */
+  async function remove(entry) {
+    setBusy(true)
+    setError(null)
+    try {
+      const response = await removeEntryRequest(entry)
+      if (!response.ok) {
+        setError(await errorMessage(response, { ownConflicts: true }))
+        return
+      }
+      onEntry(await response.json())
+    } catch {
+      setError('The server did not answer; try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function saveIssues(entry, text) {
     return patch(entry, {
       payload: { ...entry.payload, issues_owned: text || null },
@@ -213,6 +232,7 @@ export default function CheckStep({
                 }}
                 issuesText={entry.payload?.issues_owned ?? ''}
                 onSaveIssues={(text) => saveIssues(entry, text)}
+                onRemove={() => remove(entry)}
                 busy={busy}
               />
             ))}
@@ -225,7 +245,12 @@ export default function CheckStep({
           <h3 className="kicker intake-skim-head">
             Matched · {skim.length} · untick anything wrong
           </h3>
-          <SkimGrid entries={skim} onToggle={toggle} />
+          <SkimGrid
+            entries={skim}
+            onToggle={toggle}
+            onRemove={remove}
+            busy={busy}
+          />
         </>
       )}
 

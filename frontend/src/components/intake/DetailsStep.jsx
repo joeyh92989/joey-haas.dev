@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { entryCover, entryTitle, WRITTEN_STATES } from '../../lib/intake.js'
+import { removeEntryRequest } from '../../lib/intakeRemove.js'
 import CoverImage from '../CoverImage.jsx'
 import KindFields from './KindFields.jsx'
 
@@ -121,6 +122,21 @@ export default function DetailsStep({
     setBusy(false)
   }
 
+  /** Take a title out of the sitting: it is not written, nor listed again. */
+  async function remove(entry) {
+    setError(null)
+    try {
+      const response = await removeEntryRequest(entry)
+      if (!response.ok) {
+        setError(await errorMessage(response, { ownConflicts: true }))
+        return
+      }
+      onEntry(await response.json())
+    } catch {
+      setError('The server did not answer; try again.')
+    }
+  }
+
   function saveField(entry, key) {
     const value = drafts[entry.id]?.[key]
     if (value === undefined || value === (entry.payload?.[key] ?? '')) return
@@ -190,6 +206,14 @@ export default function DetailsStep({
                       }
                       onBlur={(key) => saveField(entry, key)}
                     />
+                    <button
+                      type="button"
+                      className="btn sm ghost"
+                      aria-label={`Remove ${title}`}
+                      onClick={() => remove(entry)}
+                    >
+                      Remove
+                    </button>
                   </div>
                 </li>
               )

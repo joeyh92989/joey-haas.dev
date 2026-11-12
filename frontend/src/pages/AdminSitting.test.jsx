@@ -106,9 +106,7 @@ describe('AdminSitting', () => {
     expect(within(group).getByRole('radio', { name: /^Saga/ })).toBeChecked()
     expect(screen.getByText('Probable')).toBeInTheDocument()
     expect(screen.queryByRole('checkbox', { name: 'Saga' })).toBeNull()
-    expect(
-      screen.getByRole('checkbox', { name: 'East of West' }),
-    ).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'East of West' })).toBeChecked()
     await user.click(screen.getByRole('button', { name: 'Yes, this one' }))
     await waitFor(() =>
       expect(api.calls('PATCH', /\/entries\/e1$/)[0]?.body).toEqual({
@@ -890,5 +888,112 @@ describe('AdminSitting', () => {
     renderSitting('c1', 'closet')
     await screen.findByRole('heading', { name: 'Shoot' })
     expect(screen.queryByRole('button', { name: 'Search instead' })).toBeNull()
+  })
+
+  describe('removing a title or photo before it is added (#157)', () => {
+    it('removes a photo from Shoot with the titles read from it', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [longbox({ step: 'shoot' })],
+      })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      expect(screen.getByText('4 titles so far')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Remove photo 1' }))
+      await waitFor(() =>
+        expect(api.calls('DELETE', /\/sittings\/s1\/photos\/p1$/)).toHaveLength(
+          1,
+        ),
+      )
+      expect(await screen.findByText('0 titles so far')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Remove photo 1' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('says so when the sitting is gone, and keeps the photo shown', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [longbox({ step: 'shoot' })] })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      delete api.state.sittings.s1
+      await user.click(screen.getByRole('button', { name: 'Remove photo 1' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'already been added or discarded',
+      )
+      expect(
+        screen.getByRole('button', { name: 'Remove photo 1' }),
+      ).toBeInTheDocument()
+    })
+
+    it('removes a searched or typed title from Shoot without writing it', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [
+          longbox({
+            step: 'shoot',
+            photos: [],
+            entries: [
+              entry('t1', 'typed', {
+                payload: { title: 'Lost zine' },
+              }),
+            ],
+          }),
+        ],
+      })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      await user.click(screen.getByRole('button', { name: 'Remove Lost zine' }))
+      await waitFor(() =>
+        expect(api.calls('PATCH', /\/entries\/t1$/)).toHaveLength(1),
+      )
+      const { body } = api.calls('PATCH', /\/entries\/t1$/)[0]
+      expect(body.state).toBe('ignored')
+      expect(body.payload?.unticked).toBeUndefined()
+      expect(await screen.findByText('0 titles so far')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Remove Lost zine' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('removes a title from the Check skim grid', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [longbox({ step: 'check' })] })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Check' })
+      await user.click(screen.getByRole('button', { name: 'Remove Saga' }))
+      await waitFor(() =>
+        expect(api.calls('PATCH', /\/entries\/e2$/)).toHaveLength(1),
+      )
+      expect(api.calls('PATCH', /\/entries\/e2$/)[0].body).toEqual({
+        state: 'ignored',
+        payload: {},
+      })
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('checkbox', { name: /Saga/ }),
+        ).not.toBeInTheDocument(),
+      )
+      expect(
+        screen.getByRole('checkbox', { name: /East of West/ }),
+      ).toBeInTheDocument()
+    })
+
+    it('removes a title from Details', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({ sittings: [longbox({ step: 'details' })] })
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Details' })
+      await user.click(screen.getByRole('button', { name: 'Remove Saga' }))
+      await waitFor(() =>
+        expect(api.calls('PATCH', /\/entries\/e2$/)).toHaveLength(1),
+      )
+      expect(
+        await screen.findByRole('button', { name: /Add 1 to/ }),
+      ).toBeEnabled()
+      expect(
+        screen.queryByRole('group', { name: 'Saga' }),
+      ).not.toBeInTheDocument()
+    })
   })
 })

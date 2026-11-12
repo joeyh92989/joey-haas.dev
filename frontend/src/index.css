@@ -2611,6 +2611,37 @@ footer {
   margin-top: 1.5rem;
 }
 
+.intake-typed {
+  display: grid;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+}
+
+.intake-typed li,
+.intake-garment-others li {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.intake-garment-others {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.intake-garment-others img {
+  border-radius: var(--radius);
+  height: 3rem;
+  object-fit: cover;
+  width: 3rem;
+}
+
 .intake-skim {
   display: grid;
   gap: 0.6rem;
@@ -2807,7 +2838,7 @@ footer {
   border-bottom: 1px solid var(--line);
   display: grid;
   gap: 0.9rem;
-  grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 12rem);
+  grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 12rem) auto;
   padding: 0.5rem 0;
 }
 
@@ -3133,7 +3164,7 @@ footer {
   }
 
   .intake-row {
-    grid-template-columns: 2rem minmax(0, 1fr);
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
   }
 
   .intake-row .intake-field {

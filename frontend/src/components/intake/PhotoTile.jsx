@@ -30,6 +30,9 @@ export function photoWords(photo, titles, budgetSpent) {
  * @param {number} props.titles Entries read from it.
  * @param {boolean} props.budgetSpent Today's model budget is used up.
  * @param {(photo: object) => void} props.onRetry
+ * @param {(photo: object) => void} [props.onRemove] Remove this photo, and
+ *   the titles read from it, before the sitting is added.
+ * @param {boolean} [props.busy] A removal is being saved.
  */
 export default function PhotoTile({
   photo,
@@ -37,6 +40,8 @@ export default function PhotoTile({
   titles,
   budgetSpent,
   onRetry,
+  onRemove,
+  busy = false,
 }) {
   return (
     <li className={`intake-shot intake-shot-${photo.state}`}>
@@ -58,6 +63,17 @@ export default function PhotoTile({
             Retry
           </button>
         </>
+      )}
+      {onRemove && (
+        <button
+          type="button"
+          className="btn sm ghost"
+          aria-label={`Remove photo ${number}`}
+          disabled={busy || photo.state === 'reading'}
+          onClick={() => onRemove(photo)}
+        >
+          Remove
+        </button>
       )}
     </li>
   )

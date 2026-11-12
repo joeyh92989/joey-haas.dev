@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { entry, fakeIntakeApi } from '../../lib/intake.test-util.js'
+import { entry, fakeIntakeApi, photo } from '../../lib/intake.test-util.js'
 import GarmentCheck from './GarmentCheck.jsx'
 
 const GARMENT_KIND = {
@@ -61,9 +61,13 @@ const SITTING = {
   area: 'closet',
   kind: 'garment',
   label: 'Rack',
-  photos: [],
+  photos: GARMENTS.map((g, n) => photo(`p${n + 1}`, 'read')),
   entries: GARMENTS.map((g, n) =>
-    entry(`e${n + 1}`, 'ready', { kind: 'garment', garment_id: g.id }),
+    entry(`e${n + 1}`, 'ready', {
+      kind: 'garment',
+      garment_id: g.id,
+      photo_id: `p${n + 1}`,
+    }),
   ),
 }
 
@@ -155,11 +159,29 @@ describe('GarmentCheck (Clothes · Check)', () => {
     await user.click(screen.getByRole('button', { name: 'Remove this photo' }))
     await user.click(screen.getByRole('button', { name: 'Yes, remove' }))
     await waitFor(() => expect(onRemoved).toHaveBeenCalledWith('e2'))
-    expect(api.calls('DELETE', /\/api\/closet\/garments\/g2$/)).toHaveLength(1)
+    expect(api.calls('DELETE', /\/sittings\/c1\/photos\/p2$/)).toHaveLength(1)
     expect(
       within(screen.getByRole('region', { name: /Clothes/ })).getByText(
         /Nothing left to check/,
       ),
+    ).toBeInTheDocument()
+  })
+
+  it('removes any photo from the list, not only the one being asked about', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({ sittings: [SITTING], garments: GARMENTS })
+    const onRemoved = renderCheck()
+    await screen.findByRole('heading', { name: /Check 1 of 2/ })
+    const others = screen.getByRole('list', { name: 'Other photos' })
+    await user.click(
+      within(others).getByRole('button', { name: 'Remove Chore coat' }),
+    )
+    expect(api.calls('DELETE', /photos/)).toEqual([])
+    await user.click(screen.getByRole('button', { name: 'Yes, remove' }))
+    await waitFor(() => expect(onRemoved).toHaveBeenCalledWith('e2'))
+    expect(api.calls('DELETE', /\/sittings\/c1\/photos\/p2$/)).toHaveLength(1)
+    expect(
+      screen.getByRole('heading', { name: /Check 1 of 1/ }),
     ).toBeInTheDocument()
   })
 })

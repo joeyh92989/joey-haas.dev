@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LOAD_ERROR } from '../../content/status.js'
+import { removePhotoRequest } from '../../lib/intakeRemove.js'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { imageUrl, tagResult } from '../../lib/closet.js'
 import {
@@ -153,12 +154,18 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
       if (fresh.ok) replace(await fresh.json())
     })
 
-  const remove = () =>
+  /**
+   * Removes a piece: its photo, the garment and its entry go together. A
+   * piece with a sitting photo goes by the sitting's route (so the photo
+   * leaves Shoot too); one without goes by the Closet's.
+   */
+  const remove = ({ entry, garment }) =>
     run(async () => {
-      const { entry, garment } = current
-      const response = await apiFetch(`/api/closet/garments/${garment.id}`, {
-        method: 'DELETE',
-      })
+      const response = entry.photo_id
+        ? await removePhotoRequest(sitting.id, entry.photo_id)
+        : await apiFetch(`/api/closet/garments/${garment.id}`, {
+            method: 'DELETE',
+          })
       if (!response.ok && response.status !== 404) {
         setError(await errorMessage(response, { ownConflicts: true }))
         return
@@ -278,7 +285,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                     disabled={busy}
                     onClick={() => {
                       setAsking(null)
-                      remove()
+                      remove(current)
                     }}
                   >
                     Yes, remove
@@ -306,6 +313,62 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
             </form>
           </div>
         </div>
+      )}
+      {pieces.length > (current ? 1 : 0) && (
+        <>
+          <h3 className="kicker">Other photos in this sitting</h3>
+          <ul className="intake-garment-others" aria-label="Other photos">
+            {pieces
+              .filter(({ garment }) => garment.id !== currentId)
+              .map((piece) => {
+                const name = piece.garment.name || 'this piece'
+                return (
+                  <li key={piece.entry.id}>
+                    <img
+                      src={imageUrl(piece.garment)}
+                      alt={piece.garment.name || 'A piece'}
+                    />
+                    <span>{piece.garment.name || 'Untitled piece'}</span>
+                    {asking === piece.garment.id ? (
+                      <span className="intake-actions quiet" role="group">
+                        <span>
+                          Remove {name}? The photo and the piece go with it.
+                        </span>
+                        <button
+                          type="button"
+                          className="btn sm"
+                          disabled={busy}
+                          onClick={() => {
+                            setAsking(null)
+                            remove(piece)
+                          }}
+                        >
+                          Yes, remove
+                        </button>
+                        <button
+                          type="button"
+                          className="btn sm ghost"
+                          onClick={() => setAsking(null)}
+                        >
+                          Keep it
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn sm ghost"
+                        aria-label={`Remove ${piece.garment.name || 'photo'}`}
+                        disabled={busy}
+                        onClick={() => setAsking(piece.garment.id)}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+          </ul>
+        </>
       )}
     </section>
   )

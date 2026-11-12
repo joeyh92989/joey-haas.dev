@@ -22,8 +22,16 @@ export function inSkim(entry) {
  * @param {object} props
  * @param {object[]} props.entries Entries for which `inSkim` holds.
  * @param {(entry: object, ticked: boolean) => void} props.onToggle
+ * @param {(entry: object) => void} [props.onRemove] Take a title out of the
+ *   sitting for good (unlike untick, which can be undone).
+ * @param {boolean} [props.busy]
  */
-export default function SkimGrid({ entries, onToggle }) {
+export default function SkimGrid({
+  entries,
+  onToggle,
+  onRemove,
+  busy = false,
+}) {
   if (!entries.length) return null
   return (
     <ul className="intake-skim">
@@ -47,6 +55,17 @@ export default function SkimGrid({ entries, onToggle }) {
               </span>
             </label>
             <ConfidenceBadge state={shown} />
+            {onRemove && (
+              <button
+                type="button"
+                className="btn sm ghost"
+                aria-label={`Remove ${entryTitle(entry)}`}
+                disabled={busy}
+                onClick={() => onRemove(entry)}
+              >
+                Remove
+              </button>
+            )}
           </li>
         )
       })}

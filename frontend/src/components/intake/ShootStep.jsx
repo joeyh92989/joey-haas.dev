@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { PHOTO_ACCEPT } from '../../lib/closet.js'
-import { refuseFile } from '../../lib/intake.js'
+import { entryTitle, refuseFile } from '../../lib/intake.js'
+import {
+  live,
+  removeEntryRequest,
+  removePhotoRequest,
+} from '../../lib/intakeRemove.js'
 import PhotoTile, { PendingTile } from './PhotoTile.jsx'
 import ShootSearch from './ShootSearch.jsx'
 
@@ -9,7 +14,8 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /** The sitting's running line: titles so far and what is still to come. */
 function runningLine(sitting, budgetSpent) {
-  const { photos, entries } = sitting
+  const { photos } = sitting
+  const entries = live(sitting.entries)
   const count = (state) => entries.filter((e) => e.state === state).length
   const reading = photos.filter((p) => p.state === 'reading').length
   const queued = photos.filter((p) => p.state === 'uploaded').length
@@ -49,6 +55,9 @@ function runningLine(sitting, budgetSpent) {
  *   props.reader The page's reader: drive, merge, budget and error.
  * @param {object[]} [props.kinds] Every kind, for Search instead.
  * @param {() => void} props.onNext Start checking.
+ * @param {(entry: object) => void} [props.onEntry] An entry the API answered with.
+ * @param {(photoId: string) => void} [props.onPhotoRemoved] A photo and its
+ *   titles were removed.
  * @param {import('react').Ref<HTMLHeadingElement>} props.headingRef
  */
 export default function ShootStep({
@@ -58,12 +67,15 @@ export default function ShootStep({
   reader,
   kinds = [],
   onNext,
+  onEntry = () => {},
+  onPhotoRemoved = () => {},
   headingRef,
 }) {
   const closet = sitting.area === 'closet'
   const [uploads, setUploads] = useState([])
   const [searching, setSearching] = useState(false)
   const [refusals, setRefusals] = useState([])
+  const [removing, setRemoving] = useState(false)
   const { drive, merge, budgetSpent, error, setError } = reader
   const alive = useRef(true)
 
@@ -138,6 +150,36 @@ export default function ShootStep({
     drive()
   }
 
+  /** Runs one removal, saying why when the server refuses it. */
+  async function removal(request, done) {
+    setError(null)
+    setRemoving(true)
+    try {
+      const response = await request()
+      if (!response.ok) {
+        setError(await errorMessage(response, { ownConflicts: true }))
+        return
+      }
+      done(response)
+    } catch {
+      setError('The server did not answer; try again.')
+    } finally {
+      if (alive.current) setRemoving(false)
+    }
+  }
+
+  const removePhoto = (photo) =>
+    removal(
+      () => removePhotoRequest(sitting.id, photo.id),
+      () => onPhotoRemoved(photo.id),
+    )
+
+  const removeTitle = (entry) =>
+    removal(
+      () => removeEntryRequest(entry),
+      async (response) => onEntry(await response.json()),
+    )
+
   const picked = (event) => {
     const files = [...(event.target.files ?? [])]
     event.target.value = ''
@@ -145,11 +187,12 @@ export default function ShootStep({
   }
 
   const titlesFrom = (photo) =>
-    sitting.entries.filter((e) => e.photo_id === photo.id).length
+    live(sitting.entries).filter((e) => e.photo_id === photo.id).length
   const line = runningLine(sitting, budgetSpent)
   // A searched or typed entry is something to check too.
+  const typed = live(sitting.entries).filter((e) => !e.photo_id)
   const ready =
-    sitting.entries.length > 0 ||
+    live(sitting.entries).length > 0 ||
     (!closet && sitting.photos.some((p) => p.state === 'read'))
 
   return (
@@ -242,10 +285,34 @@ export default function ShootStep({
               titles={titlesFrom(photo)}
               budgetSpent={budgetSpent}
               onRetry={retry}
+              onRemove={removePhoto}
+              busy={removing}
             />
           ))}
           {uploads.map((upload) => (
             <PendingTile key={upload.key} upload={upload} />
+          ))}
+        </ul>
+      )}
+
+      {typed.length > 0 && (
+        <ul
+          className="intake-typed"
+          aria-label="Titles added by search or typing"
+        >
+          {typed.map((entry) => (
+            <li key={entry.id}>
+              <span>{entryTitle(entry)}</span>
+              <button
+                type="button"
+                className="btn sm ghost"
+                aria-label={`Remove ${entryTitle(entry)}`}
+                disabled={removing}
+                onClick={() => removeTitle(entry)}
+              >
+                Remove
+              </button>
+            </li>
           ))}
         </ul>
       )}
