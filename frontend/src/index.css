@@ -2285,7 +2285,8 @@ footer {
 
 /* A bare control keeps its intrinsic width (an input is ~20 characters), which
    overflows a narrow grid cell and overlaps its neighbour. Fill the cell. */
-.intake-field :is(input, select, textarea) {
+.intake-field
+  :is(input, select, textarea):not([type='checkbox']):not([type='radio']) {
   box-sizing: border-box;
   min-width: 0;
   width: 100%;

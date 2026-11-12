@@ -418,6 +418,29 @@ describe('AddSection in the Closet', () => {
     })
   })
 
+  it('keeps the typed text when nothing was added (a duplicate)', async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({
+      add: () => ({
+        status: 201,
+        body: { added: 0, already_owned: 1, issues_added: 0, created: [] },
+      }),
+    })
+    renderAt('closet')
+    const field = await screen.findByRole('textbox', { name: 'Add' })
+    await user.type(field, 'Navy blazer{Enter}')
+    const drawer = screen.getByRole('dialog', { name: 'Navy blazer' })
+    await user.click(
+      within(drawer).getByRole('button', { name: 'Add to closet' }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Navy blazer' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(field).toHaveValue('Navy blazer')
+  })
+
   it('goes straight to Shoot from ▤ Photos: the closet has one photo kind', async () => {
     const user = userEvent.setup()
     const api = fakeIntakeApi()

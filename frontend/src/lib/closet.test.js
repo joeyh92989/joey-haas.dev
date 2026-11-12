@@ -14,6 +14,7 @@ import {
   filterGarments,
   settleFilter,
   garmentTitle,
+  ownerDay,
   MAX_PHOTO_BYTES,
   oversizePhoto,
   profileBody,
@@ -381,5 +382,16 @@ describe('outfitReason', () => {
     expect(outfitReason({ ranked_by: 'template', reason: '' })).toBe(
       'picked without the model',
     )
+  })
+})
+
+describe('ownerDay', () => {
+  it('is the Denver day of an instant', () => {
+    expect(ownerDay('2026-11-10T03:00:00Z')).toBe('2026-11-09')
+  })
+
+  it('is null for an instant that does not parse', () => {
+    expect(ownerDay('not a date')).toBeNull()
+    expect(ownerDay(undefined)).toBeNull()
   })
 })
