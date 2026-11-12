@@ -47,6 +47,14 @@ from public_comics import (
     comic_detail,
     load_public_comics,
 )
+from public_issues import (
+    PublicEditionPage,
+    PublicIssuePage,
+    PublicWall,
+    build_edition_page,
+    build_issue_page,
+    build_wall,
+)
 from public_next_cache import PublicNextCache
 from public_outputs import (
     PublicNextOut,
@@ -678,6 +686,47 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         response.headers["Cache-Control"] = "public, max-age=300"
         counts = await status_counts(session, REFRESH_SOURCES)
         return PublicStatusOut(**counts, stores_watched=len(STORES))
+
+    @router.get("/items/{item_id}/issues", response_model=PublicWall)
+    async def public_wall(
+        item_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> PublicWall:
+        """The cover wall of one public comic series: its issues and editions."""
+        wall = await build_wall(session, item_id)
+        if wall is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        return wall
+
+    @router.get("/items/{item_id}/issues/{number}", response_model=PublicIssuePage)
+    async def public_issue_page(
+        item_id: uuid.UUID,
+        number: str,
+        session: AsyncSession = Depends(get_session),
+    ) -> PublicIssuePage:
+        """One issue of a public comic series; 404 past the run or for a
+        non-number."""
+        if not (number.isascii() and number.isdigit()):
+            raise HTTPException(status_code=404, detail="Not found")
+        page = await build_issue_page(
+            session, item_id, int(number), datetime.now(UTC).date()
+        )
+        if page is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        return page
+
+    @router.get("/items/{item_id}/editions/{slug}", response_model=PublicEditionPage)
+    async def public_edition_page(
+        item_id: uuid.UUID,
+        slug: str,
+        session: AsyncSession = Depends(get_session),
+    ) -> PublicEditionPage:
+        """One collected edition of a public comic series."""
+        page = await build_edition_page(
+            session, item_id, slug, datetime.now(UTC).date()
+        )
+        if page is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        return page
 
     # Declared last, after the literal /items and /stats: a typed uuid would
     # 422 rather than fall through, but the order keeps that from mattering.
