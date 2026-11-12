@@ -83,6 +83,13 @@ _EXACT_PATHS = frozenset(
 )
 _PATTERNS = (
     re.compile(r"/shelf/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),
+    # A comic issue (/shelf/<id>/<n>) and a collected edition
+    # (/shelf/<id>/ed-<from>-<to>[-<k>]): exactly what App.jsx's ShelfPart
+    # accepts, so a mistyped part, which renders NotFound, is not counted.
+    re.compile(
+        r"/shelf/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        r"/(?:[1-9][0-9]{0,3}|ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(?:-[2-9][0-9]*)?)"
+    ),
     re.compile(r"/shelf/year/\d{4}"),
     re.compile(r"/shelf/journal/\d{4}-\d{2}"),
     re.compile(r"/blog/[a-z0-9]+(?:-[a-z0-9]+)*"),

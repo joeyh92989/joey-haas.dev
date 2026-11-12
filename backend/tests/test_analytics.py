@@ -107,6 +107,9 @@ def test_true_client_ip_then_the_socket():
         ("/shelf/next?utm=x", "/shelf/next"),
         ("/shelf/how/", "/shelf/how"),
         (f"{ITEM}/", ITEM),
+        (f"{ITEM}/58/", f"{ITEM}/58"),
+        (f"{ITEM}/ed-1-12/", f"{ITEM}/ed-1-12"),
+        (f"{ITEM}/ed-1-12-2", f"{ITEM}/ed-1-12-2"),
         ("/shelf/year/2026/", "/shelf/year/2026"),
         ("/shelf/journal/2026-10/", "/shelf/journal/2026-10"),
         ("/blog/how-spine-works#top", "/blog/how-spine-works"),
@@ -355,6 +358,7 @@ SAMPLE_PARAMS = {
     "year": "2026",
     "month": "2026-10",
     "slug": "a-sample-slug",
+    "part": "58",
 }
 # Not counted on purpose: the admin is the owner's own traffic, and the
 # pre-rename paths only redirect to /shelf*, which the beacon then reports.
@@ -449,3 +453,10 @@ def test_a_browser_is_not_automated(ua):
 )
 def test_a_crawler_library_or_blank_agent_is_automated(ua):
     assert is_automated(ua)
+
+
+@pytest.mark.parametrize(
+    "part", ["abc", "058", "0", "12345", "ed-1", "ed-01-2", "ed-1-2-1", "58x"]
+)
+def test_a_part_the_router_would_404_is_not_counted(part):
+    assert normalise(body(path=f"{ITEM}/{part}")) is None
