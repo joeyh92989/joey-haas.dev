@@ -11751,3 +11751,14 @@ a.btn.sm {
   display: grid;
   gap: 0.25rem;
 }
+
+/* The full add form, tucked under the add bar until asked for. */
+.full-add-form {
+  margin-block: 1rem;
+}
+
+.full-add-form summary {
+  cursor: pointer;
+  padding-block: 0.5rem;
+  font-weight: 600;
+}

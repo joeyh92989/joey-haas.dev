@@ -131,6 +131,19 @@ export default function AdminCollection() {
     if (arrival?.prefill)
       navigate({ pathname, search }, { replace: true, state: null })
   }, [arrival, navigate, pathname, search])
+  // The full form is one click away; the pull list's Own… lands in it open.
+  const [fullOpen, setFullOpen] = useState(() => Boolean(arrival?.prefill))
+  const fullFormRef = useRef(null)
+  const landedPrefilled = useRef(Boolean(arrival?.prefill))
+  // Arriving with a prefill, bring the open form into view and focus Title
+  // once the page has loaded and the form exists.
+  useEffect(() => {
+    const details = fullFormRef.current
+    if (!landedPrefilled.current || !details) return
+    landedPrefilled.current = false
+    details.scrollIntoView?.({ block: 'start' })
+    details.querySelector('input[aria-label="Title"]')?.focus()
+  }, [status])
   const [error, setError] = useState(null)
   // The Wrap up sheet's subject and preselected outcome, or null: Finish,
   // Pause and Abandon open it instead of writing (Tonight continue spec).
@@ -835,16 +848,25 @@ export default function AdminCollection() {
           onDone={wrapDone}
         />
 
-        <MetadataPicker type={form.type} onSelect={applyCandidate} />
+        <details
+          className="full-add-form"
+          ref={fullFormRef}
+          open={fullOpen}
+          onToggle={(event) => setFullOpen(event.currentTarget.open)}
+        >
+          <summary>Add with the full form</summary>
 
-        <ItemForm
-          value={form}
-          onChange={setForm}
-          onSubmit={addItem}
-          busy={saving}
-          linkedSource={form.external_source}
-          onClearLink={clearLink}
-        />
+          <MetadataPicker type={form.type} onSelect={applyCandidate} />
+
+          <ItemForm
+            value={form}
+            onChange={setForm}
+            onSubmit={addItem}
+            busy={saving}
+            linkedSource={form.external_source}
+            onClearLink={clearLink}
+          />
+        </details>
 
         {items.length === 0 ? (
           <p className="muted">Nothing in the collection yet.</p>

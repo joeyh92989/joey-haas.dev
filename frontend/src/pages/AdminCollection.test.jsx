@@ -123,6 +123,23 @@ describe('AdminCollection arriving from the pull list', () => {
       expect(screen.getByTestId('state')).toHaveTextContent('null'),
     )
     expect(screen.getByDisplayValue('Absolute Batman')).toBeInTheDocument()
+    expect(fullFormDetails()).toHaveProperty('open', true)
+    expect(screen.getByLabelText('Title')).toHaveFocus()
+  })
+})
+
+function fullFormDetails() {
+  return screen.getByText('Add with the full form').closest('details')
+}
+
+describe('AdminCollection full add form', () => {
+  it('is closed by default and opens from its summary', async () => {
+    stubApi()
+    renderPage()
+    await screen.findByText('Add with the full form')
+    expect(fullFormDetails()).toHaveProperty('open', false)
+    await userEvent.click(screen.getByText('Add with the full form'))
+    expect(fullFormDetails()).toHaveProperty('open', true)
   })
 })
 
@@ -858,6 +875,7 @@ describe('AdminCollection create form', () => {
     const mock = stubApi()
     renderPage()
 
+    await userEvent.click(await screen.findByText('Add with the full form'))
     await userEvent.type(await screen.findByLabelText('Title'), 'Donkey Kong')
     await userEvent.selectOptions(
       screen.getByLabelText('Owned format'),
@@ -884,6 +902,7 @@ describe('AdminCollection create form', () => {
     const mock = stubApi()
     renderPage()
 
+    await userEvent.click(await screen.findByText('Add with the full form'))
     await userEvent.type(await screen.findByLabelText('Title'), 'Loose')
     await userEvent.selectOptions(
       screen.getByLabelText('Owned format'),
