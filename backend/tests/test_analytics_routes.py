@@ -435,14 +435,22 @@ async def test_site_stats_never_lists_a_private_item_page(sessionmaker_for_test)
     for path in (f"/shelf/{shown_id}", f"/shelf/{hidden_id}", f"/spine/{hidden_id}"):
         await _view(factory, today, path=path)
     await _view(factory, today, path="/about")
+    # Pages that name no item stay public.
+    await _view(factory, today, path="/shelf/year/2026")
+    await _view(factory, today, path="/shelf/journal/2026-11")
     async with client_for(factory) as client:
         public = (await client.get("/api/public/site-stats")).json()["thirty"]
     async with client_for(factory, signed_in=True) as client:
         admin = (await client.get("/api/analytics?range=30d")).json()
     paths = {row["value"] for row in public["pages"]}
-    assert paths == {f"/shelf/{shown_id}", "/about"}
+    assert paths == {
+        f"/shelf/{shown_id}",
+        "/about",
+        "/shelf/year/2026",
+        "/shelf/journal/2026-11",
+    }
     # The views still count; only the private page's name is withheld.
-    assert public["views"] == 4
+    assert public["views"] == 6
     assert f"/shelf/{hidden_id}" in {row["value"] for row in admin["pages"]}
 
 

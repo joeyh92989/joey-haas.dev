@@ -35,4 +35,38 @@ describe('SpineTabs', () => {
       '/shelf/comics',
     )
   })
+
+  it('scrolls only its own row to a current tab hidden by the fade', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    const scrolled = vi.fn()
+    const spies = [
+      vi
+        .spyOn(HTMLElement.prototype, 'scrollWidth', 'get')
+        .mockReturnValue(600),
+      vi
+        .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+        .mockReturnValue(300),
+      vi
+        .spyOn(HTMLElement.prototype, 'scrollLeft', 'set')
+        .mockImplementation(scrolled),
+      // The row starts at 0; the current tab (Daily) is at 500, 80 wide.
+      vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function box() {
+          const tab = this.matches('a.active')
+          return { left: tab ? 500 : 0, width: tab ? 80 : 300 }
+        }),
+    ]
+    render(
+      <MemoryRouter initialEntries={['/daily']}>
+        <SpineTabs />
+      </MemoryRouter>,
+    )
+    // The tab ends at 580; the row shows 300 wide, so it scrolls to 280.
+    expect(scrolled).toHaveBeenCalledWith(280)
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    for (const spy of spies) spy.mockRestore()
+    delete Element.prototype.scrollIntoView
+  })
 })

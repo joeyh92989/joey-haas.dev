@@ -91,25 +91,11 @@ export function spineSize(read) {
 }
 
 /**
- * Short spine labels, the way a real box prints an abbreviated spine. The
- * recording's `read` is the full title, and the matching and result rows
- * keep it; only the drawn spine is shortened (#200). A recorded row may
- * carry its own `spine`, which wins.
- */
-const SPINE_LABELS = {
-  'Resident Evil Origins Collection': 'Resident Evil Origins',
-  'Borderlands Legendary Collection': 'Borderlands Legendary',
-  'The Legend of Zelda: Breath of the Wild': 'Breath of the Wild',
-  'Metal Gear Solid Master Collection Vol. 1': 'MGS Master Collection',
-  '熱血硬派くにおくん外伝 リバーシティガールズ2': 'リバーシティガールズ2',
-}
-
-/**
  * The text printed on a drawn spine.
  *
  * @param {{read: string, spine?: string}} row A recording row.
  * @returns {string}
  */
 export function spineLabel(row) {
-  return row.spine ?? SPINE_LABELS[row.read] ?? row.read
+  return row.spine ?? row.read
 }

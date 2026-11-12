@@ -124,12 +124,9 @@ describe('spineSize', () => {
 })
 
 describe('spineLabel', () => {
-  it('shortens long titles for the spine and keeps the rest', async () => {
+  it("prints the row's own spine label, else the full title", async () => {
     const { spineLabel } = await import('./intakeDemo.js')
     expect(spineLabel({ read: 'Hades' })).toBe('Hades')
-    expect(
-      spineLabel({ read: 'The Legend of Zelda: Breath of the Wild' }),
-    ).toBe('Breath of the Wild')
     expect(spineLabel({ read: 'Hades', spine: 'HDS' })).toBe('HDS')
   })
 })

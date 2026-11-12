@@ -32,6 +32,12 @@ describe('pageName', () => {
     )
   })
 
+  it('reads an old /spine path as its /shelf page', () => {
+    expect(pageName(titles, `/spine/${ID}`)).toBe('Hades')
+    expect(pageName(null, '/spine/year/2025')).toBe('2025 in review')
+    expect(pageName(titles, '/spine/next')).toBe('/spine/next')
+  })
+
   it('falls back to the path: no index, unknown item, other groups', () => {
     expect(pageName(null, `/shelf/${ID}`)).toBe(`/shelf/${ID}`)
     expect(

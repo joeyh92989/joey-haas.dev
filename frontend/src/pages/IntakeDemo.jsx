@@ -39,18 +39,17 @@ function DrawnShelf({ titles }) {
     >
       {titles.map((row, index) => {
         const label = spineLabel(row)
+        const size = spineSize(label)
         return (
           <span
             key={`${row.read}-${index}`}
             className="intake-demo-spine"
             data-tone={index % 2 ? 'soft' : undefined}
-            data-size={spineSize(label)}
+            data-size={size}
             // Heights vary so it reads as a shelf, deterministically; a long
             // title takes the full height.
             style={{
-              height: spineSize(label)
-                ? '100%'
-                : `${78 + ((index * 37) % 22)}%`,
+              height: size ? '100%' : `${78 + ((index * 37) % 22)}%`,
             }}
           >
             {label}

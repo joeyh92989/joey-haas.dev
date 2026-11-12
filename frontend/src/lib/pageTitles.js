@@ -45,14 +45,16 @@ export function titleLookup(entries) {
  * @param {string} path A server path, no trailing slash.
  */
 export function pageName(titles, path) {
-  const year = YEAR.exec(path)
+  // Old analytics rows still carry the /spine prefix from before the rename.
+  const current = path.replace(/^\/spine(?=\/)/, '/shelf')
+  const year = YEAR.exec(current)
   if (year) return `${year[1]} in review`
-  const month = MONTH.exec(path)
+  const month = MONTH.exec(current)
   if (month) return `${monthName(month[1])} · ${spine.name}`
-  const own = titles?.get(path)
+  const own = titles?.get(current)
   if (own) return own
-  const part = COMIC_PART.exec(path)
-  const series = part && titles?.get(path.slice(0, path.lastIndexOf('/')))
+  const part = COMIC_PART.exec(current)
+  const series = part && titles?.get(current.slice(0, current.lastIndexOf('/')))
   if (series) {
     return part[2].startsWith('ed-')
       ? EDITION_NAME(series)

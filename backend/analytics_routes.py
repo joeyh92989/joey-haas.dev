@@ -236,9 +236,9 @@ async def public_path_filter(session: AsyncSession) -> Callable[[str], bool]:
     }
 
     def keep(path: str) -> bool:
-        # A prefix match: the paths are already allowlisted, and the id is
-        # fixed-width, so the issue and edition forms reach the same check.
-        match = ITEM_PATH.match(path)
+        # ITEM_PATH spells out the issue and edition suffix, so every form of
+        # an item page reaches the same check and nothing else does.
+        match = ITEM_PATH.fullmatch(path)
         return match is None or match.group(1) in public
 
     return keep

@@ -7,7 +7,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 ## 2026-11-12
 
 - Links inside running text are now underlined, so they can be told from the words around them without relying on colour.
-- Finished rows on [Year in review](/shelf/year/2026) and the month journals keep their three columns when a game is marked as played again.
+- Finished rows on [Year in review](/shelf/year/2026) keep their three columns when a game is marked as played again.
 - [Stats](/stats) fits a phone without sideways scrolling, the all-time figures wait until there is a month of data behind them, and the pages list names pages by title.
 - The shelf tabs stay on one row on a phone and scroll sideways, with the current tab in view, and the masthead marks My Shelf on [Daily](/daily).
 - On [Daily](/daily) the guess box now sits above the board.

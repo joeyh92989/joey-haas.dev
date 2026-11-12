@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { NavLink } from 'react-router'
+import { NavLink, useLocation } from 'react-router'
 import { spine } from '../content/spine.js'
 import { hasComics } from '../lib/snapshotPresence.js'
 
@@ -19,13 +19,25 @@ import { hasComics } from '../lib/snapshotPresence.js'
 export default function SpineTabs({ comics = hasComics }) {
   const { how } = spine.tabs
   const nav = useRef(null)
-  // On a phone the row scrolls sideways; bring the current tab into view on
-  // mount. jsdom has no scrollIntoView.
+  const { pathname } = useLocation()
+  // On a phone the row scrolls sideways; keep the current tab fully in view,
+  // clear of the edge fade. This moves only the row's own scrollLeft:
+  // scrollIntoView would also scroll the page. A row that does not overflow
+  // has nothing to scroll, and jsdom has no layout, so it is skipped there.
   useEffect(() => {
-    nav.current
-      ?.querySelector('a.active')
-      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
-  }, [])
+    const row = nav.current
+    const tab = row?.querySelector('a.active')
+    if (!row || !tab || row.scrollWidth <= row.clientWidth) return
+    const fade = parseFloat(getComputedStyle(row).paddingRight) || 0
+    const rowBox = row.getBoundingClientRect()
+    const tabBox = tab.getBoundingClientRect()
+    const start = tabBox.left - rowBox.left + row.scrollLeft
+    const end = start + tabBox.width
+    if (start < row.scrollLeft) row.scrollLeft = start
+    else if (end > row.scrollLeft + row.clientWidth - fade) {
+      row.scrollLeft = end - row.clientWidth + fade
+    }
+  }, [pathname])
   return (
     <nav ref={nav} className="spine-tabs" aria-label={`${spine.name} sections`}>
       <NavLink to={spine.tabs.shelf.to} end>

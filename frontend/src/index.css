@@ -180,8 +180,6 @@ body {
   padding-inline: 24px;
 }
 
-/* The routed region. A 45rem reading column by default; the tracker pages
-   widen it, and the masthead and footer rows follow them out. */
 /* The public shell is a full-height column, so the footer sits at the bottom
    of a short page (#200). The admin shell is also a `.site`, so it is excluded:
    it brings its own `.admin-app` height. */
@@ -197,6 +195,8 @@ body {
   width: 100%;
 }
 
+/* The routed region. A 45rem reading column by default; the tracker pages
+   widen it, and the masthead and footer rows follow them out. */
 .page {
   margin: 0 auto;
   max-width: 45rem;
@@ -3352,13 +3352,10 @@ footer {
   min-width: 0;
   overflow: hidden;
   padding: 6px 3px;
+  text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
   writing-mode: vertical-rl;
-}
-
-.intake-demo-spine {
-  text-overflow: ellipsis;
 }
 
 /* Long titles take smaller type and the full height instead of being clipped
@@ -7430,11 +7427,9 @@ main h1[tabindex='-1']:focus,
   }
 }
 
-@media (max-width: 34rem) {
-  .tour-title {
-    font-size: 2.125rem;
-  }
-
+/* Three columns of nine titles need about 60rem; below that the index is one
+   column, as on a phone. */
+@media (max-width: 60rem) {
   .tour-toc ol {
     grid-auto-flow: row;
     grid-template-columns: 1fr;
@@ -7443,6 +7438,12 @@ main h1[tabindex='-1']:focus,
 
   .tour-toc li + li {
     border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 34rem) {
+  .tour-title {
+    font-size: 2.125rem;
   }
 
   .tour-toc a {
