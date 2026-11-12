@@ -15,20 +15,18 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-from datetime import UTC, date, datetime, time, timedelta
-from zoneinfo import ZoneInfo
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from config import Config
-from llm import FREE_TIER_DAILY_REQUESTS, GEMINI_MODELS
+from llm import FREE_TIER_DAILY_REQUESTS, GEMINI_MODELS, PACIFIC, next_pacific_midnight
 from models import LlmUsage
 
 logger = logging.getLogger(__name__)
 
-PACIFIC = ZoneInfo("America/Los_Angeles")
 DAILY_REQUESTS = FREE_TIER_DAILY_REQUESTS
 # Kept back from the reader for the rest of the site's model calls
 # (Discover, Closet, the photo importer).
@@ -38,11 +36,6 @@ RESERVE = 12
 def pacific_day(now: datetime) -> date:
     """The Pacific calendar day ``now`` falls on: the free tier's day."""
     return now.astimezone(PACIFIC).date()
-
-
-def _next_pacific_midnight(now: datetime) -> datetime:
-    tomorrow = pacific_day(now) + timedelta(days=1)
-    return datetime.combine(tomorrow, time(0), tzinfo=PACIFIC).astimezone(UTC)
 
 
 class UsageRecorder:
@@ -118,5 +111,5 @@ async def budget_state(
     return {
         "remaining": await remaining(session, GEMINI_MODELS, day=pacific_day(now)),
         "enforced": enforced,
-        "resets_at": _next_pacific_midnight(now),
+        "resets_at": next_pacific_midnight(now),
     }

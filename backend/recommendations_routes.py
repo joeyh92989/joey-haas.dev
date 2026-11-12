@@ -88,21 +88,29 @@ def _failure_note(error: str) -> str:
     Reads `llm.py`'s own wording: only Gemini's per-day 429 says "used up",
     Gemini's other 429s say "rate limit", its exhausted 503 chain says "is
     overloaded", and Anthropic's SDK errors start "Error code: 429" or
-    "Error code: 529". A missing key, a timeout, a refused key, a 5xx and a
-    network failure are named too (#121): only what is left -- a 400, an
+    "Error code: 529". A missing key, a timeout, a refused key, a 5xx, a
+    withdrawn model and a network failure are named too (#121), also behind
+    ChainedProvider's "Gemini unavailable, then " prefix: only what is left -- a 400, an
     unreadable answer -- is "did not answer", which Closet tagging reads as
     possibly a photo's fault.
     """
     lowered = error.lower()
     if "is not set" in lowered or "unknown llm_provider" in lowered:
         return "No model key is set on the API service"
-    if "did not answer in time" in lowered or lowered.startswith("gave up after"):
+    if (
+        "did not answer in time" in lowered
+        or lowered.startswith("gave up after")
+        or "request timed out" in lowered  # Anthropic's SDK, as the paid link
+    ):
         return "The model did not answer in time; try again in a few minutes"
     if re.search(r"(http|error code:) (401|403)\b", lowered):
         return "The model's API key was refused; check it on the API service"
-    server_error = re.search(r"returned http (5\d\d)", lowered)
+    # Gemini's own 5xx, or Anthropic's (its 529 is overload, worded below).
+    server_error = re.search(r"(?:returned http|error code:) (5(?!29)\d\d)", lowered)
     if server_error:
         return f"The model failed with HTTP {server_error.group(1)}; try again later"
+    if "no longer serves" in lowered:
+        return "The model is no longer served; the chain in llm.py needs updating"
     if "request failed" in lowered and "error code:" not in lowered:
         return "The model could not be reached; try again in a few minutes"
     if "per day" in lowered and "used up" in lowered:

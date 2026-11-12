@@ -56,3 +56,13 @@ async def engine():
 @pytest_asyncio.fixture
 async def sessionmaker_for_test(engine):
     return async_sessionmaker(engine, expire_on_commit=False)
+
+
+@pytest.fixture(autouse=True)
+def _forget_exhausted_models():
+    """llm keeps exhausted models in process; no test may see another's."""
+    import llm
+
+    llm.reset_exhaustion()
+    yield
+    llm.reset_exhaustion()

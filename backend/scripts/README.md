@@ -505,3 +505,35 @@ here they show as `tag-…` counts; read them with
 `export_picker_fixture.py --coverage MIN` instead. A newly mapped keyword
 appears in the file readably only after the next export, so map, then
 re-export, then run `test_facets.py`.
+
+## probe_llm_chain.py
+
+Asks the live Gemini API what the LLM fallback chain needs to know before
+it ships (`docs/planning/2026-11-11-llm-fallback-chain-plan.md`, task 1).
+
+**Why:** Google publishes neither the free tier's daily quota per model nor
+which thinking settings `generateContent` accepts on each model, and its
+docs say `thinkingLevel` breaks the 2.5 models. The chain's model list, its
+per-model thinking config and `FREE_TIER_DAILY_REQUESTS` in `llm.py` are
+taken from this script's output, not from the docs.
+
+**Run** from `backend/`:
+
+```bash
+./.venv/bin/python scripts/probe_llm_chain.py
+```
+
+**Needs** `GEMINI_API_KEY` in the main checkout's `backend/.env`. It loads
+config exactly as the API does (through `migrate_neon.main_checkout_env`,
+so it works from a worktree), so every other required variable must be set
+too.
+
+**Costs** nothing for the model list (`models.list`) and one request from
+the day's free quota for each row of `CANDIDATES` whose model is listed:
+one per chain model (six). Run it once, not in a loop.
+
+**Prints** the served Flash models, then one row per probe: status,
+latency, whether the answer parsed as JSON, the quota id and value from a
+429 (`quotaValue` comes from the error body, which Google does not
+document, so it may be blank), and the API's error message on any error
+(the exception's name when no response came back). The key goes only in the request header and is never printed.
