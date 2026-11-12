@@ -116,6 +116,122 @@ describe('AdminSitting', () => {
     )
   })
 
+  it('splits the Shoot count into parts that add up (#159)', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'shoot',
+          photos: [photo('p1', 'read'), photo('p2', 'reading')],
+          entries: [
+            ...longbox().entries,
+            entry('t1', 'typed', { payload: { title: 'Lost zine' } }),
+            entry('r1', 'ready', { chosen: candidate(9, 'Paper Girls') }),
+            entry('p9', 'probable', { photo_id: 'p1', chosen: SANDMAN }),
+            entry('x1', 'ignored', { photo_id: 'p1' }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    expect(
+      await screen.findByText(
+        '7 titles so far · 4 ready · 2 to check · 1 reading · 1 on the shelf',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('drops zero parts from the Shoot count', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'shoot',
+          photos: [photo('p1', 'read')],
+          entries: [entry('e2', 'exact', { chosen: candidate(3, 'Saga') })],
+        }),
+      ],
+    })
+    renderSitting()
+    expect(
+      await screen.findByText('1 title so far · 1 ready'),
+    ).toBeInTheDocument()
+  })
+
+  it('counts pieces in a closet sitting (#165)', async () => {
+    fakeIntakeApi({
+      sittings: [
+        {
+          id: 'c1',
+          area: 'closet',
+          kind: 'garment',
+          label: 'Rack',
+          photos: [photo('p1', 'read'), photo('p2', 'read')],
+          entries: [
+            entry('g1', 'check', { photo_id: 'p1' }),
+            entry('g2', 'check', { photo_id: 'p2' }),
+          ],
+        },
+      ],
+    })
+    renderSitting('c1', 'closet')
+    expect(await screen.findByText(/^2 pieces so far/)).toBeInTheDocument()
+  })
+
+  it('shows searched and typed titles ticked on Check, and reticks them (#165)', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'check',
+          photos: [],
+          entries: [
+            entry('r1', 'ready', { chosen: candidate(9, 'Paper Girls') }),
+            entry('t1', 'typed', { payload: { title: 'Lost zine' } }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    const zine = await screen.findByRole('checkbox', { name: 'Lost zine' })
+    expect(zine).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Paper Girls' })).toBeChecked()
+    await user.click(zine)
+    await waitFor(() =>
+      expect(api.calls('PATCH', /\/entries\/t1$/)[0]?.body).toMatchObject({
+        state: 'ignored',
+        payload: { unticked: true, was: 'typed' },
+      }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('checkbox', { name: 'Lost zine' }),
+      ).not.toBeChecked(),
+    )
+    await user.click(screen.getByRole('checkbox', { name: 'Lost zine' }))
+    await waitFor(() =>
+      expect(api.calls('PATCH', /\/entries\/t1$/)[1]?.body.state).toBe('typed'),
+    )
+  })
+
+  it('drops the grid sentence when there is no grid', async () => {
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          step: 'check',
+          entries: [
+            entry('e1', 'check', {
+              photo_id: 'p1',
+              payload: { detected_title: 'SANDMAN' },
+              candidates: [SANDMAN],
+            }),
+          ],
+        }),
+      ],
+    })
+    renderSitting()
+    await screen.findByRole('radiogroup', { name: 'Which one is it?' })
+    expect(screen.queryByText(/exact matches are a grid/)).toBeNull()
+  })
+
   it('walks Shoot to Done by keyboard, saving each step', async () => {
     const user = userEvent.setup()
     const api = fakeIntakeApi({ sittings: [longbox()] })
@@ -844,7 +960,7 @@ describe('AdminSitting', () => {
     )
     await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
     await waitFor(() =>
-      expect(screen.getByText('1 title so far')).toBeInTheDocument(),
+      expect(screen.getByText('1 title so far · 1 ready')).toBeInTheDocument(),
     )
     const [added] = api.calls('POST', /\/sittings\/s1\/entries$/)
     expect(added.body).toEqual({ kind: 'comic', chosen: saga })
@@ -878,7 +994,9 @@ describe('AdminSitting', () => {
       kind: 'comic',
       payload: { title: 'Lost zine' },
     })
-    expect(await screen.findByText('1 title so far')).toBeInTheDocument()
+    expect(
+      await screen.findByText('1 title so far · 1 ready'),
+    ).toBeInTheDocument()
   })
 
   it('offers no Search instead in a closet sitting', async () => {
@@ -898,7 +1016,11 @@ describe('AdminSitting', () => {
       })
       renderSitting()
       await screen.findByRole('heading', { name: 'Shoot' })
-      expect(screen.getByText('4 titles so far')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          '4 titles so far · 2 ready · 1 to check · 1 on the shelf',
+        ),
+      ).toBeInTheDocument()
       await user.click(screen.getByRole('button', { name: 'Remove photo 1' }))
       await waitFor(() =>
         expect(api.calls('DELETE', /\/sittings\/s1\/photos\/p1$/)).toHaveLength(

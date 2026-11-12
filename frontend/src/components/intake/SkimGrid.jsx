@@ -1,15 +1,15 @@
-import { entryCover, entryTitle } from '../../lib/intake.js'
+import { WRITTEN_STATES, entryCover, entryTitle } from '../../lib/intake.js'
 import CoverImage from '../CoverImage.jsx'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
 
 /**
- * Whether an entry belongs in the skim grid: an exact match, one already
- * owned, or one unticked here (kept as `ignored` with a note of what it
+ * Whether an entry belongs in the skim grid: an exact match, a searched or
+ * typed title (`ready`, `typed`), one already owned, or one unticked here (kept as `ignored` with a note of what it
  * was, so a reload or a second device shows it unticked, not gone).
  */
 export function inSkim(entry) {
   return (
-    ['exact', 'owned'].includes(entry.state) ||
+    [...WRITTEN_STATES, 'owned'].includes(entry.state) ||
     (entry.state === 'ignored' && entry.payload?.unticked === true)
   )
 }
@@ -37,7 +37,7 @@ export default function SkimGrid({
     <ul className="intake-skim">
       {entries.map((entry) => {
         const owned = entry.state === 'owned'
-        const ticked = entry.state === 'exact'
+        const ticked = WRITTEN_STATES.includes(entry.state)
         const shown =
           entry.state === 'ignored' ? entry.payload?.was : entry.state
         return (

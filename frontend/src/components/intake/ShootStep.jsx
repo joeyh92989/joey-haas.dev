@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { PHOTO_ACCEPT } from '../../lib/closet.js'
-import { entryTitle, refuseFile } from '../../lib/intake.js'
+import {
+  CHECK_STATES,
+  WRITTEN_STATES,
+  entryTitle,
+  refuseFile,
+} from '../../lib/intake.js'
 import {
   live,
   removeEntryRequest,
@@ -12,26 +17,34 @@ import ShootSearch from './ShootSearch.jsx'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
-/** The sitting's running line: titles so far and what is still to come. */
-function runningLine(sitting, budgetSpent) {
+/**
+ * The sitting's running line: titles so far and what is still to come.
+ * Every live entry falls in exactly one part, so the parts add up to the
+ * total (removed entries are in neither). Zero parts are dropped.
+ */
+function runningLine(sitting, budgetSpent, noun) {
   const { photos } = sitting
   const entries = live(sitting.entries)
-  const count = (state) => entries.filter((e) => e.state === state).length
+  const count = (states) =>
+    entries.filter((e) => states.includes(e.state)).length
   const reading = photos.filter((p) => p.state === 'reading').length
   const queued = photos.filter((p) => p.state === 'uploaded').length
   const parts = [
-    `${count('exact')} matched exactly`,
-    `${count('check')} need a look`,
+    [count(WRITTEN_STATES), (n) => `${n} ready`],
+    [count(CHECK_STATES), (n) => `${n} to check`],
+    [reading, (n) => `${n} reading`],
+    [count(['owned']), (n) => `${n} on the shelf`],
+    [
+      queued,
+      (n) =>
+        budgetSpent
+          ? `${n} waiting: today’s model budget is used up`
+          : `${n} queued`,
+    ],
   ]
-  if (reading) parts.push(`${plural(reading, 'photo')} reading`)
-  if (queued) {
-    parts.push(
-      budgetSpent
-        ? `${queued} waiting: today’s model budget is used up`
-        : `${queued} queued`,
-    )
-  }
-  return { head: `${plural(entries.length, 'title')} so far`, rest: parts }
+    .filter(([n]) => n > 0)
+    .map(([n, say]) => say(n))
+  return [`${plural(entries.length, noun)} so far`, ...parts].join(' · ')
 }
 
 /**
@@ -188,7 +201,7 @@ export default function ShootStep({
 
   const titlesFrom = (photo) =>
     live(sitting.entries).filter((e) => e.photo_id === photo.id).length
-  const line = runningLine(sitting, budgetSpent)
+  const line = runningLine(sitting, budgetSpent, closet ? 'piece' : 'title')
   // A searched or typed entry is something to check too.
   const typed = live(sitting.entries).filter((e) => !e.photo_id)
   const ready =
@@ -319,13 +332,7 @@ export default function ShootStep({
 
       <div className="intake-bar">
         <p>
-          <strong>{line.head}</strong>
-          {!closet && (
-            <>
-              <br />
-              <span className="muted">{line.rest.join(' · ')}</span>
-            </>
-          )}
+          <strong>{line}</strong>
         </p>
         <button
           type="button"

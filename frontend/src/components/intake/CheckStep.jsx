@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { seriesGrowth } from '../../lib/comicRun.js'
 import { CHECK_STATES, entryCover } from '../../lib/intake.js'
-import { removeEntryRequest } from '../../lib/intakeRemove.js'
+import { live, removeEntryRequest } from '../../lib/intakeRemove.js'
 import CheckOne from './CheckOne.jsx'
 import GarmentCheck from './GarmentCheck.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
@@ -90,9 +90,11 @@ export default function CheckStep({
   const current = left[0] ?? null
   const grows = closet ? [] : sitting.entries.filter(addsToSeries)
   const growthOf = growths(grows)
-  const skim = sitting.entries.filter(
-    (entry) => inSkim(entry) && !grows.includes(entry),
-  )
+  const skim = closet
+    ? []
+    : live(sitting.entries).filter(
+        (entry) => inSkim(entry) && !grows.includes(entry),
+      )
   const photoNumber = (entry) => {
     const index = sitting.photos.findIndex((p) => p.id === entry.photo_id)
     return index < 0 ? null : index + 1
@@ -258,7 +260,8 @@ export default function CheckStep({
         <p className="muted">
           {closet
             ? 'Only pieces the tagger could not finish are asked about.'
-            : 'Only the uncertain ones are asked one at a time; exact matches are a grid to skim.'}
+            : skim.length > 0 &&
+              'Only the uncertain ones are asked one at a time; exact matches are a grid to skim.'}
         </p>
         <span className="intake-bar-actions">
           <button type="button" className="btn" onClick={onBack}>
