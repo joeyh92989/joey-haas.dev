@@ -7,9 +7,13 @@ import SwapSheet from '../components/SwapSheet.jsx'
 import {
   ACTION_ERROR,
   LOAD_ERROR,
+  PLANNING_TIMEOUT,
+  STILL_PLANNING,
   WAKING_OR_PLANNING,
 } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { useElapsed } from '../lib/useElapsed.js'
+import { WaitTimeout, withDeadline } from '../lib/waits.js'
 import {
   NOT_THIS_REASONS,
   OCCASION_LABELS,
@@ -391,7 +395,9 @@ export default function AdminClosetToday() {
   // What the request in flight is doing, for the status line; '' when idle.
   const [pending, setPending] = useState('')
   const [error, setError] = useState(null)
-  const [slow, setSlow] = useState(false)
+  // Bumped by Retry to run the first load again.
+  const [attempt, setAttempt] = useState(0)
+  const elapsed = useElapsed(!answer && !error)
   const [swapOpen, setSwapOpen] = useState(false)
   const [matchOpen, setMatchOpen] = useState(false)
   // The photo Match this planned around, kept for Save as owned.
@@ -455,28 +461,28 @@ export default function AdminClosetToday() {
   }
 
   useEffect(() => {
-    let live = true
-    const timer = setTimeout(() => setSlow(true), 3000)
-    apiFetch('/api/closet/today')
-      .then(async (response) => {
+    const unmounted = new AbortController()
+    withDeadline(
+      async (signal) => {
+        const response = await apiFetch('/api/closet/today', { signal })
         if (response.status === 401 || response.status === 403)
           throw new Error(SESSION_ENDED)
         if (!response.ok) throw new Error(LOAD_ERROR)
-        const body = await response.json()
-        if (live) take(body)
-      })
+        return response.json()
+      },
+      { signal: unmounted.signal },
+    )
+      .then((body) => take(body))
       .catch((failure) => {
-        if (live)
+        if (unmounted.signal.aborted) return
+        if (failure instanceof WaitTimeout) setError(PLANNING_TIMEOUT)
+        else
           setError(
             failure.message === SESSION_ENDED ? SESSION_ENDED : LOAD_ERROR,
           )
       })
-      .finally(() => clearTimeout(timer))
-    return () => {
-      live = false
-      clearTimeout(timer)
-    }
-  }, [])
+    return () => unmounted.abort()
+  }, [attempt])
 
   async function read(next) {
     const body = await call(todayPath(next))
@@ -620,8 +626,25 @@ export default function AdminClosetToday() {
           {error}
         </p>
       )}
+      {error === PLANNING_TIMEOUT && (
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setError(null)
+            setAttempt((n) => n + 1)
+          }}
+        >
+          Retry
+        </button>
+      )}
       {!answer && !error && (
-        <p className="muted">{slow ? WAKING_OR_PLANNING : 'Loading…'}</p>
+        <p className="muted">
+          {elapsed < 3 ? 'Loading…' : `${WAKING_OR_PLANNING} · ${elapsed} s`}
+        </p>
+      )}
+      {!answer && !error && elapsed >= 20 && (
+        <p className="muted">{STILL_PLANNING}</p>
       )}
       <p className="muted today-status" role="status">
         {pending}

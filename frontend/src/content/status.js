@@ -15,7 +15,14 @@ export const WAKING =
  * A first load that may be a waking server or a model call, which take
  * about as long: Closet's Today, whose first read can plan the day.
  */
-export const WAKING_OR_PLANNING = 'Waking the server or planning…'
+export const WAKING_OR_PLANNING = 'Waking the server or planning the day'
+
+/** Shown beside `WAKING_OR_PLANNING` once Today has waited a while. */
+export const STILL_PLANNING =
+  'Still working — planning asks the model and can take up to two minutes.'
+
+/** Today's failure when the wait passes its deadline. */
+export const PLANNING_TIMEOUT = "Planning didn't answer in time. Try again."
 
 export const LOAD_ERROR = 'That didn’t load. Try again in a minute.'
 
