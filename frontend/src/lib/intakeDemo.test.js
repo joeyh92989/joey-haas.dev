@@ -111,3 +111,14 @@ describe('stageDelays', () => {
     })
   })
 })
+
+describe('spineSize', () => {
+  it('shrinks type for long titles and counts CJK wider', async () => {
+    const { spineSize } = await import('./intakeDemo.js')
+    expect(spineSize('Hades')).toBeUndefined()
+    expect(spineSize('Super Mario Odyssey Deluxe')).toBe('md')
+    expect(spineSize('Paper Mario: The Origami King')).toBe('sm')
+    expect(spineSize('The Legend of Zelda: Breath of the Wild')).toBe('xs')
+    expect(spineSize('熱血硬派くにおくん外伝 リバーシティガールズ2')).toBe('sm')
+  })
+})

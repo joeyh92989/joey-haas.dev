@@ -7,6 +7,7 @@ import {
   demoCounts,
   rowMeta,
   rowTitle,
+  spineSize,
   stageDelays,
 } from '../lib/intakeDemo.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
@@ -40,8 +41,12 @@ function DrawnShelf({ titles }) {
           key={`${read}-${index}`}
           className="intake-demo-spine"
           data-tone={index % 2 ? 'soft' : undefined}
-          // Heights vary so it reads as a shelf, deterministically.
-          style={{ height: `${78 + ((index * 37) % 22)}%` }}
+          data-size={spineSize(read)}
+          // Heights vary so it reads as a shelf, deterministically; a long
+          // title takes the full height.
+          style={{
+            height: spineSize(read) ? '100%' : `${78 + ((index * 37) % 22)}%`,
+          }}
         >
           {read}
         </span>

@@ -73,3 +73,19 @@ export function stageDelays(stages, { reduced = false } = {}) {
     reduced ? 0 : Math.min(Math.max(Number(ms) || 0, 0), STAGE_CAP_MS)
   return { read: delay(stages.read_ms), match: delay(stages.match_ms) }
 }
+
+/**
+ * How much type a printed title can take: a size tier from its width, where
+ * a CJK character is about 1.4 Latin capitals. The spine is a fixed height,
+ * so a long title gets smaller type instead of being clipped (#200).
+ */
+export function spineSize(read) {
+  const width = [...read].reduce(
+    (sum, char) => sum + (char.charCodeAt(0) >= 0x2e80 ? 1.4 : 1),
+    0,
+  )
+  if (width <= 18) return undefined
+  if (width <= 26) return 'md'
+  if (width <= 34) return 'sm'
+  return 'xs'
+}

@@ -6,6 +6,12 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-12
 
+- Links inside running text are now underlined, so they can be told from the words around them without relying on colour.
+- Finished rows on [Year in review](/shelf/year/2026) and the month journals keep their three columns when a game is marked as played again.
+- [Stats](/stats) fits a phone without sideways scrolling, the all-time figures wait until there is a month of data behind them, and the pages list names pages by title.
+- The shelf tabs stay on one row on a phone and scroll sideways, with the current tab in view, and the masthead marks My Shelf on [Daily](/daily).
+- On [Daily](/daily) the guess box now sits above the board.
+- Small layout fixes: long titles on the [intake demo](/shelf/intake) shelf shrink instead of being cut off, the [Comics](/shelf/comics) numbers sit two by two on a phone, [How it works](/shelf/how) lists its nine stops three by three, and the footer stays at the bottom of short pages.
 - Comics now read as comics on their pages: Reading, Reads and Read on instead of game words.
 - The shelf copy no longer claims twelve stores, and the What it does cards now name the stop they link to.
 
