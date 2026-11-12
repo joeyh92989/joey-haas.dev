@@ -317,7 +317,7 @@ const asPoster = (row) => ({
  */
 export default function Comics() {
   usePageTitle(`${copy.title} · ${spine.name}`)
-  const { data, failed, retry } = useSnapshotThenLive('comics')
+  const { data, live, failed, retry } = useSnapshotThenLive('comics')
   const [chip, setChip] = useState(() => storedPref(PREF.chip, COMIC_CHIPS))
   const [sort, setSort] = useState(() => storedPref(PREF.sort, COMIC_SORTS))
   const [view, setView] = useState(() => storedPref(PREF.view, VIEWS))
@@ -356,6 +356,7 @@ export default function Comics() {
         loading={!data && !failed}
         failed={failed}
         stale={!!data}
+        live={live}
         onRetry={retry}
       />
 

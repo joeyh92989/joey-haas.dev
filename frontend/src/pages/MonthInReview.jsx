@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router'
 import LoadState from '../components/LoadState.jsx'
+import { DIARY_FAILED } from '../content/status.js'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
@@ -28,7 +29,8 @@ function dayWords(isoDate) {
  * One month of the play journal: the games finished that month and the
  * sessions logged, by day. Built from the public items (snapshot first,
  * then live) and the public diary, so it shows nothing the shelf does not.
- * A diary that fails to load reads as no sessions.
+ * A diary that fails to load says so, with Try again, where the Played list
+ * would be; the empty line then speaks only for the finishes.
  */
 export default function MonthInReview() {
   const { month } = useParams()
@@ -88,6 +90,10 @@ export default function MonthInReview() {
             ? `Nothing finished in ${name}.`
             : `Nothing finished or played in ${name}.`}
         </p>
+      )}
+
+      {diary.failed && (
+        <LoadState failed message={DIARY_FAILED} onRetry={diary.retry} />
       )}
 
       {review.finished.length > 0 && (

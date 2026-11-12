@@ -13,6 +13,8 @@ import { formatDate } from '../lib/formatDate.js'
 import { editionPath, itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
+import { SAVED_NOT_REFRESHED } from '../content/status.js'
+import { useRefreshAfterWrite } from '../lib/useRefreshAfterWrite.js'
 import NotFound from './NotFound.jsx'
 
 const COPY = spine.comics.issue
@@ -55,6 +57,7 @@ export default function ComicIssue({ id, n }) {
     [id, n],
   )
   const { failed, retry } = read
+  const { refresh, tryAgain, afterWrite } = useRefreshAfterWrite(retry)
   const missing = read.data?.missing === true
   const page = missing ? null : read.data
 
@@ -80,10 +83,9 @@ export default function ComicIssue({ id, n }) {
 
   /** After an owner action: the public body and the owner's row again. */
   const reload = useCallback(async () => {
-    retry()
-    const row = await loadStored()
+    const [, row] = await Promise.all([refresh(), loadStored()])
     if (row) setStored(row)
-  }, [retry, loadStored])
+  }, [refresh, loadStored])
 
   usePageTitle(
     missing
@@ -142,7 +144,13 @@ export default function ComicIssue({ id, n }) {
         </ol>
       </nav>
 
-      <LoadState failed={failed} stale onRetry={retry} />
+      <LoadState
+        failed={failed}
+        stale
+        live={read.live}
+        staleMessage={afterWrite ? SAVED_NOT_REFRESHED : undefined}
+        onRetry={tryAgain}
+      />
 
       <NeighbourStrip
         list={page.neighbours}

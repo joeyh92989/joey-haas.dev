@@ -347,6 +347,14 @@ describe('Next', () => {
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull()
   })
 
+  it('offers Try again when nothing could be loaded', async () => {
+    const retry = vi.fn()
+    mockNext({ data: null, live: false, failed: true, retry })
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(retry).toHaveBeenCalledTimes(1)
+  })
+
   it('says it is waking the server only without a snapshot', () => {
     vi.useFakeTimers()
     mockNext({ data: null, live: false, failed: false })

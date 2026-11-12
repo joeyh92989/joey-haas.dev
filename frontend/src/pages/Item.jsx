@@ -26,6 +26,8 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 import { itemPath } from '../lib/spinePaths.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
+import { SAVED_NOT_REFRESHED } from '../content/status.js'
+import { useRefreshAfterWrite } from '../lib/useRefreshAfterWrite.js'
 
 const COMICS = spine.comics
 const SERIES = COMICS.series
@@ -530,6 +532,7 @@ function ItemPage({ id }) {
     [id],
   )
   const { failed, retry } = read
+  const { refresh, tryAgain, afterWrite } = useRefreshAfterWrite(retry)
   const missing = read.data?.missing === true
   const loaded = missing ? null : read.data
 
@@ -594,16 +597,27 @@ function ItemPage({ id }) {
       setSaveError(null)
       try {
         await toggleOwned(id, issue, owned)
-        retry()
       } catch {
         setSaveError(SERIES.saveError)
-      } finally {
         setSaving(false)
+        return
       }
+      // The write went through; stay busy until the re-read settles.
+      await refresh()
+      setSaving(false)
     },
-    [id, retry],
+    [id, refresh],
   )
 
+  const staleLine = (
+    <LoadState
+      failed
+      stale
+      live={read.live}
+      staleMessage={afterWrite ? SAVED_NOT_REFRESHED : undefined}
+      onRetry={tryAgain}
+    />
+  )
   const shown = loaded ?? preview
   // Null on a 404, so NotFound's own title stands (see usePageTitle).
   usePageTitle(
@@ -630,7 +644,7 @@ function ItemPage({ id }) {
         onToggleIssue={signedIn ? toggleIssue : undefined}
         saving={saving}
         saveError={saveError}
-        loadState={failed ? <LoadState failed stale onRetry={retry} /> : null}
+        loadState={failed ? staleLine : null}
       />
     )
   }
@@ -641,7 +655,7 @@ function ItemPage({ id }) {
         item={preview}
         detail={false}
         signedIn={signedIn}
-        loadState={failed ? <LoadState failed stale onRetry={retry} /> : null}
+        loadState={failed ? staleLine : null}
       />
     )
   }

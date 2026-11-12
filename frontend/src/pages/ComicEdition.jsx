@@ -11,6 +11,8 @@ import { setReadTo } from '../lib/comicEdits.js'
 import { editionPath, issuePath, itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
+import { SAVED_NOT_REFRESHED } from '../content/status.js'
+import { useRefreshAfterWrite } from '../lib/useRefreshAfterWrite.js'
 import NotFound from './NotFound.jsx'
 
 const COPY = spine.comics.edition
@@ -104,6 +106,7 @@ export default function ComicEdition({ id, slug }) {
     [id, slug],
   )
   const { failed, retry } = read
+  const { refresh, tryAgain, afterWrite } = useRefreshAfterWrite(retry)
   const missing = read.data?.missing === true
   const page = missing ? null : read.data
 
@@ -166,7 +169,13 @@ export default function ComicEdition({ id, slug }) {
         </ol>
       </nav>
 
-      <LoadState failed={failed} stale onRetry={retry} />
+      <LoadState
+        failed={failed}
+        stale
+        live={read.live}
+        staleMessage={afterWrite ? SAVED_NOT_REFRESHED : undefined}
+        onRetry={tryAgain}
+      />
 
       <div className="comic-issue-main">
         <div className="comic-issue-cover book-tile">
@@ -197,7 +206,7 @@ export default function ComicEdition({ id, slug }) {
 
           <ComicDescription paragraphs={page.description} />
 
-          {signedIn && <OwnerBox id={id} page={page} onChanged={retry} />}
+          {signedIn && <OwnerBox id={id} page={page} onChanged={refresh} />}
 
           <p className="comic-issue-attribution">
             {ISSUE.attribution.before}{' '}

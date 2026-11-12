@@ -126,7 +126,7 @@ function Popover({ spot }) {
  */
 export default function Denver() {
   usePageTitle(`${copy.title} · Joey Haas`)
-  const { data, failed, retry } = useSnapshotThenLive('spots')
+  const { data, live, failed, retry } = useSnapshotThenLive('spots')
   const [searchParams, setSearchParams] = useSearchParams()
   const tagParam = searchParams.get('tag')
   const pressed = useMemo(() => parseTags(tagParam), [tagParam])
@@ -199,7 +199,7 @@ export default function Denver() {
     <section className="denver-page">
       <h1>{copy.title}</h1>
       <p className="denver-lede">{copy.lede}</p>
-      <LoadState failed={failed} stale onRetry={retry} />
+      <LoadState failed={failed} stale live={live} onRetry={retry} />
       <TagChips
         counts={tagCounts(spots)}
         total={spots.length}

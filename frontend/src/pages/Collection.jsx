@@ -380,6 +380,7 @@ export default function Collection() {
   const items = itemsRead.data ?? NO_ITEMS
   const stats = statsRead.data
   const failed = itemsRead.failed
+  const liveItems = itemsRead.live
   const retry = () => {
     itemsRead.retry()
     if (statsRead.failed) statsRead.retry()
@@ -481,7 +482,7 @@ export default function Collection() {
   return (
     <section>
       <SpineHeader />
-      <LoadState failed={failed} stale onRetry={retry} />
+      <LoadState failed={failed} stale live={liveItems} onRetry={retry} />
 
       {items.length === 0 ? (
         <p className="muted">Nothing on the shelf yet.</p>

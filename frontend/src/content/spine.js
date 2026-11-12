@@ -49,7 +49,9 @@ export const spine = {
    */
   how: {
     // A stop whose live read failed (the empty copy is only for a real empty).
-    liveFailed: "Couldn't load this stop's live example.",
+    liveFailed: 'Couldn’t load this stop’s live example.',
+    // A stop that shares its read with an earlier stop, which carries Try again.
+    liveFailedSame: 'Same read as the stop above; Try again is there.',
     path: '/shelf/how',
     tryPickForMe: 'Try Pick for me: choose a length and a mood',
     title: 'How My Shelf works, in nine stops',

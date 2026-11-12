@@ -95,7 +95,7 @@ export default function Stats() {
             )}
           </StatTiles>
           {failed ? (
-            <LoadState failed stale onRetry={retry} />
+            <LoadState failed stale live={live} onRetry={retry} />
           ) : (
             <p className="muted site-stats-status" role="status">
               {status}

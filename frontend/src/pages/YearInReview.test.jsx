@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { flaky } from '../lib/flaky.test-util.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { DIARY_FAILED } from '../content/status.js'
 import YearInReview from './YearInReview.jsx'
 
 const answer = vi.hoisted(() => ({
@@ -13,9 +14,14 @@ vi.mock('../lib/useSnapshotThenLive.js', () => ({
   useSnapshotThenLive: () =>
     typeof answer.value === 'function' ? answer.value() : answer.value,
 }))
-const diary = vi.hoisted(() => ({ rows: [] }))
+const diary = vi.hoisted(() => ({ rows: [], failed: false, retry: vi.fn() }))
 vi.mock('../lib/usePublicDiary.js', () => ({
-  usePublicDiary: () => diary.rows,
+  usePublicDiaryState: () => ({
+    sessions: diary.rows,
+    settled: true,
+    failed: diary.failed,
+    retry: diary.retry,
+  }),
 }))
 
 const ITEMS = [
@@ -62,6 +68,7 @@ function renderAt(path) {
 afterEach(() => {
   answer.value = { data: null, live: false, failed: false }
   diary.rows = []
+  diary.failed = false
 })
 
 describe('YearInReview', () => {
@@ -188,6 +195,17 @@ describe('YearInReview', () => {
     expect(section).toHaveTextContent('2 days with a session logged.')
     const played = section.querySelector('ol')
     expect(played).toHaveTextContent('Sep 29Hades II60 min')
+  })
+
+  it('says the diary did not load, with Try again, where Played would be', async () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.failed = true
+    diary.retry = vi.fn()
+    renderAt('/shelf/year/2026')
+    expect(screen.getByRole('alert')).toHaveTextContent(DIARY_FAILED)
+    expect(screen.queryByRole('heading', { name: 'Played' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(diary.retry).toHaveBeenCalledTimes(1)
   })
 
   it('links a month with sessions but no finish to its journal page', () => {
