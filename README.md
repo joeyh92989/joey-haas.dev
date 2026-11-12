@@ -734,6 +734,57 @@ After a deploy:
 Defaults to the production URLs; pass `[SITE_URL] [API_URL]` to target
 something else. Exits non-zero if any check fails.
 
+## Browser tests
+
+Playwright runs the built site in Chromium, as a desktop and a phone (Pixel 5):
+
+- **Smoke:** every public route returns a non-error status, shows an `h1`, applies
+  the chosen theme, logs no uncaught or console errors (failed `/api/` requests
+  are ignored: the tests run without a backend), and on the phone does not
+  scroll sideways. The unknown-path (NotFound) page is covered too.
+- **Accessibility:** axe (WCAG 2 A/AA) must find no serious or critical
+  violations on any route, in both the light and dark theme.
+
+The route list comes from `STATIC_PAGES` in `frontend/src/content/pages.js`, so
+a new static page is covered automatically. `/blog` and `/til` are included
+locally only when the build prerendered them.
+
+```sh
+cd frontend
+npx playwright install chromium        # first time only
+VITE_DAILY_SALT=local npm run build
+npm run e2e
+```
+
+`npm run e2e` serves `dist` with `vite preview`. To test a site that is already
+running, set `E2E_BASE_URL` instead of building:
+`E2E_BASE_URL=https://joey-haas.dev npm run e2e`. The report is in
+`frontend/playwright-report/`. CI runs the same suite in the `e2e` job.
+
+Known problems are tracked, not hidden:
+
+- A genuine site defect is marked `test.fail()` with a `// known: ... backlog
+  issue` comment. When the defect is fixed the test starts passing, which
+  Playwright reports as a failure, so the marker has to be removed.
+- An excused accessibility violation is an entry in
+  `frontend/e2e/known-a11y.js` (`{ route, ruleId, issue }`). An entry that no
+  longer matches a violation fails the suite, so fixed ones get deleted.
+
+### Screenshots
+
+`npm run shots` (in `frontend/`) takes a full-page screenshot of every route in
+both themes and both viewports, for design reviews. It serves `dist` like the
+tests, or shoots a live site:
+`E2E_BASE_URL=https://joey-haas.dev npm run shots`. Against a live site it also
+shoots one sample of each dynamic page kind (shelf entries, blog post, TIL,
+travel) taken from `sitemap.xml`.
+
+Output is `frontend/e2e-shots/<desktop|phone>/<light|dark>/<route>.png`, plus
+`frontend/e2e-shots/errors.json` listing any page that errored, returned an
+HTTP error or never went idle. Screenshots never fail the run. The shots
+set the analytics opt-out (`navigator.globalPrivacyControl`) and block
+`/api/track`, so shooting production does not count as visits.
+
 ## Contributing
 
 `main` is protected: it accepts merges from pull requests with passing checks,

@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-12 · decision · Browser tests run on Playwright against the built site
+Chose `@playwright/test` over Vitest browser mode and an ad hoc script: it exercises the built, prerendered `dist` (what ships), and the one setup serves both CI (smoke + axe on every PR) and design reviews (`npm run shots`).
+docs/planning/2026-11-12-playwright-e2e-design.md
+
 ### 2026-11-12 · lesson · CI's format check is not lint
 #175 went red on `prettier --check` (`npm run format:check`), which `npm run lint` does not run; the local preflight had only run lint, tests and build. Run `npm run format:check` in every frontend preflight and implementer gate.
 PR #175 · docs/planning/2026-11-12-closet-walkthrough-plan.md
