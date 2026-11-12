@@ -183,8 +183,9 @@ body {
 /* The routed region. A 45rem reading column by default; the tracker pages
    widen it, and the masthead and footer rows follow them out. */
 /* The public shell is a full-height column, so the footer sits at the bottom
-   of a short page (#200). Admin routes return before this wrapper renders. */
-.site {
+   of a short page (#200). The admin shell is also a `.site`, so it is excluded:
+   it brings its own `.admin-app` height. */
+.site:not(.site-admin) {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -4032,7 +4033,11 @@ footer {
   .spine-tabs {
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-inline-end: 2rem; /* the last tab scrolls clear of the fade */
+    /* Room for the 2px focus ring plus offset on every side (the overflow
+       would clip it); the margins give the space back. The end padding lets
+       the last tab scroll clear of the fade. */
+    margin: calc(0.75rem - 4px) -4px -4px;
+    padding: 4px 2rem 4px 4px;
     scrollbar-width: none;
     -webkit-mask-image: linear-gradient(
       to right,
@@ -7428,7 +7433,7 @@ main h1[tabindex='-1']:focus,
     grid-template-rows: none;
   }
 
-  .tour-toc li:nth-child(3n + 1) {
+  .tour-toc li + li {
     border-top: 1px solid var(--line);
   }
 
