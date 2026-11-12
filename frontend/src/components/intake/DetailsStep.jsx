@@ -1,9 +1,14 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { entryCover, entryTitle, WRITTEN_STATES } from '../../lib/intake.js'
+import { editionRows, parseEditionRows } from '../../lib/comics.js'
 import { removeEntry } from '../../lib/intakeRemove.js'
 import CoverImage from '../CoverImage.jsx'
+import { EditionRows } from '../ItemForm.jsx'
 import KindFields from './KindFields.jsx'
+
+/** Shelf formats that hold collected editions; singles carry issues only. */
+const COLLECTED = ['trades', 'omnibus']
 
 const plural = (label, n) => {
   const word = label.toLowerCase()
@@ -79,6 +84,9 @@ export default function DetailsStep({
   const [drafts, setDrafts] = useState({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  // Edition rows being typed by entry id, and the shape error each one found.
+  const [edits, setEdits] = useState({})
+  const [editionErrors, setEditionErrors] = useState({})
   const saving = useRef(new Set())
 
   const written = sitting.entries.filter((e) =>
@@ -132,6 +140,22 @@ export default function DetailsStep({
     savePayload(entry, { ...entry.payload, [key]: value })
   }
 
+  /** Edition rows lose focus: the whole list is read and saved at once. */
+  function saveEditions(entry) {
+    const rows = edits[entry.id]
+    if (!rows) return
+    const { editions, error: shape } = parseEditionRows(rows)
+    setEditionErrors((old) => ({ ...old, [entry.id]: shape }))
+    if (shape) return
+    const rest = { ...entry.payload }
+    delete rest.editions
+    const same =
+      JSON.stringify(editions) ===
+      JSON.stringify(entry.payload?.editions ?? null)
+    if (same) return
+    savePayload(entry, editions ? { ...rest, editions } : rest)
+  }
+
   async function add() {
     // A field still saving from its blur goes in before the commit reads it.
     await Promise.all([...saving.current])
@@ -165,8 +189,14 @@ export default function DetailsStep({
               const perItem = new Set(
                 kind.fields.filter((f) => f.per_item).map((f) => f.key),
               )
+              const collected =
+                kind.key === 'comic' &&
+                COLLECTED.includes(entry.payload?.shelf_format)
               const loose = Object.entries(refused)
-                .filter(([key]) => !perItem.has(key))
+                .filter(
+                  ([key]) =>
+                    !perItem.has(key) && !(collected && key === 'editions'),
+                )
                 .map(([, message]) => message)
               return (
                 <li key={entry.id}>
@@ -196,6 +226,29 @@ export default function DetailsStep({
                       }
                       onBlur={(key) => saveField(entry, key)}
                     />
+                    {collected && (
+                      <div
+                        className="intake-editions"
+                        onBlur={(event) => {
+                          if (
+                            !event.currentTarget.contains(event.relatedTarget)
+                          )
+                            saveEditions(entry)
+                        }}
+                      >
+                        <EditionRows
+                          idPrefix={`row-${entry.id}`}
+                          rows={
+                            edits[entry.id] ??
+                            editionRows(entry.payload?.editions)
+                          }
+                          onChange={(rows) =>
+                            setEdits((old) => ({ ...old, [entry.id]: rows }))
+                          }
+                          error={editionErrors[entry.id] ?? refused.editions}
+                        />
+                      </div>
+                    )}
                     <button
                       type="button"
                       className="btn sm ghost"
