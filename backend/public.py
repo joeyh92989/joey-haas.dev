@@ -705,7 +705,7 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
     ) -> PublicIssuePage:
         """One issue of a public comic series; 404 past the run or for a
         non-number."""
-        if not (number.isascii() and number.isdigit()):
+        if len(number) > 4 or not (number.isascii() and number.isdigit()):
             raise HTTPException(status_code=404, detail="Not found")
         page = await build_issue_page(
             session, item_id, int(number), datetime.now(UTC).date()

@@ -276,6 +276,8 @@ async def test_issue_page_404s(sessionmaker_for_test):
         f"/api/public/items/{item_id}/issues/10000",
         f"/api/public/items/{item_id}/issues/abc",
         f"/api/public/items/{item_id}/issues/-1",
+        f"/api/public/items/{item_id}/issues/12345",
+        f"/api/public/items/{item_id}/issues/{'9' * 5000}",
         f"/api/public/items/{private}/issues/1",
         f"/api/public/items/{private}/issues",
         f"/api/public/items/{private}/editions/ed-5-6",
