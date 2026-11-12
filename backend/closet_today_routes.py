@@ -517,6 +517,29 @@ def create_closet_today_router(
         row = await session.get(OutfitPlan, (day, occasion, bike))
         return dict(row.body) if row is not None else None
 
+    async def names_inactive(session: AsyncSession, plan: dict[str, Any]) -> bool:
+        """True when the plan names a garment that is deleted or not active."""
+        outfits = [plan.get("lead"), *plan.get("alternatives", [])]
+        named = {
+            uuid.UUID(g["id"])
+            for outfit in outfits
+            if outfit
+            for g in outfit["garments"]
+            if not g.get("transient")
+        }
+        if not named:
+            return False
+        active = set(
+            (
+                await session.scalars(
+                    select(Garment.id).where(
+                        Garment.id.in_(named), Garment.status == GarmentStatus.ACTIVE
+                    )
+                )
+            ).all()
+        )
+        return active != named
+
     async def answer(
         session: AsyncSession, day: date, plan: dict | None, just_now: bool
     ) -> dict[str, Any]:
@@ -546,7 +569,13 @@ def create_closet_today_router(
         occasion = _occasion(occasion, default_occasion)
         bike = default_bike if bike is None else bike
         plan = await stored(session, day, occasion, bike)
-        if plan is not None or stored_only:
+        # A plan naming a garment since deleted, packed, listed or gone is
+        # stale: plan again for the same occasion and bike it was stored under.
+        if plan is not None and await names_inactive(session, plan):
+            plan = None
+            if stored_only:  # never shown stale, never planned here
+                return await answer(session, day, None, False)
+        elif plan is not None or stored_only:
             return await answer(session, day, plan, False)
         plan = await make_plan(session, day, occasion, bike)
         if plan["lead"] is not None:

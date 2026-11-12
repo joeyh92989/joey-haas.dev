@@ -722,3 +722,56 @@ async def test_two_wore_this_at_once_leave_one_outfit(sessionmaker_for_test):
     assert first.status_code == second.status_code == 201
     assert await count(sessionmaker_for_test, Outfit) == 1
     assert await count(sessionmaker_for_test, Wear) == 2
+
+
+def _plan_ids(plan) -> set[str]:
+    return {
+        g["id"]
+        for outfit in [plan["lead"], *plan["alternatives"]]
+        for g in outfit["garments"]
+    }
+
+
+@pytest.mark.parametrize("change", ["delete", "packed", "listed", "gone"])
+async def test_today_replans_when_its_plan_names_a_garment_no_longer_active(
+    sessionmaker_for_test, change
+):
+    ids = await seed(sessionmaker_for_test)
+    provider = FakeProvider(
+        choose(
+            (["wool coat", "grey sweater", "navy oxford", "chinos", "brown boots"], "x")
+        )
+    )
+    async with client_for(sessionmaker_for_test, provider) as client:
+        first = (await client.get("/api/closet/today")).json()["plan"]
+        gone = ids["wool coat"]
+        assert gone in _plan_ids(first)
+        async with sessionmaker_for_test() as session:
+            garment = await session.get(Garment, uuid.UUID(gone))
+            if change == "delete":
+                await session.delete(garment)
+            else:
+                garment.status = GarmentStatus(change)
+            await session.commit()
+        again = (await client.get("/api/closet/today")).json()
+    assert again["planned_just_now"] is True
+    assert gone not in _plan_ids(again["plan"])
+    # The fresh plan is stored: the next read is that plan, unchanged.
+    async with client_for(sessionmaker_for_test, provider) as client:
+        third = (await client.get("/api/closet/today")).json()
+    assert third["planned_just_now"] is False and third["plan"] == again["plan"]
+
+
+async def test_today_replans_the_same_occasion_and_bike_it_read(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        url = "/api/closet/today?occasion=wfh&bike=true"
+        first = (await client.get(url)).json()["plan"]
+        gone = first["lead"]["garments"][0]["id"]
+        assert gone in ids.values()
+        async with sessionmaker_for_test() as session:
+            await session.delete(await session.get(Garment, uuid.UUID(gone)))
+            await session.commit()
+        again = (await client.get(url)).json()["plan"]
+    assert again["occasion"] == "wfh" and again["bike"] is True
+    assert gone not in _plan_ids(again)
