@@ -13,7 +13,13 @@ import globals from 'globals'
  */
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'test-results/**',
+      'playwright-report/**',
+      'e2e-shots/**',
+    ],
   },
 
   js.configs.recommended,
@@ -44,6 +50,17 @@ export default [
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: globals.node,
+    },
+  },
+
+  // Browser tests: Node, plus the browser globals of the callbacks they pass to
+  // page.evaluate and page.addInitScript.
+  {
+    files: ['e2e/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.node, ...globals.browser },
     },
   },
 

@@ -22,3 +22,8 @@ scripts/fixtures/overpass-*.json
 # The intake demo (backend/scripts/record_intake_demo.py): the recorder's
 # output, never edited by hand.
 src/content/intake-demo.json
+
+# Playwright output
+test-results
+playwright-report
+e2e-shots
