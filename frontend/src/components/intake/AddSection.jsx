@@ -196,7 +196,7 @@ export default function AddSection({ area, onAdded, children }) {
     }
   }
 
-  async function add({ title, values }) {
+  async function add({ title, values }, again) {
     const { kind, chosen } = drawer
     const payload = fieldPayload(kind.fields, values)
     if (title !== undefined) payload.title = title.trim()
@@ -251,12 +251,17 @@ export default function AddSection({ area, onAdded, children }) {
             : `${name} is already on the shelf`,
       )
       onAdded?.()
-      // A finished add leaves the bar empty and focused, ready for the next
-      // piece, whether or not the owner asked to go again.
-      setDrawer(null)
-      setAnswer(null)
-      setQuery('')
-      setTimeout(() => inputRef.current?.focus())
+      // The Closet types one piece after another, so a finished add leaves
+      // its bar empty and focused. The Collection keeps the results for
+      // adding more from one search, unless the owner asked to go again.
+      if (again || area === 'closet') {
+        setDrawer(null)
+        setAnswer(null)
+        setQuery('')
+        setTimeout(() => inputRef.current?.focus())
+      } else {
+        closeDrawer()
+      }
     } catch {
       setDrawerError(NO_ANSWER)
     } finally {

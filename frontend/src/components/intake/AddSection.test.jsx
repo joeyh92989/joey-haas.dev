@@ -144,8 +144,9 @@ describe('AddSection on the shelf', () => {
     expect(sent.body.today).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(onAdded).toHaveBeenCalled()
     expect(screen.getByRole('status')).toHaveTextContent('Saga added, private')
-    expect(screen.getByRole('searchbox')).toHaveValue('')
-    expect(screen.queryByRole('list', { name: /Results/ })).toBeNull()
+    expect(screen.getByRole('searchbox')).toHaveValue('saga')
+    expect(screen.getByRole('list', { name: /Results/ })).toBeInTheDocument()
+    expect(add).toHaveFocus()
   })
 
   it('says how many issues an owned series gained', async () => {
@@ -407,6 +408,8 @@ describe('AddSection in the Closet', () => {
       within(drawer).getByRole('button', { name: 'Add to closet' }),
     )
     await waitFor(() => expect(onAdded).toHaveBeenCalled())
+    await waitFor(() => expect(field).toHaveValue(''))
+    expect(field).toHaveFocus()
     expect(api.calls('GET', /\/api\/intake\/search/)).toEqual([])
     expect(api.calls('POST', /\/api\/intake\/add$/)[0].body).toMatchObject({
       kind: 'garment',
