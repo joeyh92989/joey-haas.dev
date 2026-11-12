@@ -56,6 +56,12 @@ export const HIGH = 4
 /** The tag queue gives a garment up after this many unusable answers. */
 export const MAX_ATTEMPTS = 3
 
+/**
+ * How many photos one Tag now call tags: mirrors `BATCH_SIZE` in
+ * `backend/closet_tag.py`. A longer queue takes more than one press.
+ */
+export const TAG_BATCH_SIZE = 10
+
 const MONTHS = [
   'Jan',
   'Feb',

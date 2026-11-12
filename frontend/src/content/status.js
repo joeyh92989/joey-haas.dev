@@ -24,9 +24,9 @@ export const STILL_PLANNING =
 /** Today's failure when the wait passes its deadline. */
 export const PLANNING_TIMEOUT = "Planning didn't answer in time. Try again."
 
-/** Tag now's wait: one model call over the queue, `count` photos long. */
+/** Tag now's wait: one batch of the queue, `count` photos long. */
 export const taggingWait = (count) =>
-  `Tagging ${count} ${count === 1 ? 'photo' : 'photos'} — one model call`
+  `Tagging ${count} ${count === 1 ? 'photo' : 'photos'} — one batch`
 
 /** Shown beside `taggingWait` once Tag now has waited a while. */
 export const STILL_TAGGING = 'Still working — this can take up to two minutes.'

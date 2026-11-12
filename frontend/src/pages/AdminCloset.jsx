@@ -18,6 +18,7 @@ import {
   DEFAULT_FILTER,
   MAX_ATTEMPTS,
   STATUSES,
+  TAG_BATCH_SIZE,
   VIEW_PREF,
   chipCounts,
   countsLine,
@@ -134,11 +135,18 @@ export default function AdminCloset() {
 
   async function reread() {
     const result = await fetchCloset()
-    if (result.closet) setCloset(result.closet)
+    if (unmounted.current.signal.aborted) return
+    if (result.closet) {
+      setCloset(result.closet)
+      setError(null)
+    } else setError(result.error)
   }
 
   async function tagNow() {
-    setTagging({ state: 'tagging', count: waiting })
+    setTagging({
+      state: 'tagging',
+      count: Math.min(waiting, TAG_BATCH_SIZE),
+    })
     const stop = unmounted.current.signal
     let result
     let failed = false
@@ -164,8 +172,7 @@ export default function AdminCloset() {
     }
     if (stop.aborted) return
     setTagging({ state: 'done', result, failed })
-    const reply = await fetchCloset()
-    if (reply.closet && !stop.aborted) setCloset(reply.closet)
+    await reread()
   }
 
   const header = (
@@ -202,11 +209,7 @@ export default function AdminCloset() {
                   {elapsed >= STILL_WORKING_AFTER_S && <> {STILL_TAGGING}</>}
                 </>
               ) : tagging?.state === 'done' ? (
-                tagging.failed ? (
-                  tagging.result
-                ) : (
-                  <>Tag now: {tagging.result}</>
-                )
+                !tagging.failed && <>Tag now: {tagging.result}</>
               ) : (
                 <>
                   <b>
@@ -216,6 +219,11 @@ export default function AdminCloset() {
                 </>
               )}
             </span>
+            {tagging?.state === 'done' && tagging.failed && (
+              <p className="admin-error" role="alert">
+                {tagging.result}
+              </p>
+            )}
             <span className="intake-waiting-actions">
               <button
                 type="button"

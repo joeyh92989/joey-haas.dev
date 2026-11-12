@@ -220,10 +220,11 @@ describe('AdminCloset', () => {
     const untagged = (id) =>
       garment(id, null, { status: 'untagged', tag_source: null })
 
-    async function startTagging(queuedPieces, tagHandler) {
+    async function startTagging(queuedPieces, tagHandler, getHandler) {
       const calls = stubApi({
-        'GET /api/closet/garments': () =>
-          json(closet([...queuedPieces, ...GARMENTS.slice(0, 2)])),
+        'GET /api/closet/garments':
+          getHandler ??
+          (() => json(closet([...queuedPieces, ...GARMENTS.slice(0, 2)]))),
         'POST /api/closet/tag': tagHandler,
       })
       renderCloset()
@@ -240,28 +241,62 @@ describe('AdminCloset', () => {
         () => new Promise(() => {}),
       )
       const status = screen.getByText(/^Tagging/)
-      expect(status).toHaveTextContent(
-        'Tagging 2 photos — one model call · 0 s',
-      )
+      expect(status).toHaveTextContent('Tagging 2 photos — one batch · 0 s')
       await act(async () => {
         vi.advanceTimersByTime(29_000)
       })
-      expect(status).toHaveTextContent(
-        'Tagging 2 photos — one model call · 29 s',
-      )
+      expect(status).toHaveTextContent('Tagging 2 photos — one batch · 29 s')
       expect(screen.queryByText(/Still working/)).not.toBeInTheDocument()
       await act(async () => {
         vi.advanceTimersByTime(1000)
       })
       expect(status).toHaveTextContent(
-        'Tagging 2 photos — one model call · 30 s Still working — this can take up to two minutes.',
+        'Tagging 2 photos — one batch · 30 s Still working — this can take up to two minutes.',
       )
+    })
+
+    it('counts one batch of ten, not the whole queue', async () => {
+      const many = Array.from({ length: 18 }, (_, i) => untagged(`q${i}`))
+      await startTagging(many, () => new Promise(() => {}))
+      expect(screen.getByText(/^Tagging/)).toHaveTextContent(
+        'Tagging 10 photos — one batch · 0 s',
+      )
+    })
+
+    it('shows the deadline as an alert, not in the status line', async () => {
+      await startTagging([untagged('e')], () => new Promise(() => {}))
+      await act(async () => {
+        vi.advanceTimersByTime(195_000)
+      })
+      const alert = screen.getByRole('alert')
+      expect(alert).toHaveTextContent(/Tagging didn't answer in time/)
+      expect(alert).toHaveClass('admin-error')
+      for (const status of screen.getAllByRole('status'))
+        expect(status).not.toHaveTextContent(/didn't answer/)
+    })
+
+    it('shows the load error when the follow-up read fails', async () => {
+      let reads = 0
+      await startTagging(
+        [untagged('e')],
+        () => json({ tagged: 1, calls: 1, note: null, remaining: 0 }),
+        () => {
+          reads += 1
+          return reads === 1
+            ? json(closet([untagged('e'), ...GARMENTS.slice(0, 2)]))
+            : json({}, 500)
+        },
+      )
+      await act(async () => {})
+      expect(
+        screen.getByText('That didn’t load. Try again in a minute.'),
+      ).toBeInTheDocument()
     })
 
     it('says "photo" for a single piece', async () => {
       await startTagging([untagged('e')], () => new Promise(() => {}))
       expect(screen.getByText(/^Tagging/)).toHaveTextContent(
-        'Tagging 1 photo — one model call · 0 s',
+        'Tagging 1 photo — one batch · 0 s',
       )
     })
 

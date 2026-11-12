@@ -11,7 +11,7 @@ export const STILL_WORKING_AFTER_S = 30
 /** Seconds into Today's first load after which it says planning takes a while. */
 export const STILL_PLANNING_AFTER_S = 20
 
-/** Seconds into a first load after which a page says it is waking the server. */
+/** Seconds into a first load after which a first load stops saying plain Loading. */
 export const SLOW_LOAD_AFTER_S = 3
 
 /** What `withDeadline` rejects with when the deadline passes. */
