@@ -120,6 +120,9 @@ describe('ComicIssue, public', () => {
     renderIssue()
     const crumbs = await screen.findByRole('navigation', { name: 'Breadcrumb' })
     expect(
+      within(crumbs).getByRole('link', { name: 'My Shelf' }),
+    ).toHaveAttribute('href', '/shelf')
+    expect(
       within(crumbs).getByRole('link', { name: 'Comics' }),
     ).toHaveAttribute('href', '/shelf/comics')
     expect(within(crumbs).getByRole('link', { name: 'Saga' })).toHaveAttribute(

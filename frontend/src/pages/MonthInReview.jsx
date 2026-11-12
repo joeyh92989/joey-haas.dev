@@ -4,7 +4,7 @@ import { DIARY_FAILED } from '../content/status.js'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
-import SpineHeader from '../components/SpineHeader.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 import { spine } from '../content/spine.js'
 import { monthInReview, monthName, parseMonth } from '../lib/monthInReview.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -57,8 +57,14 @@ export default function MonthInReview() {
 
   return (
     <section className="year-review">
-      <SpineHeader asLink />
-      <h1>{name}</h1>
+      <PageHeader
+        trail={[
+          { label: spine.name, to: spine.path },
+          { label: `${review.year} in review`, to: yearPath(review.year) },
+          { label: name },
+        ]}
+        title={name}
+      />
 
       <nav className="month-nav" aria-label="Months">
         {review.previous && (

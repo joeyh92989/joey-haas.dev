@@ -86,6 +86,17 @@ describe('MonthInReview', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'October 2026' }),
     ).toBeInTheDocument()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(
+      within(crumbs).getByRole('link', { name: 'My Shelf' }),
+    ).toHaveAttribute('href', '/shelf')
+    expect(
+      within(crumbs).getByRole('link', { name: '2026 in review' }),
+    ).toHaveAttribute('href', '/shelf/year/2026/')
+    expect(within(crumbs).getByText('October 2026')).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
     const finished = screen.getByRole('region', { name: 'Finished' })
     expect(within(finished).getByText('Hades II')).toBeInTheDocument()
     expect(within(finished).queryByText('Pikmin 4')).toBeNull()

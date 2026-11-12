@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
 import LoadState from '../components/LoadState.jsx'
+import Breadcrumb from '../components/Breadcrumb.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverWall from '../components/CoverWall.jsx'
@@ -720,7 +721,9 @@ function ItemView({
 
   return (
     <article className="item-page">
-      <div className="item-hero" />
+      <Breadcrumb
+        trail={[{ label: spine.name, to: spine.path }, { label: item.title }]}
+      />
 
       <header className="item-head">
         <div className="item-cover">

@@ -89,13 +89,20 @@ describe('BlogPost', () => {
     expect(screen.queryByText('On this page')).toBeNull()
   })
 
-  it('has one back link, above the title', () => {
+  it('opens with the breadcrumb, Blog then the title, above the h1', () => {
     const { container } = renderPost('without')
-    const links = screen.getAllByRole('link', { name: '← All posts' })
-    expect(links).toHaveLength(1)
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(crumbs).getByRole('link', { name: 'Blog' })).toHaveAttribute(
+      'href',
+      '/blog',
+    )
+    const last = crumbs.querySelector('[aria-current="page"]')
+    expect(last).toHaveTextContent(container.querySelector('h1').textContent)
     expect(
-      container.querySelector('h1').previousElementSibling,
-    ).toContainElement(links[0])
+      crumbs.compareDocumentPosition(container.querySelector('h1')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(screen.queryByText('← All posts')).toBeNull()
   })
 
   it('moves focus to the heading a contents link names', () => {

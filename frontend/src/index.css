@@ -693,7 +693,7 @@ p.muted a,
   padding: 2.5rem 0 3.75rem;
 }
 
-/* One of the two serif headlines on the site; About's title is the other. */
+/* The one serif headline on the site; every other h1 is the base sans 500. */
 .hero-title {
   font: 500 3.5rem/1.05 var(--font-display);
   letter-spacing: -0.02em;
@@ -920,9 +920,7 @@ section + section {
   width: 96px;
 }
 
-/* The other serif headline, beside Home's hero. */
 .about-title {
-  font: 500 2.5rem/1.05 var(--font-display);
   margin-bottom: 8px;
 }
 
@@ -3329,10 +3327,6 @@ footer {
    --text on --accent-soft 13.11 dark, 15.65 light (measured above). The
    confidence words reuse .conf on --surface (measured above). */
 .intake-demo h1 {
-  font-family: var(--font-display);
-  font-size: 2.25rem;
-  font-weight: 500;
-  line-height: 1.15;
   margin: 0 0 0.5rem;
 }
 
@@ -3511,10 +3505,6 @@ footer {
 }
 
 @media (max-width: 900px) {
-  .intake-demo h1 {
-    font-size: 1.75rem;
-  }
-
   .intake-demo-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -4554,19 +4544,12 @@ a.month-bar::before {
   gap: 0.4rem 0.75rem;
 }
 
-/* Public item page. The hero band is a plain --surface panel; the cover
-   overlaps its bottom edge. */
-.item-hero {
-  background: var(--surface);
-  border-radius: 8px;
-  height: 13rem;
-}
-
+/* Public item page: the breadcrumb, then the cover beside the title. */
 .item-head {
   align-items: flex-end;
   display: flex;
   gap: 1.5rem;
-  margin: -6rem 0 1.5rem 1.5rem;
+  margin: 0.5rem 0 1.5rem;
   position: relative;
 }
 
@@ -5527,10 +5510,9 @@ a.month-bar::before {
     mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
   }
 
-  /* The overlapping cover shrinks so the title still fits beside it. */
+  /* The cover shrinks so the title still fits beside it. */
   .item-head {
     gap: 1rem;
-    margin-left: 1rem;
   }
 
   .item-cover {
@@ -7090,11 +7072,6 @@ main h1[tabindex='-1']:focus,
 /* ---- How it works (/spine/how): the page ---- */
 
 .tour-title {
-  font-family: var(--font-display);
-  font-size: 2.5rem;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
   margin: 1.75rem 0 0.625rem;
 }
 
@@ -7473,10 +7450,6 @@ main h1[tabindex='-1']:focus,
 }
 
 @media (max-width: 34rem) {
-  .tour-title {
-    font-size: 2.125rem;
-  }
-
   .tour-toc a {
     grid-template-columns: 2rem 1fr;
   }
@@ -8875,12 +8848,6 @@ a.cover-tile:focus-visible {
   font-size: 0.8125rem;
 }
 
-.trip__title {
-  font: 600 2.25rem/1.1 var(--font-display);
-  letter-spacing: -0.01em;
-  margin: 0.25rem 0 0.5rem;
-}
-
 .trip .lede {
   color: var(--text-2);
   font-size: 1rem;
@@ -9281,10 +9248,6 @@ a.cover-tile:focus-visible {
   .trip-list,
   .photo-group--two {
     grid-template-columns: 1fr;
-  }
-
-  .trip__title {
-    font-size: 1.75rem;
   }
 
   .trip-photo__img {
@@ -11691,7 +11654,7 @@ a.cover-tile:focus-visible {
 /* The public issue page (/shelf/:id/:n/). Cover column at 300px; at phone
    width the order is strip, cover (62%, centred), then text. The strip
    scrolls inside itself, never the page. */
-.comic-issue-crumbs ol {
+.crumbs ol {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
@@ -11702,7 +11665,7 @@ a.cover-tile:focus-visible {
   padding: 0;
 }
 
-.comic-issue-crumbs li + li::before {
+.crumbs li + li::before {
   color: var(--text-3);
   content: '/';
   margin-right: 0.5rem;

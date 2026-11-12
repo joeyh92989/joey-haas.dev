@@ -1,6 +1,8 @@
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
+import PageHeader from '../components/PageHeader.jsx'
 import PostMeta from '../components/PostMeta.jsx'
 import { findNote } from '../content/notes.js'
+import { TIL_PAGE } from '../content/pages.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 
@@ -19,10 +21,13 @@ export default function TilNote() {
 
   return (
     <section>
-      <p>
-        <Link to="/til">← All notes</Link>
-      </p>
-      <h1>{note.frontmatter.title}</h1>
+      <PageHeader
+        trail={[
+          { label: TIL_PAGE.title, to: TIL_PAGE.path },
+          { label: note.frontmatter.title },
+        ]}
+        title={note.frontmatter.title}
+      />
       {note.frontmatter.draft && <span className="draft-badge">Draft</span>}
       <PostMeta date={note.frontmatter.date} tags={note.frontmatter.tags} />
       <div

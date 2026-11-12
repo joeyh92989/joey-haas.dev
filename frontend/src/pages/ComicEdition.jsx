@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import ComicDescription from '../components/ComicDescription.jsx'
+import Breadcrumb from '../components/Breadcrumb.jsx'
 import LoadState from '../components/LoadState.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverTile from '../components/CoverTile.jsx'
@@ -123,17 +124,15 @@ export default function ComicEdition({ id, slug }) {
   if (!page) {
     return (
       <article className="comic-issue comic-edition">
-        <nav aria-label={ISSUE.breadcrumb} className="comic-issue-crumbs">
-          <ol>
-            <li>
-              <Link to={spine.tabs.comics.to}>{ISSUE.comics}</Link>
-            </li>
-            <li>
-              <Link to={itemPath(id)}>{ISSUE.series}</Link>
-            </li>
-            <li aria-current="page">{COPY.fallbackTitle}</li>
-          </ol>
-        </nav>
+        <Breadcrumb
+          label={ISSUE.breadcrumb}
+          trail={[
+            { label: spine.name, to: spine.path },
+            { label: ISSUE.comics, to: spine.tabs.comics.to },
+            { label: ISSUE.series, to: itemPath(id) },
+            { label: COPY.fallbackTitle },
+          ]}
+        />
         <h1>{COPY.fallbackTitle}</h1>
         <LoadState loading={!failed} failed={failed} onRetry={retry} />
       </article>
@@ -157,17 +156,15 @@ export default function ComicEdition({ id, slug }) {
 
   return (
     <article className="comic-issue comic-edition">
-      <nav aria-label={ISSUE.breadcrumb} className="comic-issue-crumbs">
-        <ol>
-          <li>
-            <Link to={spine.tabs.comics.to}>{ISSUE.comics}</Link>
-          </li>
-          <li>
-            <Link to={itemPath(page.series_id)}>{page.series_title}</Link>
-          </li>
-          <li aria-current="page">{page.label}</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        label={ISSUE.breadcrumb}
+        trail={[
+          { label: spine.name, to: spine.path },
+          { label: ISSUE.comics, to: spine.tabs.comics.to },
+          { label: page.series_title, to: itemPath(page.series_id) },
+          { label: page.label },
+        ]}
+      />
 
       <LoadState
         failed={failed}
