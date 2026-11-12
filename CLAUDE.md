@@ -395,6 +395,24 @@ before pushing.
       (PR D). Migration `0014` (PR B); Review needs none. Spec and plan:
       `docs/planning/2026-11-09-outfit-design.md`
 
+## Ship
+
+- Checks: the PR's `backend` and `frontend` GitHub Actions jobs
+- Merge: squash
+- Migration: rehearse `cd backend && ./.venv/bin/pytest tests/test_migrations.py`
+  (upgrade, downgrade, upgrade on Postgres; additive migrations only) ·
+  apply from the PR's worktree, **before** merging:
+  `cd backend && <main checkout>/backend/.venv/bin/python scripts/migrate_neon.py current`
+  then `… upgrade`
+- Deploy: merge to `main` → Render auto-deploys both services · live when
+  `curl -s https://api.joey-haas.dev/api/public/status` answers and the new
+  routes answer (not 404) and `https://joey-haas.dev/` serves the new build
+- Smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`
+- Logs: Render dashboard → the API service's Logs (no CLI configured)
+- Rollback: revert the merge commit with a PR (Render redeploys); migrations
+  stay (additive, safe ahead of the code). A schema rollback is a manual
+  `alembic downgrade` after a Neon restore point (`backend/migrations/README.md`)
+
 ## Closet
 
 - **Review's flags are data; the model only comments.** The cull is
