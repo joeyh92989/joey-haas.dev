@@ -248,7 +248,8 @@ a:hover {
 .empty-box a,
 .intake-demo-fine a,
 .attribution a,
-p.muted a {
+p.muted a,
+.now-finished a {
   color: currentColor;
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -5089,7 +5090,8 @@ a.month-bar::before {
 
 .chip-count {
   font-variant-numeric: tabular-nums;
-  opacity: 0.75;
+  /* 0.75 dropped text-2 below 4.5:1 on a white chip in the light theme. */
+  opacity: 0.85;
 }
 
 .sort-control {
@@ -5307,6 +5309,12 @@ a.month-bar::before {
   color: var(--rating);
   display: block;
   font-size: 0.8125rem;
+}
+
+/* The half is a text glyph, held to 4.5:1 where the stars (marks, 3:1) are
+   not: --rating on white is 4.24 in the light theme. */
+.stars-half {
+  color: var(--text-2);
 }
 
 .attribution {
@@ -8701,7 +8709,7 @@ a.cover-tile:focus-visible {
 }
 
 .pick-hint {
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 .pick-note {
