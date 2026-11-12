@@ -23,9 +23,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import date
 
 import httpx2
 
+from comics import issue_number
 from config import Config
 from models import ItemType
 from sources.base import (
@@ -38,6 +40,7 @@ from sources.base import (
     read_json,
     year_from_date,
 )
+from sources.cv_text import paragraphs
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +52,8 @@ SEARCH_LIMIT = 10
 
 # Volumes are prefixed 4050- in ComicVine's own id scheme.
 VOLUME_PREFIX = "4050"
+# Issues are prefixed 4000-.
+ISSUE_PREFIX = "4000"
 
 FIELD_LIST = (
     "id,name,start_year,publisher,count_of_issues,image,description,site_detail_url"
@@ -67,6 +72,18 @@ TIMEOUT = 15.0
 ISSUE_FIELD_LIST = "id,issue_number,name,store_date,cover_date,image,volume"
 ISSUE_FETCH_LIMIT = 10
 
+# The all-issues pages (the public issue pages): every issue of a volume with
+# its description, a hundred rows to a request, oldest id first. `description`
+# is returned on the list endpoint, confirmed against the live API
+# (scripts/probe_comicvine_issues.py), so a volume costs ceil(n / 100) calls.
+ALL_ISSUES_FIELD_LIST = (
+    "id,issue_number,name,store_date,cover_date,image,volume,description"
+)
+ALL_ISSUES_PAGE = 100
+# Id order is stable under offset paging (a new issue lands at the end, not
+# in the middle of a walk), which issue_number order is not guaranteed to be.
+ALL_ISSUES_SORT = "id:asc"
+
 
 @dataclass(frozen=True)
 class VolumeResult:
@@ -79,6 +96,57 @@ class VolumeResult:
     publisher: str | None
     issue_count: int | None
     thumbnail_url: str | None
+
+
+@dataclass(frozen=True)
+class CvIssue:
+    """One issue as the public issue pages store it.
+
+    `number` is the whole number comics.py accepts, or None for an issue the
+    shelf's ranges cannot hold (only fetch_issue returns those: an edition
+    link may point anywhere). `description` is cleaned paragraphs, never HTML.
+    """
+
+    cv_id: int
+    number: int | None
+    name: str | None
+    store_date: date | None
+    cover_date: date | None
+    cover_url: str | None
+    large_url: str | None
+    description: list[str]
+
+
+@dataclass(frozen=True)
+class IssuePage:
+    """One page of a volume's whole-numbered issues and the volume's total."""
+
+    issues: list[CvIssue]
+    total: int
+
+
+@dataclass(frozen=True)
+class CvIssueHit:
+    """A row of the issue search, for choosing an edition's issue."""
+
+    cv_id: int
+    volume_name: str
+    number: str
+    name: str | None
+    thumb_url: str | None
+    year: int | None
+
+
+class SourceNotFound(SourceError):
+    """Comic Vine has no object with the requested id."""
+
+
+def _date(value: object) -> date | None:
+    """A Comic Vine date string as a date, or None when absent or malformed."""
+    try:
+        return date.fromisoformat(str(value)[:10]) if value else None
+    except ValueError:
+        return None
 
 
 class ComicVineSource:
@@ -127,13 +195,18 @@ class ComicVineSource:
                 self.source_name,
                 "403 from ComicVine — the API key or the User-Agent was rejected",
             )
+        if response.status_code == 404:
+            raise SourceNotFound(self.source_name, "HTTP 404 from ComicVine")
         if response.status_code >= 400:
             raise SourceError(
                 self.source_name, f"HTTP {response.status_code} from ComicVine"
             )
 
         payload = read_json(response, self.source_name, dict)
-        # ComicVine reports its own errors inside a 200 body.
+        # ComicVine reports its own errors inside a 200 body; an unknown id is
+        # one of them (status_code 101), confirmed against the live API.
+        if payload.get("error") == "Object Not Found":
+            raise SourceNotFound(self.source_name, "Object Not Found")
         if payload.get("error") not in (None, "OK"):
             raise SourceError(self.source_name, str(payload["error"]))
         return payload
@@ -246,6 +319,92 @@ class ComicVineSource:
             },
         )
         return self._parse_issues(payload, volume_id)
+
+    def _parse_issue(self, row: dict) -> CvIssue:
+        """Maps one issue row (list or detail) onto a CvIssue."""
+        return CvIssue(
+            cv_id=int(row["id"]),
+            number=issue_number(str(row.get("issue_number") or "")),
+            name=row.get("name") or None,
+            store_date=_date(row.get("store_date")),
+            cover_date=_date(row.get("cover_date")),
+            cover_url=self._image_url(row, "medium_url"),
+            large_url=self._image_url(row, "super_url"),
+            description=paragraphs(row.get("description")),
+        )
+
+    async def fetch_issue_page(self, volume_id: str, offset: int) -> IssuePage:
+        """One page of a volume's issues with descriptions, oldest id first.
+
+        Only whole-numbered issues are returned (the numbers comics.py accepts);
+        `total` counts every issue Comic Vine lists, so a caller pages until
+        `offset` passes it. An answer naming another volume is refused whole.
+        """
+        if not volume_id.isdigit():
+            raise SourceError(self.source_name, f"invalid volume id {volume_id!r}")
+        if offset < 0:
+            raise SourceError(self.source_name, f"invalid offset {offset!r}")
+        payload = await self._get(
+            "/issues/",
+            {
+                "filter": f"volume:{volume_id}",
+                "sort": ALL_ISSUES_SORT,
+                "limit": ALL_ISSUES_PAGE,
+                "offset": offset,
+                "field_list": ALL_ISSUES_FIELD_LIST,
+            },
+        )
+        rows = payload.get("results") or []
+        if any(str((row.get("volume") or {}).get("id")) != volume_id for row in rows):
+            raise SourceError(
+                self.source_name, "the /issues volume filter was not applied"
+            )
+        issues = [self._parse_issue(row) for row in rows]
+        return IssuePage(
+            issues=[issue for issue in issues if issue.number is not None],
+            total=int(payload.get("number_of_total_results") or 0),
+        )
+
+    async def fetch_issue(self, cv_id: int) -> CvIssue | None:
+        """One issue by Comic Vine id, or None when Comic Vine has none.
+
+        For an edition's link, so the number may be any whole number or None
+        (a half issue, an annual). Any error other than "not found" raises.
+        """
+        try:
+            payload = await self._get(
+                f"/issue/{ISSUE_PREFIX}-{int(cv_id)}/",
+                {"field_list": ALL_ISSUES_FIELD_LIST},
+            )
+        except SourceNotFound:
+            return None
+        row = payload.get("results")
+        if not isinstance(row, dict) or not row.get("id"):
+            return None
+        return self._parse_issue(row)
+
+    async def search_issues(self, query: str) -> list[CvIssueHit]:
+        """Issues matching `query`, to pick an edition's issue from."""
+        payload = await self._get(
+            "/search/",
+            {
+                "query": query,
+                "resources": "issue",
+                "limit": SEARCH_LIMIT,
+                "field_list": "id,issue_number,name,volume,image,cover_date",
+            },
+        )
+        return [
+            CvIssueHit(
+                cv_id=int(row["id"]),
+                volume_name=(row.get("volume") or {}).get("name") or "",
+                number=str(row.get("issue_number") or "").strip(),
+                name=row.get("name") or None,
+                thumb_url=self._image_url(row, "thumb_url"),
+                year=year_from_date(row.get("cover_date")),
+            )
+            for row in payload.get("results") or []
+        ][:SEARCH_LIMIT]
 
     async def search(
         self,

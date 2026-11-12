@@ -8,12 +8,17 @@ import pytest
 from config import Config
 from sources.base import SourceError, SourceNotConfigured, SourceRateLimited
 from sources.comicvine import (
+    ALL_ISSUES_FIELD_LIST,
+    ALL_ISSUES_PAGE,
     CV_TAG_LIMIT,
     FIELD_LIST,
     SEARCH_LIMIT,
     USER_AGENT,
     VOLUME_FIELD_LIST,
     ComicVineSource,
+    CvIssue,
+    CvIssueHit,
+    IssuePage,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -306,3 +311,192 @@ async def test_only_the_detail_call_asks_for_the_tag_lists(monkeypatch):
     await ComicVineSource(_config()).search("Saga")
     assert seen[0]["params"]["field_list"] == FIELD_LIST
     assert "characters" not in FIELD_LIST
+
+
+# --- The all-issues pages and the issue detail --------------------------------
+
+
+def _issues_page_fixture() -> dict:
+    return json.loads((FIXTURES / "comicvine_issues_page.json").read_text())
+
+
+def _issue_detail_fixture() -> dict:
+    return json.loads((FIXTURES / "comicvine_issue_detail.json").read_text())
+
+
+@pytest.mark.asyncio
+async def test_fetch_issue_page_parses_whole_numbers_only(monkeypatch):
+    recorded = _issues_page_fixture()
+    volume_id = str(recorded["volume_id"])
+    payload = recorded["issues"]
+    # The recorded volume (Saga) has only whole numbers, so the numbers the
+    # parser must drop are hand-made here, clearly not recorded: #0, #1.MU and
+    # #½ copy a real row and change only the number.
+    template = payload["results"][0]
+    payload["results"] += [
+        {**template, "id": 9_000_000 + i, "issue_number": number}
+        for i, number in enumerate(["0", "1.MU", "\u00bd", "10000"])
+    ]
+    _patch_http(monkeypatch, _FakeResponse(200, payload))
+
+    page = await ComicVineSource(_config()).fetch_issue_page(volume_id, 0)
+
+    assert isinstance(page, IssuePage)
+    assert page.total == payload["number_of_total_results"]
+    raw = recorded["issues"]["results"][:15]
+    assert [i.number for i in page.issues] == [int(r["issue_number"]) for r in raw]
+    for issue, row in zip(page.issues, raw):
+        assert isinstance(issue, CvIssue)
+        assert issue.cv_id == row["id"]
+        assert issue.cover_url == row["image"]["medium_url"]
+        assert issue.large_url == row["image"]["super_url"]
+    # Descriptions arrive as cleaned paragraphs, not markup.
+    assert not any("<" in text for text in page.issues[0].description)
+    assert page.issues[0].description[0].startswith("Y: THE LAST MAN writer")
+
+
+@pytest.mark.asyncio
+async def test_fetch_issue_page_sends_offset_and_limit(monkeypatch):
+    seen = _patch_http(
+        monkeypatch,
+        _FakeResponse(
+            200, {"error": "OK", "results": [], "number_of_total_results": 0}
+        ),
+    )
+
+    page = await ComicVineSource(_config()).fetch_issue_page("46568", 200)
+
+    assert page == IssuePage(issues=[], total=0)
+    params = seen[0]["params"]
+    assert seen[0]["url"].endswith("/issues/")
+    assert params["offset"] == 200
+    assert params["limit"] == ALL_ISSUES_PAGE == 100
+    assert params["filter"] == "volume:46568"
+    # Controller ruling: id order, stable under offset paging.
+    assert params["sort"] == "id:asc"
+    assert params["field_list"] == ALL_ISSUES_FIELD_LIST
+    assert "description" in ALL_ISSUES_FIELD_LIST
+
+
+@pytest.mark.asyncio
+async def test_fetch_issue_page_refuses_foreign_volume(monkeypatch):
+    payload = {
+        "error": "OK",
+        "number_of_total_results": 2,
+        "results": [_issue("1", "2024-01-01"), _issue("9", "2024-01-01", 99)],
+    }
+    _patch_http(monkeypatch, _FakeResponse(200, payload))
+
+    with pytest.raises(SourceError) as excinfo:
+        await ComicVineSource(_config()).fetch_issue_page("4363", 0)
+
+    assert "volume filter" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_fetch_issue_page_refuses_a_non_numeric_volume_or_bad_offset():
+    source = ComicVineSource(_config())
+    with pytest.raises(SourceError):
+        await source.fetch_issue_page("4363,volume:1", 0)
+    with pytest.raises(SourceError):
+        await source.fetch_issue_page("4363", -1)
+
+
+@pytest.mark.asyncio
+async def test_fetch_issue_maps_the_recorded_detail(monkeypatch):
+    seen = _patch_http(monkeypatch, _FakeResponse(200, _issue_detail_fixture()))
+
+    issue = await ComicVineSource(_config()).fetch_issue(303557)
+
+    assert seen[0]["url"].endswith("/issue/4000-303557/")
+    assert seen[0]["params"]["field_list"] == ALL_ISSUES_FIELD_LIST
+    assert issue.cv_id == 303557
+    assert issue.number == 1
+    assert issue.name == "Volume 1"
+    assert issue.store_date.isoformat() == "2006-08-23"
+    assert issue.cover_date.isoformat() == "2006-08-23"
+    assert issue.cover_url and issue.cover_url.endswith(".jpg")
+    assert issue.large_url and "scale_large" in issue.large_url
+    assert issue.description[0] == "Chapter Titles"
+    assert any("Normanni" in line for line in issue.description)
+
+
+@pytest.mark.asyncio
+async def test_fetch_issue_without_a_whole_number_keeps_it_as_none(monkeypatch):
+    # An edition link may point at any issue; the number is whole or None.
+    payload = _issue_detail_fixture()
+    payload["results"]["issue_number"] = "\u00bd"
+    _patch_http(monkeypatch, _FakeResponse(200, payload))
+
+    issue = await ComicVineSource(_config()).fetch_issue(303557)
+
+    assert issue is not None and issue.number is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_issue_404_is_none(monkeypatch):
+    # Comic Vine answers an unknown id with HTTP 200 and an in-body
+    # "Object Not Found" (confirmed live); a real 404 means the same.
+    body = {"error": "Object Not Found", "status_code": 101, "results": []}
+    _patch_http(monkeypatch, _FakeResponse(200, body))
+    assert await ComicVineSource(_config()).fetch_issue(999999999) is None
+
+    _patch_http(monkeypatch, _FakeResponse(404))
+    assert await ComicVineSource(_config()).fetch_issue(999999999) is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_issue_raises_on_other_errors(monkeypatch):
+    _patch_http(monkeypatch, _FakeResponse(500))
+    with pytest.raises(SourceError):
+        await ComicVineSource(_config()).fetch_issue(303557)
+
+    _patch_http(monkeypatch, _FakeResponse(200, {"error": "Invalid API Key"}))
+    with pytest.raises(SourceError):
+        await ComicVineSource(_config()).fetch_issue(303557)
+
+
+@pytest.mark.asyncio
+async def test_search_issues_maps_hits(monkeypatch):
+    payload = {
+        "error": "OK",
+        "results": [
+            {
+                "id": 303557,
+                "issue_number": "1",
+                "name": "Volume 1",
+                "cover_date": "2006-08-23",
+                "volume": {"id": 44141, "name": "Vinland Saga"},
+                "image": {"thumb_url": "https://cv.example/t.jpg"},
+            },
+            {
+                "id": 5,
+                "issue_number": "12.1",
+                "name": None,
+                "cover_date": None,
+                "volume": None,
+                "image": None,
+            },
+        ],
+    }
+    seen = _patch_http(monkeypatch, _FakeResponse(200, payload))
+
+    hits = await ComicVineSource(_config()).search_issues("Vinland Saga")
+
+    params = seen[0]["params"]
+    assert seen[0]["url"].endswith("/search/")
+    assert params["resources"] == "issue" and params["query"] == "Vinland Saga"
+    assert params["limit"] == SEARCH_LIMIT
+    assert hits == [
+        CvIssueHit(
+            cv_id=303557,
+            volume_name="Vinland Saga",
+            number="1",
+            name="Volume 1",
+            thumb_url="https://cv.example/t.jpg",
+            year=2006,
+        ),
+        CvIssueHit(
+            cv_id=5, volume_name="", number="12.1", name=None, thumb_url=None, year=None
+        ),
+    ]

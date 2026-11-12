@@ -1,0 +1,35 @@
+{
+  "error": "OK",
+  "limit": 1,
+  "number_of_page_results": 1,
+  "number_of_total_results": 1,
+  "offset": 0,
+  "results": {
+    "cover_date": "2006-08-23",
+    "description": "<h2>Chapter Titles</h2><ul><li>Chapter 001. \"Normanni\"</li><li>Chapter 002. \"Somewhere Not Here\"</li><li>Chapter 003. \"The End Beyond the Sea\"</li><li>Chapter 004. \"Unbroken Chains\"</li><li>Extra. \"Viking Girl Ylfa's Dauntless Exploits\"</li></ul>",
+    "id": 303557,
+    "image": {
+      "icon_url": "https://comicvine.gamespot.com/a/uploads/square_avatar/11154/111541464/8201477-9784063144239_w.jpg",
+      "image_tags": "All Images",
+      "medium_url": "https://comicvine.gamespot.com/a/uploads/scale_medium/11154/111541464/8201477-9784063144239_w.jpg",
+      "original_url": "https://comicvine.gamespot.com/a/uploads/original/11154/111541464/8201477-9784063144239_w.jpg",
+      "screen_large_url": "https://comicvine.gamespot.com/a/uploads/screen_kubrick/11154/111541464/8201477-9784063144239_w.jpg",
+      "screen_url": "https://comicvine.gamespot.com/a/uploads/screen_medium/11154/111541464/8201477-9784063144239_w.jpg",
+      "small_url": "https://comicvine.gamespot.com/a/uploads/scale_small/11154/111541464/8201477-9784063144239_w.jpg",
+      "super_url": "https://comicvine.gamespot.com/a/uploads/scale_large/11154/111541464/8201477-9784063144239_w.jpg",
+      "thumb_url": "https://comicvine.gamespot.com/a/uploads/scale_avatar/11154/111541464/8201477-9784063144239_w.jpg",
+      "tiny_url": "https://comicvine.gamespot.com/a/uploads/square_mini/11154/111541464/8201477-9784063144239_w.jpg"
+    },
+    "issue_number": "1",
+    "name": "Volume 1",
+    "store_date": "2006-08-23",
+    "volume": {
+      "api_detail_url": "https://comicvine.gamespot.com/api/volume/4050-44141/",
+      "id": 44141,
+      "name": "Vinland Saga",
+      "site_detail_url": "https://comicvine.gamespot.com/vinland-saga/4050-44141/"
+    }
+  },
+  "status_code": 1,
+  "version": "1.0"
+}

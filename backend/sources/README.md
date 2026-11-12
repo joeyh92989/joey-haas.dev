@@ -178,6 +178,22 @@ row with the catalogue's newest issues. Which issues I own stays range text
 on the row; there is no issue table. `search_volumes` is the pull list's
 series search: the picker's rows plus publisher and issue count.
 
+**Issue pages** read a whole volume, for the public issue pages:
+`fetch_issue_page(volume_id, offset)` is
+`/issues/?filter=volume:{id}&sort=id:asc&limit=100&offset=N` with
+`ALL_ISSUES_FIELD_LIST`, which includes `description` (confirmed on the list
+endpoint, so a volume costs `ceil(n / 100)` calls). It returns only the whole
+numbers `comics.issue_number` accepts (`#0`, `#1.MU` and `#½` are listed by
+Comic Vine and dropped here), the cover as `image.medium_url` and the large
+cover as `image.super_url`, and refuses a foreign volume like `fetch_issues`.
+`fetch_issue(cv_id)` is one `/issue/4000-{id}/` for an edition's link: any
+number, `None` when Comic Vine has none (it answers an unknown id with a 200
+and `"error": "Object Not Found"`, raised as `SourceNotFound` and caught
+there; every other error raises). `search_issues(query)` is `/search/` over
+`resources=issue`. Descriptions are cleaned by `cv_text.paragraphs` (stdlib
+parser: paragraphs only, tables and scripts dropped). Probe and fixtures:
+`scripts/probe_comicvine_issues.py`.
+
 Strictly non-commercial; a personal portfolio qualifies. **A link back to Comic
 Vine is required** where its data is shown.
 
