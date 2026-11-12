@@ -87,6 +87,36 @@ describe('SeriesList', () => {
     expect(screen.getByText('Want')).toBeInTheDocument()
   })
 
+  it('tells same-titled series apart by year and publisher, and only those', () => {
+    const creep = (id, year, publisher) => ({
+      ...SAGA,
+      item_id: id,
+      title: 'Creepshow',
+      year,
+      publisher,
+    })
+    renderList([
+      creep('c1', 2022, 'Image'),
+      creep('c2', 2023, 'Image'),
+      creep('c3', 2024, null),
+      creep('c4', 2025, 'Skybound'),
+      SAGA,
+    ])
+    const rows = screen
+      .getAllByRole('listitem')
+      .filter((li) => li.matches('.series-row'))
+    const tags = rows.map(
+      (li) => li.querySelector('.series-edition')?.textContent,
+    )
+    expect(tags).toEqual([
+      '2022 · Image',
+      '2023 · Image',
+      '2024',
+      '2025 · Skybound',
+      undefined,
+    ])
+  })
+
   it('has no axe violations', async () => {
     const { container } = renderList([SAGA, WANT])
     expect(await axeViolations(container)).toEqual([])

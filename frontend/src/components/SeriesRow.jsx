@@ -41,9 +41,14 @@ function runNote(row) {
  * @param {object} props
  * @param {object} props.row - A PublicComicRow.
  * @param {string} props.to - The series page.
+ * @param {boolean} [props.sharesTitle] - Another row has this title: show
+ *   the start year and publisher beside it.
  */
-export default function SeriesRow({ row, to }) {
+export default function SeriesRow({ row, to, sharesTitle = false }) {
   const note = runNote(row)
+  const edition = sharesTitle
+    ? [row.year, row.publisher].filter(Boolean).join(' · ')
+    : ''
   const readTo =
     !row.wanted && row.read_to && row.read < row.owned
       ? `, ${COPY.run.readTo(row.read_to)}`
@@ -56,6 +61,7 @@ export default function SeriesRow({ row, to }) {
       <div className="series-body">
         <p className="series-title">
           <Link to={to}>{row.title}</Link>
+          {edition && <span className="series-edition">{edition}</span>}
           {row.following && (
             <span className="series-pill" data-accent="">
               {COPY.pills.following}
