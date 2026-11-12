@@ -182,7 +182,9 @@ curl -sS -X POST -H "Authorization: Bearer $JOB_TOKEN" \
 Nothing of its own. The reader needs a model (`LLM_PROVIDER`, default
 `gemini`, and its key, e.g. `GEMINI_API_KEY`); without one a read answers
 502 and the nightly records `failed`. The budget is enforced only on
-Gemini. The nightly needs `JOB_TOKEN` on the API and in the workflow's
+Gemini, and counts `FREE_TIER_DAILY_REQUESTS` for each model in
+`llm.GEMINI_MODELS` (six since the fallback chain); a read that Gemini
+cannot answer still goes to Claude Haiku when `ANTHROPIC_API_KEY` is set. The nightly needs `JOB_TOKEN` on the API and in the workflow's
 secrets, as every nightly step does. Tables: `intake_sittings`,
 `intake_photos`, `intake_entries`, `llm_usage` and `intake_settings`
 (migration 0015).

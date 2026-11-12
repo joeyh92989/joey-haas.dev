@@ -496,7 +496,7 @@ rules (deploy order, invariants, tuning points); this is the map.
 |---|---|---|
 | Items | `backend/items.py`, `models.py`, `formats.py` | The `items` table and its admin CRUD. Copy fields (platform, physical format, cart ID, region, completeness) are decided in one place, `formats.py`, on every write path |
 | Metadata sources | `backend/sources/` | One adapter per API behind a common interface: IGDB (games), TMDB (films), Comic Vine (comics); BGG is stubbed until its API is usable again. Each keeps a snapshot on the item for the shelf and the pickers |
-| Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini (or Claude, by `LLM_PROVIDER`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
+| Photo import | `backend/importer.py`, `matching.py`, `llm.py` | A shelf photo goes to Gemini's model chain (Claude Haiku as the paid fallback when its key is set; see `llm.py`), the titles it reads are matched against a source, and confidence comes from string distance, never the model's say-so |
 | Public showcase | `backend/public.py`, `/shelf`, `/shelf/next` | Display fields only, for public rows only — never notes, cart IDs, raw source metadata or the catalogue. `test_public.py` pins the field lists |
 | Play Next | `backend/picker.py`, `taste.py`, `facets.py`, `picker_items.py`, `strategies.py`, `public_picks.py`, `continuing.py`, `/admin/play-next` | Three picks from the owned backlog, scored against what was rated, loved and finished, with reasons; pinning one shows it on What's next (`/shelf/next`) as "Up next", and What's next's "Tonight" picks live from the same engine over public rows (games, plus Read next for comics and Watch next for movies), where the owner, signed in, can pin a pick, skip it, or start a comic or movie. While a game is being played, Tonight leads with it instead (a Continue card: playing since, journal hours and sessions, last played, stale after 21 quiet days) and the picks drop to a compact list; Wrap up finishes, pauses or abandons it with a rating, a line and the date |
 | Physical catalogue | `backend/physical_sources/`, `/admin/catalogue` | What exists physically and in which format: the r/NSCollectors registry (via the Sheets API), its Switch 1 sheet (about 4,500 titles in about 10,000 editions, bulk-matched to IGDB's Switch list), `switch2-tracker`, eleven boutique stores read from their public JSON endpoints, and IGDB's N64 list; rows are resolved to IGDB and collapsed to one format per game |
@@ -524,7 +524,7 @@ sources are configured at startup. Set them on the API service in Render and in
 | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` | Games (Twitch developer app) |
 | `TMDB_API_TOKEN` | Films |
 | `COMICVINE_API_KEY` | Comics |
-| `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, with `LLM_PROVIDER` | Photo import, Discover's ranking and Closet tagging |
+| `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`, with `LLM_PROVIDER` | Photo import, Discover's ranking, Closet tagging and the other model calls. With `LLM_PROVIDER=gemini` (the default), setting `ANTHROPIC_API_KEY` as well adds Claude Haiku as the last link of the chain, reached only when every free Gemini model is used up, overloaded or out of time; `anthropic` sends every call to Haiku |
 | `GOOGLE_SHEETS_API_KEY` | The catalogue's registry refresh (the stores run without it) |
 | `BGG_TOKEN` | Reserved for board games; not usable yet |
 
