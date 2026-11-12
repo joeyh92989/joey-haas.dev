@@ -276,7 +276,11 @@ describe('Stats', () => {
     expect(
       container.querySelector('time[datetime="2026-11-06"]'),
     ).toHaveTextContent('Nov 6, 2026')
-    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute(
+    // Scoped to that entry: later entries may link /stats too.
+    const past = container
+      .querySelector('time[datetime="2026-11-06"]')
+      .closest('li')
+    expect(within(past).getByRole('link', { name: 'Stats' })).toHaveAttribute(
       'href',
       '/stats',
     )
