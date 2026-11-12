@@ -25,5 +25,8 @@ describe('FeatureStrip', () => {
       '/shelf/how#stop-7',
     ])
     expect(cards[0]).toHaveAccessibleName(/^Takes it all in/)
+    expect(
+      cards.map((card) => card.querySelector('[aria-hidden]').textContent),
+    ).toEqual(['Stop 01', 'Stop 02', 'Stop 03', 'Stop 04', 'Stop 07'])
   })
 })

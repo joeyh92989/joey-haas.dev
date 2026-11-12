@@ -193,29 +193,33 @@ describe('AdminItem', () => {
     })
   })
 
-  it('confirms before deleting', async () => {
+  it('asks in the page before deleting, and keeps the item on Keep it', async () => {
     const mock = stubApi()
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => false),
-    )
+    const confirm = vi.fn(() => true)
+    vi.stubGlobal('confirm', confirm)
     renderPage()
 
     await userEvent.click(await screen.findByRole('button', { name: 'Delete' }))
 
-    expect(window.confirm).toHaveBeenCalled()
+    expect(
+      screen.getByRole('button', { name: 'Delete for good' }),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Keep it' }))
+
+    expect(confirm).not.toHaveBeenCalled()
     expect(writeCalls(mock)).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveFocus()
   })
 
   it('deletes and returns to the collection when confirmed', async () => {
     const mock = stubApi()
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => true),
-    )
     renderPage()
 
     await userEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+    expect(writeCalls(mock)).toHaveLength(0)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete for good' }),
+    )
 
     await waitFor(() => {
       expect(writeCalls(mock)[0][1].method).toBe('DELETE')

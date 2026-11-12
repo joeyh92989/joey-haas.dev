@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
+import ConfirmDelete from '../components/ConfirmDelete.jsx'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import AddSection from '../components/intake/AddSection.jsx'
@@ -1005,12 +1006,10 @@ export default function AdminCollection() {
                           />
                         </td>
                         <td>
-                          <button
-                            type="button"
-                            onClick={() => removeItem(item.id)}
-                          >
-                            Delete
-                          </button>
+                          <ConfirmDelete
+                            subject={item.title}
+                            onConfirm={() => removeItem(item.id)}
+                          />
                         </td>
                       </tr>
                     ))}

@@ -18,7 +18,7 @@ export default function FeatureStrip() {
           <li key={feature.stop}>
             <Link to={`${copy.path}#stop-${feature.stop}`}>
               <span className="tour-does-n" aria-hidden="true">
-                {String(feature.stop).padStart(2, '0')}
+                Stop {String(feature.stop).padStart(2, '0')}
               </span>
               <b>{feature.title}</b>
               <span className="tour-does-line">{feature.line}</span>

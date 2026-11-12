@@ -328,6 +328,31 @@ describe('AdminCollection list view status', () => {
     })
   })
 
+  it('asks before deleting a row, and deletes only on Delete for good', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Delete Star Fox' }),
+    )
+    expect(writeCalls(mock)).toHaveLength(0)
+    await userEvent.click(screen.getByRole('button', { name: 'Keep it' }))
+    expect(writeCalls(mock)).toHaveLength(0)
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete Star Fox' }),
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete for good' }),
+    )
+
+    await waitFor(() => {
+      const call = writeCalls(mock)[0]
+      expect(String(call[0])).toMatch(/\/api\/items\/a$/)
+      expect(call[1].method).toBe('DELETE')
+    })
+  })
+
   it('posts any other status the same way', async () => {
     const mock = stubApi()
     renderPage()
