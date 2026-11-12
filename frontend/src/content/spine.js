@@ -80,7 +80,7 @@ export const spine = {
       {
         stop: 2,
         title: 'Knows the format',
-        line: 'Cartridge or Game-Key Card, pulled from a registry and twelve stores.',
+        line: 'Cartridge or Game-Key Card, pulled from a registry and the stores I watch.',
       },
       {
         stop: 3,
@@ -149,7 +149,7 @@ export const spine = {
         where: '/admin/catalogue',
         title: 'Knows cartridge from Game-Key Card',
         claim:
-          'A Switch 2 box can hold the full game or only a key to download it. My Shelf reads the r/NSCollectors registry, the Switch 1 release sheet, and twelve boutique stores, and collapses them to one honest format per game.',
+          'A Switch 2 box can hold the full game or only a key to download it. My Shelf reads the r/NSCollectors registry, the Switch 1 release sheet, and the boutique stores on its watch list, and collapses them to one honest format per game.',
         why: {
           lead: 'The collapse rule:',
           text: 'any full cartridge in the home region makes a game a cartridge, because a registry row and a store listing usually describe different editions of the same title. Switch 1 is region-free, so any region counts there. A format I recorded from my own copy is never overwritten.',
@@ -167,7 +167,7 @@ export const spine = {
           facts: [
             ['Switch 2 registry', 'refreshed nightly'],
             ['Switch 1 sheet', 'about 4,500 titles, about 10,000 editions'],
-            ['Stores', '12 watched'],
+            ['Stores', '11 watched'],
           ],
           columns: ['Game', 'Registry', 'Store', 'Collapsed to'],
           rows: [

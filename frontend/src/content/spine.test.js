@@ -84,3 +84,13 @@ describe('spine.how', () => {
     expect(spine.tabs.how.to).toBe(how.path)
   })
 })
+
+describe('store count copy', () => {
+  it('says no store count the watch list does not have', async () => {
+    const { projects } = await import('./projects.js')
+    const text = JSON.stringify([spine, projects])
+    expect(text).not.toMatch(/twelve (boutique )?stores/)
+    expect(text).not.toContain('12 watched')
+    expect(text).toContain('11 watched')
+  })
+})

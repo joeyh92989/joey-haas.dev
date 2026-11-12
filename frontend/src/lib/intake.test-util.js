@@ -77,7 +77,7 @@ export const KINDS = [
     label: 'Board game',
     ways_in: ['type'],
     has_details: true,
-    source_state: 'BGG unavailable: it needs a registered app',
+    source_state: 'Needs a BoardGameGeek key; added by typing for now.',
     fields: [STATUS, ACQUIRED],
   },
   {

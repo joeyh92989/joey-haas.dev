@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from models import IntakeArea, ItemType
+from sources import bgg
 
 
 @dataclass(frozen=True)
@@ -67,16 +68,19 @@ def select(options: Iterable[Any]) -> tuple[str, ...]:
     return tuple(str(getattr(option, "value", option)) for option in options)
 
 
+# A short reason for a source that is known to be unavailable, kept beside
+# the source itself; any other unconfigured source gets the generic line.
+_SHORT_REASONS: dict[ItemType, str] = {ItemType.BOARDGAME: bgg.SHORT_REASON}
+
+
 def _source_state(kind: Kind, registry: dict) -> str | None:
     if kind.source is None:
         return None
     adapter = registry.get(kind.source)
     if adapter is not None and adapter.configured():
         return "ready"
-    if kind.source == ItemType.BOARDGAME:
-        from sources.bgg import UNAVAILABLE
-
-        return f"BGG unavailable: {UNAVAILABLE}"
+    if kind.source in _SHORT_REASONS:
+        return _SHORT_REASONS[kind.source]
     return f"{kind.source.value} source is not configured"
 
 

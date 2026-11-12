@@ -24,6 +24,9 @@ describe('FeatureStrip', () => {
       '/shelf/how#stop-4',
       '/shelf/how#stop-7',
     ])
-    expect(cards[0]).toHaveAccessibleName(/^Takes it all in/)
+    expect(cards[0]).toHaveAccessibleName(/^Stop 1\s*Takes it all in/)
+    expect(
+      cards.map((card) => card.querySelector('.tour-does-n').textContent),
+    ).toEqual(['Stop 1', 'Stop 2', 'Stop 3', 'Stop 4', 'Stop 7'])
   })
 })

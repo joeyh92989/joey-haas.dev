@@ -274,6 +274,16 @@ a:hover {
   color: var(--text);
 }
 
+/* Distinguished by border and text, never colour alone. */
+.btn.danger {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.collection-list:focus {
+  outline: none;
+}
+
 .btn.sm {
   font-size: 0.75rem;
   padding: 4px 9px;
@@ -2295,8 +2305,15 @@ footer {
   display: grid;
   font: inherit;
   gap: 0.15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.75rem 0.85rem;
   text-align: left;
+}
+
+.intake-kind > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .intake-kind:hover:not(:disabled) {
@@ -11743,4 +11760,15 @@ a.btn.sm {
 .comic-edition {
   display: grid;
   gap: 0.25rem;
+}
+
+/* The full add form, tucked under the add bar until asked for. */
+.full-add-form {
+  margin-block: 1rem;
+}
+
+.full-add-form summary {
+  cursor: pointer;
+  padding-block: 0.5rem;
+  font-weight: 600;
 }
