@@ -180,6 +180,9 @@ before pushing.
   `lib/shelf.js`, which survive a throwing `localStorage`. Keys are
   namespaced per page (`shelf.public.*`, `shelf.admin.*`) so the two shelves
   keep separate defaults, and page tests clear storage in `afterEach`.
+- A wait on the API goes through `withDeadline` and `useElapsed`
+  (`lib/waits.js`, `lib/useElapsed.js`); its words live in
+  `content/status.js`.
 - Anything viewport-dependent reads `useMediaQuery` from
   `lib/useMediaQuery.js`, never `matchMedia` directly: jsdom has no
   `matchMedia`, so the hook returns false there and tests stub it.

@@ -703,9 +703,11 @@ describe('AdminClosetToday', () => {
     expect(screen.getByRole('button', { name: 'Date' })).toBeEnabled()
   })
 
-  it('says it may be waking the server or planning on a slow first load', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
-    try {
+  describe('a slow first load', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('names the wait with seconds once slow, then says it is still working', async () => {
       stub({ 'GET /api/closet/today': () => new Promise(() => {}) })
       renderPage()
       expect(screen.getByText('Loading…')).toBeInTheDocument()
@@ -713,11 +715,76 @@ describe('AdminClosetToday', () => {
         vi.advanceTimersByTime(3000)
       })
       expect(
-        screen.getByText('Waking the server or planning…'),
+        screen.getByText('Waking the server or planning the day · 3 s'),
       ).toBeInTheDocument()
-    } finally {
-      vi.useRealTimers()
-    }
+      await act(async () => {
+        vi.advanceTimersByTime(16000)
+      })
+      expect(
+        screen.getByText('Waking the server or planning the day · 19 s'),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/Still working/)).not.toBeInTheDocument()
+      await act(async () => {
+        vi.advanceTimersByTime(1000)
+      })
+      expect(
+        screen.getByText(
+          'Still working — planning asks the model and can take up to two minutes.',
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it('fails with the deadline line and a Retry at 195 s, and Retry asks again', async () => {
+      let asked = 0
+      stub({
+        'GET /api/closet/today': () => {
+          asked += 1
+          return new Promise(() => {})
+        },
+      })
+      renderPage()
+      await act(async () => {
+        vi.advanceTimersByTime(195_000)
+      })
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        "Planning didn't answer in time. Try again.",
+      )
+      expect(asked).toBe(1)
+      await act(async () => {
+        screen.getByRole('button', { name: 'Retry' }).click()
+      })
+      expect(asked).toBe(2)
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('offers Retry for a first load that failed, and not for a lost session', async () => {
+      let status = 500
+      stub({ 'GET /api/closet/today': () => json({}, status) })
+      renderPage()
+      await act(async () => {})
+      expect(screen.getByRole('alert')).toHaveTextContent(/didn.t load/)
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+      status = 401
+      await act(async () => {
+        screen.getByRole('button', { name: 'Retry' }).click()
+      })
+      expect(screen.getByRole('alert')).toHaveTextContent(/Your session ended/)
+      expect(
+        screen.queryByRole('button', { name: 'Retry' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('does not update after unmount', async () => {
+      stub({ 'GET /api/closet/today': () => new Promise(() => {}) })
+      const view = renderPage()
+      view.unmount()
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+      await act(async () => {
+        vi.advanceTimersByTime(170_000)
+      })
+      expect(errors).not.toHaveBeenCalled()
+      errors.mockRestore()
+    })
   })
 
   it('moves focus to the card once a From the closet plan lands', async () => {

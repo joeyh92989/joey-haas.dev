@@ -1,9 +1,17 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
+import { REFETCH_DEADLINE_MS } from '../lib/waits.js'
 import {
   candidate,
   entry,
@@ -1389,13 +1397,13 @@ describe('AdminSitting', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('does not bring a removed photo back when its read lands late', async () => {
+    it("does not bring a removed photo back when another photo's read lands late", async () => {
       const user = userEvent.setup()
       const api = fakeIntakeApi({
         sittings: [
           longbox({
             step: 'shoot',
-            photos: [photo('p1', 'uploaded')],
+            photos: [photo('p1', 'uploaded'), photo('p2', 'uploaded')],
             entries: [],
           }),
         ],
@@ -1422,20 +1430,48 @@ describe('AdminSitting', () => {
       renderSitting()
       await screen.findByRole('heading', { name: 'Shoot' })
       await waitFor(() => expect(readsAsked(api)).toBe(1))
-      await user.click(screen.getByRole('button', { name: 'Remove photo 1' }))
+      // p1 is the photo in flight: it cannot be removed, p2 can.
+      expect(
+        screen.getByRole('button', { name: 'Remove photo 1' }),
+      ).toBeDisabled()
+      await user.click(screen.getByRole('button', { name: 'Remove photo 2' }))
       await waitFor(() =>
-        expect(api.calls('DELETE', /\/photos\/p1$/)).toHaveLength(1),
+        expect(api.calls('DELETE', /\/photos\/p2$/)).toHaveLength(1),
       )
       release()
-      await waitFor(() =>
-        expect(api.calls('POST', /\/read-next$/).length).toBeGreaterThanOrEqual(
-          1,
-        ),
-      )
-      expect(await screen.findByText('0 titles so far')).toBeInTheDocument()
+      expect(await screen.findByText(/^1 title so far/)).toBeInTheDocument()
       expect(
-        screen.queryByRole('button', { name: 'Remove photo 1' }),
+        screen.queryByRole('button', { name: 'Remove photo 2' }),
       ).not.toBeInTheDocument()
+    })
+
+    it("still shows the server's 409 when it refuses a removal", async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        sittings: [
+          longbox({
+            step: 'shoot',
+            photos: [photo('p1', 'read'), photo('p2', 'uploaded')],
+            entries: [],
+          }),
+        ],
+      })
+      const inner = api.fetch.getMockImplementation()
+      api.fetch.mockImplementation(async (url, options) =>
+        options?.method === 'DELETE' && /\/photos\/p2$/.test(String(url))
+          ? {
+              ok: false,
+              status: 409,
+              json: async () => ({ detail: 'That photo is being read.' }),
+            }
+          : inner(url, options),
+      )
+      renderSitting()
+      await screen.findByRole('heading', { name: 'Shoot' })
+      await user.click(screen.getByRole('button', { name: 'Remove photo 2' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'That photo is being read.',
+      )
     })
 
     it('says so when the sitting is gone, and keeps the photo shown', async () => {
@@ -1560,5 +1596,256 @@ describe('AdminSitting', () => {
         screen.queryByRole('group', { name: 'Saga' }),
       ).not.toBeInTheDocument()
     })
+  })
+})
+
+describe('AdminSitting waits (#160)', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  /** Opens a sitting whose read-next never answers. */
+  async function openWithHungReads(photos) {
+    const api = fakeIntakeApi({ sittings: [longbox({ photos })] })
+    const inner = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation((url, options) =>
+      /\/read-next$/.test(String(url))
+        ? new Promise(() => {})
+        : inner(url, options),
+    )
+    renderSitting()
+    // Let the sitting load, then the reader start by itself.
+    for (let i = 0; i < 3; i++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10)
+      })
+    }
+    return api
+  }
+
+  it('tells the photo in flight from the ones queued behind it', async () => {
+    await openWithHungReads([
+      photo('p1', 'read'),
+      photo('p2', 'uploaded'),
+      photo('p3', 'uploaded'),
+      photo('p4', 'uploaded'),
+    ])
+    const tiles = within(
+      screen.getByRole('list', { name: 'Photos' }),
+    ).getAllByRole('listitem')
+    expect(within(tiles[1]).getByText('reading · 0 s')).toBeVisible()
+    expect(
+      within(tiles[2]).getByText('waiting to be read · next'),
+    ).toBeVisible()
+    expect(
+      within(tiles[3]).getByText('waiting to be read · 1 ahead'),
+    ).toBeVisible()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000)
+    })
+    expect(within(tiles[1]).getByText('reading · 5 s')).toBeVisible()
+  })
+
+  it('stops the reader with a message when read-next passes the deadline', async () => {
+    const api = await openWithHungReads([photo('p1', 'uploaded')])
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      "The reader didn't answer in time; try again.",
+    )
+    const asked = api.fetch.mock.calls.filter(([url]) =>
+      /\/read-next$/.test(String(url)),
+    ).length
+    expect(asked).toBe(1)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000)
+    })
+    expect(
+      api.fetch.mock.calls.filter(([url]) => /\/read-next$/.test(String(url))),
+    ).toHaveLength(1)
+  })
+
+  const readsOf = (api) =>
+    api.fetch.mock.calls.filter(([url]) => /\/read-next$/.test(String(url)))
+      .length
+  const sittingGets = (api) =>
+    api.fetch.mock.calls.filter(
+      ([url, options]) =>
+        /\/api\/intake\/sittings\/s1$/.test(String(url)) &&
+        (options?.method ?? 'GET') === 'GET',
+    ).length
+
+  it('re-fetches the sitting after a deadline, so tiles show the server state', async () => {
+    const api = await openWithHungReads([
+      photo('p1', 'uploaded'),
+      photo('p2', 'uploaded'),
+    ])
+    const before = sittingGets(api)
+    // The server finished p1 while the answer was lost.
+    api.state.sittings.s1.photos[0].state = 'read'
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    expect(sittingGets(api)).toBe(before + 1)
+    const tiles = within(
+      screen.getByRole('list', { name: 'Photos' }),
+    ).getAllByRole('listitem')
+    expect(within(tiles[0]).getByText('4 read')).toBeVisible()
+    // Nothing is marked reading that the server did not claim.
+    expect(screen.queryByText(/^reading/)).not.toBeInTheDocument()
+    expect(
+      within(tiles[1]).getByText('waiting to be read · next'),
+    ).toBeVisible()
+  })
+
+  /** Makes every later GET of the sitting wait for `release()`, or forever. */
+  function holdSittingGets(api) {
+    let release
+    const gate = new Promise((resolve) => {
+      release = resolve
+    })
+    const inner = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation(async (url, options) => {
+      if (
+        /\/api\/intake\/sittings\/s1$/.test(String(url)) &&
+        (options?.method ?? 'GET') === 'GET'
+      ) {
+        await gate
+      }
+      return inner(url, options)
+    })
+    return release
+  }
+
+  it('offers Read again only once the re-fetch has settled, and it then reads', async () => {
+    const api = await openWithHungReads([photo('p1', 'uploaded')])
+    const release = holdSittingGets(api)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    expect(screen.getByRole('alert')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Read again' }),
+    ).not.toBeInTheDocument()
+    await act(async () => {
+      release()
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    await act(async () => {
+      screen.getByRole('button', { name: 'Read again' }).click()
+    })
+    expect(readsOf(api)).toBe(2)
+  })
+
+  it('still offers a working Read again when the re-fetch never answers', async () => {
+    const api = await openWithHungReads([photo('p1', 'uploaded')])
+    holdSittingGets(api)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    expect(
+      screen.queryByRole('button', { name: 'Read again' }),
+    ).not.toBeInTheDocument()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(REFETCH_DEADLINE_MS)
+    })
+    await act(async () => {
+      screen.getByRole('button', { name: 'Read again' }).click()
+    })
+    expect(readsOf(api)).toBe(2)
+  })
+
+  it('keeps a photo uploaded while the re-fetch was pending', async () => {
+    // Not p1: the fake names its first upload that.
+    const api = await openWithHungReads([photo('a1', 'uploaded')])
+    // The re-fetch answers late, with the sitting as it was when asked.
+    let release
+    const gate = new Promise((resolve) => {
+      release = resolve
+    })
+    const inner = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation(async (url, options) => {
+      let answer = await inner(url, options)
+      if (
+        /\/api\/intake\/sittings\/s1$/.test(String(url)) &&
+        (options?.method ?? 'GET') === 'GET'
+      ) {
+        // The body as it is now: the answer is late, not fresh.
+        const body = await answer.json()
+        answer = {
+          ok: answer.ok,
+          status: answer.status,
+          json: async () => body,
+        }
+        await gate
+      }
+      return answer
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    const input = screen.getByLabelText('Choose files')
+    await act(async () => {
+      fireEvent.change(input, {
+        target: {
+          files: [new File(['x'], 'late.jpg', { type: 'image/jpeg' })],
+        },
+      })
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(
+      screen.getAllByRole('button', { name: /^Remove photo/ }),
+    ).toHaveLength(2)
+    await act(async () => {
+      release()
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(
+      screen.getAllByRole('button', { name: /^Remove photo/ }),
+    ).toHaveLength(2)
+  })
+
+  it('offers Read again after a deadline, which clears the error and reads again', async () => {
+    const api = await openWithHungReads([photo('p1', 'uploaded')])
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(195_000)
+    })
+    expect(readsOf(api)).toBe(1)
+    const alert = screen.getByRole('alert')
+    expect(
+      within(alert.parentElement).getByRole('button', { name: 'Read again' }),
+    ).toBeVisible()
+    await act(async () => {
+      screen.getByRole('button', { name: 'Read again' }).click()
+    })
+    expect(readsOf(api)).toBe(2)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Read again' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('does not offer Read again for an error the reader did not raise', async () => {
+    await openWithHungReads([photo('p1', 'failed', { error: 'bad' })])
+    expect(
+      screen.queryByRole('button', { name: 'Read again' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('disables Remove on the photo being read, not on those queued', async () => {
+    await openWithHungReads([photo('p1', 'uploaded'), photo('p2', 'uploaded')])
+    expect(
+      screen.getByRole('button', { name: 'Remove photo 1' }),
+    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Remove photo 2' })).toBeEnabled()
+  })
+
+  it('tells the visitor photos are read one at a time, oldest first', async () => {
+    await openWithHungReads([photo('p1', 'read')])
+    expect(
+      screen.getByText(
+        /Keep shooting: photos are read one at a time, oldest first\./,
+      ),
+    ).toBeVisible()
   })
 })

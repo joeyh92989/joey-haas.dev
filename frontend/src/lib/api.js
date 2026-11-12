@@ -7,7 +7,10 @@
  */
 export const API_URL = import.meta.env.VITE_API_URL || ''
 
-/** Fetches an API path with the session cookie attached. */
+/**
+ * Fetches an API path with the session cookie attached. `options` are
+ * `fetch`'s, so a caller can pass a `signal` to cancel the request.
+ */
 export function apiFetch(path, options = {}) {
   return fetch(`${API_URL}${path}`, { ...options, credentials: 'include' })
 }

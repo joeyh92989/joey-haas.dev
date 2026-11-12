@@ -1,17 +1,24 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import FilterChips from '../components/FilterChips.jsx'
 import GarmentTable from '../components/GarmentTable.jsx'
 import GarmentTile from '../components/GarmentTile.jsx'
 import AddSection from '../components/intake/AddSection.jsx'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
+import {
+  LOAD_ERROR,
+  STILL_TAGGING,
+  TAGGING_TIMEOUT,
+  WAKING,
+  taggingWait,
+} from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import {
   CATEGORIES,
   DEFAULT_FILTER,
   MAX_ATTEMPTS,
   STATUSES,
+  TAG_BATCH_SIZE,
   VIEW_PREF,
   chipCounts,
   countsLine,
@@ -19,6 +26,13 @@ import {
   tagResult,
 } from '../lib/closet.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
+import { useElapsed } from '../lib/useElapsed.js'
+import {
+  SLOW_LOAD_AFTER_S,
+  STILL_WORKING_AFTER_S,
+  WaitTimeout,
+  withDeadline,
+} from '../lib/waits.js'
 
 const SESSION_ENDED = 'Your session ended. Sign in again to see the closet.'
 
@@ -74,12 +88,21 @@ export default function AdminCloset() {
     const stored = readShelfPref(VIEW_PREF, 'grid')
     return stored === 'list' ? 'list' : 'grid'
   })
-  // {state: 'tagging'|'done', result}, or null before Tag now.
+  // {state: 'tagging', count} or {state: 'done', result, failed}, or null
+  // before Tag now. `count` is how many queued photos the call was sent.
   const [tagging, setTagging] = useState(null)
+  const elapsed = useElapsed(tagging?.state === 'tagging')
+  // Aborts Tag now's wait on unmount, so nothing is set after it.
+  const unmounted = useRef(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    unmounted.current = controller
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     let live = true
-    const timer = setTimeout(() => setSlow(true), 3000)
+    const timer = setTimeout(() => setSlow(true), SLOW_LOAD_AFTER_S * 1000)
     fetchCloset().then((result) => {
       clearTimeout(timer)
       if (!live) return
@@ -112,21 +135,43 @@ export default function AdminCloset() {
 
   async function reread() {
     const result = await fetchCloset()
-    if (result.closet) setCloset(result.closet)
+    if (unmounted.current.signal.aborted) return
+    if (result.closet) {
+      setCloset(result.closet)
+      setError(null)
+    } else setError(result.error)
   }
 
   async function tagNow() {
-    setTagging({ state: 'tagging', result: null })
+    setTagging({
+      state: 'tagging',
+      count: Math.min(waiting, TAG_BATCH_SIZE),
+    })
+    const stop = unmounted.current.signal
     let result
+    let failed = false
     try {
-      const response = await apiFetch('/api/closet/tag', { method: 'POST' })
-      if (response.status === 409) result = 'tagging is already running'
-      else if (!response.ok) result = await errorMessage(response)
-      else result = tagResult(await response.json())
-    } catch {
-      result = 'tagging did not start. Check your connection'
+      result = await withDeadline(
+        async (signal) => {
+          const response = await apiFetch('/api/closet/tag', {
+            method: 'POST',
+            signal,
+          })
+          if (response.status === 409) return 'tagging is already running'
+          if (!response.ok) return await errorMessage(response)
+          return tagResult(await response.json())
+        },
+        { signal: stop },
+      )
+    } catch (failure) {
+      if (stop.aborted) return
+      if (failure instanceof WaitTimeout) {
+        result = TAGGING_TIMEOUT
+        failed = true
+      } else result = 'tagging did not start. Check your connection'
     }
-    setTagging({ state: 'done', result })
+    if (stop.aborted) return
+    setTagging({ state: 'done', result, failed })
     await reread()
   }
 
@@ -159,9 +204,12 @@ export default function AdminCloset() {
           <div className="intake-waiting">
             <span role="status">
               {tagging?.state === 'tagging' ? (
-                'Tagging…'
+                <>
+                  {taggingWait(tagging.count)} · {elapsed} s
+                  {elapsed >= STILL_WORKING_AFTER_S && <> {STILL_TAGGING}</>}
+                </>
               ) : tagging?.state === 'done' ? (
-                <>Tag now: {tagging.result}</>
+                !tagging.failed && <>Tag now: {tagging.result}</>
               ) : (
                 <>
                   <b>
@@ -171,6 +219,11 @@ export default function AdminCloset() {
                 </>
               )}
             </span>
+            {tagging?.state === 'done' && tagging.failed && (
+              <p className="admin-error" role="alert">
+                {tagging.result}
+              </p>
+            )}
             <span className="intake-waiting-actions">
               <button
                 type="button"
