@@ -4,6 +4,7 @@ import QuickRate from './QuickRate.jsx'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { runWords } from '../lib/shelf.js'
 import { dayWords } from '../lib/releaseWords.js'
 import { WRAP_UP_STATUSES, localToday, setStatus } from '../lib/statusMoves.js'
 
@@ -12,10 +13,13 @@ const copy = spine.next.tonight.sheet
 const OUTCOMES = WRAP_UP_STATUSES
 const NOTE_MAX = 500
 
-/** The open run's header line: "Playthrough 2 · since Oct 24, 2026 · 31 h". */
-function headerLine(detail) {
+/** The open run's header line: "Playthrough 2 · since Oct 24, 2026 · 31 h" (a comic's is "Read 2 · ..."). */
+function headerLine(detail, type) {
   if (!detail) return ''
-  const parts = [copy.playthrough(detail.playthrough)]
+  const run = runWords(type).run
+  const parts = [
+    `${run.charAt(0).toUpperCase()}${run.slice(1)} ${detail.playthrough}`,
+  ]
   if (detail.since) parts.push(`${copy.since} ${dayWords(detail.since)}`)
   if (detail.hours) {
     // Whole hours from ten up, one decimal below, as the Continue card says.
@@ -216,7 +220,7 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
         </span>
         <div className="wrap-sheet-heading">
           <h3 id={TITLE_ID}>{copy.title(item.title)}</h3>
-          <p className="muted">{headerLine(detail)}</p>
+          <p className="muted">{headerLine(detail, item.type)}</p>
         </div>
         <button
           type="button"
