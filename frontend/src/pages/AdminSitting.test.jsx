@@ -281,7 +281,7 @@ describe('AdminSitting', () => {
     expect(screen.getByText('SANDMAN')).toBeInTheDocument()
     const group = screen.getByRole('radiogroup', { name: 'Which one is it?' })
     expect(
-      within(group).getByRole('radio', { name: /^The Sandman 1989/ }),
+      within(group).getByRole('radio', { name: /^The Sandman \(1989\)/ }),
     ).toBeChecked()
     await user.click(
       within(group).getByRole('radio', { name: /The Sandman Universe/ }),
@@ -999,6 +999,68 @@ describe('AdminSitting', () => {
     ).not.toBeNull()
     expect(screen.getByRole('button', { name: /Start checking/ })).toBeEnabled()
     expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('shows Added, not a second Add, for a result already in the sitting; removing it offers Add again', async () => {
+    const user = userEvent.setup()
+    const saga = {
+      ...candidate(7, 'Saga', 2012),
+      kind: 'comic',
+      owned_item_id: null,
+    }
+    const api = fakeIntakeApi({
+      sittings: [longbox({ photos: [], entries: [] })],
+      search: () => ({
+        results: [saga],
+        sources: [{ kind: 'comic', state: 'ok', reason: null }],
+      }),
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Shoot' })
+    await user.click(screen.getByRole('button', { name: 'Search instead' }))
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search for a title' }),
+      'Saga{Enter}',
+    )
+    await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
+    const added = await screen.findByRole('button', { name: 'Added: Saga' })
+    expect(added).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Add Saga' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: /^Remove Saga/ }))
+    await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
+    expect(api.calls('POST', /\/sittings\/s1\/entries$/)).toHaveLength(2)
+  })
+
+  it('shows Added for a result already in the sitting when the search is reopened', async () => {
+    const user = userEvent.setup()
+    const saga = {
+      ...candidate(7, 'Saga', 2012),
+      kind: 'comic',
+      owned_item_id: null,
+    }
+    fakeIntakeApi({
+      sittings: [
+        longbox({
+          photos: [],
+          entries: [entry('t1', 'ready', { kind: 'comic', chosen: saga })],
+        }),
+      ],
+      search: () => ({
+        results: [saga],
+        sources: [{ kind: 'comic', state: 'ok', reason: null }],
+      }),
+    })
+    renderSitting()
+    await screen.findByRole('heading', { name: 'Shoot' })
+    await user.click(screen.getByRole('button', { name: 'Search instead' }))
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search for a title' }),
+      'Saga{Enter}',
+    )
+    expect(
+      await screen.findByRole('button', { name: 'Added: Saga' }),
+    ).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Add Saga' })).toBeNull()
   })
 
   it('keeps a searched title as typed from Shoot', async () => {

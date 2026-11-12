@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
+import { live } from '../../lib/intakeRemove.js'
 import AddResults from './AddResults.jsx'
 
 const NO_ANSWER = 'The server did not answer; try again.'
@@ -58,6 +59,14 @@ export default function ShootSearch({ sitting, kinds, onAdded }) {
     }
   }
 
+  // Added to this sitting: a live entry chose this source and id.
+  const isAdded = (result) =>
+    live(sitting.entries).some(
+      (entry) =>
+        entry.chosen?.external_source === result.external_source &&
+        String(entry.chosen?.external_id) === String(result.external_id),
+    )
+
   async function add(body, name) {
     setError(null)
     setNotice('')
@@ -109,6 +118,7 @@ export default function ShootSearch({ sitting, kinds, onAdded }) {
           results={answer.results}
           sources={answer.sources}
           kinds={byKey}
+          isAdded={isAdded}
           onAdd={(result) =>
             add({ kind: result.kind, chosen: result }, result.title)
           }

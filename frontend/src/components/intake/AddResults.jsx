@@ -17,6 +17,8 @@ import { sourceWords } from '../../lib/intake.js'
  * @param {Array<{kind: string, state: string, reason: string|null}>} props.sources
  * @param {Record<string, object>} props.kinds The area's kinds by key.
  * @param {(result: object, opener: HTMLElement) => void} props.onAdd
+ * @param {(result: object) => boolean} [props.isAdded] A result already added
+ *   to the sitting in progress: shown as a disabled Added, not Add.
  * @param {(kind: object, opener: HTMLElement) => void} props.onKeepTyped
  */
 export default function AddResults({
@@ -26,6 +28,7 @@ export default function AddResults({
   kinds,
   onAdd,
   onKeepTyped,
+  isAdded = () => false,
 }) {
   const typed = Object.values(kinds).filter((kind) =>
     kind.ways_in.includes('type'),
@@ -64,6 +67,15 @@ export default function AddResults({
                     On shelf
                     <span className="visually-hidden">: {result.title}</span>
                   </Link>
+                ) : isAdded(result) ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled
+                    aria-label={`Added: ${result.title}`}
+                  >
+                    Added
+                  </button>
                 ) : (
                   <button
                     type="button"

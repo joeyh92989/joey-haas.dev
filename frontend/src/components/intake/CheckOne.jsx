@@ -129,6 +129,11 @@ export default function CheckOne({
                     type="radio"
                     name={name}
                     value={candidate.external_id}
+                    aria-label={
+                      candidate.year
+                        ? `${candidate.title} (${candidate.year})`
+                        : candidate.title
+                    }
                     checked={candidate.external_id === picked}
                     onChange={() => setPicked(candidate.external_id)}
                   />
