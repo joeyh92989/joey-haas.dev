@@ -110,17 +110,30 @@ afterEach(() => {
 })
 
 describe('AdminCloset', () => {
-  it('opens on the active garments as tiles, with the counts line', async () => {
+  it('opens on the active and untagged garments as tiles, with the counts line', async () => {
     stubApi()
     renderCloset()
     await screen.findByRole('list')
-    expect(tiles()).toEqual(['/admin/closet/a', '/admin/closet/b'])
+    expect(tiles()).toEqual([
+      '/admin/closet/a',
+      '/admin/closet/b',
+      '/admin/closet/d',
+    ])
     expect(
       screen.getByText('4 pieces · 2 active · 1 packed · 1 untagged'),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'Navy oxford, top, Worn 14×' }),
     ).toBeInTheDocument()
+  })
+
+  it('keeps a pressed Active chip strict: untagged pieces drop out', async () => {
+    stubApi()
+    renderCloset()
+    await screen.findByRole('list')
+    await userEvent.click(screen.getByRole('button', { name: /^Packed/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Active/ }))
+    expect(tiles()).toEqual(['/admin/closet/a', '/admin/closet/b'])
   })
 
   it('filters by status, slot and the Warm toggle', async () => {
@@ -354,7 +367,7 @@ describe('AdminCloset', () => {
     stubApi()
     renderCloset()
     await screen.findByRole('list')
-    expect(tiles()).not.toContain('/admin/closet/d')
+    expect(tiles()).toContain('/admin/closet/d')
     await userEvent.click(screen.getByRole('button', { name: 'Show them' }))
     expect(tiles()).toEqual(['/admin/closet/d'])
   })

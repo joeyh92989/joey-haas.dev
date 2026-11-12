@@ -8,6 +8,10 @@ PR #175 · docs/planning/2026-11-12-closet-walkthrough-plan.md
 Guards meant to wait for another worktree's pytest (the local test DB is shared) matched their own command line and never waited, so two runs overlapped and a preflight showed two false failures. Match the interpreter, e.g. `pgrep -f '[.]venv/bin/python.*pytest'`, or serialise runs another way.
 docs/planning/2026-11-12-admin-walkthrough-plan.md
 
+### 2026-11-12 · lesson · A client-side state guard cannot see a server-side claim
+#174's photo Remove was disabled for `reading` photos in the client, but the server claims a photo as `reading` before the client hears of it, so the guard almost never fired; the whole-branch review caught it. Guard state-dependent writes on the server (lock the row, 409 on the claimed state), and treat the client check as UX only.
+PR #174 · docs/planning/2026-11-12-comic-sitting-fixes-design.md
+
 ### 2026-11-12 · lesson · A new public route needs the analytics allowlist too
 `/shelf/<id>/<n>/` shipped with no pattern in `backend/analytics.py`, so its views would have been dropped; only the full backend suite (`test_every_public_route_in_the_app_is_counted`) caught it, after every task review passed. Next time, list analytics, prerender, sitemap and `render.yaml` in the plan for any new public route.
 PR #173 · docs/planning/2026-11-11-comic-issue-pages-plan.md

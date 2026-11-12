@@ -2283,6 +2283,15 @@ footer {
   color: var(--text-2);
 }
 
+/* A bare control keeps its intrinsic width (an input is ~20 characters), which
+   overflows a narrow grid cell and overlaps its neighbour. Fill the cell. */
+.intake-field
+  :is(input, select, textarea):not([type='checkbox']):not([type='radio']) {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+}
+
 .intake-refusal {
   color: var(--badge);
   font-size: 0.8125rem;
@@ -3020,6 +3029,7 @@ footer {
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
+  container-type: inline-size;
   display: grid;
   gap: 0.75rem;
   padding: 1rem 1.1rem;
@@ -3053,6 +3063,13 @@ footer {
   display: grid;
   gap: 0.6rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* One column where a half cell would be under ~9rem (the 340px desktop drawer and the phone sheet). */
+@container (max-width: 24rem) {
+  .intake-drawer-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .intake-drawer-fields > :not(.intake-field),

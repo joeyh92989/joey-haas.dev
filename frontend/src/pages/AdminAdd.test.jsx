@@ -130,6 +130,13 @@ describe('AdminAdd', () => {
     expect(within(tiles).getByRole('button')).toHaveTextContent('Garment')
   })
 
+  it('names the Closet start button Garment for assistive tech', async () => {
+    fakeIntakeApi()
+    renderAt('/admin/closet/add')
+    const tiles = await screen.findByRole('group', { name: 'Start a sitting' })
+    expect(within(tiles).getByRole('button', { name: /Garment/ })).toBeEnabled()
+  })
+
   it('passes axe', async () => {
     fakeIntakeApi({ sittings: [LONGBOX] })
     const { container } = renderAt()

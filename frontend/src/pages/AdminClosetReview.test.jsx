@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LOAD_ERROR } from '../content/status.js'
+import { deckStat } from '../components/ReviewDeck.jsx'
 import AdminClosetReview from './AdminClosetReview.jsx'
 
 function garment(id, name, extra = {}) {
@@ -664,5 +665,29 @@ describe('AdminClosetReview', () => {
       'Your session ended. Sign in again to review.',
     )
     expect(screen.getByRole('heading', { name: 'never worn' })).toBeVisible()
+  })
+})
+
+describe('deckStat added date', () => {
+  const base = { size: null, garment: { wears_12mo: 0, acquired_on: null } }
+
+  it('reads created_at as the Denver day, not the UTC day', () => {
+    const stat = deckStat({
+      ...base,
+      garment: { ...base.garment, created_at: '2026-11-12T02:40:00Z' },
+    })
+    expect(stat).toBe('Worn 0× in 12 months · added Nov 11')
+  })
+
+  it('prefers acquired_on over created_at', () => {
+    const stat = deckStat({
+      ...base,
+      garment: {
+        ...base.garment,
+        acquired_on: '2026-06-01',
+        created_at: '2026-11-12T02:40:00Z',
+      },
+    })
+    expect(stat).toBe('Worn 0× in 12 months · added Jun 1')
   })
 })

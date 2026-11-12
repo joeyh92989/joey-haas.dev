@@ -251,7 +251,11 @@ export default function AddSection({ area, onAdded, children }) {
             : `${name} is already on the shelf`,
       )
       onAdded?.()
-      if (again) {
+      // The Closet types one piece after another, so a finished add leaves
+      // its bar empty and focused, but only when it added: a duplicate keeps
+      // the text so it can be corrected. The Collection keeps the results for
+      // adding more from one search, unless the owner asked to go again.
+      if (again || (area === 'closet' && body.added)) {
         setDrawer(null)
         setAnswer(null)
         setQuery('')

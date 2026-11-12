@@ -12,7 +12,9 @@ import {
   chipCounts,
   countsLine,
   filterGarments,
+  settleFilter,
   garmentTitle,
+  ownerDay,
   MAX_PHOTO_BYTES,
   oversizePhoto,
   profileBody,
@@ -102,8 +104,29 @@ describe('filterGarments', () => {
   ]
   const ids = (filter) => filterGarments(closet, filter).map((g) => g.id)
 
-  it('keeps active by default', () => {
-    expect(ids(DEFAULT_FILTER)).toEqual(['a', 'b'])
+  it('keeps active and untagged by default', () => {
+    expect(ids(DEFAULT_FILTER)).toEqual(['a', 'b', 'd'])
+  })
+
+  it('filters strictly once the owner presses a status chip', () => {
+    expect(
+      ids(
+        settleFilter(
+          { ...DEFAULT_FILTER, status: null, untaggedToo: false },
+          { ...DEFAULT_FILTER, status: 'active' },
+        ),
+      ),
+    ).toEqual(['a', 'b'])
+    expect(
+      ids(
+        settleFilter(DEFAULT_FILTER, { ...DEFAULT_FILTER, status: 'untagged' }),
+      ),
+    ).toEqual(['d'])
+    expect(
+      ids(
+        settleFilter(DEFAULT_FILTER, { ...DEFAULT_FILTER, status: 'packed' }),
+      ),
+    ).toEqual(['c'])
   })
 
   it('ANDs the category and the attribute toggles', () => {
@@ -359,5 +382,16 @@ describe('outfitReason', () => {
     expect(outfitReason({ ranked_by: 'template', reason: '' })).toBe(
       'picked without the model',
     )
+  })
+})
+
+describe('ownerDay', () => {
+  it('is the Denver day of an instant', () => {
+    expect(ownerDay('2026-11-10T03:00:00Z')).toBe('2026-11-09')
+  })
+
+  it('is null for an instant that does not parse', () => {
+    expect(ownerDay('not a date')).toBeNull()
+    expect(ownerDay(undefined)).toBeNull()
   })
 })

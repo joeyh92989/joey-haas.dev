@@ -144,6 +144,8 @@ describe('AddSection on the shelf', () => {
     expect(sent.body.today).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(onAdded).toHaveBeenCalled()
     expect(screen.getByRole('status')).toHaveTextContent('Saga added, private')
+    expect(screen.getByRole('searchbox')).toHaveValue('saga')
+    expect(screen.getByRole('list', { name: /Results/ })).toBeInTheDocument()
     expect(add).toHaveFocus()
   })
 
@@ -406,12 +408,37 @@ describe('AddSection in the Closet', () => {
       within(drawer).getByRole('button', { name: 'Add to closet' }),
     )
     await waitFor(() => expect(onAdded).toHaveBeenCalled())
+    await waitFor(() => expect(field).toHaveValue(''))
+    expect(field).toHaveFocus()
     expect(api.calls('GET', /\/api\/intake\/search/)).toEqual([])
     expect(api.calls('POST', /\/api\/intake\/add$/)[0].body).toMatchObject({
       kind: 'garment',
       chosen: null,
       payload: { name: 'Navy blazer' },
     })
+  })
+
+  it('keeps the typed text when nothing was added (a duplicate)', async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({
+      add: () => ({
+        status: 201,
+        body: { added: 0, already_owned: 1, issues_added: 0, created: [] },
+      }),
+    })
+    renderAt('closet')
+    const field = await screen.findByRole('textbox', { name: 'Add' })
+    await user.type(field, 'Navy blazer{Enter}')
+    const drawer = screen.getByRole('dialog', { name: 'Navy blazer' })
+    await user.click(
+      within(drawer).getByRole('button', { name: 'Add to closet' }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Navy blazer' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(field).toHaveValue('Navy blazer')
   })
 
   it('goes straight to Shoot from ▤ Photos: the closet has one photo kind', async () => {
