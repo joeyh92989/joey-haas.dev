@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { garmentTitle, shortDate } from '../lib/closet.js'
+import { garmentTitle, ownerDay, shortDate } from '../lib/closet.js'
 import { Swatch } from './OutfitSwatches.jsx'
 
 /** The four outcomes, in order, with the sub-label under each. */
@@ -14,7 +14,7 @@ export const OUTCOMES = [
 export function deckStat(card) {
   const garment = card.garment
   const parts = [`Worn ${garment.wears_12mo}× in 12 months`]
-  const added = garment.acquired_on ?? garment.created_at?.slice(0, 10)
+  const added = garment.acquired_on ?? (garment.created_at ? ownerDay(garment.created_at) : null)
   if (added) parts.push(`added ${shortDate(added)}`)
   if (card.size) parts.push(`size ${card.size}`)
   return parts.join(' · ')

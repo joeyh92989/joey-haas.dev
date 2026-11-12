@@ -289,6 +289,11 @@ export const NOT_THIS_REASONS = [
 /** The owner's zone: plans are made for the day in Denver. */
 const OWNER_ZONE = 'America/Denver'
 
+/** The Denver calendar day, 'YYYY-MM-DD', of an ISO instant such as created_at. */
+export function ownerDay(instant) {
+  return new Date(instant).toLocaleDateString('en-CA', { timeZone: OWNER_ZONE })
+}
+
 /** A plan's day, 'YYYY-MM-DD', as "Monday, Nov 9". */
 export function longDate(day) {
   return new Date(day).toLocaleDateString('en-US', {
