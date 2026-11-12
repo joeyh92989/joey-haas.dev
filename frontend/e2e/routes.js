@@ -9,12 +9,6 @@ const slashed = (path) => (path.endsWith('/') ? path : `${path}/`)
 export const NOT_FOUND_PATH = '/e2e-no-such-page/'
 
 /**
- * Routes whose h1 renders only after an API call succeeds. With no backend
- * (local runs) they show their error alert instead, so smoke accepts either.
- */
-export const API_BACKED = new Set(['/shelf/comics/'])
-
-/**
  * The public routes to test, as trailing-slash paths.
  *
  * Against a remote site (`remote` true) /blog and /til are always included.
