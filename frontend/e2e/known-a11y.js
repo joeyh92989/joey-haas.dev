@@ -6,13 +6,4 @@
  *
  * @type {{ route: string, ruleId: string, issue: string }[]}
  */
-export const KNOWN_A11Y = [
-  { route: '/shelf/next', ruleId: 'link-in-text-block', issue: '#182' },
-  { route: '/shelf/intake', ruleId: 'link-in-text-block', issue: '#182' },
-  { route: '/now', ruleId: 'link-in-text-block', issue: '#182' },
-  { route: '/colophon', ruleId: 'link-in-text-block', issue: '#182' },
-  { route: '/stats', ruleId: 'link-in-text-block', issue: '#182' },
-  { route: '/blog', ruleId: 'link-in-text-block', issue: '#182' },
-  { route: '/til', ruleId: 'link-in-text-block', issue: '#182' },
-  { route: '/e2e-no-such-page', ruleId: 'link-in-text-block', issue: '#182' },
-]
+export const KNOWN_A11Y = []

@@ -225,6 +225,21 @@ a:hover {
   text-underline-offset: 3px;
 }
 
+/* Links inside running text carry an underline: the accent is about 1.3:1
+   against body text in both themes, so colour alone cannot mark them. */
+.prose a,
+.prose-list a,
+.changelog a,
+.empty-box a,
+.intake-demo-fine a,
+.attribution a,
+p.muted a {
+  color: currentColor;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
 .muted {
   color: var(--text-3);
 }
