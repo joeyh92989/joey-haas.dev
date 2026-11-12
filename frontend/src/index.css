@@ -3028,9 +3028,9 @@ footer {
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
+  container-type: inline-size;
   display: grid;
   gap: 0.75rem;
-  container-type: inline-size;
   padding: 1rem 1.1rem;
   position: sticky;
   top: 1rem;
@@ -3064,8 +3064,8 @@ footer {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-/* One column where a half cell would be under ~9rem (the 340px desktop drawer). */
-@container (max-width: 20rem) {
+/* One column where a half cell would be under ~9rem (the 340px desktop drawer and the phone sheet). */
+@container (max-width: 24rem) {
   .intake-drawer-fields {
     grid-template-columns: minmax(0, 1fr);
   }
