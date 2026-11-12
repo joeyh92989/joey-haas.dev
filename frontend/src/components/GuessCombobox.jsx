@@ -26,6 +26,8 @@ const copy = daily.input
  * @param {(item: object) => void} props.onSubmit A pool item was chosen.
  * @param {(already: object | null) => void} props.onReject The text matched
  *   no title (null), or the title of a game already guessed (that game).
+ * @param {string} [props.describedBy] Ids of the hint and legend that explain
+ *   the board, read after the guess count.
  */
 export default function GuessCombobox({
   pool,
@@ -34,6 +36,7 @@ export default function GuessCombobox({
   disabled,
   onSubmit,
   onReject,
+  describedBy,
 }) {
   const id = useId()
   const listId = `${id}-list`
@@ -99,7 +102,9 @@ export default function GuessCombobox({
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={current >= 0 ? optionId(current) : undefined}
-        aria-describedby={`${id}-count`}
+        aria-describedby={
+          describedBy ? `${id}-count ${describedBy}` : `${id}-count`
+        }
         autoComplete="off"
         spellCheck={false}
         placeholder={copy.placeholder}

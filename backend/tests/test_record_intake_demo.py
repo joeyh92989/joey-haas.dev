@@ -308,3 +308,33 @@ def test_the_flags_parse():
     )
     assert args.skip == ["Panty Party"]
     assert args.alternatives is False
+
+
+def test_keep_spines_carries_labels_over_by_read_text(tmp_path):
+    out = tmp_path / "intake-demo.json"
+    out.write_text(
+        json.dumps(
+            {
+                "titles": [
+                    {
+                        "read": "Borderlands Legendary Collection",
+                        "spine": "Borderlands Legendary",
+                    },
+                    {"read": "Hades"},
+                ]
+            }
+        )
+    )
+    fresh = {
+        "titles": [{"read": "Hades"}, {"read": "Borderlands Legendary Collection"}]
+    }
+    kept = recorder.keep_spines(fresh, out)
+    assert kept["titles"] == [
+        {"read": "Hades"},
+        {"read": "Borderlands Legendary Collection", "spine": "Borderlands Legendary"},
+    ]
+
+
+def test_keep_spines_without_an_existing_file_changes_nothing(tmp_path):
+    fresh = {"titles": [{"read": "Hades"}]}
+    assert recorder.keep_spines(fresh, tmp_path / "missing.json") == fresh

@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-12 · lesson · CI's browser checks see a site with no data
+CI builds without the snapshot, so axe passed while production's data pages (`/now` lists, shelf chips, the half star) still failed link and contrast rules; a real-data build found five more. For UI work, also run `SNAPSHOT_API_URL=https://api.joey-haas.dev VITE_DAILY_SALT=local npm run build && npx playwright test e2e/a11y.spec.js --project=desktop` before the PR.
+docs/planning/2026-11-12-visible-fixes-design.md
+
 ### 2026-11-12 · lesson · Screenshots must load the page the way a visitor does
 The first shots run produced two false findings: grey covers (native `loading="lazy"` images never scrolled into view) and an inactive Collection tab (static routes requested as `/shelf/`, which `NavLink end` does not match). Make lazy images eager before a full-page capture, request every page in its canonical sitemap form, and check a surprising visual finding against the code before filing it.
 PR #206 · docs/planning/2026-11-12-site-review-issues.md

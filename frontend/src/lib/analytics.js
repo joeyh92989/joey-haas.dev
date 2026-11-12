@@ -48,3 +48,19 @@ export const referrerName = (value) => value || 'Direct / none'
 export function counted(count, noun) {
   return `${count} ${noun}${count === 1 ? '' : 's'}`
 }
+
+/** Days of counting before the all-time tiles differ from the last 30 days. */
+const ALL_TIME_AFTER_DAYS = 30
+
+/**
+ * Whether the all-time figures say more than the last thirty days: counting
+ * began more than thirty days before `now`.
+ *
+ * @param {string | undefined} liveSince The API's `live_since`, `yyyy-mm-dd`.
+ * @param {Date} [now]
+ */
+export function showsAllTime(liveSince, now = new Date()) {
+  if (!liveSince) return false
+  const since = new Date(`${liveSince}T00:00:00Z`)
+  return now.getTime() - since.getTime() > ALL_TIME_AFTER_DAYS * 86400000
+}

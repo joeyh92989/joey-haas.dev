@@ -112,6 +112,16 @@ describe('Daily', () => {
     fetchSpy.mockRestore()
   })
 
+  it('puts the guess input above the board', async () => {
+    renderPage()
+    await screen.findByText('Day 3 · 12 Nov')
+    const input = screen.getByRole('combobox', { name: 'Your guess' })
+    const board = screen.getByRole('table')
+    expect(
+      input.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
   it('grades a miss, announces it and keeps it for a reload', async () => {
     const user = userEvent.setup()
     const [miss] = wrong(1)

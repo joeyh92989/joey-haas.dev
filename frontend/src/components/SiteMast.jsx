@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
-import { Link, NavLink } from 'react-router'
+import { Link } from 'react-router'
 import { profile } from '../content/profile.js'
+import MastNavLink from './MastNavLink.jsx'
 import MobileNavSheet from './MobileNavSheet.jsx'
 import SearchButton from './SearchButton.jsx'
 
@@ -43,9 +44,7 @@ export default function SiteMast({
         </Link>
         <nav className="site-nav" aria-label="Site">
           {items.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end}>
-              {item.label}
-            </NavLink>
+            <MastNavLink key={item.to} item={item} />
           ))}
         </nav>
         {/* Outside <nav>: the toggle is a control, not a destination. */}

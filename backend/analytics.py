@@ -125,9 +125,12 @@ PUBLIC_REFERRER_DOMAINS = frozenset(
 # are apps and user content (mail., docs., sites.), which say where a
 # private link was shared, so they fold into "other" like any blog.
 _GOOGLE = re.compile(r"(?:www\.)?google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})")
-# An item page's path, before and after the /spine -> /shelf rename.
+# An item page's path, before and after the /spine -> /shelf rename, with the
+# optional comic suffix: an issue (/<n>) or a collected edition (/ed-...).
+# The group is the item's id.
 ITEM_PATH = re.compile(
     r"/(?:shelf|spine)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
+    r"(?:/(?:[1-9][0-9]{0,3}|ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(?:-[2-9][0-9]*)?))?"
 )
 _HOSTNAME = re.compile(
     r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*"

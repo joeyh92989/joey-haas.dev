@@ -64,6 +64,14 @@ describe('GuessCombobox', () => {
     expect(await axeViolations(container)).toEqual([])
   })
 
+  it('is described by the count and by the ids it is given', () => {
+    setup({ describedBy: 'daily-hint daily-legend' })
+    const described = screen
+      .getByRole('combobox', { name: 'Your guess' })
+      .getAttribute('aria-describedby')
+    expect(described).toMatch(/-count daily-hint daily-legend$/)
+  })
+
   it('moves with the arrows, picks with Enter and clears', async () => {
     const { user, onSubmit } = setup()
     const input = screen.getByRole('combobox')

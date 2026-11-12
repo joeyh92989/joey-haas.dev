@@ -16,7 +16,7 @@ export default function Stars({ rating }) {
     <span className="stars" role="img" aria-label={`${rating} out of 10`}>
       <span aria-hidden="true">
         {'★'.repeat(full)}
-        {half ? '½' : ''}
+        {half && <span className="stars-half">½</span>}
       </span>
     </span>
   )

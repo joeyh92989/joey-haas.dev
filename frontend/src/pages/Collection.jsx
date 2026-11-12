@@ -160,7 +160,7 @@ export const isDimmable = (item) =>
  */
 export function HeroNumbers({ figures }) {
   return (
-    <dl className="hero-numbers">
+    <dl className="hero-numbers" data-figures={figures.length}>
       {figures.map(({ label, value }) => (
         <div key={label}>
           <dt>{label}</dt>

@@ -1,3 +1,4 @@
+import { PEAK_CAPTION } from '../content/stats.js'
 import { counted, dayLabel } from '../lib/analytics.js'
 
 /** Most axis labels under the chart; the rest of the days go unlabelled. */
@@ -18,7 +19,8 @@ function axisPositions(length) {
  * The views-per-day chart: one bar per UTC day, the highest in the accent
  * and the rest in the soft tint. The busiest day is the latest on a tie,
  * as the Best day tile has it. Each bar is named for a screen reader, and a
- * visually hidden table holds the same figures to read in order.
+ * visually hidden table holds the same figures to read in order. A caption
+ * names the busiest day and its count, as the bars carry no scale.
  *
  * @param {object} props
  * @param {{day: string, views: number}[]} props.series Oldest first.
@@ -48,6 +50,11 @@ export default function DayBars({ series }) {
           <span key={series[index].day}>{dayLabel(series[index].day)}</span>
         ))}
       </div>
+      {peak >= 0 && (
+        <p className="day-bars-peak">
+          {PEAK_CAPTION(dayLabel(series[peak].day, { weekday: true }), highest)}
+        </p>
+      )}
       <table className="visually-hidden">
         <caption>Views per UTC day</caption>
         <thead>
