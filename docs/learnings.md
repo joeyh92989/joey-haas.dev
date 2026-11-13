@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-12 · lesson · smoke.sh pins page titles
+A rename of `/daily` and `/shelf/how` passed every unit and e2e test, but `scripts/smoke.sh` greps the live `<title>`s and would have gone red after deploy. When copy changes a page name or title, grep `scripts/smoke.sh` and `e2e/` for the old text in the same task.
+docs/planning/2026-11-12-copy-pass-3b-design.md
+
 ### 2026-11-12 · lesson · A visual sample must include the admin shell and data-only pages
 PR 6's 20-route visual diff missed the comic run box, trip pages and the admin rail; a later shot found a two-digit badge covering the phone tab-bar icon. For CSS-wide changes, add a mocked admin page (with a 2-digit badge), a comic series and a trip page to the sample, and grow badges away from their icon.
 PR #214 · docs/planning/2026-11-12-tokens-components-design.md
