@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { apiFetch, errorMessage } from '../../lib/api.js'
+import { comicIntake as words } from '../../content/comicIntake.js'
+import { hashRanges } from '../../lib/comicBooks.js'
 import { runModel } from '../../lib/comicRun.js'
 import { shelfPath } from '../../lib/intake.js'
 import { itemPath } from '../../lib/spinePaths.js'
@@ -70,6 +72,27 @@ export default function DoneStep({
     (sum, series) => sum + series.already.length,
     0,
   )
+
+  // "<Series> · adds #1–4" for a series the sitting created, and the
+  // editions a series already on the shelf gained.
+  const editionParts = (editions) => (editions ?? []).map(words.addsEdition)
+  const addedLines = [
+    ...(answer.series_new ?? []).map((series) => ({
+      key: `new-${series.title}`,
+      title: series.title,
+      parts: [
+        series.issues.length ? words.adds(hashRanges(series.issues)) : null,
+        ...editionParts(series.editions),
+      ].filter(Boolean),
+    })),
+    ...(report ?? [])
+      .filter((series) => series.editions_added?.length)
+      .map((series) => ({
+        key: `grew-${series.item_id}`,
+        title: series.title,
+        parts: editionParts(series.editions_added),
+      })),
+  ]
 
   async function publish() {
     setPublishing(true)
@@ -150,6 +173,20 @@ export default function DoneStep({
                 }
                 growth={reportGrowth(series)}
               />
+            ))}
+          </ul>
+        </>
+      )}
+      {addedLines.length > 0 && (
+        <>
+          <h3 className="kicker intake-skim-head">{words.doneHead}</h3>
+          <ul className="intake-adds">
+            {addedLines.map((line) => (
+              <li key={line.key}>
+                <p className="intake-adds-what">
+                  {words.doneLine(line.title, line.parts.join(', '))}
+                </p>
+              </li>
             ))}
           </ul>
         </>

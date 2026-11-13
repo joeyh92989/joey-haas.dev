@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
+import { comicIntake } from '../../content/comicIntake.js'
+import { needsNumber, repeats } from '../../lib/comicBooks.js'
 import { seriesGrowth } from '../../lib/comicRun.js'
 import { CHECK_STATES, entryCover } from '../../lib/intake.js'
 import { live, removeEntry } from '../../lib/intakeRemove.js'
 import CheckOne from './CheckOne.jsx'
+import ComicBooks from './ComicBooks.jsx'
 import GarmentCheck from './GarmentCheck.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
 import SkimGrid, { inSkim } from './SkimGrid.jsx'
@@ -84,17 +87,22 @@ export default function CheckStep({
   const [error, setError] = useState(null)
   const oneRef = useRef(null)
   const closet = sitting.area === 'closet'
+  // A comic sitting reads books: each settled comic is a row with its number.
+  const books = !closet && sitting.kind === 'comic'
 
   const checks = sitting.entries.filter((e) => CHECK_STATES.includes(e.state))
   const left = checks.filter((e) => !skipped.has(e.id))
   const current = left[0] ?? null
-  const grows = closet ? [] : sitting.entries.filter(addsToSeries)
+  const grows = closet || books ? [] : sitting.entries.filter(addsToSeries)
   const growthOf = growths(grows)
-  const skim = closet
+  const settled = closet
     ? []
     : live(sitting.entries).filter(
         (entry) => inSkim(entry) && !grows.includes(entry),
       )
+  const bookRows = books ? settled.filter((e) => e.kind === 'comic') : []
+  const skim = books ? settled.filter((e) => e.kind !== 'comic') : settled
+  const numberless = books ? sitting.entries.filter(needsNumber).length : 0
   const photoNumber = (entry) => {
     const index = sitting.photos.findIndex((p) => p.id === entry.photo_id)
     return index < 0 ? null : index + 1
@@ -163,8 +171,10 @@ export default function CheckStep({
 
   const hint = closet
     ? 'Only pieces the tagger could not finish are asked about.'
-    : skim.length > 0 &&
-      'Only the uncertain ones are asked one at a time; exact matches are a grid to skim.'
+    : numberless > 0
+      ? comicIntake.nextHeld(numberless)
+      : skim.length > 0 &&
+        'Only the uncertain ones are asked one at a time; exact matches are a grid to skim.'
 
   return (
     <section className="intake-step" aria-labelledby="intake-step-heading">
@@ -236,6 +246,21 @@ export default function CheckStep({
         </>
       )}
 
+      {bookRows.length > 0 && (
+        <ComicBooks
+          entries={bookRows}
+          all={sitting.entries}
+          photoNumber={photoNumber}
+          repeated={repeats(sitting.entries)}
+          onToggle={(entry, ticked) => toggle(entry, ticked)}
+          onRemove={remove}
+          onSave={(entry, changes) =>
+            patch(entry, { payload: { ...entry.payload, ...changes } })
+          }
+          busy={busy}
+        />
+      )}
+
       {skim.length > 0 && (
         <>
           <h3 className="kicker intake-skim-head">
@@ -259,7 +284,7 @@ export default function CheckStep({
           <button
             type="button"
             className="btn primary"
-            disabled={nextBusy}
+            disabled={nextBusy || numberless > 0}
             onClick={onNext}
           >
             {next}
