@@ -123,6 +123,7 @@ def to_picker_item(
     journal_minutes: int = 0,
     run_started_on: date | None = None,
     play: PlayRecord | None = None,
+    read_marks: int = 0,
 ) -> PickerItem:
     """A row as picker's plain data, reading the snapshot defensively.
 
@@ -136,7 +137,9 @@ def to_picker_item(
     if item.type == ItemType.COMIC:
         owned_issues = owned_set(item.issues_owned, item.editions)
         issues_owned_count = len(owned_issues)
-        issues_read = read_state(item.read_to, owned_issues).read
+        # Read is per book (comics 5c): the marks, or read_to for a row
+        # they have not reached, whichever counts more.
+        issues_read = max(read_marks, read_state(item.read_to, owned_issues).read)
         if owned_issues:
             issues_span = max(owned_issues) - min(owned_issues) + 1
     time_to_beat = snapshot.get("time_to_beat")

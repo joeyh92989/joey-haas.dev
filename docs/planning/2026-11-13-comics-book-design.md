@@ -506,3 +506,26 @@ Tasks 1 to 8 built on `feat/comic-edit-in-place`; nothing pushed.
   offered on the game page.
 - Undo of a tap on a skipped cover posts `missing`, so the skip is not
   restored (owning clears it).
+
+Review follow-ups (after the first pass):
+
+- `plan_mark`: missing on a book held as a single and in an edition keeps its
+  read mark (the edition still holds it).
+- The wall draws for a series with issue rows, `released > 0` or anything held,
+  and the admin page has an "Add issue #" box (1 to 9999) that posts `owned`
+  to the mark route; a number with no row gets a stub and shows on the wall.
+- Undo restores a skip the tap cleared (`setMark` missing, then the skip) and
+  what a first tap moved on a Want: the mark route answers `previous`
+  (`owned_format`, `status`, only what changed) and Undo puts it back
+  (`restoreSeries`).
+- The shelf card's read count and Tonight's comic progress use the marks-based
+  count like the series page (`read_marks_by_item`); `comic_issues` joined the
+  `/api/public/next` fingerprint (keyed by item and number), with a test.
+- Focus: after Undo it returns to the cover button (wall) or the Owned button
+  (issue page); under Show: Missing a tapped cover's focus moves to the next
+  cover, or the wall heading.
+- PATCH takes the row lock when its body touches the mark fields, so it
+  cannot interleave with a tap (no test: the lock needs two live connections).
+- `e2e/fixtures/api/issue.json` carries `owned` and `read`.
+- The wall's "The number opens the issue" line shows only when numbers are
+  links (not on a private series' admin wall).

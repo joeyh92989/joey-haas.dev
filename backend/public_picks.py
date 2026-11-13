@@ -36,7 +36,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from facets import facets_of
-from models import Item, PickAction, PickEvent
+from models import Item, ItemType, PickAction, PickEvent
 from picker import (
     LANE_TERMS,
     MAX_REASONS,
@@ -56,6 +56,7 @@ from picker import (
 )
 from picker_items import PickerItem
 from picker_routes import load_play_records, to_picker_item
+from public_comics import read_marks_by_item
 from strategies import PUBLIC, strategy_for
 
 # How many picks each lane publishes (spec, "Tonight on /shelf/next").
@@ -113,9 +114,15 @@ async def load_public_inputs(session: AsyncSession, now: datetime) -> PublicInpu
             )
         )
     ).scalars()
+    marks = await read_marks_by_item(
+        session, [row.id for row in rows if row.type == ItemType.COMIC]
+    )
     return PublicInputs(
         rows={str(row.id): row for row in rows},
-        items=[to_picker_item(row, play=plays.get(row.id)) for row in rows],
+        items=[
+            to_picker_item(row, play=plays.get(row.id), read_marks=marks.get(row.id, 0))
+            for row in rows
+        ],
         never=frozenset(str(item_id) for item_id in never),
     )
 

@@ -445,3 +445,23 @@ async def test_the_series_read_count_follows_the_marks(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
         body = (await client.get(f"/api/public/items/{comic.id}")).json()["comic"]
     assert body["read"] == 1 and body["read_to"] is None
+
+
+async def test_the_shelf_card_counts_read_marks_like_the_series_page(
+    sessionmaker_for_test,
+):
+    from models import ComicIssue
+
+    comic = _comic("Waterworld", issues_owned="1–4", read_to=None)
+    await _add(sessionmaker_for_test, comic)
+    async with sessionmaker_for_test() as session:
+        session.add(ComicIssue(item_id=comic.id, number=3, owned=True, read=True))
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        row = next(
+            r
+            for r in (await client.get("/api/public/comics")).json()["series"]
+            if r["title"] == "Waterworld"
+        )
+        detail = (await client.get(f"/api/public/items/{comic.id}")).json()["comic"]
+    assert row["read"] == detail["read"] == 1

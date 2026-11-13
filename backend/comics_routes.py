@@ -511,6 +511,10 @@ def create_comics_router(
             "issues_skipped": change.issues_skipped,
             "read_to": change.read_to,
         }
+        before = {
+            "status": item.status.value,
+            "owned_format": item.owned_format.value if item.owned_format else None,
+        }
         if body.state != "missing" and item.owned_format == OwnedFormat.NONE:
             body_fields.update(owned_format=OwnedFormat.PHYSICAL)
             await apply_status(session, item, ItemStatus.BACKLOG, _today())
@@ -519,7 +523,17 @@ def create_comics_router(
         await sync_marks(session, item, reads=set(change.reads))
         await session.commit()
         await session.refresh(item)
-        return _state(item) | {"number": number, "state": body.state}
+        after = {
+            "status": item.status.value,
+            "owned_format": item.owned_format.value if item.owned_format else None,
+        }
+        # What the tap moved on the series itself (a Want becomes owned, To
+        # read), so Undo can put it back.
+        return _state(item) | {
+            "number": number,
+            "state": body.state,
+            "previous": {k: v for k, v in before.items() if after[k] != v} or None,
+        }
 
     @router.get("/{item_id}/wall")
     async def wall(

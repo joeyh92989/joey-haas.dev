@@ -221,7 +221,9 @@ def _segments(series: ComicSeries) -> list[PublicRunSegment]:
     return [PublicRunSegment(kind=k, length=n) for k, n in series.run().segments]
 
 
-def _row(item: Item, series: ComicSeries, today: date) -> PublicComicRow:
+def _row(
+    item: Item, series: ComicSeries, today: date, read_marks: int = 0
+) -> PublicComicRow:
     run = series.run()
     wanted = not series.on_shelf
     return PublicComicRow(
@@ -243,7 +245,7 @@ def _row(item: Item, series: ComicSeries, today: date) -> PublicComicRow:
         status=item.status,
         rating=item.rating,
         read_to=item.read_to,
-        read=read_state(item.read_to, set(series.owned)).read,
+        read=max(read_marks, read_state(item.read_to, set(series.owned)).read),
         read_next=read_next(item.read_to, set(series.owned)),
         next_issue=_next(series, today),
         created_at=item.created_at,
@@ -366,6 +368,25 @@ def comic_detail(
     )
 
 
+async def read_marks_by_item(
+    session: AsyncSession, item_ids: Iterable[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """Owned, read issues per series, for the series that have any."""
+    ids = list(item_ids)
+    if not ids:
+        return {}
+    rows = await session.execute(
+        select(ComicIssue.item_id, func.count())
+        .where(
+            ComicIssue.item_id.in_(ids),
+            ComicIssue.owned.is_(True),
+            ComicIssue.read.is_(True),
+        )
+        .group_by(ComicIssue.item_id)
+    )
+    return {item_id: count for item_id, count in rows}
+
+
 async def read_marks_count(session: AsyncSession, item_id: uuid.UUID) -> int:
     """How many owned issues of a series carry a read mark."""
     return (
@@ -391,9 +412,10 @@ async def public_comic_items(session: AsyncSession) -> list[Item]:
 async def load_public_comics(session: AsyncSession, today: date) -> PublicComicsOut:
     items = await public_comic_items(session)
     pairs = {item.id: (item, series_of(item)) for item in items}
+    marks = await read_marks_by_item(session, pairs)
     ordered = sort_series((s for _, s in pairs.values()), "next", today)
     return PublicComicsOut(
-        series=[_row(pairs[s.id][0], s, today) for s in ordered],
+        series=[_row(pairs[s.id][0], s, today, marks.get(s.id, 0)) for s in ordered],
         stats=comic_stats(items, today),
         this_week=comic_weeks(items, today),
     )

@@ -11,6 +11,7 @@ import ComicIssue from './ComicIssue.jsx'
 
 vi.mock('../lib/comicEdits.js', () => ({
   setMark: vi.fn(async () => ({})),
+  restoreSeries: vi.fn(async () => {}),
   toggleSkip: vi.fn(async () => {}),
 }))
 
@@ -438,6 +439,48 @@ describe('ComicIssue, signed in', () => {
     expect(
       screen.getByRole('button', { name: COPY.owner.skipped }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('ComicIssue, Undo', () => {
+  it('Undo of owning a skipped issue puts the skip back, and focus returns to Owned', async () => {
+    vi.mocked(edits.setMark).mockResolvedValue({ previous: null })
+    stubApi({
+      page: { state: 'missing', held_as: 'Not owned' },
+      stored: { ...STORED, issues_owned: '1–10', issues_skipped: '58' },
+    })
+    renderIssue({ signedIn: true })
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'I own this' }),
+    )
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() =>
+      expect(edits.setMark).toHaveBeenLastCalledWith(ID, 58, 'missing'),
+    )
+    expect(edits.toggleSkip).toHaveBeenCalledWith(ID, 58)
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'I own this' })).toHaveFocus(),
+    )
+  })
+
+  it('Undo of the first tap on a Want restores what it moved', async () => {
+    vi.mocked(edits.setMark).mockResolvedValueOnce({
+      previous: { owned_format: 'none' },
+    })
+    stubApi({
+      page: { state: 'missing' },
+      stored: { ...STORED, issues_owned: '', issues_skipped: null },
+    })
+    renderIssue({ signedIn: true })
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'I own this' }),
+    )
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() =>
+      expect(edits.restoreSeries).toHaveBeenCalledWith(ID, {
+        owned_format: 'none',
+      }),
+    )
   })
 })
 

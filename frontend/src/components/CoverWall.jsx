@@ -36,6 +36,7 @@ function OwnerTile({ tile, series, onTap, linked }) {
         <button
           type="button"
           className="cover-tile-btn"
+          data-focus={`mark-${tile.n}`}
           aria-label={OWNER.tapName(
             series.title,
             tile.n,
@@ -179,12 +180,26 @@ export default function CoverWall({
         )
       : tiles
 
-  async function mark(n, was, now, undo = false) {
+  async function mark(n, was, now, { undo = false, skipped: wasSkipped } = {}) {
     setError(null)
     setPending((current) => ({ ...current, [n]: now }))
     try {
-      await onMark(n, now)
-      setLast(undo ? null : { n, was, now })
+      const result = await onMark(
+        n,
+        now,
+        undo ? { skip: last?.skipped, restore: last?.previous } : {},
+      )
+      setLast(
+        undo
+          ? null
+          : {
+              n,
+              was,
+              now,
+              skipped: wasSkipped,
+              previous: result?.previous ?? null,
+            },
+      )
     } catch (failure) {
       setError(failure?.message || OWNER.failed)
     } finally {
@@ -197,7 +212,18 @@ export default function CoverWall({
   }
 
   const tap = (n, was, now) => {
-    mark(n, was === 'skipped' ? 'missing' : was, now)
+    // Under Show: Missing the tapped cover leaves the list: focus moves to
+    // the next cover, or the heading when it was the last.
+    if (filter === 'missing') {
+      const covers = shown.filter((tile) => tile.kind === 'cover')
+      const at = covers.findIndex((tile) => tile.n === n)
+      const next = covers[at + 1]
+      focusKey.current = next ? `mark-${next.n}` : 'heading'
+    }
+    // A skipped cover is missing for Undo, and Undo puts the skip back.
+    mark(n, was === 'skipped' ? 'missing' : was, now, {
+      skipped: was === 'skipped',
+    })
   }
 
   useEffect(() => {
@@ -287,12 +313,19 @@ export default function CoverWall({
 
   const undo = () => {
     const { n, was } = last
-    mark(n, last.now, was, true)
+    focusKey.current = `mark-${n}`
+    mark(n, last.now, was, { undo: true })
   }
 
   return (
-    <section className="item-card cover-wall" aria-labelledby="item-wall">
-      <h2 id="item-wall">{WALL.title}</h2>
+    <section
+      ref={ref}
+      className="item-card cover-wall"
+      aria-labelledby="item-wall"
+    >
+      <h2 id="item-wall" tabIndex={-1} data-focus="heading">
+        {WALL.title}
+      </h2>
       <div className="wall-bar">
         <div className="ctl-row">
           <span className="ctl-label" id="wall-show">
@@ -315,12 +348,12 @@ export default function CoverWall({
             ))}
           </div>
         </div>
-        {owner && <p className="wall-how">{OWNER.how}</p>}
+        {owner && (
+          <p className="wall-how">{linked ? OWNER.howLinked : OWNER.how}</p>
+        )}
       </div>
       {shown.length > 0 ? (
-        <div ref={ref} className="cover-wall-grid">
-          {shown.map(renderTile)}
-        </div>
+        <div className="cover-wall-grid">{shown.map(renderTile)}</div>
       ) : (
         <EmptyState title={WALL.nothingMissing} />
       )}

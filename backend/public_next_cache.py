@@ -10,8 +10,9 @@ aggregate query:
   midnight, so an event written today changes nothing until tomorrow; the
   day also seeds the picks' jitter and decides which dates are still to
   come;
-- every row of `items`, `recommendations`, `playthroughs` and
-  `play_sessions`, as a count and a digest of each row's id and xmin (the
+- every row of `items`, `recommendations`, `playthroughs`, `play_sessions`
+  and `comic_issues` (Tonight's comic progress counts read marks), as a
+  count and a digest of each row's id and xmin (the
   Continue card reads the open run and its journal, which touch neither
   the item's xmin nor its updated_at). Postgres gives a row a new xmin on every UPDATE,
   whoever writes it, so no write path can slip past: not a bulk UPDATE, not
@@ -44,6 +45,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import (
     CatalogueRun,
+    ComicIssue,
     Item,
     PlaySession,
     Playthrough,
@@ -54,14 +56,16 @@ Body = TypeVar("Body")
 Build = Callable[[AsyncSession, datetime], Awaitable[Body]]
 
 
-def _rows(model) -> tuple:
+def _rows(model, *keys) -> tuple:
     """A row count and an order-free digest of every row's (id, xmin).
 
     hashtextextended is 64-bit; summed as numeric it cannot overflow, and a
     changed row moves the sum unless two 64-bit hashes collide.
     """
     xmin = cast(literal_column(f"{model.__tablename__}.xmin"), Text)
-    stamp = func.concat(cast(model.id, Text), ":", xmin)
+    # A table without an `id` names its key columns (comic_issues).
+    ident = [cast(key, Text) for key in keys] or [cast(model.id, Text)]
+    stamp = func.concat(*[part for key in ident for part in (key, ":")], xmin)
     return (
         select(func.count()).select_from(model).scalar_subquery(),
         select(func.coalesce(func.sum(func.hashtextextended(stamp, 0)), 0))
@@ -85,6 +89,7 @@ async def next_fingerprint(session: AsyncSession, now: datetime) -> tuple:
                 *_rows(Recommendation),
                 *_rows(Playthrough),
                 *_rows(PlaySession),
+                *_rows(ComicIssue, ComicIssue.item_id, ComicIssue.number),
                 select(func.count(CatalogueRun.finished_at)).scalar_subquery(),
                 select(func.max(CatalogueRun.finished_at)).scalar_subquery(),
             )

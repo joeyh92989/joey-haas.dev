@@ -1632,3 +1632,21 @@ async def test_an_unknown_stats_type_is_refused(sessionmaker_for_test):
         response = await client.get("/api/public/stats?type=toaster")
 
     assert response.status_code == 422
+
+
+async def test_tonights_comic_progress_counts_read_marks(sessionmaker_for_test):
+    """Read is per book (comics 5c): a book read out of order counts, as it
+    does on the series page and the shelf card."""
+    from models import ComicIssue
+
+    saga = _comic("Saga")
+    await _add(sessionmaker_for_test, saga)
+    async with sessionmaker_for_test() as session:
+        session.add_all(
+            ComicIssue(item_id=saga.id, number=n, owned=True, read=True)
+            for n in range(1, 6)
+        )
+        await session.commit()
+    tonight = (await _next(sessionmaker_for_test))["tonight"]
+    (comic,) = tonight["read_next"]
+    assert comic["progress"]["read"] == 5

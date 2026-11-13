@@ -577,7 +577,9 @@ def plan_mark(
             where = holder.get("label") or holder.get("kind") or "an edition"
             raise MarkRefused(f"In {where}. Edit editions on the comic's page.")
         singles.discard(number)
-        read_set.discard(number)
+        # Still held through an edition: it stays read if it was.
+        if not in_edition:
+            read_set.discard(number)
     else:
         if not in_edition:
             singles.add(number)

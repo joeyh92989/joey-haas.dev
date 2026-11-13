@@ -11,7 +11,7 @@ import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import { spine } from '../content/spine.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import { apiFetch } from '../lib/api.js'
-import { setMark } from '../lib/comicEdits.js'
+import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 import {
   comicErrorField,
   editionRows,
@@ -98,6 +98,9 @@ export default function AdminComic() {
   const [editionsSaved, setEditionsSaved] = useState(false)
   const [relinking, setRelinking] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [addNumber, setAddNumber] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState(null)
 
   const fetchItem = useCallback(async () => {
     try {
@@ -148,12 +151,35 @@ export default function AdminComic() {
 
   /** One tap on a cover: the mark route, then everything it changes. */
   const markIssue = useCallback(
-    async (n, next) => {
-      await setMark(id, n, next)
+    async (n, next, undo = {}) => {
+      const result = await setMark(id, n, next)
+      if (undo.skip) await toggleSkip(id, n)
+      if (undo.restore) await restoreSeries(id, undo.restore)
       await reread()
+      return result
     },
     [id, reread],
   )
+
+  /** Owns an issue by number: one Comic Vine does not list, or a series with no match. */
+  async function addIssue(event) {
+    event.preventDefault()
+    setAddError(null)
+    const n = Number(addNumber)
+    if (!Number.isInteger(n) || n < 1 || n > 9999) {
+      setAddError(COPY.addRange)
+      return
+    }
+    setAdding(true)
+    try {
+      await markIssue(n, 'owned')
+      setAddNumber('')
+    } catch (failure) {
+      setAddError(failure?.message || ACTION_ERROR)
+    } finally {
+      setAdding(false)
+    }
+  }
 
   async function save(event) {
     event.preventDefault()
@@ -532,18 +558,45 @@ export default function AdminComic() {
                 )}
               </p>
             )}
+            <form className="admin-comic-add" onSubmit={addIssue} noValidate>
+              <label htmlFor="add-issue">{COPY.addLabel}</label>
+              <input
+                id="add-issue"
+                type="number"
+                min="1"
+                max="9999"
+                inputMode="numeric"
+                aria-describedby="add-issue-hint"
+                value={addNumber}
+                onChange={(event) => setAddNumber(event.target.value)}
+              />
+              <button type="submit" disabled={adding || addNumber === ''}>
+                {COPY.add}
+              </button>
+            </form>
+            <p id="add-issue-hint" className="muted comic-hint">
+              {COPY.addHint}
+            </p>
+            {addError && (
+              <p className="admin-error" role="alert">
+                {addError}
+              </p>
+            )}
             <p className="muted comic-hint">{COPY.issuesHint}</p>
           </Panel>
-          {wall?.wall?.issues?.length > 0 && comic && (
-            <CoverWall
-              wall={wall.wall}
-              detail={{ comic }}
-              series={{ id: item.id, title: item.title }}
-              skipped={skipped}
-              onMark={markIssue}
-              linked={Boolean(item.is_public)}
-            />
-          )}
+          {comic &&
+            (wall.wall.issues.length > 0 ||
+              comic.released > 0 ||
+              (run?.owned ?? 0) > 0) && (
+              <CoverWall
+                wall={wall.wall}
+                detail={{ comic }}
+                series={{ id: item.id, title: item.title }}
+                skipped={skipped}
+                onMark={markIssue}
+                linked={Boolean(item.is_public)}
+              />
+            )}
 
           <Panel title={COPY.editions}>
             <EditionRows

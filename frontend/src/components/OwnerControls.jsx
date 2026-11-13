@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { spine } from '../content/spine.js'
-import { setMark, toggleSkip } from '../lib/comicEdits.js'
+import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 
 const COPY = spine.comics.issue.owner
 
@@ -34,6 +34,16 @@ export default function OwnerControls({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [last, setLast] = useState(null)
+  const ownRef = useRef(null)
+  const refocus = useRef(false)
+
+  // After Undo the Owned button takes focus back, once it is enabled again.
+  useEffect(() => {
+    if (!busy && refocus.current) {
+      refocus.current = false
+      ownRef.current?.focus()
+    }
+  })
 
   const held = state === 'read' || state === 'owned'
   const read = state === 'read'
@@ -45,9 +55,9 @@ export default function OwnerControls({
     setBusy(true)
     setError(null)
     try {
-      await action()
+      const result = await action()
       await onChanged()
-      setLast(done)
+      setLast(done && { ...done, previous: result?.previous ?? null })
     } catch (failure) {
       setError(failure?.message || COPY.failed)
     } finally {
@@ -59,11 +69,18 @@ export default function OwnerControls({
     run(() => setMark(id, n, next), {
       now: next,
       was: held ? (read ? 'read' : 'owned') : 'missing',
+      // Owning a skipped issue clears the skip; Undo puts it back.
+      skipped: skipped && next !== 'missing',
     })
 
   const undo = () => {
-    const { was } = last
-    run(() => setMark(id, n, was), null)
+    const { was, previous, skipped: wasSkipped } = last
+    refocus.current = true
+    run(async () => {
+      await setMark(id, n, was)
+      if (wasSkipped) await toggleSkip(id, n)
+      if (previous) await restoreSeries(id, previous)
+    }, null)
   }
 
   return (
@@ -73,6 +90,7 @@ export default function OwnerControls({
         <button
           type="button"
           className="btn sm"
+          ref={ownRef}
           aria-pressed={held}
           disabled={busy || editionOnly}
           onClick={() => mark(held ? 'missing' : 'owned')}

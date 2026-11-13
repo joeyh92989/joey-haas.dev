@@ -13,7 +13,7 @@ import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import Rating from '../components/Rating.jsx'
 import { apiFetch } from '../lib/api.js'
 import { expandRanges, shortDate } from '../lib/comics.js'
-import { setMark } from '../lib/comicEdits.js'
+import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 import {
   laneSpans,
   lanesLabel,
@@ -436,7 +436,11 @@ function ComicCards({
   onMark,
 }) {
   const spans = laneSpans(model)
-  const hasWall = (wall?.issues?.length ?? 0) > 0
+  // The wall draws for a series with issue rows, anything released, or
+  // anything held: the owner marks books on it, so it can't wait for rows.
+  const hasWall =
+    Boolean(wall) &&
+    (wall.issues.length > 0 || comic.released > 0 || model.held > 0)
   return (
     <>
       {model.held > 0 && (
@@ -634,9 +638,13 @@ function ItemPage({ id }) {
    * the page follows. A refusal throws its own words to the wall's status line.
    */
   const markIssue = useCallback(
-    async (n, state) => {
-      await setMark(id, n, state)
+    async (n, state, undo = {}) => {
+      const result = await setMark(id, n, state)
+      // Undo puts back what the first tap moved, and a skip the tap cleared.
+      if (undo.skip) await toggleSkip(id, n)
+      if (undo.restore) await restoreSeries(id, undo.restore)
       await Promise.all([refresh(), loadWall(), loadOwner()])
+      return result
     },
     [id, refresh, loadWall, loadOwner],
   )

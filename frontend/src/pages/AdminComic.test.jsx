@@ -306,6 +306,50 @@ describe('AdminComic', () => {
     expect(await screen.findByText('the game page')).toBeInTheDocument()
   })
 
+  it('adds an issue by number, owned, whether or not Comic Vine lists it', async () => {
+    const { writes } = stubApi()
+    renderPage()
+    await userEvent.type(await screen.findByLabelText('Add issue #'), '9999')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() => expect(writes).toHaveLength(1))
+    expect(writes[0]).toEqual([
+      'POST',
+      expect.stringContaining('/api/comics/abc/issues/9999/mark'),
+      { state: 'owned' },
+    ])
+    expect(screen.getByText(/whole number from 1 to 9999/)).toBeVisible()
+  })
+
+  it('refuses a number outside 1 to 9999 before sending anything', async () => {
+    const { writes } = stubApi()
+    renderPage()
+    await userEvent.type(await screen.findByLabelText('Add issue #'), '10000')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Issue numbers are whole numbers from 1 to 9999.',
+    )
+    expect(writes).toHaveLength(0)
+  })
+
+  it('draws the wall and the add box for a series with nothing yet', async () => {
+    stubApi({
+      item: {
+        ...COMIC,
+        issues_owned: null,
+        comic_run: { owned: 0, released: 0, missing: 0, read: 0 },
+      },
+      wall: {
+        wall: { ...WALL.wall, issues: [] },
+        comic: { ...WALL.comic, owned_text: '', released: 0 },
+      },
+    })
+    renderPage()
+    expect(await screen.findByLabelText('Add issue #')).toBeVisible()
+    expect(
+      screen.queryByRole('heading', { name: 'Every book in the run' }),
+    ).toBeNull()
+  })
+
   it('has no axe violations', async () => {
     stubApi()
     const { container } = renderPage()

@@ -706,7 +706,9 @@ export const spine = {
       nothingMissing: 'Nothing missing from this run.',
       /** Signed in: a cover is a button that moves the book one step. */
       owner: {
-        how: 'Tap a cover to mark it: owned, then read, then missing again. The number opens the issue. Only you can do this.',
+        how: 'Tap a cover to mark it: owned, then read, then missing again. Only you can do this.',
+        howLinked:
+          'Tap a cover to mark it: owned, then read, then missing again. The number opens the issue. Only you can do this.',
         do: { owned: 'Mark owned', read: 'Mark read', missing: 'Mark missing' },
         /** The button's name: where the book is now, then what a tap does. */
         tapName: (series, n, now, doWord) =>
@@ -736,6 +738,11 @@ export const spine = {
       issues: 'Issues',
       issuesLine: (owned, released, read, missing) =>
         `${owned} of ${released} owned, ${read} read, ${missing} missing.`,
+      addLabel: 'Add issue #',
+      add: 'Add',
+      addHint:
+        'A whole number from 1 to 9999. It is marked owned, whether or not Comic Vine lists it.',
+      addRange: 'Issue numbers are whole numbers from 1 to 9999.',
       issuesHint:
         'Tap a cover to mark it owned, read or missing. Skips are set on the issue page. Issue numbers are whole numbers; #0, #½ and annuals can’t be recorded yet.',
       editions: 'Editions',

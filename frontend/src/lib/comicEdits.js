@@ -10,6 +10,7 @@
  */
 import { apiFetch, errorMessage } from './api.js'
 import { compactRanges, expandRanges } from './comics.js'
+import { setStatus } from './statusMoves.js'
 
 const path = (id) => `/api/items/${encodeURIComponent(id)}`
 
@@ -53,6 +54,23 @@ export async function setMark(id, n, state, to) {
   if (!response.ok)
     throw new Error(await errorMessage(response, { ownConflicts: true }))
   return response.json()
+}
+
+/**
+ * Puts back what a first tap moved on the series itself (a Want that became
+ * owned, To read): `previous` is the mark route's answer, only the fields
+ * that changed.
+ *
+ * @param {string} id
+ * @param {{owned_format?: string, status?: string}} previous
+ */
+export async function restoreSeries(id, previous) {
+  if (previous.owned_format)
+    await patch(id, { owned_format: previous.owned_format })
+  if (previous.status) {
+    const response = await setStatus(id, previous.status)
+    if (!response.ok) throw new Error(await errorMessage(response))
+  }
 }
 
 /** Skips or un-skips one issue (private; the API refuses a held one). */

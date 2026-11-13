@@ -1100,14 +1100,18 @@ describe('Item cover wall', () => {
     ).toBeInTheDocument()
   })
 
-  it('keeps the run box when the issue list is empty, without toggles', async () => {
+  it('draws the wall with no issue rows when issues are out or held, so the owner can mark them', async () => {
     stubWall([])
     await renderSaga({ signedIn: true })
     expect(
-      screen.queryByRole('heading', { name: 'Every book in the run' }),
-    ).toBeNull()
-    expect(document.querySelector('.run-box')).not.toBeNull()
-    expect(screen.queryByRole('button', { name: 'Issue 5' })).toBeNull()
+      await screen.findByRole('heading', { name: 'Every book in the run' }),
+    ).toBeInTheDocument()
+    expect(document.querySelector('.run-box')).toBeNull()
+    expect(
+      await screen.findByRole('button', {
+        name: 'Saga #5, Missing. Mark owned',
+      }),
+    ).toBeInTheDocument()
   })
 
   it('has no toggle cells on the series page once the wall is there', async () => {

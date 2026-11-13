@@ -966,7 +966,8 @@ before pushing.
   removes the single and its read mark; a book held only in an edition
   can't go missing (409 "In <edition>. Edit editions on the comic's page.",
   the cycle there is owned and read). Admin only, not in `JOB_ROUTES`;
-  Undo posts the previous state. Skip keeps `POST .../skip` (and the issue
+  Undo posts the previous state; the answer's `previous` names what a first
+  tap moved on a Want (owned format, status) so Undo can restore it. Skip keeps `POST .../skip` (and the issue
   page's PATCH to un-skip) and stays private. `GET /api/comics/{id}/wall`
   (admin) serves the wall and comic block for any comic, private too, with
   the public builders. Public bodies gain `owned` and `read` on the wall and
@@ -1014,7 +1015,8 @@ before pushing.
   (`backend/public_next_cache.py`, one entry per app); admin routes are not,
   and the store list stays live. The fingerprint is the UTC day, a count and
   an `(id, xmin)` digest of every `items`, `recommendations`,
-  `playthroughs` and `play_sessions` row (the Continue card reads the open
+  `playthroughs`, `play_sessions` and `comic_issues` row (Tonight's comic
+  progress counts read marks) (the Continue card reads the open
   run and its journal, which touch neither the item's xmin nor its
   updated_at), the
   catalogue's finished runs, and the windowed shown and skipped pick events

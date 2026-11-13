@@ -263,3 +263,40 @@ async def test_the_admin_wall_serves_a_private_series_and_never_a_skip(
     assert 3 not in issues  # a skipped stub is no page
     assert body["comic"]["read"] == 1 and body["comic"]["owned_text"] == "1–2"
     assert "skipped" not in str(body) and "issues_skipped" not in str(body)
+
+
+async def test_missing_on_a_book_held_twice_keeps_its_read_mark():
+    """Trade 1-6 with #3 also a single, #3 read: missing removes the single
+    only; the trade still holds it, and it stays read."""
+    edition = [{"kind": "TPB", "label": "Book 1", "from": 1, "to": 6}]
+    change = plan_mark("3", None, edition, {3}, 3, "missing")
+    assert change.issues_owned is None
+    assert 3 in change.reads
+
+
+async def test_a_number_with_no_row_gets_a_stub_and_shows_on_the_wall(
+    sessionmaker_for_test,
+):
+    """A series Comic Vine has not synced, or a number past what it lists."""
+    item_id = await seed_comic(
+        sessionmaker_for_test, owned_format=OwnedFormat.PHYSICAL, is_public=True
+    )
+    async with comics_client(sessionmaker_for_test, FakeComicVine()) as client:
+        response = await tap(client, item_id, 9999, "owned")
+        wall = (await client.get(f"/api/comics/{item_id}/wall")).json()
+    assert response.status_code == 200, response.text
+    assert (await marks(sessionmaker_for_test, item_id))[9999] == (True, False, False)
+    issue = next(i for i in wall["wall"]["issues"] if i["number"] == 9999)
+    assert (issue["owned"], issue["cover_url"]) == (True, None)
+
+
+async def test_a_tap_on_a_want_reports_what_it_moved_so_undo_can_restore(
+    sessionmaker_for_test,
+):
+    item_id = await seed_comic(sessionmaker_for_test, owned_format=OwnedFormat.NONE)
+    async with comics_client(sessionmaker_for_test, FakeComicVine()) as client:
+        first = (await tap(client, item_id, 1, "owned")).json()
+        second = (await tap(client, item_id, 2, "owned")).json()
+    assert first["previous"] == {"owned_format": "none"}
+    assert first["owned_format"] == "physical"
+    assert second["previous"] is None

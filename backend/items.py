@@ -908,8 +908,10 @@ def create_items_router(
         async with factory() as session:
             yield session
 
-    async def _load(session: AsyncSession, item_id: uuid.UUID) -> Item:
-        item = await session.get(Item, item_id)
+    async def _load(
+        session: AsyncSession, item_id: uuid.UUID, lock: bool = False
+    ) -> Item:
+        item = await session.get(Item, item_id, with_for_update=lock)
         if item is None:
             raise HTTPException(status_code=404, detail="Not found")
         return item
@@ -1268,7 +1270,11 @@ def create_items_router(
         body = payload.model_dump(exclude_unset=True)
         if any(field in body for field in STATUS_FIELDS):
             raise HTTPException(status_code=422, detail=STATUS_FIELDS_REFUSED)
-        item = await _load(session, item_id)
+        # A write that touches what the issue marks derive from takes the row
+        # lock the mark route takes, so it can't interleave with a tap.
+        item = await _load(
+            session, item_id, lock=bool(MARK_FIELDS & body.keys() or "type" in body)
+        )
         if "edition_id" in body:
             body["edition_format"] = await _edition_format(
                 session, item, body["edition_id"]
