@@ -285,7 +285,7 @@ describe('AdminCloset', () => {
       expect(alert).toHaveTextContent(/Tagging didn’t answer in time/)
       expect(alert).toHaveClass('admin-error')
       for (const status of screen.getAllByRole('status'))
-        expect(status).not.toHaveTextContent(/didn't answer/)
+        expect(status).not.toHaveTextContent(/didn’t answer/)
     })
 
     it('shows the load error when the follow-up read fails', async () => {
