@@ -65,4 +65,19 @@ describe('CappedList', () => {
       screen.getByRole('button', { name: 'Show all 9 Coming soon' }),
     ).toBeVisible()
   })
+
+  it('closes again when its resetKey changes, and stays open when it does not', async () => {
+    const user = userEvent.setup()
+    const list = (key) => (
+      <CappedList items={items(9)} resetKey={key}>
+        {(item) => <li key={item}>{item}</li>}
+      </CappedList>
+    )
+    const { rerender } = render(list('a'))
+    await user.click(screen.getByRole('button', { name: 'Show all 9' }))
+    rerender(list('a'))
+    expect(screen.getAllByRole('listitem')).toHaveLength(9)
+    rerender(list('b'))
+    expect(screen.getAllByRole('listitem')).toHaveLength(6)
+  })
 })

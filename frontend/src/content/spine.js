@@ -539,8 +539,6 @@ export const spine = {
     // copy: pending voice review
     groupStatus: 'Status',
     // copy: pending voice review
-    groupPlatform: 'Platform',
-    // copy: pending voice review
     sort: 'Sort',
     // copy: pending voice review
     view: 'View',
@@ -585,12 +583,8 @@ export const spine = {
     // copy: pending voice review
     behind: 'Behind the shelf:',
     // copy: pending voice review
-    behindLine: (titles, stores, refreshed) =>
-      `Catalog ${titles} titles · ${stores} stores watched${refreshed ? ` · refreshed ${refreshed} UTC` : ''}.`,
-    // copy: pending voice review
-    totalsLabel: 'Totals',
-    // copy: pending voice review
-    linksLabel: 'Around the shelf',
+    behindLine: (titles, stores, refreshed, staleHours) =>
+      `Catalog ${titles} titles · ${stores} stores watched${refreshed ? ` · refreshed ${refreshed}` : ''}${staleHours ? ` · not refreshed in over ${staleHours} hours` : ''}.`,
   },
   /** The month journal's index; these are the screen-reader strings. */
   journal: {

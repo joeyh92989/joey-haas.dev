@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -7,8 +13,8 @@ import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import Collection from './Collection.jsx'
 
-// A wide screen: the sort renders as buttons. The narrow select variant is
-// covered in SortControl.test.jsx.
+// A wide screen. The shelf's sort is a select at every width; the chips and
+// narrow variants of SortControl are covered in SortControl.test.jsx.
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 
 vi.mock('../lib/snapshot.js', async (importOriginal) => ({
@@ -320,6 +326,55 @@ describe('Collection', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
     expect(screen.getByRole('searchbox')).toHaveValue('')
     expect(gridTitles()).toHaveLength(2)
+  })
+
+  // The button unmounts itself, so focus must be handed on or it falls to the
+  // body and a keyboard user restarts from the top of the page.
+  it('moves focus to the search field after Clear filters', async () => {
+    stubApi()
+    await renderReady()
+
+    await userEvent.click(screen.getByRole('button', { name: /^Film & TV/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(screen.getByRole('searchbox')).toHaveFocus()
+  })
+
+  it('keeps Overview as the one h2, with its blocks one level down', async () => {
+    stubApi()
+    await renderReady()
+
+    const overview = document.getElementById('overview')
+    expect(overview).toHaveAccessibleName('Overview')
+    expect(within(overview).getAllByRole('heading', { level: 2 })).toHaveLength(
+      1,
+    )
+    expect(
+      within(overview).getByRole('heading', { level: 3, name: 'Ratings' }),
+    ).toBeInTheDocument()
+  })
+
+  it('has one polite live region over the grid, not two', async () => {
+    stubApi()
+    await renderReady()
+    expect(document.querySelectorAll('[aria-live="polite"]')).toHaveLength(1)
+  })
+
+  it('says in words when the catalog is stale, and not when it is fresh', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-21T20:00:00Z'))
+    stubApi({ status: STATUS_BODY })
+    await renderReady()
+    const fresh = await screen.findByText(/Catalog 5,724 titles/)
+    expect(fresh).toHaveTextContent('refreshed October 21, 2026')
+    expect(fresh).not.toHaveTextContent('not refreshed')
+    cleanup()
+
+    vi.setSystemTime(new Date('2026-10-25T00:00:00Z'))
+    stubApi({ status: STATUS_BODY })
+    await renderReady()
+    expect(await screen.findByText(/Catalog 5,724 titles/)).toHaveTextContent(
+      'not refreshed in over 36 hours',
+    )
   })
 
   it('pages the grid by whole rows, and a filter returns to the first page', async () => {

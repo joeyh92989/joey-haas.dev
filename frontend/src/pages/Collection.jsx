@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverKey from '../components/CoverKey.jsx'
@@ -12,7 +12,8 @@ import SpineHeader from '../components/SpineHeader.jsx'
 import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
 import { dailyPool } from '../lib/daily.js'
-import { ownerMonth, ownerYear } from '../lib/formatDate.js'
+import { formatDate, ownerMonth, ownerYear } from '../lib/formatDate.js'
+import { STALE_HOURS } from '../lib/nightly.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import {
@@ -42,13 +43,6 @@ const TYPE_LABEL = {
 
 const NARROW = '(max-width: 34rem)'
 const COUNT = new Intl.NumberFormat('en')
-const REFRESHED = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: 'UTC',
-})
 const copy = spine.shelf
 const SIZES = ['comfortable', 'compact']
 const FAVOURITES_SHOWN = 4
@@ -119,7 +113,8 @@ export function platformGroup(items) {
  * cartridge count. A stats block like its neighbours, with a heading; it
  * renders only once at least one format has been recorded.
  */
-function OnCartridge({ byFormat }) {
+function OnCartridge({ byFormat, headingLevel = 2 }) {
+  const Heading = `h${headingLevel}`
   const platforms = Object.entries(byFormat ?? {}).filter(
     ([, counts]) =>
       counts.game_card + counts.game_key_card + counts.code_in_box > 0,
@@ -127,7 +122,7 @@ function OnCartridge({ byFormat }) {
   if (platforms.length === 0) return null
   return (
     <section className="stat-card stat-cartridge" aria-label="On cartridge">
-      <h2>On cartridge</h2>
+      <Heading>On cartridge</Heading>
       {platforms.map(([platformId, counts]) => {
         const name =
           KEY_CARD_PLATFORM_NAMES[platformId] ?? `Platform ${platformId}`
@@ -152,6 +147,13 @@ function OnCartridge({ byFormat }) {
         )
       })}
     </section>
+  )
+}
+
+/** Whether the catalog was last refreshed over STALE_HOURS ago (or never). */
+function isStale(refreshedAt, now) {
+  return (
+    !refreshedAt || now - Date.parse(refreshedAt) > STALE_HOURS * 3600 * 1000
   )
 }
 
@@ -200,8 +202,16 @@ export function HeroNumbers({ figures, inline = false }) {
  * @param {object[]} props.items - Every shelf row; favourites are chosen here.
  * @param {(item: object) => string} props.linkFor - Where a cover links.
  * @param {boolean} [props.placeholders] - Always render, padding with slots.
+ * @param {2|3} [props.headingLevel] - The heading's level: 3 under the
+ *   public shelf's Overview, 2 where the row sits straight under the page.
  */
-export function FavoritesRow({ items, linkFor, placeholders = false }) {
+export function FavoritesRow({
+  items,
+  linkFor,
+  placeholders = false,
+  headingLevel = 2,
+}) {
+  const Heading = `h${headingLevel}`
   const all = topFavourites(items)
   const favourites = placeholders ? all : all.slice(0, FAVOURITES_SHOWN)
   if (favourites.length === 0 && !placeholders) return null
@@ -212,7 +222,7 @@ export function FavoritesRow({ items, linkFor, placeholders = false }) {
 
   return (
     <section className="favourites" aria-label="Favorites">
-      <h2>Favorites</h2>
+      <Heading>Favorites</Heading>
       <ul className="favourites-row">
         {favourites.map((item) => (
           <li key={item.id}>
@@ -248,11 +258,13 @@ export function StatusBar({
   byStatus,
   labels = STATUS_LABEL,
   title = 'Status',
+  headingLevel = 2,
 }) {
+  const Heading = `h${headingLevel}`
   const present = STATUS_ORDER.filter((status) => byStatus[status] > 0)
   return (
     <div className="stat-card stat-status">
-      <h2>{title}</h2>
+      <Heading>{title}</Heading>
       <div className="status-bar">
         {present.map((status) => (
           <span
@@ -287,12 +299,13 @@ export function StatusBar({
  * labelled. Each bar is focusable and names its count, and its title repeats
  * that name; the numeral above it shows on hover and on focus alike.
  */
-function RatingHistogram({ histogram, average }) {
+function RatingHistogram({ histogram, average, headingLevel = 2 }) {
+  const Heading = `h${headingLevel}`
   const counts = RATINGS.map((rating) => histogram[rating] ?? 0)
   const most = Math.max(...counts, 1)
   return (
     <section className="stat-card stat-ratings" aria-label="Ratings">
-      <h2>Ratings</h2>
+      <Heading>Ratings</Heading>
       <div className="stat-figure">
         <div className="bar-column">
           <div className="rating-bars">
@@ -330,12 +343,18 @@ function RatingHistogram({ histogram, average }) {
 }
 
 /** Twelve months of finishes, the current month at the right. */
-function FinishesStrip({ months, byMonth, finishedThisYear }) {
+function FinishesStrip({
+  months,
+  byMonth,
+  finishedThisYear,
+  headingLevel = 2,
+}) {
+  const Heading = `h${headingLevel}`
   const counts = months.map((month) => byMonth[month.key] ?? 0)
   const most = Math.max(...counts, 1)
   return (
     <section className="stat-card stat-finishes" aria-label="Finishes">
-      <h2>Finishes</h2>
+      <Heading>Finishes</Heading>
       <div className="stat-figure">
         <div className="bar-column">
           <div className="month-bars">
@@ -423,6 +442,9 @@ export default function Collection() {
   const [dim, setDim] = useState(() => readShelfPref('shelf.public.dim', false))
   const narrow = useMediaQuery(NARROW)
   const [chartsOpen, setChartsOpen] = useState(false)
+  const searchField = useRef(null)
+  // Read once, so a re-render never flips the catalog line's warning.
+  const [mountedAt] = useState(() => Date.now())
 
   function changeSize(next) {
     setSize(next)
@@ -540,6 +562,7 @@ export default function Collection() {
             <label className="shelf-search">
               <span className="visually-hidden">Search the shelf</span>
               <input
+                ref={searchField}
                 id="shelf-search"
                 type="search"
                 placeholder="Search titles"
@@ -574,6 +597,8 @@ export default function Collection() {
             onClear={() => {
               setFilters(NO_FILTER)
               setQuery('')
+              // Clear filters unmounts itself; focus would fall to the body.
+              searchField.current?.focus()
             }}
           >
             <CoverKey />
@@ -604,10 +629,14 @@ export default function Collection() {
           <section
             className="shelf-overview"
             id="overview"
-            aria-label={copy.overview}
+            aria-labelledby="overview-title"
           >
-            <h2>{copy.overview}</h2>
-            <FavoritesRow items={items} linkFor={(item) => itemPath(item.id)} />
+            <h2 id="overview-title">{copy.overview}</h2>
+            <FavoritesRow
+              items={items}
+              linkFor={(item) => itemPath(item.id)}
+              headingLevel={3}
+            />
             {stats && stats.total > 0 && (
               <>
                 {narrow && (
@@ -615,7 +644,7 @@ export default function Collection() {
                     type="button"
                     className="disclosure"
                     aria-expanded={chartsOpen}
-                    aria-controls="shelf-charts"
+                    aria-controls={chartsOpen ? 'shelf-charts' : undefined}
                     onClick={() => setChartsOpen((open) => !open)}
                   >
                     {copy.overviewCharts}
@@ -623,11 +652,12 @@ export default function Collection() {
                 )}
                 {(!narrow || chartsOpen) && (
                   <div className="shelf-stats" id="shelf-charts">
-                    <StatusBar byStatus={stats.by_status} />
+                    <StatusBar byStatus={stats.by_status} headingLevel={3} />
                     {hasRatings && (
                       <RatingHistogram
                         histogram={stats.rating_histogram}
                         average={stats.average_rating}
+                        headingLevel={3}
                       />
                     )}
                     {hasRecentFinishes && (
@@ -635,9 +665,10 @@ export default function Collection() {
                         months={months}
                         byMonth={stats.finishes_by_month}
                         finishedThisYear={stats.finished_this_year}
+                        headingLevel={3}
                       />
                     )}
-                    <OnCartridge byFormat={stats.by_format} />
+                    <OnCartridge byFormat={stats.by_format} headingLevel={3} />
                   </div>
                 )}
               </>
@@ -650,7 +681,10 @@ export default function Collection() {
                     COUNT.format(status.titles),
                     status.stores_watched,
                     status.refreshed_at
-                      ? REFRESHED.format(Date.parse(status.refreshed_at))
+                      ? formatDate(status.refreshed_at)
+                      : null,
+                    isStale(status.refreshed_at, mountedAt)
+                      ? STALE_HOURS
                       : null,
                   )}{' '}
                 </>

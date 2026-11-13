@@ -22,16 +22,24 @@ export const PHONE_CAP = 4
  * @param {string} [props.className] - Classes for the `<ul>`.
  * @param {string} [props.label] - What the button is for, as its accessible
  *   name ("Show all 12 coming soon").
+ * @param {string} [props.resetKey] - Changing it closes the list again (a new
+ *   sort or a refreshed body), as PosterGrid's does.
  */
 export default function CappedList({
   items,
   children,
   className = 'next-rows',
   label,
+  resetKey = '',
 }) {
   const phone = useMediaQuery('(max-width: 34rem)')
   const cap = phone ? PHONE_CAP : DESKTOP_CAP
   const [open, setOpen] = useState(false)
+  const [seenKey, setSeenKey] = useState(resetKey)
+  if (seenKey !== resetKey) {
+    setSeenKey(resetKey)
+    setOpen(false)
+  }
   const listId = useId()
   const button = useRef(null)
   const capped = items.length > cap

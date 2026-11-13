@@ -218,7 +218,9 @@ function Tiles({ item, detail }) {
         {item.rating ? (
           <dd>
             <Rating rating={item.rating} size="large" />
-            <span className="muted">{ITEM.outOfTen}</span>
+            <span className="muted" aria-hidden="true">
+              {ITEM.outOfTen}
+            </span>
           </dd>
         ) : (
           <dd className="muted">Not rated</dd>

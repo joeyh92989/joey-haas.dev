@@ -256,6 +256,11 @@ describe('Item', () => {
       '★9',
     )
     expect(tiles.queryByText('9 / 10')).not.toBeInTheDocument()
+    // The Rating already names "out of 10"; the visible suffix is not read twice.
+    expect(tiles.getByText(spine.item.outOfTen)).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
     expect(tiles.getByText('93 / 100')).toBeInTheDocument()
     expect(tiles.getByText('512 votes')).toBeInTheDocument()
     expect(tiles.getByText('Finished 2 times')).toBeInTheDocument()

@@ -359,7 +359,7 @@ describe('Next', () => {
       name: spine.next.sections.buy_now,
     })
     expect(within(buy).queryAllByRole('heading', { level: 3 })).toHaveLength(0)
-    await userEvent.selectOptions(within(buy).getByRole('combobox'), 'Newest')
+    await userEvent.click(within(buy).getByRole('button', { name: 'Newest' }))
     const titles = within(buy)
       .getAllByText(/^(Old|Fresh)$/)
       .map((n) => n.textContent)
@@ -380,15 +380,16 @@ describe('Next', () => {
     localStorage.setItem('shelf.next.sort', '"newest"')
     mockNext({ data: NEXT, live: true, failed: false })
     const { unmount } = renderPage()
-    expect(
-      screen.getByRole('combobox', { name: spine.next.sortLabel }),
-    ).toHaveDisplayValue('Newest')
+    expect(screen.getByRole('button', { name: 'Newest' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
     unmount()
     localStorage.setItem('shelf.next.sort', '"price"')
     renderPage()
     expect(
-      screen.getByRole('combobox', { name: spine.next.sortLabel }),
-    ).toHaveDisplayValue(spine.next.sorts[0].label)
+      screen.getByRole('button', { name: spine.next.sorts[0].label }),
+    ).toHaveAttribute('aria-pressed', 'true')
   })
 
   // A game can be on both Switches, so the title alone is not a row's key.
@@ -432,6 +433,29 @@ describe('Next', () => {
     })
     renderPage()
     expect(screen.queryByText(/Not on cartridge/)).toBeNull()
+  })
+
+  // The jump row links to the <details>; a closed one would land on a lone
+  // summary line.
+  it('opens Not on cartridge when its hash is the page’s, at load and on a jump', async () => {
+    window.location.hash = '#next-not_on_cartridge'
+    mockNext({ data: NEXT, live: true, failed: false })
+    const first = renderPage()
+    expect(
+      first.container.querySelector('#next-not_on_cartridge'),
+    ).toHaveAttribute('open')
+    first.unmount()
+
+    window.location.hash = ''
+    renderPage()
+    const details = document.querySelector('#next-not_on_cartridge')
+    expect(details).not.toHaveAttribute('open')
+    act(() => {
+      window.location.hash = '#next-not_on_cartridge'
+      window.dispatchEvent(new HashChangeEvent('hashchange'))
+    })
+    expect(details).toHaveAttribute('open')
+    window.location.hash = ''
   })
 
   it('shows stale data when the live call failed after a snapshot', () => {
@@ -535,7 +559,7 @@ describe('Next', () => {
     mockNext({ data: NEXT, live: true, failed: false })
     renderPage()
     expect(
-      screen.getByRole('combobox', { name: spine.next.sortLabel }),
+      screen.getByRole('group', { name: spine.next.sortLabel }),
     ).toBeInTheDocument()
   })
 })

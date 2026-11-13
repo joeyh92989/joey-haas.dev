@@ -6182,12 +6182,16 @@ a.month-bar::before {
 
 .next-section {
   margin-top: 2rem;
-  /* Under the sticky jump row. */
-  scroll-margin-top: 3.5rem;
+}
+
+/* The jump links point at the headings, so the margin sits on them (a scroll
+   margin on the section would not apply): clear of the sticky jump row. */
+.next-section h2 {
+  scroll-margin-top: calc(3.5rem + env(safe-area-inset-top, 0px));
 }
 
 .next-skip {
-  scroll-margin-top: 3.5rem;
+  scroll-margin-top: calc(3.5rem + env(safe-area-inset-top, 0px));
 }
 
 /* The heading and, beside it, the section's one control (In stores now'
@@ -9070,7 +9074,7 @@ a.cover-tile:focus-visible {
 /* Pick for me (Pick for me spec): the band on What's next. */
 .pick-for-me {
   margin-block: 2rem;
-  scroll-margin-top: 3.5rem;
+  scroll-margin-top: calc(3.5rem + env(safe-area-inset-top, 0px));
 }
 
 .pick-empty {

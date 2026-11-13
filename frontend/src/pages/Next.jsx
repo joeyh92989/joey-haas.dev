@@ -154,7 +154,12 @@ function Rows({ rows, section, topPicks = 0, label }) {
     if (row.top_pick && badged.size < topPicks) badged.add(index)
   })
   return (
-    <CappedList items={rows} className="next-rows next-rows-cols" label={label}>
+    <CappedList
+      items={rows}
+      className="next-rows next-rows-cols"
+      label={label}
+      resetKey={rows.map(rowKey).join('|')}
+    >
       {(row, index) => (
         <NextRow
           key={rowKey(row, index)}
@@ -681,6 +686,27 @@ export default function Next() {
   const pickTableValid =
     Boolean(data) && isValidSnapshot('pick-for-me', pickTable)
   const jumps = data ? jumpItems(data, pickTableValid) : []
+  const [skipOpen, setSkipOpen] = useState(false)
+  const hasSkip = Boolean(data && data.not_on_cartridge.length > 0)
+
+  // A link to Not on cartridge (the jump row's, or a shared URL) opens the
+  // disclosure and lands on what is in it; a closed one would show a lone
+  // summary line.
+  useEffect(() => {
+    if (!hasSkip) return
+    function openIfTargeted() {
+      if (window.location.hash !== '#next-not_on_cartridge') return
+      setSkipOpen(true)
+      requestAnimationFrame(() =>
+        document
+          .getElementById('next-not_on_cartridge')
+          ?.scrollIntoView?.({ block: 'start' }),
+      )
+    }
+    openIfTargeted()
+    window.addEventListener('hashchange', openIfTargeted)
+    return () => window.removeEventListener('hashchange', openIfTargeted)
+  }, [hasSkip])
 
   /** Refetches the live body; true when it arrived. */
   async function refresh() {
@@ -763,7 +789,12 @@ export default function Next() {
             />
           </Section>
           {data.not_on_cartridge.length > 0 && (
-            <details className="next-skip" id="next-not_on_cartridge">
+            <details
+              className="next-skip"
+              id="next-not_on_cartridge"
+              open={skipOpen}
+              onToggle={(event) => setSkipOpen(event.currentTarget.open)}
+            >
               <summary>
                 {copy.sections.not_on_cartridge} ({data.not_on_cartridge.length}
                 )

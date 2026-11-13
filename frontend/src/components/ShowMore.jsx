@@ -4,7 +4,9 @@ const copy = spine.shelf
 
 /**
  * The paging row under a grid: "Showing 28 of 119", Show 28 more, Show all.
- * Renders nothing once everything is shown.
+ * Renders nothing once everything is shown. The "Showing" text is not a live
+ * region: the result count above the grid already announces each filter
+ * change, and focus moving to the first revealed card announces a page.
  *
  * @param {object} props
  * @param {number} props.shown - How many are on the page now.
@@ -17,7 +19,7 @@ export default function ShowMore({ shown, total, step, onMore, onAll }) {
   if (shown >= total) return null
   return (
     <div className="pager">
-      <span aria-live="polite">{copy.showing(shown, total)}</span>
+      <span>{copy.showing(shown, total)}</span>
       <button type="button" className="chip" onClick={onMore}>
         {copy.showMore(Math.min(step, total - shown))}
       </button>

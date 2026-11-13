@@ -100,6 +100,7 @@ export default function ShelfToolbar({
               seed={seed}
               onChange={onSortChange}
               onShuffle={onShuffle}
+              select
               hideLabel
             />
             <div

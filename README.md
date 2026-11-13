@@ -1043,7 +1043,7 @@ detail and next models' field sets.
 | `GET /api/public/diary?year=` | The play journal for a year, public games only and never the note (`PublicDiaryEntry`) |
 | `GET /api/public/status` | The shelf's status strip: when the catalogue last refreshed and how big it is; `Cache-Control: max-age=300` |
 | `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge`, `comics_this_week` (see below) |
-| `GET /api/public/pick-for-me` | Pick for me on What's next: every size and mood combination's top three, precomputed (see below) |
+| `GET /api/public/pick-for-me` | Pick for me on What's next: every size and mood combination's top four, precomputed (see below) |
 | `GET /api/public/comics` | `/shelf/comics`: public series with their runs, the shelf's figures, and `this_week` (the weeks ahead and the undated series under Later); never `issues_skipped`, a price or a store |
 | `GET /api/public/spots` | `/denver`: published spots (`PublicSpot`: `spot_id`, name, slug, neighbourhood, tags, blurb, lat, lng), by neighbourhood then name; never an anchor, a visit or a distance; uncached |
 | `GET /api/public/site-stats` | `/stats`: the analytics summary (`backend/analytics_routes.py`) for the last thirty days (`thirty`) and since launch (`all`), reduced for the public: a referrer host is named only when it is on `analytics.PUBLIC_REFERRER_DOMAINS` and has five visitors, every other host folds into `referrers_other`; a private item's page is never listed; no best-day referrer, lists capped at ten; cached for an hour on the cache the admin read shares, `Cache-Control: max-age=300` |
@@ -1074,8 +1074,10 @@ today's UTC midnight.
 - `games`: cards keyed by `item_id` (`title`, `cover_url`, `platform`,
   `time_to_beat_hours`, `igdb_url`, `reasons`).
 - `combos`: every key `<size>|<moods sorted, +-joined>` (`any|` for no
-  mood) to up to three `{item_id, score, terms}`, best first. A combination
-  nothing fits is an empty list, never a missing key.
+  mood) to up to four `{item_id, score, terms}`, best first. Four, not three:
+  the page shows three and leaves out Tonight's lead, so a combination whose
+  top three holds the lead still fills the row. A combination nothing fits is
+  an empty list, never a missing key.
 
 Unlike `/next` it publishes `score`: the card shows its working.
 `test_public_pick_for_me.py` pins the fields and walks the body for every
