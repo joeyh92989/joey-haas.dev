@@ -9,7 +9,8 @@ import { Link } from 'react-router'
  *
  * @param {object} props
  * @param {{label: string, to?: string}[]} props.trail - Root first, the
- *   current page last.
+ *   current page last. A last item with a `to`
+ *   is a link, not the current page (the trail of a page still loading).
  * @param {string} [props.label] - The nav's accessible name.
  */
 export default function Breadcrumb({ trail, label = 'Breadcrumb' }) {
@@ -18,7 +19,7 @@ export default function Breadcrumb({ trail, label = 'Breadcrumb' }) {
     <nav aria-label={label} className="crumbs">
       <ol>
         {trail.map((crumb, i) =>
-          i === last ? (
+          i === last && !crumb.to ? (
             <li key={i} aria-current="page">
               {crumb.label}
             </li>
