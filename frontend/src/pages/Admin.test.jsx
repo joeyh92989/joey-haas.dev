@@ -462,7 +462,7 @@ describe('Admin Home', () => {
     stubApi()
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    expect(await within(panel).findAllByRole('listitem')).toHaveLength(10)
+    expect(await within(panel).findAllByRole('listitem')).toHaveLength(11)
     expect(within(panel).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
       'href',
       '/admin/jobs',

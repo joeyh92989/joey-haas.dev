@@ -88,9 +88,21 @@ async function intakeRun() {
   }
 }
 
+/** The comic issue sync's last run, or null when it cannot be read. */
+async function comicsRun() {
+  try {
+    const response = await apiFetch('/api/comics/status')
+    if (!response.ok) return null
+    const body = await response.json()
+    return body?.['issues.last_run'] ?? null
+  } catch {
+    return null
+  }
+}
+
 /**
- * The catalogue status, the generate times, the Denver, Closet and intake jobs' runs and the
- * snapshot's build time.
+ * The catalogue status, the generate times, the Denver, Closet, intake and
+ * comic issue jobs' runs and the snapshot's build time.
  * Never rejects. A status that cannot be read leaves `status` null, and the
  * jobs list says so rather than reading as a stopped schedule.
  */
@@ -102,6 +114,7 @@ export async function loadNightly() {
   let spots = null
   let closet = null
   let intake = null
+  let comics = null
   try {
     const response = await apiFetch('/api/physical/status')
     // Any answer means the server is up; only a failed request is unreachable.
@@ -111,18 +124,21 @@ export async function loadNightly() {
       // Not a status document: no jobs rather than "may have stopped".
       if (Array.isArray(body?.sources)) {
         status = body
-        const [times, runs, closetRun, intakeLast] = await Promise.all([
-          apiFetch('/api/recommendations/store-list')
-            .catch(() => null)
-            .then(generatedAt),
-          spotsRuns(),
-          closetRuns(),
-          intakeRun(),
-        ])
+        const [times, runs, closetRun, intakeLast, comicsLast] =
+          await Promise.all([
+            apiFetch('/api/recommendations/store-list')
+              .catch(() => null)
+              .then(generatedAt),
+            spotsRuns(),
+            closetRuns(),
+            intakeRun(),
+            comicsRun(),
+          ])
         generated = times
         spots = runs
         closet = closetRun
         intake = intakeLast
+        comics = comicsLast
       }
     }
   } catch {
@@ -135,6 +151,7 @@ export async function loadNightly() {
     spots,
     closet,
     intake,
+    comics,
     snapshotAt: (await meta)?.fetched_at,
   }
 }
@@ -169,6 +186,7 @@ export function useNightly() {
         nightly.spots,
         nightly.closet,
         nightly.intake,
+        nightly.comics,
       )
     : null
   return {

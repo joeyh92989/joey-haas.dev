@@ -1,5 +1,13 @@
 # Learnings
 
+### 2026-11-13 · lesson · A by-hand deploy step needs a visible check
+#173's deploy order said to run the sync by hand after merging; it merged 27 minutes after that night's nightly had started, nobody ran it, and the table stayed empty for a day with nothing on the Jobs page. Any job a deploy order relies on gets a Jobs row, so a run that never happened reads "No run recorded".
+docs/planning/2026-11-13-comic-issue-sync-design.md
+
+### 2026-11-13 · lesson · The API has no build signal
+The Ship "live when" check cannot tell the old backend from the new one for a change with no new route; a commit field on `/api/public/status` would.
+PR #218
+
 ### 2026-11-12 · decision · Admin browser tests sign in through a local-only test route
 Chose a `POST /api/auth/test-login` mounted only with `E2E_TEST_LOGIN=1`, refused at config load unless `FRONTEND_URL` is localhost, over minting Starlette's cookie in Node (couples tests to the cookie format and the secret) or mocking every `/api` call (tests mocks, not the API). The admin suite runs locally against its own `joeyhaas_e2e` database; CI runs it later.
 docs/planning/2026-11-12-admin-e2e-design.md
@@ -29,7 +37,7 @@ docs/planning/2026-11-12-playwright-e2e-design.md
 PR #175 · docs/planning/2026-11-12-closet-walkthrough-plan.md
 
 ### 2026-11-12 · lesson · A `pgrep -f pytest` guard matches its own shell
-Guards meant to wait for another worktree's pytest (the local test DB is shared) matched their own command line and never waited, so two runs overlapped and a preflight showed two false failures. Match the interpreter, e.g. `pgrep -f '[.]venv/bin/python.*pytest'`, or serialise runs another way.
+Guards meant to wait for another worktree's pytest (the local test DB is shared) matched their own command line and never waited, so two runs overlapped and a preflight showed two false failures. Match the interpreter, e.g. `pgrep -f '[.]venv/bin/python.*pytest'`, or serialise runs another way. Update 2026-11-13: on macOS the venv's python runs as `Python.app`, so that pattern never matches either and two suites overlapped again; use `ps aux | grep '[p]ytest'`.
 docs/planning/2026-11-12-admin-walkthrough-plan.md
 
 ### 2026-11-12 · lesson · A client-side state guard cannot see a server-side claim

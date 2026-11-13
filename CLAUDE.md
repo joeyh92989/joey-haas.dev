@@ -429,6 +429,20 @@ before pushing.
       (PR C), and Review at `/admin/closet/review` with the Sunday opinion
       (PR D). Migration `0014` (PR B); Review needs none. Spec and plan:
       `docs/planning/2026-11-09-outfit-design.md`
+- Shelf sweep queue (`docs/planning/2026-11-12-shelf-sweep-queue.md`,
+  findings in `2026-11-12-shelf-design-sweep.md`), in pickup order:
+  - [x] 1. Comic issue sync: find out why it is empty, run it, and show a
+        failed sync on `/admin/jobs`
+  - [ ] 2. Design rules file (`docs/design-system.md`) and feature status
+        list
+  - [ ] 3. Split the shelf by type: Games at `/shelf/games`, Comics, and
+        their admin twins
+  - [ ] 4. Delete, bulk delete, redo, and discard an empty sitting
+  - [ ] 5. Comics: the book is what you own (5a intake reads the issue
+        number, 5b ownership on the issue row, 5c one place to edit and a
+        comic edit page)
+  - [ ] 6. Data clean-up of the 11–12 Nov rows and comic backfill (Joey's)
+  - [ ] 7. Tags: a curated set per type
 
 ## Ship
 
@@ -839,7 +853,10 @@ before pushing.
   `POST /api/comics/issues/sync?budget=` is in `JOB_ROUTES`: stalest series
   first, budget 1 to 190 requests (default 120). The same sync runs on
   Follow and Want create and on "Refresh from Comic Vine" (budget 1: one page of up to 100 issues, the
-  nightly finishes longer runs). An
+  nightly finishes longer runs). Each run of the
+  sync is a `catalogue_runs` row (source `comic_issues`), read by `GET
+  /api/comics/status` (admin only, not in `JOB_ROUTES`) for the Jobs page's
+  Comic issues row. An
   edition links to its Comic Vine issue by `cv_id` (`GET
   /api/comics/issues/search`, `PUT /api/comics/{id}/editions/{slug}/link`);
   an edit that changes the edition's range changes its slug and unlinks it.
