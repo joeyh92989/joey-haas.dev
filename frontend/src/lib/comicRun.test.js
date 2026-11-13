@@ -412,6 +412,23 @@ describe('cardLines', () => {
       lanes: true,
     })
   })
+
+  it('never calls a zero-owned row complete when `missing` is absent (older snapshot)', () => {
+    const old = { ...row }
+    delete old.missing
+    expect(
+      cardLines(
+        {
+          ...old,
+          owned: 0,
+          released: 5,
+          ongoing: false,
+          segments: [{ kind: 'missing', length: 5 }],
+        },
+        date,
+      ).status,
+    ).toBe('5 missing')
+  })
 })
 
 describe('seriesGrowth', () => {

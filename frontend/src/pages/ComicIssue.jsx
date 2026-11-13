@@ -127,7 +127,9 @@ export default function ComicIssue({ id, n }) {
       : held
         ? COPY.read.notYet
         : COPY.read.none
-  const kicker = [page.series_title, page.publisher].filter(Boolean).join(' · ')
+  // The series is in the trail and the title; the kicker names the publisher.
+  const kicker = page.publisher
+  const upcoming = page.state === 'not-out'
 
   return (
     <article className="comic-issue">
@@ -162,15 +164,15 @@ export default function ComicIssue({ id, n }) {
             type="comic"
             alt={COPY.coverAlt(page.series_title, page.number)}
             priority
-            unowned={!held}
+            unowned={!held && !upcoming}
             number={page.number}
           />
-          {!held && (
+          {!held && !upcoming && (
             <p className="comic-issue-cover-caption">{COPY.notOwned}</p>
           )}
         </div>
         <div className="comic-issue-text">
-          <p className="item-kicker">{kicker}</p>
+          {kicker && <p className="item-kicker">{kicker}</p>}
           <h1>
             {page.series_title} #{page.number}
             {page.name ? ` · ${page.name}` : ''}

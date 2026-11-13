@@ -374,10 +374,13 @@ export function cardLines(row, formatDate) {
       lanes: false,
     }
   }
+  // A row from an older snapshot may lack `missing`; with nothing owned,
+  // every issue out is missing, so it can never read as complete.
+  const missing = row.missing ?? (row.owned ? 0 : row.released)
   let status
   if (row.next_issue)
     status = `Next #${row.next_issue.number} · ${formatDate(row.next_issue.store_date)}`
-  else if (row.missing > 0) status = `${row.missing} missing`
+  else if (missing > 0) status = `${missing} missing`
   else status = row.ongoing ? 'Up to date' : 'Complete run'
 
   let reading

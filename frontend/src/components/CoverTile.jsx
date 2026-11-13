@@ -53,7 +53,8 @@ export default function CoverTile({ tile, size, series, current = false }) {
       aria-label={WALL.tileName(series.title, tile.n, WALL.names[tile.state])}
     >
       <span className="cover-tile-frame">
-        <CoverImage src={tile.cover_url} type="comic" alt="" number={tile.n} />
+        {/* No `number`: the caption below already names it. */}
+        <CoverImage src={tile.cover_url} type="comic" alt="" />
         {tile.state === 'read' && (
           <span className="cover-tile-tick" aria-hidden="true">
             ✓

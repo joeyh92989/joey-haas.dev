@@ -23,6 +23,13 @@ function show(tile, props = {}) {
 }
 
 describe('CoverTile', () => {
+  it('shows the issue number once when the cover is missing', () => {
+    const { container } = show(cover({ cover_url: null }))
+    expect(container.querySelector('.cover-placeholder')).not.toBeNull()
+    expect(container.querySelector('.cover-nocover')).toBeNull()
+    expect(screen.getAllByText('#58')).toHaveLength(1)
+  })
+
   it('is a link named for the series, number and state, over a decorative image', () => {
     const { container } = show(cover())
     const link = screen.getByRole('link', { name: 'Saga #58, Missing' })

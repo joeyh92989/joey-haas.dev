@@ -178,7 +178,17 @@ describe('ComicIssue, public', () => {
       'src',
       'https://example.test/58.jpg',
     )
-    expect(screen.getByText('Saga · Image')).toBeInTheDocument()
+    // The series is in the trail and the title, so the kicker is the publisher.
+    expect(screen.getByText('Image')).toHaveClass('item-kicker')
+  })
+
+  it('does not dim an upcoming issue or call it not owned', async () => {
+    stubApi({ page: { state: 'not-out', held_as: 'Not out yet' } })
+    renderIssue()
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByText(COPY.notOwned)).toBeNull()
+    expect(document.querySelector('.cover[data-unowned]')).toBeNull()
+    expect(screen.getAllByText('Not out yet').length).toBeGreaterThan(0)
   })
 
   it('leaves the name out when Comic Vine has none', async () => {
