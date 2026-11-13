@@ -248,7 +248,7 @@ describe('PlayNext', () => {
         exclude: [],
       }),
     )
-    expect(screen.queryByRole('group', { name: 'Mood' })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Vibe' })).toBeNull()
     expect(screen.queryByRole('group', { name: 'Platform' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Comic' })).toHaveAttribute(
       'aria-pressed',
@@ -382,11 +382,11 @@ describe('PlayNext', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Cozy' }))
     expect(
-      await screen.findByText('Nothing on the shelf matches those moods.'),
+      await screen.findByText('Nothing on the shelf matches those vibes.'),
     ).toBeInTheDocument()
 
     await userEvent.click(
-      screen.getByRole('button', { name: 'Try without moods' }),
+      screen.getByRole('button', { name: 'Try without vibes' }),
     )
 
     await waitFor(() => expect(pickRequests(mock).at(-1).moods).toEqual([]))

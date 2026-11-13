@@ -7503,7 +7503,7 @@ main h1[tabindex='-1']:focus,
   width: 2.25rem;
 }
 
-/* ---- How it works (/spine/how): the tour's primitives ---- */
+/* ---- Tour (/shelf/how): the tour's primitives ---- */
 
 .tour-live {
   background: var(--surface);
@@ -7702,7 +7702,7 @@ main h1[tabindex='-1']:focus,
   text-align: right;
 }
 
-/* ---- How it works (/spine/how): the page ---- */
+/* ---- Tour (/shelf/how): the page ---- */
 
 .tour-title {
   margin: 1.75rem 0 0.625rem;
@@ -10363,7 +10363,7 @@ a.cover-tile:focus-visible {
   }
 }
 
-/* ---------- Daily puzzle (Shelfle) ---------- */
+/* ---------- Daily game (code name Shelfle) ---------- */
 
 /* The board is a table; the cells are the grid. Five columns, the title
    wider, every attribute cell the same width. */

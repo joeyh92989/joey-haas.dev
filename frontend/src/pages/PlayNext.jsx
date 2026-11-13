@@ -524,7 +524,7 @@ export default function PlayNext() {
           ))}
         </div>
         {type === 'game' && (
-          <div className="chip-row" role="group" aria-label="Mood">
+          <div className="chip-row" role="group" aria-label="Vibe">
             {MOODS.map(([value, label]) => (
               <Chip
                 key={value}
@@ -562,9 +562,9 @@ export default function PlayNext() {
       {result && picks.length === 0 ? (
         moods.length > 0 ? (
           <div className="play-next-empty">
-            <p>Nothing on the shelf matches those moods.</p>
+            <p>Nothing on the shelf matches those vibes.</p>
             <button type="button" onClick={() => change(setMoods)([])}>
-              Try without moods
+              Try without vibes
             </button>
           </div>
         ) : (

@@ -32,7 +32,7 @@ export const denver = {
   page: {
     path: '/denver',
     title: 'Denver, the short list',
-    lede: 'Places I keep sending people to. Coffee, parks, somewhere dry for a kid on a snow day, and the ones you can ride to. Downtown and the near north side; no reservations, no sponsorships.',
+    lede: 'Places I keep sending people to. Coffee, parks, somewhere dry for a kid on a snow day, and the ones you can ride to. Downtown and the near north side. Nothing here is sponsored.',
     description:
       'Places in downtown Denver and the near north side that Joey Haas keeps sending people to: coffee, parks, somewhere dry for a kid on a snow day, and the ones you can ride to.',
     mapLabel: (count) =>
@@ -46,7 +46,7 @@ export const denver = {
     sorted: 'sorted by neighborhood',
     offMap: 'Off the map',
     noMatch: 'No spot has all of those tags.',
-    empty: 'No spots yet.',
+    empty: 'Coming soon. No spots on the list yet.',
   },
   admin: {
     title: 'Spots',

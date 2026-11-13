@@ -101,7 +101,7 @@ const TITLES = [
   ['/colophon', 'Colophon · Joey Haas'],
   ['/stats', 'Stats · Joey Haas'],
   ['/denver', 'Denver, the short list · Joey Haas'],
-  ['/daily', 'Daily · My Shelf'],
+  ['/daily', 'Daily game · My Shelf'],
   ['/blog', 'Blog · Joey Haas'],
   ['/shelf', 'My Shelf · Joey Haas'],
   ['/nonsense-path', 'Not found · Joey Haas'],
@@ -139,7 +139,7 @@ const TITLES = [
   ['/shelf/comics', 'Comics · My Shelf'],
   ['/shelf/intake', 'Try the intake · My Shelf'],
   ['/shelf/next', 'What’s next · My Shelf'],
-  ['/shelf/how', 'How it works · My Shelf'],
+  ['/shelf/how', 'Tour · My Shelf'],
   ['/shelf/year/2025', '2025 in review · My Shelf'],
   ['/shelf/journal/2026-10', 'October 2026 · My Shelf'],
   // Redirects to this calendar year's page.

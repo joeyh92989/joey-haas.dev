@@ -264,7 +264,7 @@ export default function AdminRadar() {
     <section className="radar">
       <AdminPageHeader
         title="Radar"
-        description="Upcoming physical releases and open pre-orders from the catalog, ranked by your taste profile."
+        description="Upcoming physical releases and open pre-orders from the sources, ranked by your taste profile."
       >
         <button
           type="button"
@@ -288,7 +288,7 @@ export default function AdminRadar() {
         <span className="muted">
           Generated {ago(radar?.generated_at)} ·{' '}
           <Link to="/admin/catalogue">
-            Catalog refreshed {ago(radar?.catalogue?.stores_at)} →
+            Sources refreshed {ago(radar?.catalogue?.stores_at)} →
           </Link>
         </span>
       </div>
@@ -335,7 +335,7 @@ export default function AdminRadar() {
 
       <h2>Suggested</h2>
       {nothing && (
-        <p className="muted">Nothing yet. Generate to read the catalog.</p>
+        <p className="muted">Nothing yet. Generate to read the sources.</p>
       )}
       {byMonth(sections.suggested, localToday()).map(([group, rows]) => (
         <section key={group} aria-label={group}>

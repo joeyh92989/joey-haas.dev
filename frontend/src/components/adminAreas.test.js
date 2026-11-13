@@ -77,7 +77,7 @@ describe('ADMIN_AREAS', () => {
     const runs = shelf.pages
       .map((page) => page.group)
       .filter((group, i, all) => group !== all[i - 1])
-    expect(runs).toEqual(['Collection', 'Recommend', 'Catalogue'])
+    expect(runs).toEqual(['Collection', 'Recommend', 'Data'])
   })
 })
 

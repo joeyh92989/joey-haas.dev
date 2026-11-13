@@ -64,7 +64,6 @@ export default function SortControl({
   const asSelect = select || phone
   const isRandom = value === 'random'
   const words = copy.directions[value]
-  // copy: pending voice review
   const wording = words
     ? words[direction === 'asc' ? 1 : 0]
     : direction === 'asc'
@@ -123,7 +122,6 @@ export default function SortControl({
           <button
             type="button"
             className="chip sort-direction"
-            // copy: pending voice review
             aria-label={`Order: ${wording}`}
             onClick={flip}
           >

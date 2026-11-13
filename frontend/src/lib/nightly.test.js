@@ -431,7 +431,7 @@ describe('nightlyJobs', () => {
     ).catalog
     expect(catalog.state).toBe('stale')
     expect(catalog.stopped).toBe(true)
-    expect(catalog.summary).toBe('No catalog run yet')
+    expect(catalog.summary).toBe('Sources haven’t run yet')
   })
 
   it('reads a missing meta.json, or a missing generate, as unknown', () => {

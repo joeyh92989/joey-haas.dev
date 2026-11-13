@@ -24,7 +24,7 @@ describe('SpineTabs', () => {
     renderTabs()
     expect(screen.queryByRole('link', { name: 'Comics' })).toBeNull()
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual(
-      ['Collection', 'What’s next', 'Year in review', 'How it works', 'Daily'],
+      ['Collection', 'What’s next', 'Year in review', 'Tour', 'Daily game'],
     )
   })
 

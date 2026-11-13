@@ -157,7 +157,7 @@ export default function SpotForm({ spot, onSaved, onCancel }) {
           {denver.form.coordsHint}
         </p>
       </div>
-      <label htmlFor={`${id}-hood`}>Neighbourhood</label>
+      <label htmlFor={`${id}-hood`}>Neighborhood</label>
       <input
         id={`${id}-hood`}
         value={neighbourhood}

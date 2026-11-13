@@ -9,8 +9,6 @@ describe('projects', () => {
       to: '/shelf/intake',
       label: intake.title,
     })
-    expect(labels.indexOf(intake.title)).toBe(
-      labels.indexOf('How it works') + 1,
-    )
+    expect(labels.indexOf(intake.title)).toBe(labels.indexOf('Tour') + 1)
   })
 })

@@ -5,8 +5,8 @@ tags: [render, static-sites]
 ---
 
 On a Render static site, a build that writes `dist/about/index.html` gets it
-served at `/about/`, but not at `/about`: without the slash, the SPA's `/*`
-catch-all wins, and the page goes out with the site's generic head (title,
+served at `/about/`, but not at `/about`: without the slash, the SPA’s `/*`
+catch-all wins, and the page goes out with the site’s generic head (title,
 description, link preview) instead of its own.
 
 The fix is one rewrite per page, listed ahead of the catch-all:

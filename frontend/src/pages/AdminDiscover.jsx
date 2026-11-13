@@ -70,7 +70,7 @@ export function emptyWords(discover, emptyNote) {
   if (emptyNote) return `Nothing to pick: ${emptyNote}.`
   if (discover?.generated_at)
     return 'Nothing left to answer. Generate for more.'
-  return 'Nothing yet. Generate to read the catalog.'
+  return 'Nothing yet. Generate to read the sources.'
 }
 
 function Choice({ legend, name, options, value, onChange }) {
@@ -243,7 +243,7 @@ export default function AdminDiscover() {
     <section className="radar discover">
       <AdminPageHeader
         title="Discover"
-        description="Released physical games on your platforms that fit your taste and aren’t on your shelf, picked from the catalog."
+        description="Released physical games on your platforms that fit your taste and aren’t on your shelf, picked from the sources."
       >
         <button
           type="button"

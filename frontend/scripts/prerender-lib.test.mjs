@@ -95,7 +95,7 @@ describe('publicRoutes', () => {
   it('titles pages the way the app does', () => {
     expect(routeAt(routes, '/about').title).toBe('About · Joey Haas')
     expect(routeAt(routes, '/shelf/next').title).toBe('What’s next · My Shelf')
-    expect(routeAt(routes, '/shelf/how').title).toBe('How it works · My Shelf')
+    expect(routeAt(routes, '/shelf/how').title).toBe('Tour · My Shelf')
     expect(routeAt(routes, '/shelf/comics').title).toBe('Comics · My Shelf')
     expect(routeAt(routes, '/shelf/intake').title).toBe(
       'Try the intake · My Shelf',
@@ -426,7 +426,7 @@ describe('legacyRoutes', () => {
   })
   const legacy = legacyRoutes(routes)
 
-  it('writes the shelf, What’s next, How it works and items at /spine', () => {
+  it('writes the shelf, What’s next, the tour and items at /spine', () => {
     expect(legacy.map((route) => route.path)).toEqual([
       LEGACY_PREFIX,
       `${LEGACY_PREFIX}/next`,

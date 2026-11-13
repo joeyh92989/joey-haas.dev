@@ -489,7 +489,7 @@ export default function AdminCatalogue() {
       <section>
         <AdminPageHeader title="Sources" />
         <p>
-          <Link to="/admin">Sign in</Link> to see the catalog.
+          <Link to="/admin">Sign in</Link> to see the sources.
         </p>
       </section>
     )
@@ -568,7 +568,7 @@ export default function AdminCatalogue() {
 
       {status && (
         <>
-          <StatTiles label="Catalog totals">
+          <StatTiles label="Source totals">
             {TOTAL_LABELS.map(([key, label]) => (
               <StatTile
                 key={key}

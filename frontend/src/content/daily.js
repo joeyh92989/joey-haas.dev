@@ -1,16 +1,16 @@
 import { spine } from './spine.js'
 
 /**
- * Every word on /daily, the Shelfle puzzle (daily puzzle spec). Grading
+ * Every word on /daily, the daily game, code name Shelfle (daily puzzle spec). Grading
  * rules live in lib/daily.js; this is only what the page says.
  */
 export const daily = {
   path: '/daily',
-  name: 'Shelfle',
-  title: 'Daily',
+  name: 'Daily game',
+  title: 'Daily game',
   /** The one line under the shelf's hero numbers. */
-  entry: 'Today’s Shelfle →',
-  headTitle: `Daily · ${spine.name}`,
+  entry: 'Today’s daily game →',
+  headTitle: `Daily game · ${spine.name}`,
   description:
     'One small game a day, built from what is on my shelf: guess the game in six, each guess graded on platform, year, genre and size. The same puzzle for everyone, new at midnight Denver time, no account.',
   lede: 'One small game a day, built from what’s on the shelf. Same puzzle for everyone, new at midnight Denver time, no account.',
@@ -60,7 +60,7 @@ export const daily = {
   },
   yesterday: 'Yesterday’s answer:',
   soon: (date) =>
-    `The first Shelfle opens on ${date}, at midnight Denver time.`,
+    `The first daily game opens on ${date}, at midnight Denver time.`,
   empty:
     'No puzzle today. The shelf snapshot is missing, so there is nothing to guess from.',
   announce: {

@@ -204,7 +204,7 @@ describe('PickForMe', () => {
       'false',
     )
     expect(document.querySelector('.pick-note')).toHaveTextContent(
-      'Two moods at most',
+      'Two vibes at most',
     )
     await user.click(screen.getByRole('button', { name: 'Story' }))
     expect(document.querySelector('.pick-note')).toHaveTextContent('')

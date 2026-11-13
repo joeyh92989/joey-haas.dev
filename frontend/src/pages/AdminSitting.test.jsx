@@ -1651,7 +1651,7 @@ describe('AdminSitting waits (#160)', () => {
       await vi.advanceTimersByTimeAsync(195_000)
     })
     expect(screen.getByRole('alert')).toHaveTextContent(
-      "The reader didn't answer in time; try again.",
+      'The reader didn’t answer in time. Try again.',
     )
     const asked = api.fetch.mock.calls.filter(([url]) =>
       /\/read-next$/.test(String(url)),

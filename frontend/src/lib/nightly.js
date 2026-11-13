@@ -185,11 +185,11 @@ export function nightlyJobs(
   const builtAt = parsed(snapshotAt)
   let catalogue = 'Registries, stores and matching'
   if (summary.failed.length) catalogue = `Failed: ${summary.failed.join(', ')}`
-  else if (summary.catalogueAt === null) catalogue = 'No catalog run yet'
+  else if (summary.catalogueAt === null) catalogue = 'Sources haven’t run yet'
   return [
     {
       key: 'catalog',
-      label: 'Catalog refresh',
+      label: 'Sources refresh',
       at: summary.catalogueAt,
       summary: catalogue,
       state: summary.failed.length ? 'failed' : summary.stale ? 'stale' : 'ok',

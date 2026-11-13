@@ -98,7 +98,7 @@ function Colour({ label, name, hex, onName, onHex }) {
   return (
     <div className="garment-colour">
       <label>
-        <span className="garment-field-label">{label} colour</span>
+        <span className="garment-field-label">{label} color</span>
         <input
           type="text"
           value={name}

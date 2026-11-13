@@ -1,4 +1,5 @@
 import joeyPhoto from '../assets/joey.jpg'
+import ContactLine from '../components/ContactLine.jsx'
 import Kicker from '../components/Kicker.jsx'
 import { certifications, education } from '../content/education.js'
 import { experience } from '../content/experience.js'
@@ -132,6 +133,8 @@ export default function About() {
             ))}
           </ul>
         </section>
+
+        <ContactLine downloadName="Joey Haas Resume.pdf" />
       </div>
     </div>
   )

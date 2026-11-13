@@ -2,6 +2,7 @@ import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { profile } from '../content/profile.js'
 import Home from './Home.jsx'
 
 const content = vi.hoisted(() => ({ posts: [] }))
@@ -162,5 +163,21 @@ describe('Home', () => {
     expect(rows).toHaveLength(3)
     expect(rows[2]).toHaveTextContent('2012 – 2019')
     expect(rows[2]).toHaveTextContent('MJ Freeway · Charter · iBAHN — Product')
+  })
+
+  it('ends with how to reach me, built from the profile', () => {
+    renderHome()
+    expect(screen.getByRole('link', { name: profile.email })).toHaveAttribute(
+      'href',
+      `mailto:${profile.email}`,
+    )
+    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
+      'href',
+      profile.linkedin,
+    )
+    expect(screen.getByRole('link', { name: 'PDF' })).toHaveAttribute(
+      'href',
+      '/resume.pdf',
+    )
   })
 })

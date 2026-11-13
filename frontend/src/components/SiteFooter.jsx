@@ -27,7 +27,7 @@ export default function SiteFooter({
         <p className="footer-credit">
           &copy; {new Date().getFullYear()} {profile.name} &middot;{' '}
           <a href={profile.repo}>Source</a> &middot; <Link to="/now">Now</Link>{' '}
-          &middot; <Link to="/daily">Daily</Link>{' '}
+          &middot; <Link to="/daily">Daily game</Link>{' '}
           {hasNotes && (
             <>
               &middot; <Link to="/til">TIL</Link>{' '}

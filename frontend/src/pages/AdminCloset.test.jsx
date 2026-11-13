@@ -254,17 +254,17 @@ describe('AdminCloset', () => {
         () => new Promise(() => {}),
       )
       const status = screen.getByText(/^Tagging/)
-      expect(status).toHaveTextContent('Tagging 2 photos — one batch · 0 s')
+      expect(status).toHaveTextContent('Tagging 2 photos in one batch · 0 s')
       await act(async () => {
         vi.advanceTimersByTime(29_000)
       })
-      expect(status).toHaveTextContent('Tagging 2 photos — one batch · 29 s')
+      expect(status).toHaveTextContent('Tagging 2 photos in one batch · 29 s')
       expect(screen.queryByText(/Still working/)).not.toBeInTheDocument()
       await act(async () => {
         vi.advanceTimersByTime(1000)
       })
       expect(status).toHaveTextContent(
-        'Tagging 2 photos — one batch · 30 s Still working — this can take up to two minutes.',
+        'Tagging 2 photos in one batch · 30 s Still working. This can take up to two minutes.',
       )
     })
 
@@ -272,7 +272,7 @@ describe('AdminCloset', () => {
       const many = Array.from({ length: 18 }, (_, i) => untagged(`q${i}`))
       await startTagging(many, () => new Promise(() => {}))
       expect(screen.getByText(/^Tagging/)).toHaveTextContent(
-        'Tagging 10 photos — one batch · 0 s',
+        'Tagging 10 photos in one batch · 0 s',
       )
     })
 
@@ -282,10 +282,10 @@ describe('AdminCloset', () => {
         vi.advanceTimersByTime(195_000)
       })
       const alert = screen.getByRole('alert')
-      expect(alert).toHaveTextContent(/Tagging didn't answer in time/)
+      expect(alert).toHaveTextContent(/Tagging didn’t answer in time/)
       expect(alert).toHaveClass('admin-error')
       for (const status of screen.getAllByRole('status'))
-        expect(status).not.toHaveTextContent(/didn't answer/)
+        expect(status).not.toHaveTextContent(/didn’t answer/)
     })
 
     it('shows the load error when the follow-up read fails', async () => {
@@ -309,7 +309,7 @@ describe('AdminCloset', () => {
     it('says "photo" for a single piece', async () => {
       await startTagging([untagged('e')], () => new Promise(() => {}))
       expect(screen.getByText(/^Tagging/)).toHaveTextContent(
-        'Tagging 1 photo — one batch · 0 s',
+        'Tagging 1 photo in one batch · 0 s',
       )
     })
 
@@ -320,7 +320,7 @@ describe('AdminCloset', () => {
       })
       expect(
         screen.getByText(
-          "Tagging didn't answer in time. It may still finish — reload to see.",
+          'Tagging didn’t answer in time. It may still finish, so reload to see.',
         ),
       ).toBeInTheDocument()
       expect(screen.queryByText(/Still working/)).not.toBeInTheDocument()

@@ -383,9 +383,11 @@ export function shareText(day, grades, won) {
   const rows = grades.map((row) =>
     GRADE_KEYS.map((key) => SHARE_EMOJI[row[key].state]).join(''),
   )
-  return [`Shelfle ${day} · ${score}/${MAX_GUESSES}`, ...rows, SHARE_URL].join(
-    '\n',
-  )
+  return [
+    `Daily game ${day} · ${score}/${MAX_GUESSES}`,
+    ...rows,
+    SHARE_URL,
+  ].join('\n')
 }
 
 /**

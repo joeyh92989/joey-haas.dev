@@ -152,4 +152,4 @@ CI runs the backend through `ruff`, `pytest` against a real Postgres, and `pip-a
 
 ## What’s next
 
-Since this was written, the shelf has gained a [year in review](/shelf/year) and a [guided tour](/shelf/how) of the pipeline above. Still to come: the N64 collection on its own platform, and board games once BoardGameGeek issues API tokens again. Beyond that, the thing most likely to improve Play Next isn’t code but data: every finish, rating, and abandonment sharpens the profile it scores against.
+Since this was written, the shelf has gained a [year in review](/shelf/year) and a [tour](/shelf/how) of the pipeline above. Still to come: the N64 collection on its own platform, and board games once BoardGameGeek issues API tokens again. Beyond that, the thing most likely to improve Play Next isn’t code but data: every finish, rating, and abandonment sharpens the profile it scores against.

@@ -97,7 +97,7 @@ describe('Daily', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
     const { container } = renderPage()
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Shelfle' }),
+      screen.getByRole('heading', { level: 1, name: 'Daily game' }),
     ).toBeInTheDocument()
     expect(await screen.findByText('Day 3 · 12 Nov')).toBeInTheDocument()
     expect(screen.getByText(/Guess the game on my shelf in six/)).toBeVisible()
@@ -336,7 +336,9 @@ describe('Daily', () => {
     vi.setSystemTime(new Date('2026-11-09T19:00:00Z'))
     renderPage()
     expect(
-      await screen.findByText(/The first Shelfle opens on November 10, 2026/),
+      await screen.findByText(
+        /The first daily game opens on November 10, 2026/,
+      ),
     ).toBeInTheDocument()
     expect(screen.queryByText(/No puzzle today/)).toBeNull()
     expect(screen.queryByRole('table')).toBeNull()

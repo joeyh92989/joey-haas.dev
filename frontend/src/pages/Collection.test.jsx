@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import Collection from './Collection.jsx'
+import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
 import { STALE_HOURS } from '../lib/nightly.js'
 
@@ -260,19 +261,20 @@ describe('Collection', () => {
     expect(document.querySelector('.next-band')).toBeNull()
   })
 
-  it('points to How it works under the overview, with the catalogue line', async () => {
+  it('points to Tour under the overview, with the catalogue line', async () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
 
-    const line = await screen.findByText(/Catalog 5,724 titles/)
+    const line = await screen.findByText(/Catalog of 5,724 titles/)
     expect(line).toHaveTextContent('12 stores watched')
     expect(document.getElementById('overview')).toContainElement(line)
-    expect(
-      within(line).getByRole('link', { name: 'How it works' }),
-    ).toHaveAttribute('href', '/shelf/how')
+    expect(within(line).getByRole('link', { name: 'Tour' })).toHaveAttribute(
+      'href',
+      '/shelf/how',
+    )
   })
 
-  it('links Tonight, Shelfle and the overview from the totals line', async () => {
+  it('links Tonight, the daily game and the overview from the totals line', async () => {
     stubSnapshot()
     stubApi()
     await renderReady()
@@ -366,7 +368,7 @@ describe('Collection', () => {
     vi.setSystemTime(new Date('2026-10-21T20:00:00Z'))
     stubApi({ status: STATUS_BODY })
     await renderReady()
-    const fresh = await screen.findByText(/Catalog 5,724 titles/)
+    const fresh = await screen.findByText(/Catalog of 5,724 titles/)
     expect(fresh).toHaveTextContent('refreshed October 21, 2026')
     expect(fresh).not.toHaveTextContent('not refreshed')
     cleanup()
@@ -374,9 +376,9 @@ describe('Collection', () => {
     vi.setSystemTime(new Date('2026-10-25T00:00:00Z'))
     stubApi({ status: STATUS_BODY })
     await renderReady()
-    expect(await screen.findByText(/Catalog 5,724 titles/)).toHaveTextContent(
-      spine.shelf.behindStale,
-    )
+    expect(
+      await screen.findByText(/Catalog of 5,724 titles/),
+    ).toHaveTextContent(spine.shelf.behindStale)
     expect(spine.shelf.behindStale).toContain(String(STALE_HOURS))
   })
 
@@ -403,7 +405,7 @@ describe('Collection', () => {
     expect(gridTitles()).toHaveLength(28)
   })
 
-  it("links today's Shelfle when the shelf has a game to guess", async () => {
+  it("links today's daily game when the shelf has a game to guess", async () => {
     const game = {
       ...ITEMS[0],
       id: '77',
@@ -417,21 +419,22 @@ describe('Collection', () => {
     }
     stubSnapshot({ items: [...ITEMS, game] })
     await renderReady()
-    expect(
-      screen.getByRole('link', { name: 'Today’s Shelfle →' }),
-    ).toHaveAttribute('href', '/daily')
+    expect(screen.getByRole('link', { name: daily.entry })).toHaveAttribute(
+      'href',
+      '/daily',
+    )
   })
 
-  it('has no Shelfle link when no game could be the answer', async () => {
+  it('has no daily game link when no game could be the answer', async () => {
     stubSnapshot()
     await renderReady()
-    expect(screen.queryByRole('link', { name: /Shelfle/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: daily.entry })).toBeNull()
   })
 
   it('has no axe violations on the landing', async () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
-    await screen.findByText(/Catalog 5,724 titles/)
+    await screen.findByText(/Catalog of 5,724 titles/)
 
     // The render container, like the other page tests: the page is drawn
     // without RootLayout's <main>, so the whole body has no landmarks.
@@ -1130,11 +1133,12 @@ describe('Collection header', () => {
       screen.getByText(/^A tracker for my physical game and comic collection:/),
     ).toBeInTheDocument()
     expect(screen.getByText(/^I built this myself:/)).toBeInTheDocument()
-    // The tab row has its own How it works link; this is the project line's.
+    // The tab row has its own Tour link; this is the project line's.
     const project = document.querySelector('.spine-project')
-    expect(
-      within(project).getByRole('link', { name: /How it works/ }),
-    ).toHaveAttribute('href', '/shelf/how')
+    expect(within(project).getByRole('link', { name: /Tour/ })).toHaveAttribute(
+      'href',
+      '/shelf/how',
+    )
     expect(screen.getByRole('link', { name: /Source/ })).toHaveAttribute(
       'href',
       'https://github.com/joeyh92989/joey-haas.dev',

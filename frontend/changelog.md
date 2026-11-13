@@ -6,16 +6,17 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-12
 
+- Each thing now has one name: Blog, [Daily game](/daily) and [Tour](/shelf/how). Pick for me says “vibe” instead of “mood”, [Home](/) and [About](/about) end with how to reach me, and some waiting messages are reworded.
 - The [shelf](/shelf) puts covers first, with labeled filters. [What’s next](/shelf/next) is shorter, with jump links. My rating shows one way everywhere, a star and the number, and the pages keep to two widths.
 - Every detail page now has one breadcrumb at the top. An item page labels its genres, platforms and time to beat. Comic issues I’m missing now show up. [Year in review](/shelf/year/2026) has covers, and the month journal has an index of the year.
-- [Now](/now) falls back to tonight's pick when nothing is up next, the Last shipped line on Home dates the latest change, long posts open with an On this page list, and the [intake demo](/shelf/intake) is linked from [How it works](/shelf/how) and [Projects](/projects). I also switched a few British spellings to American.
+- [Now](/now) falls back to tonight's pick when nothing is up next, the Last shipped line on Home dates the latest change, long posts open with an On this page list, and the [intake demo](/shelf/intake) is linked from [Tour](/shelf/how) and [Projects](/projects). I also switched a few British spellings to American.
 - When the server doesn’t answer, the [shelf](/shelf) pages, [Denver](/denver) and [Stats](/stats) keep their heading and say they couldn’t load instead of looking empty, and offer Try again. I also let a page wait up to 90 seconds for a sleeping server before giving up.
 - Links inside running text are now underlined, so they can be told from the words around them without relying on color.
 - Finished rows on [Year in review](/shelf/year/2026) keep their three columns when a game is marked as played again.
 - [Stats](/stats) fits a phone without sideways scrolling, the all-time figures wait until there is a month of data behind them, and the pages list names pages by title.
-- The shelf tabs stay on one row on a phone and scroll sideways, with the current tab in view, and the masthead marks My Shelf on [Daily](/daily).
-- On [Daily](/daily) the guess box now sits above the board.
-- Small layout fixes: long titles on the [intake demo](/shelf/intake) shelf get short spine labels instead of being cut off, the [Comics](/shelf/comics) numbers sit two by two on a phone, [How it works](/shelf/how) lists its nine stops three by three, and the footer stays at the bottom of short pages.
+- The shelf tabs stay on one row on a phone and scroll sideways, with the current tab in view, and the masthead marks My Shelf on [Daily game](/daily).
+- On [Daily game](/daily) the guess box now sits above the board.
+- Small layout fixes: long titles on the [intake demo](/shelf/intake) shelf get short spine labels instead of being cut off, the [Comics](/shelf/comics) numbers sit two by two on a phone, [Tour](/shelf/how) lists its nine stops three by three, and the footer stays at the bottom of short pages.
 - Comics now read as comics on their pages: Reading, Reads and Read on instead of game words.
 - The shelf copy no longer claims twelve stores, and the What it does cards now name the stop they link to.
 - Small labels and captions are now at least 12px. A few headings and figures changed size slightly to fit one scale, and the big stat numbers are a little smaller.
