@@ -12211,3 +12211,12 @@ a.btn.sm {
 .now-rss {
   margin-top: var(--space-3);
 }
+
+/* ConfirmDelete's armed line: the row's name and what goes with it. Full
+   width, so the buttons wrap beneath it in a card panel or a table cell. */
+.confirm-detail {
+  color: var(--text-2);
+  flex: 1 1 100%;
+  font-size: var(--fs-13);
+  line-height: 1.4;
+}
