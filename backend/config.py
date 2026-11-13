@@ -11,6 +11,7 @@ import logging
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 
@@ -112,6 +113,26 @@ def allowed_origins(config: Config) -> list[str]:
     return list(dict.fromkeys(origins))
 
 
+def is_local_frontend(url: str) -> bool:
+    """Whether `url` is plain http on the host localhost (any port, no userinfo).
+
+    Parsed rather than prefix-matched: "http://localhost.evil.com" and
+    "http://localhost@evil.com" both start with "http://localhost".
+    """
+    try:
+        parts = urlsplit(url)
+        hostname = parts.hostname
+        parts.port  # noqa: B018 -- raises ValueError on a malformed port
+    except ValueError:
+        return False
+    return (
+        parts.scheme == "http"
+        and hostname == "localhost"
+        and parts.username is None
+        and parts.password is None
+    )
+
+
 def _optional(source: Mapping[str, str], name: str) -> str | None:
     """A configuration value that may legitimately be absent.
 
@@ -140,10 +161,10 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
 
     frontend_url = str(source["FRONTEND_URL"]).strip().rstrip("/")
     e2e_test_login = str(source.get("E2E_TEST_LOGIN", "")).strip() == "1"
-    if e2e_test_login and not frontend_url.startswith("http://localhost"):
+    if e2e_test_login and not is_local_frontend(frontend_url):
         raise ConfigError(
             "E2E_TEST_LOGIN=1 is an auth bypass and is allowed only when "
-            "FRONTEND_URL starts with http://localhost"
+            "FRONTEND_URL is http://localhost (any port)"
         )
 
     return Config(

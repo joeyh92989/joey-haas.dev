@@ -14,7 +14,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from auth import admin_identity
 from config import Config, ConfigError, load_config
-from e2e_login import mount_e2e_login
+from e2e_login import create_e2e_login_router, mount_e2e_login
 from items import require_admin
 from origin_check import add_origin_check
 from tests.test_config import COMPLETE
@@ -69,6 +69,33 @@ def test_a_foreign_origin_is_refused():
     assert client.get("/api/guarded").status_code == 401
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://localhost.evil.com",
+        "http://localhost@evil.com",
+        "http://evil.com/?http://localhost",
+        "https://localhost",
+        "http://localhost:bad",
+    ],
+)
+def test_hostile_frontend_urls_raise(url):
+    with pytest.raises(ConfigError):
+        load_config({**COMPLETE, "FRONTEND_URL": url, "E2E_TEST_LOGIN": "1"})
+
+
+@pytest.mark.parametrize("url", ["http://localhost:4173", "http://localhost"])
+def test_local_frontend_urls_are_accepted(url):
+    config = load_config({**COMPLETE, "FRONTEND_URL": url, "E2E_TEST_LOGIN": "1"})
+    assert config.e2e_test_login is True
+
+
+def test_the_factory_refuses_a_hand_built_non_local_config():
+    config = Config(**_required(), e2e_test_login=True)
+    with pytest.raises(ConfigError):
+        create_e2e_login_router(config)
+
+
 def test_the_flag_with_a_non_localhost_frontend_raises():
     with pytest.raises(ConfigError):
         load_config({**COMPLETE, "E2E_TEST_LOGIN": "1"})
@@ -100,8 +127,9 @@ def _required():
 
 
 def test_main_mounts_through_the_guarded_helper_only():
-    """main.py builds a real engine at import, so it is read, not imported.
-    The router must be reached only through mount_e2e_login."""
+    """A tripwire, not proof of runtime behaviour. main.py builds a real engine
+    at import, so it is read, not imported; this only fails if someone edits
+    the wiring away from mount_e2e_login."""
     source = (Path(__file__).parent.parent / "main.py").read_text()
     assert "mount_e2e_login(app, config)" in source
     assert "create_e2e_login_router" not in source

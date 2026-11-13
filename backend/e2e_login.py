@@ -5,7 +5,7 @@ sign in without Google, and three independent guards keep it out of production:
 
 1. config.load_config turns it on only for E2E_TEST_LOGIN == "1" exactly, and
    refuses to load at all when that is set with a FRONTEND_URL that is not
-   http://localhost...
+   http://localhost (config.is_local_frontend)
 2. main.py reaches the router only through mount_e2e_login, which mounts
    nothing unless config.e2e_test_login is true.
 3. The router factory re-checks the localhost rule, so a Config built by hand
@@ -20,14 +20,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, FastAPI, Request, Response
 
-from config import Config, ConfigError
-
-LOCALHOST_PREFIX = "http://localhost"
+from config import Config, ConfigError, is_local_frontend
 
 
 def create_e2e_login_router(config: Config) -> APIRouter:
     """The test sign-in route bound to this configuration."""
-    if not config.frontend_url.startswith(LOCALHOST_PREFIX):
+    if not is_local_frontend(config.frontend_url):
         raise ConfigError("The test sign-in route is local only.")
 
     router = APIRouter(prefix="/api/auth", tags=["auth"])
