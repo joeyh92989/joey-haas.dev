@@ -1,5 +1,5 @@
 ---
-status: planned
+status: 5a done (5b, 5c planned)
 kind: ui
 mode: auto (Joey's stops from the shelf sweep run; design approved 13 Nov 2026)
 ---
@@ -179,3 +179,48 @@ produce four entries at Check and a series holding #1 to #4; existing rows
 keep what they recorded.
 
 Ship notes: no migration; no public endpoint change.
+
+5a status: done (13 Nov 2026)
+
+Deviations from the plan above:
+
+- The pure parts live where the code already had a home: the prompt,
+  schema, `normalise_issue_number` and `parse_books` in `importer.py`, the
+  run check and the entry-edit validation in a new `intake/comic_books.py`.
+- The run check is computed when an entry is shown (`number_check` in
+  `entry_json`), not stored, so it follows a changed match or a synced
+  series. The words stay in `frontend/src/content/comicIntake.js`; the
+  server sends a state (`in_run`, `out_of_run`, `read`, `typed`, `none`).
+  A typed number reads "Typed." only, whatever the run.
+- A series on the shelf is judged by the highest issue in its
+  `comic_issues` rows (or its released count), else the candidate's Comic
+  Vine `issue_count`; `on_shelf` gained `issue_max` for it.
+- The comic `issues_owned` field stays in the kind registry (the add bar
+  types it) and is hidden from Details by a new `in_details` flag on
+  `FieldSpec`, not removed.
+- Check shows a comic sitting's books as one list of rows (tick, photo,
+  match, number and mark) with "What this adds" under it, in place of the
+  skim grid and the "Already on the shelf" group, which a comic sitting no
+  longer uses. Uncertain books are still asked one at a time first.
+- Next is held for a ticked single book with no number and no typed range;
+  a repeat of a series and number is flagged ("Already in this sitting")
+  but does not block (the commit unions numbers, so it is harmless).
+- An `unknown` format needs a number like a single; switching a book to a
+  collected edition is the way out for a spine.
+- A collected book with no range adds the series (and the shelf format)
+  and no edition, since an edition needs a range; its label is the title as
+  read.
+- A collected book sets the row's shelf format (trades, omnibus) as the
+  commit already does for Details' editions, so adding one to a series on
+  the shelf can change its shelf format; what Details sets on an entry wins
+  over what the book implies.
+- The commit answer gained `series_new` (a created series' issues and
+  editions) so Done can say "<Series> · adds #1–4" for a series that is
+  not "grew"; editions added to a series already on the shelf come from
+  `series_grew.editions_added`.
+- Entries read from one photo have the same `created_at`, so their order
+  in the list within a photo is by id (as for every shelf photo today);
+  numbers, not position, say which book is which.
+- No visual check against `a-intake-check.html` at 1280 and 400 was made
+  in a browser (the admin e2e needs local data); the layout follows the
+  mockup's grid and breakpoint.

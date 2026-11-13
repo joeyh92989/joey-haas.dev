@@ -832,7 +832,34 @@ before pushing.
   with carries `on_shelf` (the matched series' run now, or null), Check
   lists those under "Already on the shelf · adds issues"
   (`SeriesGrewRow`, `comicRun.seriesGrowth` and `nearCells`), and Done's
-  "Series that grew" reads the commit's `series_grew`. **Deploy order:** apply
+  "Series that grew" reads the commit's `series_grew`. **A comic sitting
+  (`kind = 'comic'`) reads books, not titles** (comics item 5a,
+  `docs/planning/2026-11-13-comics-book-design.md`): `intake/reader.py`
+  sends `importer.COMIC_EXTRACTION_PROMPT` and `COMIC_DETECTION_SCHEMA`
+  (still one request per photo) and makes one entry per book, never merged
+  by series, with `issue_number` (whole numbers 1 to 9999 only; "#4", "No. 4"
+  and "4 of 4" read as 4, and #0, ½ and annuals as none: `importer.
+  normalise_issue_number`), `number_source` (`read` when the model says it
+  saw the number, `typed` once an edit changes it, else `none`), `format`
+  (`single`, `collected`, `unknown`) and, for a collected book, its
+  `collects_from`/`collects_to` and `edition_kind` (default `trade`). A
+  mixed sitting keeps the shelf prompt. A series whose best match is not
+  exact and whose title ends ": <story>" is searched again without it
+  (`reader._without_story`). The mark under a number is `number_check` on
+  the entry (`intake/comic_books.py`, pure): in the run, not in the run,
+  read, typed or none, from the match's Comic Vine `issue_count` or the
+  highest issue the series on the shelf has (`on_shelf.issue_max`); never
+  the model's opinion. `PATCH /api/intake/entries/{id}` validates a comic
+  entry's number, format, edition kind and range (422) and a changed number
+  becomes `typed`. The commit turns a book into the existing path:
+  `issue_number` becomes `issues_owned` (unioned per series, `got_issues`
+  for a series on the shelf), a collected book a shelf format and an
+  `editions` row when its range is known, and the answer's `series_new`
+  lists a created series' issues for Done. The comic `issues_owned` field
+  is `in_details: false`, so Details does not ask for it (the add bar still
+  does). Check lists the books (`ComicBooks`, `lib/comicBooks.js`, words in
+  `content/comicIntake.js`) and holds Next until every kept single book has
+  a number. **Deploy order:** apply
   `0010` to Neon, merge, follow series on `/admin/pull-list`, then Refresh
   followed once (or wait for the nightly).
 - **The play journal** (migration `0007`, `play_sessions`) is logged on the
