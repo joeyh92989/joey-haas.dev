@@ -20,7 +20,7 @@ const sized = lines.flatMap((text, index) =>
 
 describe('type scale', () => {
   it('defines the --fs steps on :root', () => {
-    for (const step of [12, 13, 14, 16, 18, 20, 24, 28, 32, 40, 48]) {
+    for (const step of [12, 13, 14, 16, 18, 20, 24, 28, 32, 40, 48, 56]) {
       expect(css).toMatch(new RegExp(`--fs-${step}: [0-9.]+rem;`))
     }
   })

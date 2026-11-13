@@ -100,6 +100,18 @@
   --fs-32: 2rem;
   --fs-40: 2.5rem;
   --fs-48: 3rem;
+  /* Display only: the Home hero title. */
+  --fs-56: 3.5rem;
+  /* The spacing scale, in rem. Padding, margin and gap use a step when the
+     value is exactly one; off-scale values stay literal. Theme-independent. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
   --font-sans:
     'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', sans-serif;
@@ -191,7 +203,7 @@ body {
 .wrap {
   margin: 0 auto;
   max-width: 1040px;
-  padding-inline: 24px;
+  padding-inline: var(--space-5);
 }
 
 /* The public shell is a full-height column, so the footer sits at the bottom
@@ -214,7 +226,7 @@ body {
 .page {
   margin: 0 auto;
   max-width: 45rem;
-  padding: 2.5rem 24px 0;
+  padding: 2.5rem var(--space-5) 0;
 }
 
 /* Home, About and Projects: cards and columns on the masthead's measure. */
@@ -235,9 +247,9 @@ body {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.25rem 0.5rem;
+  gap: var(--space-1) var(--space-2);
   list-style: none;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
   padding: 0;
 }
 
@@ -245,7 +257,7 @@ body {
   color: var(--text-3);
   content: '/';
   content: '/' / '';
-  margin-right: 0.5rem;
+  margin-right: var(--space-2);
 }
 
 /* Headings are sans 500. The serif (--font-display) is kept for the Home
@@ -315,7 +327,7 @@ p.muted a,
   display: inline-flex;
   font: 500 var(--fs-13) var(--font-sans);
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px var(--space-3);
 }
 
 .btn:hover {
@@ -351,7 +363,7 @@ p.muted a,
 
 .btn.sm {
   font-size: var(--fs-12);
-  padding: 4px 9px;
+  padding: var(--space-1) 9px;
 }
 
 .btn:disabled {
@@ -403,7 +415,7 @@ p.muted a,
   display: flex;
   font-size: var(--fs-14);
   gap: 22px;
-  margin-left: 8px;
+  margin-left: var(--space-2);
 }
 
 .site-nav a {
@@ -454,14 +466,14 @@ p.muted a,
 }
 
 .nav-sheet-body {
-  padding: 12px 16px 20px;
+  padding: var(--space-3) var(--space-4) 20px;
 }
 
 .nav-sheet-head {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .nav-sheet nav {
@@ -505,11 +517,11 @@ p.muted a,
 @media (max-width: 700px) {
   .wrap,
   .page {
-    padding-inline: 16px;
+    padding-inline: var(--space-4);
   }
 
   .mast-row {
-    gap: 12px;
+    gap: var(--space-3);
     height: 54px;
   }
 
@@ -528,7 +540,7 @@ p.muted a,
 /* The Search button's shortcut hint; nothing to press it on a phone. */
 .mast-search {
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .search-kbd {
@@ -579,8 +591,8 @@ p.muted a,
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: flex;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: var(--space-2);
+  padding: 10px var(--space-3);
 }
 
 .search-input {
@@ -592,7 +604,7 @@ p.muted a,
   font-size: var(--fs-16);
   min-height: 2.75rem;
   min-width: 0;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
 }
 
 .search-input::placeholder {
@@ -609,22 +621,22 @@ p.muted a,
 .search-list {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 4px 0 8px;
+  padding: var(--space-1) 0 var(--space-2);
 }
 
 .search-group-label {
   display: block;
-  padding: 12px 16px 4px;
+  padding: var(--space-3) var(--space-4) var(--space-1);
 }
 
 .search-row {
   align-items: center;
   cursor: pointer;
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   /* A 44px tap target. */
   min-height: 2.75rem;
-  padding: 6px 16px;
+  padding: 6px var(--space-4);
 }
 
 .search-row[aria-selected='true'] {
@@ -672,7 +684,7 @@ p.muted a,
 .search-note {
   border-top: 1px solid var(--line);
   margin: 0;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .search-note a {
@@ -722,7 +734,7 @@ p.muted a,
 .hero {
   align-items: start;
   display: grid;
-  gap: 48px;
+  gap: var(--space-7);
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr);
   padding: 2.5rem 0 3.75rem;
 }
@@ -730,8 +742,7 @@ p.muted a,
 /* The Home headline: the one serif h1; every other h1 is the base
    sans 500. */
 .hero-title {
-  /* display size, above the --fs scale */
-  font: 500 3.5rem/1.05 var(--font-display);
+  font: 500 var(--fs-56)/1.05 var(--font-display);
   letter-spacing: -0.02em;
   margin-top: 0.875rem;
   max-width: 18ch;
@@ -766,9 +777,9 @@ p.muted a,
   border-top: 1px solid var(--line);
   display: flex;
   font-size: var(--fs-14);
-  gap: 16px;
+  gap: var(--space-4);
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .facts > div:first-child {
@@ -798,7 +809,7 @@ p.muted a,
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
   justify-content: space-between;
   margin-bottom: 1.125rem;
 }
@@ -813,7 +824,7 @@ p.muted a,
 
 .card-grid {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -867,7 +878,7 @@ p.muted a,
   display: grid;
   gap: 20px;
   grid-template-columns: 140px minmax(0, 1fr);
-  padding: 16px 0;
+  padding: var(--space-4) 0;
 }
 
 .row-list > li:first-child {
@@ -886,16 +897,16 @@ p.muted a,
 .row-list p {
   color: var(--text-2);
   font-size: var(--fs-14);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 @media (max-width: 700px) {
   .hero {
-    gap: 24px;
+    gap: var(--space-5);
     /* minmax(0, 1fr), not 1fr: a bare 1fr track will not shrink below its
        content, so a long facts value widens the whole hero. */
     grid-template-columns: minmax(0, 1fr);
-    padding: 0.5rem 0 2rem;
+    padding: var(--space-2) 0 var(--space-6);
   }
 
   .hero-title {
@@ -911,7 +922,7 @@ p.muted a,
   }
 
   .row-list > li {
-    gap: 4px;
+    gap: var(--space-1);
     grid-template-columns: 1fr;
   }
 }
@@ -924,12 +935,12 @@ section + section {
 
 .prose {
   color: var(--text-2);
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
   max-width: min(45rem, 68ch);
 }
 
 .prose + .prose {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 /* The aside holds still beside the body on a desktop and leads it on a
@@ -938,7 +949,7 @@ section + section {
   display: grid;
   gap: 56px;
   grid-template-columns: 280px minmax(0, 1fr);
-  padding-top: 1rem;
+  padding-top: var(--space-4);
 }
 
 .about-aside {
@@ -957,7 +968,7 @@ section + section {
 }
 
 .about-title {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .about-aside .kicker {
@@ -971,9 +982,9 @@ section + section {
 .about-facts > div {
   border-top: 1px solid var(--line);
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: space-between;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .about-facts dt {
@@ -1004,7 +1015,7 @@ section + section {
 .timeline {
   border-left: 1px solid var(--line-strong);
   list-style: none;
-  margin-left: 4px;
+  margin-left: var(--space-1);
   padding-left: 22px;
 }
 
@@ -1064,7 +1075,7 @@ section + section {
 .chip-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   list-style: none;
   margin-top: 0.875rem;
 }
@@ -1075,7 +1086,7 @@ section + section {
   border-radius: 999px;
   color: var(--text-2);
   font-size: var(--fs-13);
-  padding: 0.25rem 0.8125rem;
+  padding: var(--space-1) 0.8125rem;
 }
 
 /* About's chips are mono labels, squared off; the shelf keeps its pills. */
@@ -1083,7 +1094,7 @@ section + section {
   background: var(--sunken);
   border-radius: 4px;
   font: 500 var(--fs-12) var(--font-mono);
-  padding: 3px 8px;
+  padding: 3px var(--space-2);
 }
 
 /* Grid rather than CSS multi-column: multicol needs break-inside: avoid on
@@ -1092,7 +1103,7 @@ section + section {
    query. auto-fit does both for free. */
 .expertise-list {
   display: grid;
-  gap: 0.5rem 1.5rem;
+  gap: var(--space-2) var(--space-5);
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   list-style: none;
   margin-top: 0.875rem;
@@ -1102,7 +1113,7 @@ section + section {
   border-left: 2px solid var(--line);
   color: var(--text-2);
   font-size: var(--fs-14);
-  padding-left: 0.75rem;
+  padding-left: var(--space-3);
 }
 
 /* ---------- Projects ---------- */
@@ -1110,7 +1121,7 @@ section + section {
 .project-grid {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
   margin-top: 1.125rem;
 }
 
@@ -1136,7 +1147,7 @@ section + section {
 }
 
 .project-card .cover-strip {
-  margin: 0.875rem 0 0.75rem;
+  margin: 0.875rem 0 var(--space-3);
 }
 
 .project-card .project-tagline {
@@ -1157,15 +1168,15 @@ section + section {
 }
 
 .project-highlights li + li {
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
 .project-card .project-links {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-14);
-  gap: 0.25rem 1rem;
-  margin: 0.75rem 0 0;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-3) 0 0;
 }
 
 /* Tech and tag chips: squared and mono, like About's toolbox, so they read
@@ -1173,7 +1184,7 @@ section + section {
 .tech-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   list-style: none;
   margin-top: 0.875rem;
 }
@@ -1183,7 +1194,7 @@ section + section {
   border-radius: 4px;
   color: var(--text-2);
   font: 500 var(--fs-12) var(--font-mono);
-  padding: 3px 8px;
+  padding: 3px var(--space-2);
 }
 
 /* ---------- Blog ---------- */
@@ -1215,7 +1226,7 @@ section + section {
 
 .note-list > article {
   border-top: 1px solid var(--line);
-  padding: 1.5rem 0;
+  padding: var(--space-5) 0;
 }
 
 .note-list > article:first-child {
@@ -1242,7 +1253,7 @@ section + section {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.75rem;
+  gap: var(--space-3);
   margin-top: 0.375rem;
 }
 
@@ -1257,7 +1268,7 @@ section + section {
   color: var(--text-3);
   font-size: var(--fs-12);
   letter-spacing: 0.06em;
-  margin-left: 0.5rem;
+  margin-left: var(--space-2);
   padding: 0.125rem 0.625rem;
   text-transform: uppercase;
 }
@@ -1265,14 +1276,14 @@ section + section {
 .post-summary {
   color: var(--text-2);
   font-size: var(--fs-18);
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 .post-toc {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
-  margin-top: 1.5rem;
-  padding: 0.75rem 0;
+  margin-top: var(--space-5);
+  padding: var(--space-3) 0;
 }
 
 .post-toc-label {
@@ -1294,17 +1305,17 @@ section + section {
   color: var(--text);
   display: block;
   font-size: var(--fs-16);
-  padding: 0.25rem 0;
+  padding: var(--space-1) 0;
 }
 
 .post-body {
   color: var(--text-2);
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .post-body h2,
 .post-body h3 {
-  margin-top: 2rem;
+  margin-top: var(--space-6);
   margin-bottom: 0.6rem;
 }
 
@@ -1319,7 +1330,7 @@ section + section {
 .post-body p,
 .post-body ul,
 .post-body ol {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .post-body ul,
@@ -1330,8 +1341,8 @@ section + section {
 .post-body blockquote {
   border-left: 3px solid var(--line);
   color: var(--text-3);
-  margin-bottom: 1rem;
-  padding-left: 1rem;
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-4);
 }
 
 .post-body :not(pre) > code {
@@ -1346,15 +1357,15 @@ section + section {
 .post-body pre {
   border: 1px solid var(--line);
   border-radius: 8px;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   overflow-x: auto;
-  padding: 1rem;
+  padding: var(--space-4);
 }
 
 .post-body table {
   border-collapse: collapse;
   display: block;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   overflow-x: auto;
   width: 100%;
 }
@@ -1417,14 +1428,14 @@ footer {
    shelf's attribution footer keeps the generic rule above. */
 .site-footer {
   font-size: var(--fs-13);
-  margin-top: 3rem;
-  padding: 24px 0 36px;
+  margin-top: var(--space-7);
+  padding: var(--space-5) 0 36px;
 }
 
 .site-footer-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
   justify-content: space-between;
 }
 
@@ -1460,8 +1471,8 @@ footer {
   border-left: 3px solid var(--accent);
   border-radius: 8px;
   color: var(--text);
-  margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
 }
 
 .admin-signin {
@@ -1471,7 +1482,7 @@ footer {
   display: inline-block;
   font-size: var(--fs-13);
   font-weight: 500;
-  padding: 0.5rem 1rem;
+  padding: var(--space-2) var(--space-4);
 }
 
 .admin-signin:hover {
@@ -1676,7 +1687,7 @@ footer {
 .admin-side-title {
   font-size: var(--fs-16);
   font-weight: 600;
-  padding: 6px 10px 8px;
+  padding: 6px 10px var(--space-2);
 }
 
 .admin-side-title small {
@@ -1695,10 +1706,10 @@ footer {
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   height: 100vh;
   overflow-y: auto;
-  padding: 16px 12px;
+  padding: var(--space-4) var(--space-3);
   position: sticky;
   top: 0;
 }
@@ -1749,7 +1760,7 @@ footer {
   color: var(--text-3);
   font-size: var(--fs-13);
   margin-top: auto;
-  padding: 12px 10px 4px;
+  padding: var(--space-3) 10px var(--space-1);
 }
 
 .admin-side-email {
@@ -1771,7 +1782,7 @@ footer {
 
 .admin-main {
   min-width: 0;
-  padding: 28px 32px 40px;
+  padding: 28px var(--space-6) 40px;
 }
 
 .admin-main:focus {
@@ -1800,7 +1811,7 @@ footer {
   gap: 2px;
   justify-items: center;
   min-height: 3.25rem;
-  padding: 8px 2px 10px;
+  padding: var(--space-2) 2px 10px;
   position: relative;
   text-align: center;
 }
@@ -1821,8 +1832,8 @@ footer {
   border: 1px solid var(--line);
   border-radius: 999px;
   display: flex;
-  gap: 0.25rem;
-  margin: 0 0 1rem;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-4);
   padding: 3px;
 }
 
@@ -1836,7 +1847,7 @@ footer {
   flex: 1;
   font: var(--fs-13) var(--font-sans);
   min-height: 2.25rem;
-  padding: 0.35rem 0.25rem;
+  padding: 0.35rem var(--space-1);
   text-align: center;
 }
 
@@ -1864,14 +1875,14 @@ footer {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.5rem 1rem;
-  margin-top: 2rem;
-  padding-top: 1rem;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
 }
 
 /* The phone tab bar sits over the page's foot, so the page keeps clear of it. */
 .admin-app-phone .admin-main {
-  padding: 18px 16px 90px;
+  padding: 18px var(--space-4) 90px;
 }
 
 /* The shelf's action sheet is pinned to the same edge: it opens over the
@@ -1884,7 +1895,7 @@ footer {
 .admin-gate {
   display: grid;
   min-height: 100vh;
-  padding: 24px 16px;
+  padding: var(--space-5) var(--space-4);
   place-items: center;
 }
 
@@ -1893,13 +1904,13 @@ footer {
   border: 1px solid var(--line);
   border-radius: 8px;
   max-width: 26rem;
-  padding: 24px;
+  padding: var(--space-5);
   width: 100%;
 }
 
 .admin-gate-panel h1 {
   font-size: var(--fs-24);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .admin-gate:focus {
@@ -1911,7 +1922,7 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 16px;
+  gap: var(--space-3) var(--space-4);
   margin-bottom: 22px;
 }
 
@@ -1924,7 +1935,7 @@ footer {
 .admin-head-desc {
   color: var(--text-3);
   font-size: var(--fs-14);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .admin-head-end,
@@ -1932,7 +1943,7 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: var(--space-2) var(--space-3);
 }
 
 .admin-head-end {
@@ -1983,7 +1994,7 @@ footer {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
 }
 
 .stat-tile .kicker {
@@ -2017,9 +2028,9 @@ footer {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .panel-head h2 {
@@ -2032,7 +2043,7 @@ footer {
 }
 
 .panel-body {
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
 }
 
 /* Dashboard (/admin): jobs and quick actions side by side, then changes. */
@@ -2059,10 +2070,10 @@ footer {
   border-top: 1px solid var(--line);
   display: grid;
   font-size: var(--fs-14);
-  gap: 4px 12px;
+  gap: var(--space-1) var(--space-3);
   /* Wide enough for the longest time, "Wed 30 Sept, 00:17". */
   grid-template-columns: 9rem minmax(0, 1fr) auto auto;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .job-row:first-child {
@@ -2106,7 +2117,7 @@ footer {
   border-radius: 6px;
   color: var(--text);
   font-size: var(--fs-14);
-  padding: 12px;
+  padding: var(--space-3);
   text-decoration: none;
 }
 
@@ -2242,7 +2253,7 @@ footer {
   display: flex;
   gap: 2px;
   height: 180px;
-  padding-top: 8px;
+  padding-top: var(--space-2);
 }
 
 .day-bar {
@@ -2256,7 +2267,7 @@ footer {
 .day-bars-peak {
   color: var(--text-2);
   font-size: var(--fs-13);
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 .day-bars-axis {
@@ -2350,7 +2361,7 @@ footer {
   display: inline-block;
   font-size: var(--fs-12);
   line-height: 1.4;
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
   white-space: nowrap;
 }
 
@@ -2400,7 +2411,7 @@ footer {
   display: grid;
   gap: 0.6rem;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-5);
 }
 
 .intake-kind {
@@ -2414,7 +2425,7 @@ footer {
   gap: 0.15rem;
   min-width: 0;
   overflow-wrap: anywhere;
-  padding: 0.75rem 0.85rem;
+  padding: var(--space-3) 0.85rem;
   text-align: left;
 }
 
@@ -2458,16 +2469,16 @@ footer {
   border-radius: var(--radius);
   list-style: none;
   margin: 0;
-  padding: 0 1rem;
+  padding: 0 var(--space-4);
 }
 
 .intake-sitting {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr) 12rem auto;
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .intake-sitting:last-child {
@@ -2486,7 +2497,7 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 /* The track is --sunken; the 2px gaps show it between segments. */
@@ -2521,7 +2532,7 @@ footer {
   color: var(--text-3);
   display: flex;
   font-size: var(--fs-13);
-  gap: 0.25rem;
+  gap: var(--space-1);
   list-style: none;
   margin: 0 0 1.25rem;
   padding: 0;
@@ -2546,7 +2557,7 @@ footer {
 
 .intake-step h2 {
   font-size: var(--fs-18);
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
 }
 
 .intake-step h2:focus {
@@ -2560,7 +2571,7 @@ footer {
   display: grid;
   gap: 0.4rem;
   justify-items: center;
-  padding: 1.5rem;
+  padding: var(--space-5);
   text-align: center;
 }
 
@@ -2576,7 +2587,7 @@ footer {
 .intake-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-drop-actions {
@@ -2594,7 +2605,7 @@ footer {
   gap: 0.6rem;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   list-style: none;
-  margin: 1rem 0;
+  margin: var(--space-4) 0;
   padding: 0;
 }
 
@@ -2630,9 +2641,9 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
   justify-content: space-between;
-  margin-top: 1rem;
+  margin-top: var(--space-4);
 }
 
 .intake-bar p {
@@ -2642,7 +2653,7 @@ footer {
 .intake-bar-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-checkone {
@@ -2684,12 +2695,12 @@ footer {
 
 .intake-question {
   font-weight: 600;
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .intake-candidates {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-option {
@@ -2699,9 +2710,9 @@ footer {
   border-radius: var(--radius);
   cursor: pointer;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: auto 2.5rem minmax(0, 1fr);
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem var(--space-3);
 }
 
 /* --accent-soft is a measured background for the text tokens. */
@@ -2718,12 +2729,12 @@ footer {
 .intake-checkone .intake-actions {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .intake-checkone .intake-actions.quiet {
   display: flex;
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 .intake-note {
@@ -2732,14 +2743,14 @@ footer {
 }
 
 .intake-skim-head {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .intake-typed {
   display: grid;
   gap: 0.4rem;
   list-style: none;
-  margin: 1rem 0;
+  margin: var(--space-4) 0;
   padding: 0;
 }
 
@@ -2753,9 +2764,9 @@ footer {
 
 .intake-garment-others {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   list-style: none;
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   padding: 0;
 }
 
@@ -2777,7 +2788,7 @@ footer {
 
 .intake-skim li {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
   justify-items: start;
   min-width: 0;
 }
@@ -2823,10 +2834,10 @@ footer {
   align-items: start;
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 0.4rem 0.75rem;
+  gap: 0.4rem var(--space-3);
   grid-template-areas: 'cover body edit';
   grid-template-columns: 2.5rem minmax(0, 1fr) auto;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 
 .intake-grow[data-tick] {
@@ -2911,7 +2922,7 @@ footer {
 .intake-grow-form-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 @media (max-width: 40rem) {
@@ -2934,21 +2945,21 @@ footer {
 }
 
 .intake-pass {
-  margin-bottom: 1rem;
-  padding: 1rem;
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
 }
 
 .intake-pass h3 {
   font-size: var(--fs-16);
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
 }
 
 .intake-setall-fields {
   align-items: end;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .intake-rows {
@@ -2963,7 +2974,7 @@ footer {
   display: grid;
   gap: 0.9rem;
   grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 12rem) auto;
-  padding: 0.5rem 0;
+  padding: var(--space-2) 0;
 }
 
 /* A trade row's editions sit on their own line under the row. */
@@ -2992,12 +3003,12 @@ footer {
      --text-2 7.30 / 7.18   --text-3 4.79 / 4.61   --accent 5.76 / 5.31 */
 .intake-add {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .intake-addbar {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
@@ -3017,14 +3028,14 @@ footer {
   border-radius: var(--radius);
   display: grid;
   gap: 0.6rem;
-  padding: 0.25rem 0 0.75rem;
+  padding: var(--space-1) 0 var(--space-3);
 }
 
 .intake-results > p,
 .intake-sources,
 .intake-typed {
   margin: 0;
-  padding: 0 0.75rem;
+  padding: 0 var(--space-3);
 }
 
 .intake-results > ul:first-child {
@@ -3037,9 +3048,9 @@ footer {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: 1.9rem minmax(0, 1fr) auto auto;
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-2) var(--space-3);
 }
 
 .intake-result-text {
@@ -3070,7 +3081,7 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-typed {
@@ -3088,7 +3099,7 @@ footer {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-14);
-  gap: 0.5rem 0.75rem;
+  gap: var(--space-2) var(--space-3);
   justify-content: space-between;
   margin: 0;
   padding: 0.55rem 0.9rem;
@@ -3100,13 +3111,13 @@ footer {
 
 .intake-waiting {
   background: var(--accent-soft);
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .intake-waiting-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-withdrawer {
@@ -3129,8 +3140,8 @@ footer {
   border-radius: var(--radius);
   container-type: inline-size;
   display: grid;
-  gap: 0.75rem;
-  padding: 1rem 1.1rem;
+  gap: var(--space-3);
+  padding: var(--space-4) 1.1rem;
   position: sticky;
   top: 1rem;
 }
@@ -3142,7 +3153,7 @@ footer {
 .intake-drawer-head {
   align-items: center;
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .intake-drawer-head .cover {
@@ -3178,7 +3189,7 @@ footer {
 .intake-drawer-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 /* Below 900px: a bottom sheet over a dimmed page, modal. */
@@ -3204,8 +3215,8 @@ footer {
 
 .intake-checksearch {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .intake-checksearch input {
@@ -3229,7 +3240,7 @@ footer {
 }
 
 .intake-garment-check .intake-checkone {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 /* The shell's phone layout (PHONE_QUERY in AdminShell.jsx). */
@@ -3326,13 +3337,13 @@ footer {
 
 /* Shoot's Search instead: the add bar's search, adding to the sitting. */
 .intake-shootsearch {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   text-align: left;
 }
 
 .intake-shootsearch form {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-shootsearch input {
@@ -3343,7 +3354,7 @@ footer {
   flex: 1;
   min-height: 2.25rem;
   min-width: 0;
-  padding: 0.35rem 0.5rem;
+  padding: 0.35rem var(--space-2);
 }
 
 @media (max-width: 900px) {
@@ -3359,19 +3370,19 @@ footer {
    --text on --accent-soft 13.11 dark, 15.65 light (measured above). The
    confidence words reuse .conf on --surface (measured above). */
 .intake-demo h1 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .intake-demo-lede {
   color: var(--text-2);
-  margin: 0 0 1.5rem;
+  margin: 0 0 var(--space-5);
   max-width: min(45rem, 68ch);
 }
 
 .intake-demo-grid {
   align-items: start;
   display: grid;
-  gap: 1.5rem;
+  gap: var(--space-5);
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
 }
 
@@ -3383,7 +3394,7 @@ footer {
 }
 
 .intake-demo-shelf {
-  padding: 1rem;
+  padding: var(--space-4);
 }
 
 .intake-demo-spines {
@@ -3392,7 +3403,7 @@ footer {
   display: flex;
   gap: 3px;
   height: 230px;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
 }
 
 .intake-demo-spine {
@@ -3445,15 +3456,15 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .intake-demo-foot {
   color: var(--text-3);
   font-size: var(--fs-13);
   justify-content: space-between;
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .intake-demo-stages {
@@ -3462,7 +3473,7 @@ footer {
   gap: 0.4rem;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   list-style: none;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   padding: 0;
 }
 
@@ -3500,9 +3511,9 @@ footer {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 0.5rem 0.8rem;
+  padding: var(--space-2) 0.8rem;
 }
 
 .intake-demo-row:last-child {
@@ -3536,7 +3547,7 @@ footer {
   color: var(--text-3);
   font-size: var(--fs-14);
   margin: 0;
-  padding: 2.5rem 1rem;
+  padding: 2.5rem var(--space-4);
   text-align: center;
 }
 
@@ -3562,8 +3573,8 @@ footer {
 .item-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
   margin-top: 1.125rem;
 }
 
@@ -3642,7 +3653,7 @@ footer {
   border: 1px solid var(--line);
   border-radius: 8px;
   list-style: none;
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   max-height: 20rem;
   max-width: 24rem;
   overflow-y: auto;
@@ -3739,11 +3750,11 @@ footer {
   color: var(--text-3);
   display: grid;
   font-size: var(--fs-13);
-  gap: 0.25rem;
+  gap: var(--space-1);
   height: 100%;
   justify-items: center;
   line-height: 1.3;
-  padding: 0.5rem;
+  padding: var(--space-2);
   text-align: center;
 }
 
@@ -3761,7 +3772,7 @@ footer {
 .comic-issue-cover-caption {
   color: var(--text-3);
   font-size: var(--fs-12);
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 /* In a tile the frame already carries the dashed outline and the state. */
@@ -3804,9 +3815,9 @@ footer {
 /* Item detail view: cover beside a form, stacking on narrow screens. */
 .item-detail {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--space-5);
   grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
-  margin-top: 1rem;
+  margin-top: var(--space-4);
 }
 
 @media (max-width: 40rem) {
@@ -3823,7 +3834,7 @@ footer {
 .play-journal {
   border-top: 1px solid var(--line);
   margin-top: 1.25rem;
-  padding-top: 1rem;
+  padding-top: var(--space-4);
 }
 
 .item-relink h2,
@@ -3836,7 +3847,7 @@ footer {
 
 .item-relink p {
   font-size: var(--fs-12);
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 /* The play journal: a compact form, then the logged days. */
@@ -3856,14 +3867,14 @@ footer {
   font-size: var(--fs-13);
   gap: 0.35rem;
   list-style: none;
-  margin: 0.75rem 0 0;
+  margin: var(--space-3) 0 0;
   padding: 0;
 }
 
 .play-journal-list li {
   align-items: baseline;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: 6.5rem 1fr auto;
 }
 
@@ -3874,13 +3885,13 @@ footer {
 
 .item-detail-link {
   font-size: var(--fs-12);
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 .item-detail-form {
   align-items: center;
   display: grid;
-  gap: 0.6rem 0.75rem;
+  gap: 0.6rem var(--space-3);
   grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
 }
 
@@ -3920,7 +3931,7 @@ footer {
   display: flex;
   gap: 0.6rem;
   grid-column: 1 / -1;
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 .item-detail-actions button {
@@ -3948,13 +3959,13 @@ footer {
 .item-playthroughs {
   border-top: 1px solid var(--line);
   margin-top: 1.25rem;
-  padding-top: 1rem;
+  padding-top: var(--space-4);
 }
 
 .item-playthroughs h2 {
   font-size: var(--fs-13);
   letter-spacing: 0.04em;
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   text-transform: uppercase;
 }
 
@@ -3963,8 +3974,8 @@ footer {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-14);
-  gap: 0.5rem;
-  margin: 0 0 0.75rem;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
 }
 
 .playthroughs-wrap {
@@ -3980,7 +3991,7 @@ footer {
 .playthroughs-table th,
 .playthroughs-table td {
   border-bottom: 1px solid var(--line);
-  padding: 0.4rem 0.5rem 0.4rem 0;
+  padding: 0.4rem var(--space-2) 0.4rem 0;
   text-align: left;
   white-space: nowrap;
 }
@@ -4025,7 +4036,7 @@ footer {
 .playthroughs-note,
 .playthroughs-add {
   font-size: var(--fs-13);
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 .playthroughs-add-form {
@@ -4033,8 +4044,8 @@ footer {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .playthroughs-add-form label {
@@ -4109,7 +4120,7 @@ footer {
   min-width: 0;
   border-bottom: 1px solid var(--line);
   margin-bottom: 1.75rem;
-  padding-bottom: 0.25rem;
+  padding-bottom: var(--space-1);
 }
 
 .spine-name {
@@ -4132,7 +4143,7 @@ footer {
   display: flex;
   flex-wrap: wrap;
   gap: 1.25rem;
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 /* Phone: one row that scrolls sideways, never wrapping (#192). The right edge
@@ -4145,7 +4156,7 @@ footer {
        would clip it); the margins give the space back. The end padding lets
        the last tab scroll clear of the fade. */
     margin: calc(0.75rem - 4px) -4px -4px;
-    padding: 4px 2rem 4px 4px;
+    padding: var(--space-1) var(--space-6) var(--space-1) var(--space-1);
     scrollbar-width: none;
     -webkit-mask-image: linear-gradient(
       to right,
@@ -4197,7 +4208,7 @@ footer {
   font-size: var(--fs-12);
   font-weight: 500;
   letter-spacing: 0.04em;
-  margin-left: 0.25rem;
+  margin-left: var(--space-1);
   text-transform: uppercase;
   vertical-align: 0.15em;
 }
@@ -4210,7 +4221,7 @@ footer {
 
 .spine-project {
   font-size: var(--fs-14);
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   max-width: 45rem;
 }
 
@@ -4221,7 +4232,7 @@ footer {
 
 /* The links sit apart as Projects' link row does (1rem gap). */
 .spine-project a + a {
-  margin-inline-start: 0.75rem;
+  margin-inline-start: var(--space-3);
 }
 
 /* Hero numbers: large tabular figures over small uppercase labels. The dt
@@ -4230,15 +4241,15 @@ footer {
 .hero-numbers {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 2.25rem;
-  margin: 1.5rem 0;
+  gap: var(--space-2) 2.25rem;
+  margin: var(--space-5) 0;
 }
 
 /* Four figures (Comics) sit 2x2 on a phone instead of wrapping 3 + 1. */
 @media (max-width: 34rem) {
   .hero-numbers[data-figures='4'] {
     display: grid;
-    gap: 1.25rem 1rem;
+    gap: 1.25rem var(--space-4);
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -4267,7 +4278,7 @@ footer {
 .hero-numbers + .hero-sub {
   color: var(--text-3);
   font-size: var(--fs-14);
-  margin: -0.75rem 0 1.5rem;
+  margin: -0.75rem 0 var(--space-5);
 }
 
 .favourites,
@@ -4309,7 +4320,7 @@ footer {
 
 .favourites-hint {
   font-size: var(--fs-13);
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 /* Now playing: the games I am playing, ahead of everything else on the
@@ -4336,9 +4347,9 @@ footer {
   border-radius: 6px;
   color: var(--text);
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
   height: 100%;
-  padding: 0.75rem;
+  padding: var(--space-3);
   text-decoration: none;
 }
 
@@ -4384,7 +4395,7 @@ footer {
 
 .shelf-stats {
   display: grid;
-  gap: 1.25rem 2rem;
+  gap: 1.25rem var(--space-6);
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 }
 
@@ -4442,7 +4453,7 @@ footer {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.25rem 1rem;
+  gap: var(--space-1) var(--space-4);
   list-style: none;
   margin-top: 0.6rem;
 }
@@ -4536,7 +4547,7 @@ a.month-bar::before {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -4563,7 +4574,7 @@ a.month-bar::before {
 }
 
 .cartridge-platform p {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
 }
 
 .stat-big {
@@ -4593,7 +4604,7 @@ a.month-bar::before {
   gap: var(--grid-gap);
   grid-template-columns: repeat(auto-fill, minmax(var(--poster-min), 1fr));
   list-style: none;
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .skeleton-cover,
@@ -4619,29 +4630,29 @@ a.month-bar::before {
 .shelf-toolbar {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .shelf-toolbar-row {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
+  gap: var(--space-3) var(--space-5);
   justify-content: space-between;
 }
 
 .shelf-view-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 0.75rem;
+  gap: 0.4rem var(--space-3);
 }
 
 /* Public item page: the breadcrumb, then the cover beside the title. */
 .item-head {
   align-items: flex-end;
   display: flex;
-  gap: 1.5rem;
-  margin: 0.5rem 0 1.5rem;
+  gap: var(--space-5);
+  margin: var(--space-2) 0 var(--space-5);
   position: relative;
 }
 
@@ -4657,11 +4668,11 @@ a.month-bar::before {
   /* The rest of the row, so a comic's What's next tiles have room. */
   flex: 1 1 auto;
   min-width: 0;
-  padding-bottom: 0.25rem;
+  padding-bottom: var(--space-1);
 }
 
 .item-heading h1 {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
 }
 
 .item-heading p {
@@ -4677,12 +4688,12 @@ a.month-bar::before {
 .item-edit {
   display: inline-block;
   font-size: var(--fs-13);
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 .item-groups {
   display: grid;
-  gap: 0.6rem 1rem;
+  gap: 0.6rem var(--space-4);
   grid-template-columns: max-content 1fr;
   margin: 0 0 1.25rem;
 }
@@ -4712,12 +4723,12 @@ a.month-bar::before {
 
 @media (max-width: 700px) {
   .item-groups {
-    gap: 0.25rem;
+    gap: var(--space-1);
     grid-template-columns: 1fr;
   }
 
   .item-groups dd {
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
   }
 }
 
@@ -4725,7 +4736,7 @@ a.month-bar::before {
 .item-copy {
   color: var(--text-2);
   font-size: var(--fs-16);
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 .item-chip {
@@ -4741,7 +4752,7 @@ a.month-bar::before {
 }
 
 .item-description-wrap {
-  margin: 0 0 1.5rem;
+  margin: 0 0 var(--space-5);
   max-width: min(45rem, 68ch);
 }
 
@@ -4761,14 +4772,14 @@ a.month-bar::before {
   display: grid;
   gap: var(--grid-gap);
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  margin: 0 0 2rem;
+  margin: 0 0 var(--space-6);
 }
 
 .item-tile {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem var(--space-4);
 }
 
 .item-tile dt {
@@ -4789,7 +4800,7 @@ a.month-bar::before {
 .item-ttb {
   align-items: baseline;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: space-between;
 }
 
@@ -4894,7 +4905,7 @@ a.month-bar::before {
   font: inherit;
   font-size: var(--fs-12);
   max-width: 100%;
-  padding: 0.1rem 0.25rem;
+  padding: 0.1rem var(--space-1);
 }
 
 .shelf-favourite {
@@ -4983,7 +4994,7 @@ a.month-bar::before {
   bottom: 0;
   box-shadow: 0 -8px 24px var(--overlay);
   left: 0;
-  padding: 1rem 1.25rem 1.5rem;
+  padding: var(--space-4) 1.25rem var(--space-5);
   position: fixed;
   right: 0;
   z-index: 10;
@@ -4999,9 +5010,9 @@ a.month-bar::before {
 
 .shelf-sheet .shelf-actions-row {
   font-size: var(--fs-16);
-  gap: 1rem;
+  gap: var(--space-4);
   justify-content: center;
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .shelf-sheet .shelf-favourite {
@@ -5015,9 +5026,9 @@ a.month-bar::before {
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
+  gap: var(--space-2) var(--space-3);
   margin: 0 0 1.25rem;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 
 .shelf-nudge p {
@@ -5033,8 +5044,8 @@ a.month-bar::before {
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  margin: 0 0 0.75rem;
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-3);
   padding: 0.6rem 0.9rem;
 }
 
@@ -5057,15 +5068,15 @@ a.month-bar::before {
 }
 
 .play-next-status p {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 /* Play Next. Three cards in a row that wraps; the pinned game above them. */
 .play-next-controls {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin: 1.25rem 0 1.5rem;
+  gap: var(--space-2);
+  margin: 1.25rem 0 var(--space-5);
 }
 
 .up-next {
@@ -5075,9 +5086,9 @@ a.month-bar::before {
   border-left: 3px solid var(--status-active);
   border-radius: 8px;
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
   margin: 1.25rem 0;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 
 .up-next-cover {
@@ -5106,8 +5117,8 @@ a.month-bar::before {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 .pick-slot {
@@ -5130,7 +5141,7 @@ a.month-bar::before {
 
 .pick-card h2 {
   font-size: var(--fs-18);
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
 }
 
 .pick-meta {
@@ -5139,7 +5150,7 @@ a.month-bar::before {
   flex-wrap: wrap;
   font-size: var(--fs-13);
   gap: 0.35rem 0.6rem;
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 /* Shared by Play Next and Tonight; the band is text, never colour alone. */
@@ -5149,7 +5160,7 @@ a.month-bar::before {
   color: var(--text);
   font-size: var(--fs-12);
   line-height: 1.5;
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
 }
 
 .pick-reasons {
@@ -5159,13 +5170,13 @@ a.month-bar::before {
 }
 
 .pick-reasons li + li {
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
 .pick-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin-top: auto;
 }
 
@@ -5185,7 +5196,7 @@ a.month-bar::before {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 /* Shelf filters and sort. Chips are buttons with aria-pressed; the pressed
@@ -5193,7 +5204,7 @@ a.month-bar::before {
 .chip-rows {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .chip-row,
@@ -5212,7 +5223,7 @@ a.month-bar::before {
   font: inherit;
   font-size: var(--fs-13);
   line-height: 1.4;
-  padding: 0.25rem 0.7rem;
+  padding: var(--space-1) 0.7rem;
   white-space: nowrap;
 }
 
@@ -5259,7 +5270,7 @@ a.month-bar::before {
   color: var(--text);
   font: inherit;
   font-size: var(--fs-14);
-  padding: 0.3rem 0.5rem;
+  padding: 0.3rem var(--space-2);
 }
 
 /* The shelf grid. --poster-min is declared here so markup without a data-size
@@ -5480,7 +5491,7 @@ a.month-bar::before {
   color: var(--text-3);
   font-size: var(--fs-12);
   margin-top: 2.5rem;
-  padding-top: 1rem;
+  padding-top: var(--space-4);
 }
 
 .attribution p {
@@ -5502,7 +5513,7 @@ a.month-bar::before {
 .item-table th,
 .item-table td {
   border-bottom: 1px solid var(--line);
-  padding: 0.5rem 0.7rem;
+  padding: var(--space-2) 0.7rem;
   text-align: left;
 }
 
@@ -5583,14 +5594,14 @@ a.month-bar::before {
 .needs-match-row,
 .disagreement-list li {
   border-bottom: 1px solid var(--line);
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .needs-match-candidates {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
 }
 
 .needs-match-controls select {
@@ -5600,7 +5611,7 @@ a.month-bar::before {
   color: var(--text);
   font: inherit;
   font-size: var(--fs-14);
-  margin-right: 0.5rem;
+  margin-right: var(--space-2);
   padding: 0.4rem 0.6rem;
 }
 
@@ -5624,7 +5635,7 @@ a.month-bar::before {
   color: var(--text-3);
   font-size: var(--fs-13);
   list-style: none;
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
   padding: 0;
 }
 
@@ -5634,8 +5645,8 @@ a.month-bar::before {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  margin: 0 0 1rem;
+  gap: var(--space-2) var(--space-5);
+  margin: 0 0 var(--space-4);
 }
 
 .hero-numbers.hero-numbers-line {
@@ -5680,19 +5691,19 @@ a.month-bar::before {
 .shelf-toolbar.controls {
   border-block: 1px solid var(--line);
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin: 0;
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .chip-rows-labelled {
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .ctl-row {
   align-items: baseline;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: 4.25rem minmax(0, 1fr);
 }
 
@@ -5705,7 +5716,7 @@ a.month-bar::before {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
+  gap: var(--space-2) var(--space-5);
   justify-content: space-between;
 }
 
@@ -5722,9 +5733,9 @@ a.month-bar::before {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1.5rem;
+  gap: 0.4rem var(--space-5);
   justify-content: space-between;
-  margin: 0.75rem 0 1rem;
+  margin: var(--space-3) 0 var(--space-4);
 }
 
 .result {
@@ -5770,7 +5781,7 @@ a.month-bar::before {
 
 /* Above a grid on its own (the month journal), not inside the result bar. */
 section > .cover-key {
-  margin: 0.25rem 0 0.75rem;
+  margin: var(--space-1) 0 var(--space-3);
 }
 
 .cover-key li {
@@ -5801,23 +5812,23 @@ section > .cover-key {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-14);
-  gap: 0.6rem 1rem;
+  gap: 0.6rem var(--space-4);
   justify-content: center;
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .shelf-overview {
   border-top: 1px solid var(--line);
   margin-top: 2.5rem;
-  padding-top: 1.5rem;
+  padding-top: var(--space-5);
 }
 
 .shelf-overview > h2 {
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
 }
 
 .shelf-overview .favourites {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-5);
 }
 
 .disclosure {
@@ -5831,8 +5842,8 @@ section > .cover-key {
   font: inherit;
   font-size: var(--fs-14);
   justify-content: space-between;
-  margin-bottom: 1rem;
-  padding: 0.5rem 0.75rem;
+  margin-bottom: var(--space-4);
+  padding: var(--space-2) var(--space-3);
   width: 100%;
 }
 
@@ -5852,7 +5863,7 @@ section > .cover-key {
 .shelf-behind {
   color: var(--text-3);
   font-size: var(--fs-13);
-  margin: 1.5rem 0 0;
+  margin: var(--space-5) 0 0;
 }
 
 /* A link inside a sentence is told apart by more than its colour. */
@@ -5896,9 +5907,9 @@ section > .cover-key {
     flex-wrap: nowrap;
     overflow-x: auto;
     margin-top: -0.25rem;
-    padding-bottom: 0.25rem;
-    padding-right: 2rem;
-    padding-top: 0.25rem;
+    padding-bottom: var(--space-1);
+    padding-right: var(--space-6);
+    padding-top: var(--space-1);
     scroll-padding-inline-end: 2rem;
   }
 
@@ -5919,7 +5930,7 @@ section > .cover-key {
 
   /* The cover shrinks so the title still fits beside it. */
   .item-head {
-    gap: 1rem;
+    gap: var(--space-4);
   }
 
   .item-cover {
@@ -5939,8 +5950,8 @@ section > .cover-key {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
-  margin: 1.25rem 0 0.5rem;
+  gap: var(--space-3);
+  margin: 1.25rem 0 var(--space-2);
 }
 
 .radar-header button,
@@ -5963,7 +5974,7 @@ section > .cover-key {
 
 .radar-month {
   font-size: var(--fs-16);
-  margin: 1.25rem 0 0.5rem;
+  margin: 1.25rem 0 var(--space-2);
 }
 
 .radar-cards {
@@ -5975,8 +5986,8 @@ section > .cover-key {
 .radar-card {
   display: grid;
   grid-template-columns: 5.5rem 1fr;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  gap: var(--space-3);
+  padding: var(--space-3);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -5989,7 +6000,7 @@ section > .cover-key {
 
 .radar-body h3 {
   font-size: var(--fs-16);
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
 }
 
 .radar-body p {
@@ -5998,7 +6009,7 @@ section > .cover-key {
 
 .radar-reasons,
 .radar-stores {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   padding-left: 1.1rem;
   font-size: var(--fs-14);
 }
@@ -6010,7 +6021,7 @@ section > .cover-key {
 }
 
 .radar-digital {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .radar-digital summary {
@@ -6025,19 +6036,19 @@ section > .cover-key {
 
 .radar-watch-note {
   font-size: var(--fs-14);
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 /* Discover (/admin/discover): Radar's cards, with controls and Rate a few. */
 .rec-genres {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   padding: 0;
 }
 
 .discover-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem 1.5rem;
+  gap: var(--space-4) var(--space-5);
   margin-top: 1.25rem;
 }
 
@@ -6053,7 +6064,7 @@ section > .cover-key {
 }
 
 .discover-choice label {
-  margin-right: 0.75rem;
+  margin-right: var(--space-3);
 }
 
 .discover-choice p {
@@ -6062,8 +6073,8 @@ section > .cover-key {
 }
 
 .rate-a-few {
-  margin: 1.5rem 0;
-  padding: 0.75rem 1rem;
+  margin: var(--space-5) 0;
+  padding: var(--space-3) var(--space-4);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -6071,12 +6082,12 @@ section > .cover-key {
 
 .rate-a-few h2 {
   font-size: var(--fs-18);
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
 }
 
 .rate-a-few-table {
   border-collapse: collapse;
-  margin: 0.75rem 0;
+  margin: var(--space-3) 0;
   max-width: 45rem;
   width: 100%;
 }
@@ -6125,7 +6136,7 @@ section > .cover-key {
 
 .rate-a-few-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .rate-a-few-actions button {
@@ -6146,12 +6157,12 @@ section > .cover-key {
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
 }
 
 .store-list-section {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 /* The store list's rows are What's next's shared row (.next-row), with the
@@ -6166,7 +6177,7 @@ section > .cover-key {
   font-size: var(--fs-16);
   min-height: 44px;
   min-width: 44px;
-  padding: 0.5rem 1rem;
+  padding: var(--space-2) var(--space-4);
 }
 
 /* The status line takes focus when the last answered row leaves. */
@@ -6202,11 +6213,11 @@ section > .cover-key {
 
 .next-fresh {
   font-size: var(--fs-14);
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 .next-section {
-  margin-top: 2rem;
+  margin-top: var(--space-6);
 }
 
 /* The jump links point at the headings, so the margin sits on them (a scroll
@@ -6225,7 +6236,7 @@ section > .cover-key {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 1rem;
+  gap: var(--space-1) var(--space-4);
 }
 
 .next-section-head h2 {
@@ -6248,7 +6259,7 @@ section > .cover-key {
 .jump-nav {
   background: var(--bg);
   border-bottom: 1px solid var(--line);
-  margin: 1rem 0 0;
+  margin: var(--space-4) 0 0;
   position: sticky;
   top: env(safe-area-inset-top, 0px);
   z-index: 5;
@@ -6261,7 +6272,7 @@ section > .cover-key {
   list-style: none;
   margin: 0;
   overflow-x: auto;
-  padding: 0.6rem 4px;
+  padding: 0.6rem var(--space-1);
   scrollbar-width: none;
 }
 
@@ -6292,7 +6303,7 @@ section > .cover-key {
 
 @media (max-width: 700px) {
   .jump-nav ul {
-    padding-right: 2rem;
+    padding-right: var(--space-6);
     -webkit-mask-image: linear-gradient(
       to right,
       #000 calc(100% - 2rem),
@@ -6314,7 +6325,7 @@ section > .cover-key {
 .radar > h2,
 .pull-list-week h2 {
   font-size: var(--fs-24);
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 /* Radar's and Discover's headings sit in the page's own flow, not in a
@@ -6322,11 +6333,11 @@ section > .cover-key {
    section's space above. */
 .radar > h2,
 .pull-list-week {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .next-section > p {
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 .next-group h3 {
@@ -6336,9 +6347,9 @@ section > .cover-key {
 
 .next-rows {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   list-style: none;
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   padding: 0;
 }
 
@@ -6357,13 +6368,13 @@ section > .cover-key {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  column-gap: 0.75rem;
+  column-gap: var(--space-3);
   display: grid;
   grid-auto-columns: auto;
   grid-template-columns: 3rem minmax(0, 1fr);
   grid-template-rows: auto 1fr;
-  padding: 0.75rem;
-  row-gap: 0.25rem;
+  padding: var(--space-3);
+  row-gap: var(--space-1);
 }
 
 .next-row-link {
@@ -6411,12 +6422,12 @@ section > .cover-key {
 .tonight-just {
   align-items: center;
   color: var(--text-2);
-  column-gap: 0.5rem;
+  column-gap: var(--space-2);
   display: grid;
   font-size: var(--fs-13);
   grid-template-columns: 1.4rem auto minmax(0, 1fr);
   line-height: 1.4;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
 }
 
 .tonight-just-thumb {
@@ -6570,7 +6581,7 @@ section > .cover-key {
 .tonight-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .tonight-playing {
@@ -6595,7 +6606,7 @@ section > .cover-key {
    Now playing band's rule, so the two read as one thing. */
 .tonight-continuing {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -6632,7 +6643,7 @@ section > .cover-key {
   font-size: var(--fs-13);
   justify-content: space-between;
   letter-spacing: 0.04em;
-  margin: 1.1rem 0 0.5rem;
+  margin: 1.1rem 0 var(--space-2);
   text-transform: uppercase;
 }
 .picks-h .muted {
@@ -6650,10 +6661,10 @@ section > .cover-key {
 }
 .picklist > li {
   align-items: start;
-  column-gap: 0.75rem;
+  column-gap: var(--space-3);
   display: grid;
   grid-template-columns: 2.6rem minmax(0, 1fr) auto;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 .picklist > li + li {
   border-top: 1px solid var(--line);
@@ -6674,7 +6685,7 @@ section > .cover-key {
 .picklist-text {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   min-width: 0;
 }
 .picklist .tonight-title {
@@ -6712,13 +6723,13 @@ section > .cover-key {
 }
 .wrap-sheet-body {
   display: grid;
-  gap: 1rem;
-  padding: 1rem 1.1rem 1.1rem;
+  gap: var(--space-4);
+  padding: var(--space-4) 1.1rem 1.1rem;
 }
 .wrap-sheet-head {
   align-items: center;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: 2.6rem minmax(0, 1fr) auto;
 }
 .wrap-sheet-heading h3 {
@@ -6731,7 +6742,7 @@ section > .cover-key {
 }
 .wrap-outcome {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .wrap-outcome button {
@@ -6743,7 +6754,7 @@ section > .cover-key {
   display: grid;
   font: inherit;
   gap: 0.2rem;
-  padding: 0.7rem 0.75rem;
+  padding: 0.7rem var(--space-3);
   text-align: left;
 }
 .wrap-outcome button:hover {
@@ -6774,7 +6785,7 @@ section > .cover-key {
 .wrap-fresh {
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   padding-top: 0.9rem;
 }
 .wrap-fresh h4 {
@@ -6824,7 +6835,7 @@ section > .cover-key {
 }
 .wrap-sheet-acts {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin-left: auto;
 }
 /* The band's Wrap up button, a sibling of the card link. */
@@ -6842,10 +6853,10 @@ section > .cover-key {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.25rem 0.75rem;
+  gap: var(--space-1) var(--space-3);
   justify-content: space-between;
   letter-spacing: 0.04em;
-  margin: 1.1rem 0 0.5rem;
+  margin: 1.1rem 0 var(--space-2);
   text-transform: uppercase;
 }
 .tonight-alts-h .muted {
@@ -6862,9 +6873,9 @@ section > .cover-key {
 .lane-h {
   align-items: baseline;
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
   justify-content: space-between;
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 .lane-h h3 {
   font-size: var(--fs-16);
@@ -6904,7 +6915,7 @@ section > .cover-key {
   color: var(--text-2);
   font-size: var(--fs-14);
   margin: 0;
-  padding: 0.9rem 1rem;
+  padding: 0.9rem var(--space-4);
 }
 .empty-box a {
   white-space: nowrap;
@@ -6924,10 +6935,10 @@ section > .cover-key {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  column-gap: 0.75rem;
+  column-gap: var(--space-3);
   display: grid;
   grid-template-columns: 3rem minmax(0, 1fr);
-  padding: 0.75rem;
+  padding: var(--space-3);
   row-gap: 0.3rem;
 }
 
@@ -6954,7 +6965,7 @@ section > .cover-key {
   font-size: var(--fs-14);
   gap: 0.6rem;
   justify-content: space-between;
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem var(--space-3);
 }
 
 .tonight-toast strong {
@@ -7028,7 +7039,7 @@ section > .cover-key {
 
   .picklist > li {
     grid-template-columns: 2.6rem minmax(0, 1fr);
-    row-gap: 0.5rem;
+    row-gap: var(--space-2);
   }
 
   .picklist > li > .tonight-acts {
@@ -7077,7 +7088,7 @@ section > .cover-key {
 /* Top pick rides the title's line, as the mockup draws it. */
 .next-badge-inline {
   font-size: var(--fs-12);
-  margin-left: 0.5rem;
+  margin-left: var(--space-2);
   vertical-align: 0.1em;
   white-space: nowrap;
 }
@@ -7086,21 +7097,21 @@ section > .cover-key {
   align-self: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-column: 3;
   grid-row: 1 / 3;
 }
 
 .next-section .sort-control {
-  margin: 0.25rem 0 0.25rem;
+  margin: var(--space-1) 0 var(--space-1);
 }
 
 /* Not on cartridge stays closed by default. The summary is the native
    disclosure control, so it is focusable without a tabindex. */
 .next-skip {
   border-top: 1px solid var(--line);
-  margin-top: 2rem;
-  padding-top: 0.5rem;
+  margin-top: var(--space-6);
+  padding-top: var(--space-2);
 }
 
 .next-skip summary {
@@ -7109,7 +7120,7 @@ section > .cover-key {
   cursor: pointer;
   font-family: var(--font-sans);
   font-size: var(--fs-18);
-  padding: 0.5rem 0;
+  padding: var(--space-2) 0;
 }
 
 .next-skip summary:focus-visible {
@@ -7118,14 +7129,14 @@ section > .cover-key {
 }
 
 .next-skip > p {
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 @media (max-width: 34rem) {
   .next-row-actions {
     grid-column: 1 / -1;
     grid-row: 3;
-    margin-top: 0.5rem;
+    margin-top: var(--space-2);
   }
 }
 
@@ -7137,7 +7148,7 @@ section > .cover-key {
   border-radius: 6px;
   color: var(--text);
   left: 1rem;
-  padding: 0.5rem 0.9rem;
+  padding: var(--space-2) 0.9rem;
   position: absolute;
   top: -10rem;
   z-index: 100;
@@ -7157,8 +7168,8 @@ main h1[tabindex='-1']:focus,
 
 .route-error {
   display: grid;
-  gap: 0.75rem;
-  padding-block: 2rem;
+  gap: var(--space-3);
+  padding-block: var(--space-6);
 }
 
 /* Motion is decoration here: card lifts, fades and reveals all stop for
@@ -7178,7 +7189,7 @@ main h1[tabindex='-1']:focus,
 
 .shelf-search {
   display: block;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   max-width: 24rem;
 }
 
@@ -7203,19 +7214,19 @@ main h1[tabindex='-1']:focus,
 .colophon h2,
 .site-stats h2 {
   font-size: var(--fs-18);
-  margin: 2rem 0 0.75rem;
+  margin: var(--space-6) 0 var(--space-3);
 }
 
 /* /stats: the admin analytics components (.stat-tiles, .day-bars,
    .bar-list) in the 45rem column. The bars use --chart,
    measured beside the tokens; no new colour. */
 .site-stats .stat-tiles {
-  margin: 1.5rem 0 0;
+  margin: var(--space-5) 0 0;
 }
 
 .site-stats-status {
   font-size: var(--fs-13);
-  margin: 0.75rem 0 0;
+  margin: var(--space-3) 0 0;
 }
 
 /* The thirty bars share the column at any width (.day-bar flexes); the
@@ -7226,7 +7237,7 @@ main h1[tabindex='-1']:focus,
 
 .site-stats-lists {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--space-5);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -7236,12 +7247,12 @@ main h1[tabindex='-1']:focus,
 }
 
 .site-stats-lists h2 {
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
 }
 
 .site-stats-lists .kicker {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
 }
 
 /* Three lists share the column, so a row is the label above its bar and
@@ -7249,7 +7260,7 @@ main h1[tabindex='-1']:focus,
    and host short. */
 .site-stats-lists .bar-list li {
   grid-template-columns: minmax(0, 1fr) 3rem;
-  row-gap: 4px;
+  row-gap: var(--space-1);
 }
 
 .site-stats-lists .bar-list-label {
@@ -7264,7 +7275,7 @@ main h1[tabindex='-1']:focus,
 
 .changelog > li {
   border-top: 1px solid var(--line);
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .changelog time {
@@ -7273,12 +7284,12 @@ main h1[tabindex='-1']:focus,
 }
 
 .changelog ul {
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
   padding-left: 1.1rem;
 }
 
 .changelog li + li {
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
 @media (max-width: 700px) {
@@ -7307,19 +7318,19 @@ main h1[tabindex='-1']:focus,
 /* ---------- Year in review ---------- */
 
 .year-review h1 {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .year-review h2 {
   font-size: var(--fs-18);
-  margin: 2rem 0 0.75rem;
+  margin: var(--space-6) 0 var(--space-3);
 }
 
 .year-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
 }
 
 .year-nav [aria-current='page'] {
@@ -7328,7 +7339,7 @@ main h1[tabindex='-1']:focus,
 }
 
 .month-nav {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 .month-index {
@@ -7336,7 +7347,7 @@ main h1[tabindex='-1']:focus,
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   list-style: none;
-  margin: 1rem 0 0.5rem;
+  margin: var(--space-4) 0 var(--space-2);
   max-width: 45rem;
   padding: 0;
 }
@@ -7368,7 +7379,7 @@ main h1[tabindex='-1']:focus,
 .month-step {
   display: flex;
   font-size: var(--fs-14);
-  gap: 1rem;
+  gap: var(--space-4);
   justify-content: space-between;
   margin: 0;
   max-width: 45rem;
@@ -7376,7 +7387,7 @@ main h1[tabindex='-1']:focus,
 
 .month-days {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   list-style: none;
   margin: 0;
   max-width: 45rem;
@@ -7387,7 +7398,7 @@ main h1[tabindex='-1']:focus,
   color: var(--text-3);
   display: block;
   font-size: var(--fs-13);
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
 }
 
 .month-days .year-diary li {
@@ -7397,8 +7408,8 @@ main h1[tabindex='-1']:focus,
 .year-numbers {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem 2.5rem;
-  margin: 1.5rem 0 0;
+  gap: var(--space-4) 2.5rem;
+  margin: var(--space-5) 0 0;
 }
 
 .year-numbers dt {
@@ -7425,7 +7436,7 @@ main h1[tabindex='-1']:focus,
 .year-columns {
   align-items: start;
   display: grid;
-  gap: 0 3rem;
+  gap: 0 var(--space-7);
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -7466,7 +7477,7 @@ main h1[tabindex='-1']:focus,
 
 .year-diary li {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: 4.5rem 1fr auto;
 }
 
@@ -7479,7 +7490,7 @@ main h1[tabindex='-1']:focus,
 .year-diary-title {
   align-items: center;
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .year-diary li:has(.year-diary-cover) {
@@ -7497,13 +7508,13 @@ main h1[tabindex='-1']:focus,
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 0.875rem 1rem;
+  padding: 0.875rem var(--space-4);
 }
 
 .tour-live-caption {
   color: var(--text-3);
   font-size: var(--fs-13);
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 .tour-capture {
@@ -7523,7 +7534,7 @@ main h1[tabindex='-1']:focus,
   font-family: var(--font-mono);
   font-size: var(--fs-12);
   gap: 0.375rem;
-  padding: 0.45rem 0.75rem;
+  padding: 0.45rem var(--space-3);
 }
 
 .tour-capture-dot {
@@ -7563,7 +7574,7 @@ main h1[tabindex='-1']:focus,
   color: var(--text-3);
   font-family: var(--font-mono);
   font-size: var(--fs-12);
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-2) var(--space-3);
 }
 
 /* Only the table scrolls sideways, never the page (AC9). */
@@ -7584,7 +7595,7 @@ main h1[tabindex='-1']:focus,
   font-size: var(--fs-12);
   font-weight: 500;
   letter-spacing: 0.05em;
-  padding: 0.375rem 0.5rem;
+  padding: 0.375rem var(--space-2);
   text-align: left;
   text-transform: uppercase;
   white-space: nowrap;
@@ -7593,7 +7604,7 @@ main h1[tabindex='-1']:focus,
 .tour-capture-table td {
   border-bottom: 1px solid var(--line);
   color: var(--text-2);
-  padding: 0.45rem 0.5rem;
+  padding: 0.45rem var(--space-2);
   vertical-align: top;
 }
 
@@ -7638,7 +7649,7 @@ main h1[tabindex='-1']:focus,
 .tour-kv {
   display: grid;
   font-size: var(--fs-13);
-  gap: 0.25rem 0.875rem;
+  gap: var(--space-1) 0.875rem;
   grid-template-columns: max-content 1fr;
   margin: 0;
 }
@@ -7667,7 +7678,7 @@ main h1[tabindex='-1']:focus,
   font-size: var(--fs-13);
   gap: 0.625rem;
   grid-template-columns: 7.5rem 1fr 2.5rem;
-  padding: 0.25rem 0;
+  padding: var(--space-1) 0;
 }
 
 .tour-bar {
@@ -7711,7 +7722,7 @@ main h1[tabindex='-1']:focus,
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-rows: repeat(3, auto);
   list-style: none;
-  margin: 1.5rem 0 0.5rem;
+  margin: var(--space-5) 0 var(--space-2);
   padding: 0;
 }
 
@@ -7833,8 +7844,8 @@ main h1[tabindex='-1']:focus,
 .tour-closing {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.125rem;
-  margin-top: 0.75rem;
+  gap: var(--space-2) 1.125rem;
+  margin-top: var(--space-3);
 }
 
 .tour-code-link {
@@ -7850,14 +7861,14 @@ main h1[tabindex='-1']:focus,
 .tour-closing {
   border-top: 1px solid var(--line);
   font-size: var(--fs-14);
-  gap: 0.5rem 1.5rem;
+  gap: var(--space-2) var(--space-5);
   margin-top: 2.25rem;
   padding-top: 1.25rem;
 }
 
 .tour-covers {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   list-style: none;
   margin: 0;
@@ -7869,7 +7880,7 @@ main h1[tabindex='-1']:focus,
   display: flex;
   flex-direction: column;
   font-size: var(--fs-12);
-  gap: 0.25rem;
+  gap: var(--space-1);
   line-height: 1.3;
 }
 
@@ -7889,7 +7900,7 @@ main h1[tabindex='-1']:focus,
   line-height: 1.5;
   margin: 0;
   overflow-x: auto;
-  padding: 0.75rem 0.875rem;
+  padding: var(--space-3) 0.875rem;
 }
 
 /* Three columns of nine titles need about 60rem; below that the index is one
@@ -7945,9 +7956,9 @@ main h1[tabindex='-1']:focus,
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: grid;
-  gap: 0.9rem 1rem;
+  gap: 0.9rem var(--space-4);
   grid-template-columns: 2.75rem 1fr auto;
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .series-thumb {
@@ -7982,7 +7993,7 @@ main h1[tabindex='-1']:focus,
   font-size: var(--fs-12);
   font-weight: 400;
   line-height: 1.5;
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
   vertical-align: middle;
 }
 
@@ -8086,7 +8097,7 @@ main h1[tabindex='-1']:focus,
 
   .series-count {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-3);
     grid-column: 2;
     text-align: left;
   }
@@ -8228,7 +8239,7 @@ main h1[tabindex='-1']:focus,
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-12);
-  gap: 0.25rem 1rem;
+  gap: var(--space-1) var(--space-4);
   list-style: none;
   margin: 0.6rem 0 0;
   padding: 0;
@@ -8441,7 +8452,7 @@ button.run-cell[aria-disabled='true'] {
 .comic-sum {
   color: var(--text);
   font-size: var(--fs-16);
-  margin: 0.75rem 0 0;
+  margin: var(--space-3) 0 0;
 }
 
 .comic-sum b {
@@ -8514,7 +8525,7 @@ button.run-cell[aria-disabled='true'] {
   color: var(--text-2);
   font-size: var(--fs-14);
   margin: 0;
-  padding: 1rem;
+  padding: var(--space-4);
 }
 
 /* The cover wall: a cover per issue, a book per edition, a stack for a long
@@ -8525,7 +8536,7 @@ button.run-cell[aria-disabled='true'] {
    Focus draws what hover draws. */
 .cover-wall-grid {
   display: grid;
-  gap: 1rem 0.8rem;
+  gap: var(--space-4) 0.8rem;
   grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
 }
 
@@ -8618,7 +8629,7 @@ a.cover-tile:focus-visible {
   color: var(--text-2);
   display: flex;
   font: 500 var(--fs-12)/1.3 var(--font-mono);
-  gap: 0.25rem;
+  gap: var(--space-1);
   justify-content: space-between;
   margin-top: 0.3rem;
 }
@@ -8694,7 +8705,7 @@ a.cover-tile:focus-visible {
   flex-wrap: wrap;
   gap: 0.4rem;
   list-style: none;
-  margin: 1rem 0 0;
+  margin: var(--space-4) 0 0;
   padding: 0;
 }
 
@@ -8742,7 +8753,7 @@ a.cover-tile:focus-visible {
 
 @media (max-width: 480px) {
   .cover-wall-grid {
-    gap: 0.8rem 0.5rem;
+    gap: 0.8rem var(--space-2);
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -8751,7 +8762,7 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   font-size: var(--fs-12);
   letter-spacing: 0.06em;
-  margin: 1.1rem 0 0.5rem;
+  margin: 1.1rem 0 var(--space-2);
   text-transform: uppercase;
 }
 
@@ -8769,7 +8780,7 @@ a.cover-tile:focus-visible {
   }
 
   .comic-hero-next {
-    margin-right: 1rem;
+    margin-right: var(--space-4);
   }
 
   .comic-next {
@@ -8780,12 +8791,12 @@ a.cover-tile:focus-visible {
 /* Out this week: one row of issue tiles, scrolling sideways when it
    outgrows the column. */
 .comics-strip {
-  margin: 1.5rem 0;
+  margin: var(--space-5) 0;
 }
 
 .comics-strip h2 {
   font-size: var(--fs-16);
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
 }
 
 .comics-strip h2 small {
@@ -8796,13 +8807,13 @@ a.cover-tile:focus-visible {
 
 .comics-strip-issues {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-auto-columns: 7.5rem;
   grid-auto-flow: column;
   list-style: none;
   margin: 0;
   overflow-x: auto;
-  padding: 0 0 0.5rem;
+  padding: 0 0 var(--space-2);
 }
 
 .comics-strip-link,
@@ -8834,7 +8845,7 @@ a.cover-tile:focus-visible {
   display: flex;
   font-size: var(--fs-13);
   overflow: hidden;
-  padding: 0.5rem;
+  padding: var(--space-2);
 }
 
 .comics-strip-title {
@@ -8851,9 +8862,9 @@ a.cover-tile:focus-visible {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
   justify-content: space-between;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
 }
 
 .comics-view {
@@ -8874,9 +8885,9 @@ a.cover-tile:focus-visible {
 .item-facts {
   display: grid;
   font-size: var(--fs-14);
-  gap: 0.3rem 1rem;
+  gap: 0.3rem var(--space-4);
   grid-template-columns: max-content 1fr;
-  margin: 0.75rem 0 0;
+  margin: var(--space-3) 0 0;
 }
 
 .item-facts > div {
@@ -8897,13 +8908,13 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line);
   border-radius: 8px;
   margin: 0 0 1.25rem;
-  padding: 1rem 1.25rem;
+  padding: var(--space-4) 1.25rem;
 }
 
 .item-card h2 {
   font-size: var(--fs-13);
   letter-spacing: 0.04em;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
   text-transform: uppercase;
 }
 
@@ -8928,7 +8939,7 @@ a.cover-tile:focus-visible {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.75rem;
+  gap: var(--space-1) var(--space-3);
 }
 
 .item-edition-kind {
@@ -8938,12 +8949,12 @@ a.cover-tile:focus-visible {
 
 .item-card-source {
   font-size: var(--fs-13);
-  margin: 0.75rem 0 0;
+  margin: var(--space-3) 0 0;
 }
 
 .item-attribution {
   font-size: var(--fs-13);
-  margin: 1.5rem 0 0;
+  margin: var(--space-5) 0 0;
 }
 
 /* Pull list (/admin/pull-list): What's next's rows, with the store list's
@@ -8962,7 +8973,7 @@ a.cover-tile:focus-visible {
   font-size: var(--fs-16);
   min-height: 44px;
   min-width: 44px;
-  padding: 0.5rem 1rem;
+  padding: var(--space-2) var(--space-4);
   text-decoration: none;
 }
 
@@ -8981,7 +8992,7 @@ a.cover-tile:focus-visible {
 .pull-list-week h2 {
   align-items: center;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .pull-row-done .next-row-title,
@@ -8992,15 +9003,15 @@ a.cover-tile:focus-visible {
 
 .pull-list-search {
   border-top: 1px solid var(--line);
-  margin-top: 2rem;
-  padding-top: 1rem;
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
 }
 
 .pull-list-search-form {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .pull-list-search-form input {
@@ -9021,8 +9032,8 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line);
   border-radius: 8px;
   grid-column: 1 / -1;
-  margin: 0.5rem 0;
-  padding: 1rem 1.1rem;
+  margin: var(--space-2) 0;
+  padding: var(--space-4) 1.1rem;
 }
 
 .comic-run-editor h2 {
@@ -9031,7 +9042,7 @@ a.cover-tile:focus-visible {
   flex-wrap: wrap;
   font-size: var(--fs-16);
   font-weight: 600;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin: 0 0 0.7rem;
 }
 
@@ -9046,7 +9057,7 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin: 1rem 0 0.75rem;
+  margin: var(--space-4) 0 var(--space-3);
 }
 
 .comic-private {
@@ -9062,7 +9073,7 @@ a.cover-tile:focus-visible {
   display: grid;
   gap: 0.4rem;
   grid-column: 1 / -1;
-  margin: 0.25rem 0;
+  margin: var(--space-1) 0;
   min-width: 0;
   padding: 0;
 }
@@ -9106,7 +9117,7 @@ a.cover-tile:focus-visible {
 
 .comic-hint {
   font-size: var(--fs-14);
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 /* In the admin edit's label/input grid the hint sits under its input, not
@@ -9127,12 +9138,12 @@ a.cover-tile:focus-visible {
 }
 
 .pick-for-me {
-  margin-block: 2rem;
+  margin-block: var(--space-6);
   scroll-margin-top: calc(3.5rem + env(safe-area-inset-top, 0px));
 }
 
 .pick-empty {
-  margin: 0.75rem 0;
+  margin: var(--space-3) 0;
 }
 
 /* Three results across when the page is wide. */
@@ -9144,7 +9155,7 @@ a.cover-tile:focus-visible {
 
 .pick-choices {
   border: 0;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
   /* A fieldset's default min-inline-size is min-content, which lets the
      chips push the page sideways at phone width. */
   min-width: 0;
@@ -9210,7 +9221,7 @@ a.cover-tile:focus-visible {
 }
 
 .pick-score-total {
-  margin: 0.375rem 0 0.25rem;
+  margin: 0.375rem 0 var(--space-1);
 }
 
 .pick-terms {
@@ -9222,7 +9233,7 @@ a.cover-tile:focus-visible {
 .pick-term {
   align-items: center;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
@@ -9255,12 +9266,12 @@ a.cover-tile:focus-visible {
 
 .pick-how {
   font-size: var(--fs-13);
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .how-try {
   font-size: var(--fs-14);
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 /* ---------------------------------------------------------------------
@@ -9274,10 +9285,10 @@ a.cover-tile:focus-visible {
 
 .trip-list {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   list-style: none;
-  margin: 1.5rem 0 0;
+  margin: var(--space-5) 0 0;
   padding: 0;
 }
 
@@ -9314,8 +9325,8 @@ a.cover-tile:focus-visible {
 .trip-card__body {
   align-content: start;
   display: grid;
-  gap: 0.25rem;
-  padding: 0.9rem 1rem 1rem;
+  gap: var(--space-1);
+  padding: 0.9rem var(--space-4) var(--space-4);
 }
 
 .trip-card__title {
@@ -9344,7 +9355,7 @@ a.cover-tile:focus-visible {
 .drawn-map {
   border: 1px solid var(--line);
   border-radius: 10px;
-  margin: 1.5rem 0;
+  margin: var(--space-5) 0;
   overflow: hidden;
 }
 
@@ -9451,15 +9462,15 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-12);
-  gap: 0.25rem 1rem;
+  gap: var(--space-1) var(--space-4);
   justify-content: space-between;
-  padding: 0.4rem 0.75rem;
+  padding: 0.4rem var(--space-3);
 }
 
 .drawn-map__stops {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 0.75rem;
+  gap: 0 var(--space-3);
   margin: 0;
   padding-left: 1.1rem;
 }
@@ -9474,7 +9485,7 @@ a.cover-tile:focus-visible {
   display: flex;
   gap: 0.4rem;
   list-style: none;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   overflow-x: auto;
   padding: 2px;
 }
@@ -9512,14 +9523,14 @@ a.cover-tile:focus-visible {
 }
 
 .trip-day .post-body {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 /* Photos pair in order within a day. */
 .photo-group {
   display: grid;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .photo-group--two {
@@ -9587,8 +9598,8 @@ a.cover-tile:focus-visible {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
-  margin-top: 0.75rem;
-  padding: 1rem 1.1rem;
+  margin-top: var(--space-3);
+  padding: var(--space-4) 1.1rem;
   position: relative;
 }
 
@@ -9600,7 +9611,7 @@ a.cover-tile:focus-visible {
   font-family: var(--font-mono);
   font-size: var(--fs-12);
   letter-spacing: 0.04em;
-  margin: 0 0 0.5rem 0.75rem;
+  margin: 0 0 var(--space-2) var(--space-3);
   padding: 0.2rem 0.45rem;
   text-transform: uppercase;
 }
@@ -9618,7 +9629,7 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-14);
-  gap: 0.5rem 1rem;
+  gap: var(--space-2) var(--space-4);
   justify-content: space-between;
   padding-top: 1.25rem;
 }
@@ -9636,7 +9647,7 @@ a.cover-tile:focus-visible {
   margin: 0;
   max-height: none;
   max-width: none;
-  padding: 3.5rem 1rem 1rem;
+  padding: 3.5rem var(--space-4) var(--space-4);
   width: 100vw;
 }
 
@@ -9675,7 +9686,7 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-14);
-  gap: 0.25rem 1rem;
+  gap: var(--space-1) var(--space-4);
   justify-content: space-between;
   padding: 0.4rem 0.7rem;
 }
@@ -9755,15 +9766,15 @@ a.cover-tile:focus-visible {
 .spots-notice {
   color: var(--text-2);
   font-size: var(--fs-14);
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
 }
 
 .spot-form-wrap {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  margin-bottom: 1.5rem;
-  padding: 1rem 1.25rem;
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) 1.25rem;
 }
 
 .spot-form-title,
@@ -9784,13 +9795,13 @@ a.cover-tile:focus-visible {
 .spot-form-hint {
   color: var(--text-3);
   font-size: var(--fs-12);
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 .spot-form-check {
   align-items: center;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .spot-form-check .spot-form-hint {
@@ -9801,8 +9812,8 @@ a.cover-tile:focus-visible {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .spots-search {
@@ -9868,7 +9879,7 @@ a.cover-tile:focus-visible {
 .spots-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.5rem;
+  gap: var(--space-1) var(--space-2);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -9936,14 +9947,14 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.4rem 0.75rem;
+  gap: 0.4rem var(--space-3);
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3);
 }
 
 .cand-list {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -9955,13 +9966,13 @@ a.cover-tile:focus-visible {
   border-radius: 10px;
   display: grid;
   gap: 0.4rem;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem var(--space-4);
 }
 
 .cand-h {
   align-items: start;
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
   justify-content: space-between;
 }
 
@@ -10034,7 +10045,7 @@ a.cover-tile:focus-visible {
   cursor: pointer;
   font: inherit;
   font-size: var(--fs-12);
-  padding: 0.1rem 0.5rem;
+  padding: 0.1rem var(--space-2);
 }
 
 .minitag[aria-pressed='true'] {
@@ -10052,7 +10063,7 @@ a.cover-tile:focus-visible {
   border-radius: 10px;
   color: var(--text-2);
   margin: 0;
-  padding: 1.5rem;
+  padding: var(--space-5);
   text-align: center;
 }
 
@@ -10075,7 +10086,7 @@ a.cover-tile:focus-visible {
    The verdict's colour is the status dot's, beside its text. */
 .weekend {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .wk-pills {
@@ -10110,7 +10121,7 @@ a.cover-tile:focus-visible {
 
 .wx-days {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -10121,7 +10132,7 @@ a.cover-tile:focus-visible {
 
 .wx {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .wx-bars {
@@ -10169,7 +10180,7 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   font: 600 var(--fs-12) var(--font-mono);
   letter-spacing: 0.06em;
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   text-transform: uppercase;
 }
 
@@ -10181,14 +10192,14 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-14);
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin: 0;
   min-height: 0;
 }
 
 .sug-list {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -10200,7 +10211,7 @@ a.cover-tile:focus-visible {
   border-radius: 10px;
   display: grid;
   gap: 0.45rem;
-  padding: 0.9rem 1rem;
+  padding: 0.9rem var(--space-4);
 }
 
 .sug.lead {
@@ -10218,7 +10229,7 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   font: var(--fs-12) var(--font-mono);
-  gap: 0.25rem 0.75rem;
+  gap: var(--space-1) var(--space-3);
   margin: 0;
 }
 
@@ -10245,7 +10256,7 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.35rem 0.75rem;
+  gap: 0.35rem var(--space-3);
   margin: 0;
 }
 
@@ -10260,7 +10271,7 @@ a.cover-tile:focus-visible {
   border-radius: 999px;
   color: var(--text-2);
   font-size: var(--fs-12);
-  padding: 0.05rem 0.5rem;
+  padding: 0.05rem var(--space-2);
 }
 
 .sug-why {
@@ -10290,7 +10301,7 @@ a.cover-tile:focus-visible {
 .wk-skips ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 0.75rem;
+  gap: 0.4rem var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -10299,7 +10310,7 @@ a.cover-tile:focus-visible {
 .wk-foot {
   align-items: start;
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -10314,7 +10325,7 @@ a.cover-tile:focus-visible {
 .wk-visits li {
   display: flex;
   font-size: var(--fs-14);
-  gap: 0.75rem;
+  gap: var(--space-3);
   justify-content: space-between;
 }
 
@@ -10326,7 +10337,7 @@ a.cover-tile:focus-visible {
 
 .wk-form {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .wk-check,
@@ -10334,7 +10345,7 @@ a.cover-tile:focus-visible {
   align-items: center;
   display: flex;
   font-size: var(--fs-14);
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .wk-field input {
@@ -10344,7 +10355,7 @@ a.cover-tile:focus-visible {
 .wk-form-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 @media (min-width: 701px) {
@@ -10360,7 +10371,7 @@ a.cover-tile:focus-visible {
    wider, every attribute cell the same width. */
 .daily {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 /* /daily takes the shelf's wide frame so the header and tabs stay put
    between tabs; the puzzle itself keeps the 45rem reading column. */
@@ -10371,7 +10382,7 @@ a.cover-tile:focus-visible {
 .daily-head {
   align-items: baseline;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: space-between;
   margin: 0;
 }
@@ -10404,7 +10415,7 @@ a.cover-tile:focus-visible {
   border-radius: 10px;
   display: grid;
   gap: 0.9rem;
-  padding: 1rem;
+  padding: var(--space-4);
 }
 .daily-hint {
   font-size: var(--fs-14);
@@ -10496,7 +10507,7 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-12);
-  gap: 0.75rem;
+  gap: var(--space-3);
   margin: 0;
 }
 .daily-legend i {
@@ -10531,7 +10542,7 @@ a.cover-tile:focus-visible {
   color: var(--text);
   font: inherit;
   font-size: var(--fs-16);
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem var(--space-3);
   width: 100%;
 }
 .guess-input::placeholder {
@@ -10551,7 +10562,7 @@ a.cover-tile:focus-visible {
   left: 0;
   list-style: none;
   margin: 0;
-  padding: 0.25rem;
+  padding: var(--space-1);
   position: absolute;
   right: 0;
   top: calc(100% - 1.1rem);
@@ -10564,7 +10575,7 @@ a.cover-tile:focus-visible {
   display: grid;
   gap: 0.6rem;
   grid-template-columns: 2rem minmax(0, 1fr) auto;
-  padding: 0.4rem 0.5rem;
+  padding: 0.4rem var(--space-2);
 }
 .guess-list li[aria-selected='true'] {
   background: var(--sunken);
@@ -10609,7 +10620,7 @@ a.cover-tile:focus-visible {
 .daily-result-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin-top: 0.4rem;
 }
 
@@ -10631,7 +10642,7 @@ a.cover-tile:focus-visible {
 .share-sheet-body {
   display: grid;
   gap: 0.9rem;
-  padding: 1rem 1rem 1.25rem;
+  padding: var(--space-4) var(--space-4) 1.25rem;
 }
 .share-sheet-body h3 {
   font-size: var(--fs-16);
@@ -10645,7 +10656,7 @@ a.cover-tile:focus-visible {
   color: var(--text);
   font: var(--fs-16)/1.4 var(--font-mono);
   margin: 0;
-  padding: 0.75rem;
+  padding: var(--space-3);
   white-space: pre-wrap;
   width: 100%;
 }
@@ -10667,7 +10678,7 @@ a.cover-tile:focus-visible {
 .share-sheet-foot {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
@@ -10683,12 +10694,12 @@ a.cover-tile:focus-visible {
     width: 28%;
   }
   .shelfle-empty-cells {
-    gap: 0.25rem;
+    gap: var(--space-1);
     grid-template-columns: 28% repeat(4, minmax(0, 1fr));
   }
   .shelfle td {
     font-size: var(--fs-12);
-    padding: 0.4rem 0.25rem;
+    padding: 0.4rem var(--space-1);
   }
   .daily-result {
     grid-template-columns: 4.5rem minmax(0, 1fr);
@@ -10848,7 +10859,7 @@ a.cover-tile:focus-visible {
   transform: translate(-50%, calc(-100% - 30px));
   min-width: 11rem;
   max-width: 15rem;
-  padding: 0.5rem 0.65rem;
+  padding: var(--space-2) 0.65rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -10909,7 +10920,7 @@ a.cover-tile:focus-visible {
 .denver-view {
   display: flex;
   gap: 0.4rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .denver-layout {
@@ -10955,7 +10966,7 @@ a.cover-tile:focus-visible {
 }
 
 .spot-card {
-  padding: 0.75rem 0.9rem;
+  padding: var(--space-3) 0.9rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -10967,7 +10978,7 @@ a.cover-tile:focus-visible {
 }
 
 .spot-card-kicker {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
   color: var(--text-3);
   font-family: var(--font-mono);
   font-size: var(--fs-12);
@@ -10979,7 +10990,7 @@ a.cover-tile:focus-visible {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .spot-card-name {
@@ -11029,7 +11040,7 @@ a.cover-tile:focus-visible {
 }
 
 .spot-tags li {
-  padding: 0.05rem 0.5rem;
+  padding: 0.05rem var(--space-2);
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text-2);
@@ -11047,7 +11058,7 @@ a.cover-tile:focus-visible {
 /* Admin Home: one card per area, two across, one on a phone. */
 .area-cards {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 1.25rem;
 }
@@ -11065,13 +11076,13 @@ a.cover-tile:focus-visible {
   gap: 0.6rem;
   /* The grid's gap spaces the cards; `section + section` would add more. */
   margin: 0;
-  padding: 1rem 1.25rem;
+  padding: var(--space-4) 1.25rem;
 }
 
 .area-card-head {
   align-items: baseline;
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
   justify-content: space-between;
 }
 
@@ -11089,7 +11100,7 @@ a.cover-tile:focus-visible {
 .area-card-lead.with-cover {
   align-items: center;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: auto minmax(0, 1fr);
 }
 
@@ -11148,7 +11159,7 @@ a.cover-tile:focus-visible {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 /* The Closet (/admin/closet), its garment page and the closet profile.
@@ -11157,30 +11168,30 @@ a.cover-tile:focus-visible {
 .closet-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1rem;
+  gap: var(--space-3) var(--space-4);
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .closet-toolbar-end {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
+  gap: var(--space-2) var(--space-3);
   align-items: center;
 }
 
 .closet-toast {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: var(--space-2) var(--space-4);
   align-items: center;
   justify-content: space-between;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.6rem 0.9rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .closet-toast strong {
@@ -11189,7 +11200,7 @@ a.cover-tile:focus-visible {
 
 .closet-toast-acts {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .garment-grid {
@@ -11273,7 +11284,7 @@ a.cover-tile:focus-visible {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 0.25rem 0.75rem;
+  padding: var(--space-1) var(--space-3);
 }
 
 .garment-table {
@@ -11287,12 +11298,12 @@ a.cover-tile:focus-visible {
   font-weight: 500;
   font-size: var(--fs-12);
   color: var(--text-3);
-  padding: 0.4rem 0.5rem;
+  padding: 0.4rem var(--space-2);
   border-bottom: 1px solid var(--line);
 }
 
 .garment-table td {
-  padding: 0.45rem 0.5rem;
+  padding: 0.45rem var(--space-2);
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
@@ -11326,7 +11337,7 @@ a.cover-tile:focus-visible {
 
 .garment-wears {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -11367,18 +11378,18 @@ a.cover-tile:focus-visible {
 .garment-form label,
 .garment-form fieldset {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .garment-form fieldset {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 0.75rem;
+  padding: var(--space-3);
   margin: 0;
 }
 
 .garment-form legend {
-  padding: 0 0.25rem;
+  padding: 0 var(--space-1);
 }
 
 .garment-field-label {
@@ -11407,7 +11418,7 @@ a.cover-tile:focus-visible {
 .garment-months legend {
   width: 100%;
   padding: 0;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
 }
 
 /* The radio is hidden inside its chip; the chip shows its state and focus
@@ -11426,7 +11437,7 @@ a.cover-tile:focus-visible {
 .garment-colour {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: flex-end;
 }
 
@@ -11446,7 +11457,7 @@ a.cover-tile:focus-visible {
 
 .garment-stepper {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -11462,7 +11473,7 @@ a.cover-tile:focus-visible {
 .garment-form-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 /* Distinguished by border and text, never colour alone (as the item page). */
@@ -11474,7 +11485,7 @@ a.cover-tile:focus-visible {
 .closet-week-day {
   display: grid;
   grid-template-columns: 3rem minmax(0, 1fr) auto;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -11482,7 +11493,7 @@ a.cover-tile:focus-visible {
    are grids). */
 .closet-week-day label {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: var(--space-1);
   align-items: center;
 }
 
@@ -11506,7 +11517,7 @@ a.cover-tile:focus-visible {
    four grounds). */
 .today {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .today-weather {
@@ -11514,7 +11525,7 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem 1.25rem;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 
 .today-temps {
@@ -11546,7 +11557,7 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   font: var(--fs-12) var(--font-mono);
-  gap: 0.25rem 0.75rem;
+  gap: var(--space-1) var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -11566,8 +11577,8 @@ a.cover-tile:focus-visible {
 
 .today-card {
   display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 .today-kicker {
@@ -11629,7 +11640,7 @@ a.cover-tile:focus-visible {
   cursor: pointer;
   font: var(--fs-12) var(--font-mono);
   opacity: 0;
-  padding: 0.1rem 0.5rem;
+  padding: 0.1rem var(--space-2);
   position: absolute;
   right: 0.4rem;
   transition: opacity 0.15s ease;
@@ -11673,7 +11684,7 @@ a.cover-tile:focus-visible {
 .today-sheet-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .today-worn {
@@ -11689,7 +11700,7 @@ a.cover-tile:focus-visible {
 
 .today-alts {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   list-style: none;
   margin: 0;
@@ -11709,9 +11720,9 @@ a.cover-tile:focus-visible {
 .today-alt {
   align-content: start;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-items: start;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem var(--space-4);
 }
 
 .today-alt-names {
@@ -11741,7 +11752,7 @@ a.cover-tile:focus-visible {
 /* An outfit as small squares: Today's alternatives and the Home card. */
 .outfit-swatches {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .outfit-swatch {
@@ -11769,7 +11780,7 @@ a.cover-tile:focus-visible {
 .swap-sheet .sheet-body {
   display: grid;
   gap: 0.85rem;
-  padding: 1rem 1.1rem 1.1rem;
+  padding: var(--space-4) 1.1rem 1.1rem;
 }
 
 .today-sheet-body h2,
@@ -11816,7 +11827,7 @@ a.cover-tile:focus-visible {
   cursor: pointer;
   display: flex;
   font: inherit;
-  gap: 0.75rem;
+  gap: var(--space-3);
   padding: 0.4rem 0.6rem;
   text-align: left;
   width: 100%;
@@ -11846,8 +11857,8 @@ a.cover-tile:focus-visible {
 .review-banner {
   background: var(--accent-soft);
   border-radius: var(--radius);
-  padding: 0.8rem 1rem;
-  margin-bottom: 1rem;
+  padding: 0.8rem var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .review-banner p {
@@ -11858,12 +11869,12 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 0.75rem;
+  gap: var(--space-2) var(--space-3);
 }
 
 .review-deck {
   max-width: 34rem;
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .review-progress {
@@ -11877,7 +11888,7 @@ a.cover-tile:focus-visible {
   background: var(--line);
   border-radius: 2px;
   height: 3px;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   overflow: hidden;
 }
 
@@ -11890,7 +11901,7 @@ a.cover-tile:focus-visible {
 .review-card {
   display: grid;
   grid-template-columns: 8rem 1fr;
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -11912,13 +11923,13 @@ a.cover-tile:focus-visible {
 
 .review-name {
   font-size: var(--fs-18);
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
 }
 
 .review-stat {
   color: var(--text-3);
   font: var(--fs-12) var(--font-mono);
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
 }
 
 .evidence {
@@ -11966,8 +11977,8 @@ a.cover-tile:focus-visible {
 .outcomes {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .outcome {
@@ -12015,8 +12026,8 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .pack-month input {
@@ -12025,25 +12036,25 @@ a.cover-tile:focus-visible {
   border-radius: var(--radius);
   color: var(--text);
   font: inherit;
-  padding: 0.3rem 0.5rem;
+  padding: 0.3rem var(--space-2);
 }
 
 .review-skip {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .review-empty {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
   max-width: 34rem;
 }
 
 .review-listed {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
   max-width: 34rem;
 }
 
 .review-listed h2 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .review-listed ul {
@@ -12051,20 +12062,20 @@ a.cover-tile:focus-visible {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .review-listed li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .sell-check {
   display: grid;
   grid-template-columns: 6rem 1fr;
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -12093,7 +12104,7 @@ a.cover-tile:focus-visible {
 .sell-lines div {
   display: grid;
   grid-template-columns: 6rem 1fr;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .sell-lines dt {
@@ -12114,7 +12125,7 @@ a.cover-tile:focus-visible {
 .sell-sheet .sheet-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
@@ -12139,9 +12150,9 @@ a.cover-tile:focus-visible {
   display: flex;
   gap: 0.6rem;
   list-style: none;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   overflow-x: auto;
-  padding: 0.35rem 0.25rem 0.6rem;
+  padding: 0.35rem var(--space-1) 0.6rem;
 }
 
 .neighbour-strip > li {
@@ -12161,7 +12172,7 @@ a.cover-tile:focus-visible {
 }
 
 .comic-issue-text h1 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .comic-issue-pills {
@@ -12184,9 +12195,9 @@ a.state-pill:focus-visible {
 .comic-issue-facts {
   display: grid;
   font-size: var(--fs-14);
-  gap: 0.35rem 1rem;
+  gap: 0.35rem var(--space-4);
   grid-template-columns: max-content 1fr;
-  margin: 1rem 0;
+  margin: var(--space-4) 0;
 }
 
 .comic-issue-facts dt {
@@ -12210,26 +12221,26 @@ a.state-pill:focus-visible {
 .comic-issue-owner {
   border: 1px dashed var(--line-strong);
   border-radius: 6px;
-  margin: 1rem 0;
-  padding: 0.75rem;
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
 }
 
 .comic-issue-owner-note {
   color: var(--text-3);
   font-size: var(--fs-12);
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .comic-issue-owner-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .comic-issue-attribution {
   color: var(--text-3);
   font-size: var(--fs-12);
-  margin: 1rem 0 0;
+  margin: var(--space-4) 0 0;
 }
 
 @media (max-width: 640px) {
@@ -12247,7 +12258,7 @@ a.state-pill:focus-visible {
    book in a strip, and the neighbouring editions under it. */
 .edition-inside-title {
   font-size: var(--fs-16);
-  margin: 1.5rem 0 0.5rem;
+  margin: var(--space-5) 0 var(--space-2);
 }
 
 .inside-strip > li {
@@ -12261,9 +12272,9 @@ a.state-pill:focus-visible {
 .edition-neighbours {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1rem;
+  gap: var(--space-3) var(--space-4);
   justify-content: space-between;
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .edition-neighbour {
@@ -12297,7 +12308,7 @@ a.btn.sm {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 0.75rem;
+  gap: 0.4rem var(--space-3);
   font-size: var(--fs-13);
 }
 
@@ -12307,7 +12318,7 @@ a.btn.sm {
 
 .edition-link-hits {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
   grid-column: 1 / -1;
   list-style: none;
   margin: 0;
@@ -12325,7 +12336,7 @@ a.btn.sm {
   display: flex;
   font: inherit;
   gap: 0.6rem;
-  padding: 0.3rem 0.5rem;
+  padding: 0.3rem var(--space-2);
   text-align: left;
   width: 100%;
 }
@@ -12343,17 +12354,17 @@ a.btn.sm {
 
 .comic-edition {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 /* The full add form, tucked under the add bar until asked for. */
 .full-add-form {
-  margin-block: 1rem;
+  margin-block: var(--space-4);
 }
 
 .full-add-form summary {
   cursor: pointer;
-  padding-block: 0.5rem;
+  padding-block: var(--space-2);
   font-weight: 600;
 }
 
@@ -12363,7 +12374,7 @@ a.btn.sm {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .load-state p {
@@ -12372,5 +12383,5 @@ a.btn.sm {
 
 /* Now: the RSS line sits apart from the finished list above it. */
 .now-rss {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
