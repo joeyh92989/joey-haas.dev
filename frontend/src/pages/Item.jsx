@@ -10,7 +10,7 @@ import RunLanes, { RunKey } from '../components/RunLanes.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
-import Stars from '../components/Stars.jsx'
+import Rating from '../components/Rating.jsx'
 import { apiFetch } from '../lib/api.js'
 import { expandRanges, shortDate } from '../lib/comics.js'
 import { toggleOwned } from '../lib/comicEdits.js'
@@ -217,8 +217,10 @@ function Tiles({ item, detail }) {
         <dt>My rating</dt>
         {item.rating ? (
           <dd>
-            <Stars rating={item.rating} />
-            <span className="item-tile-figure">{item.rating} / 10</span>
+            <Rating rating={item.rating} size="large" />
+            <span className="muted" aria-hidden="true">
+              {ITEM.outOfTen}
+            </span>
           </dd>
         ) : (
           <dd className="muted">Not rated</dd>

@@ -14,10 +14,24 @@ const FINISH = {
 describe('JustFinishedChip', () => {
   it('reads the title, the day and the hours', () => {
     const { container } = render(<JustFinishedChip finish={FINISH} />)
-    expect(container.firstChild).toHaveTextContent(
-      'Just finished Xenoblade Chronicles 3 · Mon 26 Oct · 62 h',
+    expect(container.querySelector('.tj-a')).toHaveTextContent(
+      'Just finished Xenoblade Chronicles 3',
+    )
+    expect(container.querySelector('.tj-b')).toHaveTextContent(
+      'Mon 26 Oct · 62 h',
     )
     expect(screen.getByText('Xenoblade Chronicles 3').tagName).toBe('B')
+  })
+
+  it('is two text runs with no pill, so the layout can stack them', () => {
+    const { container } = render(<JustFinishedChip finish={FINISH} />)
+    const chip = container.firstChild
+    expect(chip.classList.contains('tonight-just')).toBe(true)
+    expect([...chip.children].map((el) => el.className)).toEqual([
+      'tonight-just-thumb',
+      'tj-a',
+      'tj-b',
+    ])
   })
 
   it('hides the thumb from screen readers', () => {
@@ -32,24 +46,22 @@ describe('JustFinishedChip', () => {
     const { container } = render(
       <JustFinishedChip finish={{ ...FINISH, time_to_beat_hours: null }} />,
     )
-    expect(container.firstChild).toHaveTextContent(
-      /^Just finished Xenoblade Chronicles 3 · Mon 26 Oct$/,
-    )
+    expect(container.querySelector('.tj-b')).toHaveTextContent(/^Mon 26 Oct$/)
   })
 })
 
 describe('JustFinishedChip with a rating', () => {
-  it('shows the stars after the hours', () => {
+  it('shows the rating after the hours', () => {
     const { container } = render(
       <JustFinishedChip finish={{ ...FINISH, rating: 9 }} />,
     )
-    expect(container.firstChild).toHaveTextContent(
-      'Just finished Xenoblade Chronicles 3 · Mon 26 Oct · 62 h · ★★★★½',
+    expect(container.querySelector('.tj-b')).toHaveTextContent(
+      'Mon 26 Oct · 62 h · ★9',
     )
     expect(screen.getByRole('img', { name: '9 out of 10' })).toBeInTheDocument()
   })
 
-  it('shows no stars without one', () => {
+  it('shows no rating without one', () => {
     render(<JustFinishedChip finish={{ ...FINISH, rating: null }} />)
     expect(screen.queryByRole('img')).toBeNull()
   })

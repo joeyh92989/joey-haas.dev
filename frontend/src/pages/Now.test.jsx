@@ -100,7 +100,10 @@ describe('Now', () => {
     expect(
       screen.getByRole('link', { name: 'Metroid Prime 4' }),
     ).toHaveAttribute('href', '/shelf/8/')
-    expect(screen.getByText(/Sep 30, 2026 · rated 9/)).toBeInTheDocument()
+    expect(screen.getByText(/Sep 30, 2026/)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '9 out of 10' })).toHaveTextContent(
+      '★9',
+    )
     expect(
       screen.getByRole('link', { name: 'RSS feed of finished games' }),
     ).toHaveAttribute('href', '/shelf/feed.xml')

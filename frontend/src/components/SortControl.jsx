@@ -1,4 +1,8 @@
+import { spine } from '../content/spine.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+
+const copy = spine.shelf
+const NARROW = '(max-width: 34rem)'
 
 /** The sorts on offer, each with the direction it starts in. */
 const SORTS = [
@@ -10,16 +14,20 @@ const SORTS = [
   { value: 'random', label: 'Random', direction: 'desc' },
 ]
 
-const NARROW = '(max-width: 34rem)'
-
 /**
- * The shelf's one sort control.
+ * The shelf's one sort control, in two modes.
  *
- * Buttons on a wide screen and a select on a narrow one. Random hides the
- * direction and shows an explicit Shuffle, in both variants, because a select
- * fires nothing when its current option is chosen again. Changing key resets
- * the direction to the one that reads naturally for it (A to Z for titles,
- * newest or highest first for everything else).
+ * By default: sort chips on a wide screen and a select on a narrow one, with
+ * an arrow button for the direction. This is what the admin shelf, Comics and
+ * What's next's store sort use.
+ *
+ * With `select`: the public shelf's mode. A labelled select at every width,
+ * then a worded direction button (Newest first, A to Z) that flips it.
+ *
+ * In both, Random swaps the direction for an explicit Shuffle, because a
+ * select fires nothing when its current option is chosen again. Changing key
+ * resets the direction to the one that reads naturally for it (A to Z for
+ * titles, newest or highest first for everything else).
  *
  * @param {object} props
  * @param {string} props.value - The current sort key.
@@ -32,9 +40,13 @@ const NARROW = '(max-width: 34rem)'
  *   The sorts on offer; the shelf's own by default.
  * @param {boolean} [props.directional] - Whether to show the direction
  *   button; false for a page whose sorts have one fixed order.
- * @param {string} [props.label] - The accessible name of the group and the
- *   select's visible label; "Sort" by default. A page with a sort per
- *   section names the section.
+ * @param {string} [props.label] - The accessible name of the group or select
+ *   ("Sort" by default); a page with a sort per section names the section.
+ * @param {boolean} [props.select] - The labelled select at every width, with
+ *   a worded direction button. Off by default.
+ * @param {boolean} [props.hideLabel] - With `select`, keep the name for
+ *   assistive tech but draw no text, for a toolbar that shows its own row
+ *   label.
  */
 export default function SortControl({
   value,
@@ -45,9 +57,19 @@ export default function SortControl({
   sorts = SORTS,
   directional = true,
   label = 'Sort',
+  select = false,
+  hideLabel = false,
 }) {
-  const narrow = useMediaQuery(NARROW)
+  const phone = useMediaQuery(NARROW)
+  const asSelect = select || phone
   const isRandom = value === 'random'
+  const words = copy.directions[value]
+  // copy: pending voice review
+  const wording = words
+    ? words[direction === 'asc' ? 1 : 0]
+    : direction === 'asc'
+      ? 'Ascending'
+      : 'Descending'
 
   function choose(next) {
     if (next === value) return
@@ -55,57 +77,68 @@ export default function SortControl({
     onChange({ value: next, direction: sort?.direction ?? 'desc' })
   }
 
+  const chooser = asSelect ? (
+    <label className="sort-select">
+      <span className={select && hideLabel ? 'visually-hidden' : undefined}>
+        {label}
+      </span>
+      <select value={value} onChange={(event) => choose(event.target.value)}>
+        {sorts.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  ) : (
+    <div className="sort-options" role="group" aria-label={label}>
+      {sorts.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className="chip"
+          aria-pressed={option.value === value}
+          onClick={() => choose(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+
+  function flip() {
+    onChange({ value, direction: direction === 'asc' ? 'desc' : 'asc' })
+  }
+
   return (
     <div className="sort-control" data-seed={seed}>
-      {narrow ? (
-        <label className="sort-select">
-          {label}
-          <select
-            value={value}
-            onChange={(event) => choose(event.target.value)}
-          >
-            {sorts.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <div className="sort-options" role="group" aria-label={label}>
-          {sorts.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className="chip"
-              aria-pressed={option.value === value}
-              onClick={() => choose(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {chooser}
       {isRandom ? (
         <button type="button" className="chip" onClick={onShuffle}>
-          Shuffle
+          {copy.shuffle}
         </button>
       ) : (
-        directional && (
+        directional &&
+        (select ? (
+          <button
+            type="button"
+            className="chip sort-direction"
+            // copy: pending voice review
+            aria-label={`Order: ${wording}`}
+            onClick={flip}
+          >
+            {wording}
+          </button>
+        ) : (
           <button
             type="button"
             className="chip sort-direction"
             aria-label={`Direction: ${direction === 'asc' ? 'ascending' : 'descending'}`}
-            onClick={() =>
-              onChange({
-                value,
-                direction: direction === 'asc' ? 'desc' : 'asc',
-              })
-            }
+            onClick={flip}
           >
             <span aria-hidden="true">{direction === 'asc' ? '↑' : '↓'}</span>
           </button>
-        )
+        ))
       )}
     </div>
   )

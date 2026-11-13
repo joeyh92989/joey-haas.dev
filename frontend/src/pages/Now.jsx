@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
+import Rating from '../components/Rating.jsx'
 import { spine } from '../content/spine.js'
 import { timeWord } from '../lib/finishes.js'
 import { nowLists } from '../lib/nowLists.js'
@@ -150,8 +151,9 @@ export default function Now() {
                   {' '}
                   · {finishedOn(item.finished_at)}
                   {item.again && ` · ${timeWord(item.finish_number)}`}
-                  {item.rating != null && ` · rated ${item.rating}`}
+                  {item.rating ? ' · ' : null}
                 </span>
+                <Rating rating={item.rating} />
               </li>
             ))}
           </ul>

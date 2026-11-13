@@ -27,7 +27,8 @@ function metaLine(row, section) {
 
 /**
  * One game on What's next or the store list: cover, title, platform ·
- * format · date, up to two reasons, and the New and Top pick badges. A
+ * format · date, up to two reasons, and the badges: Top pick sits on the
+ * title's line, New under the meta line. A
  * comic want reads "Comic · Trades" instead: it has no platform or
  * cartridge format. The
  * title links to the item page for a wanted game, else to IGDB.
@@ -38,10 +39,19 @@ function metaLine(row, section) {
  * @param {object} props
  * @param {object} props.row - A PublicNextRow or an admin store-list row.
  * @param {string} props.section - The server section key.
+ * @param {boolean} [props.showTopPick] - Draw the Top pick badge when the row
+ *   has one; the page turns it off past its first few (the data is unchanged).
  * @param {import('react').ReactNode} [props.actions]
  * @param {import('react').ReactNode} [props.extra]
  */
-export default function NextRow({ row, section, actions, extra }) {
+export default function NextRow({
+  row,
+  section,
+  showTopPick = true,
+  actions,
+  extra,
+}) {
+  const topPick = showTopPick && row.top_pick
   const body = (
     <>
       <span className="next-row-cover">
@@ -51,7 +61,14 @@ export default function NextRow({ row, section, actions, extra }) {
           alt=""
         />
       </span>
-      <span className="next-row-title">{row.title}</span>
+      <span className="next-row-title">
+        {row.title}{' '}
+        {topPick && (
+          <span className="next-badge next-badge-pick next-badge-inline">
+            {spine.next.badges.topPick}
+          </span>
+        )}
+      </span>
     </>
   )
   const link = row.item_id ? (
@@ -71,16 +88,9 @@ export default function NextRow({ row, section, actions, extra }) {
       {link}
       <div className="next-row-text">
         <span className="muted">{metaLine(row, section)}</span>
-        {(row.new || row.top_pick) && (
+        {row.new && (
           <span className="next-badges">
-            {row.new && (
-              <span className="next-badge">{spine.next.badges.new}</span>
-            )}
-            {row.top_pick && (
-              <span className="next-badge next-badge-pick">
-                {spine.next.badges.topPick}
-              </span>
-            )}
+            <span className="next-badge">{spine.next.badges.new}</span>
           </span>
         )}
         {reasons.length > 0 && (

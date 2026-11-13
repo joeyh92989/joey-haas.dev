@@ -101,6 +101,12 @@ describe('MonthInReview', () => {
     const finished = screen.getByRole('region', { name: 'Finished' })
     expect(within(finished).getByText('Hades II')).toBeInTheDocument()
     expect(within(finished).queryByText('Pikmin 4')).toBeNull()
+    // The key to the cover marks sits above the covers.
+    expect(
+      within(finished).getByRole('list', {
+        name: 'Key to the marks on covers',
+      }),
+    ).toBeInTheDocument()
 
     const played = screen.getByRole('region', { name: 'Played' })
     expect(played).toHaveTextContent('2 days with a session logged')

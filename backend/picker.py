@@ -1006,7 +1006,9 @@ def recommend(
 # Pick for me (spec 2026-11-06-pick-for-me): the public spinner ranks on the
 # terms that read only public data (PUBLIC_TERMS): waiting reads acquired_at,
 # jitter would move the table, and staleness reads the owner's events.
-PUBLIC_PICKS = 3
+# Four, not three: the page shows three, and leaves out Tonight's lead when it
+# would be one of them (What's next, shelf pages #191).
+PUBLIC_PICKS = 4
 MAX_PUBLIC_MOODS = 2
 
 

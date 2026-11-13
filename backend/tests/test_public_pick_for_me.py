@@ -75,9 +75,18 @@ async def test_every_combination_is_present_and_names_a_listed_game(
     assert listed == set(body["games"])
     assert {game["title"] for game in body["games"].values()} == {"Alpha", "Beta"}
     for picks in body["combos"].values():
-        assert len(picks) <= 3
+        assert len(picks) <= 4
         for pick in picks:
             assert set(pick["terms"]) == set(body["weights"])
+
+
+async def test_a_combination_publishes_four_picks(sessionmaker_for_test):
+    names = ("Alpha", "Beta", "Gamma", "Delta", "Epsilon")
+    await _add(sessionmaker_for_test, *_with_ids(*(_game(name) for name in names)))
+    body = await _pick(sessionmaker_for_test)
+
+    assert len(body["combos"]["any|"]) == 4
+    assert max(len(picks) for picks in body["combos"].values()) == 4
 
 
 async def test_only_public_owned_unpinned_pickable_games_are_picked(

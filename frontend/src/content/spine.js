@@ -62,8 +62,6 @@ export const spine = {
     live: 'Live, from the public API',
     behind: 'Behind the sign-in',
     stopLabel: 'Stop',
-    featuresLabel: 'What it does',
-    tour: 'Take the tour',
     redacted: 'store withheld',
     // Stop 2's facts once /api/public/status answers: the catalog line is
     // added and the stores line gains its listings.
@@ -75,33 +73,6 @@ export const spine = {
       listings: (watched, listings) =>
         `${watched} watched, ${listings} listings`,
     },
-    features: [
-      {
-        stop: 1,
-        title: 'Takes it all in',
-        line: 'A shelf photo or a search, matched to its source.',
-      },
-      {
-        stop: 2,
-        title: 'Knows the format',
-        line: 'Cartridge or Game-Key Card, pulled from a registry and the stores I watch.',
-      },
-      {
-        stop: 3,
-        title: 'Picks tonight',
-        line: 'Six weighted terms score the backlog and explain each pick.',
-      },
-      {
-        stop: 4,
-        title: 'Watches the stores',
-        line: 'What’s out, what’s coming, what to skip.',
-      },
-      {
-        stop: 7,
-        title: 'Rebuilds nightly',
-        line: 'Nothing here waits for me to press a button.',
-      },
-    ],
     stops: [
       {
         n: 1,
@@ -373,20 +344,6 @@ export const spine = {
     since: 'Playing since',
     wrapUp: 'Wrap up',
   },
-  status: {
-    label: 'Status',
-    refreshed: 'Last refreshed',
-    fresh: 'refreshed in the last 36 hours',
-    stale: 'not refreshed in over 36 hours',
-    catalogue: 'Catalog',
-    titles: 'titles',
-    platforms: 'platforms',
-    stores: 'Stores watched',
-    listings: 'listings',
-    picks: 'Picks',
-    picksLive: 'live',
-    discover: 'Discover',
-  },
   next: {
     path: '/shelf/next',
     title: 'What’s next',
@@ -414,11 +371,6 @@ export const spine = {
         link: 'try Pick for me',
         after: '.',
       },
-      wanted: 'The list is empty, for now.',
-      buy_now: 'Nothing in stores right now.',
-      preorders: 'No cartridges due in the next 90 days.',
-      later: 'Nothing announced further out.',
-      not_on_cartridge: 'Nothing to skip.',
     },
     notOnCartridge: 'Digital only, or a Game-Key Card in a box. I skip these.',
     upNext: 'Up next',
@@ -460,6 +412,10 @@ export const spine = {
       howScored:
         'Deterministic, no model call: the weighted average of the four terms.',
       empty: 'Nothing on my backlog fits that. Try another mood.',
+      // copy: pending voice review
+      choose: 'Choose a length or a mood to see three picks.',
+      // copy: pending voice review
+      leftOut: (title) => `Tonight’s pick, ${title}, is left out.`,
       announce: (count, words) =>
         count === 0
           ? `No picks for ${words}`
@@ -534,6 +490,13 @@ export const spine = {
       },
     },
     badges: { new: 'New', topPick: 'Top pick' },
+    // copy: pending voice review
+    jump: { label: 'On this page' },
+    // copy: pending voice review
+    capped: {
+      more: (count) => `Show all ${count}`,
+      less: 'Show fewer',
+    },
     sorts: [
       { value: 'best', label: 'Best fit' },
       { value: 'newest', label: 'Newest' },
@@ -564,12 +527,67 @@ export const spine = {
     band: {
       lead: 'What’s next',
       tonight: 'Tonight:',
-      toBuy: 'in stores',
-      preorders: 'coming soon',
     },
     loading: 'Loading…',
     waking: WAKING,
     error: LOAD_ERROR,
+  },
+  /** The Collection page's labelled controls, result count, key and paging. */
+  shelf: {
+    // copy: pending voice review
+    groupShow: 'Show',
+    // copy: pending voice review
+    groupStatus: 'Status',
+    // copy: pending voice review
+    sort: 'Sort',
+    // copy: pending voice review
+    view: 'View',
+    // copy: pending voice review
+    key: {
+      label: 'Key',
+      aria: 'Key to the marks on covers',
+      finishedTwice: 'Finished twice',
+      backlog: 'No mark: backlog',
+      favorite: 'Favorite',
+    },
+    // copy: pending voice review
+    titles: (count) => `${count} ${count === 1 ? 'title' : 'titles'}`,
+    // copy: pending voice review
+    titlesOf: (shown, total) =>
+      `${shown} of ${total} ${total === 1 ? 'title' : 'titles'}`,
+    // copy: pending voice review
+    clear: 'Clear filters',
+    // copy: pending voice review
+    noMatch: 'No titles match these filters.',
+    // copy: pending voice review
+    // [descending, ascending]
+    directions: {
+      added: ['Newest first', 'Oldest first'],
+      finished: ['Newest first', 'Oldest first'],
+      rating: ['Highest first', 'Lowest first'],
+      year: ['Newest first', 'Oldest first'],
+      title: ['Z to A', 'A to Z'],
+    },
+    // copy: pending voice review
+    shuffle: 'Shuffle',
+    // copy: pending voice review
+    showing: (shown, total) => `Showing ${shown} of ${total}`,
+    // copy: pending voice review
+    showMore: (count) => `Show ${count} more`,
+    // copy: pending voice review
+    showAll: 'Show all',
+    // copy: pending voice review
+    overview: 'Overview',
+    // copy: pending voice review
+    overviewCharts: 'Status, ratings and finishes',
+    // copy: pending voice review
+    behind: 'Behind the shelf:',
+    // copy: pending voice review
+    behindLine: (titles, stores, refreshed, stale) =>
+      `Catalog ${titles} titles · ${stores} stores watched${refreshed ? ` · refreshed ${refreshed}` : ''}${stale ? ` · ${spine.shelf.behindStale}` : ''}.`,
+    // copy: pending voice review
+    /** The old status strip's words; the hours are `STALE_HOURS` (36). */
+    behindStale: 'not refreshed in over 36 hours',
   },
   /** The month journal's index; these are the screen-reader strings. */
   journal: {
@@ -586,6 +604,8 @@ export const spine = {
   },
   /** The item page's labels. */
   item: {
+    // copy: pending voice review
+    outOfTen: 'out of 10',
     // copy: pending voice review
     genresLabel: 'Genres',
     alsoOnLabel: 'Also on',

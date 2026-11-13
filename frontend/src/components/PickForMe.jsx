@@ -11,6 +11,7 @@ import {
 } from '../lib/pickForMe.js'
 
 const copy = spine.next.pickForMe
+const SHOWN = 3
 const TERMS = ['affinity', 'similarity', 'quality', 'length_fit']
 
 /**
@@ -21,6 +22,22 @@ function choiceWords(size, moods) {
   const words = copy.sizes[size].toLowerCase()
   if (!moods.length) return words
   return `${words}, ${moods.map((mood) => copy.moods[mood].toLowerCase()).join(' or ')}`
+}
+
+/**
+ * The combination's three picks without Tonight's lead. `leftOut` is true
+ * only when the lead would have been one of the three shown, so the note
+ * under the results is never untrue.
+ */
+function resultsFor(table, size, moods, lead) {
+  const all = picksFor(table, pickForMeKey(size, moods))
+  const leftOut = all
+    .slice(0, SHOWN)
+    .some(({ pick }) => pick.item_id === lead?.id)
+  const shown = all
+    .filter(({ pick }) => pick.item_id !== lead?.id)
+    .slice(0, SHOWN)
+  return { shown, leftOut }
 }
 
 /** One pick's working: its total, then each term with its weight. */
@@ -60,7 +77,8 @@ function ScoreBreakdown({ pick, weights }) {
 
 /**
  * Pick for me (Pick for me spec): a length and up to two moods choose three
- * games from the public backlog. Every answer is precomputed by the API, so
+ * games from the public backlog. Nothing shows until a length or a mood is
+ * chosen, and Tonight's lead is never among the three. Every answer is precomputed by the API, so
  * a press is a lookup in `table`, never a request. Size is a radio group;
  * moods are toggle chips, and a third mood is refused with a polite note.
  * The live line speaks only after a change, never on load. The band mounts
@@ -69,14 +87,21 @@ function ScoreBreakdown({ pick, weights }) {
  *
  * @param {object} props
  * @param {object} props.table - A `PublicPickForMeOut` body.
+ * @param {{id: string, title: string}|null} [props.lead] - Tonight's lead,
+ *   left out of the results (the table holds four per combination, so three
+ *   still show) and named under them.
  */
-export default function PickForMe({ table }) {
+export default function PickForMe({ table, lead = null }) {
   const name = useId()
-  const [size, setSize] = useState('any')
+  // null until chosen: with no size and no mood there is no result to show.
+  const [size, setSize] = useState(null)
   const [moods, setMoods] = useState([])
   const [refused, setRefused] = useState(false)
   const [announce, setAnnounce] = useState('')
-  const picks = picksFor(table, pickForMeKey(size, moods))
+  const chosen = size !== null || moods.length > 0
+  const { shown: picks, leftOut } = chosen
+    ? resultsFor(table, size ?? 'any', moods, lead)
+    : { shown: [], leftOut: false }
   const { hash } = useLocation()
   const heading = useRef(null)
 
@@ -89,8 +114,13 @@ export default function PickForMe({ table }) {
   }, [])
 
   function chose(nextSize, nextMoods) {
-    const count = picksFor(table, pickForMeKey(nextSize, nextMoods)).length
-    setAnnounce(copy.announce(count, choiceWords(nextSize, nextMoods)))
+    if (nextSize === null && !nextMoods.length) {
+      setAnnounce(copy.choose)
+      return
+    }
+    const length = nextSize ?? 'any'
+    const count = resultsFor(table, length, nextMoods, lead).shown.length
+    setAnnounce(copy.announce(count, choiceWords(length, nextMoods)))
   }
 
   function pickSize(value) {
@@ -160,10 +190,12 @@ export default function PickForMe({ table }) {
       <p className="pick-note" role="status">
         {refused ? copy.moodLimit : ''}
       </p>
-      <p className="visually-hidden" aria-live="polite">
+      <p className="visually-hidden" role="status" aria-live="polite">
         {announce}
       </p>
-      {picks.length ? (
+      {!chosen ? (
+        <p className="pick-empty muted">{copy.choose}</p>
+      ) : picks.length ? (
         <ul className="tonight-alts pick-cards">
           {picks.map(({ pick, card }) => (
             <TonightAlt
@@ -178,7 +210,12 @@ export default function PickForMe({ table }) {
       ) : (
         <p className="muted">{copy.empty}</p>
       )}
-      <p className="pick-how muted">{copy.howScored}</p>
+      {chosen && (
+        <p className="pick-how muted">
+          {leftOut && <>{copy.leftOut(lead.title)} </>}
+          {copy.howScored}
+        </p>
+      )}
     </section>
   )
 }

@@ -1,11 +1,14 @@
 """GET /api/public/pick-for-me: Pick for me's whole answer in one body.
 
-Every size and mood combination's top three, ranked by
+Every size and mood combination's top four, ranked by
 picker.public_pick_table over public rows only (spec
 docs/planning/2026-11-06-pick-for-me-design.md). Precomputed, so the
 build-time snapshot carries the feature and a visitor's press never waits on
 the API; cached on next_fingerprint like /next, so a burst of visitors is one
 computation.
+
+Four, not three: the page shows three and leaves out Tonight's lead, so a
+combination whose top three holds the lead still fills the row.
 
 What it may not carry: anything private. The profile and the pool are public
 rows, read through public_picks.load_public_inputs, so Tonight's lanes and

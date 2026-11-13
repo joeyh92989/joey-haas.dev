@@ -910,7 +910,7 @@ section + section {
 .prose {
   color: var(--text-2);
   margin-top: 0.75rem;
-  max-width: 58ch;
+  max-width: min(45rem, 68ch);
 }
 
 .prose + .prose {
@@ -2143,9 +2143,8 @@ footer {
   }
 }
 
-/* Analytics (/admin/analytics). The bars use --chart (the peak and the
-   list fills) and --chart-2 (the other days), both measured on --surface
-   above; the list fills sit on a --sunken track, where --chart measures
+/* Analytics (/admin/analytics). The day bars and the list fills use
+   --chart, measured on --surface above; the list fills sit on a --sunken track, where --chart measures
    6.26 dark and 5.48 light. */
 .range-control {
   border: 1px solid var(--line-strong);
@@ -2231,15 +2230,11 @@ footer {
 }
 
 .day-bar {
-  background: var(--chart-2);
+  background: var(--chart);
   border-radius: 2px 2px 0 0;
   display: block;
   flex: 1;
   min-width: 0;
-}
-
-.day-bar.peak {
-  background: var(--chart);
 }
 
 .day-bars-peak {
@@ -3354,7 +3349,7 @@ footer {
 .intake-demo-lede {
   color: var(--text-2);
   margin: 0 0 1.5rem;
-  max-width: 40rem;
+  max-width: min(45rem, 68ch);
 }
 
 .intake-demo-grid {
@@ -4082,7 +4077,7 @@ footer {
   color: var(--text-2);
   font-size: 1.0625rem;
   margin: 0.375rem 0 0;
-  max-width: 45rem;
+  max-width: min(45rem, 68ch);
 }
 
 /* Spine's header block: the same on the shelf and on What's next. The name
@@ -4471,12 +4466,9 @@ footer {
   position: relative;
 }
 
-.rating-bar {
-  background: var(--rating);
-}
-
+.rating-bar,
 .month-bar {
-  background: var(--status-finished);
+  background: var(--chart);
 }
 
 /* A month bar that links to its journal page is clickable over the whole
@@ -4730,7 +4722,7 @@ a.month-bar::before {
 
 .item-description-wrap {
   margin: 0 0 1.5rem;
-  max-width: 45rem;
+  max-width: min(45rem, 68ch);
 }
 
 .item-description {
@@ -5436,16 +5428,31 @@ a.month-bar::before {
   margin: 0.15rem 0 0;
 }
 
-.stars {
-  color: var(--rating);
-  display: block;
+/* My rating: an amber star (a mark, 3:1) and the number in the text colour,
+   so the rating never rests on amber text (4.24:1 on white in light). */
+.rating {
+  color: var(--text);
+  display: inline-block;
   font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-/* The half is a text glyph, held to 4.5:1 where the stars (marks, 3:1) are
-   not: --rating on white is 4.24 in the light theme. */
-.stars-half {
-  color: var(--text-2);
+.rating-star {
+  color: var(--rating);
+  margin-right: 0.2em;
+}
+
+.rating-large {
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.poster-card > .rating {
+  display: block;
+  margin-top: 0.15rem;
+  width: max-content;
 }
 
 .attribution {
@@ -5599,6 +5606,266 @@ a.month-bar::before {
   list-style: none;
   margin: 0.25rem 0 0;
   padding: 0;
+}
+
+/* ---------- Collection: totals line, labelled controls, result bar ---------- */
+
+.shelf-top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0 0 1rem;
+}
+
+.hero-numbers.hero-numbers-line {
+  color: var(--text-2);
+  gap: 0.1rem 1.1rem;
+  margin: 0;
+}
+
+.hero-numbers-line > div {
+  align-items: baseline;
+  flex-direction: row-reverse;
+  gap: 0.35rem;
+}
+
+.hero-numbers-line dd {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.hero-numbers-line dt {
+  color: var(--text-2);
+  font-size: 0.9375rem;
+  letter-spacing: 0;
+  margin: 0;
+  text-transform: lowercase;
+}
+
+.shelf-links {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 0.1rem 1.1rem;
+  margin: 0;
+}
+
+.shelf-top .shelf-search {
+  margin: 0 0 0 auto;
+  max-width: none;
+  width: 16rem;
+}
+
+.shelf-toolbar.controls {
+  border-block: 1px solid var(--line);
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 0;
+}
+
+.chip-rows-labelled {
+  gap: 0.5rem;
+}
+
+.ctl-row {
+  align-items: baseline;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+}
+
+.ctl-label {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.ctl-split {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  justify-content: space-between;
+}
+
+.shelf-view-controls {
+  align-items: center;
+}
+
+.view-lab {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.resultbar {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  justify-content: space-between;
+  margin: 0.75rem 0 1rem;
+}
+
+.result {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.result strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.linkbtn {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  margin-left: 0.6rem;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.linkbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The key to the cover marks: the marks themselves, static, with names. */
+.cover-key {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  gap: 0.2rem 0.9rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Above a grid on its own (the month journal), not inside the result bar. */
+section > .cover-key {
+  margin: 0.25rem 0 0.75rem;
+}
+
+.cover-key li {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.cover-key .key-h {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.cover-key .status-mark,
+.cover-key .replay-mark,
+.cover-key .poster-heart {
+  position: static;
+  text-shadow: none;
+}
+
+.cover-key .replay-mark {
+  background: var(--sunken);
+}
+
+.pager {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 0.6rem 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.shelf-overview {
+  border-top: 1px solid var(--line);
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+}
+
+.shelf-overview > h2 {
+  margin: 0 0 1rem;
+}
+
+.shelf-overview .favourites {
+  margin-bottom: 1.5rem;
+}
+
+.disclosure {
+  align-items: center;
+  background: none;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius, 8px);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.875rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+}
+
+.disclosure::after {
+  content: '+';
+}
+
+.disclosure[aria-expanded='true']::after {
+  content: '\2013';
+}
+
+.disclosure:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.shelf-behind {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  margin: 1.5rem 0 0;
+}
+
+/* A link inside a sentence is told apart by more than its colour. */
+.shelf-behind a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 34rem) {
+  .shelf-top .shelf-search {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .ctl-row {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+  }
+
+  /* The labelled rows wrap, as the mockup's do: the label column makes a
+     scrolling row hard to read, and four rows is all it costs. */
+  .ctl-row .chip-row {
+    -webkit-mask-image: none;
+    flex-wrap: wrap;
+    margin-top: 0;
+    mask-image: none;
+    overflow-x: visible;
+    padding: 0;
+  }
+
+  /* Both sizes are 6rem on a phone, so the toggle is not offered there. */
+  .view-lab {
+    display: none;
+  }
 }
 
 /* ---------- Narrow screens ---------- */
@@ -5790,7 +6057,7 @@ a.month-bar::before {
 .rate-a-few-table {
   border-collapse: collapse;
   margin: 0.75rem 0;
-  max-width: 36rem;
+  max-width: 45rem;
   width: 100%;
 }
 
@@ -5918,13 +6185,105 @@ a.month-bar::before {
   margin: 0.5rem 0 0;
 }
 
-.next-section,
-.next-skip {
-  max-width: 45rem;
-}
-
 .next-section {
   margin-top: 2rem;
+}
+
+/* The jump links point at the headings, so the margin sits on them (a scroll
+   margin on the section would not apply): clear of the sticky jump row. */
+.next-section h2 {
+  scroll-margin-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+
+.next-skip {
+  scroll-margin-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+
+/* The heading and, beside it, the section's one control (In stores now'
+   sort). */
+.next-section-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+
+.next-section-head h2 {
+  margin: 0;
+}
+
+.next-section-head .sort-control {
+  margin: 0;
+}
+
+/* Prose in a section keeps the reading width; the lists take the page. */
+.next-section > p,
+.next-skip > p {
+  max-width: min(45rem, 68ch);
+}
+
+/* "On this page" (#191): sticky under the top, one line that scrolls on a
+   phone with its right edge faded like the shelf tabs. The bar keeps its
+   ground; only the list is masked. The padding gives the focus ring room. */
+.jump-nav {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  margin: 1rem 0 0;
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+}
+
+.jump-nav ul {
+  display: flex;
+  font-size: 0.875rem;
+  gap: 1.25rem;
+  list-style: none;
+  margin: 0;
+  overflow-x: auto;
+  padding: 0.6rem 4px;
+  scrollbar-width: none;
+}
+
+.jump-nav ul::-webkit-scrollbar {
+  display: none;
+}
+
+.jump-nav a {
+  border-radius: 4px;
+  color: var(--text-2);
+  display: block;
+  white-space: nowrap;
+}
+
+.jump-nav a:hover {
+  color: var(--text);
+}
+
+.jump-nav a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.jump-count {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px) {
+  .jump-nav ul {
+    padding-right: 2rem;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 calc(100% - 2rem),
+      transparent
+    );
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  }
+}
+
+.capped-toggle {
+  margin-top: 0.6rem;
 }
 
 /* The signed-in store list's sections read at the public page's size, and
@@ -5961,6 +6320,13 @@ a.month-bar::before {
   list-style: none;
   margin: 0.5rem 0 0;
   padding: 0;
+}
+
+/* The store lists run two across once there is room (1280 has plenty). */
+@media (min-width: 48rem) {
+  .next-rows-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* The card is a grid: cover | text, with any admin actions in an implicit
@@ -6017,10 +6383,6 @@ a.month-bar::before {
 /* Tonight (Tonight picks spec): the Just finished chip, the lead card, and
    the other picks under it. The owner's buttons are siblings of the title
    link, never inside it. */
-.tonight {
-  max-width: 52rem;
-}
-
 .tonight .btn {
   font-size: 0.875rem;
   min-height: 36px;
@@ -6028,22 +6390,19 @@ a.month-bar::before {
 
 .tonight-just {
   align-items: center;
-  background: var(--sunken);
-  border: 1px solid var(--line);
-  border-radius: 999px;
   color: var(--text-2);
-  display: inline-flex;
+  column-gap: 0.5rem;
+  display: grid;
   font-size: 0.8125rem;
-  gap: 0.5rem;
-  margin: 0 0 0.9rem;
-  max-width: 100%;
-  padding: 0.2rem 0.75rem 0.2rem 0.25rem;
+  grid-template-columns: 1.4rem auto minmax(0, 1fr);
+  line-height: 1.4;
+  margin: 0 0 0.75rem;
 }
 
 .tonight-just-thumb {
+  aspect-ratio: 1;
   border-radius: 50%;
-  flex: none;
-  height: 1.4rem;
+  grid-row: 1 / 3;
   overflow: hidden;
   width: 1.4rem;
 }
@@ -6060,11 +6419,52 @@ a.month-bar::before {
   font-weight: 600;
 }
 
-/* Stars are a block elsewhere; in the pill they follow the hours on the
-   same line. */
-.tonight-just .stars {
-  display: inline-block;
-  white-space: nowrap;
+/* Side by side the two runs read as one line; stacked they need no dot. */
+.tj-b::before {
+  content: '· ';
+}
+
+@media (max-width: 34rem) {
+  .tonight-just {
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+  }
+
+  .tj-b::before {
+    content: none;
+  }
+}
+
+/* Two columns (the lead and Read next | Or instead) once the page has the
+   room, when there are other picks to put beside the lead. */
+@media (min-width: 48rem) {
+  .tonight-split {
+    column-gap: 1.25rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    max-width: none;
+  }
+
+  .tonight-split > * {
+    grid-column: 1 / -1;
+  }
+
+  .tonight-split > .tonight-main,
+  .tonight-split > .tonight-lanes {
+    grid-column: 1;
+  }
+
+  .tonight-split > .tonight-more {
+    grid-column: 2;
+    grid-row: span 2;
+  }
+
+  .tonight-split .tonight-alts-h {
+    margin-top: 0;
+  }
+
+  .tonight-split .tonight-alts {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .tonight-lead {
@@ -6654,6 +7054,14 @@ a.month-bar::before {
   border-color: var(--accent);
 }
 
+/* Top pick rides the title's line, as the mockup draws it. */
+.next-badge-inline {
+  font-size: 0.6875rem;
+  margin-left: 0.5rem;
+  vertical-align: 0.1em;
+  white-space: nowrap;
+}
+
 .next-row-actions {
   align-self: center;
   display: flex;
@@ -6699,20 +7107,6 @@ a.month-bar::before {
     grid-row: 3;
     margin-top: 0.5rem;
   }
-}
-
-/* /spine: one line under the hero numbers, linking across to What's next. */
-.next-band {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  margin: 1.5rem 0;
-  padding: 0.75rem 1rem;
-}
-
-.next-band a:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 /* Skip link: off-screen until a keyboard user reaches it, then the first
@@ -6793,7 +7187,7 @@ main h1[tabindex='-1']:focus,
 }
 
 /* /stats: the admin analytics components (.stat-tiles, .day-bars,
-   .bar-list) in the 45rem column. Both bars keep --chart and --chart-2,
+   .bar-list) in the 45rem column. The bars use --chart,
    measured beside the tokens; no new colour. */
 .site-stats .stat-tiles {
   margin: 1.5rem 0 0;
@@ -6886,7 +7280,7 @@ main h1[tabindex='-1']:focus,
   display: grid;
   gap: 0.45rem;
   margin: 0;
-  max-width: 58ch;
+  max-width: min(45rem, 68ch);
   padding-left: 1.1rem;
 }
 
@@ -6923,7 +7317,7 @@ main h1[tabindex='-1']:focus,
   grid-template-columns: repeat(12, 1fr);
   list-style: none;
   margin: 1rem 0 0.5rem;
-  max-width: 36rem;
+  max-width: 45rem;
   padding: 0;
 }
 
@@ -6957,7 +7351,7 @@ main h1[tabindex='-1']:focus,
   gap: 1rem;
   justify-content: space-between;
   margin: 0;
-  max-width: 36rem;
+  max-width: 45rem;
 }
 
 .month-days {
@@ -6965,7 +7359,7 @@ main h1[tabindex='-1']:focus,
   gap: 1rem;
   list-style: none;
   margin: 0;
-  max-width: 58ch;
+  max-width: 45rem;
   padding-left: 0;
 }
 
@@ -7000,17 +7394,48 @@ main h1[tabindex='-1']:focus,
   margin: 0;
 }
 
-.year-months {
+/* The community's score is written whole: "42 / 100" never breaks. */
+.year-community {
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Year in review: the months and the finishes beside the genres and the
+   crowd at desktop widths; one column below that. */
+.year-columns {
+  align-items: start;
+  display: grid;
+  gap: 0 3rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* The genre bars fill their column, as the mockup's do, and By month sits on
+   a baseline. */
+.year-columns .bar-list li {
+  grid-template-columns: minmax(0, 10rem) minmax(2rem, 1fr) auto;
+}
+
+.year-months .month-bars {
+  border-bottom: 1px solid var(--text-3);
   max-width: 36rem;
 }
 
-.year-genres,
+.year-months .bar-axis {
+  max-width: 36rem;
+}
+
+@media (min-width: 60rem) {
+  .year-columns {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+}
+
 .year-diary {
   color: var(--text-2);
   display: grid;
   gap: 0.4rem;
   margin: 0;
-  max-width: 58ch;
+  max-width: 45rem;
   padding-left: 1.4rem;
 }
 
@@ -7254,7 +7679,7 @@ main h1[tabindex='-1']:focus,
 .tour-lede {
   color: var(--text-2);
   font-size: 1.0625rem;
-  max-width: 62ch;
+  max-width: min(45rem, 68ch);
 }
 
 .tour-toc ol {
@@ -7336,7 +7761,7 @@ main h1[tabindex='-1']:focus,
   color: var(--text-2);
   font-size: 1rem;
   margin-bottom: 1.375rem;
-  max-width: 64ch;
+  max-width: min(45rem, 68ch);
 }
 
 .tour-stop-cols {
@@ -7348,7 +7773,7 @@ main h1[tabindex='-1']:focus,
 
 .tour-stop-cols.one {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 47.5rem;
+  max-width: 45rem;
 }
 
 .tour-stop-col h3 {
@@ -7376,7 +7801,7 @@ main h1[tabindex='-1']:focus,
   color: var(--text-2);
   font-size: 0.875rem;
   margin-top: 0.875rem;
-  max-width: 64ch;
+  max-width: min(45rem, 68ch);
 }
 
 .tour-stop-why strong {
@@ -7445,170 +7870,6 @@ main h1[tabindex='-1']:focus,
   margin: 0;
   overflow-x: auto;
   padding: 0.75rem 0.875rem;
-}
-
-.tour-status {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: flex;
-  margin: 1.25rem 0 1.5rem;
-  overflow-x: auto;
-}
-
-.tour-status div {
-  border-left: 1px solid var(--line);
-  flex: 1;
-  min-width: 0;
-  padding: 0.625rem 1rem;
-}
-
-.tour-status div:first-child {
-  border-left: 0;
-}
-
-.tour-status dt {
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: 0.65625rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.tour-status dd {
-  color: var(--text);
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin: 0.125rem 0 0;
-}
-
-.tour-status dd small {
-  color: var(--text-3);
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 400;
-}
-
-.tour-status-dot.ok {
-  color: var(--ok);
-}
-
-.tour-status-dot.stale {
-  color: var(--warn);
-}
-
-.tour-does {
-  margin: 0.5rem 0 1.75rem;
-}
-
-.tour-does-head {
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-  justify-content: space-between;
-  margin-bottom: 0.625rem;
-}
-
-.tour-does-head h2 {
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.tour-does-cards {
-  display: grid;
-  gap: 0.625rem;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.tour-does-cards a {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: inherit;
-  display: block;
-  height: 100%;
-  padding: 0.75rem 0.875rem;
-}
-
-.tour-does-cards a:hover,
-.tour-does-cards a:focus-visible {
-  border-color: var(--line-strong);
-  text-decoration: none;
-}
-
-.tour-does-n {
-  color: var(--accent);
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-
-.tour-does-cards b {
-  color: var(--text);
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.125rem;
-}
-
-.tour-does-line {
-  color: var(--text-3);
-  display: block;
-  font-size: 0.78125rem;
-  line-height: 1.4;
-}
-
-/* The strip and the cards stack well before the phone breakpoint: five
-   columns are cramped below about 48rem. */
-@media (max-width: 48rem) {
-  .tour-status {
-    flex-direction: column;
-  }
-
-  .tour-status div {
-    align-items: baseline;
-    border-left: 0;
-    border-top: 1px solid var(--line);
-    display: flex;
-    justify-content: space-between;
-    padding: 0.5rem 0.875rem;
-  }
-
-  .tour-status div:first-child {
-    border-top: 0;
-  }
-
-  .tour-status dd {
-    margin: 0;
-    text-align: right;
-  }
-
-  .tour-status dd small {
-    display: inline;
-    margin-left: 0.375rem;
-  }
-
-  .tour-does-cards {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .tour-does-cards li:last-child {
-    grid-column: 1 / -1;
-  }
 }
 
 /* Three columns of nine titles need about 60rem; below that the index is one
@@ -7733,7 +7994,7 @@ main h1[tabindex='-1']:focus,
 .series-row .lanes {
   --lane-ground: var(--bg);
   margin-top: 0.45rem;
-  max-width: 32rem;
+  max-width: 45rem;
 }
 
 /* A comic's card: two offset edges behind the cover say "a series, more
@@ -8188,7 +8449,7 @@ button.run-cell[aria-disabled='true'] {
 .comic-hero-next {
   grid-area: next;
   margin-top: 0.9rem;
-  max-width: 36rem;
+  max-width: 45rem;
 }
 
 .comic-next {
@@ -8839,8 +9100,24 @@ a.cover-tile:focus-visible {
 }
 
 /* Pick for me (Pick for me spec): the band on What's next. */
+.pick-note:empty {
+  margin: 0;
+}
+
 .pick-for-me {
   margin-block: 2rem;
+  scroll-margin-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+
+.pick-empty {
+  margin: 0.75rem 0;
+}
+
+/* Three results across when the page is wide. */
+@media (min-width: 64rem) {
+  .pick-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .pick-choices {
@@ -10081,7 +10358,7 @@ a.cover-tile:focus-visible {
 .daily-lede {
   color: var(--text-2);
   margin: 0;
-  max-width: 62ch;
+  max-width: min(45rem, 68ch);
 }
 .daily-head .kicker {
   letter-spacing: 0.04em;
@@ -10394,9 +10671,6 @@ a.cover-tile:focus-visible {
     grid-template-columns: 4.5rem minmax(0, 1fr);
   }
 }
-.daily-entry {
-  margin: 0;
-}
 
 /* ---------- SpotMap: the drawn poster map (/denver) ---------- */
 /* Every colour is a token, so one drawing is right in both themes. The
@@ -10600,7 +10874,7 @@ a.cover-tile:focus-visible {
   color: var(--text-2);
   font-size: 1.0625rem;
   margin: 0.375rem 0 1.25rem;
-  max-width: 45rem;
+  max-width: min(45rem, 68ch);
 }
 
 .denver-chips {
@@ -11901,7 +12175,7 @@ a.state-pill:focus-visible {
 
 .comic-issue-desc {
   color: var(--text-2);
-  max-width: 42rem;
+  max-width: min(45rem, 68ch);
 }
 
 .comic-issue-desc.muted {

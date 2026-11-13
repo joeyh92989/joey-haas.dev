@@ -91,8 +91,8 @@ describe('YearInReview', () => {
       .getByRole('heading', { name: 'Finishes' })
       .nextSibling.querySelectorAll('li')
     expect([...rows].map((row) => row.textContent)).toEqual([
-      'Sep 30Hades II again10/10',
-      'Feb 10Hades II10/10',
+      'Sep 30Hades II again★10',
+      'Feb 10Hades II★10',
     ])
   })
 
@@ -160,7 +160,7 @@ describe('YearInReview', () => {
       screen.getByRole('img', { name: 'Aug 2026: 0 finished' }),
     ).toBeInTheDocument()
     const finished = screen.getByRole('heading', { name: 'Finishes' })
-    expect(finished.nextSibling).toHaveTextContent('Sep 30Hades II10/10')
+    expect(finished.nextSibling).toHaveTextContent('Sep 30Hades II★10')
     expect(screen.getByRole('link', { name: '2025' })).toHaveAttribute(
       'href',
       '/shelf/year/2025/',
@@ -168,6 +168,52 @@ describe('YearInReview', () => {
     expect(
       screen.getByText(/higher than the crowd on 1 and lower on 0/),
     ).toBeInTheDocument()
+  })
+
+  it('lays the months and finishes beside the genres and the crowd', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    renderAt('/shelf/year/2026')
+
+    const columns = document.querySelector('.year-columns')
+    expect(columns.children).toHaveLength(2)
+    const [left, right] = columns.children
+    expect(
+      within(left).getByRole('heading', { name: 'By month' }),
+    ).toBeInTheDocument()
+    expect(
+      within(left).getByRole('heading', { name: 'Finishes' }),
+    ).toBeInTheDocument()
+    expect(
+      within(right).getByRole('heading', { name: 'Most played genres' }),
+    ).toBeInTheDocument()
+    expect(
+      within(right).getByRole('heading', { name: 'Against the crowd' }),
+    ).toBeInTheDocument()
+  })
+
+  it('draws the genres as a bar list', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    renderAt('/shelf/year/2026')
+
+    const genres = screen.getByRole('list', { name: 'Most played genres' })
+    expect(genres).toHaveClass('bar-list')
+    expect(within(genres).getByText('Roguelike')).toBeInTheDocument()
+  })
+
+  it('writes my rating as a star and the number, the crowd as NN / 100', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    renderAt('/shelf/year/2026')
+
+    const average = screen.getByText('Average rating').nextSibling
+    expect(
+      within(average).getByRole('img', { name: '10 out of 10' }),
+    ).toHaveTextContent('★10')
+    const crowd = screen.getByText(/higher than the crowd/)
+    expect(
+      within(crowd).getByRole('img', { name: '10 out of 10' }),
+    ).toBeInTheDocument()
+    expect(crowd).toHaveTextContent('the community gave it 88 / 100.')
+    expect(crowd).not.toHaveTextContent('10/10')
   })
 
   it('counts rated finishes in the plural, and one in the singular', () => {

@@ -107,9 +107,11 @@ describe('PosterCard', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('shows stars and the year and creator beneath the poster', () => {
+  it('shows the rating and the year and creator beneath the poster', () => {
     renderCard()
-    expect(screen.getByRole('img', { name: '9 out of 10' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '9 out of 10' })).toHaveTextContent(
+      '★9',
+    )
     expect(screen.getByText('2020 · Supergiant Games')).toBeInTheDocument()
   })
 
