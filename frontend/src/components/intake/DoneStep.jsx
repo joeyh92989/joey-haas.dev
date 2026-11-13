@@ -78,7 +78,9 @@ export default function DoneStep({
   const editionParts = (editions) => (editions ?? []).map(words.addsEdition)
   const addedLines = [
     ...(answer.series_new ?? []).map((series) => ({
-      key: `new-${series.title}`,
+      key: series.external_id
+        ? `new-${series.external_source}:${series.external_id}`
+        : `new-${series.title}`,
       title: series.title,
       parts: [
         series.issues.length ? words.adds(hashRanges(series.issues)) : null,

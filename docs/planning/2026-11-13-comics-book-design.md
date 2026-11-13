@@ -210,12 +210,31 @@ Deviations from the plan above:
 - A collected book with no range adds the series (and the shelf format)
   and no edition, since an edition needs a range; its label is the title as
   read.
-- A collected book sets the row's shelf format (trades, omnibus) as the
-  commit already does for Details' editions, so adding one to a series on
-  the shelf can change its shelf format; what Details sets on an entry wins
-  over what the book implies.
-- The commit answer gained `series_new` (a created series' issues and
-  editions) so Done can say "<Series> · adds #1–4" for a series that is
+- A collected book's edition (`shelf_kinds.book_edition`) is added to the
+  series whatever the entry's state (an exact match to a series on the shelf
+  is `owned`) and whatever the shelf format says: editions and the shelf
+  format are independent, so Details' "Set for all: Singles" keeps a read
+  trade's edition. A range the series already holds in any edition (any
+  kind or label) is not added again, and Done does not report it.
+- A collected book's implied shelf format (trades, omnibus) fills a series
+  that has none and creates a new one; it never overrides the format a
+  series on the shelf has. A format Details set on the entry still wins.
+- An edition added at commit takes the issues it covers out of
+  `issues_skipped` (Got it's rule), written through `comics.py`.
+- Check's run check takes the most any source says: the candidate's Comic
+  Vine count, the series' synced issue rows, its released count and its
+  highest owned issue, so a stale count never marks a real issue out of the
+  run.
+- A number save never disables the page (so Tab goes on to the next field);
+  saves of one book go one after another, each on the payload the last
+  left. The server's 422 for a book field is `{field, message}` and shows
+  beside that field. Blank or whitespace clears a number; non-ASCII digits
+  and very long digit strings are refused in the field's words.
+- Within one read, a repeated search (the same title, year and platform) is
+  answered from memory, so N books of one series are one Comic Vine search
+  plus at most one story-title retry; a busy source is asked once.
+- The commit answer gained `series_new` (a created series' issues,
+  editions and external id) so Done can say "<Series> · adds #1–4" for a series that is
   not "grew"; editions added to a series already on the shelf come from
   `series_grew.editions_added`.
 - Entries read from one photo have the same `created_at`, so their order

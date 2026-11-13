@@ -189,4 +189,36 @@ describe('ComicBooks', () => {
     expect(screen.getByText(/adds #5/)).toBeVisible()
     expect(screen.getByText(/#4 already on the shelf/)).toBeVisible()
   })
+
+  it('links a collected range’s refusal to both of its boxes', () => {
+    const collected = book('1', null, 'read', {
+      payload: {
+        detected_title: 'Saga',
+        number_source: 'none',
+        format: 'collected',
+        collects_from: 6,
+        collects_to: 1,
+      },
+    })
+    show([collected], {
+      errors: {
+        1: { field: 'collects_to', message: 'The range runs backwards.' },
+      },
+    })
+    const message = screen.getByText('The range runs backwards.')
+    for (const label of ['First issue collected', 'Last issue collected']) {
+      const box = screen.getByLabelText(label)
+      expect(box).toHaveAttribute('aria-invalid', 'true')
+      expect(box.getAttribute('aria-describedby')).toBe(message.id)
+    }
+  })
+
+  it('shows a refusal of the format under the selects', () => {
+    show([book('1', 2)], {
+      errors: {
+        1: { field: 'format', message: 'A book is a single or collected.' },
+      },
+    })
+    expect(screen.getByText('A book is a single or collected.')).toBeVisible()
+  })
 })

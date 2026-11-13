@@ -32,11 +32,13 @@ function NumberMark({ id, entry }) {
  * won't. The row keys it by the saved number, so an answer from the server
  * (or another device) starts it again from what was saved.
  */
-function NumberField({ entry, onSave, busy, markId }) {
+function NumberField({ entry, onSave, markId, error }) {
   const id = useId()
   const saved = entry.payload?.issue_number ?? null
   const [draft, setDraft] = useState(saved == null ? '' : String(saved))
   const [bad, setBad] = useState(false)
+  const message = bad ? words.badNumber : error
+  const shown = Boolean(message)
 
   function commit() {
     const number = parseNumber(draft)
@@ -55,9 +57,8 @@ function NumberField({ entry, onSave, busy, markId }) {
           inputMode="numeric"
           autoComplete="off"
           value={draft}
-          disabled={busy}
-          aria-invalid={bad || undefined}
-          aria-describedby={`${markId}${bad ? ` ${id}-bad` : ''}`}
+          aria-invalid={shown || undefined}
+          aria-describedby={`${markId}${shown ? ` ${id}-bad` : ''}`}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={commit}
           onKeyDown={(event) => {
@@ -65,9 +66,9 @@ function NumberField({ entry, onSave, busy, markId }) {
           }}
         />
       </span>
-      {bad && (
+      {shown && (
         <p id={`${id}-bad`} className="intake-book-mark" data-state="bad">
-          {words.badNumber}
+          {message}
         </p>
       )}
     </div>
@@ -75,7 +76,7 @@ function NumberField({ entry, onSave, busy, markId }) {
 }
 
 /** A collected book's first and last issue, saved together. */
-function CollectsField({ entry, onSave, busy }) {
+function CollectsField({ entry, onSave, error }) {
   const id = useId()
   const from = entry.payload?.collects_from ?? null
   const to = entry.payload?.collects_to ?? null
@@ -84,6 +85,8 @@ function CollectsField({ entry, onSave, busy }) {
     to: to == null ? '' : String(to),
   })
   const [bad, setBad] = useState(false)
+  const message = bad ? words.badRange : error
+  const shown = Boolean(message)
 
   function commit(event) {
     // Moving between the two boxes is not leaving the pair.
@@ -118,9 +121,9 @@ function CollectsField({ entry, onSave, busy }) {
           inputMode="numeric"
           autoComplete="off"
           aria-label={words.collectsFrom}
-          aria-invalid={bad || undefined}
+          aria-invalid={shown || undefined}
+          aria-describedby={shown ? `${id}-bad` : undefined}
           value={draft.from}
-          disabled={busy}
           onChange={(event) =>
             setDraft((old) => ({ ...old, from: event.target.value }))
           }
@@ -130,22 +133,25 @@ function CollectsField({ entry, onSave, busy }) {
           inputMode="numeric"
           autoComplete="off"
           aria-label={words.collectsTo}
-          aria-invalid={bad || undefined}
+          aria-invalid={shown || undefined}
+          aria-describedby={shown ? `${id}-bad` : undefined}
           value={draft.to}
-          disabled={busy}
           onChange={(event) =>
             setDraft((old) => ({ ...old, to: event.target.value }))
           }
         />
       </span>
-      {bad && (
-        <p className="intake-book-mark" data-state="bad">
-          {words.badRange}
+      {shown && (
+        <p id={`${id}-bad`} className="intake-book-mark" data-state="bad">
+          {message}
         </p>
       )}
     </div>
   )
 }
+
+// Refusals drawn inside their own field; any other shows under the selects.
+const NUMBER_FIELDS = ['issue_number', 'collects_from', 'collects_to']
 
 /** One book: its photo, its match, and its number to read or correct. */
 function BookRow({
@@ -156,6 +162,7 @@ function BookRow({
   onRemove,
   onSave,
   busy,
+  error,
 }) {
   const markId = useId()
   const ticked = entry.state !== 'ignored'
@@ -218,7 +225,10 @@ function BookRow({
           <select
             id={`${markId}-format`}
             value={collected ? 'collected' : 'single'}
-            disabled={busy}
+            aria-invalid={error?.field === 'format' || undefined}
+            aria-describedby={
+              error?.field === 'format' ? `${markId}-err` : undefined
+            }
             onChange={(event) => onSave({ format: event.target.value })}
           >
             {Object.entries(words.formats).map(([value, label]) => (
@@ -228,20 +238,33 @@ function BookRow({
             ))}
           </select>
         </div>
+        {error && !NUMBER_FIELDS.includes(error.field) && (
+          <p id={`${markId}-err`} className="intake-book-mark" data-state="bad">
+            {error.message}
+          </p>
+        )}
         {collected ? (
           <>
             <CollectsField
               key={`${entry.payload?.collects_from}-${entry.payload?.collects_to}`}
               entry={entry}
               onSave={onSave}
-              busy={busy}
+              error={
+                error?.field === 'collects_from' ||
+                error?.field === 'collects_to'
+                  ? error.message
+                  : null
+              }
             />
             <div className="intake-book-field">
               <label htmlFor={`${markId}-kind`}>{words.editionKindLabel}</label>
               <select
                 id={`${markId}-kind`}
                 value={entry.payload?.edition_kind ?? 'trade'}
-                disabled={busy}
+                aria-invalid={error?.field === 'edition_kind' || undefined}
+                aria-describedby={
+                  error?.field === 'edition_kind' ? `${markId}-err` : undefined
+                }
                 onChange={(event) =>
                   onSave({ edition_kind: event.target.value })
                 }
@@ -263,8 +286,8 @@ function BookRow({
               key={entry.payload?.issue_number ?? 'none'}
               entry={entry}
               onSave={onSave}
-              busy={busy}
               markId={markId}
+              error={error?.field === 'issue_number' ? error.message : null}
             />
             <NumberMark id={markId} entry={entry} />
             {repeated && (
@@ -293,7 +316,10 @@ function BookRow({
  * @param {(entry: object, ticked: boolean) => void} props.onToggle
  * @param {(entry: object) => void} props.onRemove
  * @param {(entry: object, changes: object) => Promise<boolean>} props.onSave
- * @param {boolean} props.busy
+ * @param {boolean} props.busy A tick or removal is being saved. A number
+ *   save never disables anything: the next field keeps focus.
+ * @param {Record<string, {field: string|null, message: string}>} [props.errors]
+ *   The server's refusal of a book's field, by entry id.
  */
 export default function ComicBooks({
   entries,
@@ -304,6 +330,7 @@ export default function ComicBooks({
   onRemove,
   onSave,
   busy,
+  errors = {},
 }) {
   const adds = seriesAdds(all)
   return (
@@ -321,6 +348,7 @@ export default function ComicBooks({
             onRemove={onRemove}
             onSave={(changes) => onSave(entry, changes)}
             busy={busy}
+            error={errors[entry.id]}
           />
         ))}
       </ul>

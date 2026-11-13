@@ -85,4 +85,17 @@ describe('DoneStep comic lines', () => {
     done({ series_new: [] })
     expect(screen.queryByText('Added to the shelf')).toBeNull()
   })
+
+  it('lists two new series with one title apart, by their ids', () => {
+    const series = (id) => ({
+      title: 'Waterworld',
+      external_source: 'comicvine',
+      external_id: id,
+      cover_url: null,
+      issues: [1],
+      editions: [],
+    })
+    done({ series_new: [series('1'), series('2')] })
+    expect(screen.getAllByText('Waterworld · adds #1')).toHaveLength(2)
+  })
 })

@@ -61,7 +61,9 @@ function step(entries, props = {}) {
   return { onNext, onEntry }
 }
 
-beforeEach(() => apiFetch.mockReset())
+beforeEach(() => {
+  apiFetch.mockReset()
+})
 
 describe('CheckStep in a comic sitting', () => {
   it('lists four Waterworld photos as four books and one line of what they add', () => {
@@ -125,5 +127,77 @@ describe('CheckStep in a comic sitting', () => {
     step([book(1, null)], { kind: null })
     expect(screen.queryByLabelText('Issue number')).toBeNull()
     expect(screen.getByRole('button', { name: /Details/ })).toBeEnabled()
+  })
+
+  it('keeps focus on the next field while a number is saving', async () => {
+    const user = userEvent.setup()
+    apiFetch.mockReturnValue(new Promise(() => {})) // never answers
+    step([book(1, null), book(2, null)])
+    const [first, second] = screen.getAllByRole('listitem')
+    await user.type(within(first).getByLabelText('Issue number'), '1')
+    await user.tab()
+    // The save is out, and the next row is still there to take the keys.
+    expect(apiFetch).toHaveBeenCalledTimes(1)
+    const next = within(second).getByRole('checkbox')
+    expect(next).toBeEnabled()
+    expect(next).toHaveFocus()
+    expect(within(first).getByLabelText('Issue number')).toBeEnabled()
+    // And the field the person goes on to accepts typing at once.
+    const field = within(second).getByLabelText('Issue number')
+    await user.click(field)
+    await user.keyboard('2')
+    expect(field).toHaveValue('2')
+  })
+
+  it('saves two quick edits of one book one after the other, each on the last', async () => {
+    const user = userEvent.setup()
+    const saved = { ...book(1, 3), number_check: { state: 'typed', run: 4 } }
+    saved.payload = { ...saved.payload, number_source: 'typed' }
+    let answerFirst
+    apiFetch
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          answerFirst = () => resolve({ ok: true, json: async () => saved })
+        }),
+      )
+      .mockResolvedValueOnce({ ok: true, json: async () => saved })
+    step([book(1, null)])
+    await user.type(screen.getByLabelText('Issue number'), '3')
+    await user.tab()
+    await user.selectOptions(
+      screen.getByLabelText('This book is'),
+      'A collected edition',
+    )
+    // The second waits for the first: only one request is out.
+    expect(apiFetch).toHaveBeenCalledTimes(1)
+    answerFirst()
+    await vi.waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2))
+    const bodies = apiFetch.mock.calls.map(
+      ([, init]) => JSON.parse(init.body).payload,
+    )
+    expect(bodies[0].issue_number).toBe(3)
+    expect(bodies[1]).toMatchObject({ issue_number: 3, format: 'collected' })
+  })
+
+  it('shows the server’s refusal beside the field it names', async () => {
+    const user = userEvent.setup()
+    apiFetch.mockResolvedValue({
+      ok: false,
+      clone: () => ({
+        json: async () => ({
+          detail: { field: 'issue_number', message: 'Refused by the server.' },
+        }),
+      }),
+    })
+    step([book(1, null)])
+    const field = screen.getByLabelText('Issue number')
+    await user.type(field, '5')
+    await user.tab()
+    const message = await screen.findByText('Refused by the server.')
+    expect(message).toBeVisible()
+    expect(field).toHaveAttribute('aria-invalid', 'true')
+    expect(field.getAttribute('aria-describedby')).toContain(message.id)
+    // Beside the field, not as the page's alert.
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })
