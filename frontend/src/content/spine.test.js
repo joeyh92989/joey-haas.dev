@@ -37,20 +37,10 @@ describe('spine.how', () => {
     }
   })
 
-  it('points every feature card at a stop that exists', () => {
-    const numbers = new Set(how.stops.map((stop) => stop.n))
-    expect(how.features).toHaveLength(5)
-    for (const feature of how.features) {
-      expect(numbers.has(feature.stop), feature.title).toBe(true)
-    }
-  })
-
   it('names both ways in at stop 1: a shelf photo and a search', () => {
     // The add bar's search ships with intake's PR 3.
     const stop = how.stops.find((s) => s.n === 1)
-    const feature = how.features.find((f) => f.stop === 1)
     expect(stop.claim).toMatch(/photograph a shelf or search for a title/)
-    expect(feature.line).toMatch(/a search/)
   })
 
   it('links only code that exists in the repo', () => {

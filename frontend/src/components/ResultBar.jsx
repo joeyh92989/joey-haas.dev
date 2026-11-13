@@ -7,8 +7,8 @@ const copy = spine.shelf
  * filter or search narrows it) and, only then, Clear filters. Children sit
  * beside the count (the cover key).
  *
- * The count is a polite live region, so a screen reader hears the result of
- * each filter change without the focus moving.
+ * The count alone is a polite live region (not the Clear button), so a screen
+ * reader hears the result of each filter change without the focus moving.
  *
  * @param {object} props
  * @param {number} props.shown - How many titles match.
@@ -26,8 +26,8 @@ export default function ResultBar({
 }) {
   return (
     <div className="resultbar">
-      <p className="result" aria-live="polite">
-        <strong>
+      <p className="result">
+        <strong aria-live="polite">
           {filtered ? copy.titlesOf(shown, total) : copy.titles(total)}
         </strong>
         {filtered && (

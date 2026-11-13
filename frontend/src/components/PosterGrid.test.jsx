@@ -69,6 +69,28 @@ describe('PosterGrid paged', () => {
     expect(document.querySelectorAll('.poster-grid li')).toHaveLength(28)
   })
 
+  it('moves focus to the first revealed card, even when the button goes', async () => {
+    const withLinks = (props = {}) =>
+      grid({
+        renderCard: (item) => <a href={`#${item.id}`}>{item.title}</a>,
+        ...props,
+      })
+    render(withLinks())
+    await userEvent.click(screen.getByRole('button', { name: 'Show 28 more' }))
+    expect(screen.getByRole('link', { name: 'T28' })).toHaveFocus()
+    await userEvent.click(screen.getByRole('button', { name: 'Show 14 more' }))
+    expect(screen.queryByRole('button', { name: /Show/ })).toBeNull()
+    expect(screen.getByRole('link', { name: 'T56' })).toHaveFocus()
+  })
+
+  it('moves focus to the first revealed card on Show all', async () => {
+    render(
+      grid({ renderCard: (item) => <a href={`#${item.id}`}>{item.title}</a> }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Show all' }))
+    expect(screen.getByRole('link', { name: 'T28' })).toHaveFocus()
+  })
+
   it('pages nothing without the prop', () => {
     render(grid({ paged: false }))
     expect(document.querySelectorAll('.poster-grid li')).toHaveLength(70)

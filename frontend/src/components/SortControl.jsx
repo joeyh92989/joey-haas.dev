@@ -50,6 +50,11 @@ export default function SortControl({
 }) {
   const isRandom = value === 'random'
   const words = copy.directions[value]
+  const wording = words
+    ? words[direction === 'asc' ? 1 : 0]
+    : direction === 'asc'
+      ? 'Ascending'
+      : 'Descending'
 
   function choose(next) {
     if (next === value) return
@@ -80,6 +85,7 @@ export default function SortControl({
           <button
             type="button"
             className="chip sort-direction"
+            aria-label={`Order: ${wording}`}
             onClick={() =>
               onChange({
                 value,
@@ -87,11 +93,7 @@ export default function SortControl({
               })
             }
           >
-            {words
-              ? words[direction === 'asc' ? 1 : 0]
-              : direction === 'asc'
-                ? 'Ascending'
-                : 'Descending'}
+            {wording}
           </button>
         )
       )}

@@ -61,7 +61,9 @@ describe('SortControl', () => {
 
   it('words the direction and flips it', async () => {
     const { onChange } = renderSort()
-    await userEvent.click(screen.getByRole('button', { name: 'Newest first' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Order: Newest first' }),
+    )
     expect(onChange).toHaveBeenCalledWith({ value: 'added', direction: 'asc' })
   })
 
@@ -73,7 +75,9 @@ describe('SortControl', () => {
     ['added', 'asc', 'Oldest first'],
   ])('words %s %s as %s', (value, direction, words) => {
     renderSort({ value, direction })
-    expect(screen.getByRole('button', { name: words })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: `Order: ${words}` }),
+    ).toBeInTheDocument()
   })
 
   it('hides the direction and shows Shuffle for Random', async () => {

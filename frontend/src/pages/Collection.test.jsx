@@ -611,7 +611,7 @@ describe('Collection', () => {
     )
     expect(gridTitles()).toEqual(['Dune', 'Gloomhaven'])
 
-    await userEvent.click(screen.getByRole('button', { name: 'A to Z' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Order: A to Z' }))
     expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
   })
 

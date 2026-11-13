@@ -23,6 +23,15 @@ describe('ResultBar', () => {
     expect(onClear).toHaveBeenCalledOnce()
   })
 
+  it('keeps the Clear button out of the live region', () => {
+    render(<ResultBar shown={1} total={2} filtered onClear={vi.fn()} />)
+    const live = document.querySelector('[aria-live]')
+    expect(live).toHaveTextContent('1 of 2 titles')
+    expect(live).not.toContainElement(
+      screen.getByRole('button', { name: 'Clear filters' }),
+    )
+  })
+
   it('says title for a shelf of one', () => {
     render(<ResultBar shown={1} total={1} filtered={false} onClear={vi.fn()} />)
     expect(screen.getByText('1 title')).toBeInTheDocument()

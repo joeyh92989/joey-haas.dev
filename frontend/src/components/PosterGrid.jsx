@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import ShowMore from './ShowMore.jsx'
 
@@ -56,7 +56,9 @@ export default function PosterGrid({
     setShowAll(false)
   }
 
-  useEffect(() => {
+  // Layout effect: the columns are known before the first paint, so a page
+  // of the fallback size never flashes.
+  useLayoutEffect(() => {
     const grid = gridRef.current
     if (!paged || !grid || typeof ResizeObserver === 'undefined') return
     const measure = () => setColumns(columnsOf(grid))
@@ -71,6 +73,20 @@ export default function PosterGrid({
     paged && !showAll ? Math.min(items.length, step * pages) : items.length
   const list = shown === items.length ? items : items.slice(0, shown)
 
+  // Showing more can unmount the button that was pressed (the last page, or
+  // Show all), which would drop focus to the body. Focus goes to the first
+  // card that was revealed instead.
+  const focusFrom = useRef(null)
+  useEffect(() => {
+    const from = focusFrom.current
+    focusFrom.current = null
+    if (from === null) return
+    gridRef.current
+      ?.querySelectorAll(':scope > li')
+      [from]?.querySelector('a, button')
+      ?.focus()
+  }, [shown])
+
   return (
     <>
       <ul className="poster-grid" data-size={size} ref={gridRef}>
@@ -83,8 +99,14 @@ export default function PosterGrid({
           shown={shown}
           total={items.length}
           step={step}
-          onMore={() => setPages((current) => current + 1)}
-          onAll={() => setShowAll(true)}
+          onMore={() => {
+            focusFrom.current = shown
+            setPages((current) => current + 1)
+          }}
+          onAll={() => {
+            focusFrom.current = shown
+            setShowAll(true)
+          }}
         />
       )}
     </>

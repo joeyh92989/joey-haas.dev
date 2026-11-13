@@ -62,8 +62,6 @@ export const spine = {
     live: 'Live, from the public API',
     behind: 'Behind the sign-in',
     stopLabel: 'Stop',
-    featuresLabel: 'What it does',
-    tour: 'Take the tour',
     redacted: 'store withheld',
     // Stop 2's facts once /api/public/status answers: the catalog line is
     // added and the stores line gains its listings.
@@ -75,33 +73,6 @@ export const spine = {
       listings: (watched, listings) =>
         `${watched} watched, ${listings} listings`,
     },
-    features: [
-      {
-        stop: 1,
-        title: 'Takes it all in',
-        line: 'A shelf photo or a search, matched to its source.',
-      },
-      {
-        stop: 2,
-        title: 'Knows the format',
-        line: 'Cartridge or Game-Key Card, pulled from a registry and the stores I watch.',
-      },
-      {
-        stop: 3,
-        title: 'Picks tonight',
-        line: 'Six weighted terms score the backlog and explain each pick.',
-      },
-      {
-        stop: 4,
-        title: 'Watches the stores',
-        line: 'What’s out, what’s coming, what to skip.',
-      },
-      {
-        stop: 7,
-        title: 'Rebuilds nightly',
-        line: 'Nothing here waits for me to press a button.',
-      },
-    ],
     stops: [
       {
         n: 1,
@@ -373,20 +344,6 @@ export const spine = {
     since: 'Playing since',
     wrapUp: 'Wrap up',
   },
-  status: {
-    label: 'Status',
-    refreshed: 'Last refreshed',
-    fresh: 'refreshed in the last 36 hours',
-    stale: 'not refreshed in over 36 hours',
-    catalogue: 'Catalog',
-    titles: 'titles',
-    platforms: 'platforms',
-    stores: 'Stores watched',
-    listings: 'listings',
-    picks: 'Picks',
-    picksLive: 'live',
-    discover: 'Discover',
-  },
   next: {
     path: '/shelf/next',
     title: 'What’s next',
@@ -570,8 +527,6 @@ export const spine = {
     band: {
       lead: 'What’s next',
       tonight: 'Tonight:',
-      toBuy: 'in stores',
-      preorders: 'coming soon',
     },
     loading: 'Loading…',
     waking: WAKING,
