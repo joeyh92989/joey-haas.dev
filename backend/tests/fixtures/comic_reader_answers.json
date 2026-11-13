@@ -1,0 +1,112 @@
+[
+  {
+    "photo": "PXL_20261109_171730384.jpg",
+    "answer": {
+      "books": [
+        {
+          "series": "Creepshow",
+          "issue_number_seen": false,
+          "format": "collected"
+        }
+      ]
+    }
+  },
+  {
+    "photo": "PXL_20261109_171901501.jpg",
+    "answer": {
+      "books": [
+        {
+          "series": "STAR WARS TALES",
+          "issue_number_seen": true,
+          "format": "single",
+          "issue_number": "5",
+          "publisher": "DARK HORSE COMICS"
+        }
+      ]
+    }
+  },
+  {
+    "photo": "PXL_20261109_171906178.MP.jpg",
+    "answer": {
+      "books": [
+        {
+          "series": "Jurassic Park Raptors Attack",
+          "issue_number_seen": true,
+          "format": "single",
+          "issue_number": "1",
+          "publisher": "TOPPS COMICS"
+        }
+      ]
+    }
+  },
+  {
+    "photo": "PXL_20261109_171913678.jpg",
+    "answer": {
+      "books": [
+        {
+          "series": "Zorro",
+          "issue_number_seen": true,
+          "format": "single",
+          "issue_number": "0",
+          "publisher": "Topps Comics"
+        }
+      ]
+    }
+  },
+  {
+    "photo": "PXL_20261109_171930017.jpg",
+    "answer": {
+      "books": [
+        {
+          "series": "WATERWORLD CHILDREN OF LEVIATHAN",
+          "issue_number_seen": true,
+          "format": "single",
+          "issue_number": "1 of 4",
+          "publisher": "ACCLAIM COMICS"
+        }
+      ]
+    }
+  },
+  {
+    "photo": "PXL_20261109_171933639.jpg",
+    "answer": {
+      "books": [
+        {
+          "series": "Waterworld: Children of Leviathan",
+          "issue_number_seen": true,
+          "format": "single",
+          "issue_number": "2",
+          "publisher": "Acclaim Comics"
+        }
+      ]
+    }
+  },
+  {
+    "photo": "PXL_20261109_171936730.jpg",
+    "answer": {
+      "books": [
+        {
+          "series": "Waterworld: Children of Leviathan",
+          "issue_number_seen": true,
+          "format": "single",
+          "issue_number": "3",
+          "publisher": "Acclaim Comics"
+        }
+      ]
+    }
+  },
+  {
+    "photo": "PXL_20261109_171939055.jpg",
+    "answer": {
+      "books": [
+        {
+          "series": "Waterworld Children of Leviathan: Twilight of the Gods",
+          "issue_number_seen": true,
+          "format": "single",
+          "issue_number": "4 of 4",
+          "publisher": "Acclaim Comics"
+        }
+      ]
+    }
+  }
+]

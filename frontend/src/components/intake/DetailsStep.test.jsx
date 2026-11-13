@@ -45,3 +45,53 @@ describe('DetailsStep editions', () => {
     expect(within(row).queryByLabelText('Kind, edition 1')).toBeNull()
   })
 })
+
+describe('DetailsStep comic fields', () => {
+  it('does not ask for the issues: Check has each book’s number', () => {
+    const kinds = [
+      {
+        key: 'comic',
+        label: 'Comic',
+        fields: [
+          {
+            key: 'issues_owned',
+            label: 'Issues owned',
+            control: 'text',
+            options: [],
+            per_item: true,
+            in_details: false,
+          },
+          {
+            key: 'shelf_format',
+            label: 'Shelf format',
+            control: 'select',
+            options: ['singles', 'trades'],
+            per_item: false,
+            in_details: true,
+          },
+        ],
+      },
+    ]
+    const e = entry('e1', 'ready', {
+      kind: 'comic',
+      chosen: { title: 'Saga' },
+      payload: { issue_number: 3 },
+    })
+    render(
+      <DetailsStep
+        sitting={{ entries: [e] }}
+        kinds={kinds}
+        onEntry={vi.fn()}
+        refusals={{}}
+        onCommit={vi.fn()}
+        onLater={vi.fn()}
+        onBack={vi.fn()}
+        committing={false}
+        target="the shelf"
+        headingRef={{ current: null }}
+      />,
+    )
+    expect(screen.queryByLabelText('Issues owned')).toBeNull()
+    expect(screen.getAllByLabelText('Shelf format').length).toBeGreaterThan(0)
+  })
+})

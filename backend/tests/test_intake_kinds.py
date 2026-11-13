@@ -81,6 +81,7 @@ async def test_a_registered_kind_is_served_with_its_fields(
             "options": ["33", "45"],
             "per_item": False,
             "required": False,
+            "in_details": True,
         }
     ]
 
@@ -110,6 +111,12 @@ async def test_the_built_in_kinds(sessionmaker_for_test):
     assert "disc_format" in movie_fields
     issues = next(f for f in served["comic"]["fields"] if f["key"] == "issues_owned")
     assert issues["per_item"] is True
+    # Check types each book's number; Details no longer asks for the range.
+    assert issues["in_details"] is False
+    shelf_format = next(
+        f for f in served["comic"]["fields"] if f["key"] == "shelf_format"
+    )
+    assert shelf_format["in_details"] is True
 
 
 @pytest.mark.asyncio

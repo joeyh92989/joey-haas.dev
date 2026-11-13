@@ -441,6 +441,7 @@ async def test_a_comic_entry_carries_the_series_already_on_the_shelf(
         "owned_text": "1–57",
         "released": 72,
         "ongoing": True,
+        "issue_max": None,
     }
     assert added.json()["on_shelf"] == on_shelf
     assert other.json()["on_shelf"] is None
@@ -654,3 +655,128 @@ async def test_an_entry_removed_by_ignoring_it_carries_no_unticked_note(
     assert patched.status_code == 200
     assert "unticked" not in patched.json()["payload"]
     assert patched.json()["state"] == "ignored"
+
+
+COMIC_BOOK = {
+    "detected_title": "Waterworld: Children of Leviathan",
+    "issue_number": 2,
+    "number_source": "read",
+    "format": "single",
+}
+WATERWORLD = {
+    "external_source": "comicvine",
+    "external_id": "cv-ww",
+    "title": "Waterworld: Children of Leviathan",
+    "issue_count": 4,
+}
+
+
+async def _book(client, sitting_id, payload=None, chosen=None):
+    response = await client.post(
+        f"/api/intake/sittings/{sitting_id}/entries",
+        json={
+            "kind": "comic",
+            "chosen": chosen if chosen is not None else WATERWORLD,
+            "payload": payload if payload is not None else COMIC_BOOK,
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+@pytest.mark.asyncio
+async def test_a_comic_entry_carries_the_mark_for_its_number(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, kind="comic")
+        entry = await _book(client, sitting["id"])
+        game = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/entries",
+            json={"kind": "game", "payload": {"title": "Hades"}},
+        )
+    assert entry["number_check"] == {"state": "in_run", "run": 4}
+    assert "number_check" not in game.json()
+
+
+@pytest.mark.asyncio
+async def test_the_mark_judges_by_the_issues_of_a_series_on_the_shelf(
+    sessionmaker_for_test,
+):
+    from datetime import date
+
+    from models import ComicIssue
+
+    async with sessionmaker_for_test() as session:
+        series = Item(
+            type=ItemType.COMIC,
+            title="Waterworld: Children of Leviathan",
+            status=ItemStatus.BACKLOG,
+            external_source="comicvine",
+            external_id="cv-ww",
+        )
+        session.add(series)
+        await session.flush()
+        for number in range(1, 7):
+            session.add(
+                ComicIssue(
+                    item_id=series.id,
+                    number=number,
+                    cv_id=number,
+                    fetched_on=date(2026, 11, 1),
+                )
+            )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, kind="comic")
+        entry = await _book(
+            client,
+            sitting["id"],
+            {**COMIC_BOOK, "issue_number": 6},
+            {**WATERWORLD, "issue_count": 4},
+        )
+    assert entry["on_shelf"]["issue_max"] == 6
+    assert entry["number_check"] == {"state": "in_run", "run": 6}
+
+
+@pytest.mark.asyncio
+async def test_typing_a_number_marks_it_typed_and_a_bad_one_is_refused(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, kind="comic")
+        entry = await _book(client, sitting["id"])
+        url = f"/api/intake/entries/{entry['id']}"
+        typed = await client.patch(
+            url, json={"payload": {**COMIC_BOOK, "issue_number": 3}}
+        )
+        same = await client.patch(url, json={"payload": typed.json()["payload"]})
+        cleared = await client.patch(
+            url, json={"payload": {**COMIC_BOOK, "issue_number": None}}
+        )
+        zero = await client.patch(
+            url, json={"payload": {**COMIC_BOOK, "issue_number": 0}}
+        )
+        backwards = await client.patch(
+            url,
+            json={
+                "payload": {
+                    **COMIC_BOOK,
+                    "format": "collected",
+                    "collects_from": 6,
+                    "collects_to": 1,
+                }
+            },
+        )
+        after = await client.get(f"/api/intake/sittings/{sitting['id']}")
+    assert typed.json()["payload"]["number_source"] == "typed"
+    assert typed.json()["number_check"]["state"] == "typed"
+    assert same.json()["payload"]["number_source"] == "typed"
+    assert cleared.json()["payload"]["number_source"] == "none"
+    assert cleared.json()["number_check"]["state"] == "none"
+    assert zero.status_code == 422
+    # The field is named, so Check can show the message beside it.
+    assert zero.json()["detail"]["field"] == "issue_number"
+    assert "1 to 9999" in zero.json()["detail"]["message"]
+    assert backwards.json()["detail"]["field"] == "collects_to"
+    assert backwards.status_code == 422
+    # a refused edit changes nothing
+    assert after.json()["entries"][0]["payload"]["issue_number"] is None

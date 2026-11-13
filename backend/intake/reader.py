@@ -18,6 +18,12 @@ schema and resolution (`importer.py`) unchanged; confidence comes from
 - **Already on the shelf.** An exact or probable match whose
   `(external_source, external_id)` is already an item -- the commit's
   duplicate rule -- is `owned`; an uncertain one stays `check`.
+- **A comic sitting reads books, not titles.** Its photos go out with the
+  comic prompt and schema (`importer.COMIC_EXTRACTION_PROMPT`): one entry
+  per book with its issue number, so four photos of one series are four
+  entries, never merged. The same one request per photo. A mixed sitting
+  keeps the shelf prompt. A series whose best match is not exact and whose
+  title ends ": <story>" is searched again without the story.
 - **Closet sittings read nothing here.** Their photos are garments from the
   moment they are uploaded, and the Closet's tag queue tags them.
 """
@@ -26,16 +32,19 @@ from __future__ import annotations
 
 import logging
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 
 from sqlalchemy import func, select, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from importer import (
+    COMIC_DETECTION_SCHEMA,
+    COMIC_EXTRACTION_PROMPT,
     DETECTION_SCHEMA,
     EXTRACTION_PROMPT,
     Detection,
+    parse_books,
     parse_detections,
     resolve_detections,
 )
@@ -79,10 +88,16 @@ class ReadOutcome:
 class _Watched:
     """An adapter that notes which searches found their source busy, so the
     importer's resolution (which folds every SourceError into "unresolved")
-    can still be told apart from a real miss."""
+    can still be told apart from a real miss.
+
+    It also answers a repeated search from memory for the length of one
+    `_resolve`: four books of one series are one search (and a story-title
+    retry at most one more), not four against a source with a daily cap. A
+    refusal is remembered too, so a busy source is asked once."""
 
     adapter: SourceAdapter
     busy: dict[tuple, str]
+    seen: dict[tuple, Any] = field(default_factory=dict)
 
     @property
     def source_name(self) -> str:
@@ -92,11 +107,17 @@ class _Watched:
         return self.adapter.configured()
 
     async def search(self, query, year=None, platform=None):
-        try:
-            return await self.adapter.search(query, year, platform)
-        except (SourceRateLimited, SourceUnavailable):
-            self.busy[(query, year, platform)] = self.adapter.source_name
-            raise
+        key = (query, year, platform)
+        if key not in self.seen:
+            try:
+                self.seen[key] = await self.adapter.search(query, year, platform)
+            except (SourceRateLimited, SourceUnavailable) as error:
+                self.busy[key] = self.adapter.source_name
+                self.seen[key] = error
+        found = self.seen[key]
+        if isinstance(found, Exception):
+            raise found
+        return found
 
 
 async def _owned(session: AsyncSession, rows: list[dict]) -> set[tuple[str, str]]:
@@ -145,14 +166,36 @@ def _resolution(
     return state, payload
 
 
+COMIC_SITTING = "comic"
+
+
+def _book_payload(detection: Detection) -> dict[str, Any]:
+    """What a comic book carries beyond its title: the number and where it
+    came from, the format, and a collected edition's range and kind. The
+    Check mark is derived from these when the entry is shown, never stored."""
+    book: dict[str, Any] = {
+        "issue_number": detection.issue_number,
+        "number_source": detection.number_source,
+        "format": detection.format or "unknown",
+    }
+    if detection.format == "collected":
+        book["collects_from"] = detection.collects_from
+        book["collects_to"] = detection.collects_to
+        book["edition_kind"] = "trade"
+    return book
+
+
 def _entry(
     sitting_id: uuid.UUID,
     photo_id: uuid.UUID,
     row: dict,
     busy: dict[tuple, str],
     owned: set[tuple[str, str]],
+    book: Detection | None = None,
 ) -> IntakeEntry:
     state, payload = _resolution(row, busy, owned)
+    if book is not None:
+        payload.update(_book_payload(book))
     return IntakeEntry(
         sitting_id=sitting_id,
         photo_id=photo_id,
@@ -164,16 +207,71 @@ def _entry(
     )
 
 
+_CONFIDENCE_RANK = {
+    Confidence.EXACT.value: 2,
+    Confidence.PROBABLE.value: 1,
+    Confidence.UNCERTAIN.value: 0,
+}
+
+
+def before_story(title: str) -> str | None:
+    """A comic series title without a trailing ": <story>" ("Waterworld
+    Children of Leviathan: Twilight of the Gods" -> "Waterworld Children of
+    Leviathan"), or None when there is no story to take off."""
+    head, colon, story = title.rpartition(":")
+    head = head.strip()
+    return head if colon and head and story.strip() else None
+
+
+async def _without_story(
+    watched: dict[ItemType, SourceAdapter],
+    detections: list[Detection],
+    rows: list[dict],
+    indexes: set[int],
+) -> None:
+    """Comic books whose best match is not exact are searched again without
+    a trailing story title; the retry replaces the row only when it is a
+    match and more confident. The row keeps the title as read, so the busy
+    lookup and the retry-from-payload keep working."""
+    heads = []
+    for detection, row in zip(detections, rows, strict=True):
+        if detection.index not in indexes or detection.media_type is not ItemType.COMIC:
+            continue
+        if row["confidence"] == Confidence.EXACT.value:
+            continue
+        head = before_story(detection.title)
+        if head:
+            heads.append((row, replace(detection, title=head, index=len(heads))))
+    if not heads:
+        return
+    again = await resolve_detections(watched, [head for _, head in heads])
+    for (row, _), new in zip(heads, again, strict=True):
+        if new["status"] == "matched" and (
+            _CONFIDENCE_RANK[new["confidence"]] > _CONFIDENCE_RANK[row["confidence"]]
+        ):
+            row.update(
+                status=new["status"],
+                confidence=new["confidence"],
+                reason=new["reason"],
+                match=new["match"],
+                candidates=new["candidates"],
+            )
+
+
 async def _resolve(
     session: AsyncSession,
     registry: dict[ItemType, SourceAdapter],
     detections: list[Detection],
+    *,
+    story_indexes: set[int] | None = None,
 ) -> tuple[list[dict], dict[tuple, str], set[tuple[str, str]]]:
     busy: dict[tuple, str] = {}
     watched = {
         media_type: _Watched(adapter, busy) for media_type, adapter in registry.items()
     }
     rows = await resolve_detections(watched, detections)
+    if story_indexes:
+        await _without_story(watched, detections, rows, story_indexes)
     return rows, busy, await _owned(session, rows)
 
 
@@ -188,7 +286,9 @@ async def retry_reading(
     (the nightly). Returns how many entries left `reading`; one whose
     source is still busy stays as it is. Commits."""
     query = (
-        select(IntakeEntry.id, IntakeEntry.kind, IntakeEntry.payload)
+        select(
+            IntakeEntry.id, IntakeEntry.kind, IntakeEntry.payload, IntakeSitting.kind
+        )
         .join(IntakeSitting, IntakeSitting.id == IntakeEntry.sitting_id)
         .where(
             IntakeEntry.state == IntakeEntryState.READING,
@@ -201,7 +301,8 @@ async def retry_reading(
     waiting = (await session.execute(query)).all()
     ids: list[uuid.UUID] = []
     detections: list[Detection] = []
-    for entry_id, kind, payload in waiting:
+    story_indexes: set[int] = set()
+    for entry_id, kind, payload, sitting_kind in waiting:
         payload = payload or {}
         title = payload.get("detected_title")
         try:
@@ -211,6 +312,8 @@ async def retry_reading(
         if not title:
             continue
         ids.append(entry_id)
+        if sitting_kind == COMIC_SITTING:
+            story_indexes.add(len(detections))
         detections.append(
             Detection(
                 index=len(detections),
@@ -225,7 +328,9 @@ async def retry_reading(
     if not detections:
         return 0
 
-    rows, busy, owned = await _resolve(session, registry, detections)
+    rows, busy, owned = await _resolve(
+        session, registry, detections, story_indexes=story_indexes
+    )
     # Re-read under lock: an entry changed or deleted meanwhile is left be.
     entries = {
         entry.id: entry
@@ -281,6 +386,7 @@ async def read_next(
     sitting = await session.get(IntakeSitting, sitting_id)
     if sitting is None or sitting.area is not IntakeArea.SHELF:
         return ReadOutcome("idle")
+    comic = sitting.kind == COMIC_SITTING
     # Cheap (no model call): a page left open recovers busy sources too.
     await retry_reading(session, registry, sitting_id)
     waiting = (
@@ -322,10 +428,16 @@ async def read_next(
     await session.commit()
 
     try:
-        payload = await provider.complete_json(
-            EXTRACTION_PROMPT, DETECTION_SCHEMA, [image]
-        )
-        detections = parse_detections(payload)
+        if comic:
+            payload = await provider.complete_json(
+                COMIC_EXTRACTION_PROMPT, COMIC_DETECTION_SCHEMA, [image]
+            )
+            detections = parse_books(payload)
+        else:
+            payload = await provider.complete_json(
+                EXTRACTION_PROMPT, DETECTION_SCHEMA, [image]
+            )
+            detections = parse_detections(payload)
     except Exception as error:  # noqa: BLE001 -- one photo fails, not the sitting
         logger.warning("intake read of photo %s failed: %s", photo_id, error)
         photo = await session.get(IntakePhoto, photo_id, populate_existing=True)
@@ -336,14 +448,29 @@ async def read_next(
         await session.commit()
         return ReadOutcome("failed", photo)
 
-    rows, busy, owned = await _resolve(session, registry, detections)
+    rows, busy, owned = await _resolve(
+        session,
+        registry,
+        detections,
+        story_indexes={d.index for d in detections} if comic else None,
+    )
     # The photo may have been removed while the model was reading it: the
     # read is discarded, not written against a row that is gone.
     photo = await session.get(IntakePhoto, photo_id, populate_existing=True)
     if photo is None:
         await session.rollback()
         return ReadOutcome("idle")
-    entries = [_entry(sitting_id, photo.id, row, busy, owned) for row in rows]
+    entries = [
+        _entry(
+            sitting_id,
+            photo.id,
+            row,
+            busy,
+            owned,
+            detections[row["index"]] if comic else None,
+        )
+        for row in rows
+    ]
     session.add_all(entries)
     photo.state = IntakePhotoState.READ if entries else IntakePhotoState.EMPTY
     photo.error = None

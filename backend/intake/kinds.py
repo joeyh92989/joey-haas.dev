@@ -32,6 +32,8 @@ class FieldSpec:
     options: tuple[str, ...] = ()
     per_item: bool = False
     required: bool = False
+    # False: the Details step leaves the field out (the add bar still has it).
+    in_details: bool = True
 
 
 @dataclass(frozen=True)
@@ -104,6 +106,7 @@ def describe(kind: Kind, registry: dict) -> dict[str, Any]:
                 "options": list(field.options),
                 "per_item": field.per_item,
                 "required": field.required,
+                "in_details": field.in_details,
             }
             for field in kind.fields
         ],

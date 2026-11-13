@@ -41,10 +41,51 @@ GAME_FIELDS = (
     FieldSpec("physical_format", "Format", "select", select(FORMAT_LABELS)),
 )
 MOVIE_FIELDS = (FieldSpec("disc_format", "Disc", "select", select(MovieDiscFormat)),)
+# A comic's issues come from each book's own number at Check, so the Details
+# step does not ask for them (`in_details=False`); the add bar still types them.
 COMIC_FIELDS = (
-    FieldSpec("issues_owned", "Issues owned", "text", per_item=True),
+    FieldSpec("issues_owned", "Issues owned", "text", per_item=True, in_details=False),
     FieldSpec("shelf_format", "Shelf format", "select", select(ComicShelfFormat)),
 )
+
+EDITION_SHELF_FORMAT = {
+    "trade": ComicShelfFormat.TRADES,
+    "hardcover": ComicShelfFormat.TRADES,
+    "omnibus": ComicShelfFormat.OMNIBUS,
+}
+
+
+def book_edition(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """The edition a collected book (intake/reader.py) brings, when its
+    range was read or typed: one `editions` row, whatever the shelf format
+    says, because editions and the shelf format are independent."""
+    if payload.get("format") != "collected":
+        return None
+    low, high = payload.get("collects_from"), payload.get("collects_to")
+    if low is None or high is None:
+        return None
+    kind = payload.get("edition_kind") or "trade"
+    title = (payload.get("detected_title") or "").strip() or kind.title()
+    return {"kind": kind.title(), "label": title[:80], "from": low, "to": high}
+
+
+def _book_row(payload: dict[str, Any]) -> dict[str, Any]:
+    """The row fields a comic book's own payload brings (intake/reader.py):
+    a single issue's number as `issues_owned`, and a collected edition's
+    default shelf format (its edition row is `book_edition`, which the
+    commit adds to the series itself). A payload with `issues_owned`
+    already (typed in the add bar) keeps it."""
+    if payload.get("format") == "collected":
+        kind = payload.get("edition_kind") or "trade"
+        return {
+            "shelf_format": EDITION_SHELF_FORMAT.get(
+                kind, ComicShelfFormat.TRADES
+            ).value
+        }
+    number = payload.get("issue_number")
+    if number is not None and not payload.get("issues_owned"):
+        return {"issues_owned": str(number)}
+    return {}
 
 
 def _shelf_row(item_type: T):
@@ -57,6 +98,10 @@ def _shelf_row(item_type: T):
         row = {key: chosen[key] for key in CHOSEN_FIELDS if key in chosen}
         payload = entry.get("payload") or {}
         row.update({k: v for k, v in payload.items() if k in ITEM_FIELDS})
+        if item_type is T.COMIC:
+            # What Details set on the entry wins over what the book implies.
+            for key, value in _book_row(payload).items():
+                row.setdefault(key, value)
         row["type"] = item_type
         row["owned_format"] = OwnedFormat.PHYSICAL.value
         return row

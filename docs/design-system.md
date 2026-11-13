@@ -59,6 +59,25 @@ tab shows only while the build's snapshot holds a public row of that type.
 | Dialog | `Sheet` | The one modal (CLAUDE.md). |
 | Destructive confirm | `ConfirmDelete` (`ShelfConfirm` for rows) | Asks in place, never in a browser dialog, and names the row and what goes with it, with the real counts (`lib/deleteDetail.js`, words in `content/shelfDelete.js`). A delete that cannot read the counts does not go ahead. |
 
+## A mark that is not match confidence
+
+Intake's `ConfidenceBadge` (Exact, Probable, Check, On shelf) says how far a
+*title match* is trusted, and only `matching.py`'s string distance decides
+it. Any other mark on an intake row is a different thing and does not reuse
+that badge, its words or its pill. The first is a comic book's issue number
+(comics item, 5a): a line of words under the number field, Read from the
+cover (in the run, not in this series' run), Typed, or Couldn't read the
+number. Rules for a mark like it:
+
+- The words carry it, colour only repeats them (`--ok`, `--text-3`,
+  `--badge`), and it is plain text under its field, not a pill.
+- A check decides it, from data the server holds (the series' run); the
+  model's own opinion never does. The model only says whether it saw a
+  number at all.
+- A number typed by hand reads Typed and stands, whatever the check says.
+- It never holds back a write by itself: the thing that holds Next is a
+  missing value, named in the words beside the button.
+
 ## Widths
 
 Two widths on shelf pages, set by `RootLayout`, never by a page's own CSS:
