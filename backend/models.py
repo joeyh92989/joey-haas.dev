@@ -1473,8 +1473,11 @@ class LlmUsage(Base):
 class ComicIssue(Base):
     """One issue of a followed series, as the public issue pages show it.
 
-    Written only by `comic_issues.upsert_issues`; the rows go with their
-    series. `description` is cleaned paragraphs, never HTML.
+    The Comic Vine fields are written only by `comic_issues.upsert_issues`;
+    the marks (`owned`, `read`, `skipped`) only by `comics.sync_marks`. A row
+    with a null `cv_id` is a stub: a book I hold or skipped that Comic Vine
+    has not synced. The rows go with their series. `description` is cleaned
+    paragraphs, never HTML.
     """
 
     __tablename__ = "comic_issues"
@@ -1485,7 +1488,7 @@ class ComicIssue(Base):
         primary_key=True,
     )
     number: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
-    cv_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    cv_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     name: Mapped[str | None] = mapped_column(Text, nullable=True)
     store_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     cover_date: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -1494,4 +1497,13 @@ class ComicIssue(Base):
     description: Mapped[list] = mapped_column(
         JSONB, nullable=False, server_default=text("'[]'::jsonb")
     )
-    fetched_on: Mapped[date] = mapped_column(Date, nullable=False)
+    fetched_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    owned: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    read: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    skipped: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
