@@ -188,6 +188,15 @@ export default function AdminComics() {
   const [publisher, setPublisher] = useState(null)
   const [query, setQuery] = useState('')
   const loadSeq = useRef(0)
+  // After a delete, focus moves to the grid rather than falling to the body
+  // (the Games page does the same).
+  const listRef = useRef(null)
+  const focusListNext = useRef(false)
+  useEffect(() => {
+    if (!focusListNext.current) return
+    focusListNext.current = false
+    listRef.current?.focus()
+  }, [items])
   const waiting = status === 'loading'
   const seconds = useElapsed(waiting)
 
@@ -261,11 +270,14 @@ export default function AdminComics() {
   /** Deletes one series (after its confirm) and says which one went. */
   async function removeSeries(row) {
     setNotice(null)
+    // Set first: the reload inside `write` is what the focus effect waits for.
+    focusListNext.current = true
     const done = await write(
       () => apiFetch(`/api/items/${row.item_id}`, { method: 'DELETE' }),
       DELETE_FAILED,
     )
     if (done) setNotice(deletedLine(row.title))
+    else focusListNext.current = false
   }
 
   /** Sends a series back through Add and goes to the sitting it landed in. */
@@ -573,47 +585,49 @@ export default function AdminComics() {
         <RunKey />
       </ResultBar>
 
-      {visibleRows.length === 0 ? (
-        <EmptyState title={copy.noMatch} />
-      ) : (
-        <PosterGrid
-          items={visibleRows.map((row) => ({
-            id: row.item_id,
-            type: 'comic',
-            title: row.title,
-            year: row.year,
-            creator: row.publisher,
-            cover_url: row.cover_url,
-            status: row.status,
-            rating: row.rating,
-            is_public: row.is_public,
-            row,
-          }))}
-          size="comfortable"
-          renderCard={(item) => (
-            <PosterCard
-              item={item}
-              to={
-                item.is_public
-                  ? itemPath(item.id)
-                  : `/admin/collection/${item.id}`
-              }
-              stacked
-              run={<ComicCardRun row={item.row} />}
-              statusLabels={copy.status}
-              actions={() => (
-                <ComicActions
-                  row={item.row}
-                  onFollow={setFollowing}
-                  onPublish={setPublic}
-                  onDelete={removeSeries}
-                  onRedo={redoSeries}
-                />
-              )}
-            />
-          )}
-        />
-      )}
+      <div className="collection-list" ref={listRef} tabIndex={-1}>
+        {visibleRows.length === 0 ? (
+          <EmptyState title={copy.noMatch} />
+        ) : (
+          <PosterGrid
+            items={visibleRows.map((row) => ({
+              id: row.item_id,
+              type: 'comic',
+              title: row.title,
+              year: row.year,
+              creator: row.publisher,
+              cover_url: row.cover_url,
+              status: row.status,
+              rating: row.rating,
+              is_public: row.is_public,
+              row,
+            }))}
+            size="comfortable"
+            renderCard={(item) => (
+              <PosterCard
+                item={item}
+                to={
+                  item.is_public
+                    ? itemPath(item.id)
+                    : `/admin/collection/${item.id}`
+                }
+                stacked
+                run={<ComicCardRun row={item.row} />}
+                statusLabels={copy.status}
+                actions={() => (
+                  <ComicActions
+                    row={item.row}
+                    onFollow={setFollowing}
+                    onPublish={setPublic}
+                    onDelete={removeSeries}
+                    onRedo={redoSeries}
+                  />
+                )}
+              />
+            )}
+          />
+        )}
+      </div>
     </section>
   )
 }

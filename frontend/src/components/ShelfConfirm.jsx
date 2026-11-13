@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { redoIntro } from '../content/shelfDelete.js'
 import {
   bulkDeleteDetail,
@@ -21,7 +22,9 @@ import ConfirmDelete from './ConfirmDelete.jsx'
  *   to three titles and the totals.
  * @param {string} [props.label]  The first button's words (default Delete / Redo).
  * @param {string} [props.className]
- * @param {() => (void | Promise<void>)} props.onConfirm
+ * @param {(armedIds: string[]) => (void | Promise<void>)} props.onConfirm
+ *   Receives the ids as they were when the confirm armed, which are the
+ *   ones its detail line named.
  */
 export default function ShelfConfirm({
   ids,
@@ -33,6 +36,7 @@ export default function ShelfConfirm({
   onConfirm,
 }) {
   const { state, arm } = useDeletePreview()
+  const armedIds = useRef(ids)
   const describe = many
     ? bulkDeleteDetail
     : (preview) => deleteDetail(preview, title)
@@ -48,8 +52,11 @@ export default function ShelfConfirm({
       intro={redo ? redoIntro(title) : undefined}
       detail={detail}
       ready={ready}
-      onArm={() => arm(ids)}
-      onConfirm={onConfirm}
+      onArm={() => {
+        armedIds.current = ids
+        arm(ids)
+      }}
+      onConfirm={() => onConfirm(armedIds.current)}
     />
   )
 }

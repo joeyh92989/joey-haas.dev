@@ -1376,6 +1376,45 @@ describe('AdminCollection delete, bulk delete and redo', () => {
     expect(screen.queryByText('2 selected')).not.toBeInTheDocument()
   })
 
+  it('disarms the bulk confirm when the selection changes, and deletes only what it named', async () => {
+    localStorage.setItem('shelf.admin.view', '"list"')
+    const items = [
+      ...ITEMS,
+      {
+        ...ITEMS[0],
+        id: 'c',
+        title: 'Metroid',
+        created_at: '2026-03-01T00:00:00Z',
+      },
+    ]
+    const mock = stubApi({
+      items,
+      onWrite: (url) =>
+        url.endsWith('/bulk-delete')
+          ? { ok: true, status: 200, json: async () => ({ deleted: 2 }) }
+          : null,
+    })
+    renderPage()
+
+    await userEvent.click(await screen.findByLabelText('Select Star Fox'))
+    await userEvent.click(screen.getByLabelText('Select Dune'))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete 2 items' }),
+    )
+    await screen.findByText(/go with 2 playthroughs/)
+
+    await userEvent.click(screen.getByLabelText('Select Metroid'))
+
+    // The armed question named two rows; with three selected it is asked again.
+    expect(
+      screen.queryByRole('button', { name: /for good/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Delete 3 items' }),
+    ).toBeInTheDocument()
+    expect(writeCalls(mock)).toHaveLength(0)
+  })
+
   it('keeps the selection when a bulk delete is refused', async () => {
     localStorage.setItem('shelf.admin.view', '"list"')
     stubApi({

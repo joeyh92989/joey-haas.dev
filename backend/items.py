@@ -1462,7 +1462,12 @@ def create_items_router(
         if sitting is None:
             sitting = IntakeSitting(area=IntakeArea.SHELF, kind=kind)
             session.add(sitting)
+        # Open on Check, where the entry waits, and move the sitting to the
+        # front so the next redo lands beside this one.
+        sitting.step = "check"
+        sitting.updated_at = func.now()
         chosen = None
+        candidates: list[dict] = []
         if item.external_source and item.external_id:
             chosen = {
                 "title": item.title,
@@ -1472,6 +1477,9 @@ def create_items_router(
                 "cover_url": item.cover_url,
                 "creator": item.creator,
             }
+            # Check builds its options from `candidates`, so the old match is
+            # listed there too, in the importer's candidate shape.
+            candidates = [{**chosen, "thumbnail_url": item.cover_url}]
         await session.flush()
         entry = IntakeEntry(
             sitting_id=sitting.id,
@@ -1483,6 +1491,7 @@ def create_items_router(
                 "reason": "Sent back to match again",
             },
             chosen=chosen,
+            candidates=candidates,
         )
         session.add(entry)
         await session.delete(item)

@@ -674,15 +674,18 @@ export default function AdminCollection() {
     await load()
   }
 
-  /** Deletes every selected row in one request, all or nothing. */
-  async function removeSelected() {
+  /**
+   * Deletes the rows the confirm named, in one request, all or nothing.
+   * `ids` are the ones armed, never whatever is selected by now.
+   */
+  async function removeSelected(ids) {
     setError(null)
     setNotice(null)
     try {
       const response = await apiFetch('/api/items/bulk-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: [...selected] }),
+        body: JSON.stringify({ ids }),
       })
       if (!response.ok) {
         setError(`${DELETE_MANY_FAILED} ${await errorMessage(response)}`)
@@ -695,7 +698,11 @@ export default function AdminCollection() {
       return
     }
     // The selection clears on success and stays on failure, like bulk set.
-    setSelected(new Set())
+    setSelected((current) => {
+      const next = new Set(current)
+      for (const id of ids) next.delete(id)
+      return next
+    })
     focusListNext.current = true
     await load()
   }
@@ -1107,6 +1114,7 @@ export default function AdminCollection() {
                         Apply
                       </button>
                       <ShelfConfirm
+                        key={[...selected].sort().join(',')}
                         many
                         ids={[...selected]}
                         title={`${selected.size} ${selected.size === 1 ? 'item' : 'items'}`}

@@ -365,7 +365,24 @@ describe('AdminComics delete, redo and the touch sheet', () => {
       : null
 
   it('deletes a series after a confirm that says what goes with it', async () => {
-    const mock = stubApi({ onWrite: preview })
+    // Once deleted, the list no longer holds the series, as the server's wouldn't.
+    let gone = false
+    const mock = stubApi({
+      onWrite: (url, options) => {
+        if (options.method === 'DELETE') gone = true
+        return preview(url)
+      },
+    })
+    const real = globalThis.fetch
+    vi.stubGlobal('fetch', (url, options = {}) =>
+      !options.method && gone && String(url).endsWith('/api/items')
+        ? Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ITEMS.filter((item) => item.id !== 's'),
+          })
+        : real(url, options),
+    )
     await renderPage()
     const group = screen.getByRole('group', { name: 'Actions for Saga' })
 
@@ -385,6 +402,10 @@ describe('AdminComics delete, redo and the touch sheet', () => {
     expect(url).toMatch(/\/api\/items\/s$/)
     expect(options.method).toBe('DELETE')
     expect(await screen.findByText('Deleted “Saga”.')).toBeInTheDocument()
+    // The button that had focus is gone: focus parks on the grid.
+    await waitFor(() =>
+      expect(document.querySelector('.collection-list')).toHaveFocus(),
+    )
   })
 
   it('says so and keeps the page when a delete fails', async () => {

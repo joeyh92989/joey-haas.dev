@@ -117,4 +117,21 @@ describe('ShelfConfirm', () => {
     )
     expect(onConfirm).toHaveBeenCalledTimes(1)
   })
+
+  it('confirms the ids it armed with, not ones passed later', async () => {
+    answer(PREVIEW)
+    const onConfirm = vi.fn()
+    const { rerender } = render(
+      <ShelfConfirm ids={['a']} title="Hades" onConfirm={onConfirm} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Hades' }))
+    await screen.findByText(/goes with/)
+    rerender(
+      <ShelfConfirm ids={['a', 'b']} title="Hades" onConfirm={onConfirm} />,
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete Hades for good' }),
+    )
+    expect(onConfirm).toHaveBeenCalledWith(['a'])
+  })
 })

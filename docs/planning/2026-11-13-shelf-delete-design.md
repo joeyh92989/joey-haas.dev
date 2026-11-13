@@ -171,8 +171,24 @@ unauthenticated → 401 instead of 404.
   photos and 43 entries go with it" (real counts) replaces "All its photos
   go with it".
 - **Delete and Redo wording**: the redo sitting has no label, so the banner
-  names it "A sitting".
+  names it "Untitled sitting" (see below).
 - **Edit page**: Delete only; Redo is on the card and List row as planned.
 - Task 5's "existing row delete gains the detail" and Task 6 are the same
   `ShelfConfirm`; the edit page's Delete button is now named "Delete
   {title}" for screen readers.
+
+### After the final review
+
+- **Bulk confirm deletes only what it named.** `ShelfConfirm` hands
+  `onConfirm` the ids it armed with, and the bulk bar's confirm is keyed on
+  the selection so a changed selection disarms it.
+- **Redo's entry lists the old match as a candidate** (`candidates=[chosen]`
+  plus `thumbnail_url`), so Check offers it; with no external match both are
+  empty. The sitting opens on `check`, and a reused one is stamped
+  `updated_at = now()` and moved to `check`. A mixed-shelf sitting (kind
+  null) is never reused: Redo creates a kind-specific one.
+- **Focus**: Comics delete parks focus on the grid (`.collection-list`); the
+  banner's Discard focuses Keep it when asking and returns to Discard.
+- **Words**: "Its 1 photo goes with it"; the banner's fallback name is
+  `sittingName()` ("Untitled sitting", replacing "A sitting" from the first
+  pass); Redo's confirm adds "Its rating, status and notes don't come back."

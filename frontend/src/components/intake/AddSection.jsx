@@ -13,6 +13,7 @@ import { useMediaQuery } from '../../lib/useMediaQuery.js'
 import AddBar from './AddBar.jsx'
 import AddDrawer from './AddDrawer.jsx'
 import AddResults from './AddResults.jsx'
+import { sittingName } from './UnfinishedList.jsx'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
@@ -25,6 +26,18 @@ const NO_ANSWER = 'The server did not answer; try again.'
 function UnfinishedLine({ sittings, area, onDiscard }) {
   const [asking, setAsking] = useState(false)
   const [busy, setBusy] = useState(false)
+  const keepRef = useRef(null)
+  const discardRef = useRef(null)
+  const refocus = useRef(false)
+  // Focus moves with the swap, as ConfirmDelete does: onto Keep it when it
+  // asks, and back onto Discard when kept.
+  useEffect(() => {
+    if (asking) keepRef.current?.focus()
+    else if (refocus.current) {
+      refocus.current = false
+      discardRef.current?.focus()
+    }
+  }, [asking])
   if (!sittings?.length) return null
   const [newest, ...rest] = sittings
   if (rest.length > 0) {
@@ -40,7 +53,7 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
     )
   }
   const counts = meterCounts(newest)
-  const label = newest.label ?? 'A sitting'
+  const label = sittingName(newest)
   if (asking) {
     return (
       <p className="intake-resume" role="group" aria-label={`Discard ${label}`}>
@@ -53,16 +66,21 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
             setBusy(true)
             const gone = await onDiscard(newest)
             setBusy(false)
-            if (!gone) setAsking(false)
+            if (!gone) refocus.current = true
+            setAsking(false)
           }}
         >
           Yes, discard
         </button>
         <button
           type="button"
+          ref={keepRef}
           className="btn ghost"
           disabled={busy}
-          onClick={() => setAsking(false)}
+          onClick={() => {
+            refocus.current = true
+            setAsking(false)
+          }}
         >
           Keep it
         </button>
@@ -84,6 +102,7 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
       </Link>
       <button
         type="button"
+        ref={discardRef}
         className="btn ghost"
         aria-label={`Discard ${label}`}
         onClick={() => setAsking(true)}

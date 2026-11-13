@@ -13,7 +13,7 @@ export const CHECK_FAILED =
 
 /** The redo confirm's first line: where the row goes. */
 export const redoIntro = (title) =>
-  `Redo “${title}”? It leaves the shelf and comes back as an entry in Add to match again.`
+  `Redo “${title}”? It leaves the shelf and comes back as an entry in Add to match again. Its rating, status and notes don’t come back.`
 
 /** The status line after a delete. */
 export const deletedLine = (title) => `Deleted “${title}”.`
@@ -47,5 +47,6 @@ export function discardAsk(name, sitting) {
     parts.push(`${entries} ${entries === 1 ? 'entry' : 'entries'}`)
   }
   if (parts.length === 0) return `Discard ${name}? It has no photos or entries.`
-  return `Discard ${name}? Its ${parts.join(' and ')} go with it.`
+  const goes = photos + entries === 1 ? 'goes' : 'go'
+  return `Discard ${name}? Its ${parts.join(' and ')} ${goes} with it.`
 }

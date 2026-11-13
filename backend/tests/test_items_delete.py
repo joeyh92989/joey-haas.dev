@@ -3,7 +3,7 @@ cascade that follows, and the intake entry a redo leaves behind."""
 
 import uuid
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 from fastapi import FastAPI
@@ -226,6 +226,10 @@ async def test_redo_leaves_one_entry_and_no_item(sessionmaker_for_test):
     assert entry.chosen["title"] == "Hades"
     assert entry.chosen["external_source"] == "igdb"
     assert entry.chosen["external_id"] == "113112"
+    # Check lists its options from candidates, so the old match is there.
+    assert [c["external_id"] for c in entry.candidates] == ["113112"]
+    assert entry.candidates[0]["title"] == "Hades"
+    assert entry.candidates[0]["thumbnail_url"] is None
     async with sessionmaker_for_test() as session:
         sitting = await session.get(IntakeSitting, entry.sitting_id)
     assert sitting.area is IntakeArea.SHELF and sitting.kind == "game"
@@ -239,6 +243,7 @@ async def test_redo_of_a_comic_uses_the_comic_kind(sessionmaker_for_test):
     [entry] = await _entries(sessionmaker_for_test)
     assert entry.kind == "comic"
     assert entry.chosen is None
+    assert entry.candidates == []
 
 
 async def test_redo_reuses_the_newest_open_sitting_of_the_same_kind(
@@ -262,3 +267,51 @@ async def test_redo_of_a_missing_item_is_404(sessionmaker_for_test):
         response = await client.post(f"/api/items/{uuid.uuid4()}/redo")
     assert response.status_code == 404
     assert await _count(sessionmaker_for_test, IntakeSitting) == 0
+
+
+async def test_redo_opens_its_sitting_on_check_and_moves_it_to_the_front(
+    sessionmaker_for_test,
+):
+    first = await _item(sessionmaker_for_test, "One")
+    async with client_for(sessionmaker_for_test) as client:
+        a = (await client.post(f"/api/items/{first}/redo")).json()
+    async with sessionmaker_for_test() as session:
+        sitting = await session.get(IntakeSitting, uuid.UUID(a["sitting_id"]))
+        assert sitting.step == "check"
+        # An older sitting of the same kind, left on Shoot.
+        older = IntakeSitting(
+            area=IntakeArea.SHELF,
+            kind="game",
+            step="shoot",
+            updated_at=datetime(2020, 1, 1, tzinfo=UTC),
+        )
+        session.add(older)
+        await session.commit()
+        older_id = older.id
+        sitting.updated_at = datetime(2019, 1, 1, tzinfo=UTC)
+        await session.commit()
+    # Now `older` is the newest game sitting; the redo reuses it, opens it on
+    # Check and stamps it as just touched.
+    second = await _item(sessionmaker_for_test, "Two")
+    async with client_for(sessionmaker_for_test) as client:
+        b = (await client.post(f"/api/items/{second}/redo")).json()
+    assert b["sitting_id"] == str(older_id)
+    async with sessionmaker_for_test() as session:
+        reused = await session.get(IntakeSitting, older_id)
+    assert reused.step == "check"
+    assert reused.updated_at.year >= 2026
+
+
+async def test_redo_does_not_reuse_a_mixed_shelf_sitting(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        mixed = IntakeSitting(area=IntakeArea.SHELF, kind=None)
+        session.add(mixed)
+        await session.commit()
+        mixed_id = mixed.id
+    game = await _item(sessionmaker_for_test, "Hades")
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.post(f"/api/items/{game}/redo")).json()
+    assert body["sitting_id"] != str(mixed_id)
+    async with sessionmaker_for_test() as session:
+        made = await session.get(IntakeSitting, uuid.UUID(body["sitting_id"]))
+    assert made.kind == "game"

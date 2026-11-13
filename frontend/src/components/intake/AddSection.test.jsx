@@ -410,9 +410,19 @@ describe('AddSection on the shelf', () => {
     expect(
       screen.getByText('Discard Box? It has no photos or entries.'),
     ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus()
     await user.click(screen.getByRole('button', { name: 'Keep it' }))
+    expect(screen.getByRole('button', { name: 'Discard Box' })).toHaveFocus()
     expect(screen.getByText(/is unfinished/)).toHaveTextContent(
       'Box is unfinished',
+    )
+  })
+
+  it('names a sitting with no label as Untitled sitting', async () => {
+    fakeIntakeApi({ sittings: [{ id: 's1', area: 'shelf', kind: 'game' }] })
+    renderAt()
+    expect(await screen.findByText(/is unfinished/)).toHaveTextContent(
+      'Untitled sitting is unfinished',
     )
   })
 

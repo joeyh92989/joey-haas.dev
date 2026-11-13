@@ -859,7 +859,7 @@ before pushing.
   is a 404 and deletes nothing); both are POST paths because `DELETE
   /{item_id}` would shadow a `/bulk`. `POST /api/items/{id}/redo` deletes
   the row and leaves one intake entry (state `check`, the item's match as
-  `chosen`) in the newest shelf sitting of that kind, or a new one; the
+  `chosen`) in the newest shelf sitting of that kind (never a mixed one), or a new one, opened on Check, with the old match listed as a candidate; the
   page then opens that sitting. None of the three is in `JOB_ROUTES`. A
   lone unfinished sitting's line on the shelf has Discard.
 - The photo importer sends images to the model and keeps nothing after the
