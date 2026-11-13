@@ -332,6 +332,15 @@ describe('Item', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
   })
 
+  it('keeps the same breadcrumb while loading and when it failed', async () => {
+    stubApi({ ok: false, status: 500, json: async () => ({}) })
+    renderPage()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(crumbs).getByRole('link', { name: 'My Shelf' })).toBeVisible()
+    await screen.findByText(/didn’t load/i)
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeVisible()
+  })
+
   it('shows the item after Try again', async () => {
     const answers = [
       { ok: false, status: 500, json: async () => ({}) },
@@ -709,6 +718,18 @@ describe('Item series page (AC5)', () => {
       screen.getByText('Comic · Image · 2012 – ongoing'),
     ).toBeInTheDocument()
     expect(document.querySelector('.item-status')).toHaveTextContent('Reading')
+  })
+
+  it('puts a series under Comics in the trail, as its issue pages do', async () => {
+    stubSaga()
+    await renderSaga()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(
+      within(crumbs).getByRole('link', { name: 'Comics' }),
+    ).toHaveAttribute('href', '/shelf/comics')
+    expect(crumbs.querySelector('[aria-current="page"]')).toHaveTextContent(
+      'Saga',
+    )
   })
 
   it('states the run with its pill, then what is next', async () => {

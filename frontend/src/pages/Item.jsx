@@ -3,7 +3,6 @@ import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
 import LoadState from '../components/LoadState.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
-import SpineHeader from '../components/SpineHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverWall from '../components/CoverWall.jsx'
 import RunBox from '../components/RunBox.jsx'
@@ -269,6 +268,22 @@ function Tiles({ item, detail }) {
       )}
     </dl>
   )
+}
+
+/**
+ * The trail above the title. A comic series sits under Comics, as its issue
+ * pages' trail does; a game sits directly under the shelf.
+ *
+ * @param {string|null} title - Null while nothing is known yet.
+ * @param {boolean} comic
+ */
+function itemTrail(title, comic) {
+  const trail = [{ label: spine.name, to: spine.path }]
+  if (comic) {
+    trail.push({ label: spine.tabs.comics.label, to: spine.tabs.comics.to })
+  }
+  if (title) trail.push({ label: title })
+  return trail
 }
 
 /** "Comic · Image · 2012 – ongoing": the series page's line above the title. */
@@ -670,13 +685,14 @@ function ItemPage({ id }) {
     )
   }
 
-  // Nothing to show yet, or the read failed: the shelf's header keeps the
-  // page's h1 either way.
+  // Nothing to show yet, or the read failed: the same breadcrumb as the
+  // loaded page, so nothing shifts when the item arrives.
   return (
-    <section>
-      <SpineHeader />
+    <article className="item-page">
+      <Breadcrumb trail={itemTrail(null, false)} />
+      <h1 className="visually-hidden">{spine.name}</h1>
       <LoadState loading={!failed} failed={failed} onRetry={retry} />
-    </section>
+    </article>
   )
 }
 
@@ -740,9 +756,7 @@ function ItemView({
 
   return (
     <article className="item-page">
-      <Breadcrumb
-        trail={[{ label: spine.name, to: spine.path }, { label: item.title }]}
-      />
+      <Breadcrumb trail={itemTrail(item.title, isComic)} />
 
       <header className="item-head">
         <div className="item-cover">
