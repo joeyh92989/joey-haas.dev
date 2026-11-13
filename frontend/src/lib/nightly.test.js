@@ -147,12 +147,66 @@ const intake = (run = { at: hoursAgo(1), state: 'ok', ok: true, note: null }) =>
   run
 const intakeRow = (run) =>
   byKey(nightlyJobs(summary(), null, NOW, null, null, run)).intake
+const comicsRun = (run = { at: hoursAgo(1), state: 'ok', ok: true }) => run
+const comicsRow = (run) =>
+  byKey(nightlyJobs(summary(), null, NOW, null, null, null, run))[
+    'comic-issues'
+  ]
 const closetRow = (key, run) =>
   byKey(nightlyJobs(summary(), null, NOW, null, closet(run)))[key]
 const byKey = (jobs) => Object.fromEntries(jobs.map((job) => [job.key, job]))
 
+describe('the Comic issues row', () => {
+  it('reads an ok run as synced', () => {
+    const row = comicsRow(comicsRun())
+    expect(row.state).toBe('ok')
+    expect(row.summary).toBe('Every series’s issues synced')
+    expect(row.runNow).toBe('/admin/pull-list')
+  })
+
+  it('says the budget ran out on a partial run', () => {
+    const row = comicsRow({ at: hoursAgo(1), state: 'partial', ok: true })
+    expect(row.state).toBe('ok')
+    expect(row.summary).toBe('Budget spent; the rest sync tomorrow')
+  })
+
+  it("prefers a run's own note on a partial run", () => {
+    const row = comicsRow({
+      at: hoursAgo(1),
+      state: 'partial',
+      ok: true,
+      note: 'Budget spent; 3 series wait',
+    })
+    expect(row.summary).toBe('Budget spent; 3 series wait')
+  })
+
+  it('reads a failed run as failed, with its note', () => {
+    const row = comicsRow({
+      at: hoursAgo(1),
+      state: 'failed',
+      ok: false,
+      note: '1 of 4 series failed: HTTP 500',
+    })
+    expect(row.state).toBe('failed')
+    expect(row.summary).toBe('Failed: 1 of 4 series failed: HTTP 500')
+  })
+
+  it('reads no run as No run recorded', () => {
+    const row = comicsRow(null)
+    expect(row.state).toBe('unknown')
+    expect(row.summary).toBe('No run recorded')
+  })
+
+  it('goes stale after 36 hours', () => {
+    const at = (hours) =>
+      comicsRow({ at: hoursAgo(hours), state: 'ok', ok: true }).state
+    expect(at(STALE_HOURS - 1)).toBe('ok')
+    expect(at(STALE_HOURS + 1)).toBe('stale')
+  })
+})
+
 describe('nightlyJobs', () => {
-  it('lists the ten jobs, all ok', () => {
+  it('lists the eleven jobs, all ok', () => {
     const jobs = nightlyJobs(
       summary(),
       hoursAgo(1),
@@ -160,6 +214,7 @@ describe('nightlyJobs', () => {
       spots(),
       closet(),
       intake(),
+      comicsRun(),
     )
     expect(jobs.map((job) => job.key)).toEqual([
       'catalog',
@@ -171,6 +226,7 @@ describe('nightlyJobs', () => {
       'closet-plans',
       'closet-opinions',
       'intake',
+      'comic-issues',
       'snapshot',
     ])
     expect(jobs.every((job) => job.state === 'ok')).toBe(true)
@@ -184,6 +240,7 @@ describe('nightlyJobs', () => {
       '/admin/closet/today',
       '/admin/closet/review',
       '/admin/collection/add',
+      '/admin/pull-list',
       null,
     ])
   })

@@ -143,7 +143,7 @@ function runRow(run, job, age) {
 /**
  * One row per nightly job: the catalogue refresh, Radar, Discover, the
  * weekend forecast, the spot finder, the closet's tags, outfit plans and
- * Sunday opinions, intake's photo reading,
+ * Sunday opinions, intake's photo reading, the comic issue sync,
  * and the public snapshot. A job with
  * no time is "unknown" rather than stale, except the catalogue, whose
  * absence is the clearest sign the schedule has stopped.
@@ -164,6 +164,9 @@ function runRow(run, job, age) {
  * @param {{at?: string, state?: string, ok?: boolean, note?: string}|null} [intake]
  *   Intake's nightly run from `GET /api/intake/status`; null leaves it
  *   unknown.
+ * @param {{at?: string, state?: string, ok?: boolean, note?: string}|null} [comics]
+ *   The comic issue sync's last run from `GET /api/comics/status`; null
+ *   leaves it unknown.
  * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null, runWords?: string, stateWords?: string, stopped?: boolean}>}
  *   `stopped` is on the catalogue row only: the schedule may have stopped,
  *   which a failure on its last night would otherwise hide.
@@ -175,6 +178,7 @@ export function nightlyJobs(
   spots = null,
   closet = null,
   intake = null,
+  comics = null,
 ) {
   const age = (at, hours) => {
     if (at === null) return 'unknown'
@@ -299,6 +303,18 @@ export function nightlyJobs(
           waiting: "Today's budget spent; photos wait",
         },
         failed: ['failed', 'stopped'],
+      },
+      age,
+    ),
+    runRow(
+      comics,
+      {
+        key: 'comic-issues',
+        label: 'Comic issues',
+        runNow: '/admin/pull-list',
+        hours: STALE_HOURS,
+        ok: 'Every series’s issues synced',
+        quiet: { partial: 'Budget spent; the rest sync tomorrow' },
       },
       age,
     ),
