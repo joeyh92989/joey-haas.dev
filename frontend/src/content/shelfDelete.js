@@ -27,5 +27,25 @@ export const DELETE_FAILED = 'Couldn’t delete that item.'
 export const DELETE_MANY_FAILED = 'Couldn’t delete those items.'
 export const REDO_FAILED = 'Couldn’t send that back to Add.'
 
-/** The unfinished-sitting banner's discard confirm (UnfinishedList's words). */
-export const discardAsk = (name) => `Discard ${name}?`
+/**
+ * The discard confirm's question, for the Add page's list and the Shelf
+ * banner: the sitting's name and what goes with it, from its real counts.
+ *
+ * @param {string} name  The sitting's name.
+ * @param {{photos?: number, entries?: Record<string, number>}} sitting
+ *   As `GET /api/intake/sittings` lists it.
+ */
+export function discardAsk(name, sitting) {
+  const photos = sitting.photos ?? 0
+  const entries = Object.values(sitting.entries ?? {}).reduce(
+    (sum, count) => sum + count,
+    0,
+  )
+  const parts = []
+  if (photos > 0) parts.push(`${photos} ${photos === 1 ? 'photo' : 'photos'}`)
+  if (entries > 0) {
+    parts.push(`${entries} ${entries === 1 ? 'entry' : 'entries'}`)
+  }
+  if (parts.length === 0) return `Discard ${name}? It has no photos or entries.`
+  return `Discard ${name}? Its ${parts.join(' and ')} go with it.`
+}

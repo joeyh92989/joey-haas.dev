@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { discardAsk } from '../../content/shelfDelete.js'
 import { meterCounts, startedAt } from '../../lib/intake.js'
 
 /** A sitting's name on the page; one left unnamed still has one. */
@@ -79,7 +80,7 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
             <Meter name={name} counts={counts} />
             {asking === sitting.id ? (
               <div className="intake-sitting-actions" role="group">
-                <span>Discard {name}? All its photos go with it.</span>
+                <span>{discardAsk(name, sitting)}</span>
                 <button
                   type="button"
                   className="btn sm"
