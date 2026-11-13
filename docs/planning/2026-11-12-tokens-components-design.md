@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: chore
 mode: auto
 ---
