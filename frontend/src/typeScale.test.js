@@ -56,8 +56,9 @@ describe('type scale', () => {
     const loose = []
     for (const { text, selector } of sized) {
       const tokens = [...text.matchAll(/var\(--fs-(\d+)\)/g)].map((m) => +m[1])
-      // A bare token (optionally as the size in a shorthand): never in calc().
-      const bare = tokens.length > 0 && !/calc\(/.test(text)
+      // A bare token (optionally as the size in a shorthand): never inside
+      // calc(), max(), min() or clamp(), which could carry a smaller size.
+      const bare = tokens.length > 0 && !/(calc|max|min|clamp)\(/.test(text)
       if (bare) {
         for (const step of tokens) expect(STEPS, text).toContain(step)
         continue

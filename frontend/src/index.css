@@ -6702,9 +6702,10 @@ section > .cover-key {
   gap: 0.35rem;
 }
 
-/* The Wrap up sheet and the generic Sheet (components/Sheet.jsx): a native
-   dialog, centred on desktop and anchored to the bottom on a phone (Tonight
-   continue spec). Backdrop in --overlay as the other sheets. */
+/* Sheet (components/Sheet.jsx), the shell the Wrap up sheet and the other
+   dialogs use: a native dialog, centred on desktop and anchored to the
+   bottom on a phone (Tonight continue spec). Backdrop in --overlay as the
+   other sheets. */
 .sheet {
   background: var(--surface);
   border: 1px solid var(--line);
