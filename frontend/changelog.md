@@ -18,6 +18,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 - Small layout fixes: long titles on the [intake demo](/shelf/intake) shelf get short spine labels instead of being cut off, the [Comics](/shelf/comics) numbers sit two by two on a phone, [How it works](/shelf/how) lists its nine stops three by three, and the footer stays at the bottom of short pages.
 - Comics now read as comics on their pages: Reading, Reads and Read on instead of game words.
 - The shelf copy no longer claims twelve stores, and the What it does cards now name the stop they link to.
+- Small labels and captions are now at least 12px, so nothing on the site is set in tiny type. A few other sizes moved by a pixel to line up on one scale.
 
 ## 2026-11-11
 
