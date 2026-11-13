@@ -123,10 +123,28 @@ async def test_a_number_no_longer_held_is_cleared(sessionmaker_for_test):
         await sync_marks(session, item)
         item.issues_owned = "1"
         item.read_to = None
-        await sync_marks(session, item)
+        # A write that set read_to derives every read from it (5c).
+        await sync_marks(session, item, from_read_to=True)
         await session.commit()
         # #2 was a stub with nothing left to mark, so its row is gone.
         assert await _rows(session, item) == {1: (True, False, False, True)}
+
+
+@pytest.mark.asyncio
+async def test_a_plain_sync_keeps_the_reads_it_finds(sessionmaker_for_test):
+    async with sessionmaker_for_test() as session:
+        item = await _series(session, issues_owned="1–2", read_to=2)
+        await sync_marks(session, item)
+        item.read_to = None  # stale: the marks are the record now
+        item.issues_owned = "1–3"
+        await sync_marks(session, item)
+        await session.commit()
+        # #1 and #2 stay read; #3, newly held, reads as read_to says (unread).
+        assert await _rows(session, item) == {
+            1: (True, True, False, True),
+            2: (True, True, False, True),
+            3: (True, False, False, True),
+        }
 
 
 @pytest.mark.asyncio

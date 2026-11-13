@@ -18,7 +18,7 @@ import uuid
 from collections.abc import AsyncIterator
 from dataclasses import asdict
 from datetime import UTC, date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
@@ -29,6 +29,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from comic_issues import sync_series
 from comics import (
     MAX_ISSUE,
+    MARK_STATES,
+    MarkRefused,
     MarksResult,
     RangeError,
     comic_snapshot,
@@ -38,6 +40,7 @@ from comics import (
     mark_mismatches,
     owned_set,
     parse_ranges,
+    plan_mark,
     pull_weeks,
     row_run,
     series_from_row,
@@ -103,6 +106,10 @@ async def got_issues(
         setattr(item, field, value)
     await sync_marks(session, item)
     return len(owned - before)
+
+
+class MarkBody(BaseModel):
+    state: Literal[*MARK_STATES]
 
 
 def _state(item: Item) -> dict:
@@ -462,6 +469,51 @@ def create_comics_router(
         await session.commit()
         await session.refresh(item)
         return _state(item)
+
+    @router.post("/{item_id}/issues/{number}/mark")
+    async def mark(
+        item_id: uuid.UUID,
+        number: IssueNumber,
+        body: MarkBody,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Sets one book to missing, owned or read: the one write behind every
+        tap on a cover (the series page, the issue page, the admin page). The
+        marks on the issue rows are the record; the range text and `read_to`
+        are kept in step from them. Undo posts the previous state back."""
+        item = await _comic(session, item_id)
+        reads = set(
+            await session.scalars(
+                select(ComicIssue.number).where(
+                    ComicIssue.item_id == item.id, ComicIssue.read.is_(True)
+                )
+            )
+        )
+        try:
+            change = plan_mark(
+                item.issues_owned,
+                item.issues_skipped,
+                item.editions,
+                reads,
+                number,
+                body.state,
+            )
+        except MarkRefused as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        body_fields: dict = {
+            "issues_owned": change.issues_owned,
+            "issues_skipped": change.issues_skipped,
+            "read_to": change.read_to,
+        }
+        if body.state != "missing" and item.owned_format == OwnedFormat.NONE:
+            body_fields.update(owned_format=OwnedFormat.PHYSICAL)
+            await apply_status(session, item, ItemStatus.BACKLOG, _today())
+        for field, value in _copy_fields(body_fields, item).items():
+            setattr(item, field, value)
+        await sync_marks(session, item, reads=set(change.reads))
+        await session.commit()
+        await session.refresh(item)
+        return _state(item) | {"number": number, "state": body.state}
 
     @router.post("/marks/backfill")
     async def backfill_marks(

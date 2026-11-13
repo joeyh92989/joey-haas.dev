@@ -405,9 +405,22 @@ class MarksResult:
         )
 
 
-async def sync_marks(session: AsyncSession, item: Item) -> MarksResult:
+async def sync_marks(
+    session: AsyncSession,
+    item: Item,
+    *,
+    from_read_to: bool = False,
+    reads: set[int] | None = None,
+) -> MarksResult:
     """Sets the marks on a comic's issue rows from its ranges, editions and
     read_to: the one writer of `comic_issues.owned/read/skipped`.
+
+    From 5c the marks are the record of what is read, one book at a time, so
+    a write that does not say otherwise keeps every `read` mark of a row that
+    stays owned (a newly held number reads as `read_to` says). Say otherwise
+    with `from_read_to=True` (a write that set `read_to`: every owned issue up
+    to it is read, those above are not) or `reads` (exactly these numbers are
+    read, when owned: the mark route).
 
     Inserts a stub (null `cv_id`, which `comic_issues.sync_series` fills when
     the issue arrives) for a held or skipped number with no row, and clears the
@@ -435,6 +448,11 @@ async def sync_marks(session: AsyncSession, item: Item) -> MarksResult:
     # Stubs go in with ON CONFLICT DO NOTHING: `sync_series` may have written
     # the same number since (a Comic Vine row wins), and the rows are read
     # back below, after the insert, so that row gets its marks too.
+    if reads is not None:
+        plan = {
+            n: Marks(m.owned, m.owned and n in reads, m.skipped)
+            for n, m in plan.items()
+        }
     added = 0
     if plan:
         inserted = await session.execute(
@@ -470,6 +488,10 @@ async def sync_marks(session: AsyncSession, item: Item) -> MarksResult:
             removed += 1
             continue
         want = want or Marks()
+        if reads is not None:
+            want = Marks(want.owned, want.owned and row.number in reads, want.skipped)
+        elif not from_read_to and want.owned and row.owned:
+            want = Marks(True, row.read, False)
         if (row.owned, row.read, row.skipped) != (want.owned, want.read, want.skipped):
             row.owned, row.read, row.skipped = want.owned, want.read, want.skipped
             changed += 1
@@ -491,13 +513,90 @@ def mark_mismatches(
     series = series_from_row(
         0, "", None, issues_owned, issues_skipped, editions, read_to, None, True, False
     )
-    expected = {
-        n: (True, read_to is not None and n <= read_to, False) for n in series.owned
+    # Read is per book from 5c, so only ownership and skips are compared,
+    # and a read mark on a book that is not owned (a stray) is a mismatch.
+    expected = {n: (True, False, False) for n in series.owned}
+    expected.update({n: (False, True, False) for n in series.skipped - series.owned})
+    stored = {
+        n: (o, s, r and not o) for n, o, r, s in rows if o or r or s
     }
-    expected.update({n: (False, False, True) for n in series.skipped - series.owned})
-    stored = {n: (o, r, s) for n, o, r, s in rows if o or r or s}
     return sorted(
         n for n in expected.keys() | stored.keys() if expected.get(n) != stored.get(n)
+    )
+
+
+# --- One book's mark (5c) ----------------------------------------------------
+
+MARK_STATES = ("missing", "owned", "read")
+
+
+class MarkRefused(Exception):
+    """A tap the data can't take (the route answers 409)."""
+
+
+@dataclass(frozen=True)
+class MarkChange:
+    issues_owned: str | None
+    issues_skipped: str | None
+    reads: frozenset[int]
+    read_to: int | None
+
+
+def read_to_of(owned: Iterable[int], reads: Iterable[int]) -> int | None:
+    """The highest owned number with every owned issue up to it read, the
+    meaning `read_to` always had for Read next and the run lanes; None when
+    the first owned issue is unread."""
+    read = set(reads)
+    marker = None
+    for n in sorted(owned):
+        if n not in read:
+            break
+        marker = n
+    return marker
+
+
+def plan_mark(
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+    reads: Iterable[int],
+    number: int,
+    state: str,
+) -> MarkChange:
+    """What one tap changes: the range text, the read set and the `read_to`
+    kept in step from them. Owned adds the single (and clears a skip); read
+    is owned plus read; missing removes the single and its read mark. A
+    number held only in an edition can't go missing from a cover."""
+    if state not in MARK_STATES:
+        raise MarkRefused(f"State is one of {', '.join(MARK_STATES)}")
+    singles = expand(parse_ranges(issues_owned))
+    skipped = expand(parse_ranges(issues_skipped))
+    in_edition = number in edition_issues(editions)
+    read_set = set(reads)
+    if state == "missing":
+        if in_edition and number not in singles:
+            holder = next(
+                e for e in editions or [] if e["from"] <= number <= e["to"]
+            )
+            where = holder.get("label") or holder.get("kind") or "an edition"
+            raise MarkRefused(f"In {where}. Edit editions on the comic's page.")
+        singles.discard(number)
+        read_set.discard(number)
+    else:
+        if not in_edition:
+            singles.add(number)
+        skipped.discard(number)
+        if state == "read":
+            read_set.add(number)
+        else:
+            read_set.discard(number)
+    held = singles | edition_issues(editions)
+    read_set &= held
+    return MarkChange(
+        issues_owned=format_ranges(singles) or None,
+        issues_skipped=format_ranges(skipped) or None,
+        reads=frozenset(read_set),
+        read_to=read_to_of(held, read_set),
     )
 
 
