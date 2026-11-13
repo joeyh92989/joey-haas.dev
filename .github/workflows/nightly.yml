@@ -298,8 +298,11 @@ jobs:
           }
           changed=""
           for name in items stats next comics spots; do
+            # stats.json is the games-only read, as fetch-snapshot saves it.
+            path="$name"
+            [ "$name" = stats ] && path="stats?type=game"
             live_status=$(curl -sS -m 60 -o "live-$name.raw" -w '%{http_code}' \
-              "$API_URL/api/public/$name") || live_status=000
+              "$API_URL/api/public/$path") || live_status=000
             if [ "$live_status" != 200 ]; then
               fail "the API answered $live_status"
               continue

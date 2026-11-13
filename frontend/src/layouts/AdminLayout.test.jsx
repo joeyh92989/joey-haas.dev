@@ -31,6 +31,7 @@ function renderAt(path = '/admin') {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Page />} />
           <Route path="collection" element={<Page />} />
+          <Route path="shelf/games" element={<Page />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -90,7 +91,7 @@ describe('AdminLayout session states', () => {
         'link',
         { name: 'Shelf' },
       ),
-    ).toHaveAttribute('href', '/admin/collection')
+    ).toHaveAttribute('href', '/admin/shelf/games')
   })
 
   it('gates every admin URL, not just the landing', async () => {
@@ -163,19 +164,20 @@ describe('AdminLayout session states', () => {
 })
 
 describe('AdminLayout rows', () => {
-  it('counts owned rows beside Collection, leaving out the want list', async () => {
+  it('counts owned games beside Games, leaving out the want list and comics', async () => {
     stubApi({
       items: [
-        { id: 1, owned_format: 'cartridge' },
-        { id: 2, owned_format: null },
-        { id: 3, owned_format: 'none' },
+        { id: 1, type: 'game', owned_format: 'cartridge' },
+        { id: 2, type: 'game', owned_format: null },
+        { id: 3, type: 'game', owned_format: 'none' },
+        { id: 4, type: 'comic', owned_format: 'physical' },
       ],
     })
-    renderAt('/admin/collection')
+    renderAt('/admin/shelf/games')
     expect(
-      await screen.findByRole('link', { name: 'Collection, 2 owned' }),
+      await screen.findByRole('link', { name: 'Games, 2 owned' }),
     ).toBeInTheDocument()
-    expect(screen.getByTestId('page')).toHaveTextContent('3 rows')
+    expect(screen.getByTestId('page')).toHaveTextContent('4 rows')
   })
 
   it('keeps the page up when the rows cannot be loaded', async () => {

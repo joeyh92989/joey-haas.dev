@@ -15,6 +15,30 @@ describe('ResultBar', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('names the rows when given a noun', () => {
+    const { rerender } = render(
+      <ResultBar
+        shown={107}
+        total={107}
+        filtered={false}
+        noun="game"
+        onClear={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('107 games')).toBeInTheDocument()
+    rerender(
+      <ResultBar
+        shown={1}
+        total={12}
+        filtered
+        noun="series"
+        plural="series"
+        onClear={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('1 of 12 series')).toBeInTheDocument()
+  })
+
   it('shows N of M and Clear filters while filtered', async () => {
     const onClear = vi.fn()
     render(<ResultBar shown={59} total={119} filtered onClear={onClear} />)

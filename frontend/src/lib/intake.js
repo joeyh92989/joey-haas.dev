@@ -77,9 +77,14 @@ export function addPath(area) {
   return area === 'closet' ? '/admin/closet/add' : '/admin/collection/add'
 }
 
-/** The page an area's committed things show on. */
-export function shelfPath(area) {
-  return area === 'closet' ? '/admin/closet' : '/admin/collection'
+/**
+ * The page an area's committed things show on. A comic sitting's rows are
+ * comics, which the Games page doesn't list; any other (or a mixed) sitting
+ * lands on Games.
+ */
+export function shelfPath(area, kind = null) {
+  if (area === 'closet') return '/admin/closet'
+  return kind === 'comic' ? '/admin/shelf/comics' : '/admin/shelf/games'
 }
 
 /**

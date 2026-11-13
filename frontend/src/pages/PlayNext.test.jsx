@@ -410,7 +410,7 @@ describe('PlayNext', () => {
 
     expect(screen.getByRole('link', { name: /rate a few/i })).toHaveAttribute(
       'href',
-      '/admin/collection',
+      '/admin/shelf/games',
     )
   })
 

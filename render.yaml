@@ -33,6 +33,9 @@ services:
         source: /shelf
         destination: /shelf/index.html
       - type: rewrite
+        source: /shelf/games
+        destination: /shelf/games/index.html
+      - type: rewrite
         source: /shelf/next
         destination: /shelf/next/index.html
       - type: rewrite

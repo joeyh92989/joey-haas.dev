@@ -554,7 +554,7 @@ export default function PlayNext() {
       {result && result.profile_size < PROFILE_NUDGE_BELOW && (
         <p className="shelf-nudge">
           These picks have little to go on yet.{' '}
-          <Link to="/admin/collection">Rate a few finished games</Link>, and
+          <Link to="/admin/shelf/games">Rate a few finished games</Link>, and
           they’ll get sharper.
         </p>
       )}

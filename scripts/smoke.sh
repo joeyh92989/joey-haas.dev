@@ -127,6 +127,8 @@ about_title="$(curl -s -m 90 "$SITE_URL/about" | grep -o '<title>[^<]*</title>')
 check_equals "GET /about has its own prerendered title" "$about_title" "<title>About · Joey Haas</title>"
 next_title="$(curl -s -m 90 "$SITE_URL/shelf/next" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /shelf/next has its own prerendered title" "$next_title" "<title>What’s next · My Shelf</title>"
+games_title="$(curl -s -m 90 "$SITE_URL/shelf/games" | grep -o '<title>[^<]*</title>')"
+check_equals "GET /shelf/games has its own prerendered title" "$games_title" "<title>Games · My Shelf</title>"
 stats_title="$(curl -s -m 90 "$SITE_URL/stats" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /stats has its own prerendered title" "$stats_title" "<title>Stats · Joey Haas</title>"
 daily_title="$(curl -s -m 90 "$SITE_URL/daily" | grep -o '<title>[^<]*</title>')"
@@ -260,6 +262,10 @@ check_equals "GET /api/public/items unauthenticated" \
 
 check_equals "GET /api/public/stats unauthenticated" \
   "$(http_status "$API_URL/api/public/stats")" "200"
+
+# The Games page's figures: the same body, games only.
+check_equals "GET /api/public/stats?type=game unauthenticated" \
+  "$(http_status "$API_URL/api/public/stats?type=game")" "200"
 
 # Asserts an absence, which is the whole reason the public router hand-writes
 # its response model instead of serializing the ORM object. A private column

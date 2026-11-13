@@ -56,17 +56,19 @@ snapshot files and never call the API.
 | `/til/:slug` | TIL note | One note; slug is the markdown filename |
 | `/travel` | Travel | Trips compiled from `frontend/trips/`, newest first; in the nav, and linked from the footer, only while a trip is published |
 | `/travel/:slug` | Trip | One trip: facts, the drawn route map, place chips, the days with their photos, and a lightbox. Slug is the markdown filename |
-| `/shelf` | My Shelf | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
+| `/shelf/games` | Games | Public: the games I own with three figures, labelled filters (status, platform) and sort, a grid, then an Overview (favourites, status, ratings, finishes, on cartridge) from `/api/public/stats?type=game`; paints the build-time snapshot, then the live API. Comics are never on it |
+| `/shelf` | Redirect | Client-side to `/shelf/games`, keeping `?q=` (the site search's no-match link); its prerendered head is canonical on Games |
 | `/shelf/next` | What's next | Public: the game I'm playing (a Continue card, with Wrap up and Log tonight when signed in), tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
-| `/shelf/comics` | Comics | Public: every public comic series as a run (owned, missing, not out yet), with chip filters, sort, a Covers view and what is out this week; reads `/api/public/comics` after painting `/snapshot/comics.json` |
+| `/shelf/comics` | Comics | Public: every public comic series as a stacked cover with its run as lanes (owned, missing, not out yet, read), four figures, labelled filters (show, publisher), sort and an Overview of charts; what is out this week lives on What's next. Reads `/api/public/comics` after painting `/snapshot/comics.json` |
 | `/shelf/how` | Tour | How the shelf is built |
 | `/shelf/year`, `/shelf/year/:year` | Year in review | The current year, or a given one, read live from `/api/public/diary` |
 | `/shelf/journal/:month` | Month in review | One month of the play journal |
 | `/shelf/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf. A comic series shows what's next, its run as lanes over a box of books, issues and bundles, and its collected editions instead |
-| `/spine*`, `/collection*` | Redirect | The pre-rename URLs. Each redirects client-side, in one hop, to its `/shelf` page (`/spine/next` → `/shelf/next`, `/spine/:id` and `/collection/:id` → `/shelf/:id/`, and so on). The build also writes link-preview heads at `/spine`, `/spine/next`, `/spine/how` and `/spine/<id>/` (canonical on `/shelf`), and the finishes feed at both `/shelf/feed.xml` and `/spine/feed.xml`, with item GUIDs kept on `/spine` so readers see nothing new |
+| `/spine*`, `/collection*` | Redirect | The pre-rename URLs. Each redirects client-side, in one hop, to its `/shelf` page (`/spine` and `/collection` → `/shelf/games`, `/spine/next` → `/shelf/next`, `/spine/:id` and `/collection/:id` → `/shelf/:id/`, and so on). The build also writes link-preview heads at `/spine`, `/spine/next`, `/spine/how` and `/spine/<id>/` (canonical on `/shelf`), and the finishes feed at both `/shelf/feed.xml` and `/spine/feed.xml`, with item GUIDs kept on `/spine` so readers see nothing new |
 | `/admin` | Dashboard | Google sign-in gate, reached from the footer's Sign in link; once signed in, the API and nightly status, headline counts, the nightly jobs, quick actions and recent changes |
 | `/admin/analytics` | Analytics | Page views, visitors, views per day, pages, referrers and devices over 7, 30, 90 days or all time, from the first-party beacon (see [Analytics](#analytics)) |
-| `/admin/collection` | Shelf | The same shelf with inline rate, favourite, status and publish, a list view, bulk set, and metadata refresh |
+| `/admin/shelf/games` | Games | The Games page's twin: inline rate, favourite, status and publish, a list view, bulk set, publish and hide all (games only), and game metadata refresh. `/admin/collection` redirects here |
+| `/admin/shelf/comics` | Comics | The Comics page's twin: each series with its run, Follow, Public, a link to its cover wall and Edit, publish and hide all (comics only), and comic metadata refresh |
 | `/admin/collection/:id` | Edit item | Every field, plus re-linking to a different IGDB/TMDB/Comic Vine match |
 | `/admin/collection/add`, `/admin/closet/add` | Add | Intake: a tile per kind the API registers for the area, and the area's unfinished sittings (see [Intake](#intake)) |
 | `/admin/collection/add/:id`, `/admin/closet/add/:id` | Sitting | One sitting: Shoot, Check, Details (shelf kinds) and Done |
@@ -269,8 +271,8 @@ admin pages have no search.
 - **Ranking** (`frontend/src/lib/searchIndex.js`): title prefix 3, word
   prefix 2, substring 1, secondary text 0.5; at most five rows a group.
   Matching folds case and accents (`lib/normalize.js`).
-- No match offers "Search the shelf", which opens `/shelf?q=<query>` with
-  the shelf's own search filled in.
+- No match offers "Search the shelf", which opens `/shelf?q=<query>` (a
+  client redirect to `/shelf/games?q=<query>`) with the Games search filled in.
 
 ## Daily puzzle
 
@@ -776,9 +778,9 @@ running, set `E2E_BASE_URL` instead of building:
 Known problems are tracked, not hidden:
 
 - A genuine site defect is marked `test.fail()` with a `// known: ... backlog
-  issue` comment. The one today is `/shelf/comics` losing its `h1` when the
-  API is down (#181); it is an expected failure in local runs only, since a
-  live site has an API. When the defect is fixed the test starts passing, which
+  issue` comment. There is none today (the `/shelf/comics` `h1` defect, #181,
+  went with the shelf split: the `h1` now comes from `PageHeader` in every
+  state). When a marked defect is fixed the test starts passing, which
   Playwright reports as a failure, so the marker has to be removed.
 - An excused accessibility violation is an entry in
   `frontend/e2e/known-a11y.js` (`{ route, ruleId, issue }`, `issue` being
@@ -912,7 +914,7 @@ does not list installs unpinned.
 
 ## Collection snapshot
 
-`/shelf`, `/shelf/next` and `/stats` first paint a snapshot of the public API, then
+`/shelf/games`, `/shelf/comics`, `/shelf/next` and `/stats` first paint a snapshot of the public API, then
 refresh it from the live API, so a first-time visitor doesn't wait for the free-tier
 backend to wake. Home and Projects read the same file for their cover
 strips.
@@ -926,6 +928,10 @@ strips.
   deploy only when they differ. It never pushes, and the snapshot is never
   committed. Before it compares, it refreshes the data the snapshot is made
   of (see [Nightly job](#nightly-job)).
+- **`stats.json` is the Games page's figures**: `/api/public/stats?type=game`, so
+  the snapshot and the live read agree (`LIVE_PATHS` in
+  `frontend/src/lib/useSnapshotThenLive.js`). A request with no `type` still
+  counts every type.
 - **`comics.json` and `spots.json` are optional too**, the same way:
   `/shelf/comics` and `/denver` paint them when the build wrote them, and
   the nightly compares them with a failure there only a warning.

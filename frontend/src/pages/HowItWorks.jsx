@@ -224,7 +224,7 @@ export default function HowItWorks() {
 
   return (
     <section className="tour-page">
-      <SpineHeader asLink />
+      <SpineHeader />
       <h1 className="tour-title">{copy.title}</h1>
       <p className="tour-lede">{copy.lede}</p>
       <StopIndex />

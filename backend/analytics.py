@@ -75,6 +75,7 @@ _EXACT_PATHS = frozenset(
         "/travel",
         "/shelf",
         "/shelf/comics",
+        "/shelf/games",
         "/shelf/next",
         "/shelf/how",
         "/shelf/intake",

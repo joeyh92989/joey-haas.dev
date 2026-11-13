@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import PosterCard from './PosterCard.jsx'
@@ -25,6 +25,18 @@ function renderCard(props = {}) {
 }
 
 describe('PosterCard', () => {
+  it('tags an admin row that is private, and never a public row', () => {
+    const { unmount } = renderCard({ item: { ...ITEM, is_public: false } })
+    expect(screen.getByText('Private')).toBeInTheDocument()
+    unmount()
+    renderCard({ item: { ...ITEM, is_public: true } })
+    expect(screen.queryByText('Private')).toBeNull()
+    cleanup()
+    // A public row has no is_public field at all.
+    renderCard()
+    expect(screen.queryByText('Private')).toBeNull()
+  })
+
   it('marks a game finished more than once with its count', () => {
     renderCard({ item: { ...ITEM, times_completed: 3 } })
     expect(

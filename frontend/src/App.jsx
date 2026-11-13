@@ -1,13 +1,13 @@
 import { lazy } from 'react'
-import { Navigate, Route, Routes, useParams } from 'react-router'
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router'
 import RootLayout from './layouts/RootLayout.jsx'
 import About from './pages/About.jsx'
 import Blog from './pages/Blog.jsx'
-import Collection from './pages/Collection.jsx'
 import Comics from './pages/Comics.jsx'
 import ComicEdition from './pages/ComicEdition.jsx'
 import ComicIssue from './pages/ComicIssue.jsx'
 import Daily from './pages/Daily.jsx'
+import Games from './pages/Games.jsx'
 import IntakeDemo from './pages/IntakeDemo.jsx'
 import Colophon from './pages/Colophon.jsx'
 import BlogPost from './pages/BlogPost.jsx'
@@ -25,7 +25,7 @@ import TilNote from './pages/TilNote.jsx'
 import Travel from './pages/Travel.jsx'
 import Trip from './pages/Trip.jsx'
 import YearInReview, { CurrentYear } from './pages/YearInReview.jsx'
-import { itemPath, monthPath, yearPath } from './lib/spinePaths.js'
+import { gamesPath, itemPath, monthPath, yearPath } from './lib/spinePaths.js'
 
 // The admin pages serve one person, so they load on demand instead of
 // shipping to every visitor in the main chunk. RootLayout's Suspense
@@ -42,6 +42,7 @@ const AdminStoreList = lazy(() => import('./pages/AdminStoreList.jsx'))
 const AdminSpots = lazy(() => import('./pages/AdminSpots.jsx'))
 const AdminWeekend = lazy(() => import('./pages/AdminWeekend.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
+const AdminComics = lazy(() => import('./pages/AdminComics.jsx'))
 const AdminAdd = lazy(() => import('./pages/AdminAdd.jsx'))
 const AdminSitting = lazy(() => import('./pages/AdminSitting.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
@@ -62,6 +63,26 @@ const Denver = lazy(() => import('./pages/Denver.jsx'))
  */
 function ParamRedirect({ to }) {
   return <Navigate to={to(useParams())} replace />
+}
+
+/**
+ * /shelf, until the grouped Shelf page exists: the Games list, keeping the
+ * query (the site search's no-match link is /shelf?q=…). Client-side, because
+ * a Render redirect rule would loop on a path with no file (CLAUDE.md,
+ * 2026-10-19).
+ */
+function ShelfRedirect() {
+  const { search } = useLocation()
+  return <Navigate to={`${gamesPath()}${search}`} replace />
+}
+
+/**
+ * /admin/collection, the list's old path: Games, with the query and the pull
+ * list's location state (its Own… prefill) carried over.
+ */
+function AdminListRedirect() {
+  const { search, state } = useLocation()
+  return <Navigate to={`/admin/shelf/games${search}`} state={state} replace />
 }
 
 /** A canonical issue number: ASCII digits, no leading zero, at most 4. */
@@ -119,7 +140,8 @@ export default function App() {
         <Route path="stats" element={<Stats />} />
         <Route path="denver" element={<Denver />} />
         <Route path="daily" element={<Daily />} />
-        <Route path="shelf" element={<Collection />} />
+        <Route path="shelf" element={<ShelfRedirect />} />
+        <Route path="shelf/games" element={<Games />} />
         <Route path="shelf/comics" element={<Comics />} />
         <Route path="shelf/intake" element={<IntakeDemo />} />
         <Route path="shelf/next" element={<Next />} />
@@ -130,8 +152,8 @@ export default function App() {
         <Route path="shelf/:id" element={<Item />} />
         <Route path="shelf/:id/:part" element={<ShelfPart />} />
         {/* Pre-rename URLs, kept so links already shared still land. Each
-            goes straight to /shelf, never through another redirect. */}
-        <Route path="spine" element={<Navigate to="/shelf" replace />} />
+            goes straight to its page, never through another redirect. */}
+        <Route path="spine" element={<Navigate to={gamesPath()} replace />} />
         <Route
           path="spine/next"
           element={<Navigate to="/shelf/next" replace />}
@@ -153,7 +175,10 @@ export default function App() {
           path="spine/:id"
           element={<ParamRedirect to={({ id }) => itemPath(id)} />}
         />
-        <Route path="collection" element={<Navigate to="/shelf" replace />} />
+        <Route
+          path="collection"
+          element={<Navigate to={gamesPath()} replace />}
+        />
         <Route
           path="collection/:id"
           element={<ParamRedirect to={({ id }) => itemPath(id)} />}
@@ -162,7 +187,12 @@ export default function App() {
           <Route index element={<Admin />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="jobs" element={<AdminJobs />} />
-          <Route path="collection" element={<AdminCollection />} />
+          <Route path="shelf/games" element={<AdminCollection />} />
+          <Route path="shelf/comics" element={<AdminComics />} />
+          {/* The old list path lands on Games, keeping the query and the
+              pull list's prefill (location state). The item edit routes
+              under collection/ are unchanged. */}
+          <Route path="collection" element={<AdminListRedirect />} />
           {/* Import photos became Add (intake); old links land there. */}
           <Route
             path="import"

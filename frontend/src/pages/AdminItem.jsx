@@ -12,7 +12,7 @@ import {
   PLATFORM_OPTIONS,
 } from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
-import { runWords } from '../lib/shelf.js'
+import { adminListPath, runWords } from '../lib/shelf.js'
 import PlayJournal from '../components/PlayJournal.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -544,7 +544,7 @@ export default function AdminItem() {
       setError(ACTION_ERROR)
       return
     }
-    navigate('/admin/collection')
+    navigate(adminListPath(item?.type))
   }
 
   const set = (field) => (event) =>
@@ -560,7 +560,11 @@ export default function AdminItem() {
   const header = (
     <AdminPageHeader
       title={state === 'ready' && item ? item.title : 'Item'}
-      description={<Link to="/admin/collection">← Back to the shelf</Link>}
+      description={
+        <Link to={adminListPath(item?.type)}>
+          ← Back to {item?.type === 'comic' ? 'Comics' : 'Games'}
+        </Link>
+      }
     />
   )
 

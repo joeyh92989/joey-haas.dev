@@ -77,6 +77,7 @@ describe('publicRoutes', () => {
       '/about',
       '/projects',
       '/shelf',
+      '/shelf/games',
       '/shelf/next',
       '/shelf/how',
       '/shelf/comics',
@@ -90,6 +91,19 @@ describe('publicRoutes', () => {
       '/blog/how-spine-works',
       `/shelf/${ITEM.id}`,
     ])
+  })
+
+  it('writes Games its own head, and points /shelf and /spine at it', () => {
+    const games = routeAt(routes, '/shelf/games')
+    expect(games.title).toBe('Games · My Shelf')
+    expect(routeUrl(games)).toBe('https://joey-haas.dev/shelf/games')
+    expect(games.feed).toBeDefined()
+    const shelf = routeAt(routes, '/shelf')
+    expect(shelf.canonical).toBe('https://joey-haas.dev/shelf/games')
+    const spineHead = legacyRoutes(routes).find(
+      (route) => route.path === '/spine',
+    )
+    expect(spineHead.canonical).toBe('https://joey-haas.dev/shelf/games')
   })
 
   it('titles pages the way the app does', () => {
@@ -194,7 +208,7 @@ describe('publicRoutes', () => {
   it('leaves out Blog with nothing published, and items without an id', () => {
     const bare = publicRoutes({ posts: [], items: [{ title: 'No id' }] })
     expect(bare.map((route) => route.path)).not.toContain('/blog')
-    expect(bare).toHaveLength(13)
+    expect(bare).toHaveLength(14)
   })
 })
 
@@ -461,9 +475,11 @@ describe('ADMIN_ROUTES', () => {
     expect(admin, 'the admin route block in App.jsx').not.toBeNull()
     // Its children, without the opening tag's own path="admin".
     const block = admin[0].slice(admin[0].indexOf('\n'))
-    const children = [...block.matchAll(/<Route path="([^":*]+)"/g)].map(
-      ([, route]) => `/admin/${route}`,
-    )
+    const children = [
+      ...block.matchAll(
+        /<Route path="([^":*]+)"(?! element=\{<AdminListRedirect)/g,
+      ),
+    ].map(([, route]) => `/admin/${route}`)
     const paths = block.includes('<Route index')
       ? ['/admin', ...children]
       : children
@@ -480,7 +496,7 @@ describe('noindex, sitemap and robots', () => {
 
   it('lists every route, with a post’s date', () => {
     const xml = sitemap(publicRoutes({ posts: [POST], items: [ITEM] }))
-    expect(xml.match(/<url>/g)).toHaveLength(16)
+    expect(xml.match(/<url>/g)).toHaveLength(17)
     expect(xml).toContain(
       '<loc>https://joey-haas.dev/blog/how-spine-works</loc><lastmod>2026-10-02</lastmod>',
     )

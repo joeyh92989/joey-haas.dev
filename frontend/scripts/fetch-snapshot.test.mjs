@@ -99,6 +99,17 @@ describe('fetchSnapshot', () => {
     ).toEqual(STATS)
   })
 
+  it('asks for the Games figures: stats for games only', async () => {
+    const fetchImpl = api({
+      '/api/health': ok({ status: 'ok' }),
+      '/api/public/items': ok(ITEMS),
+      '/api/public/stats': ok(STATS),
+    })
+    await run(fetchImpl)
+    const asked = fetchImpl.mock.calls.map(([url]) => String(url))
+    expect(asked).toContain(`${API}/api/public/stats?type=game`)
+  })
+
   it('records when it fetched, for the admin Dashboard', async () => {
     const fetchImpl = api({
       '/api/health': ok({ status: 'ok' }),

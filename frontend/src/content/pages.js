@@ -47,6 +47,12 @@ export const STATIC_PAGES = [
   ),
   row(spine.path, spine.name, `${spine.name} · ${profile.name}`, spine.tagline),
   row(
+    spine.games.path,
+    spine.games.title,
+    `${spine.games.title} · ${spine.name}`,
+    spine.games.lede,
+  ),
+  row(
     spine.next.path,
     spine.next.title,
     `${spine.next.title} · ${spine.name}`,

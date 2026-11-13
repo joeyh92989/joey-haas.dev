@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import ConfirmDelete from '../components/ConfirmDelete.jsx'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
+import CoverKey from '../components/CoverKey.jsx'
+import EmptyState from '../components/EmptyState.jsx'
 import AddSection from '../components/intake/AddSection.jsx'
 import ItemForm, {
   EMPTY_COMIC_FIELDS,
@@ -13,6 +15,7 @@ import MetadataPicker from '../components/MetadataPicker.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import NowPlaying from '../components/NowPlaying.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import ResultBar from '../components/ResultBar.jsx'
 import ShelfCardActions from '../components/ShelfCardActions.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import WrapUpSheet from '../components/WrapUpSheet.jsx'
@@ -24,8 +27,11 @@ import { ownerYear } from '../lib/formatDate.js'
 import {
   countBy,
   filterItems,
+  isDimmable,
   NO_FILTER,
+  platformGroup,
   readShelfPref,
+  searchItems,
   sortItems,
   STATUS_LABEL,
   STATUS_ORDER,
@@ -37,17 +43,10 @@ import {
   setStatus as postStatus,
   statusMoves,
 } from '../lib/statusMoves.js'
-import { FavoritesRow, isDimmable, platformGroup } from './Collection.jsx'
-import { itemPath } from '../lib/spinePaths.js'
+import { FavoritesRow } from '../components/ShelfOverview.jsx'
+import { gamesPath, itemPath } from '../lib/spinePaths.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import { spine } from '../content/spine.js'
-
-const TYPE_LABEL = {
-  game: 'Games',
-  movie: 'Film & TV',
-  comic: 'Comics',
-  boardgame: 'Board games',
-}
 
 const VIEWS = ['shelf', 'list']
 const SIZES = ['comfortable', 'compact']
@@ -56,11 +55,22 @@ const SIZES = ['comfortable', 'compact']
 const FAVORITES_LIMIT = 4
 const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favorites. Remove one first.`
 
+/**
+ * The refusal when four favourites are set. A favourite that isn't a game
+ * (a comic) holds a slot the games row doesn't show, so it is named.
+ */
+function favoritesFullMessage(others) {
+  if (others.length === 0) return FAVORITES_FULL
+  const names = others.map((item) => `“${item.title}”`).join(', ')
+  return `${FAVORITES_FULL} ${names} ${others.length === 1 ? 'is a favorite' : 'are favorites'} outside Games.`
+}
+
 /** Below this many rated or favourited items, the shelf asks for ratings. */
 const NUDGE_BELOW = 5
 
-// The types the bulk metadata refresh covers (items.BULK_REFRESH_SOURCES).
-const REFRESH_TYPES = ['game', 'comic', 'movie']
+// This page lists games; the bulk refresh here covers the same type
+// (items.BULK_REFRESH_SOURCES). Comics have the same button on their page.
+const REFRESH_TYPE = 'game'
 
 /**
  * The shelf's headline figures, computed from the admin rows: NULL
@@ -74,14 +84,23 @@ function heroFigures(items) {
   }
 }
 
-/** The shelf's three headline figures, as the admin's stat tiles. */
+/** The games' three headline figures, as the admin's stat tiles. */
 function HeroTiles({ owned, finished, finishedThisYear }) {
   const year = ownerYear()
+  const fig = spine.games.figures
   return (
-    <StatTiles label="Shelf totals">
-      <StatTile label="Owned" value={owned} />
-      <StatTile label="Finished" value={finished} />
-      <StatTile label={`Finished in ${year}`} value={finishedThisYear} />
+    <StatTiles label="Game totals">
+      <StatTile label={fig.owned} value={owned} />
+      <StatTile
+        label={fig.finished}
+        value={finished}
+        detail={
+          owned > 0
+            ? fig.finishedShare(Math.round((finished / owned) * 100))
+            : null
+        }
+      />
+      <StatTile label={fig.finishedIn(year)} value={finishedThisYear} />
     </StatTiles>
   )
 }
@@ -109,14 +128,24 @@ const EMPTY_FORM = {
 }
 
 /**
- * The media collection. Admin-only, like everything under /admin.
+ * The Games list at /admin/shelf/games, the admin twin of /shelf/games
+ * (shelf split, item 3): the public page's parts with the owner's controls.
+ * Admin-only, like everything under /admin. Comics have their own twin,
+ * AdminComics; this page lists games only, so a comic is on one list.
  *
  * Both the API and the database sleep when idle — Render after fifteen minutes,
  * Neon after five — so a first load can wake two services. The slow message
  * exists so that reads as slow rather than broken.
  */
 export default function AdminCollection() {
-  const [items, setItems] = useState([])
+  const [allItems, setItems] = useState([])
+  // The API lists every type; this page keeps the games.
+  const items = useMemo(
+    () => allItems.filter((item) => item.type === 'game'),
+    [allItems],
+  )
+  const [query, setQuery] = useState('')
+  const searchField = useRef(null)
   const [status, setStatus] = useState('loading')
   const [slow, setSlow] = useState(false)
   // The pull list's Own… arrives with the volume to prefill (spec, section 4).
@@ -170,6 +199,9 @@ export default function AdminCollection() {
   // Pause and Abandon open it instead of writing (Tonight continue spec).
   const [wrap, setWrap] = useState(null)
   const [saving, setSaving] = useState(false)
+  // Title of a comic just saved from this page's form: the games list below
+  // won't show it, so a link says where it went.
+  const [savedComic, setSavedComic] = useState(null)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [view, setView] = useState(() => {
     const stored = readShelfPref('shelf.admin.view', 'shelf')
@@ -269,6 +301,7 @@ export default function AdminCollection() {
   async function addItem(event) {
     event.preventDefault()
     setError(null)
+    setSavedComic(null)
     setSaving(true)
     const comic = form.type === 'comic' ? comicPayload(form) : null
     if (comic?.error) {
@@ -324,6 +357,7 @@ export default function AdminCollection() {
       setSaving(false)
     }
     setForm(EMPTY_FORM)
+    if (body.type === 'comic') setSavedComic(body.title)
     await load()
   }
 
@@ -476,7 +510,7 @@ export default function AdminCollection() {
   }
 
   /**
-   * Publishes or hides the whole collection in one request.
+   * Publishes or hides every game in one request.
    *
    * Publishing asks first. It is the most consequential action on this page —
    * it puts every private row on a public website, including any still
@@ -487,7 +521,7 @@ export default function AdminCollection() {
   async function setAllVisibility(isPublic) {
     if (
       isPublic &&
-      !window.confirm(`Publish all ${items.length} items to My Shelf?`)
+      !window.confirm(`Publish all ${items.length} games to My Shelf?`)
     ) {
       return
     }
@@ -498,7 +532,11 @@ export default function AdminCollection() {
       const response = await apiFetch('/api/items/visibility', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_public: isPublic }),
+        // Only this page's rows: comics have their own list and their own say.
+        body: JSON.stringify({
+          is_public: isPublic,
+          ids: items.map((item) => item.id),
+        }),
       })
       if (!response.ok) {
         setError('Couldn’t change visibility.')
@@ -624,7 +662,6 @@ export default function AdminCollection() {
       ...item,
       wanted: item.owned_format === 'none',
     }))
-    const typeCounts = countBy(rows, 'type')
     const statusCounts = countBy(rows, 'status')
     const unrated = rows.filter(
       (item) => item.status === 'finished' && item.rating == null,
@@ -632,22 +669,49 @@ export default function AdminCollection() {
     const engaged = rows.filter(
       (item) => item.rating != null || item.favorite,
     ).length
-    const favoritesFull =
-      rows.filter((item) => item.favorite).length >= FAVORITES_LIMIT
+    // The API's cap counts favourites of every type, not just these games.
+    const allFavorites = allItems.filter((item) => item.favorite)
+    const favoritesFull = allFavorites.length >= FAVORITES_LIMIT
+    const favoritesFullText = favoritesFullMessage(
+      allFavorites.filter((item) => item.type !== 'game'),
+    )
     const showNudge =
       !nudgeDismissed && engaged < NUDGE_BELOW && unrated.length > 0
     const visible = sortItems(
-      filterItems(rows, filters),
+      filterItems(searchItems(rows, query), filters),
       sort.value,
       sort.direction,
       seed,
     )
+    const filtered =
+      query.trim() !== '' ||
+      Object.keys(NO_FILTER).some((key) => filters[key] !== NO_FILTER[key])
+    const privateCount = rows.filter((item) => !item.is_public).length
+    function clearAll() {
+      setFilters(NO_FILTER)
+      setQuery('')
+      // Clear filters unmounts itself; focus would fall to the body.
+      searchField.current?.focus()
+    }
     const linkFor = (item) =>
       item.is_public ? itemPath(item.id) : `/admin/collection/${item.id}`
 
     return (
       <>
         <HeroTiles {...heroFigures(rows)} />
+
+        <div className="shelf-top">
+          <label className="shelf-search">
+            <span className="visually-hidden">{spine.games.search}</span>
+            <input
+              ref={searchField}
+              type="search"
+              placeholder={spine.games.search}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+        </div>
 
         <NowPlaying
           items={rows}
@@ -678,16 +742,8 @@ export default function AdminCollection() {
         )}
 
         <ShelfToolbar
+          labelled
           groups={[
-            {
-              key: 'type',
-              label: 'Type',
-              options: Object.keys(TYPE_LABEL).map((type) => ({
-                value: type,
-                label: TYPE_LABEL[type],
-                count: typeCounts[type] ?? 0,
-              })),
-            },
             {
               key: 'status',
               label: 'Status',
@@ -710,6 +766,7 @@ export default function AdminCollection() {
               label: 'Finished, unrated',
               count: unrated.length,
             },
+            { key: 'private', label: 'Private', count: privateCount },
           ]}
           filters={filters}
           onFiltersChange={setFilters}
@@ -723,8 +780,18 @@ export default function AdminCollection() {
           onDimChange={changeDim}
         />
 
+        <ResultBar
+          shown={visible.length}
+          total={rows.length}
+          filtered={filtered}
+          noun={spine.games.noun}
+          onClear={clearAll}
+        >
+          <CoverKey />
+        </ResultBar>
+
         {visible.length === 0 ? (
-          <p className="muted">Nothing matches those filters.</p>
+          <EmptyState title={spine.games.noMatch} />
         ) : (
           <PosterGrid
             items={visible}
@@ -745,7 +812,7 @@ export default function AdminCollection() {
                       // Refused here without a round trip; the server
                       // enforces the same rule for every other path.
                       if (favorite && favoritesFull) {
-                        setError(FAVORITES_FULL)
+                        setError(favoritesFullText)
                         return
                       }
                       patchItem(target.id, { favorite })
@@ -771,11 +838,17 @@ export default function AdminCollection() {
   const ready = status === 'ready' && items.length > 0
   const header = (
     <AdminPageHeader
-      title="Shelf"
+      title="Games"
       description={
         ready ? `${publicCount} of ${items.length} public` : undefined
       }
     >
+      <Link to={gamesPath()}>
+        View {gamesPath()} <span aria-hidden="true">↗</span>
+      </Link>
+      <Link to="/admin/collection/add" className="btn sm">
+        Add games
+      </Link>
       {ready && (
         <>
           <button
@@ -794,17 +867,16 @@ export default function AdminCollection() {
           >
             Hide all
           </button>
-          {REFRESH_TYPES.map((type) => (
-            <button
-              key={type}
-              type="button"
-              className="btn sm"
-              disabled={refreshing !== null}
-              onClick={() => refreshMetadata(type)}
-            >
-              {refreshing === type ? 'Refreshing…' : `Refresh ${type} metadata`}
-            </button>
-          ))}
+          <button
+            type="button"
+            className="btn sm"
+            disabled={refreshing !== null}
+            onClick={() => refreshMetadata(REFRESH_TYPE)}
+          >
+            {refreshing === REFRESH_TYPE
+              ? 'Refreshing…'
+              : `Refresh ${REFRESH_TYPE} metadata`}
+          </button>
           <div className="chip-row" role="group" aria-label="View">
             {[
               ['shelf', 'Shelf'],
@@ -865,6 +937,13 @@ export default function AdminCollection() {
         </p>
       )}
 
+      {savedComic && (
+        <p role="status">
+          Saved “{savedComic}”. Comics show on{' '}
+          <Link to="/admin/shelf/comics">the Comics page</Link>, not here.
+        </p>
+      )}
+
       <AddSection area="shelf" onAdded={load}>
         <WrapUpSheet
           subject={wrap}
@@ -894,7 +973,7 @@ export default function AdminCollection() {
 
         <div className="collection-list" ref={listRef} tabIndex={-1}>
           {items.length === 0 ? (
-            <p className="muted">Nothing in the collection yet.</p>
+            <EmptyState title={spine.games.empty} />
           ) : (
             <>
               {refreshResult && (

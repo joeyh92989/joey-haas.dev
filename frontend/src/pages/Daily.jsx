@@ -139,7 +139,7 @@ export default function Daily() {
 
   return (
     <section className="daily">
-      <SpineHeader asLink />
+      <SpineHeader />
       <div className="daily-head">
         <h1>{copy.name}</h1>
         {pick && (

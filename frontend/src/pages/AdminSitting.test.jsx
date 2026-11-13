@@ -400,7 +400,7 @@ describe('AdminSitting', () => {
     )
     expect(
       screen.getByRole('link', { name: 'See them on the shelf' }),
-    ).toHaveAttribute('href', '/admin/collection')
+    ).toHaveAttribute('href', '/admin/shelf/comics')
   })
 
   it('shows each photo’s true state on a reload in Shoot (AC 4, 16)', async () => {

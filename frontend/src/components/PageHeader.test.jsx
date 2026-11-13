@@ -27,6 +27,14 @@ describe('PageHeader', () => {
     ).toBeInTheDocument()
   })
 
+  it('draws no breadcrumb row for a list page, which passes no trail', () => {
+    renderHeader({ trail: undefined })
+    expect(screen.queryByRole('navigation')).toBeNull()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'A post' }),
+    ).toBeInTheDocument()
+  })
+
   it('renders the kicker and lede only when given', () => {
     const { container, rerender } = renderHeader()
     expect(container.querySelector('.kicker')).toBeNull()

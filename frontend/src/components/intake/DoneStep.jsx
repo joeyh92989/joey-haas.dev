@@ -193,7 +193,7 @@ export default function DoneStep({
         )}
         <Link
           className="btn"
-          to={shelfPath(sitting.area)}
+          to={shelfPath(sitting.area, sitting.kind)}
           state={closet ? { closetStatus: 'untagged' } : undefined}
         >
           {closet ? 'See them in the closet' : 'See them on the shelf'}

@@ -8,6 +8,7 @@ import {
   missingFields,
   optionLabel,
   refuseFile,
+  shelfPath,
   sittingLabel,
   sourceWords,
 } from './intake.js'
@@ -159,5 +160,14 @@ describe('sittingLabel', () => {
     expect(sittingLabel(kind, new Date('2026-11-12T04:05:00Z'))).toBe(
       'Comic · Nov 11, 9:05 PM',
     )
+  })
+})
+
+describe('shelfPath', () => {
+  it('sends a comic sitting to Comics, a game or mixed one to Games', () => {
+    expect(shelfPath('shelf', 'comic')).toBe('/admin/shelf/comics')
+    expect(shelfPath('shelf', 'game')).toBe('/admin/shelf/games')
+    expect(shelfPath('shelf', null)).toBe('/admin/shelf/games')
+    expect(shelfPath('closet', 'garment')).toBe('/admin/closet')
   })
 })

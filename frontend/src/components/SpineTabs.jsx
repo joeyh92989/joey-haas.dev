@@ -1,22 +1,25 @@
 import { useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import { spine } from '../content/spine.js'
-import { hasComics } from '../lib/snapshotPresence.js'
+import { hasComics, hasGames } from '../lib/snapshotPresence.js'
 
 /**
- * Collection · Comics · What's next · Year in review · Tour · Daily game,
+ * Games · Comics · What's next · Year in review · Tour · Daily game,
  * under the My Shelf name on each page (Spine Next spec, C13; Daily from the
  * daily puzzle spec, the one tab outside /shelf). Links, not ARIA tabs: each is its own
  * page with its own URL. Year in review stays current on every year's page.
  * A tab's optional `badge` is read as part of its name; none carries one now.
- * Comics is left out while the build's snapshot holds no series (#125), as
- * the masthead leaves Blog out until a post is published.
+ * A type's tab is left out while the build's snapshot holds no public row of
+ * that type (#125, shelf split), as the masthead leaves Blog out until a
+ * post is published.
  *
  * @param {object} props
+ * @param {boolean} [props.games] Whether to show the Games tab; defaults to
+ *   the build-time answer.
  * @param {boolean} [props.comics] Whether to show the Comics tab; defaults to
  *   the build-time answer.
  */
-export default function SpineTabs({ comics = hasComics }) {
+export default function SpineTabs({ games = hasGames, comics = hasComics }) {
   const { how } = spine.tabs
   const nav = useRef(null)
   const { pathname } = useLocation()
@@ -40,9 +43,9 @@ export default function SpineTabs({ comics = hasComics }) {
   }, [pathname])
   return (
     <nav ref={nav} className="spine-tabs" aria-label={`${spine.name} sections`}>
-      <NavLink to={spine.tabs.shelf.to} end>
-        {spine.tabs.shelf.label}
-      </NavLink>
+      {games && (
+        <NavLink to={spine.tabs.games.to}>{spine.tabs.games.label}</NavLink>
+      )}
       {comics && (
         <NavLink to={spine.tabs.comics.to}>{spine.tabs.comics.label}</NavLink>
       )}

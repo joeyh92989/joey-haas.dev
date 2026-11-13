@@ -12,6 +12,11 @@
  */
 import { spine } from '../content/spine.js'
 
+/** `/shelf/games`, the Games list (no slash: it is a declared static route). */
+export function gamesPath() {
+  return `${spine.path}/games`
+}
+
 /** `/shelf/<id>/`, the item page. */
 export function itemPath(id) {
   return `${spine.path}/${encodeURIComponent(id)}/`

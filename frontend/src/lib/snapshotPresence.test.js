@@ -24,6 +24,13 @@ describe('hiddenPathsFor', () => {
     ])
   })
 
+  it('hides Games when the items snapshot holds no game', async () => {
+    const { hiddenPathsFor } = await import('./snapshotPresence.js')
+    expect(hiddenPathsFor({ games: false, comics: true, spots: true })).toEqual(
+      ['/shelf/games'],
+    )
+  })
+
   it('hides nothing when both snapshots have something', async () => {
     const { hiddenPathsFor } = await import('./snapshotPresence.js')
     expect(hiddenPathsFor({ comics: true, spots: true })).toEqual([])

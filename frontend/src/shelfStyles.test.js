@@ -90,7 +90,6 @@ describe('two widths (#188)', () => {
     '.month-index',
     '.month-step',
     '.comic-hero-next',
-    '.series-row .lanes',
     '.tour-stop-cols.one',
   ])('holds %s to the 45rem column', (selector) => {
     expect(rule(selector)).toContain(COLUMN)

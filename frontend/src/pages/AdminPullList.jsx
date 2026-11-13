@@ -24,7 +24,8 @@ function ownLink(result) {
     }
   }
   return {
-    to: '/admin/collection',
+    // The Games page holds the full add form, which the prefill opens.
+    to: '/admin/shelf/games',
     label: 'Own…',
     state: {
       prefill: {

@@ -1554,3 +1554,81 @@ async def test_public_spots_sort_by_neighbourhood_then_name(sessionmaker_for_tes
 
 async def test_no_spots_is_an_empty_list(sessionmaker_for_test):
     assert await _spots(sessionmaker_for_test) == []
+
+
+# --- /api/public/stats?type= (shelf split) -------------------------------
+
+STATS_FIELDS = {
+    "total",
+    "by_type",
+    "by_status",
+    "rating_histogram",
+    "finishes_by_month",
+    "owned",
+    "finished_this_year",
+    "average_rating",
+    "by_platform",
+    "by_format",
+}
+
+
+async def _stats(factory, query: str = "") -> dict:
+    async with client_for(factory) as client:
+        response = await client.get(f"/api/public/stats{query}")
+    assert response.status_code == 200
+    return response.json()
+
+
+async def test_the_type_filter_adds_no_field_to_the_stats(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _game("Public game", rating=9),
+        _comic("Public comic", rating=7),
+    )
+
+    plain = await _stats(sessionmaker_for_test)
+    games = await _stats(sessionmaker_for_test, "?type=game")
+
+    assert set(plain) == set(games) == STATS_FIELDS
+    assert plain["by_type"] == {"game": 1, "comic": 1}
+
+
+async def test_stats_for_a_type_leave_the_other_types_out(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _game("Public game", rating=9, platform="Nintendo Switch"),
+        _comic("Public comic", rating=2, platform="Print"),
+        _movie("Public film", rating=5),
+    )
+
+    body = await _stats(sessionmaker_for_test, "?type=game")
+
+    assert body["total"] == 1
+    assert body["by_type"] == {"game": 1}
+    assert body["rating_histogram"] == {"9": 1}
+    assert body["average_rating"] == 9.0
+    assert body["by_platform"] == {"Nintendo Switch": 1}
+
+
+async def test_stats_for_a_type_never_count_a_private_row(sessionmaker_for_test):
+    await _add(
+        sessionmaker_for_test,
+        _game("Public game"),
+        _game("Private game", is_public=False, rating=1),
+        _comic("Private comic", is_public=False),
+    )
+
+    games = await _stats(sessionmaker_for_test, "?type=game")
+    comics = await _stats(sessionmaker_for_test, "?type=comic")
+
+    assert games["total"] == 1
+    assert games["rating_histogram"] == {}
+    assert comics["total"] == 0
+    assert comics["by_type"] == {}
+
+
+async def test_an_unknown_stats_type_is_refused(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/public/stats?type=toaster")
+
+    assert response.status_code == 422

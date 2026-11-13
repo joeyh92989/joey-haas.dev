@@ -11,7 +11,7 @@ import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
-import Collection from './Collection.jsx'
+import Games from './Games.jsx'
 import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
 import { STALE_HOURS } from '../lib/nightly.js'
@@ -56,7 +56,7 @@ function gridTitles() {
 const ITEMS = [
   {
     id: '1',
-    type: 'movie',
+    type: 'game',
     title: 'Dune',
     year: 2021,
     creator: 'Denis Villeneuve',
@@ -74,7 +74,7 @@ const ITEMS = [
   },
   {
     id: '2',
-    type: 'boardgame',
+    type: 'game',
     title: 'Gloomhaven',
     year: null,
     creator: null,
@@ -143,10 +143,10 @@ function stubApi({
   )
 }
 
-function renderPage(path = '/shelf') {
+function renderPage(path = '/shelf/games') {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <Collection />
+      <Games />
     </MemoryRouter>,
   )
 }
@@ -168,7 +168,7 @@ afterEach(() => {
   localStorage.clear()
 })
 
-describe('Collection', () => {
+describe('Games', () => {
   it('renders a poster for every public item', async () => {
     stubApi()
     await renderReady()
@@ -221,7 +221,7 @@ describe('Collection', () => {
     )
   })
 
-  it('shows the hero numbers from stats', async () => {
+  it('shows the figures as stat tiles, from the games-only stats', async () => {
     stubApi({
       stats: {
         ...STATS,
@@ -232,12 +232,14 @@ describe('Collection', () => {
     })
     await renderReady()
 
-    const hero = within(document.querySelector('.hero-numbers'))
-    expect(hero.getByText('68')).toBeInTheDocument()
-    expect(hero.getByText('Owned')).toBeInTheDocument()
-    expect(hero.getByText('17')).toBeInTheDocument()
-    expect(hero.getByText('9')).toBeInTheDocument()
-    expect(hero.getByText(/^Finished in \d{4}$/)).toBeInTheDocument()
+    const tiles = within(document.querySelector('.stat-tiles'))
+    expect(tiles.getByText('68')).toBeInTheDocument()
+    expect(tiles.getByText('Owned')).toBeInTheDocument()
+    expect(tiles.getByText('17')).toBeInTheDocument()
+    expect(tiles.getByText('9')).toBeInTheDocument()
+    expect(tiles.getByText(/^Finished in \d{4}$/)).toBeInTheDocument()
+    expect(document.querySelectorAll('.stat-tiles .stat-tile')).toHaveLength(3)
+    expect(tiles.queryByText('Average rating')).not.toBeInTheDocument()
   })
 
   it('puts the grid before the overview, and drops the strips and cards', async () => {
@@ -292,7 +294,6 @@ describe('Collection', () => {
     stubApi()
     await renderReady()
 
-    expect(screen.getByRole('group', { name: 'Show' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Sort' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'View' })).toBeInTheDocument()
@@ -306,16 +307,16 @@ describe('Collection', () => {
     await renderReady()
 
     const bar = document.querySelector('.resultbar')
-    expect(bar).toHaveTextContent('2 titles')
+    expect(bar).toHaveTextContent('2 games')
     expect(
       screen.queryByRole('button', { name: 'Clear filters' }),
     ).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: /^Film & TV/ }))
-    expect(bar).toHaveTextContent('1 of 2 titles')
+    await userEvent.click(screen.getByRole('button', { name: /^Finished/ }))
+    expect(bar).toHaveTextContent('1 of 2 games')
 
     await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
-    expect(bar).toHaveTextContent('2 titles')
+    expect(bar).toHaveTextContent('2 games')
     expect(gridTitles()).toHaveLength(2)
   })
 
@@ -325,7 +326,7 @@ describe('Collection', () => {
 
     await userEvent.type(screen.getByRole('searchbox'), 'dune')
     expect(document.querySelector('.resultbar')).toHaveTextContent(
-      '1 of 2 titles',
+      '1 of 2 games',
     )
     await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
     expect(screen.getByRole('searchbox')).toHaveValue('')
@@ -338,7 +339,7 @@ describe('Collection', () => {
     stubApi()
     await renderReady()
 
-    await userEvent.click(screen.getByRole('button', { name: /^Film & TV/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Finished/ }))
     await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
     expect(screen.getByRole('searchbox')).toHaveFocus()
   })
@@ -388,7 +389,8 @@ describe('Collection', () => {
       id: `m${index}`,
       title: `Movie ${String(index).padStart(2, '0')}`,
       favorite: false,
-      type: index % 2 ? 'movie' : 'boardgame',
+      type: 'game',
+      status: index % 2 ? 'finished' : 'backlog',
     }))
     stubApi({ items: many, stats: { ...STATS, total: 60 } })
     await renderReady()
@@ -398,7 +400,7 @@ describe('Collection', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Show 28 more' }))
     expect(gridTitles()).toHaveLength(56)
 
-    await userEvent.click(screen.getByRole('button', { name: /^Film & TV/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Finished/ }))
     expect(gridTitles()).toHaveLength(28)
     expect(screen.getByText('Showing 28 of 30')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
@@ -568,7 +570,7 @@ describe('Collection', () => {
     stubApi()
     await renderReady()
 
-    expect(screen.getByRole('button', { name: /Film & TV/ })).toHaveTextContent(
+    expect(screen.getByRole('button', { name: /Finished/ })).toHaveTextContent(
       '1',
     )
     expect(screen.getByRole('button', { name: /Want/ })).toHaveTextContent('1')
@@ -578,14 +580,32 @@ describe('Collection', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('filters the grid by type', async () => {
+  it('shows no comic, and offers no Type chips', async () => {
+    stubApi({
+      items: [
+        ...ITEMS,
+        { ...ITEMS[0], id: 'c1', type: 'comic', title: 'Saga' },
+      ],
+    })
+    await renderReady()
+
+    expect(gridTitles()).toEqual(expect.not.arrayContaining(['Saga']))
+    expect(gridTitles()).toHaveLength(2)
+    expect(screen.getByText('2 games')).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Show' })).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: /Comics|Film|Board/ }),
+    ).toBeNull()
+  })
+
+  it('asks for the games-only stats', async () => {
     stubApi()
     await renderReady()
 
-    await userEvent.click(screen.getByRole('button', { name: /Board games/ }))
-
-    expect(grid().queryByText('Dune')).not.toBeInTheDocument()
-    expect(grid().getByText('Gloomhaven')).toBeInTheDocument()
+    const asked = vi.mocked(fetch).mock.calls.map(([url]) => String(url))
+    expect(
+      asked.some((url) => url.includes('/api/public/stats?type=game')),
+    ).toBe(true)
   })
 
   it('searches the shelf by title', async () => {
@@ -593,26 +613,24 @@ describe('Collection', () => {
     await renderReady()
 
     await userEvent.type(
-      screen.getByRole('searchbox', { name: 'Search the shelf' }),
+      screen.getByRole('searchbox', { name: 'Search games' }),
       'gloom',
     )
     expect(gridTitles()).toEqual(['Gloomhaven'])
 
     await userEvent.clear(screen.getByRole('searchbox'))
     await userEvent.type(screen.getByRole('searchbox'), 'zelda')
-    expect(
-      screen.getByText('Nothing on the shelf matches “zelda”.'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('No games match “zelda”.')).toBeInTheDocument()
   })
 
   // The site search's no-match link: /shelf?q=… opens already searched.
   it('starts searched when the URL carries ?q=', async () => {
     stubApi()
-    await renderReady('/shelf?q=gloom')
+    await renderReady('/shelf/games?q=gloom')
 
-    expect(
-      screen.getByRole('searchbox', { name: 'Search the shelf' }),
-    ).toHaveValue('gloom')
+    expect(screen.getByRole('searchbox', { name: 'Search games' })).toHaveValue(
+      'gloom',
+    )
     expect(gridTitles()).toEqual(['Gloomhaven'])
   })
 
@@ -621,10 +639,10 @@ describe('Collection', () => {
   it('follows ?q= when it changes while the page is open', async () => {
     stubApi()
     render(
-      <MemoryRouter initialEntries={['/shelf']}>
-        <Link to="/shelf?q=gloom">search gloom</Link>
+      <MemoryRouter initialEntries={['/shelf/games']}>
+        <Link to="/shelf/games?q=gloom">search gloom</Link>
         <Routes>
-          <Route path="/shelf" element={<Collection />} />
+          <Route path="/shelf/games" element={<Games />} />
         </Routes>
       </MemoryRouter>,
     )
@@ -633,9 +651,9 @@ describe('Collection', () => {
     )
     await userEvent.click(screen.getByRole('link', { name: 'search gloom' }))
 
-    expect(
-      screen.getByRole('searchbox', { name: 'Search the shelf' }),
-    ).toHaveValue('gloom')
+    expect(screen.getByRole('searchbox', { name: 'Search games' })).toHaveValue(
+      'gloom',
+    )
     expect(gridTitles()).toEqual(['Gloomhaven'])
   })
 
@@ -652,12 +670,14 @@ describe('Collection', () => {
     stubApi()
     await renderReady()
 
-    await userEvent.click(screen.getByRole('button', { name: /Film & TV/ }))
-    await userEvent.click(screen.getByRole('button', { name: /Backlog/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Finished/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Want/ }))
 
     expect(
-      screen.getByText(/no titles match these filters/i),
+      screen.getByText('No games match these filters.'),
     ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(gridTitles()).toHaveLength(2)
   })
 
   it('sorts by recently added by default, and re-sorts on request', async () => {
@@ -834,9 +854,9 @@ describe('Collection', () => {
     renderPage()
     expect(await screen.findByRole('alert')).toHaveTextContent(/didn’t load/i)
     expect(
-      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
+      screen.getByRole('heading', { level: 1, name: 'Games' }),
     ).toBeInTheDocument()
-    expect(screen.queryByText('Nothing on the shelf yet.')).toBeNull()
+    expect(screen.queryByText('No games on the shelf yet.')).toBeNull()
     up = true
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect((await screen.findAllByText('Dune')).length).toBeGreaterThan(0)
@@ -851,20 +871,16 @@ describe('Collection', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/didn’t load/i)
   })
 
-  it('renders the required TMDB attribution verbatim', async () => {
+  it('credits IGDB, and carries no film or comic credit it has no use for', async () => {
     stubApi()
     renderPage()
 
-    expect(
-      await screen.findByText(
-        /This product uses the TMDB API but is not endorsed or certified by TMDB/i,
-      ),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'IGDB' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'IGDB' })).toHaveAttribute(
       'href',
       'https://www.igdb.com/',
     )
-    expect(screen.getByRole('link', { name: 'Comic Vine' })).toBeInTheDocument()
+    expect(screen.queryByText(/TMDB/)).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Comic Vine' })).toBeNull()
   })
 
   it('shows a rating as a star and number without claiming one that is absent', async () => {
@@ -895,9 +911,9 @@ describe('Collection', () => {
     renderPage()
 
     expect(
-      await screen.findByText(/nothing on the shelf yet/i),
+      await screen.findByText('No games on the shelf yet.'),
     ).toBeInTheDocument()
-    expect(document.querySelector('.hero-numbers')).toBeNull()
+    expect(document.querySelector('.stat-tiles')).toBeNull()
     expect(document.querySelector('.status-bar')).toBeNull()
     expect(document.querySelector('.shelf-toolbar')).toBeNull()
     expect(
@@ -906,7 +922,7 @@ describe('Collection', () => {
   })
 })
 
-describe('Collection platforms and formats', () => {
+describe('Games platforms and formats', () => {
   const SWITCH_2 = { platform: 'Nintendo Switch 2' }
 
   it('has no platform chips while every item is on one platform', async () => {
@@ -1011,7 +1027,7 @@ describe('Collection platforms and formats', () => {
   })
 })
 
-describe('Collection snapshot', () => {
+describe('Games snapshot', () => {
   it('paints the snapshot while the server wakes, with no waking notice', async () => {
     stubSnapshot()
     vi.stubGlobal(
@@ -1051,9 +1067,9 @@ describe('Collection snapshot', () => {
     renderPage()
 
     await waitFor(() => expect(gridTitles()).toEqual(['Gloomhaven', 'Dune']))
-    const hero = within(document.querySelector('.hero-numbers'))
-    expect(hero.getByText('68')).toBeInTheDocument()
-    expect(hero.getByText('Owned')).toBeInTheDocument()
+    const tiles = within(document.querySelector('.stat-tiles'))
+    expect(tiles.getByText('68')).toBeInTheDocument()
+    expect(tiles.getByText('Owned')).toBeInTheDocument()
   })
 
   it('ignores a snapshot that arrives after the live data', async () => {
@@ -1074,7 +1090,7 @@ describe('Collection snapshot', () => {
   })
 })
 
-describe('Collection and What’s next', () => {
+describe('Games and What’s next', () => {
   it('leaves the living strips to What’s next', async () => {
     stubSnapshot()
     stubApi()
@@ -1113,7 +1129,7 @@ describe('Collection and What’s next', () => {
     renderPage()
     await screen.findByText(/didn’t load/i)
     expect(
-      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
+      screen.getByRole('heading', { level: 1, name: 'Games' }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('navigation', { name: 'My Shelf sections' }),
@@ -1121,14 +1137,15 @@ describe('Collection and What’s next', () => {
   })
 })
 
-describe('Collection header', () => {
-  it('names My Shelf, says what it is, and links the post and the source', async () => {
+describe('Games header', () => {
+  it('names the page Games under the My Shelf band, and links the post and the source', async () => {
     stubApi()
     await renderReady()
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
+      screen.getByRole('heading', { level: 1, name: 'Games' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'My Shelf' })).toBeInTheDocument()
     expect(
       screen.getByText(/^A tracker for my physical game and comic collection:/),
     ).toBeInTheDocument()
@@ -1154,7 +1171,7 @@ describe('Collection header', () => {
     renderPage()
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'My Shelf' }),
+      screen.getByRole('heading', { level: 1, name: 'Games' }),
     ).toBeInTheDocument()
     expect(screen.queryByText(/^I built this myself:/)).toBeNull()
   })

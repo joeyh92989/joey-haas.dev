@@ -142,7 +142,8 @@ const isComicIssuesBody = (body) =>
 export const SNAPSHOTS = {
   items: { path: '/api/public/items', valid: Array.isArray, required: true },
   stats: {
-    path: '/api/public/stats',
+    // Games only: the Games page's figures (`LIVE_PATHS` in src/lib/useSnapshotThenLive.js).
+    path: '/api/public/stats?type=game',
     valid: isStatsBody,
     required: true,
   },

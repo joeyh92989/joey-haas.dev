@@ -273,7 +273,9 @@ export default function AdminLayout() {
 
   if (signedIn) {
     const owned = items
-      ? items.filter((item) => item.owned_format !== 'none').length
+      ? items.filter(
+          (item) => item.type === 'game' && item.owned_format !== 'none',
+        ).length
       : null
     return (
       <AdminShell
