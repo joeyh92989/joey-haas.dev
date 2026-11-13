@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import PageHeader from './PageHeader.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 const trail = [{ label: 'Blog', to: '/blog' }, { label: 'A post' }]
 
@@ -50,5 +51,10 @@ describe('PageHeader', () => {
       ledeClassName: 'post-summary',
     })
     expect(container.querySelector('p.post-summary')).toHaveTextContent('Why.')
+  })
+
+  it('has no axe violations', async () => {
+    const { container } = renderHeader()
+    expect(await axeViolations(container)).toEqual([])
   })
 })

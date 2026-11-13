@@ -215,7 +215,27 @@ body {
   max-width: 72rem;
 }
 
-/* Headings are sans 500; the serif is kept for the Home and About headlines. */
+/* The breadcrumb every detail page opens with (components/Breadcrumb). */
+.crumbs ol {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.25rem 0.5rem;
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.crumbs li + li::before {
+  color: var(--text-3);
+  content: '/';
+  content: '/' / '';
+  margin-right: 0.5rem;
+}
+
+/* Headings are sans 500. The serif (--font-display) is kept for the Home
+   headline and a few display titles (tour stops, trip cards, map labels). */
 h1,
 h2,
 h3 {
@@ -693,7 +713,8 @@ p.muted a,
   padding: 2.5rem 0 3.75rem;
 }
 
-/* The one serif headline on the site; every other h1 is the base sans 500. */
+/* The Home headline: the one serif h1; every other h1 is the base
+   sans 500. */
 .hero-title {
   font: 500 3.5rem/1.05 var(--font-display);
   letter-spacing: -0.02em;
@@ -11815,23 +11836,6 @@ a.cover-tile:focus-visible {
 /* The public issue page (/shelf/:id/:n/). Cover column at 300px; at phone
    width the order is strip, cover (62%, centred), then text. The strip
    scrolls inside itself, never the page. */
-.crumbs ol {
-  color: var(--text-3);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.25rem 0.5rem;
-  list-style: none;
-  margin: 0 0 0.75rem;
-  padding: 0;
-}
-
-.crumbs li + li::before {
-  color: var(--text-3);
-  content: '/';
-  margin-right: 0.5rem;
-}
-
 .neighbour-strip {
   display: flex;
   gap: 0.6rem;

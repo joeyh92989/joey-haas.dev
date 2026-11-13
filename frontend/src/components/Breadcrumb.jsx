@@ -4,8 +4,8 @@ import { Link } from 'react-router'
  * The trail every detail page opens with: "My Shelf / Comics / Saga / #5".
  * A `nav` with a name, an ordered list, and the last item marked as the
  * current page. An item with a `to` is a link; the last is text. The
- * separators are drawn by CSS (`.crumbs li + li::before`), so no reader
- * announces them.
+ * separators are CSS generated content (`.crumbs li + li::before`) with an
+ * empty alternative text, so screen readers do not announce them.
  *
  * @param {object} props
  * @param {{label: string, to?: string}[]} props.trail - Root first, the

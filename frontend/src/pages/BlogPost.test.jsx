@@ -3,6 +3,7 @@ import { act, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import BlogPost from './BlogPost.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 vi.mock('../content/posts.js', () => {
   const posts = [
@@ -126,5 +127,10 @@ describe('BlogPost', () => {
   it('ignores an address that names nothing on the page', () => {
     renderPost('five', '#nope')
     expect(document.body).toHaveFocus()
+  })
+
+  it('has no axe violations', async () => {
+    const { container } = renderPost('five')
+    expect(await axeViolations(container)).toEqual([])
   })
 })

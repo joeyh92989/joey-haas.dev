@@ -571,7 +571,20 @@ export const spine = {
     waking: WAKING,
     error: LOAD_ERROR,
   },
-  /** /shelf/comics and the comic parts of the series page and What's next. */
+  /** The month journal's index; these are the screen-reader strings. */
+  journal: {
+    // copy: pending voice review
+    finished: (count) => `${count} finished`,
+    // copy: pending voice review
+    played: 'played',
+    // copy: pending voice review
+    nothing: 'nothing',
+    // copy: pending voice review
+    previous: 'Previous month:',
+    // copy: pending voice review
+    next: 'Next month:',
+  },
+  /** The item page's labels. */
   item: {
     // copy: pending voice review
     genresLabel: 'Genres',
@@ -579,6 +592,7 @@ export const spine = {
     mainStory: 'Main story',
     toComplete: 'To complete',
   },
+  /** /shelf/comics and the comic parts of the series page and What's next. */
   comics: {
     path: '/shelf/comics',
     title: 'Comics',

@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import TilNote from './TilNote.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 vi.mock('../content/notes.js', () => {
   const notes = [
@@ -50,5 +51,10 @@ describe('TilNote', () => {
       screen.getByRole('heading', { level: 1, name: 'Not found' }),
     ).toBeInTheDocument()
     expect(document.title).toBe('Not found · Joey Haas')
+  })
+
+  it('has no axe violations', async () => {
+    const { container } = renderAt('a-note')
+    expect(await axeViolations(container)).toEqual([])
   })
 })

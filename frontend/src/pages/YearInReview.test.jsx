@@ -6,6 +6,7 @@ import { flaky } from '../lib/flaky.test-util.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DIARY_FAILED } from '../content/status.js'
 import YearInReview from './YearInReview.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 const answer = vi.hoisted(() => ({
   value: { data: null, live: false, failed: false },
@@ -275,5 +276,11 @@ describe('YearInReview', () => {
   it('treats a year that is not a year as not found', () => {
     renderAt('/shelf/year/latest')
     expect(screen.queryByRole('heading', { name: /in review/ })).toBeNull()
+  })
+
+  it('has no axe violations', async () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    const { container } = renderAt('/shelf/year/2026')
+    expect(await axeViolations(container)).toEqual([])
   })
 })

@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import Breadcrumb from './Breadcrumb.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 const trail = [
   { label: 'My Shelf', to: '/shelf' },
@@ -53,5 +54,10 @@ describe('Breadcrumb', () => {
     renderTrail()
     const nav = screen.getByRole('navigation', { name: 'Breadcrumb' })
     expect(nav.textContent).toBe('My ShelfComics#5')
+  })
+
+  it('has no axe violations', async () => {
+    const { container } = renderTrail()
+    expect(await axeViolations(container)).toEqual([])
   })
 })
