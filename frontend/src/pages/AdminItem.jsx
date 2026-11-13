@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
-import ConfirmDelete from '../components/ConfirmDelete.jsx'
+import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import ComicRunEditor from '../components/ComicRunEditor.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import {
@@ -531,8 +531,8 @@ export default function AdminItem() {
   }
 
   async function remove() {
-    // Deleting is the one irreversible thing this page does; ConfirmDelete
-    // has already asked in the page.
+    // Deleting is the one irreversible thing this page does; the
+    // confirm has already asked in the page.
     setError(null)
     try {
       const response = await apiFetch(`/api/items/${id}`, { method: 'DELETE' })
@@ -881,7 +881,12 @@ export default function AdminItem() {
               <button type="submit" disabled={saving}>
                 {saving ? 'Saving…' : 'Save'}
               </button>
-              <ConfirmDelete className="danger" onConfirm={remove} />
+              <ShelfConfirm
+                ids={[id]}
+                title={item.title}
+                className="danger"
+                onConfirm={remove}
+              />
             </div>
           </form>
 

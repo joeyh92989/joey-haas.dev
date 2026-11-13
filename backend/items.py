@@ -29,9 +29,14 @@ from comics import (
 )
 from formats import CopyFieldError, apply_copy_fields
 from models import (
+    ComicIssue,
     ComicShelfFormat,
     Completeness,
     FormatSource,
+    IntakeArea,
+    IntakeEntry,
+    IntakeEntryState,
+    IntakeSitting,
     Item,
     ItemStatus,
     ItemType,
@@ -41,6 +46,8 @@ from models import (
     PhysicalFormat,
     PickAction,
     PickEvent,
+    PlaySession,
+    Playthrough,
 )
 from sources.base import (
     SourceAdapter,
@@ -328,6 +335,38 @@ class BulkSetOut(BaseModel):
     """How many items the change was applied to."""
 
     updated: int
+
+
+class DeleteIdsIn(BaseModel):
+    """The rows a delete or its preview is about; capped like BulkSetIn."""
+
+    ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+
+
+class DeletePreviewOut(BaseModel):
+    """What deleting those rows takes with them: the rows themselves and the
+    child rows that cascade (`ON DELETE CASCADE`), plus the first three titles
+    for the confirm to name. Pick events are counted, not shown."""
+
+    items: int
+    playthroughs: int
+    play_sessions: int
+    comic_issues: int
+    pick_events: int
+    titles: list[str]
+
+
+class BulkDeleteOut(BaseModel):
+    """How many items were deleted."""
+
+    deleted: int
+
+
+class RedoOut(BaseModel):
+    """The intake entry a redo left, and the sitting it sits in."""
+
+    sitting_id: uuid.UUID
+    entry_id: uuid.UUID
 
 
 class VisibilityIn(BaseModel):
@@ -1017,6 +1056,57 @@ def create_items_router(
         await session.commit()
         return BulkSetOut(updated=len(planned))
 
+    @router.post("/delete-preview", response_model=DeletePreviewOut)
+    async def delete_preview(
+        payload: DeleteIdsIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> DeletePreviewOut:
+        """Read-only: counts what deleting these rows would take with them.
+        Ids that match no row are ignored (the delete itself refuses them)."""
+        ids = payload.ids
+        found = await session.execute(
+            select(Item.title).where(Item.id.in_(ids)).order_by(Item.title)
+        )
+        titles = list(found.scalars())
+
+        async def count(model) -> int:
+            return await session.scalar(
+                select(func.count()).select_from(model).where(model.item_id.in_(ids))
+            )
+
+        return DeletePreviewOut(
+            items=len(titles),
+            playthroughs=await count(Playthrough),
+            play_sessions=await count(PlaySession),
+            comic_issues=await count(ComicIssue),
+            pick_events=await count(PickEvent),
+            titles=titles[:3],
+        )
+
+    # A POST path, not DELETE /bulk: DELETE /{item_id} would answer "bulk"
+    # with a 422 (see the route-order note on PATCH /bulk).
+    @router.post("/bulk-delete", response_model=BulkDeleteOut)
+    async def bulk_delete(
+        payload: DeleteIdsIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> BulkDeleteOut:
+        """Deletes many items in one transaction. An unknown id is a 404
+        naming it and nothing is deleted. Children go by cascade."""
+        wanted = set(payload.ids)
+        result = await session.execute(select(Item).where(Item.id.in_(wanted)))
+        rows = list(result.scalars())
+        missing = wanted - {row.id for row in rows}
+        if missing:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No such item: {', '.join(sorted(str(i) for i in missing))}",
+            )
+        for row in rows:
+            await session.delete(row)
+        await session.commit()
+        logger.info("bulk delete: removed %d items", len(rows))
+        return BulkDeleteOut(deleted=len(rows))
+
     @router.post("/bulk", response_model=BulkOut, status_code=201)
     async def create_items_bulk(
         payload: BulkIn,
@@ -1348,6 +1438,65 @@ def create_items_router(
         await session.refresh(item)
         await _mark_excluded(session, [item])
         return item
+
+    @router.post("/{item_id}/redo", response_model=RedoOut)
+    async def redo_item(
+        item_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> RedoOut:
+        """Sends a row back through intake: one entry, asking for a check,
+        in the newest shelf sitting of the item's kind (or a new one), and
+        the item is deleted, all in one transaction. The entry carries the
+        item's title and external match so it can be kept or changed."""
+        item = await _load(session, item_id)
+        kind = item.type.value
+        sitting = (
+            await session.scalars(
+                select(IntakeSitting)
+                .where(IntakeSitting.area == IntakeArea.SHELF)
+                .where(IntakeSitting.kind == kind)
+                .order_by(IntakeSitting.updated_at.desc(), IntakeSitting.id)
+                .limit(1)
+            )
+        ).first()
+        if sitting is None:
+            sitting = IntakeSitting(area=IntakeArea.SHELF, kind=kind)
+            session.add(sitting)
+        # Open on Check, where the entry waits, and move the sitting to the
+        # front so the next redo lands beside this one.
+        sitting.step = "check"
+        sitting.updated_at = func.now()
+        chosen = None
+        candidates: list[dict] = []
+        if item.external_source and item.external_id:
+            chosen = {
+                "title": item.title,
+                "external_source": item.external_source,
+                "external_id": item.external_id,
+                "year": item.year,
+                "cover_url": item.cover_url,
+                "creator": item.creator,
+            }
+            # Check builds its options from `candidates`, so the old match is
+            # listed there too, in the importer's candidate shape.
+            candidates = [{**chosen, "thumbnail_url": item.cover_url}]
+        await session.flush()
+        entry = IntakeEntry(
+            sitting_id=sitting.id,
+            kind=kind,
+            state=IntakeEntryState.CHECK,
+            payload={
+                "detected_title": item.title,
+                "detected_year": item.year,
+                "reason": "Sent back to match again",
+            },
+            chosen=chosen,
+            candidates=candidates,
+        )
+        session.add(entry)
+        await session.delete(item)
+        await session.commit()
+        return RedoOut(sitting_id=sitting.id, entry_id=entry.id)
 
     @router.delete("/{item_id}", status_code=204)
     async def delete_item(

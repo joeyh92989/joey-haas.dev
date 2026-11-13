@@ -141,3 +141,58 @@ describe('ConfirmDelete', () => {
     log.mockRestore()
   })
 })
+
+describe('ConfirmDelete, naming what goes', () => {
+  it('shows the detail line once armed, and calls onArm', async () => {
+    const onArm = vi.fn()
+    render(
+      <ConfirmDelete
+        onConfirm={() => {}}
+        onArm={onArm}
+        detail="“Hades” goes with 2 playthroughs."
+      />,
+    )
+    expect(screen.queryByText(/goes with/)).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(onArm).toHaveBeenCalledTimes(1)
+    expect(
+      screen.getByText('“Hades” goes with 2 playthroughs.'),
+    ).toBeInTheDocument()
+  })
+
+  it('holds Delete for good off until the detail is ready', async () => {
+    const onConfirm = vi.fn()
+    const { rerender } = render(
+      <ConfirmDelete onConfirm={onConfirm} detail="Checking." ready={false} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(
+      screen.getByRole('button', { name: 'Delete for good' }),
+    ).toBeDisabled()
+
+    rerender(<ConfirmDelete onConfirm={onConfirm} detail="Words." ready />)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete for good' }),
+    )
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+  })
+
+  it('takes its own words for Redo', async () => {
+    render(
+      <ConfirmDelete
+        onConfirm={() => {}}
+        subject="Hades"
+        label="Redo"
+        confirmLabel="Yes, redo"
+        intro="Redo “Hades”?"
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Redo Hades' }))
+    expect(screen.getByText(/Redo “Hades”\?/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Yes, redo, Hades' }),
+    ).toBeInTheDocument()
+  })
+})

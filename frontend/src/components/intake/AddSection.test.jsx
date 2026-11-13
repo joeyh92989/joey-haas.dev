@@ -365,6 +365,75 @@ describe('AddSection on the shelf', () => {
     expect(screen.getByText('the grid')).toBeInTheDocument()
   })
 
+  it('discards the one unfinished sitting after a confirm naming what goes', async () => {
+    const user = userEvent.setup()
+    const api = fakeIntakeApi({
+      sittings: [
+        {
+          id: 's1',
+          area: 'shelf',
+          kind: 'comic',
+          label: 'Comic · Nov 11, 7:42 PM',
+          entries: [entry('e1', 'check'), entry('e2', 'exact')],
+        },
+      ],
+    })
+    renderAt()
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Discard Comic · Nov 11, 7:42 PM',
+      }),
+    )
+    expect(
+      screen.getByText(
+        'Discard Comic · Nov 11, 7:42 PM? Its 2 entries go with it.',
+      ),
+    ).toBeInTheDocument()
+    expect(api.calls('DELETE', /sittings\/s1$/)).toHaveLength(0)
+
+    await user.click(screen.getByRole('button', { name: 'Yes, discard' }))
+
+    await waitFor(() =>
+      expect(screen.queryByText(/is unfinished/)).not.toBeInTheDocument(),
+    )
+    expect(screen.queryByText(/Discard/)).not.toBeInTheDocument()
+    expect(api.calls('DELETE', /sittings\/s1$/)).toHaveLength(1)
+  })
+
+  it('keeps the sitting on Keep it', async () => {
+    const user = userEvent.setup()
+    fakeIntakeApi({
+      sittings: [{ id: 's1', area: 'shelf', kind: 'comic', label: 'Box' }],
+    })
+    renderAt()
+    await user.click(await screen.findByRole('button', { name: 'Discard Box' }))
+    expect(
+      screen.getByText('Discard Box? It has no photos or entries.'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'Keep it' }))
+    expect(screen.getByRole('button', { name: 'Discard Box' })).toHaveFocus()
+    expect(screen.getByText(/is unfinished/)).toHaveTextContent(
+      'Box is unfinished',
+    )
+  })
+
+  it('names a sitting with no label as Untitled sitting', async () => {
+    fakeIntakeApi({ sittings: [{ id: 's1', area: 'shelf', kind: 'game' }] })
+    renderAt()
+    expect(await screen.findByText(/is unfinished/)).toHaveTextContent(
+      'Untitled sitting is unfinished',
+    )
+  })
+
+  it('offers no Discard on the line for several sittings', async () => {
+    const sitting = (id) => ({ id, area: 'shelf', kind: 'comic', label: 'X' })
+    fakeIntakeApi({ sittings: [sitting('s1'), sitting('s2')] })
+    renderAt()
+    await screen.findByText(/are unfinished/)
+    expect(screen.queryByRole('button', { name: /Discard/ })).toBeNull()
+  })
+
   it('counts several unfinished sittings and links to the list', async () => {
     const sitting = (id) => ({
       id,

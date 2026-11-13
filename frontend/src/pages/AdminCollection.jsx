@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
-import ConfirmDelete from '../components/ConfirmDelete.jsx'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverKey from '../components/CoverKey.jsx'
@@ -17,6 +16,7 @@ import NowPlaying from '../components/NowPlaying.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ResultBar from '../components/ResultBar.jsx'
 import ShelfCardActions from '../components/ShelfCardActions.jsx'
+import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import WrapUpSheet from '../components/WrapUpSheet.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
@@ -47,6 +47,13 @@ import { FavoritesRow } from '../components/ShelfOverview.jsx'
 import { gamesPath, itemPath } from '../lib/spinePaths.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import { spine } from '../content/spine.js'
+import {
+  DELETE_FAILED,
+  DELETE_MANY_FAILED,
+  REDO_FAILED,
+  deletedLine,
+  deletedManyLine,
+} from '../content/shelfDelete.js'
 
 const VIEWS = ['shelf', 'list']
 const SIZES = ['comfortable', 'compact']
@@ -225,6 +232,8 @@ export default function AdminCollection() {
   // The type being refreshed ('game', 'comic', 'movie'), or null.
   const [refreshing, setRefreshing] = useState(null)
   const [refreshResult, setRefreshResult] = useState(null)
+  // The line after a delete: "Deleted “X”."
+  const [notice, setNotice] = useState(null)
 
   /**
    * Fetches the collection and returns what the UI should show.
@@ -636,22 +645,88 @@ export default function AdminCollection() {
     await load()
   }
 
-  async function removeItem(id) {
+  /** Deletes one row (after its confirm) and says which one went. */
+  async function removeItem(item) {
     setError(null)
+    setNotice(null)
     try {
-      const response = await apiFetch(`/api/items/${id}`, { method: 'DELETE' })
+      const response = await apiFetch(`/api/items/${item.id}`, {
+        method: 'DELETE',
+      })
       if (!response.ok) {
-        setError('Couldn’t delete that item.')
+        setError(DELETE_FAILED)
         return
       }
     } catch {
       setError(ACTION_ERROR)
       return
     }
+    setSelected((current) => {
+      if (!current.has(item.id)) return current
+      const next = new Set(current)
+      next.delete(item.id)
+      return next
+    })
+    setNotice(deletedLine(item.title))
     // The row is gone, and so is the button that had focus: park it on the
     // list once the new rows are drawn.
     focusListNext.current = true
     await load()
+  }
+
+  /**
+   * Deletes the rows the confirm named, in one request, all or nothing.
+   * `ids` are the ones armed, never whatever is selected by now.
+   */
+  async function removeSelected(ids) {
+    setError(null)
+    setNotice(null)
+    try {
+      const response = await apiFetch('/api/items/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      if (!response.ok) {
+        setError(`${DELETE_MANY_FAILED} ${await errorMessage(response)}`)
+        return
+      }
+      const { deleted } = await response.json()
+      setNotice(deletedManyLine(deleted))
+    } catch {
+      setError(ACTION_ERROR)
+      return
+    }
+    // The selection clears on success and stays on failure, like bulk set.
+    setSelected((current) => {
+      const next = new Set(current)
+      for (const id of ids) next.delete(id)
+      return next
+    })
+    focusListNext.current = true
+    await load()
+  }
+
+  /**
+   * Sends a row back through Add: it is removed and comes back as one entry
+   * in a sitting, ready to match again. Goes to that sitting.
+   */
+  async function redoItem(item) {
+    setError(null)
+    setNotice(null)
+    try {
+      const response = await apiFetch(`/api/items/${item.id}/redo`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        setError(REDO_FAILED)
+        return
+      }
+      const { sitting_id: sittingId } = await response.json()
+      navigate(`/admin/collection/add/${sittingId}`)
+    } catch {
+      setError(ACTION_ERROR)
+    }
   }
 
   const publicCount = items.filter((item) => item.is_public).length
@@ -822,6 +897,8 @@ export default function AdminCollection() {
                       updateVisibility(target.id, isPublic)
                     }
                     onPin={pinItem}
+                    onDelete={removeItem}
+                    onRedo={redoItem}
                   />
                 )}
               />
@@ -937,6 +1014,8 @@ export default function AdminCollection() {
         </p>
       )}
 
+      {notice && <p role="status">{notice}</p>}
+
       {savedComic && (
         <p role="status">
           Saved “{savedComic}”. Comics show on{' '}
@@ -1034,6 +1113,14 @@ export default function AdminCollection() {
                       >
                         Apply
                       </button>
+                      <ShelfConfirm
+                        key={[...selected].sort().join(',')}
+                        many
+                        ids={[...selected]}
+                        title={`${selected.size} ${selected.size === 1 ? 'item' : 'items'}`}
+                        label={`Delete ${selected.size}`}
+                        onConfirm={removeSelected}
+                      />
                     </div>
                   )}
                   <table className="item-table">
@@ -1111,9 +1198,16 @@ export default function AdminCollection() {
                             />
                           </td>
                           <td>
-                            <ConfirmDelete
-                              subject={item.title}
-                              onConfirm={() => removeItem(item.id)}
+                            <ShelfConfirm
+                              ids={[item.id]}
+                              title={item.title}
+                              onConfirm={() => removeItem(item)}
+                            />
+                            <ShelfConfirm
+                              mode="redo"
+                              ids={[item.id]}
+                              title={item.title}
+                              onConfirm={() => redoItem(item)}
                             />
                           </td>
                         </tr>

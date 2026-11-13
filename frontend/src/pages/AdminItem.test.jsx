@@ -48,6 +48,20 @@ function stubApi({ item = ITEM, status = 200, onWrite } = {}) {
         json: async () => item,
       }
     }
+    if (String(url).endsWith('/api/items/delete-preview')) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: 1,
+          playthroughs: 1,
+          play_sessions: 6,
+          comic_issues: 0,
+          pick_events: 0,
+          titles: [item.title],
+        }),
+      }
+    }
     const failure = onWrite?.(String(url), options)
     if (failure) return failure
     return {
@@ -71,9 +85,12 @@ function renderPage() {
   )
 }
 
+/** The writes; the delete preview is a POST that changes nothing. */
 function writeCalls(mock) {
   return mock.mock.calls.filter(
-    ([, options]) => (options?.method ?? 'GET') !== 'GET',
+    ([url, options]) =>
+      (options?.method ?? 'GET') !== 'GET' &&
+      !String(url).endsWith('/api/items/delete-preview'),
   )
 }
 
@@ -199,26 +216,37 @@ describe('AdminItem', () => {
     vi.stubGlobal('confirm', confirm)
     renderPage()
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Delete Star Fox' }),
+    )
 
     expect(
-      screen.getByRole('button', { name: 'Delete for good' }),
+      screen.getByRole('button', { name: 'Delete Star Fox for good' }),
     ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Keep it' }))
+    expect(
+      await screen.findByText(
+        '“Star Fox” goes with 1 playthrough and 6 journal days.',
+      ),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Keep Star Fox' }))
 
     expect(confirm).not.toHaveBeenCalled()
     expect(writeCalls(mock)).toHaveLength(0)
-    expect(screen.getByRole('button', { name: 'Delete' })).toHaveFocus()
+    expect(
+      screen.getByRole('button', { name: 'Delete Star Fox' }),
+    ).toHaveFocus()
   })
 
   it('deletes and returns to the collection when confirmed', async () => {
     const mock = stubApi()
     renderPage()
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Delete Star Fox' }),
+    )
     expect(writeCalls(mock)).toHaveLength(0)
     await userEvent.click(
-      screen.getByRole('button', { name: 'Delete for good' }),
+      screen.getByRole('button', { name: 'Delete Star Fox for good' }),
     )
 
     await waitFor(() => {
@@ -235,7 +263,7 @@ describe('AdminItem', () => {
 
     await userEvent.type(await screen.findByLabelText(/look up/i), 'Star Fox')
     await userEvent.click(
-      await screen.findByRole('button', { name: /Star Fox/ }),
+      await screen.findByRole('button', { name: /^Star Fox/ }),
     )
 
     await waitFor(() => expect(writeCalls(mock)).toHaveLength(2))
@@ -264,7 +292,7 @@ describe('AdminItem', () => {
     await userEvent.selectOptions(await screen.findByLabelText('Type'), 'movie')
     await userEvent.type(screen.getByLabelText(/look up/i), 'Star Fox')
     await userEvent.click(
-      await screen.findByRole('button', { name: /Star Fox/ }),
+      await screen.findByRole('button', { name: /^Star Fox/ }),
     )
 
     await waitFor(() => expect(writeCalls(mock)).toHaveLength(2))
@@ -284,7 +312,7 @@ describe('AdminItem', () => {
 
     await userEvent.type(screen.getByLabelText(/look up/i), 'Star Fox')
     await userEvent.click(
-      await screen.findByRole('button', { name: /Star Fox/ }),
+      await screen.findByRole('button', { name: /^Star Fox/ }),
     )
 
     await waitFor(() =>
@@ -300,7 +328,7 @@ describe('AdminItem', () => {
 
     await userEvent.type(await screen.findByLabelText(/look up/i), 'Star Fox')
     await userEvent.click(
-      await screen.findByRole('button', { name: /Star Fox/ }),
+      await screen.findByRole('button', { name: /^Star Fox/ }),
     )
 
     await waitFor(() => expect(writeCalls(mock)).toHaveLength(2))
@@ -319,7 +347,7 @@ describe('AdminItem', () => {
 
     await userEvent.type(await screen.findByLabelText(/look up/i), 'Star Fox')
     await userEvent.click(
-      await screen.findByRole('button', { name: /Star Fox/ }),
+      await screen.findByRole('button', { name: /^Star Fox/ }),
     )
 
     expect(
@@ -577,7 +605,7 @@ describe('AdminItem edits made while a re-link is in flight', () => {
   async function relinkThenRate() {
     await userEvent.type(await screen.findByLabelText(/look up/i), 'Star Fox')
     await userEvent.click(
-      await screen.findByRole('button', { name: /Star Fox/ }),
+      await screen.findByRole('button', { name: /^Star Fox/ }),
     )
     await screen.findByText('Re-linking…')
     await userEvent.type(screen.getByLabelText('Rating'), '8')

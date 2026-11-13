@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useOutletContext } from 'react-router'
+import { discardAsk } from '../../content/shelfDelete.js'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import {
   addPath,
@@ -12,14 +13,31 @@ import { useMediaQuery } from '../../lib/useMediaQuery.js'
 import AddBar from './AddBar.jsx'
 import AddDrawer from './AddDrawer.jsx'
 import AddResults from './AddResults.jsx'
+import { sittingName } from './UnfinishedList.jsx'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
 /**
- * One unfinished sitting as a line with Resume; with several, their count
- * and a link to the Add page's list, so no one is named over another.
+ * One unfinished sitting as a line with Resume and Discard; with several,
+ * their count and a link to the Add page's list (which has Discard per
+ * sitting), so no one is named over another. Discard asks once, in the
+ * line, naming the sitting and what goes with it.
  */
-function UnfinishedLine({ sittings, area }) {
+function UnfinishedLine({ sittings, area, onDiscard }) {
+  const [asking, setAsking] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const keepRef = useRef(null)
+  const discardRef = useRef(null)
+  const refocus = useRef(false)
+  // Focus moves with the swap, as ConfirmDelete does: onto Keep it when it
+  // asks, and back onto Discard when kept.
+  useEffect(() => {
+    if (asking) keepRef.current?.focus()
+    else if (refocus.current) {
+      refocus.current = false
+      discardRef.current?.focus()
+    }
+  }, [asking])
   if (!sittings?.length) return null
   const [newest, ...rest] = sittings
   if (rest.length > 0) {
@@ -35,7 +53,40 @@ function UnfinishedLine({ sittings, area }) {
     )
   }
   const counts = meterCounts(newest)
-  const label = newest.label ?? 'A sitting'
+  const label = sittingName(newest)
+  if (asking) {
+    return (
+      <p className="intake-resume" role="group" aria-label={`Discard ${label}`}>
+        <span>{discardAsk(label, newest)}</span>
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true)
+            const gone = await onDiscard(newest)
+            setBusy(false)
+            if (!gone) refocus.current = true
+            setAsking(false)
+          }}
+        >
+          Yes, discard
+        </button>
+        <button
+          type="button"
+          ref={keepRef}
+          className="btn ghost"
+          disabled={busy}
+          onClick={() => {
+            refocus.current = true
+            setAsking(false)
+          }}
+        >
+          Keep it
+        </button>
+      </p>
+    )
+  }
   return (
     <p className="intake-resume">
       <span>
@@ -49,6 +100,15 @@ function UnfinishedLine({ sittings, area }) {
       >
         Resume <span aria-hidden="true">→</span>
       </Link>
+      <button
+        type="button"
+        ref={discardRef}
+        className="btn ghost"
+        aria-label={`Discard ${label}`}
+        onClick={() => setAsking(true)}
+      >
+        Discard
+      </button>
     </p>
   )
 }
@@ -83,6 +143,7 @@ export default function AddSection({ area, onAdded, children }) {
   const [adding, setAdding] = useState(false)
   const [drawerError, setDrawerError] = useState(null)
   const [refusals, setRefusals] = useState({})
+  const context = useOutletContext() ?? {}
 
   useEffect(() => {
     let live = true
@@ -116,6 +177,26 @@ export default function AddSection({ area, onAdded, children }) {
   const byKey = Object.fromEntries(areaKinds.map((kind) => [kind.key, kind]))
   const searchable = areaKinds.some((kind) => kind.ways_in.includes('search'))
   const typedKinds = areaKinds.filter((kind) => kind.ways_in.includes('type'))
+
+  /** Discards the one unfinished sitting; true when it is gone. */
+  async function discard(sitting) {
+    setError(null)
+    try {
+      const response = await apiFetch(`/api/intake/sittings/${sitting.id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok && response.status !== 404) {
+        setError(await errorMessage(response, { ownConflicts: true }))
+        return false
+      }
+    } catch {
+      setError(NO_ANSWER)
+      return false
+    }
+    setSittings((old) => old.filter((s) => s.id !== sitting.id))
+    context.refreshIntakeCounts?.()
+    return true
+  }
 
   function openDrawer(next, opener) {
     openerRef.current = opener
@@ -307,7 +388,7 @@ export default function AddSection({ area, onAdded, children }) {
           }
         />
       )}
-      <UnfinishedLine sittings={sittings} area={area} />
+      <UnfinishedLine sittings={sittings} area={area} onDiscard={discard} />
       <div
         className="intake-withdrawer"
         data-drawer={drawer && !sheet ? 'open' : undefined}

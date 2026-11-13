@@ -57,6 +57,7 @@ tab shows only while the build's snapshot holds a public row of that type.
 | Empty state | `EmptyState` | One sentence saying what is missing, an optional line, and the next step as a link or button when there is one. Words from `content/`. |
 | Load error | `LoadState` | A failed read says so in the shared words (`content/status.js`) with Try again; a stale but painted page says it quietly. |
 | Dialog | `Sheet` | The one modal (CLAUDE.md). |
+| Destructive confirm | `ConfirmDelete` (`ShelfConfirm` for rows) | Asks in place, never in a browser dialog, and names the row and what goes with it, with the real counts (`lib/deleteDetail.js`, words in `content/shelfDelete.js`). A delete that cannot read the counts does not go ahead. |
 
 ## Widths
 

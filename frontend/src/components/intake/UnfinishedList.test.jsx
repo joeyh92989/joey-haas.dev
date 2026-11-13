@@ -82,7 +82,9 @@ describe('UnfinishedList', () => {
       screen.getByRole('button', { name: 'Discard Longbox 1' }),
     )
     expect(onDiscard).not.toHaveBeenCalled()
-    expect(screen.getByText(/its photos go with it/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Its 6 photos and 43 entries go with it/),
+    ).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Keep it' }))
     expect(onDiscard).not.toHaveBeenCalled()
     await userEvent.click(

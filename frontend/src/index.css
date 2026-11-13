@@ -6866,9 +6866,9 @@ section > .cover-key {
   width: fit-content;
 }
 
-/* Admin comic cards: Follow, Public, the cover wall and Edit, revealed on
-   hover and on focus-within (opacity, so a keyboard can still reach them)
-   and always there on a device with no hover. */
+/* Admin comic cards: Follow, Public, the cover wall, Edit, Redo and Delete.
+   The reveal (hover and focus-within, or the "…" sheet on touch) is
+   CardActionsShell's, the same as the Games card. */
 .comic-actions {
   display: flex;
   flex-wrap: wrap;
@@ -6883,16 +6883,10 @@ section > .cover-key {
   gap: var(--space-1);
 }
 
-@media (hover: hover) {
-  .comic-actions {
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-
-  .poster-card:hover .comic-actions,
-  .comic-actions:focus-within {
-    opacity: 1;
-  }
+.shelf-sheet .comic-actions {
+  font-size: var(--fs-16);
+  gap: var(--space-3) var(--space-4);
+  justify-content: center;
 }
 
 /* EmptyState: a dashed box like .empty-box, with room for a next step. */
@@ -12210,4 +12204,25 @@ a.btn.sm {
 /* Now: the RSS line sits apart from the finished list above it. */
 .now-rss {
   margin-top: var(--space-3);
+}
+
+/* ConfirmDelete's armed line: the row's name and what goes with it. Full
+   width, so the buttons wrap beneath it in a card panel or a table cell. */
+.confirm-detail {
+  color: var(--text-2);
+  flex: 1 1 100%;
+  font-size: var(--fs-13);
+  line-height: 1.4;
+}
+
+/* Delete and Redo sit on their own line at the foot of a card's panel;
+   Delete reads as the danger it is. */
+.shelf-actions-danger {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-2);
+}
+
+.shelf-delete {
+  border-color: var(--accent);
+  color: var(--accent);
 }
