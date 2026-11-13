@@ -23,6 +23,7 @@ import {
 import { readSnapshot } from '../lib/snapshot.js'
 import { runWords, STATUS_LABEL } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import NotFound from './NotFound.jsx'
 import { itemPath } from '../lib/spinePaths.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
@@ -212,63 +213,53 @@ function Tiles({ item, detail }) {
   const showPlayed = item.times_completed > 0 || played
   const timeToBeat = timeToBeatFigures(item.time_to_beat)
   return (
-    <dl className="item-tiles">
-      <div className="item-tile">
-        <dt>My rating</dt>
+    <StatTiles figures>
+      <StatTile label="My rating">
         {item.rating ? (
-          <dd>
+          <>
             <Rating rating={item.rating} size="large" />
             <span className="muted" aria-hidden="true">
               {ITEM.outOfTen}
             </span>
-          </dd>
+          </>
         ) : (
-          <dd className="muted">Not rated</dd>
+          <span className="muted">Not rated</span>
         )}
-      </div>
+      </StatTile>
       {detail && item.community_score != null && (
-        <div className="item-tile">
-          <dt>Community</dt>
-          <dd>
-            <span className="item-tile-figure">
-              {Math.round(item.community_score)} / 100
-            </span>
-            {item.community_votes != null && (
-              <span className="muted">{item.community_votes} votes</span>
-            )}
-          </dd>
-        </div>
+        <StatTile label="Community">
+          <span className="item-tile-figure">
+            {Math.round(item.community_score)} / 100
+          </span>
+          {item.community_votes != null && (
+            <span className="muted">{item.community_votes} votes</span>
+          )}
+        </StatTile>
       )}
       {detail && timeToBeat.length > 0 && (
-        <div className="item-tile">
-          <dt>Time to beat</dt>
-          <dd>
-            {timeToBeat.map(([label, figure]) => (
-              <span className="item-ttb" key={label}>
-                <span className="muted">{label}</span>
-                <span className="item-tile-figure">{figure}</span>
-              </span>
-            ))}
-          </dd>
-        </div>
+        <StatTile label="Time to beat">
+          {timeToBeat.map(([label, figure]) => (
+            <span className="item-ttb" key={label}>
+              <span className="muted">{label}</span>
+              <span className="item-tile-figure">{figure}</span>
+            </span>
+          ))}
+        </StatTile>
       )}
       {detail && showPlayed && (
-        <div className="item-tile">
-          <dt>{runWords(item.type).tile}</dt>
-          <dd>
-            {item.times_completed > 0 && (
-              <span className="item-tile-figure">
-                Finished{' '}
-                {item.times_completed === 1
-                  ? 'once'
-                  : `${item.times_completed} times`}
-              </span>
-            )}
-            {played && <span className="muted">{played}</span>}
-          </dd>
-        </div>
+        <StatTile label={runWords(item.type).tile}>
+          {item.times_completed > 0 && (
+            <span className="item-tile-figure">
+              Finished{' '}
+              {item.times_completed === 1
+                ? 'once'
+                : `${item.times_completed} times`}
+            </span>
+          )}
+          {played && <span className="muted">{played}</span>}
+        </StatTile>
       )}
-    </dl>
+    </StatTiles>
   )
 }
 

@@ -56,6 +56,16 @@ before pushing.
   added. Design tokens are CSS variables declared twice: dark values on
   `:root` and light overrides under `[data-theme='light']`. Style with the
   tokens, never with raw hex — a literal color will be wrong in one theme.
+- Type and spacing are tokens too: `font-size` is `--fs-*` (`--fs-56` for the
+  display figure), padding, margin and gap on the 4px grid are `--space-*`.
+  Nothing renders under 12px except the marked illustration glyphs;
+  `typeScale.test.js` and `spaceScale.test.js` enforce it.
+- `Sheet` is the one modal dialog shell (focus trap, Escape, scroll lock);
+  `NavSheet` is the same for nav menus. Don't hand-roll a dialog.
+- Tile family: `CoverTile` (a comic cover; `tile.kind === 'book'` is a
+  collected edition), `PosterCard` (a poster) and `StatTile` (a figure; its
+  `children` take a composite value, `StatTiles figures` the item-page look).
+  `CoverStrip`, `GarmentTile`, `AreaCard` and `HeroNumbers` are different jobs.
 - Theming: dark is the brand default and is written into the markup as
   `<html data-theme="dark">`, so it survives a JavaScript failure. A pre-paint
   script in `frontend/index.html` switches to `localStorage('theme')` when one

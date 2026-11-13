@@ -4774,21 +4774,18 @@ a.month-bar::before {
   overflow: hidden;
 }
 
-.item-tiles {
+.stat-tiles-figures {
   display: grid;
   gap: var(--grid-gap);
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
   margin: 0 0 var(--space-6);
 }
 
-.item-tile {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+.stat-tile-figures {
   padding: 0.85rem var(--space-4);
 }
 
-.item-tile dt {
+.stat-tile-figures dt {
   color: var(--text-3);
   font-size: var(--fs-12);
   letter-spacing: 0.08em;
@@ -4796,7 +4793,7 @@ a.month-bar::before {
   text-transform: uppercase;
 }
 
-.item-tile dd {
+.stat-tile-figures dd {
   display: flex;
   flex-direction: column;
   font-size: var(--fs-13);
