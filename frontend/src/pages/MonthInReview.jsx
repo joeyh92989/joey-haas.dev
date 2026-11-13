@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link, useParams } from 'react-router'
 import LoadState from '../components/LoadState.jsx'
 import { DIARY_FAILED } from '../content/status.js'
@@ -52,9 +53,15 @@ export default function MonthInReview() {
   const name = parsed ? monthName(month) : null
   usePageTitle(name ? `${name} · ${spine.name}` : null)
 
+  const items = useMemo(() => (Array.isArray(data) ? data : []), [data])
+  const year = parsed?.year
+  const cells = useMemo(
+    () => (year ? monthIndex(items, diary.sessions, year) : []),
+    [items, diary.sessions, year],
+  )
+
   if (!parsed) return <NotFound />
 
-  const items = Array.isArray(data) ? data : []
   const review = monthInReview(items, diary.sessions, month, nearby.sessions)
   // Said only once the diary has answered, so a month with sessions never
   // claims to be empty while they load; a failed diary claims only finishes.
@@ -73,7 +80,8 @@ export default function MonthInReview() {
       />
 
       <MonthIndex
-        cells={monthIndex(items, diary.sessions, review.year)}
+        cells={cells}
+        known={diary.settled && !diary.failed}
         current={month}
         previous={review.previous}
         next={review.next}

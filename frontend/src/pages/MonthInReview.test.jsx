@@ -6,6 +6,7 @@ import { flaky } from '../lib/flaky.test-util.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DIARY_FAILED } from '../content/status.js'
 import MonthInReview from './MonthInReview.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 const answer = vi.hoisted(() => ({
   value: { data: null, live: false, failed: false },
@@ -221,4 +222,19 @@ describe('MonthInReview', () => {
       expect(screen.queryByRole('navigation', { name: 'Months' })).toBeNull()
     },
   )
+
+  it('has no axe violations', async () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.rows = SESSIONS
+    const { container } = renderAt('/shelf/journal/2026-10')
+    expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('does not announce an empty month while the diary is unsettled', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.settled = false
+    renderAt('/shelf/journal/2026-10')
+    const nav = screen.getByRole('navigation', { name: 'Months' })
+    expect(within(nav).queryByText(/nothing/)).toBeNull()
+  })
 })

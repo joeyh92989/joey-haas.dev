@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { monthIndex } from '../lib/monthInReview.js'
 import MonthIndex from './MonthIndex.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 const ITEMS = [
   { id: 'a', type: 'game', title: 'A', finished_at: '2026-09-04' },
@@ -78,5 +79,47 @@ describe('MonthIndex', () => {
   it('leaves out an edge that has no neighbour', () => {
     renderIndex('2026-09', null, '2026-10')
     expect(screen.queryByRole('link', { name: /Previous month/ })).toBeNull()
+  })
+
+  it('has no axe violations', async () => {
+    const { container } = renderIndex()
+    expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('stays neutral for a month without a finish until the diary is known', () => {
+    render(
+      <MemoryRouter>
+        <MonthIndex
+          cells={monthIndex(ITEMS, [], 2026)}
+          current="2026-09"
+          previous={null}
+          next={null}
+          known={false}
+        />
+      </MemoryRouter>,
+    )
+    const list = screen.getByRole('list')
+    expect(within(list).queryByText(/nothing/)).toBeNull()
+    expect(within(list).getByText('August 2026')).toBeInTheDocument()
+    // Finishes are still known, and still link.
+    expect(
+      within(list).getByRole('link', { name: 'November 2026, 1 finished' }),
+    ).toBeInTheDocument()
+    expect(within(list).getAllByRole('link')).toHaveLength(1)
+  })
+
+  it('steps from December to January and back across the year', () => {
+    const { unmount } = renderIndex('2026-12', '2026-11', '2027-01')
+    expect(
+      screen.getByRole('link', { name: 'Previous month: November 2026' }),
+    ).toHaveAttribute('href', '/shelf/journal/2026-11/')
+    expect(
+      screen.getByRole('link', { name: 'Next month: January 2027' }),
+    ).toHaveAttribute('href', '/shelf/journal/2027-01/')
+    unmount()
+    renderIndex('2027-01', '2026-12', '2027-02')
+    expect(
+      screen.getByRole('link', { name: 'Previous month: December 2026' }),
+    ).toHaveAttribute('href', '/shelf/journal/2026-12/')
   })
 })
