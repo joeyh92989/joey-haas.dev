@@ -216,3 +216,23 @@ def test_read_to_of_and_plan_are_pure():
     assert read_to_of({1, 2, 4}, {2, 4}) is None
     change = plan_mark("1", None, None, set(), 3, "read")
     assert (change.issues_owned, change.read_to) == ("1, 3", None)
+
+
+async def test_a_range_marks_a_whole_book_read(sessionmaker_for_test):
+    item_id = await seed_comic(
+        sessionmaker_for_test,
+        owned_format=OwnedFormat.PHYSICAL,
+        issues_owned="1",
+        editions=[EDITION],
+    )
+    async with comics_client(sessionmaker_for_test, FakeComicVine()) as client:
+        response = await client.post(
+            f"/api/comics/{item_id}/issues/3/mark", json={"state": "read", "to": 4}
+        )
+        backwards = await client.post(
+            f"/api/comics/{item_id}/issues/4/mark", json={"state": "read", "to": 3}
+        )
+    assert response.status_code == 200, response.text
+    got = await marks(sessionmaker_for_test, item_id)
+    assert got[3] == got[4] == (True, True, False)
+    assert backwards.status_code == 422

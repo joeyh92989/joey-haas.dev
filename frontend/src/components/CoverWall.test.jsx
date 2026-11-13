@@ -145,3 +145,102 @@ describe('CoverWall key words', () => {
       expect(within(key).getByText(word)).toBeInTheDocument()
   })
 })
+
+describe('CoverWall show chips and marks', () => {
+  const marked = (n, owned, read) =>
+    issuesTo(n).map((row, i) => ({
+      ...row,
+      owned: owned.includes(i + 1),
+      read: read.includes(i + 1),
+    }))
+
+  it('draws even when nothing is held, with Show All and Missing counts', () => {
+    show(
+      { series_title: 'Tales', issues: issuesTo(5), editions: [] },
+      detail({ owned_text: '', released: 5 }),
+    )
+    const group = screen.getByRole('group', { name: 'Show' })
+    expect(
+      within(group).getByRole('button', { name: 'All 5' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(
+      within(group).getByRole('button', { name: 'Missing 5' }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /, Missing$/ })).toHaveLength(5)
+  })
+
+  it('Missing shows only the missing covers, with its own empty line', async () => {
+    const user = userEvent.setup()
+    show(
+      { series_title: 'Saga', issues: marked(4, [1, 2, 3], [1]), editions: [] },
+      detail({ owned_text: '', released: 4 }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Missing 1' }))
+    expect(screen.getAllByRole('link')).toHaveLength(1)
+    expect(screen.getByRole('link', { name: 'Saga #4, Missing' })).toBeVisible()
+  })
+
+  it('says nothing is missing when the run is whole', async () => {
+    const user = userEvent.setup()
+    show(
+      { series_title: 'Saga', issues: marked(2, [1, 2], []), editions: [] },
+      detail({ owned_text: '', released: 2 }),
+    )
+    await user.click(screen.getByRole('button', { name: /^Missing/ }))
+    expect(screen.getByText('Nothing missing from this run.')).toBeVisible()
+  })
+
+  it('reads owned and read one book at a time from the rows', () => {
+    show(
+      { series_title: 'Saga', issues: marked(3, [1, 2, 3], [2]), editions: [] },
+      detail({ owned_text: '', released: 3 }),
+    )
+    expect(screen.getByRole('link', { name: 'Saga #1, Owned' })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Saga #2, Read' })).toBeVisible()
+  })
+
+  it('draws a held book with no cover as a numbered blank', () => {
+    show(
+      {
+        series_title: 'Saga',
+        issues: [
+          {
+            number: 1,
+            name: null,
+            store_date: null,
+            cover_url: null,
+            owned: true,
+            read: false,
+          },
+        ],
+        editions: [],
+      },
+      detail({ owned_text: '', released: 1 }),
+    )
+    expect(screen.getByRole('link', { name: 'Saga #1, Owned' })).toBeVisible()
+    expect(screen.getByText('#1')).toBeVisible()
+  })
+
+  it('signed out: no buttons on the covers and no status line', () => {
+    show(
+      { series_title: 'Saga', issues: marked(3, [1], []), editions: [] },
+      detail({ owned_text: '', released: 3 }),
+    )
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: /Mark (owned|read|missing)/ }),
+    ).toBeNull()
+  })
+
+  it('signed in: a long missing run stays open, and each cover is a button', () => {
+    show(
+      { series_title: 'Saga', issues: issuesTo(20), editions: [] },
+      detail({ owned_text: '', released: 20 }),
+      { onMark: async () => {}, skipped: new Set() },
+    )
+    expect(screen.queryByRole('button', { name: /Show covers/ })).toBeNull()
+    expect(
+      screen.getAllByRole('button', { name: /, Missing\. Mark owned$/ }),
+    ).toHaveLength(20)
+  })
+})

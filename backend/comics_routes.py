@@ -110,6 +110,9 @@ async def got_issues(
 
 class MarkBody(BaseModel):
     state: Literal[*MARK_STATES]
+    # Through this number, for a whole book at once (the edition page's Read
+    # to the end): every issue from the path's number to it gets the state.
+    to: Annotated[int, Field(ge=1, le=MAX_ISSUE)] | None = None
 
 
 def _state(item: Item) -> dict:
@@ -489,15 +492,16 @@ def create_comics_router(
                 )
             )
         )
+        if body.to is not None and body.to < number:
+            raise HTTPException(status_code=422, detail="To runs from the number up")
         try:
-            change = plan_mark(
-                item.issues_owned,
-                item.issues_skipped,
-                item.editions,
-                reads,
-                number,
-                body.state,
-            )
+            owned, skipped = item.issues_owned, item.issues_skipped
+            for each in range(number, (body.to or number) + 1):
+                change = plan_mark(
+                    owned, skipped, item.editions, reads, each, body.state
+                )
+                owned, skipped = change.issues_owned, change.issues_skipped
+                reads = set(change.reads)
         except MarkRefused as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
         body_fields: dict = {

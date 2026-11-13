@@ -32,9 +32,21 @@ export function editionSlugs(editions) {
  * @param {number|null} [input.readTo]
  * @param {number} input.released
  * @param {Set<number>} [input.skipped]
+ * @param {Set<number>} [input.reads] - The books marked read, one by one;
+ *   without it `readTo` says (every held issue up to it).
  */
-export function issueState({ n, owned, readTo = null, released, skipped }) {
-  if (owned.has(n)) return n <= (readTo ?? 0) ? 'read' : 'owned'
+export function issueState({
+  n,
+  owned,
+  readTo = null,
+  released,
+  skipped,
+  reads,
+}) {
+  if (owned.has(n)) {
+    const read = reads ? reads.has(n) : n <= (readTo ?? 0)
+    return read ? 'read' : 'owned'
+  }
   if (skipped?.has(n)) return 'skipped'
   if (n > released) return 'not-out'
   return 'missing'
@@ -49,11 +61,24 @@ export function issueState({ n, owned, readTo = null, released, skipped }) {
  * @param {number} input.released
  * @param {{number: string, store_date: string}|null} input.nextIssue
  * @param {Set<number>} [input.skipped] - Signed in only.
+ * @param {Set<number>} [input.reads] - The books read, one by one (the marks).
+ * @param {boolean} [input.fold] - Fold long missing stretches into stacks
+ *   (a visitor's wall; signed in, the wall is open). Default true.
  * @param {Set<string>} [open] - Keys (`<from>-<to>`) of stacks shown open.
  * @returns {object[]} Tiles: book, cover, stack, fold, not-out.
  */
 export function wallTiles(
-  { issues, editions, owned, readTo, released, nextIssue, skipped },
+  {
+    issues,
+    editions,
+    owned,
+    readTo,
+    released,
+    nextIssue,
+    skipped,
+    reads,
+    fold = true,
+  },
   open = new Set(),
 ) {
   const model = runModel({
@@ -68,6 +93,13 @@ export function wallTiles(
   const rowOf = new Map((issues ?? []).map((row) => [Number(row.number), row]))
   const held = new Set(model.issues.filter((i) => i.held).map((i) => i.n))
   const read = readTo ?? 0
+  // How far into a book the reading goes: the unbroken run from its first.
+  const readInto = (book) => {
+    if (!reads) return read >= book.from && read < book.to ? read : null
+    let last = null
+    for (let n = book.from; n <= book.to && reads.has(n); n += 1) last = n
+    return last !== null && last < book.to ? last : null
+  }
 
   const tiles = []
   const drawn = new Set()
@@ -78,7 +110,7 @@ export function wallTiles(
       slug: editions[book.index].slug ?? slugs[book.index],
       edition: book,
       cover_url: editions[book.index].cover_url ?? null,
-      readTo: read >= book.from && read < book.to ? read : null,
+      readTo: readInto(book),
     })
   }
   const coverTile = (n) => {
@@ -94,6 +126,7 @@ export function wallTiles(
         readTo,
         released: model.released,
         skipped,
+        reads,
       }),
     }
   }
@@ -116,7 +149,7 @@ export function wallTiles(
     while (list[j + 1] && !list[j + 1].edition && list[j + 1].k === issue.k)
       j += 1
     const count = j - i + 1
-    if (issue.k === 'missing' && count >= BUNDLE_MIN) {
+    if (fold && issue.k === 'missing' && count >= BUNDLE_MIN) {
       const from = issue.n
       const to = list[j].n
       const key = `${from}-${to}`

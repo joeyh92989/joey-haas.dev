@@ -701,6 +701,24 @@ export const spine = {
       fold: 'Fold these back up',
       readTo: (n) => `read to ${n}`,
       edition: 'Collected edition',
+      /** The Show chips over the wall. */
+      show: { label: 'Show', all: 'All', missing: 'Missing' },
+      nothingMissing: 'Nothing missing from this run.',
+      /** Signed in: a cover is a button that moves the book one step. */
+      owner: {
+        how: 'Tap a cover to mark it: owned, then read, then missing again. The number opens the issue. Only you can do this.',
+        do: { owned: 'Mark owned', read: 'Mark read', missing: 'Mark missing' },
+        /** The button's name: where the book is now, then what a tap does. */
+        tapName: (series, n, now, doWord) =>
+          `${series} #${n}, ${now}. ${doWord}`,
+        openName: (series, n) => `Open ${series} #${n}`,
+        marked: (series, n, state) => `${series} #${n} marked ${state}.`,
+        undo: 'Undo',
+        failed: 'Could not save that. Try again.',
+        /** Lower-case state words for the status line. */
+        words: { read: 'read', owned: 'owned', missing: 'missing' },
+        skippedTag: 'Skipped',
+      },
     },
     pills: { following: 'Following', want: 'Want' },
     chips: {
@@ -732,6 +750,8 @@ export const spine = {
       kicker: 'Comic',
       ongoing: 'ongoing',
       asOf: (month) => `as of ${month}`,
+      /** Comic Vine's count of the volume's issues, in the summary line. */
+      issueCount: (n) => `${n} ${n === 1 ? 'issue' : 'issues'} in Comic Vine`,
       editions: 'Editions',
       collects: (from, to) =>
         from === to ? `collects #${from}` : `collects #${from}–${to}`,

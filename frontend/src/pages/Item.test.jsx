@@ -887,99 +887,10 @@ describe('Item series page (AC5)', () => {
     )
   })
 
-  it('is decoration when signed out: no toggles', async () => {
+  it('has no toggles: the run box is a picture, signed in or out', async () => {
     stubSaga()
-    await renderSaga()
+    await renderSaga({ signedIn: true })
     expect(within(box()).queryAllByRole('button')).toHaveLength(0)
-  })
-
-  it('toggles an issue when signed in, from the owner’s own ranges', async () => {
-    let saved = null
-    const fetch = vi.fn(async (url, options = {}) => {
-      if (options.method === 'PATCH') {
-        saved = JSON.parse(options.body)
-        return { ok: true, status: 200, json: async () => ({}) }
-      }
-      if (url.includes('/api/public/')) {
-        const comic = saved
-          ? {
-              ...SAGA.comic,
-              owned_text: '1–8',
-              missing: 0,
-              run_state: 'up_to_date',
-            }
-          : SAGA.comic
-        return { ok: true, status: 200, json: async () => ({ ...SAGA, comic }) }
-      }
-      // The admin row: singles 1–4 only, the edition's 6–8 not in it.
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ issues_owned: '1–4' }),
-      }
-    })
-    vi.stubGlobal('fetch', fetch)
-    await renderSaga({ signedIn: true })
-    const grid = box()
-    // Edition-covered issues are inside their book, not toggles.
-    expect(within(grid).queryByRole('button', { name: 'Issue 6' })).toBeNull()
-    await userEvent.click(within(grid).getByRole('button', { name: 'Issue 5' }))
-    await waitFor(() =>
-      expect(document.querySelector('.comic-sum')).toHaveTextContent(
-        'Up to date',
-      ),
-    )
-    expect(saved).toEqual({ issues_owned: '1-5' })
-    const patch = fetch.mock.calls.find(
-      ([, options]) => options?.method === 'PATCH',
-    )
-    expect(patch[0]).toContain(`/api/items/${ID}`)
-  })
-
-  it('drops a private skip when a toggle owns that issue', async () => {
-    let saved = null
-    const fetch = vi.fn(async (url, options = {}) => {
-      if (options.method === 'PATCH') {
-        saved = JSON.parse(options.body)
-        return { ok: true, status: 200, json: async () => ({}) }
-      }
-      if (url.includes('/api/public/')) {
-        return { ok: true, status: 200, json: async () => SAGA }
-      }
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ issues_owned: '1–4', issues_skipped: '5' }),
-      }
-    })
-    vi.stubGlobal('fetch', fetch)
-    await renderSaga({ signedIn: true })
-    await userEvent.click(
-      within(box()).getByRole('button', { name: 'Issue 5' }),
-    )
-    await waitFor(() => expect(saved).not.toBeNull())
-    expect(saved).toEqual({ issues_owned: '1-5', issues_skipped: '' })
-  })
-
-  it('says so when a toggle fails, and keeps the grid', async () => {
-    const fetch = vi.fn(async (url, options = {}) => {
-      if (options.method === 'PATCH') {
-        return { ok: false, status: 422, json: async () => ({}) }
-      }
-      if (url.includes('/api/public/')) {
-        return { ok: true, status: 200, json: async () => SAGA }
-      }
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ issues_owned: '1–4' }),
-      }
-    })
-    vi.stubGlobal('fetch', fetch)
-    await renderSaga({ signedIn: true })
-    await userEvent.click(screen.getByRole('button', { name: 'Issue 5' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(SERIES.saveError)
-    expect(screen.getByRole('button', { name: 'Issue 5' })).toBeEnabled()
   })
 
   it('has no axe violations, signed out or in', async () => {
@@ -1048,11 +959,131 @@ describe('Item cover wall', () => {
     vi.stubGlobal('fetch', fetch)
     await renderSaga({ signedIn: true })
     expect(
-      await screen.findByRole('link', { name: 'Saga #5, Skipped' }),
+      await screen.findByRole('button', {
+        name: 'Saga #5, Skipped. Mark owned',
+      }),
     ).toBeInTheDocument()
     expect(
       fetch.mock.calls.filter(([url]) => !String(url).includes('/api/public/')),
     ).toHaveLength(1)
+  })
+
+  describe('tapping a cover, signed in', () => {
+    /** The API: the public reads follow the marks the POSTs have written. */
+    function stubMarks({ fail = false } = {}) {
+      const state = { marks: {}, posts: [] }
+      const fetch = vi.fn(async (url, options = {}) => {
+        const text = String(url)
+        if (options.method === 'POST') {
+          const body = JSON.parse(options.body)
+          state.posts.push([text, body])
+          if (fail) {
+            return {
+              ok: false,
+              status: 409,
+              json: async () => ({ detail: 'In Vol. 2. Edit editions on the comic’s page.' }),
+            }
+          }
+          state.marks[Number(text.match(/issues\/(\d+)\/mark/)[1])] = body.state
+          return { ok: true, status: 200, json: async () => ({}) }
+        }
+        let body
+        if (text.endsWith('/issues')) {
+          body = {
+            series_title: 'Saga',
+            publisher: 'Image',
+            editions: [],
+            issues: ROWS.map((row) => {
+              const mark = state.marks[Number(row.number)]
+              return {
+                ...row,
+                owned: mark === 'owned' || mark === 'read',
+                read: mark === 'read',
+              }
+            }),
+          }
+        } else if (text.includes('/api/public/')) {
+          const held = Object.entries(state.marks).filter(
+            ([, mark]) => mark !== 'missing',
+          )
+          body = {
+            ...SAGA,
+            comic: {
+              ...SAGA.comic,
+              owned_text: held.map(([n]) => n).join(', '),
+            },
+          }
+        } else {
+          body = { issues_owned: '', issues_skipped: null, playthroughs: [] }
+        }
+        return { ok: true, status: 200, json: async () => body }
+      })
+      vi.stubGlobal('fetch', fetch)
+      return state
+    }
+
+    it('moves a book missing to owned to read to missing, one POST each', async () => {
+      const state = stubMarks()
+      await renderSaga({ signedIn: true })
+      const tap = async (name) =>
+        userEvent.click(await screen.findByRole('button', { name }))
+      await tap('Saga #5, Missing. Mark owned')
+      expect(
+        await screen.findByRole('button', {
+          name: 'Saga #5, Owned. Mark read',
+        }),
+      ).toBeInTheDocument()
+      await tap('Saga #5, Owned. Mark read')
+      await tap('Saga #5, Read. Mark missing')
+      await screen.findByRole('button', { name: 'Saga #5, Missing. Mark owned' })
+      expect(state.posts.map(([url, body]) => [url, body.state])).toEqual([
+        [expect.stringContaining(`/api/comics/${ID}/issues/5/mark`), 'owned'],
+        [expect.stringContaining(`/api/comics/${ID}/issues/5/mark`), 'read'],
+        [expect.stringContaining(`/api/comics/${ID}/issues/5/mark`), 'missing'],
+      ])
+    })
+
+    it('says what changed under the wall and Undo posts the previous state back', async () => {
+      const state = stubMarks()
+      await renderSaga({ signedIn: true })
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Saga #5, Missing. Mark owned',
+        }),
+      )
+      const status = await screen.findByRole('status')
+      await waitFor(() =>
+        expect(status).toHaveTextContent('Saga #5 marked owned. Undo'),
+      )
+      await userEvent.click(within(status).getByRole('button', { name: 'Undo' }))
+      await waitFor(() => expect(state.posts).toHaveLength(2))
+      expect(state.posts[1][1]).toEqual({ state: 'missing' })
+      await waitFor(() => expect(status).not.toHaveTextContent('Undo'))
+    })
+
+    it('shows the server’s refusal in the status line and keeps the cover', async () => {
+      stubMarks({ fail: true })
+      await renderSaga({ signedIn: true })
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Saga #5, Missing. Mark owned',
+        }),
+      )
+      expect(await screen.findByRole('status')).toHaveTextContent(
+        'In Vol. 2. Edit editions on the comic’s page.',
+      )
+      expect(
+        screen.getByRole('button', { name: 'Saga #5, Missing. Mark owned' }),
+      ).toBeInTheDocument()
+    })
+
+    it('keeps the number a link beside the cover button', async () => {
+      stubMarks()
+      await renderSaga({ signedIn: true })
+      const open = await screen.findByRole('link', { name: 'Open Saga #5' })
+      expect(open).toHaveAttribute('href', `/shelf/${ID}/5/`)
+      expect(open.closest('button')).toBeNull()
+    })
   })
 
   it('signed out, never shows a skipped issue', async () => {
@@ -1063,15 +1094,14 @@ describe('Item cover wall', () => {
     ).toBeInTheDocument()
   })
 
-  it('keeps the run box, toggle mode included, when the issue list is empty', async () => {
+  it('keeps the run box when the issue list is empty, without toggles', async () => {
     stubWall([])
     await renderSaga({ signedIn: true })
     expect(
       screen.queryByRole('heading', { name: 'Every book in the run' }),
     ).toBeNull()
-    expect(
-      await screen.findByRole('button', { name: 'Issue 5' }),
-    ).toBeInTheDocument()
+    expect(document.querySelector('.run-box')).not.toBeNull()
+    expect(screen.queryByRole('button', { name: 'Issue 5' })).toBeNull()
   })
 
   it('has no toggle cells on the series page once the wall is there', async () => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { setReadTo, toggleOwned, toggleSkip } from './comicEdits.js'
+import { setMark, toggleSkip } from './comicEdits.js'
 
 const ID = '11111111-1111-1111-1111-111111111111'
 
@@ -21,45 +21,45 @@ function stubApi(stored, patch = { ok: true, status: 200 }) {
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('toggleOwned', () => {
-  it('adds an issue to the owner’s own ranges', async () => {
-    const patches = stubApi({ issues_owned: '1–4', issues_skipped: null })
-    await toggleOwned(ID, 5)
-    expect(patches).toEqual([{ issues_owned: '1-5' }])
+describe('setMark', () => {
+  it('posts the state to the mark route and returns the series state', async () => {
+    const calls = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options) => {
+        calls.push([url, JSON.parse(options.body), options.method])
+        return { ok: true, status: 200, json: async () => ({ read_to: 2 }) }
+      }),
+    )
+    expect(await setMark(ID, 5, 'read')).toEqual({ read_to: 2 })
+    expect(calls).toEqual([
+      [expect.stringContaining(`/api/comics/${ID}/issues/5/mark`), { state: 'read' }, 'POST'],
+    ])
   })
 
-  it('removes an issue that is already owned', async () => {
-    const patches = stubApi({ issues_owned: '1–5' })
-    await toggleOwned(ID, 3)
-    expect(patches).toEqual([{ issues_owned: '1-2, 4-5' }])
-  })
-
-  it('goes to the wanted state when one is given', async () => {
-    const patches = stubApi({ issues_owned: '1–5' })
-    await toggleOwned(ID, 3, true)
-    expect(patches).toEqual([{ issues_owned: '1-5' }])
-  })
-
-  it('drops the skip when owning a skipped issue', async () => {
-    const patches = stubApi({ issues_owned: '1–4', issues_skipped: '5, 9' })
-    await toggleOwned(ID, 5)
-    expect(patches).toEqual([{ issues_owned: '1-5', issues_skipped: '9' }])
+  it('sends `to` for a whole book', async () => {
+    const bodies = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options) => {
+        bodies.push(JSON.parse(options.body))
+        return { ok: true, status: 200, json: async () => ({}) }
+      }),
+    )
+    await setMark(ID, 3, 'read', 4)
+    expect(bodies).toEqual([{ state: 'read', to: 4 }])
   })
 
   it('throws the API’s detail on a refusal', async () => {
-    stubApi(
-      { issues_owned: '' },
-      { ok: false, status: 422, body: { detail: 'Issues owned: too many' } },
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        status: 409,
+        json: async () => ({ detail: 'In Book 1.' }),
+      })),
     )
-    await expect(toggleOwned(ID, 1)).rejects.toThrow('Issues owned: too many')
-  })
-})
-
-describe('setReadTo', () => {
-  it('sends read_to only', async () => {
-    const patches = stubApi({})
-    await setReadTo(ID, 7)
-    expect(patches).toEqual([{ read_to: 7 }])
+    await expect(setMark(ID, 3, 'missing')).rejects.toThrow('In Book 1.')
   })
 })
 
