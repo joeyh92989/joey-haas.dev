@@ -37,7 +37,7 @@ docs/planning/2026-11-12-playwright-e2e-design.md
 PR #175 · docs/planning/2026-11-12-closet-walkthrough-plan.md
 
 ### 2026-11-12 · lesson · A `pgrep -f pytest` guard matches its own shell
-Guards meant to wait for another worktree's pytest (the local test DB is shared) matched their own command line and never waited, so two runs overlapped and a preflight showed two false failures. Match the interpreter, e.g. `pgrep -f '[.]venv/bin/python.*pytest'`, or serialise runs another way.
+Guards meant to wait for another worktree's pytest (the local test DB is shared) matched their own command line and never waited, so two runs overlapped and a preflight showed two false failures. Match the interpreter, e.g. `pgrep -f '[.]venv/bin/python.*pytest'`, or serialise runs another way. Update 2026-11-13: on macOS the venv's python runs as `Python.app`, so that pattern never matches either and two suites overlapped again; use `ps aux | grep '[p]ytest'`.
 docs/planning/2026-11-12-admin-walkthrough-plan.md
 
 ### 2026-11-12 · lesson · A client-side state guard cannot see a server-side claim

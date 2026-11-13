@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: fix
 mode: auto (Joey's stops from the shelf sweep run)
 ---

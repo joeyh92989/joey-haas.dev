@@ -156,7 +156,7 @@ describe('Admin Jobs', () => {
     expect(rows[8]).toHaveTextContent('Intake')
     expect(rows[8]).toHaveTextContent('Nothing to read')
     expect(rows[9]).toHaveTextContent('Comic issues')
-    expect(rows[9]).toHaveTextContent('Every series’s issues synced')
+    expect(rows[9]).toHaveTextContent('Every series synced')
     expect(rows[10]).toHaveTextContent('Public snapshot')
     expect(
       within(panel).getByRole('link', { name: 'Run now: Radar' }),

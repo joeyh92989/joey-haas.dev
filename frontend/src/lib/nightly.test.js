@@ -160,7 +160,7 @@ describe('the Comic issues row', () => {
   it('reads an ok run as synced', () => {
     const row = comicsRow(comicsRun())
     expect(row.state).toBe('ok')
-    expect(row.summary).toBe('Every series’s issues synced')
+    expect(row.summary).toBe('Every series synced')
     expect(row.runNow).toBe('/admin/pull-list')
   })
 

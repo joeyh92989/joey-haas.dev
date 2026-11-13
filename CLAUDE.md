@@ -431,7 +431,7 @@ before pushing.
       `docs/planning/2026-11-09-outfit-design.md`
 - Shelf sweep queue (`docs/planning/2026-11-12-shelf-sweep-queue.md`,
   findings in `2026-11-12-shelf-design-sweep.md`), in pickup order:
-  - [ ] 1. Comic issue sync: find out why it is empty, run it, and show a
+  - [x] 1. Comic issue sync: find out why it is empty, run it, and show a
         failed sync on `/admin/jobs`
   - [ ] 2. Design rules file (`docs/design-system.md`) and feature status
         list

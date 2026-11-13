@@ -313,7 +313,7 @@ export function nightlyJobs(
         label: 'Comic issues',
         runNow: '/admin/pull-list',
         hours: STALE_HOURS,
-        ok: 'Every series’s issues synced',
+        ok: 'Every series synced',
         quiet: { partial: 'Budget spent; the rest sync tomorrow' },
       },
       age,
