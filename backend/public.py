@@ -45,8 +45,8 @@ from public_comics import (
     PublicComicDetail,
     PublicComicsOut,
     comic_detail,
-    read_marks_count,
     load_public_comics,
+    read_marks_count,
 )
 from public_issues import (
     PublicComicIndex,
