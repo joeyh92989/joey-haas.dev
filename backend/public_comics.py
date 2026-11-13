@@ -15,7 +15,7 @@ from collections.abc import Iterable
 from datetime import date, datetime
 
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from comics import (
@@ -31,7 +31,7 @@ from comics import (
     sort_series,
     validate_editions,
 )
-from models import ComicShelfFormat, Item, ItemStatus, ItemType, OwnedFormat
+from models import ComicIssue, ComicShelfFormat, Item, ItemStatus, ItemType, OwnedFormat
 
 ADDED_MONTHS = 12
 
@@ -364,6 +364,21 @@ def comic_detail(
         shelf_format=item.shelf_format,
         as_of=as_of,
     )
+
+
+async def read_marks_count(session: AsyncSession, item_id: uuid.UUID) -> int:
+    """How many owned issues of a series carry a read mark."""
+    return (
+        await session.scalar(
+            select(func.count())
+            .select_from(ComicIssue)
+            .where(
+                ComicIssue.item_id == item_id,
+                ComicIssue.owned.is_(True),
+                ComicIssue.read.is_(True),
+            )
+        )
+    ) or 0
 
 
 async def public_comic_items(session: AsyncSession) -> list[Item]:

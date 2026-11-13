@@ -166,15 +166,15 @@ class PublicComicIndex(BaseModel):
     editions: list[PublicComicIndexEdition]
 
 
-async def _public_comic(session: AsyncSession, item_id: uuid.UUID) -> Item | None:
-    """One row by id, held to the public predicate."""
-    result = await session.execute(
-        select(Item).where(
-            Item.id == item_id,
-            Item.is_public.is_(True),
-            Item.type == ItemType.COMIC,
-        )
-    )
+async def _public_comic(
+    session: AsyncSession, item_id: uuid.UUID, public_only: bool = True
+) -> Item | None:
+    """One row by id, held to the public predicate. `public_only=False` is
+    for the admin comic page, which draws the same wall for a private row."""
+    query = select(Item).where(Item.id == item_id, Item.type == ItemType.COMIC)
+    if public_only:
+        query = query.where(Item.is_public.is_(True))
+    result = await session.execute(query)
     return result.scalar_one_or_none()
 
 
@@ -271,9 +271,12 @@ def _edition_cover(edition: dict, by_number: dict[int, ComicIssue]) -> str | Non
 
 
 async def build_wall(
-    session: AsyncSession, item_id: uuid.UUID, today: date
+    session: AsyncSession,
+    item_id: uuid.UUID,
+    today: date,
+    public_only: bool = True,
 ) -> PublicWall | None:
-    item = await _public_comic(session, item_id)
+    item = await _public_comic(session, item_id, public_only)
     if item is None:
         return None
     series = series_of(item)

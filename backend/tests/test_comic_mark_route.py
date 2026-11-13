@@ -236,3 +236,30 @@ async def test_a_range_marks_a_whole_book_read(sessionmaker_for_test):
     got = await marks(sessionmaker_for_test, item_id)
     assert got[3] == got[4] == (True, True, False)
     assert backwards.status_code == 422
+
+
+async def test_the_admin_wall_serves_a_private_series_and_never_a_skip(
+    sessionmaker_for_test,
+):
+    """The admin comic page draws the wall for a private series too."""
+    item_id = await seed_comic(
+        sessionmaker_for_test,
+        owned_format=OwnedFormat.PHYSICAL,
+        issues_owned="1–2",
+        issues_skipped="3",
+        is_public=False,
+    )
+    async with comics_client(sessionmaker_for_test, FakeComicVine()) as client:
+        await client.post("/api/comics/marks/backfill")
+        await tap(client, item_id, 2, "read")
+        body = (await client.get(f"/api/comics/{item_id}/wall")).json()
+        missing = await client.get(
+            "/api/comics/00000000-0000-0000-0000-000000000000/wall"
+        )
+    assert missing.status_code == 404
+    issues = {i["number"]: i for i in body["wall"]["issues"]}
+    assert (issues[1]["owned"], issues[1]["read"]) == (True, False)
+    assert (issues[2]["owned"], issues[2]["read"]) == (True, True)
+    assert 3 not in issues  # a skipped stub is no page
+    assert body["comic"]["read"] == 1 and body["comic"]["owned_text"] == "1–2"
+    assert "skipped" not in str(body) and "issues_skipped" not in str(body)

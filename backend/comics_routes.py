@@ -50,6 +50,8 @@ from items import _apply_detail, _copy_fields, _http_error_for, require_admin
 from models import CatalogueRun, ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
 from physical_sources.catalogue import finish_run, run_failed, start_run
 from playthroughs import apply_status
+from public_comics import comic_detail, read_marks_count
+from public_issues import build_wall
 from sources.base import SourceError
 from sources.registry import adapter_for
 
@@ -518,6 +520,26 @@ def create_comics_router(
         await session.commit()
         await session.refresh(item)
         return _state(item) | {"number": number, "state": body.state}
+
+    @router.get("/{item_id}/wall")
+    async def wall(
+        item_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """The cover wall and the comic block the series page draws, for any
+        comic, private ones too: the admin comic page carries the same wall.
+        The public builders, so a skip is in neither body."""
+        item = await session.get(Item, item_id)
+        if item is None or item.type != ItemType.COMIC:
+            raise HTTPException(status_code=404, detail="No such comic")
+        today = _today()
+        built = await build_wall(session, item_id, today, public_only=False)
+        return {
+            "wall": built,
+            "comic": comic_detail(
+                item, today, await read_marks_count(session, item_id)
+            ),
+        }
 
     @router.post("/marks/backfill")
     async def backfill_marks(

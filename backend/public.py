@@ -27,7 +27,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from formats import KEY_CARD_PLATFORMS
 from models import (
-    ComicIssue,
     Completeness,
     Item,
     ItemStatus,
@@ -46,6 +45,7 @@ from public_comics import (
     PublicComicDetail,
     PublicComicsOut,
     comic_detail,
+    read_marks_count,
     load_public_comics,
 )
 from public_issues import (
@@ -767,15 +767,7 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         played = await _last_played(session, Item.id == item.id)
         read_marks = None
         if item.type == ItemType.COMIC:
-            read_marks = await session.scalar(
-                select(func.count())
-                .select_from(ComicIssue)
-                .where(
-                    ComicIssue.item_id == item.id,
-                    ComicIssue.owned.is_(True),
-                    ComicIssue.read.is_(True),
-                )
-            )
+            read_marks = await read_marks_count(session, item.id)
         return _to_public_detail(
             item,
             similar_in_collection(item, public_items),
