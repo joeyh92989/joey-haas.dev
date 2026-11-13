@@ -517,9 +517,7 @@ def mark_mismatches(
     # and a read mark on a book that is not owned (a stray) is a mismatch.
     expected = {n: (True, False, False) for n in series.owned}
     expected.update({n: (False, True, False) for n in series.skipped - series.owned})
-    stored = {
-        n: (o, s, r and not o) for n, o, r, s in rows if o or r or s
-    }
+    stored = {n: (o, s, r and not o) for n, o, r, s in rows if o or r or s}
     return sorted(
         n for n in expected.keys() | stored.keys() if expected.get(n) != stored.get(n)
     )
@@ -575,9 +573,7 @@ def plan_mark(
     read_set = set(reads)
     if state == "missing":
         if in_edition and number not in singles:
-            holder = next(
-                e for e in editions or [] if e["from"] <= number <= e["to"]
-            )
+            holder = next(e for e in editions or [] if e["from"] <= number <= e["to"])
             where = holder.get("label") or holder.get("kind") or "an edition"
             raise MarkRefused(f"In {where}. Edit editions on the comic's page.")
         singles.discard(number)

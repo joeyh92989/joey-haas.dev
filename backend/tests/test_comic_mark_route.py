@@ -146,8 +146,12 @@ async def test_other_writes_keep_per_book_reads(sessionmaker_for_test):
     )
     async with comics_client(sessionmaker_for_test, FakeComicVine()) as client:
         await tap(client, item_id, 3, "read")
-        assert (await client.post(f"/api/comics/{item_id}/issues/9/skip")).status_code == 200
-        assert (await client.post(f"/api/comics/{item_id}/issues/4/got")).status_code == 200
+        assert (
+            await client.post(f"/api/comics/{item_id}/issues/9/skip")
+        ).status_code == 200
+        assert (
+            await client.post(f"/api/comics/{item_id}/issues/4/got")
+        ).status_code == 200
     got = await marks(sessionmaker_for_test, item_id)
     assert got[3] == (True, True, False)
     assert got[1] == (True, False, False)
@@ -199,12 +203,14 @@ async def test_a_series_with_a_synced_row_keeps_it(sessionmaker_for_test):
         await tap(client, item_id, 2, "missing")
     async with sessionmaker_for_test() as session:
         kept = await session.scalar(
-            select(ComicIssue).where(ComicIssue.item_id == item_id, ComicIssue.number == 2)
+            select(ComicIssue).where(
+                ComicIssue.item_id == item_id, ComicIssue.number == 2
+            )
         )
     assert kept is not None and (kept.owned, kept.read) == (False, False)
 
 
-@pytest.mark.filterwarnings('ignore')
+@pytest.mark.filterwarnings("ignore")
 def test_read_to_of_and_plan_are_pure():
     assert read_to_of({1, 2, 4}, {1, 2, 4}) == 4
     assert read_to_of({1, 2, 4}, {2, 4}) is None

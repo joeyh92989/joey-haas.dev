@@ -33,13 +33,14 @@ COMIC_FORBIDDEN = {
 }  # fmt: skip
 
 WALL_FIELDS = {"series_title", "publisher", "issues", "editions"}
-WALL_ISSUE_FIELDS = {"number", "name", "store_date", "cover_url"}
+WALL_ISSUE_FIELDS = {"number", "owned", "read", "name", "store_date", "cover_url"}
 WALL_EDITION_FIELDS = {
     "slug", "kind", "label", "from_issue", "to_issue", "cover_url",
 }  # fmt: skip
 ISSUE_FIELDS = {
     "series_id", "series_title", "publisher", "number", "name", "store_date",
-    "cover_date", "cover_url", "large_url", "description", "state", "held_as",
+    "cover_date", "cover_url", "large_url", "description", "state", "owned",
+    "read", "held_as",
     "edition", "released", "ongoing", "neighbours", "source_url",
 }  # fmt: skip
 EDITION_FIELDS = {
@@ -513,17 +514,20 @@ async def test_the_index_matches_the_issue_route_and_ignores_skips(
     assert (await _get(sessionmaker_for_test, path)).status_code == 404
 
 
-async def test_stub_rows_change_no_public_body(sessionmaker_for_test):
+async def test_stub_rows_draw_held_books_as_blanks_and_nothing_else(
+    sessionmaker_for_test,
+):
     """The marks (5b) add stub rows for held and skipped numbers Comic Vine has
-    not synced; every public read ignores them (and carries no mark)."""
+    not synced. A held stub is a numbered blank on the wall (5c); a skipped
+    stub, and every other page, changes nothing; no body carries `skipped`."""
     import json
 
     from comics import sync_marks
 
     item_id = await _seed(sessionmaker_for_test, numbers=(1, 2, 3))
+    wall = f"/api/public/items/{item_id}/issues"
     paths = [
         "/api/public/comic-issues",
-        f"/api/public/items/{item_id}/issues",
         *(f"/api/public/items/{item_id}/issues/{n}" for n in range(1, 10)),
         f"/api/public/items/{item_id}/editions/ed-5-6",
         f"/api/public/items/{item_id}/editions/ed-5-6-2",
@@ -533,12 +537,75 @@ async def test_stub_rows_change_no_public_body(sessionmaker_for_test):
         return [(await _get(sessionmaker_for_test, p)).content for p in paths]
 
     before = await bodies()
+    wall_before = (await _get(sessionmaker_for_test, wall)).json()
     async with sessionmaker_for_test() as session:
         item = await session.get(Item, item_id)
         result = await sync_marks(session, item)
         await session.commit()
     assert result.stubs_added > 0
-    after = await bodies()
-    assert after == before
-    for body in after:
-        assert not {"owned", "skipped"} & set(_keys(json.loads(body)))
+    assert await bodies() == before
+    after = (await _get(sessionmaker_for_test, wall)).json()
+    numbers = [i["number"] for i in after["issues"]]
+    # 4, 5 and 6 are held with no Comic Vine row: blank covers. 8 is a skip
+    # (a stub too) and is not listed.
+    assert numbers == [1, 2, 3, 4, 5, 6]
+    blank = after["issues"][3]
+    assert (blank["name"], blank["cover_url"], blank["store_date"]) == (None,) * 3
+    assert (blank["owned"], blank["read"]) == (True, False)
+    assert after["issues"][:3] == [
+        {**i, "read": i["read"]} for i in wall_before["issues"][:3]
+    ]
+    assert "skipped" not in set(_keys(after))
+
+
+async def test_the_wall_and_issue_page_read_the_marks(sessionmaker_for_test):
+    """A mark on the row decides owned and read, one book at a time; the skip
+    on the row never shows."""
+    item = _series(issues_owned=None, editions=None, read_to=None, issues_skipped=None)
+    item_id = await _seed(sessionmaker_for_test, item, numbers=(1, 2, 3))
+    async with sessionmaker_for_test() as session:
+        rows = {
+            r.number: r
+            for r in await session.scalars(
+                select(ComicIssue).where(ComicIssue.item_id == item_id)
+            )
+        }
+        rows[1].owned = True
+        rows[2].owned = rows[2].read = True
+        rows[3].skipped = True
+        await session.commit()
+    wall = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
+    ).json()
+    got = {i["number"]: (i["owned"], i["read"]) for i in wall["issues"]}
+    assert got[1] == (True, False) and got[2] == (True, True)
+    assert got[3] == (False, False)
+    page = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues/2")
+    ).json()
+    assert (page["state"], page["owned"], page["read"]) == ("read", True, True)
+    missing = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues/3")
+    ).json()
+    assert (missing["state"], missing["owned"], missing["read"]) == (
+        "missing",
+        False,
+        False,
+    )
+    assert "skipped" not in set(_keys(wall)) | set(_keys(missing))
+    # A read mark with no owned mark (stray) is not a read book.
+    edition_less = (
+        await _get(sessionmaker_for_test, f"/api/public/comic-issues")
+    ).json()
+    assert "skipped" not in set(_keys(edition_less))
+
+
+async def test_existing_ranges_still_read_without_marks(sessionmaker_for_test):
+    """Rows recorded before the marks reached them (ranges and read_to only)
+    keep what they recorded: Waterworld's #1-4 are owned, none read."""
+    item = _series(issues_owned="1–4", issues_skipped=None, editions=None, read_to=None)
+    item_id = await _seed(sessionmaker_for_test, item, numbers=(1, 2, 3, 4))
+    wall = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
+    ).json()
+    assert [(i["owned"], i["read"]) for i in wall["issues"]] == [(True, False)] * 4

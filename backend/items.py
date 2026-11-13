@@ -1287,9 +1287,7 @@ def create_items_router(
             # match another row holds is a 409, as for any other write.
             await _write_or_conflict(session, session.flush)
             # An explicit read_to marks every owned issue up to it read.
-            await sync_marks(
-                session, item, from_read_to="read_to" in changes
-            )
+            await sync_marks(session, item, from_read_to="read_to" in changes)
         if relinked and item.source_metadata:
             # A comic's issue snapshot belongs to the volume it was fetched
             # for; _apply_detail keeps it across a refresh, so a re-link has

@@ -171,6 +171,9 @@ class PublicComicDetail(BaseModel):
     read: int
     # As on the shelf row.
     read_next: int | None
+    # Comic Vine's count_of_issues for the volume (stored as `issue_count`),
+    # shown on the series page; null before the series is linked.
+    issue_count: int | None
     editions: list[PublicEdition]
     next_issue: PublicNextIssue | None
     following: bool
@@ -321,7 +324,11 @@ def comic_weeks(items: Iterable[Item], today: date) -> PublicComicWeeks:
     )
 
 
-def comic_detail(item: Item, today: date) -> PublicComicDetail:
+def comic_detail(
+    item: Item, today: date, read_marks: int | None = None
+) -> PublicComicDetail:
+    """`read_marks` is the count of owned issues whose row says read (5c: read
+    is per book); `read_to` still counts for a row the marks have not reached."""
     series = series_of(item)
     run = series.run()
     fetched = (item.source_metadata or {}).get("fetched_on")
@@ -338,8 +345,14 @@ def comic_detail(item: Item, today: date) -> PublicComicDetail:
         missing=run.missing,
         segments=_segments(series),
         read_to=item.read_to,
-        read=read_state(item.read_to, set(series.owned)).read,
+        read=max(read_marks or 0, read_state(item.read_to, set(series.owned)).read),
         read_next=read_next(item.read_to, set(series.owned)),
+        issue_count=(
+            count
+            if isinstance(count := (item.source_metadata or {}).get("issue_count"), int)
+            and not isinstance(count, bool)
+            else None
+        ),
         editions=[
             PublicEdition(
                 kind=e["kind"], label=e["label"], from_issue=e["from"], to_issue=e["to"]
