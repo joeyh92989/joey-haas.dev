@@ -18,7 +18,7 @@ describe('CoverKey', () => {
       'Abandoned',
       '×2Finished twice',
       '♥Favorite',
-      'No mark: backlog',
+      'Backlog (no mark)',
     ])
   })
 

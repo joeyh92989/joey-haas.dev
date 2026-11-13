@@ -264,7 +264,7 @@ describe('Collection', () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
 
-    const line = await screen.findByText(/Catalog 5,724 titles/)
+    const line = await screen.findByText(/Catalog of 5,724 titles/)
     expect(line).toHaveTextContent('12 stores watched')
     expect(document.getElementById('overview')).toContainElement(line)
     expect(
@@ -366,7 +366,7 @@ describe('Collection', () => {
     vi.setSystemTime(new Date('2026-10-21T20:00:00Z'))
     stubApi({ status: STATUS_BODY })
     await renderReady()
-    const fresh = await screen.findByText(/Catalog 5,724 titles/)
+    const fresh = await screen.findByText(/Catalog of 5,724 titles/)
     expect(fresh).toHaveTextContent('refreshed October 21, 2026')
     expect(fresh).not.toHaveTextContent('not refreshed')
     cleanup()
@@ -374,9 +374,9 @@ describe('Collection', () => {
     vi.setSystemTime(new Date('2026-10-25T00:00:00Z'))
     stubApi({ status: STATUS_BODY })
     await renderReady()
-    expect(await screen.findByText(/Catalog 5,724 titles/)).toHaveTextContent(
-      spine.shelf.behindStale,
-    )
+    expect(
+      await screen.findByText(/Catalog of 5,724 titles/),
+    ).toHaveTextContent(spine.shelf.behindStale)
     expect(spine.shelf.behindStale).toContain(String(STALE_HOURS))
   })
 
@@ -431,7 +431,7 @@ describe('Collection', () => {
   it('has no axe violations on the landing', async () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
-    await screen.findByText(/Catalog 5,724 titles/)
+    await screen.findByText(/Catalog of 5,724 titles/)
 
     // The render container, like the other page tests: the page is drawn
     // without RootLayout's <main>, so the whole body has no landmarks.

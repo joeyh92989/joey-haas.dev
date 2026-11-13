@@ -412,9 +412,7 @@ export const spine = {
       howScored:
         'Deterministic, no model call: the weighted average of the four terms.',
       empty: 'Nothing on my backlog fits that. Try another mood.',
-      // copy: pending voice review
-      choose: 'Choose a length or a mood to see three picks.',
-      // copy: pending voice review
+      choose: 'Choose a length or a vibe to see three picks.',
       leftOut: (title) => `Tonight’s pick, ${title}, is left out.`,
       announce: (count, words) =>
         count === 0
@@ -490,9 +488,7 @@ export const spine = {
       },
     },
     badges: { new: 'New', topPick: 'Top pick' },
-    // copy: pending voice review
     jump: { label: 'On this page' },
-    // copy: pending voice review
     capped: {
       more: (count) => `Show all ${count}`,
       less: 'Show fewer',
@@ -534,32 +530,22 @@ export const spine = {
   },
   /** The Collection page's labelled controls, result count, key and paging. */
   shelf: {
-    // copy: pending voice review
     groupShow: 'Show',
-    // copy: pending voice review
     groupStatus: 'Status',
-    // copy: pending voice review
     sort: 'Sort',
-    // copy: pending voice review
     view: 'View',
-    // copy: pending voice review
     key: {
       label: 'Key',
       aria: 'Key to the marks on covers',
       finishedTwice: 'Finished twice',
-      backlog: 'No mark: backlog',
+      backlog: 'Backlog (no mark)',
       favorite: 'Favorite',
     },
-    // copy: pending voice review
     titles: (count) => `${count} ${count === 1 ? 'title' : 'titles'}`,
-    // copy: pending voice review
     titlesOf: (shown, total) =>
       `${shown} of ${total} ${total === 1 ? 'title' : 'titles'}`,
-    // copy: pending voice review
     clear: 'Clear filters',
-    // copy: pending voice review
     noMatch: 'No titles match these filters.',
-    // copy: pending voice review
     // [descending, ascending]
     directions: {
       added: ['Newest first', 'Oldest first'],
@@ -568,45 +554,29 @@ export const spine = {
       year: ['Newest first', 'Oldest first'],
       title: ['Z to A', 'A to Z'],
     },
-    // copy: pending voice review
     shuffle: 'Shuffle',
-    // copy: pending voice review
     showing: (shown, total) => `Showing ${shown} of ${total}`,
-    // copy: pending voice review
     showMore: (count) => `Show ${count} more`,
-    // copy: pending voice review
     showAll: 'Show all',
-    // copy: pending voice review
     overview: 'Overview',
-    // copy: pending voice review
     overviewCharts: 'Status, ratings and finishes',
-    // copy: pending voice review
     behind: 'Behind the shelf:',
-    // copy: pending voice review
     behindLine: (titles, stores, refreshed, stale) =>
-      `Catalog ${titles} titles · ${stores} stores watched${refreshed ? ` · refreshed ${refreshed}` : ''}${stale ? ` · ${spine.shelf.behindStale}` : ''}.`,
-    // copy: pending voice review
+      `Catalog of ${titles} titles · ${stores} stores watched${refreshed ? ` · refreshed ${refreshed}` : ''}${stale ? ` · ${spine.shelf.behindStale}` : ''}.`,
     /** The old status strip's words; the hours are `STALE_HOURS` (36). */
     behindStale: 'not refreshed in over 36 hours',
   },
   /** The month journal's index; these are the screen-reader strings. */
   journal: {
-    // copy: pending voice review
     finished: (count) => `${count} finished`,
-    // copy: pending voice review
     played: 'played',
-    // copy: pending voice review
     nothing: 'nothing',
-    // copy: pending voice review
     previous: 'Previous month:',
-    // copy: pending voice review
     next: 'Next month:',
   },
   /** The item page's labels. */
   item: {
-    // copy: pending voice review
     outOfTen: 'out of 10',
-    // copy: pending voice review
     genresLabel: 'Genres',
     alsoOnLabel: 'Also on',
     mainStory: 'Main story',
@@ -705,7 +675,6 @@ export const spine = {
     hero: {
       series: 'Series',
       issues: 'Issues owned',
-      // copy: pending voice review
       sub: (missing, readShare) => `${missing} missing · ${readShare} read`,
     },
     chips: {
@@ -787,9 +756,7 @@ export const spine = {
       breadcrumb: 'Breadcrumb',
       neighbours: 'Neighboring issues',
       coverAlt: (series, n) => `Cover of ${series} #${n}`,
-      // copy: pending voice review
       notOwned: 'Not owned',
-      // copy: pending voice review
       noCover: 'No cover',
       facts: {
         issue: 'Issue',

@@ -560,13 +560,11 @@ export default function Collection() {
               <a href="#overview">{copy.overview}</a>
             </p>
             <label className="shelf-search">
-              {/* copy: pending voice review */}
               <span className="visually-hidden">Search the shelf</span>
               <input
                 ref={searchField}
                 id="shelf-search"
                 type="search"
-                // copy: pending voice review
                 placeholder="Search titles"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
