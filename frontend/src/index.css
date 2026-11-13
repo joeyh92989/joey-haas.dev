@@ -1681,7 +1681,9 @@ footer {
 }
 
 .admin-tabs .admin-badge {
-  right: calc(50% - 18px);
+  /* Anchored by its left edge so a two-digit pill grows away from the icon. */
+  left: calc(50% + var(--space-1));
+  right: auto;
   top: 6px;
 }
 

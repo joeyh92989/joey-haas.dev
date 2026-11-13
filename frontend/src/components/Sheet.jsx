@@ -61,11 +61,14 @@ export default function Sheet({
   const ref = useRef(null)
   const opener = useRef(null)
   // Focus targets are read when the sheet opens or closes, not before, so
-  // the effect below needs only `open` as a dependency.
+  // the open effect needs only `open` as a dependency. This effect runs
+  // first (effects run in order), so the refs hold this render's props.
   const initialFocusRef = useRef(initialFocus)
-  const returnFocusRefs = useRef(returnFocus)
-  initialFocusRef.current = initialFocus
-  returnFocusRefs.current = returnFocus
+  const returnFocusRef = useRef(returnFocus)
+  useEffect(() => {
+    initialFocusRef.current = initialFocus
+    returnFocusRef.current = returnFocus
+  })
 
   useEffect(() => {
     const dialog = ref.current
@@ -84,7 +87,7 @@ export default function Sheet({
       dialog.close()
       // A route change can close the sheet after its opener left the page,
       // so a missing or detached target falls back to what had focus at open.
-      const wanted = resolveTarget(returnFocusRefs.current)
+      const wanted = resolveTarget(returnFocusRef.current)
       const back = wanted?.isConnected ? wanted : opener.current
       if (back?.isConnected) back.focus?.()
       opener.current = null
