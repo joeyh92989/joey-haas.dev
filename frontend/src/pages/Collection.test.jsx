@@ -16,10 +16,6 @@ vi.mock('../lib/snapshot.js', async (importOriginal) => ({
   readSnapshot: vi.fn(),
 }))
 
-// The band is tested in NextBand.test.jsx, so the shelf tests do not
-// depend on it.
-vi.mock('../components/NextBand.jsx', () => ({ default: () => null }))
-
 beforeEach(() => {
   vi.mocked(readSnapshot).mockReset()
   vi.mocked(readSnapshot).mockResolvedValue(null)
@@ -235,29 +231,118 @@ describe('Collection', () => {
     expect(hero.getByText(/^Finished in \d{4}$/)).toBeInTheDocument()
   })
 
-  it('puts the feature strip between the hero numbers and favourites', async () => {
-    stubApi()
-    await renderReady()
-
-    const hero = document.querySelector('.hero-numbers')
-    const strip = screen.getByRole('region', { name: 'What it does' })
-    const favourites = screen.getByRole('region', { name: 'Favorites' })
-    const follows = Node.DOCUMENT_POSITION_FOLLOWING
-    expect(hero.compareDocumentPosition(strip) & follows).toBeTruthy()
-    expect(strip.compareDocumentPosition(favourites) & follows).toBeTruthy()
-    expect(document.querySelector('.tour-status')).toBeNull()
-  })
-
-  it('shows the status strip after the band once the status answers', async () => {
+  it('puts the grid before the overview, and drops the strips and cards', async () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
 
-    const strip = await screen.findByLabelText('Status', { selector: 'dl' })
-    expect(strip).toHaveTextContent('5,724 titles')
-    const does = screen.getByRole('region', { name: 'What it does' })
+    const grid = document.querySelector('.poster-grid')
+    const overview = document.getElementById('overview')
+    const favourites = screen.getByRole('region', { name: 'Favorites' })
+    const follows = Node.DOCUMENT_POSITION_FOLLOWING
+    expect(grid.compareDocumentPosition(overview) & follows).toBeTruthy()
+    expect(overview).toContainElement(favourites)
+    expect(overview).toContainElement(document.querySelector('.stat-status'))
     expect(
-      strip.compareDocumentPosition(does) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
+      screen.getByRole('heading', { level: 2, name: 'Overview' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'What it does' }),
+    ).not.toBeInTheDocument()
+    expect(document.querySelector('.tour-status')).toBeNull()
+    expect(document.querySelector('.next-band')).toBeNull()
+  })
+
+  it('points to How it works under the overview, with the catalogue line', async () => {
+    stubApi({ status: STATUS_BODY })
+    await renderReady()
+
+    const line = await screen.findByText(/Catalog 5,724 titles/)
+    expect(line).toHaveTextContent('12 stores watched')
+    expect(document.getElementById('overview')).toContainElement(line)
+    expect(
+      within(line).getByRole('link', { name: 'How it works' }),
+    ).toHaveAttribute('href', '/shelf/how')
+  })
+
+  it('links Tonight, Shelfle and the overview from the totals line', async () => {
+    stubSnapshot()
+    stubApi()
+    await renderReady()
+
+    const links = document.querySelector('.shelf-links')
+    expect(
+      within(links).getByRole('link', { name: /What’s next|Tonight/ }),
+    ).toHaveAttribute('href', '/shelf/next')
+    expect(
+      within(links).getByRole('link', { name: 'Overview' }),
+    ).toHaveAttribute('href', '#overview')
+  })
+
+  it('labels the filter rows, the sort and the view', async () => {
+    stubApi()
+    await renderReady()
+
+    expect(screen.getByRole('group', { name: 'Show' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'View' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('list', { name: 'Key to the marks on covers' }),
+    ).toBeInTheDocument()
+  })
+
+  it('counts the titles, and offers Clear filters only while filtered', async () => {
+    stubApi()
+    await renderReady()
+
+    const bar = document.querySelector('.resultbar')
+    expect(bar).toHaveTextContent('2 titles')
+    expect(
+      screen.queryByRole('button', { name: 'Clear filters' }),
+    ).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /^Film & TV/ }))
+    expect(bar).toHaveTextContent('1 of 2 titles')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(bar).toHaveTextContent('2 titles')
+    expect(gridTitles()).toHaveLength(2)
+  })
+
+  it('clears a search with Clear filters', async () => {
+    stubApi()
+    await renderReady()
+
+    await userEvent.type(screen.getByRole('searchbox'), 'dune')
+    expect(document.querySelector('.resultbar')).toHaveTextContent(
+      '1 of 2 titles',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(screen.getByRole('searchbox')).toHaveValue('')
+    expect(gridTitles()).toHaveLength(2)
+  })
+
+  it('pages the grid by whole rows, and a filter returns to the first page', async () => {
+    const many = Array.from({ length: 60 }, (_, index) => ({
+      ...ITEMS[0],
+      id: `m${index}`,
+      title: `Movie ${String(index).padStart(2, '0')}`,
+      favorite: false,
+      type: index % 2 ? 'movie' : 'boardgame',
+    }))
+    stubApi({ items: many, stats: { ...STATS, total: 60 } })
+    await renderReady()
+
+    expect(gridTitles()).toHaveLength(28)
+    expect(screen.getByText('Showing 28 of 60')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Show 28 more' }))
+    expect(gridTitles()).toHaveLength(56)
+
+    await userEvent.click(screen.getByRole('button', { name: /^Film & TV/ }))
+    expect(gridTitles()).toHaveLength(28)
+    expect(screen.getByText('Showing 28 of 30')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(gridTitles()).toHaveLength(28)
   })
 
   it("links today's Shelfle when the shelf has a game to guess", async () => {
@@ -288,7 +373,7 @@ describe('Collection', () => {
   it('has no axe violations on the landing', async () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
-    await screen.findByLabelText('Status', { selector: 'dl' })
+    await screen.findByText(/Catalog 5,724 titles/)
 
     // The render container, like the other page tests: the page is drawn
     // without RootLayout's <main>, so the whole body has no landmarks.
@@ -510,7 +595,7 @@ describe('Collection', () => {
     await userEvent.click(screen.getByRole('button', { name: /Backlog/ }))
 
     expect(
-      screen.getByText(/nothing matches those filters/i),
+      screen.getByText(/no titles match these filters/i),
     ).toBeInTheDocument()
   })
 
@@ -520,10 +605,13 @@ describe('Collection', () => {
 
     expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
 
-    await userEvent.click(screen.getByRole('button', { name: 'Title' }))
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort' }),
+      'Title',
+    )
     expect(gridTitles()).toEqual(['Dune', 'Gloomhaven'])
 
-    await userEvent.click(screen.getByRole('button', { name: /direction/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'A to Z' }))
     expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
   })
 
@@ -533,7 +621,10 @@ describe('Collection', () => {
     stubApi()
     await renderReady()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Random' }))
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort' }),
+      'Random',
+    )
     const control = document.querySelector('.sort-control')
     const before = control.getAttribute('data-seed')
 

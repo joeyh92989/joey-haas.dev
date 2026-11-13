@@ -571,6 +571,66 @@ export const spine = {
     waking: WAKING,
     error: LOAD_ERROR,
   },
+  /** The Collection page's labelled controls, result count, key and paging. */
+  shelf: {
+    // copy: pending voice review
+    groupShow: 'Show',
+    // copy: pending voice review
+    groupStatus: 'Status',
+    // copy: pending voice review
+    groupPlatform: 'Platform',
+    // copy: pending voice review
+    sort: 'Sort',
+    // copy: pending voice review
+    view: 'View',
+    // copy: pending voice review
+    key: {
+      label: 'Key',
+      aria: 'Key to the marks on covers',
+      finishedTwice: 'Finished twice',
+      backlog: 'No mark: backlog',
+      favorite: 'Favorite',
+    },
+    // copy: pending voice review
+    titles: (count) => `${count} ${count === 1 ? 'title' : 'titles'}`,
+    // copy: pending voice review
+    titlesOf: (shown, total) =>
+      `${shown} of ${total} ${total === 1 ? 'title' : 'titles'}`,
+    // copy: pending voice review
+    clear: 'Clear filters',
+    // copy: pending voice review
+    noMatch: 'No titles match these filters.',
+    // copy: pending voice review
+    // [descending, ascending]
+    directions: {
+      added: ['Newest first', 'Oldest first'],
+      finished: ['Newest first', 'Oldest first'],
+      rating: ['Highest first', 'Lowest first'],
+      year: ['Newest first', 'Oldest first'],
+      title: ['Z to A', 'A to Z'],
+    },
+    // copy: pending voice review
+    shuffle: 'Shuffle',
+    // copy: pending voice review
+    showing: (shown, total) => `Showing ${shown} of ${total}`,
+    // copy: pending voice review
+    showMore: (count) => `Show ${count} more`,
+    // copy: pending voice review
+    showAll: 'Show all',
+    // copy: pending voice review
+    overview: 'Overview',
+    // copy: pending voice review
+    overviewCharts: 'Status, ratings and finishes',
+    // copy: pending voice review
+    behind: 'Behind the shelf:',
+    // copy: pending voice review
+    behindLine: (titles, stores, refreshed) =>
+      `Catalog ${titles} titles · ${stores} stores watched${refreshed ? ` · refreshed ${refreshed} UTC` : ''}.`,
+    // copy: pending voice review
+    totalsLabel: 'Totals',
+    // copy: pending voice review
+    linksLabel: 'Around the shelf',
+  },
   /** The month journal's index; these are the screen-reader strings. */
   journal: {
     // copy: pending voice review

@@ -47,7 +47,7 @@ describe('ShelfToolbar', () => {
     await userEvent.click(screen.getByRole('button', { name: /Games/ }))
     expect(onFiltersChange).toHaveBeenCalledWith({ ...NO_FILTER, type: 'game' })
 
-    await userEvent.click(screen.getByRole('button', { name: 'Rating' }))
+    await userEvent.selectOptions(screen.getByRole('combobox'), 'Rating')
     expect(onSortChange).toHaveBeenCalledWith({
       value: 'rating',
       direction: 'desc',

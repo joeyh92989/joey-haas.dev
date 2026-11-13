@@ -29,44 +29,56 @@ function renderSort(props = {}) {
   return { onChange, onShuffle }
 }
 
-describe('SortControl as buttons', () => {
-  it('offers the six sorts with the current one pressed', () => {
+describe('SortControl', () => {
+  it('is a labelled select of the six sorts with the current one chosen', () => {
     renderSort()
-    for (const name of [
+    const select = screen.getByRole('combobox', { name: 'Sort' })
+    expect(select).toHaveValue('added')
+    expect(
+      screen.getAllByRole('option').map((option) => option.textContent),
+    ).toEqual([
       'Recently added',
       'Recently finished',
       'Rating',
       'Release year',
       'Title',
       'Random',
-    ]) {
-      expect(screen.getByRole('button', { name })).toBeInTheDocument()
-    }
-    expect(
-      screen.getByRole('button', { name: 'Recently added' }),
-    ).toHaveAttribute('aria-pressed', 'true')
+    ])
+  })
+
+  it('is the same select on a phone', () => {
+    vi.mocked(useMediaQuery).mockReturnValue(true)
+    renderSort()
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeInTheDocument()
   })
 
   // Each key starts in the direction that reads naturally for it.
   it('changes key with that key’s natural direction', async () => {
     const { onChange } = renderSort()
-    await userEvent.click(screen.getByRole('button', { name: 'Title' }))
+    await userEvent.selectOptions(screen.getByRole('combobox'), 'title')
     expect(onChange).toHaveBeenCalledWith({ value: 'title', direction: 'asc' })
   })
 
-  it('flips the direction', async () => {
+  it('words the direction and flips it', async () => {
     const { onChange } = renderSort()
-    await userEvent.click(
-      screen.getByRole('button', { name: /direction: descending/i }),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Newest first' }))
     expect(onChange).toHaveBeenCalledWith({ value: 'added', direction: 'asc' })
+  })
+
+  it.each([
+    ['rating', 'desc', 'Highest first'],
+    ['rating', 'asc', 'Lowest first'],
+    ['title', 'asc', 'A to Z'],
+    ['title', 'desc', 'Z to A'],
+    ['added', 'asc', 'Oldest first'],
+  ])('words %s %s as %s', (value, direction, words) => {
+    renderSort({ value, direction })
+    expect(screen.getByRole('button', { name: words })).toBeInTheDocument()
   })
 
   it('hides the direction and shows Shuffle for Random', async () => {
     const { onShuffle } = renderSort({ value: 'random' })
-    expect(
-      screen.queryByRole('button', { name: /direction/i }),
-    ).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button')).toHaveLength(1)
     await userEvent.click(screen.getByRole('button', { name: 'Shuffle' }))
     expect(onShuffle).toHaveBeenCalledOnce()
   })
@@ -78,9 +90,9 @@ describe('SortControl as buttons', () => {
     ).not.toBeInTheDocument()
   })
 
-  // What's next's sorts have one fixed order each, so no direction.
-  it('offers custom sorts without a direction when not directional', () => {
-    renderSort({
+  // What's next's and Comics' sorts have one fixed order each.
+  it('offers custom sorts without a direction when not directional', async () => {
+    const { onChange } = renderSort({
       value: 'best',
       sorts: [
         { value: 'best', label: 'Best match', direction: 'desc' },
@@ -88,57 +100,27 @@ describe('SortControl as buttons', () => {
       ],
       directional: false,
     })
-    expect(screen.getAllByRole('button')).toHaveLength(2)
-    expect(screen.getByRole('button', { name: 'Best match' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    expect(screen.getByRole('button', { name: 'Newest' })).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: /direction/i }),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox')).toHaveValue('best')
+    await userEvent.selectOptions(screen.getByRole('combobox'), 'newest')
+    expect(onChange).toHaveBeenCalledWith({
+      value: 'newest',
+      direction: 'desc',
+    })
   })
 })
 
 describe('SortControl labels', () => {
-  it('is labelled Sort by default', () => {
-    renderSort()
-    expect(screen.getByRole('group', { name: 'Sort' })).toBeInTheDocument()
-  })
-
-  it('takes a label for its group and its select', () => {
-    renderSort({ label: 'Sort Buy now' })
-    expect(
-      screen.getByRole('group', { name: 'Sort Buy now' }),
-    ).toBeInTheDocument()
-    vi.mocked(useMediaQuery).mockReturnValue(true)
+  it('takes a label for its select', () => {
     renderSort({ label: 'Sort Buy now' })
     expect(
       screen.getByRole('combobox', { name: 'Sort Buy now' }),
     ).toBeInTheDocument()
   })
-})
 
-describe('SortControl on a narrow screen', () => {
-  it('is a select, and Random still has Shuffle', async () => {
-    vi.mocked(useMediaQuery).mockReturnValue(true)
-    const { onChange, onShuffle } = renderSort({ value: 'random' })
-
-    const select = screen.getByRole('combobox', { name: 'Sort' })
-    expect(select).toHaveValue('random')
-    expect(
-      screen.queryByRole('button', { name: 'Recently added' }),
-    ).not.toBeInTheDocument()
-
-    // A select fires nothing on re-choosing the current option, hence the
-    // explicit button.
-    await userEvent.click(screen.getByRole('button', { name: 'Shuffle' }))
-    expect(onShuffle).toHaveBeenCalledOnce()
-
-    await userEvent.selectOptions(select, 'rating')
-    expect(onChange).toHaveBeenCalledWith({
-      value: 'rating',
-      direction: 'desc',
-    })
+  it('can keep the name and drop the visible text', () => {
+    renderSort({ hideLabel: true })
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeInTheDocument()
+    expect(screen.getByText('Sort')).toHaveClass('visually-hidden')
   })
 })

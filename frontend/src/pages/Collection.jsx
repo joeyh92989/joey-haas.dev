@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import CoverImage from '../components/CoverImage.jsx'
-import FeatureStrip from '../components/FeatureStrip.jsx'
+import CoverKey from '../components/CoverKey.jsx'
 import LoadState from '../components/LoadState.jsx'
-import NextBand from '../components/NextBand.jsx'
 import NowPlaying from '../components/NowPlaying.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import ResultBar from '../components/ResultBar.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
-import StatusStrip from '../components/StatusStrip.jsx'
 import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
 import { dailyPool } from '../lib/daily.js'
@@ -29,6 +28,8 @@ import {
   writeShelfPref,
 } from '../lib/shelf.js'
 import { itemPath } from '../lib/spinePaths.js'
+import { bandCounts } from '../lib/next.js'
+import { useMediaQuery } from '../lib/useMediaQuery.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 
@@ -39,6 +40,16 @@ const TYPE_LABEL = {
   boardgame: 'Board games',
 }
 
+const NARROW = '(max-width: 34rem)'
+const COUNT = new Intl.NumberFormat('en')
+const REFRESHED = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'UTC',
+})
+const copy = spine.shelf
 const SIZES = ['comfortable', 'compact']
 const FAVOURITES_SHOWN = 4
 const SKELETON_CARDS = 12
@@ -156,10 +167,15 @@ export const isDimmable = (item) =>
  *
  * @param {object} props
  * @param {{label: string, value: number|string}[]} props.figures
+ * @param {boolean} [props.inline] - One line of small figures (the shelf's
+ *   totals) instead of the big row Comics uses.
  */
-export function HeroNumbers({ figures }) {
+export function HeroNumbers({ figures, inline = false }) {
   return (
-    <dl className="hero-numbers" data-figures={figures.length}>
+    <dl
+      className={inline ? 'hero-numbers hero-numbers-line' : 'hero-numbers'}
+      data-figures={figures.length}
+    >
       {figures.map(({ label, value }) => (
         <div key={label}>
           <dt>{label}</dt>
@@ -372,7 +388,8 @@ function FinishesStrip({ months, byMonth, finishedThisYear }) {
  */
 export default function Collection() {
   usePageTitle(`${spine.name} · Joey Haas`)
-  // Read here, once, for the band and the status strip.
+  // Read here, once: Tonight's title for the links line, the status for the
+  // line under Overview.
   const next = useSnapshotThenLive('next').data
   const status = useSnapshotThenLive('status').data
   const itemsRead = useSnapshotThenLive('items')
@@ -404,6 +421,8 @@ export default function Collection() {
     return SIZES.includes(stored) ? stored : 'comfortable'
   })
   const [dim, setDim] = useState(() => readShelfPref('shelf.public.dim', false))
+  const narrow = useMediaQuery(NARROW)
+  const [chartsOpen, setChartsOpen] = useState(false)
 
   function changeSize(next) {
     setSize(next)
@@ -442,7 +461,7 @@ export default function Collection() {
   const groups = [
     {
       key: 'type',
-      label: 'Type',
+      label: copy.groupShow,
       options: TYPES.map((type) => ({
         value: type,
         label: TYPE_LABEL[type],
@@ -451,7 +470,7 @@ export default function Collection() {
     },
     {
       key: 'status',
-      label: 'Status',
+      label: copy.groupStatus,
       options: STATUS_ORDER.map((status) => ({
         value: status,
         label: STATUS_LABEL[status],
@@ -474,6 +493,11 @@ export default function Collection() {
     sort.direction,
     seed,
   )
+  const filtered =
+    query.trim() !== '' ||
+    Object.keys(NO_FILTER).some((key) => filters[key] !== NO_FILTER[key])
+  const pagingKey = JSON.stringify([filters, query.trim(), sort, seed])
+  const tonightTitle = next ? bandCounts(next).tonight : null
   const months = lastTwelveMonths()
   const hasRatings = stats && Object.keys(stats.rating_histogram).length > 0
   const hasRecentFinishes =
@@ -488,67 +512,47 @@ export default function Collection() {
         <p className="muted">Nothing on the shelf yet.</p>
       ) : (
         <>
-          {stats && (
-            <HeroNumbers
-              figures={[
-                { label: 'Owned', value: stats.owned },
-                { label: 'Finished', value: stats.by_status.finished ?? 0 },
-                {
-                  label: `Finished in ${ownerYear()}`,
-                  value: stats.finished_this_year,
-                },
-              ]}
-            />
-          )}
-
-          {dailyPool(items).length > 0 && (
-            <p className="daily-entry">
-              <Link to={daily.path}>{daily.entry}</Link>
+          <div className="shelf-top">
+            {stats && (
+              <HeroNumbers
+                inline
+                figures={[
+                  { label: 'Owned', value: stats.owned },
+                  { label: 'Finished', value: stats.by_status.finished ?? 0 },
+                  {
+                    label: `Finished in ${ownerYear()}`,
+                    value: stats.finished_this_year,
+                  },
+                ]}
+              />
+            )}
+            <p className="shelf-links">
+              <Link to={spine.next.path}>
+                {tonightTitle
+                  ? `${spine.next.band.tonight} ${tonightTitle}`
+                  : spine.next.band.lead}
+              </Link>
+              {dailyPool(items).length > 0 && (
+                <Link to={daily.path}>{daily.entry}</Link>
+              )}
+              <a href="#overview">{copy.overview}</a>
             </p>
-          )}
+            <label className="shelf-search">
+              <span className="visually-hidden">Search the shelf</span>
+              <input
+                id="shelf-search"
+                type="search"
+                placeholder="Search titles"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+          </div>
 
           <NowPlaying items={items} linkFor={(item) => itemPath(item.id)} />
 
-          <NextBand next={next} />
-
-          <StatusStrip status={status} next={next} />
-
-          <FeatureStrip />
-
-          <FavoritesRow items={items} linkFor={(item) => itemPath(item.id)} />
-
-          {stats && stats.total > 0 && (
-            <div className="shelf-stats">
-              <StatusBar byStatus={stats.by_status} />
-              {hasRatings && (
-                <RatingHistogram
-                  histogram={stats.rating_histogram}
-                  average={stats.average_rating}
-                />
-              )}
-              {hasRecentFinishes && (
-                <FinishesStrip
-                  months={months}
-                  byMonth={stats.finishes_by_month}
-                  finishedThisYear={stats.finished_this_year}
-                />
-              )}
-              <OnCartridge byFormat={stats.by_format} />
-            </div>
-          )}
-
-          <label className="shelf-search">
-            <span className="visually-hidden">Search the shelf</span>
-            <input
-              id="shelf-search"
-              type="search"
-              placeholder="Search titles"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-
           <ShelfToolbar
+            labelled
             groups={groups}
             toggles={toggles}
             filters={filters}
@@ -563,16 +567,30 @@ export default function Collection() {
             onDimChange={changeDim}
           />
 
+          <ResultBar
+            shown={visible.length}
+            total={items.length}
+            filtered={filtered}
+            onClear={() => {
+              setFilters(NO_FILTER)
+              setQuery('')
+            }}
+          >
+            <CoverKey />
+          </ResultBar>
+
           {visible.length === 0 ? (
             <p className="muted">
               {query.trim()
                 ? `Nothing on the shelf matches “${query.trim()}”.`
-                : 'Nothing matches those filters.'}
+                : copy.noMatch}
             </p>
           ) : (
             <PosterGrid
               items={visible}
               size={size}
+              paged
+              resetKey={pagingKey}
               renderCard={(item) => (
                 <PosterCard
                   item={item}
@@ -582,6 +600,64 @@ export default function Collection() {
               )}
             />
           )}
+
+          <section
+            className="shelf-overview"
+            id="overview"
+            aria-label={copy.overview}
+          >
+            <h2>{copy.overview}</h2>
+            <FavoritesRow items={items} linkFor={(item) => itemPath(item.id)} />
+            {stats && stats.total > 0 && (
+              <>
+                {narrow && (
+                  <button
+                    type="button"
+                    className="disclosure"
+                    aria-expanded={chartsOpen}
+                    aria-controls="shelf-charts"
+                    onClick={() => setChartsOpen((open) => !open)}
+                  >
+                    {copy.overviewCharts}
+                  </button>
+                )}
+                {(!narrow || chartsOpen) && (
+                  <div className="shelf-stats" id="shelf-charts">
+                    <StatusBar byStatus={stats.by_status} />
+                    {hasRatings && (
+                      <RatingHistogram
+                        histogram={stats.rating_histogram}
+                        average={stats.average_rating}
+                      />
+                    )}
+                    {hasRecentFinishes && (
+                      <FinishesStrip
+                        months={months}
+                        byMonth={stats.finishes_by_month}
+                        finishedThisYear={stats.finished_this_year}
+                      />
+                    )}
+                    <OnCartridge byFormat={stats.by_format} />
+                  </div>
+                )}
+              </>
+            )}
+            <p className="shelf-behind">
+              <span>{copy.behind}</span>{' '}
+              {status && (
+                <>
+                  {copy.behindLine(
+                    COUNT.format(status.titles),
+                    status.stores_watched,
+                    status.refreshed_at
+                      ? REFRESHED.format(Date.parse(status.refreshed_at))
+                      : null,
+                  )}{' '}
+                </>
+              )}
+              <Link to={spine.links.post.to}>{spine.links.post.label}</Link>
+            </p>
+          </section>
         </>
       )}
 

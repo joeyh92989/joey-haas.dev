@@ -225,3 +225,53 @@ describe('FilterChips single-member groups', () => {
     ).not.toBeInTheDocument()
   })
 })
+
+describe('FilterChips labelled', () => {
+  function renderLabelled(value = NO_FILTER) {
+    render(
+      <FilterChips
+        labelled
+        groups={GROUPS}
+        toggles={TOGGLES}
+        value={value}
+        onChange={vi.fn()}
+      />,
+    )
+  }
+
+  it('draws each group’s label as text and names the group by it', () => {
+    renderLabelled()
+    expect(screen.getByText('Type')).toBeVisible()
+    expect(screen.getByRole('group', { name: 'Type' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument()
+  })
+
+  it('puts the toggles on the first row', () => {
+    renderLabelled()
+    const first = screen.getByRole('group', { name: 'Type' })
+    expect(first).toContainElement(screen.getByRole('button', { name: /Want/ }))
+  })
+
+  it('still hides a one-chip group', () => {
+    render(
+      <FilterChips
+        labelled
+        groups={[
+          {
+            key: 'platform',
+            label: 'Platform',
+            options: [{ value: 'a', label: 'A', count: 3 }],
+          },
+        ]}
+        value={NO_FILTER}
+        onChange={vi.fn()}
+      />,
+    )
+    expect(screen.queryByText('Platform')).not.toBeInTheDocument()
+  })
+
+  it('leaves the default layout without a visible label', () => {
+    renderChips()
+    expect(document.querySelector('.ctl-label')).toBeNull()
+  })
+})

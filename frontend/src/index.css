@@ -5601,6 +5601,250 @@ a.month-bar::before {
   padding: 0;
 }
 
+/* ---------- Collection: totals line, labelled controls, result bar ---------- */
+
+.shelf-top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0 0 1rem;
+}
+
+.hero-numbers.hero-numbers-line {
+  color: var(--text-2);
+  gap: 0.1rem 1.1rem;
+  margin: 0;
+}
+
+.hero-numbers-line > div {
+  align-items: baseline;
+  flex-direction: row-reverse;
+  gap: 0.35rem;
+}
+
+.hero-numbers-line dd {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.hero-numbers-line dt {
+  color: var(--text-2);
+  font-size: 0.9375rem;
+  letter-spacing: 0;
+  margin: 0;
+  text-transform: lowercase;
+}
+
+.shelf-links {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 0.1rem 1.1rem;
+  margin: 0;
+}
+
+.shelf-top .shelf-search {
+  margin: 0 0 0 auto;
+  max-width: none;
+  width: 16rem;
+}
+
+.shelf-toolbar.controls {
+  border-block: 1px solid var(--line);
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 0;
+}
+
+.chip-rows-labelled {
+  gap: 0.5rem;
+}
+
+.ctl-row {
+  align-items: baseline;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+}
+
+.ctl-label {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.ctl-split {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  justify-content: space-between;
+}
+
+.shelf-view-controls {
+  align-items: center;
+}
+
+.view-lab {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.resultbar {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  justify-content: space-between;
+  margin: 0.75rem 0 1rem;
+}
+
+.result {
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.result strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.linkbtn {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  margin-left: 0.6rem;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.linkbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The key to the cover marks: the marks themselves, static, with names. */
+.cover-key {
+  align-items: center;
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  gap: 0.2rem 0.9rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cover-key li {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.cover-key .key-h {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.cover-key .status-mark,
+.cover-key .replay-mark,
+.cover-key .poster-heart {
+  position: static;
+  text-shadow: none;
+}
+
+.cover-key .replay-mark {
+  background: var(--sunken);
+}
+
+.pager {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 0.6rem 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.shelf-overview {
+  border-top: 1px solid var(--line);
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+}
+
+.shelf-overview > h2 {
+  margin: 0 0 1rem;
+}
+
+.shelf-overview .favourites {
+  margin-bottom: 1.5rem;
+}
+
+.disclosure {
+  align-items: center;
+  background: none;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius, 8px);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.875rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+}
+
+.disclosure::after {
+  content: '+';
+}
+
+.disclosure[aria-expanded='true']::after {
+  content: '\2013';
+}
+
+.disclosure:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.shelf-behind {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  margin: 1.5rem 0 0;
+}
+
+/* A link inside a sentence is told apart by more than its colour. */
+.shelf-behind a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 34rem) {
+  .shelf-top .shelf-search {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .ctl-row {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+  }
+
+  /* Both sizes are 6rem on a phone, so the toggle is not offered there. */
+  .view-lab {
+    display: none;
+  }
+}
+
 /* ---------- Narrow screens ---------- */
 
 @media (max-width: 34rem) {
@@ -6699,20 +6943,6 @@ a.month-bar::before {
     grid-row: 3;
     margin-top: 0.5rem;
   }
-}
-
-/* /spine: one line under the hero numbers, linking across to What's next. */
-.next-band {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  margin: 1.5rem 0;
-  padding: 0.75rem 1rem;
-}
-
-.next-band a:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 /* Skip link: off-screen until a keyboard user reaches it, then the first

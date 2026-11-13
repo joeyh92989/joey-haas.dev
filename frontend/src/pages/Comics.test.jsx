@@ -242,8 +242,9 @@ describe('Comics', () => {
   it('sorts by missing issues and remembers it (AC4, S6)', async () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Missing issues' }),
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort' }),
+      'Missing issues',
     )
     expect(runTitles()).toEqual([
       'Saga',
@@ -329,9 +330,8 @@ describe('Comics', () => {
       'aria-pressed',
       'true',
     )
-    expect(screen.getByRole('button', { name: 'Next issue' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toHaveDisplayValue(
+      'Next issue',
     )
     expect(document.querySelector('.poster-grid')).toBeInTheDocument()
   })

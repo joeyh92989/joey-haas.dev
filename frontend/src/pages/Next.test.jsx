@@ -254,7 +254,7 @@ describe('Next', () => {
         .getAllByRole('heading', { level: 3 })
         .map((h) => h.textContent),
     ).toEqual(['Nintendo Switch 2', 'Nintendo Switch'])
-    await userEvent.click(within(buy).getByRole('button', { name: 'Newest' }))
+    await userEvent.selectOptions(within(buy).getByRole('combobox'), 'Newest')
     const titles = within(buy)
       .getAllByText(/^(Old|Fresh)$/)
       .map((n) => n.textContent)
@@ -275,16 +275,15 @@ describe('Next', () => {
     localStorage.setItem('shelf.next.sort', '"newest"')
     mockNext({ data: NEXT, live: true, failed: false })
     const { unmount } = renderPage()
-    expect(screen.getByRole('button', { name: 'Newest' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    expect(
+      screen.getByRole('combobox', { name: spine.next.sortLabel }),
+    ).toHaveDisplayValue('Newest')
     unmount()
     localStorage.setItem('shelf.next.sort', '"price"')
     renderPage()
     expect(
-      screen.getByRole('button', { name: spine.next.sorts[0].label }),
-    ).toHaveAttribute('aria-pressed', 'true')
+      screen.getByRole('combobox', { name: spine.next.sortLabel }),
+    ).toHaveDisplayValue(spine.next.sorts[0].label)
   })
 
   // A game can be on both Switches, so the title alone is not a row's key.
@@ -434,7 +433,7 @@ describe('Next', () => {
     mockNext({ data: NEXT, live: true, failed: false })
     renderPage()
     expect(
-      screen.getByRole('group', { name: spine.next.sortLabel }),
+      screen.getByRole('combobox', { name: spine.next.sortLabel }),
     ).toBeInTheDocument()
   })
 })
