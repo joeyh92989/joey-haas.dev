@@ -72,8 +72,8 @@ const PICKS = {
   generated_on: '2026-11-08',
   weights: { affinity: 30, similarity: 25, quality: 20, length_fit: 15 },
   games: {
-    p1: {
-      item_id: 'p1',
+    q1: {
+      item_id: 'q1',
       title: 'Picked',
       cover_url: null,
       platform: 'Nintendo Switch',
@@ -85,7 +85,7 @@ const PICKS = {
   combos: {
     'any|': [
       {
-        item_id: 'p1',
+        item_id: 'q1',
         score: 80,
         terms: { affinity: 80, similarity: 70, quality: 90, length_fit: 100 },
       },
@@ -139,7 +139,120 @@ describe('Next', () => {
     renderPage()
     const band = screen.getByRole('heading', { name: 'Pick for me' })
     expect(band.closest('section')).toHaveAttribute('id', 'pick-for-me')
-    expect(screen.getByRole('link', { name: 'Picked' })).toBeInTheDocument()
+    // Nothing until a length or a mood is chosen.
+    expect(screen.queryByRole('link', { name: 'Picked' })).toBeNull()
+    expect(screen.getByText(spine.next.pickForMe.choose)).toBeInTheDocument()
+  })
+
+  it('shows Pick for me results once a length is chosen, leaving out Tonight’s lead', async () => {
+    const lead = {
+      item_id: 'p1',
+      title: 'Hades II',
+      cover_url: null,
+      platform: 'Nintendo Switch',
+      igdb_url: null,
+      reasons: [],
+      time_to_beat_hours: 5,
+    }
+    const picks = {
+      ...PICKS,
+      games: { ...PICKS.games, p1: lead },
+      combos: {
+        'any|': [
+          { item_id: 'p1', score: 90, terms: PICKS.combos['any|'][0].terms },
+          ...PICKS.combos['any|'],
+        ],
+      },
+    }
+    mockNext(
+      { data: NEXT, live: true, failed: false },
+      { data: picks, live: true, failed: false },
+    )
+    renderPage()
+    await userEvent.click(screen.getByRole('radio', { name: /Any length/ }))
+    const band = screen
+      .getByRole('heading', { name: 'Pick for me' })
+      .closest('section')
+    expect(within(band).getByRole('link', { name: 'Picked' })).toBeVisible()
+    expect(within(band).queryByRole('link', { name: 'Hades II' })).toBeNull()
+    expect(band).toHaveTextContent(spine.next.pickForMe.leftOut('Hades II'))
+  })
+
+  it('links only to the sections that render, with their counts', () => {
+    mockNext(
+      { data: { ...NEXT, wanted: [] }, live: true, failed: false },
+      { data: PICKS, live: true, failed: false },
+    )
+    renderPage()
+    const nav = screen.getByRole('navigation', { name: 'On this page' })
+    const links = within(nav).getAllByRole('link')
+    expect(links.map((a) => a.textContent.trim())).toEqual([
+      'Tonight',
+      'Pick for me',
+      `${spine.next.sections.buy_now} 3`,
+      `${spine.next.sections.preorders} 1`,
+      'Not on cartridge 1',
+    ])
+    expect(links[2]).toHaveAttribute('href', '#next-buy_now')
+    for (const a of links) {
+      expect(
+        document.getElementById(a.getAttribute('href').slice(1)),
+      ).not.toBeNull()
+    }
+  })
+
+  it('leaves out a section with nothing in it, heading and link', () => {
+    mockNext({ data: NEXT, live: true, failed: false })
+    renderPage()
+    expect(
+      screen.queryByRole('heading', { name: spine.next.sections.wanted }),
+    ).toBeNull()
+    expect(
+      screen.queryByRole('heading', { name: spine.next.sections.later }),
+    ).toBeNull()
+    expect(screen.queryByRole('link', { name: /On my list/ })).toBeNull()
+    expect(screen.queryByText(/is empty, for now/)).toBeNull()
+  })
+
+  it('draws Top pick on at most the first three rows of In stores now', () => {
+    const rows = Array.from({ length: 5 }, (_, i) =>
+      row(`Game ${i}`, { top_pick: true }),
+    )
+    mockNext({
+      data: {
+        ...NEXT,
+        buy_now: rows,
+        preorders: [row('Soon', { top_pick: true })],
+      },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    const buy = screen.getByRole('region', {
+      name: spine.next.sections.buy_now,
+    })
+    expect(within(buy).getAllByText('Top pick')).toHaveLength(3)
+    const soon = screen.getByRole('region', {
+      name: spine.next.sections.preorders,
+    })
+    expect(within(soon).queryByText('Top pick')).toBeNull()
+  })
+
+  it('caps a long list and opens it with Show all N', async () => {
+    const rows = Array.from({ length: 9 }, (_, i) => row(`Game ${i}`))
+    mockNext({ data: { ...NEXT, buy_now: rows }, live: true, failed: false })
+    renderPage()
+    const buy = screen.getByRole('region', {
+      name: spine.next.sections.buy_now,
+    })
+    expect(within(buy).getAllByRole('listitem')).toHaveLength(6)
+    await userEvent.click(
+      within(buy).getByRole('button', { name: /Show all 9/ }),
+    )
+    expect(within(buy).getAllByRole('listitem')).toHaveLength(9)
+    expect(
+      within(buy).getByRole('button', { name: /Show fewer/ }),
+    ).toHaveFocus()
   })
 
   it('leaves Pick for me out without a valid table', () => {
@@ -170,13 +283,9 @@ describe('Next', () => {
       .map((h) => h.textContent)
     expect(headings).toEqual([
       'Tonight',
-      spine.next.sections.wanted,
       spine.next.sections.buy_now,
       spine.next.sections.preorders,
-      spine.next.sections.later,
     ])
-    expect(screen.getByText(spine.next.empty.wanted)).toBeInTheDocument()
-    expect(screen.getByText(spine.next.empty.later)).toBeInTheDocument()
   })
 
   // Nothing pinned is the usual state; the day's picks are still tonight's
@@ -243,17 +352,13 @@ describe('Next', () => {
     expect(within(tonight).queryByText(spine.next.empty.upNext)).toBeNull()
   })
 
-  it('groups Buy now by console and sorts by newest on request', async () => {
+  it('lists Buy now in one run and sorts by newest on request', async () => {
     mockNext({ data: NEXT, live: true, failed: false })
     renderPage()
     const buy = screen.getByRole('region', {
       name: spine.next.sections.buy_now,
     })
-    expect(
-      within(buy)
-        .getAllByRole('heading', { level: 3 })
-        .map((h) => h.textContent),
-    ).toEqual(['Nintendo Switch 2', 'Nintendo Switch'])
+    expect(within(buy).queryAllByRole('heading', { level: 3 })).toHaveLength(0)
     await userEvent.selectOptions(within(buy).getByRole('combobox'), 'Newest')
     const titles = within(buy)
       .getAllByText(/^(Old|Fresh)$/)
@@ -314,7 +419,7 @@ describe('Next', () => {
     expect(within(details).getByText('Digital')).toBeInTheDocument()
   })
 
-  it('counts Not on cartridge only when there is something in it', () => {
+  it('shows Not on cartridge, counted, only when there is something in it', () => {
     mockNext({ data: NEXT, live: true, failed: false })
     const first = renderPage()
     expect(screen.getByText('Not on cartridge (1)')).toBeInTheDocument()
@@ -326,8 +431,7 @@ describe('Next', () => {
       failed: false,
     })
     renderPage()
-    expect(screen.getByText('Not on cartridge')).toBeInTheDocument()
-    expect(screen.queryByText(/Not on cartridge \(/)).toBeNull()
+    expect(screen.queryByText(/Not on cartridge/)).toBeNull()
   })
 
   it('shows stale data when the live call failed after a snapshot', () => {
@@ -392,8 +496,6 @@ describe('Next', () => {
     })
     renderPage()
     expect(screen.getByText('Bare')).toBeInTheDocument()
-    expect(screen.getByText(spine.next.empty.wanted)).toBeInTheDocument()
-    expect(screen.getByText('Not on cartridge')).toBeInTheDocument()
   })
 
   it('renders a body whose tonight is missing', () => {
@@ -471,7 +573,7 @@ describe('Next comics (AC6, AC11)', () => {
     expect(headings.slice(0, 3)).toEqual([
       'Tonight',
       spine.next.sections.comics,
-      spine.next.sections.wanted,
+      spine.next.sections.buy_now,
     ])
     const section = screen.getByRole('region', {
       name: spine.next.sections.comics,
@@ -654,9 +756,8 @@ describe('Tonight', () => {
     })
     renderPage()
     const chip = document.querySelector('.tonight-just')
-    expect(chip).toHaveTextContent(
-      'Just finished Metroid Dread · Mon 26 Oct · 9 h',
-    )
+    expect(chip).toHaveTextContent('Just finished Metroid Dread')
+    expect(chip).toHaveTextContent('Mon 26 Oct · 9 h')
   })
 
   it('pins a pick, refetches, and moves focus to its title', async () => {

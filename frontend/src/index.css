@@ -6162,13 +6162,101 @@ a.month-bar::before {
   margin: 0.5rem 0 0;
 }
 
-.next-section,
+.next-section {
+  margin-top: 2rem;
+  /* Under the sticky jump row. */
+  scroll-margin-top: 3.5rem;
+}
+
 .next-skip {
+  scroll-margin-top: 3.5rem;
+}
+
+/* The heading and, beside it, the section's one control (In stores now'
+   sort). */
+.next-section-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+
+.next-section-head h2 {
+  margin: 0;
+}
+
+.next-section-head .sort-control {
+  margin: 0;
+}
+
+/* Prose in a section keeps the reading width; the lists take the page. */
+.next-section > p,
+.next-skip > p {
   max-width: 45rem;
 }
 
-.next-section {
-  margin-top: 2rem;
+/* "On this page" (#191): sticky under the top, one line that scrolls on a
+   phone with its right edge faded like the shelf tabs. The bar keeps its
+   ground; only the list is masked. The padding gives the focus ring room. */
+.jump-nav {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  margin: 1rem 0 0;
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+}
+
+.jump-nav ul {
+  display: flex;
+  font-size: 0.875rem;
+  gap: 1.25rem;
+  list-style: none;
+  margin: 0;
+  overflow-x: auto;
+  padding: 0.6rem 4px;
+  scrollbar-width: none;
+}
+
+.jump-nav ul::-webkit-scrollbar {
+  display: none;
+}
+
+.jump-nav a {
+  border-radius: 4px;
+  color: var(--text-2);
+  display: block;
+  white-space: nowrap;
+}
+
+.jump-nav a:hover {
+  color: var(--text);
+}
+
+.jump-nav a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.jump-count {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px) {
+  .jump-nav ul {
+    padding-right: 2rem;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 calc(100% - 2rem),
+      transparent
+    );
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  }
+}
+
+.capped-toggle {
+  margin-top: 0.6rem;
 }
 
 /* The signed-in store list's sections read at the public page's size, and
@@ -6205,6 +6293,13 @@ a.month-bar::before {
   list-style: none;
   margin: 0.5rem 0 0;
   padding: 0;
+}
+
+/* The store lists run two across once there is room (1280 has plenty). */
+@media (min-width: 48rem) {
+  .next-rows-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* The card is a grid: cover | text, with any admin actions in an implicit
@@ -6272,22 +6367,19 @@ a.month-bar::before {
 
 .tonight-just {
   align-items: center;
-  background: var(--sunken);
-  border: 1px solid var(--line);
-  border-radius: 999px;
   color: var(--text-2);
-  display: inline-flex;
+  column-gap: 0.5rem;
+  display: grid;
   font-size: 0.8125rem;
-  gap: 0.5rem;
-  margin: 0 0 0.9rem;
-  max-width: 100%;
-  padding: 0.2rem 0.75rem 0.2rem 0.25rem;
+  grid-template-columns: 1.4rem auto minmax(0, 1fr);
+  line-height: 1.4;
+  margin: 0 0 0.75rem;
 }
 
 .tonight-just-thumb {
+  aspect-ratio: 1;
   border-radius: 50%;
-  flex: none;
-  height: 1.4rem;
+  grid-row: 1 / 3;
   overflow: hidden;
   width: 1.4rem;
 }
@@ -6304,11 +6396,58 @@ a.month-bar::before {
   font-weight: 600;
 }
 
-/* Stars are a block elsewhere; in the pill they follow the hours on the
-   same line. */
+/* Side by side the two runs read as one line; stacked they need no dot. */
+.tj-b::before {
+  content: '· ';
+}
+
+/* Stars are a block elsewhere; here they follow the hours on the same line. */
 .tonight-just .stars {
   display: inline-block;
   white-space: nowrap;
+}
+
+@media (max-width: 34rem) {
+  .tonight-just {
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+  }
+
+  .tj-b::before {
+    content: none;
+  }
+}
+
+/* Two columns (the lead and Read next | Or instead) once the page has the
+   room, when there are other picks to put beside the lead. */
+@media (min-width: 48rem) {
+  .tonight-split {
+    column-gap: 1.25rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    max-width: none;
+  }
+
+  .tonight-split > * {
+    grid-column: 1 / -1;
+  }
+
+  .tonight-split > .tonight-main,
+  .tonight-split > .tonight-lanes {
+    grid-column: 1;
+  }
+
+  .tonight-split > .tonight-more {
+    grid-column: 2;
+    grid-row: span 2;
+  }
+
+  .tonight-split .tonight-alts-h {
+    margin-top: 0;
+  }
+
+  .tonight-split .tonight-alts {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .tonight-lead {
@@ -9071,6 +9210,18 @@ a.cover-tile:focus-visible {
 /* Pick for me (Pick for me spec): the band on What's next. */
 .pick-for-me {
   margin-block: 2rem;
+  scroll-margin-top: 3.5rem;
+}
+
+.pick-empty {
+  margin: 0.75rem 0;
+}
+
+/* Three results across when the page is wide. */
+@media (min-width: 64rem) {
+  .pick-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .pick-choices {

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
+import CappedList from '../components/CappedList.jsx'
+import JumpNav from '../components/JumpNav.jsx'
 import LoadState from '../components/LoadState.jsx'
 import JustFinishedChip from '../components/JustFinishedChip.jsx'
 import Lane from '../components/Lane.jsx'
@@ -17,7 +19,7 @@ import WrapUpSheet from '../components/WrapUpSheet.jsx'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { shortDate } from '../lib/comics.js'
-import { groupByPlatform, sortBuyNow, weekdayWords } from '../lib/next.js'
+import { sortBuyNow, weekdayWords } from '../lib/next.js'
 import { apiFetch } from '../lib/api.js'
 import { localToday, pinPath, setStatus } from '../lib/statusMoves.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
@@ -85,6 +87,30 @@ function withLists(data) {
   }
 }
 
+/** The jump links: one per section that renders, in page order. */
+function jumpItems(data, hasPickForMe) {
+  const sections = copy.sections
+  const counted = (id) => ({
+    id: `next-${id}`,
+    label: sections[id],
+    count: data[id].length,
+  })
+  return [
+    { id: 'next-tonight', label: sections.tonight },
+    hasPickForMe && { id: 'pick-for-me', label: copy.pickForMe.heading },
+    data.comics_this_week.length > 0 && {
+      id: 'next-comics',
+      label: sections.comics,
+      count: data.comics_this_week.length,
+    },
+    data.wanted.length > 0 && counted('wanted'),
+    data.buy_now.length > 0 && counted('buy_now'),
+    data.preorders.length > 0 && counted('preorders'),
+    data.later.length > 0 && counted('later'),
+    data.not_on_cartridge.length > 0 && counted('not_on_cartridge'),
+  ].filter(Boolean)
+}
+
 function Freshness({ generated }) {
   // The picks are live (recommendation engine spec), so they carry a word
   // rather than a date; the nightly jobs keep theirs.
@@ -99,22 +125,45 @@ function Freshness({ generated }) {
   return <p className="muted next-fresh">{parts.join(' · ')}</p>
 }
 
-function Section({ id, children, empty, count }) {
+/** A section with something in it; one with nothing is left out whole. */
+function Section({ id, children, count, head }) {
+  if (count === 0) return null
   return (
     <section className="next-section" aria-labelledby={`next-${id}`}>
-      <h2 id={`next-${id}`}>{copy.sections[id]}</h2>
-      {count === 0 ? <p className="muted">{empty}</p> : children}
+      <div className="next-section-head">
+        <h2 id={`next-${id}`}>{copy.sections[id]}</h2>
+        {head}
+      </div>
+      {children}
     </section>
   )
 }
 
-function Rows({ rows, section }) {
+/** The most "Top pick" badges In stores now draws, in the order shown. */
+const TOP_PICKS_SHOWN = 3
+
+/**
+ * One list of rows, cut short with "Show all N". `topPicks` lets the
+ * section draw "Top pick" on its first few rows that carry it; the badge
+ * means little on every row, and the data is untouched (How it works reads
+ * `top_pick`).
+ */
+function Rows({ rows, section, topPicks = 0, label }) {
+  const badged = new Set()
+  rows.forEach((row, index) => {
+    if (row.top_pick && badged.size < topPicks) badged.add(index)
+  })
   return (
-    <ul className="next-rows">
-      {rows.map((row, index) => (
-        <NextRow key={rowKey(row, index)} row={row} section={section} />
-      ))}
-    </ul>
+    <CappedList items={rows} className="next-rows next-rows-cols" label={label}>
+      {(row, index) => (
+        <NextRow
+          key={rowKey(row, index)}
+          row={row}
+          section={section}
+          showTopPick={badged.has(index)}
+        />
+      )}
+    </CappedList>
   )
 }
 
@@ -168,7 +217,7 @@ function ComicsThisWeek({ rows }) {
  * spec). Their start button moves the comic or movie to Active through the
  * status route; it leaves the lane at once and the refetch confirms it.
  */
-function Tonight({ tonight, signedIn, onRefresh }) {
+function Tonight({ tonight, signedIn, onRefresh, onLead }) {
   // undefined: the body's Up next; null: unpinned here; a pick: pinned here.
   const [pin, setPin] = useState(undefined)
   const [hidden, setHidden] = useState(() => new Set())
@@ -251,6 +300,15 @@ function Tonight({ tonight, signedIn, onRefresh }) {
   const lead =
     upNext ?? open.find((pick) => !skipped.includes(pick.item_id)) ?? null
   const alts = open.filter((pick) => pick.item_id !== lead?.item_id)
+  // Two columns (the lead and Read next, then Or instead) only when there
+  // are others to put beside the lead.
+  const split = !leading && alts.length > 0
+  const leadId = lead?.item_id ?? null
+  const leadTitle = lead?.title ?? null
+  // Pick for me leaves Tonight's lead out; the page holds it for the band.
+  useEffect(() => {
+    onLead?.(leadId ? { id: leadId, title: leadTitle } : null)
+  }, [leadId, leadTitle, onLead])
   const laneOpen = (picks) =>
     picks.filter(
       (pick) => !hidden.has(pick.item_id) && !started.has(pick.item_id),
@@ -465,7 +523,7 @@ function Tonight({ tonight, signedIn, onRefresh }) {
     : {}
   return (
     <section
-      className="next-section tonight"
+      className={`next-section tonight${split ? ' tonight-split' : ''}`}
       aria-labelledby="next-tonight"
       ref={section}
     >
@@ -502,34 +560,36 @@ function Tonight({ tonight, signedIn, onRefresh }) {
         </>
       ) : (
         <>
-          {cards.length > 0 && (
-            <ul className="tonight-continuing">
-              {cards.map((card) => (
-                <SkippedToast key={card.item_id} pick={card} onUndo={undo} />
-              ))}
-            </ul>
-          )}
-          {lead ? (
-            <TonightLead
-              key={lead.item_id}
-              pick={lead}
-              pinned={Boolean(upNext)}
-              signedIn={signedIn}
-              onPlay={play}
-              onSkip={skip}
-              onUnpin={unpin}
-            />
-          ) : tonight.picks.length === 0 ? (
-            <p className="empty-box">
-              {copy.empty.games.before}{' '}
-              <a href="#pick-for-me">{copy.empty.games.link}</a>
-              {copy.empty.games.after}
-            </p>
-          ) : (
-            <p className="muted">{copy.empty.upNext}</p>
-          )}
+          <div className="tonight-main">
+            {cards.length > 0 && (
+              <ul className="tonight-continuing">
+                {cards.map((card) => (
+                  <SkippedToast key={card.item_id} pick={card} onUndo={undo} />
+                ))}
+              </ul>
+            )}
+            {lead ? (
+              <TonightLead
+                key={lead.item_id}
+                pick={lead}
+                pinned={Boolean(upNext)}
+                signedIn={signedIn}
+                onPlay={play}
+                onSkip={skip}
+                onUnpin={unpin}
+              />
+            ) : tonight.picks.length === 0 ? (
+              <p className="empty-box">
+                {copy.empty.games.before}{' '}
+                <a href="#pick-for-me">{copy.empty.games.link}</a>
+                {copy.empty.games.after}
+              </p>
+            ) : (
+              <p className="muted">{copy.empty.upNext}</p>
+            )}
+          </div>
           {alts.length > 0 && (
-            <>
+            <div className="tonight-more">
               {alts.some((pick) => !skipped.includes(pick.item_id)) && (
                 <p className="tonight-alts-h">
                   <span>
@@ -551,24 +611,26 @@ function Tonight({ tonight, signedIn, onRefresh }) {
                   ),
                 )}
               </ul>
-            </>
+            </div>
           )}
         </>
       )}
-      <Lane
-        title={copy.tonight.readNext}
-        caption={copy.tonight.readNextCaption}
-        verb={copy.tonight.readTonight}
-        picks={laneOpen(tonight.read_next)}
-        {...laneOwner}
-      />
-      <Lane
-        title={copy.tonight.watchNext}
-        caption={copy.tonight.watchNextCaption}
-        verb={copy.tonight.watchTonight}
-        picks={laneOpen(tonight.watch_next)}
-        {...laneOwner}
-      />
+      <div className="tonight-lanes">
+        <Lane
+          title={copy.tonight.readNext}
+          caption={copy.tonight.readNextCaption}
+          verb={copy.tonight.readTonight}
+          picks={laneOpen(tonight.read_next)}
+          {...laneOwner}
+        />
+        <Lane
+          title={copy.tonight.watchNext}
+          caption={copy.tonight.watchNextCaption}
+          verb={copy.tonight.watchTonight}
+          picks={laneOpen(tonight.watch_next)}
+          {...laneOwner}
+        />
+      </div>
       {(error || note) && (
         <p className="admin-error" role="alert">
           {error ? ACTION_ERROR : note}
@@ -614,6 +676,11 @@ export default function Next() {
       data.wanted.some((row) => row.type === 'comic')),
   )
   const [sort, setSort] = useState(storedSort)
+  // Tonight's lead ({id, title}), which Pick for me leaves out.
+  const [lead, setLead] = useState(null)
+  const pickTableValid =
+    Boolean(data) && isValidSnapshot('pick-for-me', pickTable)
+  const jumps = data ? jumpItems(data, pickTableValid) : []
 
   /** Refetches the live body; true when it arrived. */
   async function refresh() {
@@ -644,69 +711,71 @@ export default function Next() {
 
       {data && (
         <>
+          <JumpNav items={jumps} />
           <Tonight
             tonight={data.tonight}
             signedIn={signedIn}
             onRefresh={refresh}
+            onLead={setLead}
           />
-          {isValidSnapshot('pick-for-me', pickTable) && (
-            <PickForMe table={pickTable} />
-          )}
+          {pickTableValid && <PickForMe table={pickTable} lead={lead} />}
           <ComicsThisWeek rows={data.comics_this_week} />
-          <Section
-            id="wanted"
-            count={data.wanted.length}
-            empty={copy.empty.wanted}
-          >
-            <Rows rows={data.wanted} section="wanted" />
+          <Section id="wanted" count={data.wanted.length}>
+            <Rows
+              rows={data.wanted}
+              section="wanted"
+              label={copy.sections.wanted}
+            />
           </Section>
           <Section
             id="buy_now"
             count={data.buy_now.length}
-            empty={copy.empty.buy_now}
+            head={
+              <SortControl
+                label={copy.sortLabel}
+                value={sort}
+                direction="desc"
+                sorts={SORTS}
+                directional={false}
+                onChange={changeSort}
+              />
+            }
           >
-            <SortControl
-              label={copy.sortLabel}
-              value={sort}
-              direction="desc"
-              sorts={SORTS}
-              directional={false}
-              onChange={changeSort}
+            <Rows
+              rows={sortBuyNow(data.buy_now, sort)}
+              section="buy_now"
+              topPicks={TOP_PICKS_SHOWN}
+              label={copy.sections.buy_now}
             />
-            {groupByPlatform(sortBuyNow(data.buy_now, sort)).map((group) => (
-              <div key={group.platform} className="next-group">
-                <h3>{group.platform}</h3>
-                <Rows rows={group.rows} section="buy_now" />
-              </div>
-            ))}
           </Section>
-          <Section
-            id="preorders"
-            count={data.preorders.length}
-            empty={copy.empty.preorders}
-          >
-            <Rows rows={data.preorders} section="preorders" />
+          <Section id="preorders" count={data.preorders.length}>
+            <Rows
+              rows={data.preorders}
+              section="preorders"
+              label={copy.sections.preorders}
+            />
           </Section>
-          <Section
-            id="later"
-            count={data.later.length}
-            empty={copy.empty.later}
-          >
-            <Rows rows={data.later} section="later" />
+          <Section id="later" count={data.later.length}>
+            <Rows
+              rows={data.later}
+              section="later"
+              label={copy.sections.later}
+            />
           </Section>
-          <details className="next-skip">
-            <summary>
-              {copy.sections.not_on_cartridge}
-              {data.not_on_cartridge.length > 0 &&
-                ` (${data.not_on_cartridge.length})`}
-            </summary>
-            <p className="muted">{copy.notOnCartridge}</p>
-            {data.not_on_cartridge.length === 0 ? (
-              <p className="muted">{copy.empty.not_on_cartridge}</p>
-            ) : (
-              <Rows rows={data.not_on_cartridge} section="not_on_cartridge" />
-            )}
-          </details>
+          {data.not_on_cartridge.length > 0 && (
+            <details className="next-skip" id="next-not_on_cartridge">
+              <summary>
+                {copy.sections.not_on_cartridge} ({data.not_on_cartridge.length}
+                )
+              </summary>
+              <p className="muted">{copy.notOnCartridge}</p>
+              <Rows
+                rows={data.not_on_cartridge}
+                section="not_on_cartridge"
+                label={copy.sections.not_on_cartridge}
+              />
+            </details>
+          )}
         </>
       )}
 

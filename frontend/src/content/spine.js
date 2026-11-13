@@ -414,11 +414,6 @@ export const spine = {
         link: 'try Pick for me',
         after: '.',
       },
-      wanted: 'The list is empty, for now.',
-      buy_now: 'Nothing in stores right now.',
-      preorders: 'No cartridges due in the next 90 days.',
-      later: 'Nothing announced further out.',
-      not_on_cartridge: 'Nothing to skip.',
     },
     notOnCartridge: 'Digital only, or a Game-Key Card in a box. I skip these.',
     upNext: 'Up next',
@@ -460,6 +455,10 @@ export const spine = {
       howScored:
         'Deterministic, no model call: the weighted average of the four terms.',
       empty: 'Nothing on my backlog fits that. Try another mood.',
+      // copy: pending voice review
+      choose: 'Choose a length or a mood to see three picks.',
+      // copy: pending voice review
+      leftOut: (title) => `Tonight’s pick, ${title}, is left out.`,
       announce: (count, words) =>
         count === 0
           ? `No picks for ${words}`
@@ -534,6 +533,13 @@ export const spine = {
       },
     },
     badges: { new: 'New', topPick: 'Top pick' },
+    // copy: pending voice review
+    jump: { label: 'On this page' },
+    // copy: pending voice review
+    capped: {
+      more: (count) => `Show all ${count}`,
+      less: 'Show fewer',
+    },
     sorts: [
       { value: 'best', label: 'Best fit' },
       { value: 'newest', label: 'Newest' },

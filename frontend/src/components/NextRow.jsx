@@ -38,10 +38,18 @@ function metaLine(row, section) {
  * @param {object} props
  * @param {object} props.row - A PublicNextRow or an admin store-list row.
  * @param {string} props.section - The server section key.
+ * @param {boolean} [props.showTopPick] - Draw the Top pick badge when the row
+ *   has one; the page turns it off past its first few (the data is unchanged).
  * @param {import('react').ReactNode} [props.actions]
  * @param {import('react').ReactNode} [props.extra]
  */
-export default function NextRow({ row, section, actions, extra }) {
+export default function NextRow({
+  row,
+  section,
+  showTopPick = true,
+  actions,
+  extra,
+}) {
   const body = (
     <>
       <span className="next-row-cover">
@@ -65,18 +73,19 @@ export default function NextRow({ row, section, actions, extra }) {
   ) : (
     <span className="next-row-link">{body}</span>
   )
+  const topPick = showTopPick && row.top_pick
   const reasons = (row.reasons ?? []).slice(0, MAX_REASONS)
   return (
     <li className="next-row">
       {link}
       <div className="next-row-text">
         <span className="muted">{metaLine(row, section)}</span>
-        {(row.new || row.top_pick) && (
+        {(row.new || topPick) && (
           <span className="next-badges">
             {row.new && (
               <span className="next-badge">{spine.next.badges.new}</span>
             )}
-            {row.top_pick && (
+            {topPick && (
               <span className="next-badge next-badge-pick">
                 {spine.next.badges.topPick}
               </span>

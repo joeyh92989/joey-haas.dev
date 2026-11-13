@@ -4,6 +4,7 @@ from datetime import date
 
 from picker import (
     MOOD_BUCKETS,
+    PUBLIC_PICKS,
     PUBLIC_TERMS,
     combo_key,
     combo_keys,
@@ -43,8 +44,21 @@ def test_ties_break_on_title_then_id_and_the_order_is_stable():
     games = [item(name) for name in ("delta", "alpha", "charlie", "bravo")]
     first = public_pick_table([], games, TODAY)
     again = public_pick_table([], list(reversed(games)), TODAY)
-    assert [p.item_id for p in first.combos["any|"]] == ["alpha", "bravo", "charlie"]
+    assert [p.item_id for p in first.combos["any|"]] == [
+        "alpha",
+        "bravo",
+        "charlie",
+        "delta",
+    ]
     assert first == again
+
+
+def test_every_combination_holds_four_picks_so_the_page_can_skip_one():
+    assert PUBLIC_PICKS == 4
+    games = [item(name) for name in ("a", "b", "c", "d", "e", "f")]
+    table = public_pick_table([], games, TODAY)
+    assert all(len(picks) == 4 for picks in table.combos.values() if picks)
+    assert len(table.combos["any|"]) == 4
 
 
 def test_only_public_terms_are_scored():
