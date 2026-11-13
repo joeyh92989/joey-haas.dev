@@ -3192,25 +3192,31 @@ footer {
   gap: var(--space-2);
 }
 
-/* Below 900px: a bottom sheet over a dimmed page, modal. */
+/* Below 900px: a bottom sheet over a dimmed page, modal. It is a Sheet's
+   dialog, so the UA's centring and fit-content width are undone here. */
 .intake-drawer-sheet {
   border-radius: var(--radius) var(--radius) 0 0;
   bottom: 0;
+  color: var(--text);
   left: 0;
+  margin: 0;
   max-height: 85vh;
+  max-width: 100%;
   overflow-y: auto;
   padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   position: fixed;
   right: 0;
   top: auto;
-  z-index: 60;
+  width: 100%;
 }
 
-.intake-drawer-backdrop {
+/* .intake-drawer sets display, which would show a closed dialog. */
+.intake-drawer-sheet:not([open]) {
+  display: none;
+}
+
+.intake-drawer-sheet::backdrop {
   background: var(--overlay);
-  inset: 0;
-  position: fixed;
-  z-index: 59;
 }
 
 .intake-checksearch {
@@ -6732,7 +6738,7 @@ section > .cover-key {
   gap: var(--space-3);
   grid-template-columns: 2.6rem minmax(0, 1fr) auto;
 }
-.wrap-sheet-heading h3 {
+.wrap-sheet-heading h2 {
   font-size: var(--fs-18);
   margin: 0;
 }
@@ -6788,11 +6794,12 @@ section > .cover-key {
   gap: var(--space-3);
   padding-top: 0.9rem;
 }
-.wrap-fresh h4 {
+.wrap-fresh h3 {
   color: var(--text-3);
   font-size: var(--fs-12);
   font-weight: 600;
   letter-spacing: 0.06em;
+  line-height: inherit;
   margin: 0;
   text-transform: uppercase;
 }
@@ -10644,7 +10651,7 @@ a.cover-tile:focus-visible {
   gap: 0.9rem;
   padding: var(--space-4) var(--space-4) 1.25rem;
 }
-.share-sheet-body h3 {
+.share-sheet-body h2 {
   font-size: var(--fs-16);
   margin: 0;
 }

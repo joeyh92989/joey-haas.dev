@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import Sheet from './Sheet.jsx'
 import CoverImage from './CoverImage.jsx'
 import QuickRate from './QuickRate.jsx'
 import { ACTION_ERROR } from '../content/status.js'
@@ -39,8 +40,7 @@ function headerLine(detail, type) {
  * entry points: the Continue card, the admin Now playing band, and the
  * shelf card's status menu, which opens it with that outcome preselected.
  *
- * A native `<dialog>` opened with showModal(), as the site's other sheets
- * are: the browser traps focus, inerts the page, closes on Escape (routed
+ * A Sheet, a native `<dialog>` opened with showModal(): the browser traps focus, inerts the page, closes on Escape (routed
  * through the owner's state) and returns focus to the opener. The sheet
  * fetches the item on open for its header and the current rating.
  *
@@ -58,69 +58,30 @@ function headerLine(detail, type) {
  *   ratingFailed: boolean}) => void} props.onDone
  */
 export default function WrapUpSheet({ subject, onClose, onDone }) {
-  const ref = useRef(null)
   const open = subject != null
   // A save is out: closing now would unmount the form, swallowing its error
   // or letting its result land on whatever the owner opens next.
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    const dialog = ref.current
-    if (!dialog) return
-    if (open && !dialog.open) {
-      dialog.showModal()
-      dialog.querySelector('[aria-pressed="true"]')?.focus()
-    }
-    if (!open && dialog.open) dialog.close()
-  }, [open])
-
-  function close() {
-    if (!busy) onClose()
-  }
-
-  function handleCancel(event) {
-    event.preventDefault()
-    close()
-  }
-
-  function handleClose() {
-    if (open) close()
-  }
-
-  // The backdrop closes the sheet only when the press began there too: a
-  // drag that selects the note and ends past the edge is not a dismissal
-  // (the same guard the search dialog uses).
-  const pressedBackdrop = useRef(false)
-
-  function handlePointerDown(event) {
-    pressedBackdrop.current = event.target === event.currentTarget
-  }
-
-  function handleClick(event) {
-    if (event.target === event.currentTarget && pressedBackdrop.current) close()
-    pressedBackdrop.current = false
-  }
-
   return (
-    <dialog
-      ref={ref}
+    <Sheet
+      open={open}
+      onClose={onClose}
+      onCancel={() => !busy}
+      labelledBy={TITLE_ID}
       className="wrap-sheet"
-      aria-labelledby={TITLE_ID}
-      onCancel={handleCancel}
-      onClose={handleClose}
-      onPointerDown={handlePointerDown}
-      onClick={handleClick}
+      initialFocus='[aria-pressed="true"]'
     >
       {open && (
         <WrapUpForm
           key={subject.item.id}
           subject={subject}
-          onClose={close}
+          onClose={() => !busy && onClose()}
           onBusy={setBusy}
           onDone={onDone}
         />
       )}
-    </dialog>
+    </Sheet>
   )
 }
 
@@ -219,7 +180,7 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
           <CoverImage src={item.cover_url} type={item.type} alt="" />
         </span>
         <div className="wrap-sheet-heading">
-          <h3 id={TITLE_ID}>{copy.title(item.title)}</h3>
+          <h2 id={TITLE_ID}>{copy.title(item.title)}</h2>
           <p className="muted">{headerLine(detail, item.type)}</p>
         </div>
         <button
@@ -256,7 +217,7 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
         })}
       </div>
       <div className="wrap-fresh">
-        <h4>{copy.fresh}</h4>
+        <h3>{copy.fresh}</h3>
         <div className="wrap-field">
           <span className="wrap-label" id="wrap-up-rating">
             {copy.rating}

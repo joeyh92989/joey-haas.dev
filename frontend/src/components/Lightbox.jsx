@@ -1,15 +1,12 @@
-import { useEffect, useRef } from 'react'
-
+import Sheet from './Sheet.jsx'
 import { photoSrc, photoSrcSet } from '../lib/trips.js'
 
 /**
  * A trip's photos, one at a time, in a native modal `<dialog>`.
  *
- * The pattern the search dialog and the Wrap up sheet use: `showModal()`
- * traps focus and inerts the page, the owner holds the state, and every way
- * of closing (Escape, the close button, a backdrop press) goes through
- * `onClose`. The backdrop closes only when the press began on it too, so a
- * drag that ends past the image is not a dismissal.
+ * It renders through Sheet: `showModal()` traps focus and inerts the page,
+ * the owner holds the state, and every way of closing (Escape, the close
+ * button, a backdrop press) goes through `onClose`.
  *
  * Focus goes back to `opener` once the dialog has closed. It is passed in
  * rather than read from `document.activeElement`, because Safari does not
@@ -37,38 +34,11 @@ export default function Lightbox({
   onClose,
   opener = null,
 }) {
-  const ref = useRef(null)
-  const returnFocus = useRef(null)
-  const pressedBackdrop = useRef(false)
   const open = index != null
-
-  useEffect(() => {
-    const dialog = ref.current
-    if (!dialog) return
-    if (open && !dialog.open) {
-      returnFocus.current = opener ?? document.activeElement
-      dialog.showModal()
-      dialog.querySelector('.lightbox__next, .lightbox__close')?.focus()
-    }
-    if (!open && dialog.open) {
-      dialog.close()
-      if (returnFocus.current?.isConnected) returnFocus.current.focus?.()
-      returnFocus.current = null
-    }
-  }, [open, opener])
 
   const count = photos.length
   const step = (by) => (index + by + count) % count
   const photo = open ? photos[index] : null
-
-  function handleCancel(event) {
-    event.preventDefault()
-    onClose()
-  }
-
-  function handleClose() {
-    if (open) onClose()
-  }
 
   function handleKeyDown(event) {
     if (!open || count < 2) return
@@ -81,27 +51,16 @@ export default function Lightbox({
     }
   }
 
-  function handlePointerDown(event) {
-    pressedBackdrop.current = event.target === event.currentTarget
-  }
-
-  function handleClick(event) {
-    if (event.target === event.currentTarget && pressedBackdrop.current) {
-      onClose()
-    }
-    pressedBackdrop.current = false
-  }
-
   return (
-    <dialog
-      ref={ref}
+    <Sheet
+      open={open}
+      onClose={onClose}
+      ariaLabel="Photos"
+      variant="bare"
       className="lightbox"
-      aria-label="Photos"
-      onCancel={handleCancel}
-      onClose={handleClose}
+      initialFocus=".lightbox__next, .lightbox__close"
+      returnFocus={opener}
       onKeyDown={handleKeyDown}
-      onPointerDown={handlePointerDown}
-      onClick={handleClick}
     >
       {photo && (
         <>
@@ -155,6 +114,6 @@ export default function Lightbox({
           </div>
         </>
       )}
-    </dialog>
+    </Sheet>
   )
 }

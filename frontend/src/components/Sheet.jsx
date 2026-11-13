@@ -1,21 +1,46 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * A modal sheet: a native `<dialog>` opened with showModal(), centred on
- * desktop and anchored to the bottom on a phone, with the site's
- * `--overlay` backdrop. The browser traps focus and inerts the page;
- * Escape and a press on the backdrop route through `onClose`, so the owner's
- * state stays the one source of truth. Focus returns to whatever had it
- * when the sheet opened.
+ * Resolves a "where does focus go" value: an element, a ref to one, or
+ * nothing.
+ */
+function resolveTarget(target) {
+  if (!target) return null
+  return 'current' in target ? target.current : target
+}
+
+/**
+ * The one modal dialog: a native `<dialog>` opened with showModal(). By
+ * default it is a sheet, centred on desktop and anchored to the bottom on a
+ * phone, with the site's `--overlay` backdrop. The browser traps focus and
+ * inerts the page; Escape, a press on the backdrop and any other native
+ * close route through `onClose`, so the owner's state stays the one source
+ * of truth. Focus goes in on open and back out on close.
  *
- * The dialog handling is the one WrapUpSheet and SearchDialog each carry;
- * this is the shared shell for new sheets (daily puzzle spec).
+ * Search, the photo lightbox, the phone menus, Wrap up and the add drawer's
+ * phone sheet all render through this, each with its own `className` and
+ * `variant="bare"`, so the dialog handling lives in one place (#204).
+ *
+ * One of `labelledBy` (the id of a heading inside) or `ariaLabel` names it.
+ * Headings inside a sheet start at h2: the page above has its h1.
  *
  * @param {object} props
  * @param {boolean} props.open Whether the sheet is showing.
  * @param {() => void} props.onClose Called for every way of closing it.
- * @param {string} props.labelledBy The id of the sheet's heading.
+ * @param {string} [props.labelledBy] The id of the sheet's heading.
+ * @param {string} [props.ariaLabel] A name, where there is no heading.
  * @param {string} [props.className] Extra classes on the dialog.
+ * @param {'sheet'|'bare'} [props.variant] `sheet` (default) adds the shared
+ *   `.sheet` look; `bare` leaves all styling to `className`.
+ * @param {string|import('react').RefObject<HTMLElement>} [props.initialFocus]
+ *   A selector within the dialog, or a ref, for what takes focus on open.
+ *   Default `[data-autofocus]`.
+ * @param {HTMLElement|import('react').RefObject<HTMLElement>|null} [props.returnFocus]
+ *   Where focus goes on close: an element or a ref to one (read at close).
+ *   Default: whatever had focus when the sheet opened.
+ * @param {() => (boolean|void)} [props.onCancel] Asked before each close
+ *   (Escape, backdrop, a native close). Returning `false` refuses it.
+ * @param {(event: import('react').KeyboardEvent) => void} [props.onKeyDown]
  * @param {import('react').ReactNode} props.children The contents, mounted
  *   only while open.
  */
@@ -23,34 +48,53 @@ export default function Sheet({
   open,
   onClose,
   labelledBy,
+  ariaLabel,
   className = '',
+  variant = 'sheet',
+  initialFocus = '[data-autofocus]',
+  returnFocus = null,
+  onCancel,
+  onKeyDown,
   children,
 }) {
   const ref = useRef(null)
-  const returnFocus = useRef(null)
+  const opener = useRef(null)
 
   useEffect(() => {
     const dialog = ref.current
     if (!dialog) return
     if (open && !dialog.open) {
-      returnFocus.current = document.activeElement
+      opener.current = document.activeElement
       dialog.showModal()
-      dialog.querySelector('[data-autofocus]')?.focus()
+      const target =
+        typeof initialFocus === 'string'
+          ? dialog.querySelector(initialFocus)
+          : resolveTarget(initialFocus)
+      target?.focus()
     }
     if (!open && dialog.open) {
       dialog.close()
-      if (returnFocus.current?.isConnected) returnFocus.current.focus?.()
-      returnFocus.current = null
+      // A route change can close the sheet after its opener left the page.
+      const back = resolveTarget(returnFocus) ?? opener.current
+      if (back?.isConnected) back.focus?.()
+      opener.current = null
     }
+    // Focus targets are read when the sheet opens or closes, not before.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  function handleCancel(event) {
-    event.preventDefault()
+  function requestClose() {
+    if (onCancel?.() === false) return
     onClose()
   }
 
+  function handleCancel(event) {
+    event.preventDefault()
+    requestClose()
+  }
+
   function handleClose() {
-    if (open) onClose()
+    if (open) requestClose()
   }
 
   // The backdrop closes the sheet only when the press began there too: a
@@ -63,18 +107,24 @@ export default function Sheet({
 
   function handleClick(event) {
     if (event.target === event.currentTarget && pressedBackdrop.current) {
-      onClose()
+      requestClose()
     }
     pressedBackdrop.current = false
   }
 
+  const classes = [variant === 'sheet' ? 'sheet' : '', className]
+    .filter(Boolean)
+    .join(' ')
+
   return (
     <dialog
       ref={ref}
-      className={`sheet ${className}`.trim()}
+      className={classes || undefined}
       aria-labelledby={labelledBy}
+      aria-label={labelledBy ? undefined : ariaLabel}
       onCancel={handleCancel}
       onClose={handleClose}
+      onKeyDown={onKeyDown}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
     >
