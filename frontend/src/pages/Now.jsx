@@ -151,7 +151,7 @@ export default function Now() {
                   {' '}
                   · {finishedOn(item.finished_at)}
                   {item.again && ` · ${timeWord(item.finish_number)}`}
-                  {item.rating != null && ' · '}
+                  {item.rating ? ' · ' : null}
                 </span>
                 <Rating rating={item.rating} />
               </li>

@@ -10,20 +10,25 @@ const css = readFileSync(
   'utf8',
 )
 
-/** The declarations of every rule whose selector list is exactly this. */
-function rule(selector) {
-  const bodies = []
-  let start = css.indexOf(`\n${selector} {`)
-  while (start !== -1) {
-    bodies.push(css.slice(start, css.indexOf('}', start)))
-    start = css.indexOf(`\n${selector} {`, start + 1)
+/** Every `selectors { body }` pair, comments dropped, selector lists split. */
+const rules = []
+for (const [, list, body] of css
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+  for (const selector of list.split(',')) {
+    rules.push({ selector: selector.trim().replace(/\s+/g, ' '), body })
   }
+}
+
+/** The declarations of every rule naming this selector; fails if none. */
+function rule(selector) {
+  const bodies = rules.filter((r) => r.selector === selector).map((r) => r.body)
   expect(bodies.length, `a rule for ${selector}`).toBeGreaterThan(0)
   return bodies.join('\n')
 }
 
 describe('single-series charts (#197)', () => {
-  it.each([['.rating-bar,\n.month-bar'], ['.day-bar'], ['.bar-list-fill']])(
+  it.each(['.rating-bar', '.month-bar', '.day-bar', '.bar-list-fill'])(
     'draws %s in --chart',
     (selector) => {
       expect(rule(selector)).toContain('background: var(--chart);')
@@ -32,31 +37,45 @@ describe('single-series charts (#197)', () => {
 
   it('keeps amber for the rating star and the favorite heart only', () => {
     expect(rule('.rating-star')).toContain('color: var(--rating);')
-    expect(rule('.rating-bar,\n.month-bar')).not.toContain('--rating')
+    expect(rule('.rating-bar')).not.toContain('--rating')
     expect(rule('.day-bar')).not.toContain('--chart-2')
   })
 })
 
 describe('two widths (#188)', () => {
-  it('uses only the 72rem page and the 45rem reading width on tracker pages', () => {
-    for (const selector of [
-      '.tonight',
-      '.year-months',
-      '.year-diary',
-      '.month-days',
-      '.daily-lede',
-      '.comic-hero-next',
-      '.comic-issue-desc',
-      '.tour-lede',
-      '.tour-stop-claim',
-      '.tour-stop-why',
-      '.tour-stop-cols.one',
-    ]) {
-      const start = css.indexOf(`\n${selector} {`)
-      if (start === -1) continue
-      const body = css.slice(start, css.indexOf('}', start))
-      const widths = [...body.matchAll(/max-width: ([^;]+);/g)].map((m) => m[1])
-      for (const width of widths) expect(width, selector).toBe('45rem')
-    }
+  const COLUMN = 'max-width: 45rem;'
+  const TEXT = 'max-width: min(45rem, 68ch);'
+
+  it.each([
+    '.year-diary',
+    '.month-days',
+    '.month-index',
+    '.month-step',
+    '.comic-hero-next',
+    '.series-row .lanes',
+    '.tour-stop-cols.one',
+  ])('holds %s to the 45rem column', (selector) => {
+    expect(rule(selector)).toContain(COLUMN)
   })
+
+  it.each([
+    '.prose',
+    '.prose-list',
+    '.daily-lede',
+    '.comic-issue-desc',
+    '.item-description-wrap',
+    '.tour-lede',
+    '.tour-stop-claim',
+    '.tour-stop-why',
+  ])('caps running text in %s at the reading measure', (selector) => {
+    expect(rule(selector)).toContain(TEXT)
+  })
+
+  it.each(['.tonight', '.year-months'])(
+    'leaves %s no width of its own',
+    (s) => {
+      const bodies = rules.filter((r) => r.selector === s).map((r) => r.body)
+      expect(bodies.join('')).not.toMatch(/max-width/)
+    },
+  )
 })
