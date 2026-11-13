@@ -24,11 +24,20 @@ function choiceWords(size, moods) {
   return `${words}, ${moods.map((mood) => copy.moods[mood].toLowerCase()).join(' or ')}`
 }
 
-/** The combination's picks without Tonight's lead, at most three. */
+/**
+ * The combination's three picks without Tonight's lead. `leftOut` is true
+ * only when the lead would have been one of the three shown, so the note
+ * under the results is never untrue.
+ */
 function resultsFor(table, size, moods, lead) {
-  return picksFor(table, pickForMeKey(size, moods))
+  const all = picksFor(table, pickForMeKey(size, moods))
+  const leftOut = all
+    .slice(0, SHOWN)
+    .some(({ pick }) => pick.item_id === lead?.id)
+  const shown = all
     .filter(({ pick }) => pick.item_id !== lead?.id)
     .slice(0, SHOWN)
+  return { shown, leftOut }
 }
 
 /** One pick's working: its total, then each term with its weight. */
@@ -90,7 +99,9 @@ export default function PickForMe({ table, lead = null }) {
   const [refused, setRefused] = useState(false)
   const [announce, setAnnounce] = useState('')
   const chosen = size !== null || moods.length > 0
-  const picks = chosen ? resultsFor(table, size ?? 'any', moods, lead) : []
+  const { shown: picks, leftOut } = chosen
+    ? resultsFor(table, size ?? 'any', moods, lead)
+    : { shown: [], leftOut: false }
   const { hash } = useLocation()
   const heading = useRef(null)
 
@@ -104,11 +115,11 @@ export default function PickForMe({ table, lead = null }) {
 
   function chose(nextSize, nextMoods) {
     if (nextSize === null && !nextMoods.length) {
-      setAnnounce('')
+      setAnnounce(copy.choose)
       return
     }
     const length = nextSize ?? 'any'
-    const count = resultsFor(table, length, nextMoods, lead).length
+    const count = resultsFor(table, length, nextMoods, lead).shown.length
     setAnnounce(copy.announce(count, choiceWords(length, nextMoods)))
   }
 
@@ -179,7 +190,7 @@ export default function PickForMe({ table, lead = null }) {
       <p className="pick-note" role="status">
         {refused ? copy.moodLimit : ''}
       </p>
-      <p className="visually-hidden" aria-live="polite">
+      <p className="visually-hidden" role="status" aria-live="polite">
         {announce}
       </p>
       {!chosen ? (
@@ -200,7 +211,7 @@ export default function PickForMe({ table, lead = null }) {
         <p className="muted">{copy.empty}</p>
       )}
       <p className="pick-how muted">
-        {chosen && lead && <>{copy.leftOut(lead.title)} </>}
+        {leftOut && <>{copy.leftOut(lead.title)} </>}
         {copy.howScored}
       </p>
     </section>

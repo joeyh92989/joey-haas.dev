@@ -59,11 +59,15 @@ describe('PickForMe', () => {
     renderBand()
     expect(screen.getByRole('radio', { name: /Any length/ })).not.toBeChecked()
     expect(titles()).toEqual([])
-    expect(screen.getByText(spine.next.pickForMe.choose)).toBeInTheDocument()
+    expect(document.querySelector('.pick-empty')).toHaveTextContent(
+      spine.next.pickForMe.choose,
+    )
     await user.click(screen.getByRole('button', { name: 'Cozy' }))
-    expect(screen.queryByText(spine.next.pickForMe.choose)).toBeNull()
+    expect(document.querySelector('.pick-empty')).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Cozy' }))
-    expect(screen.getByText(spine.next.pickForMe.choose)).toBeInTheDocument()
+    expect(document.querySelector('.pick-empty')).toHaveTextContent(
+      spine.next.pickForMe.choose,
+    )
     expect(titles()).toEqual([])
   })
 
@@ -101,6 +105,38 @@ describe('PickForMe', () => {
     expect(
       screen.getByText(/Tonight’s pick, Alpha, is left out\./),
     ).toBeInTheDocument()
+  })
+
+  it('names no lead when it is not among the shown picks', async () => {
+    const four = {
+      ...TABLE,
+      games: { ...TABLE.games, d: card('d', 'Delta') },
+      combos: {
+        'any|': [
+          score('a', 88),
+          score('b', 70),
+          score('c', 61),
+          score('d', 50),
+        ],
+      },
+    }
+    render(
+      <MemoryRouter>
+        <PickForMe table={four} lead={{ id: 'z', title: 'Zeta' }} />
+      </MemoryRouter>,
+    )
+    await userEvent.click(screen.getByRole('radio', { name: /Any length/ }))
+    expect(titles()).toEqual(['Alpha', 'Beta', 'Gamma'])
+    expect(screen.queryByText(/is left out/)).toBeNull()
+  })
+
+  it('says so again when the last choice is cleared', async () => {
+    const user = userEvent.setup()
+    renderBand()
+    await user.click(screen.getByRole('button', { name: 'Cozy' }))
+    await user.click(screen.getByRole('button', { name: 'Cozy' }))
+    const live = document.querySelector('[role="status"][aria-live="polite"]')
+    expect(live).toHaveTextContent(spine.next.pickForMe.choose)
   })
 
   it('shows at most three, and no note without a lead', async () => {
@@ -165,9 +201,11 @@ describe('PickForMe', () => {
       'aria-pressed',
       'false',
     )
-    expect(screen.getByRole('status')).toHaveTextContent('Two moods at most')
+    expect(document.querySelector('.pick-note')).toHaveTextContent(
+      'Two moods at most',
+    )
     await user.click(screen.getByRole('button', { name: 'Story' }))
-    expect(screen.getByRole('status')).toHaveTextContent('')
+    expect(document.querySelector('.pick-note')).toHaveTextContent('')
   })
 
   it('takes focus when it is arrived at by its anchor', () => {
