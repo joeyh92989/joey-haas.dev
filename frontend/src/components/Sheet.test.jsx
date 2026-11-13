@@ -24,7 +24,7 @@ afterEach(() => {
 })
 
 /** An opener button and a sheet it toggles. */
-function Page({ onCancel, sheetProps = {}, children }) {
+function Page({ canClose, sheetProps = {}, children }) {
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -35,7 +35,7 @@ function Page({ onCancel, sheetProps = {}, children }) {
         open={open}
         onClose={() => setOpen(false)}
         labelledBy="t"
-        onCancel={onCancel}
+        canClose={canClose}
         {...sheetProps}
       >
         {children ?? (
@@ -161,6 +161,21 @@ describe('Sheet', () => {
     expect(screen.getByRole('button', { name: 'Elsewhere' })).toHaveFocus()
   })
 
+  it('falls back to the opener when the returnFocus target is detached or missing', async () => {
+    const detached = document.createElement('button')
+    const { unmount } = render(<Page sheetProps={{ returnFocus: detached }} />)
+    let opener = screen.getByRole('button', { name: 'Open' })
+    await userEvent.click(opener)
+    fireEvent(dialog(), new Event('cancel', { cancelable: true }))
+    expect(opener).toHaveFocus()
+    unmount()
+    render(<Page sheetProps={{ returnFocus: { current: null } }} />)
+    opener = screen.getByRole('button', { name: 'Open' })
+    await userEvent.click(opener)
+    fireEvent(dialog(), new Event('cancel', { cancelable: true }))
+    expect(opener).toHaveFocus()
+  })
+
   it('is named by its heading (labelledBy) or by ariaLabel', async () => {
     const { unmount } = render(<Page />)
     expect(dialog()).toHaveAttribute('aria-labelledby', 't')
@@ -184,8 +199,8 @@ describe('Sheet', () => {
     expect(dialog()).not.toHaveClass('sheet')
   })
 
-  it('stays open when onCancel refuses, for Escape, backdrop and native close', async () => {
-    render(<Page onCancel={() => false} />)
+  it('stays open when canClose refuses, for Escape, backdrop and native close', async () => {
+    render(<Page canClose={() => false} />)
     await userEvent.click(screen.getByRole('button', { name: 'Open' }))
     const cancel = new Event('cancel', { cancelable: true })
     fireEvent(dialog(), cancel)
@@ -195,8 +210,8 @@ describe('Sheet', () => {
     expect(screen.getByText('Title')).toBeInTheDocument()
   })
 
-  it('closes when onCancel allows it', async () => {
-    render(<Page onCancel={() => true} />)
+  it('closes when canClose allows it', async () => {
+    render(<Page canClose={() => true} />)
     await userEvent.click(screen.getByRole('button', { name: 'Open' }))
     fireEvent(dialog(), new Event('cancel', { cancelable: true }))
     expect(dialog()).not.toHaveAttribute('open')

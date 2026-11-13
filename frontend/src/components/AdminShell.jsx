@@ -182,7 +182,8 @@ function AreaPages({
 }
 
 /**
- * A segment's sheet: the NavSheet the site's MobileNavSheet is, so focus is trapped and the page behind is inert. Escape, the Close
+ * A segment's sheet: the same NavSheet the site's MobileNavSheet is, so
+ * focus is trapped and the page behind is inert. Escape, the Close
  * button, a click on the backdrop and following a link all close it through
  * `onClose`, and focus goes back to the segment.
  */

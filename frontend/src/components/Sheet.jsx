@@ -38,8 +38,9 @@ function resolveTarget(target) {
  * @param {HTMLElement|import('react').RefObject<HTMLElement>|null} [props.returnFocus]
  *   Where focus goes on close: an element or a ref to one (read at close).
  *   Default: whatever had focus when the sheet opened.
- * @param {() => (boolean|void)} [props.onCancel] Asked before each close
- *   (Escape, backdrop, a native close). Returning `false` refuses it.
+ * @param {() => (boolean|void)} [props.canClose] Asked before each close
+ *   (Escape, backdrop, a native close). Returning `false` refuses it. It
+ *   answers at once: a promise is not awaited, and counts as yes.
  * @param {(event: import('react').KeyboardEvent) => void} [props.onKeyDown]
  * @param {import('react').ReactNode} props.children The contents, mounted
  *   only while open.
@@ -53,12 +54,18 @@ export default function Sheet({
   variant = 'sheet',
   initialFocus = '[data-autofocus]',
   returnFocus = null,
-  onCancel,
+  canClose,
   onKeyDown,
   children,
 }) {
   const ref = useRef(null)
   const opener = useRef(null)
+  // Focus targets are read when the sheet opens or closes, not before, so
+  // the effect below needs only `open` as a dependency.
+  const initialFocusRef = useRef(initialFocus)
+  const returnFocusRefs = useRef(returnFocus)
+  initialFocusRef.current = initialFocus
+  returnFocusRefs.current = returnFocus
 
   useEffect(() => {
     const dialog = ref.current
@@ -66,25 +73,26 @@ export default function Sheet({
     if (open && !dialog.open) {
       opener.current = document.activeElement
       dialog.showModal()
+      const wanted = initialFocusRef.current
       const target =
-        typeof initialFocus === 'string'
-          ? dialog.querySelector(initialFocus)
-          : resolveTarget(initialFocus)
+        typeof wanted === 'string'
+          ? dialog.querySelector(wanted)
+          : resolveTarget(wanted)
       target?.focus()
     }
     if (!open && dialog.open) {
       dialog.close()
-      // A route change can close the sheet after its opener left the page.
-      const back = resolveTarget(returnFocus) ?? opener.current
+      // A route change can close the sheet after its opener left the page,
+      // so a missing or detached target falls back to what had focus at open.
+      const wanted = resolveTarget(returnFocusRefs.current)
+      const back = wanted?.isConnected ? wanted : opener.current
       if (back?.isConnected) back.focus?.()
       opener.current = null
     }
-    // Focus targets are read when the sheet opens or closes, not before.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   function requestClose() {
-    if (onCancel?.() === false) return
+    if (canClose?.() === false) return
     onClose()
   }
 

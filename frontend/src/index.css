@@ -1349,8 +1349,8 @@ section + section {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 4px;
-  /* Relative to the prose around it, not a step of the scale. */
-  font-size: 0.85em;
+  /* Relative to the prose around it, but never under the 12px floor. */
+  font-size: max(0.85em, var(--fs-12));
   padding: 0.1rem 0.35rem;
 }
 
@@ -1666,13 +1666,14 @@ footer {
 /* An area's pending count. See --badge for its measured contrast. */
 .admin-badge {
   background: var(--badge);
-  border-radius: 7px;
+  border-radius: 999px;
   color: var(--badge-ink);
   display: grid;
-  font: 600 var(--fs-12) var(--font-sans);
-  height: 14px;
-  min-width: 14px;
-  padding: 0 3px;
+  font: 600 var(--fs-12) / 1 var(--font-sans);
+  /* Sized for its 12px digits: a round dot for one, a pill for two. */
+  min-height: 1rem;
+  min-width: 1rem;
+  padding: 0 var(--space-1);
   place-items: center;
   position: absolute;
   right: 4px;
@@ -3420,7 +3421,6 @@ footer {
   color: var(--text);
   display: flex;
   flex: 1;
-  /* exempt: illustration glyph, named elsewhere */
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -3436,19 +3436,16 @@ footer {
 /* Long titles take smaller type and the full height instead of being clipped
    at the shelf line (#200); the ellipsis is the last resort on a phone. */
 .intake-demo-spine[data-size='md'] {
-  /* exempt: illustration glyph, named elsewhere */
   font-size: 0.5625rem;
   letter-spacing: 0.03em;
 }
 
 .intake-demo-spine[data-size='sm'] {
-  /* exempt: illustration glyph, named elsewhere */
   font-size: 0.5rem;
   letter-spacing: 0.02em;
 }
 
 .intake-demo-spine[data-size='xs'] {
-  /* exempt: illustration glyph, named elsewhere */
   font-size: 0.4375rem;
   letter-spacing: 0.01em;
 }
@@ -6706,8 +6703,7 @@ section > .cover-key {
 /* The Wrap up sheet and the generic Sheet (components/Sheet.jsx): a native
    dialog, centred on desktop and anchored to the bottom on a phone (Tonight
    continue spec). Backdrop in --overlay as the other sheets. */
-.sheet,
-.wrap-sheet {
+.sheet {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -6720,8 +6716,7 @@ section > .cover-key {
   padding: 0;
   width: calc(100% - 2rem);
 }
-.sheet::backdrop,
-.wrap-sheet::backdrop {
+.sheet::backdrop {
   background: var(--overlay);
 }
 .wrap-sheet-body {
@@ -7021,8 +7016,7 @@ section > .cover-key {
     flex-basis: 100%;
   }
 
-  .sheet,
-  .wrap-sheet {
+  .sheet {
     border-bottom: 0;
     border-radius: 14px 14px 0 0;
     margin: auto 0 0;
@@ -8383,7 +8377,6 @@ button.run-cell[aria-disabled='true'] {
 .run-cell[data-k='read']::after {
   bottom: 1px;
   content: '✓';
-  /* exempt: illustration glyph, named elsewhere */
   font-size: 0.5rem;
   position: absolute;
   right: 2px;
@@ -8404,7 +8397,6 @@ button.run-cell[aria-disabled='true'] {
 .run-cell[data-k='skip']::after {
   bottom: 1px;
   content: '×';
-  /* exempt: illustration glyph, named elsewhere */
   font-size: 0.5625rem;
   position: absolute;
   right: 2px;
@@ -9393,7 +9385,6 @@ a.cover-tile:focus-visible {
 
 .drawn-map__sea-label {
   fill: var(--text-3);
-  /* exempt: illustration glyph, named elsewhere */
   font: italic 400 11px var(--font-display);
   letter-spacing: 0.08em;
 }
@@ -10770,7 +10761,6 @@ a.cover-tile:focus-visible {
 }
 
 .spot-map-label {
-  /* exempt: illustration glyph, named elsewhere */
   font: 500 11px var(--font-mono);
   fill: var(--text-2);
   letter-spacing: 0.06em;
@@ -10794,7 +10784,6 @@ a.cover-tile:focus-visible {
 }
 
 .spot-map-north text {
-  /* exempt: illustration glyph, named elsewhere */
   font: 500 10px var(--font-mono);
   fill: var(--text-3);
   text-anchor: middle;

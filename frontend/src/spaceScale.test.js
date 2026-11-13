@@ -33,6 +33,10 @@ const spacing = css.split('\n').flatMap((text) => {
   return [{ text, values }]
 })
 
+// Out of scope on purpose: negative margins (a deliberate pull, often paired
+// with a matching positive value) and `scroll-padding*` (a scroll offset, not
+// layout spacing) stay literal. Off-scale values also stay literal for now
+// (issue #213).
 describe('spacing scale', () => {
   it('defines the --space steps on :root', () => {
     STEPS.forEach((rem, i) => {

@@ -18,4 +18,20 @@ describe('StatTile', () => {
     expect(terms).toEqual(['Owned', 'Finished'])
     expect(values).toEqual(['107', '70 public · 37 hidden', '13'])
   })
+
+  it('wraps the list in a named group only when given a label', () => {
+    const { rerender } = render(
+      <StatTiles label="Shelf">
+        <StatTile label="Owned" value={1} />
+      </StatTiles>,
+    )
+    expect(screen.getByRole('group', { name: 'Shelf' })).toBeInTheDocument()
+    rerender(
+      <StatTiles>
+        <StatTile label="Owned" value={1} />
+      </StatTiles>,
+    )
+    expect(screen.queryByRole('group')).not.toBeInTheDocument()
+    expect(screen.getByRole('term')).toHaveTextContent('Owned')
+  })
 })

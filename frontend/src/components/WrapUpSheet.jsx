@@ -40,9 +40,10 @@ function headerLine(detail, type) {
  * entry points: the Continue card, the admin Now playing band, and the
  * shelf card's status menu, which opens it with that outcome preselected.
  *
- * A Sheet, a native `<dialog>` opened with showModal(): the browser traps focus, inerts the page, closes on Escape (routed
- * through the owner's state) and returns focus to the opener. The sheet
- * fetches the item on open for its header and the current rating.
+ * A Sheet, so a native modal dialog: focus is trapped and the page is
+ * inert, Escape routes through the owner's state, and focus returns to the
+ * opener. The sheet fetches the item on open for its header and the current
+ * rating.
  *
  * Saving is the status route with `on` (when not today) and `note`, then a
  * PATCH of the rating only when the stars changed. A status failure keeps
@@ -67,16 +68,15 @@ export default function WrapUpSheet({ subject, onClose, onDone }) {
     <Sheet
       open={open}
       onClose={onClose}
-      onCancel={() => !busy}
+      canClose={() => !busy}
       labelledBy={TITLE_ID}
-      className="wrap-sheet"
       initialFocus='[aria-pressed="true"]'
     >
       {open && (
         <WrapUpForm
           key={subject.item.id}
           subject={subject}
-          onClose={() => !busy && onClose()}
+          onClose={onClose}
           onBusy={setBusy}
           onDone={onDone}
         />
@@ -187,6 +187,7 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
           type="button"
           className="btn ghost sm"
           aria-label={copy.close}
+          disabled={busy}
           onClick={onClose}
         >
           ✕

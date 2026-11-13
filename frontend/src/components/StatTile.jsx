@@ -32,8 +32,9 @@ export default function StatTile({ label, value, detail, children }) {
 }
 
 /**
- * A row of tiles: four across on a desktop, two on a narrow screen. The
- * name sits on a group around the list, since a bare <dl> takes no label.
+ * A row of tiles: four across on a desktop, two on a narrow screen. With a
+ * `label` the list sits in a named group, since a bare <dl> takes no label;
+ * without one there is no group, as an unnamed one adds nothing.
  *
  * @param {object} props
  * @param {string} [props.label] An accessible name for the row.
@@ -42,11 +43,16 @@ export default function StatTile({ label, value, detail, children }) {
  * @param {import('react').ReactNode} props.children `StatTile`s.
  */
 export function StatTiles({ label, figures = false, children }) {
-  return (
+  const list = (
+    <dl className={figures ? 'stat-tiles stat-tiles-figures' : 'stat-tiles'}>
+      {children}
+    </dl>
+  )
+  return label ? (
     <div role="group" aria-label={label}>
-      <dl className={figures ? 'stat-tiles stat-tiles-figures' : 'stat-tiles'}>
-        {children}
-      </dl>
+      {list}
     </div>
+  ) : (
+    list
   )
 }

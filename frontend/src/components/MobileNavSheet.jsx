@@ -9,11 +9,10 @@ import NavSheet from './NavSheet.jsx'
  * The owner holds `open`; Escape (the dialog's cancel event), the Close
  * button, a click on the backdrop, following a link and any other native
  * close all go through `onClose`. Focus goes back to `returnFocusRef` once
- * the dialog has closed: while it is modal the page behind it is inert and
- * would refuse focus. A followed link still wins, because the route change
- * moves focus after this effect has run. The links render only
- * while the sheet is open, so the closed sheet adds no second "Site" nav to
- * the page.
+ * the dialog has closed, since the page behind a modal is inert and would
+ * refuse it. A followed link still wins: the route change moves focus after
+ * Sheet has returned it. The links render only while the sheet is open, so
+ * the closed sheet adds no second "Site" nav to the page.
  *
  * @param {object} props
  * @param {boolean} props.open Whether the sheet is showing.
