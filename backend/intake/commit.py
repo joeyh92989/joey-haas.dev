@@ -198,10 +198,14 @@ class SittingCommit:
     refused: list[Refusal] = field(default_factory=list)
     created: list[uuid.UUID] = field(default_factory=list)
     series_grew: list[SeriesGrew] = field(default_factory=list)
+    # Comic series this commit created that brought issues or editions:
+    # {title, cover_url, issues, editions}, for Done's "adds #1-4" lines.
+    series_new: list[dict[str, Any]] = field(default_factory=list)
 
     def as_json(self) -> dict[str, Any]:
         """The route's answer."""
         return {
+            "series_new": self.series_new,
             "added": self.added,
             "already_owned": self.already_owned,
             "issues_added": self.issues_added,
@@ -686,6 +690,15 @@ async def commit_sitting(
                     update={"shelf_format": found.shelf_format}
                 )
             new_row = new_row.model_copy(update={"editions": merged})
+            if issues or merged:
+                outcome.series_new.append(
+                    {
+                        "title": new_row.title,
+                        "cover_url": new_row.cover_url,
+                        "issues": sorted(issues),
+                        "editions": merged or [],
+                    }
+                )
             rows.append(new_row)
             row_entries.append(found.entry)
 

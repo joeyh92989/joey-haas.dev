@@ -129,6 +129,7 @@ async def test_forty_exact_entries_commit_in_one_request(sessionmaker_for_test):
         "already_owned": 0,
         "issues_added": 0,
         "series_grew": [],
+        "series_new": [],
         "skipped_kept": 0,
         "photos_empty": 0,
         "photos_waiting": 0,
@@ -254,6 +255,7 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         "already_owned": 2,
         "issues_added": 0,
         "series_grew": [],
+        "series_new": [],
         "skipped_kept": 3,
         "photos_empty": 2,
         "photos_waiting": 0,
@@ -1015,6 +1017,13 @@ async def test_four_books_numbered_one_to_four_make_a_series_holding_one_to_four
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned == "1–4"
     assert row.editions is None
+    # Done reads "<Series> · adds #1–4" from this.
+    [new] = response.json()["series_new"]
+    assert (new["title"], new["issues"], new["editions"]) == (
+        "Waterworld",
+        [1, 2, 3, 4],
+        [],
+    )
     assert row.is_public is False
 
 
@@ -1102,6 +1111,8 @@ async def test_a_collected_book_adds_an_edition_not_a_number(sessionmaker_for_te
     assert row.editions == [
         {"kind": "Omnibus", "label": "Waterworld", "from": 1, "to": 6}
     ]
+    [new] = response.json()["series_new"]
+    assert new["issues"] == [] and new["editions"] == row.editions
 
 
 @pytest.mark.asyncio

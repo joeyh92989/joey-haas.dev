@@ -14,6 +14,10 @@ const COLLECTED = ['trades', 'omnibus']
 const showsEditions = (entry) =>
   entry.kind === 'comic' && COLLECTED.includes(entry.payload?.shelf_format)
 
+/** The kind's fields Details asks for: a comic's issues are typed in Check. */
+const detailFields = (kind) =>
+  kind.fields.filter((field) => field.in_details !== false)
+
 const plural = (label, n) => {
   const word = label.toLowerCase()
   return n === 1 ? word : `${word}s`
@@ -22,7 +26,7 @@ const plural = (label, n) => {
 /** A kind's "Set for all N": the fields a whole pass can share, and Apply. */
 function SetForAll({ kind, entries, onApply, busy }) {
   const [values, setValues] = useState({})
-  const shared = kind.fields.filter((field) => !field.per_item)
+  const shared = detailFields(kind).filter((field) => !field.per_item)
   if (!shared.length) return null
   const name = `Set for all ${entries.length} ${plural(kind.label, entries.length)}`
   return (
@@ -32,7 +36,7 @@ function SetForAll({ kind, entries, onApply, busy }) {
         <KindFields
           kindKey={kind.key}
           idPrefix={`all-${kind.key}`}
-          fields={kind.fields}
+          fields={detailFields(kind)}
           mode="all"
           values={values}
           onChange={(key, value) =>
@@ -250,7 +254,9 @@ export default function DetailsStep({
               const title = entryTitle(entry)
               const refused = refusals[entry.id] ?? {}
               const perItem = new Set(
-                kind.fields.filter((f) => f.per_item).map((f) => f.key),
+                detailFields(kind)
+                  .filter((f) => f.per_item)
+                  .map((f) => f.key),
               )
               const collected = showsEditions(entry)
               const loose = Object.entries(refused)
@@ -275,7 +281,7 @@ export default function DetailsStep({
                     <KindFields
                       kindKey={kind.key}
                       idPrefix={`row-${entry.id}`}
-                      fields={kind.fields}
+                      fields={detailFields(kind)}
                       mode="item"
                       values={{ ...entry.payload, ...drafts[entry.id] }}
                       refusals={refused}

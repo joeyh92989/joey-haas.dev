@@ -573,6 +573,7 @@ def create_intake_router(
                     "added": 0,
                     "already_owned": 0,
                     "series_grew": [],
+                    "series_new": [],
                     "skipped_kept": 0,
                     "photos_empty": 0,
                     "photos_waiting": 0,

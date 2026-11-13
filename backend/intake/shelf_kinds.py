@@ -91,7 +91,9 @@ def _shelf_row(item_type: T):
         payload = entry.get("payload") or {}
         row.update({k: v for k, v in payload.items() if k in ITEM_FIELDS})
         if item_type is T.COMIC:
-            row.update(_book_row(payload))
+            # What Details set on the entry wins over what the book implies.
+            for key, value in _book_row(payload).items():
+                row.setdefault(key, value)
         row["type"] = item_type
         row["owned_format"] = OwnedFormat.PHYSICAL.value
         return row
