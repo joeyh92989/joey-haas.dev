@@ -453,6 +453,30 @@ async def sync_marks(session: AsyncSession, item: Item) -> MarksResult:
     return MarksResult(len(plan), len(stubs), changed)
 
 
+def mark_mismatches(
+    rows: Iterable[tuple[int, bool, bool, bool]],
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+    read_to: int | None,
+) -> list[int]:
+    """The numbers where the stored marks `rows` ((number, owned, read,
+    skipped) of every row of the series) disagree with what the ranges say,
+    worked out from `series_from_row` as the readers do rather than from
+    `mark_plan`, so the two derivations check each other."""
+    series = series_from_row(
+        0, "", None, issues_owned, issues_skipped, editions, read_to, None, True, False
+    )
+    expected = {
+        n: (True, read_to is not None and n <= read_to, False) for n in series.owned
+    }
+    expected.update({n: (False, False, True) for n in series.skipped - series.owned})
+    stored = {n: (o, r, s) for n, o, r, s in rows if o or r or s}
+    return sorted(
+        n for n in expected.keys() | stored.keys() if expected.get(n) != stored.get(n)
+    )
+
+
 # --- Runs and reading -------------------------------------------------------
 
 

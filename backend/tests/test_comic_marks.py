@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from comic_issues import upsert_issues
-from comics import mark_plan, sync_marks
+from comics import mark_mismatches, mark_plan, sync_marks
 from models import ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
 from sources.comicvine import CvIssue
 
@@ -40,6 +40,13 @@ def test_plan_editions_count_as_owned():
 
 def test_plan_owned_wins_over_a_skip_stored_before_the_rule():
     assert _marks(mark_plan("2", "2", None, None)) == {2: (True, False, False)}
+
+
+def test_mismatches_name_the_numbers_where_marks_and_ranges_disagree():
+    rows = [(1, True, True, False), (2, True, False, False), (9, False, False, True)]
+    # Ranges say 1-2 owned, read to 1, 3 skipped: row 9 is stray, 3 is missing.
+    assert mark_mismatches(rows, "1-2", "3", None, 1) == [3, 9]
+    assert mark_mismatches(rows[:2], "1-2", None, None, 1) == []
 
 
 def test_plan_empty():
