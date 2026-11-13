@@ -583,8 +583,11 @@ export const spine = {
     // copy: pending voice review
     behind: 'Behind the shelf:',
     // copy: pending voice review
-    behindLine: (titles, stores, refreshed, staleHours) =>
-      `Catalog ${titles} titles · ${stores} stores watched${refreshed ? ` · refreshed ${refreshed}` : ''}${staleHours ? ` · not refreshed in over ${staleHours} hours` : ''}.`,
+    behindLine: (titles, stores, refreshed, stale) =>
+      `Catalog ${titles} titles · ${stores} stores watched${refreshed ? ` · refreshed ${refreshed}` : ''}${stale ? ` · ${spine.shelf.behindStale}` : ''}.`,
+    // copy: pending voice review
+    /** The old status strip's words; the hours are `STALE_HOURS` (36). */
+    behindStale: 'not refreshed in over 36 hours',
   },
   /** The month journal's index; these are the screen-reader strings. */
   journal: {

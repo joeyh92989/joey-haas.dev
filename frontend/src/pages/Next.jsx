@@ -691,17 +691,21 @@ export default function Next() {
 
   // A link to Not on cartridge (the jump row's, or a shared URL) opens the
   // disclosure and lands on what is in it; a closed one would show a lone
-  // summary line.
+  // summary line. A repeat click leaves the hash as it was, so the click is
+  // handled as well as the hash.
+  function openSkip() {
+    setSkipOpen(true)
+    requestAnimationFrame(() =>
+      document
+        .getElementById('next-not_on_cartridge')
+        ?.scrollIntoView?.({ block: 'start' }),
+    )
+  }
+
   useEffect(() => {
     if (!hasSkip) return
     function openIfTargeted() {
-      if (window.location.hash !== '#next-not_on_cartridge') return
-      setSkipOpen(true)
-      requestAnimationFrame(() =>
-        document
-          .getElementById('next-not_on_cartridge')
-          ?.scrollIntoView?.({ block: 'start' }),
-      )
+      if (window.location.hash === '#next-not_on_cartridge') openSkip()
     }
     openIfTargeted()
     window.addEventListener('hashchange', openIfTargeted)
@@ -737,7 +741,10 @@ export default function Next() {
 
       {data && (
         <>
-          <JumpNav items={jumps} />
+          <JumpNav
+            items={jumps}
+            onJump={(id) => id === 'next-not_on_cartridge' && openSkip()}
+          />
           <Tonight
             tonight={data.tonight}
             signedIn={signedIn}

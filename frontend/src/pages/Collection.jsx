@@ -685,9 +685,7 @@ export default function Collection() {
                     status.refreshed_at
                       ? formatDate(status.refreshed_at)
                       : null,
-                    isStale(status.refreshed_at, mountedAt)
-                      ? STALE_HOURS
-                      : null,
+                    isStale(status.refreshed_at, mountedAt),
                   )}{' '}
                 </>
               )}

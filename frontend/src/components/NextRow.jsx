@@ -62,7 +62,7 @@ export default function NextRow({
         />
       </span>
       <span className="next-row-title">
-        {row.title}
+        {row.title}{' '}
         {topPick && (
           <span className="next-badge next-badge-pick next-badge-inline">
             {spine.next.badges.topPick}

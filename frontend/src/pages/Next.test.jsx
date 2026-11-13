@@ -369,7 +369,7 @@ describe('Next', () => {
       within(buy)
         .getByText(spine.next.badges.topPick)
         .closest('.next-row-title'),
-    ).toHaveTextContent('Fresh')
+    ).toHaveTextContent('Fresh Top pick')
     expect(localStorage.getItem('shelf.next.sort')).toBe('"newest"')
   })
 
@@ -462,6 +462,20 @@ describe('Next', () => {
     })
     expect(details).toHaveAttribute('open')
     window.location.hash = ''
+  })
+
+  // Closed again by hand, the same link leaves the hash as it was.
+  it('reopens Not on cartridge on a repeat click of its jump link', async () => {
+    mockNext({ data: NEXT, live: true, failed: false })
+    renderPage()
+    const details = document.querySelector('#next-not_on_cartridge')
+    const link = screen.getByRole('link', { name: /^Not on cartridge/ })
+    await userEvent.click(link)
+    expect(details).toHaveAttribute('open')
+    await userEvent.click(details.querySelector('summary'))
+    expect(details).not.toHaveAttribute('open')
+    await userEvent.click(link)
+    expect(details).toHaveAttribute('open')
   })
 
   it('shows stale data when the live call failed after a snapshot', () => {

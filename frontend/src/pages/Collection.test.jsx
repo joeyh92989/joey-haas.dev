@@ -12,6 +12,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import Collection from './Collection.jsx'
+import { spine } from '../content/spine.js'
+import { STALE_HOURS } from '../lib/nightly.js'
 
 // A wide screen. The shelf's sort is a select at every width; the chips and
 // narrow variants of SortControl are covered in SortControl.test.jsx.
@@ -373,8 +375,9 @@ describe('Collection', () => {
     stubApi({ status: STATUS_BODY })
     await renderReady()
     expect(await screen.findByText(/Catalog 5,724 titles/)).toHaveTextContent(
-      'not refreshed in over 36 hours',
+      spine.shelf.behindStale,
     )
+    expect(spine.shelf.behindStale).toContain(String(STALE_HOURS))
   })
 
   it('pages the grid by whole rows, and a filter returns to the first page', async () => {

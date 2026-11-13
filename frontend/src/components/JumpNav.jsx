@@ -10,15 +10,17 @@ const copy = spine.next
  * @param {object} props
  * @param {{id: string, label: string, count?: number}[]} props.items - The
  *   sections, in page order; `id` is the element the link jumps to.
+ * @param {(id: string) => void} [props.onJump] - Called on every click of a
+ *   link, including a repeat click that leaves the hash unchanged.
  */
-export default function JumpNav({ items }) {
+export default function JumpNav({ items, onJump }) {
   if (items.length < 2) return null
   return (
     <nav className="jump-nav" aria-label={copy.jump.label}>
       <ul>
         {items.map((item) => (
           <li key={item.id}>
-            <a href={`#${item.id}`}>
+            <a href={`#${item.id}`} onClick={() => onJump?.(item.id)}>
               {item.label}
               {item.count != null && (
                 <span className="jump-count"> {item.count}</span>
