@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "playwright test",
+    "e2e:admin": "node scripts/e2e-admin-db.mjs && playwright test -c playwright.admin.config.js",
     "shots": "playwright test -c playwright.shots.config.js",
     "lint": "eslint .",
     "format": "prettier --write .",

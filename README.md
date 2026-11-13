@@ -785,6 +785,39 @@ Known problems are tracked, not hidden:
   `#<number>`). An entry that no longer matches a violation fails the suite
   (one test per entry), so fixed ones get deleted.
 
+### Admin suite (local only)
+
+`npm run e2e:admin` (in `frontend/`) signs in as the admin against a real local
+backend and checks the main page of every area in `ADMIN_AREAS`: the
+`AdminPageHeader` `h1` renders, there are no uncaught or console errors (a
+failed `/api/` request is an error here, so a 500 from our own API fails the
+test), and axe finds no new serious or critical violation (desktop only). It also
+checks that signing out returns to the signed-out admin page. Desktop and phone
+projects both run, about 1 minute in all. The database is empty, so this covers
+empty states, not populated data. It never runs in CI.
+
+It needs:
+
+- local Postgres as in [Tests](#running-the-tests-and-checks)
+  (`postgres:postgres@localhost:5432`). `scripts/e2e-admin-db.mjs` creates
+  `joeyhaas_e2e` if missing and runs `alembic upgrade head` on it. It touches
+  no other database (never `postgres`, which pytest drops).
+- the backend venv at `backend/.venv`. A worktree has none: point
+  `E2E_BACKEND_BIN` at another venv's `bin` directory.
+- a build (`VITE_DAILY_SALT=local npm run build`).
+- ports 8000 and 4173 free. Servers are never reused, so a running dev backend
+  makes the run fail clearly instead of testing without the sign-in route.
+
+```sh
+cd frontend
+VITE_DAILY_SALT=local npm run build
+E2E_BACKEND_BIN=/path/to/backend/.venv/bin npm run e2e:admin   # override optional
+```
+
+The backend starts with `E2E_TEST_LOGIN=1` and `FRONTEND_URL=http://localhost:4173`
+(see Auth for the route and its guards); `e2e/admin.setup.js` posts to it through
+the preview proxy and saves the session in `frontend/e2e/.auth/` (gitignored).
+
 ### Screenshots
 
 `npm run shots` (in `frontend/`) takes a full-page screenshot of every route in
