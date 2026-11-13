@@ -1,5 +1,5 @@
 ---
-status: 5a done (5b, 5c planned)
+status: 5a, 5b done (5c planned)
 kind: ui
 mode: auto (Joey's stops from the shelf sweep run; design approved 13 Nov 2026)
 ---
@@ -320,3 +320,29 @@ is a Comic Vine cache keyed `(item_id, number)` with no ownership, and
 Ship: apply `0017` to Neon from the worktree before merging (Joey approved
 running migrations, 13 Nov 2026), merge, then run the backfill once
 (signed in, from the browser) and record its parity answer.
+
+5b status: done (13 Nov 2026)
+
+Deviations from the plan above:
+
+- `sync_marks` is a pure `mark_plan` (ranges in, marks out) plus a small DB
+  apply, both in `comics.py`; it returns a `MarksResult`
+  (`rows_marked`, `stubs_added`, `rows_changed`) that the backfill sums.
+- A skip stored before the rule that refuses one on a held issue loses to
+  ownership in the marks (owned, not skipped), as every reader treats it.
+- `load_issues` and the index query hide stubs (null `cv_id`) and Check's
+  `issue_max` ignores them, so no public body or run check changes. This is
+  the plan's task 4; the edition link, snapshot export and status never read
+  the table, so they needed nothing.
+- `upsert_issues` updates a stub whatever the incoming `cv_id` (the
+  lowest-id-wins guard compared against NULL and would never fill it).
+- The backfill's parity check recomputes the expected marks through
+  `series_from_row` (the readers' derivation) rather than `mark_plan`, and
+  a series whose stored ranges will not parse is listed under `errors`
+  while the rest are marked. Answer: `{series, rows_marked, stubs_added,
+  rows_changed, mismatches, errors}`.
+- Bulk create and intake's commit of new series reach `sync_marks` through
+  `commit_items`, after the rows are inserted.
+- No frontend change: `issues_synced_on` is an additive field on `ItemOut`
+  nothing reads yet, so the frontend tests are not rerun for this item
+  beyond the full verification below.

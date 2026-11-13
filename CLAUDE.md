@@ -524,7 +524,10 @@ before pushing.
   `playthroughs.note` (the Wrap up sheet's line); `0013` adds Denver
   spots' `spots`, `candidates`, `dismissals`, `visits`, `weather_hours`
   and `spot_settings`; `0016` adds `comic_issues` and
-  `items.issues_synced_on` (additive).
+  `items.issues_synced_on` (additive); `0017` adds `comic_issues.owned`,
+  `read` and `skipped` (server default false) and makes `cv_id` and
+  `fetched_on` nullable (additive: it inserts no row; its downgrade deletes
+  the stub rows, null `cv_id`, before restoring NOT NULL).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -929,6 +932,23 @@ before pushing.
   `lib/comicEdits.js`. **Deploy order:** apply `0016` to Neon, merge, then
   run the sync once by hand (`POST /api/comics/issues/sync` with the job
   token) or wait for the nightly.
+- **Issue marks** (migration `0017`, comics-book design 5b): each
+  `comic_issues` row carries `owned`, `read` and `skipped`, and a row with a
+  null `cv_id` is a stub, a held or skipped book Comic Vine has not synced.
+  `comics.sync_marks(session, item)` is the one writer of the marks: from the
+  ranges, `editions` and `read_to` it sets every row (owned = single or in an
+  edition; read = owned and at or below `read_to`; skipped = in
+  `issues_skipped` and not held), inserts stubs, and clears rows no longer
+  held. It runs in the same transaction as every comic write: item create,
+  bulk create and PATCH (`items.py`), Got it, Skip and the edition link
+  (`comics_routes.py`), and intake's commit. `sync_series` never touches the
+  marks and fills a stub when the issue arrives; `load_issues` hides stubs
+  unless `include_stubs`, so the public pages and Check ignore them. Readers
+  still use the ranges in 5b (5c switches them); no public output has a mark
+  field and `skipped` stays private. **After deploy:** `POST
+  /api/comics/marks/backfill` once, signed in (not a job route): it answers
+  `{series, rows_marked, stubs_added, rows_changed, mismatches, errors}`;
+  `mismatches` empty means the marks agree with the ranges. Idempotent.
 - **Job token:** `require_admin` accepts `Bearer JOB_TOKEN` only on
   `items.JOB_ROUTES`, matched on the routed template, and
   `tests/test_job_token.py` is the point of it: it pins the whitelist
