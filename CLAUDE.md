@@ -429,6 +429,20 @@ before pushing.
       (PR C), and Review at `/admin/closet/review` with the Sunday opinion
       (PR D). Migration `0014` (PR B); Review needs none. Spec and plan:
       `docs/planning/2026-11-09-outfit-design.md`
+- Shelf sweep queue (`docs/planning/2026-11-12-shelf-sweep-queue.md`,
+  findings in `2026-11-12-shelf-design-sweep.md`), in pickup order:
+  - [ ] 1. Comic issue sync: find out why it is empty, run it, and show a
+        failed sync on `/admin/jobs`
+  - [ ] 2. Design rules file (`docs/design-system.md`) and feature status
+        list
+  - [ ] 3. Split the shelf by type: Games at `/shelf/games`, Comics, and
+        their admin twins
+  - [ ] 4. Delete, bulk delete, redo, and discard an empty sitting
+  - [ ] 5. Comics: the book is what you own (5a intake reads the issue
+        number, 5b ownership on the issue row, 5c one place to edit and a
+        comic edit page)
+  - [ ] 6. Data clean-up of the 11–12 Nov rows and comic backfill (Joey's)
+  - [ ] 7. Tags: a curated set per type
 
 ## Ship
 
