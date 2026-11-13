@@ -20,11 +20,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
+from comics import MAX_ISSUE, RangeError, parse_ranges
 from items import require_admin
 from llm import Image, LLMError, LLMProvider
 from matching import Confidence, best_match
@@ -110,6 +112,69 @@ Rules:
 """
 
 
+COMIC_FORMATS = ("single", "collected", "unknown")
+
+COMIC_DETECTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "books": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "series": {"type": "string"},
+                    "issue_number": {"type": "string"},
+                    "issue_number_seen": {"type": "boolean"},
+                    "format": {"type": "string", "enum": list(COMIC_FORMATS)},
+                    "volume_range": {"type": "string"},
+                    "publisher": {"type": "string"},
+                },
+                "required": ["series", "issue_number_seen", "format"],
+            },
+        }
+    },
+    "required": ["books"],
+}
+
+# The prompt a comic sitting sends instead of EXTRACTION_PROMPT, proved on
+# eight of the owner's covers (docs/planning/2026-11-13-comics-book-design.md).
+COMIC_EXTRACTION_PROMPT = """\
+This photograph shows one or more physical comic books: single issues, or
+collected editions (trade paperbacks, hardcovers, omnibuses).
+
+Return one entry per physical book you can see, not one per series. Four
+issues of one series are four entries.
+
+For each book:
+- series: the series title as printed, without the issue number.
+- issue_number: the issue number printed on the cover (often near the
+  logo, the price box or the barcode, after "#" or "No."). Give it exactly
+  as printed ("1", "0", "1/2", "Annual 1"). Leave it out if you cannot read
+  it; never guess from the art or from other books in the photo.
+- issue_number_seen: true only if you read the number off this book.
+- format: "single" for a stapled issue, "collected" for a trade paperback,
+  hardcover or omnibus, "unknown" if you cannot tell (a spine only).
+- volume_range: for a collected edition, the issues it collects if printed
+  ("1-6"); otherwise leave it out.
+- publisher: if printed.
+"""
+
+_ISSUE_NUMBER = re.compile(
+    r"^(?:(?:no\.?|number|issue)\s*)?#?\s*(\d{1,5})\s*(?:of\s*\d+)?$", re.IGNORECASE
+)
+
+
+def normalise_issue_number(text: str | None) -> int | None:
+    """An issue number as printed ("#4", "No. 4", "4 of 4", "4") as a whole
+    number 1 to 9999, or None: "0", "1/2", "Annual 1" and blank are not
+    numbers this site tracks (a typed number is the way to record one)."""
+    found = _ISSUE_NUMBER.match((text or "").strip())
+    if found is None:
+        return None
+    number = int(found.group(1))
+    return number if 1 <= number <= MAX_ISSUE else None
+
+
 @dataclass(frozen=True)
 class Detection:
     """One title the model read off a photograph."""
@@ -119,6 +184,14 @@ class Detection:
     media_type: ItemType
     year: int | None
     platform: str | None = None
+    # Only a comic sitting's books carry these (`parse_books`): the issue
+    # number as a whole number, whether the model read it off the cover
+    # (`read`) or not (`none`), and a collected edition's range.
+    issue_number: int | None = None
+    number_source: str = "none"
+    format: str | None = None
+    collects_from: int | None = None
+    collects_to: int | None = None
 
 
 def _candidate_json(source_name: str, result: SourceResult) -> dict:
@@ -185,6 +258,53 @@ def parse_detections(payload: dict) -> list[Detection]:
             )
         )
     return detections
+
+
+def parse_books(payload: dict) -> list[Detection]:
+    """Reads a comic sitting's model answer into one Detection per book,
+    skipping anything unusable, and never merging two books of one series.
+
+    A number counts as `read` only when the model says it saw it and it
+    normalises to a whole number; a collected edition has no issue number,
+    only the range it collects when printed. The model is the only source of
+    the number: whether it can be trusted is decided later, against the
+    series' run.
+    """
+    books: list[Detection] = []
+    for raw in payload.get("books") or []:
+        if not isinstance(raw, dict):
+            continue
+        title = str(raw.get("series") or "").strip()
+        if not title:
+            continue
+        book_format = raw.get("format")
+        if book_format not in COMIC_FORMATS:
+            book_format = "unknown"
+        number = None
+        low = high = None
+        if book_format == "collected":
+            try:
+                ranges = parse_ranges(str(raw.get("volume_range") or ""))
+            except RangeError:
+                ranges = []
+            if len(ranges) == 1:
+                low, high = ranges[0]
+        elif raw.get("issue_number_seen") is True:
+            number = normalise_issue_number(str(raw.get("issue_number") or ""))
+        books.append(
+            Detection(
+                index=len(books),
+                title=title,
+                media_type=ItemType.COMIC,
+                year=None,
+                issue_number=number,
+                number_source="read" if number is not None else "none",
+                format=book_format,
+                collects_from=low,
+                collects_to=high,
+            )
+        )
+    return books
 
 
 async def _resolve_one(adapter: SourceAdapter, detection: Detection) -> dict:
