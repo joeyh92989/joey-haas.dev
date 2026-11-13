@@ -12,7 +12,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
@@ -75,7 +75,10 @@ async def upsert_issues(
     statement = statement.on_conflict_do_update(
         index_elements=["item_id", "number"],
         set_={column: getattr(statement.excluded, column) for column in _UPDATED},
-        where=ComicIssue.cv_id >= statement.excluded.cv_id,
+        # A stub (null cv_id) is filled by whichever issue arrives first.
+        where=or_(
+            ComicIssue.cv_id.is_(None), ComicIssue.cv_id >= statement.excluded.cv_id
+        ),
     )
     await session.execute(statement)
     return len(rows)

@@ -15,6 +15,7 @@ import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from typing import TYPE_CHECKING
 
 MAX_ISSUE = 9999
 MAX_EDITIONS = 50
@@ -345,6 +346,111 @@ def check_skips(
         clash -= _clash(**before)
     if clash:
         raise RangeError(f"#{min(clash)} is owned, so it can't be skipped")
+
+
+# --- Marks on the issue row --------------------------------------------------
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from models import Item
+
+
+@dataclass(frozen=True)
+class Marks:
+    owned: bool = False
+    read: bool = False
+    skipped: bool = False
+
+
+def mark_plan(
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+    read_to: int | None,
+) -> dict[int, Marks]:
+    """The marks every held or skipped number should carry, from the ranges.
+
+    Owned is held loose or in an edition; read is owned and at or below
+    `read_to` (read implies owned); skipped is in `issues_skipped` and not
+    held (a skip stored before the rule that refuses one on a held issue
+    loses to the ownership, as every reader already treats it). A number in
+    none of them is absent: its row, if any, carries no marks.
+    """
+    owned = owned_set(issues_owned, editions)
+    skipped = expand(parse_ranges(issues_skipped)) - owned
+    plan = {
+        n: Marks(owned=True, read=read_to is not None and n <= read_to) for n in owned
+    }
+    plan.update({n: Marks(skipped=True) for n in skipped})
+    return plan
+
+
+@dataclass(frozen=True)
+class MarksResult:
+    """What one `sync_marks` did: rows now carrying a mark, stub rows it
+    inserted, and existing rows whose marks it changed."""
+
+    rows_marked: int = 0
+    stubs_added: int = 0
+    rows_changed: int = 0
+
+    def __add__(self, other: MarksResult) -> MarksResult:
+        return MarksResult(
+            self.rows_marked + other.rows_marked,
+            self.stubs_added + other.stubs_added,
+            self.rows_changed + other.rows_changed,
+        )
+
+
+async def sync_marks(session: AsyncSession, item: Item) -> MarksResult:
+    """Sets the marks on a comic's issue rows from its ranges, editions and
+    read_to: the one writer of `comic_issues.owned/read/skipped`.
+
+    Inserts a stub (null `cv_id`, which `comic_issues.sync_series` fills when
+    the issue arrives) for a held or skipped number with no row, and clears the
+    marks of a row no longer held. Idempotent. Flushes, never commits: every
+    comic write path calls it in its own transaction. Raises RangeError on
+    malformed stored ranges. A row that is not a comic is left alone.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.orm import defer
+
+    from models import ComicIssue, ItemType
+
+    if item.type != ItemType.COMIC:
+        return MarksResult()
+    plan = mark_plan(
+        item.issues_owned, item.issues_skipped, item.editions, item.read_to
+    )
+    await session.flush()  # the item has its id, and its ranges are written
+    rows = {
+        row.number: row
+        for row in await session.scalars(
+            select(ComicIssue)
+            .where(ComicIssue.item_id == item.id)
+            .options(defer(ComicIssue.description))
+        )
+    }
+    changed = 0
+    for number, row in rows.items():
+        want = plan.get(number, Marks())
+        if (row.owned, row.read, row.skipped) != (want.owned, want.read, want.skipped):
+            row.owned, row.read, row.skipped = want.owned, want.read, want.skipped
+            changed += 1
+    stubs = [n for n in plan if n not in rows]
+    session.add_all(
+        ComicIssue(
+            item_id=item.id,
+            number=n,
+            owned=plan[n].owned,
+            read=plan[n].read,
+            skipped=plan[n].skipped,
+        )
+        for n in stubs
+    )
+    await session.flush()
+    return MarksResult(len(plan), len(stubs), changed)
 
 
 # --- Runs and reading -------------------------------------------------------
