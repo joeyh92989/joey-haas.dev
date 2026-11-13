@@ -1,0 +1,8 @@
+[
+  {
+    "item_id": "22222222-bbbb-4bbb-8bbb-000000000002",
+    "series_title": "Paper Moons",
+    "issues": [{ "number": 1, "name": "First Light", "cover_url": null }],
+    "editions": [{ "slug": "ed-1-1", "label": "Volume One", "cover_url": null }]
+  }
+]

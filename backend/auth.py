@@ -7,7 +7,7 @@ from collections.abc import Mapping
 
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 
 from config import Config
 
@@ -152,6 +152,6 @@ def create_auth_router(config: Config) -> APIRouter:
     async def logout(request: Request):
         """Clears the session. POST because it changes state."""
         request.session.clear()
-        return JSONResponse(None, status_code=204)
+        return Response(status_code=204)
 
     return router

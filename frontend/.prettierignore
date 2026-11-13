@@ -27,3 +27,5 @@ src/content/intake-demo.json
 test-results
 playwright-report
 e2e-shots
+playwright-report-admin
+e2e/.auth

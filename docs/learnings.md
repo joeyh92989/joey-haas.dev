@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-12 · decision · Admin browser tests sign in through a local-only test route
+Chose a `POST /api/auth/test-login` mounted only with `E2E_TEST_LOGIN=1`, refused at config load unless `FRONTEND_URL` is localhost, over minting Starlette's cookie in Node (couples tests to the cookie format and the secret) or mocking every `/api` call (tests mocks, not the API). The admin suite runs locally against its own `joeyhaas_e2e` database; CI runs it later.
+docs/planning/2026-11-12-admin-e2e-design.md
+
 ### 2026-11-12 · lesson · smoke.sh pins page titles
 A rename of `/daily` and `/shelf/how` passed every unit and e2e test, but `scripts/smoke.sh` greps the live `<title>`s and would have gone red after deploy. When copy changes a page name or title, grep `scripts/smoke.sh` and `e2e/` for the old text in the same task.
 docs/planning/2026-11-12-copy-pass-3b-design.md

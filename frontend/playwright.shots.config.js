@@ -1,5 +1,6 @@
 import { defineConfig } from '@playwright/test'
 import base from './playwright.config.js'
+import { sampleRoutes } from './e2e/sitemap-sample.js'
 
 /**
  * Full-page screenshots of every public route x width x theme, for design
@@ -8,31 +9,6 @@ import base from './playwright.config.js'
  * Output: e2e-shots/<project>/<theme>/<route>.png plus e2e-shots/errors.json.
  */
 const remote = process.env.E2E_BASE_URL
-
-/** One sample path per dynamic route kind, in sitemap order. */
-const ID = '[0-9a-f]{8}-[0-9a-f-]{27}'
-const KINDS = [
-  new RegExp(`^/shelf/${ID}/$`),
-  /^\/shelf\/year\/[^/]+\/$/,
-  /^\/shelf\/journal\/[^/]+\/$/,
-  new RegExp(`^/shelf/${ID}/ed-[^/]+/$`),
-  new RegExp(`^/shelf/${ID}/\\d+/$`),
-  /^\/blog\/[^/]+\/$/,
-  /^\/til\/[^/]+\/$/,
-  /^\/travel\/[^/]+\/$/,
-]
-
-/** Picks the first sitemap path of each dynamic kind. */
-export function sampleRoutes(xml) {
-  const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => {
-    const { pathname } = new URL(m[1])
-    return pathname.endsWith('/') ? pathname : `${pathname}/`
-  })
-  return KINDS.flatMap((kind) => {
-    const hit = paths.find((p) => kind.test(p))
-    return hit ? [hit] : []
-  })
-}
 
 // The route list is resolved here, before any test is declared, and handed to
 // the spec (and workers) through the environment.

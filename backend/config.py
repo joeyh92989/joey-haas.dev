@@ -11,6 +11,7 @@ import logging
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 
@@ -73,6 +74,10 @@ class Config:
     # every bearer request is a 401 and only a session is admin, as before.
     # It opens only items.JOB_ROUTES, never the rest of the admin API.
     job_token: str | None = None
+    # Local-only test sign-in for browser tests (e2e_login.py, #205). Off
+    # unless E2E_TEST_LOGIN is exactly "1", and load_config refuses to boot
+    # with it on against a FRONTEND_URL that is not http://localhost.
+    e2e_test_login: bool = False
 
 
 # The HTTP client logs every request URL at INFO. Several source keys travel
@@ -108,6 +113,26 @@ def allowed_origins(config: Config) -> list[str]:
     return list(dict.fromkeys(origins))
 
 
+def is_local_frontend(url: str) -> bool:
+    """Whether `url` is plain http on the host localhost (any port, no userinfo).
+
+    Parsed rather than prefix-matched: "http://localhost.evil.com" and
+    "http://localhost@evil.com" both start with "http://localhost".
+    """
+    try:
+        parts = urlsplit(url)
+        hostname = parts.hostname
+        parts.port  # noqa: B018 -- raises ValueError on a malformed port
+    except ValueError:
+        return False
+    return (
+        parts.scheme == "http"
+        and hostname == "localhost"
+        and parts.username is None
+        and parts.password is None
+    )
+
+
 def _optional(source: Mapping[str, str], name: str) -> str | None:
     """A configuration value that may legitimately be absent.
 
@@ -134,12 +159,20 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
 
     optional_sub = str(source.get("ADMIN_GOOGLE_SUB", "")).strip()
 
+    frontend_url = str(source["FRONTEND_URL"]).strip().rstrip("/")
+    e2e_test_login = source.get("E2E_TEST_LOGIN", "") == "1"
+    if e2e_test_login and not is_local_frontend(frontend_url):
+        raise ConfigError(
+            "E2E_TEST_LOGIN=1 is an auth bypass and is allowed only when "
+            "FRONTEND_URL is http://localhost (any port)"
+        )
+
     return Config(
         google_client_id=str(source["GOOGLE_CLIENT_ID"]).strip(),
         google_client_secret=str(source["GOOGLE_CLIENT_SECRET"]).strip(),
         session_secret=str(source["SESSION_SECRET"]).strip(),
         admin_email=str(source["ADMIN_EMAIL"]).strip(),
-        frontend_url=str(source["FRONTEND_URL"]).strip().rstrip("/"),
+        frontend_url=frontend_url,
         database_url=str(source["DATABASE_URL"]).strip(),
         database_url_direct=str(source["DATABASE_URL_DIRECT"]).strip(),
         admin_google_sub=optional_sub or None,
@@ -155,4 +188,5 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         llm_paid_fallback=(_optional(source, "LLM_PAID_FALLBACK") or "").lower()
         == "true",
         job_token=_optional(source, "JOB_TOKEN"),
+        e2e_test_login=e2e_test_login,
     )

@@ -136,7 +136,9 @@ def test_logout_clears_the_session():
     sign_in(client)
 
     assert client.get("/api/auth/me").status_code == 200
-    assert client.post("/api/auth/logout").status_code == 204
+    response = client.post("/api/auth/logout")
+    assert response.status_code == 204
+    assert response.content == b""
     assert client.get("/api/auth/me").status_code == 401
 
 

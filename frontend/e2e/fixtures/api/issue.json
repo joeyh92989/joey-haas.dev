@@ -1,0 +1,19 @@
+{
+  "series_id": "22222222-bbbb-4bbb-8bbb-000000000002",
+  "series_title": "Paper Moons",
+  "publisher": "Fixture Press",
+  "number": 1,
+  "name": "First Light",
+  "store_date": "2020-01-08",
+  "cover_date": "2020-03-01",
+  "cover_url": null,
+  "large_url": null,
+  "description": ["An invented issue for the test fixture."],
+  "state": "owned",
+  "held_as": "In Volume One",
+  "edition": { "slug": "ed-1-1", "label": "Volume One" },
+  "released": 1,
+  "ongoing": false,
+  "neighbours": [{ "number": 1, "cover_url": null, "state": "owned" }],
+  "source_url": "https://comicvine.gamespot.com/"
+}

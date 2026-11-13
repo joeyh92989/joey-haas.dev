@@ -11,7 +11,7 @@ const remote = process.env.E2E_BASE_URL
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['smoke.spec.js', 'a11y.spec.js'],
+  testMatch: ['smoke.spec.js', 'a11y.spec.js', 'dynamic.spec.js'],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],

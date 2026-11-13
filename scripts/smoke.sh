@@ -206,6 +206,11 @@ check_equals "GET /api/health" "$(curl -s -m 90 "$API_URL/api/health")" '{"statu
 
 check_equals "GET /api/auth/me unauthenticated" "$(http_status "$API_URL/api/auth/me")" "401"
 
+# The local-only test sign-in (backend/e2e_login.py) must not exist here. A 404
+# means E2E_TEST_LOGIN is off; anything else is an auth bypass in production.
+check_equals "POST /api/auth/test-login absent" \
+  "$(curl -s -o /dev/null -w '%{http_code}' -m 90 -X POST "$API_URL/api/auth/test-login")" "404"
+
 check_equals "GET /api/items unauthenticated" \
   "$(http_status "$API_URL/api/items")" "401"
 

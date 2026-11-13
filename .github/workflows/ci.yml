@@ -101,6 +101,8 @@ jobs:
       - name: Run tests
         run: npm test
 
+      # The tests run against the built, prerendered dist, which is what ships,
+      # not the dev server.
       - name: Build
         run: npm run build
         env:
@@ -137,8 +139,15 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      # The tests run against the built, prerendered dist, which is what ships,
-      # not the dev server.
+      # e2e only: the browser tests need one page of each dynamic shelf route.
+      # fetch-snapshot.mjs does nothing without an API URL and leaves
+      # public/snapshot alone, so the synthetic snapshot (e2e/fixtures/README.md)
+      # copied in first makes the build prerender them.
+      - name: Use the fixture snapshot
+        run: |
+          mkdir -p public/snapshot
+          cp e2e/fixtures/snapshot/*.json public/snapshot/
+
       - name: Build
         run: npm run build
         env:

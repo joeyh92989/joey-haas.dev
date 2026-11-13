@@ -60,3 +60,5 @@ frontend/trips/**/*.[mM][pP]4
 frontend/test-results/
 frontend/playwright-report/
 frontend/e2e-shots/
+frontend/playwright-report-admin/
+frontend/e2e/.auth/
