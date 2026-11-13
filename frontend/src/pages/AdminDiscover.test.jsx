@@ -101,7 +101,7 @@ describe('emptyWords', () => {
       'Nothing left to answer. Generate for more.',
     )
     expect(emptyWords({ ...DISCOVER, generated_at: null }, null)).toBe(
-      'Nothing yet. Generate to read the catalog.',
+      'Nothing yet. Generate to read the sources.',
     )
   })
 })
@@ -322,7 +322,7 @@ describe('AdminDiscover', () => {
     stubApi({}, { ...DISCOVER, generated_at: null, picks: [] })
     renderPage()
     expect(
-      await screen.findByText('Nothing yet. Generate to read the catalog.'),
+      await screen.findByText('Nothing yet. Generate to read the sources.'),
     ).toBeInTheDocument()
   })
 

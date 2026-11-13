@@ -102,7 +102,7 @@ describe('search', () => {
   it('finds a post by a keyword phrase', () => {
     const post = entry(
       'posts',
-      'How My Shelf works',
+      'My Shelf tour',
       'shelf engineering Game-Key Card cartridge',
     )
     const { groups } = search([...pages, post], 'key card')

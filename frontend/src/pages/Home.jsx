@@ -126,13 +126,13 @@ export default function Home() {
             <CoverStrip />
           </Link>
           <Link to="/colophon" className="card">
-            <Kicker as="span">Project · this site</Kicker>
-            <h3>joey-haas.dev</h3>
+            <Kicker as="span">Project</Kicker>
+            <h3>This site</h3>
             <p>{thisSite.summary}</p>
           </Link>
           {latest && (
             <Link to={`/blog/${latest.slug}`} className="card">
-              <Kicker as="span">Writing</Kicker>
+              <Kicker as="span">Blog</Kicker>
               <h3>{latest.frontmatter.title}</h3>
               {latest.frontmatter.summary && (
                 <p>{latest.frontmatter.summary}</p>

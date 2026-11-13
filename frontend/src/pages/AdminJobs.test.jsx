@@ -144,7 +144,7 @@ describe('Admin Jobs', () => {
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await within(panel).findAllByRole('listitem')
     expect(rows).toHaveLength(10)
-    expect(rows[0]).toHaveTextContent('Catalog refresh')
+    expect(rows[0]).toHaveTextContent('Sources refresh')
     expect(rows[0]).toHaveTextContent(/ok/)
     expect(rows[3]).toHaveTextContent('Weekend forecast')
     expect(rows[4]).toHaveTextContent('Spot finder')
@@ -393,7 +393,7 @@ describe('Admin Jobs', () => {
     const panel = await screen.findByRole('region', { name: 'Recent changes' })
     const table = await within(panel).findByRole('table')
     const rows = within(table).getAllByRole('row').slice(1)
-    expect(rows[0]).toHaveTextContent('Catalog refresh')
+    expect(rows[0]).toHaveTextContent('Sources refresh')
     expect(rows[0]).toHaveTextContent('Ran')
     expect(within(table).getByRole('link', { name: 'Dredge' })).toHaveAttribute(
       'href',

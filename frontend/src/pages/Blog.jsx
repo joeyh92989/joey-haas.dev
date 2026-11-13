@@ -16,7 +16,7 @@ export default function Blog() {
   usePageTitle('Blog · Joey Haas')
   return (
     <section>
-      <h1>Writing</h1>
+      <h1>Blog</h1>
       {notes.length > 0 && (
         <p className="prose muted">
           Shorter things are in <Link to="/til">TIL</Link>.

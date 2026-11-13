@@ -5,7 +5,7 @@ import ShareSheet from './ShareSheet.jsx'
 import { axeViolations } from '../lib/axe.test-util.js'
 
 const TEXT = [
-  'Shelfle 37 · 3/6',
+  'Daily game 37 · 3/6',
   '⬛🟨🟩🟨',
   '🟩🟩🟩🟩',
   'joey-haas.dev/daily',
@@ -69,7 +69,7 @@ describe('ShareSheet', () => {
     const dialog = screen.getByRole('dialog', { name: 'Share today’s result' })
     expect(dialog).toHaveAttribute('open')
     expect(dialog.querySelector('.share-grid')).toHaveTextContent(
-      'Shelfle 37 · 3/6',
+      'Daily game 37 · 3/6',
     )
     expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(
       WORDS,

@@ -17,7 +17,7 @@ import { LOAD_ERROR, WAKING } from './status.js'
  */
 /** The tour, and the post it shortens: the post is the long version. */
 const links = {
-  post: { to: '/shelf/how', label: 'How it works' },
+  post: { to: '/shelf/how', label: 'Tour' },
   longVersion: { to: '/blog/how-spine-works', label: 'The long version' },
   source: { href: profile.repo, label: 'Source' },
 }
@@ -38,8 +38,8 @@ export const spine = {
     comics: { to: '/shelf/comics', label: 'Comics' },
     next: { to: '/shelf/next', label: 'What’s next' },
     year: { to: '/shelf/year', label: 'Year in review' },
-    how: { to: '/shelf/how', label: 'How it works' },
-    daily: { to: '/daily', label: 'Daily' },
+    how: { to: '/shelf/how', label: 'Tour' },
+    daily: { to: '/daily', label: 'Daily game' },
   },
   /**
    * /spine/how, the field guide (Spine tour spec). Each stop's `code` paths
@@ -53,10 +53,10 @@ export const spine = {
     // A stop that shares its read with an earlier stop, which carries Try again.
     liveFailedSame: 'Same read as the stop above; Try again is there.',
     path: '/shelf/how',
-    tryPickForMe: 'Try Pick for me: choose a length and a mood',
-    title: 'How My Shelf works, in nine stops',
+    tryPickForMe: 'Try Pick for me with a length and a vibe',
+    title: 'A tour of My Shelf, in nine stops',
     description:
-      'A guided tour of My Shelf: intake, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
+      'A tour of My Shelf: intake, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
     lede: 'Everything on the Collection and What’s next pages comes out of a pipeline I run for myself. Each stop pairs the public result with a drawing of the signed-in tool that made it and links to the code it runs.',
     tocLabel: 'Stops',
     live: 'Live, from the public API',
@@ -172,7 +172,7 @@ export const spine = {
         where: '/admin/play-next',
         title: 'Picks tonight’s game',
         claim:
-          'While I’m playing something, Tonight leads with it: the game in hand, how long I’ve been at it and when I last played, with the picks underneath as the fallback. Six weighted terms score the backlog and anything I’ve paused: how much I’ve liked games like it, read through shared facets (genre, setting, mood) and how much I actually played them, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. The same engine picks what to read and watch next. Each pick comes with a reason, and a paused game can come back as “Pick it back up”. Rolling credits is one gesture, Wrap up: Finished, Paused or Abandoned, with a rating and a line while they’re fresh. A replay is a new playthrough, so finishing a game twice counts twice.',
+          'While I’m playing something, Tonight leads with it: the game in hand, how long I’ve been at it and when I last played, with the picks underneath as the fallback. Six weighted terms score the backlog and anything I’ve paused: how much I’ve liked games like it, read through shared facets (genre, setting, vibe) and how much I actually played them, how close it is to my favorites, how well it’s rated, how big a game it is, how long it’s been waiting, and a little random jitter. The same engine picks what to read and watch next. Each pick comes with a reason, and a paused game can come back as “Pick it back up”. Rolling credits is one gesture, Wrap up: Finished, Paused or Abandoned, with a rating and a line while they’re fresh. A replay is a new playthrough, so finishing a game twice counts twice.',
         why: {
           lead: 'No model here.',
           text: 'The scoring is pure Python, tested without a database, and the public reasons are always rebuilt from public games only.',
@@ -325,7 +325,7 @@ export const spine = {
         where: '/daily',
         title: 'Turns the shelf into a puzzle',
         claim:
-          'Shelfle picks one game a day from the public shelf: owned games with a platform, a year, a genre and a size. The day is Denver’s calendar day, so it turns over at midnight here, and the browser does all of it from the build’s snapshot, so it plays while the server sleeps.',
+          'The daily game picks one game a day from the public shelf: owned games with a platform, a year, a genre and a size. The day is Denver’s calendar day, so it turns over at midnight here, and the browser does all of it from the build’s snapshot, so it plays while the server sleeps.',
         why: {
           lead: 'Why a salt:',
           text: 'it keeps tomorrow’s answer from being worked out from the snapshot alone. Anyone who reads the bundle can still find it. That’s fine: it’s a game, and every answer it can pick is already public.',
@@ -377,9 +377,9 @@ export const spine = {
     /** Tonight's lead pick, the other picks, and the owner's buttons. */
     pickForMe: {
       heading: 'Pick for me',
-      lede: 'Choose a length and up to two moods (either one will do), and the same scoring Play Next uses picks three games from my backlog.',
+      lede: 'Choose a length and up to two vibes (either one will do), and the same scoring Play Next uses picks three games from my backlog.',
       sizeLegend: 'How long',
-      moodLegend: 'Mood',
+      moodLegend: 'Vibe',
       sizes: {
         any: 'Any length',
         short: 'Short',
@@ -399,7 +399,7 @@ export const spine = {
         brainy: 'Brainy',
         chaotic: 'Chaotic',
       },
-      moodLimit: 'Two moods at most: unpress one first.',
+      moodLimit: 'Two vibes at most. Unpress one first.',
       score: 'Score',
       outOf: 'out of 100',
       terms: {
@@ -411,7 +411,7 @@ export const spine = {
       weight: 'weight',
       howScored:
         'Deterministic, no model call: the weighted average of the four terms.',
-      empty: 'Nothing on my backlog fits that. Try another mood.',
+      empty: 'Nothing on my backlog fits that. Try another vibe.',
       choose: 'Choose a length or a vibe to see three picks.',
       leftOut: (title) => `Tonight’s pick, ${title}, is left out.`,
       announce: (count, words) =>

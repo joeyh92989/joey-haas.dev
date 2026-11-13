@@ -43,9 +43,9 @@ describe('SpineHeader', () => {
     )
   })
 
-  it('has a fourth tab, How it works, active only on its page', () => {
+  it('has a fourth tab, Tour, active only on its page', () => {
     renderAt('/shelf/how', { asLink: true })
-    const how = screen.getByRole('link', { name: 'How it works' })
+    const how = screen.getByRole('link', { name: 'Tour' })
     expect(how).toHaveAttribute('href', '/shelf/how')
     expect(how).toHaveClass('active')
     expect(how.querySelector('.spine-tab-badge')).toBeNull()
@@ -55,11 +55,9 @@ describe('SpineHeader', () => {
     expect(screen.getAllByRole('link', { name: /./ })).toHaveLength(7)
   })
 
-  it('leaves How it works inactive elsewhere under /shelf', () => {
+  it('leaves Tour inactive elsewhere under /shelf', () => {
     renderAt('/shelf/next', { asLink: true })
-    expect(screen.getByRole('link', { name: /How it works/ })).not.toHaveClass(
-      'active',
-    )
+    expect(screen.getByRole('link', { name: /Tour/ })).not.toHaveClass('active')
   })
 
   it('has a Comics tab after Collection, active on its page', () => {
@@ -77,8 +75,8 @@ describe('SpineHeader', () => {
   it('ends with a Daily tab, active only on /daily', () => {
     renderAt('/daily', { asLink: true })
     const names = screen.getAllByRole('link').map((link) => link.textContent)
-    expect(names.at(-1)).toBe('Daily')
-    const tab = screen.getByRole('link', { name: 'Daily' })
+    expect(names.at(-1)).toBe('Daily game')
+    const tab = screen.getByRole('link', { name: 'Daily game' })
     expect(tab).toHaveAttribute('href', '/daily')
     expect(tab).toHaveClass('active')
   })

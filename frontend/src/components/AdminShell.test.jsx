@@ -111,7 +111,7 @@ describe('AdminShell on a desktop', () => {
     expect(groups).toEqual([
       ['Collection', ['Collection', 'Add']],
       ['Recommend', ['Play Next', 'Discover', 'Radar', 'Pull list']],
-      ['Catalogue', ['Sources', 'Store list']],
+      ['Data', ['Sources', 'Store list']],
     ])
     expect(within(nav).getByRole('link', { name: 'Radar' })).toHaveAttribute(
       'aria-current',

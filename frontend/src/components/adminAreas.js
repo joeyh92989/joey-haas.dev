@@ -55,8 +55,8 @@ export const ADMIN_AREAS = [
       { to: '/admin/discover', label: 'Discover', group: 'Recommend' },
       { to: '/admin/radar', label: 'Radar', group: 'Recommend' },
       { to: '/admin/pull-list', label: 'Pull list', group: 'Recommend' },
-      { to: '/admin/catalogue', label: 'Sources', group: 'Catalogue' },
-      { to: '/admin/store-list', label: 'Store list', group: 'Catalogue' },
+      { to: '/admin/catalogue', label: 'Sources', group: 'Data' },
+      { to: '/admin/store-list', label: 'Store list', group: 'Data' },
     ],
     subnav: [
       { to: '/admin/collection', label: 'Collection' },

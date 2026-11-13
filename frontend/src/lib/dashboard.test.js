@@ -81,7 +81,7 @@ describe('recentChanges', () => {
   const jobs = [
     {
       key: 'catalog',
-      label: 'Catalog refresh',
+      label: 'Sources refresh',
       at: Date.parse('2026-10-03T00:40:00Z'),
       summary: 'Failed: Limited Run',
       state: 'failed',
@@ -122,7 +122,7 @@ describe('recentChanges', () => {
     expect(changes.map((change) => [change.title, change.change])).toEqual([
       ['Celeste', 'Edited · Backlog'],
       ['Radar', 'Ran'],
-      ['Catalog refresh', 'Failed: Limited Run'],
+      ['Sources refresh', 'Failed: Limited Run'],
       ['Dredge', 'Edited · Playing'],
     ])
     expect(changes[0].to).toBe('/admin/collection/2')

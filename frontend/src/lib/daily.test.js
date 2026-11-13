@@ -394,7 +394,7 @@ describe('share', () => {
   it('writes the exact block for a win', () => {
     expect(shareText(37, rows, true)).toBe(
       [
-        'Shelfle 37 · 3/6',
+        'Daily game 37 · 3/6',
         '⬛🟨🟨🟨',
         '🟩🟩🟩🟨',
         '🟩🟩🟩🟩',
@@ -406,7 +406,7 @@ describe('share', () => {
   it('writes X for a loss', () => {
     const six = Array.from({ length: MAX_GUESSES }, () => rows[0])
     const text = shareText(38, six, false)
-    expect(text.split('\n')[0]).toBe('Shelfle 38 · X/6')
+    expect(text.split('\n')[0]).toBe('Daily game 38 · X/6')
     expect(text.split('\n')).toHaveLength(MAX_GUESSES + 2)
   })
 

@@ -62,8 +62,8 @@ describe('SiteFooter', () => {
     const names = footer
       .getAllByRole('link')
       .map((link) => link.textContent)
-      .filter((name) => ['Now', 'Daily', 'TIL', 'Colophon'].includes(name))
-    expect(names).toEqual(['Now', 'Daily', 'TIL', 'Colophon'])
+      .filter((name) => ['Now', 'Daily game', 'TIL', 'Colophon'].includes(name))
+    expect(names).toEqual(['Now', 'Daily game', 'TIL', 'Colophon'])
   })
 
   it('links Denver unless the snapshot says it has no spots', () => {
@@ -78,6 +78,6 @@ describe('SiteFooter', () => {
       .getByRole('contentinfo')
       .querySelector('.footer-credit')
     expect(within(credit).queryByRole('link', { name: 'Denver' })).toBeNull()
-    expect(credit.textContent).toMatch(/Daily · Colophon · Stats$/)
+    expect(credit.textContent).toMatch(/Daily game · Colophon · Stats$/)
   })
 })

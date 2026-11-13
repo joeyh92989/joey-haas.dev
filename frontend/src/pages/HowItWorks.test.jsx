@@ -125,7 +125,7 @@ describe('HowItWorks', () => {
       '/shelf/how#stop-3',
     )
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(9)
-    expect(document.title).toBe('How it works · My Shelf')
+    expect(document.title).toBe('Tour · My Shelf')
   })
 
   it('shows the four newest owned games on stop 1', () => {

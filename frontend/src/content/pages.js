@@ -54,7 +54,7 @@ export const STATIC_PAGES = [
   ),
   row(
     spine.how.path,
-    `How ${spine.name} works`,
+    `${spine.name} tour`,
     `${spine.tabs.how.label} · ${spine.name}`,
     spine.how.description,
   ),
