@@ -807,6 +807,9 @@ It needs:
 - a build (`VITE_DAILY_SALT=local npm run build`).
 - ports 8000 and 4173 free. Servers are never reused, so a running dev backend
   makes the run fail clearly instead of testing without the sign-in route.
+- `backend/.env`, if present, is still read (python-dotenv) for any optional
+  variable the suite does not set (source API keys, `JOB_TOKEN`,
+  `ADMIN_GOOGLE_SUB`); the database URLs and secrets are pinned by the suite.
 
 ```sh
 cd frontend
