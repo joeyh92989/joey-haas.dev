@@ -166,8 +166,12 @@ before pushing.
   `RootLayout` also passes `{ signedIn }` as outlet context, so a routed page
   reads the session instead of calling `/api/auth/me` again.
 - Shelf components live in `frontend/src/components/`: `PosterCard`,
-  `PosterGrid`, `FilterChips`, `SortControl`, `ShelfToolbar`, `Stars`,
-  `QuickRate`, `ShelfCardActions`. `HeroNumbers` and `FavoritesRow` are
+  `PosterGrid`, `FilterChips`, `SortControl`, `ShelfToolbar`, `Rating`,
+  `QuickRate`, `ShelfCardActions`, and the pieces the public pages share:
+  `ResultBar`, `CoverKey`, `ShowMore`, `JumpNav` and `CappedList`.
+  `SortControl` is chips on a wide screen and a select on a phone unless it
+  is given `select`, the public shelf's labeled select at every width.
+  `HeroNumbers` and `FavoritesRow` are
   exported from `pages/Collection.jsx`; the admin shelf reuses
   `FavoritesRow` and shows its figures as `StatTile`s. A
   card's admin controls are a sibling of its link, never nested inside it.

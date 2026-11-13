@@ -6,7 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-12
 
-- The [shelf](/shelf) puts covers first, with labelled filters. [What’s next](/shelf/next) is shorter, with jump links. My rating shows one way everywhere, a star and the number, and the pages keep to two widths.
+- The [shelf](/shelf) puts covers first, with labeled filters. [What’s next](/shelf/next) is shorter, with jump links. My rating shows one way everywhere, a star and the number, and the pages keep to two widths.
 - Every detail page now has one breadcrumb at the top. An item page labels its genres, platforms and time to beat. Comic issues I’m missing now show up. [Year in review](/shelf/year/2026) has covers, and the month journal has an index of the year.
 - [Now](/now) falls back to tonight's pick when nothing is up next, the Last shipped line on Home dates the latest change, long posts open with an On this page list, and the [intake demo](/shelf/intake) is linked from [How it works](/shelf/how) and [Projects](/projects). I also switched a few British spellings to American.
 - When the server doesn’t answer, the [shelf](/shelf) pages, [Denver](/denver) and [Stats](/stats) keep their heading and say they couldn’t load instead of looking empty, and offer Try again. I also let a page wait up to 90 seconds for a sleeping server before giving up.

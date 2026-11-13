@@ -123,6 +123,7 @@ export default function SortControl({
           <button
             type="button"
             className="chip sort-direction"
+            // copy: pending voice review
             aria-label={`Order: ${wording}`}
             onClick={flip}
           >

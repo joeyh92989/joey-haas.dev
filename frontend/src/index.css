@@ -3349,7 +3349,7 @@ footer {
 .intake-demo-lede {
   color: var(--text-2);
   margin: 0 0 1.5rem;
-  max-width: 40rem;
+  max-width: min(45rem, 68ch);
 }
 
 .intake-demo-grid {
@@ -5748,6 +5748,11 @@ a.month-bar::before {
   padding: 0;
 }
 
+/* Above a grid on its own (the month journal), not inside the result bar. */
+section > .cover-key {
+  margin: 0.25rem 0 0.75rem;
+}
+
 .cover-key li {
   align-items: center;
   display: flex;
@@ -7049,6 +7054,14 @@ a.month-bar::before {
   border-color: var(--accent);
 }
 
+/* Top pick rides the title's line, as the mockup draws it. */
+.next-badge-inline {
+  font-size: 0.6875rem;
+  margin-left: 0.5rem;
+  vertical-align: 0.1em;
+  white-space: nowrap;
+}
+
 .next-row-actions {
   align-self: center;
   display: flex;
@@ -7394,6 +7407,21 @@ main h1[tabindex='-1']:focus,
   display: grid;
   gap: 0 3rem;
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* The genre bars fill their column, as the mockup's do, and By month sits on
+   a baseline. */
+.year-columns .bar-list li {
+  grid-template-columns: minmax(0, 10rem) minmax(2rem, 1fr) auto;
+}
+
+.year-months .month-bars {
+  border-bottom: 1px solid var(--text-3);
+  max-width: 36rem;
+}
+
+.year-months .bar-axis {
+  max-width: 36rem;
 }
 
 @media (min-width: 60rem) {
@@ -9072,6 +9100,10 @@ a.cover-tile:focus-visible {
 }
 
 /* Pick for me (Pick for me spec): the band on What's next. */
+.pick-note:empty {
+  margin: 0;
+}
+
 .pick-for-me {
   margin-block: 2rem;
   scroll-margin-top: calc(3.5rem + env(safe-area-inset-top, 0px));
@@ -10638,9 +10670,6 @@ a.cover-tile:focus-visible {
   .daily-result {
     grid-template-columns: 4.5rem minmax(0, 1fr);
   }
-}
-.daily-entry {
-  margin: 0;
 }
 
 /* ---------- SpotMap: the drawn poster map (/denver) ---------- */

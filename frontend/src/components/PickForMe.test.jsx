@@ -69,6 +69,8 @@ describe('PickForMe', () => {
       spine.next.pickForMe.choose,
     )
     expect(titles()).toEqual([])
+    // The scoring line is about a result; with none it stays out.
+    expect(screen.queryByText(/no model call/)).not.toBeInTheDocument()
   })
 
   it('shows each pick’s working once a length is chosen', async () => {

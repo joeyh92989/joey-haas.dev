@@ -27,7 +27,8 @@ function metaLine(row, section) {
 
 /**
  * One game on What's next or the store list: cover, title, platform ·
- * format · date, up to two reasons, and the New and Top pick badges. A
+ * format · date, up to two reasons, and the badges: Top pick sits on the
+ * title's line, New under the meta line. A
  * comic want reads "Comic · Trades" instead: it has no platform or
  * cartridge format. The
  * title links to the item page for a wanted game, else to IGDB.
@@ -50,6 +51,7 @@ export default function NextRow({
   actions,
   extra,
 }) {
+  const topPick = showTopPick && row.top_pick
   const body = (
     <>
       <span className="next-row-cover">
@@ -59,7 +61,14 @@ export default function NextRow({
           alt=""
         />
       </span>
-      <span className="next-row-title">{row.title}</span>
+      <span className="next-row-title">
+        {row.title}
+        {topPick && (
+          <span className="next-badge next-badge-pick next-badge-inline">
+            {spine.next.badges.topPick}
+          </span>
+        )}
+      </span>
     </>
   )
   const link = row.item_id ? (
@@ -73,23 +82,15 @@ export default function NextRow({
   ) : (
     <span className="next-row-link">{body}</span>
   )
-  const topPick = showTopPick && row.top_pick
   const reasons = (row.reasons ?? []).slice(0, MAX_REASONS)
   return (
     <li className="next-row">
       {link}
       <div className="next-row-text">
         <span className="muted">{metaLine(row, section)}</span>
-        {(row.new || topPick) && (
+        {row.new && (
           <span className="next-badges">
-            {row.new && (
-              <span className="next-badge">{spine.next.badges.new}</span>
-            )}
-            {topPick && (
-              <span className="next-badge next-badge-pick">
-                {spine.next.badges.topPick}
-              </span>
-            )}
+            <span className="next-badge">{spine.next.badges.new}</span>
           </span>
         )}
         {reasons.length > 0 && (

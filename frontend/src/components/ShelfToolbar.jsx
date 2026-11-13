@@ -50,8 +50,14 @@ export default function ShelfToolbar({
   const narrow = useMediaQuery(NARROW)
 
   const sizes = (
-    <div className="chip-row" role="group" aria-label="Poster size">
+    <div
+      className="chip-row"
+      role="group"
+      // copy: pending voice review
+      aria-label="Poster size"
+    >
       {[
+        // copy: pending voice review
         ['comfortable', 'Comfortable'],
         ['compact', 'Compact'],
       ].map(([value, label]) => (
@@ -75,13 +81,18 @@ export default function ShelfToolbar({
       aria-pressed={dim}
       onClick={() => onDimChange(!dim)}
     >
+      {/* copy: pending voice review */}
       Dim finished
     </button>
   )
 
   if (labelled) {
     return (
-      <section className="shelf-toolbar controls" aria-label="Filter and sort">
+      <section
+        className="shelf-toolbar controls"
+        // copy: pending voice review
+        aria-label="Filter and sort"
+      >
         <FilterChips
           groups={groups}
           toggles={toggles}

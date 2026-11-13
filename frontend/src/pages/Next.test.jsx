@@ -362,8 +362,14 @@ describe('Next', () => {
     await userEvent.click(within(buy).getByRole('button', { name: 'Newest' }))
     const titles = within(buy)
       .getAllByText(/^(Old|Fresh)$/)
-      .map((n) => n.textContent)
+      .map((n) => n.firstChild.textContent)
     expect(titles).toEqual(['Fresh', 'Old'])
+    // Top pick rides the title's own line.
+    expect(
+      within(buy)
+        .getByText(spine.next.badges.topPick)
+        .closest('.next-row-title'),
+    ).toHaveTextContent('Fresh')
     expect(localStorage.getItem('shelf.next.sort')).toBe('"newest"')
   })
 

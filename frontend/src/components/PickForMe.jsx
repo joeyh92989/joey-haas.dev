@@ -210,10 +210,12 @@ export default function PickForMe({ table, lead = null }) {
       ) : (
         <p className="muted">{copy.empty}</p>
       )}
-      <p className="pick-how muted">
-        {leftOut && <>{copy.leftOut(lead.title)} </>}
-        {copy.howScored}
-      </p>
+      {chosen && (
+        <p className="pick-how muted">
+          {leftOut && <>{copy.leftOut(lead.title)} </>}
+          {copy.howScored}
+        </p>
+      )}
     </section>
   )
 }

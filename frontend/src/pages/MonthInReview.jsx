@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link, useParams } from 'react-router'
 import LoadState from '../components/LoadState.jsx'
 import { DIARY_FAILED } from '../content/status.js'
+import CoverKey from '../components/CoverKey.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
@@ -109,6 +110,7 @@ export default function MonthInReview() {
       {review.finished.length > 0 && (
         <section aria-labelledby="month-finished">
           <h2 id="month-finished">Finished</h2>
+          <CoverKey />
           <PosterGrid
             items={review.finished}
             size="compact"

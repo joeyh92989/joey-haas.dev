@@ -17,10 +17,11 @@ function axisPositions(length) {
 
 /**
  * The views-per-day chart: one bar per UTC day, all in the chart colour. The
- * busiest day is the latest on a tie, as the Best day tile has it. Each bar is named for a screen reader, and a
- * visually hidden table holds the same figures to read in order. The caption
- * names the busiest day and its count, so the peak is told in words rather
- * than by colour, and the bars carry no scale.
+ * busiest day is the latest on a tie, as the Best day tile has it. Each bar
+ * is named for a screen reader, and a visually hidden table holds the same
+ * figures to read in order. The caption names the busiest day and its count,
+ * so the peak is told in words rather than by colour, and the bars carry no
+ * scale.
  *
  * @param {object} props
  * @param {{day: string, views: number}[]} props.series Oldest first.
