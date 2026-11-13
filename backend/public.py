@@ -22,7 +22,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from formats import KEY_CARD_PLATFORMS
@@ -535,6 +535,7 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
 
     @router.get("/stats", response_model=PublicStatsOut)
     async def public_stats(
+        type: ItemType | None = Query(None),
         session: AsyncSession = Depends(get_session),
     ) -> PublicStatsOut:
         """Counts over public rows, computed in SQL.
@@ -543,8 +544,13 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         Python: the page renders these next to the grid, and a collection is
         expected to outgrow the point where counting in the application is
         reasonable.
+
+        With ``type`` every figure counts that type only, so the Games page
+        is not counting comics. Private rows are out either way.
         """
         public = Item.is_public.is_(True)
+        if type is not None:
+            public = and_(public, Item.type == type)
 
         by_type = await session.execute(
             select(Item.type, func.count()).where(public).group_by(Item.type)
