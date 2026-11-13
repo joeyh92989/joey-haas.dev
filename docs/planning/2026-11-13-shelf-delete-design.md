@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: feature
 mode: auto (Joey's stops from the shelf sweep run; no stop on item 4)
 ---
@@ -150,3 +150,29 @@ TDD per task; one backend pytest run at a time (`ps aux | grep '[p]ytest'`).
 
 Ship notes: no migration. Live check: `POST /api/items/bulk-delete`
 unauthenticated → 401 instead of 404.
+
+## Deviations
+
+- **Redo's route lives on the items router** (`POST /api/items/{id}/redo`,
+  in `backend/items.py`), as written. It needs only the intake models, not
+  `intake.routes`, so there is no circular import; the entry is built
+  directly (`payload.detected_title`/`detected_year`, `chosen` the item's
+  external match when it has one) rather than through the entries route.
+  A comic or any row with no external match has `chosen: null`.
+- **`ConfirmDelete` took more props than `detail`**: `label`,
+  `confirmLabel`, `intro`, `name`, `ready` and `onArm`, so Redo reuses it
+  and the confirm holds off while the counts load or if they fail. A new
+  `ShelfConfirm` wraps it and the preview fetch (`lib/useDeletePreview.js`)
+  for every row-shaped use.
+- **`CardActionsShell` was extracted** from `ShelfCardActions` so the Comics
+  card shares the hover/touch mechanism instead of copying it. The Comics
+  card's old CSS-only `@media (hover: hover)` reveal is gone.
+- **The Add page's Discard wording changed** with the banner's: "Its 6
+  photos and 43 entries go with it" (real counts) replaces "All its photos
+  go with it".
+- **Delete and Redo wording**: the redo sitting has no label, so the banner
+  names it "A sitting".
+- **Edit page**: Delete only; Redo is on the card and List row as planned.
+- Task 5's "existing row delete gains the detail" and Task 6 are the same
+  `ShelfConfirm`; the edit page's Delete button is now named "Delete
+  {title}" for screen readers.

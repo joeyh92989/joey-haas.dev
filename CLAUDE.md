@@ -452,7 +452,7 @@ before pushing.
         list
   - [x] 3. Split the shelf by type: Games at `/shelf/games`, Comics, and
         their admin twins
-  - [ ] 4. Delete, bulk delete, redo, and discard an empty sitting
+  - [x] 4. Delete, bulk delete, redo, and discard an empty sitting
   - [ ] 5. Comics: the book is what you own (5a intake reads the issue
         number, 5b ownership on the issue row, 5c one place to edit and a
         comic edit page)
@@ -849,7 +849,19 @@ before pushing.
 - Editing lives at `/admin/collection/:id`. A wrong external match is fixed
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not
-  necessary.
+  necessary. **Delete and Redo** are on a card's panel (Games and Comics,
+  `CardActionsShell`), on each List row, and on the edit page (Delete);
+  the List view's selection bar has Delete N. Every one is a `ShelfConfirm`
+  that reads `POST /api/items/delete-preview` when it arms and names the
+  row and its playthroughs, journal days and issue records before it will
+  go ahead (nothing deletes unconfirmed, and nothing uses a browser
+  dialog). `POST /api/items/bulk-delete` is all or nothing (an unknown id
+  is a 404 and deletes nothing); both are POST paths because `DELETE
+  /{item_id}` would shadow a `/bulk`. `POST /api/items/{id}/redo` deletes
+  the row and leaves one intake entry (state `check`, the item's match as
+  `chosen`) in the newest shelf sitting of that kind, or a new one; the
+  page then opens that sitting. None of the three is in `JOB_ROUTES`. A
+  lone unfinished sitting's line on the shelf has Discard.
 - The photo importer sends images to the model and keeps nothing after the
   request (Starlette spools an upload over 1 MB to a temp file until the
   request ends). Each photo is capped at `MAX_PHOTO_BYTES` before it is read.
