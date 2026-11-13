@@ -28,8 +28,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from comic_issues import sync_series
 from comics import (
-    MAX_ISSUE,
     MARK_STATES,
+    MAX_ISSUE,
     MarkRefused,
     MarksResult,
     RangeError,

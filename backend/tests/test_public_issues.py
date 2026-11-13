@@ -520,7 +520,6 @@ async def test_stub_rows_draw_held_books_as_blanks_and_nothing_else(
     """The marks (5b) add stub rows for held and skipped numbers Comic Vine has
     not synced. A held stub is a numbered blank on the wall (5c); a skipped
     stub, and every other page, changes nothing; no body carries `skipped`."""
-    import json
 
     from comics import sync_marks
 
@@ -595,7 +594,7 @@ async def test_the_wall_and_issue_page_read_the_marks(sessionmaker_for_test):
     assert "skipped" not in set(_keys(wall)) | set(_keys(missing))
     # A read mark with no owned mark (stray) is not a read book.
     edition_less = (
-        await _get(sessionmaker_for_test, f"/api/public/comic-issues")
+        await _get(sessionmaker_for_test, "/api/public/comic-issues")
     ).json()
     assert "skipped" not in set(_keys(edition_less))
 
