@@ -89,15 +89,18 @@ describe('Item', () => {
     expect(String(fetch.mock.calls[0][0])).toContain(`/api/public/items/${ID}`)
   })
 
-  it('shows the hero: plain band, cover, title, year, creator, status in words', async () => {
+  it('opens with the breadcrumb, then the cover, title, year, creator, status in words', async () => {
     stubItem()
     await renderReady()
 
-    const hero = document.querySelector('.item-hero')
-    expect(hero).not.toBeNull()
-    expect(hero).not.toHaveAttribute('data-empty')
-    expect(document.querySelector('.item-hero-backdrop')).toBeNull()
-    expect(hero.querySelector('img')).toBeNull()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(
+      within(crumbs).getByRole('link', { name: 'My Shelf' }),
+    ).toHaveAttribute('href', '/shelf')
+    expect(crumbs.querySelector('[aria-current="page"]')).toHaveTextContent(
+      DETAIL.title,
+    )
+    expect(document.querySelector('.item-hero')).toBeNull()
     expect(document.querySelector('.item-cover img')).toHaveAttribute(
       'src',
       DETAIL.cover_url,
@@ -114,14 +117,10 @@ describe('Item', () => {
     expect(screen.getByText('Finished · June 2026')).toBeInTheDocument()
   })
 
-  it('keeps the plain band and shows the placeholder without a cover', async () => {
+  it('shows the placeholder without a cover', async () => {
     stubItem({ cover_url: null })
     await renderReady()
 
-    expect(document.querySelector('.item-hero-backdrop')).toBeNull()
-    expect(document.querySelector('.item-hero')).not.toHaveAttribute(
-      'data-empty',
-    )
     expect(document.querySelector('.cover-placeholder')).not.toBeNull()
   })
 
@@ -172,25 +171,47 @@ describe('Item', () => {
     expect(screen.getByText('Paused · since Aug 2026')).toBeInTheDocument()
   })
 
-  it('lists genres, then the other platforms muted', async () => {
+  function groups() {
+    return [...document.querySelectorAll('.item-groups > div')].map((group) => [
+      group.querySelector('dt').textContent,
+      [...group.querySelectorAll('li')].map((chip) => [
+        chip.textContent,
+        chip.classList.contains('item-chip-muted'),
+      ]),
+    ])
+  }
+
+  it('labels the genres and the other platforms', async () => {
     stubItem()
     await renderReady()
-
-    const chips = [...document.querySelectorAll('.item-chips li')]
-    expect(chips.map((chip) => chip.textContent)).toEqual([
-      'Roguelike',
-      'Action',
-      'PC',
-      'Nintendo Switch',
+    expect(groups()).toEqual([
+      [
+        'Genres',
+        [
+          ['Roguelike', false],
+          ['Action', false],
+        ],
+      ],
+      [
+        'Also on',
+        [
+          ['PC', true],
+          ['Nintendo Switch', true],
+        ],
+      ],
     ])
-    expect(chips[2]).toHaveClass('item-chip-muted')
-    expect(chips[0]).not.toHaveClass('item-chip-muted')
   })
 
-  it('has no chip row when there are no genres or platforms', async () => {
+  it('omits a group that would be empty', async () => {
     stubItem({ genres: [], platforms: [] })
     await renderReady()
-    expect(document.querySelector('.item-chips')).toBeNull()
+    expect(document.querySelector('.item-groups')).toBeNull()
+  })
+
+  it('shows only Genres when there is no other platform', async () => {
+    stubItem({ platforms: [] })
+    await renderReady()
+    expect(groups().map(([label]) => label)).toEqual(['Genres'])
   })
 
   it('clamps the description, and More and Less toggle the clamp', async () => {
@@ -309,6 +330,15 @@ describe('Item', () => {
     renderPage()
     expect(await screen.findByText(/didn’t load/i)).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  })
+
+  it('keeps the same breadcrumb while loading and when it failed', async () => {
+    stubApi({ ok: false, status: 500, json: async () => ({}) })
+    renderPage()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(crumbs).getByRole('link', { name: 'My Shelf' })).toBeVisible()
+    await screen.findByText(/didn’t load/i)
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeVisible()
   })
 
   it('shows the item after Try again', async () => {
@@ -454,6 +484,9 @@ describe('Item copy details', () => {
       ['PC', true],
       ['PlayStation 4', true],
     ])
+    // The owned platform is not an "Also on" chip.
+    const alsoOn = [...document.querySelectorAll('.item-groups > div')][1]
+    expect(alsoOn.textContent).not.toMatch(/Nintendo Switch/)
     expect(
       screen.getByText(
         'My copy: Nintendo Switch · Full game on cartridge · Complete in box',
@@ -491,14 +524,25 @@ describe('Item copy details', () => {
   })
 
   it.each([
-    [{ normally: 11.6, completely: 18.2 }, '≈ 12 h · 18 h to complete'],
-    [{ normally: 4.4, completely: null }, '≈ 4 h'],
-  ])('shows time to beat', async (timeToBeat, text) => {
+    [
+      { normally: 11.6, completely: 18.2 },
+      [
+        ['Main story', '≈ 12 h'],
+        ['To complete', '18 h'],
+      ],
+    ],
+    [{ normally: 4.4, completely: null }, [['Main story', '≈ 4 h']]],
+    [{ normally: null, completely: 18.2 }, [['To complete', '18 h']]],
+  ])('shows time to beat with named figures', async (timeToBeat, figures) => {
     stubItem({ time_to_beat: { hastily: null, count: 3, ...timeToBeat } })
     await renderReady()
     const tiles = within(document.querySelector('.item-tiles'))
     expect(tiles.getByText('Time to beat')).toBeInTheDocument()
-    expect(tiles.getByText(text)).toBeInTheDocument()
+    const rows = [...document.querySelectorAll('.item-ttb')].map((row) => [
+      row.children[0].textContent,
+      row.children[1].textContent,
+    ])
+    expect(rows).toEqual(figures)
   })
 
   it('has no time-to-beat tile without data', async () => {
@@ -674,6 +718,18 @@ describe('Item series page (AC5)', () => {
       screen.getByText('Comic · Image · 2012 – ongoing'),
     ).toBeInTheDocument()
     expect(document.querySelector('.item-status')).toHaveTextContent('Reading')
+  })
+
+  it('puts a series under Comics in the trail, as its issue pages do', async () => {
+    stubSaga()
+    await renderSaga()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(
+      within(crumbs).getByRole('link', { name: 'Comics' }),
+    ).toHaveAttribute('href', '/shelf/comics')
+    expect(crumbs.querySelector('[aria-current="page"]')).toHaveTextContent(
+      'Saga',
+    )
   })
 
   it('states the run with its pill, then what is next', async () => {

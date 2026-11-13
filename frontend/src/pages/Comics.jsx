@@ -368,14 +368,14 @@ export default function Comics() {
             figures={[
               { label: copy.hero.series, value: stats.series },
               { label: copy.hero.issues, value: stats.issues_owned },
-              { label: copy.hero.missing, value: stats.missing },
-              {
-                label: copy.hero.read,
-                value:
-                  stats.read_percent == null ? '—' : `${stats.read_percent}%`,
-              },
             ]}
           />
+          <p className="hero-sub">
+            {copy.hero.sub(
+              stats.missing,
+              stats.read_percent == null ? '—' : `${stats.read_percent}%`,
+            )}
+          </p>
 
           <OutThisWeek thisWeek={thisWeek} following={following} />
 

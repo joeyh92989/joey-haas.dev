@@ -349,8 +349,8 @@ export const countText = ({ held, released, ongoing }, separator = '/') =>
  * A comic card's two lines, from a public list row.
  *
  * Line one is the count and the first of: the next dated issue, the missing
- * count, Up to date, Complete run. A want or an unrecorded run says so
- * instead. Line two is where reading stands. A row from a snapshot written
+ * count, Up to date, Complete run. A want, or a series with no issues
+ * out, says so instead; a released run with none owned draws its gaps. Line two is where reading stands. A row from a snapshot written
  * before `read_next` existed falls back to `read to #n`.
  *
  * @param {object} row - A PublicComicRow.
@@ -366,7 +366,7 @@ export function cardLines(row, formatDate) {
       lanes: false,
     }
   }
-  if (!row.owned) {
+  if (!row.owned && !(row.released > 0 && row.segments?.length)) {
     return {
       count: null,
       status: 'Issues not recorded',
@@ -374,14 +374,19 @@ export function cardLines(row, formatDate) {
       lanes: false,
     }
   }
+  // A row from an older snapshot may lack `missing`; with nothing owned,
+  // every issue out is missing, so it can never read as complete.
+  const missing = row.missing ?? (row.owned ? 0 : row.released)
   let status
   if (row.next_issue)
     status = `Next #${row.next_issue.number} · ${formatDate(row.next_issue.store_date)}`
-  else if (row.missing > 0) status = `${row.missing} missing`
+  else if (missing > 0) status = `${missing} missing`
   else status = row.ongoing ? 'Up to date' : 'Complete run'
 
   let reading
-  if ('read_next' in row)
+  // Nothing owned, so nothing to read: the track alone shows the gaps.
+  if (!row.owned) reading = null
+  else if ('read_next' in row)
     reading =
       row.read_next == null ? 'all read' : `read next: #${row.read_next}`
   else if (row.read >= row.owned) reading = 'all read'

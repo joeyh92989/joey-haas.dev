@@ -1,8 +1,9 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import TilNote from './TilNote.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 vi.mock('../content/notes.js', () => {
   const notes = [
@@ -26,16 +27,21 @@ function renderAt(slug) {
 }
 
 describe('TilNote', () => {
-  it('renders the note alone, under a link back to every note', () => {
+  it('renders the note alone, under a TIL breadcrumb', () => {
     renderAt('a-note')
     expect(
       screen.getByRole('heading', { level: 1, name: 'A note' }),
     ).toBeInTheDocument()
     expect(screen.getByText('The body.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '← All notes' })).toHaveAttribute(
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(crumbs).getByRole('link', { name: 'TIL' })).toHaveAttribute(
       'href',
       '/til',
     )
+    expect(crumbs.querySelector('[aria-current="page"]')).toHaveTextContent(
+      'A note',
+    )
+    expect(screen.queryByText('← All notes')).toBeNull()
     expect(document.title).toBe('A note · TIL · Joey Haas')
   })
 
@@ -45,5 +51,10 @@ describe('TilNote', () => {
       screen.getByRole('heading', { level: 1, name: 'Not found' }),
     ).toBeInTheDocument()
     expect(document.title).toBe('Not found · Joey Haas')
+  })
+
+  it('has no axe violations', async () => {
+    const { container } = renderAt('a-note')
+    expect(await axeViolations(container)).toEqual([])
   })
 })

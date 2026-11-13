@@ -113,3 +113,30 @@ export function monthInReview(items, sessions, month, nearby = []) {
     next: sorted.find((other) => other > month) ?? null,
   }
 }
+
+const SHORT = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' })
+
+/**
+ * The twelve months of a year for the journal's index: how many games were
+ * finished in each, and whether a session was logged. Built from the same
+ * items and diary rows the month page already holds.
+ *
+ * @param {object[]} items Public items.
+ * @param {object[]} sessions Public diary rows for that year.
+ * @param {number} year
+ * @returns {{month: string, short: string, name: string, finished: number, played: boolean}[]}
+ */
+export function monthIndex(items, sessions, year) {
+  const finishes = ownedFinishes(items).map((row) => isoMonth(row.finished_at))
+  const played = new Set(sessions.map((row) => isoMonth(row.played_on)))
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = `${year}-${String(index + 1).padStart(2, '0')}`
+    return {
+      month,
+      short: SHORT.format(new Date(Date.UTC(year, index, 1))),
+      name: monthName(month),
+      finished: finishes.filter((other) => other === month).length,
+      played: played.has(month),
+    }
+  })
+}

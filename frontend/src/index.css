@@ -215,7 +215,27 @@ body {
   max-width: 72rem;
 }
 
-/* Headings are sans 500; the serif is kept for the Home and About headlines. */
+/* The breadcrumb every detail page opens with (components/Breadcrumb). */
+.crumbs ol {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  gap: 0.25rem 0.5rem;
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.crumbs li + li::before {
+  color: var(--text-3);
+  content: '/';
+  content: '/' / '';
+  margin-right: 0.5rem;
+}
+
+/* Headings are sans 500. The serif (--font-display) is kept for the Home
+   headline and a few display titles (tour stops, trip cards, map labels). */
 h1,
 h2,
 h3 {
@@ -693,7 +713,8 @@ p.muted a,
   padding: 2.5rem 0 3.75rem;
 }
 
-/* One of the two serif headlines on the site; About's title is the other. */
+/* The Home headline: the one serif h1; every other h1 is the base
+   sans 500. */
 .hero-title {
   font: 500 3.5rem/1.05 var(--font-display);
   letter-spacing: -0.02em;
@@ -920,9 +941,7 @@ section + section {
   width: 96px;
 }
 
-/* The other serif headline, beside Home's hero. */
 .about-title {
-  font: 500 2.5rem/1.05 var(--font-display);
   margin-bottom: 8px;
 }
 
@@ -3329,10 +3348,6 @@ footer {
    --text on --accent-soft 13.11 dark, 15.65 light (measured above). The
    confidence words reuse .conf on --surface (measured above). */
 .intake-demo h1 {
-  font-family: var(--font-display);
-  font-size: 2.25rem;
-  font-weight: 500;
-  line-height: 1.15;
   margin: 0 0 0.5rem;
 }
 
@@ -3511,10 +3526,6 @@ footer {
 }
 
 @media (max-width: 900px) {
-  .intake-demo h1 {
-    font-size: 1.75rem;
-  }
-
   .intake-demo-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3697,6 +3708,59 @@ footer {
   height: 100%;
   object-fit: cover;
   width: 100%;
+}
+
+/* An issue with no cover: a labelled placeholder, not an empty block. The
+   dashed --run-missing outline is 3.30 / 3.25 on --surface and 3.50 / 3.17
+   on --bg (dark / light) but 3.07 / 2.92 on --sunken, so it takes the
+   page's ground instead of the cover's. */
+.cover[data-nocover] {
+  background: transparent;
+  border: 1.5px dashed var(--run-missing);
+}
+
+.cover-nocover {
+  align-content: center;
+  color: var(--text-3);
+  display: grid;
+  font-size: 0.8125rem;
+  gap: 0.25rem;
+  height: 100%;
+  justify-items: center;
+  line-height: 1.3;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.cover-nocover b {
+  color: var(--text-2);
+  font: 500 1.75rem var(--font-mono);
+}
+
+/* A cover that loads for an issue I do not own is content, dimmed. */
+.cover[data-unowned] img {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.comic-issue-cover-caption {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  margin: 0.5rem 0 0;
+}
+
+/* In a tile the frame already carries the dashed outline and the state. */
+.cover-tile .cover[data-nocover] {
+  border: 0;
+}
+
+.cover-tile .cover-nocover {
+  font-size: 0.5625rem;
+  padding: 0.2rem;
+}
+
+.cover-tile .cover-nocover b {
+  font-size: 0.875rem;
 }
 
 .cover-movie,
@@ -4185,6 +4249,12 @@ footer {
   text-transform: uppercase;
 }
 
+.hero-numbers + .hero-sub {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin: -0.75rem 0 1.5rem;
+}
+
 .favourites,
 .shelf-stats,
 .shelf-toolbar {
@@ -4554,19 +4624,12 @@ a.month-bar::before {
   gap: 0.4rem 0.75rem;
 }
 
-/* Public item page. The hero band is a plain --surface panel; the cover
-   overlaps its bottom edge. */
-.item-hero {
-  background: var(--surface);
-  border-radius: 8px;
-  height: 13rem;
-}
-
+/* Public item page: the breadcrumb, then the cover beside the title. */
 .item-head {
   align-items: flex-end;
   display: flex;
   gap: 1.5rem;
-  margin: -6rem 0 1.5rem 1.5rem;
+  margin: 0.5rem 0 1.5rem;
   position: relative;
 }
 
@@ -4605,12 +4668,45 @@ a.month-bar::before {
   margin-top: 0.5rem;
 }
 
+.item-groups {
+  display: grid;
+  gap: 0.6rem 1rem;
+  grid-template-columns: max-content 1fr;
+  margin: 0 0 1.25rem;
+}
+
+.item-groups > div {
+  display: contents;
+}
+
+.item-groups dt {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  padding-top: 0.2rem;
+}
+
+.item-groups dd {
+  margin: 0;
+}
+
 .item-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   list-style: none;
-  margin: 0 0 1.25rem;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 700px) {
+  .item-groups {
+    gap: 0.25rem;
+    grid-template-columns: 1fr;
+  }
+
+  .item-groups dd {
+    margin-bottom: 0.5rem;
+  }
 }
 
 /* The owner's copy: its own line, not a chip among the game's genres. */
@@ -4676,6 +4772,13 @@ a.month-bar::before {
   flex-direction: column;
   font-size: 0.8125rem;
   gap: 0.15rem;
+}
+
+.item-ttb {
+  align-items: baseline;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
 }
 
 .item-tile-figure {
@@ -5527,10 +5630,9 @@ a.month-bar::before {
     mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
   }
 
-  /* The overlapping cover shrinks so the title still fits beside it. */
+  /* The cover shrinks so the title still fits beside it. */
   .item-head {
     gap: 1rem;
-    margin-left: 1rem;
   }
 
   .item-cover {
@@ -6812,10 +6914,50 @@ main h1[tabindex='-1']:focus,
 }
 
 .month-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
   margin-top: 0.5rem;
+}
+
+.month-index {
+  border-block: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  list-style: none;
+  margin: 1rem 0 0.5rem;
+  max-width: 36rem;
+  padding: 0;
+}
+
+.month-index li > * {
+  border-bottom: 2px solid transparent;
+  color: var(--text-3);
+  display: grid;
+  font-size: 0.75rem;
+  justify-items: center;
+  line-height: 1.3;
+  padding: 0.45rem 0 0.35rem;
+}
+
+.month-index a {
+  color: var(--accent);
+}
+
+.month-index small {
+  font: 500 0.625rem var(--font-mono);
+}
+
+.month-index [aria-current] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.month-step {
+  display: flex;
+  font-size: 0.875rem;
+  gap: 1rem;
+  justify-content: space-between;
+  margin: 0;
+  max-width: 36rem;
 }
 
 .month-days {
@@ -6886,6 +7028,22 @@ main h1[tabindex='-1']:focus,
 .year-diary time {
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
+}
+
+/* A finish's title cell: a small cover, then the title (and "again"). */
+.year-diary-title {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.year-diary li:has(.year-diary-cover) {
+  align-items: center;
+}
+
+.year-diary-cover {
+  flex: none;
+  width: 2.25rem;
 }
 
 /* ---- How it works (/spine/how): the tour's primitives ---- */
@@ -7090,11 +7248,6 @@ main h1[tabindex='-1']:focus,
 /* ---- How it works (/spine/how): the page ---- */
 
 .tour-title {
-  font-family: var(--font-display);
-  font-size: 2.5rem;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
   margin: 1.75rem 0 0.625rem;
 }
 
@@ -7473,10 +7626,6 @@ main h1[tabindex='-1']:focus,
 }
 
 @media (max-width: 34rem) {
-  .tour-title {
-    font-size: 2.125rem;
-  }
-
   .tour-toc a {
     grid-template-columns: 2rem 1fr;
   }
@@ -7532,6 +7681,11 @@ main h1[tabindex='-1']:focus,
   font-size: 0.9375rem;
   font-weight: 500;
   margin: 0;
+}
+
+.series-vol {
+  color: var(--text-3);
+  font-weight: 400;
 }
 
 .series-title a {
@@ -7746,11 +7900,12 @@ main h1[tabindex='-1']:focus,
   background: var(--chart);
 }
 
+/* A border, not a shadow: the key sits outside .lanes, where
+   --lane-ground is undefined and a shadow built on it is dropped whole. */
 .lane-track i[data-k='missing'],
 .run-key i[data-k='missing'] {
-  box-shadow:
-    inset 0 0 0 1.5px var(--run-missing),
-    0 0 0 1px var(--lane-ground);
+  border: 1.5px solid var(--run-missing);
+  box-sizing: border-box;
 }
 
 .lane-track i[data-k='skip'],
@@ -8137,8 +8292,8 @@ a.cover-tile:focus-visible {
   padding: 2.5px;
 }
 
-.cover-tile[data-state='missing'] .cover,
-.cover-tile[data-state='skipped'] .cover {
+.cover-tile[data-state='missing'] .cover:not([data-nocover]),
+.cover-tile[data-state='skipped'] .cover:not([data-nocover]) {
   filter: grayscale(1);
   opacity: 0.45;
 }
@@ -8875,12 +9030,6 @@ a.cover-tile:focus-visible {
   font-size: 0.8125rem;
 }
 
-.trip__title {
-  font: 600 2.25rem/1.1 var(--font-display);
-  letter-spacing: -0.01em;
-  margin: 0.25rem 0 0.5rem;
-}
-
 .trip .lede {
   color: var(--text-2);
   font-size: 1rem;
@@ -9281,10 +9430,6 @@ a.cover-tile:focus-visible {
   .trip-list,
   .photo-group--two {
     grid-template-columns: 1fr;
-  }
-
-  .trip__title {
-    font-size: 1.75rem;
   }
 
   .trip-photo__img {
@@ -11691,23 +11836,6 @@ a.cover-tile:focus-visible {
 /* The public issue page (/shelf/:id/:n/). Cover column at 300px; at phone
    width the order is strip, cover (62%, centred), then text. The strip
    scrolls inside itself, never the page. */
-.comic-issue-crumbs ol {
-  color: var(--text-3);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.25rem 0.5rem;
-  list-style: none;
-  margin: 0 0 0.75rem;
-  padding: 0;
-}
-
-.comic-issue-crumbs li + li::before {
-  color: var(--text-3);
-  content: '/';
-  margin-right: 0.5rem;
-}
-
 .neighbour-strip {
   display: flex;
   gap: 0.6rem;

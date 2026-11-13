@@ -5,7 +5,9 @@ import DaySection from '../components/DaySection.jsx'
 import DrawnMap from '../components/DrawnMap.jsx'
 import FactsTable from '../components/FactsTable.jsx'
 import Lightbox from '../components/Lightbox.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 import { findMap } from '../content/maps/index.js'
+import { TRAVEL_PAGE } from '../content/pages.js'
 import { findTrip, trips } from '../content/trips.js'
 import { tripDateRange, tripDays, tripMonth } from '../lib/tripDates.js'
 import { placeSlug, tripPhotos } from '../lib/trips.js'
@@ -119,14 +121,20 @@ function TripPage({ slug }) {
 
   return (
     <article className="trip">
-      <p className="kicker">
-        <Link to="/travel">Travel</Link> · {tripMonth(frontmatter)}
-      </p>
-      <h1 className="trip__title">
-        {frontmatter.title}
-        {frontmatter.draft && <span className="draft-badge">Draft</span>}
-      </h1>
-      {frontmatter.summary && <p className="lede">{frontmatter.summary}</p>}
+      <PageHeader
+        trail={[
+          { label: TRAVEL_PAGE.title, to: TRAVEL_PAGE.path },
+          { label: frontmatter.title },
+        ]}
+        kicker={tripMonth(frontmatter)}
+        title={
+          <>
+            {frontmatter.title}
+            {frontmatter.draft && <span className="draft-badge">Draft</span>}
+          </>
+        }
+        lede={frontmatter.summary}
+      />
       <FactsTable rows={facts(trip, photos)} />
       {map && (
         <DrawnMap

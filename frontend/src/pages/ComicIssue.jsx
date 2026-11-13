@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import ComicDescription from '../components/ComicDescription.jsx'
 import CoverImage from '../components/CoverImage.jsx'
+import Breadcrumb from '../components/Breadcrumb.jsx'
 import LoadState from '../components/LoadState.jsx'
 import NeighbourStrip from '../components/NeighbourStrip.jsx'
 import OwnerControls from '../components/OwnerControls.jsx'
@@ -100,17 +101,15 @@ export default function ComicIssue({ id, n }) {
   if (!page) {
     return (
       <article className="comic-issue">
-        <nav aria-label={COPY.breadcrumb} className="comic-issue-crumbs">
-          <ol>
-            <li>
-              <Link to={spine.tabs.comics.to}>{COPY.comics}</Link>
-            </li>
-            <li>
-              <Link to={itemPath(id)}>{COPY.series}</Link>
-            </li>
-            <li aria-current="page">#{n}</li>
-          </ol>
-        </nav>
+        <Breadcrumb
+          label={COPY.breadcrumb}
+          trail={[
+            { label: spine.name, to: spine.path },
+            { label: COPY.comics, to: spine.tabs.comics.to },
+            { label: COPY.series, to: itemPath(id) },
+            { label: `#${n}` },
+          ]}
+        />
         <h1>{COPY.fallbackTitle(n)}</h1>
         <LoadState loading={!failed} failed={failed} onRetry={retry} />
       </article>
@@ -128,21 +127,21 @@ export default function ComicIssue({ id, n }) {
       : held
         ? COPY.read.notYet
         : COPY.read.none
-  const kicker = [page.series_title, page.publisher].filter(Boolean).join(' · ')
+  // The series is in the trail and the title; the kicker names the publisher.
+  const kicker = page.publisher
+  const upcoming = page.state === 'not-out'
 
   return (
     <article className="comic-issue">
-      <nav aria-label={COPY.breadcrumb} className="comic-issue-crumbs">
-        <ol>
-          <li>
-            <Link to={spine.tabs.comics.to}>{COPY.comics}</Link>
-          </li>
-          <li>
-            <Link to={itemPath(page.series_id)}>{page.series_title}</Link>
-          </li>
-          <li aria-current="page">#{page.number}</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        label={COPY.breadcrumb}
+        trail={[
+          { label: spine.name, to: spine.path },
+          { label: COPY.comics, to: spine.tabs.comics.to },
+          { label: page.series_title, to: itemPath(page.series_id) },
+          { label: `#${page.number}` },
+        ]}
+      />
 
       <LoadState
         failed={failed}
@@ -165,12 +164,17 @@ export default function ComicIssue({ id, n }) {
             type="comic"
             alt={COPY.coverAlt(page.series_title, page.number)}
             priority
+            unowned={!held && !upcoming}
+            number={page.number}
           />
+          {!held && !upcoming && (
+            <p className="comic-issue-cover-caption">{COPY.notOwned}</p>
+          )}
         </div>
         <div className="comic-issue-text">
-          <p className="item-kicker">{kicker}</p>
+          {kicker && <p className="item-kicker">{kicker}</p>}
           <h1>
-            #{page.number}
+            {page.series_title} #{page.number}
             {page.name ? ` · ${page.name}` : ''}
           </h1>
           <p className="comic-issue-pills">

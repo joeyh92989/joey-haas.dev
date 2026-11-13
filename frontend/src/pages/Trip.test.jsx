@@ -127,20 +127,28 @@ describe('Trip', () => {
   it('lays the page out in the spec order', () => {
     content.trips = [CROATIA]
     const { container } = renderTrip('croatia-greece-2026')
-    const kicker = container.querySelector('.trip > .kicker')
-    expect(kicker).toHaveTextContent('Travel · Sept 2026')
-    expect(within(kicker).getByRole('link')).toHaveAttribute('href', '/travel')
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(
+      within(crumbs).getByRole('link', { name: 'Travel' }),
+    ).toHaveAttribute('href', '/travel')
+    expect(crumbs.querySelector('[aria-current="page"]')).toHaveTextContent(
+      'Croatia & Greece',
+    )
+    expect(container.querySelector('.trip .kicker')).toHaveTextContent(
+      'Sept 2026',
+    )
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Croatia & Greece',
     )
     const order = [
       ...container.querySelectorAll(
-        '.trip > .kicker, h1, .lede, .facts, .drawn-map, .trip-places, .trip-day',
+        '.crumbs, .trip .kicker, h1, .lede, .facts, .drawn-map, .trip-places, .trip-day',
       ),
     ].map((el) => el.className || el.tagName)
-    expect(order.slice(0, 6)).toEqual([
+    expect(order.slice(0, 7)).toEqual([
+      'crumbs',
       'kicker',
-      'trip__title',
+      'H1',
       'lede',
       'facts',
       'drawn-map',
@@ -287,7 +295,7 @@ describe('Trip', () => {
     content.trips = [IRELAND]
     const { container } = renderTrip('ireland-2014')
     expect(container.querySelector('.drawn-map')).toBeNull()
-    expect(screen.queryByRole('navigation')).toBeNull()
+    expect(screen.queryByRole('navigation', { name: 'Places' })).toBeNull()
     const facts = container.querySelector('.facts')
     expect(facts).toHaveTextContent('DatesJune 2014')
     // Month precision: the count is the days written, not the date span.

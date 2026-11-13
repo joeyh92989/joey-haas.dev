@@ -103,6 +103,16 @@ describe('RunKey', () => {
     expect(await axeViolations(container)).toEqual([])
   })
 
+  it('draws the Missing swatch as an element the stylesheet can outline', () => {
+    render(<RunKey />)
+    const swatch = screen
+      .getByRole('list', { name: 'Key' })
+      .querySelector('i[data-k="missing"]')
+    expect(swatch).not.toBeNull()
+    // Outside .lanes: the swatch must not lean on --lane-ground.
+    expect(swatch.closest('.lanes')).toBeNull()
+  })
+
   it('names the box marks, with skipped in admin', () => {
     render(<RunKey variant="box" showSkipped />)
     const key = screen.getByRole('list', { name: 'Key' })

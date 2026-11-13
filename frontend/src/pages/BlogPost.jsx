@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
+import PageHeader from '../components/PageHeader.jsx'
 import PostMeta from '../components/PostMeta.jsx'
+import { BLOG_PAGE } from '../content/pages.js'
 import { findPost } from '../content/posts.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
@@ -50,13 +52,15 @@ export default function BlogPost() {
 
   return (
     <section>
-      <p>
-        <Link to="/blog">← All posts</Link>
-      </p>
-      <h1>{post.frontmatter.title}</h1>
-      {post.frontmatter.summary && (
-        <p className="post-summary">{post.frontmatter.summary}</p>
-      )}
+      <PageHeader
+        trail={[
+          { label: BLOG_PAGE.title, to: BLOG_PAGE.path },
+          { label: post.frontmatter.title },
+        ]}
+        title={post.frontmatter.title}
+        lede={post.frontmatter.summary}
+        ledeClassName="post-summary"
+      />
       {post.frontmatter.draft && <span className="draft-badge">Draft</span>}
       <PostMeta date={post.frontmatter.date} tags={post.frontmatter.tags} />
 

@@ -61,13 +61,12 @@ describe('SeriesList', () => {
     const row = screen
       .getAllByRole('listitem')
       .find((li) => li.matches('.series-row'))
-    expect(within(row).getByRole('link', { name: 'Saga' })).toHaveAttribute(
-      'href',
-      '/shelf/a/',
-    )
+    expect(
+      within(row).getByRole('link', { name: 'Saga (2012)' }),
+    ).toHaveAttribute('href', '/shelf/a/')
     expect(row).toHaveTextContent('Following')
     expect(row).toHaveTextContent(
-      'Image · 2012– · Trades (Vol. 1–9) · Reading, read to #40',
+      'Image · Trades (Vol. 1–9) · Reading, read to #40',
     )
     // The lanes draw the run the API sent; the tail is a fixed width.
     const lanes = within(row).getByRole('img', {
@@ -104,12 +103,50 @@ describe('SeriesList', () => {
     ])
     const names = screen.getAllByRole('link').map((a) => a.textContent)
     expect(names).toEqual([
-      'Creepshow (2022, Image)',
-      'Creepshow (2023, Image)',
+      'Creepshow (2022), Image',
+      'Creepshow (2023), Image',
       'Creepshow (2024)',
-      'Creepshow (2025, Skybound)',
-      SAGA.title,
+      'Creepshow (2025), Skybound',
+      'Saga (2012)',
     ])
+  })
+
+  it('carries the volume year in the title, not repeated in the meta line', () => {
+    renderList([SAGA])
+    const row = document.querySelector('.series-row')
+    expect(row.querySelector('.series-title a')).toHaveTextContent(
+      'Saga (2012)',
+    )
+    expect(row.querySelector('.series-vol')).toHaveTextContent('(2012)')
+    expect(row.querySelector('.series-meta')).not.toHaveTextContent('2012')
+  })
+
+  it('draws the track of a series with nothing owned', () => {
+    renderList([
+      {
+        ...SAGA,
+        title: 'Creepshow',
+        year: 2024,
+        owned: 0,
+        released: 5,
+        missing: 5,
+        ongoing: false,
+        read: 0,
+        read_to: null,
+        read_next: null,
+        following: false,
+        segments: [{ kind: 'missing', length: 5 }],
+        next_issue: null,
+        run_state: 'gaps',
+      },
+    ])
+    const lanes = screen.getByRole('img', {
+      name: '0 of 5 issues owned, 5 missing',
+    })
+    expect(
+      lanes.querySelectorAll('.lane-track [data-k="missing"]'),
+    ).toHaveLength(5)
+    expect(document.querySelector('.series-count')).toHaveTextContent('0 / 5')
   })
 
   it('has no axe violations', async () => {

@@ -6,14 +6,14 @@ import { RowLanes } from './ComicCardRun.jsx'
 
 const COPY = spine.comics
 
-/** "Image · 2012– · Trades (Vol. 1–9)": the meta line before the status. */
+/** "Image · Trades (Vol. 1–9)": the meta line before the status. The start
+    year is in the title. */
 function metaParts(row) {
-  const year = row.year ? `${row.year}${row.ongoing ? '–' : ''}` : null
   const format = row.shelf_format ? COPY.formats[row.shelf_format] : null
   const edition = row.edition_labels[0]
   const binding =
     format && edition ? `${format} (${edition})` : (format ?? edition)
-  return [row.publisher, year, binding].filter(Boolean)
+  return [row.publisher, binding].filter(Boolean)
 }
 
 /** The right-hand line: the next issue, a complete run, or the gap count. */
@@ -42,14 +42,12 @@ function runNote(row) {
  * @param {object} props.row - A PublicComicRow.
  * @param {string} props.to - The series page.
  * @param {boolean} [props.sharesTitle] - Another row has this title: add
- *   the start year and publisher to the link's accessible name (the meta
- *   line already shows them).
+ *   the publisher to the link's accessible name (the meta line already
+ *   shows it; the volume year is in the visible title).
  */
 export default function SeriesRow({ row, to, sharesTitle = false }) {
   const note = runNote(row)
-  const edition = sharesTitle
-    ? [row.year, row.publisher].filter(Boolean).join(', ')
-    : ''
+  const edition = sharesTitle ? (row.publisher ?? '') : ''
   const readTo =
     !row.wanted && row.read_to && row.read < row.owned
       ? `, ${COPY.run.readTo(row.read_to)}`
@@ -63,8 +61,14 @@ export default function SeriesRow({ row, to, sharesTitle = false }) {
         <p className="series-title">
           <Link to={to}>
             {row.title}
+            {row.year && (
+              <>
+                {' '}
+                <span className="series-vol">({row.year})</span>
+              </>
+            )}
             {edition && (
-              <span className="visually-hidden">{` (${edition})`}</span>
+              <span className="visually-hidden">{`, ${edition}`}</span>
             )}
           </Link>
           {row.following && (

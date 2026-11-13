@@ -6,6 +6,7 @@ import { flaky } from '../lib/flaky.test-util.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DIARY_FAILED } from '../content/status.js'
 import MonthInReview from './MonthInReview.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 const answer = vi.hoisted(() => ({
   value: { data: null, live: false, failed: false },
@@ -86,6 +87,17 @@ describe('MonthInReview', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'October 2026' }),
     ).toBeInTheDocument()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(
+      within(crumbs).getByRole('link', { name: 'My Shelf' }),
+    ).toHaveAttribute('href', '/shelf')
+    expect(
+      within(crumbs).getByRole('link', { name: '2026 in review' }),
+    ).toHaveAttribute('href', '/shelf/year/2026/')
+    expect(within(crumbs).getByText('October 2026')).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
     const finished = screen.getByRole('region', { name: 'Finished' })
     expect(within(finished).getByText('Hades II')).toBeInTheDocument()
     expect(within(finished).queryByText('Pikmin 4')).toBeNull()
@@ -101,15 +113,20 @@ describe('MonthInReview', () => {
 
     const nav = screen.getByRole('navigation', { name: 'Months' })
     expect(
-      within(nav).getByRole('link', { name: /August 2026/ }),
-    ).toHaveAttribute('href', '/shelf/journal/2026-08/')
-    expect(
-      within(nav).getByRole('link', { name: '2026 in review' }),
-    ).toHaveAttribute('href', '/shelf/year/2026/')
-    expect(within(nav).getAllByRole('link')).toHaveLength(2)
-    expect(
       within(nav).getByRole('link', { name: 'Previous month: August 2026' }),
-    ).toBeInTheDocument()
+    ).toHaveAttribute('href', '/shelf/journal/2026-08/')
+    // The year link is the crumb's alone; the month nav does not repeat it.
+    expect(
+      screen.getAllByRole('link', { name: '2026 in review' }),
+    ).toHaveLength(1)
+    const list = within(nav).getByRole('list')
+    expect(within(list).getAllByRole('listitem')).toHaveLength(12)
+    expect(
+      within(list).getByRole('link', { name: 'August 2026, 1 finished' }),
+    ).toHaveAttribute('href', '/shelf/journal/2026-08/')
+    expect(list.querySelector('[aria-current="page"]')).toHaveTextContent(
+      'October 2026, 1 finished, played',
+    )
   })
 
   it('shows finishes alone when the diary is empty', () => {
@@ -205,4 +222,19 @@ describe('MonthInReview', () => {
       expect(screen.queryByRole('navigation', { name: 'Months' })).toBeNull()
     },
   )
+
+  it('has no axe violations', async () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.rows = SESSIONS
+    const { container } = renderAt('/shelf/journal/2026-10')
+    expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('does not announce an empty month while the diary is unsettled', () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    diary.settled = false
+    renderAt('/shelf/journal/2026-10')
+    const nav = screen.getByRole('navigation', { name: 'Months' })
+    expect(within(nav).queryByText(/nothing/)).toBeNull()
+  })
 })

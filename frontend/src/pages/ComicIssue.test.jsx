@@ -115,10 +115,51 @@ describe('ComicIssue, public', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it('dims the Comic Vine cover of an unowned issue and says Not owned', async () => {
+    stubApi({ page: { state: 'missing', held_as: 'Not owned' } })
+    renderIssue()
+    const img = await screen.findByAltText('Cover of Saga #58')
+    expect(img.closest('.cover')).toHaveAttribute('data-unowned')
+    expect(
+      document.querySelector('.comic-issue-cover-caption'),
+    ).toHaveTextContent(COPY.notOwned)
+  })
+
+  it('shows a labelled placeholder for an unowned issue with no cover', async () => {
+    stubApi({
+      page: {
+        state: 'missing',
+        held_as: 'Not owned',
+        cover_url: null,
+        large_url: null,
+      },
+    })
+    renderIssue()
+    await screen.findByRole('heading', { level: 1 })
+    const holder = document.querySelector('.comic-issue-cover .cover-nocover')
+    expect(holder).toHaveTextContent('#58')
+    expect(holder).toHaveTextContent(COPY.noCover)
+    expect(document.querySelector('.comic-issue-cover img')).toBeNull()
+    expect(
+      document.querySelector('.comic-issue-cover-caption'),
+    ).toHaveTextContent(COPY.notOwned)
+  })
+
+  it('does not dim or caption an owned issue', async () => {
+    stubApi()
+    renderIssue()
+    const img = await screen.findByAltText('Cover of Saga #58')
+    expect(img.closest('.cover')).not.toHaveAttribute('data-unowned')
+    expect(document.querySelector('.comic-issue-cover-caption')).toBeNull()
+  })
+
   it('shows the breadcrumb, heading, name and cover', async () => {
     stubApi()
     renderIssue()
     const crumbs = await screen.findByRole('navigation', { name: 'Breadcrumb' })
+    expect(
+      within(crumbs).getByRole('link', { name: 'My Shelf' }),
+    ).toHaveAttribute('href', '/shelf')
     expect(
       within(crumbs).getByRole('link', { name: 'Comics' }),
     ).toHaveAttribute('href', '/shelf/comics')
@@ -131,20 +172,30 @@ describe('ComicIssue, public', () => {
       'page',
     )
     expect(
-      screen.getByRole('heading', { level: 1, name: '#58 · The Will' }),
+      screen.getByRole('heading', { level: 1, name: 'Saga #58 · The Will' }),
     ).toBeInTheDocument()
     expect(screen.getByAltText('Cover of Saga #58')).toHaveAttribute(
       'src',
       'https://example.test/58.jpg',
     )
-    expect(screen.getByText('Saga · Image')).toBeInTheDocument()
+    // The series is in the trail and the title, so the kicker is the publisher.
+    expect(screen.getByText('Image')).toHaveClass('item-kicker')
+  })
+
+  it('does not dim an upcoming issue or call it not owned', async () => {
+    stubApi({ page: { state: 'not-out', held_as: 'Not out yet' } })
+    renderIssue()
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByText(COPY.notOwned)).toBeNull()
+    expect(document.querySelector('.cover[data-unowned]')).toBeNull()
+    expect(screen.getAllByText('Not out yet').length).toBeGreaterThan(0)
   })
 
   it('leaves the name out when Comic Vine has none', async () => {
     stubApi({ page: { name: null } })
     renderIssue()
     expect(
-      await screen.findByRole('heading', { level: 1, name: '#58' }),
+      await screen.findByRole('heading', { level: 1, name: 'Saga #58' }),
     ).toBeInTheDocument()
   })
 

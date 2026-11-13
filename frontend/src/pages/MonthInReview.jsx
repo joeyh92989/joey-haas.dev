@@ -1,17 +1,24 @@
+import { useMemo } from 'react'
 import { Link, useParams } from 'react-router'
 import LoadState from '../components/LoadState.jsx'
 import { DIARY_FAILED } from '../content/status.js'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
-import SpineHeader from '../components/SpineHeader.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 import { spine } from '../content/spine.js'
-import { monthInReview, monthName, parseMonth } from '../lib/monthInReview.js'
+import MonthIndex from '../components/MonthIndex.jsx'
+import {
+  monthIndex,
+  monthInReview,
+  monthName,
+  parseMonth,
+} from '../lib/monthInReview.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { usePublicDiaryState } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NotFound from './NotFound.jsx'
-import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
+import { itemPath, yearPath } from '../lib/spinePaths.js'
 
 const DAY = new Intl.DateTimeFormat('en', {
   weekday: 'short',
@@ -46,9 +53,15 @@ export default function MonthInReview() {
   const name = parsed ? monthName(month) : null
   usePageTitle(name ? `${name} · ${spine.name}` : null)
 
+  const items = useMemo(() => (Array.isArray(data) ? data : []), [data])
+  const year = parsed?.year
+  const cells = useMemo(
+    () => (year ? monthIndex(items, diary.sessions, year) : []),
+    [items, diary.sessions, year],
+  )
+
   if (!parsed) return <NotFound />
 
-  const items = Array.isArray(data) ? data : []
   const review = monthInReview(items, diary.sessions, month, nearby.sessions)
   // Said only once the diary has answered, so a month with sessions never
   // claims to be empty while they load; a failed diary claims only finishes.
@@ -57,25 +70,22 @@ export default function MonthInReview() {
 
   return (
     <section className="year-review">
-      <SpineHeader asLink />
-      <h1>{name}</h1>
+      <PageHeader
+        trail={[
+          { label: spine.name, to: spine.path },
+          { label: `${review.year} in review`, to: yearPath(review.year) },
+          { label: name },
+        ]}
+        title={name}
+      />
 
-      <nav className="month-nav" aria-label="Months">
-        {review.previous && (
-          <Link to={monthPath(review.previous)}>
-            <span aria-hidden="true">&larr;</span>{' '}
-            <span className="visually-hidden">Previous month:</span>{' '}
-            {monthName(review.previous)}
-          </Link>
-        )}
-        <Link to={yearPath(review.year)}>{review.year} in review</Link>
-        {review.next && (
-          <Link to={monthPath(review.next)}>
-            <span className="visually-hidden">Next month:</span>{' '}
-            {monthName(review.next)} <span aria-hidden="true">&rarr;</span>
-          </Link>
-        )}
-      </nav>
+      <MonthIndex
+        cells={cells}
+        known={diary.settled && !diary.failed}
+        current={month}
+        previous={review.previous}
+        next={review.next}
+      />
 
       <LoadState
         loading={!data && !failed}

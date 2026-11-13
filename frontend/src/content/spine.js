@@ -571,6 +571,27 @@ export const spine = {
     waking: WAKING,
     error: LOAD_ERROR,
   },
+  /** The month journal's index; these are the screen-reader strings. */
+  journal: {
+    // copy: pending voice review
+    finished: (count) => `${count} finished`,
+    // copy: pending voice review
+    played: 'played',
+    // copy: pending voice review
+    nothing: 'nothing',
+    // copy: pending voice review
+    previous: 'Previous month:',
+    // copy: pending voice review
+    next: 'Next month:',
+  },
+  /** The item page's labels. */
+  item: {
+    // copy: pending voice review
+    genresLabel: 'Genres',
+    alsoOnLabel: 'Also on',
+    mainStory: 'Main story',
+    toComplete: 'To complete',
+  },
   /** /shelf/comics and the comic parts of the series page and What's next. */
   comics: {
     path: '/shelf/comics',
@@ -664,8 +685,8 @@ export const spine = {
     hero: {
       series: 'Series',
       issues: 'Issues owned',
-      missing: 'Missing',
-      read: 'Read',
+      // copy: pending voice review
+      sub: (missing, readShare) => `${missing} missing · ${readShare} read`,
     },
     chips: {
       all: 'All',
@@ -746,6 +767,10 @@ export const spine = {
       breadcrumb: 'Breadcrumb',
       neighbours: 'Neighboring issues',
       coverAlt: (series, n) => `Cover of ${series} #${n}`,
+      // copy: pending voice review
+      notOwned: 'Not owned',
+      // copy: pending voice review
+      noCover: 'No cover',
       facts: {
         issue: 'Issue',
         inStores: 'In stores',

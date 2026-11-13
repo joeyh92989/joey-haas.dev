@@ -37,4 +37,20 @@ describe('CoverImage', () => {
       'https://example.test/live.jpg',
     )
   })
+
+  it('labels a missing cover with the issue number when given one', () => {
+    const { container } = render(
+      <CoverImage src={null} type="comic" number={3} />,
+    )
+    expect(container.querySelector('.cover')).toHaveAttribute('data-nocover')
+    expect(container.querySelector('.cover-nocover')).toHaveTextContent(
+      '#3No cover',
+    )
+  })
+
+  it('leaves a missing cover without a number as an empty placeholder', () => {
+    const { container } = render(<CoverImage src={null} type="game" />)
+    expect(container.querySelector('.cover-nocover')).toBeNull()
+    expect(container.querySelector('.cover-placeholder')).not.toBeNull()
+  })
 })

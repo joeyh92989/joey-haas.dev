@@ -6,6 +6,7 @@ import { flaky } from '../lib/flaky.test-util.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DIARY_FAILED } from '../content/status.js'
 import YearInReview from './YearInReview.jsx'
+import { axeViolations } from '../lib/axe.test-util.js'
 
 const answer = vi.hoisted(() => ({
   value: { data: null, live: false, failed: false },
@@ -93,6 +94,28 @@ describe('YearInReview', () => {
       'Sep 30Hades II again10/10',
       'Feb 10Hades II10/10',
     ])
+  })
+
+  it('shows a cover for each finish, and a placeholder without one', () => {
+    answer.value = {
+      data: [
+        { ...ITEMS[0], cover_url: 'https://img.test/hades.jpg' },
+        { ...ITEMS[1], finished_at: '2026-03-02', cover_url: null },
+      ],
+      live: true,
+      failed: false,
+    }
+    renderAt('/shelf/year/2026')
+    const rows = screen
+      .getByRole('heading', { name: 'Finishes' })
+      .nextSibling.querySelectorAll('li')
+    expect(rows[0].querySelector('img')).toHaveAttribute(
+      'src',
+      'https://img.test/hades.jpg',
+    )
+    expect(rows[1].querySelector('img')).toBeNull()
+    expect(rows[1].querySelector('.cover-placeholder')).not.toBeNull()
+    expect(rows[1].children).toHaveLength(3)
   })
 
   it('keeps the again tag inside the title cell', () => {
@@ -253,5 +276,11 @@ describe('YearInReview', () => {
   it('treats a year that is not a year as not found', () => {
     renderAt('/shelf/year/latest')
     expect(screen.queryByRole('heading', { name: /in review/ })).toBeNull()
+  })
+
+  it('has no axe violations', async () => {
+    answer.value = { data: ITEMS, live: true, failed: false }
+    const { container } = renderAt('/shelf/year/2026')
+    expect(await axeViolations(container)).toEqual([])
   })
 })
