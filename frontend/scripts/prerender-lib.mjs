@@ -44,7 +44,8 @@ export const ADMIN_ROUTES = [
   '/admin',
   '/admin/analytics',
   '/admin/jobs',
-  '/admin/collection',
+  '/admin/shelf/games',
+  '/admin/shelf/comics',
   '/admin/collection/add',
   '/admin/play-next',
   '/admin/catalogue',
@@ -193,7 +194,14 @@ export function publicRoutes({
   })
   // Pages with a feed link or a pre-rename /spine head; see legacyRoutes().
   const flags = {
-    [spine.path]: { feed: SPINE_FEED, legacy: true },
+    // /shelf is a client redirect to Games until the grouped Shelf page
+    // exists, so its head names Games as the canonical page.
+    [spine.path]: {
+      feed: SPINE_FEED,
+      legacy: true,
+      canonical: `${SITE_URL}${spine.games.path}`,
+    },
+    [spine.games.path]: { feed: SPINE_FEED },
     [spine.next.path]: { legacy: true },
     [spine.how.path]: { legacy: true },
     '/now': { feed: SPINE_FEED },
@@ -380,7 +388,7 @@ export function legacyRoutes(routes) {
     .map((route) => ({
       ...route,
       path: `${LEGACY_PREFIX}${route.path.slice(spine.path.length)}`,
-      canonical: routeUrl(route),
+      canonical: route.canonical ?? routeUrl(route),
     }))
 }
 

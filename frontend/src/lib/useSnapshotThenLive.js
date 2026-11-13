@@ -3,6 +3,14 @@ import { apiFetch } from './api.js'
 import { READ_DEADLINE_MS, withDeadline } from './waits.js'
 import { isValidSnapshot, readSnapshot } from './snapshot.js'
 
+/**
+ * The live API path for a snapshot whose name is not its path. `stats` is
+ * the Games page's figures, so both the snapshot and the live read ask for
+ * games only (`/api/public/stats?type=game`); keep `SNAPSHOTS.stats.path` in
+ * scripts/fetch-snapshot.mjs the same.
+ */
+const LIVE_PATHS = { stats: '/api/public/stats?type=game' }
+
 const EMPTY = { data: null, live: false, failed: false }
 
 /**
@@ -66,7 +74,12 @@ export function useSnapshotThenLive(name) {
     }
     withDeadline(
       async (signal) => {
-        const response = await apiFetch(`/api/public/${name}`, { signal })
+        const response = await apiFetch(
+          LIVE_PATHS[name] ?? `/api/public/${name}`,
+          {
+            signal,
+          },
+        )
         return response.ok ? response.json() : null
       },
       { ms: READ_DEADLINE_MS, signal: controller.signal },

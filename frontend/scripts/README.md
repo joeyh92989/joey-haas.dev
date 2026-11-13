@@ -9,7 +9,7 @@ fetch-snapshot.mjs  →  build-search-index.mjs  →  vite build  →  prerender
 ## fetch-snapshot.mjs
 
 **What and why.** It writes the public API's response bodies to
-`public/snapshot/items.json`, `stats.json`, `next.json`, `status.json`,
+`public/snapshot/items.json`, `stats.json` (games only: `/api/public/stats?type=game`), `next.json`, `status.json`,
 `comics.json` and `site-stats.json`, which Vite then copies into `dist/`. (`picks.json` and `radar.json` are retired with their
 routes.) The API is on Render's free tier and sleeps after about 15 idle
 minutes. Without the snapshot, `/shelf` would open with a thirty-second
@@ -123,7 +123,7 @@ description, canonical URL and Open Graph tags, plus `sitemap.xml` and
 app renders the page as before.
 
 **Routes.** The static pages (`/`, `/about`, `/projects`, `/shelf`,
-`/shelf/next`, `/now`, `/colophon`, `/stats`, `/daily`, `/blog` while a post is published, and
+`/shelf/games`, `/shelf/next`, `/now`, `/colophon`, `/stats`, `/daily`, `/blog` while a post is published, and
 `/til` while a note is), every published post and note,
 every item in `dist/snapshot/items.json`, and a Year in review page
 for each year with a finish (`/shelf/year/<year>`). An item's preview image is its

@@ -26,7 +26,7 @@ export default function AdminJobs() {
       <Panel
         title="Recent changes"
         action={
-          <Link to="/admin/collection">
+          <Link to="/admin/shelf/games">
             Shelf <span aria-hidden="true">→</span>
           </Link>
         }

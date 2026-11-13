@@ -64,7 +64,8 @@ function KeyGlyph() {
  * always visible, and the marks are named images.
  *
  * @param {object} props
- * @param {object} props.item - A shelf row.
+ * @param {object} props.item - A shelf row. An admin row with
+ *   `is_public === false` carries a Private tag.
  * @param {string} props.to - Where the card links; the page decides.
  * @param {(item: object) => import('react').ReactNode} [props.actions] -
  *   Optional controls rendered beside the link.
@@ -126,6 +127,9 @@ export default function PosterCard({
       {run}
       <Rating rating={item.rating} />
       {meta && <p className="poster-meta muted">{meta}</p>}
+      {/* Only an admin row says it is private; a public row has no
+          is_public at all. Never hover-only: it is the state, not a control. */}
+      {item.is_public === false && <p className="poster-private">Private</p>}
       {actions && <div className="poster-actions">{actions(item)}</div>}
     </div>
   )

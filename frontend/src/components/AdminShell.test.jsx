@@ -52,7 +52,7 @@ describe('AdminShell on a desktop', () => {
         .map((link) => [link.textContent, link.getAttribute('href')]),
     ).toEqual([
       ['⌂Home', '/admin'],
-      ['▦Shelf', '/admin/collection'],
+      ['▦Shelf', '/admin/shelf/games'],
       ['◫Closet', '/admin/closet/today'],
       ['◎Denver', '/admin/weekend'],
       ['◇Site', '/admin/analytics'],
@@ -109,7 +109,7 @@ describe('AdminShell on a desktop', () => {
           .map((link) => link.firstChild.textContent),
       ])
     expect(groups).toEqual([
-      ['Collection', ['Collection', 'Add']],
+      ['Shelf', ['Games', 'Comics', 'Add']],
       ['Recommend', ['Play Next', 'Discover', 'Radar', 'Pull list']],
       ['Data', ['Sources', 'Store list']],
     ])
@@ -144,10 +144,10 @@ describe('AdminShell on a desktop', () => {
     ).toHaveAttribute('aria-current', 'page')
   })
 
-  it('shows the owned count beside Collection, and reads it out', () => {
+  it('shows the owned count beside Games, and reads it out', () => {
     renderAt('/admin/collection')
     expect(
-      screen.getByRole('link', { name: 'Collection, 107 owned' }),
+      screen.getByRole('link', { name: 'Games, 107 owned' }),
     ).toBeInTheDocument()
   })
 
@@ -156,7 +156,7 @@ describe('AdminShell on a desktop', () => {
     expect(
       within(screen.getByRole('navigation', { name: 'Shelf pages' })).getByRole(
         'link',
-        { name: 'Collection' },
+        { name: 'Games' },
       ),
     ).toBeInTheDocument()
   })
@@ -214,7 +214,7 @@ describe('AdminShell on a phone', () => {
         .map((link) => link.getAttribute('href')),
     ).toEqual([
       '/admin',
-      '/admin/collection',
+      '/admin/shelf/games',
       '/admin/closet/today',
       '/admin/weekend',
       '/admin/analytics',
@@ -263,12 +263,12 @@ describe('AdminShell on a phone', () => {
     )
   })
 
-  it('gives Shelf three pages and two sheets', () => {
+  it('gives Shelf three pages and one sheet', () => {
     renderAt('/admin/collection')
     const sub = screen.getByRole('navigation', { name: 'Shelf pages' })
     expect(
       [...sub.querySelectorAll('a, button')].map((el) => el.textContent),
-    ).toEqual(['Collection', 'Add', 'Picks', 'Sources', 'More'])
+    ).toEqual(['Games', 'Comics', 'Add', 'More'])
   })
 
   it("reads the Add segment's badge as part of its name", () => {
@@ -284,18 +284,17 @@ describe('AdminShell on a phone', () => {
   it('marks the segment whose sheet holds the current page', () => {
     renderAt('/admin/radar')
     const sub = screen.getByRole('navigation', { name: 'Shelf pages' })
-    expect(within(sub).getByRole('button', { name: 'Picks' })).toHaveAttribute(
+    expect(within(sub).getByRole('button', { name: 'More' })).toHaveAttribute(
       'aria-current',
       'true',
     )
-    expect(
-      within(sub).getByRole('button', { name: 'More' }),
-    ).not.toHaveAttribute('aria-current')
   })
 
   it.each([
-    ['Picks', ['Play Next', 'Discover', 'Radar', 'Pull list']],
-    ['More', ['Store list']],
+    [
+      'More',
+      ['Play Next', 'Discover', 'Radar', 'Pull list', 'Sources', 'Store list'],
+    ],
   ])('opens %s as a sheet of its pages', (label, links) => {
     renderAt('/admin/collection')
     fireEvent.click(screen.getByRole('button', { name: label }))
@@ -310,10 +309,10 @@ describe('AdminShell on a phone', () => {
 
   it('closes a sheet on Escape and returns focus to its segment', () => {
     renderAt('/admin/collection')
-    const button = screen.getByRole('button', { name: 'Picks' })
+    const button = screen.getByRole('button', { name: 'More' })
     fireEvent.click(button)
     expect(button).toHaveAttribute('aria-expanded', 'true')
-    const sheet = screen.getByRole('dialog', { name: 'Picks' })
+    const sheet = screen.getByRole('dialog', { name: 'More' })
     fireEvent(sheet, new Event('cancel', { cancelable: true }))
     expect(sheet).not.toHaveAttribute('open')
     expect(button).toHaveAttribute('aria-expanded', 'false')
@@ -330,12 +329,12 @@ describe('AdminShell on a phone', () => {
       </MemoryRouter>
     )
     const { rerender } = render(tree())
-    fireEvent.click(screen.getByRole('button', { name: 'Picks' }))
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
     media.phone = false
     rerender(tree())
     media.phone = true
     rerender(tree())
-    expect(screen.getByRole('button', { name: 'Picks' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute(
       'aria-expanded',
       'false',
     )

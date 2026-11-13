@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useState } from 'react'
 
 /**
  * One chip; hidden at zero unless pressed, so a filter can be undone. A null
@@ -49,8 +49,9 @@ function offersChoice(group, value) {
  * to show, and none pressed, is left out.
  *
  * @param {object} props
- * @param {{key: string, label: string, options: {value: string, label: string, count: number|null}[]}[]} props.groups
- *   Single-select groups, keyed by the `value` field they set. A null count
+ * @param {{key: string, label: string, limit?: number, moreLabel?: string, options: {value: string, label: string, count: number|null}[]}[]} props.groups
+ *   Single-select groups, keyed by the `value` field they set. A group with
+ *   a `limit` draws that many chips and a More… chip for the rest. A null count
  *   shows the chip without a count, whatever it would filter to.
  * @param {{key: string, label: string, count: number|null, className?: string}[]} [props.toggles]
  *   Boolean toggles, keyed by the `value` field they flip; `className` is
@@ -74,10 +75,31 @@ export default function FilterChips({
   labelled = false,
 }) {
   const id = useId()
+  const [expanded, setExpanded] = useState(() => new Set())
   const shown = groups.filter((group) => offersChoice(group, value))
 
   function groupChips(group) {
-    return group.options.map((option) => {
+    let options = group.options
+    let hidden = 0
+    if (group.limit) {
+      // Only the chips that would render count toward the limit; the pressed
+      // one always stays.
+      const drawn = options.filter(
+        (option) =>
+          option.count === null ||
+          option.count > 0 ||
+          value[group.key] === option.value,
+      )
+      const open = expanded.has(group.key)
+      options = open
+        ? drawn
+        : drawn.filter(
+            (option, index) =>
+              index < group.limit || value[group.key] === option.value,
+          )
+      hidden = drawn.length - options.length
+    }
+    const chips = options.map((option) => {
       const pressed = value[group.key] === option.value
       return (
         <Chip
@@ -95,6 +117,26 @@ export default function FilterChips({
         />
       )
     })
+    if (!group.limit || (hidden === 0 && !expanded.has(group.key))) return chips
+    return [
+      ...chips,
+      <button
+        key="more"
+        type="button"
+        className="chip"
+        aria-expanded={expanded.has(group.key)}
+        disabled={disabled}
+        onClick={() =>
+          setExpanded((current) => {
+            const next = new Set(current)
+            if (!next.delete(group.key)) next.add(group.key)
+            return next
+          })
+        }
+      >
+        {group.moreLabel ?? 'More…'}
+      </button>,
+    ]
   }
 
   const toggleChips = toggles.map((toggle) => (

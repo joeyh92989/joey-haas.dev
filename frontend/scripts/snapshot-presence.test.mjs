@@ -33,6 +33,7 @@ const spot = {
 describe('snapshotPresence', () => {
   it('is unknown, not empty, when no snapshot was written', () => {
     expect(snapshotPresence(withSnapshots({}))).toEqual({
+      games: null,
       comics: null,
       spots: null,
     })
@@ -40,6 +41,7 @@ describe('snapshotPresence', () => {
 
   it('is unknown when the directory itself is missing', () => {
     expect(snapshotPresence('/nonexistent/snapshot')).toEqual({
+      games: null,
       comics: null,
       spots: null,
     })
@@ -48,7 +50,19 @@ describe('snapshotPresence', () => {
   it('is false for a snapshot with nothing in it', () => {
     expect(
       snapshotPresence(withSnapshots({ comics: { series: [] }, spots: [] })),
-    ).toEqual({ comics: false, spots: false })
+    ).toEqual({ games: null, comics: false, spots: false })
+  })
+
+  it('counts games only in the items snapshot, which holds every type', () => {
+    const comic = { id: '1', type: 'comic' }
+    const game = { id: '2', type: 'game' }
+    expect(snapshotPresence(withSnapshots({ items: [comic] })).games).toBe(
+      false,
+    )
+    expect(
+      snapshotPresence(withSnapshots({ items: [comic, game] })).games,
+    ).toBe(true)
+    expect(snapshotPresence(withSnapshots({ items: {} })).games).toBeNull()
   })
 
   it('is true for a snapshot with a series or a spot', () => {
@@ -56,12 +70,12 @@ describe('snapshotPresence', () => {
       snapshotPresence(
         withSnapshots({ comics: { series: [{ id: 1 }] }, spots: [spot] }),
       ),
-    ).toEqual({ comics: true, spots: true })
+    ).toEqual({ games: null, comics: true, spots: true })
   })
 
   it('is unknown for an unreadable or wrongly shaped file', () => {
     expect(
       snapshotPresence(withSnapshots({ comics: '<!doctype html>', spots: {} })),
-    ).toEqual({ comics: null, spots: null })
+    ).toEqual({ games: null, comics: null, spots: null })
   })
 })

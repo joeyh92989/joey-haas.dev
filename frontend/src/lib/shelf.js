@@ -185,11 +185,11 @@ export function topFavourites(items, limit = Infinity) {
  * Applies the shelf's chip selection.
  *
  * `type`, `status` and `platform` are single-select with null meaning all;
- * `wanted` and `unrated` (finished and unrated, the admin nudge) are toggles
- * ANDed on top.
+ * `wanted`, `unrated` (finished and unrated, the admin nudge) and `private`
+ * (admin rows only) are toggles ANDed on top.
  *
  * @param {object[]} items Shelf rows.
- * @param {{type: string|null, status: string|null, platform: string|null, wanted: boolean, unrated: boolean}} value
+ * @param {{type: string|null, status: string|null, platform: string|null, wanted: boolean, unrated: boolean, private: boolean}} value
  *   The current selection.
  * @returns {object[]} The rows that match every part of the selection.
  */
@@ -200,8 +200,20 @@ export function filterItems(items, value) {
       (!value.status || item.status === value.status) &&
       (!value.platform || item.platform === value.platform) &&
       (!value.wanted || item.wanted === true) &&
-      (!value.unrated || (item.status === 'finished' && item.rating == null)),
+      (!value.unrated || (item.status === 'finished' && item.rating == null)) &&
+      (!value.private || item.is_public === false),
   )
+}
+
+/**
+ * The admin list a row of this type is on: Comics for a comic, Games for
+ * anything else (the only other type with admin rows today).
+ *
+ * @param {string|undefined} type An item type.
+ * @returns {string} `/admin/shelf/comics` or `/admin/shelf/games`.
+ */
+export function adminListPath(type) {
+  return type === 'comic' ? '/admin/shelf/comics' : '/admin/shelf/games'
 }
 
 /** Lower case without accents, so "pokemon" finds "Pokémon". */
@@ -238,6 +250,7 @@ export const NO_FILTER = {
   platform: null,
   wanted: false,
   unrated: false,
+  private: false,
 }
 
 /**
@@ -277,3 +290,32 @@ export function writeShelfPref(key, value) {
     // Unpersisted, not lost: the page state still holds it.
   }
 }
+
+/**
+ * The platform chip group, or null while there is only one platform: a row
+ * with one chip filters nothing. Shared with the admin shelf.
+ *
+ * @param {object[]} items - Shelf rows; those without a platform are ignored.
+ * @returns {object|null} A FilterChips group.
+ */
+export function platformGroup(items) {
+  const counts = countBy(
+    items.filter((item) => item.platform),
+    'platform',
+  )
+  const platforms = Object.keys(counts).sort((a, b) => counts[b] - counts[a])
+  if (platforms.length < 2) return null
+  return {
+    key: 'platform',
+    label: 'Platform',
+    options: platforms.map((platform) => ({
+      value: platform,
+      label: platform,
+      count: counts[platform],
+    })),
+  }
+}
+
+/** Finished and abandoned fade back when dimming is on; the backlog never does. */
+export const isDimmable = (item) =>
+  item.status === 'finished' || item.status === 'abandoned'

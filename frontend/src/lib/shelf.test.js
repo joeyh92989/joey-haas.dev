@@ -147,6 +147,7 @@ describe('filterItems', () => {
     platform: null,
     wanted: false,
     unrated: false,
+    private: false,
   }
 
   it('matches NO_FILTER', () => {
@@ -192,6 +193,16 @@ describe('filterItems', () => {
 
   it('filters to the want list', () => {
     expect(ids(filterItems(ITEMS, { ...ALL, wanted: true }))).toEqual(['b'])
+  })
+
+  it('filters to private rows, which only admin rows can be', () => {
+    const rows = [
+      { id: 'p', is_public: false },
+      { id: 'q', is_public: true },
+      // A public row has no is_public field and is never private.
+      { id: 'r' },
+    ]
+    expect(ids(filterItems(rows, { ...ALL, private: true }))).toEqual(['p'])
   })
 
   it('filters to finished and unrated', () => {

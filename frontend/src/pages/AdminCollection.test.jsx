@@ -31,7 +31,7 @@ const ITEMS = [
   },
   {
     id: 'b',
-    type: 'movie',
+    type: 'game',
     title: 'Dune',
     status: 'finished',
     rating: 9,
@@ -285,7 +285,10 @@ describe('AdminCollection', () => {
       const call = writeCalls(mock)[0]
       expect(String(call[0])).toContain('/api/items/visibility')
       expect(call[1].method).toBe('POST')
-      expect(JSON.parse(call[1].body)).toEqual({ is_public: true })
+      expect(JSON.parse(call[1].body)).toEqual({
+        is_public: true,
+        ids: ['a', 'b'],
+      })
     })
   })
 
@@ -300,6 +303,7 @@ describe('AdminCollection', () => {
     await waitFor(() => {
       expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
         is_public: false,
+        ids: ['a', 'b'],
       })
     })
   })
@@ -476,7 +480,7 @@ describe('AdminCollection shelf', () => {
     await renderShelf()
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Shelf' }),
+      screen.getByRole('heading', { level: 1, name: 'Games' }),
     ).toBeInTheDocument()
     expect(screen.getByText(/of 2 public$/)).toBeInTheDocument()
     expect(
@@ -505,7 +509,7 @@ describe('AdminCollection shelf', () => {
     })
     await renderShelf()
 
-    const hero = screen.getByLabelText('Shelf totals')
+    const hero = screen.getByLabelText('Game totals')
     // Star Fox (physical) and Dune (NULL) are owned; the want is not.
     expect(within(hero).getByText('Owned').nextSibling).toHaveTextContent('2')
     expect(within(hero).getByText('Finished').nextSibling).toHaveTextContent(
@@ -1119,32 +1123,93 @@ describe('AdminCollection metadata refresh', () => {
     expect(options.method).toBe('POST')
   })
 
-  it.each(['comic', 'movie'])('refreshes %s metadata too', async (type) => {
-    const mock = stubApi({
-      onWrite: (url) =>
-        url.includes('refresh-metadata/bulk')
-          ? {
-              ok: true,
-              status: 200,
-              json: async () => ({ updated: 4, skipped: 0, failed: 1 }),
-            }
-          : null,
-    })
+  it('offers the game refresh only: comics have theirs on their page', async () => {
+    stubApi()
     renderShelf()
     await waitFor(() =>
       expect(document.querySelector('.poster-grid')).not.toBeNull(),
     )
 
-    await userEvent.click(
-      screen.getByRole('button', { name: `Refresh ${type} metadata` }),
+    expect(
+      screen.queryByRole('button', { name: 'Refresh comic metadata' }),
+    ).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: 'Refresh movie metadata' }),
+    ).toBeNull()
+  })
+})
+
+describe('AdminCollection is the Games twin', () => {
+  const comic = { ...ITEMS[0], id: 'c', type: 'comic', title: 'Saga' }
+
+  it('lists games only, and offers no Type chips', async () => {
+    stubApi({ items: [...ITEMS, comic] })
+    renderShelf()
+    await waitFor(() =>
+      expect(document.querySelector('.poster-grid')).not.toBeNull(),
     )
 
+    const titles = [
+      ...document.querySelectorAll('.poster-grid .poster-title'),
+    ].map((node) => node.textContent)
+    expect(titles.sort()).toEqual(['Dune', 'Star Fox'])
+    expect(screen.getByText('2 games')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Comics/ })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Type' })).toBeNull()
+  })
+
+  it('publishes and hides its own games only, never a comic', async () => {
+    const mock = stubApi({ items: [...ITEMS, comic] })
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    )
+    renderShelf()
+    await userEvent.click(
+      await screen.findByRole('button', { name: /publish all 2/i }),
+    )
+    await waitFor(() =>
+      expect(JSON.parse(writeCalls(mock)[0][1].body).ids).toEqual(['a', 'b']),
+    )
+  })
+
+  it('labels its filter rows, and can show the private games', async () => {
+    stubApi()
+    renderShelf()
+    await waitFor(() =>
+      expect(document.querySelector('.poster-grid')).not.toBeNull(),
+    )
+
+    expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^Private/ }))
+    const titles = [
+      ...document.querySelectorAll('.poster-grid .poster-title'),
+    ].map((node) => node.textContent)
+    expect(titles).toEqual(['Star Fox'])
+  })
+
+  it('searches its games', async () => {
+    stubApi()
+    renderShelf()
+    await userEvent.type(
+      await screen.findByRole('searchbox', { name: 'Search games' }),
+      'dune',
+    )
+    const titles = [
+      ...document.querySelectorAll('.poster-grid .poster-title'),
+    ].map((node) => node.textContent)
+    expect(titles).toEqual(['Dune'])
+  })
+
+  it('links to the public Games page and to Add', async () => {
+    stubApi()
+    renderShelf()
     expect(
-      await screen.findByText('Updated 4 · skipped 0 · failed 1'),
-    ).toBeInTheDocument()
-    const [url] = writeCalls(mock)[0]
-    expect(String(url)).toContain(
-      `/api/items/refresh-metadata/bulk?type=${type}`,
+      await screen.findByRole('link', { name: /View \/shelf\/games/ }),
+    ).toHaveAttribute('href', '/shelf/games')
+    expect(screen.getByRole('link', { name: 'Add games' })).toHaveAttribute(
+      'href',
+      '/admin/collection/add',
     )
   })
 })

@@ -4242,52 +4242,6 @@ footer {
   margin-inline-start: var(--space-3);
 }
 
-/* Hero numbers: large tabular figures over small uppercase labels. The dt
-   comes first in the markup, as a description list requires, and is moved
-   below the figure visually. */
-.hero-numbers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) 2.25rem;
-  margin: var(--space-5) 0;
-}
-
-/* Four figures (Comics) sit 2x2 on a phone instead of wrapping 3 + 1. */
-@media (max-width: 34rem) {
-  .hero-numbers[data-figures='4'] {
-    display: grid;
-    gap: 1.25rem var(--space-4);
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.hero-numbers > div {
-  display: flex;
-  flex-direction: column-reverse;
-}
-
-.hero-numbers dd {
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: var(--fs-40);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.hero-numbers dt {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  letter-spacing: 0.08em;
-  margin-top: 0.35rem;
-  text-transform: uppercase;
-}
-
-.hero-numbers + .hero-sub {
-  color: var(--text-3);
-  font-size: var(--fs-14);
-  margin: -0.75rem 0 var(--space-5);
-}
-
 .favourites,
 .shelf-stats,
 .shelf-toolbar {
@@ -5653,31 +5607,6 @@ a.month-bar::before {
   margin: 0 0 var(--space-4);
 }
 
-.hero-numbers.hero-numbers-line {
-  color: var(--text-2);
-  gap: 0.1rem 1.1rem;
-  margin: 0;
-}
-
-.hero-numbers-line > div {
-  align-items: baseline;
-  flex-direction: row-reverse;
-  gap: 0.35rem;
-}
-
-.hero-numbers-line dd {
-  font-size: var(--fs-16);
-  font-weight: 600;
-}
-
-.hero-numbers-line dt {
-  color: var(--text-2);
-  font-size: var(--fs-16);
-  letter-spacing: 0;
-  margin: 0;
-  text-transform: lowercase;
-}
-
 .shelf-links {
   display: flex;
   flex-wrap: wrap;
@@ -6923,6 +6852,47 @@ section > .cover-key {
 }
 .empty-box a {
   white-space: nowrap;
+}
+
+/* A private row's tag on the admin shelf: always visible, not a control. */
+.poster-private {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: var(--fs-12);
+  justify-self: start;
+  margin: var(--space-1) 0 0;
+  padding: 0 var(--space-2);
+  width: fit-content;
+}
+
+/* Admin comic cards: Follow, Public, the cover wall and Edit, revealed on
+   hover and on focus-within (opacity, so a keyboard can still reach them)
+   and always there on a device with no hover. */
+.comic-actions {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-13);
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.comic-actions label {
+  align-items: center;
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+@media (hover: hover) {
+  .comic-actions {
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .poster-card:hover .comic-actions,
+  .comic-actions:focus-within {
+    opacity: 1;
+  }
 }
 
 /* EmptyState: a dashed box like .empty-box, with room for a next step. */
@@ -8816,88 +8786,6 @@ a.cover-tile:focus-visible {
 
 /* Out this week: one row of issue tiles, scrolling sideways when it
    outgrows the column. */
-.comics-strip {
-  margin: var(--space-5) 0;
-}
-
-.comics-strip h2 {
-  font-size: var(--fs-16);
-  margin: 0 0 var(--space-3);
-}
-
-.comics-strip h2 small {
-  color: var(--text-2);
-  font-size: var(--fs-14);
-  font-weight: 400;
-}
-
-.comics-strip-issues {
-  display: grid;
-  gap: var(--space-3);
-  grid-auto-columns: 7.5rem;
-  grid-auto-flow: column;
-  list-style: none;
-  margin: 0;
-  overflow-x: auto;
-  padding: 0 0 var(--space-2);
-}
-
-.comics-strip-link,
-.comics-strip-later {
-  color: inherit;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  text-decoration: none;
-}
-
-.comics-strip-link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.comics-strip-thumb {
-  display: block;
-  margin-bottom: 0.3rem;
-}
-
-.comics-strip-later-box {
-  align-items: center;
-  aspect-ratio: 2 / 3;
-  background: var(--sunken);
-  border: 1px dashed var(--line);
-  border-radius: 4px;
-  color: var(--text-2);
-  display: flex;
-  font-size: var(--fs-13);
-  overflow: hidden;
-  padding: var(--space-2);
-}
-
-.comics-strip-title {
-  font-size: var(--fs-14);
-  font-weight: 600;
-}
-
-.comics-strip-meta {
-  color: var(--text-2);
-  font-size: var(--fs-13);
-}
-
-.comics-toolbar {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  justify-content: space-between;
-  margin: 0 0 var(--space-4);
-}
-
-.comics-view {
-  display: flex;
-  gap: 0.4rem;
-}
-
 /* The series page (/shelf/:id for a comic): the kicker and facts in the
    heading, then the Issues, Editions and About cards. */
 .item-kicker {

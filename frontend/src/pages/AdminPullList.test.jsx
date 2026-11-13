@@ -97,7 +97,7 @@ function renderPage() {
     <MemoryRouter initialEntries={['/admin/pull-list']}>
       <Routes>
         <Route path="admin/pull-list" element={<AdminPullList />} />
-        <Route path="admin/collection" element={<Arrival />} />
+        <Route path="admin/shelf/games" element={<Arrival />} />
         <Route path="admin/collection/:id" element={<p>Item page</p>} />
       </Routes>
     </MemoryRouter>,

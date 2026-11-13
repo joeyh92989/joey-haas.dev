@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 // The build found an empty comics snapshot (#125).
 vi.mock('../lib/snapshotPresence.js', () => ({
   hasComics: false,
+  hasGames: true,
   hasSpots: true,
 }))
 
@@ -24,8 +25,13 @@ describe('SpineTabs', () => {
     renderTabs()
     expect(screen.queryByRole('link', { name: 'Comics' })).toBeNull()
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual(
-      ['Collection', 'What’s next', 'Year in review', 'Tour', 'Daily game'],
+      ['Games', 'What’s next', 'Year in review', 'Tour', 'Daily game'],
     )
+  })
+
+  it('leaves Games out when told there are none', () => {
+    renderTabs({ games: false })
+    expect(screen.queryByRole('link', { name: 'Games' })).toBeNull()
   })
 
   it('shows Comics when told to', () => {

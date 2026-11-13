@@ -13,6 +13,8 @@ const copy = spine.shelf
  * @param {object} props
  * @param {number} props.shown - How many titles match.
  * @param {number} props.total - How many titles the shelf holds.
+ * @param {string} [props.noun] - What the rows are, singular: "game", "series".
+ * @param {string} [props.plural] - Their plural, when it is not `noun` + "s".
  * @param {boolean} props.filtered - Whether a filter or search is on.
  * @param {() => void} props.onClear - Clears every filter and the search.
  * @param {import('react').ReactNode} [props.children] - Shown beside the count.
@@ -22,13 +24,17 @@ export default function ResultBar({
   total,
   filtered,
   onClear,
+  noun,
+  plural,
   children,
 }) {
   return (
     <div className="resultbar">
       <p className="result">
         <strong aria-live="polite">
-          {filtered ? copy.titlesOf(shown, total) : copy.titles(total)}
+          {filtered
+            ? copy.titlesOf(shown, total, noun, plural)
+            : copy.titles(total, noun, plural)}
         </strong>
         {filtered && (
           <>

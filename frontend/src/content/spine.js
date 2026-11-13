@@ -34,7 +34,7 @@ export const spine = {
     'I built this myself: React and FastAPI on free tiers, Postgres on Neon, and a camera pointed at the shelf.',
   links,
   tabs: {
-    shelf: { to: '/shelf', label: 'Collection' },
+    games: { to: '/shelf/games', label: 'Games' },
     comics: { to: '/shelf/comics', label: 'Comics' },
     next: { to: '/shelf/next', label: 'What’s next' },
     year: { to: '/shelf/year', label: 'Year in review' },
@@ -541,9 +541,10 @@ export const spine = {
       backlog: 'Backlog (no mark)',
       favorite: 'Favorite',
     },
-    titles: (count) => `${count} ${count === 1 ? 'title' : 'titles'}`,
-    titlesOf: (shown, total) =>
-      `${shown} of ${total} ${total === 1 ? 'title' : 'titles'}`,
+    titles: (count, noun = 'title', plural = `${noun}s`) =>
+      `${count} ${count === 1 ? noun : plural}`,
+    titlesOf: (shown, total, noun = 'title', plural = `${noun}s`) =>
+      `${shown} of ${total} ${total === 1 ? noun : plural}`,
     clear: 'Clear filters',
     noMatch: 'No titles match these filters.',
     // [descending, ascending]
@@ -566,6 +567,26 @@ export const spine = {
     /** The old status strip's words; the hours are `STALE_HOURS` (36). */
     behindStale: 'not refreshed in over 36 hours',
   },
+  /** /shelf/games: the Games list (shelf split, item 3). */
+  games: {
+    path: '/shelf/games',
+    title: 'Games',
+    lede: 'Games I own on cartridge and disc, and how far I’ve got with each.',
+    noun: 'game',
+    search: 'Search games',
+    figures: {
+      owned: 'Owned',
+      finished: 'Finished',
+      finishedIn: (year) => `Finished in ${year}`,
+      average: 'Average rating',
+      finishedShare: (percent) => `${percent}% of what I own`,
+      rated: (count) => `${count} rated, out of 10`,
+    },
+    empty: 'No games on the shelf yet.',
+    noMatch: 'No games match these filters.',
+    noMatchSearch: (query) => `No games match “${query}”.`,
+    overviewCharts: 'Status, ratings and finishes',
+  },
   /** The month journal's index; these are the screen-reader strings. */
   journal: {
     finished: (count) => `${count} finished`,
@@ -586,7 +607,19 @@ export const spine = {
   comics: {
     path: '/shelf/comics',
     title: 'Comics',
-    lede: 'Every series on my shelf as a run: what I own, the gaps, and what’s out this week.',
+    lede: 'Comic series I own, each as a run: the issues I have, the gaps, and how far I’ve read.',
+    noun: 'series',
+    nounPlural: 'series',
+    groupShow: 'Show',
+    figures: {
+      series: 'Series',
+      runs: (complete, gaps) =>
+        `${complete} complete ${complete === 1 ? 'run' : 'runs'}, ${gaps} with gaps`,
+      issues: 'Issues owned',
+      missing: 'Missing',
+      read: 'Read',
+      readOf: 'of what I own',
+    },
     /** Comic wording for the statuses; the shelf's own labels are game words. */
     status: {
       active: 'Reading',
@@ -672,11 +705,6 @@ export const spine = {
       edition: 'Collected edition',
     },
     pills: { following: 'Following', want: 'Want' },
-    hero: {
-      series: 'Series',
-      issues: 'Issues owned',
-      sub: (missing, readShare) => `${missing} missing · ${readShare} read`,
-    },
     chips: {
       all: 'All',
       following: 'Following',
@@ -692,7 +720,6 @@ export const spine = {
       { value: 'publisher', label: 'Publisher' },
       { value: 'missing', label: 'Missing issues' },
     ],
-    views: { runs: 'Runs', covers: 'Covers' },
     search: 'Search series',
     cards: {
       runs: 'Runs',
@@ -700,12 +727,6 @@ export const spine = {
       reading: 'Reading',
       publishers: 'Publishers',
       added: 'Added',
-    },
-    strip: {
-      title: 'Out this week',
-      from: (n) => `from the ${n} series I follow`,
-      later: 'Later',
-      laterNote: 'Date not set yet',
     },
     /** The comic parts of /shelf/:id. */
     series: {

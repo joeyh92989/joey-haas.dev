@@ -8,7 +8,6 @@ import { flaky } from '../lib/flaky.test-util.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { LOAD_ERROR, STALE_COPY, WAKING } from '../content/status.js'
 import { spine } from '../content/spine.js'
-import { itemPath } from '../lib/spinePaths.js'
 import Comics from './Comics.jsx'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
@@ -149,12 +148,11 @@ function renderPage() {
   )
 }
 
-/** The series titles in the Runs view, in order. */
+/** The series titles in the grid, in order. */
 function runTitles() {
-  const list = document.querySelector('.series-list')
-  return within(list)
-    .getAllByRole('link')
-    .map((link) => link.textContent.replace(/ \(\d{4}\)$/, ''))
+  return [...document.querySelectorAll('.poster-grid .poster-title')].map(
+    (node) => node.textContent,
+  )
 }
 
 afterEach(() => {
@@ -173,19 +171,26 @@ describe('Comics', () => {
     ).toBeInTheDocument()
   })
 
-  it('shows the hero numbers, with the read share as a percentage', () => {
+  it('has one h1, under the area band, with no breadcrumb', () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
-    const hero = document.querySelector('.hero-numbers')
-    expect(hero).toHaveTextContent('116')
-    // What is owned leads: series, then issues owned; the gaps and the
-    // read share follow as one quiet line.
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).toBeNull()
     expect(
-      [...hero.querySelectorAll('dt')].map((dt) => dt.textContent),
-    ).toEqual(['Series', 'Issues owned'])
-    expect(document.querySelector('.hero-sub')).toHaveTextContent(
-      '24 missing · 47% read',
-    )
+      screen.getByRole('navigation', { name: 'My Shelf sections' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows four figures, with the read share as a percentage', () => {
+    mockComics({ data: COMICS, live: true, failed: false })
+    renderPage()
+    const tiles = document.querySelector('.stat-tiles')
+    expect(
+      [...tiles.querySelectorAll('dt')].map((dt) => dt.textContent),
+    ).toEqual(['Series', 'Issues owned', 'Missing', 'Read'])
+    expect(tiles).toHaveTextContent('116')
+    expect(tiles).toHaveTextContent('24')
+    expect(tiles).toHaveTextContent('47%')
   })
 
   it('shows a dash when nothing is on the shelf to read', () => {
@@ -195,37 +200,59 @@ describe('Comics', () => {
       failed: false,
     })
     renderPage()
-    expect(document.querySelector('.hero-sub')).toHaveTextContent('— read')
+    const read = screen.getByText('Read', { selector: 'dt' }).parentElement
+    expect(read).toHaveTextContent('—')
   })
 
-  it('lists this week’s issues and the undated series under Later', () => {
+  it('leaves Out this week to What’s next', () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
-    const strip = screen.getByRole('region', { name: /Out this week/ })
-    expect(strip).toHaveTextContent(copy.strip.from(2))
-    expect(
-      within(strip).getByRole('link', { name: /Absolute Batman #13/ }),
-    ).toHaveAttribute('href', itemPath('id-Absolute Batman'))
-    expect(strip).toHaveTextContent(copy.strip.later)
-    expect(strip).toHaveTextContent('Saga')
+    expect(screen.queryByRole('region', { name: /Out this week/ })).toBeNull()
+    expect(screen.queryByText('Absolute Batman #13')).toBeNull()
   })
 
-  it('hides the strip when no week has an issue', () => {
-    mockComics({
-      data: {
-        ...COMICS,
-        this_week: {
-          weeks: [{ start: '2026-11-02', this_week: true, rows: [] }],
-          later: [{ item_id: 'id-Saga', title: 'Saga' }],
-        },
-      },
-      live: true,
-      failed: false,
-    })
+  it('draws one grid of stacked covers with lanes, and no list view', () => {
+    mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
+    expect(document.querySelector('.series-list')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Covers' })).toBeNull()
+    const lanes = screen.getByRole('img', { name: /^54 of 72 issues owned/ })
+    const card = lanes.closest('.poster-card')
+    expect(card).toHaveTextContent('54/72+')
+    // AC2: no badge on the cover; the lanes sit outside the link.
+    expect(lanes.closest('a')).toBeNull()
+    expect(card.querySelector('.poster-art')).toHaveAttribute('data-stacked')
+    expect(card.querySelector('.run-badge')).toBeNull()
+    expect(screen.getByRole('img', { name: 'Reading' })).toBeInTheDocument()
+  })
+
+  it('labels the filter rows and the sort', () => {
+    mockComics({ data: COMICS, live: true, failed: false })
+    renderPage()
+    expect(screen.getByRole('group', { name: 'Show' })).toBeInTheDocument()
     expect(
-      screen.queryByRole('region', { name: /Out this week/ }),
-    ).not.toBeInTheDocument()
+      screen.getByRole('group', { name: copy.chips.publisher }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeInTheDocument()
+  })
+
+  it('counts the series in the result bar, and Clear filters only while filtered', async () => {
+    mockComics({ data: COMICS, live: true, failed: false })
+    renderPage()
+    expect(screen.getByText('4 series')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: /^Gaps/ }))
+    expect(screen.getByText('2 of 4 series')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(runTitles()).toHaveLength(4)
+  })
+
+  it('keeps the run charts under an Overview heading', () => {
+    mockComics({ data: COMICS, live: true, failed: false })
+    renderPage()
+    const overview = screen.getByRole('region', { name: 'Overview' })
+    expect(within(overview).getByText('Publishers')).toBeInTheDocument()
+    expect(within(overview).getByText('Added')).toBeInTheDocument()
   })
 
   it('opens on the API’s order: dated next issues first', () => {
@@ -242,8 +269,9 @@ describe('Comics', () => {
   it('sorts by missing issues and remembers it (AC4, S6)', async () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Missing issues' }),
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort' }),
+      'missing',
     )
     expect(runTitles()).toEqual([
       'Saga',
@@ -272,7 +300,7 @@ describe('Comics', () => {
       failed: false,
     })
     renderPage()
-    const chips = screen.getByRole('group', { name: copy.title })
+    const chips = screen.getByRole('group', { name: 'Show' })
     expect(
       within(chips).queryByRole('button', { name: /^Want/ }),
     ).not.toBeInTheDocument()
@@ -319,38 +347,17 @@ describe('Comics', () => {
     expect(runTitles()).toEqual(['Saga', 'Monstress'])
   })
 
-  it('restores a stored chip, sort and view, and ignores a stale one', () => {
+  it('restores a stored chip and sort, and ignores a stale one', () => {
     localStorage.setItem('shelf.public.comics.chip', '"want"')
     localStorage.setItem('shelf.public.comics.sort', '"price"')
-    localStorage.setItem('shelf.public.comics.view', '"covers"')
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
     expect(screen.getByRole('button', { name: /^Want/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
-    expect(screen.getByRole('button', { name: 'Next issue' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toHaveValue('next')
     expect(document.querySelector('.poster-grid')).toBeInTheDocument()
-  })
-
-  it('shows the Covers view with stacked covers, lanes and comic status words', async () => {
-    mockComics({ data: COMICS, live: true, failed: false })
-    renderPage()
-    await userEvent.click(
-      screen.getByRole('button', { name: copy.views.covers }),
-    )
-    expect(localStorage.getItem('shelf.public.comics.view')).toBe('"covers"')
-    const lanes = screen.getByRole('img', { name: /^54 of 72 issues owned/ })
-    const card = lanes.closest('.poster-card')
-    expect(card).toHaveTextContent('54/72+')
-    // AC2: no badge on the cover; the lanes sit outside the link.
-    expect(lanes.closest('a')).toBeNull()
-    expect(card.querySelector('.poster-art')).toHaveAttribute('data-stacked')
-    expect(card.querySelector('.run-badge')).toBeNull()
-    expect(screen.getByRole('img', { name: 'Reading' })).toBeInTheDocument()
   })
 
   it('searches series by title', async () => {
@@ -425,13 +432,9 @@ describe('Comics', () => {
     )
   })
 
-  it('has no axe violations in either view', async () => {
+  it('has no axe violations', async () => {
     mockComics({ data: COMICS, live: true, failed: false })
     const { container } = renderPage()
-    expect(await axeViolations(container)).toEqual([])
-    await userEvent.click(
-      screen.getByRole('button', { name: copy.views.covers }),
-    )
     expect(await axeViolations(container)).toEqual([])
   })
 })

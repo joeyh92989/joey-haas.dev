@@ -8,13 +8,18 @@ import {
 } from './adminAreas.js'
 import appSource from '../App.jsx?raw'
 
-/** The fixed admin paths in App.jsx, read the way prerender-lib's test does. */
+/**
+ * The fixed admin paths in App.jsx, read the way prerender-lib's test does.
+ * The old list path is a redirect (AdminListRedirect), not a page.
+ */
 function appAdminPaths() {
   const admin = appSource.match(/^( *)<Route path="admin"[\s\S]*?^\1<\/Route>/m)
   const block = admin[0].slice(admin[0].indexOf('\n'))
-  const children = [...block.matchAll(/<Route path="([^":*]+)"/g)].map(
-    ([, route]) => `/admin/${route}`,
-  )
+  const children = [
+    ...block.matchAll(
+      /<Route path="([^":*]+)"(?! element=\{<AdminListRedirect)/g,
+    ),
+  ].map(([, route]) => `/admin/${route}`)
   return block.includes('<Route index') ? ['/admin', ...children] : children
 }
 
@@ -77,7 +82,7 @@ describe('ADMIN_AREAS', () => {
     const runs = shelf.pages
       .map((page) => page.group)
       .filter((group, i, all) => group !== all[i - 1])
-    expect(runs).toEqual(['Collection', 'Recommend', 'Data'])
+    expect(runs).toEqual(['Shelf', 'Recommend', 'Data'])
   })
 })
 
@@ -97,13 +102,12 @@ describe('Add pages', () => {
     expect(paths).not.toContain('/admin/import')
   })
 
-  it("puts Add in the Shelf's phone segments, after Collection", () => {
+  it("puts Games, Comics and Add first in the Shelf's phone segments", () => {
     const shelf = ADMIN_AREAS.find((area) => area.key === 'shelf')
     expect(segmentsFor(shelf).map((segment) => segment.label)).toEqual([
-      'Collection',
+      'Games',
+      'Comics',
       'Add',
-      'Picks',
-      'Sources',
       'More',
     ])
   })
@@ -114,8 +118,11 @@ describe('areaFor', () => {
     ['/admin', 'home', 'Home'],
     ['/admin/', 'home', 'Home'],
     ['/admin/jobs', 'home', 'Jobs'],
-    ['/admin/collection', 'shelf', 'Collection'],
-    ['/admin/collection/42', 'shelf', 'Collection'],
+    ['/admin/shelf/games', 'shelf', 'Games'],
+    ['/admin/shelf/comics', 'shelf', 'Comics'],
+    // The old list path and the item edit pages, which have not moved.
+    ['/admin/collection', 'shelf', 'Games'],
+    ['/admin/collection/42', 'shelf', 'Games'],
     ['/admin/collection/add', 'shelf', 'Add'],
     ['/admin/collection/add/abc', 'shelf', 'Add'],
     ['/admin/closet/add', 'closet', 'Add'],

@@ -275,3 +275,52 @@ describe('FilterChips labelled', () => {
     expect(document.querySelector('.ctl-label')).toBeNull()
   })
 })
+
+describe('FilterChips group limit', () => {
+  const group = {
+    key: 'publisher',
+    label: 'Publisher',
+    limit: 2,
+    options: ['A', 'B', 'C', 'D'].map((name) => ({
+      value: name,
+      label: name,
+      count: 1,
+    })),
+  }
+
+  it('draws the first chips and a More… chip for the rest', async () => {
+    render(<FilterChips groups={[group]} value={{}} onChange={() => {}} />)
+    expect(screen.queryByRole('button', { name: /^C/ })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'More…' }))
+    expect(screen.getByRole('button', { name: /^C/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'More…' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+  })
+
+  it('keeps a pressed chip that is past the limit', () => {
+    render(
+      <FilterChips
+        groups={[group]}
+        value={{ publisher: 'D' }}
+        onChange={() => {}}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /^D/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('draws no More… chip when everything fits', () => {
+    render(
+      <FilterChips
+        groups={[{ ...group, limit: 9 }]}
+        value={{}}
+        onChange={() => {}}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: 'More…' })).toBeNull()
+  })
+})

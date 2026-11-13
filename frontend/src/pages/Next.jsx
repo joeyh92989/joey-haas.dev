@@ -732,7 +732,7 @@ export default function Next() {
 
   return (
     <section className="next-page">
-      <SpineHeader asLink />
+      <SpineHeader />
       <h1 className="next-title">{copy.title}</h1>
       <p className="spine-lede">{copy.lede}</p>
       {data && <Freshness generated={data.generated_at} />}

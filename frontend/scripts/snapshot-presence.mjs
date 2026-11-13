@@ -1,5 +1,5 @@
 /**
- * Whether the pages behind the Comics tab and the Denver footer link have
+ * Whether the pages behind the Games and Comics tabs and the Denver footer link have
  * anything to show, read from the build-time snapshot (#125).
  *
  * `vite.config.js` calls this once per build and hands the answer to the
@@ -19,22 +19,37 @@ import path from 'node:path'
 
 /** Each snapshot this reads, and how to count what its page would show. */
 const COUNTS = {
+  // /shelf/games shows "No games on the shelf yet." with no public game; the
+  // items snapshot holds every public type, so the count is of games only.
+  games: {
+    file: 'items',
+    count: (body) =>
+      Array.isArray(body)
+        ? body.filter((item) => item?.type === 'game').length
+        : null,
+  },
   // /shelf/comics shows "No comics on the shelf yet." with no series.
-  comics: (body) => (Array.isArray(body?.series) ? body.series.length : null),
+  comics: {
+    file: 'comics',
+    count: (body) => (Array.isArray(body?.series) ? body.series.length : null),
+  },
   // /denver shows "No spots yet." with no spots.
-  spots: (body) => (Array.isArray(body) ? body.length : null),
+  spots: {
+    file: 'spots',
+    count: (body) => (Array.isArray(body) ? body.length : null),
+  },
 }
 
 /**
  * @param {string} dir The snapshot directory (public/snapshot).
- * @returns {{comics: boolean|null, spots: boolean|null}}
+ * @returns {{games: boolean|null, comics: boolean|null, spots: boolean|null}}
  */
 export function snapshotPresence(dir) {
   const presence = {}
-  for (const [name, count] of Object.entries(COUNTS)) {
+  for (const [name, { file, count }] of Object.entries(COUNTS)) {
     let body
     try {
-      body = JSON.parse(fs.readFileSync(path.join(dir, `${name}.json`), 'utf8'))
+      body = JSON.parse(fs.readFileSync(path.join(dir, `${file}.json`), 'utf8'))
     } catch {
       presence[name] = null
       continue

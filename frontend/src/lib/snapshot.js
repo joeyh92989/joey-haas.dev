@@ -36,7 +36,7 @@ const isNextBody = (body) =>
   (body.comics_this_week === undefined || Array.isArray(body.comics_this_week))
 
 /**
- * The stats body: Collection.jsx reads keys of both maps. Keep in step with
+ * The stats body: Games.jsx reads keys of both maps. Keep in step with
  * `isStatsBody` in scripts/fetch-snapshot.mjs.
  */
 const isStatsBody = (body) =>

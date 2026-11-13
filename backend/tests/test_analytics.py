@@ -117,6 +117,7 @@ def test_true_client_ip_then_the_socket():
         ("/til/", "/til"),
         ("/til/render-rewrites-need-the-slash", "/til/render-rewrites-need-the-slash"),
         ("/shelf/comics/", "/shelf/comics"),
+        ("/shelf/games/", "/shelf/games"),
     ],
 )
 def test_a_public_path_is_kept_in_one_form(path, expected):

@@ -79,7 +79,7 @@ export function addPath(area) {
 
 /** The page an area's committed things show on. */
 export function shelfPath(area) {
-  return area === 'closet' ? '/admin/closet' : '/admin/collection'
+  return area === 'closet' ? '/admin/closet' : '/admin/shelf/games'
 }
 
 /**

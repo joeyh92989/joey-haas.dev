@@ -3,8 +3,10 @@
  * tab lands), a one-line description shown at the top of its page list, and
  * its pages in list order. Every page keeps the URL it had before areas.
  *
- * A page is `{ to, label, end?, count?, group?, alias?, badge? }`:
+ * A page is `{ to, label, end?, also?, count?, group?, alias?, badge? }`:
  * - `end`: matches only its exact path (an index route).
+ * - `also`: more path prefixes the page owns (Games owns `/admin/collection`,
+ *   the item edit pages, which have not moved).
  * - `count`: shows the owned count beside it.
  * - `group`: a kicker heading the run of pages that share it (Shelf only).
  * - `alias`: listed here too, but the page belongs to another area; it is
@@ -36,19 +38,21 @@ export const ADMIN_AREAS = [
     key: 'shelf',
     label: 'Shelf',
     icon: '▦',
-    home: '/admin/collection',
+    home: '/admin/shelf/games',
     description: 'what I own, play and read',
     pages: [
       {
-        to: '/admin/collection',
-        label: 'Collection',
+        to: '/admin/shelf/games',
+        label: 'Games',
         count: true,
-        group: 'Collection',
+        group: 'Shelf',
+        also: ['/admin/collection'],
       },
+      { to: '/admin/shelf/comics', label: 'Comics', group: 'Shelf' },
       {
         to: '/admin/collection/add',
         label: 'Add',
-        group: 'Collection',
+        group: 'Shelf',
         badge: 'intake.shelf',
       },
       { to: '/admin/play-next', label: 'Play Next', group: 'Recommend' },
@@ -59,19 +63,20 @@ export const ADMIN_AREAS = [
       { to: '/admin/store-list', label: 'Store list', group: 'Data' },
     ],
     subnav: [
-      { to: '/admin/collection', label: 'Collection' },
+      { to: '/admin/shelf/games', label: 'Games' },
+      { to: '/admin/shelf/comics', label: 'Comics' },
       { to: '/admin/collection/add', label: 'Add' },
       {
-        label: 'Picks',
+        label: 'More',
         sheet: [
           '/admin/play-next',
           '/admin/discover',
           '/admin/radar',
           '/admin/pull-list',
+          '/admin/catalogue',
+          '/admin/store-list',
         ],
       },
-      { to: '/admin/catalogue', label: 'Sources' },
-      { label: 'More', sheet: ['/admin/store-list'] },
     ],
   },
   {
@@ -112,10 +117,24 @@ export const ADMIN_AREAS = [
   },
 ]
 
+/**
+ * How much of `pathname` the page owns: the length of the longest of its
+ * paths (`to`, then `also`) that is the path or, unless `end`, a parent of
+ * it. -1 when it owns none.
+ */
+function matchLength(page, pathname) {
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  let best = -1
+  for (const owned of [page.to, ...(page.also ?? [])]) {
+    if (path === owned || (!page.end && path.startsWith(`${owned}/`)))
+      best = Math.max(best, owned.length)
+  }
+  return best
+}
+
 /** Whether `pathname` is the page or, unless `end`, nested under it. */
 export function onPage(page, pathname) {
-  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
-  return path === page.to || (!page.end && path.startsWith(`${page.to}/`))
+  return matchLength(page, pathname) >= 0
 }
 
 /**
@@ -125,9 +144,12 @@ export function onPage(page, pathname) {
  */
 export function currentPage(pages, pathname) {
   let best = null
+  let bestLength = -1
   for (const page of pages) {
-    if (page?.to && onPage(page, pathname)) {
-      if (!best || page.to.length > best.to.length) best = page
+    const length = page?.to ? matchLength(page, pathname) : -1
+    if (length > bestLength) {
+      best = page
+      bestLength = length
     }
   }
   return best
@@ -135,7 +157,7 @@ export function currentPage(pages, pathname) {
 
 /**
  * The page `pathname` is on within `area`, its own pages first, the
- * longest match among them (/admin/collection/add is Add, not Collection).
+ * longest match among them (/admin/collection/add is Add, not Games).
  */
 export function pageFor(area, pathname) {
   const owned = area.pages.filter((page) => !page.alias)

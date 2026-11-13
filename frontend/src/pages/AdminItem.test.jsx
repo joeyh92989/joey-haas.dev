@@ -65,7 +65,7 @@ function renderPage() {
     <MemoryRouter initialEntries={['/admin/collection/abc']}>
       <Routes>
         <Route path="/admin/collection/:id" element={<AdminItem />} />
-        <Route path="/admin/collection" element={<p>collection list</p>} />
+        <Route path="/admin/shelf/games" element={<p>collection list</p>} />
       </Routes>
     </MemoryRouter>,
   )

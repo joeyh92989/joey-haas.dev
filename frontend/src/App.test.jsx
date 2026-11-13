@@ -30,6 +30,12 @@ function Location() {
   return <output data-testid="location">{useLocation().pathname}</output>
 }
 
+/** The path and the query, for a redirect that must keep the query. */
+function SearchLocation() {
+  const { pathname, search } = useLocation()
+  return <output data-testid="search-location">{pathname + search}</output>
+}
+
 function renderAt(path) {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -63,6 +69,51 @@ afterEach(() => {
 })
 
 describe('App redirects', () => {
+  it('sends /shelf to Games', async () => {
+    renderAt('/shelf')
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        /^\/shelf\/games$/,
+      ),
+    )
+  })
+
+  it('keeps the query on the way from /shelf to Games', async () => {
+    render(
+      <MemoryRouter initialEntries={['/shelf?q=zelda']}>
+        <App />
+        <SearchLocation />
+      </MemoryRouter>,
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('search-location')).toHaveTextContent(
+        '/shelf/games?q=zelda',
+      ),
+    )
+  })
+
+  it('sends /admin/collection to the admin Games list, keeping query and state', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/admin/collection',
+            search: '?q=x',
+            state: { prefill: { type: 'comic', title: 'Saga' } },
+          },
+        ]}
+      >
+        <App />
+        <SearchLocation />
+      </MemoryRouter>,
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('search-location')).toHaveTextContent(
+        '/admin/shelf/games?q=x',
+      ),
+    )
+  })
+
   it('lands /admin/import on Shelf’s Add page (AC 15)', async () => {
     renderAt('/admin/import')
     await waitFor(() =>
@@ -74,7 +125,7 @@ describe('App redirects', () => {
 
   // Each pre-rename URL lands on its /shelf page in one hop.
   it.each([
-    ['/spine', /^\/shelf$/],
+    ['/spine', /^\/shelf\/games$/],
     ['/spine/next', /^\/shelf\/next$/],
     ['/spine/how', /^\/shelf\/how$/],
     ['/spine/year', new RegExp(`^/shelf/year/${new Date().getFullYear()}/$`)],
@@ -82,7 +133,7 @@ describe('App redirects', () => {
     ['/spine/journal/2026-10', /^\/shelf\/journal\/2026-10\/$/],
     ['/spine/42', /^\/shelf\/42\/$/],
     ['/spine/42/', /^\/shelf\/42\/$/],
-    ['/collection', /^\/shelf$/],
+    ['/collection', /^\/shelf\/games$/],
     ['/collection/42', /^\/shelf\/42\/$/],
   ])('sends %s to its /shelf page', async (from, to) => {
     renderAt(from)
@@ -103,7 +154,7 @@ const TITLES = [
   ['/denver', 'Denver, the short list · Joey Haas'],
   ['/daily', 'Daily game · My Shelf'],
   ['/blog', 'Blog · Joey Haas'],
-  ['/shelf', 'My Shelf · Joey Haas'],
+  ['/shelf/games', 'Games · My Shelf'],
   ['/nonsense-path', 'Not found · Joey Haas'],
   ['/blog/no-such-post', 'Not found · Joey Haas'],
   ['/til', 'TIL · Joey Haas'],
@@ -113,7 +164,8 @@ const TITLES = [
   ['/admin', 'Home · Admin · Joey Haas'],
   ['/admin/analytics', 'Analytics · Admin · Joey Haas'],
   ['/admin/jobs', 'Jobs · Admin · Joey Haas'],
-  ['/admin/collection', 'Shelf · Admin · Joey Haas'],
+  ['/admin/shelf/games', 'Games · Admin · Joey Haas'],
+  ['/admin/shelf/comics', 'Comics · Admin · Joey Haas'],
   // `add` outranks `:id`: the Add page, not an item called "add".
   ['/admin/collection/add', 'Add · Admin · Joey Haas'],
   ['/admin/collection/add/abc', 'Sitting · Admin · Joey Haas'],

@@ -82,7 +82,7 @@ export default function YearInReview() {
 
   return (
     <section className="year-review">
-      <SpineHeader asLink />
+      <SpineHeader />
       <h1>{year} in review</h1>
 
       {/* Shown whenever another year has finishes: in January the redirect
