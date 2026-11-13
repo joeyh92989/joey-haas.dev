@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId } from 'react'
 import { playMove, statusMoves } from '../lib/statusMoves.js'
-import { useMediaQuery } from '../lib/useMediaQuery.js'
+import CardActionsShell from './CardActionsShell.jsx'
 import QuickRate from './QuickRate.jsx'
+import ShelfConfirm from './ShelfConfirm.jsx'
 
 /**
  * The admin controls on one shelf card: quick rate, the one-tap move to
@@ -28,6 +29,10 @@ import QuickRate from './QuickRate.jsx'
  * @param {(item: object, isPublic: boolean) => void} props.onPublish
  * @param {(item: object, pinned: boolean) => void} props.onPin - Not offered
  *   on a want-list row, which the server refuses to pin.
+ * @param {(item: object) => (void | Promise<void>)} [props.onDelete] - Runs
+ *   after the confirm that names the row and what goes with it.
+ * @param {(item: object) => (void | Promise<void>)} [props.onRedo] - The
+ *   same, for sending the row back through Add.
  */
 export default function ShelfCardActions({
   item,
@@ -37,32 +42,13 @@ export default function ShelfCardActions({
   onStatus,
   onPublish,
   onPin,
+  onDelete,
+  onRedo,
 }) {
-  const hover = useMediaQuery('(hover: hover)')
-  const [open, setOpen] = useState(false)
-  const root = useRef(null)
-  const toggle = useRef(null)
-  const sheet = useRef(null)
-  const sheetId = useId()
   const fullNoteId = useId()
   const blocked = favoritesFull && !item.favorite
   const play = playMove(item)
   const label = `Actions for ${item.title}`
-
-  // An opened sheet takes focus, at the rating's tab stop, so the keyboard
-  // lands where the work is and Escape reaches it.
-  useEffect(() => {
-    if (open) sheet.current?.querySelector('[tabindex="0"]')?.focus()
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return undefined
-    function onPointerDown(event) {
-      if (!root.current?.contains(event.target)) setOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [open])
 
   const panel = (
     <>
@@ -128,56 +114,29 @@ export default function ShelfCardActions({
           </button>
         )}
       </div>
+      {(onRedo || onDelete) && (
+        <div className="shelf-actions-row shelf-actions-danger">
+          {onRedo && (
+            <ShelfConfirm
+              mode="redo"
+              ids={[item.id]}
+              title={item.title}
+              className="shelf-pin"
+              onConfirm={() => onRedo(item)}
+            />
+          )}
+          {onDelete && (
+            <ShelfConfirm
+              ids={[item.id]}
+              title={item.title}
+              className="shelf-pin shelf-delete"
+              onConfirm={() => onDelete(item)}
+            />
+          )}
+        </div>
+      )}
     </>
   )
 
-  if (hover) {
-    return (
-      <div
-        className="shelf-actions"
-        data-mode="hover"
-        role="group"
-        aria-label={label}
-      >
-        {panel}
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className="shelf-actions"
-      data-mode="sheet"
-      ref={root}
-      onKeyDown={(event) => {
-        if (open && event.key === 'Escape') {
-          setOpen(false)
-          toggle.current?.focus()
-        }
-      }}
-    >
-      <button
-        ref={toggle}
-        type="button"
-        className="shelf-actions-toggle"
-        aria-label={label}
-        aria-expanded={open}
-        aria-controls={open ? sheetId : undefined}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span aria-hidden="true">…</span>
-      </button>
-      {open && (
-        <div
-          ref={sheet}
-          id={sheetId}
-          className="shelf-sheet"
-          role="dialog"
-          aria-label={label}
-        >
-          {panel}
-        </div>
-      )}
-    </div>
-  )
+  return <CardActionsShell label={label}>{panel}</CardActionsShell>
 }

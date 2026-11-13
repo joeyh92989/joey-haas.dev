@@ -1,12 +1,17 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import AdminComics from './AdminComics.jsx'
 
-vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
+// A pointer device unless a test says touch: the card's controls are then in
+// the document, as CardActionsShell draws them on hover.
+let touch = false
+vi.mock('../lib/useMediaQuery.js', () => ({
+  useMediaQuery: (query) => query === '(hover: hover)' && !touch,
+}))
 
 const run = (fields = {}) => ({
   owned: 10,
@@ -120,9 +125,14 @@ const titles = () =>
   )
 
 const writes = (mock) =>
-  mock.mock.calls.filter(([, options]) => (options?.method ?? 'GET') !== 'GET')
+  mock.mock.calls.filter(
+    ([url, options]) =>
+      (options?.method ?? 'GET') !== 'GET' &&
+      !String(url).endsWith('/api/items/delete-preview'),
+  )
 
 afterEach(() => {
+  touch = false
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   localStorage.clear()
@@ -334,5 +344,122 @@ describe('AdminComics', () => {
     stubApi()
     const { container } = await renderPage()
     expect(await axeViolations(container)).toEqual([])
+  })
+})
+
+describe('AdminComics delete, redo and the touch sheet', () => {
+  const preview = (url) =>
+    url.endsWith('/api/items/delete-preview')
+      ? {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: 1,
+            playthroughs: 0,
+            play_sessions: 0,
+            comic_issues: 4,
+            pick_events: 0,
+            titles: ['Saga'],
+          }),
+        }
+      : null
+
+  it('deletes a series after a confirm that says what goes with it', async () => {
+    const mock = stubApi({ onWrite: preview })
+    await renderPage()
+    const group = screen.getByRole('group', { name: 'Actions for Saga' })
+
+    await userEvent.click(
+      within(group).getByRole('button', { name: 'Delete Saga' }),
+    )
+    expect(
+      await screen.findByText('“Saga” goes with 4 issue records.'),
+    ).toBeInTheDocument()
+    expect(writes(mock)).toHaveLength(0)
+    await userEvent.click(
+      within(group).getByRole('button', { name: 'Delete Saga for good' }),
+    )
+
+    await waitFor(() => expect(writes(mock)).toHaveLength(1))
+    const [url, options] = writes(mock)[0]
+    expect(url).toMatch(/\/api\/items\/s$/)
+    expect(options.method).toBe('DELETE')
+    expect(await screen.findByText('Deleted “Saga”.')).toBeInTheDocument()
+  })
+
+  it('says so and keeps the page when a delete fails', async () => {
+    stubApi({
+      onWrite: (url, options) =>
+        preview(url) ?? (options.method === 'DELETE' ? { ok: false } : null),
+    })
+    await renderPage()
+    const group = screen.getByRole('group', { name: 'Actions for Saga' })
+    await userEvent.click(
+      within(group).getByRole('button', { name: 'Delete Saga' }),
+    )
+    await screen.findByText(/goes with 4 issue records/)
+    await userEvent.click(
+      within(group).getByRole('button', { name: 'Delete Saga for good' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Couldn’t delete that item.',
+    )
+    expect(screen.queryByText('Deleted “Saga”.')).toBeNull()
+  })
+
+  it('redoes a series and goes to the sitting', async () => {
+    function Where() {
+      return <p data-testid="where">{useLocation().pathname}</p>
+    }
+    const mock = stubApi({
+      onWrite: (url) =>
+        preview(url) ??
+        (url.endsWith('/redo')
+          ? {
+              ok: true,
+              status: 200,
+              json: async () => ({ sitting_id: 's9', entry_id: 'e9' }),
+            }
+          : null),
+    })
+    render(
+      <MemoryRouter>
+        <AdminComics />
+        <Where />
+      </MemoryRouter>,
+    )
+    await waitFor(() =>
+      expect(document.querySelector('.poster-grid')).not.toBeNull(),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Redo Saga' }))
+    await screen.findByText(/comes back as an entry in Add to match again/)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Yes, redo, Saga' }),
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('where')).toHaveTextContent(
+        '/admin/collection/add/s9',
+      ),
+    )
+    expect(writes(mock)[0][0]).toMatch(/\/api\/items\/s\/redo$/)
+  })
+
+  it('puts the controls behind a … toggle on touch, as the Games card does', async () => {
+    touch = true
+    stubApi()
+    await renderPage()
+    expect(screen.queryByLabelText('Public: Saga')).toBeNull()
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Actions for Saga' }),
+    )
+
+    const sheet = screen.getByRole('dialog', { name: 'Actions for Saga' })
+    expect(within(sheet).getByLabelText('Public: Saga')).toBeInTheDocument()
+    expect(
+      within(sheet).getByRole('button', { name: 'Delete Saga' }),
+    ).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

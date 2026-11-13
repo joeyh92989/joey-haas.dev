@@ -55,6 +55,21 @@ function stubApi({ items = ITEMS, onWrite } = {}) {
     if (method === 'GET' && String(url).endsWith('/api/items')) {
       return { ok: true, status: 200, json: async () => items }
     }
+    if (String(url).endsWith('/api/items/delete-preview')) {
+      const { ids } = JSON.parse(options.body)
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: ids.length,
+          playthroughs: 2,
+          play_sessions: 0,
+          comic_issues: 0,
+          pick_events: 0,
+          titles: ids.map((id) => items.find((item) => item.id === id).title),
+        }),
+      }
+    }
     const failure = onWrite?.(String(url), options)
     if (failure) return failure
     return { ok: true, status: 200, json: async () => ({}) }
@@ -71,9 +86,12 @@ function renderPage() {
   )
 }
 
+/** The writes; the delete preview is a POST that changes nothing. */
 function writeCalls(mock) {
   return mock.mock.calls.filter(
-    ([, options]) => (options?.method ?? 'GET') !== 'GET',
+    ([url, options]) =>
+      (options?.method ?? 'GET') !== 'GET' &&
+      !String(url).endsWith('/api/items/delete-preview'),
   )
 }
 
@@ -1285,5 +1303,134 @@ describe('AdminCollection shelf platforms', () => {
 
     const titles = [...document.querySelectorAll('.poster-grid .poster-title')]
     expect(titles.map((node) => node.textContent)).toEqual(['Dune'])
+  })
+})
+
+describe('AdminCollection delete, bulk delete and redo', () => {
+  function Where() {
+    return <p data-testid="where">{useLocation().pathname}</p>
+  }
+
+  function renderWithLocation() {
+    return render(
+      <MemoryRouter>
+        <AdminCollection />
+        <Where />
+      </MemoryRouter>,
+    )
+  }
+
+  it('deletes from a Shelf-view card after a confirm that says what goes', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    const card = (await screen.findByText('Star Fox')).closest('.poster-card')
+    await userEvent.click(
+      within(card).getByRole('button', { name: 'Delete Star Fox' }),
+    )
+    expect(
+      await screen.findByText('“Star Fox” goes with 2 playthroughs.'),
+    ).toBeInTheDocument()
+    expect(writeCalls(mock)).toHaveLength(0)
+    await userEvent.click(
+      within(card).getByRole('button', { name: 'Delete Star Fox for good' }),
+    )
+
+    await waitFor(() => {
+      const [url, options] = writeCalls(mock)[0]
+      expect(String(url)).toMatch(/\/api\/items\/a$/)
+      expect(options.method).toBe('DELETE')
+    })
+    expect(await screen.findByText('Deleted “Star Fox”.')).toBeInTheDocument()
+  })
+
+  it('deletes several selected rows in one request and clears the selection', async () => {
+    localStorage.setItem('shelf.admin.view', '"list"')
+    const mock = stubApi({
+      onWrite: (url) =>
+        url.endsWith('/bulk-delete')
+          ? { ok: true, status: 200, json: async () => ({ deleted: 2 }) }
+          : null,
+    })
+    renderPage()
+
+    await userEvent.click(await screen.findByLabelText('Select all'))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete 2 items' }),
+    )
+    expect(
+      await screen.findByText('“Star Fox” and “Dune” go with 2 playthroughs.'),
+    ).toBeInTheDocument()
+    expect(writeCalls(mock)).toHaveLength(0)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete 2 items for good' }),
+    )
+
+    await waitFor(() => {
+      const [url, options] = writeCalls(mock)[0]
+      expect(String(url)).toContain('/api/items/bulk-delete')
+      expect(options.method).toBe('POST')
+      expect(JSON.parse(options.body)).toEqual({ ids: ['a', 'b'] })
+    })
+    expect(await screen.findByText('Deleted 2 items.')).toBeInTheDocument()
+    expect(screen.queryByText('2 selected')).not.toBeInTheDocument()
+  })
+
+  it('keeps the selection when a bulk delete is refused', async () => {
+    localStorage.setItem('shelf.admin.view', '"list"')
+    stubApi({
+      onWrite: (url) =>
+        url.endsWith('/bulk-delete')
+          ? {
+              ok: false,
+              status: 404,
+              json: async () => ({ detail: 'No such item: x' }),
+            }
+          : null,
+    })
+    renderPage()
+
+    await userEvent.click(await screen.findByLabelText('Select Star Fox'))
+    await userEvent.click(screen.getByRole('button', { name: 'Delete 1 item' }))
+    await screen.findByText(/goes with 2 playthroughs/)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete 1 item for good' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No such item')
+    expect(screen.getByLabelText('Select Star Fox')).toBeChecked()
+  })
+
+  it('redoes a List row and goes to the sitting it came back in', async () => {
+    localStorage.setItem('shelf.admin.view', '"list"')
+    const mock = stubApi({
+      onWrite: (url) =>
+        url.endsWith('/redo')
+          ? {
+              ok: true,
+              status: 200,
+              json: async () => ({ sitting_id: 's1', entry_id: 'e1' }),
+            }
+          : null,
+    })
+    renderWithLocation()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Redo Star Fox' }),
+    )
+    expect(
+      await screen.findByText(/comes back as an entry in Add to match again/),
+    ).toBeInTheDocument()
+    expect(writeCalls(mock)).toHaveLength(0)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Yes, redo, Star Fox' }),
+    )
+
+    await waitFor(() => {
+      expect(String(writeCalls(mock)[0][0])).toMatch(/\/api\/items\/a\/redo$/)
+      expect(screen.getByTestId('where')).toHaveTextContent(
+        '/admin/collection/add/s1',
+      )
+    })
   })
 })

@@ -79,6 +79,12 @@ describe('bulkDeleteDetail', () => {
     ).toBe('“A” and “B” go with 1 issue record.')
   })
 
+  it('reads as a single delete when one row is selected', () => {
+    expect(bulkDeleteDetail({ ...NONE, playthroughs: 1 })).toBe(
+      '“Hades” goes with 1 playthrough.',
+    )
+  })
+
   it('says so when nothing is attached', () => {
     expect(bulkDeleteDetail({ ...NONE, items: 2, titles: ['A', 'B'] })).toBe(
       '“A” and “B” go. Nothing else is attached.',

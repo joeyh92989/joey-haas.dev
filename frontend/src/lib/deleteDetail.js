@@ -50,6 +50,8 @@ export function deleteDetail(preview, title) {
  * @param {object} preview  The server's delete preview over all the ids.
  */
 export function bulkDeleteDetail(preview) {
+  // One row selected reads as a single delete ("goes", not "go").
+  if (preview.items === 1) return deleteDetail(preview, preview.titles[0])
   const named = preview.titles.map((title) => `“${title}”`)
   const more = preview.items - named.length
   if (more > 0) named.push(`${more} more`)

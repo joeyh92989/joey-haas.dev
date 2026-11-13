@@ -326,3 +326,72 @@ describe('ShelfCardActions play button', () => {
     expect(handlers.onStatus).toHaveBeenCalledWith(ITEM, 'active')
   })
 })
+
+describe('ShelfCardActions Delete and Redo', () => {
+  function stubPreview() {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              items: 1,
+              playthroughs: 2,
+              play_sessions: 0,
+              comic_issues: 0,
+              pick_events: 0,
+              titles: ['Star Fox'],
+            }),
+        }),
+      ),
+    )
+  }
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('offers neither unless the page wires them', () => {
+    pointer(true)
+    renderActions()
+    expect(screen.queryByRole('button', { name: /^Delete/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Redo/ })).toBeNull()
+  })
+
+  it('deletes only after a confirm that names the row and what goes', async () => {
+    pointer(true)
+    stubPreview()
+    const onDelete = vi.fn()
+    render(<ShelfCardActions item={ITEM} onDelete={onDelete} />)
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete Star Fox' }),
+    )
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(
+      await screen.findByText('“Star Fox” goes with 2 playthroughs.'),
+    ).toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete Star Fox for good' }),
+    )
+
+    expect(onDelete).toHaveBeenCalledWith(ITEM)
+  })
+
+  it('sends a row back through Add after its own confirm', async () => {
+    pointer(false)
+    stubPreview()
+    const onRedo = vi.fn()
+    render(<ShelfCardActions item={ITEM} onRedo={onRedo} />)
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Actions for Star Fox' }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Redo Star Fox' }))
+    await screen.findByText(/goes with 2 playthroughs/)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Yes, redo, Star Fox' }),
+    )
+
+    expect(onRedo).toHaveBeenCalledWith(ITEM)
+  })
+})

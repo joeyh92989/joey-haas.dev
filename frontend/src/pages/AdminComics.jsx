@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import CardActionsShell from '../components/CardActionsShell.jsx'
 import ComicCardRun from '../components/ComicCardRun.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import FilterChips from '../components/FilterChips.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ResultBar from '../components/ResultBar.jsx'
+import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import { RunKey } from '../components/RunLanes.jsx'
 import SortControl from '../components/SortControl.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import { spine } from '../content/spine.js'
+import {
+  DELETE_FAILED,
+  REDO_FAILED,
+  deletedLine,
+} from '../content/shelfDelete.js'
 import { apiFetch } from '../lib/api.js'
 import {
   COMIC_SORTS,
@@ -93,42 +100,62 @@ function figures(rows) {
   }
 }
 
-/** The card's owner controls, a sibling of its link. */
-function ComicActions({ row, onFollow, onPublish }) {
+/**
+ * The card's owner controls, a sibling of its link: revealed on hover and
+ * focus, or behind a "…" on touch (`CardActionsShell`, as the Games card).
+ */
+function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
   return (
-    <div
-      className="comic-actions"
-      role="group"
-      aria-label={`Actions for ${row.title}`}
+    <CardActionsShell
+      label={`Actions for ${row.title}`}
+      focusSelector="button, a[href], input"
+      className="comic-actions-shell"
     >
-      {row.external_source === 'comicvine' && (
-        <button
-          type="button"
-          className="chip"
-          aria-pressed={row.following}
-          onClick={() => onFollow(row, !row.following)}
-        >
-          Follow
-        </button>
-      )}
-      <label>
-        <input
-          type="checkbox"
-          checked={row.is_public}
-          aria-label={`Public: ${row.title}`}
-          onChange={(event) => onPublish(row, event.target.checked)}
+      <div className="comic-actions">
+        {row.external_source === 'comicvine' && (
+          <button
+            type="button"
+            className="chip"
+            aria-pressed={row.following}
+            onClick={() => onFollow(row, !row.following)}
+          >
+            Follow
+          </button>
+        )}
+        <label>
+          <input
+            type="checkbox"
+            checked={row.is_public}
+            aria-label={`Public: ${row.title}`}
+            onChange={(event) => onPublish(row, event.target.checked)}
+          />
+          <span aria-hidden="true">Public</span>
+        </label>
+        {row.is_public && (
+          <Link to={itemPath(row.item_id)}>
+            {row.missing > 0
+              ? `Cover wall · ${row.missing} missing`
+              : 'Cover wall'}
+          </Link>
+        )}
+        <Link to={`/admin/collection/${row.item_id}`}>Edit</Link>
+      </div>
+      <div className="shelf-actions-row shelf-actions-danger">
+        <ShelfConfirm
+          mode="redo"
+          ids={[row.item_id]}
+          title={row.title}
+          className="shelf-pin"
+          onConfirm={() => onRedo(row)}
         />
-        <span aria-hidden="true">Public</span>
-      </label>
-      {row.is_public && (
-        <Link to={itemPath(row.item_id)}>
-          {row.missing > 0
-            ? `Cover wall · ${row.missing} missing`
-            : 'Cover wall'}
-        </Link>
-      )}
-      <Link to={`/admin/collection/${row.item_id}`}>Edit</Link>
-    </div>
+        <ShelfConfirm
+          ids={[row.item_id]}
+          title={row.title}
+          className="shelf-pin shelf-delete"
+          onConfirm={() => onDelete(row)}
+        />
+      </div>
+    </CardActionsShell>
   )
 }
 
@@ -144,6 +171,8 @@ function ComicActions({ row, onFollow, onPublish }) {
  * is written down for the comics sweep item (queue item 5).
  */
 export default function AdminComics() {
+  const navigate = useNavigate()
+  const [notice, setNotice] = useState(null)
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('loading')
   const [error, setError] = useState(null)
@@ -194,7 +223,10 @@ export default function AdminComics() {
     }
   }, [fetchItems])
 
-  /** A write that reports its own failure in words and reloads on success. */
+  /**
+   * A write that reports its own failure in words and reloads on success.
+   * Resolves true when it succeeded.
+   */
   async function write(request, failure) {
     setError(null)
     setBusy(true)
@@ -202,15 +234,16 @@ export default function AdminComics() {
       const response = await request()
       if (!response.ok) {
         setError(failure)
-        return
+        return false
       }
     } catch {
       setError(ACTION_ERROR)
-      return
+      return false
     } finally {
       setBusy(false)
     }
     await load()
+    return true
   }
 
   function setPublic(row, isPublic) {
@@ -223,6 +256,35 @@ export default function AdminComics() {
         }),
       'Couldn’t change that series’ visibility.',
     )
+  }
+
+  /** Deletes one series (after its confirm) and says which one went. */
+  async function removeSeries(row) {
+    setNotice(null)
+    const done = await write(
+      () => apiFetch(`/api/items/${row.item_id}`, { method: 'DELETE' }),
+      DELETE_FAILED,
+    )
+    if (done) setNotice(deletedLine(row.title))
+  }
+
+  /** Sends a series back through Add and goes to the sitting it landed in. */
+  async function redoSeries(row) {
+    setError(null)
+    setNotice(null)
+    try {
+      const response = await apiFetch(`/api/items/${row.item_id}/redo`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        setError(REDO_FAILED)
+        return
+      }
+      const { sitting_id: sittingId } = await response.json()
+      navigate(`/admin/collection/add/${sittingId}`)
+    } catch {
+      setError(ACTION_ERROR)
+    }
   }
 
   function setFollowing(row, follow) {
@@ -432,6 +494,8 @@ export default function AdminComics() {
     <section>
       {header}
 
+      {notice && <p role="status">{notice}</p>}
+
       {error && (
         <p className="admin-error" role="alert">
           {error}
@@ -542,6 +606,8 @@ export default function AdminComics() {
                   row={item.row}
                   onFollow={setFollowing}
                   onPublish={setPublic}
+                  onDelete={removeSeries}
+                  onRedo={redoSeries}
                 />
               )}
             />
