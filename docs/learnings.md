@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-12 · lesson · A visual sample must include the admin shell and data-only pages
+PR 6's 20-route visual diff missed the comic run box, trip pages and the admin rail; a later shot found a two-digit badge covering the phone tab-bar icon. For CSS-wide changes, add a mocked admin page (with a 2-digit badge), a comic series and a trip page to the sample, and grow badges away from their icon.
+PR #214 · docs/planning/2026-11-12-tokens-components-design.md
+
 ### 2026-11-12 · lesson · CI's browser checks see a site with no data
 CI builds without the snapshot, so axe passed while production's data pages (`/now` lists, shelf chips, the half star) still failed link and contrast rules; a real-data build found five more. For UI work, also run `SNAPSHOT_API_URL=https://api.joey-haas.dev VITE_DAILY_SALT=local npm run build && npx playwright test e2e/a11y.spec.js --project=desktop` before the PR.
 docs/planning/2026-11-12-visible-fixes-design.md
