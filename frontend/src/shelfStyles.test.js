@@ -121,8 +121,10 @@ describe('two widths (#188)', () => {
 describe('media-query rules are kept apart from base rules', () => {
   it('reads a media override as its own rule', () => {
     // .jump-nav ul has padding in its base rule and a phone override.
-    expect(rule('.jump-nav ul')).toContain('padding: 0.6rem 4px;')
-    expect(rule('.jump-nav ul')).not.toContain('padding-right: 2rem;')
-    expect(mediaRule('.jump-nav ul')).toContain('padding-right: 2rem;')
+    expect(rule('.jump-nav ul')).toContain('padding: 0.6rem var(--space-1);')
+    expect(rule('.jump-nav ul')).not.toContain('padding-right: var(--space-6);')
+    expect(mediaRule('.jump-nav ul')).toContain(
+      'padding-right: var(--space-6);',
+    )
   })
 })

@@ -56,6 +56,22 @@ before pushing.
   added. Design tokens are CSS variables declared twice: dark values on
   `:root` and light overrides under `[data-theme='light']`. Style with the
   tokens, never with raw hex — a literal color will be wrong in one theme.
+- Type and spacing are tokens too: `font-size` is `--fs-*` (`--fs-56` for the
+  display figure). Padding, margin and gap use a `--space-*` step only where
+  the value is exactly one (0.25 to 4rem); off-scale values (0.35rem, 0.6rem,
+  1.25rem) stay literal until #213 maps them. Nothing renders under 12px
+  except labels inside drawings that carry an accessible name elsewhere
+  (intake demo spines, run-cell marks, map labels), listed by selector in
+  `typeScale.test.js`. `typeScale.test.js` and `spaceScale.test.js` enforce it.
+- `Sheet` is the one modal dialog shell: a native `<dialog>` opened with
+  `showModal()`, focus moved in and back out, Escape and a backdrop press
+  routed through `onClose`, and `canClose` to refuse a close (sync only). It
+  does not lock page scroll. `NavSheet` is the same for nav menus. Don't
+  hand-roll a dialog.
+- Tile family: `CoverTile` (a comic cover; `tile.kind === 'book'` is a
+  collected edition), `PosterCard` (a poster) and `StatTile` (a figure; its
+  `children` take a composite value, `StatTiles figures` the item-page look).
+  `CoverStrip`, `GarmentTile`, `AreaCard` and `HeroNumbers` are different jobs.
 - Theming: dark is the brand default and is written into the markup as
   `<html data-theme="dark">`, so it survives a JavaScript failure. A pre-paint
   script in `frontend/index.html` switches to `localStorage('theme')` when one

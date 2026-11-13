@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
+import NavSheet from './NavSheet.jsx'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 import { ADMIN_AREAS, areaFor, currentPage, segmentsFor } from './adminAreas.js'
@@ -181,58 +182,27 @@ function AreaPages({
 }
 
 /**
- * A segment's sheet: a native modal <dialog>, as the site's MobileNavSheet
- * is, so focus is trapped and the page behind is inert. Escape, the Close
+ * A segment's sheet: the same NavSheet the site's MobileNavSheet is, so
+ * focus is trapped and the page behind is inert. Escape, the Close
  * button, a click on the backdrop and following a link all close it through
  * `onClose`, and focus goes back to the segment.
  */
 function TabSheet({ label, pages, open, onClose, returnFocusRef }) {
-  const ref = useRef(null)
-
-  useEffect(() => {
-    const dialog = ref.current
-    if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) {
-      dialog.close()
-      returnFocusRef.current?.focus()
-    }
-  }, [open, returnFocusRef])
-
   return (
-    <dialog
-      ref={ref}
-      className="nav-sheet admin-sheet"
-      aria-label={label}
-      onCancel={(event) => {
-        event.preventDefault()
-        onClose()
-      }}
-      onClose={() => {
-        if (open) onClose()
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose()
-      }}
+    <NavSheet
+      open={open}
+      onClose={onClose}
+      label={label}
+      navLabel={label}
+      className="admin-sheet"
+      returnFocusRef={returnFocusRef}
     >
-      {open && (
-        <div className="nav-sheet-body">
-          <div className="nav-sheet-head">
-            <span className="kicker">{label}</span>
-            <button type="button" className="btn sm" onClick={onClose}>
-              Close
-            </button>
-          </div>
-          <nav aria-label={label}>
-            {pages.map((page) => (
-              <NavLink key={page.to} to={page.to} onClick={onClose}>
-                {page.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      )}
-    </dialog>
+      {pages.map((page) => (
+        <NavLink key={page.to} to={page.to} onClick={onClose}>
+          {page.label}
+        </NavLink>
+      ))}
+    </NavSheet>
   )
 }
 

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { spine } from '../content/spine.js'
 import { expandRanges } from '../lib/comics.js'
 import { wallTiles } from '../lib/coverWall.js'
-import BookTile from './BookTile.jsx'
 import CoverTile from './CoverTile.jsx'
 import StatePill from './StatePill.jsx'
 
@@ -72,7 +71,12 @@ export default function CoverWall({ wall, detail, series, skipped }) {
     switch (tile.kind) {
       case 'book':
         return (
-          <BookTile key={`book-${tile.slug}`} tile={tile} series={series} />
+          <CoverTile
+            key={`book-${tile.slug}`}
+            tile={tile}
+            size="wall"
+            series={series}
+          />
         )
       case 'stack':
         return (

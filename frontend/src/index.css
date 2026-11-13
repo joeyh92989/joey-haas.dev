@@ -86,6 +86,32 @@
   --search-active: var(--sunken);
   --grid-gap: 1rem;
   --radius: 6px;
+  /* The type scale, in px at the default root size. Nothing reading is
+     smaller than --fs-12. Theme-independent, like --font-*: declared here
+     only. */
+  --fs-12: 0.75rem;
+  --fs-13: 0.8125rem;
+  --fs-14: 0.875rem;
+  --fs-16: 1rem;
+  --fs-18: 1.125rem;
+  --fs-20: 1.25rem;
+  --fs-24: 1.5rem;
+  --fs-28: 1.75rem;
+  --fs-32: 2rem;
+  --fs-40: 2.5rem;
+  --fs-48: 3rem;
+  /* Display only: the Home hero title. */
+  --fs-56: 3.5rem;
+  /* The spacing scale, in rem. Padding, margin and gap use a step when the
+     value is exactly one; off-scale values stay literal. Theme-independent. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
   --font-sans:
     'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', sans-serif;
@@ -163,7 +189,7 @@ body {
   background: var(--bg);
   color: var(--text-2);
   font-family: var(--font-sans);
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   line-height: 1.65;
   transition:
     background-color 0.2s,
@@ -177,7 +203,7 @@ body {
 .wrap {
   margin: 0 auto;
   max-width: 1040px;
-  padding-inline: 24px;
+  padding-inline: var(--space-5);
 }
 
 /* The public shell is a full-height column, so the footer sits at the bottom
@@ -200,7 +226,7 @@ body {
 .page {
   margin: 0 auto;
   max-width: 45rem;
-  padding: 2.5rem 24px 0;
+  padding: 2.5rem var(--space-5) 0;
 }
 
 /* Home, About and Projects: cards and columns on the masthead's measure. */
@@ -220,10 +246,10 @@ body {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.25rem 0.5rem;
+  font-size: var(--fs-13);
+  gap: var(--space-1) var(--space-2);
   list-style: none;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
   padding: 0;
 }
 
@@ -231,7 +257,7 @@ body {
   color: var(--text-3);
   content: '/';
   content: '/' / '';
-  margin-right: 0.5rem;
+  margin-right: var(--space-2);
 }
 
 /* Headings are sans 500. The serif (--font-display) is kept for the Home
@@ -247,7 +273,7 @@ h3 {
 
 h1,
 h2 {
-  font-size: 1.75rem;
+  font-size: var(--fs-28);
 }
 
 a {
@@ -286,7 +312,7 @@ p.muted a,
 .kicker {
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -299,9 +325,9 @@ p.muted a,
   color: var(--text);
   cursor: pointer;
   display: inline-flex;
-  font: 500 0.8125rem var(--font-sans);
+  font: 500 var(--fs-13) var(--font-sans);
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px var(--space-3);
 }
 
 .btn:hover {
@@ -336,8 +362,8 @@ p.muted a,
 }
 
 .btn.sm {
-  font-size: 0.75rem;
-  padding: 4px 9px;
+  font-size: var(--fs-12);
+  padding: var(--space-1) 9px;
 }
 
 .btn:disabled {
@@ -376,7 +402,7 @@ p.muted a,
   border-radius: 6px;
   color: var(--bg);
   display: grid;
-  font: 500 0.75rem var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
   height: 26px;
   place-items: center;
   width: 26px;
@@ -387,9 +413,9 @@ p.muted a,
 .site-nav {
   align-self: stretch;
   display: flex;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 22px;
-  margin-left: 8px;
+  margin-left: var(--space-2);
 }
 
 .site-nav a {
@@ -440,14 +466,14 @@ p.muted a,
 }
 
 .nav-sheet-body {
-  padding: 12px 16px 20px;
+  padding: var(--space-3) var(--space-4) 20px;
 }
 
 .nav-sheet-head {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .nav-sheet nav {
@@ -457,7 +483,7 @@ p.muted a,
 .nav-sheet nav a {
   border-bottom: 1px solid var(--line);
   color: var(--text-2);
-  font-size: 1rem;
+  font-size: var(--fs-16);
   /* A 44px tap target. */
   min-height: 2.75rem;
   padding: 0.625rem 0;
@@ -491,11 +517,11 @@ p.muted a,
 @media (max-width: 700px) {
   .wrap,
   .page {
-    padding-inline: 16px;
+    padding-inline: var(--space-4);
   }
 
   .mast-row {
-    gap: 12px;
+    gap: var(--space-3);
     height: 54px;
   }
 
@@ -514,7 +540,7 @@ p.muted a,
 /* The Search button's shortcut hint; nothing to press it on a phone. */
 .mast-search {
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .search-kbd {
@@ -522,7 +548,7 @@ p.muted a,
   border-radius: 4px;
   color: var(--text-3);
   font-family: var(--font-sans);
-  font-size: 0.7rem;
+  font-size: var(--fs-12);
   line-height: 1;
   padding: 2px 5px;
 }
@@ -565,8 +591,8 @@ p.muted a,
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: flex;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: var(--space-2);
+  padding: 10px var(--space-3);
 }
 
 .search-input {
@@ -575,10 +601,10 @@ p.muted a,
   color: var(--text);
   flex: 1;
   font: inherit;
-  font-size: 1rem;
+  font-size: var(--fs-16);
   min-height: 2.75rem;
   min-width: 0;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
 }
 
 .search-input::placeholder {
@@ -595,22 +621,22 @@ p.muted a,
 .search-list {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 4px 0 8px;
+  padding: var(--space-1) 0 var(--space-2);
 }
 
 .search-group-label {
   display: block;
-  padding: 12px 16px 4px;
+  padding: var(--space-3) var(--space-4) var(--space-1);
 }
 
 .search-row {
   align-items: center;
   cursor: pointer;
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   /* A 44px tap target. */
   min-height: 2.75rem;
-  padding: 6px 16px;
+  padding: 6px var(--space-4);
 }
 
 .search-row[aria-selected='true'] {
@@ -652,13 +678,13 @@ p.muted a,
 }
 
 .search-row-sub {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .search-note {
   border-top: 1px solid var(--line);
   margin: 0;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .search-note a {
@@ -708,7 +734,7 @@ p.muted a,
 .hero {
   align-items: start;
   display: grid;
-  gap: 48px;
+  gap: var(--space-7);
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr);
   padding: 2.5rem 0 3.75rem;
 }
@@ -716,7 +742,7 @@ p.muted a,
 /* The Home headline: the one serif h1; every other h1 is the base
    sans 500. */
 .hero-title {
-  font: 500 3.5rem/1.05 var(--font-display);
+  font: 500 var(--fs-56)/1.05 var(--font-display);
   letter-spacing: -0.02em;
   margin-top: 0.875rem;
   max-width: 18ch;
@@ -730,7 +756,7 @@ p.muted a,
 
 .hero-lede {
   color: var(--text-2);
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   margin: 1.125rem 0 1.625rem;
   max-width: 54ch;
 }
@@ -750,10 +776,10 @@ p.muted a,
 .facts > div {
   border-top: 1px solid var(--line);
   display: flex;
-  font-size: 0.875rem;
-  gap: 16px;
+  font-size: var(--fs-14);
+  gap: var(--space-4);
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .facts > div:first-child {
@@ -783,22 +809,22 @@ p.muted a,
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
   justify-content: space-between;
   margin-bottom: 1.125rem;
 }
 
 .section-head h2 {
-  font-size: 1.25rem;
+  font-size: var(--fs-20);
 }
 
 .section-head a {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 .card-grid {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -824,13 +850,13 @@ p.muted a,
 }
 
 .card h3 {
-  font-size: 1rem;
+  font-size: var(--fs-16);
   margin-bottom: 6px;
 }
 
 .card p {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 /* Home and Projects: four favourite covers from the build-time snapshot. */
@@ -852,7 +878,7 @@ p.muted a,
   display: grid;
   gap: 20px;
   grid-template-columns: 140px minmax(0, 1fr);
-  padding: 16px 0;
+  padding: var(--space-4) 0;
 }
 
 .row-list > li:first-child {
@@ -864,31 +890,31 @@ p.muted a,
 }
 
 .row-list h3 {
-  font-size: 1rem;
+  font-size: var(--fs-16);
   font-weight: 500;
 }
 
 .row-list p {
   color: var(--text-2);
-  font-size: 0.875rem;
-  margin-top: 4px;
+  font-size: var(--fs-14);
+  margin-top: var(--space-1);
 }
 
 @media (max-width: 700px) {
   .hero {
-    gap: 24px;
+    gap: var(--space-5);
     /* minmax(0, 1fr), not 1fr: a bare 1fr track will not shrink below its
        content, so a long facts value widens the whole hero. */
     grid-template-columns: minmax(0, 1fr);
-    padding: 0.5rem 0 2rem;
+    padding: var(--space-2) 0 var(--space-6);
   }
 
   .hero-title {
-    font-size: 2.375rem;
+    font-size: var(--fs-40);
   }
 
   .hero-lede {
-    font-size: 1rem;
+    font-size: var(--fs-16);
   }
 
   .card-grid {
@@ -896,7 +922,7 @@ p.muted a,
   }
 
   .row-list > li {
-    gap: 4px;
+    gap: var(--space-1);
     grid-template-columns: 1fr;
   }
 }
@@ -909,12 +935,12 @@ section + section {
 
 .prose {
   color: var(--text-2);
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
   max-width: min(45rem, 68ch);
 }
 
 .prose + .prose {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 /* The aside holds still beside the body on a desktop and leads it on a
@@ -923,7 +949,7 @@ section + section {
   display: grid;
   gap: 56px;
   grid-template-columns: 280px minmax(0, 1fr);
-  padding-top: 1rem;
+  padding-top: var(--space-4);
 }
 
 .about-aside {
@@ -942,7 +968,7 @@ section + section {
 }
 
 .about-title {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .about-aside .kicker {
@@ -950,15 +976,15 @@ section + section {
 }
 
 .about-facts {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 .about-facts > div {
   border-top: 1px solid var(--line);
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: space-between;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .about-facts dt {
@@ -974,7 +1000,7 @@ section + section {
 /* Section labels: headings by structure, set as kickers. */
 .about-label {
   color: var(--text-3);
-  font: 500 0.75rem var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
   letter-spacing: 0.02em;
   margin-bottom: 14px;
   text-transform: uppercase;
@@ -989,7 +1015,7 @@ section + section {
 .timeline {
   border-left: 1px solid var(--line-strong);
   list-style: none;
-  margin-left: 4px;
+  margin-left: var(--space-1);
   padding-left: 22px;
 }
 
@@ -1015,7 +1041,7 @@ section + section {
 }
 
 .timeline-role {
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   font-weight: 600;
 }
 
@@ -1030,7 +1056,7 @@ section + section {
 
 .timeline-summary {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   max-width: 64ch;
 }
 
@@ -1049,7 +1075,7 @@ section + section {
 .chip-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   list-style: none;
   margin-top: 0.875rem;
 }
@@ -1059,16 +1085,16 @@ section + section {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text-2);
-  font-size: 0.8125rem;
-  padding: 0.25rem 0.8125rem;
+  font-size: var(--fs-13);
+  padding: var(--space-1) 0.8125rem;
 }
 
 /* About's chips are mono labels, squared off; the shelf keeps its pills. */
 .about .chip-list li {
   background: var(--sunken);
   border-radius: 4px;
-  font: 500 0.75rem var(--font-mono);
-  padding: 3px 8px;
+  font: 500 var(--fs-12) var(--font-mono);
+  padding: 3px var(--space-2);
 }
 
 /* Grid rather than CSS multi-column: multicol needs break-inside: avoid on
@@ -1077,7 +1103,7 @@ section + section {
    query. auto-fit does both for free. */
 .expertise-list {
   display: grid;
-  gap: 0.5rem 1.5rem;
+  gap: var(--space-2) var(--space-5);
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   list-style: none;
   margin-top: 0.875rem;
@@ -1086,8 +1112,8 @@ section + section {
 .expertise-list li {
   border-left: 2px solid var(--line);
   color: var(--text-2);
-  font-size: 0.875rem;
-  padding-left: 0.75rem;
+  font-size: var(--fs-14);
+  padding-left: var(--space-3);
 }
 
 /* ---------- Projects ---------- */
@@ -1095,7 +1121,7 @@ section + section {
 .project-grid {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
   margin-top: 1.125rem;
 }
 
@@ -1110,18 +1136,18 @@ section + section {
 
 /* An h2 by document structure, but on the card's scale, not the page's. */
 .project-card h2 {
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   font-weight: 600;
 }
 
 .project-card p {
   color: var(--text-2);
-  font-size: 0.90625rem;
+  font-size: var(--fs-14);
   margin-top: 0.375rem;
 }
 
 .project-card .cover-strip {
-  margin: 0.875rem 0 0.75rem;
+  margin: 0.875rem 0 var(--space-3);
 }
 
 .project-card .project-tagline {
@@ -1136,21 +1162,21 @@ section + section {
 
 .project-highlights {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0.625rem 0 0;
   padding-left: 1.125rem;
 }
 
 .project-highlights li + li {
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
 .project-card .project-links {
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.875rem;
-  gap: 0.25rem 1rem;
-  margin: 0.75rem 0 0;
+  font-size: var(--fs-14);
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-3) 0 0;
 }
 
 /* Tech and tag chips: squared and mono, like About's toolbox, so they read
@@ -1158,7 +1184,7 @@ section + section {
 .tech-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   list-style: none;
   margin-top: 0.875rem;
 }
@@ -1167,8 +1193,8 @@ section + section {
   background: var(--sunken);
   border-radius: 4px;
   color: var(--text-2);
-  font: 500 0.75rem var(--font-mono);
-  padding: 3px 8px;
+  font: 500 var(--fs-12) var(--font-mono);
+  padding: 3px var(--space-2);
 }
 
 /* ---------- Blog ---------- */
@@ -1180,7 +1206,7 @@ section + section {
 }
 
 .post-rows h2 {
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   font-weight: 500;
 }
 
@@ -1200,7 +1226,7 @@ section + section {
 
 .note-list > article {
   border-top: 1px solid var(--line);
-  padding: 1.5rem 0;
+  padding: var(--space-5) 0;
 }
 
 .note-list > article:first-child {
@@ -1208,7 +1234,7 @@ section + section {
 }
 
 .note-title {
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   font-weight: 500;
 }
 
@@ -1226,8 +1252,8 @@ section + section {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.75rem;
+  font-size: var(--fs-13);
+  gap: var(--space-3);
   margin-top: 0.375rem;
 }
 
@@ -1240,30 +1266,30 @@ section + section {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.06em;
-  margin-left: 0.5rem;
+  margin-left: var(--space-2);
   padding: 0.125rem 0.625rem;
   text-transform: uppercase;
 }
 
 .post-summary {
   color: var(--text-2);
-  font-size: 1.125rem;
-  margin-top: 0.5rem;
+  font-size: var(--fs-18);
+  margin-top: var(--space-2);
 }
 
 .post-toc {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
-  margin-top: 1.5rem;
-  padding: 0.75rem 0;
+  margin-top: var(--space-5);
+  padding: var(--space-3) 0;
 }
 
 .post-toc-label {
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.05em;
   margin-bottom: 0.375rem;
   text-transform: uppercase;
@@ -1278,33 +1304,33 @@ section + section {
 .post-toc a {
   color: var(--text);
   display: block;
-  font-size: 0.9375rem;
-  padding: 0.25rem 0;
+  font-size: var(--fs-16);
+  padding: var(--space-1) 0;
 }
 
 .post-body {
   color: var(--text-2);
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .post-body h2,
 .post-body h3 {
-  margin-top: 2rem;
+  margin-top: var(--space-6);
   margin-bottom: 0.6rem;
 }
 
 .post-body h2 {
-  font-size: 1.5rem;
+  font-size: var(--fs-24);
 }
 
 .post-body h3 {
-  font-size: 1.25rem;
+  font-size: var(--fs-20);
 }
 
 .post-body p,
 .post-body ul,
 .post-body ol {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .post-body ul,
@@ -1315,30 +1341,31 @@ section + section {
 .post-body blockquote {
   border-left: 3px solid var(--line);
   color: var(--text-3);
-  margin-bottom: 1rem;
-  padding-left: 1rem;
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-4);
 }
 
 .post-body :not(pre) > code {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 4px;
-  font-size: 0.85em;
+  /* Relative to the prose around it, but never under the 12px floor. */
+  font-size: max(0.85em, var(--fs-12));
   padding: 0.1rem 0.35rem;
 }
 
 .post-body pre {
   border: 1px solid var(--line);
   border-radius: 8px;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   overflow-x: auto;
-  padding: 1rem;
+  padding: var(--space-4);
 }
 
 .post-body table {
   border-collapse: collapse;
   display: block;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   overflow-x: auto;
   width: 100%;
 }
@@ -1391,7 +1418,7 @@ section + section {
 footer {
   border-top: 1px solid var(--line);
   color: var(--text-3);
-  font-size: 0.84375rem;
+  font-size: var(--fs-14);
   margin-top: 2.75rem;
   padding-top: 1.125rem;
 }
@@ -1400,15 +1427,15 @@ footer {
    at the two ends of the row, stacked on a phone. Scoped by class so the
    shelf's attribution footer keeps the generic rule above. */
 .site-footer {
-  font-size: 0.8125rem;
-  margin-top: 3rem;
-  padding: 24px 0 36px;
+  font-size: var(--fs-13);
+  margin-top: var(--space-7);
+  padding: var(--space-5) 0 36px;
 }
 
 .site-footer-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
   justify-content: space-between;
 }
 
@@ -1444,8 +1471,8 @@ footer {
   border-left: 3px solid var(--accent);
   border-radius: 8px;
   color: var(--text);
-  margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
 }
 
 .admin-signin {
@@ -1453,9 +1480,9 @@ footer {
   border: 1px solid var(--line);
   border-radius: 999px;
   display: inline-block;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   font-weight: 500;
-  padding: 0.5rem 1rem;
+  padding: var(--space-2) var(--space-4);
 }
 
 .admin-signin:hover {
@@ -1500,14 +1527,14 @@ footer {
   border-radius: 8px;
   color: var(--text);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   padding: 0.4rem 0.6rem;
 }
 
 :where(.admin-main input[type='file']) {
   color: var(--text-2);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 /* A rule of its own: one selector a browser does not know drops the
@@ -1519,7 +1546,7 @@ footer {
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin-right: 0.6rem;
   padding: 0.4rem 0.6rem;
 }
@@ -1575,7 +1602,7 @@ footer {
   border-radius: 8px;
   color: var(--bg);
   display: grid;
-  font: 600 0.8125rem var(--font-mono);
+  font: 600 var(--fs-13) var(--font-mono);
   height: 32px;
   margin-bottom: 10px;
   place-items: center;
@@ -1612,12 +1639,12 @@ footer {
 
 .admin-rail-icon,
 .admin-tabs-icon {
-  font-size: 1.05rem;
+  font-size: var(--fs-16);
   line-height: 1.2;
 }
 
 .admin-rail-nav .admin-area-label {
-  font-size: 0.5625rem;
+  font-size: var(--fs-12);
   line-height: 1.1;
 }
 
@@ -1639,13 +1666,14 @@ footer {
 /* An area's pending count. See --badge for its measured contrast. */
 .admin-badge {
   background: var(--badge);
-  border-radius: 7px;
+  border-radius: 999px;
   color: var(--badge-ink);
   display: grid;
-  font: 600 0.5625rem var(--font-sans);
-  height: 14px;
-  min-width: 14px;
-  padding: 0 3px;
+  font: 600 var(--fs-12) / 1 var(--font-sans);
+  /* Sized for its 12px digits: a round dot for one, a pill for two. */
+  min-height: 1rem;
+  min-width: 1rem;
+  padding: 0 var(--space-1);
   place-items: center;
   position: absolute;
   right: 4px;
@@ -1653,20 +1681,22 @@ footer {
 }
 
 .admin-tabs .admin-badge {
-  right: calc(50% - 18px);
+  /* Anchored by its left edge so a two-digit pill grows away from the icon. */
+  left: calc(50% + var(--space-1));
+  right: auto;
   top: 6px;
 }
 
 .admin-side-title {
-  font-size: 1rem;
+  font-size: var(--fs-16);
   font-weight: 600;
-  padding: 6px 10px 8px;
+  padding: 6px 10px var(--space-2);
 }
 
 .admin-side-title small {
   color: var(--text-3);
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   font-weight: 400;
 }
 
@@ -1679,10 +1709,10 @@ footer {
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   height: 100vh;
   overflow-y: auto;
-  padding: 16px 12px;
+  padding: var(--space-4) var(--space-3);
   position: sticky;
   top: 0;
 }
@@ -1703,7 +1733,7 @@ footer {
   border-radius: var(--radius);
   color: var(--text-2);
   display: flex;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 10px;
   padding: 7px 10px;
 }
@@ -1723,7 +1753,7 @@ footer {
 
 .admin-side-count {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   font-weight: 400;
   margin-left: auto;
 }
@@ -1731,9 +1761,9 @@ footer {
 .admin-side-foot {
   border-top: 1px solid var(--line);
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin-top: auto;
-  padding: 12px 10px 4px;
+  padding: var(--space-3) 10px var(--space-1);
 }
 
 .admin-side-email {
@@ -1755,7 +1785,7 @@ footer {
 
 .admin-main {
   min-width: 0;
-  padding: 28px 32px 40px;
+  padding: 28px var(--space-6) 40px;
 }
 
 .admin-main:focus {
@@ -1780,11 +1810,11 @@ footer {
 .admin-tabs a {
   color: var(--text-3);
   display: grid;
-  font: 500 0.6875rem var(--font-sans);
+  font: 500 var(--fs-12) var(--font-sans);
   gap: 2px;
   justify-items: center;
   min-height: 3.25rem;
-  padding: 8px 2px 10px;
+  padding: var(--space-2) 2px 10px;
   position: relative;
   text-align: center;
 }
@@ -1805,8 +1835,8 @@ footer {
   border: 1px solid var(--line);
   border-radius: 999px;
   display: flex;
-  gap: 0.25rem;
-  margin: 0 0 1rem;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-4);
   padding: 3px;
 }
 
@@ -1818,9 +1848,9 @@ footer {
   color: var(--text-2);
   cursor: pointer;
   flex: 1;
-  font: 0.8125rem var(--font-sans);
+  font: var(--fs-13) var(--font-sans);
   min-height: 2.25rem;
-  padding: 0.35rem 0.25rem;
+  padding: 0.35rem var(--space-1);
   text-align: center;
 }
 
@@ -1847,15 +1877,15 @@ footer {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.5rem 1rem;
-  margin-top: 2rem;
-  padding-top: 1rem;
+  font-size: var(--fs-13);
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
 }
 
 /* The phone tab bar sits over the page's foot, so the page keeps clear of it. */
 .admin-app-phone .admin-main {
-  padding: 18px 16px 90px;
+  padding: 18px var(--space-4) 90px;
 }
 
 /* The shelf's action sheet is pinned to the same edge: it opens over the
@@ -1868,7 +1898,7 @@ footer {
 .admin-gate {
   display: grid;
   min-height: 100vh;
-  padding: 24px 16px;
+  padding: var(--space-5) var(--space-4);
   place-items: center;
 }
 
@@ -1877,13 +1907,13 @@ footer {
   border: 1px solid var(--line);
   border-radius: 8px;
   max-width: 26rem;
-  padding: 24px;
+  padding: var(--space-5);
   width: 100%;
 }
 
 .admin-gate-panel h1 {
-  font-size: 1.5rem;
-  margin-bottom: 12px;
+  font-size: var(--fs-24);
+  margin-bottom: var(--space-3);
 }
 
 .admin-gate:focus {
@@ -1895,20 +1925,20 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 16px;
+  gap: var(--space-3) var(--space-4);
   margin-bottom: 22px;
 }
 
 .admin-head h1 {
-  font-size: 1.5rem;
+  font-size: var(--fs-24);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .admin-head-desc {
   color: var(--text-3);
-  font-size: 0.875rem;
-  margin-top: 4px;
+  font-size: var(--fs-14);
+  margin-top: var(--space-1);
 }
 
 .admin-head-end,
@@ -1916,7 +1946,7 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: var(--space-2) var(--space-3);
 }
 
 .admin-head-end {
@@ -1931,7 +1961,7 @@ footer {
   align-items: center;
   color: var(--text-2);
   display: inline-flex;
-  font: 500 0.75rem var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
   gap: 6px;
 }
 
@@ -1967,7 +1997,7 @@ footer {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
 }
 
 .stat-tile .kicker {
@@ -1977,7 +2007,7 @@ footer {
 
 .stat-value {
   color: var(--text);
-  font-size: 1.75rem;
+  font-size: var(--fs-28);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -1986,7 +2016,7 @@ footer {
 
 .stat-detail {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   margin-top: 6px;
 }
 
@@ -2001,22 +2031,22 @@ footer {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .panel-head h2 {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
 .panel-head a {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .panel-body {
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
 }
 
 /* Dashboard (/admin): jobs and quick actions side by side, then changes. */
@@ -2042,11 +2072,11 @@ footer {
   align-items: center;
   border-top: 1px solid var(--line);
   display: grid;
-  font-size: 0.84375rem;
-  gap: 4px 12px;
+  font-size: var(--fs-14);
+  gap: var(--space-1) var(--space-3);
   /* Wide enough for the longest time, "Wed 30 Sept, 00:17". */
   grid-template-columns: 9rem minmax(0, 1fr) auto auto;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .job-row:first-child {
@@ -2055,7 +2085,7 @@ footer {
 
 .job-when {
   color: var(--text-3);
-  font: 0.75rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
   white-space: nowrap;
 }
 
@@ -2070,11 +2100,11 @@ footer {
 
 .job-summary {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .job-run {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   white-space: nowrap;
 }
 
@@ -2089,8 +2119,8 @@ footer {
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
-  font-size: 0.875rem;
-  padding: 12px;
+  font-size: var(--fs-14);
+  padding: var(--space-3);
   text-decoration: none;
 }
 
@@ -2101,14 +2131,14 @@ footer {
 .quick-actions small {
   color: var(--text-3);
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   margin-top: 2px;
 }
 
 /* Three short columns: they wrap on a phone rather than scroll, so When
    stays in view. */
 .item-table.recent-table {
-  font-size: 0.84375rem;
+  font-size: var(--fs-14);
   min-width: 0;
 }
 
@@ -2157,7 +2187,7 @@ footer {
   border: 0;
   color: var(--text-2);
   cursor: pointer;
-  font: 500 0.75rem var(--font-sans);
+  font: 500 var(--fs-12) var(--font-sans);
   padding: 5px 11px;
 }
 
@@ -2210,13 +2240,13 @@ footer {
 }
 
 .analytics-empty p + p {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin-top: 6px;
 }
 
 .analytics-note {
   color: var(--text-3);
-  font-size: 0.78125rem;
+  font-size: var(--fs-13);
   margin-top: 14px;
   max-width: 45rem;
 }
@@ -2226,7 +2256,7 @@ footer {
   display: flex;
   gap: 2px;
   height: 180px;
-  padding-top: 8px;
+  padding-top: var(--space-2);
 }
 
 .day-bar {
@@ -2239,14 +2269,14 @@ footer {
 
 .day-bars-peak {
   color: var(--text-2);
-  font-size: 0.8125rem;
-  margin: 0.5rem 0 0;
+  font-size: var(--fs-13);
+  margin: var(--space-2) 0 0;
 }
 
 .day-bars-axis {
   color: var(--text-3);
   display: flex;
-  font: 0.6875rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
   justify-content: space-between;
   margin-top: 6px;
 }
@@ -2261,7 +2291,7 @@ footer {
   align-items: center;
   border-top: 1px solid var(--line);
   display: grid;
-  font-size: 0.84375rem;
+  font-size: var(--fs-14);
   gap: 10px;
   grid-template-columns: minmax(0, 1fr) 70px 50px;
   padding: 7px 0;
@@ -2332,9 +2362,9 @@ footer {
   border: 1px solid currentColor;
   border-radius: 999px;
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   line-height: 1.4;
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
   white-space: nowrap;
 }
 
@@ -2356,7 +2386,7 @@ footer {
 
 .intake-field {
   display: grid;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.3rem;
   min-width: 0;
 }
@@ -2376,7 +2406,7 @@ footer {
 
 .intake-refusal {
   color: var(--badge);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin: 0;
 }
 
@@ -2384,7 +2414,7 @@ footer {
   display: grid;
   gap: 0.6rem;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-5);
 }
 
 .intake-kind {
@@ -2398,7 +2428,7 @@ footer {
   gap: 0.15rem;
   min-width: 0;
   overflow-wrap: anywhere;
-  padding: 0.75rem 0.85rem;
+  padding: var(--space-3) 0.85rem;
   text-align: left;
 }
 
@@ -2427,12 +2457,12 @@ footer {
 
 .intake-kind-note {
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .intake-kind-ways {
   color: var(--text-3);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   margin-top: 0.3rem;
 }
 
@@ -2442,16 +2472,16 @@ footer {
   border-radius: var(--radius);
   list-style: none;
   margin: 0;
-  padding: 0 1rem;
+  padding: 0 var(--space-4);
 }
 
 .intake-sitting {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr) 12rem auto;
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .intake-sitting:last-child {
@@ -2470,7 +2500,7 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 /* The track is --sunken; the 2px gaps show it between segments. */
@@ -2504,8 +2534,8 @@ footer {
 .intake-steps {
   color: var(--text-3);
   display: flex;
-  font-size: 0.8125rem;
-  gap: 0.25rem;
+  font-size: var(--fs-13);
+  gap: var(--space-1);
   list-style: none;
   margin: 0 0 1.25rem;
   padding: 0;
@@ -2529,8 +2559,8 @@ footer {
 }
 
 .intake-step h2 {
-  font-size: 1.125rem;
-  margin: 0 0 0.75rem;
+  font-size: var(--fs-18);
+  margin: 0 0 var(--space-3);
 }
 
 .intake-step h2:focus {
@@ -2544,7 +2574,7 @@ footer {
   display: grid;
   gap: 0.4rem;
   justify-items: center;
-  padding: 1.5rem;
+  padding: var(--space-5);
   text-align: center;
 }
 
@@ -2560,7 +2590,7 @@ footer {
 .intake-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-drop-actions {
@@ -2578,14 +2608,14 @@ footer {
   gap: 0.6rem;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   list-style: none;
-  margin: 1rem 0;
+  margin: var(--space-4) 0;
   padding: 0;
 }
 
 .intake-shot {
   color: var(--text-3);
   display: grid;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   gap: 0.3rem;
   min-width: 0;
 }
@@ -2614,9 +2644,9 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
   justify-content: space-between;
-  margin-top: 1rem;
+  margin-top: var(--space-4);
 }
 
 .intake-bar p {
@@ -2626,7 +2656,7 @@ footer {
 .intake-bar-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-checkone {
@@ -2662,18 +2692,18 @@ footer {
   background: var(--sunken);
   border-radius: var(--radius);
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   padding: 0.4rem 0.6rem;
 }
 
 .intake-question {
   font-weight: 600;
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .intake-candidates {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-option {
@@ -2683,9 +2713,9 @@ footer {
   border-radius: var(--radius);
   cursor: pointer;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: auto 2.5rem minmax(0, 1fr);
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem var(--space-3);
 }
 
 /* --accent-soft is a measured background for the text tokens. */
@@ -2702,28 +2732,28 @@ footer {
 .intake-checkone .intake-actions {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .intake-checkone .intake-actions.quiet {
   display: flex;
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 .intake-note {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin: 0.4rem 0 0;
 }
 
 .intake-skim-head {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .intake-typed {
   display: grid;
   gap: 0.4rem;
   list-style: none;
-  margin: 1rem 0;
+  margin: var(--space-4) 0;
   padding: 0;
 }
 
@@ -2737,9 +2767,9 @@ footer {
 
 .intake-garment-others {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   list-style: none;
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   padding: 0;
 }
 
@@ -2761,7 +2791,7 @@ footer {
 
 .intake-skim li {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
   justify-items: start;
   min-width: 0;
 }
@@ -2783,7 +2813,7 @@ footer {
 
 .intake-skim-name {
   color: var(--text-2);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -2807,10 +2837,10 @@ footer {
   align-items: start;
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 0.4rem 0.75rem;
+  gap: 0.4rem var(--space-3);
   grid-template-areas: 'cover body edit';
   grid-template-columns: 2.5rem minmax(0, 1fr) auto;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 
 .intake-grow[data-tick] {
@@ -2847,13 +2877,13 @@ footer {
 
 .intake-grow-read {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   margin: 0.1rem 0 0;
 }
 
 .intake-grow-adds {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0.3rem 0 0;
 }
 
@@ -2889,13 +2919,13 @@ footer {
 }
 
 .intake-grow-form label {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .intake-grow-form-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 @media (max-width: 40rem) {
@@ -2918,21 +2948,21 @@ footer {
 }
 
 .intake-pass {
-  margin-bottom: 1rem;
-  padding: 1rem;
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
 }
 
 .intake-pass h3 {
-  font-size: 1rem;
-  margin: 0 0 0.75rem;
+  font-size: var(--fs-16);
+  margin: 0 0 var(--space-3);
 }
 
 .intake-setall-fields {
   align-items: end;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .intake-rows {
@@ -2947,7 +2977,7 @@ footer {
   display: grid;
   gap: 0.9rem;
   grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 12rem) auto;
-  padding: 0.5rem 0;
+  padding: var(--space-2) 0;
 }
 
 /* A trade row's editions sit on their own line under the row. */
@@ -2976,17 +3006,17 @@ footer {
      --text-2 7.30 / 7.18   --text-3 4.79 / 4.61   --accent 5.76 / 5.31 */
 .intake-add {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .intake-addbar {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .intake-addbar input {
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   min-height: 2.75rem;
   min-width: 0;
 }
@@ -3001,14 +3031,14 @@ footer {
   border-radius: var(--radius);
   display: grid;
   gap: 0.6rem;
-  padding: 0.25rem 0 0.75rem;
+  padding: var(--space-1) 0 var(--space-3);
 }
 
 .intake-results > p,
 .intake-sources,
 .intake-typed {
   margin: 0;
-  padding: 0 0.75rem;
+  padding: 0 var(--space-3);
 }
 
 .intake-results > ul:first-child {
@@ -3021,9 +3051,9 @@ footer {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: 1.9rem minmax(0, 1fr) auto auto;
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-2) var(--space-3);
 }
 
 .intake-result-text {
@@ -3038,14 +3068,14 @@ footer {
 
 .intake-result-kind {
   color: var(--text-3);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .intake-sources {
   display: grid;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 0.4rem;
   list-style: none;
 }
@@ -3054,7 +3084,7 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-typed {
@@ -3071,8 +3101,8 @@ footer {
   border-radius: var(--radius);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.875rem;
-  gap: 0.5rem 0.75rem;
+  font-size: var(--fs-14);
+  gap: var(--space-2) var(--space-3);
   justify-content: space-between;
   margin: 0;
   padding: 0.55rem 0.9rem;
@@ -3084,13 +3114,13 @@ footer {
 
 .intake-waiting {
   background: var(--accent-soft);
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .intake-waiting-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-withdrawer {
@@ -3113,8 +3143,8 @@ footer {
   border-radius: var(--radius);
   container-type: inline-size;
   display: grid;
-  gap: 0.75rem;
-  padding: 1rem 1.1rem;
+  gap: var(--space-3);
+  padding: var(--space-4) 1.1rem;
   position: sticky;
   top: 1rem;
 }
@@ -3126,7 +3156,7 @@ footer {
 .intake-drawer-head {
   align-items: center;
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .intake-drawer-head .cover {
@@ -3135,7 +3165,7 @@ footer {
 }
 
 .intake-drawer-title {
-  font-size: 1.0625rem;
+  font-size: var(--fs-18);
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -3162,34 +3192,40 @@ footer {
 .intake-drawer-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
-/* Below 900px: a bottom sheet over a dimmed page, modal. */
+/* Below 900px: a bottom sheet over a dimmed page, modal. It is a Sheet's
+   dialog, so the UA's centring and fit-content width are undone here. */
 .intake-drawer-sheet {
   border-radius: var(--radius) var(--radius) 0 0;
   bottom: 0;
+  color: var(--text);
   left: 0;
+  margin: 0;
   max-height: 85vh;
+  max-width: 100%;
   overflow-y: auto;
   padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   position: fixed;
   right: 0;
   top: auto;
-  z-index: 60;
+  width: 100%;
 }
 
-.intake-drawer-backdrop {
+/* .intake-drawer sets display, which would show a closed dialog. */
+.intake-drawer-sheet:not([open]) {
+  display: none;
+}
+
+.intake-drawer-sheet::backdrop {
   background: var(--overlay);
-  inset: 0;
-  position: fixed;
-  z-index: 59;
 }
 
 .intake-checksearch {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .intake-checksearch input {
@@ -3213,7 +3249,7 @@ footer {
 }
 
 .intake-garment-check .intake-checkone {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 /* The shell's phone layout (PHONE_QUERY in AdminShell.jsx). */
@@ -3310,13 +3346,13 @@ footer {
 
 /* Shoot's Search instead: the add bar's search, adding to the sitting. */
 .intake-shootsearch {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   text-align: left;
 }
 
 .intake-shootsearch form {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .intake-shootsearch input {
@@ -3327,7 +3363,7 @@ footer {
   flex: 1;
   min-height: 2.25rem;
   min-width: 0;
-  padding: 0.35rem 0.5rem;
+  padding: 0.35rem var(--space-2);
 }
 
 @media (max-width: 900px) {
@@ -3343,19 +3379,19 @@ footer {
    --text on --accent-soft 13.11 dark, 15.65 light (measured above). The
    confidence words reuse .conf on --surface (measured above). */
 .intake-demo h1 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .intake-demo-lede {
   color: var(--text-2);
-  margin: 0 0 1.5rem;
+  margin: 0 0 var(--space-5);
   max-width: min(45rem, 68ch);
 }
 
 .intake-demo-grid {
   align-items: start;
   display: grid;
-  gap: 1.5rem;
+  gap: var(--space-5);
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
 }
 
@@ -3367,7 +3403,7 @@ footer {
 }
 
 .intake-demo-shelf {
-  padding: 1rem;
+  padding: var(--space-4);
 }
 
 .intake-demo-spines {
@@ -3376,7 +3412,7 @@ footer {
   display: flex;
   gap: 3px;
   height: 230px;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
 }
 
 .intake-demo-spine {
@@ -3425,24 +3461,24 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .intake-demo-foot {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   justify-content: space-between;
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .intake-demo-stages {
   display: grid;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   gap: 0.4rem;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   list-style: none;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   padding: 0;
 }
 
@@ -3457,7 +3493,7 @@ footer {
 .intake-demo-stages b {
   color: var(--text);
   display: block;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   font-weight: 500;
 }
 
@@ -3480,9 +3516,9 @@ footer {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 0.5rem 0.8rem;
+  padding: var(--space-2) 0.8rem;
 }
 
 .intake-demo-row:last-child {
@@ -3491,7 +3527,7 @@ footer {
 
 .intake-demo-title {
   display: block;
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   font-weight: 500;
   line-height: 1.3;
 }
@@ -3500,7 +3536,7 @@ footer {
 .intake-demo-fine,
 .intake-demo-note {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .intake-demo-fine,
@@ -3514,9 +3550,9 @@ footer {
 
 .intake-demo-empty {
   color: var(--text-3);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
-  padding: 2.5rem 1rem;
+  padding: 2.5rem var(--space-4);
   text-align: center;
 }
 
@@ -3542,8 +3578,8 @@ footer {
 .item-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
   margin-top: 1.125rem;
 }
 
@@ -3557,7 +3593,7 @@ footer {
   border-radius: 8px;
   color: var(--text);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   padding: 0.4rem 0.6rem;
 }
 
@@ -3596,7 +3632,7 @@ footer {
 .metadata-picker label {
   color: var(--text-3);
   display: block;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin-bottom: 0.3rem;
 }
 
@@ -3606,7 +3642,7 @@ footer {
   border-radius: 8px;
   color: var(--text);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   max-width: 24rem;
   padding: 0.4rem 0.6rem;
   width: 100%;
@@ -3622,7 +3658,7 @@ footer {
   border: 1px solid var(--line);
   border-radius: 8px;
   list-style: none;
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   max-height: 20rem;
   max-width: 24rem;
   overflow-y: auto;
@@ -3641,7 +3677,7 @@ footer {
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 0.6rem;
   padding: 0.4rem 0.6rem;
   text-align: left;
@@ -3671,7 +3707,7 @@ footer {
 
 .linked-source {
   flex-basis: 100%;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin: 0;
 }
 
@@ -3718,18 +3754,18 @@ footer {
   align-content: center;
   color: var(--text-3);
   display: grid;
-  font-size: 0.8125rem;
-  gap: 0.25rem;
+  font-size: var(--fs-13);
+  gap: var(--space-1);
   height: 100%;
   justify-items: center;
   line-height: 1.3;
-  padding: 0.5rem;
+  padding: var(--space-2);
   text-align: center;
 }
 
 .cover-nocover b {
   color: var(--text-2);
-  font: 500 1.75rem var(--font-mono);
+  font: 500 var(--fs-28) var(--font-mono);
 }
 
 /* A cover that loads for an issue I do not own is content, dimmed. */
@@ -3740,8 +3776,8 @@ footer {
 
 .comic-issue-cover-caption {
   color: var(--text-3);
-  font-size: 0.75rem;
-  margin: 0.5rem 0 0;
+  font-size: var(--fs-12);
+  margin: var(--space-2) 0 0;
 }
 
 /* In a tile the frame already carries the dashed outline and the state. */
@@ -3750,12 +3786,12 @@ footer {
 }
 
 .cover-tile .cover-nocover {
-  font-size: 0.5625rem;
+  font-size: var(--fs-12);
   padding: 0.2rem;
 }
 
 .cover-tile .cover-nocover b {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 .cover-movie,
@@ -3784,9 +3820,9 @@ footer {
 /* Item detail view: cover beside a form, stacking on narrow screens. */
 .item-detail {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--space-5);
   grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
-  margin-top: 1rem;
+  margin-top: var(--space-4);
 }
 
 @media (max-width: 40rem) {
@@ -3803,26 +3839,26 @@ footer {
 .play-journal {
   border-top: 1px solid var(--line);
   margin-top: 1.25rem;
-  padding-top: 1rem;
+  padding-top: var(--space-4);
 }
 
 .item-relink h2,
 .play-journal h2 {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   letter-spacing: 0.04em;
   margin: 0 0 0.35rem;
   text-transform: uppercase;
 }
 
 .item-relink p {
-  font-size: 0.75rem;
-  margin: 0 0 0.5rem;
+  font-size: var(--fs-12);
+  margin: 0 0 var(--space-2);
 }
 
 /* The play journal: a compact form, then the logged days. */
 .play-journal-form {
   display: grid;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.35rem;
 }
 
@@ -3833,17 +3869,17 @@ footer {
 
 .play-journal-list {
   display: grid;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.35rem;
   list-style: none;
-  margin: 0.75rem 0 0;
+  margin: var(--space-3) 0 0;
   padding: 0;
 }
 
 .play-journal-list li {
   align-items: baseline;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: 6.5rem 1fr auto;
 }
 
@@ -3853,20 +3889,20 @@ footer {
 }
 
 .item-detail-link {
-  font-size: 0.75rem;
-  margin: 0.5rem 0 0;
+  font-size: var(--fs-12);
+  margin: var(--space-2) 0 0;
 }
 
 .item-detail-form {
   align-items: center;
   display: grid;
-  gap: 0.6rem 0.75rem;
+  gap: 0.6rem var(--space-3);
   grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
 }
 
 .item-detail-form label {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .item-detail-form input,
@@ -3877,7 +3913,7 @@ footer {
   border-radius: 8px;
   color: var(--text);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   padding: 0.4rem 0.6rem;
   width: 100%;
 }
@@ -3900,7 +3936,7 @@ footer {
   display: flex;
   gap: 0.6rem;
   grid-column: 1 / -1;
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 .item-detail-actions button {
@@ -3910,7 +3946,7 @@ footer {
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   padding: 0.4rem 0.8rem;
 }
 
@@ -3928,13 +3964,13 @@ footer {
 .item-playthroughs {
   border-top: 1px solid var(--line);
   margin-top: 1.25rem;
-  padding-top: 1rem;
+  padding-top: var(--space-4);
 }
 
 .item-playthroughs h2 {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   letter-spacing: 0.04em;
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   text-transform: uppercase;
 }
 
@@ -3942,9 +3978,9 @@ footer {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.875rem;
-  gap: 0.5rem;
-  margin: 0 0 0.75rem;
+  font-size: var(--fs-14);
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
 }
 
 .playthroughs-wrap {
@@ -3953,14 +3989,14 @@ footer {
 
 .playthroughs-table {
   border-collapse: collapse;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   width: 100%;
 }
 
 .playthroughs-table th,
 .playthroughs-table td {
   border-bottom: 1px solid var(--line);
-  padding: 0.4rem 0.5rem 0.4rem 0;
+  padding: 0.4rem var(--space-2) 0.4rem 0;
   text-align: left;
   white-space: nowrap;
 }
@@ -3987,7 +4023,7 @@ footer {
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   padding: 0.2rem 0.55rem;
 }
 
@@ -4004,17 +4040,17 @@ footer {
 
 .playthroughs-note,
 .playthroughs-add {
-  font-size: 0.8125rem;
-  margin: 0.5rem 0 0;
+  font-size: var(--fs-13);
+  margin: var(--space-2) 0 0;
 }
 
 .playthroughs-add-form {
   align-items: end;
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  font-size: var(--fs-13);
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .playthroughs-add-form label {
@@ -4040,7 +4076,7 @@ footer {
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   padding: 0.35rem 0.6rem;
 }
 
@@ -4075,7 +4111,7 @@ footer {
    width so the lede does not run the full 72rem of the wide page. */
 .spine-lede {
   color: var(--text-2);
-  font-size: 1.0625rem;
+  font-size: var(--fs-18);
   margin: 0.375rem 0 0;
   max-width: min(45rem, 68ch);
 }
@@ -4089,13 +4125,13 @@ footer {
   min-width: 0;
   border-bottom: 1px solid var(--line);
   margin-bottom: 1.75rem;
-  padding-bottom: 0.25rem;
+  padding-bottom: var(--space-1);
 }
 
 .spine-name {
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 1.75rem;
+  font-size: var(--fs-28);
   font-weight: 500;
   line-height: 1.2;
   margin: 0;
@@ -4112,7 +4148,7 @@ footer {
   display: flex;
   flex-wrap: wrap;
   gap: 1.25rem;
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 /* Phone: one row that scrolls sideways, never wrapping (#192). The right edge
@@ -4125,7 +4161,7 @@ footer {
        would clip it); the margins give the space back. The end padding lets
        the last tab scroll clear of the fade. */
     margin: calc(0.75rem - 4px) -4px -4px;
-    padding: 4px 2rem 4px 4px;
+    padding: var(--space-1) var(--space-6) var(--space-1) var(--space-1);
     scrollbar-width: none;
     -webkit-mask-image: linear-gradient(
       to right,
@@ -4152,7 +4188,7 @@ footer {
   background: none;
   border-bottom: 2px solid transparent;
   border-radius: 0;
-  font-size: 1rem;
+  font-size: var(--fs-16);
   font-weight: 500;
   padding: 0.375rem 0;
 }
@@ -4174,10 +4210,10 @@ footer {
 .spine-tab-badge {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: var(--fs-12);
   font-weight: 500;
   letter-spacing: 0.04em;
-  margin-left: 0.25rem;
+  margin-left: var(--space-1);
   text-transform: uppercase;
   vertical-align: 0.15em;
 }
@@ -4189,8 +4225,8 @@ footer {
 }
 
 .spine-project {
-  font-size: 0.875rem;
-  margin: 0.5rem 0 0;
+  font-size: var(--fs-14);
+  margin: var(--space-2) 0 0;
   max-width: 45rem;
 }
 
@@ -4201,7 +4237,7 @@ footer {
 
 /* The links sit apart as Projects' link row does (1rem gap). */
 .spine-project a + a {
-  margin-inline-start: 0.75rem;
+  margin-inline-start: var(--space-3);
 }
 
 /* Hero numbers: large tabular figures over small uppercase labels. The dt
@@ -4210,15 +4246,15 @@ footer {
 .hero-numbers {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 2.25rem;
-  margin: 1.5rem 0;
+  gap: var(--space-2) 2.25rem;
+  margin: var(--space-5) 0;
 }
 
 /* Four figures (Comics) sit 2x2 on a phone instead of wrapping 3 + 1. */
 @media (max-width: 34rem) {
   .hero-numbers[data-figures='4'] {
     display: grid;
-    gap: 1.25rem 1rem;
+    gap: 1.25rem var(--space-4);
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -4231,14 +4267,14 @@ footer {
 .hero-numbers dd {
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 2.5rem;
+  font-size: var(--fs-40);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .hero-numbers dt {
   color: var(--text-3);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.08em;
   margin-top: 0.35rem;
   text-transform: uppercase;
@@ -4246,8 +4282,8 @@ footer {
 
 .hero-numbers + .hero-sub {
   color: var(--text-3);
-  font-size: 0.875rem;
-  margin: -0.75rem 0 1.5rem;
+  font-size: var(--fs-14);
+  margin: -0.75rem 0 var(--space-5);
 }
 
 .favourites,
@@ -4259,7 +4295,7 @@ footer {
 .favourites h2,
 .now-playing h2,
 .stat-card h2 {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   letter-spacing: 0.04em;
   margin: 0 0 0.6rem;
   text-transform: uppercase;
@@ -4288,8 +4324,8 @@ footer {
 }
 
 .favourites-hint {
-  font-size: 0.8125rem;
-  margin-top: 0.5rem;
+  font-size: var(--fs-13);
+  margin-top: var(--space-2);
 }
 
 /* Now playing: the games I am playing, ahead of everything else on the
@@ -4316,9 +4352,9 @@ footer {
   border-radius: 6px;
   color: var(--text);
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
   height: 100%;
-  padding: 0.75rem;
+  padding: var(--space-3);
   text-decoration: none;
 }
 
@@ -4348,23 +4384,23 @@ footer {
 }
 
 .now-playing-title {
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   font-weight: 600;
   line-height: 1.25;
 }
 
 .now-playing[data-count='1'] .now-playing-title {
-  font-size: 1.375rem;
+  font-size: var(--fs-24);
 }
 
 .now-playing-meta {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 .shelf-stats {
   display: grid;
-  gap: 1.25rem 2rem;
+  gap: 1.25rem var(--space-6);
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 }
 
@@ -4421,8 +4457,8 @@ footer {
 .status-legend {
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.25rem 1rem;
+  font-size: var(--fs-13);
+  gap: var(--space-1) var(--space-4);
   list-style: none;
   margin-top: 0.6rem;
 }
@@ -4493,7 +4529,7 @@ a.month-bar::before {
 .rating-bar-count {
   bottom: 100%;
   color: var(--text-3);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   font-variant-numeric: tabular-nums;
   left: 50%;
   line-height: 1.4;
@@ -4516,7 +4552,7 @@ a.month-bar::before {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -4528,7 +4564,7 @@ a.month-bar::before {
 .bar-axis {
   color: var(--text-3);
   display: flex;
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   justify-content: space-between;
   line-height: 1;
 }
@@ -4543,7 +4579,7 @@ a.month-bar::before {
 }
 
 .cartridge-platform p {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
 }
 
 .stat-big {
@@ -4555,14 +4591,14 @@ a.month-bar::before {
 .stat-big-number {
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 2.25rem;
+  font-size: var(--fs-32);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .stat-big-label {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   white-space: nowrap;
 }
 
@@ -4573,7 +4609,7 @@ a.month-bar::before {
   gap: var(--grid-gap);
   grid-template-columns: repeat(auto-fill, minmax(var(--poster-min), 1fr));
   list-style: none;
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .skeleton-cover,
@@ -4599,29 +4635,29 @@ a.month-bar::before {
 .shelf-toolbar {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .shelf-toolbar-row {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
+  gap: var(--space-3) var(--space-5);
   justify-content: space-between;
 }
 
 .shelf-view-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 0.75rem;
+  gap: 0.4rem var(--space-3);
 }
 
 /* Public item page: the breadcrumb, then the cover beside the title. */
 .item-head {
   align-items: flex-end;
   display: flex;
-  gap: 1.5rem;
-  margin: 0.5rem 0 1.5rem;
+  gap: var(--space-5);
+  margin: var(--space-2) 0 var(--space-5);
   position: relative;
 }
 
@@ -4637,11 +4673,11 @@ a.month-bar::before {
   /* The rest of the row, so a comic's What's next tiles have room. */
   flex: 1 1 auto;
   min-width: 0;
-  padding-bottom: 0.25rem;
+  padding-bottom: var(--space-1);
 }
 
 .item-heading h1 {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
 }
 
 .item-heading p {
@@ -4650,19 +4686,19 @@ a.month-bar::before {
 
 .item-status {
   color: var(--text);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin-top: 0.35rem;
 }
 
 .item-edit {
   display: inline-block;
-  font-size: 0.8125rem;
-  margin-top: 0.5rem;
+  font-size: var(--fs-13);
+  margin-top: var(--space-2);
 }
 
 .item-groups {
   display: grid;
-  gap: 0.6rem 1rem;
+  gap: 0.6rem var(--space-4);
   grid-template-columns: max-content 1fr;
   margin: 0 0 1.25rem;
 }
@@ -4673,7 +4709,7 @@ a.month-bar::before {
 
 .item-groups dt {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   padding-top: 0.2rem;
 }
 
@@ -4692,27 +4728,27 @@ a.month-bar::before {
 
 @media (max-width: 700px) {
   .item-groups {
-    gap: 0.25rem;
+    gap: var(--space-1);
     grid-template-columns: 1fr;
   }
 
   .item-groups dd {
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
   }
 }
 
 /* The owner's copy: its own line, not a chip among the game's genres. */
 .item-copy {
   color: var(--text-2);
-  font-size: 0.9375rem;
-  margin: 0.25rem 0 0;
+  font-size: var(--fs-16);
+  margin: var(--space-1) 0 0;
 }
 
 .item-chip {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   padding: 0.15rem 0.65rem;
 }
 
@@ -4721,7 +4757,7 @@ a.month-bar::before {
 }
 
 .item-description-wrap {
-  margin: 0 0 1.5rem;
+  margin: 0 0 var(--space-5);
   max-width: min(45rem, 68ch);
 }
 
@@ -4737,50 +4773,47 @@ a.month-bar::before {
   overflow: hidden;
 }
 
-.item-tiles {
+.stat-tiles-figures {
   display: grid;
   gap: var(--grid-gap);
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  margin: 0 0 2rem;
+  margin: 0 0 var(--space-6);
 }
 
-.item-tile {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0.85rem 1rem;
+.stat-tile-figures {
+  padding: 0.85rem var(--space-4);
 }
 
-.item-tile dt {
+.stat-tile-figures dt {
   color: var(--text-3);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.08em;
   margin-bottom: 0.35rem;
   text-transform: uppercase;
 }
 
-.item-tile dd {
+.stat-tile-figures dd {
   display: flex;
   flex-direction: column;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.15rem;
 }
 
 .item-ttb {
   align-items: baseline;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: space-between;
 }
 
 .item-tile-figure {
   color: var(--text);
-  font-size: 1rem;
+  font-size: var(--fs-16);
   font-variant-numeric: tabular-nums;
 }
 
 .item-similar h2 {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   letter-spacing: 0.04em;
   margin: 0 0 0.6rem;
   text-transform: uppercase;
@@ -4790,7 +4823,7 @@ a.month-bar::before {
    a right half is the same glyph shifted left inside a half-width box. */
 .quick-rate {
   display: inline-flex;
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   line-height: 1;
 }
 
@@ -4872,9 +4905,9 @@ a.month-bar::before {
   border-radius: 6px;
   color: var(--text);
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   max-width: 100%;
-  padding: 0.1rem 0.25rem;
+  padding: 0.1rem var(--space-1);
 }
 
 .shelf-favourite {
@@ -4882,7 +4915,7 @@ a.month-bar::before {
   border: 0;
   color: var(--text-3);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--fs-16);
   line-height: 1;
   padding: 0 0.15rem;
 }
@@ -4906,7 +4939,7 @@ a.month-bar::before {
   color: var(--accent-ink);
   cursor: pointer;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   line-height: 1.2;
   padding: 0.05rem 0.45rem;
 }
@@ -4919,7 +4952,7 @@ a.month-bar::before {
   color: var(--text-3);
   cursor: pointer;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   line-height: 1.2;
   padding: 0.05rem 0.45rem;
 }
@@ -4942,7 +4975,7 @@ a.month-bar::before {
   align-items: center;
   color: var(--text-3);
   display: inline-flex;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   gap: 0.2rem;
 }
 
@@ -4963,7 +4996,7 @@ a.month-bar::before {
   bottom: 0;
   box-shadow: 0 -8px 24px var(--overlay);
   left: 0;
-  padding: 1rem 1.25rem 1.5rem;
+  padding: var(--space-4) 1.25rem var(--space-5);
   position: fixed;
   right: 0;
   z-index: 10;
@@ -4973,19 +5006,19 @@ a.month-bar::before {
    is 24px wide, WCAG 2.5.8's minimum. */
 .shelf-sheet .quick-rate {
   display: flex;
-  font-size: 3rem;
+  font-size: var(--fs-48);
   justify-content: center;
 }
 
 .shelf-sheet .shelf-actions-row {
-  font-size: 1rem;
-  gap: 1rem;
+  font-size: var(--fs-16);
+  gap: var(--space-4);
   justify-content: center;
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .shelf-sheet .shelf-favourite {
-  font-size: 1.75rem;
+  font-size: var(--fs-28);
 }
 
 .shelf-nudge {
@@ -4995,9 +5028,9 @@ a.month-bar::before {
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
+  gap: var(--space-2) var(--space-3);
   margin: 0 0 1.25rem;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 
 .shelf-nudge p {
@@ -5013,8 +5046,8 @@ a.month-bar::before {
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  margin: 0 0 0.75rem;
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-3);
   padding: 0.6rem 0.9rem;
 }
 
@@ -5022,7 +5055,7 @@ a.month-bar::before {
   align-items: center;
   color: var(--text-3);
   display: flex;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.4rem;
 }
 
@@ -5032,20 +5065,20 @@ a.month-bar::before {
   border-radius: 6px;
   color: var(--text);
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   padding: 0.2rem 0.4rem;
 }
 
 .play-next-status p {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 /* Play Next. Three cards in a row that wraps; the pinned game above them. */
 .play-next-controls {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin: 1.25rem 0 1.5rem;
+  gap: var(--space-2);
+  margin: 1.25rem 0 var(--space-5);
 }
 
 .up-next {
@@ -5055,9 +5088,9 @@ a.month-bar::before {
   border-left: 3px solid var(--status-active);
   border-radius: 8px;
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
   margin: 1.25rem 0;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 
 .up-next-cover {
@@ -5086,13 +5119,13 @@ a.month-bar::before {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 .pick-slot {
   color: var(--accent);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   font-weight: 600;
   letter-spacing: 0.06em;
   margin: 0;
@@ -5109,17 +5142,17 @@ a.month-bar::before {
 }
 
 .pick-card h2 {
-  font-size: 1.125rem;
-  margin: 0 0 0.25rem;
+  font-size: var(--fs-18);
+  margin: 0 0 var(--space-1);
 }
 
 .pick-meta {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.35rem 0.6rem;
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 /* Shared by Play Next and Tonight; the band is text, never colour alone. */
@@ -5127,25 +5160,25 @@ a.month-bar::before {
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   color: var(--text);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   line-height: 1.5;
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
 }
 
 .pick-reasons {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
   padding-left: 1.1rem;
 }
 
 .pick-reasons li + li {
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
 .pick-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin-top: auto;
 }
 
@@ -5158,14 +5191,14 @@ a.month-bar::before {
 
 .pick-play-hint {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 
 .play-next-empty {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 /* Shelf filters and sort. Chips are buttons with aria-pressed; the pressed
@@ -5173,7 +5206,7 @@ a.month-bar::before {
 .chip-rows {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .chip-row,
@@ -5190,9 +5223,9 @@ a.month-bar::before {
   color: var(--text-2);
   cursor: pointer;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   line-height: 1.4;
-  padding: 0.25rem 0.7rem;
+  padding: var(--space-1) 0.7rem;
   white-space: nowrap;
 }
 
@@ -5228,7 +5261,7 @@ a.month-bar::before {
   align-items: center;
   color: var(--text-3);
   display: flex;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.4rem;
 }
 
@@ -5238,8 +5271,8 @@ a.month-bar::before {
   border-radius: 8px;
   color: var(--text);
   font: inherit;
-  font-size: 0.875rem;
-  padding: 0.3rem 0.5rem;
+  font-size: var(--fs-14);
+  padding: 0.3rem var(--space-2);
 }
 
 /* The shelf grid. --poster-min is declared here so markup without a data-size
@@ -5357,7 +5390,7 @@ a.month-bar::before {
   bottom: 0.4rem;
   color: var(--text-3);
   display: flex;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   font-weight: 600;
   height: 1.1rem;
   justify-content: center;
@@ -5377,7 +5410,7 @@ a.month-bar::before {
   bottom: 0.4rem;
   color: var(--text);
   display: flex;
-  font: 500 0.6875rem var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
   height: 1.1rem;
   left: 0.4rem;
   line-height: 1;
@@ -5391,7 +5424,7 @@ a.month-bar::before {
   background: var(--overlay);
   bottom: 0;
   color: var(--text);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   left: 0;
   letter-spacing: 0.04em;
   padding: 0.2rem 1.9rem 0.2rem 0.45rem;
@@ -5402,7 +5435,7 @@ a.month-bar::before {
 
 .poster-heart {
   color: var(--rating);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   line-height: 1;
   position: absolute;
   right: 0.4rem;
@@ -5416,7 +5449,7 @@ a.month-bar::before {
   -webkit-line-clamp: 2;
   color: var(--text);
   display: -webkit-box;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   line-clamp: 2;
   line-height: 1.3;
   margin: 0.4rem 0 0;
@@ -5424,7 +5457,7 @@ a.month-bar::before {
 }
 
 .poster-meta {
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   margin: 0.15rem 0 0;
 }
 
@@ -5433,7 +5466,7 @@ a.month-bar::before {
 .rating {
   color: var(--text);
   display: inline-block;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   white-space: nowrap;
@@ -5445,7 +5478,7 @@ a.month-bar::before {
 }
 
 .rating-large {
-  font-size: 1.5rem;
+  font-size: var(--fs-24);
   font-weight: 400;
 }
 
@@ -5458,9 +5491,9 @@ a.month-bar::before {
 .attribution {
   border-top: 1px solid var(--line);
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   margin-top: 2.5rem;
-  padding-top: 1rem;
+  padding-top: var(--space-4);
 }
 
 .attribution p {
@@ -5482,13 +5515,13 @@ a.month-bar::before {
 .item-table th,
 .item-table td {
   border-bottom: 1px solid var(--line);
-  padding: 0.5rem 0.7rem;
+  padding: var(--space-2) 0.7rem;
   text-align: left;
 }
 
 .item-table th {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -5504,7 +5537,7 @@ a.month-bar::before {
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   padding: 0.4rem 0.7rem;
 }
 
@@ -5528,7 +5561,7 @@ a.month-bar::before {
 
 .catalogue-table th[scope='row'] {
   color: var(--text);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
@@ -5539,7 +5572,7 @@ a.month-bar::before {
   border-radius: 999px;
   color: var(--bg);
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   font-weight: 700;
   line-height: 1.25rem;
   margin-left: 0.4rem;
@@ -5563,14 +5596,14 @@ a.month-bar::before {
 .needs-match-row,
 .disagreement-list li {
   border-bottom: 1px solid var(--line);
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .needs-match-candidates {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
 }
 
 .needs-match-controls select {
@@ -5579,14 +5612,14 @@ a.month-bar::before {
   border-radius: 8px;
   color: var(--text);
   font: inherit;
-  font-size: 0.875rem;
-  margin-right: 0.5rem;
+  font-size: var(--fs-14);
+  margin-right: var(--space-2);
   padding: 0.4rem 0.6rem;
 }
 
 /* The registry line sits under the format select, in the field column. */
 .registry-line {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   grid-column: 2;
 }
 
@@ -5602,9 +5635,9 @@ a.month-bar::before {
 
 .run-errors {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   list-style: none;
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
   padding: 0;
 }
 
@@ -5614,8 +5647,8 @@ a.month-bar::before {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  margin: 0 0 1rem;
+  gap: var(--space-2) var(--space-5);
+  margin: 0 0 var(--space-4);
 }
 
 .hero-numbers.hero-numbers-line {
@@ -5631,13 +5664,13 @@ a.month-bar::before {
 }
 
 .hero-numbers-line dd {
-  font-size: 1rem;
+  font-size: var(--fs-16);
   font-weight: 600;
 }
 
 .hero-numbers-line dt {
   color: var(--text-2);
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   letter-spacing: 0;
   margin: 0;
   text-transform: lowercase;
@@ -5646,7 +5679,7 @@ a.month-bar::before {
 .shelf-links {
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 0.1rem 1.1rem;
   margin: 0;
 }
@@ -5660,32 +5693,32 @@ a.month-bar::before {
 .shelf-toolbar.controls {
   border-block: 1px solid var(--line);
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin: 0;
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .chip-rows-labelled {
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .ctl-row {
   align-items: baseline;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: 4.25rem minmax(0, 1fr);
 }
 
 .ctl-label {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .ctl-split {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
+  gap: var(--space-2) var(--space-5);
   justify-content: space-between;
 }
 
@@ -5695,21 +5728,21 @@ a.month-bar::before {
 
 .view-lab {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .resultbar {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1.5rem;
+  gap: 0.4rem var(--space-5);
   justify-content: space-between;
-  margin: 0.75rem 0 1rem;
+  margin: var(--space-3) 0 var(--space-4);
 }
 
 .result {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
 }
 
@@ -5741,7 +5774,7 @@ a.month-bar::before {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   gap: 0.2rem 0.9rem;
   list-style: none;
   margin: 0;
@@ -5750,7 +5783,7 @@ a.month-bar::before {
 
 /* Above a grid on its own (the month journal), not inside the result bar. */
 section > .cover-key {
-  margin: 0.25rem 0 0.75rem;
+  margin: var(--space-1) 0 var(--space-3);
 }
 
 .cover-key li {
@@ -5780,24 +5813,24 @@ section > .cover-key {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.875rem;
-  gap: 0.6rem 1rem;
+  font-size: var(--fs-14);
+  gap: 0.6rem var(--space-4);
   justify-content: center;
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .shelf-overview {
   border-top: 1px solid var(--line);
   margin-top: 2.5rem;
-  padding-top: 1.5rem;
+  padding-top: var(--space-5);
 }
 
 .shelf-overview > h2 {
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
 }
 
 .shelf-overview .favourites {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-5);
 }
 
 .disclosure {
@@ -5809,10 +5842,10 @@ section > .cover-key {
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   justify-content: space-between;
-  margin-bottom: 1rem;
-  padding: 0.5rem 0.75rem;
+  margin-bottom: var(--space-4);
+  padding: var(--space-2) var(--space-3);
   width: 100%;
 }
 
@@ -5831,8 +5864,8 @@ section > .cover-key {
 
 .shelf-behind {
   color: var(--text-3);
-  font-size: 0.8125rem;
-  margin: 1.5rem 0 0;
+  font-size: var(--fs-13);
+  margin: var(--space-5) 0 0;
 }
 
 /* A link inside a sentence is told apart by more than its colour. */
@@ -5876,9 +5909,9 @@ section > .cover-key {
     flex-wrap: nowrap;
     overflow-x: auto;
     margin-top: -0.25rem;
-    padding-bottom: 0.25rem;
-    padding-right: 2rem;
-    padding-top: 0.25rem;
+    padding-bottom: var(--space-1);
+    padding-right: var(--space-6);
+    padding-top: var(--space-1);
     scroll-padding-inline-end: 2rem;
   }
 
@@ -5899,7 +5932,7 @@ section > .cover-key {
 
   /* The cover shrinks so the title still fits beside it. */
   .item-head {
-    gap: 1rem;
+    gap: var(--space-4);
   }
 
   .item-cover {
@@ -5919,8 +5952,8 @@ section > .cover-key {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
-  margin: 1.25rem 0 0.5rem;
+  gap: var(--space-3);
+  margin: 1.25rem 0 var(--space-2);
 }
 
 .radar-header button,
@@ -5931,7 +5964,7 @@ section > .cover-key {
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   padding: 0.4rem 0.7rem;
 }
 
@@ -5942,8 +5975,8 @@ section > .cover-key {
 }
 
 .radar-month {
-  font-size: 1rem;
-  margin: 1.25rem 0 0.5rem;
+  font-size: var(--fs-16);
+  margin: 1.25rem 0 var(--space-2);
 }
 
 .radar-cards {
@@ -5955,8 +5988,8 @@ section > .cover-key {
 .radar-card {
   display: grid;
   grid-template-columns: 5.5rem 1fr;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  gap: var(--space-3);
+  padding: var(--space-3);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -5968,8 +6001,8 @@ section > .cover-key {
 }
 
 .radar-body h3 {
-  font-size: 1rem;
-  margin: 0 0 0.25rem;
+  font-size: var(--fs-16);
+  margin: 0 0 var(--space-1);
 }
 
 .radar-body p {
@@ -5978,9 +6011,9 @@ section > .cover-key {
 
 .radar-reasons,
 .radar-stores {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   padding-left: 1.1rem;
-  font-size: 0.9rem;
+  font-size: var(--fs-14);
 }
 
 .radar-actions {
@@ -5990,7 +6023,7 @@ section > .cover-key {
 }
 
 .radar-digital {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .radar-digital summary {
@@ -6000,24 +6033,24 @@ section > .cover-key {
 
 .radar-digital summary .radar-summary-title {
   display: inline;
-  font-size: 1.25rem;
+  font-size: var(--fs-20);
 }
 
 .radar-watch-note {
-  font-size: 0.85rem;
-  margin: 0.25rem 0 0;
+  font-size: var(--fs-14);
+  margin: var(--space-1) 0 0;
 }
 
 /* Discover (/admin/discover): Radar's cards, with controls and Rate a few. */
 .rec-genres {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   padding: 0;
 }
 
 .discover-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem 1.5rem;
+  gap: var(--space-4) var(--space-5);
   margin-top: 1.25rem;
 }
 
@@ -6033,30 +6066,30 @@ section > .cover-key {
 }
 
 .discover-choice label {
-  margin-right: 0.75rem;
+  margin-right: var(--space-3);
 }
 
 .discover-choice p {
-  font-size: 0.85rem;
+  font-size: var(--fs-14);
   margin: 0.4rem 0 0;
 }
 
 .rate-a-few {
-  margin: 1.5rem 0;
-  padding: 0.75rem 1rem;
+  margin: var(--space-5) 0;
+  padding: var(--space-3) var(--space-4);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
 }
 
 .rate-a-few h2 {
-  font-size: 1.1rem;
-  margin: 0 0 0.25rem;
+  font-size: var(--fs-18);
+  margin: 0 0 var(--space-1);
 }
 
 .rate-a-few-table {
   border-collapse: collapse;
-  margin: 0.75rem 0;
+  margin: var(--space-3) 0;
   max-width: 45rem;
   width: 100%;
 }
@@ -6071,7 +6104,7 @@ section > .cover-key {
 .rate-a-few-table thead th {
   border-bottom: 1px solid var(--line);
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   font-weight: 600;
 }
 
@@ -6100,12 +6133,12 @@ section > .cover-key {
 .rate-a-few-platform,
 .rate-a-few-score {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 .rate-a-few-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .rate-a-few-actions button {
@@ -6115,7 +6148,7 @@ section > .cover-key {
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   padding: 0.4rem 0.7rem;
 }
 
@@ -6126,12 +6159,12 @@ section > .cover-key {
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
 }
 
 .store-list-section {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 /* The store list's rows are What's next's shared row (.next-row), with the
@@ -6143,10 +6176,10 @@ section > .cover-key {
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   min-height: 44px;
   min-width: 44px;
-  padding: 0.5rem 1rem;
+  padding: var(--space-2) var(--space-4);
 }
 
 /* The status line takes focus when the last answered row leaves. */
@@ -6176,17 +6209,17 @@ section > .cover-key {
    width: the page sits in the wide Spine layout so its header matches the
    shelf's, but the rows are capped at the prose width. */
 .next-title {
-  font-size: 1.75rem;
+  font-size: var(--fs-28);
   margin: 0;
 }
 
 .next-fresh {
-  font-size: 0.875rem;
-  margin: 0.5rem 0 0;
+  font-size: var(--fs-14);
+  margin: var(--space-2) 0 0;
 }
 
 .next-section {
-  margin-top: 2rem;
+  margin-top: var(--space-6);
 }
 
 /* The jump links point at the headings, so the margin sits on them (a scroll
@@ -6205,7 +6238,7 @@ section > .cover-key {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 1rem;
+  gap: var(--space-1) var(--space-4);
 }
 
 .next-section-head h2 {
@@ -6228,7 +6261,7 @@ section > .cover-key {
 .jump-nav {
   background: var(--bg);
   border-bottom: 1px solid var(--line);
-  margin: 1rem 0 0;
+  margin: var(--space-4) 0 0;
   position: sticky;
   top: env(safe-area-inset-top, 0px);
   z-index: 5;
@@ -6236,12 +6269,12 @@ section > .cover-key {
 
 .jump-nav ul {
   display: flex;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 1.25rem;
   list-style: none;
   margin: 0;
   overflow-x: auto;
-  padding: 0.6rem 4px;
+  padding: 0.6rem var(--space-1);
   scrollbar-width: none;
 }
 
@@ -6272,7 +6305,7 @@ section > .cover-key {
 
 @media (max-width: 700px) {
   .jump-nav ul {
-    padding-right: 2rem;
+    padding-right: var(--space-6);
     -webkit-mask-image: linear-gradient(
       to right,
       #000 calc(100% - 2rem),
@@ -6293,8 +6326,8 @@ section > .cover-key {
 .store-list-section h2,
 .radar > h2,
 .pull-list-week h2 {
-  font-size: 1.375rem;
-  margin: 0 0 0.5rem;
+  font-size: var(--fs-24);
+  margin: 0 0 var(--space-2);
 }
 
 /* Radar's and Discover's headings sit in the page's own flow, not in a
@@ -6302,23 +6335,23 @@ section > .cover-key {
    section's space above. */
 .radar > h2,
 .pull-list-week {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .next-section > p {
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 .next-group h3 {
-  font-size: 1.0625rem;
+  font-size: var(--fs-18);
   margin: 1.25rem 0 0;
 }
 
 .next-rows {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   list-style: none;
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   padding: 0;
 }
 
@@ -6337,13 +6370,13 @@ section > .cover-key {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  column-gap: 0.75rem;
+  column-gap: var(--space-3);
   display: grid;
   grid-auto-columns: auto;
   grid-template-columns: 3rem minmax(0, 1fr);
   grid-template-rows: auto 1fr;
-  padding: 0.75rem;
-  row-gap: 0.25rem;
+  padding: var(--space-3);
+  row-gap: var(--space-1);
 }
 
 .next-row-link {
@@ -6376,7 +6409,7 @@ section > .cover-key {
 .next-row-title {
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   line-height: 1.3;
 }
 
@@ -6384,19 +6417,19 @@ section > .cover-key {
    the other picks under it. The owner's buttons are siblings of the title
    link, never inside it. */
 .tonight .btn {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   min-height: 36px;
 }
 
 .tonight-just {
   align-items: center;
   color: var(--text-2);
-  column-gap: 0.5rem;
+  column-gap: var(--space-2);
   display: grid;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   grid-template-columns: 1.4rem auto minmax(0, 1fr);
   line-height: 1.4;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
 }
 
 .tonight-just-thumb {
@@ -6504,7 +6537,7 @@ section > .cover-key {
 .tonight-title {
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 1rem;
+  font-size: var(--fs-16);
   font-weight: 600;
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -6522,7 +6555,7 @@ section > .cover-key {
 }
 
 .tonight-lead .tonight-title {
-  font-size: 1.5rem;
+  font-size: var(--fs-24);
   line-height: 1.2;
 }
 
@@ -6531,26 +6564,26 @@ section > .cover-key {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.4rem 0.6rem;
 }
 
 .tonight-reasons {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
   list-style: disc;
   padding-left: 1.1rem;
 }
 
 .tonight-alt .tonight-reasons {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .tonight-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .tonight-playing {
@@ -6558,7 +6591,7 @@ section > .cover-key {
   align-self: center;
   color: var(--ok);
   display: inline-flex;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   font-weight: 600;
   gap: 0.4rem;
 }
@@ -6575,7 +6608,7 @@ section > .cover-key {
    Now playing band's rule, so the two read as one thing. */
 .tonight-continuing {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -6585,7 +6618,7 @@ section > .cover-key {
 }
 .tonight-sessions {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
 }
 .tonight-sessions b {
@@ -6601,7 +6634,7 @@ section > .cover-key {
 }
 .tonight-ask {
   color: var(--text-3);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin-right: auto;
 }
 /* "Or instead" as a compact list while a Continue card leads. */
@@ -6609,14 +6642,14 @@ section > .cover-key {
   align-items: baseline;
   color: var(--text-3);
   display: flex;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   justify-content: space-between;
   letter-spacing: 0.04em;
-  margin: 1.1rem 0 0.5rem;
+  margin: 1.1rem 0 var(--space-2);
   text-transform: uppercase;
 }
 .picks-h .muted {
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -6630,10 +6663,10 @@ section > .cover-key {
 }
 .picklist > li {
   align-items: start;
-  column-gap: 0.75rem;
+  column-gap: var(--space-3);
   display: grid;
   grid-template-columns: 2.6rem minmax(0, 1fr) auto;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 .picklist > li + li {
   border-top: 1px solid var(--line);
@@ -6654,11 +6687,11 @@ section > .cover-key {
 .picklist-text {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
   min-width: 0;
 }
 .picklist .tonight-title {
-  font-size: 1rem;
+  font-size: var(--fs-16);
 }
 .picklist .tonight-reasons {
   margin: 0;
@@ -6669,11 +6702,11 @@ section > .cover-key {
   gap: 0.35rem;
 }
 
-/* The Wrap up sheet and the generic Sheet (components/Sheet.jsx): a native
-   dialog, centred on desktop and anchored to the bottom on a phone (Tonight
-   continue spec). Backdrop in --overlay as the other sheets. */
-.sheet,
-.wrap-sheet {
+/* Sheet (components/Sheet.jsx), the shell the Wrap up sheet and the other
+   dialogs use: a native dialog, centred on desktop and anchored to the
+   bottom on a phone (Tonight continue spec). Backdrop in --overlay as the
+   other sheets. */
+.sheet {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -6686,32 +6719,31 @@ section > .cover-key {
   padding: 0;
   width: calc(100% - 2rem);
 }
-.sheet::backdrop,
-.wrap-sheet::backdrop {
+.sheet::backdrop {
   background: var(--overlay);
 }
 .wrap-sheet-body {
   display: grid;
-  gap: 1rem;
-  padding: 1rem 1.1rem 1.1rem;
+  gap: var(--space-4);
+  padding: var(--space-4) 1.1rem 1.1rem;
 }
 .wrap-sheet-head {
   align-items: center;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: 2.6rem minmax(0, 1fr) auto;
 }
-.wrap-sheet-heading h3 {
-  font-size: 1.125rem;
+.wrap-sheet-heading h2 {
+  font-size: var(--fs-18);
   margin: 0;
 }
 .wrap-sheet-heading p {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin: 0.15rem 0 0;
 }
 .wrap-outcome {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .wrap-outcome button {
@@ -6723,7 +6755,7 @@ section > .cover-key {
   display: grid;
   font: inherit;
   gap: 0.2rem;
-  padding: 0.7rem 0.75rem;
+  padding: 0.7rem var(--space-3);
   text-align: left;
 }
 .wrap-outcome button:hover {
@@ -6749,19 +6781,20 @@ section > .cover-key {
 }
 .wrap-outcome small {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 .wrap-fresh {
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   padding-top: 0.9rem;
 }
-.wrap-fresh h4 {
+.wrap-fresh h3 {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   font-weight: 600;
   letter-spacing: 0.06em;
+  line-height: inherit;
   margin: 0;
   text-transform: uppercase;
 }
@@ -6771,7 +6804,7 @@ section > .cover-key {
 }
 .wrap-label {
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 .wrap-field textarea,
 .wrap-field input[type='date'] {
@@ -6790,7 +6823,7 @@ section > .cover-key {
 }
 .wrap-hint {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 .wrap-sheet-foot {
   align-items: center;
@@ -6800,11 +6833,11 @@ section > .cover-key {
   justify-content: space-between;
 }
 .wrap-sheet-foot .muted {
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 .wrap-sheet-acts {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin-left: auto;
 }
 /* The band's Wrap up button, a sibling of the card link. */
@@ -6821,15 +6854,15 @@ section > .cover-key {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.25rem 0.75rem;
+  font-size: var(--fs-13);
+  gap: var(--space-1) var(--space-3);
   justify-content: space-between;
   letter-spacing: 0.04em;
-  margin: 1.1rem 0 0.5rem;
+  margin: 1.1rem 0 var(--space-2);
   text-transform: uppercase;
 }
 .tonight-alts-h .muted {
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -6842,18 +6875,18 @@ section > .cover-key {
 .lane-h {
   align-items: baseline;
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
   justify-content: space-between;
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 .lane-h h3 {
-  font-size: 1rem;
+  font-size: var(--fs-16);
   font-weight: 600;
   margin: 0;
 }
 .live-cap {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 /* A comic's read-through: a short bar filled to --p. */
 .progress {
@@ -6882,9 +6915,9 @@ section > .cover-key {
   border: 1px dashed var(--line-strong);
   border-radius: 10px;
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
-  padding: 0.9rem 1rem;
+  padding: 0.9rem var(--space-4);
 }
 .empty-box a {
   white-space: nowrap;
@@ -6904,10 +6937,10 @@ section > .cover-key {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  column-gap: 0.75rem;
+  column-gap: var(--space-3);
   display: grid;
   grid-template-columns: 3rem minmax(0, 1fr);
-  padding: 0.75rem;
+  padding: var(--space-3);
   row-gap: 0.3rem;
 }
 
@@ -6931,10 +6964,10 @@ section > .cover-key {
   border-radius: 8px;
   color: var(--text-2);
   display: flex;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 0.6rem;
   justify-content: space-between;
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem var(--space-3);
 }
 
 .tonight-toast strong {
@@ -6945,7 +6978,7 @@ section > .cover-key {
   align-items: center;
   color: var(--text-3);
   display: flex;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   gap: 0.4rem;
   margin: 0.9rem 0 0;
 }
@@ -6966,7 +6999,7 @@ section > .cover-key {
   }
 
   .tonight-lead .tonight-title {
-    font-size: 1.25rem;
+    font-size: var(--fs-20);
   }
 
   .tonight-lead > .tonight-acts {
@@ -6986,8 +7019,7 @@ section > .cover-key {
     flex-basis: 100%;
   }
 
-  .sheet,
-  .wrap-sheet {
+  .sheet {
     border-bottom: 0;
     border-radius: 14px 14px 0 0;
     margin: auto 0 0;
@@ -7008,7 +7040,7 @@ section > .cover-key {
 
   .picklist > li {
     grid-template-columns: 2.6rem minmax(0, 1fr);
-    row-gap: 0.5rem;
+    row-gap: var(--space-2);
   }
 
   .picklist > li > .tonight-acts {
@@ -7020,7 +7052,7 @@ section > .cover-key {
 .next-row-text {
   align-content: start;
   display: grid;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 0.35rem;
   grid-column: 2;
   grid-row: 2;
@@ -7045,7 +7077,7 @@ section > .cover-key {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   line-height: 1.4;
   padding: 0.05rem 0.55rem;
 }
@@ -7056,8 +7088,8 @@ section > .cover-key {
 
 /* Top pick rides the title's line, as the mockup draws it. */
 .next-badge-inline {
-  font-size: 0.6875rem;
-  margin-left: 0.5rem;
+  font-size: var(--fs-12);
+  margin-left: var(--space-2);
   vertical-align: 0.1em;
   white-space: nowrap;
 }
@@ -7066,21 +7098,21 @@ section > .cover-key {
   align-self: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-column: 3;
   grid-row: 1 / 3;
 }
 
 .next-section .sort-control {
-  margin: 0.25rem 0 0.25rem;
+  margin: var(--space-1) 0 var(--space-1);
 }
 
 /* Not on cartridge stays closed by default. The summary is the native
    disclosure control, so it is focusable without a tabindex. */
 .next-skip {
   border-top: 1px solid var(--line);
-  margin-top: 2rem;
-  padding-top: 0.5rem;
+  margin-top: var(--space-6);
+  padding-top: var(--space-2);
 }
 
 .next-skip summary {
@@ -7088,8 +7120,8 @@ section > .cover-key {
   color: var(--text);
   cursor: pointer;
   font-family: var(--font-sans);
-  font-size: 1.125rem;
-  padding: 0.5rem 0;
+  font-size: var(--fs-18);
+  padding: var(--space-2) 0;
 }
 
 .next-skip summary:focus-visible {
@@ -7098,14 +7130,14 @@ section > .cover-key {
 }
 
 .next-skip > p {
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 @media (max-width: 34rem) {
   .next-row-actions {
     grid-column: 1 / -1;
     grid-row: 3;
-    margin-top: 0.5rem;
+    margin-top: var(--space-2);
   }
 }
 
@@ -7117,7 +7149,7 @@ section > .cover-key {
   border-radius: 6px;
   color: var(--text);
   left: 1rem;
-  padding: 0.5rem 0.9rem;
+  padding: var(--space-2) 0.9rem;
   position: absolute;
   top: -10rem;
   z-index: 100;
@@ -7137,8 +7169,8 @@ main h1[tabindex='-1']:focus,
 
 .route-error {
   display: grid;
-  gap: 0.75rem;
-  padding-block: 2rem;
+  gap: var(--space-3);
+  padding-block: var(--space-6);
 }
 
 /* Motion is decoration here: card lifts, fades and reveals all stop for
@@ -7158,7 +7190,7 @@ main h1[tabindex='-1']:focus,
 
 .shelf-search {
   display: block;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   max-width: 24rem;
 }
 
@@ -7182,20 +7214,20 @@ main h1[tabindex='-1']:focus,
 .now h2,
 .colophon h2,
 .site-stats h2 {
-  font-size: 1.15rem;
-  margin: 2rem 0 0.75rem;
+  font-size: var(--fs-18);
+  margin: var(--space-6) 0 var(--space-3);
 }
 
 /* /stats: the admin analytics components (.stat-tiles, .day-bars,
    .bar-list) in the 45rem column. The bars use --chart,
    measured beside the tokens; no new colour. */
 .site-stats .stat-tiles {
-  margin: 1.5rem 0 0;
+  margin: var(--space-5) 0 0;
 }
 
 .site-stats-status {
-  font-size: 0.8125rem;
-  margin: 0.75rem 0 0;
+  font-size: var(--fs-13);
+  margin: var(--space-3) 0 0;
 }
 
 /* The thirty bars share the column at any width (.day-bar flexes); the
@@ -7206,7 +7238,7 @@ main h1[tabindex='-1']:focus,
 
 .site-stats-lists {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--space-5);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -7216,12 +7248,12 @@ main h1[tabindex='-1']:focus,
 }
 
 .site-stats-lists h2 {
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
 }
 
 .site-stats-lists .kicker {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
 }
 
 /* Three lists share the column, so a row is the label above its bar and
@@ -7229,7 +7261,7 @@ main h1[tabindex='-1']:focus,
    and host short. */
 .site-stats-lists .bar-list li {
   grid-template-columns: minmax(0, 1fr) 3rem;
-  row-gap: 4px;
+  row-gap: var(--space-1);
 }
 
 .site-stats-lists .bar-list-label {
@@ -7244,21 +7276,21 @@ main h1[tabindex='-1']:focus,
 
 .changelog > li {
   border-top: 1px solid var(--line);
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .changelog time {
   color: var(--text-2);
-  font: 0.78125rem var(--font-mono);
+  font: var(--fs-13) var(--font-mono);
 }
 
 .changelog ul {
-  margin: 0.25rem 0 0;
+  margin: var(--space-1) 0 0;
   padding-left: 1.1rem;
 }
 
 .changelog li + li {
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
 @media (max-width: 700px) {
@@ -7270,7 +7302,7 @@ main h1[tabindex='-1']:focus,
 /* After a replayed finish's title on Now and the review pages. */
 .again-tag {
   color: var(--text-2);
-  font: 500 0.75rem var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
   margin-left: 0.15rem;
 }
 
@@ -7287,19 +7319,19 @@ main h1[tabindex='-1']:focus,
 /* ---------- Year in review ---------- */
 
 .year-review h1 {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .year-review h2 {
-  font-size: 1.15rem;
-  margin: 2rem 0 0.75rem;
+  font-size: var(--fs-18);
+  margin: var(--space-6) 0 var(--space-3);
 }
 
 .year-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
 }
 
 .year-nav [aria-current='page'] {
@@ -7308,7 +7340,7 @@ main h1[tabindex='-1']:focus,
 }
 
 .month-nav {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 .month-index {
@@ -7316,7 +7348,7 @@ main h1[tabindex='-1']:focus,
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   list-style: none;
-  margin: 1rem 0 0.5rem;
+  margin: var(--space-4) 0 var(--space-2);
   max-width: 45rem;
   padding: 0;
 }
@@ -7325,7 +7357,7 @@ main h1[tabindex='-1']:focus,
   border-bottom: 2px solid transparent;
   color: var(--text-3);
   display: grid;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   justify-items: center;
   line-height: 1.3;
   padding: 0.45rem 0 0.35rem;
@@ -7336,7 +7368,7 @@ main h1[tabindex='-1']:focus,
 }
 
 .month-index small {
-  font: 500 0.625rem var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
 }
 
 .month-index [aria-current] {
@@ -7347,8 +7379,8 @@ main h1[tabindex='-1']:focus,
 
 .month-step {
   display: flex;
-  font-size: 0.875rem;
-  gap: 1rem;
+  font-size: var(--fs-14);
+  gap: var(--space-4);
   justify-content: space-between;
   margin: 0;
   max-width: 45rem;
@@ -7356,7 +7388,7 @@ main h1[tabindex='-1']:focus,
 
 .month-days {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   list-style: none;
   margin: 0;
   max-width: 45rem;
@@ -7366,8 +7398,8 @@ main h1[tabindex='-1']:focus,
 .month-days > li > time {
   color: var(--text-3);
   display: block;
-  font-size: 0.8125rem;
-  margin-bottom: 0.25rem;
+  font-size: var(--fs-13);
+  margin-bottom: var(--space-1);
 }
 
 .month-days .year-diary li {
@@ -7377,19 +7409,19 @@ main h1[tabindex='-1']:focus,
 .year-numbers {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem 2.5rem;
-  margin: 1.5rem 0 0;
+  gap: var(--space-4) 2.5rem;
+  margin: var(--space-5) 0 0;
 }
 
 .year-numbers dt {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .year-numbers dd {
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 2rem;
+  font-size: var(--fs-32);
   font-variant-numeric: tabular-nums;
   margin: 0;
 }
@@ -7405,7 +7437,7 @@ main h1[tabindex='-1']:focus,
 .year-columns {
   align-items: start;
   display: grid;
-  gap: 0 3rem;
+  gap: 0 var(--space-7);
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -7446,7 +7478,7 @@ main h1[tabindex='-1']:focus,
 
 .year-diary li {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: 4.5rem 1fr auto;
 }
 
@@ -7459,7 +7491,7 @@ main h1[tabindex='-1']:focus,
 .year-diary-title {
   align-items: center;
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .year-diary li:has(.year-diary-cover) {
@@ -7477,13 +7509,13 @@ main h1[tabindex='-1']:focus,
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 0.875rem 1rem;
+  padding: 0.875rem var(--space-4);
 }
 
 .tour-live-caption {
   color: var(--text-3);
-  font-size: 0.8125rem;
-  margin: 0.5rem 0 0;
+  font-size: var(--fs-13);
+  margin: var(--space-2) 0 0;
 }
 
 .tour-capture {
@@ -7501,9 +7533,9 @@ main h1[tabindex='-1']:focus,
   color: var(--text-3);
   display: flex;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   gap: 0.375rem;
-  padding: 0.45rem 0.75rem;
+  padding: 0.45rem var(--space-3);
 }
 
 .tour-capture-dot {
@@ -7529,7 +7561,7 @@ main h1[tabindex='-1']:focus,
 }
 
 .tour-capture-body {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   padding: 0.875rem;
 }
 
@@ -7542,8 +7574,8 @@ main h1[tabindex='-1']:focus,
   border-top: 1px solid var(--line);
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  padding: 0.5rem 0.75rem;
+  font-size: var(--fs-12);
+  padding: var(--space-2) var(--space-3);
 }
 
 /* Only the table scrolls sideways, never the page (AC9). */
@@ -7553,7 +7585,7 @@ main h1[tabindex='-1']:focus,
 
 .tour-capture-table {
   border-collapse: collapse;
-  font-size: 0.78125rem;
+  font-size: var(--fs-13);
   width: 100%;
 }
 
@@ -7561,10 +7593,10 @@ main h1[tabindex='-1']:focus,
   border-bottom: 1px solid var(--line);
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   font-weight: 500;
   letter-spacing: 0.05em;
-  padding: 0.375rem 0.5rem;
+  padding: 0.375rem var(--space-2);
   text-align: left;
   text-transform: uppercase;
   white-space: nowrap;
@@ -7573,7 +7605,7 @@ main h1[tabindex='-1']:focus,
 .tour-capture-table td {
   border-bottom: 1px solid var(--line);
   color: var(--text-2);
-  padding: 0.45rem 0.5rem;
+  padding: 0.45rem var(--space-2);
   vertical-align: top;
 }
 
@@ -7588,7 +7620,7 @@ main h1[tabindex='-1']:focus,
   border-radius: 999px;
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   font-weight: 500;
   padding: 0.1rem 0.45rem;
   white-space: nowrap;
@@ -7617,8 +7649,8 @@ main h1[tabindex='-1']:focus,
 
 .tour-kv {
   display: grid;
-  font-size: 0.8125rem;
-  gap: 0.25rem 0.875rem;
+  font-size: var(--fs-13);
+  gap: var(--space-1) 0.875rem;
   grid-template-columns: max-content 1fr;
   margin: 0;
 }
@@ -7630,7 +7662,7 @@ main h1[tabindex='-1']:focus,
 .tour-kv dt {
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.05em;
   padding-top: 0.2rem;
   text-transform: uppercase;
@@ -7644,10 +7676,10 @@ main h1[tabindex='-1']:focus,
 .tour-bar-row {
   align-items: center;
   display: grid;
-  font-size: 0.78125rem;
+  font-size: var(--fs-13);
   gap: 0.625rem;
   grid-template-columns: 7.5rem 1fr 2.5rem;
-  padding: 0.25rem 0;
+  padding: var(--space-1) 0;
 }
 
 .tour-bar {
@@ -7678,7 +7710,7 @@ main h1[tabindex='-1']:focus,
 
 .tour-lede {
   color: var(--text-2);
-  font-size: 1.0625rem;
+  font-size: var(--fs-18);
   max-width: min(45rem, 68ch);
 }
 
@@ -7691,7 +7723,7 @@ main h1[tabindex='-1']:focus,
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-rows: repeat(3, auto);
   list-style: none;
-  margin: 1.5rem 0 0.5rem;
+  margin: var(--space-5) 0 var(--space-2);
   padding: 0;
 }
 
@@ -7703,7 +7735,7 @@ main h1[tabindex='-1']:focus,
   align-items: baseline;
   color: var(--text);
   display: grid;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 0.625rem;
   grid-template-columns: 2rem 1fr auto;
   padding: 0.5625rem 0;
@@ -7712,13 +7744,13 @@ main h1[tabindex='-1']:focus,
 .tour-toc-n {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 
 .tour-toc-where {
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -7731,7 +7763,7 @@ main h1[tabindex='-1']:focus,
 
 .tour-stop h2 {
   font-family: var(--font-display);
-  font-size: 1.875rem;
+  font-size: var(--fs-32);
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.15;
@@ -7751,7 +7783,7 @@ main h1[tabindex='-1']:focus,
 .tour-stop-n {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.06em;
   margin: 0;
   text-transform: uppercase;
@@ -7759,7 +7791,7 @@ main h1[tabindex='-1']:focus,
 
 .tour-stop-claim {
   color: var(--text-2);
-  font-size: 1rem;
+  font-size: var(--fs-16);
   margin-bottom: 1.375rem;
   max-width: min(45rem, 68ch);
 }
@@ -7781,7 +7813,7 @@ main h1[tabindex='-1']:focus,
   color: var(--text-3);
   display: flex;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   font-weight: 500;
   gap: 0.375rem;
   letter-spacing: 0.08em;
@@ -7799,7 +7831,7 @@ main h1[tabindex='-1']:focus,
 
 .tour-stop-why {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin-top: 0.875rem;
   max-width: min(45rem, 68ch);
 }
@@ -7813,13 +7845,13 @@ main h1[tabindex='-1']:focus,
 .tour-closing {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.125rem;
-  margin-top: 0.75rem;
+  gap: var(--space-2) 1.125rem;
+  margin-top: var(--space-3);
 }
 
 .tour-code-link {
   font-family: var(--font-mono);
-  font-size: 0.78125rem;
+  font-size: var(--fs-13);
   overflow-wrap: anywhere;
 }
 
@@ -7829,15 +7861,15 @@ main h1[tabindex='-1']:focus,
 
 .tour-closing {
   border-top: 1px solid var(--line);
-  font-size: 0.875rem;
-  gap: 0.5rem 1.5rem;
+  font-size: var(--fs-14);
+  gap: var(--space-2) var(--space-5);
   margin-top: 2.25rem;
   padding-top: 1.25rem;
 }
 
 .tour-covers {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   list-style: none;
   margin: 0;
@@ -7848,8 +7880,8 @@ main h1[tabindex='-1']:focus,
   color: var(--text);
   display: flex;
   flex-direction: column;
-  font-size: 0.75rem;
-  gap: 0.25rem;
+  font-size: var(--fs-12);
+  gap: var(--space-1);
   line-height: 1.3;
 }
 
@@ -7865,11 +7897,11 @@ main h1[tabindex='-1']:focus,
   border-radius: 4px;
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   line-height: 1.5;
   margin: 0;
   overflow-x: auto;
-  padding: 0.75rem 0.875rem;
+  padding: var(--space-3) 0.875rem;
 }
 
 /* Three columns of nine titles need about 60rem; below that the index is one
@@ -7896,7 +7928,7 @@ main h1[tabindex='-1']:focus,
   }
 
   .tour-stop h2 {
-    font-size: 1.5rem;
+    font-size: var(--fs-24);
   }
 
   .tour-stop-cols {
@@ -7904,7 +7936,7 @@ main h1[tabindex='-1']:focus,
   }
 
   .tour-capture-table {
-    font-size: 0.71875rem;
+    font-size: var(--fs-12);
   }
 
   .tour-bar-row {
@@ -7925,9 +7957,9 @@ main h1[tabindex='-1']:focus,
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: grid;
-  gap: 0.9rem 1rem;
+  gap: 0.9rem var(--space-4);
   grid-template-columns: 2.75rem 1fr auto;
-  padding: 0.75rem 0;
+  padding: var(--space-3) 0;
 }
 
 .series-thumb {
@@ -7939,7 +7971,7 @@ main h1[tabindex='-1']:focus,
 }
 
 .series-title {
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   font-weight: 500;
   margin: 0;
 }
@@ -7959,10 +7991,10 @@ main h1[tabindex='-1']:focus,
   border-radius: 999px;
   color: var(--text-2);
   display: inline-block;
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   font-weight: 400;
   line-height: 1.5;
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
   vertical-align: middle;
 }
 
@@ -7983,7 +8015,7 @@ main h1[tabindex='-1']:focus,
 
 .series-meta {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   margin: 0.1rem 0 0;
 }
 
@@ -8030,7 +8062,7 @@ main h1[tabindex='-1']:focus,
 
 .comic-card-line {
   color: var(--text-2);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   line-height: 1.4;
   margin: 0;
 }
@@ -8045,7 +8077,7 @@ main h1[tabindex='-1']:focus,
 .series-count {
   color: var(--text-3);
   display: grid;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   gap: 0.15rem;
   margin: 0;
   text-align: right;
@@ -8054,7 +8086,7 @@ main h1[tabindex='-1']:focus,
 
 .series-count b {
   color: var(--text);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
@@ -8066,7 +8098,7 @@ main h1[tabindex='-1']:focus,
 
   .series-count {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-3);
     grid-column: 2;
     text-align: left;
   }
@@ -8119,14 +8151,14 @@ main h1[tabindex='-1']:focus,
 
 .lane-name {
   color: var(--text-3);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.04em;
   overflow: hidden;
   white-space: nowrap;
 }
 
 .lane-private {
-  font-size: 0.625rem;
+  font-size: var(--fs-12);
   font-style: normal;
 }
 
@@ -8196,7 +8228,7 @@ main h1[tabindex='-1']:focus,
 
 .lane[data-axis] b {
   color: var(--text-3);
-  font: 400 0.625rem/1 var(--font-mono);
+  font: 400 var(--fs-12)/1 var(--font-mono);
   position: absolute;
   top: 0;
   transform: translateX(-50%);
@@ -8207,8 +8239,8 @@ main h1[tabindex='-1']:focus,
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.75rem;
-  gap: 0.25rem 1rem;
+  font-size: var(--fs-12);
+  gap: var(--space-1) var(--space-4);
   list-style: none;
   margin: 0.6rem 0 0;
   padding: 0;
@@ -8271,7 +8303,7 @@ main h1[tabindex='-1']:focus,
   box-sizing: border-box;
   color: var(--text-3);
   display: grid;
-  font: 500 0.625rem/1 var(--font-mono);
+  font: 500 var(--fs-12)/1 var(--font-mono);
   font-style: normal;
   height: 2.1rem;
   padding: 0;
@@ -8315,13 +8347,13 @@ button.run-cell[aria-disabled='true'] {
 
 .run-book b,
 .run-bundle b {
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 
 .run-book small,
 .run-bundle small {
-  font-size: 0.625rem;
+  font-size: var(--fs-12);
 }
 
 .run-cell[data-k='owned'],
@@ -8384,7 +8416,7 @@ button.run-cell[aria-disabled='true'] {
 .run-cell[data-fold] {
   border-color: var(--line-strong);
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 .run-key[data-variant='box'] i:not([data-k='skip']) {
@@ -8418,8 +8450,8 @@ button.run-cell[aria-disabled='true'] {
    for a want or an unrecorded run, and the run card's sentence. */
 .comic-sum {
   color: var(--text);
-  font-size: 1rem;
-  margin: 0.75rem 0 0;
+  font-size: var(--fs-16);
+  margin: var(--space-3) 0 0;
 }
 
 .comic-sum b {
@@ -8468,7 +8500,7 @@ button.run-cell[aria-disabled='true'] {
 .comic-next span {
   color: var(--text-3);
   display: block;
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -8476,23 +8508,23 @@ button.run-cell[aria-disabled='true'] {
 .comic-next b {
   color: var(--text);
   display: block;
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   font-weight: 600;
 }
 
 .comic-next small {
   color: var(--text-3);
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 
 .comic-empty {
   border: 1px dashed var(--line-strong);
   border-radius: 8px;
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
-  padding: 1rem;
+  padding: var(--space-4);
 }
 
 /* The cover wall: a cover per issue, a book per edition, a stack for a long
@@ -8503,7 +8535,7 @@ button.run-cell[aria-disabled='true'] {
    Focus draws what hover draws. */
 .cover-wall-grid {
   display: grid;
-  gap: 1rem 0.8rem;
+  gap: var(--space-4) 0.8rem;
   grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
 }
 
@@ -8573,7 +8605,7 @@ a.cover-tile:focus-visible {
   background: var(--surface);
   border-radius: 3px;
   color: var(--text);
-  font: 600 0.75rem/1 var(--font-mono);
+  font: 600 var(--fs-12)/1 var(--font-mono);
   padding: 0.15rem 0.3rem;
 }
 
@@ -8582,7 +8614,7 @@ a.cover-tile:focus-visible {
   border: 2px solid var(--surface);
   border-radius: 50%;
   color: var(--accent-ink);
-  font: 700 0.6875rem/1 var(--font-mono);
+  font: 700 var(--fs-12)/1 var(--font-mono);
   height: 1.125rem;
   line-height: 1.125rem;
   position: absolute;
@@ -8595,8 +8627,8 @@ a.cover-tile:focus-visible {
 .cover-tile-cap {
   color: var(--text-2);
   display: flex;
-  font: 500 0.6875rem/1.3 var(--font-mono);
-  gap: 0.25rem;
+  font: 500 var(--fs-12)/1.3 var(--font-mono);
+  gap: var(--space-1);
   justify-content: space-between;
   margin-top: 0.3rem;
 }
@@ -8644,7 +8676,7 @@ a.cover-tile:focus-visible {
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  font: 500 0.75rem/1.3 var(--font-mono);
+  font: 500 var(--fs-12)/1.3 var(--font-mono);
   gap: 0.3rem;
   justify-content: center;
   padding: 0.4rem;
@@ -8672,7 +8704,7 @@ a.cover-tile:focus-visible {
   flex-wrap: wrap;
   gap: 0.4rem;
   list-style: none;
-  margin: 1rem 0 0;
+  margin: var(--space-4) 0 0;
   padding: 0;
 }
 
@@ -8682,7 +8714,7 @@ a.cover-tile:focus-visible {
   border-radius: 99px;
   color: var(--text-2);
   display: inline-flex;
-  font: 500 0.6875rem/1 var(--font-mono);
+  font: 500 var(--fs-12)/1 var(--font-mono);
   gap: 0.3rem;
   padding: 0.3rem 0.45rem;
   white-space: nowrap;
@@ -8720,21 +8752,21 @@ a.cover-tile:focus-visible {
 
 @media (max-width: 480px) {
   .cover-wall-grid {
-    gap: 0.8rem 0.5rem;
+    gap: 0.8rem var(--space-2);
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 .comic-box-kicker {
   color: var(--text-3);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.06em;
-  margin: 1.1rem 0 0.5rem;
+  margin: 1.1rem 0 var(--space-2);
   text-transform: uppercase;
 }
 
 .comic-sentence {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0.7rem 0 0;
 }
 
@@ -8747,7 +8779,7 @@ a.cover-tile:focus-visible {
   }
 
   .comic-hero-next {
-    margin-right: 1rem;
+    margin-right: var(--space-4);
   }
 
   .comic-next {
@@ -8758,29 +8790,29 @@ a.cover-tile:focus-visible {
 /* Out this week: one row of issue tiles, scrolling sideways when it
    outgrows the column. */
 .comics-strip {
-  margin: 1.5rem 0;
+  margin: var(--space-5) 0;
 }
 
 .comics-strip h2 {
-  font-size: 1.05rem;
-  margin: 0 0 0.75rem;
+  font-size: var(--fs-16);
+  margin: 0 0 var(--space-3);
 }
 
 .comics-strip h2 small {
   color: var(--text-2);
-  font-size: 0.85rem;
+  font-size: var(--fs-14);
   font-weight: 400;
 }
 
 .comics-strip-issues {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-auto-columns: 7.5rem;
   grid-auto-flow: column;
   list-style: none;
   margin: 0;
   overflow-x: auto;
-  padding: 0 0 0.5rem;
+  padding: 0 0 var(--space-2);
 }
 
 .comics-strip-link,
@@ -8810,28 +8842,28 @@ a.cover-tile:focus-visible {
   border-radius: 4px;
   color: var(--text-2);
   display: flex;
-  font-size: 0.8rem;
+  font-size: var(--fs-13);
   overflow: hidden;
-  padding: 0.5rem;
+  padding: var(--space-2);
 }
 
 .comics-strip-title {
-  font-size: 0.9rem;
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
 .comics-strip-meta {
   color: var(--text-2);
-  font-size: 0.8rem;
+  font-size: var(--fs-13);
 }
 
 .comics-toolbar {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
   justify-content: space-between;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
 }
 
 .comics-view {
@@ -8843,7 +8875,7 @@ a.cover-tile:focus-visible {
    heading, then the Issues, Editions and About cards. */
 .item-kicker {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.08em;
   margin: 0 0 0.3rem;
   text-transform: uppercase;
@@ -8851,10 +8883,10 @@ a.cover-tile:focus-visible {
 
 .item-facts {
   display: grid;
-  font-size: 0.875rem;
-  gap: 0.3rem 1rem;
+  font-size: var(--fs-14);
+  gap: 0.3rem var(--space-4);
   grid-template-columns: max-content 1fr;
-  margin: 0.75rem 0 0;
+  margin: var(--space-3) 0 0;
 }
 
 .item-facts > div {
@@ -8875,20 +8907,20 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line);
   border-radius: 8px;
   margin: 0 0 1.25rem;
-  padding: 1rem 1.25rem;
+  padding: var(--space-4) 1.25rem;
 }
 
 .item-card h2 {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   letter-spacing: 0.04em;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
   text-transform: uppercase;
 }
 
 .item-card h2 small {
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   letter-spacing: 0;
   margin-left: 0.4rem;
   text-transform: none;
@@ -8906,22 +8938,22 @@ a.cover-tile:focus-visible {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.75rem;
+  gap: var(--space-1) var(--space-3);
 }
 
 .item-edition-kind {
   color: var(--text-3);
-  font: 400 0.75rem var(--font-mono);
+  font: 400 var(--fs-12) var(--font-mono);
 }
 
 .item-card-source {
-  font-size: 0.8125rem;
-  margin: 0.75rem 0 0;
+  font-size: var(--fs-13);
+  margin: var(--space-3) 0 0;
 }
 
 .item-attribution {
-  font-size: 0.8125rem;
-  margin: 1.5rem 0 0;
+  font-size: var(--fs-13);
+  margin: var(--space-5) 0 0;
 }
 
 /* Pull list (/admin/pull-list): What's next's rows, with the store list's
@@ -8937,10 +8969,10 @@ a.cover-tile:focus-visible {
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   min-height: 44px;
   min-width: 44px;
-  padding: 0.5rem 1rem;
+  padding: var(--space-2) var(--space-4);
   text-decoration: none;
 }
 
@@ -8959,7 +8991,7 @@ a.cover-tile:focus-visible {
 .pull-list-week h2 {
   align-items: center;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .pull-row-done .next-row-title,
@@ -8970,15 +9002,15 @@ a.cover-tile:focus-visible {
 
 .pull-list-search {
   border-top: 1px solid var(--line);
-  margin-top: 2rem;
-  padding-top: 1rem;
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
 }
 
 .pull-list-search-form {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .pull-list-search-form input {
@@ -8999,23 +9031,23 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line);
   border-radius: 8px;
   grid-column: 1 / -1;
-  margin: 0.5rem 0;
-  padding: 1rem 1.1rem;
+  margin: var(--space-2) 0;
+  padding: var(--space-4) 1.1rem;
 }
 
 .comic-run-editor h2 {
   align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   font-weight: 600;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin: 0 0 0.7rem;
 }
 
 .comic-run-editor h2 small {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   font-weight: 400;
 }
 
@@ -9024,14 +9056,14 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin: 1rem 0 0.75rem;
+  margin: var(--space-4) 0 var(--space-3);
 }
 
 .comic-private {
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   color: var(--text-2);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   padding: 0 0.45rem;
 }
 
@@ -9040,14 +9072,14 @@ a.cover-tile:focus-visible {
   display: grid;
   gap: 0.4rem;
   grid-column: 1 / -1;
-  margin: 0.25rem 0;
+  margin: var(--space-1) 0;
   min-width: 0;
   padding: 0;
 }
 
 .comic-editions legend {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin-bottom: 0.4rem;
   padding: 0;
 }
@@ -9083,8 +9115,8 @@ a.cover-tile:focus-visible {
 }
 
 .comic-hint {
-  font-size: 0.875rem;
-  margin: 0 0 0.5rem;
+  font-size: var(--fs-14);
+  margin: 0 0 var(--space-2);
 }
 
 /* In the admin edit's label/input grid the hint sits under its input, not
@@ -9105,12 +9137,12 @@ a.cover-tile:focus-visible {
 }
 
 .pick-for-me {
-  margin-block: 2rem;
+  margin-block: var(--space-6);
   scroll-margin-top: calc(3.5rem + env(safe-area-inset-top, 0px));
 }
 
 .pick-empty {
-  margin: 0.75rem 0;
+  margin: var(--space-3) 0;
 }
 
 /* Three results across when the page is wide. */
@@ -9122,7 +9154,7 @@ a.cover-tile:focus-visible {
 
 .pick-choices {
   border: 0;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
   /* A fieldset's default min-inline-size is min-content, which lets the
      chips push the page sideways at phone width. */
   min-width: 0;
@@ -9142,7 +9174,7 @@ a.cover-tile:focus-visible {
 
 .pick-choices legend {
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin-bottom: 0.375rem;
 }
 
@@ -9178,17 +9210,17 @@ a.cover-tile:focus-visible {
 
 .pick-note {
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   min-height: 1.25rem;
 }
 
 .pick-score {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   grid-column: 2;
 }
 
 .pick-score-total {
-  margin: 0.375rem 0 0.25rem;
+  margin: 0.375rem 0 var(--space-1);
 }
 
 .pick-terms {
@@ -9200,7 +9232,7 @@ a.cover-tile:focus-visible {
 .pick-term {
   align-items: center;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
@@ -9232,13 +9264,13 @@ a.cover-tile:focus-visible {
 }
 
 .pick-how {
-  font-size: 0.8125rem;
-  margin-top: 0.75rem;
+  font-size: var(--fs-13);
+  margin-top: var(--space-3);
 }
 
 .how-try {
-  font-size: 0.875rem;
-  margin-top: 0.75rem;
+  font-size: var(--fs-14);
+  margin-top: var(--space-3);
 }
 
 /* ---------------------------------------------------------------------
@@ -9252,10 +9284,10 @@ a.cover-tile:focus-visible {
 
 .trip-list {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   list-style: none;
-  margin: 1.5rem 0 0;
+  margin: var(--space-5) 0 0;
   padding: 0;
 }
 
@@ -9292,24 +9324,24 @@ a.cover-tile:focus-visible {
 .trip-card__body {
   align-content: start;
   display: grid;
-  gap: 0.25rem;
-  padding: 0.9rem 1rem 1rem;
+  gap: var(--space-1);
+  padding: 0.9rem var(--space-4) var(--space-4);
 }
 
 .trip-card__title {
-  font: 600 1.375rem/1.2 var(--font-display);
+  font: 600 var(--fs-24)/1.2 var(--font-display);
   margin: 0;
 }
 
 .trip-card__places,
 .trip-card__count {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .trip .lede {
   color: var(--text-2);
-  font-size: 1rem;
+  font-size: var(--fs-16);
   margin: 0 0 1.25rem;
 }
 
@@ -9322,7 +9354,7 @@ a.cover-tile:focus-visible {
 .drawn-map {
   border: 1px solid var(--line);
   border-radius: 10px;
-  margin: 1.5rem 0;
+  margin: var(--space-5) 0;
   overflow: hidden;
 }
 
@@ -9386,7 +9418,7 @@ a.cover-tile:focus-visible {
   color: var(--accent-ink);
   display: inline-flex;
   flex: none;
-  font: 600 0.75rem/1 var(--font-sans);
+  font: 600 var(--fs-12)/1 var(--font-sans);
   height: 24px;
   justify-content: center;
   width: 24px;
@@ -9395,7 +9427,7 @@ a.cover-tile:focus-visible {
 .drawn-map__name {
   background: var(--surface);
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   font-weight: 600;
   padding: 0 0.3rem;
   white-space: nowrap;
@@ -9427,16 +9459,16 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.75rem;
-  gap: 0.25rem 1rem;
+  font-size: var(--fs-12);
+  gap: var(--space-1) var(--space-4);
   justify-content: space-between;
-  padding: 0.4rem 0.75rem;
+  padding: 0.4rem var(--space-3);
 }
 
 .drawn-map__stops {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 0.75rem;
+  gap: 0 var(--space-3);
   margin: 0;
   padding-left: 1.1rem;
 }
@@ -9451,7 +9483,7 @@ a.cover-tile:focus-visible {
   display: flex;
   gap: 0.4rem;
   list-style: none;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   overflow-x: auto;
   padding: 2px;
 }
@@ -9478,7 +9510,7 @@ a.cover-tile:focus-visible {
 }
 
 .trip-day__title {
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   font-weight: 600;
   margin: 0;
 }
@@ -9489,14 +9521,14 @@ a.cover-tile:focus-visible {
 }
 
 .trip-day .post-body {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 /* Photos pair in order within a day. */
 .photo-group {
   display: grid;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .photo-group--two {
@@ -9554,7 +9586,7 @@ a.cover-tile:focus-visible {
 .trip-photo__caption {
   background: var(--bg);
   color: var(--text);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   line-height: 1.4;
   padding: 0.35rem 0.6rem;
 }
@@ -9564,8 +9596,8 @@ a.cover-tile:focus-visible {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
-  margin-top: 0.75rem;
-  padding: 1rem 1.1rem;
+  margin-top: var(--space-3);
+  padding: var(--space-4) 1.1rem;
   position: relative;
 }
 
@@ -9575,9 +9607,9 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   float: right;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.04em;
-  margin: 0 0 0.5rem 0.75rem;
+  margin: 0 0 var(--space-2) var(--space-3);
   padding: 0.2rem 0.45rem;
   text-transform: uppercase;
 }
@@ -9594,8 +9626,8 @@ a.cover-tile:focus-visible {
   border-top: 1px solid var(--line);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.875rem;
-  gap: 0.5rem 1rem;
+  font-size: var(--fs-14);
+  gap: var(--space-2) var(--space-4);
   justify-content: space-between;
   padding-top: 1.25rem;
 }
@@ -9613,7 +9645,7 @@ a.cover-tile:focus-visible {
   margin: 0;
   max-height: none;
   max-width: none;
-  padding: 3.5rem 1rem 1rem;
+  padding: 3.5rem var(--space-4) var(--space-4);
   width: 100vw;
 }
 
@@ -9651,8 +9683,8 @@ a.cover-tile:focus-visible {
   border-radius: var(--radius);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.875rem;
-  gap: 0.25rem 1rem;
+  font-size: var(--fs-14);
+  gap: var(--space-1) var(--space-4);
   justify-content: space-between;
   padding: 0.4rem 0.7rem;
 }
@@ -9672,7 +9704,7 @@ a.cover-tile:focus-visible {
   color: var(--text);
   cursor: pointer;
   display: inline-flex;
-  font: 1.1rem/1 var(--font-sans);
+  font: var(--fs-18)/1 var(--font-sans);
   height: 44px;
   justify-content: center;
   position: absolute;
@@ -9731,16 +9763,16 @@ a.cover-tile:focus-visible {
 
 .spots-notice {
   color: var(--text-2);
-  font-size: 0.875rem;
-  margin: 0 0 1rem;
+  font-size: var(--fs-14);
+  margin: 0 0 var(--space-4);
 }
 
 .spot-form-wrap {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  margin-bottom: 1.5rem;
-  padding: 1rem 1.25rem;
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) 1.25rem;
 }
 
 .spot-form-title,
@@ -9749,25 +9781,25 @@ a.cover-tile:focus-visible {
 }
 
 .spot-form-title {
-  font-size: 1rem;
+  font-size: var(--fs-16);
   margin: 0;
 }
 
 .spot-form-label {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .spot-form-hint {
   color: var(--text-3);
-  font-size: 0.75rem;
-  margin: 0.25rem 0 0;
+  font-size: var(--fs-12);
+  margin: var(--space-1) 0 0;
 }
 
 .spot-form-check {
   align-items: center;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .spot-form-check .spot-form-hint {
@@ -9778,8 +9810,8 @@ a.cover-tile:focus-visible {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .spots-search {
@@ -9789,7 +9821,7 @@ a.cover-tile:focus-visible {
   color: var(--text);
   flex: 1 1 14rem;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   padding: 0.4rem 0.6rem;
 }
 
@@ -9809,7 +9841,7 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text-2);
-  font: 500 0.75rem var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
   padding: 0.15rem 0.6rem;
 }
 
@@ -9817,7 +9849,7 @@ a.cover-tile:focus-visible {
    .item-table th's small caps, as the catalogue table does. */
 .spots-table th[scope='row'] {
   color: var(--text);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   font-weight: 500;
   letter-spacing: normal;
   text-transform: none;
@@ -9830,7 +9862,7 @@ a.cover-tile:focus-visible {
 .spots-hood {
   color: var(--text-3);
   display: block;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   font-weight: 400;
 }
 
@@ -9838,14 +9870,14 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   color: var(--text-2);
-  font: 500 0.6875rem var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
   padding: 0 0.4rem;
 }
 
 .spots-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.5rem;
+  gap: var(--space-1) var(--space-2);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -9853,12 +9885,12 @@ a.cover-tile:focus-visible {
 
 .spots-tags li {
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .spots-visit {
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   white-space: nowrap;
 }
 
@@ -9903,7 +9935,7 @@ a.cover-tile:focus-visible {
 }
 
 .finder-title {
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   margin: 0 0 0.4rem;
 }
 
@@ -9912,15 +9944,15 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.4rem 0.75rem;
+  font-size: var(--fs-13);
+  gap: 0.4rem var(--space-3);
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3);
 }
 
 .cand-list {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -9932,25 +9964,25 @@ a.cover-tile:focus-visible {
   border-radius: 10px;
   display: grid;
   gap: 0.4rem;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem var(--space-4);
 }
 
 .cand-h {
   align-items: start;
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
   justify-content: space-between;
 }
 
 .cand-name {
-  font-size: 1.0625rem;
+  font-size: var(--fs-18);
   font-weight: 600;
   margin: 0;
 }
 
 .cand-area {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin: 0.1rem 0 0;
 }
 
@@ -9965,7 +9997,7 @@ a.cover-tile:focus-visible {
   color: var(--chart);
   flex: none;
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.04em;
   padding: 0.1rem 0.35rem;
   text-transform: uppercase;
@@ -9973,14 +10005,14 @@ a.cover-tile:focus-visible {
 
 .cand-why {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
 }
 
 .cand-score {
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 
 .cand-score strong {
@@ -10010,8 +10042,8 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   cursor: pointer;
   font: inherit;
-  font-size: 0.7rem;
-  padding: 0.1rem 0.5rem;
+  font-size: var(--fs-12);
+  padding: 0.1rem var(--space-2);
 }
 
 .minitag[aria-pressed='true'] {
@@ -10029,7 +10061,7 @@ a.cover-tile:focus-visible {
   border-radius: 10px;
   color: var(--text-2);
   margin: 0;
-  padding: 1.5rem;
+  padding: var(--space-5);
   text-align: center;
 }
 
@@ -10052,7 +10084,7 @@ a.cover-tile:focus-visible {
    The verdict's colour is the status dot's, beside its text. */
 .weekend {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .wk-pills {
@@ -10075,30 +10107,30 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   padding: 0.15rem 0.65rem;
 }
 
 .wk-none {
   color: var(--text-3);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
 }
 
 .wx-days {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr);
 }
 
 .wx-range {
   color: var(--text-2);
-  font: 500 0.8125rem var(--font-mono);
+  font: 500 var(--fs-13) var(--font-mono);
 }
 
 .wx {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .wx-bars {
@@ -10123,13 +10155,13 @@ a.cover-tile:focus-visible {
 .wx-axis {
   color: var(--text-3);
   display: flex;
-  font: 0.6875rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
   justify-content: space-between;
 }
 
 .wx-summary {
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
 }
 
@@ -10139,14 +10171,14 @@ a.cover-tile:focus-visible {
 
 .wx-verdict .status-text {
   color: var(--text);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .wk-kicker {
   color: var(--text-3);
-  font: 600 0.75rem var(--font-mono);
+  font: 600 var(--fs-12) var(--font-mono);
   letter-spacing: 0.06em;
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
   text-transform: uppercase;
 }
 
@@ -10157,15 +10189,15 @@ a.cover-tile:focus-visible {
   color: var(--text-2);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.875rem;
-  gap: 0.5rem;
+  font-size: var(--fs-14);
+  gap: var(--space-2);
   margin: 0;
   min-height: 0;
 }
 
 .sug-list {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -10177,7 +10209,7 @@ a.cover-tile:focus-visible {
   border-radius: 10px;
   display: grid;
   gap: 0.45rem;
-  padding: 0.9rem 1rem;
+  padding: 0.9rem var(--space-4);
 }
 
 .sug.lead {
@@ -10194,8 +10226,8 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font: 0.75rem var(--font-mono);
-  gap: 0.25rem 0.75rem;
+  font: var(--fs-12) var(--font-mono);
+  gap: var(--space-1) var(--space-3);
   margin: 0;
 }
 
@@ -10207,13 +10239,13 @@ a.cover-tile:focus-visible {
 }
 
 .sug-name {
-  font-size: 1.0625rem;
+  font-size: var(--fs-18);
   font-weight: 600;
   margin: 0;
 }
 
 .sug.lead .sug-name {
-  font-size: 1.25rem;
+  font-size: var(--fs-20);
 }
 
 .sug-meta {
@@ -10221,8 +10253,8 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
-  gap: 0.35rem 0.75rem;
+  font-size: var(--fs-13);
+  gap: 0.35rem var(--space-3);
   margin: 0;
 }
 
@@ -10236,14 +10268,14 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   color: var(--text-2);
-  font-size: 0.7rem;
-  padding: 0.05rem 0.5rem;
+  font-size: var(--fs-12);
+  padding: 0.05rem var(--space-2);
 }
 
 .sug-why {
   color: var(--text-2);
   display: grid;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   gap: 0.2rem;
   margin: 0;
   padding-left: 1.1rem;
@@ -10252,7 +10284,7 @@ a.cover-tile:focus-visible {
 .savedtag,
 .sug-visited {
   color: var(--text);
-  font: 500 0.8125rem var(--font-mono);
+  font: 500 var(--fs-13) var(--font-mono);
 }
 
 .wk-skips {
@@ -10260,14 +10292,14 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.4rem;
 }
 
 .wk-skips ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 0.75rem;
+  gap: 0.4rem var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -10276,7 +10308,7 @@ a.cover-tile:focus-visible {
 .wk-foot {
   align-items: start;
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -10290,28 +10322,28 @@ a.cover-tile:focus-visible {
 
 .wk-visits li {
   display: flex;
-  font-size: 0.875rem;
-  gap: 0.75rem;
+  font-size: var(--fs-14);
+  gap: var(--space-3);
   justify-content: space-between;
 }
 
 .wk-visit-date {
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .wk-form {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .wk-check,
 .wk-field {
   align-items: center;
   display: flex;
-  font-size: 0.875rem;
-  gap: 0.5rem;
+  font-size: var(--fs-14);
+  gap: var(--space-2);
 }
 
 .wk-field input {
@@ -10321,7 +10353,7 @@ a.cover-tile:focus-visible {
 .wk-form-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 @media (min-width: 701px) {
@@ -10337,7 +10369,7 @@ a.cover-tile:focus-visible {
    wider, every attribute cell the same width. */
 .daily {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 /* /daily takes the shelf's wide frame so the header and tabs stay put
    between tabs; the puzzle itself keeps the 45rem reading column. */
@@ -10348,7 +10380,7 @@ a.cover-tile:focus-visible {
 .daily-head {
   align-items: baseline;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: space-between;
   margin: 0;
 }
@@ -10367,7 +10399,7 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.9rem;
   margin: -0.5rem 0 0;
 }
@@ -10381,10 +10413,10 @@ a.cover-tile:focus-visible {
   border-radius: 10px;
   display: grid;
   gap: 0.9rem;
-  padding: 1rem;
+  padding: var(--space-4);
 }
 .daily-hint {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
 }
 
@@ -10401,7 +10433,7 @@ a.cover-tile:focus-visible {
   text-align: center;
 }
 .shelfle th .kicker {
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
 }
 .shelfle th.shelfle-title {
   text-align: left;
@@ -10412,7 +10444,7 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   height: 2.6rem;
   line-height: 1.2;
   padding: 0.4rem 0.4rem;
@@ -10427,7 +10459,7 @@ a.cover-tile:focus-visible {
 .shelfle-cell .shelfle-hint {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   opacity: 0.85;
 }
 /* Match: filled. --accent-ink on --status-active measured 8.78 dark (the
@@ -10472,8 +10504,8 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.75rem;
-  gap: 0.75rem;
+  font-size: var(--fs-12);
+  gap: var(--space-3);
   margin: 0;
 }
 .daily-legend i {
@@ -10507,8 +10539,8 @@ a.cover-tile:focus-visible {
   border-radius: var(--radius);
   color: var(--text);
   font: inherit;
-  font-size: 1rem;
-  padding: 0.6rem 0.75rem;
+  font-size: var(--fs-16);
+  padding: 0.6rem var(--space-3);
   width: 100%;
 }
 .guess-input::placeholder {
@@ -10518,7 +10550,7 @@ a.cover-tile:focus-visible {
   opacity: 0.55;
 }
 .guess-count {
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 .guess-list {
   background: var(--surface);
@@ -10528,7 +10560,7 @@ a.cover-tile:focus-visible {
   left: 0;
   list-style: none;
   margin: 0;
-  padding: 0.25rem;
+  padding: var(--space-1);
   position: absolute;
   right: 0;
   top: calc(100% - 1.1rem);
@@ -10541,7 +10573,7 @@ a.cover-tile:focus-visible {
   display: grid;
   gap: 0.6rem;
   grid-template-columns: 2rem minmax(0, 1fr) auto;
-  padding: 0.4rem 0.5rem;
+  padding: 0.4rem var(--space-2);
 }
 .guess-list li[aria-selected='true'] {
   background: var(--sunken);
@@ -10559,7 +10591,7 @@ a.cover-tile:focus-visible {
   white-space: nowrap;
 }
 .guess-sub {
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 
 /* The result card. */
@@ -10575,25 +10607,25 @@ a.cover-tile:focus-visible {
   gap: 0.35rem;
 }
 .daily-result h2 {
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   margin: 0;
 }
 .daily-result-name,
 .daily-result-facts {
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   margin: 0;
 }
 .daily-result-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin-top: 0.4rem;
 }
 
 .daily-yesterday {
   border-top: 1px solid var(--line);
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
   padding-top: 0.9rem;
 }
@@ -10608,10 +10640,10 @@ a.cover-tile:focus-visible {
 .share-sheet-body {
   display: grid;
   gap: 0.9rem;
-  padding: 1rem 1rem 1.25rem;
+  padding: var(--space-4) var(--space-4) 1.25rem;
 }
-.share-sheet-body h3 {
-  font-size: 1rem;
+.share-sheet-body h2 {
+  font-size: var(--fs-16);
   margin: 0;
 }
 .share-grid,
@@ -10620,9 +10652,9 @@ a.cover-tile:focus-visible {
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
-  font: 0.9375rem/1.4 var(--font-mono);
+  font: var(--fs-16)/1.4 var(--font-mono);
   margin: 0;
-  padding: 0.75rem;
+  padding: var(--space-3);
   white-space: pre-wrap;
   width: 100%;
 }
@@ -10631,7 +10663,7 @@ a.cover-tile:focus-visible {
 }
 .share-words-lead,
 .share-words {
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   margin: 0;
 }
 .share-words {
@@ -10644,7 +10676,7 @@ a.cover-tile:focus-visible {
 .share-sheet-foot {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
@@ -10660,12 +10692,12 @@ a.cover-tile:focus-visible {
     width: 28%;
   }
   .shelfle-empty-cells {
-    gap: 0.25rem;
+    gap: var(--space-1);
     grid-template-columns: 28% repeat(4, minmax(0, 1fr));
   }
   .shelfle td {
-    font-size: 0.75rem;
-    padding: 0.4rem 0.25rem;
+    font-size: var(--fs-12);
+    padding: 0.4rem var(--space-1);
   }
   .daily-result {
     grid-template-columns: 4.5rem minmax(0, 1fr);
@@ -10746,7 +10778,7 @@ a.cover-tile:focus-visible {
 }
 
 .spot-map-title {
-  font: 500 20px var(--font-display);
+  font: 500 var(--fs-20) var(--font-display);
   fill: var(--text);
 }
 
@@ -10823,12 +10855,12 @@ a.cover-tile:focus-visible {
   transform: translate(-50%, calc(-100% - 30px));
   min-width: 11rem;
   max-width: 15rem;
-  padding: 0.5rem 0.65rem;
+  padding: var(--space-2) 0.65rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: 0 6px 18px var(--overlay);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .spot-map-popover.below {
@@ -10860,7 +10892,7 @@ a.cover-tile:focus-visible {
   border-top-left-radius: 4px;
   background: color-mix(in srgb, var(--surface) 85%, transparent);
   color: var(--text-3);
-  font-size: 0.65rem;
+  font-size: var(--fs-12);
 }
 
 .spot-map-attribution a {
@@ -10872,7 +10904,7 @@ a.cover-tile:focus-visible {
    toggle and only the chosen one renders. */
 .denver-lede {
   color: var(--text-2);
-  font-size: 1.0625rem;
+  font-size: var(--fs-18);
   margin: 0.375rem 0 1.25rem;
   max-width: min(45rem, 68ch);
 }
@@ -10884,7 +10916,7 @@ a.cover-tile:focus-visible {
 .denver-view {
   display: flex;
   gap: 0.4rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .denver-layout {
@@ -10902,13 +10934,13 @@ a.cover-tile:focus-visible {
 
 .denver-list-head {
   margin: 0 0 0.6rem;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .denver-list-count {
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -10930,7 +10962,7 @@ a.cover-tile:focus-visible {
 }
 
 .spot-card {
-  padding: 0.75rem 0.9rem;
+  padding: var(--space-3) 0.9rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -10942,10 +10974,10 @@ a.cover-tile:focus-visible {
 }
 
 .spot-card-kicker {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
   color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -10954,12 +10986,12 @@ a.cover-tile:focus-visible {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .spot-card-name {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--fs-16);
   font-weight: 600;
 }
 
@@ -10984,14 +11016,14 @@ a.cover-tile:focus-visible {
 
 .spot-card-area {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   white-space: nowrap;
 }
 
 .spot-card-blurb {
   margin: 0.4rem 0 0;
   color: var(--text-2);
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 .spot-tags {
@@ -11004,11 +11036,11 @@ a.cover-tile:focus-visible {
 }
 
 .spot-tags li {
-  padding: 0.05rem 0.5rem;
+  padding: 0.05rem var(--space-2);
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text-2);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 
 .spot-popover-name {
@@ -11022,7 +11054,7 @@ a.cover-tile:focus-visible {
 /* Admin Home: one card per area, two across, one on a phone. */
 .area-cards {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 1.25rem;
 }
@@ -11040,31 +11072,31 @@ a.cover-tile:focus-visible {
   gap: 0.6rem;
   /* The grid's gap spaces the cards; `section + section` would add more. */
   margin: 0;
-  padding: 1rem 1.25rem;
+  padding: var(--space-4) 1.25rem;
 }
 
 .area-card-head {
   align-items: baseline;
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
   justify-content: space-between;
 }
 
 .area-card-head h2 {
-  font-size: 1rem;
+  font-size: var(--fs-16);
   font-weight: 600;
   margin: 0;
 }
 
 .area-card-head a {
   color: var(--accent);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
 }
 
 .area-card-lead.with-cover {
   align-items: center;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
   grid-template-columns: auto minmax(0, 1fr);
 }
 
@@ -11087,7 +11119,7 @@ a.cover-tile:focus-visible {
 }
 
 .area-card-title {
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   font-weight: 500;
   line-height: 1.3;
   margin: 0;
@@ -11095,7 +11127,7 @@ a.cover-tile:focus-visible {
 
 .area-card-meta {
   color: var(--text-3);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin: 0;
 }
 
@@ -11103,7 +11135,7 @@ a.cover-tile:focus-visible {
   color: var(--text-2);
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   gap: 0.4rem 0.9rem;
   margin: 0;
 }
@@ -11123,7 +11155,7 @@ a.cover-tile:focus-visible {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 /* The Closet (/admin/closet), its garment page and the closet profile.
@@ -11132,30 +11164,30 @@ a.cover-tile:focus-visible {
 .closet-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1rem;
+  gap: var(--space-3) var(--space-4);
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .closet-toolbar-end {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
+  gap: var(--space-2) var(--space-3);
   align-items: center;
 }
 
 .closet-toast {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: var(--space-2) var(--space-4);
   align-items: center;
   justify-content: space-between;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.6rem 0.9rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .closet-toast strong {
@@ -11164,7 +11196,7 @@ a.cover-tile:focus-visible {
 
 .closet-toast-acts {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .garment-grid {
@@ -11206,7 +11238,7 @@ a.cover-tile:focus-visible {
   position: absolute;
   top: 0.4rem;
   left: 0.4rem;
-  font: 0.6875rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
   background: var(--surface);
   color: var(--text-2);
   border-radius: 999px;
@@ -11233,13 +11265,13 @@ a.cover-tile:focus-visible {
 }
 
 .garment-name {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   line-height: 1.3;
 }
 
 .garment-stat,
 .garment-mono {
-  font: 0.75rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
   color: var(--text-3);
 }
 
@@ -11248,26 +11280,26 @@ a.cover-tile:focus-visible {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 0.25rem 0.75rem;
+  padding: var(--space-1) var(--space-3);
 }
 
 .garment-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
 }
 
 .garment-table th {
   text-align: left;
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
   color: var(--text-3);
-  padding: 0.4rem 0.5rem;
+  padding: 0.4rem var(--space-2);
   border-bottom: 1px solid var(--line);
 }
 
 .garment-table td {
-  padding: 0.45rem 0.5rem;
+  padding: 0.45rem var(--space-2);
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
@@ -11301,7 +11333,7 @@ a.cover-tile:focus-visible {
 
 .garment-wears {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -11328,7 +11360,7 @@ a.cover-tile:focus-visible {
 }
 
 .garment-trail {
-  font: 0.75rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
   color: var(--text-3);
 }
 
@@ -11342,22 +11374,22 @@ a.cover-tile:focus-visible {
 .garment-form label,
 .garment-form fieldset {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .garment-form fieldset {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 0.75rem;
+  padding: var(--space-3);
   margin: 0;
 }
 
 .garment-form legend {
-  padding: 0 0.25rem;
+  padding: 0 var(--space-1);
 }
 
 .garment-field-label {
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   color: var(--text-2);
 }
 
@@ -11382,7 +11414,7 @@ a.cover-tile:focus-visible {
 .garment-months legend {
   width: 100%;
   padding: 0;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
 }
 
 /* The radio is hidden inside its chip; the chip shows its state and focus
@@ -11401,7 +11433,7 @@ a.cover-tile:focus-visible {
 .garment-colour {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: flex-end;
 }
 
@@ -11421,7 +11453,7 @@ a.cover-tile:focus-visible {
 
 .garment-stepper {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -11437,7 +11469,7 @@ a.cover-tile:focus-visible {
 .garment-form-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 /* Distinguished by border and text, never colour alone (as the item page). */
@@ -11449,7 +11481,7 @@ a.cover-tile:focus-visible {
 .closet-week-day {
   display: grid;
   grid-template-columns: 3rem minmax(0, 1fr) auto;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -11457,7 +11489,7 @@ a.cover-tile:focus-visible {
    are grids). */
 .closet-week-day label {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: var(--space-1);
   align-items: center;
 }
 
@@ -11481,7 +11513,7 @@ a.cover-tile:focus-visible {
    four grounds). */
 .today {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .today-weather {
@@ -11489,7 +11521,7 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem 1.25rem;
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
 }
 
 .today-temps {
@@ -11499,19 +11531,19 @@ a.cover-tile:focus-visible {
 }
 
 .today-low {
-  font-size: 1.75rem;
+  font-size: var(--fs-28);
   font-weight: 600;
 }
 
 .today-high {
   color: var(--text-2);
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
 }
 
 .today-sentence {
   color: var(--text-2);
   flex: 1 1 14rem;
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
 }
 
@@ -11520,8 +11552,8 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
-  font: 0.75rem var(--font-mono);
-  gap: 0.25rem 0.75rem;
+  font: var(--fs-12) var(--font-mono);
+  gap: var(--space-1) var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -11541,13 +11573,13 @@ a.cover-tile:focus-visible {
 
 .today-card {
   display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 .today-kicker {
   color: var(--text-3);
-  font: 0.75rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
   letter-spacing: 0.04em;
   margin: 0;
   text-transform: uppercase;
@@ -11602,9 +11634,9 @@ a.cover-tile:focus-visible {
   bottom: 0.4rem;
   color: var(--text-2);
   cursor: pointer;
-  font: 0.6875rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
   opacity: 0;
-  padding: 0.1rem 0.5rem;
+  padding: 0.1rem var(--space-2);
   position: absolute;
   right: 0.4rem;
   transition: opacity 0.15s ease;
@@ -11639,7 +11671,7 @@ a.cover-tile:focus-visible {
 
 .today-reason {
   color: var(--text-2);
-  font-size: 0.9375rem;
+  font-size: var(--fs-16);
   margin: 0;
 }
 
@@ -11648,7 +11680,7 @@ a.cover-tile:focus-visible {
 .today-sheet-acts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .today-worn {
@@ -11664,7 +11696,7 @@ a.cover-tile:focus-visible {
 
 .today-alts {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   list-style: none;
   margin: 0;
@@ -11684,13 +11716,13 @@ a.cover-tile:focus-visible {
 .today-alt {
   align-content: start;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-items: start;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem var(--space-4);
 }
 
 .today-alt-names {
-  font-size: 0.875rem;
+  font-size: var(--fs-14);
   margin: 0;
   max-width: 100%;
   overflow: hidden;
@@ -11700,13 +11732,13 @@ a.cover-tile:focus-visible {
 
 .today-alt-reason {
   color: var(--text-2);
-  font-size: 0.8125rem;
+  font-size: var(--fs-13);
   margin: 0;
 }
 
 .today-footnote {
   color: var(--text-3);
-  font: 0.75rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
 }
 
 .today-footnote p {
@@ -11716,7 +11748,7 @@ a.cover-tile:focus-visible {
 /* An outfit as small squares: Today's alternatives and the Home card. */
 .outfit-swatches {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .outfit-swatch {
@@ -11744,12 +11776,12 @@ a.cover-tile:focus-visible {
 .swap-sheet .sheet-body {
   display: grid;
   gap: 0.85rem;
-  padding: 1rem 1.1rem 1.1rem;
+  padding: var(--space-4) 1.1rem 1.1rem;
 }
 
 .today-sheet-body h2,
 .swap-sheet .sheet-body h2 {
-  font-size: 1.125rem;
+  font-size: var(--fs-18);
   margin: 0;
 }
 
@@ -11791,7 +11823,7 @@ a.cover-tile:focus-visible {
   cursor: pointer;
   display: flex;
   font: inherit;
-  gap: 0.75rem;
+  gap: var(--space-3);
   padding: 0.4rem 0.6rem;
   text-align: left;
   width: 100%;
@@ -11821,8 +11853,8 @@ a.cover-tile:focus-visible {
 .review-banner {
   background: var(--accent-soft);
   border-radius: var(--radius);
-  padding: 0.8rem 1rem;
-  margin-bottom: 1rem;
+  padding: 0.8rem var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .review-banner p {
@@ -11833,17 +11865,17 @@ a.cover-tile:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 0.75rem;
+  gap: var(--space-2) var(--space-3);
 }
 
 .review-deck {
   max-width: 34rem;
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .review-progress {
   color: var(--text-2);
-  font: 500 0.75rem var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
   margin: 0 0 0.4rem;
 }
 
@@ -11852,7 +11884,7 @@ a.cover-tile:focus-visible {
   background: var(--line);
   border-radius: 2px;
   height: 3px;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   overflow: hidden;
 }
 
@@ -11865,7 +11897,7 @@ a.cover-tile:focus-visible {
 .review-card {
   display: grid;
   grid-template-columns: 8rem 1fr;
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -11886,14 +11918,14 @@ a.cover-tile:focus-visible {
 }
 
 .review-name {
-  font-size: 1.15rem;
-  margin: 0 0 0.25rem;
+  font-size: var(--fs-18);
+  margin: 0 0 var(--space-1);
 }
 
 .review-stat {
   color: var(--text-3);
-  font: 0.75rem var(--font-mono);
-  margin: 0 0 0.75rem;
+  font: var(--fs-12) var(--font-mono);
+  margin: 0 0 var(--space-3);
 }
 
 .evidence {
@@ -11941,8 +11973,8 @@ a.cover-tile:focus-visible {
 .outcomes {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .outcome {
@@ -11983,15 +12015,15 @@ a.cover-tile:focus-visible {
 
 .outcome-hint {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 
 .pack-month {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .pack-month input {
@@ -12000,25 +12032,25 @@ a.cover-tile:focus-visible {
   border-radius: var(--radius);
   color: var(--text);
   font: inherit;
-  padding: 0.3rem 0.5rem;
+  padding: 0.3rem var(--space-2);
 }
 
 .review-skip {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .review-empty {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
   max-width: 34rem;
 }
 
 .review-listed {
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
   max-width: 34rem;
 }
 
 .review-listed h2 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .review-listed ul {
@@ -12026,20 +12058,20 @@ a.cover-tile:focus-visible {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .review-listed li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .sell-check {
   display: grid;
   grid-template-columns: 6rem 1fr;
-  gap: 1rem;
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -12068,12 +12100,12 @@ a.cover-tile:focus-visible {
 .sell-lines div {
   display: grid;
   grid-template-columns: 6rem 1fr;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .sell-lines dt {
   color: var(--text-3);
-  font: 0.75rem var(--font-mono);
+  font: var(--fs-12) var(--font-mono);
   padding-top: 0.15rem;
   text-transform: uppercase;
 }
@@ -12089,7 +12121,7 @@ a.cover-tile:focus-visible {
 .sell-sheet .sheet-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
@@ -12114,9 +12146,9 @@ a.cover-tile:focus-visible {
   display: flex;
   gap: 0.6rem;
   list-style: none;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   overflow-x: auto;
-  padding: 0.35rem 0.25rem 0.6rem;
+  padding: 0.35rem var(--space-1) 0.6rem;
 }
 
 .neighbour-strip > li {
@@ -12136,7 +12168,7 @@ a.cover-tile:focus-visible {
 }
 
 .comic-issue-text h1 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .comic-issue-pills {
@@ -12158,10 +12190,10 @@ a.state-pill:focus-visible {
 
 .comic-issue-facts {
   display: grid;
-  font-size: 0.875rem;
-  gap: 0.35rem 1rem;
+  font-size: var(--fs-14);
+  gap: 0.35rem var(--space-4);
   grid-template-columns: max-content 1fr;
-  margin: 1rem 0;
+  margin: var(--space-4) 0;
 }
 
 .comic-issue-facts dt {
@@ -12185,26 +12217,26 @@ a.state-pill:focus-visible {
 .comic-issue-owner {
   border: 1px dashed var(--line-strong);
   border-radius: 6px;
-  margin: 1rem 0;
-  padding: 0.75rem;
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
 }
 
 .comic-issue-owner-note {
   color: var(--text-3);
-  font-size: 0.75rem;
-  margin: 0 0 0.5rem;
+  font-size: var(--fs-12);
+  margin: 0 0 var(--space-2);
 }
 
 .comic-issue-owner-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .comic-issue-attribution {
   color: var(--text-3);
-  font-size: 0.75rem;
-  margin: 1rem 0 0;
+  font-size: var(--fs-12);
+  margin: var(--space-4) 0 0;
 }
 
 @media (max-width: 640px) {
@@ -12221,8 +12253,8 @@ a.state-pill:focus-visible {
 /* The collected-edition page: the issue page's layout, the covers inside the
    book in a strip, and the neighbouring editions under it. */
 .edition-inside-title {
-  font-size: 1rem;
-  margin: 1.5rem 0 0.5rem;
+  font-size: var(--fs-16);
+  margin: var(--space-5) 0 var(--space-2);
 }
 
 .inside-strip > li {
@@ -12236,9 +12268,9 @@ a.state-pill:focus-visible {
 .edition-neighbours {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1rem;
+  gap: var(--space-3) var(--space-4);
   justify-content: space-between;
-  margin-top: 1.5rem;
+  margin-top: var(--space-5);
 }
 
 .edition-neighbour {
@@ -12260,7 +12292,7 @@ a.state-pill:focus-visible {
 
 .edition-neighbour .tiny {
   color: var(--text-3);
-  font-size: 0.75rem;
+  font-size: var(--fs-12);
 }
 
 a.btn.sm {
@@ -12272,8 +12304,8 @@ a.btn.sm {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 0.75rem;
-  font-size: 0.8125rem;
+  gap: 0.4rem var(--space-3);
+  font-size: var(--fs-13);
 }
 
 .comic-edition-link .muted {
@@ -12282,7 +12314,7 @@ a.btn.sm {
 
 .edition-link-hits {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
   grid-column: 1 / -1;
   list-style: none;
   margin: 0;
@@ -12300,7 +12332,7 @@ a.btn.sm {
   display: flex;
   font: inherit;
   gap: 0.6rem;
-  padding: 0.3rem 0.5rem;
+  padding: 0.3rem var(--space-2);
   text-align: left;
   width: 100%;
 }
@@ -12318,17 +12350,17 @@ a.btn.sm {
 
 .comic-edition {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 /* The full add form, tucked under the add bar until asked for. */
 .full-add-form {
-  margin-block: 1rem;
+  margin-block: var(--space-4);
 }
 
 .full-add-form summary {
   cursor: pointer;
-  padding-block: 0.5rem;
+  padding-block: var(--space-2);
   font-weight: 600;
 }
 
@@ -12338,7 +12370,7 @@ a.btn.sm {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .load-state p {
@@ -12347,5 +12379,5 @@ a.btn.sm {
 
 /* Now: the RSS line sits apart from the finished list above it. */
 .now-rss {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }

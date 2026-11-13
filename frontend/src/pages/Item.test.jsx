@@ -154,7 +154,7 @@ describe('Item', () => {
       /^Playing again$/,
     )
     expect(
-      within(document.querySelector('.item-tiles')).getByText(
+      within(document.querySelector('.stat-tiles-figures')).getByText(
         'Playing again · last finished Jun 12, 2026',
       ),
     ).toBeInTheDocument()
@@ -250,7 +250,7 @@ describe('Item', () => {
     stubItem()
     await renderReady()
 
-    const tiles = within(document.querySelector('.item-tiles'))
+    const tiles = within(document.querySelector('.stat-tiles-figures'))
     expect(tiles.getByRole('img', { name: '9 out of 10' })).toBeInTheDocument()
     expect(tiles.getByRole('img', { name: '9 out of 10' })).toHaveTextContent(
       '★9',
@@ -270,7 +270,7 @@ describe('Item', () => {
   it('spans the dated finishes on the Played tile', async () => {
     stubItem({ finishes: ['2024-03-09', '2026-06-12'] })
     await renderReady()
-    const tiles = within(document.querySelector('.item-tiles'))
+    const tiles = within(document.querySelector('.stat-tiles-figures'))
     expect(tiles.getByText('Finished 2 times')).toBeInTheDocument()
     expect(
       tiles.getByText('Last Jun 12, 2026 · first Mar 2024'),
@@ -281,7 +281,9 @@ describe('Item', () => {
     stubItem({ times_completed: 1 })
     await renderReady()
     expect(
-      within(document.querySelector('.item-tiles')).getByText('Finished once'),
+      within(document.querySelector('.stat-tiles-figures')).getByText(
+        'Finished once',
+      ),
     ).toBeInTheDocument()
   })
 
@@ -296,7 +298,7 @@ describe('Item', () => {
     })
     await renderReady()
 
-    const tiles = within(document.querySelector('.item-tiles'))
+    const tiles = within(document.querySelector('.stat-tiles-figures'))
     expect(tiles.getByText('Not rated')).toBeInTheDocument()
     expect(tiles.queryByText('Community')).not.toBeInTheDocument()
     expect(tiles.queryByText('Played')).not.toBeInTheDocument()
@@ -544,7 +546,7 @@ describe('Item copy details', () => {
   ])('shows time to beat with named figures', async (timeToBeat, figures) => {
     stubItem({ time_to_beat: { hastily: null, count: 3, ...timeToBeat } })
     await renderReady()
-    const tiles = within(document.querySelector('.item-tiles'))
+    const tiles = within(document.querySelector('.stat-tiles-figures'))
     expect(tiles.getByText('Time to beat')).toBeInTheDocument()
     const rows = [...document.querySelectorAll('.item-ttb')].map((row) => [
       row.children[0].textContent,

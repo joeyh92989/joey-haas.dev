@@ -33,7 +33,7 @@ function ShareBody({ text, words, onClose, onStatus }) {
 
   return (
     <div className="share-sheet-body">
-      <h3 id={TITLE_ID}>{copy.title}</h3>
+      <h2 id={TITLE_ID}>{copy.title}</h2>
       {blocked ? (
         <>
           <p className="share-blocked muted">{copy.blocked}</p>

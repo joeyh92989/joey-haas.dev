@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { axeViolations } from '../../lib/axe.test-util.js'
 import { entry, fakeIntakeApi } from '../../lib/intake.test-util.js'
 import AddSection from './AddSection.jsx'
@@ -322,13 +322,19 @@ describe('AddSection on the shelf', () => {
 
   it('is a modal bottom sheet below 900px', async () => {
     media.phone = true
+    // jsdom has no showModal; the sheet is a native modal dialog (Sheet).
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute('open', '')
+    }
+    onTestFinished(() => delete HTMLDialogElement.prototype.showModal)
     const user = userEvent.setup()
     fakeIntakeApi({ search: () => SAGA })
     renderAt()
     await search(user)
     await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
     const drawer = screen.getByRole('dialog', { name: 'Saga' })
-    expect(drawer).toHaveAttribute('aria-modal', 'true')
+    expect(drawer.tagName).toBe('DIALOG')
+    expect(drawer).toHaveAttribute('open')
     expect(drawer).toHaveClass('intake-drawer-sheet')
   })
 
