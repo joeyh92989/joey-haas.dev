@@ -3,6 +3,7 @@ import LoadState from '../components/LoadState.jsx'
 import { DIARY_FAILED } from '../content/status.js'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import CoverImage from '../components/CoverImage.jsx'
 import AgainTag from '../components/AgainTag.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import { spine } from '../content/spine.js'
@@ -252,9 +253,14 @@ export default function YearInReview() {
                   <time dateTime={item.finished_at}>
                     {shortDate(item.finished_at)}
                   </time>
-                  <span>
-                    <Link to={itemPath(item.id)}>{item.title}</Link>
-                    {item.again && <AgainTag />}
+                  <span className="year-diary-title">
+                    <span className="year-diary-cover">
+                      <CoverImage src={item.cover_url} type={item.type} />
+                    </span>
+                    <span>
+                      <Link to={itemPath(item.id)}>{item.title}</Link>
+                      {item.again && <AgainTag />}
+                    </span>
                   </span>
                   {item.rating != null && (
                     <span className="muted">{item.rating}/10</span>

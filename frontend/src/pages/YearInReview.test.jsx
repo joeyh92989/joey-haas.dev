@@ -95,6 +95,28 @@ describe('YearInReview', () => {
     ])
   })
 
+  it('shows a cover for each finish, and a placeholder without one', () => {
+    answer.value = {
+      data: [
+        { ...ITEMS[0], cover_url: 'https://img.test/hades.jpg' },
+        { ...ITEMS[1], finished_at: '2026-03-02', cover_url: null },
+      ],
+      live: true,
+      failed: false,
+    }
+    renderAt('/shelf/year/2026')
+    const rows = screen
+      .getByRole('heading', { name: 'Finishes' })
+      .nextSibling.querySelectorAll('li')
+    expect(rows[0].querySelector('img')).toHaveAttribute(
+      'src',
+      'https://img.test/hades.jpg',
+    )
+    expect(rows[1].querySelector('img')).toBeNull()
+    expect(rows[1].querySelector('.cover-placeholder')).not.toBeNull()
+    expect(rows[1].children).toHaveLength(3)
+  })
+
   it('keeps the again tag inside the title cell', () => {
     answer.value = {
       data: [

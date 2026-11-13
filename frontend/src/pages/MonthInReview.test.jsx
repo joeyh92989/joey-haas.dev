@@ -112,15 +112,20 @@ describe('MonthInReview', () => {
 
     const nav = screen.getByRole('navigation', { name: 'Months' })
     expect(
-      within(nav).getByRole('link', { name: /August 2026/ }),
-    ).toHaveAttribute('href', '/shelf/journal/2026-08/')
-    expect(
-      within(nav).getByRole('link', { name: '2026 in review' }),
-    ).toHaveAttribute('href', '/shelf/year/2026/')
-    expect(within(nav).getAllByRole('link')).toHaveLength(2)
-    expect(
       within(nav).getByRole('link', { name: 'Previous month: August 2026' }),
-    ).toBeInTheDocument()
+    ).toHaveAttribute('href', '/shelf/journal/2026-08/')
+    // The year link is the crumb's alone; the month nav does not repeat it.
+    expect(
+      screen.getAllByRole('link', { name: '2026 in review' }),
+    ).toHaveLength(1)
+    const list = within(nav).getByRole('list')
+    expect(within(list).getAllByRole('listitem')).toHaveLength(12)
+    expect(
+      within(list).getByRole('link', { name: 'August 2026, 1 finished' }),
+    ).toHaveAttribute('href', '/shelf/journal/2026-08/')
+    expect(list.querySelector('[aria-current="page"]')).toHaveTextContent(
+      'October 2026, 1 finished, played',
+    )
   })
 
   it('shows finishes alone when the diary is empty', () => {

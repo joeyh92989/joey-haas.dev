@@ -6,12 +6,18 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import { spine } from '../content/spine.js'
-import { monthInReview, monthName, parseMonth } from '../lib/monthInReview.js'
+import MonthIndex from '../components/MonthIndex.jsx'
+import {
+  monthIndex,
+  monthInReview,
+  monthName,
+  parseMonth,
+} from '../lib/monthInReview.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { usePublicDiaryState } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NotFound from './NotFound.jsx'
-import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
+import { itemPath, yearPath } from '../lib/spinePaths.js'
 
 const DAY = new Intl.DateTimeFormat('en', {
   weekday: 'short',
@@ -66,22 +72,12 @@ export default function MonthInReview() {
         title={name}
       />
 
-      <nav className="month-nav" aria-label="Months">
-        {review.previous && (
-          <Link to={monthPath(review.previous)}>
-            <span aria-hidden="true">&larr;</span>{' '}
-            <span className="visually-hidden">Previous month:</span>{' '}
-            {monthName(review.previous)}
-          </Link>
-        )}
-        <Link to={yearPath(review.year)}>{review.year} in review</Link>
-        {review.next && (
-          <Link to={monthPath(review.next)}>
-            <span className="visually-hidden">Next month:</span>{' '}
-            {monthName(review.next)} <span aria-hidden="true">&rarr;</span>
-          </Link>
-        )}
-      </nav>
+      <MonthIndex
+        cells={monthIndex(items, diary.sessions, review.year)}
+        current={month}
+        previous={review.previous}
+        next={review.next}
+      />
 
       <LoadState
         loading={!data && !failed}

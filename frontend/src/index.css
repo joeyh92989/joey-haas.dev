@@ -6893,10 +6893,50 @@ main h1[tabindex='-1']:focus,
 }
 
 .month-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
   margin-top: 0.5rem;
+}
+
+.month-index {
+  border-block: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  list-style: none;
+  margin: 1rem 0 0.5rem;
+  max-width: 36rem;
+  padding: 0;
+}
+
+.month-index li > * {
+  border-bottom: 2px solid transparent;
+  color: var(--text-3);
+  display: grid;
+  font-size: 0.75rem;
+  justify-items: center;
+  line-height: 1.3;
+  padding: 0.45rem 0 0.35rem;
+}
+
+.month-index a {
+  color: var(--accent);
+}
+
+.month-index small {
+  font: 500 0.625rem var(--font-mono);
+}
+
+.month-index [aria-current] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.month-step {
+  display: flex;
+  font-size: 0.875rem;
+  gap: 1rem;
+  justify-content: space-between;
+  margin: 0;
+  max-width: 36rem;
 }
 
 .month-days {
@@ -6967,6 +7007,22 @@ main h1[tabindex='-1']:focus,
 .year-diary time {
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
+}
+
+/* A finish's title cell: a small cover, then the title (and "again"). */
+.year-diary-title {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.year-diary li:has(.year-diary-cover) {
+  align-items: center;
+}
+
+.year-diary-cover {
+  flex: none;
+  width: 2.25rem;
 }
 
 /* ---- How it works (/spine/how): the tour's primitives ---- */
