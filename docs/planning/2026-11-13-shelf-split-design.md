@@ -240,3 +240,22 @@ one backend suite at a time; check with `ps aux | grep '[p]ytest'`.
 Ship notes: no migration. The frontend and backend deploy together on
 merge. The live check is that `/shelf/games` answers with the Games page
 and `/api/public/stats?type=game` answers 200.
+
+## Deviations
+
+- Tasks 3 to 6 landed as one commit: they share `App.jsx`, `spine.js` and
+  `index.css` and are not valid apart.
+- Admin comic cards show no sync state and no "Sync failed" chip:
+  `ItemOut` has no `issues_synced_on`. Logged in design-system.md's gap
+  table for item 5. Admin Comics has no Overview charts.
+- On a phone, admin comic card controls are inline, not behind the "…"
+  sheet: item 4 reworks card actions.
+- The add form and the pull list's "Own…" prefill stay on admin Games
+  (Admin Comics has no form until 5c); a saved comic shows a line linking
+  to Comics.
+- Games carries the IGDB credit only; the TMDB line returns with a Film &
+  TV page.
+- The `stats` snapshot, its live read and the nightly compare use
+  `?type=game`.
+- `/shelf` stays in `STATIC_PAGES` (it writes the redirect's
+  canonical-to-Games head), so site search lists it beside Games.
