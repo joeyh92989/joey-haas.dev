@@ -175,7 +175,7 @@ describe('Home', () => {
       'href',
       profile.linkedin,
     )
-    expect(screen.getByRole('link', { name: 'PDF' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Resume (PDF)' })).toHaveAttribute(
       'href',
       '/resume.pdf',
     )

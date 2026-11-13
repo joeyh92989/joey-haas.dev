@@ -4,7 +4,7 @@ import { spine } from '../content/spine.js'
 import { hasComics } from '../lib/snapshotPresence.js'
 
 /**
- * Collection · Comics · What's next · Year in review · How it works · Daily,
+ * Collection · Comics · What's next · Year in review · Tour · Daily game,
  * under the My Shelf name on each page (Spine Next spec, C13; Daily from the
  * daily puzzle spec, the one tab outside /shelf). Links, not ARIA tabs: each is its own
  * page with its own URL. Year in review stays current on every year's page.

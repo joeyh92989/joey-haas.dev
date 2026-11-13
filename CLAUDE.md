@@ -34,7 +34,7 @@ backend, deployed on Render via Blueprint (render.yaml).
 - Frontend dev: `cd frontend && npm run dev` (http://localhost:5173)
 - Backend dev: `cd backend && source .venv/bin/activate && uvicorn main:app --reload` (http://localhost:8000)
 - Frontend build check: `cd frontend && VITE_DAILY_SALT=local npm run build`
-  (`vite.config.js` refuses a build without Shelfle's salt)
+  (`vite.config.js` refuses a build without the daily game's salt)
 - Frontend tests: `cd frontend && npm test`
 - Browser tests: `cd frontend && VITE_DAILY_SALT=local npm run build && npm run e2e`
 - Review screenshots: `cd frontend && npm run shots` (or `E2E_BASE_URL=https://joey-haas.dev npm run shots`)
@@ -245,7 +245,9 @@ before pushing.
   `scripts/build-search-index.mjs`, gitignored like the snapshot, and only
   public data goes in it: it reads the snapshot and published posts, never
   the API.
-- Shelfle, the daily puzzle at `/daily` (README → Daily puzzle), is
+- The Daily game (code name Shelfle), the daily puzzle at `/daily` (README →
+  Daily puzzle), is public as "Daily game"; code names (`ShelfleBoard`, etc.)
+  keep Shelfle, as `spine` code names do for /spine. It is
   client-only: `src/lib/daily.js` (pure: pool, Denver day, pick, grade,
   share) over the items snapshot, never the API. The salt reaches it as a
   parameter from `lib/dailyConfig.js`, the one reader of

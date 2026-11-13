@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import Collection from './Collection.jsx'
+import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
 import { STALE_HOURS } from '../lib/nightly.js'
 
@@ -418,17 +419,16 @@ describe('Collection', () => {
     }
     stubSnapshot({ items: [...ITEMS, game] })
     await renderReady()
-    expect(
-      screen.getByRole('link', { name: 'Today’s daily game →' }),
-    ).toHaveAttribute('href', '/daily')
+    expect(screen.getByRole('link', { name: daily.entry })).toHaveAttribute(
+      'href',
+      '/daily',
+    )
   })
 
   it('has no daily game link when no game could be the answer', async () => {
     stubSnapshot()
     await renderReady()
-    expect(
-      screen.queryByRole('link', { name: /Today’s daily game/ }),
-    ).toBeNull()
+    expect(screen.queryByRole('link', { name: daily.entry })).toBeNull()
   })
 
   it('has no axe violations on the landing', async () => {

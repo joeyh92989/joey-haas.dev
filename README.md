@@ -48,7 +48,7 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/now` | Now | What I am doing now |
 | `/colophon` | Colophon | How the site is built |
-| `/daily` | Shelfle | The daily puzzle: guess the game on the shelf in six, built in the browser from the build-time snapshot with no API call (see [Daily puzzle](#daily-puzzle)) |
+| `/daily` | Daily game | The daily puzzle: guess the game on the shelf in six, built in the browser from the build-time snapshot with no API call (see [Daily puzzle](#daily-puzzle)) |
 | `/stats` | Stats | The site's own visitor figures from `/api/public/site-stats`, how they are counted, and the changelog from `frontend/changelog.md` |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
 | `/blog/:slug` | Blog post | Slug is the markdown filename |
@@ -59,7 +59,7 @@ snapshot files and never call the API.
 | `/shelf` | My Shelf | Public shelf of what I own: hero numbers, favourites, stats, filters and sort, with a band linking to What's next; calls the public API after painting the build-time snapshot. |
 | `/shelf/next` | What's next | Public: the game I'm playing (a Continue card, with Wrap up and Log tonight when signed in), tonight's picks and the pinned Up next game, my list, and what to look for in a store (In stores now, Coming soon, Further out, Not on cartridge) with first-person reasons; reads `/api/public/next` after painting `/snapshot/next.json` when the build wrote one |
 | `/shelf/comics` | Comics | Public: every public comic series as a run (owned, missing, not out yet), with chip filters, sort, a Covers view and what is out this week; reads `/api/public/comics` after painting `/snapshot/comics.json` |
-| `/shelf/how` | How it works | How the shelf is built |
+| `/shelf/how` | Tour | How the shelf is built |
 | `/shelf/year`, `/shelf/year/:year` | Year in review | The current year, or a given one, read live from `/api/public/diary` |
 | `/shelf/journal/:month` | Month in review | One month of the play journal |
 | `/shelf/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf. A comic series shows what's next, its run as lanes over a box of books, issues and bundles, and its collected editions instead |
@@ -274,7 +274,7 @@ admin pages have no search.
 
 ## Daily puzzle
 
-`/daily` is Shelfle: one game a day, the same for everyone, guessed in six
+`/daily` is the Daily game (Shelfle is its code name): one game a day, the same for everyone, guessed in six
 and graded on platform, year, genre and size. It is built entirely in the
 browser from `/snapshot/items.json`. It makes no API call, so it plays while
 the free-tier backend sleeps. The rules live in `frontend/src/lib/daily.js`,

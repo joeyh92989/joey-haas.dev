@@ -145,7 +145,7 @@ const TOP_PICKS_SHOWN = 3
 /**
  * One list of rows, cut short with "Show all N". `topPicks` lets the
  * section draw "Top pick" on its first few rows that carry it; the badge
- * means little on every row, and the data is untouched (How it works reads
+ * means little on every row, and the data is untouched (the Tour reads
  * `top_pick`).
  */
 function Rows({ rows, section, topPicks = 0, label }) {

@@ -1,7 +1,7 @@
 import { spine } from './spine.js'
 
 /**
- * Every word on /daily, the Shelfle puzzle (daily puzzle spec). Grading
+ * Every word on /daily, the daily game, code name Shelfle (daily puzzle spec). Grading
  * rules live in lib/daily.js; this is only what the page says.
  */
 export const daily = {

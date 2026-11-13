@@ -83,7 +83,7 @@ function ScoreBreakdown({ pick, weights }) {
  * moods are toggle chips, and a third mood is refused with a polite note.
  * The live line speaks only after a change, never on load. The band mounts
  * once its table has loaded, after useHashFocus would have looked, so a link
- * to `#pick-for-me` (the How it works tour's) is honoured here.
+ * to `#pick-for-me` (the Tour's) is honoured here.
  *
  * @param {object} props
  * @param {object} props.table - A `PublicPickForMeOut` body.
