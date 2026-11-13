@@ -25,7 +25,7 @@ VITE_DAILY_SALT=ci npm run build && npm run e2e
   pages), one comic series, and 30 filler games. The prerender refuses a
   build when fewer than 30 games are eligible for the daily puzzle
   (`MIN_POOL` in `src/lib/daily.js`).
-- `stats.json` carries the full shape `Collection.jsx` reads, not just the
+- `stats.json` carries the full shape `Games.jsx` reads, not just the
   fields the shape check requires.
 - `comic-issues.json` feeds the issue and edition pages' heads.
 - Shapes mirror `SNAPSHOTS` in `scripts/fetch-snapshot.mjs`.

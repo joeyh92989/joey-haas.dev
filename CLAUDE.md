@@ -78,7 +78,7 @@ before pushing.
 - Tile family: `CoverTile` (a comic cover; `tile.kind === 'book'` is a
   collected edition), `PosterCard` (a poster) and `StatTile` (a figure; its
   `children` take a composite value, `StatTiles figures` the item-page look).
-  `CoverStrip`, `GarmentTile`, `AreaCard` and `HeroNumbers` are different jobs.
+  `CoverStrip`, `GarmentTile` and `AreaCard` are different jobs.
 - Theming: dark is the brand default and is written into the markup as
   `<html data-theme="dark">`, so it survives a JavaScript failure. A pre-paint
   script in `frontend/index.html` switches to `localStorage('theme')` when one
@@ -121,11 +121,12 @@ before pushing.
   is published (`hasTrips`), and tests mock `content/trips.js` like posts.
   `DrawnMap` (`components/`, placed by `lib/mapFit.js`, drawings in
   `content/maps/`) is the one map component: Denver spots reuses it.
-- The Comics tab and the Denver footer link hide while their page is empty
-  (#125), decided at build time like `hasNotes`: `vite.config.js` reads
-  `public/snapshot/{comics,spots}.json` through
-  `scripts/snapshot-presence.mjs` into `__SNAPSHOT_PRESENCE__`, which
-  `lib/snapshotPresence.js` turns into `hasComics` and `hasSpots`. Only a
+- The Games and Comics tabs and the Denver footer link hide while their page
+  is empty (#125), decided at build time like `hasNotes`: `vite.config.js`
+  reads `public/snapshot/{items,comics,spots}.json` (Games counts the games
+  in the items snapshot) through `scripts/snapshot-presence.mjs` into
+  `__SNAPSHOT_PRESENCE__`, which `lib/snapshotPresence.js` turns into
+  `hasGames`, `hasComics` and `hasSpots`. Only a
   written, empty snapshot hides a link; dev, tests and a failed optional
   fetch keep both. No runtime request.
 - Denver spots: the public `/denver` map and list,
@@ -164,8 +165,12 @@ before pushing.
   for the plan. Mockups and the `.superpowers/` execution scratch stay out of
   git — the first are disposable once the UI exists, the second is process
   telemetry.
-- The tracker shelf is one design system for `/shelf` and
-  `/admin/collection`. Its tokens (`--rating`, `--status-*`, `--overlay`,
+- The tracker shelf is one design system for the public Games and Comics
+  pages (`/shelf/games`, `/shelf/comics`) and their admin twins
+  (`/admin/shelf/games`, `/admin/shelf/comics`). `/shelf` and the old
+  `/admin/collection` list path redirect client-side (`ShelfRedirect` keeps
+  the query, `AdminListRedirect` the query and the pull list's prefill state);
+  a comic is on exactly one list on each side. Its tokens (`--rating`, `--status-*`, `--overlay`,
   `--skeleton`, `--grid-gap`) live in both theme blocks like every other
   token, and the status colors were chosen on measured contrast: each clears
   3:1 against `--surface` in both themes (they are non-text marks, and the
@@ -191,13 +196,15 @@ before pushing.
 - Shelf components live in `frontend/src/components/`: `PosterCard`,
   `PosterGrid`, `FilterChips`, `SortControl`, `ShelfToolbar`, `Rating`,
   `QuickRate`, `ShelfCardActions`, and the pieces the public pages share:
-  `ResultBar`, `CoverKey`, `ShowMore`, `JumpNav` and `CappedList`.
+  `ResultBar`, `CoverKey`, `ShowMore`, `JumpNav`, `CappedList` and
+  `EmptyState` (the one empty state).
   `SortControl` is chips on a wide screen and a select on a phone unless it
   is given `select`, the public shelf's labeled select at every width.
-  `HeroNumbers` and `FavoritesRow` are
-  exported from `pages/Collection.jsx`; the admin shelf reuses
-  `FavoritesRow` and shows its figures as `StatTile`s. A
-  card's admin controls are a sibling of its link, never nested inside it.
+  `FavoritesRow`, `StatusBar`, `RatingHistogram`, `FinishesStrip` and
+  `OnCartridge` are exported from `components/ShelfOverview.jsx`; every shelf
+  figure is a `StatTile`. A `FilterChips` group takes a `limit` (the rest sit
+  behind More…). A card's admin controls are a sibling of its link, never
+  nested inside it, and a private admin row always carries a Private tag.
 - `FilterChips` hides a group with at most one chip to show and none
   pressed, on both shelves; a pressed chip always keeps its group.
 - Nothing on the shelf is hover-only: anything revealed on hover is also
@@ -238,7 +245,9 @@ before pushing.
   without a file (tried on 2026-10-19).
   The tracker moved from `/spine` to `/shelf` (copy pass, 2026-10-22).
   Every `/spine*` and `/collection*` route redirects client-side to its
-  `/shelf` page in `App.jsx`; `legacyRoutes` in `prerender-lib.mjs` writes
+  `/shelf` page in `App.jsx` (`/spine` and `/collection` land on
+  `/shelf/games`, and `/shelf` itself is a client redirect there that keeps
+  `?q=`; its prerendered head is canonical on Games); `legacyRoutes` in `prerender-lib.mjs` writes
   heads at `/spine`, `/spine/next`, `/spine/how` and `/spine/<id>/`
   (canonical on `/shelf`), `render.yaml` keeps the three `/spine` rewrites
   after the `/shelf` ones, and the feed is written to both
@@ -441,7 +450,7 @@ before pushing.
         failed sync on `/admin/jobs`
   - [x] 2. Design rules file (`docs/design-system.md`) and feature status
         list
-  - [ ] 3. Split the shelf by type: Games at `/shelf/games`, Comics, and
+  - [x] 3. Split the shelf by type: Games at `/shelf/games`, Comics, and
         their admin twins
   - [ ] 4. Delete, bulk delete, redo, and discard an empty sitting
   - [ ] 5. Comics: the book is what you own (5a intake reads the issue
@@ -520,7 +529,7 @@ before pushing.
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
 - **E7b deploy order:** apply `0003` to Neon, merge, press "Refresh game
-  metadata" once on `/admin/collection`, then bulk-set platform and format
+  metadata" once on `/admin/shelf/games`, then bulk-set platform and format
   from the List view. The refresh fills release dates and any platform the
   snapshot makes unambiguous; it never touches what the owner recorded.
 - **Copy fields are decided in one place: `backend/formats.py`.** Every
@@ -593,7 +602,7 @@ before pushing.
   that rendered row's title (`next_load.taste_sparing_owned`).
 - **E7c deploy order:** set `GOOGLE_SHEETS_API_KEY` on Render; apply `0005`
   to Neon; merge; **before the first Refresh registry, bulk-set every owned
-  Switch 2 copy's format on `/admin/collection`** (the collection is all full
+  Switch 2 copy's format on `/admin/shelf/games`** (the collection is all full
   cartridges, and the registry lists many third-party retail boxes as
   Game-Key Cards, so a blank format would be filled wrongly; a recorded one
   is `manual` and never touched); then on `/admin/catalogue` press Refresh
@@ -833,6 +842,10 @@ before pushing.
   note (`PublicDiaryEntry`, pinned in `test_public.py`); Year in review
   reads it live (no snapshot) and reads complete without it. **Deploy
   order:** apply `0007` to Neon, then merge.
+- The Games page reads `GET /api/public/stats?type=game` (the `stats`
+  snapshot is that same games-only read, `LIVE_PATHS` in
+  `lib/useSnapshotThenLive.js`); `test_public_outputs.py` pins the type filter
+  (same fields, no comic in `?type=game`, no private row either way).
 - Editing lives at `/admin/collection/:id`. A wrong external match is fixed
   there by re-linking through the metadata picker, which re-fetches cover,
   creator and the snapshot server-side. Deleting and re-adding is not
@@ -847,8 +860,10 @@ before pushing.
   allows 100 minutes, and IGDB resolution measured ~25s of it — so this is
   about progress and failure isolation, not a limit. It also keeps each
   payload under Gemini's 20MB inline ceiling.
-- Source attribution on the collection page is required by TMDB's and Comic
-  Vine's terms, not decoration. A test pins the TMDB wording verbatim.
+- Source attribution is required by IGDB's, TMDB's and Comic Vine's terms,
+  not decoration: Games credits IGDB and Comics credits Comic Vine, on the page
+  that shows their data. The TMDB line (verbatim) comes back with a Film & TV
+  page; there is no film on the shelf today, so no page carries it.
 - **Comic issue pages** (migration `0016`, additive: the
   `comic_issues` table, keyed `(item_id, number)`, `ON DELETE CASCADE`, and
   `items.issues_synced_on`). `comic_issues.sync_series` pages a linked

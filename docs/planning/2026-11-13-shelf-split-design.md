@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: ui
 mode: auto (Joey's stops from the shelf sweep run; design approved 13 Nov 2026)
 ---
