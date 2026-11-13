@@ -1,0 +1,12 @@
+{
+  "total": 32,
+  "by_type": { "game": 31, "comic": 1 },
+  "by_status": { "finished": 1, "backlog": 30, "active": 1 },
+  "rating_histogram": { "8": 1 },
+  "finishes_by_month": { "2025-03": 1 },
+  "owned": 32,
+  "finished_this_year": 0,
+  "average_rating": 8,
+  "by_platform": {},
+  "by_format": {}
+}
