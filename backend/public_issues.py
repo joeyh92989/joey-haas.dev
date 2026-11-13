@@ -449,7 +449,10 @@ async def load_comic_index(
     if items:
         result = await session.scalars(
             select(ComicIssue)
-            .where(ComicIssue.item_id.in_(list(by_item)))
+            .where(
+                ComicIssue.item_id.in_(list(by_item)),
+                ComicIssue.cv_id.is_not(None),  # not a stub
+            )
             .options(defer(ComicIssue.description))
         )
         for row in result:

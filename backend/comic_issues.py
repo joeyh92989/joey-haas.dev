@@ -91,14 +91,21 @@ async def load_issues(
     high: int | None = None,
     *,
     with_description: bool = False,
+    include_stubs: bool = False,
 ) -> list[ComicIssue]:
     """A series' stored issues, ordered by number.
+
+    A stub (a mark with no Comic Vine issue behind it, null `cv_id`) is left
+    out unless `include_stubs`: the public pages show only what Comic Vine
+    has synced.
 
     `low` and `high` bound the numbers (both inclusive). The description is a
     JSONB column that can be large, so it is left unloaded unless
     `with_description`: reading it from a row loaded without it raises.
     """
     query = select(ComicIssue).where(ComicIssue.item_id == item_id)
+    if not include_stubs:
+        query = query.where(ComicIssue.cv_id.is_not(None))
     if low is not None:
         query = query.where(ComicIssue.number >= low)
     if high is not None:

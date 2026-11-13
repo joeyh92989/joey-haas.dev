@@ -408,7 +408,10 @@ async def series_on_shelf_for(
         (
             await session.execute(
                 select(ComicIssue.item_id, func.max(ComicIssue.number))
-                .where(ComicIssue.item_id.in_([item.id for item in items.values()]))
+                .where(
+                    ComicIssue.item_id.in_([item.id for item in items.values()]),
+                    ComicIssue.cv_id.is_not(None),  # a stub is no synced issue
+                )
                 .group_by(ComicIssue.item_id)
             )
         ).all()
