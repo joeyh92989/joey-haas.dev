@@ -25,7 +25,7 @@ describe('ContactLine', () => {
       'href',
       'https://example.com/in/joey',
     )
-    expect(screen.getByRole('link', { name: 'Resume (PDF)' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'PDF' })).toHaveAttribute(
       'href',
       '/resume.pdf',
     )

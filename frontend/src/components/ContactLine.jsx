@@ -20,7 +20,7 @@ export default function ContactLine({ downloadName }) {
         </>
       )}
       . The full resume is a{' '}
-      <a href="/resume.pdf" download={downloadName} aria-label="Resume (PDF)">
+      <a href="/resume.pdf" download={downloadName}>
         PDF
       </a>
       .

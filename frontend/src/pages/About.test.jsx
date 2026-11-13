@@ -49,10 +49,10 @@ describe('About', () => {
         fact.value,
       )
     }
-    // The profile aside and the closing contact line both link it.
-    for (const link of screen.getAllByRole('link', { name: 'Resume (PDF)' })) {
-      expect(link).toHaveAttribute('href', '/resume.pdf')
-    }
+    expect(screen.getByRole('link', { name: 'Resume (PDF)' })).toHaveAttribute(
+      'href',
+      '/resume.pdf',
+    )
   })
 
   it('renders every toolbox chip', () => {
@@ -130,7 +130,7 @@ describe('About', () => {
       'href',
       profile.linkedin,
     )
-    const pdf = screen.getAllByRole('link', { name: 'Resume (PDF)' }).at(-1)
+    const pdf = screen.getByRole('link', { name: 'PDF' })
     expect(pdf).toHaveAttribute('href', '/resume.pdf')
     expect(pdf).toHaveAttribute('download', 'Joey Haas Resume.pdf')
   })
