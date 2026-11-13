@@ -27,6 +27,7 @@ from closet_today_routes import create_closet_today_router
 from comics_routes import create_comics_router
 from config import allowed_origins, configure_logging, load_config
 from db import create_engine_and_sessionmaker, engine_lifespan
+from e2e_login import mount_e2e_login
 from errors import add_json_errors
 from importer import create_import_router
 from intake.budget import UsageRecorder
@@ -121,6 +122,8 @@ app.add_middleware(
 )
 
 app.include_router(create_auth_router(config))
+# Local only: mounts nothing unless E2E_TEST_LOGIN=1 on a localhost frontend.
+mount_e2e_login(app, config)
 app.include_router(create_items_router(session_factory, registry))
 app.include_router(
     create_intake_router(

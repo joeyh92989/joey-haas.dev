@@ -358,6 +358,14 @@ email and the subject must match.
 It cannot be required from the start, because the value is unknowable until the
 first login.
 
+### Test sign-in (local only)
+
+Browser tests (#205) sign in without Google through `POST /api/auth/test-login`,
+which signs in the configured `ADMIN_EMAIL` and returns 204. The route is not
+mounted unless `E2E_TEST_LOGIN=1`, and the server refuses to start with that set
+unless `FRONTEND_URL` begins with `http://localhost`. Never set it on Render;
+`scripts/smoke.sh` checks the deployed API answers 404 for it.
+
 ### Sessions follow the allowlist
 
 The session is a signed cookie that lasts thirty days. Every admin request
