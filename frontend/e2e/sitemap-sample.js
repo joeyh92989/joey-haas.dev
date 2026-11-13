@@ -16,6 +16,15 @@ export const KINDS = [
   /^\/travel\/[^/]+\/$/,
 ]
 
+/** The shelf's dynamic kinds, by name. */
+export const SHELF_KINDS = {
+  item: KINDS[0],
+  year: KINDS[1],
+  month: KINDS[2],
+  edition: KINDS[3],
+  issue: KINDS[4],
+}
+
 /** Picks the first sitemap path of each dynamic kind. */
 export function sampleRoutes(xml) {
   const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => {

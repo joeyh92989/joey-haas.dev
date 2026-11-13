@@ -1,0 +1,20 @@
+{
+  "series_id": "22222222-bbbb-4bbb-8bbb-000000000002",
+  "series_title": "Paper Moons",
+  "publisher": "Fixture Press",
+  "slug": "ed-1-1",
+  "kind": "Trade paperback",
+  "label": "Volume One",
+  "from_issue": 1,
+  "to_issue": 1,
+  "cover_url": null,
+  "large_url": null,
+  "description": ["An invented edition for the test fixture."],
+  "state": "owned",
+  "read": "not-yet",
+  "read_to": null,
+  "inside": [{ "number": 1, "cover_url": null, "state": "owned" }],
+  "prev": null,
+  "next": null,
+  "source_url": "https://comicvine.gamespot.com/"
+}
