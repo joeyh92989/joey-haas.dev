@@ -33,7 +33,11 @@ describe('setMark', () => {
     )
     expect(await setMark(ID, 5, 'read')).toEqual({ read_to: 2 })
     expect(calls).toEqual([
-      [expect.stringContaining(`/api/comics/${ID}/issues/5/mark`), { state: 'read' }, 'POST'],
+      [
+        expect.stringContaining(`/api/comics/${ID}/issues/5/mark`),
+        { state: 'read' },
+        'POST',
+      ],
     ])
   })
 

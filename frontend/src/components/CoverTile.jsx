@@ -35,9 +35,18 @@ export function shortEditionLabel(label) {
  * @param {'wall'|'strip'|'inside'} props.size
  * @param {{id: string, title: string}} props.series
  * @param {boolean} [props.current] - The issue the page is about.
+ * @param {boolean} [props.linked] - A book links to its edition page (default);
+ *   the admin page of a private series has none to open.
  */
-export default function CoverTile({ tile, size, series, current = false }) {
-  if (tile.kind === 'book') return <BookLink tile={tile} series={series} />
+export default function CoverTile({
+  tile,
+  size,
+  series,
+  current = false,
+  linked = true,
+}) {
+  if (tile.kind === 'book')
+    return <BookLink tile={tile} series={series} linked={linked} />
   const date = tile.store_date ? shortDate(tile.store_date) : null
   if (tile.kind === 'not-out') {
     return (
@@ -84,24 +93,42 @@ export default function CoverTile({ tile, size, series, current = false }) {
   )
 }
 
-function BookLink({ tile, series }) {
+function BookLink({ tile, series, linked }) {
   const { edition, readTo } = tile
   const range =
     edition.from === edition.to
       ? `#${edition.from}`
       : `#${edition.from}–${edition.to}`
+  const label = WALL.bookName(edition.label, edition.from, edition.to, readTo)
+  if (!linked) {
+    return (
+      <div
+        className="cover-tile book-tile"
+        data-size="wall"
+        data-state="book"
+        role="group"
+        aria-label={label}
+      >
+        <span className="cover-tile-frame">
+          <CoverImage src={tile.cover_url} type="comic" alt="" />
+        </span>
+        <span className="cover-tile-cap" aria-hidden="true">
+          <span>{shortEditionLabel(edition.label)}</span>
+          <em>
+            {range}
+            {readTo !== null && ` · ${WALL.readTo(readTo)}`}
+          </em>
+        </span>
+      </div>
+    )
+  }
   return (
     <Link
       to={editionPath(series.id, tile.slug)}
       className="cover-tile book-tile"
       data-size="wall"
       data-state="book"
-      aria-label={WALL.bookName(
-        edition.label,
-        edition.from,
-        edition.to,
-        readTo,
-      )}
+      aria-label={label}
     >
       <span className="cover-tile-frame">
         <CoverImage src={tile.cover_url} type="comic" alt="" />

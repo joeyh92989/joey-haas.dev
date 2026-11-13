@@ -248,7 +248,8 @@ describe('ComicIssue, public', () => {
     // The source line under the description and the page's own credit.
     const links = screen.getAllByRole('link', { name: 'Comic Vine' })
     expect(links).toHaveLength(2)
-    for (const link of links) expect(link).toHaveAttribute('href', PAGE.source_url)
+    for (const link of links)
+      expect(link).toHaveAttribute('href', PAGE.source_url)
     expect(screen.getByText('From')).toBeVisible()
   })
 
@@ -360,11 +361,15 @@ describe('ComicIssue, signed in', () => {
       stored: { ...STORED, issues_owned: '1–10' },
     })
     renderIssue({ signedIn: true })
-    expect(await screen.findByRole('button', { name: 'Owned ✓' })).toBeDisabled()
+    expect(
+      await screen.findByRole('button', { name: 'Owned ✓' }),
+    ).toBeDisabled()
     expect(
       screen.getByText('In Volume Nine. Edit editions on the comic’s page.'),
     ).toBeVisible()
-    await userEvent.click(screen.getByRole('button', { name: 'I’ve read this' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'I’ve read this' }),
+    )
     expect(edits.setMark).toHaveBeenCalledWith(ID, 58, 'read')
   })
 
@@ -391,7 +396,9 @@ describe('ComicIssue, signed in', () => {
     expect(
       await screen.findByRole('button', { name: COPY.owner.owned }),
     ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'I’ve read this' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'I’ve read this' }),
+    )
     expect(edits.setMark).toHaveBeenCalledWith(ID, 58, 'read')
   })
 

@@ -41,11 +41,14 @@ async function patch(id, changes) {
  * @returns {Promise<object>} The series' comic state after the write.
  */
 export async function setMark(id, n, state, to) {
-  const response = await apiFetch(`/api/comics/${encodeURIComponent(id)}/issues/${n}/mark`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(to ? { state, to } : { state }),
-  })
+  const response = await apiFetch(
+    `/api/comics/${encodeURIComponent(id)}/issues/${n}/mark`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(to ? { state, to } : { state }),
+    },
+  )
   // A 409 here is the route's own (an edition-held book can't go missing).
   if (!response.ok)
     throw new Error(await errorMessage(response, { ownConflicts: true }))

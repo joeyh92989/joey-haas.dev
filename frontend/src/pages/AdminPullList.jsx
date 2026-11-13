@@ -19,7 +19,7 @@ async function detailOf(response, fallback) {
 function ownLink(result) {
   if (result.item_id) {
     return {
-      to: `/admin/collection/${result.item_id}`,
+      to: `/admin/shelf/comics/${result.item_id}`,
       label: result.in_shelf ? 'Edit' : 'Own…',
     }
   }
@@ -437,7 +437,7 @@ export default function AdminPullList() {
                         }
                       >
                         <Link
-                          to={`/admin/collection/${row.item_id}`}
+                          to={`/admin/shelf/comics/${row.item_id}`}
                           className="next-row-link"
                         >
                           <span className="next-row-cover">

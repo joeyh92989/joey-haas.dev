@@ -195,7 +195,7 @@ describe('AdminComics', () => {
     ).toHaveAttribute('href', '/shelf/s/')
     expect(within(group).getByRole('link', { name: 'Edit' })).toHaveAttribute(
       'href',
-      '/admin/collection/s',
+      '/admin/shelf/comics/s',
     )
   })
 
@@ -214,7 +214,7 @@ describe('AdminComics', () => {
     await renderPage()
     expect(screen.getByRole('link', { name: 'Monstress' })).toHaveAttribute(
       'href',
-      '/admin/collection/m',
+      '/admin/shelf/comics/m',
     )
   })
 

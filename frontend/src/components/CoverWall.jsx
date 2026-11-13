@@ -14,14 +14,19 @@ const WALL = spine.comics.wall
 const OWNER = WALL.owner
 
 /** A tap moves a book one step: owned, then read, then missing again. */
-const NEXT = { missing: 'owned', skipped: 'owned', owned: 'read', read: 'missing' }
+const NEXT = {
+  missing: 'owned',
+  skipped: 'owned',
+  owned: 'read',
+  read: 'missing',
+}
 
 /**
  * An owner's cover: the cover is a button that moves the book one step, and
  * its number is a link beside it (a sibling, never nested). The button's name
  * says where the book is and what a tap does.
  */
-function OwnerTile({ tile, series, onTap }) {
+function OwnerTile({ tile, series, onTap, linked }) {
   const next = NEXT[tile.state]
   const date = tile.store_date ? shortDate(tile.store_date) : null
   const stateWord = WALL.names[tile.state]
@@ -57,14 +62,22 @@ function OwnerTile({ tile, series, onTap }) {
           </span>
         </button>
       </div>
-      <Link
-        to={issuePath(series.id, tile.n)}
-        className="cover-tile-cap"
-        aria-label={OWNER.openName(series.title, tile.n)}
-      >
-        <span>#{tile.n}</span>
-        {date && <em>{date}</em>}
-      </Link>
+      {linked ? (
+        <Link
+          to={issuePath(series.id, tile.n)}
+          className="cover-tile-cap"
+          aria-label={OWNER.openName(series.title, tile.n)}
+        >
+          <span>#{tile.n}</span>
+          {date && <em>{date}</em>}
+        </Link>
+      ) : (
+        // A private series has no issue page to open.
+        <span className="cover-tile-cap">
+          <span>#{tile.n}</span>
+          {date && <em>{date}</em>}
+        </span>
+      )}
     </div>
   )
 }
@@ -87,6 +100,8 @@ function OwnerTile({ tile, series, onTap }) {
  * @param {object} props.detail - The public item detail (`comic` block).
  * @param {{id: string, title: string}} props.series
  * @param {Set<number>} [props.skipped] - Signed in only, when already held.
+ * @param {boolean} [props.linked] - Whether the covers open their pages
+ *   (default). The admin page of a private series has none to open.
  * @param {(n: number, state: 'missing'|'owned'|'read') => Promise<void>} [props.onMark]
  *   Signed in only: writes one book's state and resolves once the page has
  *   the new data; rejects with an Error whose message is shown.
@@ -97,6 +112,7 @@ export default function CoverWall({
   series,
   skipped,
   onMark,
+  linked = true,
 }) {
   const owner = Boolean(onMark)
   const [open, setOpen] = useState(() => new Set())
@@ -212,6 +228,7 @@ export default function CoverWall({
             tile={tile}
             size="wall"
             series={series}
+            linked={linked}
           />
         )
       case 'stack':
@@ -252,6 +269,7 @@ export default function CoverWall({
             tile={tile}
             series={series}
             onTap={tap}
+            linked={linked}
           />
         ) : (
           <CoverTile

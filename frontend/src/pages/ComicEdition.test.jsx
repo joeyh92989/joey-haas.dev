@@ -226,7 +226,9 @@ describe('ComicEdition', () => {
       `/admin/shelf/comics/${ID}`,
     )
     await user.click(screen.getByRole('button', { name: 'Read to the end' }))
-    await waitFor(() => expect(edits.setMark).toHaveBeenCalledWith(ID, 1, 'read', 6))
+    await waitFor(() =>
+      expect(edits.setMark).toHaveBeenCalledWith(ID, 1, 'read', 6),
+    )
     await waitFor(() => expect(fetch.mock.calls.length).toBeGreaterThan(1))
   })
 

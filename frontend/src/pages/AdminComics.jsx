@@ -138,7 +138,7 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
               : 'Cover wall'}
           </Link>
         )}
-        <Link to={`/admin/collection/${row.item_id}`}>Edit</Link>
+        <Link to={`/admin/shelf/comics/${row.item_id}`}>Edit</Link>
       </div>
       <div className="shelf-actions-row shelf-actions-danger">
         <ShelfConfirm
@@ -609,7 +609,7 @@ export default function AdminComics() {
                 to={
                   item.is_public
                     ? itemPath(item.id)
-                    : `/admin/collection/${item.id}`
+                    : `/admin/shelf/comics/${item.id}`
                 }
                 stacked
                 run={<ComicCardRun row={item.row} />}

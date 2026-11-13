@@ -56,7 +56,10 @@ export default function OwnerControls({
   }
 
   const mark = (next) =>
-    run(() => setMark(id, n, next), { now: next, was: held ? (read ? 'read' : 'owned') : 'missing' })
+    run(() => setMark(id, n, next), {
+      now: next,
+      was: held ? (read ? 'read' : 'owned') : 'missing',
+    })
 
   const undo = () => {
     const { was } = last
@@ -98,7 +101,9 @@ export default function OwnerControls({
         )}
       </div>
       {editionOnly && (
-        <p className="comic-issue-owner-note">{COPY.inEdition(edition.label)}</p>
+        <p className="comic-issue-owner-note">
+          {COPY.inEdition(edition.label)}
+        </p>
       )}
       <p className="comic-issue-saved" role="status">
         {error ? (

@@ -981,7 +981,9 @@ describe('Item cover wall', () => {
             return {
               ok: false,
               status: 409,
-              json: async () => ({ detail: 'In Vol. 2. Edit editions on the comic’s page.' }),
+              json: async () => ({
+                detail: 'In Vol. 2. Edit editions on the comic’s page.',
+              }),
             }
           }
           state.marks[Number(text.match(/issues\/(\d+)\/mark/)[1])] = body.state
@@ -1035,7 +1037,9 @@ describe('Item cover wall', () => {
       ).toBeInTheDocument()
       await tap('Saga #5, Owned. Mark read')
       await tap('Saga #5, Read. Mark missing')
-      await screen.findByRole('button', { name: 'Saga #5, Missing. Mark owned' })
+      await screen.findByRole('button', {
+        name: 'Saga #5, Missing. Mark owned',
+      })
       expect(state.posts.map(([url, body]) => [url, body.state])).toEqual([
         [expect.stringContaining(`/api/comics/${ID}/issues/5/mark`), 'owned'],
         [expect.stringContaining(`/api/comics/${ID}/issues/5/mark`), 'read'],
@@ -1055,7 +1059,9 @@ describe('Item cover wall', () => {
       await waitFor(() =>
         expect(status).toHaveTextContent('Saga #5 marked owned. Undo'),
       )
-      await userEvent.click(within(status).getByRole('button', { name: 'Undo' }))
+      await userEvent.click(
+        within(status).getByRole('button', { name: 'Undo' }),
+      )
       await waitFor(() => expect(state.posts).toHaveLength(2))
       expect(state.posts[1][1]).toEqual({ state: 'missing' })
       await waitFor(() => expect(status).not.toHaveTextContent('Undo'))

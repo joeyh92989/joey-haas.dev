@@ -39,28 +39,28 @@ export default function ComicDescription({
   const [first, ...rest] = paragraphs
   return (
     <>
-    <div className="comic-issue-desc">
-      <p>{first}</p>
-      {rest.length > 0 && (
-        <>
-          <div id="issue-more" hidden={!open}>
-            {rest.map((text, index) => (
-              <p key={index}>{text}</p>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="link-button"
-            aria-expanded={open}
-            aria-controls="issue-more"
-            onClick={() => setOpen((current) => !current)}
-          >
-            {open ? COPY.less : COPY.more}
-          </button>
-        </>
-      )}
-    </div>
-    {source(COPY.from)}
+      <div className="comic-issue-desc">
+        <p>{first}</p>
+        {rest.length > 0 && (
+          <>
+            <div id="issue-more" hidden={!open}>
+              {rest.map((text, index) => (
+                <p key={index}>{text}</p>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="link-button"
+              aria-expanded={open}
+              aria-controls="issue-more"
+              onClick={() => setOpen((current) => !current)}
+            >
+              {open ? COPY.less : COPY.more}
+            </button>
+          </>
+        )}
+      </div>
+      {source(COPY.from)}
     </>
   )
 }

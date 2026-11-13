@@ -180,6 +180,7 @@ const TITLES = [
   ['/admin/spots', 'Spots · Admin · Joey Haas'],
   ['/admin/weekend', 'This weekend · Admin · Joey Haas'],
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
+  ['/admin/shelf/comics/42', 'Comic · Admin · Joey Haas'],
   ['/admin/closet', 'Closet · Admin · Joey Haas'],
   ['/admin/closet/today', 'Today · Admin · Joey Haas'],
   ['/admin/closet/review', 'Review · Admin · Joey Haas'],

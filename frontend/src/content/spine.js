@@ -720,6 +720,34 @@ export const spine = {
         skippedTag: 'Skipped',
       },
     },
+    /** The admin comic page, /admin/shelf/comics/:id. */
+    admin: {
+      shelf: 'Shelf',
+      comics: 'Comics',
+      fallbackTitle: 'Comic',
+      kicker: 'Comic',
+      public: 'Public',
+      private: 'Private',
+      viewOnSite: 'View on the site',
+      series: 'Series',
+      privateTag: 'private',
+      save: 'Save changes',
+      saved: 'Saved.',
+      issues: 'Issues',
+      issuesLine: (owned, released, read, missing) =>
+        `${owned} of ${released} owned, ${read} read, ${missing} missing.`,
+      issuesHint:
+        'Tap a cover to mark it owned, read or missing. Skips are set on the issue page. Issue numbers are whole numbers; #0, #½ and annuals can’t be recorded yet.',
+      editions: 'Editions',
+      saveEditions: 'Save editions',
+      match: 'Comic Vine match',
+      refresh: 'Refresh from Comic Vine',
+      unlinked: 'Not linked to Comic Vine.',
+      relinkLine: 'Wrong series? Search Comic Vine and link another.',
+      delete: 'Delete',
+      deleteLine:
+        'Removes the series, its issue records and its editions for good.',
+    },
     pills: { following: 'Following', want: 'Want' },
     chips: {
       all: 'All',
@@ -828,11 +856,14 @@ export const spine = {
         skipped: 'Skipped · private ✓',
         failed: 'Could not save that change. Try again.',
         /** The status line under the buttons, and the word Undo. */
-        marked: { missing: 'Marked missing.', owned: 'Marked owned.', read: 'Marked read.' },
+        marked: {
+          missing: 'Marked missing.',
+          owned: 'Marked owned.',
+          read: 'Marked read.',
+        },
         undo: 'Undo',
         /** The server's words for a book held only in an edition. */
-        inEdition: (label) =>
-          `In ${label}. Edit editions on the comic’s page.`,
+        inEdition: (label) => `In ${label}. Edit editions on the comic’s page.`,
       },
     },
     /** The public collected-edition page, /shelf/:id/ed-<from>-<to>/. */

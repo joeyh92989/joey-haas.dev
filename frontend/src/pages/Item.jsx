@@ -571,37 +571,62 @@ function ItemPage({ id }) {
   // The owner's playthroughs and skips come from the admin read, which a
   // visitor cannot make; the public item carries only the dates. Quiet on
   // failure: the table is an aside, and the edit page is where it matters.
-  const loadOwner = useCallback(async () => {
+  const fetchOwner = useCallback(async () => {
     try {
       const response = await apiFetch(`/api/items/${encodeURIComponent(id)}`)
-      const body = response.ok ? await response.json() : null
-      setRuns(body?.playthroughs ?? null)
-      setSkipped(new Set(expandRanges(body?.issues_skipped)))
+      return response.ok ? await response.json() : null
     } catch {
-      // The aside stays as it was.
+      return null
     }
   }, [id])
+  const applyOwner = useCallback((body) => {
+    if (!body) return // The aside stays as it was.
+    setRuns(body.playthroughs ?? null)
+    setSkipped(new Set(expandRanges(body.issues_skipped)))
+  }, [])
+  const loadOwner = useCallback(
+    async () => applyOwner(await fetchOwner()),
+    [fetchOwner, applyOwner],
+  )
   useEffect(() => {
-    if (signedIn) loadOwner()
-  }, [signedIn, loadOwner])
+    if (!signedIn) return undefined
+    let cancelled = false
+    fetchOwner().then((body) => {
+      if (!cancelled) applyOwner(body)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [signedIn, fetchOwner, applyOwner])
 
   // A comic's issue rows and editions, for the cover wall. Quiet on failure
   // (and while the series has no issue rows): the page draws without it.
   const comicReady = loaded?.type === 'comic'
-  const loadWall = useCallback(async () => {
+  const fetchWall = useCallback(async () => {
     try {
       const response = await apiFetch(
         `/api/public/items/${encodeURIComponent(id)}/issues`,
       )
       const body = response.ok ? await response.json() : null
-      setWall(Array.isArray(body?.issues) ? body : null)
+      return Array.isArray(body?.issues) ? body : null
     } catch {
-      // No wall.
+      return null
     }
   }, [id])
+  const loadWall = useCallback(
+    async () => setWall(await fetchWall()),
+    [fetchWall],
+  )
   useEffect(() => {
-    if (comicReady) loadWall()
-  }, [comicReady, loadWall])
+    if (!comicReady) return undefined
+    let cancelled = false
+    fetchWall().then((body) => {
+      if (!cancelled) setWall(body)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [comicReady, fetchWall])
 
   /**
    * Sets one book (a tap on a cover): the one mark route, then the public
@@ -814,8 +839,7 @@ function ItemView({
           <h2>{runWords(item.type).runs}</h2>
           <PlaythroughTable runs={runs} type={item.type} />
           <p className="muted playthroughs-note">
-            Dates change on the{' '}
-            <Link to={adminItemPath(item)}>edit page</Link>.
+            Dates change on the <Link to={adminItemPath(item)}>edit page</Link>.
           </p>
         </section>
       )}

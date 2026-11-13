@@ -775,309 +775,32 @@ describe('the registry line', () => {
   })
 })
 
-describe('AdminItem comic fields', () => {
-  const COMIC = {
-    ...ITEM,
-    type: 'comic',
-    title: 'Saga',
-    external_source: 'comicvine',
-    external_id: '49901',
-    issues_owned: '1–54',
-    editions: [{ kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 }],
-    read_to: 40,
-    shelf_format: 'singles',
-    following: true,
-    comic_run: { owned: 54, released: 72 },
-  }
-
-  it('shows the run in place of the copy fields', async () => {
-    stubApi({ item: COMIC })
-    renderPage()
-    expect(await screen.findByLabelText('Single issues I own')).toHaveValue(
-      '1–54',
+describe('AdminItem for a comic', () => {
+  it('sends a comic to its own page', async () => {
+    stubApi({ item: { ...ITEM, type: 'comic', title: 'Saga' } })
+    render(
+      <MemoryRouter initialEntries={['/admin/collection/abc']}>
+        <Routes>
+          <Route path="/admin/collection/:id" element={<AdminItem />} />
+          <Route
+            path="/admin/shelf/comics/:id"
+            element={<p>the comic page</p>}
+          />
+        </Routes>
+      </MemoryRouter>,
     )
-    expect(screen.getByLabelText('Label, Vol. 1')).toHaveValue('Vol. 1')
-    expect(screen.getByLabelText('From issue, Vol. 1')).toHaveValue('1')
-    expect(screen.getByText(/Comic Vine lists 72 out/)).toBeInTheDocument()
-    expect(screen.queryByLabelText('Cart ID')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Platform')).not.toBeInTheDocument()
-    // The run card leads, with the private Skipped field under it.
-    expect(screen.getByRole('heading', { name: /^The run/ })).toHaveTextContent(
-      '54 of 72 · 18 missing',
-    )
-    expect(screen.getByLabelText(/^Skipped/)).toHaveValue('')
+    expect(await screen.findByText('the comic page')).toBeInTheDocument()
   })
 
-  it('leaves out the Comic Vine sentence for an unlinked comic', async () => {
-    stubApi({
-      item: {
-        ...COMIC,
-        external_source: null,
-        external_id: null,
-        issues_owned: '1-2',
-        editions: [],
-        comic_run: { owned: 2, released: 2 },
-      },
-    })
-    renderPage()
-    expect(await screen.findByLabelText('Single issues I own')).toHaveValue(
-      '1-2',
-    )
-    expect(screen.queryByText(/Comic Vine lists/)).not.toBeInTheDocument()
-  })
-
-  it('sends only the comic fields that changed', async () => {
-    const mock = stubApi({ item: COMIC })
-    renderPage()
-    const issues = await screen.findByLabelText('Single issues I own')
-    await userEvent.clear(issues)
-    await userEvent.type(issues, '1-54, 60')
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Add an edition' }),
-    )
-    await userEvent.type(screen.getByLabelText('Kind, edition 2'), 'Trade')
-    await userEvent.type(screen.getByLabelText('Label, edition 2'), 'Vol. 2')
-    await userEvent.type(screen.getByLabelText('From issue, Vol. 2'), '7')
-    await userEvent.type(screen.getByLabelText('To issue, Vol. 2'), '12')
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-    await waitFor(() => expect(writeCalls(mock)).toHaveLength(1))
-    expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
-      issues_owned: '1-54, 60',
-      editions: [
-        { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 },
-        { kind: 'Trade', label: 'Vol. 2', from: 7, to: 12 },
-      ],
-    })
-  })
-
-  it('removes an edition row', async () => {
-    const mock = stubApi({ item: COMIC })
-    renderPage()
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Remove Vol. 1' }),
-    )
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-    await waitFor(() => expect(writeCalls(mock)).toHaveLength(1))
-    expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({ editions: null })
-  })
-
-  it('stops on an edition row it cannot read, sending nothing', async () => {
-    const mock = stubApi({ item: COMIC })
-    renderPage()
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Add an edition' }),
-    )
-    await userEvent.type(screen.getByLabelText('Label, edition 2'), 'Vol. 2')
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Edition 2: give it a kind, a label and the issues it collects.',
-    )
-    expect(writeCalls(mock)).toHaveLength(0)
-  })
-
-  it('shows the API’s range error beside its field and keeps what was typed (AC13)', async () => {
-    stubApi({
-      item: COMIC,
-      onWrite: () => ({
-        ok: false,
-        status: 422,
-        json: async () => ({ detail: 'Issues owned: “5–2” runs backwards' }),
-      }),
-    })
-    renderPage()
-    const issues = await screen.findByLabelText('Single issues I own')
-    await userEvent.clear(issues)
-    await userEvent.type(issues, '5-2')
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-    const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('Issues owned: “5–2” runs backwards')
-    expect(alert.id).toBe('comic-issues_owned-error')
-    expect(issues).toHaveAttribute('aria-invalid', 'true')
-    expect(issues).toHaveValue('5-2')
-  })
-
-  it('owns a missing issue on a tap and redraws before Save (AC10)', async () => {
-    stubApi({ item: COMIC })
-    renderPage()
-    const box = await screen.findByRole('group', { name: 'Issues' })
-    // 55–72 is one bundle of missing issues until it is opened.
-    await userEvent.click(
-      within(box).getByRole('button', { name: /^Issues 55 to 72, 18 missing/ }),
-    )
-    await userEvent.click(
-      within(box).getByRole('button', { name: 'Issue 60, Missing' }),
-    )
-    expect(screen.getByLabelText('Single issues I own')).toHaveValue('1-54, 60')
-    expect(
-      within(box).getByRole('button', { name: 'Issue 60, Owned, unread' }),
-    ).toHaveFocus()
-    expect(screen.getByRole('heading', { name: /^The run/ })).toHaveTextContent(
-      '55 of 72 · 17 missing',
-    )
-  })
-
-  it('moves Read to here, and back one on the current marker', async () => {
-    stubApi({ item: { ...COMIC, issues_owned: '7–20', read_to: 9 } })
-    renderPage()
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Read to here' }),
-    )
-    const box = screen.getByRole('group', { name: 'Issues' })
-    await userEvent.click(
-      within(box).getByRole('button', { name: 'Issue 9, Read' }),
-    )
-    expect(screen.getByLabelText('Read to')).toHaveValue(8)
-  })
-
-  it('skips only an issue not held, dashed and in its lane (AC11, AC12)', async () => {
-    stubApi({ item: COMIC })
-    renderPage()
-    await userEvent.click(await screen.findByRole('button', { name: 'Skip' }))
-    const box = screen.getByRole('group', { name: 'Issues' })
-    // A book is never a button: editions are edited as rows.
-    expect(within(box).queryByRole('button', { name: /Vol\. 1/ })).toBeNull()
-    await userEvent.click(
-      within(box).getByRole('button', { name: /^Issues 41 to 54, 14 unread/ }),
-    )
-    await userEvent.click(
-      within(box).getByRole('button', { name: 'Issue 41, Owned, unread' }),
-    )
-    expect(screen.getByLabelText(/^Skipped/)).toHaveValue('')
-    await userEvent.click(
-      within(box).getByRole('button', { name: /^Issues 55 to 72/ }),
-    )
-    await userEvent.click(
-      within(box).getByRole('button', { name: 'Issue 58, Missing' }),
-    )
-    expect(screen.getByLabelText(/^Skipped/)).toHaveValue('58')
-    expect(
-      within(box).getByRole('button', { name: 'Issue 58, Skipped' }),
-    ).toHaveAttribute('data-k', 'skip')
-    expect(
-      screen.getByRole('img', { name: /^54 of 72 issues owned/ }),
-    ).toHaveTextContent('Skipped private')
-  })
-
-  it('refreshes from Comic Vine, then reads the item again', async () => {
-    const mock = stubApi({ item: COMIC })
-    renderPage()
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Refresh from Comic Vine' }),
-    )
-    await waitFor(() =>
-      expect(writeCalls(mock).map(([url]) => String(url))).toEqual([
-        expect.stringMatching(/\/api\/comics\/abc\/refresh$/),
-      ]),
-    )
-    await waitFor(() =>
-      expect(
-        mock.mock.calls.filter(
-          ([url, options]) =>
-            !options?.method && /\/api\/items\/abc$/.test(String(url)),
-        ),
-      ).toHaveLength(2),
-    )
-  })
-
-  it('keeps an edition row typed before the refresh lands', async () => {
-    const mock = stubApi({ item: COMIC })
-    renderPage()
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Add an edition' }),
-    )
-    await userEvent.type(screen.getByLabelText('Label, edition 2'), 'Vol. 2')
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Refresh from Comic Vine' }),
-    )
-    await waitFor(() =>
-      expect(
-        mock.mock.calls.filter(
-          ([url, options]) =>
-            !options?.method && /\/api\/items\/abc$/.test(String(url)),
-        ),
-      ).toHaveLength(2),
-    )
-    await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: 'Refresh from Comic Vine' }),
-      ).toBeEnabled(),
-    )
-    expect(screen.getByLabelText('Label, Vol. 2')).toHaveValue('Vol. 2')
-  })
-
-  it('links a saved edition to Comic Vine and shows the stored link', async () => {
-    const linked = [{ ...COMIC.editions[0], cv_id: 4242 }]
-    const base = stubApi({ item: COMIC })
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url, options = {}) => {
-        const path = String(url)
-        if (path.includes('/api/comics/issues/search')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => [
-              { cv_id: 4242, volume_name: 'Saga', number: '1', name: null },
-            ],
-          }
-        }
-        if (path.endsWith('/editions/ed-1-6/link')) {
-          return {
-            ok: true,
-            status: 200,
-            json: async () => ({ item_id: 'abc', editions: linked }),
-          }
-        }
-        return base(url, options)
-      }),
-    )
-    renderPage()
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Link to Comic Vine, Vol. 1',
-      }),
-    )
-    await userEvent.type(screen.getByLabelText('Search Comic Vine'), 'saga')
-    await userEvent.click(
-      await screen.findByRole('button', { name: /Saga #1/ }),
-    )
-    expect(
-      await screen.findByText('Linked to Comic Vine (issue 4242)'),
-    ).toBeInTheDocument()
-  })
-
-  it('shows an existing link and disables the control on an unsaved row', async () => {
-    stubApi({
-      item: {
-        ...COMIC,
-        editions: [{ ...COMIC.editions[0], cv_id: 4242 }],
-      },
-    })
-    renderPage()
-    expect(
-      await screen.findByText('Linked to Comic Vine (issue 4242)'),
-    ).toBeInTheDocument()
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Add an edition' }),
-    )
-    await userEvent.type(screen.getByLabelText('From issue, edition 2'), '7')
-    await userEvent.type(screen.getByLabelText('To issue, edition 2'), '12')
-    const buttons = screen.getAllByRole('button', {
-      name: /Link to Comic Vine/,
-    })
-    expect(buttons[0]).toBeEnabled()
-    expect(buttons[1]).toBeDisabled()
-    expect(
-      screen.getByText('Save the edition before linking it.'),
-    ).toBeInTheDocument()
-  })
-
-  it('offers no Comic Vine refresh on a game', async () => {
+  it('offers no Comic Vine refresh and no comic type on a game', async () => {
     stubApi()
     renderPage()
     await screen.findByDisplayValue('Star Fox')
     expect(
       screen.queryByRole('button', { name: 'Refresh from Comic Vine' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: 'comic' }),
     ).not.toBeInTheDocument()
   })
 })
@@ -1223,55 +946,5 @@ describe('AdminItem playthroughs', () => {
     expect(
       await screen.findByText('That date is too far from today.'),
     ).toBeInTheDocument()
-  })
-})
-
-describe('AdminItem for a comic in comic words', () => {
-  const COMIC_RUNS = {
-    ...ITEM,
-    type: 'comic',
-    title: 'Saga',
-    status: 'finished',
-    times_completed: 1,
-    playthroughs: [
-      {
-        number: 1,
-        started_on: '2026-03-01',
-        finished_on: '2026-03-20',
-        paused_on: null,
-        outcome: 'finished',
-        journal_days: 0,
-        journal_minutes: 0,
-      },
-    ],
-  }
-
-  it('shows Reads, Reading, Reread and Add a past read', async () => {
-    stubApi({ item: COMIC_RUNS })
-    renderPage()
-
-    expect(
-      await screen.findByRole('heading', { name: 'Reads' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('option', { name: 'Reread, starts read 2' }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Paused' })).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Add a past read' }),
-    ).toBeInTheDocument()
-    expect(screen.getByLabelText('Read on')).toBeInTheDocument()
-    expect(screen.queryByText(/Playthrough/)).toBeNull()
-    expect(screen.queryByText(/Playing/)).toBeNull()
-    expect(screen.queryByText('Played on')).toBeNull()
-  })
-
-  it('names the active status Reading in the status control', async () => {
-    stubApi({ item: { ...COMIC_RUNS, status: 'backlog', playthroughs: [] } })
-    renderPage()
-    expect(
-      await screen.findByRole('option', { name: 'Reading' }),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('option', { name: 'Playing' })).toBeNull()
   })
 })
