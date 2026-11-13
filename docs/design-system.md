@@ -78,6 +78,43 @@ number. Rules for a mark like it:
 - It never holds back a write by itself: the thing that holds Next is a
   missing value, named in the words beside the button.
 
+## A cover that is a control
+
+(Comics 5c, 13 Nov 2026.) On the series page and the admin comic page the
+signed-in owner's cover is a button, and the issue link is its sibling (the
+number under it), never nested inside it. Rules:
+
+- The button's name says where the book is and what a tap does: "Saga #5,
+  Missing. Mark owned". A tap moves a book one step (missing, owned, read,
+  missing); the visitor's cover stays a link.
+- A hover label is a convenience: the same words are in the name, and focus
+  draws what hover draws.
+- Signed in, the wall is open (no fold), because the owner is working on it.
+  A long missing stretch folds for a visitor.
+
+## An instantly saved change
+
+A change that writes at once (a cover tap, an issue page's Owned and Read)
+says so in a status line under the thing changed (`role="status"`, the same
+line each time, not a toast), with Undo beside it, which posts the previous
+state back. A refusal replaces the line with the server's own words and
+leaves the control as it was. Nothing asks first: Undo is the safety.
+
+## Chips inside a section
+
+A detail page's section may carry its own labelled chip row (the wall's
+Show: All, Missing), written the page-level way: a visible label naming
+what it filters, `aria-pressed` on the chips, counts in each. It filters the
+section only and is not saved.
+
+## The source line
+
+Text that comes from Comic Vine says so under it, in the smallest type:
+"From Comic Vine" under a description. A description that is empty shows
+nothing, no placeholder on a series page; an issue with a cover and no
+description still credits it ("Cover from Comic Vine"). The page-end credit
+("Comic data from Comic Vine.") stays on every page that shows its data.
+
 ## Widths
 
 Two widths on shelf pages, set by `RootLayout`, never by a page's own CSS:
@@ -125,9 +162,21 @@ except what is a state rather than a control: **Private** always shows.
 Bulk publish and hide act on the rows of their own page, by id.
 
 Admin paths that predate the rule (`/admin/collection/:id`, the item edit
-pages) move when their page is next touched (the comic edit page in item
-5c), and the old path redirects client-side, as `/spine` does:
-`/admin/collection`, the old list, now redirects to `/admin/shelf/games`.
+pages) move when their page is next touched, and the old path redirects
+client-side, as `/spine` does: `/admin/collection`, the old list, redirects
+to `/admin/shelf/games`, and a comic opened at `/admin/collection/:id` goes
+to `/admin/shelf/comics/:id` (item 5c; a game keeps its path).
+
+**The admin twin of a detail page** (comics 5c): the area rail, a
+breadcrumb (Shelf › Comics › the series), `AdminPageHeader` with the page's
+actions (a link to the public page when there is one), then `Panel`s in the
+public page's order: Series, Issues (the same wall, with taps), Editions,
+the source match, Delete. It carries every field the public page shows and
+the private ones besides.
+
+**The public mirror**: a public detail page shows what its admin twin shows,
+minus the edit controls and the private fields (notes, skips, prices,
+following). A fact added to one is added to the other.
 
 Signed-in controls sit in the same places for every type:
 
@@ -172,7 +221,8 @@ it up).
 | `/admin/jobs` | Jobs | tool | live |
 | `/admin/shelf/games`, `/admin/shelf/comics` | Games, Comics (Shelf area) | list | live |
 | `/admin/collection` | redirect to `/admin/shelf/games` | — | live (legacy path) |
-| `/admin/collection/:id` | Edit item | detail | live |
+| `/admin/collection/:id` | Edit game (a comic redirects) | detail | live |
+| `/admin/shelf/comics/:id` | Edit comic (the twin of `/shelf/:id`) | detail | live |
 | `/admin/collection/add`, `…/add/:sittingId`, `/admin/import` | Add, sitting (redirect from import) | tool | live |
 | `/admin/play-next` | Play Next | tool | live |
 | `/admin/discover`, `/admin/radar` | Discover, Radar | tool | live |
@@ -198,9 +248,8 @@ names and the admin list paths.
 | Gap | Where | Closed by |
 |---|---|---|
 | Hand-rolled `h1` under the area band | `Next.jsx`, `YearInReview.jsx`, `Daily.jsx`, `HowItWorks.jsx` | when touched |
-| Detail heads hand-rolled beside the cover | `Item.jsx`, `ComicIssue.jsx`, `ComicEdition.jsx` | item 5c (comics), next games detail change |
+| Detail heads hand-rolled beside the cover | `Item.jsx`, `ComicIssue.jsx`, `ComicEdition.jsx` | next games detail change |
 | Item status words outside `StatePill` | `Item.jsx` (`statusInWords`) | next games detail change |
 | Empty words inline, not `EmptyState` | `Denver.jsx`, other shelf pages | when touched |
-| Admin item edit paths not under `/admin/shelf` | `/admin/collection/:id`, `/admin/collection/add*` | item 5c (comic edit page) |
+| Admin game edit and add paths not under `/admin/shelf` | `/admin/collection/:id`, `/admin/collection/add*` | next games detail change |
 | The admin comic card shows no sync state: `ItemOut` carries no `issues_synced_on` | `AdminComics.jsx` | item 5 |
-| Issue and edition descriptions carry no source line beside them | `ComicDescription.jsx` | item 5 |

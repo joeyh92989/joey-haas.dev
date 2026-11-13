@@ -77,6 +77,7 @@ Joey: a senior software engineer in Denver, talking to visitors who are recruite
   - **Sources** (not catalog or catalogue) on the admin page at `/admin/catalogue`.
   - **vibe** (not mood) in Pick for me.
   - **My Shelf** for the tracker; **Games** and **Comics** are its list tabs and the admin pages that twin them (shelf split, 2026-11-13). Collection is retired as a visitor-facing name.
+- **Marking a book** (comics, 13 Nov 2026): a cover's action reads "Mark owned", "Mark read" or "Mark missing", the status line "Saga #5 marked owned." with Undo; the issue page's buttons read "I own this", "I’ve read this" and, once set, "Owned ✓" and "Read ✓".
 - **One wording per state.** Waking, load failure and action failure each live once in `frontend/src/content/status.js`; pages import them.
 - **The site is warmer and more first-person than the résumé** (`docs/planning/2026-09-18-resume-copy-sync-design.md`). Do not flatten it to résumé tone.
 

@@ -1,5 +1,5 @@
 ---
-status: 5a, 5b done (5c planned)
+status: 5a, 5b, 5c done (5c implemented, awaiting merge)
 kind: ui
 mode: auto (Joey's stops from the shelf sweep run; design approved 13 Nov 2026)
 ---
@@ -464,3 +464,45 @@ keep what they recorded (Waterworld still owns #1–4).
 
 Ship notes: no migration. Public outputs gain `owned`, `read` and
 `count_of_issues`, all pinned.
+
+### 5c status: done
+
+Tasks 1 to 8 built on `feat/comic-edit-in-place`; nothing pushed.
+
+### 5c Deviations
+
+- **`sync_marks` preserves reads.** The plan said it "stops rederiving
+  `read` from `read_to` except when a write sets `read_to`". Done as
+  parameters: `from_read_to` (item PATCH that carries `read_to`) and `reads`
+  (the mark route); every other writer keeps the read marks of rows that stay
+  owned, and a newly held number reads as `read_to` says. `mark_mismatches`
+  no longer compares `read` (it cannot be derived), only owned, skipped and a
+  read mark on a book not owned.
+- **`read_to` after a tap** is the highest owned issue with every owned issue
+  up to it read; reading #2 before #1 leaves `read_to` unset until #1 is
+  read. Existing rows keep the `read_to` they have until a tap changes it.
+- **The mark route takes an optional `to`** (mark #n through #to). The edition
+  page's Read to the end uses it (it marks the book's issues read; it no
+  longer marks everything before the book, which `read_to` did).
+- **A new admin read, `GET /api/comics/{id}/wall`,** serves the wall and the
+  comic block for any comic. The admin page for a private series needs it,
+  and the public route 404s a private row.
+- **Public reads tolerate rows the marks have not reached:** a held issue is
+  held if the row says so or the ranges do, and read if the row says so or
+  `read_to` does (the series detail's read count is the larger of the two).
+- **`count_of_issues` is stored as `issue_count`**, so the public field on the
+  comic block is `issue_count`.
+- **The Issues panel on the admin page is the wall itself**, with the counts
+  line and a hint, not the mockup's link to the series page (a private series
+  has no page). The number under a cover is not a link there when the series
+  is private.
+- **`ComicSummary` at zero held** shows the format, issue count and "as of"
+  notes only (no "0 of N" count); nothing recorded and no notes shows nothing.
+- **No `ADMIN_ROUTES` row** for `/admin/shelf/comics/:id`: it is a dynamic path
+  like `/admin/collection/:id`, which the test excludes; the Comics page owns
+  it by prefix.
+- **The admin comic page has no Reads table** (playthroughs), as the panel
+  list says; status moves go through the status route. Comic Type is no longer
+  offered on the game page.
+- Undo of a tap on a skipped cover posts `missing`, so the skip is not
+  restored (owning clears it).
