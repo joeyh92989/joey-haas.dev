@@ -130,7 +130,7 @@ check_equals "GET /shelf/next has its own prerendered title" "$next_title" "<tit
 stats_title="$(curl -s -m 90 "$SITE_URL/stats" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /stats has its own prerendered title" "$stats_title" "<title>Stats · Joey Haas</title>"
 daily_title="$(curl -s -m 90 "$SITE_URL/daily" | grep -o '<title>[^<]*</title>')"
-check_equals "GET /daily has its own prerendered title" "$daily_title" "<title>Daily · My Shelf</title>"
+check_equals "GET /daily has its own prerendered title" "$daily_title" "<title>Daily game · My Shelf</title>"
 til_title="$(curl -s -m 90 "$SITE_URL/til" | grep -o '<title>[^<]*</title>')"
 check_equals "GET /til has its own prerendered title" "$til_title" "<title>TIL · Joey Haas</title>"
 denver_title="$(curl -s -m 90 "$SITE_URL/denver" | grep -o '<title>[^<]*</title>')"
@@ -461,7 +461,7 @@ fi
 check_equals "GET /shelf/how (deep link)" "$(http_status "$SITE_URL/shelf/how")" "200"
 how_html="$(curl -s -m 90 "$SITE_URL/shelf/how")"
 check_equals "GET /shelf/how has its own prerendered title" \
-  "$(printf '%s' "$how_html" | grep -o '<title>[^<]*</title>')" "<title>How it works · My Shelf</title>"
+  "$(printf '%s' "$how_html" | grep -o '<title>[^<]*</title>')" "<title>Tour · My Shelf</title>"
 # The tour draws stores as "store withheld"; none of the watched stores'
 # hosts (STORES in backend/physical_sources/stores.py) may reach its page.
 STORE_HOSTS='limitedrungames|iam8bit|strictlylimitedgames|premiumeditiongames|nicalis|aksysgames|aksyseurope|fangamer|superraregames|pixelheart|gamefairy|1printgames'
