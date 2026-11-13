@@ -34,6 +34,7 @@ from closet_images import make_reading_copy, make_thumbnail
 from closet_routes import add_garment_photo, check_media_type, convert_upload
 from config import Config
 from intake.budget import budget_state
+from intake.comic_books import BookEditError, edit_book, number_check
 from intake.commit import (
     SITTING_GONE,
     NothingToAdd,
@@ -136,8 +137,10 @@ def entry_json(
 ) -> dict[str, Any]:
     """The page's view of an entry. `on_shelf` is the comic series the
     entry would add issues to, as it stands now (`series_on_shelf_for`),
-    else null."""
-    return {
+    else null. A comic also carries `number_check`, the mark under its
+    issue number, decided from the payload and the match
+    (`intake.comic_books.number_check`), never stored."""
+    shown = {
         "id": str(entry.id),
         "photo_id": str(entry.photo_id) if entry.photo_id else None,
         "kind": entry.kind,
@@ -148,6 +151,9 @@ def entry_json(
         "garment_id": str(entry.garment_id) if entry.garment_id else None,
         "on_shelf": on_shelf,
     }
+    if entry.kind == "comic":
+        shown["number_check"] = number_check(entry.payload, entry.chosen, on_shelf)
+    return shown
 
 
 async def entries_json(
@@ -594,6 +600,11 @@ def create_intake_router(
             value = getattr(body, field)
             if field == "state" and value is None:
                 continue
+            if field == "payload" and entry.kind == "comic" and value is not None:
+                try:
+                    value = edit_book(entry.payload, value)
+                except BookEditError as error:
+                    raise HTTPException(422, str(error)) from error
             setattr(entry, field, value)
         await session.commit()
         [shown] = await entries_json(session, [entry])

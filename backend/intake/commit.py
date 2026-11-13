@@ -60,6 +60,7 @@ from formats import CopyFieldError
 from intake.kinds import REGISTRY, Kind
 from items import ItemIn, RowRefused, _write_fields, commit_items
 from models import (
+    ComicIssue,
     ComicShelfFormat,
     Garment,
     GarmentStatus,
@@ -381,6 +382,16 @@ async def series_on_shelf_for(
         )
     )
     items = {(item.external_source, item.external_id): item for item in found}
+    # The highest issue the synced issue rows know, for Check's run check.
+    issue_max = dict(
+        (
+            await session.execute(
+                select(ComicIssue.item_id, func.max(ComicIssue.number))
+                .where(ComicIssue.item_id.in_([item.id for item in items.values()]))
+                .group_by(ComicIssue.item_id)
+            )
+        ).all()
+    )
     shelf: dict[uuid.UUID, dict[str, Any]] = {}
     for entry_id, key in keys.items():
         item = items.get(key)
@@ -395,6 +406,7 @@ async def series_on_shelf_for(
             "owned_text": run["owned_text"],
             "released": run["released"],
             "ongoing": run["ongoing"],
+            "issue_max": issue_max.get(item.id),
         }
     return shelf
 
