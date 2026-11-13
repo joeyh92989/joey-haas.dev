@@ -511,3 +511,34 @@ async def test_the_index_matches_the_issue_route_and_ignores_skips(
         assert (await _get(sessionmaker_for_test, path)).status_code == 200
     path = f"/api/public/items/{item_id}/issues/10"
     assert (await _get(sessionmaker_for_test, path)).status_code == 404
+
+
+async def test_stub_rows_change_no_public_body(sessionmaker_for_test):
+    """The marks (5b) add stub rows for held and skipped numbers Comic Vine has
+    not synced; every public read ignores them (and carries no mark)."""
+    import json
+
+    from comics import sync_marks
+
+    item_id = await _seed(sessionmaker_for_test, numbers=(1, 2, 3))
+    paths = [
+        "/api/public/comic-issues",
+        f"/api/public/items/{item_id}/issues",
+        *(f"/api/public/items/{item_id}/issues/{n}" for n in range(1, 10)),
+        f"/api/public/items/{item_id}/editions/ed-5-6",
+        f"/api/public/items/{item_id}/editions/ed-5-6-2",
+    ]
+
+    async def bodies():
+        return [(await _get(sessionmaker_for_test, p)).content for p in paths]
+
+    before = await bodies()
+    async with sessionmaker_for_test() as session:
+        item = await session.get(Item, item_id)
+        result = await sync_marks(session, item)
+        await session.commit()
+    assert result.stubs_added > 0
+    after = await bodies()
+    assert after == before
+    for body in after:
+        assert not {"owned", "skipped"} & set(_keys(json.loads(body)))

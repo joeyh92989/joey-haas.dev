@@ -937,3 +937,91 @@ async def test_0015_llm_usage_is_one_row_per_day_and_model(clean_database):
             await connection.execute(
                 text("INSERT INTO llm_usage (day, model) VALUES ('2026-11-10', 'm')")
             )
+
+
+# --- Revision 0017: comic issue marks. --------------------------------------
+
+
+async def _seed_issue_rows(engine) -> None:
+    """A series with one synced issue (#1) and one stub (#2, no Comic Vine
+    id), written at revision 0017."""
+    async with engine.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status) VALUES "
+                "('00000000-0000-0000-0000-000000000001', 'comic', 'S', 'backlog')"
+            )
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO comic_issues (item_id, number, cv_id, fetched_on, owned) "
+                "VALUES ('00000000-0000-0000-0000-000000000001', 1, 11, "
+                "'2026-11-01', true)"
+            )
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO comic_issues (item_id, number, owned, skipped) "
+                "VALUES ('00000000-0000-0000-0000-000000000001', 2, false, true)"
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_0017_adds_marks_without_touching_rows(clean_database):
+    assert _alembic("upgrade", "0016").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status) VALUES "
+                "('00000000-0000-0000-0000-000000000001', 'comic', 'S', 'backlog')"
+            )
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO comic_issues (item_id, number, cv_id, fetched_on) "
+                "VALUES ('00000000-0000-0000-0000-000000000001', 1, 11, "
+                "'2026-11-01')"
+            )
+        )
+
+    result = _alembic("upgrade", "0017")
+    assert result.returncode == 0, result.stderr
+
+    async with clean_database.connect() as connection:
+        rows = (
+            await connection.execute(
+                text("SELECT number, owned, read, skipped FROM comic_issues")
+            )
+        ).all()
+    # Marked false by the default, and no stub row inserted.
+    assert [tuple(row) for row in rows] == [(1, False, False, False)]
+
+
+@pytest.mark.asyncio
+async def test_0017_downgrade_deletes_stubs_and_keeps_synced_rows(clean_database):
+    assert _alembic("upgrade", "0017").returncode == 0
+    await _seed_issue_rows(clean_database)
+
+    result = _alembic("downgrade", "0016")
+    assert result.returncode == 0, result.stderr
+
+    async with clean_database.connect() as connection:
+        numbers = (
+            (await connection.execute(text("SELECT number FROM comic_issues")))
+            .scalars()
+            .all()
+        )
+        columns = {
+            row[0]
+            for row in await connection.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'comic_issues'"
+                )
+            )
+        }
+    assert list(numbers) == [1]
+    assert not {"owned", "read", "skipped"} & columns
+    # And the cycle closes: the next upgrade is clean.
+    assert _alembic("upgrade", "head").returncode == 0

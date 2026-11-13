@@ -26,6 +26,7 @@ from comics import (
     RangeError,
     apply_comic_fields,
     row_run,
+    sync_marks,
 )
 from formats import CopyFieldError, apply_copy_fields
 from models import (
@@ -265,6 +266,8 @@ class ItemOut(BaseModel):
     shelf_format: ComicShelfFormat | None = None
     disc_format: MovieDiscFormat | None = None
     following: bool = False
+    # When the issue sync last walked a comic's series; None = never.
+    issues_synced_on: date | None = None
     # Play Next was told never to suggest it; the edit page offers Restore.
     play_next_excluded: bool = False
     # A comic's run against its snapshot (comics.row_run); None otherwise.
@@ -535,6 +538,10 @@ async def _edition_format(
         )
     fmt = edition.physical_format
     return getattr(fmt, "value", fmt)
+
+
+# The fields the marks on the issue rows derive from (comics.sync_marks).
+MARK_FIELDS = frozenset(("issues_owned", "issues_skipped", "editions", "read_to"))
 
 
 def _is_comic(changes: dict, row: Item | None) -> bool:
@@ -871,6 +878,7 @@ async def commit_items(
                 await playthroughs.seed_rows(session, new_item, today)
             except playthroughs.PlaythroughError as error:
                 raise RowRefused(index_of[new_item.id], error) from error
+            await sync_marks(session, new_item)
     return CommitResult(
         created=created,
         duplicates=duplicates,
@@ -981,6 +989,7 @@ def create_items_router(
         item = Item(**values)
         session.add(item)
         await _write_or_conflict(session, session.flush)
+        await sync_marks(session, item)
         try:
             await playthroughs.seed_rows(session, item, date.today())
         except playthroughs.PlaythroughError as error:
@@ -1273,6 +1282,11 @@ def create_items_router(
         )
         for field, value in changes.items():
             setattr(item, field, value)
+        if MARK_FIELDS & changes.keys() or "type" in changes:
+            # Flushed through the conflict rule first, so a re-link onto a
+            # match another row holds is a 409, as for any other write.
+            await _write_or_conflict(session, session.flush)
+            await sync_marks(session, item)
         if relinked and item.source_metadata:
             # A comic's issue snapshot belongs to the volume it was fetched
             # for; _apply_detail keeps it across a refresh, so a re-link has

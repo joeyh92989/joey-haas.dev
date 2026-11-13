@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-13
 
+- Each comic issue now records whether I own it, have read it and skipped it, instead of that living only in the ranges on the series. Nothing on the site looks different yet; the next change builds on it.
 - When I photograph comics for the shelf, each book now comes out as its own entry with the issue number read off the cover, so four photos of Waterworld #1 to #4 add issues 1 to 4 to the series. I can fix a number that was read wrong or type one it couldn’t read, and a collected edition is added as a book.
 - I can now delete a game or comic from its card, the list view or its edit page, several at once from the list, and every delete says what goes with it first. I can also send a wrong match back to Add to be matched again, and discard an unfinished sitting from the banner on the shelf.
 - My shelf now has a page for each kind of thing: [Games](/shelf/games) and [Comics](/shelf/comics). A comic shows up on its own page only, the figures on each count that kind alone, and my admin has the same two pages.

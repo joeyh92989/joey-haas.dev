@@ -53,6 +53,7 @@ from comics import (
     owned_set,
     parse_ranges,
     row_run,
+    sync_marks,
     union,
     validate_editions,
 )
@@ -407,7 +408,10 @@ async def series_on_shelf_for(
         (
             await session.execute(
                 select(ComicIssue.item_id, func.max(ComicIssue.number))
-                .where(ComicIssue.item_id.in_([item.id for item in items.values()]))
+                .where(
+                    ComicIssue.item_id.in_([item.id for item in items.values()]),
+                    ComicIssue.cv_id.is_not(None),  # a stub is no synced issue
+                )
                 .group_by(ComicIssue.item_id)
             )
         ).all()
@@ -523,6 +527,7 @@ async def commit_one(
                 )
             elif not grew.editions_added:
                 outcome.already_owned = 1
+            await sync_marks(session, on_shelf)
             grew.after_write()
             outcome.series_grew.append(grew)
             return outcome
@@ -751,6 +756,9 @@ async def commit_sitting(
     session.add_all(garments)
     for item, gained in gains:
         outcome.issues_added += await got_issues(session, item, gained, today)
+    for _, item, _, _ in plans:
+        if item is not None:
+            await sync_marks(session, item)
     for grew in outcome.series_grew:
         grew.after_write()
     outcome.created = result.created

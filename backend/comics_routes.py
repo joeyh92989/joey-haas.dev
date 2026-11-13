@@ -29,18 +29,22 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from comic_issues import sync_series
 from comics import (
     MAX_ISSUE,
+    MarksResult,
+    RangeError,
     comic_snapshot,
     edition_slugs,
     expand,
     format_ranges,
+    mark_mismatches,
     owned_set,
     parse_ranges,
     pull_weeks,
     row_run,
     series_from_row,
+    sync_marks,
 )
 from items import _apply_detail, _copy_fields, _http_error_for, require_admin
-from models import CatalogueRun, Item, ItemStatus, ItemType, OwnedFormat
+from models import CatalogueRun, ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
 from physical_sources.catalogue import finish_run, run_failed, start_run
 from playthroughs import apply_status
 from sources.base import SourceError
@@ -97,6 +101,7 @@ async def got_issues(
         await apply_status(session, item, ItemStatus.BACKLOG, today)
     for field, value in _copy_fields(body, item).items():
         setattr(item, field, value)
+    await sync_marks(session, item)
     return len(owned - before)
 
 
@@ -453,9 +458,70 @@ def create_comics_router(
         changes = _copy_fields({"issues_skipped": format_ranges(skipped)}, item)
         for field, value in changes.items():
             setattr(item, field, value)
+        await sync_marks(session, item)
         await session.commit()
         await session.refresh(item)
         return _state(item)
+
+    @router.post("/marks/backfill")
+    async def backfill_marks(
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Runs `sync_marks` on every comic row (the issue marks of 5b), run
+        once after the deploy; idempotent, so a second run changes nothing.
+
+        Derives only from what each row already records. Answers the parity
+        check: `mismatches` lists series whose stored marks still disagree
+        with their ranges (empty when the two agree), `errors` the series
+        whose stored ranges would not parse (left unmarked, the rest done).
+        Not a job route: it is run by hand, signed in."""
+        items = (
+            await session.scalars(
+                select(Item).where(Item.type == ItemType.COMIC).order_by(Item.title)
+            )
+        ).all()
+        total = MarksResult()
+        mismatches: list[dict] = []
+        errors: list[dict] = []
+        for item in items:
+            try:
+                async with session.begin_nested():
+                    total += await sync_marks(session, item)
+            except RangeError as error:
+                errors.append(
+                    {"id": str(item.id), "title": item.title, "error": str(error)}
+                )
+                continue
+            rows = (
+                await session.execute(
+                    select(
+                        ComicIssue.number,
+                        ComicIssue.owned,
+                        ComicIssue.read,
+                        ComicIssue.skipped,
+                    ).where(ComicIssue.item_id == item.id)
+                )
+            ).all()
+            wrong = mark_mismatches(
+                [tuple(r) for r in rows],
+                item.issues_owned,
+                item.issues_skipped,
+                item.editions,
+                item.read_to,
+            )
+            if wrong:
+                mismatches.append(
+                    {"id": str(item.id), "title": item.title, "numbers": wrong}
+                )
+        await session.commit()
+        return {
+            "series": len(items),
+            "rows_marked": total.rows_marked,
+            "stubs_added": total.stubs_added,
+            "rows_changed": total.rows_changed,
+            "mismatches": mismatches,
+            "errors": errors,
+        }
 
     @router.post("/refresh")
     async def refresh_all(
@@ -701,6 +767,7 @@ def create_comics_router(
                 description=list(issue.description),
             )
         item.editions = editions
+        await sync_marks(session, item)
         await session.commit()
         await session.refresh(item)
         return {"item_id": str(item.id), "editions": item.editions}

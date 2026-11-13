@@ -724,6 +724,8 @@ async def test_the_mark_judges_by_the_issues_of_a_series_on_the_shelf(
                     fetched_on=date(2026, 11, 1),
                 )
             )
+        # A stub (an owned mark Comic Vine has not synced) is no known issue.
+        session.add(ComicIssue(item_id=series.id, number=9, owned=True))
         await session.commit()
     async with client_for(sessionmaker_for_test) as client:
         sitting = await _sitting(client, kind="comic")

@@ -1,5 +1,5 @@
 ---
-status: 5a done (5b, 5c planned)
+status: 5a, 5b done (5c planned)
 kind: ui
 mode: auto (Joey's stops from the shelf sweep run; design approved 13 Nov 2026)
 ---
@@ -243,3 +243,117 @@ Deviations from the plan above:
 - No visual check against `a-intake-check.html` at 1280 and 400 was made
   in a browser (the admin e2e needs local data); the layout follows the
   mockup's grid and breakpoint.
+
+---
+
+## 5b. Ownership on the book
+
+### Problem
+
+What is owned, read and skipped lives only as range text on the series row
+(`issues_owned`, `issues_skipped`, `editions`, `read_to`). `comic_issues`
+is a Comic Vine cache keyed `(item_id, number)` with no ownership, and
+`cv_id` and `fetched_on` are NOT NULL, so a book Comic Vine hasn't synced
+(or a series with no Comic Vine link) has no row to carry a mark.
+
+### Decisions (my calls)
+
+1. **Marks go on the issue row**, as the queue says: `comic_issues` gains
+   `owned`, `read` and `skipped` (boolean, NOT NULL, default false), and
+   `cv_id` and `fetched_on` become nullable so a book Comic Vine hasn't
+   synced can have a row (a "stub"). Dropping NOT NULL loses no data.
+2. **The migration only adds columns and relaxes the two constraints; it
+   inserts no rows.** The deploy order is migrate-then-merge, so the old
+   code runs against the new schema for a few minutes; a stub row with a
+   null `cv_id` would break the old code's issue serializers. Stubs and
+   marks are written by the new code only.
+3. **One writer.** `comics.py` gets `sync_marks(session, item)`: from the
+   series' canonical ranges, `editions` and `read_to` it sets every row's
+   marks (owned = held as a single or in an edition; read = owned and
+   ≤ `read_to`, since read implies owned; skipped = in `issues_skipped`),
+   inserting stubs for held or skipped numbers with no row and clearing
+   marks on rows no longer held. Every comic write path already ends in
+   `apply_comic_fields` or `got_issues`; each calls `sync_marks` in the
+   same transaction. `comic_issues.sync_series` (the Comic Vine upsert)
+   never touches the marks, and fills a stub's Comic Vine fields when the
+   issue arrives.
+4. **Backfill by the same function**, not by SQL in the migration: an
+   admin route `POST /api/comics/marks/backfill` (idempotent, not in
+   `JOB_ROUTES`) runs `sync_marks` on every comic row, run once after the
+   deploy. It derives only from what each row already records.
+5. **Readers don't change in 5b.** Public and admin pages keep reading the
+   ranges; 5c switches them to the marks and adds the tap route. A parity
+   test (and the backfill's answer: series, rows marked, stubs added,
+   mismatches) shows the two agree before anything reads the marks.
+6. **Skips stay private.** No public output gains a mark field in 5b; 5c
+   adds `owned`/`read` to the public wall and pins it in
+   `tests/test_public_issues.py` (where the issue pins live, not
+   `test_public_outputs.py`), with `skipped` forbidden.
+7. **Admin `ItemOut` gains `issues_synced_on`** (item 3's gap), so the
+   admin Comics card can show sync state in 5c.
+
+### Plan (TDD; one backend pytest run at a time)
+
+1. Migration `0017`: the three mark columns (server default false), and
+   `cv_id` / `fetched_on` nullable; model updated. Rehearse with
+   `tests/test_migrations.py` (upgrade, downgrade, upgrade); the downgrade
+   deletes stub rows (null `cv_id`) before restoring NOT NULL.
+2. `comics.sync_marks` (pure core over the parsed series + a small DB
+   apply), with tests: singles, editions, read_to, skips, a number that
+   stops being held, stubs created and later filled by a Comic Vine
+   upsert, idempotence.
+3. Wire `sync_marks` into every comic write path (PATCH/create/bulk
+   create, Got it, Skip, intake commit's comic path, editions link) in
+   the same transaction; a test per path. `sync_series` leaves marks
+   alone (test).
+4. Every reader of `comic_issues` tolerates a stub (null `cv_id`, no
+   cover): public wall, issue page, edition linking, snapshot export,
+   status. Tests.
+5. Backfill route + parity check; tests on a seeded Waterworld (#1–4
+   owned), a series with editions, one with skips and `read_to`.
+6. `issues_synced_on` on `ItemOut`.
+7. Docs: CLAUDE.md (migration `0017`, `sync_marks` as the one writer, the
+   backfill run after deploy), changelog bullet, this section's status.
+8. Verify: full backend pytest, frontend tests (any `ItemOut` consumers),
+   ruff, lint, build, e2e.
+
+Ship: apply `0017` to Neon from the worktree before merging (Joey approved
+running migrations, 13 Nov 2026), merge, then run the backfill once
+(signed in, from the browser) and record its parity answer.
+
+5b status: done (13 Nov 2026)
+
+Deviations from the plan above:
+
+- `sync_marks` is a pure `mark_plan` (ranges in, marks out) plus a small DB
+  apply, both in `comics.py`; it returns a `MarksResult`
+  (`rows_marked`, `stubs_added`, `rows_changed`) that the backfill sums.
+- A skip stored before the rule that refuses one on a held issue loses to
+  ownership in the marks (owned, not skipped), as every reader treats it.
+- `load_issues` and the index query hide stubs (null `cv_id`) and Check's
+  `issue_max` ignores them, so no public body or run check changes. This is
+  the plan's task 4; the edition link, snapshot export and status never read
+  the table, so they needed nothing.
+- `upsert_issues` updates a stub whatever the incoming `cv_id` (the
+  lowest-id-wins guard compared against NULL and would never fill it).
+- The backfill's parity check recomputes the expected marks through
+  `series_from_row` (the readers' derivation) rather than `mark_plan`, and
+  a series whose stored ranges will not parse is listed under `errors`
+  while the rest are marked. Answer: `{series, rows_marked, stubs_added,
+  rows_changed, mismatches, errors}`.
+- The parity check is not independent evidence: `series_from_row` and
+  `mark_plan` both parse through `owned_set`, `expand` and `parse_ranges`,
+  so a bug in those would pass both. It catches a missed write path or a
+  stale row, not a wrong reading of the ranges.
+- A stub left with no mark (the number is no longer held or skipped) is
+  deleted by `sync_marks` (our row, never a Comic Vine one); stubs go in
+  with ON CONFLICT DO NOTHING and the rows are read back after, so a
+  concurrent Comic Vine upsert keeps its row and gets the marks. A PATCH
+  that changes `type` away from comic clears the marks and removes the
+  stubs (an empty plan). A PATCH flushes through `_write_or_conflict`
+  before `sync_marks`, so a re-link onto a held match is a 409.
+- Bulk create and intake's commit of new series reach `sync_marks` through
+  `commit_items`, after the rows are inserted.
+- No frontend change: `issues_synced_on` is an additive field on `ItemOut`
+  nothing reads yet, so the frontend tests are not rerun for this item
+  beyond the full verification below.

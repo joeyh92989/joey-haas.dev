@@ -15,6 +15,7 @@ import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from typing import TYPE_CHECKING
 
 MAX_ISSUE = 9999
 MAX_EDITIONS = 50
@@ -345,6 +346,159 @@ def check_skips(
         clash -= _clash(**before)
     if clash:
         raise RangeError(f"#{min(clash)} is owned, so it can't be skipped")
+
+
+# --- Marks on the issue row --------------------------------------------------
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from models import Item
+
+
+@dataclass(frozen=True)
+class Marks:
+    owned: bool = False
+    read: bool = False
+    skipped: bool = False
+
+
+def mark_plan(
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+    read_to: int | None,
+) -> dict[int, Marks]:
+    """The marks every held or skipped number should carry, from the ranges.
+
+    Owned is held loose or in an edition; read is owned and at or below
+    `read_to` (read implies owned); skipped is in `issues_skipped` and not
+    held (a skip stored before the rule that refuses one on a held issue
+    loses to the ownership, as every reader already treats it). A number in
+    none of them is absent: its row, if any, carries no marks.
+    """
+    owned = owned_set(issues_owned, editions)
+    skipped = expand(parse_ranges(issues_skipped)) - owned
+    plan = {
+        n: Marks(owned=True, read=read_to is not None and n <= read_to) for n in owned
+    }
+    plan.update({n: Marks(skipped=True) for n in skipped})
+    return plan
+
+
+@dataclass(frozen=True)
+class MarksResult:
+    """What one `sync_marks` did: rows now carrying a mark, stub rows it
+    inserted, and existing rows whose marks it changed."""
+
+    rows_marked: int = 0
+    stubs_added: int = 0
+    rows_changed: int = 0
+    stubs_removed: int = 0
+
+    def __add__(self, other: MarksResult) -> MarksResult:
+        return MarksResult(
+            self.rows_marked + other.rows_marked,
+            self.stubs_added + other.stubs_added,
+            self.rows_changed + other.rows_changed,
+            self.stubs_removed + other.stubs_removed,
+        )
+
+
+async def sync_marks(session: AsyncSession, item: Item) -> MarksResult:
+    """Sets the marks on a comic's issue rows from its ranges, editions and
+    read_to: the one writer of `comic_issues.owned/read/skipped`.
+
+    Inserts a stub (null `cv_id`, which `comic_issues.sync_series` fills when
+    the issue arrives) for a held or skipped number with no row, and clears the
+    marks of a row no longer held, and deletes a stub that has no mark left
+    (a row with a `cv_id` is never deleted). Idempotent. Flushes, never
+    commits: every comic write path calls it in its own transaction. Raises
+    RangeError on malformed stored ranges. A row that is not a comic has its
+    marks cleared and its stubs removed.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.dialects.postgresql import insert
+    from sqlalchemy.orm import defer
+
+    from models import ComicIssue, ItemType
+
+    # A row that is not (or is no longer) a comic holds no marks: an empty
+    # plan clears its rows and removes its stubs.
+    if item.type == ItemType.COMIC:
+        plan = mark_plan(
+            item.issues_owned, item.issues_skipped, item.editions, item.read_to
+        )
+    else:
+        plan = {}
+    await session.flush()  # the item has its id, and its ranges are written
+    # Stubs go in with ON CONFLICT DO NOTHING: `sync_series` may have written
+    # the same number since (a Comic Vine row wins), and the rows are read
+    # back below, after the insert, so that row gets its marks too.
+    added = 0
+    if plan:
+        inserted = await session.execute(
+            insert(ComicIssue)
+            .values(
+                [
+                    {
+                        "item_id": item.id,
+                        "number": n,
+                        "owned": m.owned,
+                        "read": m.read,
+                        "skipped": m.skipped,
+                    }
+                    for n, m in plan.items()
+                ]
+            )
+            .on_conflict_do_nothing(index_elements=["item_id", "number"])
+            .returning(ComicIssue.number)
+        )
+        added = len(inserted.all())
+    rows = await session.scalars(
+        select(ComicIssue)
+        .where(ComicIssue.item_id == item.id)
+        .options(defer(ComicIssue.description))
+        .execution_options(populate_existing=True)
+    )
+    changed = removed = 0
+    for row in rows:
+        want = plan.get(row.number)
+        if want is None and row.cv_id is None:
+            # Our own stub with nothing left to mark: never a Comic Vine row.
+            await session.delete(row)
+            removed += 1
+            continue
+        want = want or Marks()
+        if (row.owned, row.read, row.skipped) != (want.owned, want.read, want.skipped):
+            row.owned, row.read, row.skipped = want.owned, want.read, want.skipped
+            changed += 1
+    await session.flush()
+    return MarksResult(len(plan), added, changed, removed)
+
+
+def mark_mismatches(
+    rows: Iterable[tuple[int, bool, bool, bool]],
+    issues_owned: str | None,
+    issues_skipped: str | None,
+    editions: Sequence[dict] | None,
+    read_to: int | None,
+) -> list[int]:
+    """The numbers where the stored marks `rows` ((number, owned, read,
+    skipped) of every row of the series) disagree with what the ranges say,
+    worked out from `series_from_row` as the readers do rather than from
+    `mark_plan`, so the two derivations check each other."""
+    series = series_from_row(
+        0, "", None, issues_owned, issues_skipped, editions, read_to, None, True, False
+    )
+    expected = {
+        n: (True, read_to is not None and n <= read_to, False) for n in series.owned
+    }
+    expected.update({n: (False, False, True) for n in series.skipped - series.owned})
+    stored = {n: (o, r, s) for n, o, r, s in rows if o or r or s}
+    return sorted(
+        n for n in expected.keys() | stored.keys() if expected.get(n) != stored.get(n)
+    )
 
 
 # --- Runs and reading -------------------------------------------------------
