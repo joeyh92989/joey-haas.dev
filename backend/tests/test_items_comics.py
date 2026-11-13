@@ -209,3 +209,40 @@ async def test_the_admin_read_carries_issues_synced_on(sessionmaker_for_test):
         second = await client.get(f"/api/items/{never}")
     assert first.json()["issues_synced_on"] == "2026-11-12"
     assert second.json()["issues_synced_on"] is None
+
+
+async def test_patch_relink_onto_a_held_match_with_a_range_change_is_a_409(
+    sessionmaker_for_test,
+):
+    await _seed(
+        sessionmaker_for_test,
+        title="Other",
+        external_source="comicvine",
+        external_id="4363",
+    )
+    item_id = await _seed(sessionmaker_for_test, issues_owned="1")
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            f"/api/items/{item_id}",
+            json={
+                "external_source": "comicvine",
+                "external_id": "4363",
+                "issues_owned": "1-3",
+            },
+        )
+    assert response.status_code == 409, response.text
+
+
+async def test_patch_away_from_comic_clears_the_marks(sessionmaker_for_test):
+    from sqlalchemy import select
+
+    from models import ComicIssue
+
+    async with client_for(sessionmaker_for_test) as client:
+        made = await client.post("/api/items", json=_comic(issues_owned="1-2"))
+        item_id = made.json()["id"]
+        patched = await client.patch(f"/api/items/{item_id}", json={"type": "game"})
+    assert patched.status_code == 200, patched.text
+    async with sessionmaker_for_test() as session:
+        rows = (await session.scalars(select(ComicIssue))).all()
+    assert rows == []

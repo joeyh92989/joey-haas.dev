@@ -341,6 +341,17 @@ Deviations from the plan above:
   a series whose stored ranges will not parse is listed under `errors`
   while the rest are marked. Answer: `{series, rows_marked, stubs_added,
   rows_changed, mismatches, errors}`.
+- The parity check is not independent evidence: `series_from_row` and
+  `mark_plan` both parse through `owned_set`, `expand` and `parse_ranges`,
+  so a bug in those would pass both. It catches a missed write path or a
+  stale row, not a wrong reading of the ranges.
+- A stub left with no mark (the number is no longer held or skipped) is
+  deleted by `sync_marks` (our row, never a Comic Vine one); stubs go in
+  with ON CONFLICT DO NOTHING and the rows are read back after, so a
+  concurrent Comic Vine upsert keeps its row and gets the marks. A PATCH
+  that changes `type` away from comic clears the marks and removes the
+  stubs (an empty plan). A PATCH flushes through `_write_or_conflict`
+  before `sync_marks`, so a re-link onto a held match is a 409.
 - Bulk create and intake's commit of new series reach `sync_marks` through
   `commit_items`, after the rows are inserted.
 - No frontend change: `issues_synced_on` is an additive field on `ItemOut`

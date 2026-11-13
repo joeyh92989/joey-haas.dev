@@ -1282,7 +1282,10 @@ def create_items_router(
         )
         for field, value in changes.items():
             setattr(item, field, value)
-        if MARK_FIELDS & changes.keys():
+        if MARK_FIELDS & changes.keys() or "type" in changes:
+            # Flushed through the conflict rule first, so a re-link onto a
+            # match another row holds is a 409, as for any other write.
+            await _write_or_conflict(session, session.flush)
             await sync_marks(session, item)
         if relinked and item.source_metadata:
             # A comic's issue snapshot belongs to the volume it was fetched

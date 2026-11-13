@@ -394,12 +394,14 @@ class MarksResult:
     rows_marked: int = 0
     stubs_added: int = 0
     rows_changed: int = 0
+    stubs_removed: int = 0
 
     def __add__(self, other: MarksResult) -> MarksResult:
         return MarksResult(
             self.rows_marked + other.rows_marked,
             self.stubs_added + other.stubs_added,
             self.rows_changed + other.rows_changed,
+            self.stubs_removed + other.stubs_removed,
         )
 
 
@@ -409,48 +411,70 @@ async def sync_marks(session: AsyncSession, item: Item) -> MarksResult:
 
     Inserts a stub (null `cv_id`, which `comic_issues.sync_series` fills when
     the issue arrives) for a held or skipped number with no row, and clears the
-    marks of a row no longer held. Idempotent. Flushes, never commits: every
-    comic write path calls it in its own transaction. Raises RangeError on
-    malformed stored ranges. A row that is not a comic is left alone.
+    marks of a row no longer held, and deletes a stub that has no mark left
+    (a row with a `cv_id` is never deleted). Idempotent. Flushes, never
+    commits: every comic write path calls it in its own transaction. Raises
+    RangeError on malformed stored ranges. A row that is not a comic has its
+    marks cleared and its stubs removed.
     """
     from sqlalchemy import select
+    from sqlalchemy.dialects.postgresql import insert
     from sqlalchemy.orm import defer
 
     from models import ComicIssue, ItemType
 
-    if item.type != ItemType.COMIC:
-        return MarksResult()
-    plan = mark_plan(
-        item.issues_owned, item.issues_skipped, item.editions, item.read_to
-    )
-    await session.flush()  # the item has its id, and its ranges are written
-    rows = {
-        row.number: row
-        for row in await session.scalars(
-            select(ComicIssue)
-            .where(ComicIssue.item_id == item.id)
-            .options(defer(ComicIssue.description))
+    # A row that is not (or is no longer) a comic holds no marks: an empty
+    # plan clears its rows and removes its stubs.
+    if item.type == ItemType.COMIC:
+        plan = mark_plan(
+            item.issues_owned, item.issues_skipped, item.editions, item.read_to
         )
-    }
-    changed = 0
-    for number, row in rows.items():
-        want = plan.get(number, Marks())
+    else:
+        plan = {}
+    await session.flush()  # the item has its id, and its ranges are written
+    # Stubs go in with ON CONFLICT DO NOTHING: `sync_series` may have written
+    # the same number since (a Comic Vine row wins), and the rows are read
+    # back below, after the insert, so that row gets its marks too.
+    added = 0
+    if plan:
+        inserted = await session.execute(
+            insert(ComicIssue)
+            .values(
+                [
+                    {
+                        "item_id": item.id,
+                        "number": n,
+                        "owned": m.owned,
+                        "read": m.read,
+                        "skipped": m.skipped,
+                    }
+                    for n, m in plan.items()
+                ]
+            )
+            .on_conflict_do_nothing(index_elements=["item_id", "number"])
+            .returning(ComicIssue.number)
+        )
+        added = len(inserted.all())
+    rows = await session.scalars(
+        select(ComicIssue)
+        .where(ComicIssue.item_id == item.id)
+        .options(defer(ComicIssue.description))
+        .execution_options(populate_existing=True)
+    )
+    changed = removed = 0
+    for row in rows:
+        want = plan.get(row.number)
+        if want is None and row.cv_id is None:
+            # Our own stub with nothing left to mark: never a Comic Vine row.
+            await session.delete(row)
+            removed += 1
+            continue
+        want = want or Marks()
         if (row.owned, row.read, row.skipped) != (want.owned, want.read, want.skipped):
             row.owned, row.read, row.skipped = want.owned, want.read, want.skipped
             changed += 1
-    stubs = [n for n in plan if n not in rows]
-    session.add_all(
-        ComicIssue(
-            item_id=item.id,
-            number=n,
-            owned=plan[n].owned,
-            read=plan[n].read,
-            skipped=plan[n].skipped,
-        )
-        for n in stubs
-    )
     await session.flush()
-    return MarksResult(len(plan), len(stubs), changed)
+    return MarksResult(len(plan), added, changed, removed)
 
 
 def mark_mismatches(

@@ -78,11 +78,8 @@ async def test_patch_rewrites_marks(sessionmaker_for_test):
             f"/api/items/{item_id}", json={"issues_owned": "1", "read_to": 1}
         )
     assert patched.status_code == 200, patched.text
-    assert await marks(sessionmaker_for_test, item_id) == {
-        1: (True, True, False),
-        2: (False, False, False),
-        3: (False, False, False),
-    }
+    # #2 and #3 were stubs with nothing left to mark, so their rows are gone.
+    assert await marks(sessionmaker_for_test, item_id) == {1: (True, True, False)}
 
 
 async def test_got_it_and_skip_write_marks(sessionmaker_for_test):

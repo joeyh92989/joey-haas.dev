@@ -125,10 +125,8 @@ async def test_a_number_no_longer_held_is_cleared(sessionmaker_for_test):
         item.read_to = None
         await sync_marks(session, item)
         await session.commit()
-        assert await _rows(session, item) == {
-            1: (True, False, False, True),
-            2: (False, False, False, True),
-        }
+        # #2 was a stub with nothing left to mark, so its row is gone.
+        assert await _rows(session, item) == {1: (True, False, False, True)}
 
 
 @pytest.mark.asyncio
@@ -167,3 +165,63 @@ async def test_a_non_comic_is_left_alone(sessionmaker_for_test):
         result = await sync_marks(session, game)
         assert result.stubs_added == 0
         assert await _rows(session, game) == {}
+
+
+@pytest.mark.asyncio
+async def test_a_stub_with_no_mark_left_is_deleted_but_a_synced_row_is_not(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        item = await _series(session, issues_owned="1–2")
+        await upsert_issues(session, item.id, [_cv(10, 1)], TODAY)
+        await sync_marks(session, item)  # #1 synced, #2 a stub
+        item.issues_owned = None
+        result = await sync_marks(session, item)
+        await session.commit()
+        # The stub (#2) goes; the Comic Vine row (#1) stays, unmarked.
+        assert await _rows(session, item) == {1: (False, False, False, False)}
+        assert result.stubs_removed == 1
+
+
+@pytest.mark.asyncio
+async def test_a_stub_that_lost_the_race_to_a_comic_vine_row_gets_the_marks(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        item = await _series(session, issues_owned="1–2")
+        real_execute = session.execute
+        raced = False
+
+        async def racing(statement, *args, **kwargs):
+            nonlocal raced
+            if not raced and str(statement).lstrip().startswith("INSERT"):
+                raced = True
+                # sync_series commits issue #1 between our read and our insert.
+                async with sessionmaker_for_test() as other:
+                    await upsert_issues(other, item.id, [_cv(10, 1)], TODAY)
+                    await other.commit()
+            return await real_execute(statement, *args, **kwargs)
+
+        session.execute = racing
+        result = await sync_marks(session, item)
+        await session.commit()
+        assert raced
+        assert await _rows(session, item) == {
+            1: (True, False, False, False),  # the Comic Vine row, now marked
+            2: (True, False, False, True),
+        }
+        assert result.stubs_added == 1
+
+
+@pytest.mark.asyncio
+async def test_a_series_that_stops_being_a_comic_loses_its_marks_and_stubs(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        item = await _series(session, issues_owned="1–2")
+        await upsert_issues(session, item.id, [_cv(10, 1)], TODAY)
+        await sync_marks(session, item)
+        item.type = ItemType.GAME
+        await sync_marks(session, item)
+        await session.commit()
+        assert await _rows(session, item) == {1: (False, False, False, False)}
