@@ -40,7 +40,8 @@ from comics import (
     series_from_row,
 )
 from items import _apply_detail, _copy_fields, _http_error_for, require_admin
-from models import Item, ItemStatus, ItemType, OwnedFormat
+from models import CatalogueRun, Item, ItemStatus, ItemType, OwnedFormat
+from physical_sources.catalogue import finish_run, run_failed, start_run
 from playthroughs import apply_status
 from sources.base import SourceError
 from sources.registry import adapter_for
@@ -48,6 +49,7 @@ from sources.registry import adapter_for
 logger = logging.getLogger(__name__)
 
 SOURCE = "comicvine"
+RUN_SOURCE = "comic_issues"  # the catalogue_runs source of the issue sync
 
 
 def _today() -> date:
@@ -117,6 +119,38 @@ def _state(item: Item) -> dict:
             item.source_metadata,
         ),
     }
+
+
+def issues_run_summary(
+    run: CatalogueRun | None, now: datetime | None = None
+) -> dict | None:
+    """The Jobs page's view of the issue sync's last run, null before any.
+
+    failed: the run recorded a series error or an exception, or never
+    finished (open past STALE_RUN_MINUTES). partial: no error, but the
+    budget ran out before every series was complete."""
+    if run is None:
+        return None
+    failed = run.ok is False or run_failed(run, now)
+    at = (run.finished_at or run.started_at).isoformat()
+    if failed:
+        errors = run.errors or []
+        if errors:
+            detail = errors[0].get("detail") or errors[0].get("code") or "failed"
+            note = f"{len(errors)} of {run.rows_seen} series failed: {detail}"
+        else:
+            note = "The run did not finish"
+        return {"at": at, "state": "failed", "ok": False, "note": note}
+    if run.short_run:
+        waiting = run.unresolved_remaining
+        noun = "series wait" if waiting != 1 else "series waits"
+        return {
+            "at": at,
+            "state": "partial",
+            "ok": True,
+            "note": f"Budget spent; {waiting} {noun}",
+        }
+    return {"at": at, "state": "ok", "ok": True}
 
 
 def create_comics_router(
@@ -537,33 +571,95 @@ def create_comics_router(
         today = _today()
         remaining = budget
         series: list[dict] = []
-        for (row_id,) in rows:
-            if remaining <= 0:
-                break
-            # A fresh row each time: an earlier series' rollback expires
-            # every object the session holds.
-            item = await session.get(Item, row_id)
-            if item is None:
-                continue
-            item_id = str(row_id)
-            result = await sync_series(session, adapter, item, remaining, today)
-            remaining -= result.requests
-            entry = {
-                "id": item_id,
-                "requests": result.requests,
-                "written": result.written,
-                "complete": result.complete,
-            }
-            if result.error:
-                entry["error"] = result.error
-            series.append(entry)
-            if result.rate_limited:
-                break
+        errors: list[dict] = []
+        rate_limited = False
+        # The run row is committed at once: sync_series commits and rolls
+        # back per page, which must not take it along, and the session's
+        # objects expire, so it is re-fetched by id to finish.
+        run = await start_run(session, RUN_SOURCE)
+        run_id = run.id
+        await session.commit()
+
+        async def record(*, ok: bool, extra_errors: list[dict] | None = None) -> None:
+            finished = await session.get(CatalogueRun, run_id)
+            done = sum(1 for s in series if s["complete"])
+            await finish_run(
+                session,
+                finished,
+                ok=ok,
+                rows_seen=len(series),
+                rows_changed=sum(s["written"] for s in series),
+                items_synced=done,
+                unresolved_remaining=len(rows) - done,
+                short_run=(remaining <= 0 or rate_limited) and done < len(rows),
+                errors=errors + (extra_errors or []),
+            )
+            await session.commit()
+
+        try:
+            for (row_id,) in rows:
+                if remaining <= 0:
+                    break
+                # A fresh row each time: an earlier series' rollback expires
+                # every object the session holds.
+                item = await session.get(Item, row_id)
+                if item is None:
+                    continue
+                item_id = str(row_id)
+                result = await sync_series(session, adapter, item, remaining, today)
+                remaining -= result.requests
+                entry = {
+                    "id": item_id,
+                    "requests": result.requests,
+                    "written": result.written,
+                    "complete": result.complete,
+                }
+                if result.error:
+                    entry["error"] = result.error
+                    errors.append(
+                        {
+                            "code": "rate_limited"
+                            if result.rate_limited
+                            else "source_error",
+                            "detail": result.error,
+                            "item_id": item_id,
+                        }
+                    )
+                series.append(entry)
+                if result.rate_limited:
+                    rate_limited = True
+                    break
+        except Exception as error:
+            await session.rollback()
+            await record(
+                ok=False,
+                extra_errors=[
+                    {
+                        "code": "exception",
+                        "detail": str(error) or type(error).__name__,
+                        "item_id": None,
+                    }
+                ],
+            )
+            raise
+        await record(ok=not any("error" in s for s in series))
         return {
             "ok": not any("error" in s for s in series),
             "series": series,
             "requests": budget - remaining,
         }
+
+    @router.get("/status")
+    async def status(session: AsyncSession = Depends(get_session)) -> dict:
+        """The issue sync's last run, null before its first. Admin only: it
+        is not a job route."""
+        run = await session.scalar(
+            select(CatalogueRun)
+            .where(CatalogueRun.source == RUN_SOURCE)
+            .order_by(CatalogueRun.started_at.desc())
+            .limit(1)
+        )
+        return {"issues.last_run": issues_run_summary(run)}
 
     @router.put("/{item_id}/editions/{slug}/link")
     async def link_edition(
