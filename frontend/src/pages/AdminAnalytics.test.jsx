@@ -122,7 +122,8 @@ describe('AdminAnalytics', () => {
     stubApi({ '30d': json(FULL) })
     render(<AdminAnalytics />)
     const peak = await screen.findByRole('img', { name: 'Mon 12 Oct: 6 views' })
-    expect(peak).toHaveClass('peak')
+    expect(peak).toHaveClass('day-bar')
+    expect(screen.getByText(/Busiest day: Mon 12 Oct, 6 views/)).toBeVisible()
     const referrers = screen.getByRole('list', {
       name: 'Referrers by visitors',
     })

@@ -51,17 +51,17 @@ describe('JustFinishedChip', () => {
 })
 
 describe('JustFinishedChip with a rating', () => {
-  it('shows the stars after the hours', () => {
+  it('shows the rating after the hours', () => {
     const { container } = render(
       <JustFinishedChip finish={{ ...FINISH, rating: 9 }} />,
     )
     expect(container.querySelector('.tj-b')).toHaveTextContent(
-      'Mon 26 Oct · 62 h · ★★★★½',
+      'Mon 26 Oct · 62 h · ★9',
     )
     expect(screen.getByRole('img', { name: '9 out of 10' })).toBeInTheDocument()
   })
 
-  it('shows no stars without one', () => {
+  it('shows no rating without one', () => {
     render(<JustFinishedChip finish={{ ...FINISH, rating: null }} />)
     expect(screen.queryByRole('img')).toBeNull()
   })

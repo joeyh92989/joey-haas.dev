@@ -252,7 +252,10 @@ describe('Item', () => {
 
     const tiles = within(document.querySelector('.item-tiles'))
     expect(tiles.getByRole('img', { name: '9 out of 10' })).toBeInTheDocument()
-    expect(tiles.getByText('9 / 10')).toBeInTheDocument()
+    expect(tiles.getByRole('img', { name: '9 out of 10' })).toHaveTextContent(
+      '★9',
+    )
+    expect(tiles.queryByText('9 / 10')).not.toBeInTheDocument()
     expect(tiles.getByText('93 / 100')).toBeInTheDocument()
     expect(tiles.getByText('512 votes')).toBeInTheDocument()
     expect(tiles.getByText('Finished 2 times')).toBeInTheDocument()
@@ -608,7 +611,9 @@ describe('Item snapshot preview', () => {
     )
     await renderReady()
 
-    expect(screen.getByText('9 / 10')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '9 out of 10' })).toHaveTextContent(
+      '★9',
+    )
     expect(
       screen.getByText('My copy: Nintendo Switch · Full game on cartridge'),
     ).toBeInTheDocument()

@@ -910,7 +910,7 @@ section + section {
 .prose {
   color: var(--text-2);
   margin-top: 0.75rem;
-  max-width: 58ch;
+  max-width: 45rem;
 }
 
 .prose + .prose {
@@ -2143,9 +2143,8 @@ footer {
   }
 }
 
-/* Analytics (/admin/analytics). The bars use --chart (the peak and the
-   list fills) and --chart-2 (the other days), both measured on --surface
-   above; the list fills sit on a --sunken track, where --chart measures
+/* Analytics (/admin/analytics). The day bars and the list fills use
+   --chart, measured on --surface above; the list fills sit on a --sunken track, where --chart measures
    6.26 dark and 5.48 light. */
 .range-control {
   border: 1px solid var(--line-strong);
@@ -2231,15 +2230,11 @@ footer {
 }
 
 .day-bar {
-  background: var(--chart-2);
+  background: var(--chart);
   border-radius: 2px 2px 0 0;
   display: block;
   flex: 1;
   min-width: 0;
-}
-
-.day-bar.peak {
-  background: var(--chart);
 }
 
 .day-bars-peak {
@@ -4471,12 +4466,9 @@ footer {
   position: relative;
 }
 
-.rating-bar {
-  background: var(--rating);
-}
-
+.rating-bar,
 .month-bar {
-  background: var(--status-finished);
+  background: var(--chart);
 }
 
 /* A month bar that links to its journal page is clickable over the whole
@@ -5436,16 +5428,31 @@ a.month-bar::before {
   margin: 0.15rem 0 0;
 }
 
-.stars {
-  color: var(--rating);
-  display: block;
+/* My rating: an amber star (a mark, 3:1) and the number in the text colour,
+   so the rating never rests on amber text (4.24:1 on white in light). */
+.rating {
+  color: var(--text);
+  display: inline-block;
   font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-/* The half is a text glyph, held to 4.5:1 where the stars (marks, 3:1) are
-   not: --rating on white is 4.24 in the light theme. */
-.stars-half {
-  color: var(--text-2);
+.rating-star {
+  color: var(--rating);
+  margin-right: 0.2em;
+}
+
+.rating-large {
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.poster-card > .rating {
+  display: block;
+  margin-top: 0.15rem;
+  width: max-content;
 }
 
 .attribution {
@@ -6045,7 +6052,7 @@ a.month-bar::before {
 .rate-a-few-table {
   border-collapse: collapse;
   margin: 0.75rem 0;
-  max-width: 36rem;
+  max-width: 45rem;
   width: 100%;
 }
 
@@ -6367,10 +6374,6 @@ a.month-bar::before {
 /* Tonight (Tonight picks spec): the Just finished chip, the lead card, and
    the other picks under it. The owner's buttons are siblings of the title
    link, never inside it. */
-.tonight {
-  max-width: 52rem;
-}
-
 .tonight .btn {
   font-size: 0.875rem;
   min-height: 36px;
@@ -6410,12 +6413,6 @@ a.month-bar::before {
 /* Side by side the two runs read as one line; stacked they need no dot. */
 .tj-b::before {
   content: '· ';
-}
-
-/* Stars are a block elsewhere; here they follow the hours on the same line. */
-.tonight-just .stars {
-  display: inline-block;
-  white-space: nowrap;
 }
 
 @media (max-width: 34rem) {
@@ -7173,7 +7170,7 @@ main h1[tabindex='-1']:focus,
 }
 
 /* /stats: the admin analytics components (.stat-tiles, .day-bars,
-   .bar-list) in the 45rem column. Both bars keep --chart and --chart-2,
+   .bar-list) in the 45rem column. The bars use --chart,
    measured beside the tokens; no new colour. */
 .site-stats .stat-tiles {
   margin: 1.5rem 0 0;
@@ -7266,7 +7263,7 @@ main h1[tabindex='-1']:focus,
   display: grid;
   gap: 0.45rem;
   margin: 0;
-  max-width: 58ch;
+  max-width: 45rem;
   padding-left: 1.1rem;
 }
 
@@ -7303,7 +7300,7 @@ main h1[tabindex='-1']:focus,
   grid-template-columns: repeat(12, 1fr);
   list-style: none;
   margin: 1rem 0 0.5rem;
-  max-width: 36rem;
+  max-width: 45rem;
   padding: 0;
 }
 
@@ -7337,7 +7334,7 @@ main h1[tabindex='-1']:focus,
   gap: 1rem;
   justify-content: space-between;
   margin: 0;
-  max-width: 36rem;
+  max-width: 45rem;
 }
 
 .month-days {
@@ -7345,7 +7342,7 @@ main h1[tabindex='-1']:focus,
   gap: 1rem;
   list-style: none;
   margin: 0;
-  max-width: 58ch;
+  max-width: 45rem;
   padding-left: 0;
 }
 
@@ -7380,17 +7377,33 @@ main h1[tabindex='-1']:focus,
   margin: 0;
 }
 
-.year-months {
-  max-width: 36rem;
+/* The community's score is written whole: "42 / 100" never breaks. */
+.year-community {
+  color: var(--text);
+  white-space: nowrap;
 }
 
-.year-genres,
+/* Year in review: the months and the finishes beside the genres and the
+   crowd at desktop widths; one column below that. */
+.year-columns {
+  align-items: start;
+  display: grid;
+  gap: 0 3rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 60rem) {
+  .year-columns {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+}
+
 .year-diary {
   color: var(--text-2);
   display: grid;
   gap: 0.4rem;
   margin: 0;
-  max-width: 58ch;
+  max-width: 45rem;
   padding-left: 1.4rem;
 }
 
@@ -7634,7 +7647,7 @@ main h1[tabindex='-1']:focus,
 .tour-lede {
   color: var(--text-2);
   font-size: 1.0625rem;
-  max-width: 62ch;
+  max-width: 45rem;
 }
 
 .tour-toc ol {
@@ -7716,7 +7729,7 @@ main h1[tabindex='-1']:focus,
   color: var(--text-2);
   font-size: 1rem;
   margin-bottom: 1.375rem;
-  max-width: 64ch;
+  max-width: 45rem;
 }
 
 .tour-stop-cols {
@@ -7728,7 +7741,7 @@ main h1[tabindex='-1']:focus,
 
 .tour-stop-cols.one {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 47.5rem;
+  max-width: 45rem;
 }
 
 .tour-stop-col h3 {
@@ -7756,7 +7769,7 @@ main h1[tabindex='-1']:focus,
   color: var(--text-2);
   font-size: 0.875rem;
   margin-top: 0.875rem;
-  max-width: 64ch;
+  max-width: 45rem;
 }
 
 .tour-stop-why strong {
@@ -7949,7 +7962,7 @@ main h1[tabindex='-1']:focus,
 .series-row .lanes {
   --lane-ground: var(--bg);
   margin-top: 0.45rem;
-  max-width: 32rem;
+  max-width: 45rem;
 }
 
 /* A comic's card: two offset edges behind the cover say "a series, more
@@ -8404,7 +8417,7 @@ button.run-cell[aria-disabled='true'] {
 .comic-hero-next {
   grid-area: next;
   margin-top: 0.9rem;
-  max-width: 36rem;
+  max-width: 45rem;
 }
 
 .comic-next {
@@ -10309,7 +10322,6 @@ a.cover-tile:focus-visible {
 .daily-lede {
   color: var(--text-2);
   margin: 0;
-  max-width: 62ch;
 }
 .daily-head .kicker {
   letter-spacing: 0.04em;
@@ -12129,7 +12141,7 @@ a.state-pill:focus-visible {
 
 .comic-issue-desc {
   color: var(--text-2);
-  max-width: 42rem;
+  max-width: 45rem;
 }
 
 .comic-issue-desc.muted {

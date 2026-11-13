@@ -806,13 +806,13 @@ describe('Collection', () => {
     expect(screen.getByRole('link', { name: 'Comic Vine' })).toBeInTheDocument()
   })
 
-  it('shows a rating as stars without claiming one that is absent', async () => {
+  it('shows a rating as a star and number without claiming one that is absent', async () => {
     stubApi()
     await renderReady()
 
     expect(screen.getByLabelText('9 out of 10')).toBeInTheDocument()
-    // Gloomhaven has no rating, so exactly one star element exists rather
-    // than an empty or zero-star one implying it was rated badly.
+    // Gloomhaven has no rating, so exactly one rating exists rather
+    // than an empty or zero one implying it was rated badly.
     expect(screen.getAllByLabelText(/out of 10/)).toHaveLength(1)
   })
 

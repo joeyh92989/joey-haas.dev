@@ -12,15 +12,14 @@ const SERIES = [
 ]
 
 describe('DayBars', () => {
-  it('names each bar and marks the latest of the highest days', () => {
+  it('names each bar and draws every bar in the one chart colour, the peak included', () => {
     render(<DayBars series={SERIES} />)
     const bars = screen.getAllByRole('img')
     expect(bars).toHaveLength(5)
     expect(bars[1]).toHaveAccessibleName('Sun 11 Oct: 8 views')
     expect(bars[2]).toHaveAccessibleName('Mon 12 Oct: 1 view')
-    expect(bars.filter((bar) => bar.classList.contains('peak'))).toEqual([
-      bars[3],
-    ])
+    // The peak is told in the caption, not by colour.
+    expect(bars.every((bar) => bar.className === 'day-bar')).toBe(true)
     expect(bars[3].style.height).toBe('100%')
     expect(bars[0].style.height).toBe('25%')
   })
@@ -64,8 +63,8 @@ describe('DayBars', () => {
     ])
   })
 
-  it('marks no peak when every day is zero', () => {
+  it('has no peak caption when every day is zero', () => {
     render(<DayBars series={[{ day: '2026-10-10', views: 0 }]} />)
-    expect(screen.getByRole('img')).not.toHaveClass('peak')
+    expect(screen.queryByText(/Busiest day/)).toBeNull()
   })
 })

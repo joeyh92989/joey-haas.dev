@@ -608,6 +608,8 @@ export const spine = {
   /** The item page's labels. */
   item: {
     // copy: pending voice review
+    outOfTen: 'out of 10',
+    // copy: pending voice review
     genresLabel: 'Genres',
     alsoOnLabel: 'Also on',
     mainStory: 'Main story',

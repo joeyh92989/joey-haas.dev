@@ -16,11 +16,11 @@ function axisPositions(length) {
 }
 
 /**
- * The views-per-day chart: one bar per UTC day, the highest in the accent
- * and the rest in the soft tint. The busiest day is the latest on a tie,
- * as the Best day tile has it. Each bar is named for a screen reader, and a
- * visually hidden table holds the same figures to read in order. A caption
- * names the busiest day and its count, as the bars carry no scale.
+ * The views-per-day chart: one bar per UTC day, all in the chart colour. The
+ * busiest day is the latest on a tie, as the Best day tile has it. Each bar is named for a screen reader, and a
+ * visually hidden table holds the same figures to read in order. The caption
+ * names the busiest day and its count, so the peak is told in words rather
+ * than by colour, and the bars carry no scale.
  *
  * @param {object} props
  * @param {{day: string, views: number}[]} props.series Oldest first.
@@ -33,12 +33,12 @@ export default function DayBars({ series }) {
   return (
     <div className="day-bars">
       <div className="day-bars-chart">
-        {series.map((point, index) => (
+        {series.map((point) => (
           <span
             key={point.day}
             role="img"
             aria-label={`${dayLabel(point.day, { weekday: true })}: ${counted(point.views, 'view')}`}
-            className={index === peak ? 'day-bar peak' : 'day-bar'}
+            className="day-bar"
             style={{
               height: `${highest ? (point.views / highest) * 100 : 0}%`,
             }}

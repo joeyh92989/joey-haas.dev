@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { statusLabel } from '../lib/shelf.js'
 import { localToday } from '../lib/statusMoves.js'
 import CoverImage from './CoverImage.jsx'
-import Stars from './Stars.jsx'
+import Rating from './Rating.jsx'
 
 const SWITCH_2_ID = 508
 const SWITCH_2_NAME = 'Nintendo Switch 2'
@@ -60,7 +60,7 @@ function KeyGlyph() {
  * The poster and the title are a single link; admin controls arrive through
  * `actions` and render as a sibling of that link, never inside it, because a
  * button nested in an anchor is invalid and a click on it would navigate.
- * Nothing is revealed only on hover: the title, stars, year and creator are
+ * Nothing is revealed only on hover: the title, rating, year and creator are
  * always visible, and the marks are named images.
  *
  * @param {object} props
@@ -124,7 +124,7 @@ export default function PosterCard({
         <span className="poster-title">{item.title}</span>
       </Link>
       {run}
-      <Stars rating={item.rating} />
+      <Rating rating={item.rating} />
       {meta && <p className="poster-meta muted">{meta}</p>}
       {actions && <div className="poster-actions">{actions(item)}</div>}
     </div>
