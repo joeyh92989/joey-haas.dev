@@ -41,10 +41,43 @@ GAME_FIELDS = (
     FieldSpec("physical_format", "Format", "select", select(FORMAT_LABELS)),
 )
 MOVIE_FIELDS = (FieldSpec("disc_format", "Disc", "select", select(MovieDiscFormat)),)
+# A comic's issues come from each book's own number at Check, so the Details
+# step does not ask for them (`in_details=False`); the add bar still types them.
 COMIC_FIELDS = (
-    FieldSpec("issues_owned", "Issues owned", "text", per_item=True),
+    FieldSpec("issues_owned", "Issues owned", "text", per_item=True, in_details=False),
     FieldSpec("shelf_format", "Shelf format", "select", select(ComicShelfFormat)),
 )
+
+EDITION_SHELF_FORMAT = {
+    "trade": ComicShelfFormat.TRADES,
+    "hardcover": ComicShelfFormat.TRADES,
+    "omnibus": ComicShelfFormat.OMNIBUS,
+}
+
+
+def _book_row(payload: dict[str, Any]) -> dict[str, Any]:
+    """The row fields a comic book's own payload brings (intake/reader.py):
+    a single issue's number as `issues_owned`; a collected edition as a
+    shelf format and, when its range was read or typed, an `editions` row.
+    A payload with `issues_owned` already (typed in the add bar) keeps it."""
+    if payload.get("format") == "collected":
+        kind = payload.get("edition_kind") or "trade"
+        row: dict[str, Any] = {
+            "shelf_format": EDITION_SHELF_FORMAT.get(
+                kind, ComicShelfFormat.TRADES
+            ).value
+        }
+        low, high = payload.get("collects_from"), payload.get("collects_to")
+        if low is not None and high is not None:
+            title = (payload.get("detected_title") or "").strip() or kind.title()
+            row["editions"] = [
+                {"kind": kind.title(), "label": title[:80], "from": low, "to": high}
+            ]
+        return row
+    number = payload.get("issue_number")
+    if number is not None and not payload.get("issues_owned"):
+        return {"issues_owned": str(number)}
+    return {}
 
 
 def _shelf_row(item_type: T):
@@ -57,6 +90,8 @@ def _shelf_row(item_type: T):
         row = {key: chosen[key] for key in CHOSEN_FIELDS if key in chosen}
         payload = entry.get("payload") or {}
         row.update({k: v for k, v in payload.items() if k in ITEM_FIELDS})
+        if item_type is T.COMIC:
+            row.update(_book_row(payload))
         row["type"] = item_type
         row["owned_format"] = OwnedFormat.PHYSICAL.value
         return row
