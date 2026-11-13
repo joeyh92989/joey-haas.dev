@@ -53,6 +53,12 @@ before pushing.
 
 ## Conventions
 
+- **Design rules: `docs/design-system.md`.** Page types and their parts,
+  the one component for each job (header, breadcrumb, card, figure, chip
+  row, state pill, empty and error states), the two shelf widths, names,
+  the public/admin twin rule and the feature status list. Any design step
+  reads it before drawing; a design that needs a rule it lacks adds the
+  rule there in the same PR, and a parked feature gets no design changes.
 - Plain CSS in `frontend/src/index.css`. No CSS framework unless deliberately
   added. Design tokens are CSS variables declared twice: dark values on
   `:root` and light overrides under `[data-theme='light']`. Style with the
@@ -433,7 +439,7 @@ before pushing.
   findings in `2026-11-12-shelf-design-sweep.md`), in pickup order:
   - [x] 1. Comic issue sync: find out why it is empty, run it, and show a
         failed sync on `/admin/jobs`
-  - [ ] 2. Design rules file (`docs/design-system.md`) and feature status
+  - [x] 2. Design rules file (`docs/design-system.md`) and feature status
         list
   - [ ] 3. Split the shelf by type: Games at `/shelf/games`, Comics, and
         their admin twins

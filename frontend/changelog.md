@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-13
 
+- I wrote down the design rules the shelf follows: one header, one way back, two widths, and the same names on the public pages and in my admin.
 - Comic series pages now show a cover for every issue, and each issue page has its cover and description. [Waterworld](/shelf/ab94b320-05ad-4845-b0e0-4fd39c1ccd43/) is one.
 
 ## 2026-11-12
