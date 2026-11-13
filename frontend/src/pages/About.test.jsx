@@ -120,6 +120,21 @@ describe('About', () => {
     expect(link).toHaveAttribute('download', 'Joey Haas Resume.pdf')
   })
 
+  it('ends with how to reach me, built from the profile', () => {
+    render(<About />)
+    expect(screen.getByRole('link', { name: profile.email })).toHaveAttribute(
+      'href',
+      `mailto:${profile.email}`,
+    )
+    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
+      'href',
+      profile.linkedin,
+    )
+    const pdf = screen.getByRole('link', { name: 'PDF' })
+    expect(pdf).toHaveAttribute('href', '/resume.pdf')
+    expect(pdf).toHaveAttribute('download', 'Joey Haas Resume.pdf')
+  })
+
   // The link above is only as good as the file behind it: a renamed or
   // deleted PDF still leaves the anchor's href/download attributes green,
   // and the SPA rewrite serves index.html (a 200, not a 404) for a missing

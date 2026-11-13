@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import ContactLine from '../components/ContactLine.jsx'
 import CoverStrip from '../components/CoverStrip.jsx'
 import FactsTable from '../components/FactsTable.jsx'
 import Kicker from '../components/Kicker.jsx'
@@ -169,6 +170,10 @@ export default function Home() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="home-section" aria-label="Contact">
+        <ContactLine />
       </section>
     </>
   )

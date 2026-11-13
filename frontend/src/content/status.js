@@ -9,7 +9,7 @@
  * ("Could not get picks") stays with its page.
  */
 export const WAKING =
-  'Waking the server — it sleeps when idle, so this can take up to a minute.'
+  'Waking the server. It sleeps when idle, so this can take up to a minute.'
 
 /**
  * A first load that may be a waking server or a model call, which take
@@ -19,21 +19,21 @@ export const WAKING_OR_PLANNING = 'Waking the server or planning the day'
 
 /** Shown beside `WAKING_OR_PLANNING` once Today has waited a while. */
 export const STILL_PLANNING =
-  'Still working — planning asks the model and can take up to two minutes.'
+  'Still working. Planning asks the model and can take up to two minutes.'
 
 /** Today's failure when the wait passes its deadline. */
-export const PLANNING_TIMEOUT = "Planning didn't answer in time. Try again."
+export const PLANNING_TIMEOUT = 'Planning didn’t answer in time. Try again.'
 
 /** Tag now's wait: one batch of the queue, `count` photos long. */
 export const taggingWait = (count) =>
-  `Tagging ${count} ${count === 1 ? 'photo' : 'photos'} — one batch`
+  `Tagging ${count} ${count === 1 ? 'photo' : 'photos'} in one batch`
 
 /** Shown beside `taggingWait` once Tag now has waited a while. */
-export const STILL_TAGGING = 'Still working — this can take up to two minutes.'
+export const STILL_TAGGING = 'Still working. This can take up to two minutes.'
 
 /** Tag now's failure when the wait passes its deadline. */
 export const TAGGING_TIMEOUT =
-  "Tagging didn't answer in time. It may still finish — reload to see."
+  'Tagging didn’t answer in time. It may still finish, so reload to see.'
 
 /** A photo waiting for the reader: how many are read before it. */
 export const photoQueued = (ahead) =>
@@ -45,11 +45,10 @@ export const photoQueued = (ahead) =>
 export const photoReading = (seconds) => `reading · ${seconds} s`
 
 /** Shown beside `photoReading` once a read has gone on a while. */
-export const STILL_READING =
-  'still reading — the model can take a minute or two'
+export const STILL_READING = 'still reading; the model can take a minute or two'
 
 /** The reader's failure when a read passes its deadline. */
-export const READER_TIMEOUT = "The reader didn't answer in time; try again."
+export const READER_TIMEOUT = 'The reader didn’t answer in time. Try again.'
 
 export const LOAD_ERROR = 'That didn’t load. Try again in a minute.'
 

@@ -729,7 +729,7 @@ describe('AdminClosetToday', () => {
       })
       expect(
         screen.getByText(
-          'Still working — planning asks the model and can take up to two minutes.',
+          'Still working. Planning asks the model and can take up to two minutes.',
         ),
       ).toBeInTheDocument()
     })
@@ -747,7 +747,7 @@ describe('AdminClosetToday', () => {
         vi.advanceTimersByTime(195_000)
       })
       expect(screen.getByRole('alert')).toHaveTextContent(
-        "Planning didn't answer in time. Try again.",
+        'Planning didn’t answer in time. Try again.',
       )
       expect(asked).toBe(1)
       await act(async () => {

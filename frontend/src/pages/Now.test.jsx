@@ -150,6 +150,6 @@ describe('Now', () => {
 
   it('points to My Shelf when the build has no snapshot', async () => {
     renderPage()
-    expect(await screen.findByText(/Nothing to show/)).toBeInTheDocument()
+    expect(await screen.findByText(/Nothing here yet/)).toBeInTheDocument()
   })
 })

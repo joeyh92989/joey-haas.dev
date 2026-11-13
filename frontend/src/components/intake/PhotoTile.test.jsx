@@ -47,7 +47,7 @@ describe('PhotoTile waits', () => {
     act(() => vi.advanceTimersByTime(1_000))
     expect(screen.getByText('reading · 30 s')).toBeVisible()
     expect(
-      screen.getByText('still reading — the model can take a minute or two'),
+      screen.getByText('still reading; the model can take a minute or two'),
     ).toBeVisible()
   })
 
