@@ -172,7 +172,7 @@ describe('ComicIssue, public', () => {
       'page',
     )
     expect(
-      screen.getByRole('heading', { level: 1, name: '#58 · The Will' }),
+      screen.getByRole('heading', { level: 1, name: 'Saga #58 · The Will' }),
     ).toBeInTheDocument()
     expect(screen.getByAltText('Cover of Saga #58')).toHaveAttribute(
       'src',
@@ -185,7 +185,7 @@ describe('ComicIssue, public', () => {
     stubApi({ page: { name: null } })
     renderIssue()
     expect(
-      await screen.findByRole('heading', { level: 1, name: '#58' }),
+      await screen.findByRole('heading', { level: 1, name: 'Saga #58' }),
     ).toBeInTheDocument()
   })
 

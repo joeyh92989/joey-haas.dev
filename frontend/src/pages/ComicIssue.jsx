@@ -172,7 +172,7 @@ export default function ComicIssue({ id, n }) {
         <div className="comic-issue-text">
           <p className="item-kicker">{kicker}</p>
           <h1>
-            #{page.number}
+            {page.series_title} #{page.number}
             {page.name ? ` · ${page.name}` : ''}
           </h1>
           <p className="comic-issue-pills">
