@@ -853,7 +853,10 @@ before pushing.
   `POST /api/comics/issues/sync?budget=` is in `JOB_ROUTES`: stalest series
   first, budget 1 to 190 requests (default 120). The same sync runs on
   Follow and Want create and on "Refresh from Comic Vine" (budget 1: one page of up to 100 issues, the
-  nightly finishes longer runs). An
+  nightly finishes longer runs). Each run of the
+  sync is a `catalogue_runs` row (source `comic_issues`), read by `GET
+  /api/comics/status` (admin only, not in `JOB_ROUTES`) for the Jobs page's
+  Comic issues row. An
   edition links to its Comic Vine issue by `cv_id` (`GET
   /api/comics/issues/search`, `PUT /api/comics/{id}/editions/{slug}/link`);
   an edit that changes the edition's range changes its slug and unlinks it.

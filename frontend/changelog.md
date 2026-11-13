@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-13
+
+- Comic series pages now show a cover for every issue, and each issue page has its cover and description. [Waterworld](/shelf/ab94b320-05ad-4845-b0e0-4fd39c1ccd43/) is one.
+
 ## 2026-11-12
 
 - Each thing now has one name: Blog, [Daily game](/daily) and [Tour](/shelf/how). Pick for me says “vibe” instead of “mood”, [Home](/) and [About](/about) end with how to reach me, and some waiting messages are reworded.
