@@ -10,9 +10,17 @@ import { expandRanges } from './comics.js'
 
 const COUNTED = ['exact', 'ready', 'typed', 'owned']
 
-/** A comic book the sitting would write: ticked, not removed. */
+/**
+ * A comic the reader made a book of: it carries `number_source`. A comic
+ * added by search or typing has none and keeps the grid and the Edit issues
+ * row it always had.
+ */
+export const isBook = (entry) =>
+  entry.kind === 'comic' && entry.payload?.number_source !== undefined
+
+/** A book the sitting would write: ticked, not removed. */
 export const isTicked = (entry) =>
-  entry.kind === 'comic' && COUNTED.includes(entry.state)
+  isBook(entry) && COUNTED.includes(entry.state)
 
 export const isCollected = (entry) => entry.payload?.format === 'collected'
 

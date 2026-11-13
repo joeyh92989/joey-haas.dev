@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { comicIntake } from '../../content/comicIntake.js'
-import { needsNumber, repeats } from '../../lib/comicBooks.js'
+import { isBook, needsNumber, repeats } from '../../lib/comicBooks.js'
 import { seriesGrowth } from '../../lib/comicRun.js'
 import { CHECK_STATES, entryCover } from '../../lib/intake.js'
 import { live, removeEntry } from '../../lib/intakeRemove.js'
@@ -93,15 +93,17 @@ export default function CheckStep({
   const checks = sitting.entries.filter((e) => CHECK_STATES.includes(e.state))
   const left = checks.filter((e) => !skipped.has(e.id))
   const current = left[0] ?? null
-  const grows = closet || books ? [] : sitting.entries.filter(addsToSeries)
+  const grows = closet
+    ? []
+    : sitting.entries.filter((e) => addsToSeries(e) && !(books && isBook(e)))
   const growthOf = growths(grows)
   const settled = closet
     ? []
     : live(sitting.entries).filter(
         (entry) => inSkim(entry) && !grows.includes(entry),
       )
-  const bookRows = books ? settled.filter((e) => e.kind === 'comic') : []
-  const skim = books ? settled.filter((e) => e.kind !== 'comic') : settled
+  const bookRows = books ? settled.filter(isBook) : []
+  const skim = books ? settled.filter((e) => !isBook(e)) : settled
   const numberless = books ? sitting.entries.filter(needsNumber).length : 0
   const photoNumber = (entry) => {
     const index = sitting.photos.findIndex((p) => p.id === entry.photo_id)

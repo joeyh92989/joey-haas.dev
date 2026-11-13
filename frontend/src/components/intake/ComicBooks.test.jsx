@@ -117,6 +117,7 @@ describe('ComicBooks', () => {
       payload: {
         detected_title: 'Saga',
         issue_number: null,
+        number_source: 'none',
         format: 'collected',
         edition_kind: 'trade',
         collects_from: 1,
@@ -139,7 +140,11 @@ describe('ComicBooks', () => {
   it('saves a collected range only when both ends are in order', async () => {
     const user = userEvent.setup()
     const collected = book('1', null, 'read', {
-      payload: { detected_title: 'Saga', format: 'collected' },
+      payload: {
+        detected_title: 'Saga',
+        number_source: 'none',
+        format: 'collected',
+      },
     })
     const { onSave } = show([collected])
     await user.type(screen.getByLabelText('First issue collected'), '6')
