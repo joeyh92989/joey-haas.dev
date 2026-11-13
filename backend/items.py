@@ -266,6 +266,8 @@ class ItemOut(BaseModel):
     shelf_format: ComicShelfFormat | None = None
     disc_format: MovieDiscFormat | None = None
     following: bool = False
+    # When the issue sync last walked a comic's series; None = never.
+    issues_synced_on: date | None = None
     # Play Next was told never to suggest it; the edit page offers Restore.
     play_next_excluded: bool = False
     # A comic's run against its snapshot (comics.row_run); None otherwise.

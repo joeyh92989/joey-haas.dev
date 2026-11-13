@@ -197,3 +197,15 @@ async def test_create_refuses_a_skip_on_an_owned_issue(sessionmaker_for_test):
         )
     assert response.status_code == 422
     assert response.json()["detail"] == "#2 is owned, so it can't be skipped"
+
+
+async def test_the_admin_read_carries_issues_synced_on(sessionmaker_for_test):
+    from datetime import date
+
+    synced = await _seed(sessionmaker_for_test, issues_synced_on=date(2026, 11, 12))
+    never = await _seed(sessionmaker_for_test, title="Monstress")
+    async with client_for(sessionmaker_for_test) as client:
+        first = await client.get(f"/api/items/{synced}")
+        second = await client.get(f"/api/items/{never}")
+    assert first.json()["issues_synced_on"] == "2026-11-12"
+    assert second.json()["issues_synced_on"] is None
