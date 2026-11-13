@@ -162,7 +162,12 @@ export default function ComicIssue({ id, n }) {
             type="comic"
             alt={COPY.coverAlt(page.series_title, page.number)}
             priority
+            unowned={!held}
+            number={page.number}
           />
+          {!held && (
+            <p className="comic-issue-cover-caption">{COPY.notOwned}</p>
+          )}
         </div>
         <div className="comic-issue-text">
           <p className="item-kicker">{kicker}</p>

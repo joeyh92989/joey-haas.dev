@@ -154,7 +154,7 @@ function runTitles() {
   const list = document.querySelector('.series-list')
   return within(list)
     .getAllByRole('link')
-    .map((link) => link.textContent)
+    .map((link) => link.textContent.replace(/ \(\d{4}\)$/, ''))
 }
 
 afterEach(() => {
@@ -178,7 +178,14 @@ describe('Comics', () => {
     renderPage()
     const hero = document.querySelector('.hero-numbers')
     expect(hero).toHaveTextContent('116')
-    expect(hero).toHaveTextContent('47%')
+    // What is owned leads: series, then issues owned; the gaps and the
+    // read share follow as one quiet line.
+    expect(
+      [...hero.querySelectorAll('dt')].map((dt) => dt.textContent),
+    ).toEqual(['Series', 'Issues owned'])
+    expect(document.querySelector('.hero-sub')).toHaveTextContent(
+      '24 missing · 47% read',
+    )
   })
 
   it('shows a dash when nothing is on the shelf to read', () => {
@@ -188,7 +195,7 @@ describe('Comics', () => {
       failed: false,
     })
     renderPage()
-    expect(document.querySelector('.hero-numbers')).toHaveTextContent('—')
+    expect(document.querySelector('.hero-sub')).toHaveTextContent('— read')
   })
 
   it('lists this week’s issues and the undated series under Later', () => {

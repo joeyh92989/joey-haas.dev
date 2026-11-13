@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { spine } from '../content/spine.js'
+
+const COPY = spine.comics.issue
 
 /**
  * Cover art with a placeholder fallback and a per-type aspect ratio.
@@ -19,16 +22,38 @@ import { useState } from 'react'
  * @param {boolean} [props.priority] - The page's main image (an item page's
  *   cover): fetched at once rather than lazily, since it is what the page is
  *   waiting to paint.
+ * @param {boolean} [props.unowned] - A comic issue I do not own: a cover that
+ *   loads is shown dimmed (the words "Not owned" are the page's to carry).
+ * @param {number|string} [props.number] - A comic issue's number. With it, a
+ *   missing cover is a labelled placeholder (the number and "No cover")
+ *   instead of an empty block.
  */
-export default function CoverImage({ src, type, alt = '', priority = false }) {
+export default function CoverImage({
+  src,
+  type,
+  alt = '',
+  priority = false,
+  unowned = false,
+  number = null,
+}) {
   // The URL that failed, not a flag: a new src (the live item replacing the
   // snapshot, or a re-link) gets its own try.
   const [failedSrc, setFailedSrc] = useState(null)
   const missing = !src || failedSrc === src
 
   return (
-    <span className={`cover cover-${type}`} data-missing={missing || undefined}>
-      {missing ? (
+    <span
+      className={`cover cover-${type}`}
+      data-missing={missing || undefined}
+      data-nocover={(missing && number != null) || undefined}
+      data-unowned={(unowned && !missing) || undefined}
+    >
+      {missing && number != null ? (
+        <span className="cover-nocover">
+          <b>#{number}</b>
+          <span>{COPY.noCover}</span>
+        </span>
+      ) : missing ? (
         <span className="cover-placeholder" aria-hidden="true" />
       ) : (
         <img

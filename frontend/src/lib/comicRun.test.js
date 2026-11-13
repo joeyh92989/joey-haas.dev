@@ -383,9 +383,34 @@ describe('cardLines', () => {
       reading: null,
       lanes: false,
     })
-    expect(cardLines({ ...row, owned: 0 }, date).status).toBe(
-      'Issues not recorded',
-    )
+    expect(cardLines({ ...row, owned: 0, segments: [] }, date)).toMatchObject({
+      status: 'Issues not recorded',
+      lanes: false,
+    })
+  })
+
+  it('draws the gaps of a released run with nothing owned', () => {
+    expect(
+      cardLines(
+        {
+          ...row,
+          owned: 0,
+          released: 5,
+          missing: 5,
+          ongoing: false,
+          read: 0,
+          read_to: null,
+          read_next: null,
+          segments: [{ kind: 'missing', length: 5 }],
+        },
+        date,
+      ),
+    ).toEqual({
+      count: '0/5',
+      status: '5 missing',
+      reading: null,
+      lanes: true,
+    })
   })
 })
 

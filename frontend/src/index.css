@@ -3689,6 +3689,59 @@ footer {
   width: 100%;
 }
 
+/* An issue with no cover: a labelled placeholder, not an empty block. The
+   dashed --run-missing outline is 3.30 / 3.25 on --surface and 3.50 / 3.17
+   on --bg (dark / light) but 3.07 / 2.92 on --sunken, so it takes the
+   page's ground instead of the cover's. */
+.cover[data-nocover] {
+  background: transparent;
+  border: 1.5px dashed var(--run-missing);
+}
+
+.cover-nocover {
+  align-content: center;
+  color: var(--text-3);
+  display: grid;
+  font-size: 0.8125rem;
+  gap: 0.25rem;
+  height: 100%;
+  justify-items: center;
+  line-height: 1.3;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.cover-nocover b {
+  color: var(--text-2);
+  font: 500 1.75rem var(--font-mono);
+}
+
+/* A cover that loads for an issue I do not own is content, dimmed. */
+.cover[data-unowned] img {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.comic-issue-cover-caption {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  margin: 0.5rem 0 0;
+}
+
+/* In a tile the frame already carries the dashed outline and the state. */
+.cover-tile .cover[data-nocover] {
+  border: 0;
+}
+
+.cover-tile .cover-nocover {
+  font-size: 0.5625rem;
+  padding: 0.2rem;
+}
+
+.cover-tile .cover-nocover b {
+  font-size: 0.875rem;
+}
+
 .cover-movie,
 .cover-comic {
   aspect-ratio: 2 / 3;
@@ -4173,6 +4226,12 @@ footer {
   letter-spacing: 0.08em;
   margin-top: 0.35rem;
   text-transform: uppercase;
+}
+
+.hero-numbers + .hero-sub {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin: -0.75rem 0 1.5rem;
 }
 
 .favourites,
@@ -7547,6 +7606,11 @@ main h1[tabindex='-1']:focus,
   margin: 0;
 }
 
+.series-vol {
+  color: var(--text-3);
+  font-weight: 400;
+}
+
 .series-title a {
   color: var(--text);
   margin-right: 0.4rem;
@@ -7759,11 +7823,12 @@ main h1[tabindex='-1']:focus,
   background: var(--chart);
 }
 
+/* A border, not a shadow: the key sits outside .lanes, where
+   --lane-ground is undefined and a shadow built on it is dropped whole. */
 .lane-track i[data-k='missing'],
 .run-key i[data-k='missing'] {
-  box-shadow:
-    inset 0 0 0 1.5px var(--run-missing),
-    0 0 0 1px var(--lane-ground);
+  border: 1.5px solid var(--run-missing);
+  box-sizing: border-box;
 }
 
 .lane-track i[data-k='skip'],
@@ -8150,8 +8215,8 @@ a.cover-tile:focus-visible {
   padding: 2.5px;
 }
 
-.cover-tile[data-state='missing'] .cover,
-.cover-tile[data-state='skipped'] .cover {
+.cover-tile[data-state='missing'] .cover:not([data-nocover]),
+.cover-tile[data-state='skipped'] .cover:not([data-nocover]) {
   filter: grayscale(1);
   opacity: 0.45;
 }

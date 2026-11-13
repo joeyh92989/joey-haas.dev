@@ -671,8 +671,8 @@ export const spine = {
     hero: {
       series: 'Series',
       issues: 'Issues owned',
-      missing: 'Missing',
-      read: 'Read',
+      // copy: pending voice review
+      sub: (missing, readShare) => `${missing} missing · ${readShare} read`,
     },
     chips: {
       all: 'All',
@@ -753,6 +753,10 @@ export const spine = {
       breadcrumb: 'Breadcrumb',
       neighbours: 'Neighboring issues',
       coverAlt: (series, n) => `Cover of ${series} #${n}`,
+      // copy: pending voice review
+      notOwned: 'Not owned',
+      // copy: pending voice review
+      noCover: 'No cover',
       facts: {
         issue: 'Issue',
         inStores: 'In stores',

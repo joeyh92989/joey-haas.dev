@@ -115,6 +115,44 @@ describe('ComicIssue, public', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it('dims the Comic Vine cover of an unowned issue and says Not owned', async () => {
+    stubApi({ page: { state: 'missing', held_as: 'Not owned' } })
+    renderIssue()
+    const img = await screen.findByAltText('Cover of Saga #58')
+    expect(img.closest('.cover')).toHaveAttribute('data-unowned')
+    expect(
+      document.querySelector('.comic-issue-cover-caption'),
+    ).toHaveTextContent(COPY.notOwned)
+  })
+
+  it('shows a labelled placeholder for an unowned issue with no cover', async () => {
+    stubApi({
+      page: {
+        state: 'missing',
+        held_as: 'Not owned',
+        cover_url: null,
+        large_url: null,
+      },
+    })
+    renderIssue()
+    await screen.findByRole('heading', { level: 1 })
+    const holder = document.querySelector('.comic-issue-cover .cover-nocover')
+    expect(holder).toHaveTextContent('#58')
+    expect(holder).toHaveTextContent(COPY.noCover)
+    expect(document.querySelector('.comic-issue-cover img')).toBeNull()
+    expect(
+      document.querySelector('.comic-issue-cover-caption'),
+    ).toHaveTextContent(COPY.notOwned)
+  })
+
+  it('does not dim or caption an owned issue', async () => {
+    stubApi()
+    renderIssue()
+    const img = await screen.findByAltText('Cover of Saga #58')
+    expect(img.closest('.cover')).not.toHaveAttribute('data-unowned')
+    expect(document.querySelector('.comic-issue-cover-caption')).toBeNull()
+  })
+
   it('shows the breadcrumb, heading, name and cover', async () => {
     stubApi()
     renderIssue()
