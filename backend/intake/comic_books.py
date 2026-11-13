@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from comics import MAX_ISSUE
+from comics import MAX_ISSUE, RangeError, parse_ranges
 
 FORMATS = ("single", "collected", "unknown")
 EDITION_KINDS = ("trade", "omnibus", "hardcover")
@@ -30,23 +30,36 @@ class BookEditError(ValueError):
         self.field = field
 
 
+def _count(value: Any) -> int:
+    return (
+        value
+        if isinstance(value, int) and not isinstance(value, bool) and value > 0
+        else 0
+    )
+
+
 def run_size(
     chosen: dict[str, Any] | None, on_shelf: dict[str, Any] | None
 ) -> int | None:
-    """How many issues the matched volume has: the issues of the series
-    already on the shelf (its synced issue rows, or its released count)
-    when it is, else the candidate's Comic Vine issue count. None when
-    nothing says."""
-    if on_shelf:
-        known = max((on_shelf.get("issue_max") or 0), (on_shelf.get("released") or 0))
-        if known:
-            return known
-    count = (chosen or {}).get("issue_count")
-    return (
-        count
-        if isinstance(count, int) and not isinstance(count, bool) and count > 0
-        else None
+    """How many issues the matched volume is known to have: the most any
+    source says. Comic Vine's count on the candidate can be stale, so the
+    series on the shelf counts too (its synced issue rows, its released
+    count, and the highest issue already owned): a real issue is never
+    marked out of the run because one count lags. None when nothing says."""
+    shelf = on_shelf or {}
+    owned = 0
+    try:
+        ranges = parse_ranges(shelf.get("owned_text"))
+        owned = max((high for _, high in ranges), default=0)
+    except RangeError:
+        pass
+    known = max(
+        _count((chosen or {}).get("issue_count")),
+        _count(shelf.get("issue_max")),
+        _count(shelf.get("released")),
+        owned,
     )
+    return known or None
 
 
 def number_check(
@@ -75,10 +88,18 @@ def number_check(
 
 
 def _whole(value: Any, field: str, label: str) -> int | None:
-    if value is None or value == "":
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return None  # blank clears
+        # ASCII digits only ("²" is a digit to str.isdigit but not to int),
+        # and short enough that int() cannot refuse it.
+        if value.isascii() and value.isdecimal() and len(value) <= 6:
+            value = int(value)
+        elif value.isascii() and value.isdecimal():
+            raise BookEditError(f"{label} runs from 1 to {MAX_ISSUE}.", field)
+    if value is None:
         return None
-    if isinstance(value, str) and value.strip().isdigit():
-        value = int(value.strip())
     if isinstance(value, bool) or not isinstance(value, int):
         raise BookEditError(f"{label} is a whole number from 1 to {MAX_ISSUE}.", field)
     if not 1 <= value <= MAX_ISSUE:

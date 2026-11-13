@@ -605,7 +605,9 @@ def create_intake_router(
                 try:
                     value = edit_book(entry.payload, value)
                 except BookEditError as error:
-                    raise HTTPException(422, str(error)) from error
+                    raise HTTPException(
+                        422, {"message": str(error), "field": error.field}
+                    ) from error
             setattr(entry, field, value)
         await session.commit()
         [shown] = await entries_json(session, [entry])

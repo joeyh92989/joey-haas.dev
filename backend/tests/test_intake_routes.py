@@ -773,7 +773,10 @@ async def test_typing_a_number_marks_it_typed_and_a_bad_one_is_refused(
     assert cleared.json()["payload"]["number_source"] == "none"
     assert cleared.json()["number_check"]["state"] == "none"
     assert zero.status_code == 422
-    assert "1 to 9999" in zero.json()["detail"]
+    # The field is named, so Check can show the message beside it.
+    assert zero.json()["detail"]["field"] == "issue_number"
+    assert "1 to 9999" in zero.json()["detail"]["message"]
+    assert backwards.json()["detail"]["field"] == "collects_to"
     assert backwards.status_code == 422
     # a refused edit changes nothing
     assert after.json()["entries"][0]["payload"]["issue_number"] is None

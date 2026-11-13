@@ -200,7 +200,9 @@ def test_a_changed_number_is_typed_and_an_unchanged_one_keeps_its_source():
     )
 
 
-@pytest.mark.parametrize("bad", [0, -1, 10000, 1.5, True, "x", "1/2"])
+@pytest.mark.parametrize(
+    "bad", [0, -1, 10000, 1.5, True, "x", "1/2", "²", "٣", "9" * 5000, "1_0"]
+)
 def test_a_bad_number_is_refused(bad):
     with pytest.raises(BookEditError) as refused:
         edit_book(_book(1), {"issue_number": bad})
@@ -238,3 +240,20 @@ def test_format_and_edition_kind_take_only_their_values():
 def test_a_payload_without_book_fields_is_returned_as_it_came():
     payload = {"issues_owned": "1–4", "shelf_format": "singles"}
     assert edit_book(None, payload) == payload
+
+
+def test_whitespace_clears_a_number_and_a_range_end():
+    assert edit_book(_book(2), {"issue_number": "   "})["issue_number"] is None
+    cleared = edit_book({}, {"collects_from": " ", "collects_to": "\t"})
+    assert (cleared["collects_from"], cleared["collects_to"]) == (None, None)
+
+
+def test_the_run_is_the_most_any_source_says():
+    # A stale Comic Vine count never marks a real issue out of the run.
+    assert run_size({"issue_count": 4}, {"released": 6}) == 6
+    assert run_size({"issue_count": 8}, {"issue_max": 6}) == 8
+    assert run_size({"issue_count": 4}, {"owned_text": "1–5, 9"}) == 9
+    assert run_size({"issue_count": 4}, {"owned_text": ""}) == 4
+    assert run_size(None, {"owned_text": "not ranges"}) is None
+    state = number_check(_book(9), {"issue_count": 4}, {"owned_text": "1–5, 9"})
+    assert state == {"state": "in_run", "run": 9}

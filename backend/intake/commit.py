@@ -47,6 +47,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from closet_routes import GarmentFields, apply_garment_fields
 from comics import (
     RangeError,
+    edition_issues,
     expand,
     format_ranges,
     owned_set,
@@ -58,6 +59,7 @@ from comics import (
 from comics_routes import got_issues
 from formats import CopyFieldError
 from intake.kinds import REGISTRY, Kind
+from intake.shelf_kinds import book_edition
 from items import ItemIn, RowRefused, _write_fields, commit_items
 from models import (
     ComicIssue,
@@ -311,6 +313,11 @@ class _Series:
     shelf_format: ComicShelfFormat | None = None
     # (entry, editions) of each entry that carries some, in commit order.
     editions: list[tuple[IntakeEntry, list[dict]]] = field(default_factory=list)
+    # True when `shelf_format` is only what a collected book implies, not
+    # something Details set: it never overrides a series' own format.
+    shelf_derived: bool = False
+    # (entry, edition) a collected book brings (`book_edition`), owned or not.
+    book_editions: list[tuple[IntakeEntry, dict]] = field(default_factory=list)
 
 
 _COLLECTED = (ComicShelfFormat.TRADES, ComicShelfFormat.OMNIBUS)
@@ -320,6 +327,15 @@ def _entry_editions(made: ItemIn) -> list[dict]:
     """The editions an entry's row brings: only a trades or omnibus row, so a
     row switched back to singles writes none left over."""
     return list(made.editions or []) if made.shelf_format in _COLLECTED else []
+
+
+def _clear_skips(item: Item, editions: list[dict]) -> None:
+    """An edition that now covers a skipped issue takes it out of the
+    skipped ones (Got it's rule), canonicalised through comics.py."""
+    skipped = expand(parse_ranges(item.issues_skipped))
+    covered = skipped & edition_issues(editions)
+    if covered:
+        item.issues_skipped = format_ranges(skipped - covered) or None
 
 
 def _editions_gained(held: list[dict] | None, merged: list[dict] | None) -> list[dict]:
@@ -498,6 +514,7 @@ async def commit_one(
                     return outcome
             grew.editions_added = _editions_gained(on_shelf.editions, merged)
             on_shelf.editions = merged
+            _clear_skips(on_shelf, grew.editions_added)
             if made.shelf_format is not None:
                 on_shelf.shelf_format = made.shelf_format
             if gained:
@@ -622,8 +639,14 @@ async def commit_sitting(
             found.issues.append(made.issues_owned)
             if found.shelf_format is None and not owned_comic:
                 found.shelf_format = made.shelf_format
+                found.shelf_derived = (
+                    made.shelf_format is not None
+                    and "shelf_format" not in (entry.payload or {})
+                )
             if not owned_comic and (added := _entry_editions(made)):
                 found.editions.append((entry, added))
+            if (edition := book_edition(entry.payload or {})) is not None:
+                found.book_editions.append((entry, edition))
             if found.row is None and not owned_comic:
                 found.row, found.entry = made, entry
             continue
@@ -646,15 +669,22 @@ async def commit_sitting(
     for key, found in series.items():
         item = on_shelf.get(key)
         merged = item.editions if item is not None else None
-        if found.editions:
+        # A book's edition whose range the series already holds (any kind,
+        # any label) is a photo of a book already recorded: not added again.
+        held = {(e["from"], e["to"]) for e in (item.editions or [])} if item else set()
+        fresh: list[tuple[IntakeEntry, dict]] = []
+        for entry, edition in found.book_editions:
+            if (edition["from"], edition["to"]) not in held:
+                held.add((edition["from"], edition["to"]))
+                fresh.append((entry, edition))
+        brought = [e for _, eds in found.editions for e in eds]
+        brought += [edition for _, edition in fresh]
+        if brought:
             try:
-                merged = _merged_editions(
-                    merged, [e for _, eds in found.editions for e in eds]
-                )
+                merged = _merged_editions(merged, brought)
             except RangeError as error:
-                outcome.refused.append(
-                    Refusal(found.editions[0][0].id, "editions", str(error))
-                )
+                first = found.editions[0][0] if found.editions else fresh[0][0]
+                outcome.refused.append(Refusal(first.id, "editions", str(error)))
                 continue
         issues = expand(parse_ranges(union(*found.issues)))
         plans.append((found, item, issues, merged))
@@ -671,8 +701,13 @@ async def commit_sitting(
             gained = issues - owned_set(item.issues_owned, item.editions)
             grew.editions_added = _editions_gained(item.editions, merged)
             item.editions = merged
+            _clear_skips(item, grew.editions_added)
             outcome.series_grew.append(grew)
-            if found.shelf_format is not None:
+            # What Details set wins; what a collected book implies only
+            # fills a format the series has not got.
+            if found.shelf_format is not None and (
+                not found.shelf_derived or item.shelf_format is None
+            ):
                 item.shelf_format = found.shelf_format
             if gained:
                 gains.append((item, gained))
@@ -694,6 +729,8 @@ async def commit_sitting(
                 outcome.series_new.append(
                     {
                         "title": new_row.title,
+                        "external_source": new_row.external_source,
+                        "external_id": new_row.external_id,
                         "cover_url": new_row.cover_url,
                         "issues": sorted(issues),
                         "editions": merged or [],

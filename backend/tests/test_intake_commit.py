@@ -1141,3 +1141,148 @@ async def test_typed_issues_owned_in_the_add_bar_still_win_over_no_number(
         await _commit(client, sitting_id)
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned == "7–9"
+
+
+def _trade(low=1, high=6, kind="trade", **extra) -> dict:
+    return _book(
+        None,
+        "none",
+        format="collected",
+        collects_from=low,
+        collects_to=high,
+        edition_kind=kind,
+        **extra,
+    )
+
+
+@pytest.mark.asyncio
+async def test_photographing_a_trade_already_recorded_adds_no_second_edition(
+    sessionmaker_for_test,
+):
+    held = [{"kind": "Hardcover", "label": "Vol. 1 deluxe", "from": 1, "to": 6}]
+    await _seed_series(
+        sessionmaker_for_test, editions=held, shelf_format=ComicShelfFormat.TRADES
+    )
+    # The reader marks a series on the shelf as owned: still its edition counts.
+    sitting_id = await _seed(
+        sessionmaker_for_test, entries=[("comic", S.OWNED, _trade(), _series())]
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["added"], body["already_owned"]) == (0, 1)
+    [grew] = body["series_grew"]
+    assert grew["editions_added"] == []
+    [row] = await _items(sessionmaker_for_test)
+    assert row.editions == held
+
+
+@pytest.mark.asyncio
+async def test_a_trade_with_a_new_range_is_added_to_the_series_on_the_shelf(
+    sessionmaker_for_test,
+):
+    held = [{"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}]
+    await _seed_series(sessionmaker_for_test, editions=held)
+    sitting_id = await _seed(
+        sessionmaker_for_test,
+        entries=[("comic", S.OWNED, _trade(7, 12, detected_title="Vol. 2"), _series())],
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    [grew] = response.json()["series_grew"]
+    assert [e["label"] for e in grew["editions_added"]] == ["Vol. 2"]
+    [row] = await _items(sessionmaker_for_test)
+    assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6), (7, 12)]
+
+
+@pytest.mark.asyncio
+async def test_two_photos_of_one_trade_in_a_sitting_make_one_edition(
+    sessionmaker_for_test,
+):
+    entries = [
+        ("comic", S.EXACT, _trade(detected_title="Vol. 1"), _series()),
+        ("comic", S.EXACT, _trade(detected_title="Volume One"), _series()),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        await _commit(client, sitting_id)
+    [row] = await _items(sessionmaker_for_test)
+    assert len(row.editions) == 1
+
+
+@pytest.mark.asyncio
+async def test_an_edition_added_at_commit_takes_its_issues_out_of_the_skipped(
+    sessionmaker_for_test,
+):
+    await _seed_series(
+        sessionmaker_for_test, issues_owned="9", issues_skipped="2, 5, 8"
+    )
+    sitting_id = await _seed(
+        sessionmaker_for_test,
+        entries=[("comic", S.OWNED, _trade(1, 6), _series())],
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.issues_skipped == "8"
+    assert row.issues_owned == "9"
+
+
+@pytest.mark.asyncio
+async def test_a_collected_book_does_not_override_the_series_shelf_format(
+    sessionmaker_for_test,
+):
+    await _seed_series(sessionmaker_for_test, shelf_format=ComicShelfFormat.OMNIBUS)
+    sitting_id = await _seed(
+        sessionmaker_for_test,
+        entries=[("comic", S.EXACT, _trade(1, 6, kind="trade"), _series())],
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        await _commit(client, sitting_id)
+    [row] = await _items(sessionmaker_for_test)
+    assert row.shelf_format is ComicShelfFormat.OMNIBUS
+    assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6)]
+
+
+@pytest.mark.asyncio
+async def test_a_collected_book_fills_a_shelf_format_the_series_has_not_got(
+    sessionmaker_for_test,
+):
+    await _seed_series(sessionmaker_for_test)
+    sitting_id = await _seed(
+        sessionmaker_for_test,
+        entries=[("comic", S.EXACT, _trade(1, 6, kind="omnibus"), _series())],
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        await _commit(client, sitting_id)
+    [row] = await _items(sessionmaker_for_test)
+    assert row.shelf_format is ComicShelfFormat.OMNIBUS
+
+
+@pytest.mark.asyncio
+async def test_details_saying_singles_keeps_a_read_trades_edition(
+    sessionmaker_for_test,
+):
+    book = _trade(1, 6, shelf_format="singles")
+    sitting_id = await _seed(
+        sessionmaker_for_test, entries=[("comic", S.EXACT, book, _series())]
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [row] = await _items(sessionmaker_for_test)
+    assert row.shelf_format is ComicShelfFormat.SINGLES
+    assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6)]
+
+
+@pytest.mark.asyncio
+async def test_a_new_series_is_reported_with_its_external_id(sessionmaker_for_test):
+    sitting_id = await _seed(
+        sessionmaker_for_test, entries=[("comic", S.EXACT, _book(1), _series())]
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    [new] = response.json()["series_new"]
+    assert (new["external_source"], new["external_id"]) == ("comicvine", "7")

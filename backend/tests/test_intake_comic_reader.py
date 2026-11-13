@@ -226,3 +226,41 @@ async def test_a_busy_source_keeps_the_book_fields_when_it_is_retried(
 )
 async def test_before_story(title, head):
     assert before_story(title) == head
+
+
+async def test_four_books_of_one_series_are_one_search(sessionmaker_for_test):
+    sitting_id, _ = await _sitting(sessionmaker_for_test)
+    await _make_comic(sessionmaker_for_test, sitting_id)
+    book = {"series": "Waterworld: Children of Leviathan", "format": "single"}
+    provider = PromptProvider(
+        {
+            "books": [
+                {**book, "issue_number": str(n), "issue_number_seen": True}
+                for n in (1, 2, 3, 4)
+            ]
+        }
+    )
+    registry = _comic_registry(WATERWORLD)
+    await _read(sessionmaker_for_test, sitting_id, provider, registry=registry)
+    assert len(registry[ItemType.COMIC].searches) == 1
+    assert len(await _entries(sessionmaker_for_test, sitting_id)) == 4
+
+
+async def test_a_busy_source_is_asked_once_for_a_series_of_books(
+    sessionmaker_for_test,
+):
+    sitting_id, _ = await _sitting(sessionmaker_for_test)
+    await _make_comic(sessionmaker_for_test, sitting_id)
+    book = {"series": "Waterworld", "format": "single", "issue_number_seen": True}
+    provider = PromptProvider(
+        {"books": [{**book, "issue_number": "1"}, {**book, "issue_number": "2"}]}
+    )
+    busy = StubSource(
+        "comicvine", ItemType.COMIC, raises=SourceRateLimited("comicvine", "limit")
+    )
+    await _read(
+        sessionmaker_for_test, sitting_id, provider, registry={ItemType.COMIC: busy}
+    )
+    assert len(busy.searches) == 1
+    entries = await _entries(sessionmaker_for_test, sitting_id)
+    assert {e.state.value for e in entries} == {"reading"}

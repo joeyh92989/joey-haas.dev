@@ -88,10 +88,16 @@ class ReadOutcome:
 class _Watched:
     """An adapter that notes which searches found their source busy, so the
     importer's resolution (which folds every SourceError into "unresolved")
-    can still be told apart from a real miss."""
+    can still be told apart from a real miss.
+
+    It also answers a repeated search from memory for the length of one
+    `_resolve`: four books of one series are one search (and a story-title
+    retry at most one more), not four against a source with a daily cap. A
+    refusal is remembered too, so a busy source is asked once."""
 
     adapter: SourceAdapter
     busy: dict[tuple, str]
+    seen: dict[tuple, Any] = field(default_factory=dict)
 
     @property
     def source_name(self) -> str:
@@ -101,11 +107,17 @@ class _Watched:
         return self.adapter.configured()
 
     async def search(self, query, year=None, platform=None):
-        try:
-            return await self.adapter.search(query, year, platform)
-        except (SourceRateLimited, SourceUnavailable):
-            self.busy[(query, year, platform)] = self.adapter.source_name
-            raise
+        key = (query, year, platform)
+        if key not in self.seen:
+            try:
+                self.seen[key] = await self.adapter.search(query, year, platform)
+            except (SourceRateLimited, SourceUnavailable) as error:
+                self.busy[key] = self.adapter.source_name
+                self.seen[key] = error
+        found = self.seen[key]
+        if isinstance(found, Exception):
+            raise found
+        return found
 
 
 async def _owned(session: AsyncSession, rows: list[dict]) -> set[tuple[str, str]]:
