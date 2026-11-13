@@ -815,15 +815,24 @@ export const spine = {
         label: 'Comic Vine',
         after: '.',
       },
+      /** The source line under a description, and under a cover with none. */
+      from: 'From',
+      coverFrom: 'Cover from',
       owner: {
         note: 'Only you see these buttons.',
         own: 'I own this',
         owned: 'Owned ✓',
-        readTo: 'Read to here',
-        readDone: 'Read to here ✓',
+        read: 'I’ve read this',
+        readDone: 'Read ✓',
         skip: 'Skip · private',
         skipped: 'Skipped · private ✓',
         failed: 'Could not save that change. Try again.',
+        /** The status line under the buttons, and the word Undo. */
+        marked: { missing: 'Marked missing.', owned: 'Marked owned.', read: 'Marked read.' },
+        undo: 'Undo',
+        /** The server's words for a book held only in an edition. */
+        inEdition: (label) =>
+          `In ${label}. Edit editions on the comic’s page.`,
       },
     },
     /** The public collected-edition page, /shelf/:id/ed-<from>-<to>/. */

@@ -9,7 +9,7 @@ import * as edits from '../lib/comicEdits.js'
 import ComicEdition from './ComicEdition.jsx'
 
 vi.mock('../lib/comicEdits.js', () => ({
-  setReadTo: vi.fn(async () => {}),
+  setMark: vi.fn(async () => ({})),
 }))
 
 const ID = '11111111-1111-1111-1111-111111111111'
@@ -190,11 +190,12 @@ describe('ComicEdition', () => {
   it('credits Comic Vine', async () => {
     stubApi()
     renderEdition()
-    const link = await screen.findByRole('link', { name: 'Comic Vine' })
-    expect(link).toHaveAttribute(
-      'href',
-      'https://comicvine.gamespot.com/saga/4000-1/',
-    )
+    await screen.findByRole('heading', { level: 1 })
+    for (const link of screen.getAllByRole('link', { name: 'Comic Vine' }))
+      expect(link).toHaveAttribute(
+        'href',
+        'https://comicvine.gamespot.com/saga/4000-1/',
+      )
   })
 
   it('renders NotFound on a 404 and an error line on a failure', async () => {
@@ -222,10 +223,10 @@ describe('ComicEdition', () => {
     expect(screen.getByText('Owned ✓')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Edit edition' })).toHaveAttribute(
       'href',
-      `/admin/collection/${ID}`,
+      `/admin/shelf/comics/${ID}`,
     )
     await user.click(screen.getByRole('button', { name: 'Read to the end' }))
-    await waitFor(() => expect(edits.setReadTo).toHaveBeenCalledWith(ID, 6))
+    await waitFor(() => expect(edits.setMark).toHaveBeenCalledWith(ID, 1, 'read', 6))
     await waitFor(() => expect(fetch.mock.calls.length).toBeGreaterThan(1))
   })
 
@@ -241,15 +242,13 @@ describe('ComicEdition', () => {
     stubApi({ page: { source_url: null } })
     renderEdition()
     await screen.findByRole('heading', { level: 1 })
-    expect(screen.getByRole('link', { name: 'Comic Vine' })).toHaveAttribute(
-      'href',
-      'https://comicvine.gamespot.com/',
-    )
+    for (const link of screen.getAllByRole('link', { name: 'Comic Vine' }))
+      expect(link).toHaveAttribute('href', 'https://comicvine.gamespot.com/')
   })
 
   it('shows the refusal when Read to the end fails', async () => {
     stubApi()
-    edits.setReadTo.mockRejectedValueOnce(new Error('Read to is past the run'))
+    edits.setMark.mockRejectedValueOnce(new Error('Read to is past the run'))
     const user = userEvent.setup()
     renderEdition({ signedIn: true })
     await user.click(

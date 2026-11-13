@@ -10,8 +10,7 @@ import * as edits from '../lib/comicEdits.js'
 import ComicIssue from './ComicIssue.jsx'
 
 vi.mock('../lib/comicEdits.js', () => ({
-  toggleOwned: vi.fn(async () => {}),
-  setReadTo: vi.fn(async () => {}),
+  setMark: vi.fn(async () => ({})),
   toggleSkip: vi.fn(async () => {}),
 }))
 
@@ -245,9 +244,25 @@ describe('ComicIssue, public', () => {
   it('links the attribution to source_url', async () => {
     stubApi()
     renderIssue()
-    expect(
-      await screen.findByRole('link', { name: 'Comic Vine' }),
-    ).toHaveAttribute('href', PAGE.source_url)
+    await screen.findByRole('heading', { level: 1 })
+    // The source line under the description and the page's own credit.
+    const links = screen.getAllByRole('link', { name: 'Comic Vine' })
+    expect(links).toHaveLength(2)
+    for (const link of links) expect(link).toHaveAttribute('href', PAGE.source_url)
+    expect(screen.getByText('From')).toBeVisible()
+  })
+
+  it('credits the cover when Comic Vine has no description for it', async () => {
+    stubApi({ page: { description: [] } })
+    renderIssue()
+    expect(await screen.findByText('Cover from')).toBeVisible()
+  })
+
+  it('has no source line for a missing description and no cover', async () => {
+    stubApi({ page: { description: [], cover_url: null, large_url: null } })
+    renderIssue()
+    await screen.findByText(COPY.noDescription)
+    expect(screen.queryByText('Cover from')).toBeNull()
   })
 
   it('draws the neighbour strip with this issue marked', async () => {
@@ -291,7 +306,7 @@ describe('ComicIssue, public', () => {
 })
 
 describe('ComicIssue, signed in', () => {
-  it('shows the owner box and I own this calls toggleOwned', async () => {
+  it('shows the owner box and I own this marks the book owned', async () => {
     stubApi({
       page: { state: 'missing', held_as: 'Not owned' },
       stored: { ...STORED, issues_owned: '1–10' },
@@ -299,7 +314,7 @@ describe('ComicIssue, signed in', () => {
     renderIssue({ signedIn: true })
     expect(await screen.findByText(COPY.owner.note)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'I own this' }))
-    expect(edits.toggleOwned).toHaveBeenCalledWith(ID, 58)
+    expect(edits.setMark).toHaveBeenCalledWith(ID, 58, 'owned')
   })
 
   it('reloads the public page after an action', async () => {
@@ -336,7 +351,7 @@ describe('ComicIssue, signed in', () => {
     expect(screen.queryByRole('button', { name: COPY.owner.skip })).toBeNull()
   })
 
-  it('reads I own this for an issue held only through an edition', async () => {
+  it('holds an edition-only book owned, says why, and still reads it', async () => {
     stubApi({
       page: {
         state: 'owned',
@@ -345,19 +360,46 @@ describe('ComicIssue, signed in', () => {
       stored: { ...STORED, issues_owned: '1–10' },
     })
     renderIssue({ signedIn: true })
+    expect(await screen.findByRole('button', { name: 'Owned ✓' })).toBeDisabled()
     expect(
-      await screen.findByRole('button', { name: 'I own this' }),
-    ).toBeInTheDocument()
+      screen.getByText('In Volume Nine. Edit editions on the comic’s page.'),
+    ).toBeVisible()
+    await userEvent.click(screen.getByRole('button', { name: 'I’ve read this' }))
+    expect(edits.setMark).toHaveBeenCalledWith(ID, 58, 'read')
   })
 
-  it('reads Owned ✓ for a single and sets read_to on Read to here', async () => {
+  it('says what it marked and Undo posts the previous state back', async () => {
+    stubApi({
+      page: { state: 'missing' },
+      stored: { ...STORED, issues_owned: '' },
+    })
+    renderIssue({ signedIn: true })
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'I’ve read this' }),
+    )
+    const status = await screen.findByText('Marked read.')
+    expect(status).toBeVisible()
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() =>
+      expect(edits.setMark).toHaveBeenLastCalledWith(ID, 58, 'missing'),
+    )
+  })
+
+  it('reads Owned ✓ for a single and marks it read on I’ve read this', async () => {
     stubApi()
     renderIssue({ signedIn: true })
     expect(
       await screen.findByRole('button', { name: COPY.owner.owned }),
     ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Read to here' }))
-    expect(edits.setReadTo).toHaveBeenCalledWith(ID, 58)
+    await userEvent.click(screen.getByRole('button', { name: 'I’ve read this' }))
+    expect(edits.setMark).toHaveBeenCalledWith(ID, 58, 'read')
+  })
+
+  it('un-reads a read book back to owned', async () => {
+    stubApi({ page: { state: 'read' } })
+    renderIssue({ signedIn: true })
+    await userEvent.click(await screen.findByRole('button', { name: 'Read ✓' }))
+    expect(edits.setMark).toHaveBeenCalledWith(ID, 58, 'owned')
   })
 
   it('shows a refusal in the API’s words', async () => {
@@ -365,7 +407,7 @@ describe('ComicIssue, signed in', () => {
       page: { state: 'missing' },
       stored: { ...STORED, issues_owned: '' },
     })
-    vi.mocked(edits.toggleOwned).mockRejectedValueOnce(
+    vi.mocked(edits.setMark).mockRejectedValueOnce(
       new Error('Issues owned: no more than 9999'),
     )
     renderIssue({ signedIn: true })
@@ -420,14 +462,14 @@ describe('ComicIssue, owner action then refresh', () => {
     const release = stubHeldReread()
     renderIssue({ signedIn: true })
     const button = await screen.findByRole('button', {
-      name: COPY.owner.readTo,
+      name: COPY.owner.read,
     })
     await userEvent.click(button)
-    expect(edits.setReadTo).toHaveBeenCalledTimes(1)
+    expect(edits.setMark).toHaveBeenCalledTimes(1)
     // The write is done; the re-read is still out.
     await waitFor(() => expect(button).toBeDisabled())
     await userEvent.click(button)
-    expect(edits.setReadTo).toHaveBeenCalledTimes(1)
+    expect(edits.setMark).toHaveBeenCalledTimes(1)
     release()
     await waitFor(() => expect(button).toBeEnabled())
   })
@@ -436,7 +478,7 @@ describe('ComicIssue, owner action then refresh', () => {
     const release = stubHeldReread()
     renderIssue({ signedIn: true })
     await userEvent.click(
-      await screen.findByRole('button', { name: COPY.owner.readTo }),
+      await screen.findByRole('button', { name: COPY.owner.read }),
     )
     release()
     expect(await screen.findByText(SAVED_NOT_REFRESHED)).toBeInTheDocument()
