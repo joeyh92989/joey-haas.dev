@@ -55,6 +55,16 @@ const SIZES = ['comfortable', 'compact']
 const FAVORITES_LIMIT = 4
 const FAVORITES_FULL = `You already have ${FAVORITES_LIMIT} favorites. Remove one first.`
 
+/**
+ * The refusal when four favourites are set. A favourite that isn't a game
+ * (a comic) holds a slot the games row doesn't show, so it is named.
+ */
+function favoritesFullMessage(others) {
+  if (others.length === 0) return FAVORITES_FULL
+  const names = others.map((item) => `“${item.title}”`).join(', ')
+  return `${FAVORITES_FULL} ${names} ${others.length === 1 ? 'is a favorite' : 'are favorites'} outside Games.`
+}
+
 /** Below this many rated or favourited items, the shelf asks for ratings. */
 const NUDGE_BELOW = 5
 
@@ -67,21 +77,15 @@ const REFRESH_TYPE = 'game'
  * owned_format is owned, and only an explicit `none` is the want list.
  */
 function heroFigures(items) {
-  const rated = items.filter((item) => item.rating != null)
   return {
     owned: items.filter((item) => item.owned_format !== 'none').length,
     finished: items.filter((item) => item.status === 'finished').length,
     finishedThisYear: finishedIn(items, ownerYear()),
-    rated: rated.length,
-    average:
-      rated.length > 0
-        ? rated.reduce((sum, item) => sum + item.rating, 0) / rated.length
-        : null,
   }
 }
 
-/** The games' four headline figures, as the admin's stat tiles. */
-function HeroTiles({ owned, finished, finishedThisYear, rated, average }) {
+/** The games' three headline figures, as the admin's stat tiles. */
+function HeroTiles({ owned, finished, finishedThisYear }) {
   const year = ownerYear()
   const fig = spine.games.figures
   return (
@@ -97,11 +101,6 @@ function HeroTiles({ owned, finished, finishedThisYear, rated, average }) {
         }
       />
       <StatTile label={fig.finishedIn(year)} value={finishedThisYear} />
-      <StatTile
-        label={fig.average}
-        value={average == null ? '—' : average.toFixed(1)}
-        detail={rated > 0 ? fig.rated(rated) : null}
-      />
     </StatTiles>
   )
 }
@@ -200,6 +199,9 @@ export default function AdminCollection() {
   // Pause and Abandon open it instead of writing (Tonight continue spec).
   const [wrap, setWrap] = useState(null)
   const [saving, setSaving] = useState(false)
+  // Title of a comic just saved from this page's form: the games list below
+  // won't show it, so a link says where it went.
+  const [savedComic, setSavedComic] = useState(null)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [view, setView] = useState(() => {
     const stored = readShelfPref('shelf.admin.view', 'shelf')
@@ -299,6 +301,7 @@ export default function AdminCollection() {
   async function addItem(event) {
     event.preventDefault()
     setError(null)
+    setSavedComic(null)
     setSaving(true)
     const comic = form.type === 'comic' ? comicPayload(form) : null
     if (comic?.error) {
@@ -354,6 +357,7 @@ export default function AdminCollection() {
       setSaving(false)
     }
     setForm(EMPTY_FORM)
+    if (body.type === 'comic') setSavedComic(body.title)
     await load()
   }
 
@@ -665,8 +669,12 @@ export default function AdminCollection() {
     const engaged = rows.filter(
       (item) => item.rating != null || item.favorite,
     ).length
-    const favoritesFull =
-      rows.filter((item) => item.favorite).length >= FAVORITES_LIMIT
+    // The API's cap counts favourites of every type, not just these games.
+    const allFavorites = allItems.filter((item) => item.favorite)
+    const favoritesFull = allFavorites.length >= FAVORITES_LIMIT
+    const favoritesFullText = favoritesFullMessage(
+      allFavorites.filter((item) => item.type !== 'game'),
+    )
     const showNudge =
       !nudgeDismissed && engaged < NUDGE_BELOW && unrated.length > 0
     const visible = sortItems(
@@ -804,7 +812,7 @@ export default function AdminCollection() {
                       // Refused here without a round trip; the server
                       // enforces the same rule for every other path.
                       if (favorite && favoritesFull) {
-                        setError(FAVORITES_FULL)
+                        setError(favoritesFullText)
                         return
                       }
                       patchItem(target.id, { favorite })
@@ -926,6 +934,13 @@ export default function AdminCollection() {
       {error && (
         <p className="admin-error" role="alert">
           {error}
+        </p>
+      )}
+
+      {savedComic && (
+        <p role="status">
+          Saved “{savedComic}”. Comics show on{' '}
+          <Link to="/admin/shelf/comics">the Comics page</Link>, not here.
         </p>
       )}
 

@@ -238,8 +238,8 @@ describe('Games', () => {
     expect(tiles.getByText('17')).toBeInTheDocument()
     expect(tiles.getByText('9')).toBeInTheDocument()
     expect(tiles.getByText(/^Finished in \d{4}$/)).toBeInTheDocument()
-    expect(tiles.getByText('Average rating')).toBeInTheDocument()
-    expect(tiles.getByText('9.0')).toBeInTheDocument()
+    expect(document.querySelectorAll('.stat-tiles .stat-tile')).toHaveLength(3)
+    expect(tiles.queryByText('Average rating')).not.toBeInTheDocument()
   })
 
   it('puts the grid before the overview, and drops the strips and cards', async () => {

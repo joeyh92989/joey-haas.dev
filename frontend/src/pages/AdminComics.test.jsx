@@ -189,6 +189,16 @@ describe('AdminComics', () => {
     )
   })
 
+  it('has no cover-wall link on a private series, only Edit', async () => {
+    stubApi()
+    await renderPage()
+    const group = screen.getByRole('group', { name: 'Actions for Monstress' })
+    expect(within(group).queryByRole('link', { name: /Cover wall/ })).toBeNull()
+    expect(
+      within(group).getByRole('link', { name: 'Edit' }),
+    ).toBeInTheDocument()
+  })
+
   it('links a private card to its edit page, not a public page that is not there', async () => {
     stubApi()
     await renderPage()

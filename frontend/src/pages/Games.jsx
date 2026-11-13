@@ -58,14 +58,10 @@ function isStale(refreshedAt, now) {
   )
 }
 
-/** The four figures over the grid. */
+/** The three figures over the grid. */
 function GamesFigures({ stats }) {
   const fig = games.figures
   const finished = stats.by_status.finished ?? 0
-  const rated = Object.values(stats.rating_histogram).reduce(
-    (sum, count) => sum + count,
-    0,
-  )
   return (
     <StatTiles>
       <StatTile label={fig.owned} value={stats.owned} />
@@ -81,13 +77,6 @@ function GamesFigures({ stats }) {
       <StatTile
         label={fig.finishedIn(ownerYear())}
         value={stats.finished_this_year}
-      />
-      <StatTile
-        label={fig.average}
-        value={
-          stats.average_rating != null ? stats.average_rating.toFixed(1) : '—'
-        }
-        detail={rated > 0 ? fig.rated(rated) : null}
       />
     </StatTiles>
   )

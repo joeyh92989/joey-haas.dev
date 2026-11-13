@@ -120,9 +120,13 @@ function ComicActions({ row, onFollow, onPublish }) {
         />
         <span aria-hidden="true">Public</span>
       </label>
-      <Link to={itemPath(row.item_id)}>
-        {row.missing > 0 ? `Cover wall · ${row.missing} missing` : 'Cover wall'}
-      </Link>
+      {row.is_public && (
+        <Link to={itemPath(row.item_id)}>
+          {row.missing > 0
+            ? `Cover wall · ${row.missing} missing`
+            : 'Cover wall'}
+        </Link>
+      )}
       <Link to={`/admin/collection/${row.item_id}`}>Edit</Link>
     </div>
   )
@@ -394,7 +398,7 @@ export default function AdminComics() {
       label: copy.groupShow,
       options: ADMIN_CHIPS.map((value) => ({
         value,
-        label: copy.chips[value] ?? 'Private',
+        label: copy.chips[value],
         count: counts[value],
       })),
     },

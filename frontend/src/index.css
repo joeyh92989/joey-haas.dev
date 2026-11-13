@@ -4248,9 +4248,9 @@ footer {
   margin: 0 0 1.75rem;
 }
 
-.favourites h2,
+.favourites :is(h2, h3),
 .now-playing h2,
-.stat-card h2 {
+.stat-card :is(h2, h3) {
   font-size: var(--fs-13);
   letter-spacing: 0.04em;
   margin: 0 0 0.6rem;
@@ -7943,45 +7943,6 @@ main h1[tabindex='-1']:focus,
 
 /* Comics (/shelf/comics, the series page). JetBrains Mono is loaded at 400
    and 500 only. The run's marks are the lanes and the box, below. */
-.series-list {
-  border-top: 1px solid var(--line);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.series-row {
-  align-items: center;
-  border-bottom: 1px solid var(--line);
-  display: grid;
-  gap: 0.9rem var(--space-4);
-  grid-template-columns: 2.75rem 1fr auto;
-  padding: var(--space-3) 0;
-}
-
-.series-thumb {
-  display: block;
-}
-
-.series-thumb .cover {
-  border-radius: 3px;
-}
-
-.series-title {
-  font-size: var(--fs-16);
-  font-weight: 500;
-  margin: 0;
-}
-
-.series-vol {
-  color: var(--text-3);
-  font-weight: 400;
-}
-
-.series-title a {
-  color: var(--text);
-  margin-right: 0.4rem;
-}
 
 .series-pill {
   border: 1px solid var(--line-strong);
@@ -8008,22 +7969,6 @@ main h1[tabindex='-1']:focus,
 .series-pill[data-ok] {
   border-color: var(--ok);
   color: var(--ok);
-}
-
-.series-meta {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  margin: 0.1rem 0 0;
-}
-
-.series-meta .status-swatch {
-  margin-right: 0.3rem;
-}
-
-.series-row .lanes {
-  --lane-ground: var(--bg);
-  margin-top: 0.45rem;
-  max-width: 45rem;
 }
 
 /* A comic's card: two offset edges behind the cover say "a series, more
@@ -8069,36 +8014,6 @@ main h1[tabindex='-1']:focus,
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
-}
-
-.series-count {
-  color: var(--text-3);
-  display: grid;
-  font-size: var(--fs-12);
-  gap: 0.15rem;
-  margin: 0;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.series-count b {
-  color: var(--text);
-  font-size: var(--fs-14);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-@media (max-width: 700px) {
-  .series-row {
-    grid-template-columns: 2.25rem 1fr;
-  }
-
-  .series-count {
-    display: flex;
-    gap: var(--space-3);
-    grid-column: 2;
-    text-align: left;
-  }
 }
 
 /* Comic run lanes (comic series display spec): Run, Read and, in admin,

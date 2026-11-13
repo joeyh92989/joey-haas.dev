@@ -73,10 +73,10 @@ function RunsCard({ runs, missing }) {
   const present = RUN_ORDER.filter(({ key }) => runs[key] > 0)
   return (
     <section className="stat-card stat-runs" aria-label={copy.cards.runs}>
-      <h2>
+      <h3>
         {copy.cards.runs}{' '}
         <span className="stat-count">{copy.cards.runsMissing(missing)}</span>
-      </h2>
+      </h3>
       <div className="status-bar">
         {present.map(({ key, fill }) => (
           <span
@@ -109,7 +109,7 @@ function RunsCard({ runs, missing }) {
 function PublishersCard({ publishers }) {
   return (
     <section className="stat-card" aria-label={copy.cards.publishers}>
-      <h2>{copy.cards.publishers}</h2>
+      <h3>{copy.cards.publishers}</h3>
       <BarList
         label={copy.cards.publishers}
         rows={publishers.map(({ publisher, count }) => ({
@@ -126,7 +126,7 @@ function AddedCard({ months }) {
   const most = Math.max(...months.map((month) => month.count), 1)
   return (
     <section className="stat-card stat-finishes" aria-label={copy.cards.added}>
-      <h2>{copy.cards.added}</h2>
+      <h3>{copy.cards.added}</h3>
       <div className="bar-column">
         <div className="month-bars">
           {months.map(({ month, count }) => {

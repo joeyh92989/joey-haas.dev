@@ -127,6 +127,37 @@ describe('AdminCollection arriving from the pull list', () => {
     expect(screen.getByLabelText('Title')).toHaveFocus()
   })
 
+  it('links a saved comic to the Comics page, where it shows', async () => {
+    stubApi()
+    render(
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/admin/collection',
+            state: {
+              prefill: {
+                type: 'comic',
+                title: 'Absolute Batman',
+                owned_format: 'physical',
+              },
+            },
+          },
+        ]}
+      >
+        <AdminCollection />
+      </MemoryRouter>,
+    )
+    await screen.findByDisplayValue('Absolute Batman')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(
+      await screen.findByText(/Saved “Absolute Batman”/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'the Comics page' }),
+    ).toHaveAttribute('href', '/admin/shelf/comics')
+  })
+
   it('applies a second prefill that arrives while mounted', async () => {
     stubApi()
     function Go() {
@@ -876,6 +907,31 @@ describe('AdminCollection favourites cap', () => {
     await userEvent.click(heart)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(FULL)
+    expect(writeCalls(mock)).toHaveLength(0)
+  })
+
+  it('counts a favourite comic against the cap and names it', async () => {
+    const mock = stubApi({
+      items: [
+        ...withFavourites(3),
+        {
+          ...ITEMS[0],
+          id: 'c1',
+          type: 'comic',
+          title: 'Saga',
+          favorite: true,
+        },
+      ],
+    })
+    await renderShelf()
+
+    const heart = card('Star Fox').getByRole('button', { name: 'Favorite' })
+    expect(heart).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.click(heart)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      `${FULL} “Saga” is a favorite outside Games.`,
+    )
     expect(writeCalls(mock)).toHaveLength(0)
   })
 
