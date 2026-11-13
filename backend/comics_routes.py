@@ -38,6 +38,7 @@ from comics import (
     pull_weeks,
     row_run,
     series_from_row,
+    sync_marks,
 )
 from items import _apply_detail, _copy_fields, _http_error_for, require_admin
 from models import CatalogueRun, Item, ItemStatus, ItemType, OwnedFormat
@@ -97,6 +98,7 @@ async def got_issues(
         await apply_status(session, item, ItemStatus.BACKLOG, today)
     for field, value in _copy_fields(body, item).items():
         setattr(item, field, value)
+    await sync_marks(session, item)
     return len(owned - before)
 
 
@@ -453,6 +455,7 @@ def create_comics_router(
         changes = _copy_fields({"issues_skipped": format_ranges(skipped)}, item)
         for field, value in changes.items():
             setattr(item, field, value)
+        await sync_marks(session, item)
         await session.commit()
         await session.refresh(item)
         return _state(item)
@@ -701,6 +704,7 @@ def create_comics_router(
                 description=list(issue.description),
             )
         item.editions = editions
+        await sync_marks(session, item)
         await session.commit()
         await session.refresh(item)
         return {"item_id": str(item.id), "editions": item.editions}

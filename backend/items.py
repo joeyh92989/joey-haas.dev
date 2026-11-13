@@ -26,6 +26,7 @@ from comics import (
     RangeError,
     apply_comic_fields,
     row_run,
+    sync_marks,
 )
 from formats import CopyFieldError, apply_copy_fields
 from models import (
@@ -537,6 +538,10 @@ async def _edition_format(
     return getattr(fmt, "value", fmt)
 
 
+# The fields the marks on the issue rows derive from (comics.sync_marks).
+MARK_FIELDS = frozenset(("issues_owned", "issues_skipped", "editions", "read_to"))
+
+
 def _is_comic(changes: dict, row: Item | None) -> bool:
     item_type = changes.get("type") or (row.type if row is not None else None)
     return item_type == ItemType.COMIC
@@ -871,6 +876,7 @@ async def commit_items(
                 await playthroughs.seed_rows(session, new_item, today)
             except playthroughs.PlaythroughError as error:
                 raise RowRefused(index_of[new_item.id], error) from error
+            await sync_marks(session, new_item)
     return CommitResult(
         created=created,
         duplicates=duplicates,
@@ -981,6 +987,7 @@ def create_items_router(
         item = Item(**values)
         session.add(item)
         await _write_or_conflict(session, session.flush)
+        await sync_marks(session, item)
         try:
             await playthroughs.seed_rows(session, item, date.today())
         except playthroughs.PlaythroughError as error:
@@ -1273,6 +1280,8 @@ def create_items_router(
         )
         for field, value in changes.items():
             setattr(item, field, value)
+        if MARK_FIELDS & changes.keys():
+            await sync_marks(session, item)
         if relinked and item.source_metadata:
             # A comic's issue snapshot belongs to the volume it was fetched
             # for; _apply_detail keeps it across a refresh, so a re-link has
