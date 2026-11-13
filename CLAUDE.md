@@ -37,6 +37,7 @@ backend, deployed on Render via Blueprint (render.yaml).
   (`vite.config.js` refuses a build without the daily game's salt)
 - Frontend tests: `cd frontend && npm test`
 - Browser tests: `cd frontend && VITE_DAILY_SALT=local npm run build && npm run e2e`
+- Admin browser tests (local only): `cd frontend && VITE_DAILY_SALT=local npm run build && npm run e2e:admin` (needs local Postgres and ports 8000/4173; README → Browser tests)
 - Review screenshots: `cd frontend && npm run shots` (or `E2E_BASE_URL=https://joey-haas.dev npm run shots`)
 - Backend tests: `cd backend && ./.venv/bin/pytest`. One run at a time: every
   run drops and recreates the schema in the one local test database, so two
@@ -262,6 +263,13 @@ before pushing.
   `/resume.pdf`. The filename is load-bearing — it is the URL pasted into job
   applications — so replace the file in place rather than renaming it. Publish
   only the scrubbed export; local working copies are not.
+- `POST /api/auth/test-login` (`backend/e2e_login.py`) is mounted only with
+  `E2E_TEST_LOGIN=1` on an http://localhost `FRONTEND_URL` (config refuses to
+  boot otherwise), is never set on Render, and `smoke.sh` checks it answers
+  404. The admin suite runs against its own `joeyhaas_e2e` database, never the
+  pytest one. CI covers one page per dynamic shelf route from
+  `frontend/e2e/fixtures/` (synthetic; keep in step with `fetch-snapshot.mjs`
+  and the issue/edition endpoints).
 
 ## Current state / TODO
 

@@ -46,6 +46,12 @@ for (const { to, label } of PAGES) {
     await page.goto(to)
     await expect(page.locator('main h1').first()).toBeVisible()
     await expect(page.getByText('Sign in with Google')).toHaveCount(0)
+    // The signed-in AdminShell: its Areas nav (rail on desktop, tab bar on
+    // the phone) only renders for the admin. Page h1s are not the ADMIN_AREAS
+    // labels (store list, weekend and sitting set their own), so check this.
+    await expect(
+      page.locator('nav[aria-label="Areas"]:visible').first(),
+    ).toBeVisible()
     await page.waitForLoadState('networkidle')
 
     if (testInfo.project.name === 'desktop') {

@@ -363,7 +363,7 @@ first login.
 Browser tests (#205) sign in without Google through `POST /api/auth/test-login`,
 which signs in the configured `ADMIN_EMAIL` and returns 204. The route is not
 mounted unless `E2E_TEST_LOGIN=1`, and the server refuses to start with that set
-unless `FRONTEND_URL` begins with `http://localhost`. Never set it on Render;
+unless `FRONTEND_URL` is `http://localhost` (any port). Never set it on Render;
 `scripts/smoke.sh` checks the deployed API answers 404 for it.
 
 ### Sessions follow the allowlist
@@ -802,9 +802,16 @@ It needs:
   (`postgres:postgres@localhost:5432`). `scripts/e2e-admin-db.mjs` creates
   `joeyhaas_e2e` if missing and runs `alembic upgrade head` on it. It touches
   no other database (never `postgres`, which pytest drops).
+- `psql` on PATH. If your Postgres is not `postgres:postgres@localhost:5432`,
+  set `E2E_PG_ADMIN_URL` to a connection URL for a maintenance database (for
+  example `postgresql://me@localhost:5432/template1`); it is used only to
+  create `joeyhaas_e2e`, whose name is fixed. A failing `psql` or `alembic`
+  step stops the run with what failed and how to fix it.
 - the backend venv at `backend/.venv`. A worktree has none: point
   `E2E_BACKEND_BIN` at another venv's `bin` directory.
-- a build (`VITE_DAILY_SALT=local npm run build`).
+- a build (`VITE_DAILY_SALT=local npm run build`). The suite serves the last
+  build in `frontend/dist`, so rebuild after UI changes; the run stops with a
+  message if `dist/index.html` is missing.
 - ports 8000 and 4173 free. Servers are never reused, so a running dev backend
   makes the run fail clearly instead of testing without the sign-in route.
 - `backend/.env`, if present, is still read (python-dotenv) for any optional

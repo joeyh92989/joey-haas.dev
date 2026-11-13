@@ -101,7 +101,9 @@ def test_the_flag_with_a_non_localhost_frontend_raises():
         load_config({**COMPLETE, "E2E_TEST_LOGIN": "1"})
 
 
-@pytest.mark.parametrize("value", ["true", "0", "yes", "", " 1x", "TRUE", "on"])
+@pytest.mark.parametrize(
+    "value", ["true", "0", "yes", "", " 1x", "TRUE", "on", " 1", "1 ", "1\n"]
+)
 def test_only_the_exact_string_one_enables(value):
     config = load_config({**COMPLETE, "E2E_TEST_LOGIN": value})
     assert config.e2e_test_login is False

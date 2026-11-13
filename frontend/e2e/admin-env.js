@@ -10,6 +10,7 @@ export const E2E_DB_URL =
  */
 export function e2eBackendBin() {
   return path.resolve(
-    process.env.E2E_BACKEND_BIN ?? path.join('..', 'backend', '.venv', 'bin'),
+    process.env.E2E_BACKEND_BIN ??
+      path.join(import.meta.dirname, '..', '..', 'backend', '.venv', 'bin'),
   )
 }

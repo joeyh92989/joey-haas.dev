@@ -160,7 +160,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
     optional_sub = str(source.get("ADMIN_GOOGLE_SUB", "")).strip()
 
     frontend_url = str(source["FRONTEND_URL"]).strip().rstrip("/")
-    e2e_test_login = str(source.get("E2E_TEST_LOGIN", "")).strip() == "1"
+    e2e_test_login = source.get("E2E_TEST_LOGIN", "") == "1"
     if e2e_test_login and not is_local_frontend(frontend_url):
         raise ConfigError(
             "E2E_TEST_LOGIN=1 is an auth bypass and is allowed only when "
