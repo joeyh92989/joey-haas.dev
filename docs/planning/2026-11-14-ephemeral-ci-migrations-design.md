@@ -44,9 +44,10 @@ flowchart LR
   HOOK --> HEALTH[wait /api/health, run smoke.sh]
 ```
 
-- **Local parallelism.** `conftest.py` derives the test database name from the worktree
-  (default `postgres` kept when `TEST_DATABASE_URL` or `CI` says so) and creates it if
-  missing, so each worktree owns a schema. A later task adds pytest-xdist with
+- **Local parallelism.** `tests/testdb.py` derives the test database name from the
+  checkout's folder name plus a hash of its path (an explicit `TEST_DATABASE_URL` and `CI`
+  keep their database, and are never created) and `conftest.py` creates it if missing, so
+  each worktree owns a schema. A later task adds pytest-xdist with
   one database per worker (`worker_id`), if measurement says the suite is worth splitting.
 - **PR rehearsal.** The `backend` job creates/reuses Neon branch `pr-<N>` from production,
   runs `alembic upgrade head` against its direct URL, then `schema-diff-action` comments the
@@ -54,7 +55,8 @@ flowchart LR
   fork PRs (no secrets). Unit tests still use the Postgres service container: they need a
   drop/create database, not production's data.
 - **Deploy workflow.** `deploy.yml` on push to `main`: `alembic upgrade head` (serialised
-  by a Postgres advisory lock taken in `env.py`), then POST the API's deploy hook with
+  by a Postgres advisory lock taken in `env.py`: a try-lock loop with a 600 s deadline, for
+  writing commands only), then POST the API's deploy hook with
   `?ref=$GITHUB_SHA`, then poll `/api/health` and run `scripts/smoke.sh`. The API service
   moves to `autoDeployTrigger: off` so only this workflow deploys it. The static site stays
   on auto-deploy (it runs no migration). Concurrency group `deploy`, never cancelled.
@@ -129,9 +131,11 @@ Model: Sonnet for every task. Each task is its own commit; tests and `ruff`/form
    the worktree, create it if missing, keep the old default under `CI`. Test: two
    concurrent `pytest` runs from two worktrees both pass. Update `CLAUDE.md` ("one run at a
    time" note) and `backend/README.md`.
-3. **Alembic safety.** `env.py` takes `pg_advisory_lock` around `upgrade`; CI step fails on
-   more than one head (`alembic heads`). Test in `tests/test_migrations.py`: a second
-   concurrent upgrade waits, then is a no-op.
+3. **Alembic safety.** `env.py` takes an advisory lock (try-lock loop with a deadline) around
+   `upgrade`/`downgrade`/`stamp`; a pytest test (run by CI's `backend` job) fails on more
+   than one head. Tests in `tests/test_migrations.py`: a held lock makes an upgrade give up
+   with a reason, an upgrade waits then runs, two simultaneous upgrades apply each revision
+   once, and `current` does not wait.
 4. **Neon PR rehearsal.** In `ci.yml`: create `pr-<N>` (schema-only unless Open question 1
    says otherwise), run `alembic upgrade head`, post `schema-diff-action`, `if: always()`
    cleanup is the close workflow `pr-closed.yml`. Fork PRs skip it. Accept: a PR with a

@@ -11,26 +11,32 @@ Not a test module (no `test_` prefix), so pytest does not collect it.
 """
 
 import asyncio
+import hashlib
 import os
 import re
+import warnings
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 BASE_URL = "postgresql://postgres:postgres@localhost:5432/postgres"
 
-# Postgres truncates identifiers at 63 bytes; leave room for the prefix.
+# Postgres truncates identifiers at 63 bytes; leave room for the prefix and the
+# 8-character path hash that keeps two similar folder names apart.
 _PREFIX = "joeyhaas_test_"
-_MAX_SLUG = 63 - len(_PREFIX)
+_HASH_LENGTH = 8
+_MAX_SLUG = 63 - len(_PREFIX) - _HASH_LENGTH - 1
 
 
 def database_name_for(checkout: Path) -> str:
-    """A database name for one checkout, from its folder name.
+    """A database name for one checkout: its folder name plus a hash of its path.
 
-    Worktree folders are unique per branch (`<repo>-worktrees/<branch>`), so
-    the folder name is a stable, readable key.
+    The folder name keeps the database recognisable (`psql -l`); the hash of the
+    full path keeps two checkouts whose names slug or truncate to the same text
+    (`feat-x` and `feat_x`, two long branch names with one prefix) apart.
     """
     slug = re.sub(r"[^a-z0-9]+", "_", checkout.name.lower()).strip("_") or "checkout"
-    return f"{_PREFIX}{slug[:_MAX_SLUG]}"
+    digest = hashlib.sha256(str(checkout).encode()).hexdigest()[:_HASH_LENGTH]
+    return f"{_PREFIX}{slug[:_MAX_SLUG]}_{digest}"
 
 
 def resolve_url(environ: dict[str, str], checkout: Path) -> str:
@@ -54,17 +60,26 @@ def test_database_url() -> str:
     return resolve_url(dict(os.environ), Path(__file__).resolve().parents[2])
 
 
+def is_derived(environ: dict[str, str]) -> bool:
+    """Whether the URL is the per-checkout one this module made up.
+
+    Only a derived database is ever created here: an explicit URL is used as
+    given, and CI's service container already has its database.
+    """
+    explicit = environ.get("TEST_DATABASE_URL", "").strip()
+    in_ci = environ.get("CI", "").lower() in {"1", "true"}
+    return not explicit and not in_ci
+
+
 async def _create_if_missing(url: str) -> None:
     import asyncpg
 
     parts = urlsplit(url)
     name = parts.path.lstrip("/")
-    # The name is built from [a-z0-9_] by database_name_for, but an explicit URL
-    # is not: only ever create a database whose name is that safe.
     if not re.fullmatch(r"[a-z0-9_]+", name):
         return
     maintenance = urlunsplit(parts._replace(path="/postgres"))
-    connection = await asyncpg.connect(maintenance)
+    connection = await asyncpg.connect(maintenance, timeout=5)
     try:
         exists = await connection.fetchval(
             "SELECT 1 FROM pg_database WHERE datname = $1", name
@@ -79,12 +94,20 @@ async def _create_if_missing(url: str) -> None:
 
 
 def ensure_database(url: str) -> None:
-    """Create the test database if the server is reachable and it is missing.
+    """Create the per-checkout test database if the server is up and it is missing.
 
-    An unreachable server is not an error here: the engine fixture reports it
-    (a skip locally, a hard error in CI) with the message people already know.
+    A server that cannot be reached is left to the engine fixture, which skips
+    locally and fails in CI with a message people already know. Any other
+    failure (no CREATEDB privilege, wrong password) is warned about here,
+    because the error the tests would give later does not mention creation.
     """
+    if not is_derived(dict(os.environ)):
+        return
     try:
         asyncio.run(_create_if_missing(url))
-    except Exception:  # noqa: BLE001 - reported later by the engine fixture
+    except (OSError, TimeoutError):
         return
+    except Exception as error:  # noqa: BLE001
+        warnings.warn(
+            f"could not create the test database {url!r}: {error!r}", stacklevel=2
+        )

@@ -11,6 +11,7 @@ the dependency set for one test would undo the same decision schema_check.py
 documents for one startup query.
 """
 
+import asyncio
 import os
 import subprocess
 import sys
@@ -126,45 +127,128 @@ def test_there_is_exactly_one_migration_head():
     assert len(heads) == 1, f"merge the migration heads: {heads}"
 
 
-@pytest.mark.asyncio
-async def test_an_upgrade_waits_while_another_holds_the_migration_lock(
-    clean_database,
-):
-    # Two deploys close together must not both apply a revision. Hold the lock
-    # the way a running upgrade does, start one, and check it neither finishes
-    # nor touches the schema until the lock is released.
-    import asyncio
-    import time
+def _start_upgrade(timeout_seconds: int) -> subprocess.Popen:
+    env = {
+        **os.environ,
+        "DATABASE_URL_DIRECT": TEST_DATABASE_URL,
+        "MIGRATION_LOCK_TIMEOUT_SECONDS": str(timeout_seconds),
+    }
+    return subprocess.Popen(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=BACKEND,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
 
+
+async def _hold_lock(engine):
     from migration_lock import MIGRATION_LOCK_KEY
 
-    env = {**os.environ, "DATABASE_URL_DIRECT": TEST_DATABASE_URL}
-    async with clean_database.connect() as holder:
-        await holder.execute(
-            text("SELECT pg_advisory_lock(:key)"), {"key": MIGRATION_LOCK_KEY}
-        )
-        process = subprocess.Popen(
-            [sys.executable, "-m", "alembic", "upgrade", "head"],
-            cwd=BACKEND,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        try:
-            deadline = time.monotonic() + 6
-            while time.monotonic() < deadline and process.poll() is None:
-                await asyncio.sleep(0.25)
-            assert process.poll() is None, "upgrade ran while the lock was held"
-            assert "items" not in await _tables(clean_database)
-        finally:
-            await holder.execute(
-                text("SELECT pg_advisory_unlock(:key)"), {"key": MIGRATION_LOCK_KEY}
-            )
-        out, err = await asyncio.to_thread(process.communicate, None, 120)
+    connection = await engine.connect()
+    await connection.execute(
+        text("SELECT pg_advisory_lock(:key)"), {"key": MIGRATION_LOCK_KEY}
+    )
+    return connection
+
+
+async def _release_lock(connection) -> None:
+    """Unlock, then close. Closing alone only returns the connection to the
+    pool, and the session-level lock would stay held."""
+    from migration_lock import MIGRATION_LOCK_KEY
+
+    await connection.execute(
+        text("SELECT pg_advisory_unlock(:key)"), {"key": MIGRATION_LOCK_KEY}
+    )
+    await connection.close()
+
+
+@pytest.mark.asyncio
+async def test_an_upgrade_gives_up_when_the_lock_is_held_past_its_deadline(
+    clean_database,
+):
+    # A run that died without closing its connection keeps the lock; the next
+    # deploy has to fail with a reason, not wait out the CI job limit.
+    holder = await _hold_lock(clean_database)
+    try:
+        process = _start_upgrade(timeout_seconds=2)
+        _, err = await asyncio.to_thread(process.communicate, None, 120)
+    finally:
+        await _release_lock(holder)
+
+    assert process.returncode != 0
+    assert "migration lock" in err
+    assert "items" not in await _tables(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_an_upgrade_waits_for_the_lock_then_runs(clean_database):
+    holder = await _hold_lock(clean_database)
+    process = _start_upgrade(timeout_seconds=120)
+    try:
+        # Long enough for Alembic to start and reach the lock.
+        await asyncio.sleep(4)
+        assert process.poll() is None, "upgrade finished while the lock was held"
+        assert "items" not in await _tables(clean_database)
+        await _release_lock(holder)
+        _, err = await asyncio.to_thread(process.communicate, None, 120)
+    except BaseException:
+        await _release_lock(holder)
+        raise
+    finally:
+        if process.poll() is None:
+            process.kill()
 
     assert process.returncode == 0, err
+    # It really queued behind the lock rather than just starting late.
+    assert "Waiting for another migration run" in err
     assert "items" in await _tables(clean_database)
+
+
+@pytest.mark.asyncio
+async def test_two_simultaneous_upgrades_apply_each_revision_once(clean_database):
+    first, second = _start_upgrade(120), _start_upgrade(120)
+    try:
+        results = await asyncio.gather(
+            asyncio.to_thread(first.communicate, None, 240),
+            asyncio.to_thread(second.communicate, None, 240),
+        )
+    finally:
+        for process in (first, second):
+            if process.poll() is None:
+                process.kill()
+
+    assert first.returncode == 0 and second.returncode == 0, results
+    applied = sum(err.count("Running upgrade") for _, err in results)
+    async with clean_database.connect() as connection:
+        revisions = await connection.scalar(
+            text("SELECT count(*) FROM alembic_version")
+        )
+    assert revisions == 1
+    # One run applied the whole chain; the other found nothing left to do.
+    assert applied == len(_revisions_in_chain()), results
+
+
+@pytest.mark.asyncio
+async def test_read_only_commands_do_not_wait_for_the_lock(clean_database):
+    # `current` is the check run before an upgrade; it must answer while one
+    # holds the lock, not queue behind it.
+    holder = await _hold_lock(clean_database)
+    try:
+        result = await asyncio.to_thread(_alembic, "current")
+    finally:
+        await _release_lock(holder)
+    assert result.returncode == 0, result.stderr
+
+
+def _revisions_in_chain() -> list[str]:
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    config = Config(str(BACKEND / "alembic.ini"))
+    config.set_main_option("script_location", str(BACKEND / "migrations"))
+    return list(ScriptDirectory.from_config(config).walk_revisions())
 
 
 async def _tables(engine) -> set[str]:
