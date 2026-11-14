@@ -488,6 +488,7 @@ JOB_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/analytics/rollup"),
         ("POST", "/api/comics/refresh"),
         ("POST", "/api/comics/issues/sync"),
+        ("POST", "/api/comics/tags/generate"),
         ("POST", "/api/spots/candidates/refresh"),
         ("POST", "/api/spots/weather/refresh"),
         ("POST", "/api/closet/jobs/tag"),

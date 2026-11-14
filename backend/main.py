@@ -173,7 +173,14 @@ app.include_router(
     )
 )
 # The comics refreshes have their own lock: they write only comic rows.
-app.include_router(create_comics_router(session_factory, registry, asyncio.Lock()))
+app.include_router(
+    create_comics_router(
+        session_factory,
+        registry,
+        asyncio.Lock(),
+        provider_factory=lambda: build_provider(config, recorder),
+    )
+)
 # So does the spot finder: it writes only spot rows. Overpass is read with
 # the catalogue's client, for its identifying User-Agent.
 app.include_router(

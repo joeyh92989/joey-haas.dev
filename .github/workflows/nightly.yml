@@ -168,6 +168,13 @@ jobs:
           # throttle spaces requests a second apart, so 120 take two minutes
           # plus latency; 420 s leaves room for slow pages.
           call comic-issues 420 '/api/comics/issues/sync?budget=120'
+          # Tags for public series that have none: one model call each, at
+          # most twelve a night and never past the free tier's day (the first
+          # night tags the whole shelf, after that it is about one a new
+          # series). After the sync so a series Follow added today is in the
+          # queue. A series whose tags I saved is never taken. A model error
+          # stops the step, not the night.
+          call comic-tags 600 '/api/comics/tags/generate?budget=12'
           # The weekend planner's forecast: one NWS gridpoint, a few seconds.
           # A failed fetch answers 502 and the planner keeps the last one.
           call weather 120 /api/spots/weather/refresh

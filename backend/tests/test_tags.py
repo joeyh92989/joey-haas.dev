@@ -194,10 +194,11 @@ def test_the_comic_prompt_names_the_series_and_numbers_the_vocabulary():
         title="Hellboy",
         publisher="Dark Horse",
         start_year=1994,
-        year_end=None,
+        issue_count=12,
         description=["A demon raised by the paranormal bureau."],
     )
     assert "Hellboy" in prompt and "Dark Horse" in prompt and "1994" in prompt
+    assert "Issues so far: 12" in prompt
     assert "paranormal bureau" in prompt
     options = tags.comic_options()
     assert len(options) == 11 + 4 + 5

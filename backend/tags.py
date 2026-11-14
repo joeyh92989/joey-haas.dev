@@ -217,7 +217,7 @@ def comic_prompt(
     title: str,
     publisher: str | None,
     start_year: int | str | None,
-    year_end: int | str | None,
+    issue_count: int | None,
     description: Iterable[str],
 ) -> str:
     """The one prompt a series gets: its details, then the numbered list."""
@@ -225,8 +225,9 @@ def comic_prompt(
     if publisher:
         lines.append(f"Publisher: {publisher}")
     if start_year:
-        years = f"{start_year}-{year_end}" if year_end else f"{start_year}"
-        lines.append(f"Years: {years}")
+        lines.append(f"First published: {start_year}")
+    if isinstance(issue_count, int) and not isinstance(issue_count, bool):
+        lines.append(f"Issues so far: {issue_count}")
     text = " ".join(p.strip() for p in description if p and p.strip())
     if text:
         lines.append(f"Description: {text[:MAX_DESCRIPTION]}")

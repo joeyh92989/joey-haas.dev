@@ -22,10 +22,11 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import tags as tag_words
 from comic_issues import sync_series
 from comics import (
     MARK_STATES,
@@ -46,19 +47,26 @@ from comics import (
     series_from_row,
     sync_marks,
 )
+from intake.budget import pacific_day, remaining
 from items import _apply_detail, _copy_fields, _http_error_for, require_admin
+from llm import LLMError
 from models import CatalogueRun, ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
 from physical_sources.catalogue import finish_run, run_failed, start_run
 from playthroughs import apply_status
 from public_comics import comic_detail, read_marks_count
 from public_issues import build_wall
 from sources.base import SourceError
+from sources.cv_text import paragraphs
 from sources.registry import adapter_for
 
 logger = logging.getLogger(__name__)
 
 SOURCE = "comicvine"
 RUN_SOURCE = "comic_issues"  # the catalogue_runs source of the issue sync
+# The tag job: one model call per series, at most this many a run (the free
+# tier's own budget caps it further).
+TAG_JOB_DEFAULT = 12
+TAG_JOB_MAX = 50
 
 
 def _today() -> date:
@@ -174,9 +182,11 @@ def create_comics_router(
     factory: async_sessionmaker[AsyncSession],
     registry: dict,
     lock: asyncio.Lock | None = None,
+    provider_factory=None,
 ) -> APIRouter:
     """Builds `/api/comics`. `lock` serialises the ComicVine refreshes, which
-    write every followed row; a second refresh meanwhile is a 409."""
+    write every followed row; a second refresh meanwhile is a 409.
+    `provider_factory` builds the model the tag job asks (None: no model)."""
     lock = lock or asyncio.Lock()
     router = APIRouter(
         prefix="/api/comics",
@@ -699,6 +709,101 @@ def create_comics_router(
         except SourceError as error:
             raise _http_error_for(error) from error
         return [asdict(hit) for hit in hits]
+
+    @router.post("/tags/generate")
+    async def generate_tags(
+        budget: int = Query(TAG_JOB_DEFAULT, ge=1, le=TAG_JOB_MAX),
+        _lock=Depends(exclusive),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Tags public series that have none, one model call each, oldest
+        title first (the nightly step, after the issue sync).
+
+        The model answers with indices into tags.py's vocabulary, so it can
+        only choose a tag, never invent one. At most `budget` series, and
+        never past what the free tier has left today (the reader's reserve
+        is kept back). A series whose tags the owner saved is never taken,
+        and the row is re-read under lock before the write, so an edit made
+        during the call wins. A model error stops the run (the next call
+        would meet the same wall); an unusable answer leaves that series
+        untagged for the next night."""
+        if provider_factory is None:
+            raise HTTPException(status_code=503, detail="No model is configured")
+        left = await remaining(session, day=pacific_day(datetime.now(UTC)))
+        rows = (
+            await session.execute(
+                select(Item.id)
+                .where(
+                    Item.type == ItemType.COMIC,
+                    Item.is_public.is_(True),
+                    Item.tags_edited.is_(False),
+                    func.jsonb_array_length(Item.tags) == 0,
+                )
+                .order_by(Item.title, Item.id)
+            )
+        ).all()
+        queue = [row_id for (row_id,) in rows]
+        allowed = min(budget, left)
+        tagged: list[dict] = []
+        errors: list[dict] = []
+        calls = 0
+        stopped: str | None = "budget" if allowed < len(queue) else None
+        if not queue:
+            stopped = None
+        provider = provider_factory() if queue and allowed > 0 else None
+        for row_id in queue[:allowed]:
+            item = await session.get(Item, row_id)
+            if item is None:
+                continue
+            metadata = item.source_metadata or {}
+            prompt = tag_words.comic_prompt(
+                item.title,
+                metadata.get("publisher") or item.creator,
+                metadata.get("start_year") or item.year,
+                metadata.get("issue_count"),
+                paragraphs(metadata.get("description")),
+            )
+            title = item.title
+            await session.rollback()  # no transaction open across the call
+            calls += 1
+            try:
+                payload = await provider.complete_json(prompt, tag_words.COMIC_SCHEMA)
+            except LLMError as error:
+                logger.warning("comic tags: model call failed for %s: %s", title, error)
+                errors.append({"id": str(row_id), "title": title, "error": str(error)})
+                stopped = "model error"
+                break
+            result = tag_words.comic_tags_from(payload)
+            if result is None:
+                errors.append(
+                    {"id": str(row_id), "title": title, "error": "unusable answer"}
+                )
+                continue
+            fresh = await session.get(Item, row_id, with_for_update=True)
+            if fresh is None or fresh.tags_edited or fresh.tags:
+                await session.rollback()
+                continue
+            fresh.tags = result
+            await session.commit()
+            tagged.append({"id": str(row_id), "title": title, "tags": result})
+        summary = {
+            "tagged": len(tagged),
+            "failed": len(errors),
+            "calls": calls,
+            "budget": left,
+            "waiting": len(queue) - len(tagged),
+            "stopped": stopped,
+            "series": tagged,
+            "errors": errors,
+        }
+        logger.info(
+            "comic tags: %s tagged, %s failed, %s waiting (%s)",
+            summary["tagged"],
+            summary["failed"],
+            summary["waiting"],
+            stopped or "done",
+        )
+        return summary
 
     @router.post("/issues/sync")
     async def sync_issues(
