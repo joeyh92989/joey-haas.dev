@@ -282,6 +282,8 @@ async def test_want_adds_a_public_wanted_item_once(sessionmaker_for_test):
     assert item.platform == "Nintendo Switch 2"
     assert item.physical_format == PhysicalFormat.GAME_CARD
     assert item.release_date == TODAY + timedelta(days=30)
+    # Tagged from the snapshot on the way in (tags.py).
+    assert item.tags == [{"group": "play_style", "tag": "puzzle"}]
     assert [row["item"]["title"] for row in watching] == ["Dated"]
     assert (await _rows(sessionmaker_for_test))[
         "1"
