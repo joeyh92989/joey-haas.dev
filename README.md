@@ -471,8 +471,15 @@ brew services start postgresql@18
   -c "alter role postgres password 'postgres'"
 ```
 
-`conftest.py` defaults to `postgresql://postgres:postgres@localhost:5432/postgres`;
-override with `TEST_DATABASE_URL` to point elsewhere.
+Locally each checkout gets its own database on that server, named
+`joeyhaas_test_<checkout folder>` and created on the first run
+(`backend/tests/testdb.py`), so two worktrees can run pytest at once: every run
+drops and recreates its schema, which is why a shared one made them fail each
+other. Two runs from the *same* checkout still collide. Set `TEST_DATABASE_URL`
+to use a database of your choosing as given; CI keeps the service container's
+default `postgres` database, since its runner is already isolated. Drop a
+worktree's database with `psql -c 'DROP DATABASE joeyhaas_test_<name>' postgres`
+when you remove the worktree.
 
 With no database reachable the collection tests **skip**, so the rest of the
 suite still runs. In CI they cannot skip — an unreachable database is a hard

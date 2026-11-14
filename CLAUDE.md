@@ -39,10 +39,13 @@ backend, deployed on Render via Blueprint (render.yaml).
 - Browser tests: `cd frontend && VITE_DAILY_SALT=local npm run build && npm run e2e`
 - Admin browser tests (local, and the `e2e-admin` CI job): `cd frontend && VITE_DAILY_SALT=local npm run build && npm run e2e:admin` (needs local Postgres and ports 8000/4173; README → Browser tests)
 - Review screenshots: `cd frontend && npm run shots` (or `E2E_BASE_URL=https://joey-haas.dev npm run shots`)
-- Backend tests: `cd backend && ./.venv/bin/pytest`. One run at a time: every
-  run drops and recreates the schema in the one local test database, so two
-  at once (a second worktree, a review agent) fail each other with "relation
-  items does not exist" and deadlocks, not with real bugs
+- Backend tests: `cd backend && ./.venv/bin/pytest`. Every run drops and
+  recreates the schema in its database, so each checkout gets its own locally
+  (`joeyhaas_test_<folder name>`, created on first run by `tests/testdb.py`):
+  worktrees can run at once. **Two runs from the same checkout** still fail
+  each other with "relation items does not exist" and deadlocks, not with real
+  bugs. An explicit `TEST_DATABASE_URL` is used as given, and CI keeps its
+  service container's `postgres` database
 - Post-deploy smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`
 
 ## Deploying
