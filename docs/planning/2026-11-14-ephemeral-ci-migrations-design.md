@@ -130,7 +130,7 @@ Model: Sonnet for every task. Each task is its own commit; tests and `ruff`/form
 2. **Per-worktree test database.** `backend/tests/conftest.py`: name the test database from
    the worktree, create it if missing, keep the old default under `CI`. Test: two
    concurrent `pytest` runs from two worktrees both pass. Update `CLAUDE.md` ("one run at a
-   time" note) and `backend/README.md`.
+   time" note) and the root `README.md` (there is no `backend/README.md`).
 3. **Alembic safety.** `env.py` takes an advisory lock (try-lock loop with a deadline) around
    `upgrade`/`downgrade`/`stamp`; a pytest test (run by CI's `backend` job) fails on more
    than one head. Tests in `tests/test_migrations.py`: a held lock makes an upgrade give up
