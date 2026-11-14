@@ -21,6 +21,7 @@ import pytest
 import pytest_asyncio
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
+from conftest import TEST_DATABASE_URL
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -28,11 +29,6 @@ from db import connect_args_for, normalize_async_url
 from models import Base
 
 BACKEND = Path(__file__).resolve().parent.parent
-
-TEST_DATABASE_URL = os.environ.get(
-    "TEST_DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/postgres",
-)
 
 RUNNING_IN_CI = os.environ.get("CI", "").lower() in {"1", "true"}
 

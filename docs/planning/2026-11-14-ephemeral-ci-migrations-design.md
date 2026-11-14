@@ -105,10 +105,7 @@ https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-
 
 ## Open questions
 
-1. **Branch data**: rehearse on a branch with production's current data (catches backfill
-   problems like `0011`'s) or `branch_type: schema-only` (nothing private in CI)? The repo
-   is public and secrets never reach fork PRs, but the copy would hold private rows.
-   Default in this plan: **schema-only**, flip later if wanted. (Joey's call.)
+1. **Branch data: decided, schema-only** (Joey, 2026-11-14). Nothing private reaches CI. A migration that backfills data is rehearsed by its own test, not by the PR branch.
 2. **Unverified, to prove in task 4 before the cutover:** that `autoDeployTrigger: off`
    applies to the existing service through the Blueprint; that a hook call with `?ref=`
    works on the free plan; that the Neon action's default branch copies data. None is
