@@ -64,6 +64,8 @@ logger = logging.getLogger(__name__)
 
 SOURCE = "comicvine"
 RUN_SOURCE = "comic_issues"  # the catalogue_runs source of the issue sync
+REFRESH_SOURCE = "comic_refresh"  # ... of the followed comics refresh
+TAGS_SOURCE = "comic_tags"  # ... of the comic tag job
 # The tag job: one model call per series, at most this many a run (the free
 # tier's own budget caps it further).
 TAG_JOB_DEFAULT = 12
@@ -155,6 +157,12 @@ def _state(item: Item) -> dict:
     }
 
 
+def _exception_error(error: BaseException) -> dict:
+    """A run's error entry for the exception that ended it."""
+    detail = getattr(error, "detail", None) or str(error) or type(error).__name__
+    return {"code": "exception", "detail": str(detail), "item_id": None}
+
+
 def issues_run_summary(
     run: CatalogueRun | None, now: datetime | None = None
 ) -> dict | None:
@@ -178,6 +186,37 @@ def issues_run_summary(
     if run.short_run:
         waiting = run.unresolved_remaining
         noun = "series wait" if waiting != 1 else "series waits"
+        return {
+            "at": at,
+            "state": "partial",
+            "ok": True,
+            "note": f"Budget spent; {waiting} {noun}",
+        }
+    return {"at": at, "state": "ok", "ok": True}
+
+
+def tags_run_summary(
+    run: CatalogueRun | None, now: datetime | None = None
+) -> dict | None:
+    """The Jobs page's view of the comic tag job's last run, null before any.
+
+    failed: the model stopped the run (no model, a model error), the route
+    raised, or the run never finished. partial: the budget or the time ran
+    out with series left untagged."""
+    if run is None:
+        return None
+    at = (run.finished_at or run.started_at).isoformat()
+    if run.ok is False or run_failed(run, now):
+        errors = run.errors or []
+        if errors:
+            detail = errors[0].get("detail") or errors[0].get("code") or "failed"
+            note = f"Tagging stopped: {detail}"
+        else:
+            note = "The run did not finish"
+        return {"at": at, "state": "failed", "ok": False, "note": note}
+    if run.short_run:
+        waiting = run.unresolved_remaining
+        noun = "series waits" if waiting == 1 else "series wait"
         return {
             "at": at,
             "state": "partial",
@@ -634,6 +673,12 @@ def create_comics_router(
             "errors": errors,
         }
 
+    async def _record_run(session: AsyncSession, run_id, **fields) -> None:
+        """Finishes the run row `start_run` committed."""
+        finished = await session.get(CatalogueRun, run_id)
+        await finish_run(session, finished, **fields)
+        await session.commit()
+
     @router.post("/refresh")
     async def refresh_all(
         _lock=Depends(exclusive), session: AsyncSession = Depends(get_session)
@@ -649,6 +694,42 @@ def create_comics_router(
         unfollowed (and deleted) meanwhile is skipped rather than failing the
         run, and a concurrent "Refresh from Comic Vine" is not overwritten.
         """
+        # The run row is committed at once, so the refresh's per-series
+        # commits and rollbacks cannot take it along; it is re-read by id to
+        # finish.
+        run = await start_run(session, REFRESH_SOURCE)
+        run_id = run.id
+        await session.commit()
+        try:
+            summary = await _refresh_followed(session)
+        except BaseException as error:
+            await session.rollback()
+            await _record_run(
+                session,
+                run_id,
+                ok=False,
+                errors=[_exception_error(error)],
+            )
+            raise
+        errors = [
+            {
+                "code": "source_error",
+                "detail": f"{e['title']}: {e['error']}",
+                "item_id": e["item_id"],
+            }
+            for e in summary["errors"]
+        ]
+        await _record_run(
+            session,
+            run_id,
+            ok=summary["ok"],
+            rows_seen=summary["refreshed"] + len(errors),
+            rows_changed=summary["refreshed"],
+            errors=errors,
+        )
+        return summary
+
+    async def _refresh_followed(session: AsyncSession) -> dict:
         adapter = source()
         rows = (
             await session.execute(
@@ -725,6 +806,44 @@ def create_comics_router(
         _lock=Depends(exclusive),
         session: AsyncSession = Depends(get_session),
     ) -> dict:
+        """Runs the tag job and records it as a `comic_tags` run for the
+        Jobs page (see `_generate_tags` for what the job does)."""
+        run = await start_run(session, TAGS_SOURCE)
+        run_id = run.id
+        await session.commit()
+        try:
+            summary = await _generate_tags(budget, session)
+        except BaseException as error:
+            await session.rollback()
+            await _record_run(
+                session, run_id, ok=False, errors=[_exception_error(error)]
+            )
+            raise
+        errors = [
+            {
+                "code": "tag_error",
+                "detail": f"{e['title']}: {e['error']}" if e["title"] else e["error"],
+                "item_id": e["id"],
+            }
+            for e in summary["errors"]
+        ]
+        if not summary["ok"] and errors:
+            # The stop is the last error appended; the Jobs note names it.
+            errors.insert(0, errors.pop())
+        await _record_run(
+            session,
+            run_id,
+            ok=summary["ok"],
+            rows_seen=summary["tagged"] + summary["waiting"],
+            rows_changed=summary["tagged"],
+            unresolved_remaining=summary["waiting"],
+            short_run=summary["stopped"] in ("budget", "time")
+            and summary["waiting"] > 0,
+            errors=errors,
+        )
+        return summary
+
+    async def _generate_tags(budget: int, session: AsyncSession) -> dict:
         """Tags public series that have none, one model call each, oldest
         title first (the nightly step, after the issue sync).
 
@@ -939,15 +1058,32 @@ def create_comics_router(
 
     @router.get("/status")
     async def status(session: AsyncSession = Depends(get_session)) -> dict:
-        """The issue sync's last run, null before its first. Admin only: it
-        is not a job route."""
+        """The last run of the issue sync, the followed comics refresh and
+        the tag job, each null before its first. Admin only: it is not a
+        job route."""
         run = await session.scalar(
             select(CatalogueRun)
             .where(CatalogueRun.source == RUN_SOURCE)
             .order_by(CatalogueRun.started_at.desc())
             .limit(1)
         )
-        return {"issues.last_run": issues_run_summary(run)}
+        refresh = await session.scalar(
+            select(CatalogueRun)
+            .where(CatalogueRun.source == REFRESH_SOURCE)
+            .order_by(CatalogueRun.started_at.desc())
+            .limit(1)
+        )
+        tags = await session.scalar(
+            select(CatalogueRun)
+            .where(CatalogueRun.source == TAGS_SOURCE)
+            .order_by(CatalogueRun.started_at.desc())
+            .limit(1)
+        )
+        return {
+            "issues.last_run": issues_run_summary(run),
+            "refresh.last_run": issues_run_summary(refresh),
+            "tags.last_run": tags_run_summary(tags),
+        }
 
     @router.put("/{item_id}/editions/{slug}/link")
     async def link_edition(

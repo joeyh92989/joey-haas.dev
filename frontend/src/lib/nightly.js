@@ -143,7 +143,7 @@ function runRow(run, job, age) {
 /**
  * One row per nightly job: the catalogue refresh, Radar, Discover, the
  * weekend forecast, the spot finder, the closet's tags, outfit plans and
- * Sunday opinions, intake's photo reading, the comic issue sync,
+ * Sunday opinions, intake's photo reading, the comic refresh, issue sync and tags,
  * and the public snapshot. A job with
  * no time is "unknown" rather than stale, except the catalogue, whose
  * absence is the clearest sign the schedule has stopped.
@@ -164,9 +164,9 @@ function runRow(run, job, age) {
  * @param {{at?: string, state?: string, ok?: boolean, note?: string}|null} [intake]
  *   Intake's nightly run from `GET /api/intake/status`; null leaves it
  *   unknown.
- * @param {{at?: string, state?: string, ok?: boolean, note?: string}|null} [comics]
- *   The comic issue sync's last run from `GET /api/comics/status`; null
- *   leaves it unknown.
+ * @param {{issues?: object|null, refresh?: object|null, tags?: object|null}|null} [comics]
+ *   The comic jobs' last runs from `GET /api/comics/status` (issue sync,
+ *   followed refresh, tags); null leaves all three unknown.
  * @returns {Array<{key: string, label: string, at: number|null, summary: string, state: 'ok'|'stale'|'failed'|'unknown', runNow: string|null, runWords?: string, stateWords?: string, stopped?: boolean}>}
  *   `stopped` is on the catalogue row only: the schedule may have stopped,
  *   which a failure on its last night would otherwise hide.
@@ -307,7 +307,19 @@ export function nightlyJobs(
       age,
     ),
     runRow(
-      comics,
+      comics?.refresh ?? null,
+      {
+        key: 'comic-refresh',
+        label: 'Comic refresh',
+        runNow: '/admin/pull-list',
+        hours: STALE_HOURS,
+        ok: 'Followed series refreshed',
+        quiet: {},
+      },
+      age,
+    ),
+    runRow(
+      comics?.issues ?? null,
       {
         key: 'comic-issues',
         label: 'Comic issues',
@@ -315,6 +327,19 @@ export function nightlyJobs(
         hours: STALE_HOURS,
         ok: 'Every series synced',
         quiet: { partial: 'Budget spent; the rest sync tomorrow' },
+      },
+      age,
+    ),
+    runRow(
+      comics?.tags ?? null,
+      {
+        key: 'comic-tags',
+        label: 'Comic tags',
+        runNow: '/admin/shelf/comics',
+        runWords: 'Open Comics',
+        hours: STALE_HOURS,
+        ok: 'Series tagged',
+        quiet: { partial: 'Budget spent; the rest tag tomorrow' },
       },
       age,
     ),
