@@ -1,0 +1,31 @@
+name: PR closed
+
+# Deletes the PR's Neon rehearsal branch (ci.yml -> neon-rehearsal) when the PR
+# closes, merged or not. A free Neon project holds ten branches in all, so a
+# branch left behind is a slot lost; ci.yml also sets an expiry as a net.
+#
+# Inert until the NEON_PROJECT_ID repository variable exists, and skipped for
+# fork PRs, which never had a branch.
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  delete-neon-branch:
+    if: >-
+      vars.NEON_PROJECT_ID != ''
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      # Most PRs never made a branch (no migration), so "not found" is normal.
+      - name: Delete the rehearsal branch
+        continue-on-error: true
+        # v3.2.1, pinned: this action receives the Neon API key.
+        uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
