@@ -22,7 +22,7 @@ import pytest
 import pytest_asyncio
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
-from conftest import TEST_DATABASE_URL
+from conftest import TEST_DATABASE_URL, mark_schema_dirty
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -73,6 +73,8 @@ async def clean_database():
     """
     url = normalize_async_url(TEST_DATABASE_URL)
     engine = create_async_engine(url, connect_args=connect_args_for(url), future=True)
+    # The schema is replaced here, so the next ordinary test must rebuild it.
+    mark_schema_dirty()
     try:
         async with engine.begin() as connection:
             await connection.execute(text("DROP SCHEMA public CASCADE"))
@@ -87,6 +89,7 @@ async def clean_database():
         pytest.skip(f"no test Postgres reachable: {error}")
     yield engine
     await engine.dispose()
+    mark_schema_dirty()
 
 
 @pytest.mark.asyncio
