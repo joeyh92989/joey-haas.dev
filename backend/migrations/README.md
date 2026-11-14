@@ -43,6 +43,11 @@ key, `ON DELETE CASCADE`).
 `env.py` reads `DATABASE_URL_DIRECT` only: Neon's direct endpoint, not the
 pooled one. `backend/.env` supplies it locally.
 
+An upgrade holds a Postgres advisory lock (`migration_lock.py`) while it
+runs, so two runs against one database take turns: the second waits, then finds
+nothing left to do. `tests/test_migrations.py` also fails when there is more
+than one head, which two branches adding a revision off the same parent cause.
+
 From a worktree, which has no `backend/.env`, use
 `scripts/migrate_neon.py` (see `scripts/README.md`): it takes the URL from
 the main checkout's `.env` and runs that worktree's migrations.

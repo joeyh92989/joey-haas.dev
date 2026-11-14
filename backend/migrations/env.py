@@ -12,9 +12,11 @@ from logging.config import fileConfig
 
 from alembic import context
 from dotenv import load_dotenv
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from db import connect_args_for, normalize_async_url
+from migration_lock import MIGRATION_LOCK_KEY
 from models import Base
 
 load_dotenv()
@@ -62,11 +64,23 @@ def _run(connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    """Connect with the direct URL and run migrations."""
+    """Connect with the direct URL and run migrations, one run at a time."""
     url = _database_url()
     engine = create_async_engine(url, connect_args=connect_args_for(url), future=True)
-    async with engine.connect() as connection:
-        await connection.run_sync(_run)
+    # A session-level lock on a separate connection: it is not part of the
+    # migration's transaction, which Alembic opens and commits itself, and it
+    # is released if the process dies.
+    async with engine.connect() as lock_connection:
+        await lock_connection.execute(
+            text("SELECT pg_advisory_lock(:key)"), {"key": MIGRATION_LOCK_KEY}
+        )
+        try:
+            async with engine.connect() as connection:
+                await connection.run_sync(_run)
+        finally:
+            await lock_connection.execute(
+                text("SELECT pg_advisory_unlock(:key)"), {"key": MIGRATION_LOCK_KEY}
+            )
     await engine.dispose()
 
 

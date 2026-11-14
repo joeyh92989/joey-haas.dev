@@ -113,6 +113,68 @@ async def test_downgrade_then_upgrade_is_clean(clean_database):
     assert up.returncode == 0, up.stderr
 
 
+def test_there_is_exactly_one_migration_head():
+    # Two branches that each add a revision off the same parent give two heads,
+    # and `alembic upgrade head` then refuses with an error that reads as a
+    # tooling problem. Failing here names the cause.
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    config = Config(str(BACKEND / "alembic.ini"))
+    config.set_main_option("script_location", str(BACKEND / "migrations"))
+    heads = ScriptDirectory.from_config(config).get_heads()
+    assert len(heads) == 1, f"merge the migration heads: {heads}"
+
+
+@pytest.mark.asyncio
+async def test_an_upgrade_waits_while_another_holds_the_migration_lock(
+    clean_database,
+):
+    # Two deploys close together must not both apply a revision. Hold the lock
+    # the way a running upgrade does, start one, and check it neither finishes
+    # nor touches the schema until the lock is released.
+    import asyncio
+    import time
+
+    from migration_lock import MIGRATION_LOCK_KEY
+
+    env = {**os.environ, "DATABASE_URL_DIRECT": TEST_DATABASE_URL}
+    async with clean_database.connect() as holder:
+        await holder.execute(
+            text("SELECT pg_advisory_lock(:key)"), {"key": MIGRATION_LOCK_KEY}
+        )
+        process = subprocess.Popen(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            cwd=BACKEND,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            deadline = time.monotonic() + 6
+            while time.monotonic() < deadline and process.poll() is None:
+                await asyncio.sleep(0.25)
+            assert process.poll() is None, "upgrade ran while the lock was held"
+            assert "items" not in await _tables(clean_database)
+        finally:
+            await holder.execute(
+                text("SELECT pg_advisory_unlock(:key)"), {"key": MIGRATION_LOCK_KEY}
+            )
+        out, err = await asyncio.to_thread(process.communicate, None, 120)
+
+    assert process.returncode == 0, err
+    assert "items" in await _tables(clean_database)
+
+
+async def _tables(engine) -> set[str]:
+    async with engine.connect() as connection:
+        rows = await connection.execute(
+            text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+        )
+        return {row[0] for row in rows}
+
+
 # --- Revision 0003: the copy columns. ------------------------------------
 #
 # The tests above prove head matches the models and survives a down/up cycle.
