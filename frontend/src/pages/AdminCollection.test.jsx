@@ -283,31 +283,42 @@ describe('AdminCollection', () => {
     expect(mock).toHaveBeenCalled()
   })
 
-  it('asks before publishing the whole collection', async () => {
+  it('asks inline before publishing the whole collection', async () => {
     // The most consequential action on this page: it puts every private row
     // on a public website, including any still waiting to be corrected.
     // Deleting a single item already asks; this must not be less guarded.
     const mock = stubApi()
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => false),
-    )
+    const confirmSpy = vi.fn(() => true)
+    vi.stubGlobal('confirm', confirmSpy)
     renderPage()
 
     await userEvent.click(
       await screen.findByRole('button', { name: /publish all 2/i }),
     )
 
-    expect(window.confirm).toHaveBeenCalled()
+    expect(screen.getByText('Publish 2 games to My Shelf?')).toBeInTheDocument()
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(writeCalls(mock)).toHaveLength(0)
+  })
+
+  it('keeps everything private when the owner says Keep it', async () => {
+    const mock = stubApi()
+    renderPage()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: /publish all 2/i }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: /keep/i }))
+
+    expect(screen.queryByText(/to My Shelf\?/)).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /publish all 2/i }),
+    ).toBeInTheDocument()
     expect(writeCalls(mock)).toHaveLength(0)
   })
 
   it('does not ask before hiding, which only removes things from view', async () => {
     const mock = stubApi()
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => false),
-    )
     renderPage()
 
     await userEvent.click(
@@ -315,20 +326,17 @@ describe('AdminCollection', () => {
     )
 
     await waitFor(() => expect(writeCalls(mock)).toHaveLength(1))
-    expect(window.confirm).not.toHaveBeenCalled()
+    expect(screen.queryByText(/to My Shelf\?/)).not.toBeInTheDocument()
   })
 
-  it('publishes everything through the bulk route', async () => {
+  it('publishes everything through the bulk route once confirmed', async () => {
     const mock = stubApi()
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => true),
-    )
     renderPage()
 
     await userEvent.click(
       await screen.findByRole('button', { name: /publish all 2/i }),
     )
+    await userEvent.click(screen.getByRole('button', { name: /yes, publish/i }))
 
     await waitFor(() => {
       const call = writeCalls(mock)[0]
@@ -1240,14 +1248,11 @@ describe('AdminCollection is the Games twin', () => {
 
   it('publishes and hides its own games only, never a comic', async () => {
     const mock = stubApi({ items: [...ITEMS, comic] })
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => true),
-    )
     renderShelf()
     await userEvent.click(
       await screen.findByRole('button', { name: /publish all 2/i }),
     )
+    await userEvent.click(screen.getByRole('button', { name: /yes, publish/i }))
     await waitFor(() =>
       expect(JSON.parse(writeCalls(mock)[0][1].body).ids).toEqual(['a', 'b']),
     )

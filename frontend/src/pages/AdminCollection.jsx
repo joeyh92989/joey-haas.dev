@@ -16,6 +16,7 @@ import NowPlaying from '../components/NowPlaying.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ResultBar from '../components/ResultBar.jsx'
 import ShelfCardActions from '../components/ShelfCardActions.jsx'
+import ConfirmDelete from '../components/ConfirmDelete.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import WrapUpSheet from '../components/WrapUpSheet.jsx'
@@ -45,6 +46,7 @@ import {
 } from '../lib/statusMoves.js'
 import { FavoritesRow } from '../components/ShelfOverview.jsx'
 import { gamesPath, itemPath } from '../lib/spinePaths.js'
+import { publishAllDetail } from '../content/shelfPublish.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import {
@@ -521,20 +523,13 @@ export default function AdminCollection() {
   /**
    * Publishes or hides every game in one request.
    *
-   * Publishing asks first. It is the most consequential action on this page —
+   * Publishing asks first, inline (ConfirmDelete on its button). It is the most consequential action on this page —
    * it puts every private row on a public website, including any still
    * waiting to be corrected — and it would otherwise be less guarded than
    * deleting a single item, which does ask. Hiding is not gated: it only ever
    * removes things from public view.
    */
   async function setAllVisibility(isPublic) {
-    if (
-      isPublic &&
-      !window.confirm(`Publish all ${items.length} games to My Shelf?`)
-    ) {
-      return
-    }
-
     setError(null)
     setBulkBusy(true)
     try {
@@ -928,14 +923,16 @@ export default function AdminCollection() {
       </Link>
       {ready && (
         <>
-          <button
-            type="button"
+          <ConfirmDelete
             className="btn sm"
+            label={`Publish all ${items.length}`}
+            subject={`${items.length} games`}
+            name={`Publish all ${items.length}`}
+            confirmLabel="Yes, publish"
+            detail={publishAllDetail(items.length, 'game')}
             disabled={bulkBusy || publicCount === items.length}
-            onClick={() => setAllVisibility(true)}
-          >
-            Publish all {items.length}
-          </button>
+            onConfirm={() => setAllVisibility(true)}
+          />
           <button
             type="button"
             className="btn sm"

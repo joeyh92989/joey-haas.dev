@@ -249,16 +249,19 @@ describe('AdminComics', () => {
     )
   })
 
-  it('publishes its own series by id, never the games', async () => {
+  it('publishes its own series by id, never the games, once confirmed', async () => {
     const mock = stubApi()
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => true),
-    )
+    const confirmSpy = vi.fn(() => true)
+    vi.stubGlobal('confirm', confirmSpy)
     await renderPage()
     await userEvent.click(
       screen.getByRole('button', { name: /publish all 2/i }),
     )
+    expect(
+      screen.getByText('Publish 2 comic series to My Shelf?'),
+    ).toBeInTheDocument()
+    expect(writes(mock)).toHaveLength(0)
+    await userEvent.click(screen.getByRole('button', { name: /yes, publish/i }))
     await waitFor(() => expect(writes(mock)).toHaveLength(1))
     const [url, options] = writes(mock)[0]
     expect(url).toContain('/api/items/visibility')
@@ -266,6 +269,18 @@ describe('AdminComics', () => {
       is_public: true,
       ids: ['s', 'm'],
     })
+    expect(confirmSpy).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when the owner says Keep it', async () => {
+    const mock = stubApi()
+    await renderPage()
+    await userEvent.click(
+      screen.getByRole('button', { name: /publish all 2/i }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: /keep/i }))
+    expect(screen.queryByText(/to My Shelf\?/)).not.toBeInTheDocument()
+    expect(writes(mock)).toHaveLength(0)
   })
 
   it('refreshes comic metadata and reports the counts', async () => {
