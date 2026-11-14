@@ -242,3 +242,105 @@ jobs:
           name: playwright-report-admin
           path: frontend/playwright-report-admin/
           retention-days: 14
+
+  # Migration rehearsal (plan task 4): when a PR adds or changes a migration,
+  # apply it to a schema-only Neon branch of production and comment the schema
+  # diff on the PR. Production's own schema is the starting point, so this
+  # catches what an empty CI Postgres cannot (drift between what Neon holds and
+  # what the migration assumes). Schema-only: no row of production reaches CI.
+  #
+  # Inert until the NEON_PROJECT_ID repository variable and NEON_API_KEY secret
+  # exist, and skipped for fork PRs (which get no secrets) and for PRs that do
+  # not touch backend/migrations/versions. The branch is `pr-<number>`, replaced
+  # on each push and deleted by pr-closed.yml when the PR closes; the expiry is
+  # a safety net, since a free project holds ten branches in all.
+  neon-rehearsal:
+    if: >-
+      vars.NEON_PROJECT_ID != ''
+      && github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # the schema-diff comment
+    env:
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      NEON_BRANCH: pr-${{ github.event.number }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Does this PR add or change a migration?
+        id: changed
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if git diff --name-only "origin/$BASE_REF...HEAD" -- backend/migrations/versions | grep -q .; then
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+            echo "expires_at=$(date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          else
+            echo "migrations=false" >> "$GITHUB_OUTPUT"
+            echo "No migration changed; nothing to rehearse."
+          fi
+
+      # A fresh branch every push: a migration edited after its first rehearsal
+      # must not be judged against the earlier run's leftovers. Deleting a
+      # branch that does not exist yet is expected.
+      - name: Clear the previous rehearsal branch
+        if: steps.changed.outputs.migrations == 'true'
+        continue-on-error: true
+        # v3.2.1, pinned: this action receives the Neon API key.
+        uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: ${{ env.NEON_BRANCH }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Branch production, schema only
+        id: branch
+        if: steps.changed.outputs.migrations == 'true'
+        # v6, pinned: this action receives the Neon API key.
+        uses: neondatabase/create-branch-action@fb620d43d4c565abaf088b848a4e28e5c4ea4d9c
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch_name: ${{ env.NEON_BRANCH }}
+          parent_branch: production
+          branch_type: schema-only
+          expires_at: ${{ steps.changed.outputs.expires_at }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - uses: actions/setup-python@v7
+        if: steps.changed.outputs.migrations == 'true'
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/constraints.txt
+
+      - name: Install dependencies
+        if: steps.changed.outputs.migrations == 'true'
+        working-directory: backend
+        run: pip install -r requirements.txt -c constraints.txt
+
+      # env.py reads the direct URL only (the pooler cannot run Alembic).
+      - name: Apply the migrations to the branch
+        if: steps.changed.outputs.migrations == 'true'
+        working-directory: backend
+        env:
+          DATABASE_URL_DIRECT: ${{ steps.branch.outputs.db_url }}
+        run: |
+          echo "::add-mask::$DATABASE_URL_DIRECT"
+          alembic upgrade head
+          alembic current
+
+      # Compares the branch with its parent (production) and comments the diff.
+      - name: Comment the schema diff
+        if: steps.changed.outputs.migrations == 'true'
+        # v1.0.1, pinned: this action receives the Neon API key.
+        uses: neondatabase/schema-diff-action@80cfa8521628e890015b60f5291a7738926617dc
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          compare_branch: ${{ env.NEON_BRANCH }}
+          api_key: ${{ secrets.NEON_API_KEY }}
