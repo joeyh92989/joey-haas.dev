@@ -70,6 +70,8 @@ TAGS_SOURCE = "comic_tags"  # ... of the comic tag job
 # tier's own budget caps it further).
 TAG_JOB_DEFAULT = 12
 TAG_JOB_MAX = 50
+# Unusable answers after which the job stops asking about a series (#232).
+TAG_ATTEMPT_LIMIT = 3
 # One call may walk the model chain this long, and the whole run stops
 # starting new calls after TAG_RUN_SECONDS, under the nightly's 600 s curl.
 TAG_CALL_SECONDS = 40.0
@@ -196,7 +198,7 @@ def issues_run_summary(
 
 
 def tags_run_summary(
-    run: CatalogueRun | None, now: datetime | None = None
+    run: CatalogueRun | None, now: datetime | None = None, gave_up: int = 0
 ) -> dict | None:
     """The Jobs page's view of the comic tag job's last run, null before any.
 
@@ -223,7 +225,12 @@ def tags_run_summary(
             "ok": True,
             "note": f"Budget spent; {waiting} {noun}",
         }
-    return {"at": at, "state": "ok", "ok": True}
+    summary = {"at": at, "state": "ok", "ok": True}
+    if gave_up:
+        summary["note"] = (
+            f"{gave_up} series given up on after {TAG_ATTEMPT_LIMIT} unusable answers"
+        )
+    return summary
 
 
 def create_comics_router(
@@ -854,7 +861,8 @@ def create_comics_router(
         and the row is re-read under lock before the write, so an edit made
         during the call wins. A model error stops the run (the next call
         would meet the same wall); an unusable answer leaves that series
-        untagged for the next night."""
+        untagged for the next night, and the third strike (`tag_attempts`) gives
+        the series up: it leaves the queue and is listed in `gave_up`."""
         if provider_factory is None:
             raise HTTPException(status_code=503, detail="No model is configured")
         left = await remaining(session, day=pacific_day(datetime.now(UTC)))
@@ -865,6 +873,7 @@ def create_comics_router(
                     Item.type == ItemType.COMIC,
                     Item.is_public.is_(True),
                     Item.tags_edited.is_(False),
+                    Item.tag_attempts < TAG_ATTEMPT_LIMIT,
                     func.jsonb_array_length(Item.tags) == 0,
                 )
                 .order_by(Item.title, Item.id)
@@ -874,6 +883,7 @@ def create_comics_router(
         allowed = min(budget, left)
         tagged: list[dict] = []
         errors: list[dict] = []
+        gave_up: list[dict] = []
         calls = 0
         stopped: str | None = "budget" if allowed < len(queue) else None
         if not queue:
@@ -915,14 +925,18 @@ def create_comics_router(
                 stopped = "model error"
                 break
             result = tag_words.comic_tags_from(payload)
+            fresh = await session.get(Item, row_id, with_for_update=True)
+            if fresh is None or fresh.tags_edited or fresh.tags:
+                await session.rollback()
+                continue
             if result is None:
                 errors.append(
                     {"id": str(row_id), "title": title, "error": "unusable answer"}
                 )
-                continue
-            fresh = await session.get(Item, row_id, with_for_update=True)
-            if fresh is None or fresh.tags_edited or fresh.tags:
-                await session.rollback()
+                fresh.tag_attempts += 1
+                if fresh.tag_attempts >= TAG_ATTEMPT_LIMIT:
+                    gave_up.append({"id": str(row_id), "title": title})
+                await session.commit()
                 continue
             fresh.tags = result
             await session.commit()
@@ -935,7 +949,8 @@ def create_comics_router(
             "ok": stopped not in ("model error", "no model"),
             "calls": calls,
             "budget": left,
-            "waiting": len(queue) - len(tagged),
+            "waiting": len(queue) - len(tagged) - len(gave_up),
+            "gave_up": gave_up,
             "stopped": stopped,
             "series": tagged,
             "errors": errors,
@@ -1079,10 +1094,21 @@ def create_comics_router(
             .order_by(CatalogueRun.started_at.desc())
             .limit(1)
         )
+        given_up = await session.scalar(
+            select(func.count())
+            .select_from(Item)
+            .where(
+                Item.type == ItemType.COMIC,
+                Item.is_public.is_(True),
+                Item.tags_edited.is_(False),
+                Item.tag_attempts >= TAG_ATTEMPT_LIMIT,
+                func.jsonb_array_length(Item.tags) == 0,
+            )
+        )
         return {
             "issues.last_run": issues_run_summary(run),
             "refresh.last_run": issues_run_summary(refresh),
-            "tags.last_run": tags_run_summary(tags),
+            "tags.last_run": tags_run_summary(tags, gave_up=given_up or 0),
         }
 
     @router.put("/{item_id}/editions/{slug}/link")

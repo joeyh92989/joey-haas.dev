@@ -1,5 +1,5 @@
 ---
-status: in progress
+status: done
 kind: architectural-lite (additive column)
 mode: auto
 ---

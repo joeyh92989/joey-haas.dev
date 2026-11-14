@@ -237,3 +237,14 @@ def _no_model_client(factory, provider_factory):
             yield client
 
     return build()
+
+
+async def test_given_up_series_show_on_the_jobs_row(sessionmaker_for_test):
+    await _series(sessionmaker_for_test, "A", tag_attempts=3)
+    await _series(sessionmaker_for_test, "B", tag_attempts=3)
+    async with tags_client(sessionmaker_for_test, StubProvider()) as client:
+        await client.post("/api/comics/tags/generate")
+        status = (await client.get("/api/comics/status")).json()
+    summary = status["tags.last_run"]
+    assert summary["state"] == "ok"
+    assert summary["note"] == "2 series given up on after 3 unusable answers"

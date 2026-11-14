@@ -6,6 +6,7 @@ tagged by their own job (test_comic_tags_job.py), never here. A row whose
 tags the owner saved (tags_edited) is never regenerated.
 """
 
+import uuid
 from contextlib import asynccontextmanager
 
 import pytest
@@ -346,3 +347,43 @@ async def test_a_type_change_that_sends_tags_keeps_those_tags(sessionmaker_for_t
         )
     assert response.json()["tags"] == [{"group": "tone", "tag": "drama"}]
     assert response.json()["tags_edited"] is True
+
+
+async def test_saving_tags_clears_the_tag_job_strikes(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        made = (await client.post("/api/items", json=_game("Doom"))).json()
+        async with sessionmaker_for_test() as session:
+            row = await session.get(Item, uuid.UUID(made["id"]))
+            row.tag_attempts = 3
+            await session.commit()
+        await client.patch(
+            f"/api/items/{made['id']}",
+            json={"tags": [{"group": "tone", "tag": "comedy"}]},
+        )
+    assert (await _rows(sessionmaker_for_test))["Doom"].tag_attempts == 0
+
+
+def _detail(description):
+    return SourceDetail(
+        external_id="1",
+        title="x",
+        year=2000,
+        creator="c",
+        cover_url=None,
+        source_metadata={"description": description},
+    )
+
+
+async def test_a_changed_description_clears_the_strikes_and_a_same_one_keeps_them():
+    from items import _apply_detail
+
+    item = Item(
+        type=ItemType.COMIC,
+        title="C",
+        source_metadata={"description": "old"},
+        tag_attempts=3,
+    )
+    _apply_detail(item, _detail("old"))
+    assert item.tag_attempts == 3
+    _apply_detail(item, _detail("new"))
+    assert item.tag_attempts == 0

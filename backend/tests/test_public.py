@@ -284,6 +284,7 @@ NEVER_PUBLIC = {
     "pinned_at",
     "issues_skipped",
     "tags_edited",
+    "tag_attempts",
 }
 
 

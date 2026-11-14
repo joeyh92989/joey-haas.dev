@@ -528,7 +528,9 @@ before pushing.
   `items.issues_synced_on` (additive); `0017` adds `comic_issues.owned`,
   `read` and `skipped` (server default false) and makes `cv_id` and
   `fetched_on` nullable (additive: it inserts no row; its downgrade deletes
-  the stub rows, null `cv_id`, before restoring NOT NULL).
+  the stub rows, null `cv_id`, before restoring NOT NULL); `0018` adds
+  `items.tags` and `tags_edited`; `0019` adds `items.tag_attempts` (integer
+  NOT NULL default 0, additive: the comic tag job's strike count).
   Revision `0002` adds the enrichment columns; `0003` adds the copy columns
   (platform, physical format, cart ID, region, completeness, release,
   acquired and pinned dates).
@@ -1002,7 +1004,12 @@ before pushing.
   `COMIC_SCHEMA`, `comic_tags_from`), at most `budget` (1 to 50, default 12)
   and never past `intake/budget.remaining`; the row is re-read under lock
   before the write, so an edit made during the call wins; a model error
-  stops the run, an unusable answer leaves that series for the next night.
+  stops the run and is never a strike. An unusable answer adds a strike
+  (`items.tag_attempts`, migration `0019`, never public): at
+  `TAG_ATTEMPT_LIMIT` (3) the series leaves the queue and the summary's
+  `gave_up` lists it; the Jobs row says "N series given up on" from a live
+  count in `GET /api/comics/status`. Saving tags, and a Comic Vine refresh
+  that changes the description, reset the count to 0.
   The owner saves tags with `PATCH /api/items/{id}` `{tags: [...]}`, checked
   against the type's vocabulary (422 otherwise), which sets `tags_edited`.
   `tags` is on `PublicItemOut` (so the item list, the detail and, through the
