@@ -31,11 +31,19 @@ import {
   sortComics,
 } from '../lib/comics.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
+import {
+  filterByTags,
+  hasTagFilter,
+  noTags,
+  tagChipGroups,
+} from '../lib/tags.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { useElapsed } from '../lib/useElapsed.js'
 import { SLOW_LOAD_AFTER_S } from '../lib/waits.js'
 
 const copy = spine.comics
+// What the owner can filter comics by; Based on is shown, not filtered.
+const FILTER_GROUPS = ['genre', 'form']
 const PUBLISHERS_SHOWN = 3
 const SORTS = copy.sorts.map((sort) => ({ ...sort, direction: 'asc' }))
 
@@ -84,6 +92,7 @@ function asRow(item) {
     is_public: item.is_public,
     external_id: item.external_id,
     external_source: item.external_source,
+    tags: item.tags,
   }
 }
 
@@ -188,6 +197,7 @@ export default function AdminComics() {
     storedPref(PREF.sort, COMIC_SORTS, 'title'),
   )
   const [publisher, setPublisher] = useState(null)
+  const [picked, setPicked] = useState(() => noTags('comic'))
   const [query, setQuery] = useState('')
   const loadSeq = useRef(0)
   // After a delete, focus moves to the grid rather than falling to the body
@@ -454,15 +464,23 @@ export default function AdminComics() {
     private: rows.filter((row) => !row.is_public).length,
   }
   const visibleRows = sortComics(
-    searchComics(
-      chip === 'private'
-        ? rows.filter((row) => !row.is_public)
-        : filterComics(rows, chip, null),
-      query,
-    ).filter((row) => publisher == null || row.publisher === publisher),
+    filterByTags(
+      searchComics(
+        chip === 'private'
+          ? rows.filter((row) => !row.is_public)
+          : filterComics(rows, chip, null),
+        query,
+      ).filter((row) => publisher == null || row.publisher === publisher),
+      'comic',
+      picked,
+    ),
     sort,
   )
-  const filtered = query.trim() !== '' || chip !== 'all' || publisher !== null
+  const filtered =
+    query.trim() !== '' ||
+    chip !== 'all' ||
+    publisher !== null ||
+    hasTagFilter('comic', picked)
   const publishers = publishersByCount(rows)
   const publisherOptions =
     publisher && !publishers.some((entry) => entry.publisher === publisher)
@@ -478,6 +496,10 @@ export default function AdminComics() {
         count: counts[value],
       })),
     },
+    // Based on is shown on a card's page, not filtered, as on the public page.
+    ...tagChipGroups('comic', rows).filter(({ key }) =>
+      FILTER_GROUPS.includes(key),
+    ),
     {
       key: 'publisher',
       label: copy.chips.publisher,
@@ -497,6 +519,9 @@ export default function AdminComics() {
       writeShelfPref(PREF.chip, show)
     }
     setPublisher(next.publisher ?? null)
+    setPicked(
+      Object.fromEntries(FILTER_GROUPS.map((key) => [key, next[key] ?? null])),
+    )
   }
 
   function clearAll() {
@@ -552,7 +577,7 @@ export default function AdminComics() {
         <FilterChips
           labelled
           groups={groups}
-          value={{ show: chip === 'all' ? null : chip, publisher }}
+          value={{ show: chip === 'all' ? null : chip, publisher, ...picked }}
           onChange={changeFilters}
         />
         <div className="ctl-row">

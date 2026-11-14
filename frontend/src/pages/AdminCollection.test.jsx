@@ -1484,3 +1484,102 @@ describe('AdminCollection delete, bulk delete and redo', () => {
     })
   })
 })
+
+describe('AdminCollection tags', () => {
+  const styled = (n, fields, ...tags) => ({
+    ...ITEMS[0],
+    id: `t${n}`,
+    title: `Game ${n}`,
+    owned_format: 'physical',
+    tags,
+    ...fields,
+  })
+  const style = (tag) => ({ group: 'play_style', tag })
+  const setting = (tag) => ({ group: 'setting', tag })
+  const gridTitles = () =>
+    [...document.querySelectorAll('.poster-grid .poster-title')].map(
+      (node) => node.textContent,
+    )
+
+  // Ten games: shooter on four, RPG on three, puzzle on one; sci-fi on three.
+  const SHELF = [
+    styled(1, {}, style('shooter'), setting('sci-fi')),
+    styled(2, {}, style('shooter'), setting('sci-fi')),
+    styled(3, { is_public: true }, style('shooter'), setting('horror')),
+    styled(4, {}, style('shooter')),
+    styled(5, {}, style('rpg'), setting('fantasy')),
+    styled(6, {}, style('rpg'), setting('sci-fi')),
+    styled(7, {}, style('rpg')),
+    styled(8, {}, style('puzzle')),
+    styled(9, {}),
+    styled(10, {}),
+  ]
+
+  it('filters by labelled Play style and Setting groups, counting private rows', async () => {
+    stubApi({ items: SHELF })
+    await renderShelf()
+
+    for (const name of ['Play style', 'Setting']) {
+      expect(screen.getByRole('group', { name })).toBeInTheDocument()
+    }
+    expect(screen.queryByRole('group', { name: 'Tone' })).toBeNull()
+    const style = screen.getByRole('group', { name: 'Play style' })
+    expect(
+      within(style).getByRole('button', { name: 'Shooter 4' }),
+    ).toBeInTheDocument()
+
+    await userEvent.click(
+      within(style).getByRole('button', { name: /Shooter/ }),
+    )
+    expect(gridTitles()).toHaveLength(4)
+    await userEvent.click(
+      within(screen.getByRole('group', { name: 'Setting' })).getByRole(
+        'button',
+        { name: /Sci-fi/ },
+      ),
+    )
+    expect(gridTitles().sort()).toEqual(['Game 1', 'Game 2'])
+  })
+
+  it('draws no chip that matches more than half the games shown, but keeps a pressed one', async () => {
+    const wide = [
+      ...SHELF,
+      ...[11, 12, 13, 14, 15, 16].map((n) => styled(n, {}, style('shooter'))),
+    ]
+    stubApi({ items: wide })
+    await renderShelf()
+    const group = screen.getByRole('group', { name: 'Play style' })
+    expect(within(group).queryByRole('button', { name: /Shooter/ })).toBeNull()
+  })
+
+  it('keeps a pressed chip after the rest of the shelf shifts its share', async () => {
+    stubApi({ items: SHELF })
+    await renderShelf()
+    await userEvent.click(
+      within(screen.getByRole('group', { name: 'Play style' })).getByRole(
+        'button',
+        { name: /RPG/ },
+      ),
+    )
+    expect(
+      within(screen.getByRole('group', { name: 'Play style' })).getByRole(
+        'button',
+        { name: /RPG/ },
+      ),
+    ).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('clears the tag filters with Clear filters', async () => {
+    stubApi({ items: SHELF })
+    await renderShelf()
+    await userEvent.click(
+      within(screen.getByRole('group', { name: 'Play style' })).getByRole(
+        'button',
+        { name: /Puzzle/ },
+      ),
+    )
+    expect(gridTitles()).toEqual(['Game 8'])
+    await userEvent.click(screen.getByRole('button', { name: /Clear filters/ }))
+    expect(gridTitles()).toHaveLength(10)
+  })
+})
