@@ -85,7 +85,10 @@ When a PR adds or changes a file in `versions/`, CI's `neon-rehearsal` job
 `production` called `pr-<number>`, runs `alembic upgrade head` on it and
 comments the schema diff on the PR. It starts from production's real schema,
 which an empty CI Postgres cannot reproduce, and no row of production reaches
-CI. A failed upgrade fails the PR.
+CI. The branch is stamped at the base branch's head before the upgrade (a
+schema-only branch has no `alembic_version` row), so only this PR's revisions
+run; that assumes production is at the base head, which the apply-then-merge
+order guarantees. A failed upgrade fails the PR.
 
 - The branch is replaced on every push and deleted by `.github/workflows/pr-closed.yml`
   when the PR closes. It also expires after seven days. A free Neon project holds

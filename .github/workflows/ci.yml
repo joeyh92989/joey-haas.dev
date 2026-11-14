@@ -259,6 +259,7 @@ jobs:
       vars.NEON_PROJECT_ID != ''
       && github.event_name == 'pull_request'
       && github.event.pull_request.head.repo.full_name == github.repository
+      && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -310,6 +311,19 @@ jobs:
           expires_at: ${{ steps.changed.outputs.expires_at }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
+      # The connection string carries the branch's password.
+      - name: Mask the branch URL and require a fresh branch
+        if: steps.changed.outputs.migrations == 'true'
+        env:
+          DB_URL: ${{ steps.branch.outputs.db_url }}
+          CREATED: ${{ steps.branch.outputs.created }}
+        run: |
+          echo "::add-mask::$DB_URL"
+          if [ "$CREATED" != "true" ]; then
+            echo "::error::$NEON_BRANCH already existed, so it may hold an earlier run's migrations. The clear step failed; check the Neon key and the branch."
+            exit 1
+          fi
+
       - uses: actions/setup-python@v7
         if: steps.changed.outputs.migrations == 'true'
         with:
@@ -324,14 +338,34 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt -c constraints.txt
 
+      # A schema-only branch has production's tables but none of its rows, so
+      # alembic_version is empty and Alembic would replay every migration onto
+      # tables that exist. Production is at the base branch's head (migrations
+      # are applied before the merge), so the branch is stamped there first and
+      # only this PR's revisions run.
+      - name: Find the base branch's head revision
+        id: base
+        if: steps.changed.outputs.migrations == 'true'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/base" "origin/$BASE_REF"
+          heads="$(cd "$RUNNER_TEMP/base/backend" && alembic heads | awk '{print $1}')"
+          if [ "$(echo "$heads" | wc -l)" -ne 1 ]; then
+            echo "::error::$BASE_REF has more than one migration head: $heads"
+            exit 1
+          fi
+          echo "revision=$heads" >> "$GITHUB_OUTPUT"
+
       # env.py reads the direct URL only (the pooler cannot run Alembic).
       - name: Apply the migrations to the branch
         if: steps.changed.outputs.migrations == 'true'
         working-directory: backend
         env:
           DATABASE_URL_DIRECT: ${{ steps.branch.outputs.db_url }}
+          BASE_REVISION: ${{ steps.base.outputs.revision }}
         run: |
-          echo "::add-mask::$DATABASE_URL_DIRECT"
+          alembic stamp "$BASE_REVISION"
           alembic upgrade head
           alembic current
 
