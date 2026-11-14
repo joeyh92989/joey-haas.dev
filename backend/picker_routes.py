@@ -179,7 +179,13 @@ def to_picker_item(
         journal_minutes=journal_minutes,
         run_started_on=run_started_on,
         source=item.external_source,
-        tags=snapshot_tags(snapshot, item.tags),
+        # Curated tags feed facets for a comic, and for a game only once the
+        # owner saved them: IGDB stays a game's source, so the backfill does
+        # not shift its picks (Tactical reads as tactics, not strategy).
+        tags=snapshot_tags(
+            snapshot,
+            item.tags if item.type == ItemType.COMIC or item.tags_edited else None,
+        ),
         issues_owned_count=issues_owned_count,
         issues_read=issues_read,
         issues_span=issues_span,

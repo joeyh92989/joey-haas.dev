@@ -17,7 +17,12 @@ def _names(values):
 
 def _fixture_games():
     games = []
-    for name in ("igdb_game", "igdb_games_e7b", "igdb_search"):
+    for name in (
+        "igdb_game",
+        "igdb_games_e7b",
+        "igdb_search",
+        "igdb_upcoming_release_dates",
+    ):
         body = json.loads((FIXTURES / f"{name}.json").read_text())
         for row in body if isinstance(body, list) else [body]:
             game = row.get("game") if isinstance(row.get("game"), dict) else row
@@ -140,7 +145,7 @@ def test_a_game_with_no_snapshot_has_no_tags():
     assert tags.game_tags({"genres": "Shooter"}) == []
 
 
-def test_every_mapped_igdb_string_that_facets_knows_is_the_same_string():
+def test_every_mapped_keyword_is_one_facets_knows():
     """The keyword and genre strings are the ones FACET_MAP holds, copied
     from source snapshots, never typed from memory."""
     for (kind, value), _ in tags.IGDB_GAME_MAP.items():
@@ -156,6 +161,21 @@ def test_the_recorded_igdb_fixtures_map_inside_the_vocabulary():
             assert (tag["group"], tag["tag"]) in allowed
             seen += 1
     assert seen > 0
+
+
+def test_every_mapped_igdb_string_is_one_the_recorded_data_carries():
+    """No mapping row is typed from memory: each (kind, string) is in a
+    recorded IGDB fixture, or in facets.FACET_MAP, whose own test holds every
+    string to a fixture or the collection export."""
+    carried = {
+        (kind, value)
+        for game in _fixture_games()
+        for kind, values in _snapshot(game).items()
+        for value in values
+    }
+    known = {(kind, value) for (source, kind, value) in FACET_MAP if source == "igdb"}
+    missing = set(tags.IGDB_GAME_MAP) - carried - known
+    assert missing == set(), missing
 
 
 def test_outer_wilds_fixture_reads_as_puzzle_and_simulation_and_not_adventure():

@@ -319,3 +319,30 @@ async def test_the_backfill_is_admin_only_and_not_a_job_route(sessionmaker_for_t
     async with client_for(sessionmaker_for_test, signed_in=False) as client:
         response = await client.post("/api/items/tags/backfill")
     assert response.status_code == 401
+
+
+async def test_changing_type_rederives_tags_and_clears_the_edit(sessionmaker_for_test):
+    registry = {}
+    async with client_for(sessionmaker_for_test, registry) as client:
+        made = (
+            await client.post("/api/items", json=_game("Doom", source_metadata=SHOOTER))
+        ).json()
+        await client.patch(
+            f"/api/items/{made['id']}",
+            json={"tags": [{"group": "tone", "tag": "drama"}]},
+        )
+        movie = await client.patch(f"/api/items/{made['id']}", json={"type": "movie"})
+        back = await client.patch(f"/api/items/{made['id']}", json={"type": "game"})
+    assert (movie.json()["tags"], movie.json()["tags_edited"]) == ([], False)
+    assert (back.json()["tags"], back.json()["tags_edited"]) == (SHOOTER_TAGS, False)
+
+
+async def test_a_type_change_that_sends_tags_keeps_those_tags(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        made = (await client.post("/api/items", json=_game("Doom"))).json()
+        response = await client.patch(
+            f"/api/items/{made['id']}",
+            json={"type": "game", "tags": [{"group": "tone", "tag": "drama"}]},
+        )
+    assert response.json()["tags"] == [{"group": "tone", "tag": "drama"}]
+    assert response.json()["tags_edited"] is True

@@ -21,6 +21,7 @@ import {
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
+import { tagMoreLabels } from '../content/tags.js'
 import { dailyPool } from '../lib/daily.js'
 import { formatDate, ownerYear } from '../lib/formatDate.js'
 import { STALE_HOURS } from '../lib/nightly.js'
@@ -60,7 +61,6 @@ const NO_ITEMS = []
 const NO_GAME_FILTER = { ...NO_FILTER, ...noTags('game') }
 // More play styles than a row holds: the commonest show, the rest open.
 const TAG_LIMITS = { play_style: 8 }
-const TAG_MORE = { play_style: 'More play styles…' }
 
 /** Whether the catalog was last refreshed over STALE_HOURS ago (or never). */
 function isStale(refreshedAt, now) {
@@ -208,7 +208,8 @@ export default function Games() {
     ...tagChipGroups('game', items, {
       maxShare: MAX_SHARE,
       limit: TAG_LIMITS,
-      moreLabel: TAG_MORE,
+      selected: filters,
+      moreLabel: tagMoreLabels,
     }),
   )
   const platforms = platformGroup(items)

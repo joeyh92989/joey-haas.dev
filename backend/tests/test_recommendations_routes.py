@@ -259,6 +259,12 @@ async def test_a_regeneration_keeps_the_owners_answers(sessionmaker_for_test):
 
 async def test_want_adds_a_public_wanted_item_once(sessionmaker_for_test):
     await _seed(sessionmaker_for_test)
+    # "Roguelike" is a keyword, not an IGDB genre: give the game one the tag
+    # mapping reads, so the Want path's tagging is visible.
+    async with sessionmaker_for_test() as session:
+        game = await session.get(CatalogueGame, 1)
+        game.snapshot = {"genres": ["Puzzle"], "similar_games": []}
+        await session.commit()
     async with radar_client(sessionmaker_for_test) as client:
         await client.post("/api/recommendations/generate", json={"kind": "radar"})
         rows = await _rows(sessionmaker_for_test)

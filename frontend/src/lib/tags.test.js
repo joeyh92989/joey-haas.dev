@@ -79,6 +79,21 @@ describe('tagChipGroups', () => {
     expect(after.options.map((o) => o.value)).not.toContain('shooter')
   })
 
+  it('never drops the pressed chip, even over the share', () => {
+    const broad = [
+      ...rows,
+      row(tag('play_style', 'shooter')),
+      row(tag('play_style', 'shooter')),
+    ]
+    const dropped = tagChipGroups('game', broad, { maxShare: 0.5 })[0]
+    expect(dropped.options.map((o) => o.value)).not.toContain('shooter')
+    const kept = tagChipGroups('game', broad, {
+      maxShare: 0.5,
+      selected: { play_style: 'shooter' },
+    })[0]
+    expect(kept.options.map((o) => o.value)).toContain('shooter')
+  })
+
   it('carries a group’s limit and its More label', () => {
     const [style] = tagChipGroups('game', rows, {
       limit: { play_style: 8 },

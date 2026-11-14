@@ -91,8 +91,8 @@ export const tagPicker = {
   hint: 'Saving these keeps them: they are not worked out again.',
 }
 
-/** The types that have a vocabulary. */
-export const TAGGED_TYPES = Object.keys(vocabulary)
+/** The chip that opens the rest of a group a filter row cuts short. */
+export const tagMoreLabels = { play_style: 'More play styles…' }
 
 /**
  * A type's groups, in the order the API stores them.

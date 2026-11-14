@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import asdict
@@ -67,6 +68,14 @@ RUN_SOURCE = "comic_issues"  # the catalogue_runs source of the issue sync
 # tier's own budget caps it further).
 TAG_JOB_DEFAULT = 12
 TAG_JOB_MAX = 50
+# One call may walk the model chain this long, and the whole run stops
+# starting new calls after TAG_RUN_SECONDS, under the nightly's 600 s curl.
+TAG_CALL_SECONDS = 40.0
+TAG_RUN_SECONDS = 480.0
+
+
+def _monotonic() -> float:
+    return time.monotonic()
 
 
 def _today() -> date:
@@ -750,8 +759,19 @@ def create_comics_router(
         stopped: str | None = "budget" if allowed < len(queue) else None
         if not queue:
             stopped = None
-        provider = provider_factory() if queue and allowed > 0 else None
-        for row_id in queue[:allowed]:
+        provider = None
+        if queue and allowed > 0:
+            try:
+                provider = provider_factory()
+            except LLMError as error:
+                logger.warning("comic tags: no model: %s", error)
+                errors.append({"id": None, "title": None, "error": str(error)})
+                stopped = "no model"
+        started = _monotonic()
+        for row_id in queue[:allowed] if provider is not None else ():
+            if _monotonic() - started >= TAG_RUN_SECONDS:
+                stopped = "time"
+                break
             item = await session.get(Item, row_id)
             if item is None:
                 continue
@@ -767,7 +787,9 @@ def create_comics_router(
             await session.rollback()  # no transaction open across the call
             calls += 1
             try:
-                payload = await provider.complete_json(prompt, tag_words.COMIC_SCHEMA)
+                payload = await provider.complete_json(
+                    prompt, tag_words.COMIC_SCHEMA, budget_seconds=TAG_CALL_SECONDS
+                )
             except LLMError as error:
                 logger.warning("comic tags: model call failed for %s: %s", title, error)
                 errors.append({"id": str(row_id), "title": title, "error": str(error)})
@@ -789,6 +811,9 @@ def create_comics_router(
         summary = {
             "tagged": len(tagged),
             "failed": len(errors),
+            # False on a stop that says the night's tagging did not run, so
+            # the nightly's jq check warns.
+            "ok": stopped not in ("model error", "no model"),
             "calls": calls,
             "budget": left,
             "waiting": len(queue) - len(tagged),

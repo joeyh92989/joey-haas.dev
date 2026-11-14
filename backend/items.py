@@ -1367,6 +1367,15 @@ def create_items_router(
             except ValueError as error:
                 raise HTTPException(status_code=422, detail=str(error)) from error
             changes["tags_edited"] = True
+        elif "type" in changes and changes["type"] != item.type:
+            # The old type's tags mean nothing to the new one: a game is
+            # worked out again from its snapshot, any other type starts bare.
+            changes["tags_edited"] = False
+            changes["tags"] = (
+                game_tags(item.source_metadata)
+                if changes["type"] == ItemType.GAME
+                else []
+            )
         if changes.get("favorite") is True and not item.favorite:
             await _require_favorite_slots(session, 1)
         relinked = any(

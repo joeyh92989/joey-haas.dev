@@ -464,3 +464,38 @@ async def test_a_tmdb_score_is_read_on_the_0_to_100_scale():
     assert _community_score("tmdb", {"community_score": 7.0}) is None
     assert _community_score("igdb", {"community_score": 76.4}) == 76.4
     assert _community_score("igdb", {}) is None
+
+
+async def test_curated_tags_feed_facets_for_a_comic_and_an_edited_game_only():
+    """An unedited game keeps IGDB as its source, so the backfill does not
+    move its picks: Tactical reads as tactics, not as the curated strategy."""
+    from facets import facets_of
+    from models import Item, ItemStatus, ItemType
+    from picker_routes import to_picker_item
+
+    strategy = [{"group": "play_style", "tag": "strategy"}]
+    snapshot = {"genres": ["Tactical"]}
+
+    def game(**fields):
+        return Item(
+            type=ItemType.GAME,
+            title="G",
+            status=ItemStatus.BACKLOG,
+            external_source="igdb",
+            source_metadata=snapshot,
+            tags=strategy,
+            **fields,
+        )
+
+    unedited = facets_of(to_picker_item(game(tags_edited=False)))
+    assert unedited == {"game:form:tactics"}
+    edited = facets_of(to_picker_item(game(tags_edited=True)))
+    assert "game:form:strategy" in edited
+    comic = Item(
+        type=ItemType.COMIC,
+        title="C",
+        status=ItemStatus.BACKLOG,
+        tags=[{"group": "genre", "tag": "horror"}],
+        tags_edited=False,
+    )
+    assert facets_of(to_picker_item(comic)) == {"horror"}

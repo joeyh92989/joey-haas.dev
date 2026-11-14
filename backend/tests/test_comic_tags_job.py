@@ -10,6 +10,7 @@ from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import select
 from starlette.middleware.sessions import SessionMiddleware
 
+import comics_routes
 import tags
 from comics_routes import create_comics_router
 from intake.budget import DAILY_REQUESTS, RESERVE, pacific_day
@@ -38,9 +39,11 @@ class StubProvider:
         self.answers = list(answers)
         self.prompts: list[str] = []
         self.schemas: list[dict] = []
+        self.kwargs: dict = {}
         self.on_call = on_call
 
-    async def complete_json(self, prompt, schema, images=None):
+    async def complete_json(self, prompt, schema, images=None, **kwargs):
+        self.kwargs = kwargs
         self.prompts.append(prompt)
         self.schemas.append(schema)
         if self.on_call:
@@ -136,6 +139,8 @@ async def test_an_untagged_public_series_gets_tags_from_one_call(
     assert "Hellboy" in prompt and "Dark Horse" in prompt
     assert "paranormal bureau" in prompt and "<p>" not in prompt
     assert provider.schemas == [tags.COMIC_SCHEMA]
+    assert provider.kwargs == {"budget_seconds": comics_routes.TAG_CALL_SECONDS}
+    assert body["ok"] is True
 
 
 async def test_it_skips_edited_tagged_private_and_non_comic_rows(
@@ -227,6 +232,7 @@ async def test_a_model_error_stops_the_run_and_tags_nothing_it_did_not_read(
     assert response.status_code == 200
     body = response.json()
     assert (body["tagged"], body["calls"], body["stopped"]) == (0, 1, "model error")
+    assert body["ok"] is False
     assert len(provider.prompts) == 1
     assert all(t == [] for t in (await _tags(sessionmaker_for_test)).values())
 
@@ -254,3 +260,45 @@ async def test_the_job_needs_the_admin_session_or_the_token(sessionmaker_for_tes
         response = await client.post("/api/comics/tags/generate")
     assert response.status_code == 401
     assert provider.prompts == []
+
+
+async def test_a_missing_model_is_a_200_that_says_so(sessionmaker_for_test):
+    await _series(sessionmaker_for_test, "A")
+
+    def no_key():
+        raise LLMError("GEMINI_API_KEY is not set")
+
+    app = FastAPI()
+    app.include_router(create_comics_router(sessionmaker_for_test, {}, None, no_key))
+
+    @app.middleware("http")
+    async def _sign_in(request, call_next):
+        request.session["user"] = {"sub": "1", "email": "admin@example.com"}
+        return await call_next(request)
+
+    app.add_middleware(SessionMiddleware, secret_key="test-secret", https_only=False)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        response = await client.post("/api/comics/tags/generate")
+    assert response.status_code == 200
+    body = response.json()
+    assert (body["stopped"], body["ok"], body["calls"]) == ("no model", False, 0)
+    assert (await _tags(sessionmaker_for_test))["A"] == []
+
+
+async def test_the_run_stops_on_the_wall_clock(sessionmaker_for_test, monkeypatch):
+    for title in "ABCD":
+        await _series(sessionmaker_for_test, title)
+    now = [0.0]
+    monkeypatch.setattr(comics_routes, "_monotonic", lambda: now[0])
+
+    async def tick(_call: int) -> None:
+        now[0] += comics_routes.TAG_RUN_SECONDS / 2 + 1  # two calls fill the run
+
+    provider = StubProvider(on_call=tick)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/comics/tags/generate")).json()
+    assert (body["calls"], body["tagged"], body["stopped"]) == (2, 2, "time")
+    assert body["ok"] is True
+    assert body["waiting"] == 2

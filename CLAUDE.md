@@ -1005,7 +1005,12 @@ before pushing.
   items row's xmin, the `/api/public/next` fingerprint) and on
   `PublicComicRow`; `tags_edited` is never public. `facets_of` reads the
   curated tags as facets too (`("curated", "group/tag")` pairs from
-  `facets.snapshot_tags`), so a comic's "why this pick" reasons can name one.
+  `facets.snapshot_tags`) for a comic always, and for a game only when
+  `tags_edited` (IGDB stays an unedited game's source), so a comic's "why
+  this pick" reasons can name one. The comic job builds a Gemini-only
+  provider (`llm.build_free_provider`), gives each call 40 s, stops after
+  480 s (`stopped: "time"`), and answers `ok: false` when it stopped on
+  `"model error"` or `"no model"`.
   **After deploy:** apply `0018` to Neon before merging, then
   `POST /api/items/tags/backfill` once and `POST /api/comics/tags/generate`
   once, signed in (or with the job token for the second), or wait for the

@@ -28,12 +28,14 @@ export function noTags(type) {
  *
  * @param {string} type - 'game' or 'comic'.
  * @param {object[]} rows - The rows the chips count (unfiltered).
- * @param {{maxShare?: number, limit?: Record<string, number>, moreLabel?: Record<string, string>}} [options]
+ * @param {{maxShare?: number, selected?: Record<string, string|null|undefined>, limit?: Record<string, number>, moreLabel?: Record<string, string>}} [options]
  *   `maxShare` leaves out a chip that matches more than that share of the
- *   rows (none by default); `limit` caps a group's chips with a More… chip.
+ *   rows (none by default), except one in `selected` (the current choice),
+ *   which always stays so the filter can be undone; `limit` caps a group's
+ *   chips with a More… chip.
  */
 export function tagChipGroups(type, rows, options = {}) {
-  const { maxShare = null, limit = {}, moreLabel = {} } = options
+  const { maxShare = null, selected = {}, limit = {}, moreLabel = {} } = options
   return tagGroupsOf(type).map((group) => {
     const counted = group.tags
       .map((tag) => ({
@@ -42,7 +44,10 @@ export function tagChipGroups(type, rows, options = {}) {
         count: rows.filter((row) => has(row, group.key, tag.key)).length,
       }))
       .filter(
-        (option) => maxShare === null || option.count <= rows.length * maxShare,
+        (option) =>
+          maxShare === null ||
+          option.count <= rows.length * maxShare ||
+          selected[group.key] === option.value,
       )
       // The most common first, so a limit keeps the chips that narrow most.
       .sort((a, b) => b.count - a.count)

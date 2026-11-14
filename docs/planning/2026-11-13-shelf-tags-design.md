@@ -73,6 +73,12 @@ Done when: every public comic series has at least one tag a visitor can read; no
 - **Tags are keys, not words.** `items.tags` stores `{group: "play_style", tag: "open-world"}`; `content/tags.js` holds the words. `content/tagVocabulary.json` mirrors the keys so a backend test can hold the two together.
 - **There was no raw genre filter on the Games page to replace.** The tag groups were added beside Status and Platform. A chip over half the shelf is left out at runtime (`lib/tags.js`, `MAX_SHARE`), and a test holds the e2e fixture shelf to it; the real shelf's counts (Shooter 35 of 107 is the largest) are inside the rule.
 - **The item page's Platforms row lists every platform the game is on**, the owned one first-class and the others muted, in place of "Also on", which left the owned one out. Raw IGDB genres and themes no longer show there.
-- **`facets_of` reads curated tags for games as well as comics.** A game's tags map onto the facets IGDB already gave it, so nothing new appears until the owner edits a game's tags.
+- **`facets_of` reads curated tags for a comic always, and for a game only once `tags_edited` is true** (`picker_routes.to_picker_item`). IGDB stays an unedited game's source, so the backfill moves no game's picks (curated Strategy would otherwise add `game:form:strategy` to a Tactical game that IGDB reads as tactics).
 - **The Want route** (`recommendations_routes.py`) tags the game it creates too; it is a create path the plan did not list.
 - **Backfill reads stored snapshots** (no IGDB call), so a game whose snapshot predates a keyword IGDB has since added keeps its tags until it is refreshed.
+- **Review follow-ups done:** the comic job uses a Gemini-only provider (`llm.build_free_provider`, never the paid link whatever `LLM_PAID_FALLBACK` says), answers 200 with `stopped: "no model"` and `ok: false` when no model can be built, passes `budget_seconds=40` per call, stops starting calls after 480 s (`stopped: "time"`), and answers `ok: false` on `"model error"` and `"no model"` so the nightly's jq check warns. A PATCH that changes `type` without `tags` re-derives a game's tags from its snapshot (any other type: none) and clears `tags_edited`. A pressed tag chip is never dropped by the more-than-half rule.
+
+## Follow-ups
+
+- **Retry bound for unusable answers.** A series whose answer is unusable is retried every night. A counter needs a place to live: `source_metadata` is overwritten by a refresh, and the only key-value table (`closet_settings`) is the Closet's. Left for a migration of its own.
+- **Admin Games list tag chips** (filtering the admin shelf by tag) are not built; the edit page's picker is.
