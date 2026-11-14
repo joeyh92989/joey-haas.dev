@@ -473,7 +473,7 @@ before pushing.
   `curl -s https://api.joey-haas.dev/api/public/status` answers and the new
   routes answer (not 404) and `https://joey-haas.dev/` serves the new build
 - Smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`
-- Logs: Render dashboard → the API service's Logs (no CLI configured)
+- Logs: `./scripts/render-logs.sh 30 error` (errors in the last 30 minutes; exit 0 = none, 1 = entries, 2 = unreadable). Needs `RENDER_API_KEY` in the environment; run it after smoke and treat any entry newer than the deploy as new errors. Dashboard fallback: the API service's Logs
 - Rollback: revert the merge commit with a PR (Render redeploys); migrations
   stay (additive, safe ahead of the code). A schema rollback is a manual
   `alembic downgrade` after a Neon restore point (`backend/migrations/README.md`)
