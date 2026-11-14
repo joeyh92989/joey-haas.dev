@@ -824,8 +824,14 @@ describe('AdminCollection shelf', () => {
   it('reloads after a change so the card shows what the server saved', async () => {
     const mock = stubApi()
     await renderShelf()
+    // Only the list read counts. Other panels on the page (the intake
+    // sittings and kinds) also issue method-less GETs on their own schedule,
+    // so counting every GET made this a race against those effects.
     const reads = () =>
-      mock.mock.calls.filter(([, options]) => !options?.method).length
+      mock.mock.calls.filter(
+        ([url, options]) =>
+          !options?.method && String(url).endsWith('/api/items'),
+      ).length
 
     const before = reads()
     await userEvent.click(
