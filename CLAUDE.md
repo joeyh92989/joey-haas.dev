@@ -456,7 +456,7 @@ before pushing.
   - [x] 5. Comics: the book is what you own (5a intake reads the issue
         number, 5b ownership on the issue row, 5c one place to edit and a
         comic edit page)
-  - [ ] 6. Data clean-up of the 11–12 Nov rows and comic backfill (Joey's)
+  - [x] 6. Data clean-up of the 11–12 Nov rows and comic backfill (Joey's)
   - [ ] 7. Tags: a curated set per type
 
 ## Ship
