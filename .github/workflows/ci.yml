@@ -171,3 +171,74 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report/
           retention-days: 14
+
+  # The admin suite (#216): the same run as `npm run e2e:admin` locally, against
+  # a throwaway Postgres. Every credential is a dummy: the Playwright config
+  # sets the backend's env, and the sign-in test route is only mounted on an
+  # http://localhost FRONTEND_URL (config.py refuses to boot otherwise).
+  e2e-admin:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # Same pin as the backend job: Neon's version.
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/constraints.txt
+
+      - name: Install backend dependencies
+        run: pip install -r ../backend/requirements.txt -c ../backend/constraints.txt
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_DAILY_SALT: ci
+
+      # scripts/e2e-admin-db.mjs creates joeyhaas_e2e and runs alembic; the
+      # config then starts uvicorn and `vite preview`. E2E_BACKEND_BIN is the
+      # bin directory setup-python put uvicorn and alembic in.
+      - name: Run admin browser tests
+        run: |
+          export E2E_BACKEND_BIN="$(dirname "$(command -v uvicorn)")"
+          npm run e2e:admin
+        env:
+          CI: 'true'
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-admin
+          path: frontend/playwright-report-admin/
+          retention-days: 14

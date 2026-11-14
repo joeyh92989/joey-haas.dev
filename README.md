@@ -788,7 +788,7 @@ Known problems are tracked, not hidden:
   `#<number>`). An entry that no longer matches a violation fails the suite
   (one test per entry), so fixed ones get deleted.
 
-### Admin suite (local only)
+### Admin suite
 
 `npm run e2e:admin` (in `frontend/`) signs in as the admin against a real local
 backend and checks the main page of every area in `ADMIN_AREAS`: the
@@ -797,7 +797,8 @@ failed `/api/` request is an error here, so a 500 from our own API fails the
 test), and axe finds no new serious or critical violation (desktop only). It also
 checks that signing out returns to the signed-out admin page. Desktop and phone
 projects both run, about 1 minute in all. The database is empty, so this covers
-empty states, not populated data. It never runs in CI.
+empty states, not populated data. It runs locally and in CI (the `e2e-admin` job, on a `postgres:18` service with dummy credentials; the
+sign-in route keeps its localhost-only guard there).
 
 It needs:
 

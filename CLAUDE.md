@@ -37,7 +37,7 @@ backend, deployed on Render via Blueprint (render.yaml).
   (`vite.config.js` refuses a build without the daily game's salt)
 - Frontend tests: `cd frontend && npm test`
 - Browser tests: `cd frontend && VITE_DAILY_SALT=local npm run build && npm run e2e`
-- Admin browser tests (local only): `cd frontend && VITE_DAILY_SALT=local npm run build && npm run e2e:admin` (needs local Postgres and ports 8000/4173; README → Browser tests)
+- Admin browser tests (local, and the `e2e-admin` CI job): `cd frontend && VITE_DAILY_SALT=local npm run build && npm run e2e:admin` (needs local Postgres and ports 8000/4173; README → Browser tests)
 - Review screenshots: `cd frontend && npm run shots` (or `E2E_BASE_URL=https://joey-haas.dev npm run shots`)
 - Backend tests: `cd backend && ./.venv/bin/pytest`. One run at a time: every
   run drops and recreates the schema in the one local test database, so two
