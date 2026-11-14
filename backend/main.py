@@ -46,6 +46,7 @@ from sources.registry import build_registry, configured_sources
 from spots_candidates_routes import create_candidates_router
 from spots_routes import create_spots_router
 from spots_weekend_routes import create_weekend_router
+from version_route import create_version_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -239,6 +240,9 @@ app.include_router(
 app.include_router(create_public_router(session_factory))
 app.include_router(create_site_stats_router(session_factory, cache=summary_cache))
 app.include_router(create_track_router(session_factory, config.session_secret))
+
+
+app.include_router(create_version_router())
 
 
 @app.get("/api/health")

@@ -206,6 +206,15 @@ esac
 
 check_equals "GET /api/health" "$(curl -s -m 90 "$API_URL/api/health")" '{"status":"ok"}'
 
+# The deploy workflow polls this to learn which commit is live. Render sets
+# RENDER_GIT_COMMIT on every build; "unknown" means it did not, and a deploy
+# could then never be confirmed.
+version_commit="$(curl -s -m 90 "$API_URL/api/version" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')"
+case "$version_commit" in
+  [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*) report_pass "GET /api/version names the built commit" "$version_commit" ;;
+  *) report_fail "GET /api/version names the built commit" "got '$version_commit'" ;;
+esac
+
 check_equals "GET /api/auth/me unauthenticated" "$(http_status "$API_URL/api/auth/me")" "401"
 
 # The local-only test sign-in (backend/e2e_login.py) must not exist here. A 404
