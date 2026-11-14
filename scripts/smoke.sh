@@ -272,7 +272,9 @@ check_equals "GET /api/public/stats?type=game unauthenticated" \
 # added later would be published with no code change and nothing to notice it.
 # Defined before the first check that reads it: under `set -u` an unset one
 # fails inside the `if` and reads as a pass.
-PRIVATE_KEYS='"(notes|note|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|buyable|recommendation[a-z_]*)"'
+# Keys only (a trailing colon): a value can be the same word, e.g. the comic
+# tag group "based_on".
+PRIVATE_KEYS='"(notes|note|owned_format|is_public|source_metadata|similar_games|external_source|external_id|cart_id|format_source|region|acquired_at|pinned_at|store_listings|physical_editions|catalogue_[a-z_]*|price|snapshot|format_route|listing_ids|batch_id|based_on|reason_source|store_lines|hypes|ranked_by|model_note|based_on_titles|buyable|recommendation[a-z_]*)"[[:space:]]*:'
 
 # The play journal (migration 0007): the diary is public games only and
 # never the note; the journal itself is admin only. curl sends no Origin, so
@@ -305,7 +307,7 @@ check_equals "GET /api/public/spots unauthenticated" \
   "$(http_status "$API_URL/api/public/spots")" "200"
 spots_body="$(curl -s -m 90 "$API_URL/api/public/spots")"
 # Keys only (a trailing colon), so a spot named "Price" never trips it.
-if printf '%s' "$spots_body" | grep -qE "$PRIVATE_KEYS"':|"(id|anchor[a-z_]*|visits?|visited_on|distance[a-z_]*)":'; then
+if printf '%s' "$spots_body" | grep -qE "$PRIVATE_KEYS"'|"(id|anchor[a-z_]*|visits?|visited_on|distance[a-z_]*)":'; then
   report_fail "public spots expose no private fields" "found a private key"
 else
   report_pass "public spots expose no private fields" "pins only"
