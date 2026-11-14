@@ -1,5 +1,5 @@
 ---
-status: in progress
+status: shipped
 kind: feature
 mode: auto
 issue: 230

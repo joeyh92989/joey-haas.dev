@@ -147,18 +147,26 @@ const intake = (run = { at: hoursAgo(1), state: 'ok', ok: true, note: null }) =>
   run
 const intakeRow = (run) =>
   byKey(nightlyJobs(summary(), null, NOW, null, null, run)).intake
-const comicsRun = (run = { at: hoursAgo(1), state: 'ok', ok: true }) => run
-const comicsRow = (run) =>
-  byKey(nightlyJobs(summary(), null, NOW, null, null, null, run))[
-    'comic-issues'
-  ]
+const comicsRun = (run = { at: hoursAgo(1), state: 'ok', ok: true }) => ({
+  issues: run,
+  refresh: run,
+  tags: run,
+})
+const comicsRow = (run, key = 'comic-issues') => {
+  const which = { 'comic-issues': 'issues', 'comic-refresh': 'refresh' }[key]
+  return byKey(
+    nightlyJobs(summary(), null, NOW, null, null, null, {
+      [which ?? 'tags']: run,
+    }),
+  )[key]
+}
 const closetRow = (key, run) =>
   byKey(nightlyJobs(summary(), null, NOW, null, closet(run)))[key]
 const byKey = (jobs) => Object.fromEntries(jobs.map((job) => [job.key, job]))
 
 describe('the Comic issues row', () => {
   it('reads an ok run as synced', () => {
-    const row = comicsRow(comicsRun())
+    const row = comicsRow({ at: hoursAgo(1), state: 'ok', ok: true })
     expect(row.state).toBe('ok')
     expect(row.summary).toBe('Every series synced')
     expect(row.runNow).toBe('/admin/pull-list')
@@ -205,8 +213,67 @@ describe('the Comic issues row', () => {
   })
 })
 
+describe('the Comic refresh row', () => {
+  const row = (run) => comicsRow(run, 'comic-refresh')
+
+  it('reads an ok run as refreshed', () => {
+    const r = row({ at: hoursAgo(1), state: 'ok', ok: true })
+    expect(r.state).toBe('ok')
+    expect(r.summary).toBe('Followed series refreshed')
+    expect(r.runNow).toBe('/admin/pull-list')
+  })
+
+  it('reads a failed run as failed, with its note', () => {
+    const r = row({
+      at: hoursAgo(1),
+      state: 'failed',
+      ok: false,
+      note: '1 of 3 series failed: Saga: HTTP 500',
+    })
+    expect(r.state).toBe('failed')
+    expect(r.summary).toBe('Failed: 1 of 3 series failed: Saga: HTTP 500')
+  })
+
+  it('reads no run as No run recorded', () => {
+    expect(row(null).summary).toBe('No run recorded')
+  })
+})
+
+describe('the Comic tags row', () => {
+  const row = (run) => comicsRow(run, 'comic-tags')
+
+  it('reads an ok run as tagged', () => {
+    const r = row({ at: hoursAgo(1), state: 'ok', ok: true })
+    expect(r.state).toBe('ok')
+    expect(r.summary).toBe('Series tagged')
+    expect(r.runNow).toBe('/admin/shelf/comics')
+    expect(r.runWords).toBe('Open Comics')
+  })
+
+  it('says the budget ran out on a partial run, and stays ok', () => {
+    const r = row({ at: hoursAgo(1), state: 'partial', ok: true })
+    expect(r.state).toBe('ok')
+    expect(r.summary).toBe('Budget spent; the rest tag tomorrow')
+  })
+
+  it('reads a model stop as failed, with its reason', () => {
+    const r = row({
+      at: hoursAgo(1),
+      state: 'failed',
+      ok: false,
+      note: 'Tagging stopped: B: 429 quota',
+    })
+    expect(r.state).toBe('failed')
+    expect(r.summary).toBe('Failed: Tagging stopped: B: 429 quota')
+  })
+
+  it('reads no run as No run recorded', () => {
+    expect(row(null).state).toBe('unknown')
+  })
+})
+
 describe('nightlyJobs', () => {
-  it('lists the eleven jobs, all ok', () => {
+  it('lists the thirteen jobs, all ok', () => {
     const jobs = nightlyJobs(
       summary(),
       hoursAgo(1),
@@ -226,7 +293,9 @@ describe('nightlyJobs', () => {
       'closet-plans',
       'closet-opinions',
       'intake',
+      'comic-refresh',
       'comic-issues',
+      'comic-tags',
       'snapshot',
     ])
     expect(jobs.every((job) => job.state === 'ok')).toBe(true)
@@ -241,6 +310,8 @@ describe('nightlyJobs', () => {
       '/admin/closet/review',
       '/admin/collection/add',
       '/admin/pull-list',
+      '/admin/pull-list',
+      '/admin/shelf/comics',
       null,
     ])
   })

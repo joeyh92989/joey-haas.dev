@@ -920,7 +920,11 @@ before pushing.
   nightly finishes longer runs). Each run of the
   sync is a `catalogue_runs` row (source `comic_issues`), read by `GET
   /api/comics/status` (admin only, not in `JOB_ROUTES`) for the Jobs page's
-  Comic issues row. An
+  Comic issues row. The followed refresh (`comic_refresh`) and the tag job
+  (`comic_tags`, partial when the budget or time ran out with series left,
+  failed on a model stop, no model or an exception) are recorded the same
+  way, and the same read returns `issues.last_run`, `refresh.last_run` and
+  `tags.last_run` for the Comic refresh, Comic issues and Comic tags rows. An
   edition links to its Comic Vine issue by `cv_id` (`GET
   /api/comics/issues/search`, `PUT /api/comics/{id}/editions/{slug}/link`);
   an edit that changes the edition's range changes its slug and unlinks it.

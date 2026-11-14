@@ -88,13 +88,20 @@ async function intakeRun() {
   }
 }
 
-/** The comic issue sync's last run, or null when it cannot be read. */
+/**
+ * The comic jobs' last runs (issue sync, followed refresh, tags) from one
+ * read, each null before its first run; null when it cannot be read.
+ */
 async function comicsRun() {
   try {
     const response = await apiFetch('/api/comics/status')
     if (!response.ok) return null
     const body = await response.json()
-    return body?.['issues.last_run'] ?? null
+    return {
+      issues: body?.['issues.last_run'] ?? null,
+      refresh: body?.['refresh.last_run'] ?? null,
+      tags: body?.['tags.last_run'] ?? null,
+    }
   } catch {
     return null
   }

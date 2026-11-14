@@ -419,7 +419,11 @@ async def test_status_is_null_before_any_run(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test, PagingComicVine()) as client:
         response = await client.get("/api/comics/status")
     assert response.status_code == 200
-    assert response.json() == {"issues.last_run": None}
+    assert response.json() == {
+        "issues.last_run": None,
+        "refresh.last_run": None,
+        "tags.last_run": None,
+    }
 
 
 async def test_status_is_admin_only(sessionmaker_for_test):
