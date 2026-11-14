@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-13
 
+- Every [comic series](/shelf/comics) on my shelf now says which books I actually own, including the four Creepshow trades and the single issues of the rest.
 - On a [comic series page](/shelf/comics) I can now tap a cover to mark an issue owned, read or missing again, with an Undo, and the issue page does the same thing. Read is now kept for each issue instead of one marker for the whole series. Comics also have their own edit page in my admin, and a series page shows the same facts it does: description, publisher, years and how many issues Comic Vine lists.
 - Each comic issue now records whether I own it, have read it and skipped it, instead of that living only in the ranges on the series. Nothing on the site looks different yet; the next change builds on it.
 - When I photograph comics for the shelf, each book now comes out as its own entry with the issue number read off the cover, so four photos of Waterworld #1 to #4 add issues 1 to 4 to the series. I can fix a number that was read wrong or type one it couldn’t read, and a collected edition is added as a book.
