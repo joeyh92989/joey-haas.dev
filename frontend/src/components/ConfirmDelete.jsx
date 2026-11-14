@@ -21,6 +21,8 @@ import { useEffect, useId, useRef, useState } from 'react'
  *   name and what goes with it (docs/design-system.md, One of each).
  * @param {boolean} [props.ready]  False holds the confirming button off
  *   while `detail` is still being read, or could not be.
+ * @param {boolean} [props.disabled]  Disables the first button (the page is busy
+ *   or there is nothing to act on).
  * @param {() => void} [props.onArm]  Called when the first button is
  *   pressed, so the page can fetch `detail`.
  */
@@ -34,6 +36,7 @@ export default function ConfirmDelete({
   intro,
   detail,
   ready = true,
+  disabled = false,
   onArm,
 }) {
   const detailId = useId()
@@ -115,6 +118,7 @@ export default function ConfirmDelete({
       type="button"
       ref={deleteRef}
       className={className}
+      disabled={disabled}
       aria-label={name ?? (subject ? `${label} ${subject}` : undefined)}
       onClick={() => {
         setConfirming(true)

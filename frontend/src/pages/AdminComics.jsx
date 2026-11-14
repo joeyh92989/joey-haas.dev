@@ -8,10 +8,12 @@ import FilterChips from '../components/FilterChips.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import ResultBar from '../components/ResultBar.jsx'
+import ConfirmDelete from '../components/ConfirmDelete.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import { RunKey } from '../components/RunLanes.jsx'
 import SortControl from '../components/SortControl.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
+import { publishAllDetail } from '../content/shelfPublish.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import {
@@ -315,15 +317,9 @@ export default function AdminComics() {
 
   /**
    * Publishes or hides every comic series in one request, by id: the bulk
-   * route would otherwise take every type. Publishing asks first.
+   * route would otherwise take every type. Publishing asks first, inline (ConfirmDelete on its button).
    */
   async function setAllVisibility(isPublic) {
-    if (
-      isPublic &&
-      !window.confirm(`Publish all ${rows.length} comic series to My Shelf?`)
-    ) {
-      return
-    }
     await write(
       () =>
         apiFetch('/api/items/visibility', {
@@ -380,14 +376,20 @@ export default function AdminComics() {
       </Link>
       {ready && (
         <>
-          <button
-            type="button"
+          <ConfirmDelete
             className="btn sm"
+            label={`Publish all ${rows.length}`}
+            subject={`${rows.length} comic series`}
+            name={`Publish all ${rows.length}`}
+            confirmLabel="Yes, publish"
+            detail={publishAllDetail(
+              rows.length,
+              'comic series',
+              'comic series',
+            )}
             disabled={busy || publicCount === rows.length}
-            onClick={() => setAllVisibility(true)}
-          >
-            Publish all {rows.length}
-          </button>
+            onConfirm={() => setAllVisibility(true)}
+          />
           <button
             type="button"
             className="btn sm"

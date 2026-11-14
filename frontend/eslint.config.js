@@ -40,6 +40,23 @@ export default [
     },
     rules: {
       ...reactHooks.configs.flat.recommended.rules,
+      // Browser dialogs are refused in the Artifact and e2e environments and
+      // are not accessible; confirm in place with ConfirmDelete (#233).
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'confirm',
+          message: 'Use ConfirmDelete or ShelfConfirm, not a browser dialog.',
+        },
+      ],
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'window',
+          property: 'confirm',
+          message: 'Use ConfirmDelete or ShelfConfirm, not a browser dialog.',
+        },
+      ],
     },
   },
 
