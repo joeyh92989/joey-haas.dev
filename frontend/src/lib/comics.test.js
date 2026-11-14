@@ -11,6 +11,7 @@ import {
   publishersByCount,
   runCount,
   searchComics,
+  monthYear,
   shortDate,
   sortComics,
 } from './comics.js'
@@ -56,6 +57,11 @@ describe('labels', () => {
 
   it('dates in UTC, so a week never shifts a day', () => {
     expect(shortDate('2026-11-11')).toBe('Nov 11')
+  })
+
+  it('captions a cover with month and year, in UTC', () => {
+    expect(monthYear('1997-08-01')).toBe('Aug 1997')
+    expect(monthYear('2026-12-31')).toBe('Dec 2026')
   })
 })
 

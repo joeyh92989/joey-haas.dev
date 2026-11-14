@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { spine } from '../content/spine.js'
-import { shortDate } from '../lib/comics.js'
+import { monthYear } from '../lib/comics.js'
 import { editionPath, issuePath } from '../lib/spinePaths.js'
 import CoverImage from './CoverImage.jsx'
 
@@ -47,7 +47,7 @@ export default function CoverTile({
 }) {
   if (tile.kind === 'book')
     return <BookLink tile={tile} series={series} linked={linked} />
-  const date = tile.store_date ? shortDate(tile.store_date) : null
+  const date = tile.store_date ? monthYear(tile.store_date) : null
   if (tile.kind === 'not-out') {
     return (
       <div className="cover-tile" data-size={size} data-state="not-out">

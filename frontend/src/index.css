@@ -9218,6 +9218,45 @@ a.cover-tile-cap:focus-visible span {
   }
 }
 
+/* The edit pages' tag picker: a borderless group across the whole form
+   grid, one wrapping row of chips per vocabulary group. Without this the
+   fieldset kept its default border and min-content width and stacked the
+   chips one to a line (browser check, #234). */
+.tag-picker {
+  border: 0;
+  display: grid;
+  gap: var(--space-3);
+  grid-column: 1 / -1;
+  margin: var(--space-2) 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.tag-picker legend {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.tag-picker .comic-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.tag-picker .ctl-row {
+  grid-template-columns: 6rem minmax(0, 1fr);
+}
+
+.tag-picker .chip-row {
+  -webkit-mask-image: none;
+  flex-wrap: wrap;
+  margin-top: 0;
+  mask-image: none;
+  overflow-x: visible;
+  padding: 0;
+}
+
 /* Pick for me (Pick for me spec): the band on What's next. */
 .pick-note:empty {
   margin: 0;
