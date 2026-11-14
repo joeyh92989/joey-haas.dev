@@ -107,6 +107,18 @@ Show: All, Missing), written the page-level way: a visible label naming
 what it filters, `aria-pressed` on the chips, counts in each. It filters the
 section only and is not saved.
 
+## Tags
+
+A tag is a curated word from its type's vocabulary (`backend/tags.py`,
+`content/tags.js`), never a raw source genre. Tags are drawn in labelled
+groups (Play style, Setting and Tone for a game; Genre, Based on and Form for
+a comic) and are never mixed with platforms, which are their own labelled
+row ("Platforms") on the item page. A list filters by tags with labelled chip
+rows (`FilterChips labelled`, counted from the unfiltered list). A chip that
+would match more than half of the Games shelf is left out, because it narrows
+nothing, and a test holds the page to it. The owner edits tags with the
+`TagPicker` on the edit page, and saving them keeps them.
+
 ## The source line
 
 Text that comes from Comic Vine says so under it, in the smallest type:

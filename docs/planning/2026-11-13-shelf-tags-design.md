@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: feature
 mode: auto (Joey approved the tag sets and public-at-once, 13 Nov 2026)
 ---
@@ -63,3 +63,16 @@ LLM requests: 12 once, then about 1 per new comic series per night. No paid fall
 Ship: apply `0018` to Neon before merging, merge, then run the game backfill and the comic job once from the signed-in session. Record the per-group counts and the comic tags.
 
 Done when: every public comic series has at least one tag a visitor can read; no filter chip on the Games page matches more than half the shelf; the item page shows genres and platforms as separate, labelled groups.
+
+## Deviations
+
+- **Public pins are in `test_public.py`, not `test_public_outputs.py`.** The list and detail field sets (`LIST_FIELDS`, `DETAIL_FIELDS`, `NEVER_PUBLIC`) live there, so `tags` joined them and `tags_edited` joined `NEVER_PUBLIC`. `test_public_comics.py` pins `tags` on the comics rows (`PublicComicRow`), which the Comics page reads, and `test_public_next_cache.py` holds that a tag write moves the `/api/public/next` fingerprint.
+- **The comic job tags public series only.** Private rows (a followed-only series) would spend free-tier calls on tags nobody can see. A series that is published later is tagged the next night.
+- **The job's `budget` is a number of series** (1 to 50, default 12), bounded by what `intake/budget.remaining` leaves today. It answers `{tagged, failed, calls, budget, waiting, stopped, series, errors}`. The nightly step has no Jobs-page row.
+- **The prompt carries the first-published year and the issue count**, not a year range: Comic Vine's volume record has a start year and a count, and the count is what tells a mini-series from an ongoing one.
+- **Tags are keys, not words.** `items.tags` stores `{group: "play_style", tag: "open-world"}`; `content/tags.js` holds the words. `content/tagVocabulary.json` mirrors the keys so a backend test can hold the two together.
+- **There was no raw genre filter on the Games page to replace.** The tag groups were added beside Status and Platform. A chip over half the shelf is left out at runtime (`lib/tags.js`, `MAX_SHARE`), and a test holds the e2e fixture shelf to it; the real shelf's counts (Shooter 35 of 107 is the largest) are inside the rule.
+- **The item page's Platforms row lists every platform the game is on**, the owned one first-class and the others muted, in place of "Also on", which left the owned one out. Raw IGDB genres and themes no longer show there.
+- **`facets_of` reads curated tags for games as well as comics.** A game's tags map onto the facets IGDB already gave it, so nothing new appears until the owner edits a game's tags.
+- **The Want route** (`recommendations_routes.py`) tags the game it creates too; it is a create path the plan did not list.
+- **Backfill reads stored snapshots** (no IGDB call), so a game whose snapshot predates a keyword IGDB has since added keeps its tags until it is refreshed.

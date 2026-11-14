@@ -21,7 +21,8 @@ mkdir -p public/snapshot && cp e2e/fixtures/snapshot/*.json public/snapshot/
 VITE_DAILY_SALT=ci npm run build && npm run e2e
 ```
 
-- `items.json` has 32 items: one finished game (gives the year and month
+- `items.json` has 32 items, each with a few `tags` (the Games page's tag
+  chips read them): one finished game (gives the year and month
   pages), one comic series, and 30 filler games. The prerender refuses a
   build when fewer than 30 games are eligible for the daily puzzle
   (`MIN_POOL` in `src/lib/daily.js`).
