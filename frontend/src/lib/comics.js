@@ -68,6 +68,19 @@ export function shortDate(iso) {
   return DAY_MONTH.format(new Date(Date.UTC(year, month - 1, day)))
 }
 
+const MONTH_YEAR = new Intl.DateTimeFormat('en', {
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+
+/** "Aug 1997" for an ISO date: a cover's caption, where a back issue's year
+ *  matters and the day does not (the approved cover-wall mockup). */
+export function monthYear(iso) {
+  const [year, month, day] = iso.split('-').map(Number)
+  return MONTH_YEAR.format(new Date(Date.UTC(year, month - 1, day)))
+}
+
 /** "54 / 72+", the `+` marking a series still coming out. */
 export function runCount({ owned, released, ongoing }, separator = ' / ') {
   return `${owned}${separator}${released}${ongoing ? '+' : ''}`

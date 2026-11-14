@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { spine } from '../content/spine.js'
-import { expandRanges, shortDate } from '../lib/comics.js'
+import { expandRanges, monthYear } from '../lib/comics.js'
 import { wallTiles } from '../lib/coverWall.js'
 import { issuePath } from '../lib/spinePaths.js'
 import CoverImage from './CoverImage.jsx'
@@ -28,7 +28,7 @@ const NEXT = {
  */
 function OwnerTile({ tile, series, onTap, linked }) {
   const next = NEXT[tile.state]
-  const date = tile.store_date ? shortDate(tile.store_date) : null
+  const date = tile.store_date ? monthYear(tile.store_date) : null
   const stateWord = WALL.names[tile.state]
   return (
     <div className="cover-tile" data-size="wall" data-state={tile.state}>

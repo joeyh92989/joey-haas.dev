@@ -553,7 +553,7 @@ export default function AdminComic() {
             <ShelfConfirm
               ids={[id]}
               title={item.title}
-              className="danger"
+              className="btn danger"
               onConfirm={remove}
             />
           </Panel>
