@@ -604,3 +604,22 @@ async def test_a_read_mark_on_an_issue_row_moves_the_fingerprint(
     async with sessionmaker_for_test() as session:
         after = await next_fingerprint(session, NOW)
     assert before != after
+
+
+async def test_a_tag_write_moves_the_fingerprint(sessionmaker_for_test, seeded):
+    """Tags are on the item row, so a tag written with SQL by hand changes its
+    xmin and the fingerprint with it: no second source to join."""
+    async with sessionmaker_for_test() as session:
+        before = await next_fingerprint(session, NOW)
+    async with sessionmaker_for_test() as session:
+        await session.execute(
+            text(
+                'UPDATE items SET tags = \'[{"group": "tone", "tag": "comedy"}]\' '
+                "WHERE id = :id"
+            ),
+            {"id": seeded["wanted"].id},
+        )
+        await session.commit()
+    async with sessionmaker_for_test() as session:
+        after = await next_fingerprint(session, NOW)
+    assert before != after

@@ -179,7 +179,7 @@ def to_picker_item(
         journal_minutes=journal_minutes,
         run_started_on=run_started_on,
         source=item.external_source,
-        tags=snapshot_tags(snapshot),
+        tags=snapshot_tags(snapshot, item.tags),
         issues_owned_count=issues_owned_count,
         issues_read=issues_read,
         issues_span=issues_span,
