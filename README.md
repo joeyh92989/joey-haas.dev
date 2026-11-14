@@ -484,6 +484,12 @@ worktree's database when you remove the worktree: list them with
 `psql -l | grep joeyhaas_test` and run `psql -c 'DROP DATABASE <name>' postgres`.
 An explicit `TEST_DATABASE_URL` is never created for you.
 
+The schema is built from the models once per run; each test then starts by
+truncating every table (`RESTART IDENTITY CASCADE`), so it still begins on an
+empty database but skips the 0.3-0.6 s rebuild that was most of the suite's
+time. A test that replaces the schema itself (the migration tests) must call
+`conftest.mark_schema_dirty()`, so the next test rebuilds it.
+
 With no database reachable the collection tests **skip**, so the rest of the
 suite still runs. In CI they cannot skip — an unreachable database is a hard
 error there, or "green" would come to mean "did not run".
