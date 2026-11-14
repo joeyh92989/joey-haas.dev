@@ -214,3 +214,73 @@ def test_the_coverage_script_reads_the_export_and_applies_its_floor():
     }
     assert script.report(body, 2, None) == ["   2  igdb  keywords  luigi"]
     assert len(script.report(body, 1, 1)) == 1
+
+
+def _tagged(item_type, *stored, source=None, tags=()):
+    """An item carrying stored curated tags, as picker_routes builds them."""
+    return SimpleNamespace(
+        type=item_type,
+        source=source,
+        tags=snapshot_tags(None, [{"group": g, "tag": t} for g, t in stored]) + tags,
+    )
+
+
+def test_a_comics_curated_genres_read_as_the_shared_facets():
+    comic = _tagged(
+        "comic",
+        ("genre", "horror"),
+        ("genre", "sci-fi"),
+        ("genre", "superhero"),
+        ("based_on", "movie"),
+        ("form", "ongoing"),
+    )
+    assert facets_of(comic) == {"horror", "science fiction", "comic:tag:superhero"}
+
+
+def test_a_games_curated_tags_read_as_the_same_facets_igdb_gives_it():
+    game = _tagged(
+        "game",
+        ("play_style", "shooter"),
+        ("play_style", "open-world"),
+        ("play_style", "story-led"),
+        ("setting", "historical"),
+        ("tone", "comedy"),
+        ("tone", "family"),
+    )
+    assert facets_of(game) == {
+        "game:form:shooter",
+        "game:form:open world",
+        "history",
+        "comedy",
+    }
+
+
+def test_curated_and_source_facets_meet_in_one_set():
+    game = _tagged(
+        "game",
+        ("setting", "horror"),
+        source="igdb",
+        tags=(("themes", "Horror"), ("genres", "Platform")),
+    )
+    assert facets_of(game) == {"horror", "game:form:platformer"}
+
+
+def test_every_curated_word_is_in_the_vocabulary():
+    import tags as vocab
+
+    for table, item_type in (
+        (facets._CURATED_GAME, "game"),
+        (facets._CURATED_COMIC, "comic"),
+    ):
+        allowed = {(g, t) for g, ts in vocab.VOCABULARY[item_type] for t in ts}
+        assert set(table) <= allowed
+    comic_genres = dict(vocab.VOCABULARY["comic"])["genre"]
+    assert set(facets._CURATED_COMIC_OWN) <= set(comic_genres)
+
+
+def test_an_unknown_curated_value_adds_nothing_and_coverage_ignores_it():
+    odd = SimpleNamespace(
+        type="comic", source=None, tags=(("curated", "genre/nonsense"),)
+    )
+    assert facets_of(odd) == frozenset()
+    assert coverage([odd]) == []

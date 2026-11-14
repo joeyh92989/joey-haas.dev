@@ -16,7 +16,17 @@
     "finished_at": "2025-03-14",
     "finishes": ["2025-03-14"],
     "times_completed": 1,
-    "time_to_beat_hours": 12
+    "time_to_beat_hours": 12,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "shooter"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      }
+    ]
   },
   {
     "type": "comic",
@@ -33,7 +43,17 @@
     "description": "An invented comic series for the test fixture.",
     "finished_at": null,
     "finishes": [],
-    "times_completed": 0
+    "times_completed": 0,
+    "tags": [
+      {
+        "group": "genre",
+        "tag": "horror"
+      },
+      {
+        "group": "form",
+        "tag": "ongoing"
+      }
+    ]
   },
   {
     "type": "game",
@@ -52,7 +72,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "rpg"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -71,7 +101,13 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "puzzle"
+      }
+    ]
   },
   {
     "type": "game",
@@ -90,7 +126,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "platformer"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      }
+    ]
   },
   {
     "type": "game",
@@ -109,7 +155,21 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "racing"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      },
+      {
+        "group": "tone",
+        "tag": "comedy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -128,7 +188,13 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "shooter"
+      }
+    ]
   },
   {
     "type": "game",
@@ -147,7 +213,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "rpg"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      }
+    ]
   },
   {
     "type": "game",
@@ -166,7 +242,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "puzzle"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -185,7 +271,13 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "platformer"
+      }
+    ]
   },
   {
     "type": "game",
@@ -204,7 +296,21 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "racing"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      },
+      {
+        "group": "tone",
+        "tag": "comedy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -223,7 +329,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "shooter"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -242,7 +358,13 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "rpg"
+      }
+    ]
   },
   {
     "type": "game",
@@ -261,7 +383,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "puzzle"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      }
+    ]
   },
   {
     "type": "game",
@@ -280,7 +412,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "platformer"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -299,7 +441,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "racing"
+      },
+      {
+        "group": "tone",
+        "tag": "comedy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -318,7 +470,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "shooter"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      }
+    ]
   },
   {
     "type": "game",
@@ -337,7 +499,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "rpg"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -356,7 +528,13 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "puzzle"
+      }
+    ]
   },
   {
     "type": "game",
@@ -375,7 +553,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "platformer"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      }
+    ]
   },
   {
     "type": "game",
@@ -394,7 +582,21 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "racing"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      },
+      {
+        "group": "tone",
+        "tag": "comedy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -413,7 +615,13 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "shooter"
+      }
+    ]
   },
   {
     "type": "game",
@@ -432,7 +640,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "rpg"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      }
+    ]
   },
   {
     "type": "game",
@@ -451,7 +669,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "puzzle"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -470,7 +698,13 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "platformer"
+      }
+    ]
   },
   {
     "type": "game",
@@ -489,7 +723,21 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "racing"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      },
+      {
+        "group": "tone",
+        "tag": "comedy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -508,7 +756,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "shooter"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -527,7 +785,13 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "rpg"
+      }
+    ]
   },
   {
     "type": "game",
@@ -546,7 +810,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "puzzle"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      }
+    ]
   },
   {
     "type": "game",
@@ -565,7 +839,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "platformer"
+      },
+      {
+        "group": "setting",
+        "tag": "fantasy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -584,7 +868,17 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "racing"
+      },
+      {
+        "group": "tone",
+        "tag": "comedy"
+      }
+    ]
   },
   {
     "type": "game",
@@ -603,6 +897,16 @@
     "finished_at": null,
     "finishes": [],
     "times_completed": 0,
-    "time_to_beat_hours": 5
+    "time_to_beat_hours": 5,
+    "tags": [
+      {
+        "group": "play_style",
+        "tag": "shooter"
+      },
+      {
+        "group": "setting",
+        "tag": "sci-fi"
+      }
+    ]
   }
 ]

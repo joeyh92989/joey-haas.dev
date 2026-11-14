@@ -491,6 +491,72 @@ IGNORED_TAGS = frozenset(
     }
 )
 
+# Curated tags (tags.py) the owner or a model chose, read as facets so a comic
+# gets "why this pick" reasons too. (item type, group, tag) -> facet; a tag
+# with no entry says nothing about taste (Based on, Form, Family, Drama) and
+# adds no facet. A mapped name that is a form facet is stored type-scoped.
+_CURATED_GAME = {
+    **{
+        ("play_style", tag): facet
+        for tag, facet in {
+            "shooter": "shooter",
+            "rpg": "rpg",
+            "platformer": "platformer",
+            "open-world": "open world",
+            "puzzle": "puzzle",
+            "strategy": "strategy",
+            "racing": "racing",
+            "simulation": "simulation",
+            "survival": "survival",
+            "party": "party",
+            "beat-em-up": "beat 'em up",
+            "stealth": "stealth",
+            "fighting": "fighting",
+            "sports": "sports",
+            "metroidvania": "metroidvania",
+            "roguelike": "roguelike",
+            "soulslike": "soulslike",
+        }.items()
+    },
+    ("setting", "sci-fi"): "science fiction",
+    ("setting", "fantasy"): "fantasy",
+    ("setting", "horror"): "horror",
+    ("setting", "mystery"): "mystery",
+    ("setting", "war"): "war",
+    ("setting", "historical"): "history",
+    ("tone", "comedy"): "comedy",
+}
+_CURATED_COMIC = {
+    ("genre", "horror"): "horror",
+    ("genre", "sci-fi"): "science fiction",
+    ("genre", "fantasy"): "fantasy",
+    ("genre", "crime"): "crime",
+    ("genre", "comedy"): "comedy",
+    ("genre", "war"): "war",
+    ("genre", "romance"): "romance",
+    ("genre", "post-apocalyptic"): "post-apocalyptic",
+}
+CURATED = "curated"
+# Comic genres no shared facet names: type-scoped words of their own.
+_CURATED_COMIC_OWN = ("action", "superhero", "western")
+
+
+def curated_pair(group: str, tag: str) -> tuple[str, str]:
+    """A stored tag as the (kind, value) pair an item's tags tuple carries."""
+    return (CURATED, f"{group}/{tag}")
+
+
+def _curated_facet(item_type: str, value: str) -> str | None:
+    group, _, tag = value.partition("/")
+    table = {"game": _CURATED_GAME, "comic": _CURATED_COMIC}.get(item_type, {})
+    name = table.get((group, tag))
+    if name is None:
+        if item_type == "comic" and group == "genre" and tag in _CURATED_COMIC_OWN:
+            return f"comic:tag:{tag}"
+        return None
+    return f"{item_type}:form:{name}" if name in FORM_FACETS else name
+
+
 _SINGULAR = {
     "genres": "genre",
     "themes": "theme",
@@ -510,18 +576,27 @@ class Tagged(Protocol):
     tags: tuple[tuple[str, str], ...]
 
 
-def snapshot_tags(snapshot: dict | None) -> tuple[tuple[str, str], ...]:
-    """Every (snapshot key, string) pair a source snapshot carries, in order.
+def snapshot_tags(
+    snapshot: dict | None, curated: Iterable[dict] | None = None
+) -> tuple[tuple[str, str], ...]:
+    """Every (snapshot key, string) pair a source snapshot carries, in order,
+    then the item's curated tags as ("curated", "group/tag").
 
     Strings only: IGDB's similar_games are ids and live elsewhere.
     """
-    if not isinstance(snapshot, dict):
-        return ()
     pairs: list[tuple[str, str]] = []
-    for kind in TAG_KINDS:
-        values = snapshot.get(kind)
-        if isinstance(values, list):
-            pairs.extend((kind, v) for v in values if isinstance(v, str) and v)
+    if isinstance(snapshot, dict):
+        for kind in TAG_KINDS:
+            values = snapshot.get(kind)
+            if isinstance(values, list):
+                pairs.extend((kind, v) for v in values if isinstance(v, str) and v)
+    for entry in curated or ():
+        if (
+            isinstance(entry, dict)
+            and isinstance(entry.get("group"), str)
+            and isinstance(entry.get("tag"), str)
+        ):
+            pairs.append(curated_pair(entry["group"], entry["tag"]))
     return tuple(pairs)
 
 
@@ -568,11 +643,15 @@ def facet_for(item_type: str, source: str | None, kind: str, value: str) -> str:
 def facets_of(item: Tagged) -> frozenset[str]:
     """The item's facets: mapped where the map knows the tag, type-scoped
     where it does not, and nothing for ignored or untracked kinds."""
-    return frozenset(
+    found = {
         facet_for(item.type, item.source, kind, value)
         for kind, value in item.tags
         if kind in _SINGULAR and not is_ignored(value)
-    )
+    }
+    for kind, value in item.tags:
+        if kind == CURATED and (facet := _curated_facet(item.type, value)):
+            found.add(facet)
+    return frozenset(found)
 
 
 def specificity(items: Iterable[Tagged]) -> dict[str, float]:

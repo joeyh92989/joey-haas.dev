@@ -58,6 +58,7 @@ from radar_load import (
 )
 from sources.base import SourceError
 from sources.igdb import PLATFORM_NAMES
+from tags import game_tags
 
 logger = logging.getLogger(__name__)
 
@@ -620,6 +621,7 @@ def create_recommendations_router(
         )
         values = payload.model_dump()
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
+        values["tags"] = game_tags(snapshot)
         item = Item(**values)
         if (
             row.physical_format is not None

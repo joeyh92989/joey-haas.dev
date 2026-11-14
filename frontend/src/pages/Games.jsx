@@ -21,6 +21,7 @@ import {
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
+import { tagMoreLabels } from '../content/tags.js'
 import { dailyPool } from '../lib/daily.js'
 import { formatDate, ownerYear } from '../lib/formatDate.js'
 import { STALE_HOURS } from '../lib/nightly.js'
@@ -40,6 +41,13 @@ import {
   writeShelfPref,
 } from '../lib/shelf.js'
 import { itemPath } from '../lib/spinePaths.js'
+import {
+  MAX_SHARE,
+  filterByTags,
+  hasTagFilter,
+  noTags,
+  tagChipGroups,
+} from '../lib/tags.js'
 import { bandCounts } from '../lib/next.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 
@@ -50,6 +58,9 @@ const games = spine.games
 const SIZES = ['comfortable', 'compact']
 const SKELETON_CARDS = 12
 const NO_ITEMS = []
+const NO_GAME_FILTER = { ...NO_FILTER, ...noTags('game') }
+// More play styles than a row holds: the commonest show, the rest open.
+const TAG_LIMITS = { play_style: 8 }
 
 /** Whether the catalog was last refreshed over STALE_HOURS ago (or never). */
 function isStale(refreshedAt, now) {
@@ -115,7 +126,7 @@ export default function Games() {
     itemsRead.retry()
     if (statsRead.failed) statsRead.retry()
   }
-  const [filters, setFilters] = useState(NO_FILTER)
+  const [filters, setFilters] = useState(NO_GAME_FILTER)
   // The site search's no-match link lands here as /shelf?q=… (redirected to
   // /shelf/games?q=…), also from the page itself, where it stays mounted: a
   // new q replaces the query. Never written back, so typing does not rewrite
@@ -191,6 +202,16 @@ export default function Games() {
       })),
     },
   ]
+  // Curated tags, not IGDB's raw genres: a chip that matches more than half
+  // the shelf narrows nothing, so it is left out (lib/tags.js).
+  groups.push(
+    ...tagChipGroups('game', items, {
+      maxShare: MAX_SHARE,
+      limit: TAG_LIMITS,
+      selected: filters,
+      moreLabel: tagMoreLabels,
+    }),
+  )
   const platforms = platformGroup(items)
   if (platforms) groups.push(platforms)
   const toggles = [
@@ -201,14 +222,19 @@ export default function Games() {
     },
   ]
   const visible = sortItems(
-    filterItems(searchItems(items, query), filters),
+    filterByTags(
+      filterItems(searchItems(items, query), filters),
+      'game',
+      filters,
+    ),
     sort.value,
     sort.direction,
     seed,
   )
   const filtered =
     query.trim() !== '' ||
-    Object.keys(NO_FILTER).some((key) => filters[key] !== NO_FILTER[key])
+    Object.keys(NO_FILTER).some((key) => filters[key] !== NO_FILTER[key]) ||
+    hasTagFilter('game', filters)
   const pagingKey = JSON.stringify([filters, query.trim(), sort, seed])
   const tonightTitle = next ? bandCounts(next).tonight : null
   const months = lastTwelveMonths()
@@ -217,7 +243,7 @@ export default function Games() {
     stats && months.some((month) => stats.finishes_by_month[month.key])
 
   function clearAll() {
-    setFilters(NO_FILTER)
+    setFilters(NO_GAME_FILTER)
     setQuery('')
     // Clear filters unmounts itself; focus would fall to the body.
     searchField.current?.focus()

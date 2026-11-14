@@ -34,7 +34,7 @@ from intake.budget import UsageRecorder
 from intake.routes import create_intake_router
 from items import create_items_router
 from journal_routes import create_journal_router
-from llm import build_provider
+from llm import build_free_provider, build_provider
 from origin_check import add_origin_check
 from physical_routes import create_physical_router
 from physical_sources.limits import REQUEST_TIMEOUT_SECONDS, USER_AGENT
@@ -173,7 +173,15 @@ app.include_router(
     )
 )
 # The comics refreshes have their own lock: they write only comic rows.
-app.include_router(create_comics_router(session_factory, registry, asyncio.Lock()))
+app.include_router(
+    create_comics_router(
+        session_factory,
+        registry,
+        asyncio.Lock(),
+        # The tag job is nightly: the free chain only, never the paid link.
+        provider_factory=lambda: build_free_provider(config, recorder),
+    )
+)
 # So does the spot finder: it writes only spot rows. Overpass is read with
 # the catalogue's client, for its identifying User-Agent.
 app.include_router(

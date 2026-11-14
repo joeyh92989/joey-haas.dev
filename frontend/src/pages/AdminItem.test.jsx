@@ -141,6 +141,27 @@ describe('AdminItem', () => {
     })
   })
 
+  it('picks tags from the vocabulary and sends them alone', async () => {
+    const mock = stubApi({
+      item: { ...ITEM, tags: [{ group: 'tone', tag: 'comedy' }] },
+    })
+    renderPage()
+
+    const comedy = await screen.findByRole('button', { name: 'Comedy' })
+    expect(comedy).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'RPG' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(JSON.parse(writeCalls(mock)[0][1].body)).toEqual({
+        tags: [
+          { group: 'play_style', tag: 'rpg' },
+          { group: 'tone', tag: 'comedy' },
+        ],
+      })
+    })
+  })
+
   it('refuses to save when nothing changed', async () => {
     const mock = stubApi()
     renderPage()

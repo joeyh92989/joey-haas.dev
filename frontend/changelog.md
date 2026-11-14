@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-13
 
+- Games and comics now have tags I picked the words for. On [Games](/shelf/games) I can filter by play style, setting and tone, and on [Comics](/shelf/comics) by genre and form, instead of IGDB’s genres, where Adventure and Action were on almost everything. A game’s page lists its tags in labelled groups, with the platforms in a row of their own. Each comic series is tagged by a model that can only choose from my list, and I can change any tag on the edit page.
 - Every [comic series](/shelf/comics) on my shelf now says which books I actually own, including the four Creepshow trades and the single issues of the rest.
 - On a [comic series page](/shelf/comics) I can now tap a cover to mark an issue owned, read or missing again, with an Undo, and the issue page does the same thing. Read is now kept for each issue instead of one marker for the whole series. Comics also have their own edit page in my admin, and a series page shows the same facts it does: description, publisher, years and how many issues Comic Vine lists.
 - Each comic issue now records whether I own it, have read it and skipped it, instead of that living only in the ranges on the series. Nothing on the site looks different yet; the next change builds on it.

@@ -457,7 +457,8 @@ before pushing.
         number, 5b ownership on the issue row, 5c one place to edit and a
         comic edit page)
   - [x] 6. Data clean-up of the 11–12 Nov rows and comic backfill (Joey's)
-  - [ ] 7. Tags: a curated set per type
+  - [x] 7. Tags: a curated set per type (migration `0018`, `backend/tags.py`;
+        spec and plan: `docs/planning/2026-11-13-shelf-tags-design.md`)
 
 ## Ship
 
@@ -979,6 +980,41 @@ before pushing.
   only and redirects a comic there client-side. No range text field, read-to
   field or run cells (`ComicRunEditor` is gone). The public series page is
   its mirror minus edit controls and private fields.
+- **Tags** (shelf sweep item 7; migration `0018`, additive: `items.tags`, a
+  JSONB list of `{group, tag}` NOT NULL default `[]`, and `items.tags_edited`,
+  boolean default false). `backend/tags.py` (pure) is the one vocabulary:
+  games get Play style, Setting and Tone, comics Genre, Based on and Form
+  (`VOCABULARY`, keys only; the words people read are in the frontend's
+  `content/tags.js`, and `tests/test_tags.py` holds `content/tagVocabulary.json`
+  to the same keys). **Games** are tagged by `IGDB_GAME_MAP` from the
+  snapshot's genres, themes and keywords, no model: on create, bulk create,
+  intake's commit, Want, refresh and bulk refresh (`items._apply_detail`),
+  and by `POST /api/items/tags/backfill` (admin only, not in `JOB_ROUTES`,
+  idempotent, skips `tags_edited` rows; answers `{games, changed,
+  skipped_edited, untagged, by_tag}`). **Comics** are tagged by
+  `POST /api/comics/tags/generate?budget=` (in `JOB_ROUTES`): public series
+  with no tags and not edited, one `complete_json` call each with the model
+  answering indices into the numbered vocabulary (`tags.comic_prompt`,
+  `COMIC_SCHEMA`, `comic_tags_from`), at most `budget` (1 to 50, default 12)
+  and never past `intake/budget.remaining`; the row is re-read under lock
+  before the write, so an edit made during the call wins; a model error
+  stops the run, an unusable answer leaves that series for the next night.
+  The owner saves tags with `PATCH /api/items/{id}` `{tags: [...]}`, checked
+  against the type's vocabulary (422 otherwise), which sets `tags_edited`.
+  `tags` is on `PublicItemOut` (so the item list, the detail and, through the
+  items row's xmin, the `/api/public/next` fingerprint) and on
+  `PublicComicRow`; `tags_edited` is never public. `facets_of` reads the
+  curated tags as facets too (`("curated", "group/tag")` pairs from
+  `facets.snapshot_tags`) for a comic always, and for a game only when
+  `tags_edited` (IGDB stays an unedited game's source), so a comic's "why
+  this pick" reasons can name one. The comic job builds a Gemini-only
+  provider (`llm.build_free_provider`), gives each call 40 s, stops after
+  480 s (`stopped: "time"`), and answers `ok: false` when it stopped on
+  `"model error"` or `"no model"`.
+  **After deploy:** apply `0018` to Neon before merging, then
+  `POST /api/items/tags/backfill` once and `POST /api/comics/tags/generate`
+  once, signed in (or with the job token for the second), or wait for the
+  nightly for the comics.
 - **Job token:** `require_admin` accepts `Bearer JOB_TOKEN` only on
   `items.JOB_ROUTES`, matched on the routed template, and
   `tests/test_job_token.py` is the point of it: it pins the whitelist
@@ -988,7 +1024,9 @@ before pushing.
   and the catalogue steps can run the job into its timeout), then the
   comic issue sync (`POST /api/comics/issues/sync?budget=120`, also in
   `JOB_ROUTES`, right after the refresh so a followed series' new issues
-  land the same night), then the
+  land the same night), then the comic tags
+  (`POST /api/comics/tags/generate?budget=12`, in `JOB_ROUTES`, one model
+  call per untagged public series inside the free-tier budget), then the
   weekend forecast, then the Closet's tag queue
   (`POST /api/closet/jobs/tag`), then tomorrow's outfit plans
   (`POST /api/closet/jobs/plan`), then registry,

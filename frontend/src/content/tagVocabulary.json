@@ -1,0 +1,62 @@
+{
+  "game": [
+    {
+      "key": "play_style",
+      "tags": [
+        "shooter",
+        "rpg",
+        "platformer",
+        "open-world",
+        "puzzle",
+        "strategy",
+        "racing",
+        "simulation",
+        "survival",
+        "party",
+        "beat-em-up",
+        "stealth",
+        "fighting",
+        "card-and-board",
+        "sports",
+        "story-led",
+        "metroidvania",
+        "roguelike",
+        "soulslike"
+      ]
+    },
+    {
+      "key": "setting",
+      "tags": ["sci-fi", "fantasy", "horror", "mystery", "war", "historical"]
+    },
+    {
+      "key": "tone",
+      "tags": ["comedy", "drama", "family"]
+    }
+  ],
+  "comic": [
+    {
+      "key": "genre",
+      "tags": [
+        "horror",
+        "sci-fi",
+        "fantasy",
+        "crime",
+        "action",
+        "comedy",
+        "superhero",
+        "war",
+        "western",
+        "romance",
+        "post-apocalyptic"
+      ]
+    },
+    {
+      "key": "based_on",
+      "tags": ["movie", "tv", "game", "original"]
+    },
+    {
+      "key": "form",
+      "tags": ["anthology", "mini-series", "ongoing", "one-shot", "pin-up"]
+    }
+  ]
+}

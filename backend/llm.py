@@ -863,6 +863,14 @@ class ChainedProvider:
         return result
 
 
+def build_free_provider(config: Config, recorder=None) -> GeminiProvider:
+    """The free Gemini chain alone, whatever LLM_PROVIDER and
+    LLM_PAID_FALLBACK say: for a nightly job that must never bill."""
+    if not config.gemini_api_key:
+        raise LLMError("GEMINI_API_KEY is not set")
+    return GeminiProvider(config.gemini_api_key, recorder=recorder)
+
+
 def build_provider(config: Config, recorder=None) -> LLMProvider:
     """The provider LLM_PROVIDER names, or an error naming what is missing.
 

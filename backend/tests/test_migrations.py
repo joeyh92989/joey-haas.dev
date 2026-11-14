@@ -1025,3 +1025,46 @@ async def test_0017_downgrade_deletes_stubs_and_keeps_synced_rows(clean_database
     assert not {"owned", "read", "skipped"} & columns
     # And the cycle closes: the next upgrade is clean.
     assert _alembic("upgrade", "head").returncode == 0
+
+
+# --- Revision 0018: item tags. ----------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_0018_adds_tags_with_defaults_and_keeps_rows(clean_database):
+    assert _alembic("upgrade", "0017").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status) VALUES "
+                "('00000000-0000-0000-0000-000000000001', 'game', 'G', 'backlog')"
+            )
+        )
+
+    result = _alembic("upgrade", "0018")
+    assert result.returncode == 0, result.stderr
+
+    async with clean_database.connect() as connection:
+        row = (
+            await connection.execute(text("SELECT title, tags, tags_edited FROM items"))
+        ).one()
+    assert tuple(row) == ("G", [], False)
+
+
+@pytest.mark.asyncio
+async def test_0018_downgrade_drops_the_columns_and_the_cycle_closes(clean_database):
+    assert _alembic("upgrade", "0018").returncode == 0
+    result = _alembic("downgrade", "0017")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        columns = {
+            row[0]
+            for row in await connection.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'items'"
+                )
+            )
+        }
+    assert not {"tags", "tags_edited"} & columns
+    assert _alembic("upgrade", "head").returncode == 0

@@ -30,6 +30,11 @@ const DETAIL = {
   favorite: true,
   finished_at: '2026-06-12',
   genres: ['Roguelike', 'Action'],
+  tags: [
+    { group: 'play_style', tag: 'roguelike' },
+    { group: 'setting', tag: 'fantasy' },
+    { group: 'tone', tag: 'drama' },
+  ],
   community_score: 93.4,
   platforms: ['PC', 'Nintendo Switch'],
   created_at: '2026-01-01T00:00:00Z',
@@ -181,19 +186,15 @@ describe('Item', () => {
     ])
   }
 
-  it('labels the genres and the other platforms', async () => {
+  it('draws the tags in labelled groups and the platforms in their own row', async () => {
     stubItem()
     await renderReady()
     expect(groups()).toEqual([
+      ['Play style', [['Roguelike', false]]],
+      ['Setting', [['Fantasy', false]]],
+      ['Tone', [['Drama', false]]],
       [
-        'Genres',
-        [
-          ['Roguelike', false],
-          ['Action', false],
-        ],
-      ],
-      [
-        'Also on',
+        'Platforms',
         [
           ['PC', true],
           ['Nintendo Switch', true],
@@ -202,16 +203,48 @@ describe('Item', () => {
     ])
   })
 
+  it('never mixes a platform into a tag group or a raw genre into the tags', async () => {
+    stubItem()
+    await renderReady()
+    const [style, , , platforms] = groups()
+    expect(style[1].map(([name]) => name)).not.toContain('PC')
+    expect(platforms[1].map(([name]) => name)).not.toContain('Roguelike')
+    // IGDB's own genres ("Action") are not shown.
+    expect(screen.queryByText('Action')).toBeNull()
+  })
+
   it('omits a group that would be empty', async () => {
-    stubItem({ genres: [], platforms: [] })
+    stubItem({ tags: [], platforms: [] })
     await renderReady()
     expect(document.querySelector('.item-groups')).toBeNull()
   })
 
-  it('shows only Genres when there is no other platform', async () => {
+  it('shows only the tag groups when there is no platform', async () => {
     stubItem({ platforms: [] })
     await renderReady()
-    expect(groups().map(([label]) => label)).toEqual(['Genres'])
+    expect(groups().map(([label]) => label)).toEqual([
+      'Play style',
+      'Setting',
+      'Tone',
+    ])
+  })
+
+  it('names a comic series’ tags by Genre, Based on and Form', async () => {
+    stubItem({
+      type: 'comic',
+      platforms: [],
+      tags: [
+        { group: 'genre', tag: 'horror' },
+        { group: 'based_on', tag: 'original' },
+        { group: 'form', tag: 'ongoing' },
+      ],
+    })
+    await renderReady()
+    expect(groups()).toEqual([
+      ['Genre', [['Horror', false]]],
+      ['Based on', [['Original', false]]],
+      ['Form', [['Ongoing', false]]],
+    ])
   })
 
   it('clamps the description, and More and Less toggle the clamp', async () => {
@@ -489,14 +522,12 @@ describe('Item copy details', () => {
 
     expect(chips()).toEqual([
       ['Roguelike', false],
-      ['Action', false],
-      ['Fantasy', true],
+      ['Fantasy', false],
+      ['Drama', false],
       ['PC', true],
+      ['Nintendo Switch', false],
       ['PlayStation 4', true],
     ])
-    // The owned platform is not an "Also on" chip.
-    const alsoOn = [...document.querySelectorAll('.item-groups > div')][1]
-    expect(alsoOn.textContent).not.toMatch(/Nintendo Switch/)
     expect(
       screen.getByText(
         'My copy: Nintendo Switch · Full game on cartridge · Complete in box',

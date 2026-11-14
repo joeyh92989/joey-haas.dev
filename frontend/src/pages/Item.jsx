@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
+import { platformsLabel } from '../content/tags.js'
+import { itemTagGroups } from '../lib/tags.js'
 import LoadState from '../components/LoadState.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
 import CoverImage from '../components/CoverImage.jsx'
@@ -737,29 +739,23 @@ function ItemView({
     : [item.year, item.creator].filter(Boolean).join(' · ')
   const description =
     detail && item.description ? plainText(item.description) : ''
-  const themes = item.themes ?? []
-  const otherPlatforms = (item.platforms ?? []).filter(
-    (platform) => platform !== item.platform,
-  )
   const copy = copyLine(item)
-  // What the game is, then where else it exists. The copy on the shelf has
-  // its own line.
+  // What it is, in the type's curated groups, then where it exists: tags and
+  // platforms are separate labelled rows and never mix. The copy on the shelf
+  // has its own line.
   const chipGroups = [
+    ...itemTagGroups(item).map((group) => [
+      group.key,
+      group.label,
+      group.tags.map((tag) => [`${group.key}-${tag.key}`, tag.label, false]),
+    ]),
     [
-      'genres',
-      ITEM.genresLabel,
-      [
-        ...item.genres.map((genre) => [`genre-${genre}`, genre, false]),
-        ...themes.map((theme) => [`theme-${theme}`, theme, true]),
-      ],
-    ],
-    [
-      'also-on',
-      ITEM.alsoOnLabel,
-      otherPlatforms.map((platform) => [
+      'platforms',
+      platformsLabel,
+      (item.platforms ?? []).map((platform) => [
         `platform-${platform}`,
         platform,
-        true,
+        platform !== item.platform,
       ]),
     ],
   ].filter(([, , chips]) => chips.length > 0)

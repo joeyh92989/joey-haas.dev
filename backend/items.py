@@ -58,6 +58,7 @@ from sources.base import (
 )
 from sources.igdb import PLATFORM_NAMES
 from sources.registry import adapter_for
+from tags import clean_tags, game_tags
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,13 @@ class ItemIn(BaseModel):
     following: bool = False
 
 
+class TagIn(BaseModel):
+    """One tag as the edit page sends it: a group and a word from the vocabulary."""
+
+    group: str = Field(max_length=40)
+    tag: str = Field(max_length=40)
+
+
 class ItemPatch(BaseModel):
     """Every field optional: most edits change exactly one thing."""
 
@@ -153,6 +161,9 @@ class ItemPatch(BaseModel):
     # "Use registry value" (E7c): the format of this registry edition, with
     # format_source registry. The edition's cart ID is never copied.
     edition_id: uuid.UUID | None = None
+    # The owner's tags (tags.py). Saving them sets tags_edited, so nothing
+    # regenerates them. Checked against the type's vocabulary on write.
+    tags: list[TagIn] | None = None
 
     @model_validator(mode="after")
     def _refuse_null_for_required(self) -> ItemPatch:
@@ -266,6 +277,9 @@ class ItemOut(BaseModel):
     shelf_format: ComicShelfFormat | None = None
     disc_format: MovieDiscFormat | None = None
     following: bool = False
+    # Curated tags and whether the owner has saved them (tags.py).
+    tags: list[dict] = []
+    tags_edited: bool = False
     # When the issue sync last walked a comic's series; None = never.
     issues_synced_on: date | None = None
     # Play Next was told never to suggest it; the edit page offers Restore.
@@ -298,6 +312,16 @@ class BulkOut(BaseModel):
     skipped_duplicates: int
     enriched: int
     ids: list[uuid.UUID]
+
+
+class TagsBackfillOut(BaseModel):
+    """What the game tag backfill did."""
+
+    games: int
+    changed: int
+    skipped_edited: int
+    untagged: int
+    by_tag: dict[str, dict[str, int]]
 
 
 class RefreshBulkOut(BaseModel):
@@ -464,6 +488,7 @@ JOB_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/analytics/rollup"),
         ("POST", "/api/comics/refresh"),
         ("POST", "/api/comics/issues/sync"),
+        ("POST", "/api/comics/tags/generate"),
         ("POST", "/api/spots/candidates/refresh"),
         ("POST", "/api/spots/weather/refresh"),
         ("POST", "/api/closet/jobs/tag"),
@@ -671,6 +696,14 @@ def _apply_detail(item: Item, detail) -> None:
     released = _release_date(detail.source_metadata or {})
     if released is not None:
         item.release_date = released
+    _retag_game(item)
+
+
+def _retag_game(item: Item) -> None:
+    """Works a game's tags out from its snapshot, unless the owner saved
+    them. Comics are tagged by their own job (comics_routes), never here."""
+    if item.type == ItemType.GAME and not item.tags_edited:
+        item.tags = game_tags(item.source_metadata)
 
 
 def _backfill_platform(item: Item) -> None:
@@ -826,6 +859,13 @@ async def commit_items(
             values.update(_write_fields(item.model_dump(exclude_unset=True), None))
         except (CopyFieldError, RangeError) as error:
             raise RowRefused(index, error) from error
+        # Every row names tags: a multi-row INSERT fills a missing key with
+        # NULL below, and the column is NOT NULL.
+        values["tags"] = (
+            game_tags(values.get("source_metadata"))
+            if values.get("type") == ItemType.GAME
+            else []
+        )
         key = (values.get("external_source"), values.get("external_id"))
         # A manual row has NULL on both and is never a duplicate of
         # another manual row -- the same reason the index is partial.
@@ -989,6 +1029,7 @@ def create_items_router(
         values = payload.model_dump()
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
         item = Item(**values)
+        _retag_game(item)
         session.add(item)
         await _write_or_conflict(session, session.flush)
         await sync_marks(session, item)
@@ -1144,6 +1185,43 @@ def create_items_router(
             ids=created,
         )
 
+    @router.post("/tags/backfill", response_model=TagsBackfillOut)
+    async def backfill_tags(
+        session: AsyncSession = Depends(get_session),
+    ) -> TagsBackfillOut:
+        """Works every game's tags out from the snapshot it already holds
+        (no IGDB call), run once by hand after the deploy.
+
+        Idempotent: a second run changes nothing. A game whose tags the owner
+        saved (`tags_edited`) is skipped. Not a job route: signed in only.
+        Answers what it did, and `by_tag` counts the public games' tags per
+        group, which is what the Games page filters on."""
+        games = (
+            await session.scalars(select(Item).where(Item.type == ItemType.GAME))
+        ).all()
+        changed = skipped = 0
+        by_tag: dict[str, dict[str, int]] = {}
+        for game in games:
+            if game.tags_edited:
+                skipped += 1
+            else:
+                fresh = game_tags(game.source_metadata)
+                if fresh != game.tags:
+                    game.tags = fresh
+                    changed += 1
+            if game.is_public:
+                for entry in game.tags:
+                    group = by_tag.setdefault(entry["group"], {})
+                    group[entry["tag"]] = group.get(entry["tag"], 0) + 1
+        await session.commit()
+        return TagsBackfillOut(
+            games=len(games),
+            changed=changed,
+            skipped_edited=skipped,
+            untagged=sum(1 for game in games if not game.tags),
+            by_tag=by_tag,
+        )
+
     # Declared before /{item_id}/refresh-metadata, for the same ordering reason
     # as /search-metadata below.
     @router.post("/refresh-metadata/bulk", response_model=RefreshBulkOut)
@@ -1279,7 +1357,25 @@ def create_items_router(
             body["edition_format"] = await _edition_format(
                 session, item, body["edition_id"]
             )
+        given_tags = body.pop("tags", None)
         changes = _copy_fields(body, item)
+        if given_tags is not None:
+            try:
+                changes["tags"] = clean_tags(
+                    (changes.get("type") or item.type).value, given_tags
+                )
+            except ValueError as error:
+                raise HTTPException(status_code=422, detail=str(error)) from error
+            changes["tags_edited"] = True
+        elif "type" in changes and changes["type"] != item.type:
+            # The old type's tags mean nothing to the new one: a game is
+            # worked out again from its snapshot, any other type starts bare.
+            changes["tags_edited"] = False
+            changes["tags"] = (
+                game_tags(item.source_metadata)
+                if changes["type"] == ItemType.GAME
+                else []
+            )
         if changes.get("favorite") is True and not item.favorite:
             await _require_favorite_slots(session, 1)
         relinked = any(

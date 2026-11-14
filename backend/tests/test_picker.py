@@ -1090,3 +1090,16 @@ def test_staleness_and_skips_still_apply_in_admin():
     skipped = [PickerEvent(top.item.id, "skipped", NOW - timedelta(days=1))]
     after_skip = recommend(shelf_, skipped, PickRequest(), NOW, random.Random(1))
     assert top.item.id not in {pick.item.id for pick in after_skip.picks}
+
+
+def test_a_comics_reason_can_name_a_curated_tag():
+    """Comic Vine gives a series no genre; its curated tags (tags.py) are
+    read as facets, so "Horror, across my shelf" can name a comic."""
+    horror = (("curated", "genre/horror"), ("curated", "form/ongoing"))
+    loved = comic("loved", title="Hellboy", favorite=True, tags=horror)
+    candidate = comic("next", title="B.P.R.D.", tags=horror)
+    other = comic("other", title="Saga", tags=(("curated", "genre/sci-fi"),))
+
+    reasons = public_reasons(candidate, [loved, candidate, other])
+
+    assert "Horror, across my shelf: Hellboy" in reasons

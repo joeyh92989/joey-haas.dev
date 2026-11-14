@@ -49,6 +49,27 @@ class PublicNextIssue(BaseModel):
     store_date: date
 
 
+class PublicTag(BaseModel):
+    """One curated tag: a group and a word from the type's vocabulary
+    (tags.py). The words people read live in the frontend, by key."""
+
+    group: str
+    tag: str
+
+
+def public_tags(value: object) -> list[PublicTag]:
+    """Stored tags as published: well-formed {group, tag} strings only."""
+    if not isinstance(value, list):
+        return []
+    return [
+        PublicTag(group=entry["group"], tag=entry["tag"])
+        for entry in value
+        if isinstance(entry, dict)
+        and isinstance(entry.get("group"), str)
+        and isinstance(entry.get("tag"), str)
+    ]
+
+
 class PublicComicRow(BaseModel):
     """A series on /shelf/comics. A want carries no run."""
 
@@ -75,6 +96,7 @@ class PublicComicRow(BaseModel):
     # are read. Skips play no part.
     read_next: int | None
     next_issue: PublicNextIssue | None
+    tags: list[PublicTag]
     created_at: datetime
 
 
@@ -248,6 +270,7 @@ def _row(
         read=max(read_marks, read_state(item.read_to, set(series.owned)).read),
         read_next=read_next(item.read_to, set(series.owned)),
         next_issue=_next(series, today),
+        tags=public_tags(item.tags),
         created_at=item.created_at,
     )
 

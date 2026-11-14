@@ -44,8 +44,10 @@ from physical_sources.stores import STORES
 from public_comics import (
     PublicComicDetail,
     PublicComicsOut,
+    PublicTag,
     comic_detail,
     load_public_comics,
+    public_tags,
     read_marks_count,
 )
 from public_issues import (
@@ -116,6 +118,9 @@ class PublicItemOut(BaseModel):
     favorite: bool
     finished_at: date | None
     genres: list[str]
+    # Curated tags in labelled groups; whether the owner edited them is not
+    # published.
+    tags: list[PublicTag]
     community_score: float | None
     platforms: list[str]
     created_at: datetime
@@ -339,6 +344,7 @@ def _list_fields(
         "favorite": item.favorite,
         "finished_at": item.finished_at,
         "genres": _string_list(snapshot.get("genres")),
+        "tags": public_tags(item.tags),
         "community_score": _number(snapshot.get("community_score")),
         "platforms": _string_list(snapshot.get("platforms")),
         "created_at": item.created_at,

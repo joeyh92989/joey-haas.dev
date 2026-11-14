@@ -36,6 +36,7 @@ from public import (
     PublicItemDetailOut,
     PublicItemOut,
     PublicStatsOut,
+    PublicTag,
     create_public_router,
 )
 from public_comics import PublicComicsOut
@@ -241,6 +242,7 @@ LIST_FIELDS = {
     "favorite",
     "finished_at",
     "genres",
+    "tags",
     "community_score",
     "platforms",
     "created_at",
@@ -281,11 +283,41 @@ NEVER_PUBLIC = {
     "acquired_at",
     "pinned_at",
     "issues_skipped",
+    "tags_edited",
 }
 
 
 async def test_the_list_model_publishes_exactly_these_fields():
     assert set(PublicItemOut.model_fields) == LIST_FIELDS
+
+
+async def test_a_tag_publishes_a_group_and_a_word_and_nothing_else():
+    assert set(PublicTag.model_fields) == {"group", "tag"}
+
+
+async def test_the_list_and_the_detail_carry_tags_and_never_whether_they_were_edited(
+    sessionmaker_for_test,
+):
+    stored = [
+        {"group": "play_style", "tag": "puzzle"},
+        {"group": "tone", "tag": "comedy"},
+    ]
+    async with sessionmaker_for_test() as session:
+        game = _game("Tagged")
+        game.tags, game.tags_edited = stored, True
+        game.id = uuid.uuid4()
+        session.add_all([game, _game("Plain")])
+        await session.commit()
+
+    async with client_for(sessionmaker_for_test) as client:
+        rows = {r["title"]: r for r in (await client.get("/api/public/items")).json()}
+        detail = (await client.get(f"/api/public/items/{game.id}")).json()
+
+    assert rows["Tagged"]["tags"] == stored
+    assert rows["Plain"]["tags"] == []
+    assert detail["tags"] == stored
+    for body in (*rows.values(), detail):
+        assert "tags_edited" not in body
 
 
 async def test_the_detail_model_publishes_exactly_these_fields():
@@ -818,6 +850,7 @@ def _field_names(model, seen=None) -> set[str]:
 PUBLIC_MODELS = (
     PublicItemOut,
     PublicItemDetailOut,
+    PublicTag,
     PublicStatsOut,
     PublicNextOut,
     ContinuingCard,

@@ -25,6 +25,7 @@ from llm import (
     GeminiProvider,
     Image,
     LLMError,
+    build_free_provider,
     build_provider,
     guard_payload_size,
     to_gemini_schema,
@@ -1113,3 +1114,20 @@ def test_chain_failures_are_worded_for_the_owner(error, note):
     # Anything left as "did not answer" reads to Closet tagging as the photo's
     # fault, so every reason the chain can now raise needs its own wording.
     assert _failure_note(error) == note
+
+
+def test_the_free_provider_is_gemini_alone_whatever_the_paid_setting():
+    config = _config(
+        llm_provider="anthropic",
+        gemini_api_key="g",
+        anthropic_api_key="a",
+        llm_paid_fallback=True,
+    )
+    provider = build_free_provider(config)
+    assert type(provider).__name__ == "GeminiProvider"
+    assert type(build_provider(config)).__name__ == "AnthropicProvider"
+
+
+def test_the_free_provider_names_the_missing_key():
+    with pytest.raises(LLMError, match="GEMINI_API_KEY"):
+        build_free_provider(_config(gemini_api_key=None))
