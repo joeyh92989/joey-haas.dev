@@ -87,9 +87,11 @@ async def clean_database():
                 "Skipping here would make a green suite meaningless."
             ) from error
         pytest.skip(f"no test Postgres reachable: {error}")
-    yield engine
-    await engine.dispose()
-    mark_schema_dirty()
+    try:
+        yield engine
+    finally:
+        await engine.dispose()
+        mark_schema_dirty()
 
 
 @pytest.mark.asyncio

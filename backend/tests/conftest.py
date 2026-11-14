@@ -60,9 +60,17 @@ def mark_schema_dirty() -> None:
 
 
 def _truncate_statement(connection) -> str:
-    quote = connection.dialect.identifier_preparer.quote
-    tables = ", ".join(quote(table.name) for table in Base.metadata.sorted_tables)
+    format_table = connection.dialect.identifier_preparer.format_table
+    tables = ", ".join(format_table(table) for table in Base.metadata.sorted_tables)
     return f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"
+
+
+def _is_missing_table(error: DBAPIError) -> bool:
+    """Whether Postgres said a table does not exist (SQLSTATE 42P01)."""
+    original = getattr(error, "orig", None)
+    cause = getattr(original, "__cause__", None)
+    sqlstate = getattr(original, "sqlstate", None) or getattr(cause, "sqlstate", None)
+    return sqlstate == "42P01" or "does not exist" in str(error)
 
 
 async def _prepare_schema(engine) -> None:
@@ -73,9 +81,13 @@ async def _prepare_schema(engine) -> None:
             async with engine.begin() as connection:
                 await connection.execute(text(_truncate_statement(connection)))
             return
-        except DBAPIError:
+        except DBAPIError as error:
             # A table went missing under us: rebuild rather than fail a test
-            # for the suite's own bookkeeping.
+            # for the suite's own bookkeeping. Anything else (a deadlock from a
+            # second run on this database, a dropped connection) is the real
+            # problem and must not be papered over by a rebuild.
+            if not _is_missing_table(error):
+                raise
             _schema_ready = False
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.drop_all)
