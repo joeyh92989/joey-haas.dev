@@ -25,6 +25,14 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { comicPayload } from '../lib/comics.js'
 import { finishedIn } from '../lib/dashboard.js'
 import { ownerYear } from '../lib/formatDate.js'
+import { tagMoreLabels } from '../content/tags.js'
+import {
+  filterByTags,
+  hasTagFilter,
+  MAX_SHARE,
+  noTags,
+  tagChipGroups,
+} from '../lib/tags.js'
 import {
   countBy,
   filterItems,
@@ -56,6 +64,11 @@ import {
   deletedLine,
   deletedManyLine,
 } from '../content/shelfDelete.js'
+
+/** The empty selection: the shelf's filters and one null per tag group. */
+const NO_GAME_FILTER = { ...NO_FILTER, ...noTags('game') }
+/** Play style has the most tags, so its chips sit behind More… past eight. */
+const TAG_LIMITS = { play_style: 8 }
 
 const VIEWS = ['shelf', 'list']
 const SIZES = ['comfortable', 'compact']
@@ -216,7 +229,7 @@ export default function AdminCollection() {
     const stored = readShelfPref('shelf.admin.view', 'shelf')
     return VIEWS.includes(stored) ? stored : 'shelf'
   })
-  const [filters, setFilters] = useState(NO_FILTER)
+  const [filters, setFilters] = useState(NO_GAME_FILTER)
   const [sort, setSort] = useState({ value: 'added', direction: 'desc' })
   const [seed, setSeed] = useState(() => Date.now())
   const [size, setSize] = useState(() => {
@@ -748,17 +761,22 @@ export default function AdminCollection() {
     const showNudge =
       !nudgeDismissed && engaged < NUDGE_BELOW && unrated.length > 0
     const visible = sortItems(
-      filterItems(searchItems(rows, query), filters),
+      filterByTags(
+        filterItems(searchItems(rows, query), filters),
+        'game',
+        filters,
+      ),
       sort.value,
       sort.direction,
       seed,
     )
     const filtered =
       query.trim() !== '' ||
-      Object.keys(NO_FILTER).some((key) => filters[key] !== NO_FILTER[key])
+      Object.keys(NO_FILTER).some((key) => filters[key] !== NO_FILTER[key]) ||
+      hasTagFilter('game', filters)
     const privateCount = rows.filter((item) => !item.is_public).length
     function clearAll() {
-      setFilters(NO_FILTER)
+      setFilters(NO_GAME_FILTER)
       setQuery('')
       // Clear filters unmounts itself; focus would fall to the body.
       searchField.current?.focus()
@@ -797,7 +815,7 @@ export default function AdminCollection() {
             <button
               type="button"
               className="chip"
-              onClick={() => setFilters({ ...NO_FILTER, unrated: true })}
+              onClick={() => setFilters({ ...NO_GAME_FILTER, unrated: true })}
             >
               Show them
             </button>
@@ -823,6 +841,13 @@ export default function AdminCollection() {
                 count: statusCounts[value] ?? 0,
               })),
             },
+            // Counted over the rows this page shows, private included.
+            ...tagChipGroups('game', rows, {
+              maxShare: MAX_SHARE,
+              limit: TAG_LIMITS,
+              selected: filters,
+              moreLabel: tagMoreLabels,
+            }),
             ...[platformGroup(rows)].filter(Boolean),
           ]}
           toggles={[

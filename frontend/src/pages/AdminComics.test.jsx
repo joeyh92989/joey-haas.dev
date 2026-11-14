@@ -499,3 +499,57 @@ describe('AdminComics delete, redo and the touch sheet', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
+
+describe('AdminComics tags', () => {
+  const tagged = [
+    comic('s', 'Saga', {
+      tags: [
+        { group: 'genre', tag: 'sci-fi' },
+        { group: 'form', tag: 'ongoing' },
+      ],
+    }),
+    comic('m', 'Monstress', {
+      is_public: false,
+      tags: [
+        { group: 'genre', tag: 'horror' },
+        { group: 'form', tag: 'mini-series' },
+      ],
+    }),
+    comic('b', 'Batman', {
+      tags: [{ group: 'based_on', tag: 'original' }],
+    }),
+  ]
+
+  it('offers Genre and Form chip groups, not Based on, counting private series', async () => {
+    stubApi({ items: tagged })
+    await renderPage()
+    const genre = screen.getByRole('group', { name: 'Genre' })
+    expect(
+      within(genre).getByRole('button', { name: 'Horror 1' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Form' })).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Based on' })).toBeNull()
+  })
+
+  it('filters by a genre, undoes it, and clears with Clear filters', async () => {
+    stubApi({ items: tagged })
+    await renderPage()
+    const horror = within(
+      screen.getByRole('group', { name: 'Genre' }),
+    ).getByRole('button', { name: /^Horror/ })
+    await userEvent.click(horror)
+    expect(titles()).toEqual(['Monstress'])
+    await userEvent.click(horror)
+    expect(titles()).toHaveLength(3)
+    await userEvent.click(horror)
+    await userEvent.click(screen.getByRole('button', { name: /Clear filters/ }))
+    expect(titles()).toHaveLength(3)
+  })
+
+  it('leaves the groups out while no series is tagged', async () => {
+    stubApi()
+    await renderPage()
+    expect(screen.queryByRole('group', { name: 'Genre' })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Form' })).toBeNull()
+  })
+})
