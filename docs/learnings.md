@@ -1,5 +1,21 @@
 # Learnings
 
+### 2026-11-14 · decision · Deploy the API from GitHub Actions: migrate, then the deploy hook
+Chose a `deploy.yml` (alembic upgrade on Neon, then Render's deploy hook at the merged SHA, then wait on `/api/version` and smoke) over a migration in `buildCommand` (runs on every rebuild, no gate) and over `preDeployCommand` and Render previews (paid-only). It costs nothing and a failed migration stops before any new code is live; it gives up Render's auto-deploy of the API.
+PR #253 · docs/planning/2026-11-14-ephemeral-ci-migrations-design.md
+
+### 2026-11-14 · lesson · Profile before parallelising CI
+Backend pytest was 92% of the critical path, and nearly all of it was the `engine` fixture rebuilding every table for each of ~3,000 tests (0.3-0.6 s each). Building the schema once and truncating between tests halved it (14m to 7m45s locally) with no xdist. Look at `--durations` with setup included before adding workers or runners.
+PR #252
+
+### 2026-11-14 · lesson · A schema-only Neon branch has an empty alembic_version
+It copies tables but no rows, so `alembic upgrade head` would replay every migration; the CI rehearsal stamps the base branch's head first. Found in review, not yet proven on a live branch (needs the Neon secrets).
+PR #251
+
+### 2026-11-14 · lesson · `/code-review` diffs against local `main`, which is stale
+In a worktree the skill reviewed already-merged PRs. Fetch, and pass the range explicitly: `origin/main...HEAD`.
+PR #250
+
 ### 2026-11-14 · lesson · Agent reports say "green" before CI has run
 Subagents reported "checks are green" for their local runs while GitHub showed no checks yet. Read `gh pr checks` before every merge, and make the brief say "do not claim CI is green".
 PR #240 · PR #241

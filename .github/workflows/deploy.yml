@@ -1,0 +1,131 @@
+name: Deploy API
+
+# Migrates Neon, then deploys the API, in that order and in one place. Replaces
+# the old hand step (apply the migration, then merge) and Render's own
+# auto-deploy of the API: a failed migration stops here, before any new code is
+# live, and the old API keeps running against the unchanged schema.
+#
+#   push to main -> alembic upgrade head (Neon, direct URL, advisory lock)
+#                -> Render deploy hook at this exact commit
+#                -> wait until GET /api/version reports this commit
+#                -> scripts/smoke.sh (retried once: the static site deploys on
+#                   its own clock)
+#
+# Safety rests on migrations being additive (backend/migrations/README.md): the
+# schema is briefly ahead of the live code, and schema_check lets that boot.
+#
+# Off until the API_DEPLOY_FROM_ACTIONS repository variable is "true", which is
+# set together with `autoDeployTrigger: off` on the API in render.yaml (the
+# cutover). Until then Render deploys on its own and this would deploy twice.
+# A manual run (Run workflow, on main) always works and is the dry run: migrations are a
+# no-op when current, and the hook redeploys the commit it is given.
+#
+# Needs secrets DATABASE_URL_DIRECT (Neon's direct, unpooled URL) and
+# RENDER_API_DEPLOY_HOOK_URL (the API service's deploy hook, not the static
+# site's).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Deploys queue and never cancel each other: killing one between the migration
+# and the hook would leave the schema ahead of code that was never deployed.
+# GitHub keeps only the newest waiting run, which is the right one to deploy
+# since it contains the earlier merges and their migrations.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+env:
+  SITE_URL: https://joey-haas.dev
+  API_URL: https://api.joey-haas.dev
+
+jobs:
+  deploy:
+    # main only, for the manual run too: a run on a feature branch would migrate
+    # production and deploy code that was never merged.
+    if: >-
+      github.ref == 'refs/heads/main'
+      && (github.event_name == 'workflow_dispatch' || vars.API_DEPLOY_FROM_ACTIONS == 'true')
+    runs-on: ubuntu-latest
+    # The wait below is at most 60 x (10 s curl + 15 s sleep) = 25 minutes, so
+    # its own error fires before this limit does.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/constraints.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt -c constraints.txt
+
+      - name: Check the secrets are set
+        env:
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+          RENDER_API_DEPLOY_HOOK_URL: ${{ secrets.RENDER_API_DEPLOY_HOOK_URL }}
+        run: |
+          missing=0
+          for name in DATABASE_URL_DIRECT RENDER_API_DEPLOY_HOOK_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::The $name secret is not set"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      # env.py reads the direct URL only: Neon's pooler cannot run Alembic.
+      - name: Apply migrations
+        working-directory: backend
+        env:
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+        run: |
+          echo "::add-mask::$DATABASE_URL_DIRECT"
+          echo "Before:"; alembic current
+          alembic upgrade head
+          echo "After:"; alembic current
+
+      # `ref` makes Render build exactly this commit, not whatever main is by
+      # the time the hook lands.
+      - name: Deploy the API at this commit
+        env:
+          HOOK_URL: ${{ secrets.RENDER_API_DEPLOY_HOOK_URL }}
+        run: |
+          echo "::add-mask::$HOOK_URL"
+          case "$HOOK_URL" in *\?*) separator='&' ;; *) separator='?' ;; esac
+          curl -fsS -m 60 -X POST "${HOOK_URL}${separator}ref=${GITHUB_SHA}" > /dev/null
+          echo "Deploy requested for $GITHUB_SHA"
+
+      # /api/health answers the same from the old instance and the new one, so
+      # the commit is what says the new build is the one serving. A free
+      # instance cold-starts slowly, hence the generous wait.
+      - name: Wait for the new build
+        run: |
+          for attempt in $(seq 1 60); do
+            live="$(curl -s -m 10 "$API_URL/api/version" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')"
+            echo "attempt $attempt: live commit '${live:-none}'"
+            if [ "$live" = "$GITHUB_SHA" ]; then
+              echo "The API is serving $GITHUB_SHA"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::The API was not serving $GITHUB_SHA within 15 minutes. The migration is applied (additive, safe ahead of the code); see the Render deploy log, and roll back per CLAUDE.md -> Ship if the deploy failed."
+          exit 1
+
+      - name: Smoke test
+        run: |
+          if ! ./scripts/smoke.sh "$SITE_URL" "$API_URL"; then
+            echo "Smoke failed; retrying once in 3 minutes (the static site deploys separately)."
+            sleep 180
+            ./scripts/smoke.sh "$SITE_URL" "$API_URL"
+          fi
