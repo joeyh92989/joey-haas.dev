@@ -478,6 +478,62 @@ before pushing.
   stay (additive, safe ahead of the code). A schema rollback is a manual
   `alembic downgrade` after a Neon restore point (`backend/migrations/README.md`)
 
+## Debugging and support
+
+- **`RENDER_API_KEY`** (in Joey's shell profile, never in the repo; Render keys
+  are account-wide, not read-only) unlocks the Render API from a session. A
+  session started before the key was exported does not have it; in that case
+  run commands through `zsh -ic '…'` so the profile is sourced, and never
+  print the key or an env var's value.
+  - Errors since a deploy: `./scripts/render-logs.sh 30 error` (exit 0 none,
+    1 entries, 2 unreadable). Other levels: `./scripts/render-logs.sh 60 warning`.
+    Read it soon after the deploy; retention was not checked.
+  - Is a deploy live: `GET https://api.render.com/v1/services/<id>/deploys?limit=3`
+    (`status` is `live`, `build_in_progress`, `deactivated`…). Better than
+    GitHub's deploy status, which can lie (see the Blueprint note in memory).
+    Service IDs: API `srv-da3u2m8ae00c73983rsg`, static site
+    `srv-da3u2m8ae00c73983rt0`. A push that touches only the frontend, docs or CI
+    may not redeploy the API; that is not a failure.
+  - It can also read env var *names and values* of a service. Look at names
+    only; any change to secrets or production settings is an always-stop.
+- **Smoke red right after a deploy: check the check first.** `smoke.sh`'s
+  `PRIVATE_KEYS` matches JSON *keys* only (`"word":`). It once matched the
+  comic tag group's value `"based_on"` and went red though nothing leaked. If
+  a new public field or tag value shares a word with that list, the match is
+  on a key, not a value; confirm with
+  `curl -s <api>/api/public/items | grep -oE '"(word)"[[:space:]]*:'`.
+- **Jobs page is the first place to look at a nightly step**: `/admin/jobs`
+  has a row per step, including the comics refresh (`catalogue_runs` source
+  `comic_refresh`) and comic tags (`comic_tags`), from `GET
+  /api/comics/status`. A series the tag job gave up on after three unusable
+  answers (`items.tag_attempts`, migration `0019`) is counted in the tag row's
+  note; saving its tags or a changed Comic Vine description resets it.
+- **Applying a migration from a worktree**: `scripts/migrate_neon.py` looks for
+  `backend/.venv/bin/alembic` beside itself and a worktree has no `.venv`.
+  Symlink the main checkout's: `ln -s <main>/backend/.venv backend/.venv`
+  (untracked; gitignored), then `<main>/backend/.venv/bin/python
+  scripts/migrate_neon.py current` and `upgrade`.
+- **CI jobs**: `frontend`, `backend`, `e2e` and `e2e-admin` (the admin browser
+  suite against a Postgres 18 service and a real backend, test-login on a
+  localhost `FRONTEND_URL`). None is a *required* check in branch protection,
+  so a red job does not block a merge: read them before merging.
+- **Known flaky tests** (issue #244): Admin* suites in `npm test` time out under
+  load (AdminLayout's focus-target test has failed on CI; it passes on a rerun
+  with no frontend change). One rerun of a failed job with a named, unrelated
+  flake is fine; a second failure is a real stop. The real-data a11y run
+  (`SNAPSHOT_API_URL=https://api.joey-haas.dev … e2e/a11y.spec.js`) fails two
+  `/now` link-in-text-block checks on production data; CI does not run it.
+- **Item pages on a cold API** (`Item.jsx`): a game missing from the build
+  snapshot (added since the last nightly) draws a skeleton and, after 3 s, the
+  waking line; a snapshot preview shows the waking line over it. If a visitor
+  reports a blank item page, check the snapshot's age first.
+- **No `window.confirm`** anywhere in `frontend/src` (lint-enforced): confirm
+  inline with `ConfirmDelete` / `ShelfConfirm`. Browser dialogs hang the
+  Artifact and e2e environments.
+- **Date-sensitive backend tests** take the server's day from
+  `playthroughs.server_today()`; freeze that one function, never `date.today()`
+  in two places.
+
 ## Closet
 
 - **Review's flags are data; the model only comments.** The cull is

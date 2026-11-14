@@ -1,5 +1,13 @@
 # Learnings
 
+### 2026-11-14 · lesson · Agent reports say "green" before CI has run
+Subagents reported "checks are green" for their local runs while GitHub showed no checks yet. Read `gh pr checks` before every merge, and make the brief say "do not claim CI is green".
+PR #240 · PR #241
+
+### 2026-11-14 · lesson · A new tag or field value can trip smoke's private-key regex
+#229's comic tag group `based_on` matched `PRIVATE_KEYS` as a value and turned smoke red after an unrelated deploy. The regex now needs a trailing colon (a key); when smoke goes red, confirm the match is a key before suspecting a leak or the latest deploy.
+PR #238
+
 ### 2026-11-13 · lesson · A by-hand deploy step needs a visible check
 #173's deploy order said to run the sync by hand after merging; it merged 27 minutes after that night's nightly had started, nobody ran it, and the table stayed empty for a day with nothing on the Jobs page. Any job a deploy order relies on gets a Jobs row, so a run that never happened reads "No run recorded".
 docs/planning/2026-11-13-comic-issue-sync-design.md
