@@ -221,6 +221,67 @@ async def test_an_unusable_answer_leaves_that_series_for_the_next_night(
     assert got["A"] == [] and got["B"] == GOOD_TAGS
 
 
+async def _attempts(factory) -> dict[str, int]:
+    async with factory() as session:
+        return {r.title: r.tag_attempts for r in await session.scalars(select(Item))}
+
+
+async def test_an_unusable_answer_is_a_strike(sessionmaker_for_test):
+    await _series(sessionmaker_for_test, "A")
+    provider = StubProvider({"tags": [99]})
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/comics/tags/generate")).json()
+    assert (await _attempts(sessionmaker_for_test))["A"] == 1
+    assert body["gave_up"] == []
+
+
+async def test_the_third_strike_gives_up_and_the_series_is_not_asked_again(
+    sessionmaker_for_test,
+):
+    await _series(sessionmaker_for_test, "A", tag_attempts=2)
+    provider = StubProvider({"tags": [99]})
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/comics/tags/generate")).json()
+        assert [g["title"] for g in body["gave_up"]] == ["A"]
+        again = (await client.post("/api/comics/tags/generate")).json()
+    assert (await _attempts(sessionmaker_for_test))["A"] == 3
+    assert (again["calls"], again["waiting"], again["gave_up"]) == (0, 0, [])
+    assert len(provider.prompts) == 1
+
+
+async def test_a_model_error_is_not_a_strike(sessionmaker_for_test):
+    await _series(sessionmaker_for_test, "A", tag_attempts=2)
+    provider = StubProvider(LLMError("429 quota"))
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.post("/api/comics/tags/generate")
+    assert (await _attempts(sessionmaker_for_test))["A"] == 2
+
+
+async def test_a_good_answer_after_strikes_tags_the_series(sessionmaker_for_test):
+    await _series(sessionmaker_for_test, "A", tag_attempts=2)
+    async with client_for(sessionmaker_for_test, StubProvider()) as client:
+        body = (await client.post("/api/comics/tags/generate")).json()
+    assert body["tagged"] == 1
+    assert (await _tags(sessionmaker_for_test))["A"] == GOOD_TAGS
+
+
+async def test_a_strike_is_not_written_when_the_owner_edited_meanwhile(
+    sessionmaker_for_test,
+):
+    series = await _series(sessionmaker_for_test, "A")
+
+    async def edit(_call: int) -> None:
+        async with sessionmaker_for_test() as session:
+            row = await session.get(Item, series.id)
+            row.tags_edited = True
+            await session.commit()
+
+    provider = StubProvider({"tags": [99]}, on_call=edit)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.post("/api/comics/tags/generate")
+    assert (await _attempts(sessionmaker_for_test))["A"] == 0
+
+
 async def test_a_model_error_stops_the_run_and_tags_nothing_it_did_not_read(
     sessionmaker_for_test,
 ):
