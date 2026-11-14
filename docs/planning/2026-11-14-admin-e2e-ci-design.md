@@ -43,9 +43,9 @@ still applies in CI. The report uploads on failure.
 ## Tasks
 
 - [x] Plan doc
-- [ ] `e2e-admin` job in `ci.yml`
-- [ ] README (Browser tests → Admin suite), CLAUDE.md Commands, `docs/learnings.md` sentence
-- [ ] Local `npm run e2e:admin` green
+- [x] `e2e-admin` job in `ci.yml`
+- [x] README (Browser tests → Admin suite), CLAUDE.md Commands, `docs/learnings.md` sentence
+- [x] Local `npm run e2e:admin` green
 
 ## Smoke check
 

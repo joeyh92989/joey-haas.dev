@@ -9,7 +9,7 @@ The Ship "live when" check cannot tell the old backend from the new one for a ch
 PR #218
 
 ### 2026-11-12 · decision · Admin browser tests sign in through a local-only test route
-Chose a `POST /api/auth/test-login` mounted only with `E2E_TEST_LOGIN=1`, refused at config load unless `FRONTEND_URL` is localhost, over minting Starlette's cookie in Node (couples tests to the cookie format and the secret) or mocking every `/api` call (tests mocks, not the API). The admin suite runs locally against its own `joeyhaas_e2e` database; CI runs it later.
+Chose a `POST /api/auth/test-login` mounted only with `E2E_TEST_LOGIN=1`, refused at config load unless `FRONTEND_URL` is localhost, over minting Starlette's cookie in Node (couples tests to the cookie format and the secret) or mocking every `/api` call (tests mocks, not the API). The admin suite runs against its own `joeyhaas_e2e` database, locally and in CI (the `e2e-admin` job, #216).
 docs/planning/2026-11-12-admin-e2e-design.md
 
 ### 2026-11-12 · lesson · smoke.sh pins page titles
