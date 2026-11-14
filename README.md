@@ -9,7 +9,7 @@ Resume/portfolio website and the home of a media collection tracker. React
 frontend/   React app (Vite) — routed static site; bio, projects and blog ship in the bundle
 backend/    FastAPI app — Google sign-in, the media tracker's API, Alembic migrations
 docs/       Specs and plans, one design + plan pair per feature, under docs/planning/
-scripts/    smoke.sh — post-deploy verification
+scripts/    smoke.sh — post-deploy verification; render-logs.sh — recent API errors
 render.yaml Render Blueprint — defines both services for auto-deploy
 ```
 
@@ -744,6 +744,21 @@ After a deploy:
 
 Defaults to the production URLs; pass `[SITE_URL] [API_URL]` to target
 something else. Exits non-zero if any check fails.
+
+## Render logs
+
+Smoke can pass while a deploy logs new errors, so the ship step also reads
+the API service's recent errors:
+
+```sh
+./scripts/render-logs.sh [SINCE_MINUTES] [LEVEL]   # defaults: 30, error
+```
+
+It needs a Render API key in `RENDER_API_KEY` (Render → Account Settings → API
+Keys; Render keys are not scoped, so keep it in your shell profile, never in
+the repo). Exit 0 means no entries, 1 means entries were printed, 2 means the
+logs could not be read. The service and owner IDs are in the script; they are
+identifiers, not secrets.
 
 ## Browser tests
 
