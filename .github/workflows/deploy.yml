@@ -17,7 +17,7 @@ name: Deploy API
 # Off until the API_DEPLOY_FROM_ACTIONS repository variable is "true", which is
 # set together with `autoDeployTrigger: off` on the API in render.yaml (the
 # cutover). Until then Render deploys on its own and this would deploy twice.
-# A manual run (Run workflow) always works and is the dry run: migrations are a
+# A manual run (Run workflow, on main) always works and is the dry run: migrations are a
 # no-op when current, and the hook redeploys the commit it is given.
 #
 # Needs secrets DATABASE_URL_DIRECT (Neon's direct, unpooled URL) and
@@ -45,9 +45,15 @@ env:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || vars.API_DEPLOY_FROM_ACTIONS == 'true'
+    # main only, for the manual run too: a run on a feature branch would migrate
+    # production and deploy code that was never merged.
+    if: >-
+      github.ref == 'refs/heads/main'
+      && (github.event_name == 'workflow_dispatch' || vars.API_DEPLOY_FROM_ACTIONS == 'true')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The wait below is at most 60 x (10 s curl + 15 s sleep) = 25 minutes, so
+    # its own error fires before this limit does.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
@@ -105,7 +111,7 @@ jobs:
       - name: Wait for the new build
         run: |
           for attempt in $(seq 1 60); do
-            live="$(curl -s -m 30 "$API_URL/api/version" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')"
+            live="$(curl -s -m 10 "$API_URL/api/version" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')"
             echo "attempt $attempt: live commit '${live:-none}'"
             if [ "$live" = "$GITHUB_SHA" ]; then
               echo "The API is serving $GITHUB_SHA"
